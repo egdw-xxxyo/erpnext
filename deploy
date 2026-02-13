@@ -10,9 +10,18 @@ dc() {
 }
 
 init_docker() {
-  if [ ! -d "$DOCKER_DIR" ]; then
+  if [ ! -d "$DOCKER_DIR" ] || [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
     echo "==> Cloning frappe_docker..."
+    rm -rf "$DOCKER_DIR"
     git clone --depth 1 https://github.com/frappe/frappe_docker "$DOCKER_DIR"
+
+    if [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
+      echo "ERROR: Failed to clone frappe_docker or pwd.yml not found"
+      exit 1
+    fi
+    echo "==> frappe_docker cloned successfully"
+  else
+    echo "==> frappe_docker already exists, skipping clone"
   fi
 }
 
@@ -20,9 +29,19 @@ build_image() {
   echo "==> Building image with Ukrainian translations..."
   docker build -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
 
+  if [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
+    echo "ERROR: $DOCKER_DIR/pwd.yml not found. Run init_docker first."
+    exit 1
+  fi
+
   echo "==> Patching pwd.yml to use custom image..."
-  sed -i.bak "s|image: frappe/erpnext:v15.96.1|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
-  rm -f "$DOCKER_DIR/pwd.yml.bak"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i.bak "s|image: frappe/erpnext:v15.96.1|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
+    rm -f "$DOCKER_DIR/pwd.yml.bak"
+  else
+    sed -i.bak "s|image: frappe/erpnext:v15.96.1|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
+    rm -f "$DOCKER_DIR/pwd.yml.bak"
+  fi
 }
 
 case "${1:-}" in
