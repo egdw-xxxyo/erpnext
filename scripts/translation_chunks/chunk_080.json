@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Serial No {0} already exists",
+    "ru": "Серийный номер {0} уже существует"
+  },
+  {
+    "en": "Serial No {0} already scanned",
+    "ru": "Серийный номер {0} уже отсканирован"
+  },
+  {
+    "en": "Serial No {0} does not exists",
+    "ru": "Серийный номер {0} не существует"
+  },
+  {
+    "en": "Serial No {0} is already Delivered. You cannot use them again in Manufacture / Repack entry.",
+    "ru": "Серийный номер {0} уже доставлен. Вы не сможете использовать его повторно при изготовлении/переупаковке."
+  },
+  {
+    "en": "Serial No {0} is already added",
+    "ru": "Серийный номер {0} уже добавлен"
+  },
+  {
+    "en": "Serial No {0} is already assigned to customer {1}. Can only be returned against the customer {1}",
+    "ru": "Серийный номер {0} уже закреплен за клиентом {1}. Возврат возможен только на клиента {1}"
+  },
+  {
+    "en": "Serial No {0} is not present in the {1} {2}, hence you can't return it against the {1} {2}",
+    "ru": "Серийный номер {0} отсутствует в {1} {2}, поэтому вы не можете оформить возврат по {1} {2}"
+  },
+  {
+    "en": "Serial Nos",
+    "ru": "Серийные номера"
+  },
+  {
+    "en": "Serial Nos / Batch Nos",
+    "ru": "Серийные номера/номера партий"
+  },
+  {
+    "en": "Serial Nos are created successfully",
+    "ru": "Серийные номера созданы успешно"
+  },
+  {
+    "en": "Serial Nos are reserved in Stock Reservation Entries, you need to unreserve them before proceeding.",
+    "ru": "Серийные номера зарезервированы в записях о резервировании запасов, вам необходимо снять резервирование, прежде чем продолжить."
+  },
+  {
+    "en": "Serial Nos {0} are already Delivered. You cannot use them again in Manufacture / Repack entry.",
+    "ru": "Серийные номера {0} уже доставлены. Вы не сможете использовать их повторно при производстве/переупаковке."
+  },
+  {
+    "en": "Serial and Batch",
+    "ru": "Серийный и партионный"
+  },
+  {
+    "en": "Serial and Batch Bundle",
+    "ru": "Серийный и партионный комплект"
+  },
+  {
+    "en": "Serial and Batch Bundle created",
+    "ru": "Серийный и партионный комплект создан"
+  },
+  {
+    "en": "Serial and Batch Bundle updated",
+    "ru": "Серийный и партионный комплект обновлен"
+  },
+  {
+    "en": "Serial and Batch Bundle {0} is already used in {1} {2}.",
+    "ru": "Комплект серийных номеров и партий {0} уже используется в {1} {2}."
+  },
+  {
+    "en": "Serial and Batch Bundle {0} is not submitted",
+    "ru": "Пакет серий и партий {0} не проведен"
+  },
+  {
+    "en": "Serial and Batch Details",
+    "ru": "Серийный номер и данные партии"
+  },
+  {
+    "en": "Serial and Batch Entry",
+    "ru": "Запись о серийном номере и партии"
+  },
+  {
+    "en": "Serial and Batch No",
+    "ru": "Серийный номер и номер партии"
+  },
+  {
+    "en": "Serial and Batch Nos",
+    "ru": "Серийные номера и номера партий"
+  },
+  {
+    "en": "Serial and Batch Nos will be auto-reserved based on <b>Pick Serial / Batch Based On</b>",
+    "ru": "Серийные номера и номера партии будут автоматически зарезервированы на основе <b>Выберите серийный номер/партию на основе</b>"
+  },
+  {
+    "en": "Serial and Batch Reservation",
+    "ru": "Резервирование по серийному номеру и партии"
+  },
+  {
+    "en": "Serial and Batch Summary",
+    "ru": "Сводка по сериям и партиям"
+  },
+  {
+    "en": "Service Cost Per Qty",
+    "ru": "Стоимость услуги за единицу товара"
+  },
+  {
+    "en": "Service Expense Account",
+    "ru": "Счет расходов по услугам"
+  },
+  {
+    "en": "Service Expense Total Amount",
+    "ru": "Общая сумма расходов на обслуживание"
+  },
+  {
+    "en": "Service Expenses",
+    "ru": "Расходы на обслуживание"
+  },
+  {
+    "en": "Service Item",
+    "ru": "Товар обслуживания"
+  },
+  {
+    "en": "Service Item Qty",
+    "ru": "Количество позиций обслуживания"
+  },
+  {
+    "en": "Service Item Qty / Finished Good Qty",
+    "ru": "Кол-во услуги / кол-во готовой продукции"
+  },
+  {
+    "en": "Service Item UOM",
+    "ru": "Единица измерения услуги"
+  },
+  {
+    "en": "Service Item {0} is disabled.",
+    "ru": "Услуга {0} отключена."
+  },
+  {
+    "en": "Service Item {0} must be a non-stock item.",
+    "ru": "Услуга {0} должна быть нескладской позицией."
+  },
+  {
+    "en": "Service Items",
+    "ru": "Услуги"
+  },
+  {
+    "en": "Service Level Agreement for {0} {1} already exists.",
+    "ru": "Соглашение об уровне обслуживания для {0} {1} уже существует."
+  },
+  {
+    "en": "Service Level Name",
+    "ru": "Название уровня обслуживания"
+  },
+  {
+    "en": "Service Provider",
+    "ru": "Поставщик услуг"
+  },
+  {
+    "en": "Set Default Supplier",
+    "ru": "Установить поставщика по умолчанию"
+  }
+]

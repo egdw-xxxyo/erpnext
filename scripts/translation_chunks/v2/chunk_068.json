@@ -1,0 +1,152 @@
+[
+  {
+    "en": "Tuesday",
+    "ctx": "Communication Medium Timeslot"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Holiday List"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Incoming Call Handling Schedule"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Project"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Service Day"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Type"
+  },
+  {
+    "en": "Type",
+    "ctx": "Advance Taxes and Charges"
+  },
+  {
+    "en": "Type",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Type",
+    "ctx": "Material Request Plan Item"
+  },
+  {
+    "en": "Type",
+    "ctx": "Mode of Payment"
+  },
+  {
+    "en": "Type",
+    "ctx": "Payment Entry Reference"
+  },
+  {
+    "en": "Type",
+    "ctx": "Payment Order Reference"
+  },
+  {
+    "en": "Type",
+    "ctx": "Process Deferred Accounting"
+  },
+  {
+    "en": "Type",
+    "ctx": "Purchase Taxes and Charges"
+  },
+  {
+    "en": "Type",
+    "ctx": "Quality Feedback"
+  },
+  {
+    "en": "Type",
+    "ctx": "Sales Invoice Payment"
+  },
+  {
+    "en": "Type",
+    "ctx": "Sales Taxes and Charges"
+  },
+  {
+    "en": "Type",
+    "ctx": "Task"
+  },
+  {
+    "en": "UOM in case unspecified in imported data",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "URL",
+    "ctx": "Video"
+  },
+  {
+    "en": "Unable to automatically determine {0} accounts. Set them up in the {1} table if needed."
+  },
+  {
+    "en": "Unable to find the time slot in the next {0} days for the operation {1}."
+  },
+  {
+    "en": "Undeposited Funds Account",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Unknown"
+  },
+  {
+    "en": "Unsubscribed",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Unsubscribed",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Unsubscribed",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Update"
+  },
+  {
+    "en": "Update Existing Records",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Update Stock Opening Balance"
+  },
+  {
+    "en": "Update Total Purchase Cost"
+  },
+  {
+    "en": "Updating Opening Balances"
+  },
+  {
+    "en": "Updating {0} of {1}, {2}"
+  },
+  {
+    "en": "Use this field to render any custom HTML in the section.",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "User"
+  },
+  {
+    "en": "User",
+    "ctx": "Asset Activity"
+  },
+  {
+    "en": "User",
+    "ctx": "Cashier Closing"
+  },
+  {
+    "en": "User",
+    "ctx": "POS Profile User"
+  }
+]

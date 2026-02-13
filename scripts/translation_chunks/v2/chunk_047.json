@@ -1,0 +1,142 @@
+[
+  {
+    "en": "Percentage",
+    "ctx": "POS Invoice Item"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Payment Schedule"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Payment Term"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Payment Terms Template Detail"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Pricing Rule"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Purchase Invoice Item"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Purchase Order Item"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Purchase Receipt Item"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Quotation Item"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Sales Invoice Item"
+  },
+  {
+    "en": "Percentage",
+    "ctx": "Sales Order Item"
+  },
+  {
+    "en": "Period"
+  },
+  {
+    "en": "Period Closing Entry"
+  },
+  {
+    "en": "Personal",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Phone"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Mode of Payment"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Payment Gateway Account"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Phone",
+    "ctx": "Voice Call Settings"
+  },
+  {
+    "en": "Pick Batch No"
+  },
+  {
+    "en": "Plan to Request Qty",
+    "ctx": "Material Request Plan Item"
+  },
+  {
+    "en": "Please clear the"
+  },
+  {
+    "en": "Please enable pop-ups"
+  },
+  {
+    "en": "Please ensure {} account is a Balance Sheet account. You can change the parent account to a Balance Sheet account or select a different account."
+  },
+  {
+    "en": "Please ensure {} account {} is a Payable account. Change the account type to Payable or select a different account."
+  },
+  {
+    "en": "Please enter Maintaince Details first"
+  },
+  {
+    "en": "Please enter Reqd by Date"
+  },
+  {
+    "en": "Please enter Stock Items consumed during the Repair."
+  },
+  {
+    "en": "Please enter Warehouse from which Stock Items consumed during the Repair were taken."
+  },
+  {
+    "en": "Please enter company first"
+  },
+  {
+    "en": "Please first set Last Name, Email and Phone for the user"
+  },
+  {
+    "en": "Please mention Round Off Account in Company"
+  },
+  {
+    "en": "Please mention Round Off Cost Center in Company"
+  },
+  {
+    "en": "Please select BOM in BOM field for Item {0}"
+  },
+  {
+    "en": "Please select either the Item or Warehouse filter to generate the report."
+  },
+  {
+    "en": "Please select {0}"
+  },
+  {
+    "en": "Please set Number of Depreciations Booked"
+  }
+]

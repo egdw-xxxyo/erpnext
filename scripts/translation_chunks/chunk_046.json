@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Kilowatt-Hour",
+    "ru": "Киловатт-час"
+  },
+  {
+    "en": "Kindly cancel the Manufacturing Entries first against the work order {0}.",
+    "ru": "Пожалуйста, сначала отмените производственные записи по заказу на работу {0}."
+  },
+  {
+    "en": "Kip",
+    "ru": "Кип"
+  },
+  {
+    "en": "Knot",
+    "ru": "Узел"
+  },
+  {
+    "en": "LIFO",
+    "ru": "ЛИФО"
+  },
+  {
+    "en": "Landed Cost",
+    "ru": "Итоговая себестоимость"
+  },
+  {
+    "en": "Landed Cost Id",
+    "ru": "Итоговая себестоимость Id"
+  },
+  {
+    "en": "Landed Cost Report",
+    "ru": "Отчёт о полной себестоимости"
+  },
+  {
+    "en": "Landed Cost Vendor Invoice",
+    "ru": "Счет-фактура поставщика с указанием стоимости доставки"
+  },
+  {
+    "en": "Last GL Entry update was done {}. This operation is not allowed while system is actively being used. Please wait for 5 minutes before retrying.",
+    "ru": "Последнее обновление записи GL было выполнено {}. Эта операция не допускается, пока система активно используется. Подождите 5 минут перед повторной попыткой."
+  },
+  {
+    "en": "Last Scanned Warehouse",
+    "ru": "Последний отсканированный склад"
+  },
+  {
+    "en": "Last transacted",
+    "ru": "Последняя транзакция"
+  },
+  {
+    "en": "Lead -> Prospect",
+    "ru": "Потенциальный покупатель -> Заинтересованный потенциальный клиент"
+  },
+  {
+    "en": "Lead Owner cannot be same as the Lead Email Address",
+    "ru": "Владелец лида не может совпадать с адресом электронной почты лида"
+  },
+  {
+    "en": "Lead {0} has been added to prospect {1}.",
+    "ru": "Лид {0} был добавлен в проспект {1}."
+  },
+  {
+    "en": "Leads",
+    "ru": "Лиды"
+  },
+  {
+    "en": "Learn about <a href=\\\"https://docs.frappe.io/erpnext/user/manual/en/common_party_accounting\\\" rel=\\\"noopener noreferrer\\\">Common Party</a>",
+    "ru": "Узнайте о <a href=\\\"https://docs.frappe.io/erpnext/user/manual/en/common_party_accounting\\\" rel=\\\"noopener noreferrer\\\">Общей партии</a>"
+  },
+  {
+    "en": "Leave blank for home.\\nThis is relative to site URL, for example \\\"about\\\" will redirect to \\\"https://yoursitename.com/about\\",
+    "ru": "Оставьте пустым для домашней страницы.\\nЭто относится к URL-адресу сайта, например, «about» перенаправит на «https://yoursitename.com/about»"
+  },
+  {
+    "en": "Ledger Health",
+    "ru": "Состояние бухгалтерских книг"
+  },
+  {
+    "en": "Ledger Health Monitor",
+    "ru": "Монитор состояния бухгалтерских книг"
+  },
+  {
+    "en": "Ledger Health Monitor Company",
+    "ru": "Компания по мониторингу состояния бухгалтерских книг"
+  },
+  {
+    "en": "Ledger Merge",
+    "ru": "Объединение бухгалтерских книг"
+  },
+  {
+    "en": "Ledger Merge Accounts",
+    "ru": "Объединение счетов в главной книге"
+  },
+  {
+    "en": "Ledger Type",
+    "ru": "Тип бухгалтерской книги"
+  },
+  {
+    "en": "Ledgers",
+    "ru": "Бухгалтерские книги"
+  },
+  {
+    "en": "Left Child",
+    "ru": "Левый потомок"
+  },
+  {
+    "en": "Legacy Fields",
+    "ru": "Устаревшие поля"
+  },
+  {
+    "en": "Legend",
+    "ru": "Пояснение"
+  },
+  {
+    "en": "Length (cm)",
+    "ru": "Длина (см)"
+  },
+  {
+    "en": "Level (BOM)",
+    "ru": "Уровень спецификации"
+  },
+  {
+    "en": "Limit timeslot for Stock Reposting",
+    "ru": "Ограничить временной интервал для обновления запасов"
+  },
+  {
+    "en": "Limits don't apply on",
+    "ru": "Ограничения не применяются на"
+  },
+  {
+    "en": "Line Reference",
+    "ru": "Ссылка на линию"
+  },
+  {
+    "en": "Link a new bank account",
+    "ru": "Привязать новый банковский счет"
+  },
+  {
+    "en": "Link with Customer",
+    "ru": "Связь с клиентом"
+  },
+  {
+    "en": "Link with Supplier",
+    "ru": "Связь с поставщиком"
+  },
+  {
+    "en": "Linked with submitted documents",
+    "ru": "Связано с отправленными документами"
+  },
+  {
+    "en": "Linking Failed",
+    "ru": "Сбой связи"
+  },
+  {
+    "en": "Linking to Customer Failed. Please try again.",
+    "ru": "Связь с клиентом не удалась. Пожалуйста, попробуйте еще раз."
+  },
+  {
+    "en": "Linking to Supplier Failed. Please try again.",
+    "ru": "Ссылка на поставщика не удалась. Попробуйте еще раз."
+  }
+]

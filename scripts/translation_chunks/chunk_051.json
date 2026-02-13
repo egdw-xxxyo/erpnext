@@ -1,0 +1,162 @@
+[
+  {
+    "en": "New Lead (Last 1 Month)",
+    "ru": "Новый потенциальный клиент (за последний месяц)"
+  },
+  {
+    "en": "New Note",
+    "ru": "Новая заметка"
+  },
+  {
+    "en": "New Opportunity (Last 1 Month)",
+    "ru": "Новая возможность (за последний месяц)"
+  },
+  {
+    "en": "New Task",
+    "ru": "Новая задача"
+  },
+  {
+    "en": "New Version",
+    "ru": "Новая версия"
+  },
+  {
+    "en": "New fiscal year created :- ",
+    "ru": "Создан новый финансовый год:- "
+  },
+  {
+    "en": "New revised budget created successfully",
+    "ru": "Новый пересмотренный бюджет успешно создан"
+  },
+  {
+    "en": "Newton",
+    "ru": "Ньютон"
+  },
+  {
+    "en": "No <strong>Account Data</strong> row found",
+    "ru": "Не найдено ни одной строки <strong>данных учетной записи</strong>"
+  },
+  {
+    "en": "No Answer",
+    "ru": "Нет ответа"
+  },
+  {
+    "en": "No Customers found with selected options.",
+    "ru": "Клиенты с выбранными параметрами не найдены."
+  },
+  {
+    "en": "No Impact on Accounting Ledger",
+    "ru": "Без влияния на бухгалтерский журнал"
+  },
+  {
+    "en": "No Items selected for transfer.",
+    "ru": "Не выбрано ни одного товара для передачи."
+  },
+  {
+    "en": "No Matching Bank Transactions Found",
+    "ru": "Не найдены соответствующие банковские операции"
+  },
+  {
+    "en": "No Notes",
+    "ru": "Нет заметок"
+  },
+  {
+    "en": "No Outstanding Invoices found for this party",
+    "ru": "Не найдено неоплаченных счетов для данного контрагента"
+  },
+  {
+    "en": "No POS Profile found. Please create a New POS Profile first",
+    "ru": "Не найден профиль POS. Сначала создайте новый профиль POS"
+  },
+  {
+    "en": "No Purchase Orders were created",
+    "ru": "Заказы на закупку не были созданы"
+  },
+  {
+    "en": "No Records for these settings.",
+    "ru": "Нет записей для этих настроек."
+  },
+  {
+    "en": "No Selection",
+    "ru": "Ничего не выбрано"
+  },
+  {
+    "en": "No Serial / Batches are available for return",
+    "ru": "Нет доступных серийных номеров/партий для возврата"
+  },
+  {
+    "en": "No Stock Available Currently",
+    "ru": "В настоящее время нет в наличии"
+  },
+  {
+    "en": "No Summary",
+    "ru": "Нет сводной информации"
+  },
+  {
+    "en": "No Tax Withholding data found for the current posting date.",
+    "ru": "Данные о налоговых удержаниях не найдены для текущей даты."
+  },
+  {
+    "en": "No Tax withholding account set for Company {0} in Tax Withholding Category {1}.",
+    "ru": "Для компании {0} в категории удержания налогов {1} не установлен счет для удержания налогов."
+  },
+  {
+    "en": "No Terms",
+    "ru": "Нет условий"
+  },
+  {
+    "en": "No Unreconciled Invoices and Payments found for this party and account",
+    "ru": "Не найдено несогласованных счетов и платежей для данного контрагента и счета"
+  },
+  {
+    "en": "No Unreconciled Payments found for this party",
+    "ru": "Для этого контрагента не найдено несогласованных платежей"
+  },
+  {
+    "en": "No Work Orders were created",
+    "ru": "Заказы на работы не созданы"
+  },
+  {
+    "en": "No additional fields available",
+    "ru": "Нет доступных дополнительных полей"
+  },
+  {
+    "en": "No available quantity to reserve for item {0} in warehouse {1}",
+    "ru": "Нет доступного количества для резервирования товара {0} на складе {1}"
+  },
+  {
+    "en": "No billing email found for customer: {0}",
+    "ru": "Не найден адрес электронной почты для выставления счета для клиента: {0}"
+  },
+  {
+    "en": "No data found. Seems like you uploaded a blank file",
+    "ru": "Данные не найдены. Похоже, вы загрузили пустой файл"
+  },
+  {
+    "en": "No difference found for stock account {0}",
+    "ru": "Различий по складскому счёту {0} не обнаружено"
+  },
+  {
+    "en": "No employee was scheduled for call popup",
+    "ru": "Для вызова не запланирован ни один сотрудник"
+  },
+  {
+    "en": "No item available for transfer.",
+    "ru": "Нет доступных для передачи товаров."
+  },
+  {
+    "en": "No items are available in sales orders {0} for production",
+    "ru": "Нет доступных товаров в заказах на продажу {0} для производства"
+  },
+  {
+    "en": "No items are available in the sales order {0} for production",
+    "ru": "Нет доступных товаров в заказах на продажу {0} для производства"
+  },
+  {
+    "en": "No items in cart",
+    "ru": "Нет товаров в корзине"
+  },
+  {
+    "en": "No matches occurred via auto reconciliation",
+    "ru": "При автоматической сверке совпадений не найдено"
+  }
+]

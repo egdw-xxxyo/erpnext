@@ -1,0 +1,152 @@
+[
+  {
+    "en": "About {0} seconds remaining"
+  },
+  {
+    "en": "Accepted",
+    "ctx": "Quality Inspection"
+  },
+  {
+    "en": "Accepted",
+    "ctx": "Quality Inspection Reading"
+  },
+  {
+    "en": "Access Token",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "Account Closing Balance"
+  },
+  {
+    "en": "Account",
+    "ctx": "Bank Clearance"
+  },
+  {
+    "en": "Account",
+    "ctx": "Bank Guarantee"
+  },
+  {
+    "en": "Account",
+    "ctx": "Budget Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "Exchange Rate Revaluation Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "GL Entry"
+  },
+  {
+    "en": "Account",
+    "ctx": "Journal Entry Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "Journal Entry Template Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "Ledger Merge"
+  },
+  {
+    "en": "Account",
+    "ctx": "Ledger Merge Accounts"
+  },
+  {
+    "en": "Account",
+    "ctx": "Payment Entry Deduction"
+  },
+  {
+    "en": "Account",
+    "ctx": "Payment Entry Reference"
+  },
+  {
+    "en": "Account",
+    "ctx": "Payment Ledger Entry"
+  },
+  {
+    "en": "Account",
+    "ctx": "Payment Order"
+  },
+  {
+    "en": "Account",
+    "ctx": "Payment Order Reference"
+  },
+  {
+    "en": "Account",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "Account",
+    "ctx": "Process Deferred Accounting"
+  },
+  {
+    "en": "Account",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Account",
+    "ctx": "Sales Invoice Payment"
+  },
+  {
+    "en": "Account",
+    "ctx": "South Africa VAT Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "Tax Withholding Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "UAE VAT Account"
+  },
+  {
+    "en": "Account",
+    "ctx": "Unreconcile Payment Entries"
+  },
+  {
+    "en": "Account",
+    "ctx": "Warehouse"
+  },
+  {
+    "en": "Account Balance (From)",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Account Balance (To)",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Account {0} does not belongs to company {1}"
+  },
+  {
+    "en": "Account {0} has been entered multiple times"
+  },
+  {
+    "en": "Account: {0} does not exist"
+  },
+  {
+    "en": "Accounting Entries are reposted"
+  },
+  {
+    "en": "Accounting Entries are reposted."
+  },
+  {
+    "en": "Accounting entries are frozen up to this date. Nobody can create or modify entries except users with the role specified below",
+    "ctx": "Accounts Settings"
+  },
+  {
+    "en": "Accounting entries for this invoice need to be reposted. Please click on 'Repost' button to update."
+  },
+  {
+    "en": "Accounting entries for this invoice needs to be reposted. Please click on 'Repost' button to update."
+  },
+  {
+    "en": "Accounts Manager"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Use CSV Sniffer",
+    "ru": "Использовать CSV-сниффер"
+  },
+  {
+    "en": "Use Company Default Round Off Cost Center",
+    "ru": "Использовать стандартный для компании центр затрат для округления"
+  },
+  {
+    "en": "Use Company default Cost Center for Round off",
+    "ru": "Использовать центр затрат компании по умолчанию для округления"
+  },
+  {
+    "en": "Use Default Warehouse",
+    "ru": "Использовать склад по умолчанию"
+  },
+  {
+    "en": "Use HTTP Protocol",
+    "ru": "Использовать протокол HTTP"
+  },
+  {
+    "en": "Use Item based reposting",
+    "ru": "Корректировка по товару"
+  },
+  {
+    "en": "Use Legacy (Client side) Reactivity",
+    "ru": "Использовать устаревшее (на стороне клиента) обновление данных"
+  },
+  {
+    "en": "Use Legacy Budget Controller",
+    "ru": "Использовать устаревший контроллер бюджета"
+  },
+  {
+    "en": "Use Legacy Controller For Period Closing Voucher",
+    "ru": "Использовать устаревший контроллер для ваучера закрытия периода"
+  },
+  {
+    "en": "Use Prices from Default Price List as Fallback",
+    "ru": "Использовать цены из прайс-листа по умолчанию как запасной вариант"
+  },
+  {
+    "en": "Use Serial / Batch Fields",
+    "ru": "Использовать поля серийных номеров и партий"
+  },
+  {
+    "en": "Use Serial No / Batch Fields",
+    "ru": "Использовать поля серийных номеров и партий"
+  },
+  {
+    "en": "Use Transaction Date Exchange Rate",
+    "ru": "Использовать обменный курс на дату транзакции"
+  },
+  {
+    "en": "Used with Financial Report Template",
+    "ru": "Используется с шаблоном финансового отчета"
+  },
+  {
+    "en": "User Forum",
+    "ru": "Форум пользователей"
+  },
+  {
+    "en": "User {0}: Removed Employee Self Service role as there is no mapped employee.",
+    "ru": "Пользователь {0}: Удалена роль \\\"Самообслуживание сотрудника\\\", так как не найден соответствующий сотрудник."
+  },
+  {
+    "en": "User {0}: Removed Employee role as there is no mapped employee.",
+    "ru": "Пользователь {0}: Удалена роль сотрудника, поскольку сопоставленного сотрудника нет."
+  },
+  {
+    "en": "Users can consume raw materials and add semi-finished goods or final finished goods against the operation using job cards.",
+    "ru": "Пользователи могут потреблять сырье и добавлять полуфабрикаты или готовую продукцию к операции, используя карты заданий."
+  },
+  {
+    "en": "Users can enable the checkbox If they want to adjust the incoming rate (set using purchase receipt) based on the purchase invoice rate.",
+    "ru": "Пользователи могут включить флажок, если они хотят скорректировать входящую ставку (установленную с помощью чека о покупке) на основе ставки в счете-фактуре покупки."
+  },
+  {
+    "en": "Users with this role are allowed to over bill above the allowance percentage",
+    "ru": "Пользователям с этой ролью разрешено выставлять счета сверх установленного процента"
+  },
+  {
+    "en": "Users with this role are allowed to over deliver/receive against orders above the allowance percentage",
+    "ru": "Пользователи с данной ролью могут поставлять или принимать товар с превышением заказанных объемов в пределах разрешенного процента"
+  },
+  {
+    "en": "Users with this role will be notified if the asset depreciation gets failed",
+    "ru": "Пользователи с этой ролью будут уведомлены, если амортизация активов не будет выполнена"
+  },
+  {
+    "en": "Using negative stock disables FIFO/Moving average valuation when inventory is negative.",
+    "ru": "Если на складе отрицательные остатки, то методы FIFO и средневзвешенной стоимости становятся недоступными для оценки стоимости товара."
+  },
+  {
+    "en": "VAT Accounts",
+    "ru": "Счета НДС"
+  },
+  {
+    "en": "VAT Amount (AED)",
+    "ru": "Сумма НДС (дирхамы ОАЭ)"
+  },
+  {
+    "en": "VAT Audit Report",
+    "ru": "Отчет по проверке НДС"
+  },
+  {
+    "en": "VAT on Expenses and All Other Inputs",
+    "ru": "НДС на расходы и все прочие затраты"
+  },
+  {
+    "en": "VAT on Sales and All Other Outputs",
+    "ru": "НДС на продажи и все другие выходные операции"
+  },
+  {
+    "en": "Valid From must be after {0} as last GL Entry against the cost center {1} posted on this date",
+    "ru": "Дата начала действия должна быть позже {0}, так как последняя запись в главной книге учета затрат по центру затрат {1} была сделана на эту дату"
+  },
+  {
+    "en": "Valid Up To",
+    "ru": "Действительно до"
+  },
+  {
+    "en": "Valid Up To date cannot be before Valid From date",
+    "ru": "Дата окончания действия не может быть раньше даты начала действия"
+  },
+  {
+    "en": "Valid Up To date not in Fiscal Year {0}",
+    "ru": "Дата окончания действия не попадает в финансовый год {0}"
+  },
+  {
+    "en": "Validate Components and Quantities Per BOM",
+    "ru": "Проверка компонентов и количества по спецификации"
+  },
+  {
+    "en": "Validate Consumed Qty (as per BOM)",
+    "ru": "Проверить потребленное количество (согласно спецификации)"
+  },
+  {
+    "en": "Validate Material Transfer Warehouses",
+    "ru": "Проверка складов передачи материалов"
+  },
+  {
+    "en": "Validate Negative Stock",
+    "ru": "Проверить отрицательный запас"
+  },
+  {
+    "en": "Validate Pricing Rule",
+    "ru": "Проверить правило ценообразования"
+  },
+  {
+    "en": "Validate Stock on Save",
+    "ru": "Проверить наличие товара на складе при сохранении"
+  },
+  {
+    "en": "Valuation (I - K)",
+    "ru": "Оценка (I - K)"
+  },
+  {
+    "en": "Valuation Field Type",
+    "ru": "Тип поля оценки"
+  }
+]

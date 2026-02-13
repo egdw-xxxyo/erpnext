@@ -1,0 +1,20 @@
+[
+  "{0}:Fieldtype {1} for {2} cannot be indexed",
+  "{1} saved",
+  "{count} cell copied",
+  "{count} cells copied",
+  "{count} row selected",
+  "{count} rows selected",
+  "{{{0}}} is not a valid fieldname pattern. It should be {{field_name}}.",
+  "{} Complete",
+  "{} Invalid python code on line {}",
+  "{} Possibly invalid python code. <br>{}",
+  "{} does not support automated log clearing.",
+  "{} field cannot be empty.",
+  "{} has been disabled. It can only be enabled if {} is checked.",
+  "{} is not a valid date string.",
+  "{} not found in PATH! This is required to access the console.",
+  "{} not found in PATH! This is required to restore the database.",
+  "{} not found in PATH! This is required to take a backup.",
+  "← Back to upload files"
+]

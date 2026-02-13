@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Valuation Rate (In / Out)",
+    "ru": "Оценочная стоимость (при поступлении/отгрузке)"
+  },
+  {
+    "en": "Valuation rate for customer provided items has been set to zero.",
+    "ru": "Оценочная стоимость для товаров, предоставленных клиентами, установлена на уровне нуля."
+  },
+  {
+    "en": "Valuation rate for the item as per Sales Invoice (Only for Internal Transfers)",
+    "ru": "Оценочная стоимость товара согласно счету-фактуре (только для внутренних переводов)"
+  },
+  {
+    "en": "Value (G - D)",
+    "ru": "Значение (G - D)"
+  },
+  {
+    "en": "Value ({0})",
+    "ru": "Значение ({0})"
+  },
+  {
+    "en": "Value Based Inspection",
+    "ru": "Проверка по стоимости"
+  },
+  {
+    "en": "Value Details",
+    "ru": "Подробности стоимости"
+  },
+  {
+    "en": "Value Type",
+    "ru": "Тип значения"
+  },
+  {
+    "en": "Value as on",
+    "ru": "Значение на момент"
+  },
+  {
+    "en": "Value of Goods",
+    "ru": "Стоимость товаров"
+  },
+  {
+    "en": "Value of New Capitalized Asset",
+    "ru": "Стоимость нового капитализированного актива"
+  },
+  {
+    "en": "Value of New Purchase",
+    "ru": "Стоимость новой покупки"
+  },
+  {
+    "en": "Value of Scrapped Asset",
+    "ru": "Стоимость списанного актива"
+  },
+  {
+    "en": "Value of Sold Asset",
+    "ru": "Стоимость проданного актива"
+  },
+  {
+    "en": "Value of goods cannot be 0",
+    "ru": "Стоимость товаров не может быть равна 0"
+  },
+  {
+    "en": "Vara",
+    "ru": "Вара"
+  },
+  {
+    "en": "Vendor Invoice",
+    "ru": "Счет поставщика"
+  },
+  {
+    "en": "Vendor Invoices",
+    "ru": "Счета поставщика"
+  },
+  {
+    "en": "Verification failed please check the link",
+    "ru": "Проверка не удалась, пожалуйста, проверьте ссылку"
+  },
+  {
+    "en": "Versta",
+    "ru": "Верста"
+  },
+  {
+    "en": "Via Landed Cost Voucher",
+    "ru": "Через документ о затратах на доставку"
+  },
+  {
+    "en": "Vice President",
+    "ru": "Вице-президент"
+  },
+  {
+    "en": "View Account Coverage",
+    "ru": "Просмотр охвата по счёту"
+  },
+  {
+    "en": "View BOM Update Log",
+    "ru": "Просмотреть журнал обновлений спецификации"
+  },
+  {
+    "en": "View Data Based on",
+    "ru": "Просматривать данные по"
+  },
+  {
+    "en": "View Exchange Gain/Loss Journals",
+    "ru": "Просмотр журналов о прибыли/убытке от изменения курса валют"
+  },
+  {
+    "en": "View Ledgers",
+    "ru": "Просмотреть бухгалтерские книги"
+  },
+  {
+    "en": "View MRP",
+    "ru": "Просмотр MRP"
+  },
+  {
+    "en": "View Stock Balance",
+    "ru": "Просмотреть баланс акций"
+  },
+  {
+    "en": "View Stock Ledger",
+    "ru": "Просмотреть реестр акций"
+  },
+  {
+    "en": "Visits",
+    "ru": "Посещения"
+  },
+  {
+    "en": "Voice Call Settings",
+    "ru": "Настройки голосового вызова"
+  },
+  {
+    "en": "Volt-Ampere",
+    "ru": "Вольт-Ампер"
+  },
+  {
+    "en": "Voucher",
+    "ru": "Документ"
+  },
+  {
+    "en": "Voucher Detail Reference",
+    "ru": "Ссылка на подробную информацию о ваучере"
+  },
+  {
+    "en": "Voucher No is mandatory",
+    "ru": "Необходим номер документа"
+  },
+  {
+    "en": "Voucher Qty",
+    "ru": "Количество по документу"
+  },
+  {
+    "en": "Voucher Subtype",
+    "ru": "Подтип документа"
+  },
+  {
+    "en": "Voucher {0} is over-allocated by {1}",
+    "ru": "Документ {0} перераспределен на {1} больше, чем требуется"
+  },
+  {
+    "en": "Voucher-wise Balance",
+    "ru": "Остаток по документу"
+  }
+]

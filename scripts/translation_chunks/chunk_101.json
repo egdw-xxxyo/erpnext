@@ -1,0 +1,162 @@
+[
+  {
+    "en": "variance",
+    "ru": "отклонение"
+  },
+  {
+    "en": "via Asset Repair",
+    "ru": "Через ремонт активов"
+  },
+  {
+    "en": "via BOM Update Tool",
+    "ru": "через инструмент обновления спецификации"
+  },
+  {
+    "en": "{0} <b>{1}</b> has submitted Assets. Remove Item <b>{2}</b> from table to continue.",
+    "ru": "{0} <b>{1}</b> отправил(а) Активы. Удалите элемент <b>{2}</b> из таблицы, чтобы продолжить."
+  },
+  {
+    "en": "{0} Account not found against Customer {1}.",
+    "ru": "{0} Счет не найден для клиента {1}."
+  },
+  {
+    "en": "{0} Account: {1} ({2}) must be in either customer billing currency: {3} or Company default currency: {4}",
+    "ru": "{0} Счет: {1} ({2}) должен быть либо в валюте выставления счетов клиенту: {3}, либо в валюте компании по умолчанию: {4}"
+  },
+  {
+    "en": "{0} Budget for Account {1} against {2} {3} is {4}. It is already exceeded by {5}.",
+    "ru": "{0} Бюджет для счёта {1} по сравнению с {2} {3} составляет {4}. Он уже превышен на {5}."
+  },
+  {
+    "en": "{0} Budget for Account {1} against {2} {3} is {4}. It will be exceeded by {5}.",
+    "ru": "{0} Бюджет для счёта {1} по сравнению с {2} {3} составляет {4}. Он будет превышен на {5}."
+  },
+  {
+    "en": "{0} Operating Cost for operation {1}",
+    "ru": "{0} — операционные затраты для операции {1}"
+  },
+  {
+    "en": "{0} Transaction(s) Reconciled",
+    "ru": "{0} транзакций согласовано"
+  },
+  {
+    "en": "{0} account is not of company {1}",
+    "ru": "Счет {0} не принадлежит компании {1}"
+  },
+  {
+    "en": "{0} account is not of type {1}",
+    "ru": "{0} аккаунт не относится к типу {1}"
+  },
+  {
+    "en": "{0} account not found while submitting purchase receipt",
+    "ru": "{0} счет не найден при отправке чека о покупке"
+  },
+  {
+    "en": "{0} cannot be changed with opened Opening Entries.",
+    "ru": "{0} Нельзя изменить при открытых начальных записях."
+  },
+  {
+    "en": "{0} cannot be used as a Main Cost Center because it has been used as child in Cost Center Allocation {1}",
+    "ru": "{0} не может использоваться как основной центр затрат, поскольку он используется как дочерний в распределении центров затрат {1}"
+  },
+  {
+    "en": "{0} cannot be zero",
+    "ru": "{0} не может быть нулем"
+  },
+  {
+    "en": "{0} creation for the following records will be skipped.",
+    "ru": "Создание {0} для следующих записей будет пропущено."
+  },
+  {
+    "en": "{0} currency must be same as company's default currency. Please select another account.",
+    "ru": "{0} валюта должна совпадать с валютой компании по умолчанию. Выберите другой счет."
+  },
+  {
+    "en": "{0} does not belong to the Company {1}.",
+    "ru": "{0} не принадлежит компании {1}."
+  },
+  {
+    "en": "{0} entered twice {1} in Item Taxes",
+    "ru": "{0} введено дважды {1} в Налоги на товары"
+  },
+  {
+    "en": "{0} has Payment Term based allocation enabled. Select a Payment Term for Row #{1} in Payment References section",
+    "ru": "Для {0} включено распределение на основе условий платежа. Выберите условие платежа для строки # {1} в разделе «Ссылки на платежи»"
+  },
+  {
+    "en": "{0} has been modified after you pulled it. Please pull it again.",
+    "ru": "{0} был изменён после того, как вы его перетащили. Пожалуйста, перетащите его ещё раз."
+  },
+  {
+    "en": "{0} is a mandatory Accounting Dimension. <br>Please set a value for {0} in Accounting Dimensions section.",
+    "ru": "{0} — обязательный параметр учета. <br>Установите значение для {0} в разделе «Параметры учета»."
+  },
+  {
+    "en": "{0} is added multiple times on rows: {1}",
+    "ru": "{0} добавлено несколько раз в строки: {1}"
+  },
+  {
+    "en": "{0} is already running for {1}",
+    "ru": "{0} уже запущено для {1}"
+  },
+  {
+    "en": "{0} is in Draft. Submit it before creating the Asset.",
+    "ru": "{0} находится в стадии черновика. Отправьте его перед созданием актива."
+  },
+  {
+    "en": "{0} is mandatory for account {1}",
+    "ru": "{0} обязательно для счета {1}"
+  },
+  {
+    "en": "{0} is not running. Cannot trigger events for this Document",
+    "ru": "{0} не запущен. Невозможно запустить события для этого документа"
+  },
+  {
+    "en": "{0} is open. Close the POS or cancel the existing POS Opening Entry to create a new POS Opening Entry.",
+    "ru": "{0} Открыт. Закройте терминал точки продажи или отмените существующую запись открытия терминала точки продажи, чтобы создать новую запись открытия терминала точки продажи."
+  },
+  {
+    "en": "{0} items lost during process.",
+    "ru": "{0} Предметов потеряно в процессе."
+  },
+  {
+    "en": "{0} not allowed to transact with {1}. Please change the Company or add the Company in the 'Allowed To Transact With'-Section in the Customer record.",
+    "ru": "{0} не разрешено совершать транзакции с {1}. Пожалуйста, измените компанию или добавьте ее в раздел «Разрешено совершать транзакции» в записи клиента."
+  },
+  {
+    "en": "{0} qty of Item {1} is being received into Warehouse {2} with capacity {3}.",
+    "ru": "{0} количество товара {1} поступает на склад {2} вместимостью {3}."
+  },
+  {
+    "en": "{0} units are reserved for Item {1} in Warehouse {2}, please un-reserve the same to {3} the Stock Reconciliation.",
+    "ru": "{0} единиц зарезервировано для товара {1} на складе {2}, пожалуйста, снимите резервирование с {3} для сверки запасов."
+  },
+  {
+    "en": "{0} units of Item {1} is not available in any of the warehouses.",
+    "ru": "{0} единиц товара {1} нет в наличии ни на одном складе."
+  },
+  {
+    "en": "{0} units of Item {1} is picked in another Pick List.",
+    "ru": "{0} единиц товара {1} выбрано в другом списке выбора."
+  },
+  {
+    "en": "{0} units of {1} are required in {2} with the inventory dimension: {3} on {4} {5} for {6} to complete the transaction.",
+    "ru": "{0} Единицы {1} требуются на {2} с размером запаса: {3} на {4} {5} для {6} чтобы завершить операцию."
+  },
+  {
+    "en": "{0} units of {1} needed in {2} on {3} {4} to complete this transaction.",
+    "ru": "{0} единиц {1} требуется в {2} на {3} {4} для чтобы завершить эту транзакцию."
+  },
+  {
+    "en": "{0} until {1}",
+    "ru": "{0} до {1}"
+  },
+  {
+    "en": "{0} view is currently unsupported in Custom Financial Report.",
+    "ru": "Представление {0} в настоящее время не поддерживается в пользовательском финансовом отчете."
+  },
+  {
+    "en": "{0} will be given as discount.",
+    "ru": "{0} будет предоставлено в качестве скидки."
+  }
+]

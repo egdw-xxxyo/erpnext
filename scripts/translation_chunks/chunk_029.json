@@ -1,0 +1,162 @@
+[
+  {
+    "en": "EMU of current",
+    "ru": "Электромагнитная единица тока"
+  },
+  {
+    "en": "Edit BOM",
+    "ru": "Редактировать спецификацию"
+  },
+  {
+    "en": "Edit Capacity",
+    "ru": "Изменить емкость"
+  },
+  {
+    "en": "Edit Cart",
+    "ru": "Редактировать корзину"
+  },
+  {
+    "en": "Edit Note",
+    "ru": "Редактировать примечание"
+  },
+  {
+    "en": "Edit Tax Withholding Entries",
+    "ru": "Редактирование записей об удержании налогов"
+  },
+  {
+    "en": "Editing {0} is not allowed as per POS Profile settings",
+    "ru": "Редактирование {0} не допускается в соответствии с настройками профиля кассы"
+  },
+  {
+    "en": "Either 'Selling' or 'Buying' must be selected",
+    "ru": "Необходимо выбрать «Продажа» или «Покупка»"
+  },
+  {
+    "en": "Either Workstation or Workstation Type is mandatory",
+    "ru": "Обязательно наличие рабочей станции или типа рабочей станции"
+  },
+  {
+    "en": "Electricity",
+    "ru": "Электричество"
+  },
+  {
+    "en": "Electronic Equipment",
+    "ru": "Электронное оборудование"
+  },
+  {
+    "en": "Ells (UK)",
+    "ru": "Эллы (Великобритания)"
+  },
+  {
+    "en": "Email Address (required)",
+    "ru": "Адрес электронной почты (обязательно)"
+  },
+  {
+    "en": "Email Address must be unique, it is already used in {0}",
+    "ru": "Адрес электронной почты должен быть уникальным, он уже используется в {0}"
+  },
+  {
+    "en": "Email Campaign For ",
+    "ru": "Email-кампания для"
+  },
+  {
+    "en": "Email Digest Recipient",
+    "ru": "Получатель сводки по электронной почте"
+  },
+  {
+    "en": "Email Digest: {0}",
+    "ru": "Дайджест электронной почты: {0}"
+  },
+  {
+    "en": "Email Receipt",
+    "ru": "Квитанция по электронной почте"
+  },
+  {
+    "en": "Email or Phone/Mobile of the Contact are mandatory to continue.",
+    "ru": "Для продолжения обязательно укажите адрес электронной почты или номер телефона/мобильного телефона контактного лица."
+  },
+  {
+    "en": "Email verification failed.",
+    "ru": "Проверка адреса электронной почты не удалась."
+  },
+  {
+    "en": "Email:",
+    "ru": "Р­Р». Р°РґСЂРµСЃ:"
+  },
+  {
+    "en": "Employee ",
+    "ru": "Сотрудник "
+  },
+  {
+    "en": "Employee Benefits Obligation",
+    "ru": "Обязательства по выплатам вознаграждений работникам"
+  },
+  {
+    "en": "Employee Exit",
+    "ru": "Увольнение сотрудника"
+  },
+  {
+    "en": "Employee User Id",
+    "ru": "Идентификатор пользователя сотрудника"
+  },
+  {
+    "en": "Employee {0} does not belong to the company {1}",
+    "ru": "Сотрудник {0} не принадлежит компании {1}"
+  },
+  {
+    "en": "Employee {0} is currently working on another workstation. Please assign another employee.",
+    "ru": "Сотрудник {0} в настоящее время работает на другом рабочем месте. Пожалуйста, назначьте другого сотрудника."
+  },
+  {
+    "en": "Employees",
+    "ru": "Сотрудники"
+  },
+  {
+    "en": "Ems(Pica)",
+    "ru": "Ems(Pica)"
+  },
+  {
+    "en": "Enable Allow Partial Reservation in the Stock Settings to reserve partial stock.",
+    "ru": "Включите функцию «Разрешить частичное резервирование» в настройках запаса, чтобы зарезервировать часть запаса."
+  },
+  {
+    "en": "Enable Automatic Party Matching",
+    "ru": "Включить автоматическое сопоставление сторон"
+  },
+  {
+    "en": "Enable Common Party Accounting",
+    "ru": "Включить единый учёт участников"
+  },
+  {
+    "en": "Enable Cut-Off Date on Bulk Delivery Note Creation",
+    "ru": "Включить дату завершения при массовом создании накладных"
+  },
+  {
+    "en": "Enable Discount Accounting for Selling",
+    "ru": "Включить учет скидок при продаже"
+  },
+  {
+    "en": "Enable Fuzzy Matching",
+    "ru": "Включить нечеткое соответствие"
+  },
+  {
+    "en": "Enable Health Monitor",
+    "ru": "Включить монитор работоспособности"
+  },
+  {
+    "en": "Enable Immutable Ledger",
+    "ru": "Включить неизменяемый реестр"
+  },
+  {
+    "en": "Enable Item-wise Inventory Account",
+    "ru": "Включить учет товарных запасов по отдельным позициям"
+  },
+  {
+    "en": "Enable Parallel Reposting",
+    "ru": "Включить параллельную перепубликацию"
+  },
+  {
+    "en": "Enable Provisional Accounting For Non Stock Items",
+    "ru": "Включить временный учёт для не товарных позиций"
+  }
+]

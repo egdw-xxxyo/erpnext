@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Iches Of Water",
+    "ru": "Дюймы воды"
+  },
+  {
+    "en": "Idle",
+    "ru": "Неактивный"
+  },
+  {
+    "en": "If \\\"Months\\\" is selected, a fixed amount will be booked as deferred revenue or expense for each month irrespective of the number of days in a month. It will be prorated if deferred revenue or expense is not booked for an entire month",
+    "ru": "Если выбрано «Месяцы», фиксированная сумма будет записана как отложенный доход или расход за каждый месяц независимо от количества дней в месяце. Она будет пропорционально распределена, если отложенный доход или расход не записан на весь месяц"
+  },
+  {
+    "en": "If <b>Enabled</b> - Reconciliation happens on the <b>Advance Payment posting date</b><br>\\nIf <b>Disabled</b> - Reconciliation happens on oldest of 2 Dates: <b>Invoice Date</b> or the <b>Advance Payment posting date</b><br>\\n",
+    "ru": "Если <b>Включено</b> - сверка происходит на <b>дату проведения авансового платежа</b><br>\\nЕсли <b>Отключено</b> - сверка происходит в самую позднюю из 2 дат: <b>дату выставления счета</b> или <b>дату проведения авансового платежа</b><br>\\n"
+  },
+  {
+    "en": "If an operation is divided into sub operations, they can be added here.",
+    "ru": "Если операция разделена на подоперации, их можно добавить здесь."
+  },
+  {
+    "en": "If checked, Rejected Quantity will be included while making Purchase Invoice from Purchase Receipt.",
+    "ru": "Если этот флажок установлен, отклоненное количество будет включено при формировании счета-фактуры на покупку из квитанции о покупке."
+  },
+  {
+    "en": "If checked, Stock will be reserved on <b>Submit</b>",
+    "ru": "Если отмечено, товар будет зарезервирован на <b>Отправить</b>"
+  },
+  {
+    "en": "If checked, picked qty won't automatically be fulfilled on submit of pick list.",
+    "ru": "Если этот флажок установлен, выбранное количество не будет автоматически заполнено при отправке списка выбора."
+  },
+  {
+    "en": "If checked, the tax amount will be considered as already included in the Paid Amount in Payment Entry",
+    "ru": "Если отмечено, сумма налога будет считаться уже включенной в уплаченную сумму в записи платежа"
+  },
+  {
+    "en": "If checked, we will create demo data for you to explore the system. This demo data can be erased later.",
+    "ru": "Если отмечено, мы создадим демо-данные для изучения системы. Эти демо-данные можно будет удалить позже."
+  },
+  {
+    "en": "If enabled then system won't apply the pricing rule on the delivery note which will be create from the pick list",
+    "ru": "Если включено, система не будет применять правило ценообразования к накладной, которая будет создана из списка выбора"
+  },
+  {
+    "en": "If enabled then system won't override the picked qty / batches / serial numbers / warehouse.",
+    "ru": "Если включено, система не будет переопределять выбранное количество/партии/серийные номера/склад."
+  },
+  {
+    "en": "If enabled, a print of this document will be attached to each email",
+    "ru": "Если включено, распечатка этого документа будет прикреплена к каждому электронному письму"
+  },
+  {
+    "en": "If enabled, additional ledger entries will be made for discounts in a separate Discount Account",
+    "ru": "Если эта функция включена, для скидок будут сделаны дополнительные записи в бухгалтерской книге на отдельном счете скидок"
+  },
+  {
+    "en": "If enabled, all files attached to this document will be attached to each email",
+    "ru": "Если включено, все файлы, прикрепленные к этому документу, будут прикреплены к каждому электронному письму"
+  },
+  {
+    "en": "If enabled, do not update serial / batch values in the stock transactions on creation of auto Serial \\n / Batch Bundle. ",
+    "ru": "Если включено, не обновлять значения серийных номеров / партий в операциях со складскими запасами при создании автоматической упаковки серийных номеров / партий. "
+  },
+  {
+    "en": "If enabled, formula for <b>Qty to Order</b>: <br>\\nRequired Qty (BOM) - <a href=\\\"https://docs.frappe.io/erpnext/user/manual/en/projected-quantity\\\">Projected Qty</a>. <br> This helps avoid over-ordering.",
+    "ru": "Если включено, формула для <b>Количества для заказа</b>: <br>\\nТребуемое количество (спецификация) - <a href=\\\"https://docs.frappe.io/erpnext/user/manual/en/projected-quantity\\\">Прогнозируемое количество</a>. <br> Это помогает избежать избыточного заказа."
+  },
+  {
+    "en": "If enabled, formula for <b>Required Qty</b>: <br>\\nRequired Qty (BOM) - <a href=\\\"https://docs.frappe.io/erpnext/user/manual/en/projected-quantity\\\">Projected Qty</a>. <br> This helps avoid over-ordering.",
+    "ru": "Если включено, формула для <b>Необходимого количества</b>: <br>Необходимое количество (спецификация) - <a href=\\\"https://docs.frappe.io/erpnext/user/manual/en/projected-quantity\\\">Прогнозируемое количество</a>. <br> Это помогает избежать избыточного заказа."
+  },
+  {
+    "en": "If enabled, ledger entries will be posted for change amount in POS transactions",
+    "ru": "Если включено, записи в бухгалтерской книге будут проведены для суммы изменения в кассовых транзакциях"
+  },
+  {
+    "en": "If enabled, system will allow user to deliver the entire quantity of the finished goods produced against the Subcontracting Inward Order. If disabled, system will allow delivery of only the ordered quantity.",
+    "ru": "Если включено, система разрешит пользователю доставлять все готовые товары по внутреннему заказу Субподряд. Если отключено, система разрешит доставку только заказанное количество."
+  },
+  {
+    "en": "If enabled, the Scrap Item generated against a Finished Good will also be added in the Stock Entry when delivering that Finished Good.",
+    "ru": "Если включено, списанный материал (брак), связанный с готовой продукцией, также будет добавлен в складскую проводку при отгрузке этой готовой продукции."
+  },
+  {
+    "en": "If enabled, the consolidated invoices will have rounded total disabled",
+    "ru": "Если включено, у сводных счетов-фактур будет отключена округленная сумма"
+  },
+  {
+    "en": "If enabled, the item rate won't adjust to the valuation rate during internal transfers, but accounting will still use the valuation rate.",
+    "ru": "Если включено, цена товара не будет корректироваться до стоимостной оценки при внутренних перемещениях, но бухгалтерский учёт будет по-прежнему использовать стоимостную оценку."
+  },
+  {
+    "en": "If enabled, the source and target warehouse in the Material Transfer Stock Entry must be different else an error will be thrown. If inventory dimensions are present, same source and target warehouse can be allowed but atleast any one of the inventory dimension fields must be different.",
+    "ru": "Если эта опция включена, исходный и целевой склад в записи о запасах для переноса материала должны быть разными, иначе будет выдана ошибка. Если присутствуют размеры запасов, можно разрешить одинаковые исходный и целевой склады, но хотя бы одно из полей размеров запасов должно быть разным."
+  },
+  {
+    "en": "If enabled, the system will allow selecting UOMs in sales and purchase transactions only if the conversion rate is set in the item master.",
+    "ru": "Если включено, система позволит выбирать единицы измерения в операциях продажи и покупки, только если коэффициент преобразования установлен в карточке товара."
+  },
+  {
+    "en": "If enabled, the system will allow users to edit the raw materials and their quantities in the Work Order. The system will not reset the quantities as per the BOM, if the user has changed them.",
+    "ru": "Если эта опция включена, система позволит пользователям редактировать сырье и его количество в рабочем заказе. Система не будет сбрасывать количество согласно спецификации, если пользователь изменил его."
+  },
+  {
+    "en": "If enabled, the system will generate an accounting entry for materials rejected in the Purchase Receipt.",
+    "ru": "Если эта опция включена, система создаст бухгалтерскую проводку для материалов, отклоненных в квитанции о покупке."
+  },
+  {
+    "en": "If enabled, the system will use the inventory account set in the Item Master or Item Group or Brand. Otherwise, it will use the inventory account set in the Warehouse.",
+    "ru": "Если эта опция включена, система будет использовать учётную запись запасов, заданную в таблице товаров, группе товаров или бренде. В противном случае будет использоваться учётная запись запасов, заданная на складе."
+  },
+  {
+    "en": "If enabled, the system will use the moving average valuation method to calculate the valuation rate for the batched items and will not consider the individual batch-wise incoming rate.",
+    "ru": "Если этот параметр включен, система будет использовать метод оценки скользящего среднего для расчета стоимости партий товаров и не будет учитывать индивидуальную входную стоимость для каждой партии."
+  },
+  {
+    "en": "If enabled, then system will only validate the pricing rule and not apply automatically. User has to manually set the discount percentage / margin / free items to validate the pricing rule",
+    "ru": "Если включено, система будет только проверять правило ценообразования и не будет применять его автоматически. Пользователь должен вручную установить процент скидки / наценки / бесплатные товары для проверки правила ценообразования"
+  },
+  {
+    "en": "If enabled, this row's values will be displayed on financial charts",
+    "ru": "Если эта опция включена, значения этой строки будут отображаться на финансовых диаграммах"
+  },
+  {
+    "en": "If enabled, user will be alerted before resetting posting date to current date in relevant transactions",
+    "ru": "Если эта опция включена, пользователь будет уведомлен перед сбросом даты публикации на текущую дату в соответствующих транзакциях"
+  },
+  {
+    "en": "If items in stock, proceed with Material Transfer or Purchase.",
+    "ru": "Если товары есть на складе, приступайте к передаче материалов или покупке."
+  },
+  {
+    "en": "If mentioned, the system will allow only the users with this Role to create or modify any stock transaction earlier than the latest stock transaction for a specific item and warehouse. If set as blank, it allows all users to create/edit back-dated transactions.",
+    "ru": "Если указано, система будет разрешать только пользователям с этой ролью создавать или изменять любые операции со складскими запасами, которые датированы ранее последней операции со складскими запасами для конкретного товара и склада. Если оставлено пустым, это позволяет всем пользователям создавать/редактировать прошлые транзакции."
+  },
+  {
+    "en": "If no taxes are set, and Taxes and Charges Template is selected, the system will automatically apply the taxes from the chosen template.",
+    "ru": "Если налоги не установлены и выбран шаблон «Налоги и сборы», система автоматически применит налоги из выбранного шаблона."
+  },
+  {
+    "en": "If rate is zero then item will be treated as \\\"Free Item\\",
+    "ru": "Если ставка равна нулю, то товар будет считаться «Бесплатным товаром»"
+  },
+  {
+    "en": "If set, the system does not use the user's Email or the standard outgoing Email account for sending request for quotations.",
+    "ru": "Если установлено, система не использует адрес электронной почты пользователя или стандартный исходящий адрес электронной почты для отправки запросов котировок."
+  },
+  {
+    "en": "If the BOM results in Scrap material, the Scrap Warehouse needs to be selected.",
+    "ru": "Если в результате работы по спецификации возникает брак, необходимо указать склад для бракованных материалов."
+  },
+  {
+    "en": "If the reorder check is set at the Group warehouse level, the available quantity becomes the sum of the projected quantities of all its child warehouses.",
+    "ru": "Если проверка повторного заказа установлена на уровне склада группы, доступное количество становится суммой прогнозируемых количеств всех его дочерних складов."
+  },
+  {
+    "en": "If the selected BOM has Operations mentioned in it, the system will fetch all Operations from BOM, these values can be changed.",
+    "ru": "Если в выбранной спецификации указаны операции, система извлечет все операции из спецификации, эти значения можно изменить."
+  }
+]

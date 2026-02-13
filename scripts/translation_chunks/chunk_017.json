@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Cannot convert to Group because Account Type is selected.",
+    "ru": "Преобразование в группу невозможно из-за установленного типа счета."
+  },
+  {
+    "en": "Cannot create Stock Reservation Entries for future dated Purchase Receipts.",
+    "ru": "Невозможно создать записи о резервировании запасов для квитанций о покупке с будущей датой."
+  },
+  {
+    "en": "Cannot create a pick list for Sales Order {0} because it has reserved stock. Please unreserve the stock in order to create a pick list.",
+    "ru": "Невозможно создать список сборки для заказа на продажу {0}, так как имеется зарезервированный товар. Пожалуйста, снимите резервирование с товара, чтобы создать список сборки."
+  },
+  {
+    "en": "Cannot create accounting entries against disabled accounts: {0}",
+    "ru": "Невозможно создать бухгалтерские записи для отключенных счетов: {0}"
+  },
+  {
+    "en": "Cannot create return for consolidated invoice {0}.",
+    "ru": "Невозможно создать возврат для консолидированного счета-фактуры {0}."
+  },
+  {
+    "en": "Cannot delete Exchange Gain/Loss row",
+    "ru": "Невозможно удалить строку «Прибыль/убыток по обмену»"
+  },
+  {
+    "en": "Cannot delete an item which has been ordered",
+    "ru": "Невозможно удалить заказанный товар"
+  },
+  {
+    "en": "Cannot disable perpetual inventory, as there are existing Stock Ledger Entries for the company {0}. Please cancel the stock transactions first and try again.",
+    "ru": "Невозможно отключить вечную инвентаризацию, поскольку для компании {0}. Уже существуют записи в Книге учета запасов. Пожалуйста, сначала отмените операции с запасами и попробуйте снова."
+  },
+  {
+    "en": "Cannot disassemble more than produced quantity.",
+    "ru": "Невозможно разобрать больше, чем произведено."
+  },
+  {
+    "en": "Cannot enable Item-wise Inventory Account, as there are existing Stock Ledger Entries for the company {0} with Warehouse-wise Inventory Account. Please cancel the stock transactions first and try again.",
+    "ru": "Невозможно включить инвентарный счет по позициям, поскольку для компании {0} существуют записи в Книге учета запасов с инвентарным счетом по складам. Пожалуйста, сначала отмените операции с запасами и попробуйте снова."
+  },
+  {
+    "en": "Cannot find Item or Warehouse with this Barcode",
+    "ru": "Невозможно найти товар или склад с этим штрих кодом"
+  },
+  {
+    "en": "Cannot find a default warehouse for item {0}. Please set one in the Item Master or in Stock Settings.",
+    "ru": "Не удается найти склад по умолчанию для товара {0}. Пожалуйста, установите его в настройках товара или в настройках склада."
+  },
+  {
+    "en": "Cannot merge {0} '{1}' into '{2}' as both have existing accounting entries in different currencies for company '{3}'.",
+    "ru": "Невозможно объединить {0} '{1}' с '{2}', поскольку в обоих случаях существуют бухгалтерские записи в разных валютах для компании '{3}'."
+  },
+  {
+    "en": "Cannot produce more item for {0}",
+    "ru": "Невозможно произвести больше товаров для {0}"
+  },
+  {
+    "en": "Cannot produce more than {0} items for {1}",
+    "ru": "Невозможно произвести более {0} единиц товара для {1}"
+  },
+  {
+    "en": "Cannot receive from customer against negative outstanding",
+    "ru": "Невозможно получить оплату от клиента при отрицательном остатке задолженности"
+  },
+  {
+    "en": "Cannot reduce quantity than ordered or purchased quantity",
+    "ru": "Уменьшить количество по сравнению с заказанным или приобретенным количеством невозможно"
+  },
+  {
+    "en": "Cannot retrieve link token for update. Check Error Log for more information",
+    "ru": "Невозможно получить токен ссылки для обновления. Проверьте журнал ошибок для получения дополнительной информации"
+  },
+  {
+    "en": "Cannot retrieve link token. Check Error Log for more information",
+    "ru": "Невозможно получить токен ссылки. Проверьте журнал ошибок для получения дополнительной информации"
+  },
+  {
+    "en": "Cannot {0} from {1} without any negative outstanding invoice",
+    "ru": "Действие {0} для {1} невозможно без наличия отрицательного остатка по счетам-фактурам"
+  },
+  {
+    "en": "Canonical URI",
+    "ru": "Канонический URI"
+  },
+  {
+    "en": "Capacity (Stock UOM)",
+    "ru": "Вместимость (единица измерения для запасов)"
+  },
+  {
+    "en": "Capacity in Stock UOM",
+    "ru": "Вместимость в единицах учета запасов"
+  },
+  {
+    "en": "Capacity must be greater than 0",
+    "ru": "Вместимость должна быть больше 0"
+  },
+  {
+    "en": "Capital Equipment",
+    "ru": "Основные средства"
+  },
+  {
+    "en": "Capitalize Asset",
+    "ru": "Капитализировать актив"
+  },
+  {
+    "en": "Capitalize Repair Cost",
+    "ru": "Капитализация стоимости ремонта"
+  },
+  {
+    "en": "Capitalize this asset before submitting.",
+    "ru": "Перед отправкой внесите этот актив в капитал."
+  },
+  {
+    "en": "Capitalized",
+    "ru": "Капитализировано"
+  },
+  {
+    "en": "Carat",
+    "ru": "Карат"
+  },
+  {
+    "en": "Carriage Paid To",
+    "ru": "Перевозка оплачена до"
+  },
+  {
+    "en": "Carriage and Insurance Paid to",
+    "ru": "Перевозка и страхование оплачены"
+  },
+  {
+    "en": "Carrier",
+    "ru": "Перевозчик"
+  },
+  {
+    "en": "Carrier Service",
+    "ru": "Служба доставки"
+  },
+  {
+    "en": "Carry Forward Communication and Comments",
+    "ru": "Перенос сообщений и комментариев"
+  },
+  {
+    "en": "Cashier is currently assigned to another POS.",
+    "ru": "Кассир в данный момент назначен на другую точку продаж."
+  },
+  {
+    "en": "Categorize By",
+    "ru": "Категоризовать по"
+  },
+  {
+    "en": "Categorize by",
+    "ru": "Категоризовать по"
+  },
+  {
+    "en": "Categorize by Account",
+    "ru": "Категоризовать по счету"
+  },
+  {
+    "en": "Categorize by Item",
+    "ru": "Категоризовать по предмету"
+  }
+]

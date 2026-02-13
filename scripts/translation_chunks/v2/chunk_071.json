@@ -1,0 +1,157 @@
+[
+  {
+    "en": "Website",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Website",
+    "ctx": "Bank"
+  },
+  {
+    "en": "Website",
+    "ctx": "Company"
+  },
+  {
+    "en": "Website",
+    "ctx": "Competitor"
+  },
+  {
+    "en": "Website",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Website",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Website",
+    "ctx": "Manufacturer"
+  },
+  {
+    "en": "Website",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Website",
+    "ctx": "Prospect"
+  },
+  {
+    "en": "Website",
+    "ctx": "Sales Partner"
+  },
+  {
+    "en": "Website",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Website Manager"
+  },
+  {
+    "en": "Website Script",
+    "ctx": "Website Script"
+  },
+  {
+    "en": "Website Settings",
+    "ctx": "Website Settings"
+  },
+  {
+    "en": "Website Theme",
+    "ctx": "Website Theme"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Appointment Booking Slots"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Availability Of Slots"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Communication Medium Timeslot"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Holiday List"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Incoming Call Handling Schedule"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Project"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Service Day"
+  },
+  {
+    "en": "Wednesday",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Week",
+    "ctx": "Subscription Plan"
+  },
+  {
+    "en": "Weekly"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Company"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Email Digest"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Project"
+  },
+  {
+    "en": "Weekly",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Welcome email sent",
+    "ctx": "Project User"
+  },
+  {
+    "en": "Welcome to {0}"
+  },
+  {
+    "en": "Work In Progress Warehouse"
+  },
+  {
+    "en": "Workflow"
+  },
+  {
+    "en": "Workflow",
+    "ctx": "Workflow"
+  },
+  {
+    "en": "Workflow Action",
+    "ctx": "Workflow Action"
+  },
+  {
+    "en": "Workflow State",
+    "ctx": "Workflow State"
+  }
+]

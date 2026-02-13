@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Repost Item Valuation",
+    "ru": "Повторно провести оценку товаров"
+  },
+  {
+    "en": "Repost Item Valuation restarted for selected failed records.",
+    "ru": "Оценка стоимости товара повторно запущена для выбранных ошибочных записей."
+  },
+  {
+    "en": "Repost Only Accounting Ledgers",
+    "ru": "Только повторная публикация бухгалтерских книг"
+  },
+  {
+    "en": "Repost Payment Ledger",
+    "ru": "Повторно провести журнал платежей"
+  },
+  {
+    "en": "Repost Payment Ledger Items",
+    "ru": "Повторно провести позиции журнала платежей"
+  },
+  {
+    "en": "Repost Status",
+    "ru": "Статус повторной проводки"
+  },
+  {
+    "en": "Repost has started in the background",
+    "ru": "Повторная проводка запущена в фоновом режиме"
+  },
+  {
+    "en": "Repost in background",
+    "ru": "Повторная проводка в фоновом режиме"
+  },
+  {
+    "en": "Repost started in the background",
+    "ru": "Повторная проводка начата в фоновом режиме"
+  },
+  {
+    "en": "Reposting Completed {0}%",
+    "ru": "Повторная проводка завершена на {0}%"
+  },
+  {
+    "en": "Reposting Data File",
+    "ru": "Файл данных для повторной проводки"
+  },
+  {
+    "en": "Reposting Info",
+    "ru": "Информация о повторной проводке"
+  },
+  {
+    "en": "Reposting Progress",
+    "ru": "Прогресс повторной проводки"
+  },
+  {
+    "en": "Reposting Reference",
+    "ru": "Повторная публикация ссылки"
+  },
+  {
+    "en": "Reposting entries created: {0}",
+    "ru": "Создано записей повторной проводки: {0}"
+  },
+  {
+    "en": "Reposting has been started in the background.",
+    "ru": "Повторная проводка запущена в фоновом режиме."
+  },
+  {
+    "en": "Reposting in the background.",
+    "ru": "Повторная проводка выполняется в фоновом режиме."
+  },
+  {
+    "en": "Represents a Financial Year. All accounting entries and other major transactions are tracked against the Fiscal Year.",
+    "ru": "Определяет финансовый год. Все бухгалтерские записи и основные операции фиксируются в рамках этого года."
+  },
+  {
+    "en": "Reqd Qty (BOM)",
+    "ru": "Требуемое количество (BOM)"
+  },
+  {
+    "en": "Reqired Qty",
+    "ru": "Требуемое количество"
+  },
+  {
+    "en": "Request Parameters",
+    "ru": "Параметры запроса"
+  },
+  {
+    "en": "Reseller",
+    "ru": "Реселлер"
+  },
+  {
+    "en": "Reservation",
+    "ru": "Бронирование"
+  },
+  {
+    "en": "Reservation Based On",
+    "ru": "Бронирование на основе"
+  },
+  {
+    "en": "Reserve",
+    "ru": "Резервировать"
+  },
+  {
+    "en": "Reserve Stock",
+    "ru": "Резервный запас"
+  },
+  {
+    "en": "Reserve for Raw Materials",
+    "ru": "Запрос на сырье"
+  },
+  {
+    "en": "Reserve for Sub-assembly",
+    "ru": "Резерв для сборочной единицы"
+  },
+  {
+    "en": "Reserved Batch Conflict",
+    "ru": "Конфликт зарезервированной партии"
+  },
+  {
+    "en": "Reserved Qty ({0}) cannot be a fraction. To allow this, disable '{1}' in UOM {3}.",
+    "ru": "Зарезервированное количество ({0}) не может быть дробью. Чтобы разрешить это, отключите '{1}' в свецификации {3}."
+  },
+  {
+    "en": "Reserved Qty for Production Plan",
+    "ru": "Зарезервированное количество для производственного плана"
+  },
+  {
+    "en": "Reserved Qty for Subcontract",
+    "ru": "Зарезервированное количество для субподряда"
+  },
+  {
+    "en": "Reserved Qty should be greater than Delivered Qty.",
+    "ru": "Зарезервированное количество должно быть больше, чем доставленное количество."
+  },
+  {
+    "en": "Reserved Serial No.",
+    "ru": "Зарезервированный серийный номер"
+  },
+  {
+    "en": "Reserved Stock",
+    "ru": "Зарезервированный запас"
+  },
+  {
+    "en": "Reserved Stock for Batch",
+    "ru": "Зарезервированный запас для партии"
+  },
+  {
+    "en": "Reserved Stock for Raw Materials",
+    "ru": "Зарезервированный запас сырья"
+  },
+  {
+    "en": "Reserved Stock for Sub-assembly",
+    "ru": "Зарезервированный запас для предварительной сборки"
+  },
+  {
+    "en": "Reserved Warehouse is mandatory for the Item {item_code} in Raw Materials supplied.",
+    "ru": "Для товара {item_code} в поставленных сырьевых материалах требуется указать склад резерва."
+  },
+  {
+    "en": "Reserved for POS Transactions",
+    "ru": "Зарезервировано для кассовых операций"
+  }
+]

@@ -1,0 +1,152 @@
+[
+  {
+    "en": "Closed",
+    "ctx": "POS Opening Entry"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Quality Meeting"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "Closed",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Closing Fiscal Year",
+    "ctx": "Period Closing Voucher"
+  },
+  {
+    "en": "Closing Stock Balance"
+  },
+  {
+    "en": "Code",
+    "ctx": "Incoterm"
+  },
+  {
+    "en": "Code",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Collapse All"
+  },
+  {
+    "en": "Color",
+    "ctx": "Holiday List"
+  },
+  {
+    "en": "Color",
+    "ctx": "Supplier Scorecard Scoring Standing"
+  },
+  {
+    "en": "Color",
+    "ctx": "Supplier Scorecard Standing"
+  },
+  {
+    "en": "Color",
+    "ctx": "Task"
+  },
+  {
+    "en": "Color",
+    "ctx": "Vehicle"
+  },
+  {
+    "en": "Comments"
+  },
+  {
+    "en": "Comments",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Comments",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Comments",
+    "ctx": "Prospect"
+  },
+  {
+    "en": "Comments",
+    "ctx": "Video"
+  },
+  {
+    "en": "Communication"
+  },
+  {
+    "en": "Communication",
+    "ctx": "Communication"
+  },
+  {
+    "en": "Company Description for website homepage",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Company Name"
+  },
+  {
+    "en": "Company Name",
+    "ctx": "Prospect"
+  },
+  {
+    "en": "Company Name as per Imported Tally Data",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Company Settings",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Company Tagline for website homepage",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Company is manadatory for company account"
+  },
+  {
+    "en": "Company is mandatory was generating invoice. Please set default company in Global Defaults."
+  },
+  {
+    "en": "Company {0} already exists. Continuing will overwrite the Company and Chart of Accounts"
+  },
+  {
+    "en": "Complete"
+  },
+  {
+    "en": "Complete",
+    "ctx": "Job Card Operation"
+  },
+  {
+    "en": "Complete",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Completed"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Transaction from which tax is withheld",
+    "ru": "Сделка, с которой удерживается налог"
+  },
+  {
+    "en": "Transactions against the Company already exist! Chart of Accounts can only be imported for a Company with no transactions.",
+    "ru": "Транзакции по компании уже существуют! План счетов можно импортировать только для компании без транзакций."
+  },
+  {
+    "en": "Transactions using Sales Invoice in POS are disabled.",
+    "ru": "Транзакции с использованием счёта на продажу в точке продаж отключены."
+  },
+  {
+    "en": "Transfer Asset",
+    "ru": "Передача активов"
+  },
+  {
+    "en": "Transfer Extra Raw Materials to WIP (%)",
+    "ru": "Передать дополнительные материалы в незавершенное производство (%)"
+  },
+  {
+    "en": "Transfer From Warehouses",
+    "ru": "Передача со складов"
+  },
+  {
+    "en": "Transfer Materials",
+    "ru": "Передача материалов"
+  },
+  {
+    "en": "Transfer and Issue",
+    "ru": "Передача и выдача"
+  },
+  {
+    "en": "Transferred Raw Materials",
+    "ru": "Перемещенное сырье"
+  },
+  {
+    "en": "Transit",
+    "ru": "Транзит"
+  },
+  {
+    "en": "Transit Entry",
+    "ru": "Транзитная запись"
+  },
+  {
+    "en": "Trialing",
+    "ru": "Прохождение пробного периода"
+  },
+  {
+    "en": "Truncates 'Remarks' column to set character length",
+    "ru": "Усекает столбец «Примечания» для установки длины символов"
+  },
+  {
+    "en": "Turnover Ratios",
+    "ru": "Коэффициенты оборачиваемости"
+  },
+  {
+    "en": "Type Of Call",
+    "ru": "Тип вызова"
+  },
+  {
+    "en": "Type of Material",
+    "ru": "Тип материала"
+  },
+  {
+    "en": "Type of Transaction",
+    "ru": "Тип транзакции"
+  },
+  {
+    "en": "Type of financial statement this template generates",
+    "ru": "Тип финансового отчета, который генерирует этот шаблон"
+  },
+  {
+    "en": "UAE VAT 201",
+    "ru": "НДС ОАЭ 201"
+  },
+  {
+    "en": "UAE VAT Account",
+    "ru": "Счет НДС в ОАЭ"
+  },
+  {
+    "en": "UAE VAT Accounts",
+    "ru": "НДС-счета ОАЭ"
+  },
+  {
+    "en": "UAE VAT Settings",
+    "ru": "Настройки НДС в ОАЭ"
+  },
+  {
+    "en": "UOM conversion factor required for UOM: {0} in Item: {1}",
+    "ru": "Требуется коэффициент преобразования для единицы измерения: {0} в товаре: {1}"
+  },
+  {
+    "en": "UOM {0} not found in Item {1}",
+    "ru": "Единица измерения {0} не найдена для товара {1}"
+  },
+  {
+    "en": "UPC",
+    "ru": "Универсальный товарный код"
+  },
+  {
+    "en": "UnBuffered Cursor",
+    "ru": "Не буферизованный курсор"
+  },
+  {
+    "en": "UnReconcile",
+    "ru": "Отмена согласования"
+  },
+  {
+    "en": "UnReconcile Allocations",
+    "ru": "Несогласованные распределения"
+  },
+  {
+    "en": "Unable to find exchange rate for {0} to {1} for key date {2}. Please create a Currency Exchange record manually.",
+    "ru": "Не удалось найти курс для {0} к {1} на дату {2}. Пожалуйста, создайте запись обменного курса вручную."
+  },
+  {
+    "en": "Unable to find the time slot in the next {0} days for the operation {1}. Please increase the 'Capacity Planning For (Days)' in the {2}.",
+    "ru": "Не удалось найти временной интервал в ближайшие {0} дней для операции {1}. Пожалуйста, увеличьте «Планирование мощности на (дней)» в {2}."
+  },
+  {
+    "en": "Unassigned Qty",
+    "ru": "Нераспределенное количество"
+  },
+  {
+    "en": "Unbilled Orders",
+    "ru": "Заказы без выставленных счетов"
+  },
+  {
+    "en": "Under Withheld",
+    "ru": "В разделе «Скрыто»"
+  },
+  {
+    "en": "Under Withheld Reason",
+    "ru": "Причина не указана"
+  },
+  {
+    "en": "Under Working Hours table, you can add start and end times for a Workstation. For example, a Workstation may be active from 9 am to 1 pm, then 2 pm to 5 pm. You can also specify the working hours based on shifts. While scheduling a Work Order, the system will check for the availability of the Workstation based on the working hours specified.",
+    "ru": "В таблице «Рабочие часы» можно добавить время начала и окончания для рабочей станции. Например, рабочая станция может быть активна с 9:00 до 13:00, а затем с 14:00 до 17:00. Также можно указать рабочие часы на основе смен. При планировании заказа на работу система проверит доступность рабочей станции на основе указанных рабочих часов."
+  },
+  {
+    "en": "Unit Price",
+    "ru": "Цена за единицу товара"
+  },
+  {
+    "en": "Unit of Measure (UOM)",
+    "ru": "Единица измерения (ЕИ)"
+  },
+  {
+    "en": "Unlinked",
+    "ru": "Отвязано"
+  },
+  {
+    "en": "Unqualified",
+    "ru": "Неквалифицированный"
+  },
+  {
+    "en": "Unrealized Profit / Loss Account",
+    "ru": "Счет нереализованной прибыли/убытка"
+  }
+]

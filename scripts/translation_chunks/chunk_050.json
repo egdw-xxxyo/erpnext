@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Missing Finance Book",
+    "ru": "Отсутствует финансовая книга"
+  },
+  {
+    "en": "Missing Finished Good",
+    "ru": "Отсутствующая готовая продукция"
+  },
+  {
+    "en": "Missing Formula",
+    "ru": "Отсутствует формула"
+  },
+  {
+    "en": "Missing Item",
+    "ru": "Отсутствующие предметы"
+  },
+  {
+    "en": "Missing Payments App",
+    "ru": "Приложение для отслеживания отсутствующих платежей"
+  },
+  {
+    "en": "Missing Serial No Bundle",
+    "ru": "Отсутствующий комплект серийных номеров"
+  },
+  {
+    "en": "Missing required filter: {0}",
+    "ru": "Отсутствует требуемый фильтр: {0}"
+  },
+  {
+    "en": "Missing value",
+    "ru": "Отсутствующие значение"
+  },
+  {
+    "en": "Mobile: ",
+    "ru": "Мобильный: "
+  },
+  {
+    "en": "Modified On",
+    "ru": "Изменено на"
+  },
+  {
+    "en": "Module (for Export)",
+    "ru": "Модуль (для экспорта)"
+  },
+  {
+    "en": "Monitor for Last 'X' days",
+    "ru": "Мониторинг за последние 'X' дней"
+  },
+  {
+    "en": "More/Less than 12 months.",
+    "ru": "Более/менее 12 месяцев."
+  },
+  {
+    "en": "Move Stock",
+    "ru": "Переместить запас"
+  },
+  {
+    "en": "Move to Cart",
+    "ru": "Переместить в корзину"
+  },
+  {
+    "en": "Movement",
+    "ru": "Движение"
+  },
+  {
+    "en": "Moving up in tree ...",
+    "ru": "Перемещение вверх по дереву ..."
+  },
+  {
+    "en": "Multi-level BOM Creator",
+    "ru": "Многоуровневый создатель спецификации"
+  },
+  {
+    "en": "Multiple Loyalty Programs found for Customer {}. Please select manually.",
+    "ru": "Найдено несколько программ лояльности для клиента {}. Выберите вручную."
+  },
+  {
+    "en": "Multiple POS Opening Entry",
+    "ru": "Несколько записей открытия POS"
+  },
+  {
+    "en": "Multiple Warehouse Accounts",
+    "ru": "Несколько складских счетов"
+  },
+  {
+    "en": "Multiple items cannot be marked as finished item",
+    "ru": "Нельзя отметить несколько товаров как готовую продукцию"
+  },
+  {
+    "en": "Must be a publicly accessible Google Sheets URL and adding Bank Account column is necessary for importing via Google Sheets",
+    "ru": "Должен быть общедоступным URL-адресом Google Таблиц, и для импорта через Google Таблицы необходимо добавить столбец «Банковский счет»"
+  },
+  {
+    "en": "Named Place",
+    "ru": "Названное место"
+  },
+  {
+    "en": "Naming Series and Price Defaults",
+    "ru": "Именование серий и настройки цены по умолчанию"
+  },
+  {
+    "en": "Naming Series is mandatory",
+    "ru": "Обязательная серия именования"
+  },
+  {
+    "en": "Nanocoulomb",
+    "ru": "Нанокулон"
+  },
+  {
+    "en": "Nanogram/Litre",
+    "ru": "Нанограмм/литр"
+  },
+  {
+    "en": "Nanohertz",
+    "ru": "Наногерц"
+  },
+  {
+    "en": "Nanometer",
+    "ru": "Нанометр"
+  },
+  {
+    "en": "Nanosecond",
+    "ru": "Наносекунда"
+  },
+  {
+    "en": "Negative Stock Error",
+    "ru": "Отрицательная ошибка запаса"
+  },
+  {
+    "en": "Net Profit Ratio",
+    "ru": "Коэффициент валовой прибыли"
+  },
+  {
+    "en": "Net Purchase Amount",
+    "ru": "Чистая сумма закупки"
+  },
+  {
+    "en": "Net Purchase Amount is mandatory",
+    "ru": "Обязательное указание чистой суммы покупки"
+  },
+  {
+    "en": "Net Purchase Amount should be <b>equal</b> to purchase amount of one single Asset.",
+    "ru": "Чистая сумма покупки должна быть <b>равна</b> сумме покупки одного актива."
+  },
+  {
+    "en": "Net Purchase Amount {0} cannot be depreciated over {1} cycles.",
+    "ru": "Чистая сумма покупки {0} не может быть амортизирована в течение {1} циклов."
+  },
+  {
+    "en": "Net total calculation precision loss",
+    "ru": "Чистая общая потеря точности расчетов"
+  },
+  {
+    "en": "New Balance In Account Currency",
+    "ru": "Новый остаток в валюте счета"
+  },
+  {
+    "en": "New Journal Entry will be posted for the difference amount. The Posting Date can be modified.",
+    "ru": "Будет сделана новая запись в журнале на сумму разницы. Дату записи можно изменить."
+  }
+]

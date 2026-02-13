@@ -1,0 +1,162 @@
+[
+  {
+    "en": "<div class=\\\"columnHeading\\\">Other Details</div>",
+    "ru": "<div class=\\\"columnHeading\\\">Дополнительные сведения</div>"
+  },
+  {
+    "en": "<div class=\\\"text-muted text-center\\\">No Matching Bank Transactions Found</div>",
+    "ru": "<div class=\\\"text-muted text-center\\\">Соответствующих банковских транзакций не найдено</div>"
+  },
+  {
+    "en": "<div class=\\\"text-muted text-center\\\">{0}</div>",
+    "ru": "<div class=\\\"text-muted text-center\\\">{0}</div>"
+  },
+  {
+    "en": "<div>\\n<h3> All dimensions in centimeter only </h3>\\n</div>",
+    "ru": "<div>\\n<h3> Все размеры указаны в сантиметрах </h3>\\n</div>"
+  },
+  {
+    "en": "<h3>About Product Bundle</h3>\\n\\n<p>Aggregate group of <b>Items</b> into another <b>Item</b>. This is useful if you are bundling a certain <b>Items</b> into a package and you maintain stock of the packed <b>Items</b> and not the aggregate <b>Item</b>.</p>\\n<p>The package <b>Item</b> will have <code>Is Stock Item</code> as <b>No</b> and <code>Is Sales Item</code> as <b>Yes</b>.</p>\\n<h4>Example:</h4>\\n<p>If you are selling Laptops and Backpacks separately and have a special price if the customer buys both, then the Laptop + Backpack will be a new Product Bundle Item.</p>",
+    "ru": "<h3>О комплекте продуктов</h3>\\n\\n<p>Группировка <b>позиций</b> в другую <b>позицию</b>. Это полезно, если вы объединяете определенные <b>позиции</b> в комплект и ведете учет запасов для отдельных <b>позиций</b>, а не для всей группы в целом.</p>\\n<p>Комплектная <b>позиция</b> будет иметь <code>Является складской позицией</code> со значением <b>Нет</b> и <code>Является товарной позицией</code> со значением <b>Да</b>.</p>\\n<h4>Пример:</h4>\\n<p>Если вы продаете ноутбуки и рюкзаки отдельно и предлагаете специальную цену при покупке обоих товаров вместе, то \\\"Ноутбук + Рюкзак\\\" будет новой позицией комплекта продуктов.</p>"
+  },
+  {
+    "en": "<h3>Currency Exchange Settings Help</h3>\\n<p>There are 3 variables that could be used within the endpoint, result key and in values of the parameter.</p>\\n<p>Exchange rate between {from_currency} and {to_currency} on {transaction_date} is fetched by the API.</p>\\n<p>Example: If your endpoint is exchange.com/2021-08-01, then, you will have to input exchange.com/{transaction_date}</p>",
+    "ru": "<h3>Справка по настройкам обмена валют</h3>\\n<p>Есть 3 переменные, которые можно использовать в конечной точке, ключе результата и в значениях параметра.</p>\\n<p>Курс обмена между {from_currency} и {to_currency} на {transaction_date} извлекается API.</p>\\n<p>Пример: если ваша конечная точка — exchange.com/2021-08-01, то вам нужно будет ввести exchange.com/{transaction_date}</p>"
+  },
+  {
+    "en": "<h4>Body Text and Closing Text Example</h4>\\n\\n<div>We have noticed that you have not yet paid invoice {{sales_invoice}} for {{frappe.db.get_value(\\\"Currency\\\", currency, \\\"symbol\\\")}} {{outstanding_amount}}. This is a friendly reminder that the invoice was due on {{due_date}}. Please pay the amount due immediately to avoid any further dunning cost.</div>\\n\\n<h4>How to get fieldnames</h4>\\n\\n<p>The fieldnames you can use in your template are the fields in the document. You can find out the fields of any documents via Setup &gt; Customize Form View and selecting the document type (e.g. Sales Invoice)</p>\\n\\n<h4>Templating</h4>\\n\\n<p>Templates are compiled using the Jinja Templating Language. To learn more about Jinja, <a class=\\\"strong\\\" href=\\\"http://jinja.pocoo.org/docs/dev/templates/\\\">read this documentation.</a></p>",
+    "ru": "<h4>Пример основного текста и закрывающего текста</h4>\\n\\n<div>Мы заметили, что вы еще не оплатили счет {{sales_invoice}} за {{frappe.db.get_value(\\\"Currency\\\", currency, \\\"symbol\\\")}} {{outstanding_amount}}. Это напоминание о том, что счет должен был быть оплачен {{due_date}}. Пожалуйста, оплатите причитающуюся сумму немедленно, чтобы избежать дальнейших расходов на напоминание.</div>\\n\\n<h4>Как получить имена полей</h4>\\n\\n<p>Имена полей, которые вы можете использовать в своем шаблоне, являются полями в документе. Вы можете узнать поля любого документа через Настройка &gt; Настройте вид формы и выберите тип документа (например, счет-фактура)</p>\\n\\n<h4>Шаблоны</h4>\\n\\n<p>Шаблоны составляются с использованием языка шаблонов Jinja. Чтобы узнать больше о Jinja, <a class=\\\"strong\\\" href=\\\"http://jinja.pocoo.org/docs/dev/templates/\\\">прочтите эту документацию.</a></p>"
+  },
+  {
+    "en": "<h4>Contract Template Example</h4>\\n\\n<pre>Contract for Customer {{ party_name }}\\n\\n-Valid From : {{ start_date }} \\n-Valid To : {{ end_date }}\\n</pre>\\n\\n<h4>How to get fieldnames</h4>\\n\\n<p>The field names you can use in your Contract Template are the fields in the Contract for which you are creating the template. You can find out the fields of any documents via Setup &gt; Customize Form View and selecting the document type (e.g. Contract)</p>\\n\\n<h4>Templating</h4>\\n\\n<p>Templates are compiled using the Jinja Templating Language. To learn more about Jinja, <a class=\\\"strong\\\" href=\\\"http://jinja.pocoo.org/docs/dev/templates/\\\">read this documentation.</a></p>",
+    "ru": "<h4>Пример шаблона договора</h4>\\n\\n<pre>Контракт для клиента {{ party_name }}\\n\\n- Действителен от : {{ start_date }} \\n- Действителен до : {{ end_date }}\\n</pre>\\n\\n<h4>Как получить имена полей</h4>\\n\\n<p>Имена полей, которые Вы можете использовать в своем шаблоне контракта, - это поля контракта, для которого Вы создаете шаблон. Вы можете узнать поля любого документа через меню Настройка &gt; Настроить вид формы и выбрать тип документа (например, Контракт).</p>\\n\\n<h4>Создание шаблонов</h4>\\n\\n<p>Шаблоны создаются с помощью языка Jinja Templating Language. Чтобы узнать больше о Jinja, <a class=\\\"strong\\\" href=\\\"http://jinja.pocoo.org/docs/dev/templates/\\\">прочитайте эту документацию.</a></p>"
+  },
+  {
+    "en": "<h4>Standard Terms and Conditions Example</h4>\\n\\n<pre>Delivery Terms for Order number {{ name }}\\n\\n-Order Date : {{ transaction_date }} \\n-Expected Delivery Date : {{ delivery_date }}\\n</pre>\\n\\n<h4>How to get fieldnames</h4>\\n\\n<p>The fieldnames you can use in your email template are the fields in the document from which you are sending the email. You can find out the fields of any documents via Setup &gt; Customize Form View and selecting the document type (e.g. Sales Invoice)</p>\\n\\n<h4>Templating</h4>\\n\\n<p>Templates are compiled using the Jinja Templating Language. To learn more about Jinja, <a class=\\\"strong\\\" href=\\\"http://jinja.pocoo.org/docs/dev/templates/\\\">read this documentation.</a></p>",
+    "ru": "<h4>Пример стандартных правил и условий</h4>\\n\\n<pre>Условия доставки для номера заказа {{ name }}\\n\\n-Дата заказа : {{ transaction_date }} \\n-Ожидаемая дата поставки : {{ delivery_date }}\\n</pre>\\n\\n<h4>Как получить имена полей</h4>\\n\\n<p>Имена полей, которые Вы можете использовать в шаблоне письма, - это поля документа, из которого Вы отправляете письмо. Вы можете узнать поля любого документа через меню Настройка &gt; Настроить вид формы и выбрать тип документа (например, Счет-фактура).</p>\\n\\n<h4>Создание шаблона</h4>\\n\\n<p>Шаблоны составляются с помощью языка шаблонизации Jinja. Чтобы узнать больше о Jinja, <a class=\\\"strong\\\" href=\\\"http://jinja.pocoo.org/docs/dev/templates/\\\">прочитайте эту документацию.</a></p>"
+  },
+  {
+    "en": "<label class=\\\"control-label\\\" style=\\\"margin-bottom: 0px;\\\">Account Number Settings</label>",
+    "ru": "<label class=\\\"control-label\\\" style=\\\"margin-bottom: 0px;\\\">Настройки номера счета</label>"
+  },
+  {
+    "en": "<label class=\\\"control-label\\\" style=\\\"margin-bottom: 0px;\\\">Amount In Words</label>",
+    "ru": "<label class=\\\"control-label\\\" style=\\\"margin-bottom: 0px;\\\">Сумма прописью</label>"
+  },
+  {
+    "en": "<label class=\\\"control-label\\\" style=\\\"margin-bottom: 0px;\\\">Date Settings</label>",
+    "ru": "<label class=\\\"control-label\\\" style=\\\"margin-bottom: 0px;\\\">Настройки даты</label>"
+  },
+  {
+    "en": "<li>Clearance date must be after cheque date for row(s): {0}</li>",
+    "ru": "<li>Дата оформления должна быть после даты проверки для строк: {0}</li>"
+  },
+  {
+    "en": "<li>Item {0} in row(s) {1} billed more than {2}</li>",
+    "ru": "<li>Товар {0} в строке(ах) {1} выставлен счет на сумму более {2}</li>"
+  },
+  {
+    "en": "<li>Packed Item {0}: Required {1}, Available {2}</li>",
+    "ru": "<li>Упакованный предмет {0}: Требуется {1}, Доступно {2}</li>"
+  },
+  {
+    "en": "<li>Payment document required for row(s): {0}</li>",
+    "ru": "<li>Платежный документ, необходимый для строк: {0}</li>"
+  },
+  {
+    "en": "<li>{}</li>",
+    "ru": "<li>{}</li>"
+  },
+  {
+    "en": "<p>Cannot overbill for the following Items:</p>",
+    "ru": "<p>Невозможно выставить счет на сумму, превышающую указанную ниже:</p>"
+  },
+  {
+    "en": "<p>Following {0}s doesn't belong to Company {1} :</p>",
+    "ru": "<p>Подписка на {0}не принадлежит компании {1} :</p>"
+  },
+  {
+    "en": "<p>In your <b>Email Template</b>, you can use the following special variables:\\n</p>\\n<ul>\\n        <li>\\n            <code>{{ update_password_link }}</code>: A link where your supplier can set a new password to log into your portal.\\n        </li>\\n        <li>\\n            <code>{{ portal_link }}</code>: A link to this RFQ in your supplier portal.\\n        </li>\\n        <li>\\n            <code>{{ supplier_name }}</code>: The company name of your supplier.\\n        </li>\\n        <li>\\n            <code>{{ contact.salutation }} {{ contact.last_name }}</code>: The contact person of your supplier.\\n        </li><li>\\n            <code>{{ user_fullname }}</code>: Your full name.\\n        </li>\\n    </ul>\\n<p></p>\\n<p>Apart from these, you can access all values in this RFQ, like <code>{{ message_for_supplier }}</code> or <code>{{ terms }}</code>.</p>",
+    "ru": "<p>В вашем <b>Шаблоне электронной почты</b>вы можете использовать следующие специальные переменные:\\n</p>\\n<ul>\\n        <li>\\n            <code>{{ update_password_link }}</code>: Ссылка, по которой ваш поставщик может установить новый пароль для входа на ваш портал.\\n        </li>\\n        <li>\\n            <code>{{ portal_link }}</code>: Ссылка на этот запрос на вашем портале поставщиков.\\n        </li>\\n        <li>\\n            <code>{{ supplier_name }}</code>: Название компании вашего поставщика.\\n        </li>\\n        <li>\\n            <code>{{ contact.salutation }} {{ contact.last_name }}</code>: Контактное лицо вашего поставщика.\\n        </li><li>\\n            <code>{{ user_fullname }}</code>: Ваше полное имя.\\n        </li>\\n    </ul>\\n<p></p>\\n<p>Помимо этого, вы можете получить доступ ко всем значениям в этом запросе предложений, например <code>{{ message_for_supplier }}</code> или <code>{{ terms }}</code>.</p>"
+  },
+  {
+    "en": "<p>Please correct the following row(s):</p><ul>",
+    "ru": "<p>Пожалуйста, исправьте следующие строки:</p><ul>"
+  },
+  {
+    "en": "<p>Posting Date {0} cannot be before Purchase Order date for the following:</p><ul>",
+    "ru": "<p>Дата публикации {0} не может быть раньше даты заказа на покупку для следующих товаров:</p><ul>"
+  },
+  {
+    "en": "<p>Price List Rate has not been set as editable in Selling Settings. In this scenario, setting <strong>Update Price List Based On</strong> to <strong>Price List Rate</strong> will prevent auto-updation of Item Price.</p>Are you sure you want to continue?",
+    "ru": "<p>Ставка по прейскуранту не была установлена как редактируемая в Настройках продажи. В этом случае установка параметра <strong>Update Price List Based On</strong> в значение <strong>Price List Rate</strong> предотвратит автообновление цены товара.</p>Вы уверены, что хотите продолжить?"
+  },
+  {
+    "en": "<p>To allow over-billing, please set allowance in Accounts Settings.</p>",
+    "ru": "<p>Чтобы разрешить выставление счетов сверх установленной суммы, установите допустимую сумму в настройках аккаунтов.</p>"
+  },
+  {
+    "en": "<pre><h5>Message Example</h5>\\n\\n&lt;p&gt; Thank You for being a part of {{ doc.company }}! We hope you are enjoying the service.&lt;/p&gt;\\n\\n&lt;p&gt; Please find enclosed the E Bill statement. The outstanding amount is {{ doc.grand_total }}.&lt;/p&gt;\\n\\n&lt;p&gt; We don't want you to be spending time running around in order to pay for your Bill.<br>After all, life is beautiful and the time you have in hand should be spent to enjoy it!<br>So here are our little ways to help you get more time for life! &lt;/p&gt;\\n\\n&lt;a href=\\\"{{ payment_url }}\\\"&gt; click here to pay &lt;/a&gt;\\n\\n</pre>\\n",
+    "ru": "<pre><h5>Пример сообщения</h5>\\n\\n&lt;p&gt; Спасибо, что являетесь частью {{ doc.company }}! Надеемся, вам нравится обслуживание.&lt;/p&gt;\\n\\n&lt;p&gt; Прилагаем выписку по счету. Непогашенная сумма составляет {{ doc.grand_total }}.&lt;/p&gt;\\n\\n&lt;p&gt; Мы не хотим, чтобы вы тратили время на беготню, чтобы оплатить счет.<br>В конце концов, жизнь прекрасна, и время, которое у вас есть, нужно потратить на то, чтобы ею насладиться!<br>Итак, вот наши маленькие способы помочь вам получить больше времени для жизни! &lt;/p&gt;\\n\\n&lt;a href=\\\"{{ payment_url }}\\\"&gt; нажмите здесь, чтобы заплатить &lt;/a&gt;\\n\\n</pre>\\n"
+  },
+  {
+    "en": "<pre><h5>Message Example</h5>\\n\\n&lt;p&gt;Dear {{ doc.contact_person }},&lt;/p&gt;\\n\\n&lt;p&gt;Requesting payment for {{ doc.doctype }}, {{ doc.name }} for {{ doc.grand_total }}.&lt;/p&gt;\\n\\n&lt;a href=\\\"{{ payment_url }}\\\"&gt; click here to pay &lt;/a&gt;\\n\\n</pre>\\n",
+    "ru": "<pre><h5>Пример сообщения</h5>\\n\\n&lt;p&gt;Уважаемый {{ doc.contact_person }},&lt;/p&gt;\\n\\n&lt;p&gt;Запрос оплаты за {{ doc.doctype }}, {{ doc.name }} за {{ doc.grand_total }}.&lt;/p&gt;\\n\\n&lt;a href=\\\"{{ payment_url }}\\\"&gt; нажмите здесь, чтобы заплатить &lt;/a&gt;\\n\\n</pre>\\n"
+  },
+  {
+    "en": "<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>",
+    "ru": "<span class=\\\"h4\\\"><b>Справочники и отчеты</b></span>"
+  },
+  {
+    "en": "<span class=\\\"h4\\\"><b>Quick Access</b></span>",
+    "ru": "<span class=\\\"h4\\\"><b>Быстрый доступ</b></span>"
+  },
+  {
+    "en": "<span class=\\\"h4\\\"><b>Reports &amp; Masters</b></span>",
+    "ru": "<span class=\\\"h4\\\"><b>Отчеты &amp; Настройки</b></span>"
+  },
+  {
+    "en": "<span class=\\\"h4\\\"><b>Subcontracting Inward and Outward</b></span>",
+    "ru": "<span class=\\\"h4\\\"><b>Внутреннее и внешнее субподрядное производство</b></span>"
+  },
+  {
+    "en": "<span class=\\\"h4\\\"><b>Your Shortcuts\\n\\t\\t\\t\\n\\t\\t\\n\\t\\t\\t\\n\\t\\t\\n\\t\\t\\t\\n\\t\\t</b></span>",
+    "ru": "<span class=\\\"h4\\\"><b>Ваши ярлыки\\n\\t\\t\\t\\n\\t\\t\\n\\t\\t\\t\\n\\t\\t\\n\\t\\t\\t\\n\\t\\t</b></span>"
+  },
+  {
+    "en": "<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>",
+    "ru": "<span class=\\\"h4\\\"><b>Ваши ярлыки</b></span>"
+  },
+  {
+    "en": "<strong>Grand Total:</strong> {0}",
+    "ru": "<strong>Общий итог:</strong> {0}"
+  },
+  {
+    "en": "<strong>Outstanding Amount:</strong> {0}",
+    "ru": "<strong>Непогашенная сумма:</strong> {0}"
+  },
+  {
+    "en": "<table class=\\\"table table-bordered table-condensed\\\">\\n<thead>\\n  <tr>\\n         <th class=\\\"table-sr\\\" style=\\\"width: 50%;\\\">Child Document</th>\\n         <th class=\\\"table-sr\\\" style=\\\"width: 50%;\\\">Non Child Document</th>\\n   </tr>\\n</thead>\\n<tbody>\\n<tr>\\n         <td>\\n                  <p> To access parent document field use parent.fieldname and to access child table document field use doc.fieldname </p>\\n\\n         </td>\\n         <td>\\n                    <p>To access document field use doc.fieldname </p>\\n         </td>\\n</tr>\\n<tr>\\n        <td>\\n                   <p><b>Example: </b> parent.doctype == \\\"Stock Entry\\\" and doc.item_code == \\\"Test\\\" </p>\\n\\n        </td>\\n         <td>\\n                   <p><b>Example: </b> doc.doctype == \\\"Stock Entry\\\" and doc.purpose == \\\"Manufacture\\\"</p>    \\n          </td>\\n</tr>\\n\\n</tbody>\\n</table>\\n\\n\\n\\n\\n\\n\\n",
+    "ru": "<table class=\\\"table table-bordered table-condensed\\\">\\n<thead>\\n  <tr>\\n         <th class=\\\"table-sr\\\" style=\\\"width: 50%;\\\">Дочерний документ</th>\\n         <th class=\\\"table-sr\\\" style=\\\"width: 50%;\\\">Недочерний документ</th>\\n   </tr>\\n</thead>\\n<tbody>\\n<tr>\\n         <td>\\n                  <p> Для доступа к полю родительского документа используйте parent.fieldname, а для доступа к полю документа дочерней таблицы используйте doc.fieldname </p>\\n\\n         </td>\\n         <td>\\n                    <p>Для доступа к полю документа используйте doc.fieldname </p>\\n         </td>\\n</tr>\\n<tr>\\n        <td>\\n                   <p><b>Пример: </b> parent.doctype == \\\"Запись на складе\\\" и doc.item_code == \\\"Тест\\\" </p>\\n\\n        </td>\\n         <td>\\n                   <p><b>Пример: </b> doc.doctype == \\\"Запись на складе\\\" и doc.purpose == \\\"Производство\\\"</p>    \\n          </td>\\n</tr>\\n\\n</tbody>\\n</table>\\n\\n\\n\\n\\n\\n\\n"
+  },
+  {
+    "en": "A - B",
+    "ru": "A - B"
+  },
+  {
+    "en": "A - C",
+    "ru": "А - В"
+  },
+  {
+    "en": "A Holiday List can be added to exclude counting these days for the Workstation.",
+    "ru": "Можно добавить список праздничных дней, чтобы исключить эти дни из подсчета для рабочей станции."
+  },
+  {
+    "en": "A Packing Slip can only be created for Draft Delivery Note.",
+    "ru": "Упаковочный лист может быть создан только для черновика транспортной накладной."
+  },
+  {
+    "en": "A Price List is a collection of Item Prices either Selling, Buying, or both",
+    "ru": "Прайс-лист — это набор цен на товары продаваемые, покупаемые или и те, и другие"
+  }
+]

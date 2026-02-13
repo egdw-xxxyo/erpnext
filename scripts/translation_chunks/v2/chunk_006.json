@@ -1,0 +1,158 @@
+[
+  {
+    "en": "Amended From",
+    "ctx": "Process Deferred Accounting"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Process Payment Reconciliation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Process Subscription"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Project Update"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Quality Inspection"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Repost Accounting Ledger"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Repost Payment Ledger"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Request for Quotation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Serial and Batch Bundle"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Share Transfer"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Shipment"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Stock Entry"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Stock Reconciliation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Stock Reservation Entry"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Supplier Scorecard Period"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Telephony Call Type"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Transaction Deletion Record"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Unreconcile Payment"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Vehicle"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Amount in customer's currency",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "An error has occurred during {0}. Check {1} for more details",
+    "ctx": "<a href='/app/error-log' class='variant-click'>Error Log</a>"
+  },
+  {
+    "en": "An error occured for certain Items while creating Material Requests based on Re-order level. Please rectify these issues :"
+  },
+  {
+    "en": "Annual"
+  },
+  {
+    "en": "Another Budget record '{0}' already exists against {1} '{2}' and account '{3}' for fiscal year {4}"
+  },
+  {
+    "en": "Another Period Closing Entry {0} has been made after {1}"
+  },
+  {
+    "en": "Applicable For",
+    "ctx": "Inventory Dimension"
+  }
+]

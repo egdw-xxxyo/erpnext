@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Shipment Information",
+    "ru": "Информация об отгрузке"
+  },
+  {
+    "en": "Shipment Parcel",
+    "ru": "Отправка посылки"
+  },
+  {
+    "en": "Shipment Parcel Template",
+    "ru": "Шаблон посылки для отправки"
+  },
+  {
+    "en": "Shipment Type",
+    "ru": "Тип отгрузки"
+  },
+  {
+    "en": "Shipment details",
+    "ru": "Подробности отгрузки"
+  },
+  {
+    "en": "Shipping Address Details",
+    "ru": "Подробная информация об адресе отгрузки"
+  },
+  {
+    "en": "Shipping Address Template",
+    "ru": "Шаблон адреса отгрузки"
+  },
+  {
+    "en": "Shipping Address does not belong to the {0}",
+    "ru": "Адрес доставки не принадлежит {0}"
+  },
+  {
+    "en": "Short-term Investments",
+    "ru": "Краткосрочные инвестиции"
+  },
+  {
+    "en": "Short-term Provisions",
+    "ru": "Краткосрочные резервы"
+  },
+  {
+    "en": "Show Aggregate Value from Subsidiary Companies",
+    "ru": "Показать совокупную стоимость дочерних компаний"
+  },
+  {
+    "en": "Show Balances in Chart Of Accounts",
+    "ru": "Показать остатки в плане счетов"
+  },
+  {
+    "en": "Show Barcode Field in Stock Transactions",
+    "ru": "Показать поле штрих-кода в операциях с запасами"
+  },
+  {
+    "en": "Show Credit / Debit in Company Currency",
+    "ru": "Показывать Кредит/Дебет в валюте компании"
+  },
+  {
+    "en": "Show Dimension Wise Stock",
+    "ru": "Показать запасы по измерениям"
+  },
+  {
+    "en": "Show Disabled Items",
+    "ru": "Показать отключенные элементы"
+  },
+  {
+    "en": "Show Disabled Warehouses",
+    "ru": "Показать отключенные склады"
+  },
+  {
+    "en": "Show GL Balance",
+    "ru": "Показать баланс главной книги"
+  },
+  {
+    "en": "Show Group Accounts",
+    "ru": "Показать групповые счета"
+  },
+  {
+    "en": "Show Item Name",
+    "ru": "Показать название товара"
+  },
+  {
+    "en": "Show Ledger View",
+    "ru": "Отобразить вид журнала"
+  },
+  {
+    "en": "Show Net Values in Party Account",
+    "ru": "Показать чистые суммы в счете контрагента"
+  },
+  {
+    "en": "Show Opening and Closing Balance",
+    "ru": "Показать начальный и конечный баланс"
+  },
+  {
+    "en": "Show Pay Button in Purchase Order Portal",
+    "ru": "Показать кнопку «Оплатить» на портале заказов на покупку"
+  },
+  {
+    "en": "Show Remarks",
+    "ru": "Показать замечания"
+  },
+  {
+    "en": "Show Taxes as Table in Print",
+    "ru": "Показать налоги в виде таблицы в печатном виде"
+  },
+  {
+    "en": "Show in Bucket View",
+    "ru": "Показать в виде бакетов"
+  },
+  {
+    "en": "Show negative values as positive (for expenses in P&L)",
+    "ru": "Отображать отрицательные значения как положительные (для отчёта о прибылях и убытках)"
+  },
+  {
+    "en": "Show net values in opening and closing columns",
+    "ru": "Показывать чистые значения в начальных и конечных столбцах"
+  },
+  {
+    "en": "Show only the Immediate Upcoming Term",
+    "ru": "Показать только ближайший предстоящий срок"
+  },
+  {
+    "en": "Show pending entries",
+    "ru": "Показать записи, находящиеся в ожидании"
+  },
+  {
+    "en": "Show with upcoming revenue/expense",
+    "ru": "Показать с предстоящими доходами/расходами"
+  },
+  {
+    "en": "Similar types of workstations where the same operations run in parallel.",
+    "ru": "Похожие типы рабочих мест, где одинаковые операции выполняются параллельно."
+  },
+  {
+    "en": "Simple Python Expression, Example: doc.status == 'Open' and doc.issue_type == 'Bug'",
+    "ru": "Простое выражение Python, пример: doc.status == 'Open' и doc.issue_type == 'Bug'"
+  },
+  {
+    "en": "Simple Python formula applied on Reading fields.<br> Numeric eg. 1: <b>reading_1 &gt; 0.2 and reading_1 &lt; 0.5</b><br>\\nNumeric eg. 2: <b>mean &gt; 3.5</b> (mean of populated fields)<br>\\nValue based eg.:  <b>reading_value in (\\\"A\\\", \\\"B\\\", \\\"C\\\")</b>",
+    "ru": "Простая формула Python, применяемая к полям Чтение..<br> Numeric eg. 1: <b>reading_1 &gt; 0.2 and reading_1 &lt; 0.5</b><br>\\nNumeric eg. 2: <b>mean &gt; 3.5</b> (mean of populated fields)<br>\\nValue based eg.:  <b>reading_value in (\\\"A\\\", \\\"B\\\", \\\"C\\\")</b>"
+  },
+  {
+    "en": "Simultaneous",
+    "ru": "Одновременный"
+  },
+  {
+    "en": "Since there is a process loss of {0} units for the finished good {1}, you should reduce the quantity by {0} units for the finished good {1} in the Items Table.",
+    "ru": "Поскольку потери в процессе производства составляют {0} единиц для готового товара {1}, вам следует уменьшить количество на {0} единиц для готового товара {1} в таблице товаров."
+  },
+  {
+    "en": "Since {0} are Serial No/Batch No items, you cannot enable 'Recreate Stock Ledgers' in Repost Item Valuation.",
+    "ru": "Поскольку {0} являются товарами с серийным или партийным номером, вы не можете включить «Пересоздать бухгалтерский журнал товаров» при повторной оценке товаров."
+  },
+  {
+    "en": "Skip Material Transfer",
+    "ru": "Пропустить передачу материалов"
+  },
+  {
+    "en": "Skip Material Transfer to WIP",
+    "ru": "Пропустить передачу материалов в незавершенное производство"
+  }
+]

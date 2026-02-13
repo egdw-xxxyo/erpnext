@@ -1,0 +1,152 @@
+[
+  {
+    "en": "Duration",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Duration",
+    "ctx": "Video"
+  },
+  {
+    "en": "EAN-12",
+    "ctx": "Item Barcode"
+  },
+  {
+    "en": "ERPNext Company",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Edit"
+  },
+  {
+    "en": "Edit Full Form"
+  },
+  {
+    "en": "Edit Qty"
+  },
+  {
+    "en": "Either location or employee must be required"
+  },
+  {
+    "en": "Electricity Cost",
+    "ctx": "Workstation"
+  },
+  {
+    "en": "Electricity Cost",
+    "ctx": "Workstation Type"
+  },
+  {
+    "en": "Electronic Equipments"
+  },
+  {
+    "en": "Email"
+  },
+  {
+    "en": "Email",
+    "ctx": "Appointment"
+  },
+  {
+    "en": "Email",
+    "ctx": "Communication Medium"
+  },
+  {
+    "en": "Email",
+    "ctx": "Company"
+  },
+  {
+    "en": "Email",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Email",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Email",
+    "ctx": "Payment Gateway Account"
+  },
+  {
+    "en": "Email",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "Email",
+    "ctx": "Project User"
+  },
+  {
+    "en": "Email",
+    "ctx": "Prospect Lead"
+  },
+  {
+    "en": "Email / Notifications"
+  },
+  {
+    "en": "Email Account",
+    "ctx": "Email Account"
+  },
+  {
+    "en": "Email Account",
+    "ctx": "Issue"
+  },
+  {
+    "en": "Email Address",
+    "ctx": "Warehouse"
+  },
+  {
+    "en": "Email Domain",
+    "ctx": "Email Domain"
+  },
+  {
+    "en": "Email Group",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Email Group",
+    "ctx": "Email Group"
+  },
+  {
+    "en": "Email Id"
+  },
+  {
+    "en": "Email Id",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Email Id",
+    "ctx": "Request for Quotation Supplier"
+  },
+  {
+    "en": "Email Id",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Email Settings",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Email Template",
+    "ctx": "Campaign Email Schedule"
+  },
+  {
+    "en": "Email Template",
+    "ctx": "Email Template"
+  },
+  {
+    "en": "Email Template",
+    "ctx": "Request for Quotation"
+  },
+  {
+    "en": "Email not sent to {0} (unsubscribed / disabled)"
+  },
+  {
+    "en": "Employee {0} does not belongs to the company {1}"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "Email Digest"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "Mode of Payment"
+  }
+]

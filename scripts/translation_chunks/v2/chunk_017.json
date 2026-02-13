@@ -1,0 +1,152 @@
+[
+  {
+    "en": "Create and Send Quotation"
+  },
+  {
+    "en": "Create first Purchase Order"
+  },
+  {
+    "en": "Create your first Bill of Materials"
+  },
+  {
+    "en": "Create your first Quotation"
+  },
+  {
+    "en": "Create your first Sales Order"
+  },
+  {
+    "en": "Create your first Work Order"
+  },
+  {
+    "en": "Created On"
+  },
+  {
+    "en": "Creating Company and Importing Chart of Accounts"
+  },
+  {
+    "en": "Creating {0} Invoice"
+  },
+  {
+    "en": "Creation Document No",
+    "ctx": "Serial No"
+  },
+  {
+    "en": "Creditors Account set in Tally",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Cumulative Transaction Threshold",
+    "ctx": "Tax Withholding Rate"
+  },
+  {
+    "en": "Currency"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Account"
+  },
+  {
+    "en": "Currency",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Currency",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Bank Transaction"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Currency"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Item Price"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Journal Entry Account"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Currency",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Currency",
+    "ctx": "POS Profile"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Payment Gateway Account"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Payment Ledger Entry"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Payment Reconciliation Allocation"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Payment Reconciliation Invoice"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Payment Reconciliation Payment"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Price List"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Pricing Rule"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Process Payment Reconciliation Log Allocations"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Promotional Scheme"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Prospect Opportunity"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Quotation"
+  }
+]

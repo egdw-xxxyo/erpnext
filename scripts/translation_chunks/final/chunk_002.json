@@ -1,0 +1,77 @@
+[
+  {
+    "en": "File not found"
+  },
+  {
+    "en": "File not found on server"
+  },
+  {
+    "en": "For operation {0} at row {1}, please add raw materials or set a BOM against it."
+  },
+  {
+    "en": "For the item {0}, the consumed quantity should be {1} according to the BOM {2}."
+  },
+  {
+    "en": "Full Name, Email or Phone/Mobile of the user are mandatory to continue."
+  },
+  {
+    "en": "Generate To Delete List"
+  },
+  {
+    "en": "Generate To Delete list first"
+  },
+  {
+    "en": "IMPORTANT: Create a backup before proceeding!"
+  },
+  {
+    "en": "If enabled, system will set incoming rate as zero for stand-alone credit notes with expired batch item."
+  },
+  {
+    "en": "Image in the description has been removed. To disable this behavior, uncheck \"{0}\" in {1}."
+  },
+  {
+    "en": "Import Summary"
+  },
+  {
+    "en": "Imported {0} DocTypes"
+  },
+  {
+    "en": "Income and Expense"
+  },
+  {
+    "en": "Internal Customer Accounting"
+  },
+  {
+    "en": "Invalid CSV format. Expected column: doctype_name"
+  },
+  {
+    "en": "Invalid Company Field"
+  },
+  {
+    "en": "Invalid file URL"
+  },
+  {
+    "en": "Inventory Valuation"
+  },
+  {
+    "en": "Manage sales partner's and sales team's commissions"
+  },
+  {
+    "en": "Miscellaneous"
+  },
+  {
+    "en": "Multiple company fields available: {0}. Please select manually."
+  },
+  {
+    "en": "Naming series '{0}' for DocType '{1}' does not contain standard '.' or '{{' separator. Using fallback extraction."
+  },
+  {
+    "en": "No DocTypes in To Delete list. Please generate or import the list before submitting."
+  },
+  {
+    "en": "No Items with Bill of Materials to Manufacture or all items already manufactured"
+  },
+  {
+    "en": "No rows with zero document count found"
+  }
+]

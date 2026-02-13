@@ -1,0 +1,122 @@
+[
+  {
+    "en": " "
+  },
+  {
+    "en": " Qty"
+  },
+  {
+    "en": "# Account Settings\n\nIn ERPNext, Accounting features are configurable as per your business needs. Accounts Settings is the place to define some of your accounting preferences like:\n\n - Credit Limit and over billing settings\n - Taxation preferences\n - Deferred accounting preferences\n"
+  },
+  {
+    "en": "# Account Settings\n\nThis is a crucial piece of configuration. There are various account settings in ERPNext to restrict and configure actions in the Accounting module.\n\nThe following settings are avaialble for you to configure\n\n1. Account Freezing \n2. Credit and Overbilling\n3. Invoicing and Tax Automations\n4. Balance Sheet configurations\n\nThere's much more, you can check it all out in this step"
+  },
+  {
+    "en": "# Add an Existing Asset\n\nIf you are just starting with ERPNext, you will need to enter Assets you already possess. You can add them as existing fixed assets in ERPNext. Please note that you will have to make a Journal Entry separately updating the opening balance in the fixed asset account."
+  },
+  {
+    "en": "# All about sales invoice\n\nA Sales Invoice is a bill that you send to your Customers against which the Customer makes the payment. Sales Invoice is an accounting transaction. On submission of Sales Invoice, the system updates the receivable and books income against a Customer Account."
+  },
+  {
+    "en": "# All about sales invoice\n\nA Sales Invoice is a bill that you send to your Customers against which the Customer makes the payment. Sales Invoice is an accounting transaction. On submission of Sales Invoice, the system updates the receivable and books income against a Customer Account.\n\nHere's the flow of how a sales invoice is generally created\n\n\n![Sales Flow](https://docs.erpnext.com/docs/assets/img/accounts/so-flow.png)"
+  },
+  {
+    "en": "# Asset Category\n\nAn Asset Category classifies different assets of a Company.\n\nYou can create an Asset Category based on the type of assets. For example, all your desktops and laptops can be part of an Asset Category named \"Electronic Equipments\". Create a separate category for furniture. Also, you can update default properties for each category, like:\n - Depreciation type and duration\n - Fixed asset account\n - Depreciation account\n"
+  },
+  {
+    "en": "# Asset Item\n\nAsset items are created based on Asset Category. You can create one or multiple items against once Asset Category. The sales and purchase transaction for Asset is done via Asset Item. "
+  },
+  {
+    "en": "# Buying Settings\n\n\nBuying module’s features are highly configurable as per your business needs. Buying Settings is the place where you can set your preferences for:\n\n- Supplier naming and default values\n- Billing and shipping preference in buying transactions\n\n\n"
+  },
+  {
+    "en": "# CRM Settings\n\nCRM module’s features are configurable as per your business needs. CRM Settings is the place where you can set your preferences for:\n- Campaign\n- Lead\n- Opportunity\n- Quotation"
+  },
+  {
+    "en": "# Chart Of Accounts\n\nERPNext sets up a simple chart of accounts for each Company you create, but you can modify it according to business and legal requirements."
+  },
+  {
+    "en": "# Check Stock Reports\nBased on the various stock transactions, you can get a host of one-click Stock Reports in ERPNext like Stock Ledger, Stock Balance, Projected Quantity, and Ageing analysis."
+  },
+  {
+    "en": "# Cost Centers for Budgeting and Analysis\n\nWhile your Books of Accounts are framed to fulfill statutory requirements, you can set up Cost Center and Accounting Dimensions to address your companies reporting and budgeting requirements.\n\nClick here to learn more about how  <b>[Cost Center](https://docs.erpnext.com/docs/v13/user/manual/en/accounts/cost-center)</b> and <b> [Dimensions](https://docs.erpnext.com/docs/v13/user/manual/en/accounts/accounting-dimensions)</b> allow you to get advanced financial analytics reports from ERPNext."
+  },
+  {
+    "en": "# Create Items for Bill of Materials\n\nOne of the prerequisites of a BOM is the creation of raw materials, sub-assembly, and finished items. Once these items are created, you will be able to proceed to the Bill of Materials master, which is composed of items and routing.\n"
+  },
+  {
+    "en": "# Create Operations\n\nAn Operation refers to any manufacturing operation performed on the raw materials to process it further in the manufacturing path. As an example, if you are into garments manufacturing, you will create Operations like fabric cutting, stitching, and washing as some of the operations."
+  },
+  {
+    "en": "# Create Workstations\n\nA Workstation stores information regarding the place where the workstation operations are performed. As an example, if you have ten sewing machines doing stitching jobs, each machine will be added as a workstation."
+  },
+  {
+    "en": "# Create a Bill of Materials\n\nA Bill of Materials (BOM) is a list of items and sub-assemblies with quantities required to manufacture an Item.\n\nBOM also provides cost estimation for the production of the item. It takes raw-materials cost based on valuation and operations to cost based on routing, which gives total costing for a BOM."
+  },
+  {
+    "en": "# Create a Customer\n\nThe Customer master is at the heart of your sales transactions. Customers are linked in Quotations, Sales Orders, Invoices, and Payments. Customers can be either numbered or identified by name (you would typically do this based on the number of customers you have).\n\nThrough Customer’s master, you can effectively track essentials like:\n - Customer’s multiple address and contacts\n - Account Receivables\n - Credit Limit and Credit Period\n"
+  },
+  {
+    "en": "# Create a Letter Head\n\nA Letter Head contains your organization's name, logo, address, etc which appears at the header and footer portion in documents. You can learn more about Setting up Letter Head in ERPNext here.\n"
+  },
+  {
+    "en": "# Create a Quotation\n\nLet’s get started with business transactions by creating your first Quotation. You can create a Quotation for an existing customer or a prospect. It will be an approved document, with items you sell and the proposed price + taxes applied. After completing the instructions, you will get a Quotation in a ready to share print format."
+  },
+  {
+    "en": "# Create a Supplier\n\nAlso known as Vendor, is a master at the center of your purchase transactions. Suppliers are linked in Request for Quotation, Purchase Orders, Receipts, and Payments. Suppliers can be either numbered or identified by name.\n\nThrough Supplier’s master, you can effectively track essentials like:\n - Supplier’s multiple address and contacts\n - Account Receivables\n - Credit Limit and Credit Period\n"
+  },
+  {
+    "en": "# Create a Supplier\nIn this step we will create a **Supplier**. If you have already created a **Supplier** you can skip this step."
+  },
+  {
+    "en": "# Create a Work Order\n\nA Work Order or a Job order is given to the manufacturing shop floor by the Production Manager to initiate the manufacturing of a certain quantity of an item. Work Order carriers details of production Item, its BOM, quantities to be manufactured, and operations.\n\nThrough Work Order, you can track various production status like:\n\n- Issue of raw-material to shop material\n- Progress on each Workstation via Job Card\n- Manufactured Quantity against Work Order\n"
+  },
+  {
+    "en": "# Create an Item\n\nItem is a product or a service offered by your company, or something you buy as a part of your supplies or raw materials.\n\nItems are integral to everything you do in ERPNext - from billing, purchasing to managing inventory. Everything you buy or sell, whether it is a physical product or a service is an Item. Items can be stock, non-stock, variants, serialized, batched, assets, etc.\n"
+  },
+  {
+    "en": "# Create an Item\nThe Stock module deals with the movement of items.\n\nIn this step we will create an  [**Item**](https://docs.erpnext.com/docs/user/manual/en/stock/item)."
+  },
+  {
+    "en": "# Create first Purchase Order\n\nPurchase Order is at the heart of your buying transactions. In ERPNext, Purchase Order can can be created against a Purchase Material Request (indent) and Supplier Quotation as well.  Purchase Orders is also linked to Purchase Receipt and Purchase Invoices, allowing you to keep a birds-eye view on your purchase deals.\n\n"
+  },
+  {
+    "en": "# Create your first Purchase Invoice\n\nA Purchase Invoice is a bill received from a Supplier for a product(s) or service(s) delivery to your company. You can track payables through Purchase Invoice and process Payment Entries against it.\n\nPurchase Invoices can also be created against a Purchase Order or Purchase Receipt."
+  },
+  {
+    "en": "# Financial Statements\n\nIn ERPNext, you can get crucial financial reports like [Balance Sheet] and [Profit and Loss] statements with a click of a button. You can run in the report for a different period and plot analytics charts premised on statement data. For more reports, check sections like Financial Statements, General Ledger, and Profitability reports.\n\n<b>[Check Accounting reports](https://docs.erpnext.com/docs/v13/user/manual/en/accounts/accounting-reports)</b>"
+  },
+  {
+    "en": "# Fixed Asset Accounts\n\nWith the company, a host of fixed asset accounts are pre-configured. To ensure your asset transactions are leading to correct accounting entries, you can review and set up following asset accounts as per your business  requirements.\n - Fixed asset accounts (Asset account)\n - Accumulated depreciation\n - Capital Work in progress (CWIP) account\n - Asset Depreciation account (Expense account)"
+  },
+  {
+    "en": "# How Production Planning Works\n\nProduction Plan helps in production and material planning for the Items planned for manufacturing. These production items can be committed via Sales Order (to Customers) or Material Requests (internally).\n"
+  },
+  {
+    "en": "# Import Data from Spreadsheet\n\nIn ERPNext, you can easily migrate your historical data using spreadsheets. You can use it for migrating not just masters (like Customer, Supplier, Items), but also for transactions like (outstanding invoices, opening stock and accounting entries, etc)."
+  },
+  {
+    "en": "# Introduction to Stock Entry\nThis video will give a quick introduction to [**Stock Entry**](https://docs.erpnext.com/docs/user/manual/en/stock/stock-entry)."
+  },
+  {
+    "en": "# Manage Stock Movements\nStock entry allows you to register the movement of stock for various purposes like transfer, received, issues, repacked, etc. To address issues related to theft and pilferages,  you can always ensure that the movement of goods happens against a document reference Stock Entry in ERPNext.\n\nLet’s get a quick walk-through on the various scenarios covered in Stock Entry by watching [*this video*](https://www.youtube.com/watch?v=Njt107hlY3I)."
+  },
+  {
+    "en": "# Navigation in ERPNext\n\nEase of navigating and browsing around the ERPNext is one of our core strengths. In the following video, you will learn how to reach a specific feature in ERPNext via module page or AwesomeBar."
+  },
+  {
+    "en": "# Purchase an Asset\n\nAssets purchases process if done following the standard Purchase cycle. If capital work in progress is enabled in Asset Category, Asset will be created as soon as Purchase Receipt is created for it. You can quickly create a Purchase Receipt for Asset and see its impact on books of accounts."
+  },
+  {
+    "en": "# Review Manufacturing Settings\n\nIn ERPNext, the Manufacturing module’s features are configurable as per your business needs. Manufacturing Settings is the place where you can set your preferences for:\n\n- Capacity planning for allocating jobs to workstations\n- Raw-material consumption based on BOM or actual\n- Default values and over-production allowance\n"
+  },
+  {
+    "en": "# Review Stock Settings\n\nIn ERPNext, the Stock module’s features are configurable as per your business needs. Stock Settings is the place where you can set your preferences for:\n- Default values for Item and Pricing\n- Default valuation method for inventory valuation\n- Set preference for serialization and batching of item\n- Set tolerance for over-receipt and delivery of items"
+  },
+  {
+    "en": "# Sales Order\n\nA Sales Order is a confirmation of an order from your customer. It is also referred to as Proforma Invoice.\n\nSales Order at the heart of your sales and purchase transactions. Sales Orders are linked in Delivery Note, Sales Invoices, Material Request, and Maintenance transactions. Through Sales Order, you can track fulfillment of the overall deal towards the customer."
+  },
+  {
+    "en": "# Selling Settings\n\nCRM and Selling module’s features are configurable as per your business needs. Selling Settings is the place where you can set your preferences for:\n - Customer naming and default values\n - Billing and shipping preference in sales transactions\n"
+  }
+]

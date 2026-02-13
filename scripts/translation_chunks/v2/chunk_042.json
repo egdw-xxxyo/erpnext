@@ -1,0 +1,154 @@
+[
+  {
+    "en": "More Information",
+    "ctx": "Stock Entry"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Stock Entry Detail"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Stock Reservation Entry"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "More columns found than expected. Please compare the uploaded file with standard template"
+  },
+  {
+    "en": "More details"
+  },
+  {
+    "en": "Move"
+  },
+  {
+    "en": "Name"
+  },
+  {
+    "en": "Name",
+    "ctx": "Appointment"
+  },
+  {
+    "en": "Name",
+    "ctx": "Bulk Transaction Log Detail"
+  },
+  {
+    "en": "Name",
+    "ctx": "Employee Group"
+  },
+  {
+    "en": "Name",
+    "ctx": "Finance Book"
+  },
+  {
+    "en": "Name",
+    "ctx": "Installation Note"
+  },
+  {
+    "en": "Name",
+    "ctx": "Payment Entry Reference"
+  },
+  {
+    "en": "Name",
+    "ctx": "Payment Order Reference"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Asset Depreciation Schedule"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Asset Shift Allocation"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Buying Settings"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "CRM Settings"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Campaign"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Closing Stock Balance"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Downtime Entry"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Pricing Rule"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Selling Settings"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Serial and Batch Bundle"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Stock Settings"
+  },
+  {
+    "en": "Naming Series",
+    "ctx": "Supplier Scorecard Period"
+  },
+  {
+    "en": "New"
+  },
+  {
+    "en": "New Event"
+  },
+  {
+    "en": "Newsletter",
+    "ctx": "Newsletter"
+  },
+  {
+    "en": "Next"
+  },
+  {
+    "en": "No"
+  },
+  {
+    "en": "No",
+    "ctx": "Account"
+  },
+  {
+    "en": "No",
+    "ctx": "Buying Settings"
+  },
+  {
+    "en": "No",
+    "ctx": "Employee"
+  }
+]

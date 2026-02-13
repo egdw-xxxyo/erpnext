@@ -1,0 +1,150 @@
+[
+  {
+    "en": "Quantity in row {0} ({1}) must be same as manufactured quantity {2}"
+  },
+  {
+    "en": "Quarterly"
+  },
+  {
+    "en": "Quarterly",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "Quarterly",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "Quarterly",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Quarterly",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Query Options",
+    "ctx": "Support Search Source"
+  },
+  {
+    "en": "Queued",
+    "ctx": "BOM Update Log"
+  },
+  {
+    "en": "Queued",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Queued",
+    "ctx": "Closing Stock Balance"
+  },
+  {
+    "en": "Queued",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Queued",
+    "ctx": "Process Payment Reconciliation"
+  },
+  {
+    "en": "Queued",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Queued",
+    "ctx": "Repost Payment Ledger"
+  },
+  {
+    "en": "Quick Entry"
+  },
+  {
+    "en": "QuickBooks Migrator"
+  },
+  {
+    "en": "Quickbooks Company ID",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Random",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "Range"
+  },
+  {
+    "en": "Range",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Range",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Rate Difference with Purchase Invoice",
+    "ctx": "Purchase Receipt Item"
+  },
+  {
+    "en": "Rating",
+    "ctx": "Quality Feedback Parameter"
+  },
+  {
+    "en": "Raw Materials Warehouse",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Read Only",
+    "ctx": "POS Field"
+  },
+  {
+    "en": "Read blog"
+  },
+  {
+    "en": "Reading Uploaded File"
+  },
+  {
+    "en": "Reason"
+  },
+  {
+    "en": "Rebuild Tree"
+  },
+  {
+    "en": "Recalculating Purchase Cost against this Project..."
+  },
+  {
+    "en": "Received"
+  },
+  {
+    "en": "Received",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "Received",
+    "ctx": "Request for Quotation Supplier"
+  },
+  {
+    "en": "Recipient",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Recipient",
+    "ctx": "Email Digest Recipient"
+  },
+  {
+    "en": "Recipient",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Recipients",
+    "ctx": "Email Digest"
+  },
+  {
+    "en": "Red"
+  },
+  {
+    "en": "Red",
+    "ctx": "Supplier Scorecard Scoring Standing"
+  },
+  {
+    "en": "Red",
+    "ctx": "Supplier Scorecard Standing"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Finished Good Item {0} Qty can not be zero",
+    "ru": "Количество готовой продукции {0} не может быть равно нулю"
+  },
+  {
+    "en": "Finished Good Item {0} must be a sub-contracted item",
+    "ru": "Готовая продукция {0} должна быть изготовлена по субподряду"
+  },
+  {
+    "en": "Finished Good Qty",
+    "ru": "Количество готовой продукции"
+  },
+  {
+    "en": "Finished Good Quantity ",
+    "ru": "Количество готовой продукции "
+  },
+  {
+    "en": "Finished Good Serial / Batch",
+    "ru": "Готовый товар Серия / партия"
+  },
+  {
+    "en": "Finished Good UOM",
+    "ru": "Единица измерения готовой продукции"
+  },
+  {
+    "en": "Finished Good {0} does not have a default BOM.",
+    "ru": "Готовая продукция {0} не имеет спецификации по умолчанию."
+  },
+  {
+    "en": "Finished Good {0} is disabled.",
+    "ru": "Готовая продукция {0} отключена."
+  },
+  {
+    "en": "Finished Good {0} must be a stock item.",
+    "ru": "Готовая продукция {0} должна быть складской позицией."
+  },
+  {
+    "en": "Finished Good {0} must be a sub-contracted item.",
+    "ru": "Готовая продукция {0} должна изготавливаться на субподряде."
+  },
+  {
+    "en": "Finished Goods Based Operating Cost",
+    "ru": "Затраты на производство готовой продукции"
+  },
+  {
+    "en": "Finished Goods Item",
+    "ru": "Готовая продукция"
+  },
+  {
+    "en": "Finished Goods Reference",
+    "ru": "Ссылка на готовую продукцию"
+  },
+  {
+    "en": "Finished Goods Return",
+    "ru": "Возврат готовой продукции"
+  },
+  {
+    "en": "Finished Goods Value",
+    "ru": "Стоимость готовой продукции"
+  },
+  {
+    "en": "Finished Goods based Operating Cost",
+    "ru": "Затраты на производство готовой продукции"
+  },
+  {
+    "en": "Finished Item {0} does not match with Work Order {1}",
+    "ru": "Готовый товар {0} не соответствует заказу на работу {1}"
+  },
+  {
+    "en": "First Delivery Date",
+    "ru": "Первая дата поставки"
+  },
+  {
+    "en": "First Response Due",
+    "ru": "Срок первого ответа"
+  },
+  {
+    "en": "First Response SLA Failed by {}",
+    "ru": "SLA для первого ответа было нарушено {}"
+  },
+  {
+    "en": "Fiscal Year {0} is not available for Company {1}.",
+    "ru": "Финансовый год {0} недоступен для компании {1}."
+  },
+  {
+    "en": "Fix SABB Entry",
+    "ru": "Исправление записи SABB"
+  },
+  {
+    "en": "Fixed Asset Defaults",
+    "ru": "Настройки по умолчанию для основных средств"
+  },
+  {
+    "en": "Fixed Asset Turnover Ratio",
+    "ru": "Коэффициент оборачиваемости основных средств"
+  },
+  {
+    "en": "Fixed Asset item {0} cannot be used in BOMs.",
+    "ru": "Элемент основных средств {0} не может использоваться в спецификациях."
+  },
+  {
+    "en": "Fixed Outgoing Email Account",
+    "ru": "Изменить учетная запись исходящей электронной почты"
+  },
+  {
+    "en": "Fixed Time",
+    "ru": "Фиксированное время"
+  },
+  {
+    "en": "Floor",
+    "ru": "Этаж"
+  },
+  {
+    "en": "Floor Name",
+    "ru": "Название этажа"
+  },
+  {
+    "en": "Fluid Ounce (UK)",
+    "ru": "Жидкая унция (Великобритания)"
+  },
+  {
+    "en": "Fluid Ounce (US)",
+    "ru": "Жидкая унция (США)"
+  },
+  {
+    "en": "Foot",
+    "ru": "Фут"
+  },
+  {
+    "en": "Foot Of Water",
+    "ru": "Давление в футах воды"
+  },
+  {
+    "en": "Foot/Minute",
+    "ru": "Фут/минута"
+  },
+  {
+    "en": "Foot/Second",
+    "ru": "Фут/секунда"
+  },
+  {
+    "en": "For All Stock Asset Accounts",
+    "ru": "Для всех счетов фондовых активов"
+  },
+  {
+    "en": "For Item",
+    "ru": "Для товара"
+  },
+  {
+    "en": "For Item {0} cannot be received more than {1} qty against the {2} {3}",
+    "ru": "Для товара {0} нельзя получить больше, чем {1} против {2} {3}"
+  },
+  {
+    "en": "For Job Card",
+    "ru": "Для заказа на работу"
+  },
+  {
+    "en": "For Operation",
+    "ru": "Для операции"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "If there is no title column, use the code column for the title.",
+    "ru": "Если столбца заголовка нет, использовать столбец кода для заголовка."
+  },
+  {
+    "en": "If this is undesirable please cancel the corresponding Payment Entry.",
+    "ru": "Если это нежелательно, пожалуйста, отмените соответствующую Платежную запись."
+  },
+  {
+    "en": "If yes, then this warehouse will be used to store rejected materials",
+    "ru": "Если да, то этот склад будет использоваться для хранения бракованных материалов"
+  },
+  {
+    "en": "If you are maintaining stock of this Item in your Inventory, ERPNext will make a stock ledger entry for each transaction of this item.",
+    "ru": "Если вы ведете учет этого товара на складе, ERPNext сделает запись в бухгалтерской книге для каждой транзакции с этим товаром."
+  },
+  {
+    "en": "If you need to reconcile particular transactions against each other, then please select accordingly. If not, all the transactions will be allocated in FIFO order.",
+    "ru": "Если вам необходимо сверить отдельные транзакции друг с другом, выберите соответствующий вариант. Если нет, все транзакции будут распределены в порядке FIFO."
+  },
+  {
+    "en": "If you still want to proceed, please disable 'Skip Available Sub Assembly Items' checkbox.",
+    "ru": "Если вы все равно хотите продолжить, снимите флажок «Пропустить доступные элементы узлов сборки»."
+  },
+  {
+    "en": "If you want to run operations in parallel, keep the same sequence ID for them.",
+    "ru": "Если вы хотите выполнять операции параллельно, сохраняйте для них один и тот же идентификатор последовательности."
+  },
+  {
+    "en": "Ignore Account Closing Balance",
+    "ru": "Не учитывать конечный остаток счета"
+  },
+  {
+    "en": "Ignore Closing Balance",
+    "ru": "Игнорировать остаток на конец периода"
+  },
+  {
+    "en": "Ignore Default Payment Terms Template",
+    "ru": "Игнорировать шаблон Условий оплаты по умолчанию"
+  },
+  {
+    "en": "Ignore Empty Stock",
+    "ru": "Игнорировать пустой запас"
+  },
+  {
+    "en": "Ignore Exchange Rate Revaluation and Gain / Loss Journals",
+    "ru": "Игнорировать журналы переоценки обменного курса и прибылей/убытков"
+  },
+  {
+    "en": "Ignore Is Opening check for reporting",
+    "ru": "Игнорировать проверку открытия для отчетности"
+  },
+  {
+    "en": "Ignore Pricing Rule is enabled. Cannot apply coupon code.",
+    "ru": "Включено правило игнорирования ценообразования. Невозможно применить код купона."
+  },
+  {
+    "en": "Ignore System Generated Credit / Debit Notes",
+    "ru": "Игнорировать автоматически созданные кредетовые/дебетовые записи"
+  },
+  {
+    "en": "Ignore Tax Withholding Threshold",
+    "ru": "Игнорировать порог удержания налога"
+  },
+  {
+    "en": "Ignore Voucher Type filter and Select Vouchers Manually",
+    "ru": "Игнорировать фильтр по типу документа и выбрать вручную"
+  },
+  {
+    "en": "Ignores legacy Is Opening field in GL Entry that allows adding opening balance post the system is in use while generating reports",
+    "ru": "Игнорирует устаревшее поле «Открытие» в записи GL, которое позволяет добавлять начальный баланс после того, как система используется при формировании отчетов."
+  },
+  {
+    "en": "Impairment",
+    "ru": "Нарушение"
+  },
+  {
+    "en": "Implementation Partner",
+    "ru": "Партнер по внедрению"
+  },
+  {
+    "en": "Import Genericode File",
+    "ru": "Импорт файла Genericode"
+  },
+  {
+    "en": "Import MT940 Fromat",
+    "ru": "Импорт MT940 Fromat"
+  },
+  {
+    "en": "Import Using CSV file",
+    "ru": "Импорт с использованием CSV-файла"
+  },
+  {
+    "en": "Import completed. {0} common codes created.",
+    "ru": "Импорт завершен. Создано {0} общих кодов."
+  },
+  {
+    "en": "Importing Common Codes",
+    "ru": "Импорт общих кодов"
+  },
+  {
+    "en": "In House",
+    "ru": "В доме"
+  },
+  {
+    "en": "In Party Currency",
+    "ru": "В валюте контрагента"
+  },
+  {
+    "en": "In Transit Transfer",
+    "ru": "Перемещение в пути"
+  },
+  {
+    "en": "In Transit Warehouse",
+    "ru": "На транзитном складе"
+  },
+  {
+    "en": "In mins",
+    "ru": "В минутах"
+  },
+  {
+    "en": "In row {0} of Appointment Booking Slots: \\\"To Time\\\" must be later than \\\"From Time\\\".",
+    "ru": "В строке {0} временных интервалов для записи на прием время окончания должно быть позже времени начала."
+  },
+  {
+    "en": "In this section, you can define Company-wide transaction-related defaults for this Item. Eg. Default Warehouse, Default Price List, Supplier, etc.",
+    "ru": "В этом разделе вы можете определить значения по умолчанию для всей компании, связанные с транзакциями для этого элемента. Например, склад по умолчанию, прайс-лист по умолчанию, поставщик и т. д."
+  },
+  {
+    "en": "Inactive Status",
+    "ru": "Неактивный статус"
+  },
+  {
+    "en": "Inch",
+    "ru": "Дюйм"
+  },
+  {
+    "en": "Inch Pound-Force",
+    "ru": "Дюйм-фунт-сила"
+  },
+  {
+    "en": "Inch/Minute",
+    "ru": "Дюйм/минута"
+  },
+  {
+    "en": "Inch/Second",
+    "ru": "Дюйм/секунда"
+  },
+  {
+    "en": "Inches Of Mercury",
+    "ru": "Дюймы ртутного столба"
+  },
+  {
+    "en": "Include Account Currency",
+    "ru": "Включить валюту счета"
+  },
+  {
+    "en": "Include Closed Orders",
+    "ru": "Включить закрытые заказы"
+  }
+]

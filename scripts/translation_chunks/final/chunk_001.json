@@ -1,0 +1,77 @@
+[
+  {
+    "en": "Company link field name used for filtering (optional - leave empty to delete all records)"
+  },
+  {
+    "en": "Composite Asset"
+  },
+  {
+    "en": "Composite Component"
+  },
+  {
+    "en": "Connection"
+  },
+  {
+    "en": "Customer POS ID"
+  },
+  {
+    "en": "Deletion process restarted"
+  },
+  {
+    "en": "Deletion will start automatically after submission."
+  },
+  {
+    "en": "DocType {0} with company field '{1}' is already in the list"
+  },
+  {
+    "en": "DocTypes To Delete"
+  },
+  {
+    "en": "DocTypes that will NOT be deleted."
+  },
+  {
+    "en": "DocTypes with a company field:"
+  },
+  {
+    "en": "DocTypes without a company field:"
+  },
+  {
+    "en": "Document Count"
+  },
+  {
+    "en": "Duplicate DocType"
+  },
+  {
+    "en": "Duplicate entry: {0}{1}"
+  },
+  {
+    "en": "Empty To Delete List"
+  },
+  {
+    "en": "Enable Accounting Dimensions"
+  },
+  {
+    "en": "Enable Discounts and Margin"
+  },
+  {
+    "en": "Enable Loyalty Point Program"
+  },
+  {
+    "en": "Enable cost center, projects and other custom accounting dimensions"
+  },
+  {
+    "en": "Enable tracking sales commissions"
+  },
+  {
+    "en": "Error getting details for {0}: {1}"
+  },
+  {
+    "en": "Existing Asset"
+  },
+  {
+    "en": "Field '{0}' is not a valid Company link field for DocType {1}"
+  },
+  {
+    "en": "File does not belong to this Transaction Deletion Record"
+  }
+]

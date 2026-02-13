@@ -1,0 +1,162 @@
+[
+  {
+    "en": "The stock has been reserved for the following Items and Warehouses, un-reserve the same to {0} the Stock Reconciliation: <br /><br /> {1}",
+    "ru": "Запасы зарезервированы для следующих товаров и складов, снимите резерв с {0} сверки запасов: <br /><br /> {1}"
+  },
+  {
+    "en": "The sync has started in the background, please check the {0} list for new records.",
+    "ru": "Синхронизация началась в фоновом режиме, проверьте список {0} на наличие новых записей."
+  },
+  {
+    "en": "The system will create a Sales Invoice or a POS Invoice from the POS interface based on this setting. For high-volume transactions, it is recommended to use POS Invoice.",
+    "ru": "Система создаст счёт на продажу или счёт точки продаж через интерфейс точки продаж в зависимости от этой настройки. Для транзакций с большим объёмом рекомендуется использовать счёт точки продаж."
+  },
+  {
+    "en": "The task has been enqueued as a background job. In case there is any issue on processing in background, the system will add a comment about the error on this Stock Reconciliation and revert to the Submitted stage",
+    "ru": "Задача поставлена в очередь как фоновое задание. В случае возникновения проблем при обработке в фоновом режиме система добавит комментарий об ошибке в этой сверке запасов и вернется к этапу «Отправлено»"
+  },
+  {
+    "en": "The total Issue / Transfer quantity {0} in Material Request {1}  cannot be greater than allowed requested quantity {2} for Item {3}",
+    "ru": "Общее количество выпуска/передачи {0} в запросе на материалы {1}  не может быть больше, чем допустимое запрошенное количество {2} для товара {3}"
+  },
+  {
+    "en": "The total Issue / Transfer quantity {0} in Material Request {1} cannot be greater than requested quantity {2} for Item {3}",
+    "ru": "Общее количество выпуска/передачи {0} в запросе на материалы {1} не может быть больше запрошенного количества {2} для товара {3}"
+  },
+  {
+    "en": "The uploaded file does not appear to be in valid MT940 format.",
+    "ru": "Загруженный файл, по всей видимости, не имеет допустимого формата MT940."
+  },
+  {
+    "en": "The uploaded file does not match the selected Code List.",
+    "ru": "Загруженный файл не соответствует выбранному списку кодов."
+  },
+  {
+    "en": "The user cannot submit the Serial and Batch Bundle manually",
+    "ru": "Пользователь не может вручную отправить серийный и пакетный пакеты"
+  },
+  {
+    "en": "The user will be able to transfer additional materials from the store to the Work in Progress (WIP) warehouse.",
+    "ru": "«Пользователь сможет передавать дополнительные материалы со склада в склад незавершённого производства."
+  },
+  {
+    "en": "The users with this Role are allowed to create/modify a stock transaction, even though the transaction is frozen.",
+    "ru": "Пользователи с этой ролью могут создавать или изменять складскую транзакцию, даже если она заморожена."
+  },
+  {
+    "en": "The warehouse where you store finished Items before they are shipped.",
+    "ru": "Склад, где хранятся готовые изделия перед отправкой."
+  },
+  {
+    "en": "The warehouse where you store your raw materials. Each required item can have a separate source warehouse. Group warehouse also can be selected as source warehouse. On submission of the Work Order, the raw materials will be reserved in these warehouses for production usage.",
+    "ru": "Склад, где вы храните свое сырье. Каждый требуемый элемент может иметь отдельный исходный склад. Групповой склад также может быть выбран в качестве исходного склада. При подаче заказа на работу сырье будет зарезервировано на этих складах для использования в производстве."
+  },
+  {
+    "en": "The warehouse where your Items will be transferred when you begin production. Group Warehouse can also be selected as a Work in Progress warehouse.",
+    "ru": "Склад, куда будут перемещены ваши товары, когда вы начнете производство. Групповой склад также можно выбрать как склад незавершенного производства."
+  },
+  {
+    "en": "The {0} contains Unit Price Items.",
+    "ru": "{0} Содержит товары с ценой за единицу."
+  },
+  {
+    "en": "The {0} prefix '{1}' already exists. Please change the Serial No Series, otherwise you will get a Duplicate Entry error.",
+    "ru": "Префикс {0} '{1}' уже существует. Пожалуйста, измените серию серийного номера, иначе Вы получите ошибку Duplicate Entry."
+  },
+  {
+    "en": "The {0} {1} created successfully",
+    "ru": "{0} {1} успешно созданы"
+  },
+  {
+    "en": "The {0} {1} does not match with the {0} {2} in the {3} {4}",
+    "ru": "{0} {1} не соответствует {0} {2} в {3} {4}"
+  },
+  {
+    "en": "The {0} {1} is used to calculate the valuation cost for the finished good {2}.",
+    "ru": "{0} {1} используется для расчета оценочной стоимости готовой продукции {2}."
+  },
+  {
+    "en": "There are ledger entries against this account. Changing {0} to non-{1} in live system will cause incorrect output in 'Accounts {2}' report",
+    "ru": "Есть записи в бухгалтерской книге по этому счету. Изменение {0} на не-{1} в реальной системе приведет к неправильному выводу в отчете «Счета {2}»"
+  },
+  {
+    "en": "There are no Failed transactions",
+    "ru": "Нет неудачных транзакций"
+  },
+  {
+    "en": "There are no active Fiscal Years for which Demo Data can be generated.",
+    "ru": "Нет активных финансовых лет, для которых можно создать демонстрационные данные."
+  },
+  {
+    "en": "There are no slots available on this date",
+    "ru": "Нет доступных слотов на эту дату"
+  },
+  {
+    "en": "There are two options to maintain valuation of stock. FIFO (first in - first out) and Moving Average. To understand this topic in detail please visit <a href='https://docs.frappe.io/erpnext/user/manual/en/calculation-of-valuation-rate-in-fifo-and-moving-average' target='_blank'>Item Valuation, FIFO and Moving Average.</a>",
+    "ru": "РЎСѓС‰РµСЃС‚РІСѓРµС‚ РґРІР° РІР°СЂРёР°РЅС‚Р° РІРµРґРµРЅРёСЏ РѕС†РµРЅРєРё Р·Р°РїР°СЃРѕРІ. FIFO (РїРµСЂРІС‹Рј РїСЂРёС€РµР» - РїРµСЂРІС‹Рј СѓС€РµР») Рё СЃРєРѕР»СЊР·СЏС‰Р°СЏ СЃСЂРµРґРЅСЏСЏ. Р§С‚РѕР±С‹ РїРѕРґСЂРѕР±РЅРѕ СЂР°Р·РѕР±СЂР°С‚СЊСЃСЏ РІ СЌС‚РѕР№ С‚РµРјРµ, РїРѕСЃРµС‚РёС‚Рµ <a href='https://docs.frappe.io/erpnext/user/manual/en/calculation-of-valuation-rate-in-fifo-and-moving-average' target='_blank'>РћС†РµРЅРєР° С‚РѕРІР°СЂР°, FIFO Рё СЃРєРѕР»СЊР·СЏС‰Р°СЏ СЃСЂРµРґРЅСЏСЏ.</a>"
+  },
+  {
+    "en": "There aren't any item variants for the selected item",
+    "ru": "Для выбранного товара нет вариантов"
+  },
+  {
+    "en": "There can only be one Shipping Rule Condition with 0 or blank value for \\\"To Value\\",
+    "ru": "Там может быть только один Правило Начальные с 0 или пустое значение для \\\"To Размер\\"
+  },
+  {
+    "en": "There is already a valid Lower Deduction Certificate {0} for Supplier {1} against category {2} for this time period.",
+    "ru": "Для поставщика {1} уже имеется действующий сертификат с пониженной ставкой {0} по категории {2} на данный период."
+  },
+  {
+    "en": "There is already an active Subcontracting BOM {0} for the Finished Good {1}.",
+    "ru": "Уже имеется активная спецификация субподряда {0} для готового товара {1}."
+  },
+  {
+    "en": "There must be atleast 1 Finished Good in this Stock Entry",
+    "ru": "В этой записи о движении товаров должно быть хотя бы одно готовое изделие"
+  },
+  {
+    "en": "There was an error creating Bank Account while linking with Plaid.",
+    "ru": "Произошла ошибка при создании банковского счета при подключении к Plaid."
+  },
+  {
+    "en": "There was an error syncing transactions.",
+    "ru": "Произошла ошибка синхронизации транзакций."
+  },
+  {
+    "en": "There was an error updating Bank Account {} while linking with Plaid.",
+    "ru": "Произошла ошибка обновления банковского счета {} при подключении к Plaid."
+  },
+  {
+    "en": "There was an issue connecting to Plaid's authentication server. Check browser console for more information",
+    "ru": "Возникла проблема с подключением к серверу аутентификации Plaid. Проверьте консоль браузера для получения дополнительной информации"
+  },
+  {
+    "en": "There were issues unlinking payment entry {0}.",
+    "ru": "Возникли проблемы при отмене связи с записью о платеже {0}."
+  },
+  {
+    "en": "This Account has '0' balance in either Base Currency or Account Currency",
+    "ru": "У этого счета баланс равен нулю в основной валюте или валюте счета"
+  },
+  {
+    "en": "This Item is a Template and cannot be used in transactions.<br>All fields present in the 'Copy Fields to Variant' table in Item Variant Settings will be copied to its variant items.",
+    "ru": "Этот товар является шаблоном и не может использоваться в транзакциях.<br>Все поля, присутствующие в таблице «Копировать поля в вариант» в настройках варианта товара, будут скопированы в его вариант."
+  },
+  {
+    "en": "This Purchase Order has been fully subcontracted.",
+    "ru": "Данный заказ на поставку был полностью передан субподрядчику."
+  },
+  {
+    "en": "This Sales Order has been fully subcontracted.",
+    "ru": "Данный заказ на продажу был полностью передан субподрядчику."
+  },
+  {
+    "en": "This asset category is marked as non-depreciable. Please disable depreciation calculation or choose a different category.",
+    "ru": "Эта категория активов отмечена как не амортизируемая. Отключите расчёт амортизации или выберите другую категорию."
+  },
+  {
+    "en": "This field is used to set the 'Customer'.",
+    "ru": "Это поле используется для установки «Клиента»."
+  }
+]

@@ -1,0 +1,156 @@
+[
+  {
+    "en": "Expired",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Expired",
+    "ctx": "Serial No"
+  },
+  {
+    "en": "Expired",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Expires On"
+  },
+  {
+    "en": "Export Data",
+    "ctx": "Data Export"
+  },
+  {
+    "en": "Export Errored Rows"
+  },
+  {
+    "en": "FG Based Operating Cost Section",
+    "ctx": "BOM"
+  },
+  {
+    "en": "FG Item",
+    "ctx": "BOM Creator Item"
+  },
+  {
+    "en": "FG Qty from Transferred Raw Materials",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "FG Reference",
+    "ctx": "BOM Creator Item"
+  },
+  {
+    "en": "FG Value"
+  },
+  {
+    "en": "FG Warehouse",
+    "ctx": "Production Plan Item"
+  },
+  {
+    "en": "FG based Operating Cost",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Failed"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Failed",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Failed",
+    "ctx": "BOM Update Log"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Bulk Transaction Log"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Closing Stock Balance"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Issue"
+  },
+  {
+    "en": "Failed",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Period Closing Voucher"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Process Payment Reconciliation"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Process Payment Reconciliation Log"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Quality Review"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Quality Review Objective"
+  },
+  {
+    "en": "Failed",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Failed",
+    "ctx": "Repost Payment Ledger"
+  },
+  {
+    "en": "Failed Import Log",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Failure"
+  },
+  {
+    "en": "Fax",
+    "ctx": "Company"
+  },
+  {
+    "en": "Fax",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Fax",
+    "ctx": "Prospect"
+  },
+  {
+    "en": "Feedback"
+  },
+  {
+    "en": "Feedback",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Feedback",
+    "ctx": "Quality Action"
+  },
+  {
+    "en": "Feedback",
+    "ctx": "Quality Feedback Parameter"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "Draft": "Чернетка",
+  "Due / Reference Date cannot be after {0}": "Дата оплати / Контрольна дата не може бути після {0}",
+  "Due Date": "Дата оплати",
+  "Due Date Based On": "Дата оплати на основі",
+  "Due Date cannot be before Posting / Supplier Invoice Date": "Дата оплати не може бути раніше дати проводки / дати рахунку постачальника",
+  "Due Date is mandatory": "Дата оплати є обов'язковою",
+  "Duplicate": "Дублікат",
+  "Duplicate Closing Stock Balance": "Дублікат кінцевого залишку запасів",
+  "Duplicate customer group found in the cutomer group table": "Знайдено дублікат групи клієнтів у таблиці груп клієнтів",
+  "Duration": "Тривалість"
+}

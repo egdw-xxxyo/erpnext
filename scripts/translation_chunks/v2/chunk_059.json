@@ -1,0 +1,157 @@
+[
+  {
+    "en": "Start Date"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Accounting Period"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Bank Guarantee"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Contract"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Service Level Agreement"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Supplier Scorecard Period"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "Start Date",
+    "ctx": "Vehicle"
+  },
+  {
+    "en": "Start Import"
+  },
+  {
+    "en": "Start Time",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Start Time",
+    "ctx": "Service Day"
+  },
+  {
+    "en": "Start Time",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Start Time",
+    "ctx": "Workstation Working Hour"
+  },
+  {
+    "en": "Started a background job to create {1} {0}"
+  },
+  {
+    "en": "State"
+  },
+  {
+    "en": "State",
+    "ctx": "Lead"
+  },
+  {
+    "en": "State",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "State",
+    "ctx": "Warehouse"
+  },
+  {
+    "en": "Statement Import Log",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Status"
+  },
+  {
+    "en": "Status",
+    "ctx": "Appointment"
+  },
+  {
+    "en": "Status",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Status",
+    "ctx": "Asset Depreciation Schedule"
+  },
+  {
+    "en": "Status",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Status",
+    "ctx": "BOM Update Batch"
+  },
+  {
+    "en": "Status",
+    "ctx": "BOM Update Log"
+  },
+  {
+    "en": "Status",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Status",
+    "ctx": "Bank Transaction"
+  },
+  {
+    "en": "Status",
+    "ctx": "Bulk Transaction Log Detail"
+  },
+  {
+    "en": "Status",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Status",
+    "ctx": "Closing Stock Balance"
+  },
+  {
+    "en": "Status",
+    "ctx": "Contract"
+  },
+  {
+    "en": "Status",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Status",
+    "ctx": "Delivery Trip"
+  },
+  {
+    "en": "Status",
+    "ctx": "Driver"
+  },
+  {
+    "en": "Status",
+    "ctx": "Dunning"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "For Raw Materials",
+    "ru": "Для сырья"
+  },
+  {
+    "en": "For Return Invoices with Stock effect, '0' qty Items are not allowed. Following rows are affected: {0}",
+    "ru": "По возвратным счетам-фактурам, влияющим на запасы, позиции с нулевым количеством недопустимы. Затронуты строки: {0}"
+  },
+  {
+    "en": "For Work Order",
+    "ru": "Для заказа на работу"
+  },
+  {
+    "en": "For dunning fee and interest",
+    "ru": "Для напоминания о платеже и процентов"
+  },
+  {
+    "en": "For item <b>{0}</b>, only <b>{1}</b> asset have been created or linked to <b>{2}</b>. Please create or link <b>{3}</b> more asset with the respective document.",
+    "ru": "Для товара <b>{0}</b>, только <b>{1}</b> активы были созданы или связаны с <b>{2}</b>. Пожалуйста, создайте или свяжите <b>{3}</b> больше активов с соответствующим документом."
+  },
+  {
+    "en": "For item {0}, rate must be a positive number. To Allow negative rates, enable {1} in {2}",
+    "ru": "Для элемента {0} ставка должна быть положительным числом. Чтобы разрешить отрицательные ставки, включите {1} в {2}"
+  },
+  {
+    "en": "For operation {0}: Quantity ({1}) can not be greater than pending quantity({2})",
+    "ru": "Для операции {0}: Количество ({1}) не может быть больше ожидаемого количества ({2})"
+  },
+  {
+    "en": "For project {0}, update your status",
+    "ru": "Для проекта {0}, обновите свой статус"
+  },
+  {
+    "en": "For projected and forecast quantities, the system will consider all child warehouses under the selected parent warehouse.",
+    "ru": "Для прогнозируемых и планируемых количеств система будет учитывать все дочерние склады, входящие в выбранный родительский склад"
+  },
+  {
+    "en": "For quantity {0} should not be greater than allowed quantity {1}",
+    "ru": "Для количества {0} не должно быть больше допустимого количества {1}"
+  },
+  {
+    "en": "For service item",
+    "ru": "Для элемента обслуживания"
+  },
+  {
+    "en": "For the new {0} to take effect, would you like to clear the current {1}?",
+    "ru": "Чтобы новый {0} вступил в силу, хотите ли Вы очистить текущий {1}?"
+  },
+  {
+    "en": "For the {0}, no stock is available for the return in the warehouse {1}.",
+    "ru": "Для {0} нет запасов, доступных для возврата на склад {1}."
+  },
+  {
+    "en": "For the {0}, the quantity is required to make the return entry",
+    "ru": "Для {0} необходимо указать количество для оформления записи о возврате"
+  },
+  {
+    "en": "Force-Fetch Subscription Updates",
+    "ru": "Принудительно получить обновления подписки"
+  },
+  {
+    "en": "Forecast",
+    "ru": "Прогноз"
+  },
+  {
+    "en": "Forecast Demand",
+    "ru": "Прогноз спроса"
+  },
+  {
+    "en": "Forecast Qty",
+    "ru": "Прогнозируемое количество"
+  },
+  {
+    "en": "Foreign Currency Translation Reserve",
+    "ru": "Резерв по переводу иностранной валюты"
+  },
+  {
+    "en": "Formula Based Criteria",
+    "ru": "Критерии на основе формулы"
+  },
+  {
+    "en": "Formula or Account Filter",
+    "ru": "Формула или фильтр счета"
+  },
+  {
+    "en": "Frappe School",
+    "ru": "Школа Фраппе"
+  },
+  {
+    "en": "Free Alongside Ship",
+    "ru": "Свободно вдоль борта судна"
+  },
+  {
+    "en": "Free Carrier",
+    "ru": "Доставка с передачей перевозчику"
+  },
+  {
+    "en": "Free Item Rate",
+    "ru": "Стоимость бесплатного товара"
+  },
+  {
+    "en": "Free On Board",
+    "ru": "Доставка с условиями \\\"свободно на борту\\"
+  },
+  {
+    "en": "From BOM No",
+    "ru": "Из спецификации материалов"
+  },
+  {
+    "en": "From Corrective Job Card",
+    "ru": "Из карточки учета исправлений"
+  },
+  {
+    "en": "From Date and To Date are mandatory",
+    "ru": "С даты и до даты являются обязательными"
+  },
+  {
+    "en": "From Date and To Date are required",
+    "ru": "Требуются даты начала и окончания"
+  },
+  {
+    "en": "From Date is mandatory",
+    "ru": "С даты является обязательным"
+  },
+  {
+    "en": "From Date: {0} cannot be greater than To date: {1}",
+    "ru": "От даты: {0} не может быть больше чем до даты: {1}"
+  },
+  {
+    "en": "From Delivery Date",
+    "ru": "С даты доставки"
+  },
+  {
+    "en": "From Doctype",
+    "ru": "Из типа документа"
+  },
+  {
+    "en": "From Due Date",
+    "ru": "С даты выполнения"
+  },
+  {
+    "en": "From Employee is required while issuing Asset {0}",
+    "ru": "При выдаче актива {0} необходимо указать сотрудника-отправителя"
+  },
+  {
+    "en": "From External Ecomm Platform",
+    "ru": "Из внешней платформы электронной коммерции"
+  },
+  {
+    "en": "From Fiscal Year cannot be greater than To Fiscal Year",
+    "ru": "Начальный финансовый год не может быть больше конечного финансового года"
+  },
+  {
+    "en": "From Payment Date",
+    "ru": "С даты платежа"
+  },
+  {
+    "en": "From Reference Date",
+    "ru": "С даты отсчета"
+  }
+]

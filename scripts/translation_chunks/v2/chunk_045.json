@@ -1,0 +1,153 @@
+[
+  {
+    "en": "Operation",
+    "ctx": "Work Order Operation"
+  },
+  {
+    "en": "Operation & Workstation",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Operation Time ",
+    "ctx": "BOM Operation"
+  },
+  {
+    "en": "Opportunities by lead source"
+  },
+  {
+    "en": "Options",
+    "ctx": "POS Field"
+  },
+  {
+    "en": "Orange",
+    "ctx": "Supplier Scorecard Scoring Standing"
+  },
+  {
+    "en": "Orange",
+    "ctx": "Supplier Scorecard Standing"
+  },
+  {
+    "en": "Order in which sections should appear. 0 is first, 1 is second and so on.",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "Orientation",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Original invoice should be consolidated before or along with the return invoice."
+  },
+  {
+    "en": "Other",
+    "ctx": "Downtime Entry"
+  },
+  {
+    "en": "Other",
+    "ctx": "Email Digest"
+  },
+  {
+    "en": "Other",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Other",
+    "ctx": "Supplier Scorecard Standing"
+  },
+  {
+    "en": "Outgoing"
+  },
+  {
+    "en": "Outgoing",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Outgoing",
+    "ctx": "Quality Inspection"
+  },
+  {
+    "en": "Overview",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Overview",
+    "ctx": "Prospect"
+  },
+  {
+    "en": "PMO-",
+    "ctx": "Payment Order"
+  },
+  {
+    "en": "PO-JOB.#####",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "POS",
+    "ctx": "Accounts Settings"
+  },
+  {
+    "en": "POS Invoice is not {}"
+  },
+  {
+    "en": "POS Invoice is {}"
+  },
+  {
+    "en": "POS Invoice should have {} field checked."
+  },
+  {
+    "en": "POS Profile doesn't matches {}"
+  },
+  {
+    "en": "POS Profile {} does not belongs to company {}"
+  },
+  {
+    "en": "POS Setting",
+    "ctx": "Accounts Settings"
+  },
+  {
+    "en": "POS invoice {0} created succesfully"
+  },
+  {
+    "en": "POS-CLO-",
+    "ctx": "Cashier Closing"
+  },
+  {
+    "en": "PRLE-.####",
+    "ctx": "Pricing Rule"
+  },
+  {
+    "en": "PROJ-.####",
+    "ctx": "Project"
+  },
+  {
+    "en": "PU-SSP-.YYYY.-",
+    "ctx": "Supplier Scorecard Period"
+  },
+  {
+    "en": "PUR-ORD-.YYYY.-",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "PUR-RFQ-.YYYY.-",
+    "ctx": "Request for Quotation"
+  },
+  {
+    "en": "PUR-SQTN-.YYYY.-",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Page Break",
+    "ctx": "Delivery Note Item"
+  },
+  {
+    "en": "Page Break",
+    "ctx": "Material Request Item"
+  },
+  {
+    "en": "Page Break",
+    "ctx": "POS Invoice Item"
+  },
+  {
+    "en": "Page Break",
+    "ctx": "Packed Item"
+  }
+]

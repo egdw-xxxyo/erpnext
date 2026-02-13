@@ -1,0 +1,144 @@
+[
+  {
+    "en": "Row #{}: Depreciation Posting Date should not be equal to Available for Use Date."
+  },
+  {
+    "en": "Row #{}: Item Code: {} is not available under warehouse {}."
+  },
+  {
+    "en": "Row #{}: Original Invoice {} of return invoice {} is {}."
+  },
+  {
+    "en": "Row #{}: Please asign task to a member."
+  },
+  {
+    "en": "Row #{}: Stock quantity not enough for Item Code: {} under warehouse {}. Available quantity {}."
+  },
+  {
+    "en": "Row #{}: You cannot add postive quantities in a return invoice. Please remove item {} to complete the return."
+  },
+  {
+    "en": "Row {0}# Item {1} cannot be transferred more than {2} against {3} {4}"
+  },
+  {
+    "en": "Row {0}: Account {1} is a Group Account"
+  },
+  {
+    "en": "Row {0}: Depreciation Start Date is required"
+  },
+  {
+    "en": "Row {0}: Enter location for the asset item {1}"
+  },
+  {
+    "en": "Row {0}: Expected Value After Useful Life must be less than Gross Purchase Amount"
+  },
+  {
+    "en": "Row {0}: Total Number of Depreciations cannot be less than or equal to Number of Depreciations Booked"
+  },
+  {
+    "en": "Row {0}: {3} Account {1} does not belong to Company {2}"
+  },
+  {
+    "en": "Row {}: Asset Naming Series is mandatory for the auto creation for item {}"
+  },
+  {
+    "en": "SABB-.########",
+    "ctx": "Serial and Batch Bundle"
+  },
+  {
+    "en": "SAL-CAM-.YYYY.-",
+    "ctx": "Campaign"
+  },
+  {
+    "en": "SAL-ORD-.YYYY.-",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "SAL-QTN-.YYYY.-",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "SC-ORD-.YYYY.-",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "SER-WRN-.YYYY.-",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "SMS Log",
+    "ctx": "SMS Log"
+  },
+  {
+    "en": "SMS Settings",
+    "ctx": "SMS Settings"
+  },
+  {
+    "en": "STATEMENTS OF ACCOUNTS"
+  },
+  {
+    "en": "STO-ITEM-.YYYY.-",
+    "ctx": "Item"
+  },
+  {
+    "en": "STO-PICK-.YYYY.-",
+    "ctx": "Pick List"
+  },
+  {
+    "en": "SUP-.YYYY.-",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Sales Manager"
+  },
+  {
+    "en": "Sales Master Manager"
+  },
+  {
+    "en": "Sales User"
+  },
+  {
+    "en": "Salutation",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Salutation",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Salutation",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Appointment Booking Slots"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Availability Of Slots"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Communication Medium Timeslot"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Holiday List"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Incoming Call Handling Schedule"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Project"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Saturday",
+    "ctx": "Service Day"
+  }
+]

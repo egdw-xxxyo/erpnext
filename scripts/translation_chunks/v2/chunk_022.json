@@ -1,0 +1,160 @@
+[
+  {
+    "en": "Description",
+    "ctx": "Purchase Order Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Purchase Receipt Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Purchase Receipt Item Supplied"
+  },
+  {
+    "en": "Description",
+    "ctx": "Purchase Taxes and Charges"
+  },
+  {
+    "en": "Description",
+    "ctx": "Quality Inspection"
+  },
+  {
+    "en": "Description",
+    "ctx": "Quality Inspection Parameter"
+  },
+  {
+    "en": "Description",
+    "ctx": "Quotation Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Request for Quotation Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Sales Invoice Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Sales Invoice Timesheet"
+  },
+  {
+    "en": "Description",
+    "ctx": "Sales Order Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Sales Partner"
+  },
+  {
+    "en": "Description",
+    "ctx": "Sales Taxes and Charges"
+  },
+  {
+    "en": "Description",
+    "ctx": "Serial No"
+  },
+  {
+    "en": "Description",
+    "ctx": "Share Type"
+  },
+  {
+    "en": "Description",
+    "ctx": "Stock Entry Detail"
+  },
+  {
+    "en": "Description",
+    "ctx": "Sub Operation"
+  },
+  {
+    "en": "Description",
+    "ctx": "Subcontracting Order Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Subcontracting Receipt Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Subcontracting Receipt Supplied Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Supplier Quotation Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Supplier Scorecard Scoring Variable"
+  },
+  {
+    "en": "Description",
+    "ctx": "Supplier Scorecard Variable"
+  },
+  {
+    "en": "Description",
+    "ctx": "Task Type"
+  },
+  {
+    "en": "Description",
+    "ctx": "Timesheet Detail"
+  },
+  {
+    "en": "Description",
+    "ctx": "Video"
+  },
+  {
+    "en": "Description",
+    "ctx": "Warehouse Type"
+  },
+  {
+    "en": "Description",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "Description",
+    "ctx": "Work Order Item"
+  },
+  {
+    "en": "Description",
+    "ctx": "Workstation"
+  },
+  {
+    "en": "Description",
+    "ctx": "Workstation Type"
+  },
+  {
+    "en": "Designation"
+  },
+  {
+    "en": "Designation",
+    "ctx": "Designation"
+  },
+  {
+    "en": "Designation",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Designation",
+    "ctx": "Employee External Work History"
+  },
+  {
+    "en": "Designation",
+    "ctx": "Employee Internal Work History"
+  },
+  {
+    "en": "Desk User"
+  },
+  {
+    "en": "Details",
+    "ctx": "Appointment"
+  },
+  {
+    "en": "Details",
+    "ctx": "Asset Depreciation Schedule"
+  },
+  {
+    "en": "Details",
+    "ctx": "Delivery Stop"
+  }
+]

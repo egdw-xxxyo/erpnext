@@ -1,0 +1,22 @@
+FROM frappe/erpnext:v15.96.1
+
+USER root
+
+COPY scripts/merge_csv.py /tmp/merge_csv.py
+COPY erpnext_translations_uk.csv /tmp/erpnext_uk_new.csv
+COPY frappe_translations_uk.csv /tmp/frappe_uk_new.csv
+
+RUN echo "ERPNext translations:" && \
+    python3 /tmp/merge_csv.py \
+      /home/frappe/frappe-bench/apps/erpnext/erpnext/translations/uk.csv \
+      /tmp/erpnext_uk_new.csv && \
+    echo "Frappe translations:" && \
+    python3 /tmp/merge_csv.py \
+      /home/frappe/frappe-bench/apps/frappe/frappe/translations/uk.csv \
+      /tmp/frappe_uk_new.csv && \
+    rm /tmp/merge_csv.py /tmp/erpnext_uk_new.csv /tmp/frappe_uk_new.csv
+
+COPY erpnext/locale/uk.po /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po
+COPY frappe_locale_uk.po /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po
+
+USER frappe

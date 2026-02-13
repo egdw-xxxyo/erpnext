@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Reserved for Production",
+    "ru": "Зарезервировано для производства"
+  },
+  {
+    "en": "Reserved for Production Plan",
+    "ru": "Зарезервировано для производственного плана"
+  },
+  {
+    "en": "Reserved for Sub Contracting",
+    "ru": "Зарезервировано для субподряда"
+  },
+  {
+    "en": "Reserving Stock...",
+    "ru": "Резервирование запасов..."
+  },
+  {
+    "en": "Reset Company Default Values",
+    "ru": "Сбросить значения по умолчанию компании"
+  },
+  {
+    "en": "Reset Plaid Link",
+    "ru": "Сбросить соединение с Plaid"
+  },
+  {
+    "en": "Reset Raw Materials Table",
+    "ru": "Сбросить таблицу сырья"
+  },
+  {
+    "en": "Resolution Due",
+    "ru": "Срок решения"
+  },
+  {
+    "en": "Response and Resolution",
+    "ru": "Ответ и решение"
+  },
+  {
+    "en": "Restart",
+    "ru": "Перезапуск"
+  },
+  {
+    "en": "Restart Failed Entries",
+    "ru": "Перезапустить неудачные записи"
+  },
+  {
+    "en": "Restore Asset",
+    "ru": "Восстановить актив"
+  },
+  {
+    "en": "Restrict",
+    "ru": "Ограничить"
+  },
+  {
+    "en": "Restrict Items Based On",
+    "ru": "Ограничить товары на основе"
+  },
+  {
+    "en": "Result Key",
+    "ru": "Ключ результата"
+  },
+  {
+    "en": "Resume Job",
+    "ru": "Возобновить работу"
+  },
+  {
+    "en": "Resume Timer",
+    "ru": "Возобновить таймер"
+  },
+  {
+    "en": "Retailer",
+    "ru": "Розничный торговец"
+  },
+  {
+    "en": "Retried",
+    "ru": "Повторная попытка"
+  },
+  {
+    "en": "Retry Failed Transactions",
+    "ru": "Повторная обработка неудачных транзакций"
+  },
+  {
+    "en": "Return Against",
+    "ru": "Возврат по причине"
+  },
+  {
+    "en": "Return Against Subcontracting Receipt",
+    "ru": "Возврат по квитанции о субподряде"
+  },
+  {
+    "en": "Return Components",
+    "ru": "Возврат компонентов"
+  },
+  {
+    "en": "Return Issued",
+    "ru": "Возврат оформлен"
+  },
+  {
+    "en": "Return Qty",
+    "ru": "Возврат кол-ва"
+  },
+  {
+    "en": "Return Qty from Rejected Warehouse",
+    "ru": "Количество возврата из склада брака"
+  },
+  {
+    "en": "Return Raw Material to Customer",
+    "ru": "Возврат сырья заказчику"
+  },
+  {
+    "en": "Return invoice of asset cancelled",
+    "ru": "Возвратный счёт по активу отменён"
+  },
+  {
+    "en": "Return of Components",
+    "ru": "Возврат компонентов"
+  },
+  {
+    "en": "Return on Asset Ratio",
+    "ru": "Коэффициент рентабельности активов"
+  },
+  {
+    "en": "Return on Equity Ratio",
+    "ru": "Коэффициент задолженности"
+  },
+  {
+    "en": "Returned",
+    "ru": "Возвращено"
+  },
+  {
+    "en": "Returned Against",
+    "ru": "Возвращено по причине"
+  },
+  {
+    "en": "Returned Qty ",
+    "ru": "Возвращенное количество "
+  },
+  {
+    "en": "Returned Qty in Stock UOM",
+    "ru": "Возвращённое количество в единицах измерения запасов"
+  },
+  {
+    "en": "Returned exchange rate is neither integer not float.",
+    "ru": "Возвращённый обменный курс не является ни целым числом, ни числом с плавающей запятой."
+  },
+  {
+    "en": "Revaluation Journals",
+    "ru": "Журналы переоценки"
+  },
+  {
+    "en": "Revaluation Surplus",
+    "ru": "Излишек переоценки"
+  },
+  {
+    "en": "Revenue",
+    "ru": "Доход"
+  },
+  {
+    "en": "Reversal Of",
+    "ru": "Возврат"
+  }
+]

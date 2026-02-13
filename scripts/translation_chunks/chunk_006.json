@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Advance Voucher No",
+    "ru": "Номер авансового документа"
+  },
+  {
+    "en": "Advance Voucher Type",
+    "ru": "Тип авансового документа"
+  },
+  {
+    "en": "Advance paid against {0} {1} cannot be greater than Grand Total {2}",
+    "ru": "Аванс, выплаченный по {0} {1} не может быть больше, чем общая сумма {2}"
+  },
+  {
+    "en": "Advance payments allocated against orders will only be fetched",
+    "ru": "Будут учтены только авансы, распределённые по заказам"
+  },
+  {
+    "en": "Advanced Filtering",
+    "ru": "Расширенный фильтр"
+  },
+  {
+    "en": "Advertisement",
+    "ru": "Реклама"
+  },
+  {
+    "en": "Affected Transactions",
+    "ru": "Затронутые операции"
+  },
+  {
+    "en": "Against Customer Order {0}",
+    "ru": "По заказу клиента {0}"
+  },
+  {
+    "en": "Against Finished Good",
+    "ru": "Выбрать готовый продукцию"
+  },
+  {
+    "en": "Against Pick List",
+    "ru": "Против списка выбора"
+  },
+  {
+    "en": "Against Supplier Invoice {0}",
+    "ru": "По счет-фактуре поставщика {0}"
+  },
+  {
+    "en": "Against Voucher No",
+    "ru": "По номеру чека"
+  },
+  {
+    "en": "Age ({0})",
+    "ru": "Возраст ({0})"
+  },
+  {
+    "en": "Ageing Range",
+    "ru": "Диапазон возраста"
+  },
+  {
+    "en": "Ageing Report based on {0} up to {1}",
+    "ru": "Отчет об устаревании на основе {0} до {1}"
+  },
+  {
+    "en": "Agent",
+    "ru": "Агент"
+  },
+  {
+    "en": "Agent Busy Message",
+    "ru": "Сообщение о занятости агента"
+  },
+  {
+    "en": "Agent Group",
+    "ru": "Группа агента"
+  },
+  {
+    "en": "Agent Unavailable Message",
+    "ru": "Сообщение «Агент недоступен»"
+  },
+  {
+    "en": "Aggregate a group of Items into another Item. This is useful if you are maintaining the stock of the packed items and not the bundled item",
+    "ru": "Объединить группу товаров в другой товар. Это полезно, если вы ведете учет упакованных товаров, а не комплектов товара"
+  },
+  {
+    "en": "Algorithm",
+    "ru": "Алгоритм"
+  },
+  {
+    "en": "All Activities",
+    "ru": "Все мероприятия"
+  },
+  {
+    "en": "All Activities HTML",
+    "ru": "Все действия HTML"
+  },
+  {
+    "en": "All Items",
+    "ru": "Все элементы"
+  },
+  {
+    "en": "All Parties ",
+    "ru": "Все стороны "
+  },
+  {
+    "en": "All Sales Transactions can be tagged against multiple Sales Persons so that you can set and monitor targets.",
+    "ru": "Все операции по продажам могут быть сопоставлены с несколькими продавцами, чтобы Вы могли устанавливать и контролировать цели."
+  },
+  {
+    "en": "All allocations have been successfully reconciled",
+    "ru": "Все распределения были успешно согласованы"
+  },
+  {
+    "en": "All items are already requested",
+    "ru": "Все предметы уже запрошены"
+  },
+  {
+    "en": "All items have already been received",
+    "ru": "Все товары уже получены"
+  },
+  {
+    "en": "All items in this document already have a linked Quality Inspection.",
+    "ru": "Все товары этого документа уже имеют связанную проверку качества."
+  },
+  {
+    "en": "All items must be linked to a Sales Order or Subcontracting Inward Order for this Sales Invoice.",
+    "ru": "Все позиции должны быть связаны с заказом на продажу или внутренним заказом на субподряд для данного счета-фактуры."
+  },
+  {
+    "en": "All linked Sales Orders must be subcontracted.",
+    "ru": "Все связанные Заказы на продажу должны быть переданы в субподряд."
+  },
+  {
+    "en": "All the Comments and Emails will be copied from one document to another newly created document(Lead -> Opportunity -> Quotation) throughout the CRM documents.",
+    "ru": "Все комментарии и электронные письма будут скопированы из одного документа в другой, вновь созданный документ (Лид -> Возможность -> Предложение) во всех документах CRM."
+  },
+  {
+    "en": "All the items have been already returned.",
+    "ru": "Все предметы уже были возвращены."
+  },
+  {
+    "en": "All the required items (raw materials) will be fetched from BOM and populated in this table. Here you can also change the Source Warehouse for any item. And during the production, you can track transferred raw materials from this table.",
+    "ru": "Все требуемые элементы (сырье) будут получены из спецификации и заполнены в этой таблице. Здесь вы также можете изменить исходный склад для любого элемента. И во время производства вы можете отслеживать переданное сырье из этой таблицы."
+  },
+  {
+    "en": "Allocate Payment Request",
+    "ru": "Разместить запрос на оплату"
+  },
+  {
+    "en": "Allocated Entries",
+    "ru": "Выделенные записи"
+  },
+  {
+    "en": "Allocated To:",
+    "ru": "Распределено для:"
+  },
+  {
+    "en": "Allocations",
+    "ru": "Распределения"
+  },
+  {
+    "en": "Allow Alternative Item must be checked on Item {}",
+    "ru": "Опция \\\"Разрешить альтернативный товар\\\" должна быть отмечена для товара {}"
+  }
+]

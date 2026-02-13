@@ -1,0 +1,21 @@
+{
+  "Fetch Data": "Отримати дані",
+  "Fetch items based on Default Supplier.": "Отримати позиції на основі постачальника за замовчуванням.",
+  "Field": "Поле",
+  "Field Name": "Назва поля",
+  "Fieldname": "Назва поля",
+  "Fields": "Поля",
+  "Fieldtype": "Тип поля",
+  "Filters": "Фільтри",
+  "Finished Items": "Готові вироби",
+  "First Name": "Ім'я",
+  "Fixed Error Log": "Журнал виправлених помилок",
+  "Following item {0} is not marked as {1} item. You can enable them as {1} item from its Item master": "Наступна позиція {0} не позначена як {1}. Ви можете увімкнути її як {1} у картці номенклатури",
+  "Following items {0} are not marked as {1} item. You can enable them as {1} item from its Item master": "Наступні позиції {0} не позначені як {1}. Ви можете увімкнути їх як {1} у картці номенклатури",
+  "For Warehouse is required before Submit": "Необхідно вказати склад перед підтвердженням",
+  "For job card {0}, you can only make the 'Material Transfer for Manufacture' type stock entry": "Для робочої картки {0} можна створити лише складську операцію типу 'Передача матеріалів на виробництво'",
+  "For operation {0}: Quantity ({1}) can not be greter than pending quantity({2})": "Для операції {0}: Кількість ({1}) не може перевищувати очікувану кількість ({2})",
+  "Forecasting": "Прогнозування",
+  "Frequency": "Частота",
+  "Friday": "П'ятниця"
+}

@@ -1,0 +1,140 @@
+[
+  {
+    "en": "Saturday",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Save"
+  },
+  {
+    "en": "Save as Draft"
+  },
+  {
+    "en": "Saving {0}"
+  },
+  {
+    "en": "Schedule",
+    "ctx": "Maintenance Schedule"
+  },
+  {
+    "en": "Scheduled",
+    "ctx": "Delivery Trip"
+  },
+  {
+    "en": "Scheduled",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Scheduled",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "Scheduler Inactive"
+  },
+  {
+    "en": "Scheduler is inactive. Cannot import data."
+  },
+  {
+    "en": "Scope",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Search"
+  },
+  {
+    "en": "Section Based On",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "Section Cards",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "Section HTML",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "Section Order",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "Select"
+  },
+  {
+    "en": "Select DocType",
+    "ctx": "Rename Tool"
+  },
+  {
+    "en": "Select change amount account"
+  },
+  {
+    "en": "Send"
+  },
+  {
+    "en": "Send Now"
+  },
+  {
+    "en": "Sender",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Sender",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Sending"
+  },
+  {
+    "en": "Sent",
+    "ctx": "Project Update"
+  },
+  {
+    "en": "Sequence Id"
+  },
+  {
+    "en": "Sequence Id",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Serial No and Batch for Finished Good",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Serial No {0} has already scanned."
+  },
+  {
+    "en": "Serial Nos Mismatch"
+  },
+  {
+    "en": "Service"
+  },
+  {
+    "en": "Set Exchange Gain / Loss",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Set Meta Tags"
+  },
+  {
+    "en": "Set Operating Cost / Scrape Items From Sub-assemblies",
+    "ctx": "Manufacturing Settings"
+  },
+  {
+    "en": "Set Quantity"
+  },
+  {
+    "en": "Set Up a Company"
+  },
+  {
+    "en": "Set up your Warehouse"
+  },
+  {
+    "en": "Setting up Taxes"
+  },
+  {
+    "en": "Setting {} is required"
+  },
+  {
+    "en": "Settings"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Primary Role",
+    "ru": "Основная роль"
+  },
+  {
+    "en": "Print Format Type should be Jinja.",
+    "ru": "Тип формата печати должен быть Jinja."
+  },
+  {
+    "en": "Print Format must be an enabled Report Print Format matching the selected Report.",
+    "ru": "Формат печати должен быть включённым форматом печати отчёта, соответствующим выбранному отчёту."
+  },
+  {
+    "en": "Print Receipt on Order Complete",
+    "ru": "Печать квитанции при завершении заказа"
+  },
+  {
+    "en": "Printed on {0}",
+    "ru": "Напечатано на {0}"
+  },
+  {
+    "en": "Priority cannot be lesser than 1.",
+    "ru": "Приоритет не может быть меньше 1."
+  },
+  {
+    "en": "Priority is mandatory",
+    "ru": "Приоритет обязателен"
+  },
+  {
+    "en": "Probability",
+    "ru": "Вероятность"
+  },
+  {
+    "en": "Procedures dropped",
+    "ru": "Процедуры отменены"
+  },
+  {
+    "en": "Process Loss",
+    "ru": "Потери в процессе"
+  },
+  {
+    "en": "Process Loss Percentage cannot be greater than 100",
+    "ru": "Процент потерь в процессе не может превышать 100"
+  },
+  {
+    "en": "Process Loss Qty",
+    "ru": "Кол-во потерь в процессе"
+  },
+  {
+    "en": "Process Loss Quantity",
+    "ru": "Количество технологических потерь"
+  },
+  {
+    "en": "Process Loss Report",
+    "ru": "Отчет о потерях в процессе"
+  },
+  {
+    "en": "Process Loss Value",
+    "ru": "Значение потерь в процессе"
+  },
+  {
+    "en": "Process Payment Reconciliation",
+    "ru": "Процесс сверки платежей"
+  },
+  {
+    "en": "Process Payment Reconciliation Log",
+    "ru": "Журнал сверки платежей"
+  },
+  {
+    "en": "Process Payment Reconciliation Log Allocations",
+    "ru": "Обработка распределений журнала сверки платежей"
+  },
+  {
+    "en": "Process Period Closing Voucher",
+    "ru": "Обработка ваучера закрытия периода"
+  },
+  {
+    "en": "Process Period Closing Voucher Detail",
+    "ru": "Детали ваучера закрытия периода обработки"
+  },
+  {
+    "en": "Process Statement Of Accounts CC",
+    "ru": "Обработать выписку по счёту (ЦФО)"
+  },
+  {
+    "en": "Process Subscription",
+    "ru": "Процесс подписки"
+  },
+  {
+    "en": "Process in Single Transaction",
+    "ru": "Процесс в одной транзакции"
+  },
+  {
+    "en": "Processed BOMs",
+    "ru": "Обработанные спецификации"
+  },
+  {
+    "en": "Processing Date",
+    "ru": "Дата обработки"
+  },
+  {
+    "en": "Produced / Received Qty",
+    "ru": "Произведено/получено Кол-во"
+  },
+  {
+    "en": "Product Manager",
+    "ru": "Менеджер по продукту"
+  },
+  {
+    "en": "Product Price ID",
+    "ru": "Идентификатор цены продукта"
+  },
+  {
+    "en": "Production Plan Already Submitted",
+    "ru": "План по производству уже отправлен"
+  },
+  {
+    "en": "Production Plan Item Reference",
+    "ru": "Ссылка на элемент плана производства"
+  },
+  {
+    "en": "Production Plan Qty",
+    "ru": "План производства Кол-во"
+  },
+  {
+    "en": "Production Plan Sub Assembly Item",
+    "ru": "Составная позиция в производственном плане"
+  },
+  {
+    "en": "Production Plan Sub-assembly Item",
+    "ru": "Составная деталь производственного плана"
+  },
+  {
+    "en": "Production Plan Summary",
+    "ru": "Сводка плана производства"
+  },
+  {
+    "en": "Profit and Loss Summary",
+    "ru": "Сводка прибылей и убытков"
+  },
+  {
+    "en": "Progress (%)",
+    "ru": "Прогресс (%)"
+  },
+  {
+    "en": "Project Progress:",
+    "ru": "Прогресс проекта:"
+  },
+  {
+    "en": "Project wise Stock Tracking ",
+    "ru": "Отслеживание затрат по проектам"
+  },
+  {
+    "en": "Projected On Hand",
+    "ru": "Прогнозируемое на руки"
+  },
+  {
+    "en": "Prompt Qty",
+    "ru": "Запрашиваемое количество"
+  }
+]

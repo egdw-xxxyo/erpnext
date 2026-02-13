@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Row #{0}: Cannot allocate more than {1} against payment term {2}",
+    "ru": "Строка #{0}: Невозможно выделить больше, чем {1}, по условию оплаты {2}"
+  },
+  {
+    "en": "Row #{0}: Cannot cancel this Manufacturing Stock Entry as billed quantity of Item {1} cannot be greater than consumed quantity.",
+    "ru": "Строка #{0}: Невозможно отменить эту запись производственного запаса, так как предъявленное к оплате количество товара {1} не может превышать потребленное количество."
+  },
+  {
+    "en": "Row #{0}: Cannot cancel this Manufacturing Stock Entry as quantity of Scrap Item {1} produced cannot be less than quantity delivered.",
+    "ru": "Строка #{0}: Невозможно отменить эту производственную складскую операцию, так как количество произведённого брака {1} не может быть меньше количества уже отгруженного."
+  },
+  {
+    "en": "Row #{0}: Cannot cancel this Stock Entry as returned quantity cannot be greater than delivered quantity for Item {1} in the linked Subcontracting Inward Order",
+    "ru": "Строка #{0}: Невозможно отменить эту запись запаса, так как возвращенное количество не может быть больше поставленного количества для позиции {1} в связанном субподрядном внутреннем заказе"
+  },
+  {
+    "en": "Row #{0}: Cannot create entry with different taxable AND withholding document links.",
+    "ru": "Строка #{0}: Невозможно создать запись с разными ссылками на документы, облагаемые налогом и удерживаемые."
+  },
+  {
+    "en": "Row #{0}: Cannot delete item {1} which is already ordered against this Sales Order.",
+    "ru": "Строка #{0}: Невозможно удалить товар {1} , который уже заказан по данному заказу на продажу."
+  },
+  {
+    "en": "Row #{0}: Cannot set Rate if the billed amount is greater than the amount for Item {1}.",
+    "ru": "Строка #{0}: Нельзя задать ставку, если выставленная сумма превышает сумму для товара {1}."
+  },
+  {
+    "en": "Row #{0}: Cannot transfer more than Required Qty {1} for Item {2} against Job Card {3}",
+    "ru": "Строка #{0}: Невозможно перевести больше, чем требуемое количество {1} для товара {2} по карте работ {3}"
+  },
+  {
+    "en": "Row #{0}: Consumed Asset {1} cannot be Draft",
+    "ru": "Строка #{0}: Потребленный актив {1} не может быть черновиком"
+  },
+  {
+    "en": "Row #{0}: Consumed Asset {1} cannot be cancelled",
+    "ru": "Строка #{0}: Потребленный актив {1} не может быть отменен"
+  },
+  {
+    "en": "Row #{0}: Consumed Asset {1} cannot be the same as the Target Asset",
+    "ru": "Строка #{0}: Потребленный актив {1} не может совпадать с целевым активом"
+  },
+  {
+    "en": "Row #{0}: Consumed Asset {1} cannot be {2}",
+    "ru": "Строка #{0}: Потребленный актив {1} не может быть {2}"
+  },
+  {
+    "en": "Row #{0}: Consumed Asset {1} does not belong to company {2}",
+    "ru": "Строка #{0}: Потребленный актив {1} не принадлежит компании {2}"
+  },
+  {
+    "en": "Row #{0}: Could not find enough {1} entries to match. Remaining amount: {2}",
+    "ru": "Строка #{0}: Не удалось найти достаточное количество записей {1} для соответствия. Осталось: {2}"
+  },
+  {
+    "en": "Row #{0}: Cumulative threshold cannot be less than Single Transaction threshold",
+    "ru": "Строка #{0}: Суммарный порог не может быть ниже порога для одной транзакции"
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} against Subcontracting Inward Order Item {2} ({3}) cannot be added multiple times.",
+    "ru": "Строка #{0}: Позиция, предоставленная заказчиком {1}, напротив позиции заказа на субподряд {2} ({3}) не может быть добавлена несколько раз."
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} cannot be added multiple times in the Subcontracting Inward process.",
+    "ru": "Строка #{0}: Позиция, предоставленная заказчиком {1} не может быть добавлена несколько раз в процессе внутреннего субподряда."
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} cannot be added multiple times.",
+    "ru": "Строка #{0}: Предоставленный клиентом товар {1} не может быть добавлен несколько раз."
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} does not exist in the Required Items table linked to the Subcontracting Inward Order.",
+    "ru": "Строка #{0}: Позиция, предоставленная клиентом {1}, не существует в таблице \\\"Необходимые позиции\\\", связанной с внутренним заказом на субподряд."
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} exceeds quantity available through Subcontracting Inward Order",
+    "ru": "Строка #{0}: Товар, предоставленный клиентом {1}, превышает количество, доступное по внутреннему субподрядному заказу"
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} has insufficient quantity in the Subcontracting Inward Order. Available quantity is {2}.",
+    "ru": "Строка #{0}: Недостаточное количество товара, предоставленного заказчиком, {1} в заказе на субподряд. Доступное количество: {2}."
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} is not a part of Subcontracting Inward Order {2}",
+    "ru": "Строка #{0}: Товар, предоставленный заказчиком {1}, не является частью внутреннего субподрядного заказа {2}"
+  },
+  {
+    "en": "Row #{0}: Customer Provided Item {1} is not a part of Work Order {2}",
+    "ru": "Строка #{0}: Предоставленный клиентом элемент {1} не является частью заказа на работу {2}"
+  },
+  {
+    "en": "Row #{0}: Dates overlapping with other row in group {1}",
+    "ru": "Строка #{0}: Даты, перекрывающиеся с другой строкой в группе {1}"
+  },
+  {
+    "en": "Row #{0}: Default BOM not found for FG Item {1}",
+    "ru": "Строка #{0}: Спецификация по умолчанию не найдена для готовой продукции {1}"
+  },
+  {
+    "en": "Row #{0}: Depreciation Start Date is required",
+    "ru": "Строка #{0}: требуется дата начала амортизации"
+  },
+  {
+    "en": "Row #{0}: Expense Account not set for the Item {1}. {2}",
+    "ru": "Строка #{0}: Счет расходов не установлен для товара {1}. {2}"
+  },
+  {
+    "en": "Row #{0}: Expense account {1} is not valid for Purchase Invoice {2}. Only expense accounts from non-stock items are allowed.",
+    "ru": "Строка #{0}: Счет расходов {1} недействителен для счета-фактуры на покупку {2}. Допускаются только счета расходов по товарам, не имеющим складских запасов."
+  },
+  {
+    "en": "Row #{0}: Finished Good Item Qty can not be zero",
+    "ru": "Строка #{0}: Количество готовой продукции не может быть равно нулю"
+  },
+  {
+    "en": "Row #{0}: Finished Good Item is not specified for service item {1}",
+    "ru": "Строка #{0}: Не указано готовое изделие для услуги {1}"
+  },
+  {
+    "en": "Row #{0}: Finished Good Item {1} must be a sub-contracted item",
+    "ru": "Строка #{0}: Готовая продукция {1} должна быть субподрядной позицией"
+  },
+  {
+    "en": "Row #{0}: Finished Good must be {1}",
+    "ru": "Строка #{0}: Готовый товар должен быть {1}"
+  },
+  {
+    "en": "Row #{0}: Finished Good reference is mandatory for Scrap Item {1}.",
+    "ru": "Строка #{0}: Ссылка на готовое изделие обязательна для бракованного товара {1}."
+  },
+  {
+    "en": "Row #{0}: For Customer Provided Item {1}, Source Warehouse must be {2}",
+    "ru": "Строка #{0}: для предоставленного клиентом товара {1}исходный склад должен быть {2}"
+  },
+  {
+    "en": "Row #{0}: For {1}, you can select reference document only if account gets credited",
+    "ru": "Строка #{0}: Для {1} выбор справочного документа возможен только если счёт был зачислен"
+  },
+  {
+    "en": "Row #{0}: For {1}, you can select reference document only if account gets debited",
+    "ru": "Строка #{0}: Для {1} справочный документ можно выбрать только при списании средств со счёта."
+  },
+  {
+    "en": "Row #{0}: Frequency of Depreciation must be greater than zero",
+    "ru": "Строка #{0}: Частота амортизации должна быть больше нуля"
+  },
+  {
+    "en": "Row #{0}: From Date cannot be before To Date",
+    "ru": "Строка #{0}: Начальная дата не может быть раньше даты окончания"
+  },
+  {
+    "en": "Row #{0}: From Time and To Time fields are required",
+    "ru": "Строка #{0}: Необходимо указать поля времени «С» и «По»"
+  },
+  {
+    "en": "Row #{0}: Item {1} cannot be transferred more than {2} against {3} {4}",
+    "ru": "Строка #{0}: Товар {1} нельзя перенести более чем в количестве {2} против {3} {4}"
+  }
+]

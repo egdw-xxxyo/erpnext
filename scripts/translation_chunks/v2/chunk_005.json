@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Amended From",
+    "ctx": "Asset Movement"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Asset Repair"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Asset Shift Allocation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Asset Value Adjustment"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "BOM Update Log"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Bank Guarantee"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Bank Transaction"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Blanket Order"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Budget"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Cashier Closing"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Closing Stock Balance"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Contract"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Contract Fulfilment Checklist"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Cost Center Allocation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Coupon Code"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Delivery Trip"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Exchange Rate Revaluation"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Installation Note"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Invoice Discounting"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Journal Entry"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Landed Cost Voucher"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Maintenance Schedule"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "POS Invoice Merge Log"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "POS Opening Entry"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Packing Slip"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Payment Order"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Period Closing Voucher"
+  },
+  {
+    "en": "Amended From",
+    "ctx": "Pick List"
+  }
+]

@@ -1,0 +1,156 @@
+[
+  {
+    "en": "Project",
+    "ctx": "Purchase Invoice Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Project",
+    "ctx": "Purchase Order Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Project",
+    "ctx": "Purchase Receipt Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Request for Quotation Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Project",
+    "ctx": "Sales Invoice Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Project",
+    "ctx": "Stock Entry"
+  },
+  {
+    "en": "Project",
+    "ctx": "Stock Entry Detail"
+  },
+  {
+    "en": "Project",
+    "ctx": "Stock Ledger Entry"
+  },
+  {
+    "en": "Project",
+    "ctx": "Stock Reservation Entry"
+  },
+  {
+    "en": "Project",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "Project",
+    "ctx": "Subcontracting Order Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Project",
+    "ctx": "Subcontracting Receipt Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Project",
+    "ctx": "Supplier Quotation Item"
+  },
+  {
+    "en": "Project",
+    "ctx": "Task"
+  },
+  {
+    "en": "Project",
+    "ctx": "Task Depends On"
+  },
+  {
+    "en": "Project",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "Project",
+    "ctx": "Timesheet Detail"
+  },
+  {
+    "en": "Project",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Proprietorship",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Proprietorship",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Provider",
+    "ctx": "Communication Medium"
+  },
+  {
+    "en": "Provider",
+    "ctx": "Video"
+  },
+  {
+    "en": "Publications"
+  },
+  {
+    "en": "Purchase Manager"
+  },
+  {
+    "en": "Purchase Master Manager"
+  },
+  {
+    "en": "Purchase Receipt Amount",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Purchase Receipt Items",
+    "ctx": "Landed Cost Voucher"
+  },
+  {
+    "en": "Purchase Receipts",
+    "ctx": "Landed Cost Voucher"
+  },
+  {
+    "en": "Purchase User"
+  },
+  {
+    "en": "Purchase an Asset"
+  },
+  {
+    "en": "Purchase an Asset Item"
+  },
+  {
+    "en": "Purple",
+    "ctx": "Supplier Scorecard Scoring Standing"
+  },
+  {
+    "en": "Purple",
+    "ctx": "Supplier Scorecard Standing"
+  },
+  {
+    "en": "Qty As Per BOM",
+    "ctx": "Material Request Plan Item"
+  }
+]

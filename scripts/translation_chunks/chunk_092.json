@@ -1,0 +1,162 @@
+[
+  {
+    "en": "To Pay",
+    "ru": "К оплате"
+  },
+  {
+    "en": "To Payment Date",
+    "ru": "До даты платежа"
+  },
+  {
+    "en": "To Reference Date",
+    "ru": "К контрольной дате"
+  },
+  {
+    "en": "To Time cannot be before from date",
+    "ru": "Время \\\"до\\\" не может быть раньше времени \\\"с\\"
+  },
+  {
+    "en": "To add Operations tick the 'With Operations' checkbox.",
+    "ru": "Чтобы добавить операции, поставьте галочку в поле \\\"С операциями\\\"."
+  },
+  {
+    "en": "To add subcontracted Item's raw materials if include exploded items is disabled.",
+    "ru": "Для добавления сырья по субподрядным товарам, если отключен параметр \\\"Включать развернутые товары\\\"."
+  },
+  {
+    "en": "To allow over billing, update \\\"Over Billing Allowance\\\" in Accounts Settings or the Item.",
+    "ru": "Чтобы разрешить чрезмерную оплату, обновите «Разрешение на чрезмерную оплату» в настройках учетных записей или элемента."
+  },
+  {
+    "en": "To allow over receipt / delivery, update \\\"Over Receipt/Delivery Allowance\\\" in Stock Settings or the Item.",
+    "ru": "Чтобы разрешить перерасход / доставку, обновите параметр «Сверх квитанция / доставка» в настройках запаса или позиции."
+  },
+  {
+    "en": "To apply condition on parent field use parent.field_name and to apply condition on child table use doc.field_name. Here field_name could be based on the actual column name of the respective field.",
+    "ru": "Для применения условия к родительскому полю используйте parent.field_name, а для применения условия к дочерней таблице используйте doc.field_name. Здесь field_name может быть основано на фактическом имени столбца соответствующего поля."
+  },
+  {
+    "en": "To be Delivered to Customer",
+    "ru": "Подлежит доставке клиенту"
+  },
+  {
+    "en": "To cancel a {} you need to cancel the POS Closing Entry {}.",
+    "ru": "Чтобы отменить {}, необходимо сначала отменить запись закрытия точки продаж {}."
+  },
+  {
+    "en": "To cancel this Sales Invoice you need to cancel the POS Closing Entry {}.",
+    "ru": "Чтобы отменить этот счёт на продажу, необходимо сначала отменить запись закрытия точки продаж {}."
+  },
+  {
+    "en": "To include non-stock items in the material request planning. i.e. Items for which 'Maintain Stock' checkbox is unticked.",
+    "ru": "Для того чтобы добавить товары, не учитываемые на складе, в планирование запроса материалов, нужно оставить флажок \\\"Поддерживать учет на складе\\\" снятым."
+  },
+  {
+    "en": "To include sub-assembly costs and scrap items in Finished Goods on a work order without using a job card, when the 'Use Multi-Level BOM' option is enabled.",
+    "ru": "Для включения затрат на предварительную сборку и отходов в готовую продукцию в рабочем заказе без использования карточки задания, если включена опция «Использовать многоуровневую спецификацию»."
+  },
+  {
+    "en": "To submit the invoice without purchase order please set {0} as {1} in {2}",
+    "ru": "Чтобы отправить счет без заказа на покупку, установите {0} как {1} в {2}"
+  },
+  {
+    "en": "To submit the invoice without purchase receipt please set {0} as {1} in {2}",
+    "ru": "Чтобы отправить счет без чека о покупке, установите {0} как {1} в {2}"
+  },
+  {
+    "en": "To use a different finance book, please uncheck 'Include Default FB Assets'",
+    "ru": "Чтобы использовать другую финансовую книгу, снимите галочку с параметра \\\"Включать активы по умолчанию для финансовой книги\\"
+  },
+  {
+    "en": "To use a different finance book, please uncheck 'Include Default FB Entries'",
+    "ru": "Чтобы использовать другую финансовую книгу, снимите галочку с параметра \\\"Включать записи по умолчанию для финансовой книги\\"
+  },
+  {
+    "en": "Ton (Long)/Cubic Yard",
+    "ru": "Тонна (длинная)/кубический ярд"
+  },
+  {
+    "en": "Ton (Short)/Cubic Yard",
+    "ru": "Тонна (короткая)/кубический ярд"
+  },
+  {
+    "en": "Ton-Force (UK)",
+    "ru": "Тон-Сила (Великобритания)"
+  },
+  {
+    "en": "Ton-Force (US)",
+    "ru": "Тон-Сила (США)"
+  },
+  {
+    "en": "Tonne",
+    "ru": "Тонна"
+  },
+  {
+    "en": "Tonne-Force(Metric)",
+    "ru": "Тонна-сила (метрическая)"
+  },
+  {
+    "en": "Torr",
+    "ru": "Торр"
+  },
+  {
+    "en": "Total Active Items",
+    "ru": "Всего активных элементов"
+  },
+  {
+    "en": "Total Allocations",
+    "ru": "Всего выделено"
+  },
+  {
+    "en": "Total Amount Due",
+    "ru": "Общая сумма к оплате"
+  },
+  {
+    "en": "Total Asset",
+    "ru": "Всего активов"
+  },
+  {
+    "en": "Total Asset Cost",
+    "ru": "Общая стоимость активов"
+  },
+  {
+    "en": "Total Billing Hours",
+    "ru": "Общее количество часов для выставления счета"
+  },
+  {
+    "en": "Total Contribution Amount Against Invoices: {0}",
+    "ru": "Общая сумма взноса по счетам: {0}"
+  },
+  {
+    "en": "Total Contribution Amount Against Orders: {0}",
+    "ru": "Общая сумма взноса по заказам: {0}"
+  },
+  {
+    "en": "Total Equity",
+    "ru": "Общий собственный капитал"
+  },
+  {
+    "en": "Total Expenses booked through",
+    "ru": "Общая сумма расходов, учтенных через"
+  },
+  {
+    "en": "Total Incoming Value (Receipt)",
+    "ru": "Общая сумма поступлений (квитанция)"
+  },
+  {
+    "en": "Total Interest",
+    "ru": "Общая сумма процентов"
+  },
+  {
+    "en": "Total Issues",
+    "ru": "Всего выпущено"
+  },
+  {
+    "en": "Total Items",
+    "ru": "Всего товаров"
+  },
+  {
+    "en": "Total Landed Cost",
+    "ru": "Общие дополнительные расходы"
+  }
+]

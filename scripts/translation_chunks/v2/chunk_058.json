@@ -1,0 +1,150 @@
+[
+  {
+    "en": "Settings",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Settings",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Setup Your Letterhead"
+  },
+  {
+    "en": "Setup a Warehouse"
+  },
+  {
+    "en": "Shipping Address"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Accounts Settings"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Shipping Address",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Show Preview"
+  },
+  {
+    "en": "Single Transaction Threshold",
+    "ctx": "Tax Withholding Rate"
+  },
+  {
+    "en": "Size"
+  },
+  {
+    "en": "Skip Available Sub Assembly Items",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Skipped",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Skipping Tax Withholding Category {0} as there is no associated account set for Company {1} in it."
+  },
+  {
+    "en": "Skipping {0} of {1}, {2}"
+  },
+  {
+    "en": "Slideshow",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Softwares"
+  },
+  {
+    "en": "Source"
+  },
+  {
+    "en": "Source",
+    "ctx": "Batch"
+  },
+  {
+    "en": "Source",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Source",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Source",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Source",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Source",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Source",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Source",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Source Name",
+    "ctx": "Lead Source"
+  },
+  {
+    "en": "Source Name",
+    "ctx": "Support Search Source"
+  },
+  {
+    "en": "Spacer",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Split qty cannot be grater than or equal to asset qty"
+  },
+  {
+    "en": "Sr"
+  },
+  {
+    "en": "Start"
+  }
+]
