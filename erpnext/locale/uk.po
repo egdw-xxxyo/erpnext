@@ -44283,7 +44283,10 @@ msgid ""
 "Scorecard variables can be used, as well as:\n"
 "{total_score} (the total score from that period),\n"
 "{period_number} (the number of periods to present day)\n"
-msgstr "Змінні показники можуть бути використані, а також: {total_score} (загальна оцінка від цього періоду), {period_number} (кількість періодів до сьогоднішнього дня)"
+msgstr ""
+"Змінні показники можуть бути використані, а також:\n"
+"{total_score} (загальна оцінка від цього періоду),\n"
+"{period_number} (кількість періодів до сьогоднішнього дня)\n"
 
 #: erpnext/buying/doctype/supplier_scorecard/supplier_scorecard_dashboard.py:10
 msgid "Scorecards"

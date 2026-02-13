@@ -1,6 +1,9 @@
-FROM frappe/erpnext:v15.96.1
+ARG ERPNEXT_VERSION=v15.96.1
+FROM frappe/erpnext:${ERPNEXT_VERSION}
 
 USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
 
 COPY scripts/merge_csv.py /tmp/merge_csv.py
 COPY erpnext_translations_uk.csv /tmp/erpnext_uk_new.csv
@@ -16,7 +19,17 @@ RUN echo "ERPNext translations:" && \
       /tmp/frappe_uk_new.csv && \
     rm /tmp/merge_csv.py /tmp/erpnext_uk_new.csv /tmp/frappe_uk_new.csv
 
+# Copy PO files and compile to MO
 COPY erpnext/locale/uk.po /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po
 COPY frappe_locale_uk.po /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po
+
+RUN mkdir -p /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES && \
+    msgfmt /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po \
+      -o /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES/erpnext.mo && \
+    echo "Compiled erpnext.mo" && \
+    mkdir -p /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES && \
+    msgfmt /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po \
+      -o /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES/frappe.mo && \
+    echo "Compiled frappe.mo"
 
 USER frappe
