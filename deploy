@@ -3,10 +3,11 @@ set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 DOCKER_DIR="$DIR/.docker"
-IMAGE_NAME="erpnext-uk:v15.96.1"
+ERPNEXT_VERSION="v15.96.1"
+IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
 dc() {
-  docker-compose -f "$DOCKER_DIR/pwd.yml" "$@"
+  docker compose -f "$DOCKER_DIR/pwd.yml" "$@"
 }
 
 init_docker() {
@@ -27,7 +28,8 @@ init_docker() {
 
 build_image() {
   echo "==> Building image with Ukrainian translations..."
-  docker build -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
+  docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
+    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
 
   if [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
     echo "ERROR: $DOCKER_DIR/pwd.yml not found. Run init_docker first."
@@ -35,13 +37,8 @@ build_image() {
   fi
 
   echo "==> Patching pwd.yml to use custom image..."
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i.bak "s|image: frappe/erpnext:v15.96.1|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
-    rm -f "$DOCKER_DIR/pwd.yml.bak"
-  else
-    sed -i.bak "s|image: frappe/erpnext:v15.96.1|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
-    rm -f "$DOCKER_DIR/pwd.yml.bak"
-  fi
+  sed -i.bak "s|image: frappe/erpnext:.*|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
+  rm -f "$DOCKER_DIR/pwd.yml.bak"
 }
 
 case "${1:-}" in
