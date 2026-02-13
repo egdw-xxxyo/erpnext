@@ -1,0 +1,157 @@
+[
+  {
+    "en": "Currency",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Subscription Plan"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Currency",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "Custom",
+    "ctx": "Currency Exchange Settings"
+  },
+  {
+    "en": "Custom HTML",
+    "ctx": "Homepage Section"
+  },
+  {
+    "en": "Custom?",
+    "ctx": "Supplier Scorecard Variable"
+  },
+  {
+    "en": "Customer POS Id"
+  },
+  {
+    "en": "Customer POS id",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Customize Homepage Sections"
+  },
+  {
+    "en": "DT-",
+    "ctx": "Downtime Entry"
+  },
+  {
+    "en": "DUNN-.MM.-.YY.-",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Daily"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Company"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Email Digest"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Project"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Selling Settings"
+  },
+  {
+    "en": "Daily",
+    "ctx": "Video Settings"
+  },
+  {
+    "en": "Dashboard"
+  },
+  {
+    "en": "Dashboard",
+    "ctx": "Company"
+  },
+  {
+    "en": "Dashboard",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Dashboard",
+    "ctx": "Item"
+  },
+  {
+    "en": "Dashboard",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Data exported from Tally that consists of the Chart of Accounts, Customers, Suppliers, Addresses, Items and UOMs",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Date"
+  },
+  {
+    "en": "Date",
+    "ctx": "Asset Activity"
+  },
+  {
+    "en": "Date",
+    "ctx": "Asset Value Adjustment"
+  },
+  {
+    "en": "Date",
+    "ctx": "Bank Transaction"
+  },
+  {
+    "en": "Date",
+    "ctx": "Bulk Transaction Log"
+  },
+  {
+    "en": "Date",
+    "ctx": "Cashier Closing"
+  },
+  {
+    "en": "Date",
+    "ctx": "Currency Exchange"
+  },
+  {
+    "en": "Date",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Date",
+    "ctx": "Discounted Invoice"
+  },
+  {
+    "en": "Date",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Date",
+    "ctx": "Holiday"
+  },
+  {
+    "en": "Date",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Date",
+    "ctx": "POS Invoice Reference"
+  }
+]

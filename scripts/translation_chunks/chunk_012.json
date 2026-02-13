@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Automatically Add Taxes from Taxes and Charges Template",
+    "ru": "Автоматическое добавление налогов из шаблона «Налоги и сборы»"
+  },
+  {
+    "en": "Automatically Fetch Payment Terms from Order",
+    "ru": "Автоматически извлекать условия оплаты из заказа"
+  },
+  {
+    "en": "Automatically post balancing accounting entry",
+    "ru": "Автоматически проводить корректировочную бухгалтерскую запись"
+  },
+  {
+    "en": "Available Batch Report",
+    "ru": "Доступный отчет о партии"
+  },
+  {
+    "en": "Available Qty For Consumption",
+    "ru": "Доступное количество для потребления"
+  },
+  {
+    "en": "Available Qty at Company",
+    "ru": "Доступное количество в компании"
+  },
+  {
+    "en": "Available Qty at Target Warehouse",
+    "ru": "Доступное количество на целевом складе"
+  },
+  {
+    "en": "Available Qty to Reserve",
+    "ru": "Доступное количество для резервирования"
+  },
+  {
+    "en": "Available Serial No",
+    "ru": "Доступный серийный номер"
+  },
+  {
+    "en": "Average Completion",
+    "ru": "Средняя готовность"
+  },
+  {
+    "en": "Average Order Value",
+    "ru": "Средняя стоимость заказа"
+  },
+  {
+    "en": "Average Order Values",
+    "ru": "Средняя стоимость заказа"
+  },
+  {
+    "en": "Avg Rate",
+    "ru": "Средняя ставка"
+  },
+  {
+    "en": "Avg Rate (Balance Stock)",
+    "ru": "Средняя ставка (остаток на складе)"
+  },
+  {
+    "en": "BFS",
+    "ru": "Банковские и финансовые услуги"
+  },
+  {
+    "en": "BIN Qty",
+    "ru": "Количество в ячейке"
+  },
+  {
+    "en": "BOM Created",
+    "ru": "Создана спецификация"
+  },
+  {
+    "en": "BOM Creator",
+    "ru": "Создатель спецификации"
+  },
+  {
+    "en": "BOM Creator Item",
+    "ru": "Элемент создателя спецификации"
+  },
+  {
+    "en": "BOM Info",
+    "ru": "Информация о спецификации"
+  },
+  {
+    "en": "BOM Level",
+    "ru": "Уровень спецификации"
+  },
+  {
+    "en": "BOM No (For Semi-Finished Goods)",
+    "ru": "Номер спецификации (для полуфабрикатов)"
+  },
+  {
+    "en": "BOM Tree",
+    "ru": "Дерево спецификации"
+  },
+  {
+    "en": "BOM UOM",
+    "ru": "БОМ UOM"
+  },
+  {
+    "en": "BOM Update Batch",
+    "ru": "Пакет обновления спецификации"
+  },
+  {
+    "en": "BOM Update Initiated",
+    "ru": "Обновление спецификации начато"
+  },
+  {
+    "en": "BOM Update Log",
+    "ru": "Журнал обновления спецификации"
+  },
+  {
+    "en": "BOM Update Tool Log with job status maintained",
+    "ru": "Поддерживается журнал обновления спецификации с состоянием задач"
+  },
+  {
+    "en": "BOM Updation already in progress. Please wait until {0} is complete.",
+    "ru": "Обновление спецификации уже идет. Пожалуйста, подождите, пока {0} не завершится."
+  },
+  {
+    "en": "BOM Updation is queued and may take a few minutes. Check {0} for progress.",
+    "ru": "Обновление спецификации поставлено в очередь и может занять несколько минут. Проверьте {0} для прогресса."
+  },
+  {
+    "en": "BOM and Finished Good Quantity is mandatory for Disassembly",
+    "ru": "Спецификация материалов (BOM) и количество готовой продукции обязательны для разборки"
+  },
+  {
+    "en": "BOM and Production",
+    "ru": "Спецификация и производство"
+  },
+  {
+    "en": "BOM recursion: {1} cannot be parent or child of {0}",
+    "ru": "Рекурсия спецификации: {1} не может быть родителем или дочерним компонентом {0}"
+  },
+  {
+    "en": "BOM {0} not found for the item {1}",
+    "ru": "Спецификация {0} не найдена для элемента {1}"
+  },
+  {
+    "en": "BOMs Updated",
+    "ru": "Спецификации обновлены"
+  },
+  {
+    "en": "BOMs created successfully",
+    "ru": "Спецификации созданы успешно"
+  },
+  {
+    "en": "BOMs creation failed",
+    "ru": "Создание спецификаций не удалось"
+  },
+  {
+    "en": "BOMs creation has been enqueued, kindly check the status after some time",
+    "ru": "Создание спецификаций поставлено в очередь, пожалуйста, проверьте статус через некоторое время"
+  },
+  {
+    "en": "Backflush Materials From WIP Warehouse",
+    "ru": "Автоматическое списание материалов со склада незавершенного производства"
+  },
+  {
+    "en": "Balance Qty (Stock)",
+    "ru": "Остаток (на складе)"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Apply restriction on dimension values",
+    "ru": "Применить ограничение к значениям измерений"
+  },
+  {
+    "en": "Apply to All Inventory Documents",
+    "ru": "Применить ко всем документам инвентаризации"
+  },
+  {
+    "en": "Apply to Document",
+    "ru": "Применить к документу"
+  },
+  {
+    "en": "Appointment Created Successfully",
+    "ru": "Назначение успешно создано"
+  },
+  {
+    "en": "Appointment Scheduling Disabled",
+    "ru": "Планирование встреч отключено"
+  },
+  {
+    "en": "Appointment Scheduling has been disabled for this site",
+    "ru": "Планирование встреч отключено для этого сайта"
+  },
+  {
+    "en": "Appointment was created. But no lead was found. Please check the email to confirm",
+    "ru": "Встреча была создана, но лид не найден. Пожалуйста, проверьте электронную почту для подтверждения"
+  },
+  {
+    "en": "Approximately match the description/party name against parties",
+    "ru": "Примерное сопоставление описания/наименования контрагента по контрагентам"
+  },
+  {
+    "en": "Are",
+    "ru": "Являются"
+  },
+  {
+    "en": "Are you sure you want to clear all demo data?",
+    "ru": "Вы уверены, что хотите удалить все демо данные?"
+  },
+  {
+    "en": "Are you sure you want to delete this Item?",
+    "ru": "Вы уверены, что хотите удалить этот элемент?"
+  },
+  {
+    "en": "Are you sure you want to delete {0}?<p>This action will also delete all associated Common Code documents.</p>",
+    "ru": "Вы уверены, что хотите удалить {0}?<p>Это действие также удалит все связанные документы Common Code.</p>"
+  },
+  {
+    "en": "Are you sure you want to restart this subscription?",
+    "ru": "Вы уверены, что хотите перезапустить эту подписку?"
+  },
+  {
+    "en": "Are you sure you want to revise this budget? The current budget will be cancelled and a new draft will be created.",
+    "ru": "Вы уверены, что хотите пересмотреть этот бюджет? Текущий бюджет будет отменен, и будет создан новый проект."
+  },
+  {
+    "en": "Arshin",
+    "ru": "Аршин"
+  },
+  {
+    "en": "As on Date",
+    "ru": "По состоянию на дату"
+  },
+  {
+    "en": "As there are existing submitted transactions against item {0}, you can not change the value of {1}.",
+    "ru": "Поскольку существуют отправленные транзакции по элементу {0}, вы не можете изменить значение {1}."
+  },
+  {
+    "en": "As there are reserved stock, you cannot disable {0}.",
+    "ru": "Поскольку имеются зарезервированные запасы, вы не можете отключить {0}."
+  },
+  {
+    "en": "As there are sufficient Sub Assembly Items, Work Order is not required for Warehouse {0}.",
+    "ru": "Поскольку достаточно комплектующих, заказ на работу не требуется для склада {0}"
+  },
+  {
+    "en": "As {0} is enabled, you can not enable {1}.",
+    "ru": "Поскольку {0} включен, Вы не можете включить {1}."
+  },
+  {
+    "en": "Assembly Items",
+    "ru": "Элементы сборки"
+  },
+  {
+    "en": "Asset Activity",
+    "ru": "Движение активов"
+  },
+  {
+    "en": "Asset Capitalization",
+    "ru": "Капитализация активов"
+  },
+  {
+    "en": "Asset Capitalization Asset Item",
+    "ru": "Составной элемент капитализируемого актива"
+  },
+  {
+    "en": "Asset Capitalization Service Item",
+    "ru": "Услуга капитализируемого актива"
+  },
+  {
+    "en": "Asset Capitalization Stock Item",
+    "ru": "Запасный элемент капитализируемого актива"
+  },
+  {
+    "en": "Asset Depreciation Schedule",
+    "ru": "График амортизации активов"
+  },
+  {
+    "en": "Asset Depreciation Schedule for Asset {0} and Finance Book {1} is not using shift based depreciation",
+    "ru": "График амортизации активов для актива {0} и финансовой книги {1} не использует амортизацию на основе смен"
+  },
+  {
+    "en": "Asset Depreciation Schedule not found for Asset {0} and Finance Book {1}",
+    "ru": "График амортизации активов не найден для актива {0} и финансовой книги {1}"
+  },
+  {
+    "en": "Asset Depreciation Schedule {0} for Asset {1} already exists.",
+    "ru": "График амортизации актива {0} для актива {1} уже существует."
+  },
+  {
+    "en": "Asset Depreciation Schedule {0} for Asset {1} and Finance Book {2} already exists.",
+    "ru": "График амортизации активов {0} для актива {1} и финансовой книги {2} уже существует."
+  },
+  {
+    "en": "Asset Depreciation Schedules created/updated:<br>{0}<br><br>Please check, edit if needed, and submit the Asset.",
+    "ru": "Созданные/обновленные графики амортизации активов:<br>{0}<br><br>Пожалуйста, проверьте, отредактируйте, если необходимо, и отправьте актив."
+  },
+  {
+    "en": "Asset Disposal",
+    "ru": "Выбытие активов"
+  },
+  {
+    "en": "Asset ID",
+    "ru": "Идентификатор актива"
+  },
+  {
+    "en": "Asset Quantity",
+    "ru": "Количество активов"
+  },
+  {
+    "en": "Asset Repair Consumed Item",
+    "ru": "Потребляемый материал для ремонта актива"
+  },
+  {
+    "en": "Asset Repair Purchase Invoice",
+    "ru": "Счет-фактура на покупку для ремонта активов"
+  },
+  {
+    "en": "Asset Settings",
+    "ru": "Настройки активов"
+  },
+  {
+    "en": "Asset Shift Factor",
+    "ru": "Количество смен у актива"
+  },
+  {
+    "en": "Asset Shift Factor {0} is set as default currently. Please change it first.",
+    "ru": "Количество смен у актива {0} в настоящее время установлен по умолчанию. Сначала измените его."
+  }
+]

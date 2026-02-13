@@ -1,0 +1,157 @@
+[
+  {
+    "en": "Auto Name",
+    "ctx": "Selling Settings"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Journal Entry"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Auto Repeat",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Available Qty at From Warehouse",
+    "ctx": "Delivery Note Item"
+  },
+  {
+    "en": "Available-for-use Date",
+    "ctx": "Asset"
+  },
+  {
+    "en": "BOM UoM"
+  },
+  {
+    "en": "Barcode"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Delivery Note Item"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Item Barcode"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "POS Invoice Item"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Purchase Receipt Item"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Sales Invoice Item"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Stock Entry Detail"
+  },
+  {
+    "en": "Barcode",
+    "ctx": "Stock Reconciliation Item"
+  },
+  {
+    "en": "Base Tax Withholding Net Total",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Base Tax Withholding Net Total",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Base URL",
+    "ctx": "Support Search Source"
+  },
+  {
+    "en": "Based On"
+  },
+  {
+    "en": "Based On",
+    "ctx": "Authorization Rule"
+  },
+  {
+    "en": "Based On",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Blue"
+  },
+  {
+    "en": "Blue",
+    "ctx": "Supplier Scorecard Scoring Standing"
+  },
+  {
+    "en": "Blue",
+    "ctx": "Supplier Scorecard Standing"
+  },
+  {
+    "en": "Bom No",
+    "ctx": "Production Plan Sub Assembly Item"
+  },
+  {
+    "en": "Brand"
+  },
+  {
+    "en": "Brand",
+    "ctx": "Brand"
+  },
+  {
+    "en": "Brand",
+    "ctx": "Item"
+  },
+  {
+    "en": "Brand",
+    "ctx": "Item Price"
+  },
+  {
+    "en": "Brand",
+    "ctx": "Material Request Item"
+  }
+]

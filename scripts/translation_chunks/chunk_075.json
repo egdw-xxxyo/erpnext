@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Row #{}: The original Invoice {} of return invoice {} is not consolidated.",
+    "ru": "Строка #{}: Исходный счёт {} возвратного счёта {} не консолидирован."
+  },
+  {
+    "en": "Row #{}: You cannot add positive quantities in a return invoice. Please remove item {} to complete the return.",
+    "ru": "Строка #{}: Вы не можете добавлять положительные количества в счет-фактуру возврата. Пожалуйста, удалите элемент {}, чтобы завершить возврат."
+  },
+  {
+    "en": "Row #{}: item {} has been picked already.",
+    "ru": "Строка №{}: элемент {} уже выбран."
+  },
+  {
+    "en": "Row #{}: {} {} doesn't belong to Company {}. Please select valid {}.",
+    "ru": "Строка №{}: {} {} не принадлежит компании {}. Выберите допустимый {}."
+  },
+  {
+    "en": "Row No {0}: Warehouse is required. Please set a Default Warehouse for Item {1} and Company {2}",
+    "ru": "Номер строки {0}: Требуется указать склад. Укажите склад по умолчанию для товара {1} и компании {2}"
+  },
+  {
+    "en": "Row {0} picked quantity is less than the required quantity, additional {1} {2} required.",
+    "ru": "В строке {0} выбранное количество меньше требуемого, требуется дополнительно {1} {2}."
+  },
+  {
+    "en": "Row {0}# Item {1} not found in 'Raw Materials Supplied' table in {2} {3}",
+    "ru": "Строка {0}# Товар {1} не найден в таблице 'Поставленное сырье' в {2} {3}"
+  },
+  {
+    "en": "Row {0}: Accepted Qty and Rejected Qty can't be zero at the same time.",
+    "ru": "Строка {0}: Принятое количество и Отклоненное количество не могут быть равны нулю одновременно."
+  },
+  {
+    "en": "Row {0}: Account {1} and Party Type {2} have different account types",
+    "ru": "Строка {0}: Счет {1} и Тип контрагента {2} имеют разные типы счетов"
+  },
+  {
+    "en": "Row {0}: Allocated amount {1} must be less than or equal to invoice outstanding amount {2}",
+    "ru": "Строка {0}: Выделенная сумма {1} должна быть меньше или равна сумме непогашенного счета {2}"
+  },
+  {
+    "en": "Row {0}: Allocated amount {1} must be less than or equal to remaining payment amount {2}",
+    "ru": "Строка {0}: Выделенная сумма {1} должна быть меньше или равна оставшейся сумме платежа {2}"
+  },
+  {
+    "en": "Row {0}: As {1} is enabled, raw materials cannot be added to {2} entry. Use {3} entry to consume raw materials.",
+    "ru": "Строка {0}: Поскольку {1} включен, сырье не может быть добавлено в запись {2}. Используйте запись {3} для расходования сырья."
+  },
+  {
+    "en": "Row {0}: Both Debit and Credit values cannot be zero",
+    "ru": "Строка {0}: Дебет и Кредит не могут быть одновременно равны нулю"
+  },
+  {
+    "en": "Row {0}: Consumed Qty {1} {2} must be less than or equal to Available Qty For Consumption\\n\\t\\t\\t\\t\\t{3} {4} in Consumed Items Table.",
+    "ru": "Строка {0}: Потребленное количество {1} {2} должно быть меньше или равно Доступному количеству для потребления\\n\\t\\t\\t\\t\\t{3} {4} в таблице потребленных товаров."
+  },
+  {
+    "en": "Row {0}: Cost Center {1} does not belong to Company {2}",
+    "ru": "Строка {0}: Центр затрат {1} не принадлежит компании {2}"
+  },
+  {
+    "en": "Row {0}: Delivery Warehouse cannot be same as Customer Warehouse for Item {1}.",
+    "ru": "Строка {0}: Склад доставки не может совпадать со складом клиента для товара {1}."
+  },
+  {
+    "en": "Row {0}: Either Delivery Note Item or Packed Item reference is mandatory.",
+    "ru": "Строка {0}: Обязательно укажите либо товар накладной, либо ссылку на упакованный товар."
+  },
+  {
+    "en": "Row {0}: Expected Value After Useful Life cannot be negative",
+    "ru": "Строка {0}: Ожидаемое значение после окончания срока полезной эксплуатации не может быть отрицательным"
+  },
+  {
+    "en": "Row {0}: Expected Value After Useful Life must be less than Net Purchase Amount",
+    "ru": "Строка {0}: Ожидаемая стоимость после окончания срока полезного использования должна быть меньше чистой суммы покупки"
+  },
+  {
+    "en": "Row {0}: Expense Head changed to {1} as no Purchase Receipt is created against Item {2}.",
+    "ru": "Строка {0}: статья расходов изменена на {1}, поскольку для позиции {2} не создано чека о покупке."
+  },
+  {
+    "en": "Row {0}: Expense Head changed to {1} because account {2} is not linked to warehouse {3} or it is not the default inventory account",
+    "ru": "Строка {0}: Статья расходов изменена на {1}, так как счет {2} не связан со складом {3} или не является основным учетным счетом для запасов"
+  },
+  {
+    "en": "Row {0}: Expense Head changed to {1} because expense is booked against this account in Purchase Receipt {2}",
+    "ru": "Строка {0}: Статья расходов изменена на {1}, так как расход был учтен по этому счету в приходной накладной {2}"
+  },
+  {
+    "en": "Row {0}: From Warehouse is mandatory for internal transfers",
+    "ru": "Строка {0}: Склад отправления обязателен для внутренних перемещений"
+  },
+  {
+    "en": "Row {0}: Item Tax template updated as per validity and rate applied",
+    "ru": "Запись {0}: Шаблон налога для товара обновлен согласно актуальности и установленной ставке налога"
+  },
+  {
+    "en": "Row {0}: Item rate has been updated as per valuation rate since its an internal stock transfer",
+    "ru": "Строка {0}: Стоимость товара была обновлена в соответствии с оценочной ставкой, поскольку это внутреннее перемещение запасов"
+  },
+  {
+    "en": "Row {0}: Item {1} must be a stock item.",
+    "ru": "Строка {0}: Товар {1} должен быть складским товаром."
+  },
+  {
+    "en": "Row {0}: Item {1} must be a subcontracted item.",
+    "ru": "Строка {0}: Позиция {1} должна быть субподрядной."
+  },
+  {
+    "en": "Row {0}: Item {1}'s quantity cannot be higher than the available quantity.",
+    "ru": "Строка {0}: Количество позиции {1} не может превышать доступное количество."
+  },
+  {
+    "en": "Row {0}: Packed Qty must be equal to {1} Qty.",
+    "ru": "Строка {0}: Упакованное количество должно быть равно {1} количеству."
+  },
+  {
+    "en": "Row {0}: Packing Slip is already created for Item {1}.",
+    "ru": "Строка {0}: Упаковочный лист уже создан для товара {1}."
+  },
+  {
+    "en": "Row {0}: Payment Term is mandatory",
+    "ru": "Строка {0}: Срок оплаты обязателен"
+  },
+  {
+    "en": "Row {0}: Please provide a valid Delivery Note Item or Packed Item reference.",
+    "ru": "Строка {0}: Укажите действительный товар в транспортной накладной или ссылку на упакованный товар."
+  },
+  {
+    "en": "Row {0}: Please select a BOM for Item {1}.",
+    "ru": "Строка {0}: Выберите спецификацию для товара {1}."
+  },
+  {
+    "en": "Row {0}: Please select an active BOM for Item {1}.",
+    "ru": "Строка {0}: Выберите активную спецификацию для товара {1}."
+  },
+  {
+    "en": "Row {0}: Please select an valid BOM for Item {1}.",
+    "ru": "Строка {0}: Выберите действительную спецификацию для товара {1}."
+  },
+  {
+    "en": "Row {0}: Project must be same as the one set in the Timesheet: {1}.",
+    "ru": "Строка {0}: Проект должен совпадать с указанным в табеле учета рабочего времени: {1}."
+  },
+  {
+    "en": "Row {0}: Purchase Invoice {1} has no stock impact.",
+    "ru": "Строка {0}: Счет-фактура покупки {1} не влияет на запасы."
+  },
+  {
+    "en": "Row {0}: Qty cannot be greater than {1} for the Item {2}.",
+    "ru": "Строка {0}: Количество не может быть больше {1} для товара {2}."
+  },
+  {
+    "en": "Row {0}: Qty in Stock UOM can not be zero.",
+    "ru": "Запись {0}: Количество в складских единицах измерения не может быть нулевым."
+  },
+  {
+    "en": "Row {0}: Qty must be greater than 0.",
+    "ru": "Строка {0}: Количество должно быть больше 0."
+  }
+]

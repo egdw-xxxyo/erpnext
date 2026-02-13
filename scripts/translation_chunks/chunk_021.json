@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Conversion rate cannot be 0",
+    "ru": "Коэффициент конверсии не может быть равен 0"
+  },
+  {
+    "en": "Conversion rate is 1.00, but document currency is different from company currency",
+    "ru": "Курс конвертации равен 1.00, но валюта документа отличается от валюты компании"
+  },
+  {
+    "en": "Conversion rate must be 1.00 if document currency is same as company currency",
+    "ru": "Курс конвертации должен быть равен 1.00, если валюта документа совпадает с валютой компании"
+  },
+  {
+    "en": "Convert Item Description to Clean HTML in Transactions",
+    "ru": "Конвертация описания товара в чистый HTML в транзакциях"
+  },
+  {
+    "en": "Convert to Item Based Reposting",
+    "ru": "Переход на пересчет по каждому товару"
+  },
+  {
+    "en": "Convert to Ledger",
+    "ru": "Перенос данных в бухгалтерскую книгу учета"
+  },
+  {
+    "en": "Corrective Job Card",
+    "ru": "Карточка на ремонтные работы"
+  },
+  {
+    "en": "Corrective Operation",
+    "ru": "Корректирующая операция"
+  },
+  {
+    "en": "Corrective Operation Cost",
+    "ru": "Стоимость корректирующей операции"
+  },
+  {
+    "en": "Cost Center Allocation",
+    "ru": "Распределение по центру затрат"
+  },
+  {
+    "en": "Cost Center Allocation Percentage",
+    "ru": "Процентное распределение по центрам затрат"
+  },
+  {
+    "en": "Cost Center Allocation Percentages",
+    "ru": "Процентное распределение затрат по центрам затрат"
+  },
+  {
+    "en": "Cost Center for Item rows has been updated to {0}",
+    "ru": "Центр затрат для строк предметов был обновлен до {0}"
+  },
+  {
+    "en": "Cost Center is a part of Cost Center Allocation, hence cannot be converted to a group",
+    "ru": "Центр затрат нельзя преобразовать в группу, поскольку он уже участвует в распределении затрат"
+  },
+  {
+    "en": "Cost Center with Allocation records can not be converted to a group",
+    "ru": "Центр затрат с записями о распределении не может быть преобразован в группу"
+  },
+  {
+    "en": "Cost Center {0} cannot be used for allocation as it is used as main cost center in other allocation record.",
+    "ru": "Центр затрат {0} не может быть использован для распределения, так как он используется как основной центр затрат в другой записи распределения."
+  },
+  {
+    "en": "Cost Center {} doesn't belong to Company {}",
+    "ru": "Центр затрат {} не принадлежит компании {}"
+  },
+  {
+    "en": "Cost Center {} is a group cost center and group cost centers cannot be used in transactions",
+    "ru": "Центр затрат {} — это групповой центр затрат, а групповые центры затрат не могут использоваться в транзакциях"
+  },
+  {
+    "en": "Cost Configuration",
+    "ru": "Конфигурация затрат"
+  },
+  {
+    "en": "Cost Per Unit",
+    "ru": "Стоимость за единицу"
+  },
+  {
+    "en": "Cost and Freight",
+    "ru": "Стоимость и фрахт"
+  },
+  {
+    "en": "Cost of Goods Sold Account in Items Table",
+    "ru": "Счет \\\"Себестоимость проданных товаров\\\" в таблице товаров"
+  },
+  {
+    "en": "Cost of Poor Quality Report",
+    "ru": "Отчет о затратах, связанных с качеством продукции"
+  },
+  {
+    "en": "Cost to Company (CTC)",
+    "ru": "Затраты на компанию (по работнику)"
+  },
+  {
+    "en": "Cost, Insurance and Freight",
+    "ru": "Затраты, страхование и перевозка"
+  },
+  {
+    "en": "Costing Details",
+    "ru": "Детали затрат"
+  },
+  {
+    "en": "Costing and Billing fields has been updated",
+    "ru": "Обновлены поля Калькуляция и выставление счетов"
+  },
+  {
+    "en": "Could Not Delete Demo Data",
+    "ru": "Не удалось удалить демонстрационные данные"
+  },
+  {
+    "en": "Could not detect the Company for updating Bank Accounts",
+    "ru": "Не удалось обнаружить компанию для обновления банковских счетов"
+  },
+  {
+    "en": "Could not find a suitable shift to match the difference: {0}",
+    "ru": "Не удалось найти подходящий сдвиг, соответствующий разнице: {0}"
+  },
+  {
+    "en": "Could not find path for ",
+    "ru": "Не удалось найти путь для "
+  },
+  {
+    "en": "Coulomb",
+    "ru": "Кулон"
+  },
+  {
+    "en": "Create Employee records.",
+    "ru": "Создание записей о сотрудниках."
+  },
+  {
+    "en": "Create Grouped Asset",
+    "ru": "Создать сгруппированный актив"
+  },
+  {
+    "en": "Create Job Card based on Batch Size",
+    "ru": "Создать задание на работу на основе размера партии"
+  },
+  {
+    "en": "Create Journal Entries",
+    "ru": "Создать записи журнала"
+  },
+  {
+    "en": "Create Ledger Entries for Change Amount",
+    "ru": "Создать записи в бухгалтерской книге для изменения суммы"
+  },
+  {
+    "en": "Create Link",
+    "ru": "Создать ссылку"
+  },
+  {
+    "en": "Create MPS",
+    "ru": "Создать главный производственный план"
+  },
+  {
+    "en": "Create Multi-level BOM",
+    "ru": "Создать многоуровневую спецификацию"
+  }
+]

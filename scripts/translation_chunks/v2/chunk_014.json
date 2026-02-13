@@ -1,0 +1,157 @@
+[
+  {
+    "en": "Connect to Quickbooks"
+  },
+  {
+    "en": "Connected to QuickBooks"
+  },
+  {
+    "en": "Connected to QuickBooks",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Connecting to QuickBooks"
+  },
+  {
+    "en": "Connecting to QuickBooks",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Connections",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Connections",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Connections",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Consider Entire Party Ledger Amount",
+    "ctx": "Tax Withholding Category"
+  },
+  {
+    "en": "Consumable Cost",
+    "ctx": "Workstation"
+  },
+  {
+    "en": "Consumable Cost",
+    "ctx": "Workstation Type"
+  },
+  {
+    "en": "Consumed Asset Items is mandatory for Decapitalization"
+  },
+  {
+    "en": "Consumed Stock Items or Consumed Asset Items is mandatory for Capitalization"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Contact"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Employee External Work History"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Installation Note"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Issue"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Maintenance Schedule"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Contact",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Purchase Receipt"
+  }
+]

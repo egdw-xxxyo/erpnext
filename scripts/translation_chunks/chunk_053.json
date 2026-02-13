@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Notes HTML",
+    "ru": "HTML-примечания"
+  },
+  {
+    "en": "Notes: ",
+    "ru": "Заметки: "
+  },
+  {
+    "en": "Notify Reposting Error to Role",
+    "ru": "Уведомить об ошибке повторной публикации в роли"
+  },
+  {
+    "en": "Number of Days",
+    "ru": "Количество дней"
+  },
+  {
+    "en": "Number of Weeks / Months",
+    "ru": "Количество недель / месяцев"
+  },
+  {
+    "en": "Numeric",
+    "ru": "Числовой"
+  },
+  {
+    "en": "Numeric Inspection",
+    "ru": "Числовой контроль"
+  },
+  {
+    "en": "Office Equipment",
+    "ru": "Офисное оборудование"
+  },
+  {
+    "en": "Offsetting Account",
+    "ru": "Счет для взаимозачета"
+  },
+  {
+    "en": "Offsetting for Accounting Dimension",
+    "ru": "Взаимозачет по измерениям бухгалтерского учета"
+  },
+  {
+    "en": "Oldest Of Invoice Or Advance",
+    "ru": "Самый старый счет-фактура или аванс"
+  },
+  {
+    "en": "On Hand",
+    "ru": "В наличии"
+  },
+  {
+    "en": "On Paid Amount",
+    "ru": "На оплаченную сумму"
+  },
+  {
+    "en": "On This Date",
+    "ru": "На эту дату"
+  },
+  {
+    "en": "On Track",
+    "ru": "По плану"
+  },
+  {
+    "en": "On enabling this cancellation entries will be posted on the actual cancellation date and reports will consider cancelled entries as well",
+    "ru": "При включении этой функции, записи об отмене будут создаваться на фактическую дату отмены, и отчеты будут учитывать отмененные записи"
+  },
+  {
+    "en": "On expanding a row in the Items to Manufacture table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process.",
+    "ru": "При раскрытии строки в таблице «Изготавливаемые изделия» вы увидите опцию «Включить разложенные элементы». Установка этого флажка добавляет в производственный процесс сырьё из составных элементов сборки."
+  },
+  {
+    "en": "On save, the Excluded Fee will be converted to an Included Fee.",
+    "ru": "При сохранении сумма, не включенная в стоимость, будет преобразована в сумму, включенную в стоимость."
+  },
+  {
+    "en": "On submission of the stock transaction, system will auto create the Serial and Batch Bundle based on the Serial No / Batch fields.",
+    "ru": "При подтверждении транзакции по складу система автоматически создаст пакет серийных номеров и партий на основе полей серийного номера и партии."
+  },
+  {
+    "en": "Once the Work Order is Closed. It can't be resumed.",
+    "ru": "После закрытия заказа на работу его нельзя возобновить."
+  },
+  {
+    "en": "Only 'Payment Entries' made against this advance account are supported.",
+    "ru": "Поддерживаются только \\\"платежные записи\\\", сделанные по этому авансовому счету."
+  },
+  {
+    "en": "Only CSV and Excel files can be used to for importing data. Please check the file format you are trying to upload",
+    "ru": "Для импорта данных можно использовать только файлы CSV и Excel. Проверьте формат файла, который вы пытаетесь загрузить"
+  },
+  {
+    "en": "Only Deduct Tax On Excess Amount ",
+    "ru": "Вычесть налог только с суммы превышения "
+  },
+  {
+    "en": "Only Include Allocated Payments",
+    "ru": "Включать только распределенные платежи"
+  },
+  {
+    "en": "Only Parent can be of type {0}",
+    "ru": "Только родитель может быть типа {0}"
+  },
+  {
+    "en": "Only Value available for Payment Entry",
+    "ru": "Только значение доступно для платежной записи"
+  },
+  {
+    "en": "Only applies for Normal Payments",
+    "ru": "Применимо только к обычным платежам"
+  },
+  {
+    "en": "Only existing assets",
+    "ru": "Только существующие активы"
+  },
+  {
+    "en": "Only one of Deposit or Withdrawal should be non-zero when applying an Excluded Fee.",
+    "ru": "При применении ненулевой комиссии не должно быть иного значения только в одном из пунктов: «Внесение» или «Снятие» средств."
+  },
+  {
+    "en": "Only one {0} entry can be created against the Work Order {1}",
+    "ru": "Для заказа на работу {1} можно создать только одну запись {0}"
+  },
+  {
+    "en": "Only to be used for Subcontracting Inward.",
+    "ru": "Используется только для входящих операций по субподряду."
+  },
+  {
+    "en": "Only values between [0,1) are allowed. Like {0.00, 0.04, 0.09, ...}\\nEx: If allowance is set at 0.07, accounts that have balance of 0.07 in either of the currencies will be considered as zero balance account",
+    "ru": "Разрешены только значения в диапазоне [0,1). Например, {0.00, 0.04, 0.09, ...}\\nПример: если разрешение установлено на уровне 0.07, счета с балансом 0.07 в любой из валют будут считаться счетами с нулевым балансом"
+  },
+  {
+    "en": "Only {0} are supported",
+    "ru": "Поддерживаются только {0}"
+  },
+  {
+    "en": "Open Activities HTML",
+    "ru": "Открыть активные мероприятия в HTML"
+  },
+  {
+    "en": "Open Call Log",
+    "ru": "Открыть журнал вызовов"
+  },
+  {
+    "en": "Open Event",
+    "ru": "Открытое мероприятие"
+  },
+  {
+    "en": "Open Events",
+    "ru": "Открытые мероприятия"
+  },
+  {
+    "en": "Open Issues ",
+    "ru": "Открытые вопросы "
+  },
+  {
+    "en": "Open Projects ",
+    "ru": "Открытые проекты "
+  },
+  {
+    "en": "Open Sales Orders",
+    "ru": "Открыть заказы на продажу"
+  }
+]

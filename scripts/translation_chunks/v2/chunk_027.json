@@ -1,0 +1,152 @@
+[
+  {
+    "en": "Enabled",
+    "ctx": "Plaid Settings"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "Price List"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "Sales Person"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "Service Level Agreement"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "UOM"
+  },
+  {
+    "en": "Enabled",
+    "ctx": "Workstation Working Hour"
+  },
+  {
+    "en": "Enabling ensure each Purchase Invoice has a unique value in Supplier Invoice No. field",
+    "ctx": "Accounts Settings"
+  },
+  {
+    "en": "End Date"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Accounting Period"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Bank Guarantee"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Contract"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Email Campaign"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Service Level Agreement"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Supplier Scorecard Period"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "End Date",
+    "ctx": "Vehicle"
+  },
+  {
+    "en": "Enter name of campaign if source of enquiry is campaign",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Enter the Bank Guarantee Number before submittting."
+  },
+  {
+    "en": "Enter the name of the Beneficiary before submittting."
+  },
+  {
+    "en": "Enter the name of the bank or lending institution before submittting."
+  },
+  {
+    "en": "Entity Type"
+  },
+  {
+    "en": "Entity Type",
+    "ctx": "Service Level Agreement"
+  },
+  {
+    "en": "Error"
+  },
+  {
+    "en": "Error",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Error",
+    "ctx": "Ledger Merge"
+  },
+  {
+    "en": "Error",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Error",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Error Log",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Error Log",
+    "ctx": "BOM Update Log"
+  },
+  {
+    "en": "Error Log",
+    "ctx": "Process Payment Reconciliation"
+  },
+  {
+    "en": "Error Log",
+    "ctx": "Repost Item Valuation"
+  },
+  {
+    "en": "Error Message",
+    "ctx": "Period Closing Voucher"
+  },
+  {
+    "en": "Error Occured"
+  },
+  {
+    "en": "Error occured while parsing Chart of Accounts: Please make sure that no two accounts have the same name"
+  },
+  {
+    "en": "Even invoices with apply tax withholding unchecked will be considered for checking cumulative threshold breach",
+    "ctx": "Tax Withholding Category"
+  },
+  {
+    "en": "Exit",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Expand All"
+  },
+  {
+    "en": "Expired"
+  }
+]

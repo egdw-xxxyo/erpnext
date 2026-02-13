@@ -1,0 +1,153 @@
+[
+  {
+    "en": "Invalid URL"
+  },
+  {
+    "en": "Inventory, Warehouses, Analysis, and more."
+  },
+  {
+    "en": "Is Active"
+  },
+  {
+    "en": "Is Active",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Is Active",
+    "ctx": "Project"
+  },
+  {
+    "en": "Is Active",
+    "ctx": "Subcontracting BOM"
+  },
+  {
+    "en": "Is Composite Asset",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Is Day Book Data Imported",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Is Day Book Data Processed",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Is Default",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Is Default",
+    "ctx": "Dunning Type"
+  },
+  {
+    "en": "Is Default",
+    "ctx": "Item Manufacturer"
+  },
+  {
+    "en": "Is Default",
+    "ctx": "Payment Gateway Account"
+  },
+  {
+    "en": "Is Existing Asset",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Is Group"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Account"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Company"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Cost Center"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Customer Group"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Department"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Item Group"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Ledger Merge"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Location"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Quality Procedure"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Sales Person"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Supplier Group"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Task"
+  },
+  {
+    "en": "Is Group",
+    "ctx": "Territory"
+  },
+  {
+    "en": "Is Master Data Imported",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Is Master Data Processed",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Is Short Year",
+    "ctx": "Fiscal Year"
+  },
+  {
+    "en": "Is System Generated",
+    "ctx": "Journal Entry"
+  },
+  {
+    "en": "Issuing cannot be done to a location. Please enter employee to issue the Asset {0} to"
+  },
+  {
+    "en": "Item Unavailable"
+  },
+  {
+    "en": "Item Wise Tax Detail ",
+    "ctx": "Purchase Taxes and Charges"
+  },
+  {
+    "en": "Item {0} has no Serial No. Only serilialized items can have delivery based on Serial No"
+  },
+  {
+    "en": "Item, Customer, Supplier and Quotation"
+  },
+  {
+    "en": "Items"
+  },
+  {
+    "en": "Items",
+    "ctx": "BOM"
+  },
+  {
+    "en": "Items",
+    "ctx": "BOM Creator"
+  }
+]

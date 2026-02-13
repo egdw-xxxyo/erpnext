@@ -1,0 +1,156 @@
+[
+  {
+    "en": "Subject",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "Subject",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Subject",
+    "ctx": "Project Template Task"
+  },
+  {
+    "en": "Subject",
+    "ctx": "Task"
+  },
+  {
+    "en": "Subject",
+    "ctx": "Task Depends On"
+  },
+  {
+    "en": "Submit"
+  },
+  {
+    "en": "Submit After Import",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Submitted"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Installation Note"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Maintenance Schedule"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Request for Quotation"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Shipment"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "Submitted",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Subtitle",
+    "ctx": "Homepage Section Card"
+  },
+  {
+    "en": "Success"
+  },
+  {
+    "en": "Success",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Success",
+    "ctx": "Ledger Merge"
+  },
+  {
+    "en": "Successfully deleted all transactions related to this company!"
+  },
+  {
+    "en": "Successfully imported {0}"
+  },
+  {
+    "en": "Successfully updated {0}"
+  },
+  {
+    "en": "Sum of Repair Cost and Value of Consumed Stock Items.",
+    "ctx": "Asset Repair"
+  },
+  {
+    "en": "Summary",
+    "ctx": "Call Log"
+  },
+  {
+    "en": "Summary",
+    "ctx": "Transaction Deletion Record"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Appointment Booking Slots"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Availability Of Slots"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Communication Medium Timeslot"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Holiday List"
+  }
+]

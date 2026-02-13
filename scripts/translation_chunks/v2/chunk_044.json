@@ -1,0 +1,153 @@
+[
+  {
+    "en": "On Hold",
+    "ctx": "Issue"
+  },
+  {
+    "en": "On Hold",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "On Hold",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "On Hold",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "On Purchase Order Submission"
+  },
+  {
+    "en": "On Sales Order Submission"
+  },
+  {
+    "en": "On Task Completion"
+  },
+  {
+    "en": "On {0} Creation"
+  },
+  {
+    "en": "Only one Subcontracting Order can be created against a Purchase Order, cancel the existing Subcontracting Order to create a new one."
+  },
+  {
+    "en": "Open"
+  },
+  {
+    "en": "Open",
+    "ctx": "Appointment"
+  },
+  {
+    "en": "Open",
+    "ctx": "Issue"
+  },
+  {
+    "en": "Open",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Open",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Open",
+    "ctx": "Non Conformance"
+  },
+  {
+    "en": "Open",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Open",
+    "ctx": "POS Opening Entry"
+  },
+  {
+    "en": "Open",
+    "ctx": "Pick List"
+  },
+  {
+    "en": "Open",
+    "ctx": "Project"
+  },
+  {
+    "en": "Open",
+    "ctx": "Quality Action"
+  },
+  {
+    "en": "Open",
+    "ctx": "Quality Action Resolution"
+  },
+  {
+    "en": "Open",
+    "ctx": "Quality Meeting"
+  },
+  {
+    "en": "Open",
+    "ctx": "Quality Review"
+  },
+  {
+    "en": "Open",
+    "ctx": "Quality Review Objective"
+  },
+  {
+    "en": "Open",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Open",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "Open",
+    "ctx": "Task"
+  },
+  {
+    "en": "Open",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "Opening Accumulated Depreciation must be less than or equal to {0}"
+  },
+  {
+    "en": "Opening {0} Invoices created"
+  },
+  {
+    "en": "Operation"
+  },
+  {
+    "en": "Operation",
+    "ctx": "BOM Explosion Item"
+  },
+  {
+    "en": "Operation",
+    "ctx": "BOM Operation"
+  },
+  {
+    "en": "Operation",
+    "ctx": "BOM Website Operation"
+  },
+  {
+    "en": "Operation",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "Operation",
+    "ctx": "Job Card Operation"
+  },
+  {
+    "en": "Operation",
+    "ctx": "Job Card Time Log"
+  },
+  {
+    "en": "Operation",
+    "ctx": "Operation"
+  },
+  {
+    "en": "Operation",
+    "ctx": "Sub Operation"
+  },
+  {
+    "en": "Operation",
+    "ctx": "Work Order Item"
+  }
+]

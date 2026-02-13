@@ -1,0 +1,134 @@
+[
+  {
+    "en": "Cost of Scrapped Asset"
+  },
+  {
+    "en": "Cost of Sold Asset"
+  },
+  {
+    "en": "Could not auto update shifts. Shift with shift factor {0} needed."
+  },
+  {
+    "en": "Could not update stock, invoice contains drop shipping item."
+  },
+  {
+    "en": "Count",
+    "ctx": "Shipment Parcel"
+  },
+  {
+    "en": "Country"
+  },
+  {
+    "en": "Country",
+    "ctx": "Company"
+  },
+  {
+    "en": "Country",
+    "ctx": "Global Defaults"
+  },
+  {
+    "en": "Country",
+    "ctx": "Holiday List"
+  },
+  {
+    "en": "Country",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Country",
+    "ctx": "Manufacturer"
+  },
+  {
+    "en": "Country",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Country",
+    "ctx": "POS Profile"
+  },
+  {
+    "en": "Country",
+    "ctx": "Price List Country"
+  },
+  {
+    "en": "Country",
+    "ctx": "Shipping Rule Country"
+  },
+  {
+    "en": "Country",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Create"
+  },
+  {
+    "en": "Create BOM"
+  },
+  {
+    "en": "Create Depreciation Entry"
+  },
+  {
+    "en": "Create Payment Entries"
+  },
+  {
+    "en": "Create Raw Materials"
+  },
+  {
+    "en": "Create Sample Retention Stock Entry"
+  },
+  {
+    "en": "Create Your First Purchase Invoice "
+  },
+  {
+    "en": "Create Your First Sales Invoice "
+  },
+  {
+    "en": "Create a Customer"
+  },
+  {
+    "en": "Create a Finished Good"
+  },
+  {
+    "en": "Create a Fixed Asset Item"
+  },
+  {
+    "en": "Create a Material Transfer Entry"
+  },
+  {
+    "en": "Create a Product"
+  },
+  {
+    "en": "Create a Quotation"
+  },
+  {
+    "en": "Create a Sales Item"
+  },
+  {
+    "en": "Create a Sales Order"
+  },
+  {
+    "en": "Create a Supplier"
+  },
+  {
+    "en": "Create a Warehouse"
+  },
+  {
+    "en": "Create a new Item"
+  },
+  {
+    "en": "Create a new composite asset",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Create an Asset"
+  },
+  {
+    "en": "Create an Asset Category"
+  },
+  {
+    "en": "Create an Asset Item"
+  },
+  {
+    "en": "Create an Item"
+  }
+]

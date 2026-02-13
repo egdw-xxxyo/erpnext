@@ -1,0 +1,14 @@
+{
+  "To date cannot be before from date": "Дата закінчення не може бути раніше дати початку",
+  "Toggle Recent Orders": "Переключити останні замовлення",
+  "Token Endpoint": "Кінцева точка токена",
+  "Total": "Всього",
+  "Total Purchase Cost has been updated": "Загальна вартість закупівлі була оновлена",
+  "Total advance ({0}) against Order {1} cannot be greater than the Grand Total ({2})": "Загальний аванс ({0}) за замовленням {1} не може перевищувати загальну суму ({2})",
+  "Totals": "Підсумки",
+  "Track Material Request": "Відстежити запит матеріалів",
+  "Transfered": "Переведено",
+  "Transferring cannot be done to an Employee. Please enter location where Asset {0} has to be transferred": "Передача не може бути здійснена працівнику. Будь ласка, вкажіть місце, куди має бути переведено актив {0}",
+  "Trialling": "Пробний період",
+  "Tuesday": "Вівторок"
+}

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Set Delivery Warehouse",
+    "ru": "Установить склад доставки"
+  },
+  {
+    "en": "Set Finished Good Quantity",
+    "ru": "Установить количество готовой продукции"
+  },
+  {
+    "en": "Set From Warehouse",
+    "ru": "Установить со склада"
+  },
+  {
+    "en": "Set Grand Total to Default Payment Method",
+    "ru": "Установить общую сумму на метод оплаты по умолчанию"
+  },
+  {
+    "en": "Set Landed Cost Based on Purchase Invoice Rate",
+    "ru": "Установить полную стоимость на основе ставки счёта поставщика"
+  },
+  {
+    "en": "Set Loyalty Program",
+    "ru": "Установить программу лояльности"
+  },
+  {
+    "en": "Set Operating Cost / Scrap Items From Sub-assemblies",
+    "ru": "Установить операционные затраты/отходы из подсборок"
+  },
+  {
+    "en": "Set Operating Cost Based On BOM Quantity",
+    "ru": "Установить операционные затраты на основе количества по спецификации"
+  },
+  {
+    "en": "Set Parent Row No in Items Table",
+    "ru": "Установить номер родительской строки в таблице товаров"
+  },
+  {
+    "en": "Set Process Loss Item Quantity",
+    "ru": "Установить количество потерянных товаров в процессе"
+  },
+  {
+    "en": "Set Project Status",
+    "ru": "Установить статус проекта"
+  },
+  {
+    "en": "Set Response Time for Priority {0} in row {1}.",
+    "ru": "Установить время отклика для приоритета {0} в строке {1}."
+  },
+  {
+    "en": "Set Serial and Batch Bundle Naming Based on Naming Series",
+    "ru": "Задать именование пакета серий и партий на основе серии наименования"
+  },
+  {
+    "en": "Set Supplier",
+    "ru": "Поставщик комплекта"
+  },
+  {
+    "en": "Set Valuation Rate Based on Source Warehouse",
+    "ru": "Установить ставку оценки на основе исходного склада"
+  },
+  {
+    "en": "Set Valuation Rate for Rejected Materials",
+    "ru": "Установить оценочную стоимость для отклоненных материалов"
+  },
+  {
+    "en": "Set Warehouse",
+    "ru": "Установить склад"
+  },
+  {
+    "en": "Set by Item Tax Template",
+    "ru": "Установлено по шаблону налогов товара"
+  },
+  {
+    "en": "Set default {0} account for non stock items",
+    "ru": "Установить счет по умолчанию {0} для нескладских позиций"
+  },
+  {
+    "en": "Set fieldname from which you want to fetch the data from the parent form.",
+    "ru": "Укажите имя поля родительской формы, из которого вы хотите извлечь данные."
+  },
+  {
+    "en": "Set quantity of process loss item:",
+    "ru": "Установить количество товара, потерянного в процессе:"
+  },
+  {
+    "en": "Set the Planned Start Date (an Estimated Date at which you want the Production to begin)",
+    "ru": "Установите запланированную дату начала (предполагаемую дату, когда вы хотите начать производство)"
+  },
+  {
+    "en": "Set the status manually.",
+    "ru": "Установить статус вручную."
+  },
+  {
+    "en": "Set {0} in asset category {1} for company {2}",
+    "ru": "Установить {0} в категории активов {1} для компании {2}"
+  },
+  {
+    "en": "Sets 'Accepted Warehouse' in each row of the Items table.",
+    "ru": "Устанавливает «Склад принятых» в каждой строке таблицы товаров."
+  },
+  {
+    "en": "Sets 'Rejected Warehouse' in each row of the Items table.",
+    "ru": "Устанавливает «Склад брака» в каждой строке таблицы товаров."
+  },
+  {
+    "en": "Sets 'Reserve Warehouse' in each row of the Supplied Items table.",
+    "ru": "Устанавливает «Склад резерва» в каждой строке таблицы «Поставляемые товары»."
+  },
+  {
+    "en": "Setting Item Locations...",
+    "ru": "Настройка местоположений товаров..."
+  },
+  {
+    "en": "Setting the account as a Company Account is necessary for Bank Reconciliation",
+    "ru": "Настройка счета как счета компании обязательна для банковской сверки"
+  },
+  {
+    "en": "Setting {0} is required",
+    "ru": "Требуется настройка {0}"
+  },
+  {
+    "en": "Setup your organization",
+    "ru": "Настройка вашей организации"
+  },
+  {
+    "en": "Shelf Life in Days",
+    "ru": "Срок годности в днях"
+  },
+  {
+    "en": "Shift",
+    "ru": "Смена"
+  },
+  {
+    "en": "Shift Factor",
+    "ru": "Коэффициент смены"
+  },
+  {
+    "en": "Shift Name",
+    "ru": "Название смены"
+  },
+  {
+    "en": "Shift Time (In Hours)",
+    "ru": "Время смены (в часах)"
+  },
+  {
+    "en": "Shipment",
+    "ru": "Отгрузка"
+  },
+  {
+    "en": "Shipment Amount",
+    "ru": "Сумма отгрузки"
+  },
+  {
+    "en": "Shipment Delivery Note",
+    "ru": "Накладная на доставку груза"
+  },
+  {
+    "en": "Shipment ID",
+    "ru": "Идентификатор отгрузки"
+  }
+]

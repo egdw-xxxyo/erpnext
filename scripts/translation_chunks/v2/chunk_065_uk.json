@@ -1,0 +1,16 @@
+{
+  "This Warehouse will be auto-updated in the Work In Progress Warehouse field of Work Orders.": "Цей склад буде автоматично оновлюватись у полі Склад незавершеного виробництва виробничих замовлень.",
+  "This is an example website auto-generated from ERPNext": "Це приклад веб-сайту, автоматично створеного з ERPNext",
+  "This is based on transactions against this Customer. See timeline below for details": "Це базується на транзакціях з цим клієнтом. Перегляньте часову шкалу нижче для деталей",
+  "This is based on transactions against this Supplier. See timeline below for details": "Це базується на транзакціях з цим постачальником. Перегляньте часову шкалу нижче для деталей",
+  "This schedule was created when Asset {0} was sold through Sales Invoice {1}.": "Цей графік був створений, коли актив {0} був проданий через рахунок-фактуру {1}.",
+  "This schedule was created when Asset {0} was updated after being split into new Asset {1}.": "Цей графік був створений, коли актив {0} був оновлений після поділу на новий актив {1}.",
+  "This schedule was created when Asset {0}'s Asset Repair {1} was cancelled.": "Цей графік був створений, коли ремонт активу {1} активу {0} був скасований.",
+  "This schedule was created when new Asset {0} was split from Asset {1}.": "Цей графік був створений, коли новий актив {0} був відокремлений від активу {1}.",
+  "Thursday": "Четвер",
+  "Time": "Час",
+  "Timeline": "Часова шкала",
+  "Timesheet {0} is already completed or cancelled": "Табель обліку часу {0} вже завершений або скасований",
+  "Timesheets help keep track of time, cost and billing for activites done by your team": "Табелі обліку часу допомагають відстежувати час, витрати та виставлення рахунків за діяльність вашої команди",
+  "Title": "Назва"
+}

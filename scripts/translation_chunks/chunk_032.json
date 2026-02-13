@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Failed to parse MT940 format. Error: {0}",
+    "ru": "Не удалось разобрать формат MT940. Ошибка: {0}"
+  },
+  {
+    "en": "Failed to post depreciation entries",
+    "ru": "Не удалось провести записи по амортизации"
+  },
+  {
+    "en": "Failed to setup defaults for country {0}. Please contact support.",
+    "ru": "Не удалось настроить значения по умолчанию для страны {0}. Обратитесь в службу поддержки."
+  },
+  {
+    "en": "Failure Description",
+    "ru": "Описание отказа"
+  },
+  {
+    "en": "Failure: {0}",
+    "ru": "Ошибка: {0}"
+  },
+  {
+    "en": "Faraday",
+    "ru": "Фарадей"
+  },
+  {
+    "en": "Fathom",
+    "ru": "Фатом"
+  },
+  {
+    "en": "Fetch Based On",
+    "ru": "Извлечь на основе"
+  },
+  {
+    "en": "Fetch Latest Exchange Rate",
+    "ru": "Получить последний обменный курс"
+  },
+  {
+    "en": "Fetch Overdue Payments",
+    "ru": "Получить данные о просроченных платежах"
+  },
+  {
+    "en": "Fetch Timesheet",
+    "ru": "Получить табель учета рабочего времени"
+  },
+  {
+    "en": "Fetch Timesheet in Sales Invoice",
+    "ru": "Извлечь табель учета рабочего времени из счета-фактуры продажи"
+  },
+  {
+    "en": "Fetch Valuation Rate for Internal Transaction",
+    "ru": "Получить оценку стоимости для внутренней транзакции"
+  },
+  {
+    "en": "Fetch Value From",
+    "ru": "Извлечь значение из"
+  },
+  {
+    "en": "Fetching Error",
+    "ru": "Ошибка извлечения"
+  },
+  {
+    "en": "Fetching Material Requests...",
+    "ru": "Получение запросов на материалы..."
+  },
+  {
+    "en": "Fetching Sales Orders...",
+    "ru": "Получение заказов на продажу..."
+  },
+  {
+    "en": "Fetching exchange rates ...",
+    "ru": "Получение курсов обмена валют..."
+  },
+  {
+    "en": "Filter by Reference Date",
+    "ru": "Фильтр по дате ссылки"
+  },
+  {
+    "en": "Filter on Invoice",
+    "ru": "Фильтр по счету-фактуре"
+  },
+  {
+    "en": "Filter on Payment",
+    "ru": "Фильтр по платежу"
+  },
+  {
+    "en": "Filters for Material Requests",
+    "ru": "Фильтры для запросов материалов"
+  },
+  {
+    "en": "Filters for Sales Orders",
+    "ru": "Фильтры для заказов на продажу"
+  },
+  {
+    "en": "Filters missing",
+    "ru": "Фильтры отсутствуют"
+  },
+  {
+    "en": "Final BOM",
+    "ru": "Окончательная спецификация"
+  },
+  {
+    "en": "Final Product",
+    "ru": "Конечный продукт"
+  },
+  {
+    "en": "Finance Manager",
+    "ru": "Финансовый менеджер"
+  },
+  {
+    "en": "Financial Ratios",
+    "ru": "Финансовые показатели"
+  },
+  {
+    "en": "Financial Report Row",
+    "ru": "Строка финансового отчета"
+  },
+  {
+    "en": "Financial Report Template",
+    "ru": "Шаблон финансового отчета"
+  },
+  {
+    "en": "Financial Report Template {0} is disabled",
+    "ru": "Шаблон финансового отчета {0} отключен"
+  },
+  {
+    "en": "Financial Report Template {0} not found",
+    "ru": "Шаблон финансового отчета {0} не найден"
+  },
+  {
+    "en": "Financial Reports",
+    "ru": "Финансовые отчеты"
+  },
+  {
+    "en": "Financial Year Begins On",
+    "ru": "Финансовый год начинается с"
+  },
+  {
+    "en": "Financial reports will be generated using GL Entry doctypes (should be enabled if Period Closing Voucher is not posted for all years sequentially or missing) ",
+    "ru": "Финансовые отчёты будут создаваться на основе записей в главной книге (следует включить, если документы закрытия периода не были опубликованы последовательно за все годы или если некоторые из них отсутствуют) "
+  },
+  {
+    "en": "Finished Good BOM",
+    "ru": "Спецификация для готовой продукции"
+  },
+  {
+    "en": "Finished Good Item",
+    "ru": "Элемент готовой продукции"
+  },
+  {
+    "en": "Finished Good Item Qty",
+    "ru": "Количество элементов готовой продукции"
+  },
+  {
+    "en": "Finished Good Item Quantity",
+    "ru": "Количество элементов готовой продукции"
+  },
+  {
+    "en": "Finished Good Item is not specified for service item {0}",
+    "ru": "Готовая продукция не указана для услуги {0}"
+  }
+]

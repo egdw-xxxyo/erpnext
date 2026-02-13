@@ -1,0 +1,144 @@
+[
+  {
+    "en": "Sunday",
+    "ctx": "Incoming Call Handling Schedule"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Project"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Service Day"
+  },
+  {
+    "en": "Sunday",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Supplier Warehouse mandatory for sub-contracted {0}"
+  },
+  {
+    "en": "Supply Raw Materials for Purchase",
+    "ctx": "Item"
+  },
+  {
+    "en": "System Manager"
+  },
+  {
+    "en": "System Settings",
+    "ctx": "System Settings"
+  },
+  {
+    "en": "TCS Rate %"
+  },
+  {
+    "en": "TDS Rate %"
+  },
+  {
+    "en": "TS-.YYYY.-",
+    "ctx": "Timesheet"
+  },
+  {
+    "en": "Tag"
+  },
+  {
+    "en": "Tag Line",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Take a quick walk-through of Accounts Settings"
+  },
+  {
+    "en": "Take a walk through Stock Settings"
+  },
+  {
+    "en": "Take a walk-through of Manufacturing Settings"
+  },
+  {
+    "en": "Tally Company",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Tally Creditors Account",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Tally Debtors Account",
+    "ctx": "Tally Migration"
+  },
+  {
+    "en": "Tally Migration"
+  },
+  {
+    "en": "Tally Migration Error"
+  },
+  {
+    "en": "Target",
+    "ctx": "Quality Goal Objective"
+  },
+  {
+    "en": "Target",
+    "ctx": "Quality Review Objective"
+  },
+  {
+    "en": "Target Asset Location",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Batch No",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Has Batch No",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Has Serial No",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Is Fixed Asset",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Item Name",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Item {0} is neither a Fixed Asset nor a Stock Item"
+  },
+  {
+    "en": "Target Item {0} must be a Stock Item"
+  },
+  {
+    "en": "Target Location is required while receiving Asset {0} from an employee"
+  },
+  {
+    "en": "Target Location is required while transferring Asset {0}"
+  },
+  {
+    "en": "Target Location or To Employee is required while receiving Asset {0}"
+  },
+  {
+    "en": "Target Qty must be a positive number"
+  },
+  {
+    "en": "Target Serial No",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Target Warehouse is mandatory for Decapitalization"
+  },
+  {
+    "en": "Task"
+  },
+  {
+    "en": "Task",
+    "ctx": "Asset Maintenance Log"
+  },
+  {
+    "en": "Task",
+    "ctx": "Dependent Task"
+  }
+]

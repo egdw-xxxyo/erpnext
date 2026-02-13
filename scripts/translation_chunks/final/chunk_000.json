@@ -1,0 +1,77 @@
+[
+  {
+    "en": "\n\t\t\tThe Batch {0} of an item {1} has negative stock in the warehouse {2}. Please add a stock quantity of {3} to proceed with this entry."
+  },
+  {
+    "en": "ALL records will be deleted (entire DocType cleared)"
+  },
+  {
+    "en": "Allow User to Edit Warehouse"
+  },
+  {
+    "en": "Analytical Accounting"
+  },
+  {
+    "en": "Applicable only on Transactions made using POS"
+  },
+  {
+    "en": "Apply discounts and margins on products"
+  },
+  {
+    "en": "Asset Shift Allocation"
+  },
+  {
+    "en": "Asset Type"
+  },
+  {
+    "en": "Asset {0} is not set to calculate depreciation."
+  },
+  {
+    "en": "At least one raw material item must be present in the stock entry for the type {0}"
+  },
+  {
+    "en": "Available / Future Inventory"
+  },
+  {
+    "en": "Available for Use Date"
+  },
+  {
+    "en": "Btu/Hour"
+  },
+  {
+    "en": "Cannot add child table {0} to deletion list. Child tables are automatically deleted with their parent DocTypes."
+  },
+  {
+    "en": "Cannot delete protected core DocType: {0}"
+  },
+  {
+    "en": "Cannot delete virtual DocType: {0}. Virtual DocTypes do not have database tables."
+  },
+  {
+    "en": "Cannot produce more Item {0} than Sales Order quantity {1} {2}"
+  },
+  {
+    "en": "Cannot start deletion. Another deletion {0} is already queued/running. Please wait for it to complete."
+  },
+  {
+    "en": "Check row {0} for account {1}: Party Type is only allowed for Receivable or Payable accounts"
+  },
+  {
+    "en": "Check row {0} for account {1}: Party is only allowed if Party Type is set"
+  },
+  {
+    "en": "Child DocTypes"
+  },
+  {
+    "en": "Child Table Not Allowed"
+  },
+  {
+    "en": "Child tables that will also be deleted"
+  },
+  {
+    "en": "Company Account is mandatory"
+  },
+  {
+    "en": "Company Field"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Please select at least one row with difference value",
+    "ru": "Пожалуйста, выберите хотя бы одну строку с разницей значений"
+  },
+  {
+    "en": "Please select atleast one item to continue",
+    "ru": "Пожалуйста, выберите хотя бы один товар для продолжения"
+  },
+  {
+    "en": "Please select atleast one operation to create Job Card",
+    "ru": "Пожалуйста, выберите хотя бы одну операцию для создания производственного наряда"
+  },
+  {
+    "en": "Please select either the Item or Warehouse or Warehouse Type filter to generate the report.",
+    "ru": "Для создания отчета выберите фильтр «Товар», «Склад» или «Тип склада»."
+  },
+  {
+    "en": "Please select items to reserve.",
+    "ru": "Пожалуйста, выберите товары для резервирования."
+  },
+  {
+    "en": "Please select items to unreserve.",
+    "ru": "Пожалуйста, выберите товары для отмены резервирования."
+  },
+  {
+    "en": "Please select only one row to create a Reposting Entry",
+    "ru": "Пожалуйста, выберите только одну строку для создания записи о перепроведении"
+  },
+  {
+    "en": "Please select rows to create Reposting Entries",
+    "ru": "Пожалуйста, выберите строки для создания записи о перепроведении"
+  },
+  {
+    "en": "Please select the Warehouse first",
+    "ru": "Пожалуйста, сначала выберите склад"
+  },
+  {
+    "en": "Please select the required filters",
+    "ru": "Пожалуйста, выберите необходимые фильтры"
+  },
+  {
+    "en": "Please select valid document type.",
+    "ru": "Пожалуйста, выберите допустимый тип документа."
+  },
+  {
+    "en": "Please set '{0}' in Company: {1}",
+    "ru": "Пожалуйста, установите «{0}» в компании: {1}"
+  },
+  {
+    "en": "Please set Account",
+    "ru": "Пожалуйста, установите счет"
+  },
+  {
+    "en": "Please set Account for Change Amount",
+    "ru": "Пожалуйста, установите счет для изменения суммы"
+  },
+  {
+    "en": "Please set Accounting Dimension {} in {}",
+    "ru": "Пожалуйста, установите измерение учета {} в {}"
+  },
+  {
+    "en": "Please set Customer Address to determine if the transaction is an export.",
+    "ru": "Пожалуйста, укажите адрес клиента, чтобы определить, является ли транзакция экспортной."
+  },
+  {
+    "en": "Please set Email/Phone for the contact",
+    "ru": "Пожалуйста, укажите адрес электронной почты/телефон для контакта"
+  },
+  {
+    "en": "Please set Fiscal Code for the customer '%s'",
+    "ru": "Пожалуйста, установите фискальный код для клиента «%s»"
+  },
+  {
+    "en": "Please set Fiscal Code for the public administration '%s'",
+    "ru": "Пожалуйста, установите фискальный код для государственного органа '%s'"
+  },
+  {
+    "en": "Please set Fixed Asset Account in Asset Category {0}",
+    "ru": "Пожалуйста, укажите счёт основных средств в категории активов {0}"
+  },
+  {
+    "en": "Please set Fixed Asset Account in {} against {}.",
+    "ru": "Укажите счет для основных средств в {} по отношению к {}."
+  },
+  {
+    "en": "Please set Parent Row No for item {0}",
+    "ru": "Пожалуйста, установите номер родительской строки для элемента {0}"
+  },
+  {
+    "en": "Please set Purchase Expense Contra Account in Company {0}",
+    "ru": "Пожалуйста, установите счет расходов по умолчанию в компании {0}"
+  },
+  {
+    "en": "Please set Root Type",
+    "ru": "Пожалуйста, установите тип корня"
+  },
+  {
+    "en": "Please set Tax ID for the customer '%s'",
+    "ru": "Пожалуйста, установите налоговый идентификатор для клиента «%s»"
+  },
+  {
+    "en": "Please set VAT Accounts in {0}",
+    "ru": "Пожалуйста, установите счета НДС в {0}"
+  },
+  {
+    "en": "Please set Vat Accounts for Company: \\\"{0}\\\" in UAE VAT Settings",
+    "ru": "Пожалуйста, установите счета НДС для компании: \\\"{0}\\\" в настройках НДС в ОАЭ"
+  },
+  {
+    "en": "Please set a Cost Center for the Asset or set an Asset Depreciation Cost Center for the Company {}",
+    "ru": "Пожалуйста, установите Центр затрат для Актива или установите Центр затрат на амортизацию Актива для Компании {}"
+  },
+  {
+    "en": "Please set a default Holiday List for Company {0}",
+    "ru": "Пожалуйста, установите список праздников по умолчанию для компании {0}"
+  },
+  {
+    "en": "Please set actual demand or sales forecast to generate Material Requirements Planning Report.",
+    "ru": "Пожалуйста, установите фактический спрос или прогноз продаж для создания отчета о планировании потребностей в материалах."
+  },
+  {
+    "en": "Please set an Address on the Company '%s'",
+    "ru": "Пожалуйста, укажите адрес компании '%s'"
+  },
+  {
+    "en": "Please set an Expense Account in the Items table",
+    "ru": "Пожалуйста, установите счет расходов в таблице товаров"
+  },
+  {
+    "en": "Please set both the Tax ID and Fiscal Code on Company {0}",
+    "ru": "Пожалуйста, укажите как ИНН, так и Фискальный код для компании {0}"
+  },
+  {
+    "en": "Please set default Exchange Gain/Loss Account in Company {}",
+    "ru": "Пожалуйста, установите по умолчанию счет учета прибыли/убытка от курсовых разниц в компании {}"
+  },
+  {
+    "en": "Please set default Expense Account in Company {0}",
+    "ru": "Пожалуйста, установите счет расходов по умолчанию в компании {0}"
+  },
+  {
+    "en": "Please set default cost of goods sold account in company {0} for booking rounding gain and loss during stock transfer",
+    "ru": "Пожалуйста, установите счет затрат на проданные товары в компании {0} для учета прибыли и убытка от округления при перемещении запасов"
+  },
+  {
+    "en": "Please set default inventory account for item {0}, or their item group or brand.",
+    "ru": "Пожалуйста, установите инвентарный счет по умолчанию для товара {0}, или группы товаров, или бренда."
+  },
+  {
+    "en": "Please set one of the following:",
+    "ru": "Пожалуйста, установите один из следующих вариантов:"
+  },
+  {
+    "en": "Please set opening number of booked depreciations",
+    "ru": "Пожалуйста, укажите начальное количество проведённых амортизаций"
+  },
+  {
+    "en": "Please set the Target Warehouse in the Job Card",
+    "ru": "Пожалуйста, укажите целевой склад в производственном наряде"
+  }
+]

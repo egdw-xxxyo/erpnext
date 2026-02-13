@@ -1,0 +1,77 @@
+[
+  {
+    "en": "Only CSV files are allowed"
+  },
+  {
+    "en": "Only one operation can have 'Is Final Finished Good' checked when 'Track Semi Finished Goods' is enabled."
+  },
+  {
+    "en": "Ownership"
+  },
+  {
+    "en": "POS Configurations"
+  },
+  {
+    "en": "POS Item Details"
+  },
+  {
+    "en": "POS Item Selector"
+  },
+  {
+    "en": "Payment Options"
+  },
+  {
+    "en": "Please enter Batch No"
+  },
+  {
+    "en": "Please enter Serial No"
+  },
+  {
+    "en": "Please first set Full Name, Email and Phone for the user"
+  },
+  {
+    "en": "Please generate To Delete list before submitting"
+  },
+  {
+    "en": "Please generate the To Delete list before submitting"
+  },
+  {
+    "en": "Price List & Currency"
+  },
+  {
+    "en": "Processing import..."
+  },
+  {
+    "en": "Protected DocType"
+  },
+  {
+    "en": "Quality Inspection is required for the item {0} before completing the job card {1}"
+  },
+  {
+    "en": "Quality Inspection {0} is not submitted for the item: {1}"
+  },
+  {
+    "en": "Quality Inspection {0} is rejected for the item: {1}"
+  },
+  {
+    "en": "Raw Materials Missing"
+  },
+  {
+    "en": "Remove Zero Counts"
+  },
+  {
+    "en": "Removed {0} rows with zero document count. Please save to persist changes."
+  },
+  {
+    "en": "Reserved Inventory"
+  },
+  {
+    "en": "Row #{0}: Selling rate for item {1} is lower than its {2}.\n\t\t\t\t\tSelling {3} should be atleast {4}.<br><br>Alternatively,\n\t\t\t\t\tyou can disable '{5}' in {6} to bypass\n\t\t\t\t\tthis validation."
+  },
+  {
+    "en": "Row {0}: Item {1} must be linked to a {2}."
+  },
+  {
+    "en": "Set Incoming Rate as Zero for Expired Batch"
+  }
+]

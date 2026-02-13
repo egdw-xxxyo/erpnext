@@ -1,0 +1,160 @@
+[
+  {
+    "en": "Monday",
+    "ctx": "Incoming Call Handling Schedule"
+  },
+  {
+    "en": "Monday",
+    "ctx": "Project"
+  },
+  {
+    "en": "Monday",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Monday",
+    "ctx": "Service Day"
+  },
+  {
+    "en": "Monday",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Month"
+  },
+  {
+    "en": "Month",
+    "ctx": "Monthly Distribution Percentage"
+  },
+  {
+    "en": "Month",
+    "ctx": "Subscription Plan"
+  },
+  {
+    "en": "Monthly"
+  },
+  {
+    "en": "Monthly",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "Monthly",
+    "ctx": "Email Digest"
+  },
+  {
+    "en": "Monthly",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "Monthly",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Monthly",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Monthly",
+    "ctx": "Selling Settings"
+  },
+  {
+    "en": "More Info",
+    "ctx": "BOM"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Task"
+  },
+  {
+    "en": "More Info",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "More Information",
+    "ctx": "BOM Operation"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Customer"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Delivery Stop"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Job Card"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Journal Entry"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Material Request Item"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "More Information",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Purchase Order Item"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Request for Quotation"
+  },
+  {
+    "en": "More Information",
+    "ctx": "Serial No"
+  }
+]

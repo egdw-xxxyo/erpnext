@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Total Landed Cost (Company Currency)",
+    "ru": "Общие дополнительные расходы (валюта компании)"
+  },
+  {
+    "en": "Total Liability",
+    "ru": "Общая сумма обязательств"
+  },
+  {
+    "en": "Total Number of Booked Depreciations ",
+    "ru": "Общее количество начисленной амортизации "
+  },
+  {
+    "en": "Total Only",
+    "ru": "Только итог"
+  },
+  {
+    "en": "Total Operation Time",
+    "ru": "Общее время работы"
+  },
+  {
+    "en": "Total Other Charges",
+    "ru": "Общая сумма прочих сборов"
+  },
+  {
+    "en": "Total Outgoing Value (Consumption)",
+    "ru": "Общая стоимость расходованных материалов"
+  },
+  {
+    "en": "Total Picked Quantity {0} is more than ordered qty {1}. You can set the Over Picking Allowance in Stock Settings.",
+    "ru": "Общее количество подобранных товаров {0} больше заказанного количества {1}. Вы можете установить допуск на подбор сверх нормы в настройках запаса."
+  },
+  {
+    "en": "Total Purchase Amount",
+    "ru": "Общая сумма покупки"
+  },
+  {
+    "en": "Total Repair Cost",
+    "ru": "Общая стоимость ремонта"
+  },
+  {
+    "en": "Total Reposting Count",
+    "ru": "Итоговое количество перерасчётов"
+  },
+  {
+    "en": "Total Stock Value",
+    "ru": "Общая стоимость запаса"
+  },
+  {
+    "en": "Total Supplied Qty",
+    "ru": "Общее количество поставленного товара"
+  },
+  {
+    "en": "Total Time (in Mins)",
+    "ru": "Общее время (в минутах)"
+  },
+  {
+    "en": "Total Value",
+    "ru": "Общая стоимость"
+  },
+  {
+    "en": "Total Value Difference (Incoming - Outgoing)",
+    "ru": "Общая разница в стоимости (входящая - исходящая)"
+  },
+  {
+    "en": "Total Vendor Invoices Cost (Company Currency)",
+    "ru": "Общая стоимость счетов поставщика (валюта компании)"
+  },
+  {
+    "en": "Total Views",
+    "ru": "Всего просмотров"
+  },
+  {
+    "en": "Total Warehouses",
+    "ru": "Всего складов"
+  },
+  {
+    "en": "Total Weight (kg)",
+    "ru": "Общий вес (кг)"
+  },
+  {
+    "en": "Total Workstation Time (In Hours)",
+    "ru": "Общее время рабочего места (в часах)"
+  },
+  {
+    "en": "Total distributed amount {0} must be equal to Budget Amount {1}",
+    "ru": "Общая распределенная сумма {0} должна быть равна сумме бюджета {1}"
+  },
+  {
+    "en": "Total distribution percent must equal 100 (currently {0})",
+    "ru": "Общий процент распределения должен быть равен 100 (в настоящее время {0})"
+  },
+  {
+    "en": "Total percentage against cost centers should be 100",
+    "ru": "Общий процент по центрам затрат должен быть 100"
+  },
+  {
+    "en": "Total quantity in delivery schedule cannot be greater than the item quantity",
+    "ru": "Общее количество в графике отгрузки не может превышать количество позиции"
+  },
+  {
+    "en": "Tracebility Direction",
+    "ru": "Направление трассировки"
+  },
+  {
+    "en": "Track Semi Finished Goods",
+    "ru": "Отслеживать полуфабрикаты"
+  },
+  {
+    "en": "Tracking Status",
+    "ru": "Статус отслеживания"
+  },
+  {
+    "en": "Tracking Status Info",
+    "ru": "Информация о статусе отслеживания"
+  },
+  {
+    "en": "Tracking URL",
+    "ru": "URL отслеживания"
+  },
+  {
+    "en": "Transaction Deletion Record",
+    "ru": "Запись об удалении транзакции"
+  },
+  {
+    "en": "Transaction Deletion Record Details",
+    "ru": "Подробности записи удаления транзакции"
+  },
+  {
+    "en": "Transaction Deletion Record Item",
+    "ru": "Элемент записи удаления транзакции"
+  },
+  {
+    "en": "Transaction Exchange Rate",
+    "ru": "Курс обмена по транзакции"
+  },
+  {
+    "en": "Transaction Information",
+    "ru": "Информация о транзакции"
+  },
+  {
+    "en": "Transaction Name",
+    "ru": "Название транзакции"
+  },
+  {
+    "en": "Transaction Settings",
+    "ru": "Настройки транзакции"
+  },
+  {
+    "en": "Transaction Threshold",
+    "ru": "Порог транзакций"
+  },
+  {
+    "en": "Transaction currency: {0} cannot be different from Bank Account({1}) currency: {2}",
+    "ru": "Валюта транзакции: {0} не может отличаться от валюты банковского счета ({1}): {2}"
+  },
+  {
+    "en": "Transaction for which tax is withheld",
+    "ru": "Сделка, по которой удерживается налог"
+  }
+]

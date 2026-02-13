@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Invalid Purchase Invoice",
+    "ru": "Неверный счет-фактура покупки"
+  },
+  {
+    "en": "Invalid Qty",
+    "ru": "Неверное количество"
+  },
+  {
+    "en": "Invalid Query",
+    "ru": "Некорректный запрос"
+  },
+  {
+    "en": "Invalid Return",
+    "ru": "Недействительный возврат"
+  },
+  {
+    "en": "Invalid Sales Invoices",
+    "ru": "Недействительные счета по продажам"
+  },
+  {
+    "en": "Invalid Schedule",
+    "ru": "Неверное расписание"
+  },
+  {
+    "en": "Invalid Serial and Batch Bundle",
+    "ru": "Некорректная комбинация серийных номеров и партий"
+  },
+  {
+    "en": "Invalid Source and Target Warehouse",
+    "ru": "Неверный исходный и целевой склад"
+  },
+  {
+    "en": "Invalid Warehouse",
+    "ru": "Неверный склад"
+  },
+  {
+    "en": "Invalid amount in accounting entries of {} {} for Account {}: {}",
+    "ru": "Недопустимая сумма в бухгалтерских записях {} {} для аккаунта {}: {}"
+  },
+  {
+    "en": "Invalid filter formula. Please check the syntax.",
+    "ru": "Неверная формула фильтра. Проверьте синтаксис."
+  },
+  {
+    "en": "Invalid parameter. 'dn' should be of type str",
+    "ru": "Недопустимый параметр. 'dn' должен быть типа str"
+  },
+  {
+    "en": "Invalid result key. Response:",
+    "ru": "Некорректный ключ результата. Ответ:"
+  },
+  {
+    "en": "Invalid search query",
+    "ru": "Неверный Поисковый Запрос"
+  },
+  {
+    "en": "Invalid value {0} for {1} against account {2}",
+    "ru": "Недопустимое значение {0} для {1} по отношению к счету {2}"
+  },
+  {
+    "en": "Inventory Account Currency",
+    "ru": "Валюта учётной записи запасов"
+  },
+  {
+    "en": "Inventory Dimension",
+    "ru": "Измерение инвентаря"
+  },
+  {
+    "en": "Inventory Dimension Negative Stock",
+    "ru": "Измерение запасов Отрицательный запас"
+  },
+  {
+    "en": "Inventory Dimension key",
+    "ru": "Ключ параметров запасов"
+  },
+  {
+    "en": "Inventory Settings",
+    "ru": "Настройки запасов"
+  },
+  {
+    "en": "Inventory Turnover Ratio",
+    "ru": "Коэффициент оборачиваемости запасов"
+  },
+  {
+    "en": "Invoice Cancellation",
+    "ru": "Аннулирование счета-фактуры"
+  },
+  {
+    "en": "Invoice Document Type Selection Error",
+    "ru": "Ошибка выбора типа документа счет-фактуры"
+  },
+  {
+    "en": "Invoice ID",
+    "ru": "Номер счёта"
+  },
+  {
+    "en": "Invoice Limit",
+    "ru": "Лимит по счёту-фактуре"
+  },
+  {
+    "en": "Invoice Paid",
+    "ru": "Счет оплачен"
+  },
+  {
+    "en": "Invoice Portion (%)",
+    "ru": "Доля счета (%)"
+  },
+  {
+    "en": "Invoice Type Created via POS Screen",
+    "ru": "Тип счета, созданный через экран точки продаж"
+  },
+  {
+    "en": "Invoice and Billing",
+    "ru": "Счета и выставление счетов"
+  },
+  {
+    "en": "Invoiced Qty",
+    "ru": "Количество по счету-фактуре"
+  },
+  {
+    "en": "Invoices and Payments have been Fetched and Allocated",
+    "ru": "Счета-фактуры и платежи были получены и распределены"
+  },
+  {
+    "en": "Invoicing Features",
+    "ru": "Возможности создания счетов-фактур"
+  },
+  {
+    "en": "Is Additional Item",
+    "ru": "Дополнительный элемент"
+  },
+  {
+    "en": "Is Additional Transfer Entry",
+    "ru": "Дополнительная запись для перемещения"
+  },
+  {
+    "en": "Is Adjustment Entry",
+    "ru": "Является корректировочной записью"
+  },
+  {
+    "en": "Is Alternative",
+    "ru": "Альтернатива"
+  },
+  {
+    "en": "Is Cash or Non Trade Discount",
+    "ru": "Скидка за наличный расчет или неторговая скидка"
+  },
+  {
+    "en": "Is Corrective Job Card",
+    "ru": "Является корректирующей карточкой задания"
+  },
+  {
+    "en": "Is Corrective Operation",
+    "ru": "Является корректирующей операцией"
+  },
+  {
+    "en": "Is Exchange Gain / Loss?",
+    "ru": "Прибыль/убыток от обмена?"
+  }
+]

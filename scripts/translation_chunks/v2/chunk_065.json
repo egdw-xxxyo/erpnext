@@ -1,0 +1,151 @@
+[
+  {
+    "en": "This Warehouse will be auto-updated in the Work In Progress Warehouse field of Work Orders."
+  },
+  {
+    "en": "This is an example website auto-generated from ERPNext"
+  },
+  {
+    "en": "This is based on transactions against this Customer. See timeline below for details"
+  },
+  {
+    "en": "This is based on transactions against this Supplier. See timeline below for details"
+  },
+  {
+    "en": "This schedule was created when Asset {0} was sold through Sales Invoice {1}."
+  },
+  {
+    "en": "This schedule was created when Asset {0} was updated after being split into new Asset {1}."
+  },
+  {
+    "en": "This schedule was created when Asset {0}'s Asset Repair {1} was cancelled."
+  },
+  {
+    "en": "This schedule was created when new Asset {0} was split from Asset {1}."
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Appointment Booking Slots"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Availability Of Slots"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Communication Medium Timeslot"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Holiday List"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Incoming Call Handling Schedule"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Project"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Service Day"
+  },
+  {
+    "en": "Thursday",
+    "ctx": "Stock Reposting Settings"
+  },
+  {
+    "en": "Time",
+    "ctx": "Bulk Transaction Log Detail"
+  },
+  {
+    "en": "Time",
+    "ctx": "Project Update"
+  },
+  {
+    "en": "Time",
+    "ctx": "Sales Invoice Timesheet"
+  },
+  {
+    "en": "Time",
+    "ctx": "Work Order"
+  },
+  {
+    "en": "Time",
+    "ctx": "Work Order Operation"
+  },
+  {
+    "en": "Timeline",
+    "ctx": "Task"
+  },
+  {
+    "en": "Timesheet {0} is already completed or cancelled"
+  },
+  {
+    "en": "Timesheets help keep track of time, cost and billing for activites done by your team"
+  },
+  {
+    "en": "Title"
+  },
+  {
+    "en": "Title",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Title",
+    "ctx": "Contract Template"
+  },
+  {
+    "en": "Title",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Title",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Title",
+    "ctx": "Homepage Section Card"
+  },
+  {
+    "en": "Title",
+    "ctx": "Incoterm"
+  },
+  {
+    "en": "Title",
+    "ctx": "Item Tax Template"
+  },
+  {
+    "en": "Title",
+    "ctx": "Journal Entry"
+  },
+  {
+    "en": "Title",
+    "ctx": "Lead"
+  },
+  {
+    "en": "Title",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "Title",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Title",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Title",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "Title",
+    "ctx": "Pricing Rule"
+  }
+]

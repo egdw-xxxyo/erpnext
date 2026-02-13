@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Subcontracting Inward Order Item",
+    "ru": "Позиция внутреннего заказа субподряда"
+  },
+  {
+    "en": "Subcontracting Inward Order Received Item",
+    "ru": "Полученный товар по субподрядному внутреннему заказу"
+  },
+  {
+    "en": "Subcontracting Inward Order Scrap Item",
+    "ru": "Субподрядный внутренний заказ на бракованную продукцию"
+  },
+  {
+    "en": "Subcontracting Inward Order Service Item",
+    "ru": "Субподрядная услуга по внутреннему заказу"
+  },
+  {
+    "en": "Subcontracting Inward Settings",
+    "ru": "Субподрядные внутренние настройки"
+  },
+  {
+    "en": "Subcontracting Order",
+    "ru": "Заказ на субподряд"
+  },
+  {
+    "en": "Subcontracting Order (Draft) will be auto-created on submission of Purchase Order.",
+    "ru": "Заказ на субподряд (черновик) будет автоматически создан при подаче заказа на закупку."
+  },
+  {
+    "en": "Subcontracting Order Item",
+    "ru": "Позиция заказа на субподряд"
+  },
+  {
+    "en": "Subcontracting Order Service Item",
+    "ru": "Пункт обслуживания заказа на субподряд"
+  },
+  {
+    "en": "Subcontracting Order Supplied Item",
+    "ru": "Поставляемая позиция по субподрядному заказу"
+  },
+  {
+    "en": "Subcontracting Order {0} created.",
+    "ru": "Заказ на субподряд {0} создан."
+  },
+  {
+    "en": "Subcontracting Outward Order",
+    "ru": "Субподрядный исходящий заказ"
+  },
+  {
+    "en": "Subcontracting Outward Order Count",
+    "ru": "Количество исходящих заказов по субподряду"
+  },
+  {
+    "en": "Subcontracting Purchase Order",
+    "ru": "Заказ на поставку субподряда"
+  },
+  {
+    "en": "Subcontracting Receipt",
+    "ru": "Расписка о субподряде"
+  },
+  {
+    "en": "Subcontracting Receipt Item",
+    "ru": "Пункт квитанции субподряда"
+  },
+  {
+    "en": "Subcontracting Receipt Supplied Item",
+    "ru": "Субподрядная квитанция на поставленный товар"
+  },
+  {
+    "en": "Subcontracting Return",
+    "ru": "Возврат субподряда"
+  },
+  {
+    "en": "Subcontracting Sales Order",
+    "ru": "Субподрядный заказ на продажу"
+  },
+  {
+    "en": "Subcontracting Settings",
+    "ru": "Настройки субподрядчиков"
+  },
+  {
+    "en": "Subdivision",
+    "ru": "Подразделение"
+  },
+  {
+    "en": "Submit Action Failed",
+    "ru": "Не удалось выполнить действие"
+  },
+  {
+    "en": "Submit ERR Journals?",
+    "ru": "Отправить журналы ошибок?"
+  },
+  {
+    "en": "Submit Generated Invoices",
+    "ru": "Отправка сгенерированных счетов-фактур"
+  },
+  {
+    "en": "Submit your Quotation",
+    "ru": "Отправьте свое предложение"
+  },
+  {
+    "en": "Subscription for Future dates cannot be processed.",
+    "ru": "Подписка на будущие даты не может быть обработана."
+  },
+  {
+    "en": "Succeeded",
+    "ru": "Успешно"
+  },
+  {
+    "en": "Succeeded Entries",
+    "ru": "Успешные записи"
+  },
+  {
+    "en": "Successfully changed Stock UOM, please redefine conversion factors for new UOM.",
+    "ru": "Единица измерения запаса успешно изменена, пожалуйста, переопределите коэффициенты пересчета для новой единицы измерения."
+  },
+  {
+    "en": "Successfully linked to Customer",
+    "ru": "Успешно связано с клиентом"
+  },
+  {
+    "en": "Successfully linked to Supplier",
+    "ru": "Успешно связано с поставщиком"
+  },
+  {
+    "en": "Successfully merged {0} out of {1}.",
+    "ru": "Успешно объединено {0} из {1}."
+  },
+  {
+    "en": "Supplied Item",
+    "ru": "Поставленный товар"
+  },
+  {
+    "en": "Supplier Address Details",
+    "ru": "Подробности адреса поставщика"
+  },
+  {
+    "en": "Supplier Contact",
+    "ru": "Контакты поставщика"
+  },
+  {
+    "en": "Supplier Group Item",
+    "ru": "Товар по группе поставщиков"
+  },
+  {
+    "en": "Supplier Info",
+    "ru": "Информация о поставщике"
+  },
+  {
+    "en": "Supplier Invoice",
+    "ru": "Счет-фактура поставщика"
+  },
+  {
+    "en": "Supplier Item",
+    "ru": "Товар поставщика"
+  },
+  {
+    "en": "Supplier Number",
+    "ru": "Номер поставщика"
+  }
+]

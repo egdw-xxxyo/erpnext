@@ -1,0 +1,153 @@
+[
+  {
+    "en": "Document Name",
+    "ctx": "Quality Meeting Minutes"
+  },
+  {
+    "en": "Document Type"
+  },
+  {
+    "en": "Document Type",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Document Type",
+    "ctx": "Closed Document"
+  },
+  {
+    "en": "Document Type",
+    "ctx": "Contract"
+  },
+  {
+    "en": "Document Type",
+    "ctx": "Installation Note Item"
+  },
+  {
+    "en": "Document Type",
+    "ctx": "Maintenance Visit Purpose"
+  },
+  {
+    "en": "Document Type",
+    "ctx": "Quality Meeting Minutes"
+  },
+  {
+    "en": "Document {0} successfully uncleared"
+  },
+  {
+    "en": "Documents",
+    "ctx": "Shipment"
+  },
+  {
+    "en": "Domain",
+    "ctx": "Company"
+  },
+  {
+    "en": "Domain Settings",
+    "ctx": "Domain Settings"
+  },
+  {
+    "en": "Don't Send Emails",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Done"
+  },
+  {
+    "en": "Dont Recompute tax",
+    "ctx": "Sales Taxes and Charges"
+  },
+  {
+    "en": "Download"
+  },
+  {
+    "en": "Download Backups"
+  },
+  {
+    "en": "Download Materials Request Plan",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Download Materials Request Plan Section",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Download PDF"
+  },
+  {
+    "en": "Download Template"
+  },
+  {
+    "en": "Download Template",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "Download Template",
+    "ctx": "Chart of Accounts Importer"
+  },
+  {
+    "en": "Dr"
+  },
+  {
+    "en": "Draft"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Asset Depreciation Schedule"
+  },
+  {
+    "en": "Draft",
+    "ctx": "BOM Creator"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Closing Stock Balance"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Delivery Trip"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Installation Note"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Invoice Discounting"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Maintenance Schedule"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "Draft",
+    "ctx": "Material Request"
+  },
+  {
+    "en": "Draft",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Draft",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Draft",
+    "ctx": "POS Opening Entry"
+  }
+]

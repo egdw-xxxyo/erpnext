@@ -1,0 +1,8 @@
+[
+  "If your CSV uses a different delimiter, add that character here, ensuring no spaces or additional characters are included.",
+  "Learn about <a href=\"https://docs.frappe.io/erpnext/user/manual/en/common_party_accounting\">Common Party</a>",
+  "Only payment entries with apply tax withholding unchecked will be considered for checking cumulative threshold breach",
+  "Payment Request created from Sales Order or Purchase Order will be in Draft status. When disabled document will be in unsaved state.",
+  "When a parent warehouse is chosen, the system conducts stock checks against the associated child warehouses",
+  "Will also apply for variants unless overrridden"
+]

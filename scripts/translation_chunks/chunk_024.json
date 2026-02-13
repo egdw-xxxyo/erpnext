@@ -1,0 +1,162 @@
+[
+  {
+    "en": "D - E",
+    "ru": "D - Е"
+  },
+  {
+    "en": "DFS",
+    "ru": "Прямая отгрузка грузов"
+  },
+  {
+    "en": "Daily Time to send",
+    "ru": "Ежедневное время отправки"
+  },
+  {
+    "en": "Daily Yield (%)",
+    "ru": "Дневная доходность (%)"
+  },
+  {
+    "en": "Data Based On",
+    "ru": "Данные основаны на"
+  },
+  {
+    "en": "Data Fetch Method",
+    "ru": "Метод выборки данных"
+  },
+  {
+    "en": "Data Source",
+    "ru": "Источники данных"
+  },
+  {
+    "en": "Date ",
+    "ru": "Дата "
+  },
+  {
+    "en": "Date must be between {0} and {1}",
+    "ru": "Дата должна быть между {0} и {1}"
+  },
+  {
+    "en": "Date: {0} to {1}",
+    "ru": "Дата: {0} по {1}"
+  },
+  {
+    "en": "Dates",
+    "ru": "Даты"
+  },
+  {
+    "en": "Dates to Process",
+    "ru": "Даты обработки"
+  },
+  {
+    "en": "Days before the current subscription period",
+    "ru": "Дни до начала текущего периода подписки"
+  },
+  {
+    "en": "DeLinked",
+    "ru": "Отсоединенный"
+  },
+  {
+    "en": "Deal Owner",
+    "ru": "Владелец сделки"
+  },
+  {
+    "en": "Dealer",
+    "ru": "Посредник"
+  },
+  {
+    "en": "Debit (Transaction)",
+    "ru": "Дебет (транзакция)"
+  },
+  {
+    "en": "Debit / Credit Note Posting Date",
+    "ru": "Дата публикации дебетовой/кредитовой ноты"
+  },
+  {
+    "en": "Debit Amount in Reporting Currency",
+    "ru": "Сумма дебета в отчетной валюте"
+  },
+  {
+    "en": "Debit Amount in Transaction Currency",
+    "ru": "Сумма дебета в валюте транзакции"
+  },
+  {
+    "en": "Debit Note will update it's own outstanding amount, even if 'Return Against' is specified.",
+    "ru": "Документ на возврат обновит свою сумму задолженности, даже если указан \\\"Возврат на основании\\\"."
+  },
+  {
+    "en": "Debit-Credit Mismatch",
+    "ru": "Несоответствие дебета и кредита"
+  },
+  {
+    "en": "Debit-Credit mismatch",
+    "ru": "Несоответствие дебета и кредита"
+  },
+  {
+    "en": "Debt Equity Ratio",
+    "ru": "Коэффициент задолженности"
+  },
+  {
+    "en": "Debtor Turnover Ratio",
+    "ru": "Коэффициент оборачиваемости дебиторской задолженности"
+  },
+  {
+    "en": "Debtor/Creditor",
+    "ru": "Дебитор/Кредитор"
+  },
+  {
+    "en": "Debtor/Creditor Advance",
+    "ru": "Аванс должника/кредитора"
+  },
+  {
+    "en": "Decigram/Litre",
+    "ru": "Дециграмм/литр"
+  },
+  {
+    "en": "Decilitre",
+    "ru": "Децилитр"
+  },
+  {
+    "en": "Decimeter",
+    "ru": "Дециметр"
+  },
+  {
+    "en": "Deduct Tax On Basis",
+    "ru": "Вычет налога на основании"
+  },
+  {
+    "en": "Deducted From",
+    "ru": "Вычтено из"
+  },
+  {
+    "en": "Default Advance Account",
+    "ru": "Авансовый счет по умолчанию"
+  },
+  {
+    "en": "Default Advance Paid Account",
+    "ru": "Счет с предоплатой по умолчанию"
+  },
+  {
+    "en": "Default Advance Received Account",
+    "ru": "Счет по умолчанию для получения аванса"
+  },
+  {
+    "en": "Default Ageing Range",
+    "ru": "Диапазон старения по умолчанию"
+  },
+  {
+    "en": "Default BOM not found for FG Item {0}",
+    "ru": "Стандартная спецификация материалов не найдена для готового товара {0}"
+  },
+  {
+    "en": "Default COGS Account",
+    "ru": "Аккаунт COGS по умолчанию"
+  },
+  {
+    "en": "Default Common Code",
+    "ru": "Общий код по умолчанию"
+  },
+  {
+    "en": "Default Discount Account",
+    "ru": "Счет скидки по умолчанию"
+  }
+]

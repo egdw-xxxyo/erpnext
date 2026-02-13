@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Row #{0}: Item {1} does not exist",
+    "ru": "Строка #{0}: Товар {1} не существует"
+  },
+  {
+    "en": "Row #{0}: Item {1} has been picked, please reserve stock from the Pick List.",
+    "ru": "Строка #{0}: выбран товар {1}, пожалуйста, зарезервируйте запас из списка выбора."
+  },
+  {
+    "en": "Row #{0}: Item {1} has no stock in warehouse {2}.",
+    "ru": "Строка #{0}: Товар {1} отсутствует на складе {2}."
+  },
+  {
+    "en": "Row #{0}: Item {1} has zero rate but 'Allow Zero Valuation Rate' is not enabled.",
+    "ru": "Строка #{0}: У товара {1} нулевая ставка, но опция Разрешить нулевую оценочную ставку не включена."
+  },
+  {
+    "en": "Row #{0}: Item {1} in warehouse {2}: Available {3}, Needed {4}.",
+    "ru": "Строка #{0}: Товар {1} на складе {2}: Доступно {3}, Требуется {4}."
+  },
+  {
+    "en": "Row #{0}: Item {1} is not a Customer Provided Item.",
+    "ru": "Строка #{0}: Позиция {1} должна быть субподрядной."
+  },
+  {
+    "en": "Row #{0}: Item {1} is not a part of Subcontracting Inward Order {2}",
+    "ru": "Строка #{0}: Позиция {1} не является частью субподрядного внутреннего заказа {2}"
+  },
+  {
+    "en": "Row #{0}: Item {1} is not a service item",
+    "ru": "Строка #{0}: Товар {1} не относится к категории услуг"
+  },
+  {
+    "en": "Row #{0}: Item {1} is not a stock item",
+    "ru": "Строка #{0}: Товар {1} не является товаром на складе"
+  },
+  {
+    "en": "Row #{0}: Item {1} mismatch. Changing of item code is not permitted, add another row instead.",
+    "ru": "Строка #{0}: Несоответствие элемента {1}. Изменение кода элемента запрещено, вместо этого добавьте другую строку."
+  },
+  {
+    "en": "Row #{0}: Item {1} mismatch. Changing of item code is not permitted.",
+    "ru": "Строка #{0}: Несоответствие элемента {1}. Изменение кода элемента не допускается."
+  },
+  {
+    "en": "Row #{0}: Next Depreciation Date cannot be before Available-for-use Date",
+    "ru": "Строка #{0}: Следующая дата амортизации не может быть раньше даты ввода в эксплуатацию"
+  },
+  {
+    "en": "Row #{0}: Next Depreciation Date cannot be before Purchase Date",
+    "ru": "Строка #{0}: Следующая дата амортизации не может быть раньше даты покупки"
+  },
+  {
+    "en": "Row #{0}: Only {1} available to reserve for the Item {2}",
+    "ru": "Строка #{0}: Только {1} доступно для резервирования для товара {2}"
+  },
+  {
+    "en": "Row #{0}: Opening Accumulated Depreciation must be less than or equal to {1}",
+    "ru": "Строка #{0}: Начисленная амортизация на начало периода должна быть меньше или равна {1}"
+  },
+  {
+    "en": "Row #{0}: Overconsumption of Customer Provided Item {1} against Work Order {2} is not allowed in the Subcontracting Inward process.",
+    "ru": "Строка #{0}: Перерасход предоставленного заказчиком товара {1} по заказу на работу {2} не допускается в процессе внутреннего субподряда."
+  },
+  {
+    "en": "Row #{0}: Please select Item Code in Assembly Items",
+    "ru": "Строка #{0}: Необходимо указать код товара в составе сборки"
+  },
+  {
+    "en": "Row #{0}: Please select the BOM No in Assembly Items",
+    "ru": "Строка #{0}: Выберите номер спецификации в составе сборки"
+  },
+  {
+    "en": "Row #{0}: Please select the Finished Good Item against which this Customer Provided Item will be used.",
+    "ru": "Строка #{0}: выберите готовый товар, для которого будет использоваться предоставленный клиентом товар."
+  },
+  {
+    "en": "Row #{0}: Please select the Sub Assembly Warehouse",
+    "ru": "Строка #{0}: Выберите склад узлов сборки"
+  },
+  {
+    "en": "Row #{0}: Please update deferred revenue/expense account in item row or default account in company master",
+    "ru": "Строка #{0}: Пожалуйста, обновите счет доходов/расходов будущих периодов в строке позиции или счет по умолчанию в основных настройках компании"
+  },
+  {
+    "en": "Row #{0}: Qty increased by {1}",
+    "ru": "Строка #{0}: Количество увеличено на {1}"
+  },
+  {
+    "en": "Row #{0}: Qty must be a positive number",
+    "ru": "Строка #{0}: Количество должно быть положительным числом"
+  },
+  {
+    "en": "Row #{0}: Qty should be less than or equal to Available Qty to Reserve (Actual Qty - Reserved Qty) {1} for Iem {2} against Batch {3} in Warehouse {4}.",
+    "ru": "Строка #{0}: Количество должно быть меньше или равно Доступному количеству для резервирования (Фактическое количество - Зарезервированное количество) {1} для товара {2} для партии {3} на складе {4}."
+  },
+  {
+    "en": "Row #{0}: Quality Inspection is required for Item {1}",
+    "ru": "Строка #{0}: Для предмета {1} требуется проверка качества"
+  },
+  {
+    "en": "Row #{0}: Quality Inspection {1} is not submitted for the item: {2}",
+    "ru": "Строка #{0}: Проверка качества {1} не проведена для позиции: {2}"
+  },
+  {
+    "en": "Row #{0}: Quality Inspection {1} was rejected for item {2}",
+    "ru": "Строка #{0}: Проверка качества {1} была отклонена для предмета {2}"
+  },
+  {
+    "en": "Row #{0}: Quantity cannot be a non-positive number. Please increase the quantity or remove the Item {1}",
+    "ru": "Строка #{0}: Количество не может быть неположительным числом. Пожалуйста, увеличьте количество или удалите товар {1}"
+  },
+  {
+    "en": "Row #{0}: Quantity of Item {1} cannot be more than {2} {3} against Subcontracting Inward Order {4}",
+    "ru": "Строка #{0}: Количество товара {1} не может быть больше, чем {2} {3} в заказе на субподряд {4}"
+  },
+  {
+    "en": "Row #{0}: Quantity to reserve for the Item {1} should be greater than 0.",
+    "ru": "Строка #{0}: Количество для резервирования товара {1} должно быть больше 0."
+  },
+  {
+    "en": "Row #{0}: Rejected Qty cannot be set for Scrap Item {1}.",
+    "ru": "Строка #{0}: Отклоненное количество не может быть установлено для бракованного товара {1}."
+  },
+  {
+    "en": "Row #{0}: Rejected Warehouse is mandatory for the rejected Item {1}",
+    "ru": "Строка #{0}: Склад для бракованных товаров обязателен для отклонённого товара {1}"
+  },
+  {
+    "en": "Row #{0}: Repair cost {1} exceeds available amount {2} for Purchase Invoice {3} and Account {4}",
+    "ru": "Строка #{0}: Стоимость ремонта {1} превышает доступную сумму {2} для счета-фактуры на покупку {3} и счета {4}"
+  },
+  {
+    "en": "Row #{0}: Return Against is required for returning asset",
+    "ru": "Строка #{0}: Для возврата основного средства необходимо заполнить поле «Возврат по документу»"
+  },
+  {
+    "en": "Row #{0}: Returned quantity cannot be greater than available quantity for Item {1}",
+    "ru": "Строка #{0}: Количество позиции {1} не может превышать доступное количество"
+  },
+  {
+    "en": "Row #{0}: Returned quantity cannot be greater than available quantity to return for Item {1}",
+    "ru": "Строка #{0}: Возвращаемое количество не может быть больше доступного количества для возврата для товара {1}"
+  },
+  {
+    "en": "Row #{0}: Scrap Item Qty cannot be zero",
+    "ru": "Строка #{0}: Количество бракованного товара не может быть равно нулю"
+  },
+  {
+    "en": "Row #{0}: Sequence ID must be {1} or {2} for Operation {3}.",
+    "ru": "Строка #{0}: Идентификатор последовательности должен быть {1} или {2} для операции {3}."
+  },
+  {
+    "en": "Row #{0}: Serial No {1} for Item {2} is not available in {3} {4} or might be reserved in another {5}.",
+    "ru": "Строка #{0}: Серийный номер {1} для товара {2} недоступен в {3} {4} или может быть зарезервирован в другом {5}."
+  },
+  {
+    "en": "Row #{0}: Serial No {1} is already selected.",
+    "ru": "Строка #{0}: Серийный номер {1} уже выбран."
+  }
+]

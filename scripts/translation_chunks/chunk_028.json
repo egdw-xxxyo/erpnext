@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Do you still want to enable negative inventory?",
+    "ru": "Вы все еще хотите разрешить отрицательные остатки?"
+  },
+  {
+    "en": "Do you want to change valuation method?",
+    "ru": "Вы хотите изменить метод оценки?"
+  },
+  {
+    "en": "Do you want to submit the stock entry?",
+    "ru": "Вы хотите отправить запись о складском запасе?"
+  },
+  {
+    "en": "DocType {0} does not exist",
+    "ru": "DocType {0} не существует"
+  },
+  {
+    "en": "Document Type ",
+    "ru": "Тип документа "
+  },
+  {
+    "en": "Document Type already used as a dimension",
+    "ru": "Тип документа уже используется как измерение"
+  },
+  {
+    "en": "Documentation",
+    "ru": "Документация"
+  },
+  {
+    "en": "Documents Processed on each trigger. Queue Size should be between 5 and 100",
+    "ru": "Документы, обрабатываемые по каждому триггеру. Размер очереди должен быть от 5 до 100"
+  },
+  {
+    "en": "Documents: {0} have deferred revenue/expense enabled for them. Cannot repost.",
+    "ru": "Документы: {0} имеют отложенные доходы/расходы. Невозможно повторно провести."
+  },
+  {
+    "en": "Don't Create Loyalty Points",
+    "ru": "Не создавайте баллы лояльности"
+  },
+  {
+    "en": "Don't Enforce Free Item Qty",
+    "ru": "Не указывайте количество бесплатного товара"
+  },
+  {
+    "en": "Don't Recompute Tax",
+    "ru": "Не пересчитывайте налог"
+  },
+  {
+    "en": "Don't Reserve Sales Order Qty on Sales Return",
+    "ru": "Не резервировать количество по заказу при возврате товара"
+  },
+  {
+    "en": "Download CSV Template",
+    "ru": "Загрузить CSV-шаблон"
+  },
+  {
+    "en": "Download PDF for Supplier",
+    "ru": "Загрузить PDF для поставщика"
+  },
+  {
+    "en": "Dr/Cr",
+    "ru": "Дт/Кт"
+  },
+  {
+    "en": "Dram",
+    "ru": "Драм"
+  },
+  {
+    "en": "Drop Procedures",
+    "ru": "Процедуры сброса"
+  },
+  {
+    "en": "Drops existing SQL Procedures and Function setup by Accounts Receivable report",
+    "ru": "Удаляет существующие процедуры и функции SQL, настроенные в отчете по дебиторской задолженности"
+  },
+  {
+    "en": "Due Date cannot be after {0}",
+    "ru": "Дата выполнения не может быть позже {0}"
+  },
+  {
+    "en": "Due Date cannot be before {0}",
+    "ru": "Дата выполнения не может быть раньше {0}"
+  },
+  {
+    "en": "Due to stock closing entry {0}, you cannot repost item valuation before {1}",
+    "ru": "Из-за записи закрытия складского запаса {0} вы не можете повторно проводить оценку товара до {1}"
+  },
+  {
+    "en": "Dunning Amount (Company Currency)",
+    "ru": "Сумма для взыскания (валюта компании)"
+  },
+  {
+    "en": "Dunning Level",
+    "ru": "Этап взыскания долга"
+  },
+  {
+    "en": "Duplicate Customer Group",
+    "ru": "Дублировать группу клиентов"
+  },
+  {
+    "en": "Duplicate Finance Book",
+    "ru": "Дублировать книгу финансов"
+  },
+  {
+    "en": "Duplicate Item Group",
+    "ru": "Дублировать группу элементов"
+  },
+  {
+    "en": "Duplicate Item Under Same Parent",
+    "ru": "Дублирующийся элемент в рамках одного родительского элемента"
+  },
+  {
+    "en": "Duplicate Operating Component {0} found in Operating Components",
+    "ru": "Дубликат рабочего компонента {0} найден в рабочих компонентах"
+  },
+  {
+    "en": "Duplicate POS Fields",
+    "ru": "Дублировать поля точки продаж"
+  },
+  {
+    "en": "Duplicate POS Invoices found",
+    "ru": "Найдены дублирующиеся счета точек продаж"
+  },
+  {
+    "en": "Duplicate Sales Invoices found",
+    "ru": "Найдены дублирующиеся счета по продажам"
+  },
+  {
+    "en": "Duplicate Serial Number Error",
+    "ru": "Ошибка дублирования серийного номера"
+  },
+  {
+    "en": "Duplicate Stock Closing Entry",
+    "ru": "Дублирующаяся запись закрытия складского запаса"
+  },
+  {
+    "en": "Duplicate customer group found in the customer group table",
+    "ru": "В таблице групп клиентов обнаружена дублирующаяся группа клиентов"
+  },
+  {
+    "en": "Dynamic Condition",
+    "ru": "Динамическое состояние"
+  },
+  {
+    "en": "Dyne",
+    "ru": "Дина"
+  },
+  {
+    "en": "EAN-13",
+    "ru": "EAN-13"
+  },
+  {
+    "en": "EAN-8",
+    "ru": "EAN-8"
+  },
+  {
+    "en": "EMU Of Charge",
+    "ru": "Электромагнитная единица заряда"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Slug/Cubic Foot",
+    "ru": "Слаг/кубический фут"
+  },
+  {
+    "en": "Sold by",
+    "ru": "Продано"
+  },
+  {
+    "en": "Solvency Ratios",
+    "ru": "Коэффициенты платежеспособности"
+  },
+  {
+    "en": "Some required Company details are missing. You don't have permission to update them. Please contact your System Manager.",
+    "ru": "Отсутствуют некоторые обязательные данные о компании. У вас нет прав на их обновление. Обратитесь к своему системному администратору."
+  },
+  {
+    "en": "Something went wrong please try again",
+    "ru": "Что-то пошло не так, попробуйте еще раз"
+  },
+  {
+    "en": "Source Document",
+    "ru": "Исходный документ"
+  },
+  {
+    "en": "Source Document No",
+    "ru": "Номер исходного документа"
+  },
+  {
+    "en": "Source Exchange Rate",
+    "ru": "Исходный обменный курс"
+  },
+  {
+    "en": "Source Fieldname",
+    "ru": "Имя поля источника"
+  },
+  {
+    "en": "Source Warehouse Address Link",
+    "ru": "Ссылка на адрес исходного склада"
+  },
+  {
+    "en": "Source Warehouse is mandatory for the Item {0}.",
+    "ru": "Исходный склад является обязательным для товара {0}."
+  },
+  {
+    "en": "Source Warehouse {0} must be same as Customer Warehouse {1} in the Subcontracting Inward Order.",
+    "ru": "Исходный склад {0} должен совпадать со складом клиента {1} в заказе на субподряд."
+  },
+  {
+    "en": "South Africa VAT Account",
+    "ru": "Счет НДС в Южной Африке"
+  },
+  {
+    "en": "South Africa VAT Settings",
+    "ru": "Настройки НДС в Южной Африке"
+  },
+  {
+    "en": "Spending for Account {0} ({1}) between {2} and {3} has already exceeded the new allocated budget. Spent: {4}, Budget: {5}",
+    "ru": "Расходы по счёту {0} ({1}) между {2} и {3} уже превысили новый выделенный бюджет. Потрачено: {4}, бюджет: {5}"
+  },
+  {
+    "en": "Split Asset",
+    "ru": "Разделить актив"
+  },
+  {
+    "en": "Split Early Payment Discount Loss into Income and Tax Loss",
+    "ru": "Разделить потерю от скидки за раннюю оплату на убытки по доходу и налоговые потери"
+  },
+  {
+    "en": "Split From",
+    "ru": "Разделить от"
+  },
+  {
+    "en": "Split Qty",
+    "ru": "Разделить количество"
+  },
+  {
+    "en": "Split Quantity must be less than Asset Quantity",
+    "ru": "Разделенное количество должно быть меньше количества актива"
+  },
+  {
+    "en": "Splitting {0} {1} into {2} rows as per Payment Terms",
+    "ru": "Разделение {0} {1} на {2} строк в соответствии с Условиями оплаты"
+  },
+  {
+    "en": "Square Centimeter",
+    "ru": "Квадратный сантиметр"
+  },
+  {
+    "en": "Square Foot",
+    "ru": "Квадратный фут"
+  },
+  {
+    "en": "Square Inch",
+    "ru": "Квадратный дюйм"
+  },
+  {
+    "en": "Square Kilometer",
+    "ru": "Квадратный Километр"
+  },
+  {
+    "en": "Square Meter",
+    "ru": "Квадратный метр"
+  },
+  {
+    "en": "Square Mile",
+    "ru": "Квадратная миля"
+  },
+  {
+    "en": "Square Yard",
+    "ru": "Квадратный ярд"
+  },
+  {
+    "en": "Stage",
+    "ru": "Стадия"
+  },
+  {
+    "en": "Stale Days should start from 1.",
+    "ru": "Дни простоя должны начинаться с 1."
+  },
+  {
+    "en": "Standard Description",
+    "ru": "Стандартное описание"
+  },
+  {
+    "en": "Standard Rated Expenses",
+    "ru": "Расходы по стандартным тарифам"
+  },
+  {
+    "en": "Standard Terms and Conditions that can be added to Sales and Purchases. Examples: Validity of the offer, Payment Terms, Safety and Usage, etc.",
+    "ru": "Стандартные положения и условия, которые можно добавить к продажам и покупкам. Примеры: действительность предложения, условия оплаты, безопасность и использование и т. д."
+  },
+  {
+    "en": "Standard rated supplies in {0}",
+    "ru": "Поставки с установленной ставкой в {0}"
+  },
+  {
+    "en": "Standard tax template that can be applied to all Purchase Transactions. This template can contain a list of tax heads and also other expense heads like \\\"Shipping\\\", \\\"Insurance\\\", \\\"Handling\\\", etc.",
+    "ru": "Стандартный налоговый шаблон, который можно применять ко всем транзакциям покупки. Этот шаблон может содержать список статей налогов, а также другие статьи расходов, такие как «Доставка», «Страхование», «Обработка» и т. д."
+  },
+  {
+    "en": "Standard tax template that can be applied to all Sales Transactions. This template can contain a list of tax heads and also other expense/income heads like \\\"Shipping\\\", \\\"Insurance\\\", \\\"Handling\\\" etc.",
+    "ru": "Стандартный налоговый шаблон, который можно применять ко всем транзакциям продаж. Этот шаблон может содержать список налоговых статей, а также другие статьи расходов/доходов, такие как «Доставка», «Страхование», «Обработка» и т. д."
+  },
+  {
+    "en": "Start / Resume",
+    "ru": "Начать / Возобновить"
+  },
+  {
+    "en": "Start Date should be lower than End Date",
+    "ru": "Дата начала должна быть меньше даты окончания"
+  },
+  {
+    "en": "Start Job",
+    "ru": "Начать работу"
+  },
+  {
+    "en": "Start Merge",
+    "ru": "Начать слияние"
+  }
+]

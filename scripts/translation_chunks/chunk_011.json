@@ -1,0 +1,162 @@
+[
+  {
+    "en": "At least one of the Selling or Buying must be selected",
+    "ru": "Необходимо выбрать хотя бы один вариант «Продажа» или «Покупка»"
+  },
+  {
+    "en": "At least one row is required for a financial report template",
+    "ru": "Для шаблона финансового отчета требуется как минимум одна строка"
+  },
+  {
+    "en": "At least one warehouse is mandatory",
+    "ru": "Обязательно наличие хотя бы одного склада"
+  },
+  {
+    "en": "At row #{0}: the Difference Account must not be a Stock type account, please change the Account Type for the account {1} or select a different account",
+    "ru": "В строке #{0}: Счет разницы не должен быть счетом типа Stock, пожалуйста, измените тип счета для счета {1} или выберите другой счет"
+  },
+  {
+    "en": "At row #{0}: you have selected the Difference Account {1}, which is a Cost of Goods Sold type account. Please select a different account",
+    "ru": "В строке #{0}: Вы выбрали счет разницы {1}, который является счетом типа \\\"Себестоимость проданных товаров\\\". Пожалуйста, выберите другой счет"
+  },
+  {
+    "en": "At row {0}: Batch No is mandatory for Item {1}",
+    "ru": "В строке {0}: Номер партии обязателен для элемента {1}"
+  },
+  {
+    "en": "At row {0}: Parent Row No cannot be set for item {1}",
+    "ru": "В строке {0}: родительский номер строки не может быть установлен для элемента {1}"
+  },
+  {
+    "en": "At row {0}: Qty is mandatory for the batch {1}",
+    "ru": "В строке {0}: Количество является обязательным для партии {1}"
+  },
+  {
+    "en": "At row {0}: Serial No is mandatory for Item {1}",
+    "ru": "В строке {0}: Серийный номер является обязательным для элемента {1}"
+  },
+  {
+    "en": "At row {0}: Serial and Batch Bundle {1} has already created. Please remove the values from the serial no or batch no fields.",
+    "ru": "В строке {0}: Серийный и партионный комплект {1} уже созданы. Пожалуйста, удалите значения из полей серийного номера или номера партии."
+  },
+  {
+    "en": "At row {0}: set Parent Row No for item {1}",
+    "ru": "В строке {0}: установить номер родительской строки для элемента {1}"
+  },
+  {
+    "en": "Atleast one raw material for Finished Good Item {0} should be customer provided.",
+    "ru": "Как минимум одно сырье для готового товара {0} должно быть предоставлено клиентом."
+  },
+  {
+    "en": "Atmosphere",
+    "ru": "Атмосфера"
+  },
+  {
+    "en": "Attach CSV File",
+    "ru": "Прикрепить CSV-файл"
+  },
+  {
+    "en": "Attach a comma separated .csv file with two columns, one for the old name and one for the new name.",
+    "ru": "Прикрепите CSV-файл, разделенный запятыми, с двумя столбцами: один для старого имени и один для нового имени."
+  },
+  {
+    "en": "Attendance & Leaves",
+    "ru": "Учет рабочего времени и отсутствий"
+  },
+  {
+    "en": "Attribute value: {0} must appear only once",
+    "ru": "Значение атрибута: {0} должно встречаться только один раз"
+  },
+  {
+    "en": "Auto Create Exchange Rate Revaluation",
+    "ru": "Автоматическое создание переоценки обменного курса"
+  },
+  {
+    "en": "Auto Create Purchase Receipt",
+    "ru": "Автоматическое создание квитанции о покупке"
+  },
+  {
+    "en": "Auto Create Serial and Batch Bundle For Outward",
+    "ru": "Автоматическое создание серийного и партионного комплекта для исходящих отправлений"
+  },
+  {
+    "en": "Auto Create Subcontracting Order",
+    "ru": "Автоматическое создание субподрядного заказа"
+  },
+  {
+    "en": "Auto Created (Reorder)",
+    "ru": "Автоматически создано (переупорядочено)"
+  },
+  {
+    "en": "Auto Created Serial and Batch Bundle",
+    "ru": "Автоматически созданный серийный и партионный комплект"
+  },
+  {
+    "en": "Auto Creation of Contact",
+    "ru": "Автоматическое создание контакта"
+  },
+  {
+    "en": "Auto Fetch Serial Numbers",
+    "ru": "Автоматический поиск серийных номеров"
+  },
+  {
+    "en": "Auto Insert Item Price If Missing",
+    "ru": "Автоматическое заполнение цены товара, если она отсутствует"
+  },
+  {
+    "en": "Auto Reconcile",
+    "ru": "Автоматическое согласование"
+  },
+  {
+    "en": "Auto Reconcile Payments",
+    "ru": "Автоматическое согласование платежей"
+  },
+  {
+    "en": "Auto Reconciliation",
+    "ru": "Автоматическое согласование"
+  },
+  {
+    "en": "Auto Reconciliation Job Trigger",
+    "ru": "Автоматическая сверка задания"
+  },
+  {
+    "en": "Auto Reconciliation has started in the background",
+    "ru": "Автоматическое согласование началось в фоновом режиме"
+  },
+  {
+    "en": "Auto Reconciliation of Payments has been disabled. Enable it through {0}",
+    "ru": "Автоматическое согласование платежей было отключено. Включите ее через {0}"
+  },
+  {
+    "en": "Auto Reserve Serial and Batch Nos",
+    "ru": "Автоматическое резервирование серийных номеров и номеров партий"
+  },
+  {
+    "en": "Auto Reserve Stock",
+    "ru": "Резервный запас"
+  },
+  {
+    "en": "Auto Reserve Stock for Sales Order on Purchase",
+    "ru": "Автоматическое резервирование запасов для заказа на продажу при покупке"
+  },
+  {
+    "en": "Auto Tax Settings Error",
+    "ru": "Ошибка настроек автоматического налога"
+  },
+  {
+    "en": "Auto close Opportunity Replied after the no. of days mentioned above",
+    "ru": "Автоматическое \\\"Перспективного клиента\\\" после ответа через указанное количество дней"
+  },
+  {
+    "en": "Auto match and set the Party in Bank Transactions",
+    "ru": "Автоматическое сопоставление и установка контрагента в банковских транзакциях"
+  },
+  {
+    "en": "Auto write off precision loss while consolidation",
+    "ru": "Автоматическое списание потерь точности при консолидации"
+  },
+  {
+    "en": "Automatically Add Filtered Item To Cart",
+    "ru": "Автоматически добавлять отфильтрованный товар в корзину"
+  }
+]

@@ -1,0 +1,152 @@
+[
+  {
+    "en": "To date cannot be before from date"
+  },
+  {
+    "en": "Toggle Recent Orders"
+  },
+  {
+    "en": "Token Endpoint",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "Total"
+  },
+  {
+    "en": "Total",
+    "ctx": "Advance Taxes and Charges"
+  },
+  {
+    "en": "Total",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Total",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Total",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Total",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Total",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Total",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Total",
+    "ctx": "Purchase Taxes and Charges"
+  },
+  {
+    "en": "Total",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Total",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Total",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Total",
+    "ctx": "Sales Taxes and Charges"
+  },
+  {
+    "en": "Total",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "Total",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Total",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Total Purchase Cost has been updated"
+  },
+  {
+    "en": "Total advance ({0}) against Order {1} cannot be greater than the Grand Total ({2})"
+  },
+  {
+    "en": "Totals"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Totals",
+    "ctx": "POS Closing Entry"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Sales Invoice Timesheet"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Totals",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Track Material Request"
+  },
+  {
+    "en": "Transfered"
+  },
+  {
+    "en": "Transferring cannot be done to an Employee. Please enter location where Asset {0} has to be transferred"
+  },
+  {
+    "en": "Trialling"
+  },
+  {
+    "en": "Trialling",
+    "ctx": "Subscription"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Appointment Booking Slots"
+  },
+  {
+    "en": "Tuesday",
+    "ctx": "Availability Of Slots"
+  }
+]

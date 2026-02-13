@@ -1,0 +1,155 @@
+[
+  {
+    "en": "Contact",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Request for Quotation Supplier"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Shipment"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Contact",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "Contact & Address",
+    "ctx": "Customer"
+  },
+  {
+    "en": "Contact & Address",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Contact & Address",
+    "ctx": "Supplier"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Delivery Note"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Dunning"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Installation Note"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Maintenance Schedule"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Maintenance Visit"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Purchase Receipt"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Quotation"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Sales Order"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Shipment"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Subcontracting Order"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Subcontracting Receipt"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Supplier Quotation"
+  },
+  {
+    "en": "Contact Email",
+    "ctx": "Warranty Claim"
+  },
+  {
+    "en": "Contact Us Settings",
+    "ctx": "Contact Us Settings"
+  },
+  {
+    "en": "Contacts",
+    "ctx": "Opportunity"
+  },
+  {
+    "en": "Content",
+    "ctx": "Homepage Section Card"
+  },
+  {
+    "en": "Content Type",
+    "ctx": "Issue"
+  },
+  {
+    "en": "Continue"
+  },
+  {
+    "en": "Conversion rate cannot be 0 or 1"
+  },
+  {
+    "en": "Core"
+  },
+  {
+    "en": "Cost Center For Item with Item Code {0} has been Changed to {1}"
+  },
+  {
+    "en": "Cost Centers for Budgeting and Analysis"
+  },
+  {
+    "en": "Cost as on"
+  },
+  {
+    "en": "Cost of New Purchase"
+  }
+]

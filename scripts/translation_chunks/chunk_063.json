@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Please set the WIP Warehouse in the Job Card",
+    "ru": "Пожалуйста, укажите склад незавершённого производства в производственном наряде"
+  },
+  {
+    "en": "Please set the cost center field in {0} or setup a default Cost Center for the Company.",
+    "ru": "Пожалуйста, установите поле центра затрат в {0} или настройте центр затрат по умолчанию для компании."
+  },
+  {
+    "en": "Please set {0} first.",
+    "ru": "Пожалуйста, сначала введите {0}."
+  },
+  {
+    "en": "Please set {0} in BOM Creator {1}",
+    "ru": "Пожалуйста, установите {0} в создателе спецификаций {1}"
+  },
+  {
+    "en": "Please set {0} in Company {1} to account for Exchange Gain / Loss",
+    "ru": "Пожалуйста, установите {0} в компании {1} для учета прибыли/убытка от курсовой разницы"
+  },
+  {
+    "en": "Please set {0} to {1}, the same account that was used in the original invoice {2}.",
+    "ru": "Пожалуйста, установите {0} на {1}, тот же счет, который использовался в исходном счете {2}."
+  },
+  {
+    "en": "Please setup and enable a group account with the Account Type - {0} for the company {1}",
+    "ru": "Пожалуйста, создайте и активируйте групповой счет с типом счета - {0} для компании {1}"
+  },
+  {
+    "en": "Please share this email with your support team so that they can find and fix the issue.",
+    "ru": "Пожалуйста, отправьте это письмо вашей службе поддержки, чтобы они могли найти и устранить проблему."
+  },
+  {
+    "en": "Please specify a {0} first.",
+    "ru": "Пожалуйста, сначала введите {0}."
+  },
+  {
+    "en": "Please try again in an hour.",
+    "ru": "Пожалуйста, повторите попытку через час."
+  },
+  {
+    "en": "Please uncheck 'Show in Bucket View' to create Orders",
+    "ru": "Пожалуйста, снимите флажок «Показывать в представлении корзины», чтобы создать заказы"
+  },
+  {
+    "en": "Please update Repair Status.",
+    "ru": "Пожалуйста, обновите статус ремонта."
+  },
+  {
+    "en": "Pond",
+    "ru": "Пруд"
+  },
+  {
+    "en": "Pood",
+    "ru": "Пуд"
+  },
+  {
+    "en": "Portal User",
+    "ru": "Пользователь портала"
+  },
+  {
+    "en": "Portal Users",
+    "ru": "Пользователи портала"
+  },
+  {
+    "en": "Posting Date Inheritance for Exchange Gain / Loss",
+    "ru": "Наследуемая дата проводки для курсовой прибыли / убытка"
+  },
+  {
+    "en": "Posting Date will change to today's date as Edit Posting Date and Time is unchecked. Are you sure want to proceed?",
+    "ru": "Дата проводки будет изменена на сегодняшнюю, так как флажок «Редактировать дату и время проводки» не установлен. Вы уверены, что хотите продолжить?"
+  },
+  {
+    "en": "Posting Datetime",
+    "ru": "Дата и время публикации"
+  },
+  {
+    "en": "Pound",
+    "ru": "Фунт"
+  },
+  {
+    "en": "Pound-Force",
+    "ru": "Фунт-сила"
+  },
+  {
+    "en": "Pound/Cubic Foot",
+    "ru": "Фунт/кубический фут"
+  },
+  {
+    "en": "Pound/Cubic Inch",
+    "ru": "Фунт/кубический дюйм"
+  },
+  {
+    "en": "Pound/Cubic Yard",
+    "ru": "Фунт/кубический ярд"
+  },
+  {
+    "en": "Pound/Gallon (UK)",
+    "ru": "Фунт/Галлон (Великобритания)"
+  },
+  {
+    "en": "Pound/Gallon (US)",
+    "ru": "Фунт/Галлон (США)"
+  },
+  {
+    "en": "Poundal",
+    "ru": "Паундаль"
+  },
+  {
+    "en": "Powered by {0}",
+    "ru": "При поддержке {0}"
+  },
+  {
+    "en": "Preferred Contact Email",
+    "ru": "Предпочтительный контактный адрес электронной почты"
+  },
+  {
+    "en": "Preferred Email",
+    "ru": "Предпочтительный адрес электронной почты"
+  },
+  {
+    "en": "Prepaid Expenses",
+    "ru": "Предоплата"
+  },
+  {
+    "en": "President",
+    "ru": "Президент"
+  },
+  {
+    "en": "Preview Required Materials",
+    "ru": "Предварительный просмотр необходимых материалов"
+  },
+  {
+    "en": "Previous Year is not closed, please close it first",
+    "ru": "Предыдущий год не закрыт, пожалуйста, сначала закройте его"
+  },
+  {
+    "en": "Price ({0})",
+    "ru": "Цена ({0})"
+  },
+  {
+    "en": "Price List Defaults",
+    "ru": "Стандартные настройки прайс-листа"
+  },
+  {
+    "en": "Price Per Unit ({0})",
+    "ru": "Цена за единицу ({0})"
+  },
+  {
+    "en": "Price is not set for the item.",
+    "ru": "Цена на товар не установлена."
+  },
+  {
+    "en": "Primary Address and Contact",
+    "ru": "Основной адрес и контакт"
+  },
+  {
+    "en": "Primary Party",
+    "ru": "Основной контрагент"
+  }
+]

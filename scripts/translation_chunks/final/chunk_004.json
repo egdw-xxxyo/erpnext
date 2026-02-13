@@ -1,0 +1,77 @@
+[
+  {
+    "en": "Since you have enabled 'Track Semi Finished Goods', at least one operation must have 'Is Final Finished Good' checked. For that set the FG / Semi FG Item as {0} against an operation."
+  },
+  {
+    "en": "Skipped {0} DocType(s):<br>{1}"
+  },
+  {
+    "en": "The outstanding amount {0} in {1} is lesser than {2}. Updating the outstanding to this invoice."
+  },
+  {
+    "en": "To Delete list generated with {0} DocTypes"
+  },
+  {
+    "en": "Total Completed Qty is required for Job Card {0}, please start and complete the job card before submission"
+  },
+  {
+    "en": "Totals (Company Currency)"
+  },
+  {
+    "en": "Transaction Deletion Document {0} has been triggered for company {1}"
+  },
+  {
+    "en": "Transaction Deletion Record To Delete"
+  },
+  {
+    "en": "Transaction Deletion Record {0} is already running. {1}"
+  },
+  {
+    "en": "Transaction Deletion Record {0} is currently deleting {1}. Cannot save documents until deletion completes."
+  },
+  {
+    "en": "Unable to fetch DocType details. Please contact system administrator."
+  },
+  {
+    "en": "Unexpected Naming Series Pattern"
+  },
+  {
+    "en": "Use Posting Datetime for Naming Documents"
+  },
+  {
+    "en": "Virtual DocType"
+  },
+  {
+    "en": "Warning: This action cannot be undone!"
+  },
+  {
+    "en": "We can see {0} is made against {1}. If you want {1}'s outstanding to be updated, uncheck the '{2}' checkbox."
+  },
+  {
+    "en": "What will be deleted:"
+  },
+  {
+    "en": "When checked, the system will use the posting datetime of the document for naming the document instead of the creation datetime of the document."
+  },
+  {
+    "en": "When there are multiple finished goods ({0}) in a Repack stock entry, the basic rate for all finished goods must be set manually. To set rate manually, enable the checkbox 'Set Basic Rate Manually' in the respective finished good row."
+  },
+  {
+    "en": "You can use {0} to reconcile against {1} later."
+  },
+  {
+    "en": "{0} is a child table and will be deleted automatically with its parent"
+  },
+  {
+    "en": "{0}: Child table (auto-deleted with parent)"
+  },
+  {
+    "en": "{0}: Not found"
+  },
+  {
+    "en": "{0}: Protected DocType"
+  },
+  {
+    "en": "{0}: Virtual DocType (no database table)"
+  }
+]

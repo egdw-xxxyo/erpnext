@@ -1,0 +1,144 @@
+[
+  {
+    "en": "# Set Up a Company\n\nA company is a legal entity for which you will set up your books of account and create accounting transactions. In ERPNext, you can create multiple companies, and establish relationships (group/subsidiary) among them.\n\nWithin the company master, you can capture various default accounts for that Company and set crucial settings related to the accounting methodology followed for a company.\n"
+  },
+  {
+    "en": "# Setting up Taxes\n\nERPNext lets you configure your taxes so that they are automatically applied in your buying and selling transactions. You can configure them globally or even on Items. ERPNext taxes are pre-configured for most regions."
+  },
+  {
+    "en": "# Setup Routing\n\nA Routing stores all Operations along with the description, hourly rate, operation time, batch size, etc. Click below to learn how the Routing template can be created, for quick selection in the BOM."
+  },
+  {
+    "en": "# Setup a Warehouse\nThe warehouse can be your location/godown/store where you maintain the item's inventory, and receive/deliver them to various parties.\n\nIn ERPNext, you can maintain a Warehouse in the tree structure, so that location and sub-location of an item can be tracked. Also, you can link a Warehouse to a specific Accounting ledger, where the real-time stock value of that warehouse’s item will be reflected."
+  },
+  {
+    "en": "# Track Material Request\n\n\nAlso known as Purchase Request or an Indent, is a document identifying a requirement of a set of items (products or services) for various purposes like procurement, transfer, issue, or manufacturing. Once the Material Request is validated, a purchase manager can take the next actions for purchasing items like requesting RFQ from a supplier or directly placing an order with an identified Supplier.\n\n"
+  },
+  {
+    "en": "# Update Stock Opening Balance\nIt’s an entry to update the stock balance of an item, in a warehouse, on a date and time you are going live on ERPNext.\n\nOnce opening stocks are updated, you can create transactions like manufacturing and stock deliveries, where this opening stock will be consumed."
+  },
+  {
+    "en": "# Updating Opening Balances\n\nOnce you close the financial statement in previous accounting software, you can update the same as opening in your ERPNext's Balance Sheet accounts. This will allow you to get complete financial statements from ERPNext in the coming years, and discontinue the parallel accounting system right away."
+  },
+  {
+    "en": "# View Warehouse\nIn ERPNext the term 'warehouse' can be thought of as a storage location.\n\nWarehouses are arranged in ERPNext in a tree like structure, where multiple sub-warehouses can be grouped under a single warehouse.\n\nIn this step we will view the [**Warehouse Tree**](https://docs.erpnext.com/docs/user/manual/en/stock/warehouse#21-tree-view) to view the [**Warehouses**](https://docs.erpnext.com/docs/user/manual/en/stock/warehouse) that are set by default."
+  },
+  {
+    "en": "## Products and Services\n\nDepending on the nature of your business, you might be selling products or services to your clients or even both. \nERPNext is optimized for itemized management of your sales and purchase.\n\nThe **Item Master**  is where you can add all your sales items. If you are in services, you can create an Item for each service that you offer. If you run a manufacturing business, the same master is used for keeping a record of raw materials, sub-assemblies etc.\n\nCompleting the Item Master is very essential for the successful implementation of ERPNext. We have a brief video introducing the item master for you, you can watch it in the next step."
+  },
+  {
+    "en": "## Who is a Customer?\n\nA customer, who is sometimes known as a client, buyer, or purchaser is the one who receives goods, services, products, or ideas, from a seller for a monetary consideration.\n\nEvery customer needs to be assigned a unique id. Customer name itself can be the id or you can set a naming series for ids to be generated in Selling Settings.\n\nJust like the supplier, let's quickly create a customer."
+  },
+  {
+    "en": "## Who is a Supplier?\n\nSuppliers are companies or individuals who provide you with products or services. ERPNext has comprehensive features for purchase cycles. \n\nLet's quickly create a supplier with the minimal details required. You need the name of the supplier, assign the supplier to a group, and select the type of the supplier, viz. Company or Individual."
+  },
+  {
+    "en": "'Date' is required"
+  },
+  {
+    "en": ", with the inventory {0}: {1}"
+  },
+  {
+    "en": "<h5 class=\"text-muted uppercase\">Or</h5>",
+    "ctx": "Bank Statement Import"
+  },
+  {
+    "en": "A BOM with name {0} already exists for item {1}."
+  },
+  {
+    "en": "A Sales Order is a confirmation of an order from your customer. It is also referred to as Proforma Invoice.\n\nSales Order at the heart of your sales and purchase transactions. Sales Orders are linked in Delivery Note, Sales Invoices, Material Request, and Maintenance transactions. Through Sales Order, you can track fulfillment of the overall deal towards the customer."
+  },
+  {
+    "en": "A customer with the same name already exists"
+  },
+  {
+    "en": "A4",
+    "ctx": "Cheque Print Template"
+  },
+  {
+    "en": "ACC-ADS-.YYYY.-",
+    "ctx": "Asset Depreciation Schedule"
+  },
+  {
+    "en": "ACC-AML-.YYYY.-",
+    "ctx": "Asset Maintenance Log"
+  },
+  {
+    "en": "ACC-ASA-.YYYY.-",
+    "ctx": "Asset Shift Allocation"
+  },
+  {
+    "en": "ACC-ASC-.YYYY.-",
+    "ctx": "Asset Capitalization"
+  },
+  {
+    "en": "ACC-ASR-.YYYY.-",
+    "ctx": "Asset Repair"
+  },
+  {
+    "en": "ACC-ASS-.YYYY.-",
+    "ctx": "Asset"
+  },
+  {
+    "en": "ACC-BTN-.YYYY.-",
+    "ctx": "Bank Transaction"
+  },
+  {
+    "en": "ACC-JV-.YYYY.-",
+    "ctx": "Journal Entry"
+  },
+  {
+    "en": "ACC-PAY-.YYYY.-",
+    "ctx": "Payment Entry"
+  },
+  {
+    "en": "ACC-PINV-RET-.YYYY.-",
+    "ctx": "Purchase Invoice"
+  },
+  {
+    "en": "ACC-PRQ-.YYYY.-",
+    "ctx": "Payment Request"
+  },
+  {
+    "en": "ACC-PSINV-.YYYY.-",
+    "ctx": "POS Invoice"
+  },
+  {
+    "en": "ACC-SH-.YYYY.-",
+    "ctx": "Shareholder"
+  },
+  {
+    "en": "ACC-SINV-.YYYY.-",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "ACC-SINV-RET-.YYYY.-",
+    "ctx": "Sales Invoice"
+  },
+  {
+    "en": "API",
+    "ctx": "Support Search Source"
+  },
+  {
+    "en": "API Endpoint",
+    "ctx": "Currency Exchange Settings"
+  },
+  {
+    "en": "API Endpoint",
+    "ctx": "QuickBooks Migrator"
+  },
+  {
+    "en": "API Key",
+    "ctx": "Video Settings"
+  },
+  {
+    "en": "About Us Settings",
+    "ctx": "About Us Settings"
+  },
+  {
+    "en": "About {0} minute remaining"
+  },
+  {
+    "en": "About {0} minutes remaining"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Manual Inspection",
+    "ru": "Ручной осмотр"
+  },
+  {
+    "en": "Manufactured Items Value",
+    "ru": "Стоимость произведенных изделий"
+  },
+  {
+    "en": "Manufacturing BOM",
+    "ru": "Производственный BOM"
+  },
+  {
+    "en": "Manufacturing Time",
+    "ru": "Время изготовления"
+  },
+  {
+    "en": "Manufacturing Type",
+    "ru": "Тип производства"
+  },
+  {
+    "en": "Mapping Subcontracting Inward Order ...",
+    "ru": "Сопоставление входящего заказа по субподряду ..."
+  },
+  {
+    "en": "Mapping Subcontracting Order ...",
+    "ru": "Сопоставление заказов на субподряд ..."
+  },
+  {
+    "en": "Mapping {0} ...",
+    "ru": "Установление соответствий {0}..."
+  },
+  {
+    "en": "Margin View",
+    "ru": "Просмотр обеспечения"
+  },
+  {
+    "en": "Mark As Closed",
+    "ru": "Отметить как закрытое"
+  },
+  {
+    "en": "Marketing Specialist",
+    "ru": "Специалист по маркетингу"
+  },
+  {
+    "en": "Mass Mailing",
+    "ru": "Массовая рассылка"
+  },
+  {
+    "en": "Master Production Schedule",
+    "ru": "Главный производственный план"
+  },
+  {
+    "en": "Master Production Schedule Item",
+    "ru": "Элемент главного производственного плана"
+  },
+  {
+    "en": "Material Requirements Planning",
+    "ru": "Планирование потребности в материалах"
+  },
+  {
+    "en": "Material Requirements Planning Report",
+    "ru": "Отчёт по планированию потребности в материалах"
+  },
+  {
+    "en": "Material Returned from WIP",
+    "ru": "Материал возвращен из незавершенного производства"
+  },
+  {
+    "en": "Material Transfer (In Transit)",
+    "ru": "Перемещение материалов (в пути)"
+  },
+  {
+    "en": "Material from Customer",
+    "ru": "Материал от заказчика"
+  },
+  {
+    "en": "Materials are already received against the {0} {1}",
+    "ru": "Материалы уже получены на основании {0} {1}"
+  },
+  {
+    "en": "Materials needs to be transferred to the work in progress warehouse for the job card {0}",
+    "ru": "Материалы необходимо перевести на склад незавершенного производства для карточки задания {0}"
+  },
+  {
+    "en": "Max Producible Qty",
+    "ru": "Максимальное производимое количество"
+  },
+  {
+    "en": "Max Qty (As Per Stock UOM)",
+    "ru": "Максимальное количество (по единице учета запасов)"
+  },
+  {
+    "en": "Maximum Net Rate",
+    "ru": "Максимальная чистая ставка"
+  },
+  {
+    "en": "Maximum Payment Amount",
+    "ru": "Максимальная сумма платежа"
+  },
+  {
+    "en": "Maximum Value",
+    "ru": "Максимальное значение"
+  },
+  {
+    "en": "Maximum quantity scanned for item {0}.",
+    "ru": "Предельное количество, зафиксированное для товара {0}."
+  },
+  {
+    "en": "Megacoulomb",
+    "ru": "Мегакулон"
+  },
+  {
+    "en": "Megagram/Litre",
+    "ru": "Мегаграмм/литр"
+  },
+  {
+    "en": "Megahertz",
+    "ru": "Мегагерц"
+  },
+  {
+    "en": "Megajoule",
+    "ru": "Мегаджоуль"
+  },
+  {
+    "en": "Megawatt",
+    "ru": "Мегаватт"
+  },
+  {
+    "en": "Mention if non-standard Receivable account",
+    "ru": "Укажите, если счёт дебиторской задолженности нестандартный"
+  },
+  {
+    "en": "Merge Invoices Based On",
+    "ru": "Объединять счета на основе"
+  },
+  {
+    "en": "Merge Progress",
+    "ru": "Прогресс слияния"
+  },
+  {
+    "en": "Merge Similar Account Heads",
+    "ru": "Объединить схожие наименования счетов"
+  },
+  {
+    "en": "Merge taxes from multiple documents",
+    "ru": "Объединить налоги из нескольких документов"
+  },
+  {
+    "en": "Merged",
+    "ru": "Объединенные"
+  },
+  {
+    "en": "Merging is only possible if following properties are same in both records. Is Group, Root Type, Company and Account Currency",
+    "ru": "Объединение возможно только в том случае, если следующие свойства в обеих записях одинаковы: Группа, Корневой тип, Компания и Валюта счета"
+  },
+  {
+    "en": "Merging {0} of {1}",
+    "ru": "Объединение {0} из {1}"
+  }
+]

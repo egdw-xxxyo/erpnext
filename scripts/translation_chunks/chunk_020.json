@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Completion Date can not be before Failure Date. Please adjust the dates accordingly.",
+    "ru": "Дата завершения не может быть раньше даты отказа. Пожалуйста, скорректируйте даты соответствующим образом."
+  },
+  {
+    "en": "Component Expense Account",
+    "ru": "Счет расходов компонентов"
+  },
+  {
+    "en": "Component Name",
+    "ru": "Наименование компонента"
+  },
+  {
+    "en": "Conditional Rule",
+    "ru": "Правило с условием"
+  },
+  {
+    "en": "Conditional Rule Examples",
+    "ru": "Примеры правил с условием"
+  },
+  {
+    "en": "Conditions will be applied on all the selected items combined. ",
+    "ru": "Условия будут применены ко всем выбранным товарам вместе. "
+  },
+  {
+    "en": "Configure Product Assembly",
+    "ru": "Настроить сборку продукта"
+  },
+  {
+    "en": "Configure the action to stop the transaction or just warn if the same rate is not maintained.",
+    "ru": "Настройте действие для остановки транзакции или просто для предупреждения, если та же ставка не соблюдается."
+  },
+  {
+    "en": "Confirm before resetting posting date",
+    "ru": "Подтвердите перед сбросом даты публикации"
+  },
+  {
+    "en": "Consider Minimum Order Qty",
+    "ru": "Учитывайте минимальное количество заказа"
+  },
+  {
+    "en": "Consider Process Loss",
+    "ru": "Учет потери в процессе"
+  },
+  {
+    "en": "Consider Projected Qty in Calculation",
+    "ru": "Учитывать прогнозируемое количество при расчете"
+  },
+  {
+    "en": "Consider Projected Qty in Calculation (RM)",
+    "ru": "Учитывать прогнозируемое количество при расчете (RM)"
+  },
+  {
+    "en": "Consider Rejected Warehouses",
+    "ru": "Учитывайте отклоненные склады"
+  },
+  {
+    "en": "Consider for Tax Withholding",
+    "ru": "Рассмотрите возможность удержания налогов"
+  },
+  {
+    "en": "Consider for Tax Withholding ",
+    "ru": "Рассмотрите возможность удержания налогов "
+  },
+  {
+    "en": "Considered In Paid Amount",
+    "ru": "Учтено в оплаченной сумме"
+  },
+  {
+    "en": "Consolidate Sales Order Items",
+    "ru": "Объединить позиции заказов на продажу"
+  },
+  {
+    "en": "Consolidate Sub Assembly Items",
+    "ru": "Объединить позиции подузлов"
+  },
+  {
+    "en": "Consolidated Trial Balance",
+    "ru": "Консолидированный пробный баланс"
+  },
+  {
+    "en": "Consolidated Trial Balance can be generated for Companies having same root Company.",
+    "ru": "Консолидированный пробный баланс может быть создан для компаний, имеющих одну и ту же корневую компанию."
+  },
+  {
+    "en": "Consolidated Trial balance could not be generated as Exchange Rate from {0} to {1} is not available for {2}.",
+    "ru": "Не удалось создать консолидированный пробный баланс, так как обменный курс от {0} до {1} недоступен для {2}."
+  },
+  {
+    "en": "Consumed Asset Total Value",
+    "ru": "Общая стоимость расходных активов"
+  },
+  {
+    "en": "Consumed Assets",
+    "ru": "Потребленные активы"
+  },
+  {
+    "en": "Consumed Items Cost",
+    "ru": "Стоимость потребляемых предметов"
+  },
+  {
+    "en": "Consumed Qty cannot be greater than Reserved Qty for item {0}",
+    "ru": "Потребленное количество не может быть больше зарезервированного количества для товара {0}"
+  },
+  {
+    "en": "Consumed Quantity",
+    "ru": "Израсходованное количество"
+  },
+  {
+    "en": "Consumed Stock Items",
+    "ru": "Израсходованные товарные запасы"
+  },
+  {
+    "en": "Consumed Stock Items, Consumed Asset Items or Consumed Service Items is mandatory for Capitalization",
+    "ru": "Израсходованные товарные позиции, активы или услуги обязательны для капитализации"
+  },
+  {
+    "en": "Consumed Stock Total Value",
+    "ru": "Общая стоимость потребленных запасов"
+  },
+  {
+    "en": "Consumed quantity of item {0} exceeds transferred quantity.",
+    "ru": "Потребленное количество товара {0} превышает переданное количество."
+  },
+  {
+    "en": "Consumption Rate",
+    "ru": "Норма потребления"
+  },
+  {
+    "en": "Contact Mobile",
+    "ru": "Контактный мобильный телефон"
+  },
+  {
+    "en": "Contact Person does not belong to the {0}",
+    "ru": "Контактное лицо не принадлежит к {0}"
+  },
+  {
+    "en": "Contact: ",
+    "ru": "Контакт: "
+  },
+  {
+    "en": "Contract Template Help",
+    "ru": "Помощь по шаблону договора"
+  },
+  {
+    "en": "Contribution Qty",
+    "ru": "Вклад Кол-во"
+  },
+  {
+    "en": "Control Action for Cumulative Expense",
+    "ru": "Контрольное действие по совокупным расходам"
+  },
+  {
+    "en": "Control Historical Stock Transactions",
+    "ru": "Контроль исторических операций по запасам"
+  },
+  {
+    "en": "Conversion factor for item {0} has been reset to 1.0 as the uom {1} is same as stock uom {2}.",
+    "ru": "Коэффициент пересчета для элемента {0} был сброшен до 1,0, поскольку единица измерения {1} совпадает с базовой единицей измерения {2}."
+  }
+]

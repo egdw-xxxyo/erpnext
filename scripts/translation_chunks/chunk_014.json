@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Batch Qty updated successfully",
+    "ru": "Количество партии успешно обновлено"
+  },
+  {
+    "en": "Batch Qty updated to {0}",
+    "ru": "Количество партий обновлено до {0}"
+  },
+  {
+    "en": "Batch and Serial No",
+    "ru": "Номер партии и серийный номер"
+  },
+  {
+    "en": "Batch not created for item {} since it does not have a batch series.",
+    "ru": "Партия для товара {} не создана, так как у него отсутствуют серии партий."
+  },
+  {
+    "en": "Batch {0} and Warehouse",
+    "ru": "Партия {0} и склад"
+  },
+  {
+    "en": "Batch {0} is not available in warehouse {1}",
+    "ru": "Партия {0} недоступна на складе {1}"
+  },
+  {
+    "en": "Batchwise Valuation",
+    "ru": "Оценка по партиям"
+  },
+  {
+    "en": "Beginning of the current subscription period",
+    "ru": "Начало текущего периода подписки"
+  },
+  {
+    "en": "Below Subscription Plans are of different currency to the party default billing currency/Company currency: {0}",
+    "ru": "Ниже приведены планы подписки в валюте, отличной от валюты выставления счетов по умолчанию/валюты компании: {0}"
+  },
+  {
+    "en": "Bill for Rejected Quantity in Purchase Invoice",
+    "ru": "Счет за отклоненное количество в счете-фактуре покупки"
+  },
+  {
+    "en": "Billed Items To Be Received",
+    "ru": "Оплаченные товары для получения"
+  },
+  {
+    "en": "Billed, Received & Returned",
+    "ru": "Выставлено, Получено и Возвращено"
+  },
+  {
+    "en": "Billing Address Details",
+    "ru": "Данные адреса для выставления счета"
+  },
+  {
+    "en": "Billing Address does not belong to the {0}",
+    "ru": "Адрес для выставления счетов не принадлежит {0}"
+  },
+  {
+    "en": "Billing Interval in Subscription Plan must be Month to follow calendar months",
+    "ru": "Интервал выставления счетов в плане подписки должен составлять месяц, чтобы соответствовать календарным месяцам"
+  },
+  {
+    "en": "Bin Qty Recalculated",
+    "ru": "Количество контейнеров пересчитано"
+  },
+  {
+    "en": "Biot",
+    "ru": "Биот"
+  },
+  {
+    "en": "Bisect Accounting Statements",
+    "ru": "Анализ бухгалтерских отчетов"
+  },
+  {
+    "en": "Bisect Left",
+    "ru": "Разбиение слева"
+  },
+  {
+    "en": "Bisect Nodes",
+    "ru": "Разбиение узлов"
+  },
+  {
+    "en": "Bisect Right",
+    "ru": "Разделите вправо пополам"
+  },
+  {
+    "en": "Bisecting From",
+    "ru": "Разбиение из"
+  },
+  {
+    "en": "Bisecting Left ...",
+    "ru": "Разбиение слева ..."
+  },
+  {
+    "en": "Bisecting Right ...",
+    "ru": "Разбиение справа ..."
+  },
+  {
+    "en": "Bisecting To",
+    "ru": "Разбиение на"
+  },
+  {
+    "en": "Biweekly",
+    "ru": "Раз в две недели"
+  },
+  {
+    "en": "Blank Line",
+    "ru": "Пустая строка"
+  },
+  {
+    "en": "Blanket Order Allowance (%)",
+    "ru": "Процентная скидка на долгосрочный заказ (%)"
+  },
+  {
+    "en": "Bold Text",
+    "ru": "Жирный шрифт"
+  },
+  {
+    "en": "Bold text for emphasis (totals, major headings)",
+    "ru": "Жирный текст для выделения (итоговые данные, основные заголовки)"
+  },
+  {
+    "en": "Book Advance Payments as Liability option is chosen. Paid From account changed from {0} to {1}.",
+    "ru": "Опция учета предоплат в составе обязательств выбрана. Счет оплаты изменен с {0} на {1}."
+  },
+  {
+    "en": "Book Advance Payments in Separate Party Account",
+    "ru": "Учет авансовых платежей на отдельном счете контрагента"
+  },
+  {
+    "en": "Book Tax Loss on Early Payment Discount",
+    "ru": "Учет налоговых убытков от скидки за досрочную оплату"
+  },
+  {
+    "en": "Book an appointment",
+    "ru": "Записаться на прием"
+  },
+  {
+    "en": "Booking stock value across multiple accounts will make it harder to track stock and account value.",
+    "ru": "Учет стоимости запасов на нескольких счетах усложнит отслеживание запасов и их стоимости."
+  },
+  {
+    "en": "Books have been closed till the period ending on {0}",
+    "ru": "Записи в бухгалтерии закрыты до окончания периода, заканчивающегося {0}"
+  },
+  {
+    "en": "Both Payable Account: {0} and Advance Account: {1} must be of same currency for company: {2}",
+    "ru": "Оба счета: {0} (кредиторская задолженность) и {1} (авансы) должны быть одной валюты для компании: {2}"
+  },
+  {
+    "en": "Both Receivable Account: {0} and Advance Account: {1} must be of same currency for company: {2}",
+    "ru": "Оба счета: {0} (дебиторская задолженность) и {1} (авансы) должны быть одной валюты для компании: {2}"
+  },
+  {
+    "en": "Both {0} Account: {1} and Advance Account: {2} must be of same currency for company: {3}",
+    "ru": "Счета {0}: {1} и авансовый счет: {2} должны быть в одной валюте для компании: {3}"
+  },
+  {
+    "en": "Box",
+    "ru": "Коробка"
+  }
+]

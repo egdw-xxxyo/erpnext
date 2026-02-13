@@ -1,0 +1,8 @@
+{
+  "If your CSV uses a different delimiter, add that character here, ensuring no spaces or additional characters are included.": "Якщо ваш CSV використовує інший роздільник, додайте цей символ тут, переконавшись, що не включено пробілів або додаткових символів.",
+  "Learn about <a href=\"https://docs.frappe.io/erpnext/user/manual/en/common_party_accounting\">Common Party</a>": "Дізнайтеся про <a href=\"https://docs.frappe.io/erpnext/user/manual/en/common_party_accounting\">Спільного контрагента</a>",
+  "Only payment entries with apply tax withholding unchecked will be considered for checking cumulative threshold breach": "Лише платіжні записи з вимкненою опцією утримання податку будуть враховуватися для перевірки перевищення кумулятивного порогу",
+  "Payment Request created from Sales Order or Purchase Order will be in Draft status. When disabled document will be in unsaved state.": "Запит на оплату, створений із замовлення на продаж або замовлення на закупівлю, буде у статусі Чернетка. Коли вимкнено, документ буде в незбереженому стані.",
+  "When a parent warehouse is chosen, the system conducts stock checks against the associated child warehouses": "Коли обрано батьківський склад, система виконує перевірку запасів по пов'язаних дочірніх складах",
+  "Will also apply for variants unless overrridden": "Також застосовується до варіантів, якщо не перевизначено"
+}

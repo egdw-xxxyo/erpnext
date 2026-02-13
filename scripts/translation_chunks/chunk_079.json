@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Select the Item to be manufactured.",
+    "ru": "Выберите товар, который будет производиться."
+  },
+  {
+    "en": "Select the Item to be manufactured. The Item name, UoM, Company, and Currency will be fetched automatically.",
+    "ru": "Выберите товар для производства. Название товара, единица измерения, компания и валюта будут получены автоматически."
+  },
+  {
+    "en": "Select the Warehouse",
+    "ru": "Выбрать склад"
+  },
+  {
+    "en": "Select the date",
+    "ru": "Выбрать дату"
+  },
+  {
+    "en": "Select the date and your timezone",
+    "ru": "Выберите дату и часовой пояс"
+  },
+  {
+    "en": "Select the raw materials (Items) required to manufacture the Item",
+    "ru": "Выберите сырье (продукцию), необходимые для изготовления продукции"
+  },
+  {
+    "en": "Select whether to get items from a Sales Order or a Material Request. For now select <b>Sales Order</b>.\\n A Production Plan can also be created manually where you can select the Items to manufacture.",
+    "ru": "Выберите, получать ли товары из заказа на продажу или запроса на материалы. Сейчас выберите <b>Заказ на продажу</b>.\\n План производства также можно создать вручную, где можно выбрать товары для производства."
+  },
+  {
+    "en": "Select your weekly off day",
+    "ru": "Выберите свой еженедельный выходной день"
+  },
+  {
+    "en": "Selected Print Format does not exist.",
+    "ru": "Выбранный формат печати не существует."
+  },
+  {
+    "en": "Selected Serial and Batch Bundle entries have been fixed.",
+    "ru": "Исправлены некоторые записи серийных и пакетных пакетов."
+  },
+  {
+    "en": "Selected Vouchers",
+    "ru": "Выбранные документы"
+  },
+  {
+    "en": "Selected date is",
+    "ru": "Выбранная дата"
+  },
+  {
+    "en": "Selected document must be in submitted state",
+    "ru": "Выбранный документ должен быть в состоянии «отправлено»"
+  },
+  {
+    "en": "Self delivery",
+    "ru": "Самовывоз"
+  },
+  {
+    "en": "Sell Asset",
+    "ru": "Продажа Актива"
+  },
+  {
+    "en": "Sell Qty",
+    "ru": "Количество для продажи"
+  },
+  {
+    "en": "Sell quantity cannot exceed the asset quantity",
+    "ru": "Объем продаж не может превышать объем активов"
+  },
+  {
+    "en": "Sell quantity cannot exceed the asset quantity. Asset {0} has only {1} item(s).",
+    "ru": "Количество продаваемого товара не может превышать количество актива. Актив {0} содержит только {1} единиц товара(ов)."
+  },
+  {
+    "en": "Sell quantity must be greater than zero",
+    "ru": "Объем продаж должен быть больше нуля"
+  },
+  {
+    "en": "Semi Finished Good / Finished Good",
+    "ru": "Полуфабрикат/Готовая продукция"
+  },
+  {
+    "en": "Semi Finished Goods / Finished Goods",
+    "ru": "Полуфабрикаты/Готовая продукция"
+  },
+  {
+    "en": "Send Attached Files",
+    "ru": "Отправить прикрепленные файлы"
+  },
+  {
+    "en": "Send Document Print",
+    "ru": "Отправить документ на печать"
+  },
+  {
+    "en": "Send Emails",
+    "ru": "Отправить электронные письма"
+  },
+  {
+    "en": "Sequential",
+    "ru": "Последовательный"
+  },
+  {
+    "en": "Serial & Batch Item",
+    "ru": "Серия и Партия товара"
+  },
+  {
+    "en": "Serial & Batch Item Settings",
+    "ru": "Настройки серии и партии товара"
+  },
+  {
+    "en": "Serial / Batch Bundle",
+    "ru": "Пакет серий/партий"
+  },
+  {
+    "en": "Serial / Batch Bundle Missing",
+    "ru": "Отсутствует пакет серий/партий"
+  },
+  {
+    "en": "Serial / Batch No",
+    "ru": "Серийный номер/номер партии"
+  },
+  {
+    "en": "Serial / Batch Nos",
+    "ru": "Серийные номера/номера партии"
+  },
+  {
+    "en": "Serial No (In/Out)",
+    "ru": "Серийный номер (приход/расход)"
+  },
+  {
+    "en": "Serial No Already Assigned",
+    "ru": "Серийный номер уже назначен"
+  },
+  {
+    "en": "Serial No Ledger",
+    "ru": "Серийный номер книги учета"
+  },
+  {
+    "en": "Serial No Range",
+    "ru": "Диапазон серийных номеров"
+  },
+  {
+    "en": "Serial No Reserved",
+    "ru": "Серийный номер зарезервирован"
+  },
+  {
+    "en": "Serial No Series Overlap",
+    "ru": "Серийный без наложения серий"
+  },
+  {
+    "en": "Serial No and Batch Selector cannot be use when Use Serial / Batch Fields is enabled.",
+    "ru": "Невозможно использовать выбор серийных номеров и партий, когда используются поля серийных номеров и партий."
+  },
+  {
+    "en": "Serial No and Batch Traceability",
+    "ru": "Трассировка серийных номеров и партий"
+  },
+  {
+    "en": "Serial No is mandatory",
+    "ru": "Серийный номер обязателен"
+  }
+]

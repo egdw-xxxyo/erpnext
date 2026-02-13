@@ -1,0 +1,145 @@
+[
+  {
+    "en": "Get Items from Open Material Requests",
+    "ctx": "Purchase Order"
+  },
+  {
+    "en": "Get Raw Materials for Purchase",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Get Raw Materials for Transfer",
+    "ctx": "Production Plan"
+  },
+  {
+    "en": "Get Updates"
+  },
+  {
+    "en": "Go to {0} List"
+  },
+  {
+    "en": "Goal",
+    "ctx": "Quality Action"
+  },
+  {
+    "en": "Goal",
+    "ctx": "Quality Goal"
+  },
+  {
+    "en": "Goal",
+    "ctx": "Quality Review"
+  },
+  {
+    "en": "Green"
+  },
+  {
+    "en": "Green",
+    "ctx": "Supplier Scorecard Scoring Standing"
+  },
+  {
+    "en": "Green",
+    "ctx": "Supplier Scorecard Standing"
+  },
+  {
+    "en": "Gross Purchase Amount"
+  },
+  {
+    "en": "Gross Purchase Amount",
+    "ctx": "Asset"
+  },
+  {
+    "en": "Gross Purchase Amount",
+    "ctx": "Asset Depreciation Schedule"
+  },
+  {
+    "en": "Gross Purchase Amount is mandatory"
+  },
+  {
+    "en": "Gross Purchase Amount should be <b>equal</b> to purchase amount of one single Asset."
+  },
+  {
+    "en": "Group"
+  },
+  {
+    "en": "Group By"
+  },
+  {
+    "en": "Group By",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "Group by Account"
+  },
+  {
+    "en": "Group by Item"
+  },
+  {
+    "en": "Group by Supplier"
+  },
+  {
+    "en": "Group by Voucher (Consolidated)"
+  },
+  {
+    "en": "Group by Voucher (Consolidated)",
+    "ctx": "Process Statement Of Accounts"
+  },
+  {
+    "en": "HR-DRI-.YYYY.-",
+    "ctx": "Driver"
+  },
+  {
+    "en": "HR-EMP-",
+    "ctx": "Employee"
+  },
+  {
+    "en": "Half Yearly",
+    "ctx": "Maintenance Schedule Item"
+  },
+  {
+    "en": "Half-yearly",
+    "ctx": "Asset Maintenance Task"
+  },
+  {
+    "en": "Heatmap",
+    "ctx": "Bisect Accounting Statements"
+  },
+  {
+    "en": "Hello,"
+  },
+  {
+    "en": "Help"
+  },
+  {
+    "en": "Help",
+    "ctx": "Currency Exchange Settings"
+  },
+  {
+    "en": "Help Articles"
+  },
+  {
+    "en": "Hero Image",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Hero Section",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "Hero Section Based On",
+    "ctx": "Homepage"
+  },
+  {
+    "en": "High"
+  },
+  {
+    "en": "High",
+    "ctx": "Project"
+  },
+  {
+    "en": "High",
+    "ctx": "Task"
+  },
+  {
+    "en": "Home"
+  }
+]

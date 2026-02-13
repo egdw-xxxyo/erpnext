@@ -1,0 +1,78 @@
+#!/bin/bash
+set -e
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+DOCKER_DIR="$DIR/.docker"
+IMAGE_NAME="erpnext-uk:v15.96.1"
+
+dc() {
+  docker-compose -f "$DOCKER_DIR/pwd.yml" "$@"
+}
+
+init_docker() {
+  if [ ! -d "$DOCKER_DIR" ]; then
+    echo "==> Cloning frappe_docker..."
+    git clone --depth 1 https://github.com/frappe/frappe_docker "$DOCKER_DIR"
+  fi
+}
+
+build_image() {
+  echo "==> Building image with Ukrainian translations..."
+  docker build -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
+
+  echo "==> Patching pwd.yml to use custom image..."
+  sed -i.bak "s|image: frappe/erpnext:v15.96.1|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
+  rm -f "$DOCKER_DIR/pwd.yml.bak"
+}
+
+case "${1:-}" in
+  nuke)
+    echo "==> Stopping containers and removing all data..."
+    dc down -v
+    echo "All data has been removed."
+    ;;
+
+  init)
+    init_docker
+    build_image
+
+    echo "==> Starting ERPNext..."
+    dc up -d
+
+    echo "==> Waiting for site to be ready (2-3 min)..."
+    until dc exec -T backend bench --site frontend list-apps 2>/dev/null | grep -q erpnext; do
+      sleep 5
+    done
+
+    echo "==> Enabling Ukrainian language..."
+    dc exec -T backend bench --site frontend console <<'PY'
+import frappe
+if not frappe.db.exists("Language", "uk"):
+    frappe.get_doc({"doctype": "Language", "language_code": "uk", "language_name": "Українська", "enabled": 1}).insert(ignore_permissions=True)
+    frappe.db.commit()
+PY
+    dc exec -T backend bench --site frontend clear-cache
+
+    echo ""
+    echo "Ready at http://localhost:8080  (Administrator / admin)"
+    echo "Switch language: Settings -> Language -> Українська"
+    ;;
+
+  start)
+    dc up -d
+    echo "Started at http://localhost:8080"
+    ;;
+
+  stop)
+    dc stop
+    ;;
+
+  destroy)
+    dc down -v
+    echo "Stopped and removed all data."
+    ;;
+
+  *)
+    echo "Usage: ./deploy {nuke|init|start|stop|destroy}"
+    ;;
+esac

@@ -1,0 +1,162 @@
+[
+  {
+    "en": "POS Opening Entry cannot be cancelled as unconsolidated Invoices exists.",
+    "ru": "Запись открытия точки продаж не может быть отменена, так как существуют неконсолидированные счета."
+  },
+  {
+    "en": "POS Opening Entry has been cancelled. Please refresh the page.",
+    "ru": "Запись открытия точки продаж была отменена. Пожалуйста, обновите страницу."
+  },
+  {
+    "en": "POS Profile - {0} has multiple open POS Opening Entries. Please close or cancel the existing entries before proceeding.",
+    "ru": "Профиль точки продаж — {0} имеет несколько открытых записей открытия точки продаж. Пожалуйста, закройте или отмените существующие записи перед продолжением."
+  },
+  {
+    "en": "POS Profile - {0} is currently open. Please close the POS or cancel the existing POS Opening Entry before cancelling this POS Closing Entry.",
+    "ru": "Профиль точки продаж — {0} в настоящее время открыт. Пожалуйста, закройте точку продаж или отмените существующую запись открытия точки продаж перед отменой этой записи закрытия точки продаж."
+  },
+  {
+    "en": "POS Profile doesn't match {}",
+    "ru": "Профиль точки продаж не соответствует {}"
+  },
+  {
+    "en": "POS Profile is mandatory to mark this invoice as POS Transaction.",
+    "ru": "Профиль точки продаж обязателен для отметки этого счета как транзакции точки продаж."
+  },
+  {
+    "en": "POS Profile {0} cannot be disabled as there are ongoing POS sessions.",
+    "ru": "Профиль POS {0} не может быть отключен, так как существуют текущие сессии POS."
+  },
+  {
+    "en": "POS Profile {} contains Mode of Payment {}. Please remove them to disable this mode.",
+    "ru": "Профиль точки продаж {} содержит способ оплаты {}. Пожалуйста, удалите его, чтобы отключить этот способ."
+  },
+  {
+    "en": "POS Profile {} does not belong to company {}",
+    "ru": "Профиль POS {} не принадлежит компании {}"
+  },
+  {
+    "en": "POS Profile {} does not exist.",
+    "ru": "Профиль POS {} не существует."
+  },
+  {
+    "en": "POS Profile {} is disabled.",
+    "ru": "Профиль POS {} отключен."
+  },
+  {
+    "en": "POS Search Fields",
+    "ru": "Поля поиска точки продаж"
+  },
+  {
+    "en": "POS has been closed at {0}. Please refresh the page.",
+    "ru": "Точка продаж была закрыта в {0}. Пожалуйста, обновите страницу."
+  },
+  {
+    "en": "POS invoice {0} created successfully",
+    "ru": "Счёт точки продаж {0} успешно создан"
+  },
+  {
+    "en": "PZN",
+    "ru": "PZN"
+  },
+  {
+    "en": "Package No(s) already in use. Try from Package No {0}",
+    "ru": "Номера упаковки уже используются. Попробуйте номер упаковки {0}"
+  },
+  {
+    "en": "Packaging Slip From Delivery Note",
+    "ru": "Упаковочный лист из транспортной накладной"
+  },
+  {
+    "en": "Packed Items cannot be transferred internally",
+    "ru": "Упакованные товары не могут быть внутренне перемещены"
+  },
+  {
+    "en": "Packed Qty",
+    "ru": "Упакованное количество"
+  },
+  {
+    "en": "Page Break After Each SoA",
+    "ru": "Разрыв страницы после каждой записи о состоянии счета"
+  },
+  {
+    "en": "Paid Amount After Tax",
+    "ru": "Сумма к оплате после уплаты налогов"
+  },
+  {
+    "en": "Paid Amount After Tax (Company Currency)",
+    "ru": "Сумма к оплате после уплаты налогов (валюта компании)"
+  },
+  {
+    "en": "Paid From Account Type",
+    "ru": "Оплачено с типа счета"
+  },
+  {
+    "en": "Paid To Account Type",
+    "ru": "Тип счета для оплаты"
+  },
+  {
+    "en": "Pair",
+    "ru": "Пара"
+  },
+  {
+    "en": "Pallets",
+    "ru": "Поддоны"
+  },
+  {
+    "en": "Parameter Group",
+    "ru": "Группа параметров"
+  },
+  {
+    "en": "Parameter Group Name",
+    "ru": "Имя группы параметров"
+  },
+  {
+    "en": "Parcel Template",
+    "ru": "Шаблон посылки"
+  },
+  {
+    "en": "Parcel Template Name",
+    "ru": "Название шаблона посылки"
+  },
+  {
+    "en": "Parcel weight cannot be 0",
+    "ru": "Вес посылки не может быть 0"
+  },
+  {
+    "en": "Parcels",
+    "ru": "Посылки"
+  },
+  {
+    "en": "Parent Account Missing",
+    "ru": "Родительский счет отсутствует"
+  },
+  {
+    "en": "Parent Document",
+    "ru": "Родительский документ"
+  },
+  {
+    "en": "Parent Item {0} must not be a Fixed Asset",
+    "ru": "Родительский товар {0} не должен быть основным средством"
+  },
+  {
+    "en": "Parent Row No",
+    "ru": "Номер родительской строки"
+  },
+  {
+    "en": "Parent Row No not found for {0}",
+    "ru": "Родительская строка № не найдена для {0}"
+  },
+  {
+    "en": "Parent Task {0} is not a Template Task",
+    "ru": "Родительская задача {0} не является шаблонной задачей"
+  },
+  {
+    "en": "Parent Task {0} must be a Group Task",
+    "ru": "Родительская задача {0} должна быть групповой задачей"
+  },
+  {
+    "en": "Parsed file is not in valid MT940 format or contains no transactions.",
+    "ru": "Проанализированный файл не имеет допустимого формата MT940 или не содержит транзакций."
+  }
+]

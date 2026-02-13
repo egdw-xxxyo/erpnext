@@ -1,0 +1,162 @@
+[
+  {
+    "en": "WARNING: Exotel app has been separated from ERPNext, please install the app to continue using Exotel integration.",
+    "ru": "ВНИМАНИЕ: Приложение Exotel отделено от ERPNext. Пожалуйста, установите приложение, чтобы продолжить использовать интеграцию Exotel."
+  },
+  {
+    "en": "WIP Composite Asset",
+    "ru": "Комбинированный актив в стадии производства"
+  },
+  {
+    "en": "WIP WH",
+    "ru": "Склад незавершенного производства"
+  },
+  {
+    "en": "WIP Work Orders",
+    "ru": "Незавершенные производственные заказы"
+  },
+  {
+    "en": "Waiting for payment...",
+    "ru": "Ожидание оплаты..."
+  },
+  {
+    "en": "Walk In",
+    "ru": "Без записи"
+  },
+  {
+    "en": "Warehouse Capacity Summary",
+    "ru": "Сводка по вместимости склада"
+  },
+  {
+    "en": "Warehouse Capacity for Item '{0}' must be greater than the existing stock level of {1} {2}.",
+    "ru": "Вместимость склада для товара «{0}» должна быть больше существующего уровня запасов {1} {2}."
+  },
+  {
+    "en": "Warehouse Details",
+    "ru": "Подробности склада"
+  },
+  {
+    "en": "Warehouse Disabled?",
+    "ru": "Склад отключен?"
+  },
+  {
+    "en": "Warehouse Settings",
+    "ru": "Настройки склада"
+  },
+  {
+    "en": "Warehouse Wise Stock Balance",
+    "ru": "Остатки по складам"
+  },
+  {
+    "en": "Warehouse {0} does not belong to Company {1}.",
+    "ru": "Склад {0} не принадлежит компании {1}."
+  },
+  {
+    "en": "Warehouse {0} is not allowed for Sales Order {1}, it should be {2}",
+    "ru": "Склад {0} не допускается для заказа на продажу {1}, он должен быть {2}"
+  },
+  {
+    "en": "Warehouse {0} is not linked to any account, please mention the account in the warehouse record or set default inventory account in company {1}.",
+    "ru": "Склад {0} не привязан ни к одному счету, пожалуйста, укажите счет в записи склада или установите счет инвентаризации по умолчанию в компании {1}."
+  },
+  {
+    "en": "Warehouse's Stock Value has already been booked in the following accounts:",
+    "ru": "Стоимость запасов склада уже учтена на следующих счетах:"
+  },
+  {
+    "en": "Warning - Row {0}: Billing Hours are more than Actual Hours",
+    "ru": "Предупреждение — Строка {0}: Количество часов для выставления счета больше фактически затраченных часов"
+  },
+  {
+    "en": "Warning on Negative Stock",
+    "ru": "Предупреждение об отрицательном запасе"
+  },
+  {
+    "en": "Warning!",
+    "ru": "Предупреждение!"
+  },
+  {
+    "en": "Warning: Quantity exceeds maximum producible quantity based on quantity of raw materials received through the Subcontracting Inward Order {0}.",
+    "ru": "Внимание: количество превышает максимальное количество, которое может быть произведено на основе количества сырья, полученного по внутреннему субподрядному заказу {0}."
+  },
+  {
+    "en": "Warnings",
+    "ru": "Предупреждения"
+  },
+  {
+    "en": "Warranty Expiry (Serial)",
+    "ru": "Окончание гарантии (серийный)"
+  },
+  {
+    "en": "Watt",
+    "ru": "Ватт"
+  },
+  {
+    "en": "Watt-Hour",
+    "ru": "Ватт-час"
+  },
+  {
+    "en": "Wavelength In Gigametres",
+    "ru": "Длина волны в гигаметрах"
+  },
+  {
+    "en": "Wavelength In Kilometres",
+    "ru": "Длина волны в километрах"
+  },
+  {
+    "en": "Wavelength In Megametres",
+    "ru": "Длина волны в мегаметрах"
+  },
+  {
+    "en": "Website:",
+    "ru": "Сайт:"
+  },
+  {
+    "en": "Week {0} {1}",
+    "ru": "Неделя {0} {1}"
+  },
+  {
+    "en": "Weekly Time to send",
+    "ru": "Еженедельное время для отправки"
+  },
+  {
+    "en": "Weight (kg)",
+    "ru": "Вес (кг)"
+  },
+  {
+    "en": "When a parent warehouse is chosen, the system conducts Project Qty checks against the associated child warehouses",
+    "ru": "При выборе родительского склада система проводит проверку количества проекта на соответствующих дочерних складах"
+  },
+  {
+    "en": "When checked, only cumulative threshold will be applied",
+    "ru": "Если этот флажок установлен, будет применяться только кумулятивный пороговый уровень"
+  },
+  {
+    "en": "When checked, only transaction threshold will be applied for transaction individually",
+    "ru": "Если этот флажок установлен, то к каждой отдельной транзакции будет применяться только пороговое значение транзакции"
+  },
+  {
+    "en": "When creating an Item, entering a value for this field will automatically create an Item Price at the backend.",
+    "ru": "При создании товара ввод значения в это поле автоматически создаст цену товара в базе."
+  },
+  {
+    "en": "While making Purchase Invoice from Purchase Order, use Exchange Rate on Invoice's transaction date rather than inheriting it from Purchase Order. Only applies for Purchase Invoice.",
+    "ru": "При создании счета-фактуры на покупку из заказа на покупку используйте обменный курс на дату транзакции счета-фактуры, а не наследуйте его из заказа на покупку. Применимо только для счета-фактуры на покупку."
+  },
+  {
+    "en": "Width (cm)",
+    "ru": "Ширина (см)"
+  },
+  {
+    "en": "Will also apply for variants unless overridden",
+    "ru": "Также будет применяться к вариантам, если не отменено"
+  },
+  {
+    "en": "With Period Closing Entry For Opening Balances",
+    "ru": "С записью закрытия периода для начальных остатков"
+  },
+  {
+    "en": "Withdrawal",
+    "ru": "Снятие средств"
+  }
+]

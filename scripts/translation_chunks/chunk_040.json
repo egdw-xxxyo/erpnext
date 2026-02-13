@@ -1,0 +1,162 @@
+[
+  {
+    "en": "Include Default FB Assets",
+    "ru": "Включить активы FB по умолчанию"
+  },
+  {
+    "en": "Include Expired Batches",
+    "ru": "Включить просроченные партии"
+  },
+  {
+    "en": "Include Returned Invoices (Stand-alone)",
+    "ru": "Включить возвращенные счета-фактуры (отдельно)"
+  },
+  {
+    "en": "Include Safety Stock in Required Qty Calculation",
+    "ru": "Включить резервный запас в расчет необходимого количества"
+  },
+  {
+    "en": "Include Timesheets in Draft Status",
+    "ru": "Включить табели учета рабочего времени в статусе «Черновик»"
+  },
+  {
+    "en": "Include Zero Stock Items",
+    "ru": "Включить нулевые позиции на складе"
+  },
+  {
+    "en": "Include in Charts",
+    "ru": "Включить в диаграммы"
+  },
+  {
+    "en": "Included Fee",
+    "ru": "Включенная плата"
+  },
+  {
+    "en": "Included fee is bigger than the withdrawal itself.",
+    "ru": "Включенная плата больше, чем сам вывод средств."
+  },
+  {
+    "en": "Incoming Bills",
+    "ru": "Входящие счета"
+  },
+  {
+    "en": "Incoming Call Handling Schedule",
+    "ru": "График обработки входящих звонков"
+  },
+  {
+    "en": "Incoming Call Settings",
+    "ru": "Настройки входящих вызовов"
+  },
+  {
+    "en": "Incoming Payment",
+    "ru": "Входящий платеж"
+  },
+  {
+    "en": "Incoming Rate (Costing)",
+    "ru": "Входящий тариф (по учёту затрат)"
+  },
+  {
+    "en": "Incompatible Setting Detected",
+    "ru": "Обнаружена несовместимая настройка"
+  },
+  {
+    "en": "Incorrect Balance Qty After Transaction",
+    "ru": "Некорректное количество остатка после операции"
+  },
+  {
+    "en": "Incorrect Batch Consumed",
+    "ru": "Использована неверная партия"
+  },
+  {
+    "en": "Incorrect Check in (group) Warehouse for Reorder",
+    "ru": "Неправильная регистрация склада (группы) для повторного заказа"
+  },
+  {
+    "en": "Incorrect Component Quantity",
+    "ru": "Неправильное количество компонентов"
+  },
+  {
+    "en": "Incorrect Invoice",
+    "ru": "Неправильный счет-фактура"
+  },
+  {
+    "en": "Incorrect Payment Type",
+    "ru": "Неправильный тип платежа"
+  },
+  {
+    "en": "Incorrect Reference Document (Purchase Receipt Item)",
+    "ru": "Неверный документ-ссылка (товар по накладной)"
+  },
+  {
+    "en": "Incorrect Serial No Valuation",
+    "ru": "Неправльное значение серийного номера"
+  },
+  {
+    "en": "Incorrect Serial Number Consumed",
+    "ru": "Использован неправильный серийный номер"
+  },
+  {
+    "en": "Incorrect Serial and Batch Bundle",
+    "ru": "Некорректная комбинация серийных номеров и партий"
+  },
+  {
+    "en": "Incorrect Stock Value Report",
+    "ru": "Некорректный отчет о стоимости запасов"
+  },
+  {
+    "en": "Incorrect Type of Transaction",
+    "ru": "Неправильный тип транзакции"
+  },
+  {
+    "en": "Incoterm",
+    "ru": "Инкотермс"
+  },
+  {
+    "en": "Increase In Asset Life (Months)",
+    "ru": "Увеличение срока службы актива (в месяцах)"
+  },
+  {
+    "en": "Increase In Asset Life(Months)",
+    "ru": "Увеличение срока службы актива (в месяцах)"
+  },
+  {
+    "en": "Indent Level",
+    "ru": "Уровень отступа"
+  },
+  {
+    "en": "Indentation level: 0 = Main heading, 1 = Sub-category, 2 = Individual accounts, etc.",
+    "ru": "Уровень отступа: 0 = Основной заголовок, 1 = Подкатегория, 2 = Индивидуальные счета и т.д."
+  },
+  {
+    "en": "Indirect Expense",
+    "ru": "Косвенные расходы"
+  },
+  {
+    "en": "Individual GL Entry cannot be cancelled.",
+    "ru": "Отменить отдельную проводку в книге учета нельзя."
+  },
+  {
+    "en": "Individual Stock Ledger Entry cannot be cancelled.",
+    "ru": "Отменить отдельную проводку в учёте запасов нельзя."
+  },
+  {
+    "en": "Initialize Summary Table",
+    "ru": "Инициализация сводной таблицы"
+  },
+  {
+    "en": "Inspection Rejected",
+    "ru": "Проверка отклонена"
+  },
+  {
+    "en": "Inspection Submission",
+    "ru": "Подача отчёта о проверке"
+  },
+  {
+    "en": "Instruction",
+    "ru": "Инструкция"
+  },
+  {
+    "en": "Insufficient Capacity",
+    "ru": "Недостаточная емкость"
+  }
+]

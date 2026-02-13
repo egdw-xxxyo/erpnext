@@ -1,0 +1,126 @@
+[
+  {
+    "en": "{0} will be set as the {1} in subsequently scanned items",
+    "ru": "{0} будет установлен как {1} в последующих отсканированных позициях"
+  },
+  {
+    "en": "{0} {1}",
+    "ru": "{0} {1}"
+  },
+  {
+    "en": "{0} {1} Manually",
+    "ru": "{0} {1} Вручную"
+  },
+  {
+    "en": "{0} {1} Partially Reconciled",
+    "ru": "{0} {1} Частично согласовано"
+  },
+  {
+    "en": "{0} {1} cannot be updated. If you need to make changes, we recommend canceling the existing entry and creating a new one.",
+    "ru": "{0} {1} не может быть обновлено. Если вам нужно внести изменения, мы рекомендуем отменить существующую запись и создать новую."
+  },
+  {
+    "en": "{0} {1} has already been fully paid.",
+    "ru": "{0} {1} уже полностью оплачено."
+  },
+  {
+    "en": "{0} {1} has already been partly paid. Please use the 'Get Outstanding Invoice' or the 'Get Outstanding Orders' button to get the latest outstanding amounts.",
+    "ru": "{0} {1} уже частично оплачено. Пожалуйста, используйте кнопку «Получить неоплаченный счет» или «Получить неоплаченные заказы», чтобы получить последние неоплаченные суммы."
+  },
+  {
+    "en": "{0} {1} is allocated twice in this Bank Transaction",
+    "ru": "{0} {1} распределено дважды в этой банковской транзакции"
+  },
+  {
+    "en": "{0} {1} is already linked to Common Code {2}.",
+    "ru": "{0} {1} Уже связан с общим кодом {2}."
+  },
+  {
+    "en": "{0} {1} is not in any active Fiscal Year",
+    "ru": "{0} {1} не находится ни в одном активном финансовом году"
+  },
+  {
+    "en": "{0} {1} is on hold",
+    "ru": "{0} {1} на удержании"
+  },
+  {
+    "en": "{0} {1} not allowed to be reposted. Modify {2} to enable reposting.",
+    "ru": "{0} {1} не разрешено перепроводить. Измените {2}, чтобы разрешить перепроведение."
+  },
+  {
+    "en": "{0} {1} via CSV File",
+    "ru": "{0} {1} через CSV-файл"
+  },
+  {
+    "en": "{0} {1}: Account {2} is a Group Account and group accounts cannot be used in transactions",
+    "ru": "{0} {1}: Счет {2} является групповым счетом, а групповые счета не могут использоваться в транзакциях"
+  },
+  {
+    "en": "{0} {1}: Cost Center is required for 'Profit and Loss' account {2}.",
+    "ru": "{0} {1}: Центр затрат требуется для счета «Прибыли и убытки» {2}."
+  },
+  {
+    "en": "{0} {1}: Cost Center {2} is a group cost center and group cost centers cannot be used in transactions",
+    "ru": "{0} {1}: Центр затрат {2} является групповым центром затрат, а групповые центры затрат не могут использоваться в транзакциях"
+  },
+  {
+    "en": "{0}%",
+    "ru": "{0}%"
+  },
+  {
+    "en": "{0}% of total invoice value will be given as discount.",
+    "ru": "{0}% от общей стоимости счета будет предоставлена в качестве скидки."
+  },
+  {
+    "en": "{0}'s {1} cannot be after {2}'s Expected End Date.",
+    "ru": "{0}' {1} не может быть после {2} 'Ожидаемой даты окончания."
+  },
+  {
+    "en": "{0}: {1} does not belong to the Company: {2}",
+    "ru": "{0}: {1} не принадлежит Компании: {2}"
+  },
+  {
+    "en": "{0}: {1} is a group account.",
+    "ru": "{0}: {1} — групповая учетная запись."
+  },
+  {
+    "en": "{count} Assets created for {item_code}",
+    "ru": "Создано {count} ОС для {item_code}"
+  },
+  {
+    "en": "{doctype} {name} is cancelled or closed.",
+    "ru": "{doctype} {name} отменено или закрыто."
+  },
+  {
+    "en": "{field_label} is mandatory for sub-contracted {doctype}.",
+    "ru": "Поле {field_label} обязательно для субподрядного {doctype}."
+  },
+  {
+    "en": "{item_name}'s Sample Size ({sample_size}) cannot be greater than the Accepted Quantity ({accepted_quantity})",
+    "ru": "Размер выборки {item_name}({sample_size}) не может быть больше, чем допустимое количество ({accepted_quantity})"
+  },
+  {
+    "en": "{ref_doctype} {ref_name} is {status}.",
+    "ru": "{ref_doctype} {ref_name} имеет статус {status}."
+  },
+  {
+    "en": "{}",
+    "ru": "{}"
+  },
+  {
+    "en": "{} is a child company.",
+    "ru": "{} является дочерней компанией."
+  },
+  {
+    "en": "{} {} is already linked with another {}",
+    "ru": "{} {} уже связан с другим {}"
+  },
+  {
+    "en": "{} {} is already linked with {} {}",
+    "ru": "{} {} уже связан с {} {}"
+  },
+  {
+    "en": "{} {} is not affecting bank account {}",
+    "ru": "{} {} не влияет на банковский счет {}"
+  }
+]
