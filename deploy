@@ -7,7 +7,11 @@ ERPNEXT_VERSION="v15.96.1"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
 dc() {
-  docker compose -f "$DOCKER_DIR/pwd.yml" "$@"
+  if docker compose version &>/dev/null; then
+    docker compose -f "$DOCKER_DIR/pwd.yml" "$@"
+  else
+    docker-compose -f "$DOCKER_DIR/pwd.yml" "$@"
+  fi
 }
 
 init_docker() {
