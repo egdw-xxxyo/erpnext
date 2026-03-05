@@ -32,4 +32,16 @@ RUN mkdir -p /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGE
       -o /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES/frappe.mo && \
     echo "Compiled frappe.mo"
 
+# Custom doctypes — manufacturing
+COPY erpnext/manufacturing/doctype/workplace/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace/
+COPY erpnext/manufacturing/doctype/workplace_operation/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace_operation/
+COPY erpnext/manufacturing/doctype/workplace_employee/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace_employee/
+COPY erpnext/manufacturing/workspace/manufacturing/manufacturing.json /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json
+
+# Custom doctypes — stock (serial number templates)
+COPY erpnext/stock/doctype/serial_number_template/ /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/serial_number_template/
+COPY erpnext/stock/doctype/serial_number_template_component/ /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/serial_number_template_component/
+COPY erpnext/stock/doctype/item/item.json /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.json
+COPY erpnext/stock/doctype/item/item.js /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.js
+
 USER frappe

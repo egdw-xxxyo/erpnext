@@ -1,0 +1,78 @@
+<style>
+	.workplace-job-card-link {
+		min-height: 60px;
+	}
+
+	.workplace-section-head {
+		margin-bottom: 0px;
+		padding-bottom: 0px;
+	}
+
+	.workplace-highlight {
+		background-color: var(--yellow-highlight-color) !important;
+		transition: background-color 0.3s ease;
+	}
+</style>
+
+<div>
+
+<div class="form-dashboard-section qrcode-fields col-sm-12 section-body" style="padding-left: 0px;padding-right: 25px;"></div>
+
+{% if (!data || !data.length) { %}
+	<div class="text-muted text-center" style="padding: 30px;">
+		{{ __("No Job Cards found for the configured operations") }}
+	</div>
+{% } %}
+
+{% $.each(data, (idx, d) => { %}
+	<div class="row form-dashboard-section workplace-job-card-link form-links border-gray-200" data-name="{{d.name}}">
+		<div class="row form-section" style="width:100%;margin-top:10px">
+			<div class="form-column col-sm-2">
+				<div class="frappe-control bold indicator {{d.status_colour}}" data-doctype="Job Card" data-name="{{d.name}}" title="{{__(d.status)}}">
+					{{ d.job_card_link }}
+				</div>
+			</div>
+			<div class="form-column col-sm-2">
+				<div class="frappe-control" title="{{__('Item')}}">{{ d.production_item }}</div>
+			</div>
+			<div class="form-column col-sm-1">
+				<div class="frappe-control" title="{{__('Qty')}}">{{ d.for_quantity }} {{ d.fg_uom }}</div>
+			</div>
+			<div class="form-column col-sm-2 ellipsis">
+				<div class="frappe-control" title="{{__('Operation')}}">
+					{{ d.operation_link }}
+				</div>
+			</div>
+			<div class="form-column col-sm-2">
+				<div class="frappe-control timer" title="{{__('Timer')}}" style="font-size:14px;" data-job-card={{escape(d.name)}}>
+					<span class="hours">00</span>
+					<span class="colon">:</span>
+					<span class="minutes">00</span>
+					<span class="colon">:</span>
+					<span class="seconds">00</span>
+				</div>
+			</div>
+			<div class="form-column col-sm-1 btn-start" data-job-card="{{d.name}}">
+				<button class="btn btn-default">
+					<span class="menu-item-label" data-label="Start">{{ __('Start') }}</span>
+				</button>
+			</div>
+			<div class="form-column col-sm-1 btn-resume" data-job-card="{{d.name}}">
+				<button class="btn btn-default">
+					<span class="menu-item-label" data-label="Resume">{{ __('Resume') }}</span>
+				</button>
+			</div>
+			<div class="form-column col-sm-1 btn-pause" data-job-card="{{d.name}}">
+				<button class="btn btn-default">
+					<span class="menu-item-label" data-label="Pause">{{ __('Pause') }}</span>
+				</button>
+			</div>
+			<div class="form-column col-sm-1 btn-complete" data-job-card="{{d.name}}" data-qty="{{d.for_quantity}}">
+				<button class="btn btn-default">
+					<span class="menu-item-label" data-label="Complete">{{ __('Complete') }}</span>
+				</button>
+			</div>
+		</div>
+	</div>
+{% }); %}
+</div>
