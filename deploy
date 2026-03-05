@@ -6,6 +6,21 @@ DOCKER_DIR="$DIR/.docker"
 ERPNEXT_VERSION="v15.96.1"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
+DEPLOY_ENV_FILE="$DIR/.deploy-env"
+if [ -f "$DEPLOY_ENV_FILE" ]; then
+  DEPLOY_ENV=$(cat "$DEPLOY_ENV_FILE" | tr -d '[:space:]')
+else
+  DEPLOY_ENV="dev"
+fi
+
+require_non_production() {
+  if [ "$DEPLOY_ENV" = "production" ]; then
+    echo "ERROR: '$1' is disabled in production environment."
+    echo "To change, run: ./deploy setup-dev"
+    exit 1
+  fi
+}
+
 dc() {
   if docker compose version &>/dev/null; then
     docker compose -f "$DOCKER_DIR/pwd.yml" "$@"
@@ -47,6 +62,7 @@ build_image() {
 
 case "${1:-}" in
   nuke)
+    require_non_production "nuke"
     echo "==> Stopping containers and removing all data..."
     dc down -v
     echo "All data has been removed."
@@ -87,12 +103,67 @@ PY
     dc stop
     ;;
 
+  migrate)
+    MFG_SRC="$DIR/erpnext/manufacturing/doctype"
+    MFG_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/"
+    STOCK_SRC="$DIR/erpnext/stock/doctype"
+    STOCK_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/"
+    WORKSPACE_SRC="$DIR/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
+    WORKSPACE_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
+    ITEM_SRC="$DIR/erpnext/stock/doctype/item"
+    ITEM_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/"
+
+    for SERVICE in backend queue-short queue-long scheduler; do
+      CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+      if [ -z "$CID" ]; then
+        continue
+      fi
+      echo "==> Updating $SERVICE ($CID)..."
+      docker cp "$MFG_SRC/workplace" "$CID:$MFG_DST"
+      docker cp "$MFG_SRC/workplace_operation" "$CID:$MFG_DST"
+      docker cp "$MFG_SRC/workplace_employee" "$CID:$MFG_DST"
+      docker cp "$STOCK_SRC/serial_number_template" "$CID:$STOCK_DST"
+      docker cp "$STOCK_SRC/serial_number_template_component" "$CID:$STOCK_DST"
+      docker cp "$ITEM_SRC/item.json" "$CID:${ITEM_DST}item.json"
+      docker cp "$ITEM_SRC/item.js" "$CID:${ITEM_DST}item.js"
+      docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
+      docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      docker kill --signal=HUP "$CID" || true
+    done
+
+    echo "==> Waiting for workers to reload..."
+    sleep 3
+
+    echo "==> Running bench migrate..."
+    dc exec -T backend bench --site frontend migrate
+
+    echo "==> Clearing cache..."
+    dc exec -T backend bench --site frontend clear-cache
+
+    echo "Migration complete."
+    ;;
+
   destroy)
+    require_non_production "destroy"
     dc down -v
     echo "Stopped and removed all data."
     ;;
 
+  setup-prod)
+    echo "production" > "$DEPLOY_ENV_FILE"
+    echo "Environment set to production. Destructive commands (nuke, destroy) are now disabled."
+    ;;
+
+  setup-dev)
+    echo "dev" > "$DEPLOY_ENV_FILE"
+    echo "Environment set to dev. All commands available."
+    ;;
+
   *)
-    echo "Usage: ./deploy {nuke|init|start|stop|destroy}"
+    echo "Environment: $DEPLOY_ENV"
+    echo "Usage: ./deploy {init|start|stop|migrate|setup-prod|setup-dev}"
+    if [ "$DEPLOY_ENV" != "production" ]; then
+      echo "       ./deploy {nuke|destroy}  (dev only)"
+    fi
     ;;
 esac

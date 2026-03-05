@@ -307,6 +307,20 @@ frappe.ui.form.on("Item", {
 	has_variants: function (frm) {
 		erpnext.item.toggle_attributes(frm);
 	},
+
+	serial_number_template: function (frm) {
+		if (frm.doc.serial_number_template) {
+			frappe.db.get_value(
+				"Serial Number Template",
+				frm.doc.serial_number_template,
+				"resulting_series"
+			).then((r) => {
+				if (r.message && r.message.resulting_series) {
+					frm.set_value("serial_no_series", r.message.resulting_series);
+				}
+			});
+		}
+	},
 });
 
 frappe.ui.form.on("Item Reorder", {

@@ -68,6 +68,7 @@
   "sample_quantity",
   "column_break_37",
   "has_serial_no",
+  "serial_number_template",
   "serial_no_series",
   "defaults_tab",
   "item_defaults",
@@ -490,10 +491,18 @@
   },
   {
    "depends_on": "has_serial_no",
+   "fieldname": "serial_number_template",
+   "fieldtype": "Link",
+   "label": "Serial Number Template",
+   "options": "Serial Number Template"
+  },
+  {
+   "depends_on": "has_serial_no",
    "description": "Example: ABCD.#####\nIf series is set and Serial No is not mentioned in transactions, then automatic serial number will be created based on this series. If you always want to explicitly mention Serial Nos for this item. leave this blank.",
    "fieldname": "serial_no_series",
    "fieldtype": "Data",
-   "label": "Serial Number Series"
+   "label": "Serial Number Series",
+   "read_only_depends_on": "serial_number_template"
   },
   {
    "collapsible": 1,
