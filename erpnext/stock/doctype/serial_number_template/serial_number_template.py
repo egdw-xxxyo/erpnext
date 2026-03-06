@@ -1,6 +1,8 @@
 # Copyright (c) 2024, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
+import re
+
 import frappe
 from frappe.model.document import Document
 from frappe.utils import cint
@@ -16,6 +18,7 @@ COMPONENT_MAP = {
 	"Counter": lambda row: "#" * (cint(row.value) or 5),
 	"Company Abbreviation": lambda row: "ABBR",
 	"Fiscal Year": lambda row: "FY",
+	"Item Attribute": lambda row: "{ATTR:" + (row.attribute_link or "") + "}",
 }
 
 PREVIEW_MAP = {
@@ -28,6 +31,16 @@ PREVIEW_MAP = {
 	) or "XX",
 	"FY": lambda: __import__("datetime").datetime.now().strftime("%Y"),
 }
+
+
+def _get_first_abbr(attribute_name):
+	abbr = frappe.db.get_value(
+		"Item Attribute Value",
+		{"parent": attribute_name},
+		"abbr",
+		order_by="idx asc",
+	)
+	return abbr or "???"
 
 
 class SerialNumberTemplate(Document):
@@ -52,5 +65,46 @@ class SerialNumberTemplate(Document):
 			elif part and all(c == "#" for c in part):
 				result.append("0" * (len(part) - 1) + "1")
 			else:
-				result.append(part)
+				attr_match = re.match(r"\{ATTR:(.+)\}", part)
+				if attr_match:
+					result.append(_get_first_abbr(attr_match.group(1)))
+				else:
+					result.append(part)
 		return "".join(result)
+
+	@frappe.whitelist()
+	def resolve_series(self, item_code):
+		item = frappe.get_doc("Item", item_code)
+		attr_map = {d.attribute: d.attribute_value for d in (item.attributes or [])}
+
+		series = self.resulting_series
+
+		for attr_name, attr_value in attr_map.items():
+			token = "{ATTR:" + attr_name + "}"
+			if token in series:
+				abbr = frappe.db.get_value(
+					"Item Attribute Value",
+					{"parent": attr_name, "attribute_value": attr_value},
+					"abbr",
+				)
+				if not abbr:
+					frappe.throw(
+						f"No abbreviation found for attribute '{attr_name}' value '{attr_value}'. "
+						f"Please set abbreviations in Item Attribute '{attr_name}'."
+					)
+				series = series.replace(token, abbr)
+
+		unresolved = re.findall(r"\{ATTR:(.+?)\}", series)
+		if unresolved:
+			frappe.throw(
+				f"Item '{item_code}' is missing attributes: {', '.join(unresolved)}. "
+				f"Cannot resolve serial number template."
+			)
+
+		return series
+
+
+@frappe.whitelist()
+def resolve_series_for_item(template_name, item_code):
+	template = frappe.get_doc("Serial Number Template", template_name)
+	return template.resolve_series(item_code)

@@ -43,5 +43,8 @@ COPY erpnext/stock/doctype/serial_number_template/ /home/frappe/frappe-bench/app
 COPY erpnext/stock/doctype/serial_number_template_component/ /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/serial_number_template_component/
 COPY erpnext/stock/doctype/item/item.json /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.json
 COPY erpnext/stock/doctype/item/item.js /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.js
+COPY erpnext/stock/doctype/item/item.py /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.py
+COPY erpnext/stock/serial_batch_bundle.py /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/serial_batch_bundle.py
+COPY erpnext/controllers/item_variant.py /home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/item_variant.py
 
 USER frappe

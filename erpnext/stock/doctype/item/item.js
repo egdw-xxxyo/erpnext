@@ -310,15 +310,30 @@ frappe.ui.form.on("Item", {
 
 	serial_number_template: function (frm) {
 		if (frm.doc.serial_number_template) {
-			frappe.db.get_value(
-				"Serial Number Template",
-				frm.doc.serial_number_template,
-				"resulting_series"
-			).then((r) => {
-				if (r.message && r.message.resulting_series) {
-					frm.set_value("serial_no_series", r.message.resulting_series);
-				}
-			});
+			if (frm.doc.variant_of) {
+				frappe.call({
+					method: "erpnext.stock.doctype.serial_number_template.serial_number_template.resolve_series_for_item",
+					args: {
+						template_name: frm.doc.serial_number_template,
+						item_code: frm.doc.name,
+					},
+					callback: function (r) {
+						if (r.message) {
+							frm.set_value("serial_no_series", r.message);
+						}
+					},
+				});
+			} else {
+				frappe.db.get_value(
+					"Serial Number Template",
+					frm.doc.serial_number_template,
+					"resulting_series"
+				).then((r) => {
+					if (r.message && r.message.resulting_series) {
+						frm.set_value("serial_no_series", r.message.resulting_series);
+					}
+				});
+			}
 		}
 	},
 });

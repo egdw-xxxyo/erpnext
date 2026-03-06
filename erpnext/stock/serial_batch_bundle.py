@@ -39,11 +39,26 @@ class SerialBatchBundle:
 			"item_name",
 			"item_group",
 			"serial_no_series",
+			"serial_number_template",
 			"create_new_batch",
 			"batch_number_series",
 		]
 
 		self.item_details = frappe.get_cached_value("Item", self.sle.item_code, fields, as_dict=1)
+		if self.item_details.serial_number_template and self.item_details.serial_no_series:
+			self._resolve_attribute_series()
+
+	def _resolve_attribute_series(self):
+		if "{ATTR:" not in (self.item_details.serial_no_series or ""):
+			return
+		from erpnext.stock.doctype.serial_number_template.serial_number_template import (
+			resolve_series_for_item,
+		)
+
+		resolved = resolve_series_for_item(
+			self.item_details.serial_number_template, self.sle.item_code
+		)
+		self.item_details.serial_no_series = resolved
 
 	def process_serial_no(self):
 		if (
@@ -1036,6 +1051,7 @@ class SerialBatchCreation:
 			"item_name",
 			"item_group",
 			"serial_no_series",
+			"serial_number_template",
 			"create_new_batch",
 			"batch_number_series",
 			"description",
@@ -1046,6 +1062,15 @@ class SerialBatchCreation:
 			setattr(self, key, value)
 
 		self.__dict__.update(item_details)
+
+		if self.get("serial_number_template") and "{ATTR:" in (self.get("serial_no_series") or ""):
+			from erpnext.stock.doctype.serial_number_template.serial_number_template import (
+				resolve_series_for_item,
+			)
+
+			resolved = resolve_series_for_item(self.serial_number_template, self.item_code)
+			self.serial_no_series = resolved
+			self.__dict__["serial_no_series"] = resolved
 
 	def set_other_details(self):
 		if not self.get("posting_datetime"):

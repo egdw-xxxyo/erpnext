@@ -69,6 +69,10 @@ sync_files() {
   WORKSPACE_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
   ITEM_SRC="$DIR/erpnext/stock/doctype/item"
   ITEM_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/"
+  STOCK_PY_SRC="$DIR/erpnext/stock"
+  STOCK_PY_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/"
+  CONTROLLERS_SRC="$DIR/erpnext/controllers"
+  CONTROLLERS_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/"
 
   for SERVICE in backend queue-short queue-long scheduler; do
     CID=$(dc ps -q "$SERVICE" 2>/dev/null)
@@ -83,6 +87,9 @@ sync_files() {
     docker cp "$STOCK_SRC/serial_number_template_component" "$CID:$STOCK_DST"
     docker cp "$ITEM_SRC/item.json" "$CID:${ITEM_DST}item.json"
     docker cp "$ITEM_SRC/item.js" "$CID:${ITEM_DST}item.js"
+    docker cp "$ITEM_SRC/item.py" "$CID:${ITEM_DST}item.py"
+    docker cp "$STOCK_PY_SRC/serial_batch_bundle.py" "$CID:${STOCK_PY_DST}serial_batch_bundle.py"
+    docker cp "$CONTROLLERS_SRC/item_variant.py" "$CID:${CONTROLLERS_DST}item_variant.py"
     docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
     docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     docker kill --signal=HUP "$CID" || true
