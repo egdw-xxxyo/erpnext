@@ -60,6 +60,46 @@ build_image() {
   rm -f "$DOCKER_DIR/pwd.yml.bak"
 }
 
+sync_files() {
+  MFG_SRC="$DIR/erpnext/manufacturing/doctype"
+  MFG_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/"
+  STOCK_SRC="$DIR/erpnext/stock/doctype"
+  STOCK_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/"
+  WORKSPACE_SRC="$DIR/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
+  WORKSPACE_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
+  ITEM_SRC="$DIR/erpnext/stock/doctype/item"
+  ITEM_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/"
+
+  for SERVICE in backend queue-short queue-long scheduler; do
+    CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+    if [ -z "$CID" ]; then
+      continue
+    fi
+    echo "==> Syncing files to $SERVICE ($CID)..."
+    docker cp "$MFG_SRC/workplace" "$CID:$MFG_DST"
+    docker cp "$MFG_SRC/workplace_operation" "$CID:$MFG_DST"
+    docker cp "$MFG_SRC/workplace_employee" "$CID:$MFG_DST"
+    docker cp "$STOCK_SRC/serial_number_template" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/serial_number_template_component" "$CID:$STOCK_DST"
+    docker cp "$ITEM_SRC/item.json" "$CID:${ITEM_DST}item.json"
+    docker cp "$ITEM_SRC/item.js" "$CID:${ITEM_DST}item.js"
+    docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
+    docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+    docker kill --signal=HUP "$CID" || true
+  done
+}
+
+apply_site_config() {
+  SITE_CONFIG="$DIR/site-config.json"
+  if [ ! -f "$SITE_CONFIG" ]; then
+    return
+  fi
+  for key in $(python3 -c "import json; d=json.load(open('$SITE_CONFIG')); [print(k) for k in d]"); do
+    value=$(python3 -c "import json; print(json.load(open('$SITE_CONFIG'))['$key'])")
+    dc exec -T backend bench --site frontend set-config "$key" "$value"
+  done
+}
+
 case "${1:-}" in
   nuke)
     require_non_production "nuke"
@@ -87,6 +127,9 @@ if not frappe.db.exists("Language", "uk"):
     frappe.get_doc({"doctype": "Language", "language_code": "uk", "language_name": "Українська", "enabled": 1}).insert(ignore_permissions=True)
     frappe.db.commit()
 PY
+    echo "==> Applying site config..."
+    apply_site_config
+
     dc exec -T backend bench --site frontend clear-cache
 
     echo ""
@@ -96,7 +139,18 @@ PY
 
   start)
     dc up -d
+    echo "==> Syncing custom files..."
+    sync_files
+    echo "==> Applying site config..."
+    apply_site_config
+    echo "==> Running bench migrate..."
+    dc exec -T backend bench --site frontend migrate
+    echo "==> Clearing cache..."
+    dc exec -T backend bench --site frontend clear-cache
     echo "Started at http://localhost:8080"
+    if [ "${2:-}" = "--logs" ]; then
+      dc logs -f
+    fi
     ;;
 
   stop)
@@ -104,32 +158,7 @@ PY
     ;;
 
   migrate)
-    MFG_SRC="$DIR/erpnext/manufacturing/doctype"
-    MFG_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/"
-    STOCK_SRC="$DIR/erpnext/stock/doctype"
-    STOCK_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/"
-    WORKSPACE_SRC="$DIR/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
-    WORKSPACE_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
-    ITEM_SRC="$DIR/erpnext/stock/doctype/item"
-    ITEM_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/"
-
-    for SERVICE in backend queue-short queue-long scheduler; do
-      CID=$(dc ps -q "$SERVICE" 2>/dev/null)
-      if [ -z "$CID" ]; then
-        continue
-      fi
-      echo "==> Updating $SERVICE ($CID)..."
-      docker cp "$MFG_SRC/workplace" "$CID:$MFG_DST"
-      docker cp "$MFG_SRC/workplace_operation" "$CID:$MFG_DST"
-      docker cp "$MFG_SRC/workplace_employee" "$CID:$MFG_DST"
-      docker cp "$STOCK_SRC/serial_number_template" "$CID:$STOCK_DST"
-      docker cp "$STOCK_SRC/serial_number_template_component" "$CID:$STOCK_DST"
-      docker cp "$ITEM_SRC/item.json" "$CID:${ITEM_DST}item.json"
-      docker cp "$ITEM_SRC/item.js" "$CID:${ITEM_DST}item.js"
-      docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
-      docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      docker kill --signal=HUP "$CID" || true
-    done
+    sync_files
 
     echo "==> Waiting for workers to reload..."
     sleep 3
