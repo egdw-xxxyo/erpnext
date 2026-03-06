@@ -285,6 +285,30 @@ ERPNext підтримує один шаблон перевірки якості
 
 ---
 
+## 7. Конфігурація сайту (Site Configuration)
+
+Файл `site-config.json` в кореневій директорії проекту містить додаткові налаштування, які автоматично застосовуються при `./deploy init` та `./deploy start`.
+
+### Файл site-config.json
+
+```json
+{
+  "server_script_enabled": 1
+}
+```
+
+Додайте будь-які параметри конфігурації Frappe — вони будуть застосовані через `bench set-config` автоматично.
+
+### Приклади параметрів
+
+| Параметр | Значення | Опис |
+|---|---|---|
+| `server_script_enabled` | `1` | Увімкнути серверні скрипти (Script Reports, Client Scripts) |
+| `enable_telemetry` | `0` | Вимкнути телеметрію |
+| `mail_server` | `"smtp.example.com"` | SMTP сервер для пошти |
+
+---
+
 ## Короткий довідник (Quick Reference)
 
 ### Групи товарів (Item Groups)
