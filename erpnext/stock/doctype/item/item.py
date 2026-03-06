@@ -218,8 +218,36 @@ class Item(Document):
 		self.cant_change()
 		self.validate_item_tax_net_rate_range()
 
+		self.resolve_serial_number_template()
+
 		if not self.is_new():
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
+
+	def resolve_serial_number_template(self):
+		if (
+			self.serial_number_template
+			and self.variant_of
+			and self.attributes
+			and "{ATTR:" in (self.serial_no_series or "")
+		):
+			from erpnext.stock.doctype.serial_number_template.serial_number_template import (
+				SerialNumberTemplate,
+			)
+
+			template = frappe.get_doc("Serial Number Template", self.serial_number_template)
+			attr_map = {d.attribute: d.attribute_value for d in self.attributes}
+			series = template.resulting_series
+			for attr_name, attr_value in attr_map.items():
+				token = "{ATTR:" + attr_name + "}"
+				if token in series:
+					abbr = frappe.db.get_value(
+						"Item Attribute Value",
+						{"parent": attr_name, "attribute_value": attr_value},
+						"abbr",
+					)
+					if abbr:
+						series = series.replace(token, abbr)
+			self.serial_no_series = series
 
 	def on_update(self):
 		self.update_variants()

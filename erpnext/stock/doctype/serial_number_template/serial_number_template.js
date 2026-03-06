@@ -8,7 +8,14 @@ frappe.ui.form.on("Serial Number Template", {
 });
 
 frappe.ui.form.on("Serial Number Template Component", {
-	component_type(frm) {
+	component_type(frm, cdt, cdn) {
+		let row = locals[cdt][cdn];
+		if (row.component_type !== "Item Attribute") {
+			frappe.model.set_value(cdt, cdn, "attribute_link", "");
+		}
+		frm.trigger("rebuild_preview");
+	},
+	attribute_link(frm) {
 		frm.trigger("rebuild_preview");
 	},
 	value(frm) {

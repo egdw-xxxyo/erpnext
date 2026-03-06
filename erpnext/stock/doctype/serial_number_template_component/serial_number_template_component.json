@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "component_type",
+  "attribute_link",
   "value"
  ],
  "fields": [
@@ -14,8 +15,17 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Literal\nSeparator\nYear (YYYY)\nShort Year (YY)\nMonth (MM)\nDay (DD)\nCounter\nCompany Abbreviation\nFiscal Year",
+   "options": "Literal\nSeparator\nYear (YYYY)\nShort Year (YY)\nMonth (MM)\nDay (DD)\nCounter\nCompany Abbreviation\nFiscal Year\nItem Attribute",
    "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.component_type=='Item Attribute'",
+   "fieldname": "attribute_link",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Attribute",
+   "mandatory_depends_on": "eval:doc.component_type=='Item Attribute'",
+   "options": "Item Attribute"
   },
   {
    "description": "For Literal: the text to include. For Separator: the character (default: -). For Counter: number of digits (default: 5).",
