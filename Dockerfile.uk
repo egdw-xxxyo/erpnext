@@ -36,6 +36,7 @@ RUN mkdir -p /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGE
 COPY erpnext/manufacturing/doctype/workplace/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace/
 COPY erpnext/manufacturing/doctype/workplace_operation/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace_operation/
 COPY erpnext/manufacturing/doctype/workplace_employee/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace_employee/
+COPY erpnext/manufacturing/doctype/job_card/job_card.json /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/job_card/job_card.json
 COPY erpnext/manufacturing/workspace/manufacturing/manufacturing.json /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json
 
 # Custom doctypes — stock (serial number templates)
