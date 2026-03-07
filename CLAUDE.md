@@ -267,8 +267,18 @@ Use these exact translations from `erpnext_translations_uk.csv` for consistency:
 | Workplace | `erpnext/manufacturing/doctype/workplace/` | Worker portal with Job Card dashboard |
 | Workplace Operation | `erpnext/manufacturing/doctype/workplace_operation/` | Child table for allowed operations |
 | Workplace Employee | `erpnext/manufacturing/doctype/workplace_employee/` | Child table for assigned employees |
-| Serial Number Template | `erpnext/stock/doctype/serial_number_template/` | Reusable serial number format builder |
-| Serial Number Template Component | `erpnext/stock/doctype/serial_number_template_component/` | Child table for template parts |
+| Serial Number Template | `erpnext/stock/doctype/serial_number_template/` | Reusable serial number format builder with Item Attribute support |
+| Serial Number Template Component | `erpnext/stock/doctype/serial_number_template_component/` | Child table for template parts (includes Item Attribute type) |
+
+### Modified Core Files
+
+| File | Change |
+|---|---|
+| `erpnext/stock/doctype/item/item.py` | Auto-resolves `{ATTR:...}` tokens in serial_no_series on variant save |
+| `erpnext/stock/doctype/item/item.js` | Calls resolve_series_for_item for variant Items |
+| `erpnext/stock/serial_batch_bundle.py` | Resolves attribute tokens at serial number generation time |
+| `erpnext/controllers/item_variant.py` | Copies serial_number_template, has_serial_no, serial_no_series to variants |
+| `erpnext/manufacturing/doctype/job_card/job_card.json` | Unhidden serial_no field |
 
 ### ERPNext Version
 

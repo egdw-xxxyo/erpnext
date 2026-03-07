@@ -394,7 +394,7 @@
   {
    "fieldname": "serial_no",
    "fieldtype": "Small Text",
-   "hidden": 1,
+   "hidden": 0,
    "label": "Serial No",
    "read_only": 1
   },

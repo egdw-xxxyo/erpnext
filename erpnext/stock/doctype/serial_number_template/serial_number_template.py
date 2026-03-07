@@ -108,3 +108,17 @@ class SerialNumberTemplate(Document):
 def resolve_series_for_item(template_name, item_code):
 	template = frappe.get_doc("Serial Number Template", template_name)
 	return template.resolve_series(item_code)
+
+
+@frappe.whitelist(allow_guest=True)
+def get_qr_svg(value, size=4):
+	from io import BytesIO
+
+	from pyqrcode import create as qrcreate
+
+	qr = qrcreate(str(value))
+	stream = BytesIO()
+	qr.svg(stream, scale=int(size), background="#fff", module_color="#000", xmldecl=False)
+	svg = stream.getvalue().decode()
+	stream.close()
+	return svg
