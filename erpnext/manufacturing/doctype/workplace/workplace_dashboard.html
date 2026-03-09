@@ -1,78 +1,147 @@
 <style>
-	.workplace-job-card-link {
-		min-height: 60px;
+	.workplace-list-row {
+		padding: 10px 15px;
+		border-bottom: 1px solid var(--border-color);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	.workplace-list-row:hover {
+		background: var(--subtle-fg);
+	}
+	.workplace-list-row .status-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+	.workplace-list-row .jc-name {
+		font-weight: 600;
+		min-width: 120px;
+	}
+	.workplace-list-row .jc-item {
+		color: var(--text-muted);
+		flex: 1;
+	}
+	.workplace-list-row .jc-op {
+		color: var(--text-muted);
+		font-size: 12px;
+	}
+	.workplace-list-row .jc-qty {
+		font-size: 12px;
+		color: var(--text-muted);
+		min-width: 60px;
+		text-align: right;
 	}
 
-	.workplace-section-head {
-		margin-bottom: 0px;
-		padding-bottom: 0px;
+	.workplace-detail-header {
+		padding: 15px;
+		border-bottom: 1px solid var(--border-color);
+	}
+	.workplace-detail-header .jc-title {
+		font-size: 16px;
+		font-weight: 600;
+	}
+	.workplace-detail-header .jc-subtitle {
+		color: var(--text-muted);
+		font-size: 13px;
+		margin-top: 4px;
+	}
+
+	.workplace-detail-section {
+		padding: 12px 15px;
+		border-bottom: 1px solid var(--border-color);
+	}
+	.workplace-detail-section .section-label {
+		font-size: 11px;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		font-weight: 600;
+		margin-bottom: 8px;
+	}
+
+	.workplace-detail-actions {
+		padding: 15px;
+		display: flex;
+		gap: 8px;
+	}
+
+	.workplace-back-link {
+		padding: 10px 15px;
+		border-bottom: 1px solid var(--border-color);
+		font-size: 13px;
+	}
+	.workplace-back-link a {
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.workplace-back-link a:hover {
+		color: var(--text-color);
+	}
+
+	.material-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 8px;
+		margin: 2px;
+		border-radius: 4px;
+		background: var(--bg-light-gray);
+		border: 1px solid var(--border-color);
+		font-size: 12px;
+	}
+	.material-badge .remove-material {
+		cursor: pointer;
+		color: var(--text-muted);
+		font-weight: bold;
+	}
+	.material-badge .remove-material:hover {
+		color: var(--red);
+	}
+
+	.employee-badge {
+		cursor: pointer;
 	}
 
 	.workplace-highlight {
 		background-color: var(--yellow-highlight-color) !important;
 		transition: background-color 0.3s ease;
 	}
+
+	.ws-current-value {
+		margin-top: 4px;
+		font-size: 13px;
+	}
+	.ws-current-value .ws-name {
+		font-weight: 600;
+		color: var(--text-color);
+	}
 </style>
 
 <div>
+	<!-- LIST VIEW -->
+	<div class="workplace-list-view">
+		<div class="qrcode-fields" style="padding: 10px 15px;"></div>
 
-<div class="form-dashboard-section qrcode-fields col-sm-12 section-body" style="padding-left: 0px;padding-right: 25px;"></div>
+		{% if (!data || !data.length) { %}
+			<div class="text-muted text-center" style="padding: 30px;">
+				{{ __("No Job Cards found for the configured operations") }}
+			</div>
+		{% } %}
 
-{% if (!data || !data.length) { %}
-	<div class="text-muted text-center" style="padding: 30px;">
-		{{ __("No Job Cards found for the configured operations") }}
+		{% $.each(data, (idx, d) => { %}
+			<div class="workplace-list-row" data-name="{{d.name}}">
+				<span class="status-dot bg-{{d.status_colour}}"></span>
+				<span class="jc-name">{{ d.name }}</span>
+				<span class="jc-item">{{ d.production_item }}</span>
+				<span class="jc-op">{{ d.operation }}</span>
+				<span class="jc-qty">{{ d.for_quantity }} {{ d.fg_uom }}</span>
+				<span class="badge badge-{{ d.status_colour }}">{{ __(d.status) }}</span>
+			</div>
+		{% }); %}
 	</div>
-{% } %}
 
-{% $.each(data, (idx, d) => { %}
-	<div class="row form-dashboard-section workplace-job-card-link form-links border-gray-200" data-name="{{d.name}}">
-		<div class="row form-section" style="width:100%;margin-top:10px">
-			<div class="form-column col-sm-2">
-				<div class="frappe-control bold indicator {{d.status_colour}}" data-doctype="Job Card" data-name="{{d.name}}" title="{{__(d.status)}}">
-					{{ d.job_card_link }}
-				</div>
-			</div>
-			<div class="form-column col-sm-2">
-				<div class="frappe-control" title="{{__('Item')}}">{{ d.production_item }}</div>
-			</div>
-			<div class="form-column col-sm-1">
-				<div class="frappe-control" title="{{__('Qty')}}">{{ d.for_quantity }} {{ d.fg_uom }}</div>
-			</div>
-			<div class="form-column col-sm-2 ellipsis">
-				<div class="frappe-control" title="{{__('Operation')}}">
-					{{ d.operation_link }}
-				</div>
-			</div>
-			<div class="form-column col-sm-2">
-				<div class="frappe-control timer" title="{{__('Timer')}}" style="font-size:14px;" data-job-card={{escape(d.name)}}>
-					<span class="hours">00</span>
-					<span class="colon">:</span>
-					<span class="minutes">00</span>
-					<span class="colon">:</span>
-					<span class="seconds">00</span>
-				</div>
-			</div>
-			<div class="form-column col-sm-1 btn-start" data-job-card="{{d.name}}">
-				<button class="btn btn-default">
-					<span class="menu-item-label" data-label="Start">{{ __('Start') }}</span>
-				</button>
-			</div>
-			<div class="form-column col-sm-1 btn-resume" data-job-card="{{d.name}}">
-				<button class="btn btn-default">
-					<span class="menu-item-label" data-label="Resume">{{ __('Resume') }}</span>
-				</button>
-			</div>
-			<div class="form-column col-sm-1 btn-pause" data-job-card="{{d.name}}">
-				<button class="btn btn-default">
-					<span class="menu-item-label" data-label="Pause">{{ __('Pause') }}</span>
-				</button>
-			</div>
-			<div class="form-column col-sm-1 btn-complete" data-job-card="{{d.name}}" data-qty="{{d.for_quantity}}">
-				<button class="btn btn-default">
-					<span class="menu-item-label" data-label="Complete">{{ __('Complete') }}</span>
-				</button>
-			</div>
-		</div>
-	</div>
-{% }); %}
+	<!-- DETAIL VIEW (rendered by JS) -->
+	<div class="workplace-detail-view" style="display:none;"></div>
 </div>

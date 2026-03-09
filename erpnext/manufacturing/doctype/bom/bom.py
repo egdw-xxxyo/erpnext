@@ -10,7 +10,9 @@ import frappe
 from frappe import _, bold
 from frappe.core.doctype.version.version import get_diff
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import cint, cstr, flt, today
+from frappe.query_builder import Field
+from frappe.query_builder.functions import Count, IfNull, Sum
+from frappe.utils import cint, cstr, flt, get_link_to_form, parse_json, today
 from frappe.website.website_generator import WebsiteGenerator
 
 import erpnext
@@ -125,6 +127,8 @@ class BOM(WebsiteGenerator):
 		company: DF.Link
 		conversion_rate: DF.Float
 		currency: DF.Link
+		default_source_warehouse: DF.Link | None
+		default_target_warehouse: DF.Link | None
 		description: DF.SmallText | None
 		exploded_items: DF.Table[BOMExplosionItem]
 		fg_based_operating_cost: DF.Check
@@ -133,6 +137,7 @@ class BOM(WebsiteGenerator):
 		inspection_required: DF.Check
 		is_active: DF.Check
 		is_default: DF.Check
+		is_phantom_bom: DF.Check
 		item: DF.Link
 		item_name: DF.Data | None
 		items: DF.Table[BOMItem]
@@ -218,9 +223,9 @@ class BOM(WebsiteGenerator):
 	def onload(self):
 		super().onload()
 
-		self.set_onload_for_muulti_level_bom()
+		self.set_onload_for_multi_level_bom()
 
-	def set_onload_for_muulti_level_bom(self):
+	def set_onload_for_multi_level_bom(self):
 		use_multi_level_bom = frappe.db.get_value(
 			"Property Setter",
 			{"field_name": "use_multi_level_bom", "doc_type": "Work Order", "property": "default"},
@@ -252,6 +257,18 @@ class BOM(WebsiteGenerator):
 
 		return index
 
+	def before_validate(self):
+		for item in self.items:
+			if not item.conversion_factor:
+				item.conversion_factor = (
+					frappe.get_value(
+						"UOM Conversion Detail",
+						{"parent": item.item_code, "uom": item.uom},
+						"conversion_factor",
+					)
+					or 1
+				)
+
 	def validate(self):
 		self.route = frappe.scrub(self.name).replace("_", "-")
 
@@ -262,6 +279,7 @@ class BOM(WebsiteGenerator):
 		self.clear_inspection()
 		self.validate_main_item()
 		self.validate_currency()
+		self.set_materials_based_on_operation_bom()
 		self.set_conversion_rate()
 		self.set_plc_conversion_rate()
 		self.validate_uom_is_interger()
@@ -278,6 +296,57 @@ class BOM(WebsiteGenerator):
 		self.set_process_loss_qty()
 		self.validate_scrap_items()
 		self.set_default_uom()
+		self.validate_semi_finished_goods()
+
+		if self.docstatus == 1:
+			self.validate_raw_materials_of_operation()
+
+	def validate_semi_finished_goods(self):
+		if not self.track_semi_finished_goods or not self.operations:
+			return
+
+		fg_items = []
+		for row in self.operations:
+			if not row.is_final_finished_good:
+				continue
+
+			fg_items.append(row.finished_good)
+
+		if not fg_items:
+			frappe.throw(
+				_(
+					"Since you have enabled 'Track Semi Finished Goods', at least one operation must have 'Is Final Finished Good' checked. For that set the FG / Semi FG Item as {0} against an operation."
+				).format(bold(self.item)),
+			)
+
+		if fg_items and len(fg_items) > 1:
+			frappe.throw(
+				_(
+					"Only one operation can have 'Is Final Finished Good' checked when 'Track Semi Finished Goods' is enabled."
+				),
+			)
+
+	def validate_raw_materials_of_operation(self):
+		if not self.track_semi_finished_goods or not self.operations:
+			return
+
+		operation_idx_with_no_rm = {}
+		for row in self.operations:
+			if row.bom_no:
+				continue
+
+			operation_idx_with_no_rm[row.idx] = row
+
+		for row in self.items:
+			if row.operation_row_id and row.operation_row_id in operation_idx_with_no_rm:
+				del operation_idx_with_no_rm[row.operation_row_id]
+
+		for idx, row in operation_idx_with_no_rm.items():
+			frappe.throw(
+				_("For operation {0} at row {1}, please add raw materials or set a BOM against it.").format(
+					bold(row.operation), idx
+				),
+			)
 
 	def set_default_uom(self):
 		if not self.get("items"):
@@ -444,6 +513,9 @@ class BOM(WebsiteGenerator):
 			"uom": args["uom"] if args.get("uom") else item and args["stock_uom"] or "",
 			"conversion_factor": args["conversion_factor"] if args.get("conversion_factor") else 1,
 			"bom_no": args["bom_no"],
+			"is_phantom_item": frappe.get_value("BOM", args["bom_no"], "is_phantom_bom")
+			if args["bom_no"]
+			else 0,
 			"rate": rate,
 			"qty": args.get("qty") or args.get("stock_qty") or 1,
 			"stock_qty": args.get("stock_qty") or args.get("qty") or 1,
@@ -451,6 +523,9 @@ class BOM(WebsiteGenerator):
 			"include_item_in_manufacturing": cint(args.get("transfer_for_manufacture")),
 			"sourced_by_supplier": args.get("sourced_by_supplier", 0),
 		}
+
+		if ret_item["is_phantom_item"]:
+			ret_item["do_not_explode"] = 0
 
 		if args.get("do_not_explode"):
 			ret_item["bom_no"] = ""
@@ -478,7 +553,9 @@ class BOM(WebsiteGenerator):
 			if not frappe.db.get_value("Item", arg["item_code"], "is_customer_provided_item") and not arg.get(
 				"sourced_by_supplier"
 			):
-				if arg.get("bom_no") and self.set_rate_of_sub_assembly_item_based_on_bom:
+				if arg.get("bom_no") and (
+					self.set_rate_of_sub_assembly_item_based_on_bom or arg.get("is_phantom_item")
+				):
 					rate = flt(self.get_bom_unitcost(arg["bom_no"])) * (arg.get("conversion_factor") or 1)
 				else:
 					rate = get_bom_item_rate(arg, self)
@@ -579,6 +656,9 @@ class BOM(WebsiteGenerator):
 		if not self.with_operations:
 			self.set("operations", [])
 
+		if not self.with_operations and self.track_semi_finished_goods:
+			self.track_semi_finished_goods = 0
+
 	def clear_inspection(self):
 		if not self.inspection_required:
 			self.quality_inspection_template = None
@@ -646,12 +726,23 @@ class BOM(WebsiteGenerator):
 			frappe.throw(_("Raw Materials cannot be blank."))
 
 		check_list = []
+		items = []
 		for m in self.get("items"):
 			if m.bom_no:
 				validate_bom_no(m.item_code, m.bom_no)
 			if flt(m.qty) <= 0:
 				frappe.throw(_("Quantity required for Item {0} in row {1}").format(m.item_code, m.idx))
 			check_list.append(m)
+			items.append(m.item_code)
+
+		if fixed_asset_items := frappe.db.get_all(
+			"Item", filters={"item_code": ("in", items), "is_fixed_asset": 1}, pluck="name"
+		):
+			frappe.throw(
+				_("Fixed Asset item {0} cannot be used in BOMs.").format(
+					", ".join(get_link_to_form("Item", item) for item in fixed_asset_items)
+				)
+			)
 
 	def check_recursion(self, bom_list=None):
 		"""Check whether recursion occurs in any bom"""
@@ -686,6 +777,86 @@ class BOM(WebsiteGenerator):
 
 		if self.name in {d.bom_no for d in self.items}:
 			_throw_error(self.name)
+
+	def set_materials_based_on_operation_bom(self):
+		if not self.track_semi_finished_goods:
+			return
+
+		for row in self.get("operations"):
+			if row.bom_no and row.finished_good:
+				self.add_materials_from_bom(row.finished_good, row.bom_no, row.idx, qty=row.finished_good_qty)
+
+	@frappe.whitelist()
+	def add_raw_materials(self, operation_row_id, items):
+		if isinstance(items, str):
+			items = parse_json(items)
+
+		for row in items:
+			row = parse_json(row)
+
+			row.update(get_item_details(row.get("item_code")))
+			row.operation_row_id = operation_row_id
+
+			item_row = None
+			if row.name:
+				item_row = self.get_item_data(row.name)
+
+			if item_row:
+				item_row.update(
+					{
+						"item_code": row.get("item_code"),
+						"qty": row.get("qty"),
+					}
+				)
+			else:
+				row.idx = None
+				row.name = None
+				row.do_not_explode = 1
+				row.is_sub_assembly_item = self.is_sub_assembly_item(row.item_code)
+
+				self.append("items", row)
+
+		self.save()
+
+	def is_sub_assembly_item(self, item_code):
+		if not self.operations:
+			return False
+
+		for row in self.operations:
+			if row.finished_good == item_code:
+				return True
+
+		return False
+
+	def get_item_data(self, name):
+		for row in self.items:
+			if row.item_code == name:
+				return row
+
+	@frappe.whitelist()
+	def add_materials_from_bom(self, finished_good, bom_no, operation_row_id, qty=None):
+		if not frappe.db.exists("BOM", {"item": finished_good, "name": bom_no, "docstatus": 1}):
+			frappe.throw(_("BOM {0} not found for the item {1}").format(bom_no, finished_good))
+
+		if self.items and not self.items[0].item_code:
+			self.set("items", [])
+
+		if not qty:
+			qty = 1
+
+		for row in self.items:
+			if row.operation_row_id == operation_row_id:
+				return
+
+		bom_items = get_bom_items(bom_no, self.company, qty=qty, fetch_exploded=0)
+		for row in bom_items:
+			row.uom = row.stock_uom
+			row.operation_row_id = operation_row_id
+			row.idx = None
+			row.do_not_explode = 1
+			row.is_sub_assembly_item = self.is_sub_assembly_item(row.item_code)
+
+			self.append("items", row)
 
 	def traverse_tree(self, bom_list=None):
 		def _get_children(bom_no):
@@ -739,7 +910,7 @@ class BOM(WebsiteGenerator):
 		self.base_operating_cost = 0
 		if self.get("with_operations"):
 			for d in self.get("operations"):
-				if d.workstation:
+				if d.workstation or d.workstation_type:
 					self.update_rate_and_time(d, update_hour_rate)
 
 				operating_cost = d.operating_cost
@@ -760,7 +931,13 @@ class BOM(WebsiteGenerator):
 
 	def update_rate_and_time(self, row, update_hour_rate=False):
 		if not row.hour_rate or update_hour_rate:
-			hour_rate = flt(frappe.get_cached_value("Workstation", row.workstation, "hour_rate"))
+			hour_rate = 0
+			if row.workstation:
+				hour_rate = flt(frappe.get_cached_value("Workstation", row.workstation, "hour_rate"))
+			elif row.workstation_type:
+				hour_rate = flt(
+					frappe.get_cached_value("Workstation Type", row.workstation_type, "hour_rate")
+				)
 
 			if hour_rate:
 				row.hour_rate = (
@@ -785,7 +962,7 @@ class BOM(WebsiteGenerator):
 
 		for d in self.get("items"):
 			old_rate = d.rate
-			if not self.bom_creator and d.is_stock_item:
+			if not self.bom_creator and (d.is_stock_item or d.is_phantom_item):
 				d.rate = self.get_rm_rate(
 					{
 						"company": self.company,
@@ -796,6 +973,7 @@ class BOM(WebsiteGenerator):
 						"stock_uom": d.stock_uom,
 						"conversion_factor": d.conversion_factor,
 						"sourced_by_supplier": d.sourced_by_supplier,
+						"is_phantom_item": d.is_phantom_item,
 					},
 					notify=False,
 				)
@@ -884,7 +1062,7 @@ class BOM(WebsiteGenerator):
 		self.cur_exploded_items = {}
 		for d in self.get("items"):
 			if d.bom_no:
-				self.get_child_exploded_items(d.bom_no, d.stock_qty)
+				self.get_child_exploded_items(d.bom_no, d.stock_qty, d.operation)
 			elif d.item_code:
 				self.add_to_cur_exploded_items(
 					frappe._dict(
@@ -892,6 +1070,7 @@ class BOM(WebsiteGenerator):
 							"item_code": d.item_code,
 							"item_name": d.item_name,
 							"operation": d.operation,
+							"is_sub_assembly_item": d.is_sub_assembly_item,
 							"source_warehouse": d.source_warehouse,
 							"description": d.description,
 							"image": d.image,
@@ -908,12 +1087,16 @@ class BOM(WebsiteGenerator):
 		return erpnext.get_company_currency(self.company)
 
 	def add_to_cur_exploded_items(self, args):
-		if self.cur_exploded_items.get(args.item_code):
-			self.cur_exploded_items[args.item_code]["stock_qty"] += args.stock_qty
-		else:
-			self.cur_exploded_items[args.item_code] = args
+		key = args.item_code
+		if args.operation:
+			key = (args.item_code, args.operation)
 
-	def get_child_exploded_items(self, bom_no, stock_qty):
+		if self.cur_exploded_items.get(key):
+			self.cur_exploded_items[key]["stock_qty"] += args.stock_qty
+		else:
+			self.cur_exploded_items[key] = args
+
+	def get_child_exploded_items(self, bom_no, stock_qty, operation=None):
 		"""Add all items from Flat BOM of child BOM"""
 		# Did not use qty_consumed_per_unit in the query, as it leads to rounding loss
 		child_fb_items = frappe.db.sql(
@@ -924,6 +1107,7 @@ class BOM(WebsiteGenerator):
 				bom_item.description,
 				bom_item.source_warehouse,
 				bom_item.operation,
+				bom_item.is_sub_assembly_item,
 				bom_item.stock_uom,
 				bom_item.stock_qty,
 				bom_item.rate,
@@ -947,13 +1131,14 @@ class BOM(WebsiteGenerator):
 						"item_code": d["item_code"],
 						"item_name": d["item_name"],
 						"source_warehouse": d["source_warehouse"],
-						"operation": d["operation"],
+						"operation": d["operation"] or operation,
 						"description": d["description"],
 						"stock_uom": d["stock_uom"],
 						"stock_qty": d["qty_consumed_per_unit"] * stock_qty,
 						"rate": flt(d["rate"]),
 						"include_item_in_manufacturing": d.get("include_item_in_manufacturing", 0),
 						"sourced_by_supplier": d.get("sourced_by_supplier", 0),
+						"is_sub_assembly_item": d.get("is_sub_assembly_item", 0),
 					}
 				)
 			)
@@ -992,7 +1177,7 @@ class BOM(WebsiteGenerator):
 	def validate_transfer_against(self):
 		if not self.with_operations:
 			self.transfer_material_against = "Work Order"
-		if not self.transfer_material_against and not self.is_new():
+		if not self.transfer_material_against and not self.track_semi_finished_goods and not self.is_new():
 			frappe.throw(
 				_("Setting {0} is required").format(_(self.meta.get_label("transfer_material_against"))),
 				title=_("Missing value"),
@@ -1050,7 +1235,7 @@ def get_bom_item_rate(args, bom_doc):
 	elif bom_doc.rm_cost_as_per == "Price List":
 		if not bom_doc.buying_price_list:
 			frappe.throw(_("Please select Price List"))
-		bom_args = frappe._dict(
+		ctx = frappe._dict(
 			{
 				"doctype": "BOM",
 				"price_list": bom_doc.buying_price_list,
@@ -1068,7 +1253,7 @@ def get_bom_item_rate(args, bom_doc):
 			}
 		)
 		item_doc = frappe.get_cached_doc("Item", args.get("item_code"))
-		price_list_data = get_price_list_rate(bom_args, item_doc)
+		price_list_data = get_price_list_rate(ctx, item_doc)
 		rate = price_list_data.price_list_rate
 
 	return flt(rate)
@@ -1080,7 +1265,6 @@ def get_valuation_rate(data):
 	2) If no value, get last valuation rate from SLE
 	3) If no value, get valuation rate from Item
 	"""
-	from frappe.query_builder.functions import Count, IfNull, Sum
 	from pypika import Case
 
 	item_code, company = data.get("item_code"), data.get("company")
@@ -1146,6 +1330,15 @@ def get_bom_items_as_dict(
 ):
 	item_dict = {}
 
+	group_by_cond = "group by item_code, stock_uom, operation"
+	if frappe.get_cached_value("BOM", bom, "track_semi_finished_goods"):
+		fetch_exploded = 0
+		group_by_cond = "group by item_code, operation_row_id, stock_uom"
+
+	if fetch_scrap_items:
+		fetch_exploded = 0
+		group_by_cond = "group by item_code"
+
 	# Did not use qty_consumed_per_unit in the query, as it leads to rounding loss
 	query = """select
 				bom_item.item_code,
@@ -1172,18 +1365,19 @@ def get_bom_items_as_dict(
 			where
 				bom_item.docstatus < 2
 				and bom.name = %(bom)s
-				and item.is_stock_item in (1, {is_stock_item})
+				and (item.is_stock_item in (1, {is_stock_item})
 				{where_conditions}
-				group by item_code, stock_uom
+				{group_by_cond}
 				order by idx"""
 
-	is_stock_item = 0 if include_non_stock_items else 1
+	is_stock_item = cint(not include_non_stock_items)
 	if cint(fetch_exploded):
 		query = query.format(
 			table="BOM Explosion Item",
-			where_conditions="",
+			where_conditions=")",
 			is_stock_item=is_stock_item,
 			qty_field="stock_qty",
+			group_by_cond=group_by_cond,
 			select_columns=""", bom_item.source_warehouse, bom_item.operation,
 				bom_item.include_item_in_manufacturing, bom_item.description, bom_item.rate, bom_item.sourced_by_supplier,
 				(Select idx from `tabBOM Item` where item_code = bom_item.item_code and parent = %(parent)s limit 1) as idx""",
@@ -1195,30 +1389,56 @@ def get_bom_items_as_dict(
 	elif fetch_scrap_items:
 		query = query.format(
 			table="BOM Scrap Item",
-			where_conditions="",
+			where_conditions=")",
 			select_columns=", item.description",
 			is_stock_item=is_stock_item,
 			qty_field="stock_qty",
+			group_by_cond=group_by_cond,
 		)
 
 		items = frappe.db.sql(query, {"qty": qty, "bom": bom, "company": company}, as_dict=True)
 	else:
 		query = query.format(
 			table="BOM Item",
-			where_conditions="",
+			where_conditions="or bom_item.is_phantom_item)",
 			is_stock_item=is_stock_item,
 			qty_field="stock_qty" if fetch_qty_in_stock_uom else "qty",
 			select_columns=""", bom_item.uom, bom_item.conversion_factor, bom_item.source_warehouse,
 				bom_item.operation, bom_item.include_item_in_manufacturing, bom_item.sourced_by_supplier,
-				bom_item.description, bom_item.base_rate as rate """,
+				bom_item.description, bom_item.base_rate as rate, bom_item.operation_row_id, bom_item.is_phantom_item , bom_item.bom_no """,
+			group_by_cond=group_by_cond,
 		)
 		items = frappe.db.sql(query, {"qty": qty, "bom": bom, "company": company}, as_dict=True)
 
 	for item in items:
-		if item.item_code in item_dict:
-			item_dict[item.item_code]["qty"] += flt(item.qty)
+		key = item.item_code
+		if item.operation_row_id:
+			key = (item.item_code, item.operation_row_id)
+
+		if item.operation:
+			key = (item.item_code, item.operation)
+
+		if item.get("is_phantom_item"):
+			data = get_bom_items_as_dict(
+				item.get("bom_no"),
+				company,
+				qty=item.get("qty"),
+				fetch_exploded=fetch_exploded,
+				fetch_scrap_items=fetch_scrap_items,
+				include_non_stock_items=include_non_stock_items,
+				fetch_qty_in_stock_uom=fetch_qty_in_stock_uom,
+			)
+
+			for k, v in data.items():
+				if item_dict.get(k):
+					item_dict[k]["qty"] += flt(v.qty)
+				else:
+					item_dict[k] = v
+
+		elif key in item_dict:
+			item_dict[key]["qty"] += flt(item.qty)
 		else:
-			item_dict[item.item_code] = item
+			item_dict[key] = item
 
 	for item, item_details in item_dict.items():
 		for d in [
@@ -1247,7 +1467,7 @@ def validate_bom_no(item, bom_no):
 	if not bom.is_active:
 		frappe.throw(_("BOM {0} must be active").format(bom_no))
 	if bom.docstatus != 1:
-		if not getattr(frappe.flags, "in_test", False):
+		if not frappe.in_test:
 			frappe.throw(_("BOM {0} must be submitted").format(bom_no))
 	if item:
 		rm_item_exists = False
@@ -1281,7 +1501,7 @@ def get_children(parent=None, is_root=False, **filters):
 
 		bom_items = frappe.get_all(
 			"BOM Item",
-			fields=["item_code", "bom_no as value", "stock_qty", "qty"],
+			fields=["item_code", "bom_no as value", "stock_qty", "qty", "is_phantom_item", "bom_no"],
 			filters=[["parent", "=", frappe.form_dict.parent]],
 			order_by="idx",
 		)
@@ -1308,35 +1528,45 @@ def get_children(parent=None, is_root=False, **filters):
 		return bom_items
 
 
-def add_additional_cost(stock_entry, work_order):
+def add_additional_cost(stock_entry, work_order, job_card=None):
 	# Add non stock items cost in the additional cost
 	stock_entry.additional_costs = []
 	company_account = frappe.db.get_value(
 		"Company",
 		work_order.company,
-		["expenses_included_in_valuation", "default_operating_cost_account"],
+		["default_expense_account", "default_operating_cost_account"],
 		as_dict=1,
 	)
 
 	expense_account = (
-		company_account.default_operating_cost_account or company_account.expenses_included_in_valuation
+		company_account.default_operating_cost_account or company_account.default_expense_account
 	)
-	add_non_stock_items_cost(stock_entry, work_order, expense_account)
-	add_operations_cost(stock_entry, work_order, expense_account)
+	add_non_stock_items_cost(stock_entry, work_order, expense_account, job_card=job_card)
+	add_operations_cost(stock_entry, work_order, expense_account, job_card=job_card)
 
 
-def add_non_stock_items_cost(stock_entry, work_order, expense_account):
+def add_non_stock_items_cost(stock_entry, work_order, expense_account, job_card=None):
 	bom = frappe.get_doc("BOM", work_order.bom_no)
-	table = "exploded_items" if work_order.get("use_multi_level_bom") else "items"
+
+	table = "items"
+	if work_order and not job_card:
+		table = "exploded_items" if work_order.get("use_multi_level_bom") else "items"
 
 	items = {}
 	for d in bom.get(table):
+		# Phantom item is exploded, so its cost is considered via its components
+		if d.get("is_phantom_item"):
+			continue
+
 		items.setdefault(d.item_code, d.amount)
 
 	non_stock_items = frappe.get_all(
 		"Item",
 		fields="name",
-		filters={"name": ("in", list(items.keys())), "ifnull(is_stock_item, 0)": 0},
+		filters=[
+			["name", "in", list(items.keys())],
+			[IfNull(Field("is_stock_item"), 0), "=", 0],
+		],
 		as_list=1,
 	)
 
@@ -1357,20 +1587,92 @@ def add_non_stock_items_cost(stock_entry, work_order, expense_account):
 		)
 
 
-def add_operations_cost(stock_entry, work_order=None, expense_account=None):
-	from erpnext.stock.doctype.stock_entry.stock_entry import get_operating_cost_per_unit
+def add_operating_cost_component_wise(
+	stock_entry, work_order=None, consumed_operating_cost=None, op_expense_account=None, job_card=None
+):
+	if not work_order:
+		return False
+
+	cost_added = False
+	for row in work_order.operations:
+		if job_card and job_card.operation_id != row.name:
+			continue
+
+		if not row.actual_operation_time:
+			continue
+
+		workstation_cost = frappe.get_all(
+			"Workstation Cost",
+			fields=["operating_component", "operating_cost"],
+			filters={
+				"parent": row.workstation,
+				"parenttype": "Workstation",
+			},
+		)
+
+		for wc in workstation_cost:
+			expense_account = (
+				get_component_account(wc.operating_component, stock_entry.company) or op_expense_account
+			)
+			actual_cp_operating_cost = flt(
+				flt(wc.operating_cost) * flt(flt(row.actual_operation_time) / 60.0) - consumed_operating_cost,
+				row.precision("actual_operating_cost"),
+			)
+
+			per_unit_cost = flt(actual_cp_operating_cost) / flt(row.completed_qty - work_order.produced_qty)
+
+			if per_unit_cost and expense_account:
+				stock_entry.append(
+					"additional_costs",
+					{
+						"expense_account": expense_account,
+						"description": _("{0} Operating Cost for operation {1}").format(
+							wc.operating_component, row.operation
+						),
+						"amount": per_unit_cost * flt(stock_entry.fg_completed_qty),
+						"has_operating_cost": 1,
+					},
+				)
+
+				cost_added = True
+
+	return cost_added
+
+
+@frappe.request_cache
+def get_component_account(parent, company):
+	return frappe.db.get_value(
+		"Workstation Operating Component Account", {"parent": parent, "company": company}, "expense_account"
+	)
+
+
+def add_operations_cost(stock_entry, work_order=None, expense_account=None, job_card=None):
+	from erpnext.stock.doctype.stock_entry.stock_entry import (
+		get_consumed_operating_cost,
+		get_operating_cost_per_unit,
+	)
 
 	operating_cost_per_unit = get_operating_cost_per_unit(work_order, stock_entry.bom_no)
 
 	if operating_cost_per_unit:
-		stock_entry.append(
-			"additional_costs",
-			{
-				"expense_account": expense_account,
-				"description": _("Operating Cost as per Work Order / BOM"),
-				"amount": operating_cost_per_unit * flt(stock_entry.fg_completed_qty),
-			},
+		cost_added = add_operating_cost_component_wise(
+			stock_entry,
+			work_order,
+			get_consumed_operating_cost(work_order.name, stock_entry.bom_no),
+			expense_account,
+			job_card=job_card,
 		)
+
+		if not cost_added and not job_card:
+			stock_entry.append(
+				"additional_costs",
+				{
+					"expense_account": expense_account,
+					"description": _("Operating Cost as per Work Order / BOM"),
+					"amount": operating_cost_per_unit * flt(stock_entry.fg_completed_qty),
+					"has_operating_cost": 1,
+				},
+			)
 
 	if work_order and work_order.additional_operating_cost and work_order.qty:
 		additional_operating_cost_per_unit = flt(work_order.additional_operating_cost) / flt(work_order.qty)
@@ -1386,8 +1688,6 @@ def add_operations_cost(stock_entry, work_order=None, expense_account=None):
 			)
 
 	def get_max_operation_quantity():
-		from frappe.query_builder.functions import Sum
-
 		table = frappe.qb.DocType("Job Card")
 		query = (
 			frappe.qb.from_(table)
@@ -1402,8 +1702,6 @@ def add_operations_cost(stock_entry, work_order=None, expense_account=None):
 		return min([d.qty for d in query.run(as_dict=True)], default=0)
 
 	def get_utilised_corrective_cost():
-		from frappe.query_builder.functions import Sum
-
 		table = frappe.qb.DocType("Stock Entry")
 		subquery = (
 			frappe.qb.from_(table)
@@ -1513,7 +1811,10 @@ def item_query(doctype, txt, searchfield, start, page_len, filters):
 	if not searchfields:
 		searchfields = ["name"]
 
-	query_filters = {"disabled": 0, "ifnull(end_of_life, '3099-12-31')": (">", today())}
+	query_filters = [
+		["disabled", "=", 0],
+		[IfNull(Field("end_of_life"), "3099-12-31"), ">", today()],
+	]
 
 	or_cond_filters = {}
 	if txt:
@@ -1522,8 +1823,9 @@ def item_query(doctype, txt, searchfield, start, page_len, filters):
 
 		barcodes = frappe.get_all(
 			"Item Barcode",
-			fields=["distinct parent as item_code"],
+			fields=["parent as item_code"],
 			filters={"barcode": ("like", f"%{txt}%")},
+			distinct=True,
 		)
 
 		barcodes = [d.item_code for d in barcodes]
@@ -1533,11 +1835,11 @@ def item_query(doctype, txt, searchfield, start, page_len, filters):
 	if filters and filters.get("item_code"):
 		has_variants = frappe.get_cached_value("Item", filters.get("item_code"), "has_variants")
 		if not has_variants:
-			query_filters["has_variants"] = 0
+			query_filters.append(["has_variants", "=", 0])
 
 	if filters:
 		for fieldname, value in filters.items():
-			query_filters[fieldname] = value
+			query_filters.append([fieldname, "=", value])
 
 	return frappe.get_list(
 		"Item",
@@ -1590,6 +1892,86 @@ def make_variant_bom(source_name, bom_no, item, variant_items, target_doc=None):
 	return doc
 
 
+def create_variant_bom_from_template(variant_item_code):
+	variant_doc = frappe.get_doc("Item", variant_item_code)
+	if not variant_doc.variant_of:
+		return
+
+	default_bom = frappe.db.get_value("Item", variant_doc.variant_of, "default_bom")
+	if not default_bom:
+		return
+
+	bom_docstatus = frappe.db.get_value("BOM", default_bom, "docstatus")
+	if bom_docstatus != 1:
+		return
+
+	template_bom = frappe.get_doc("BOM", default_bom)
+	template_rows = [row for row in template_bom.items if row.has_variants]
+	if not template_rows:
+		return
+
+	attr_map = {d.attribute: d.attribute_value for d in variant_doc.attributes}
+	linked_items = {}
+
+	for attr_name, attr_value in attr_map.items():
+		linked_item = frappe.db.get_value(
+			"Item Attribute Value",
+			{"parent": attr_name, "attribute_value": attr_value},
+			"linked_item",
+		)
+		if linked_item:
+			item_variant_of = frappe.db.get_value("Item", linked_item, "variant_of")
+			if item_variant_of:
+				linked_items[item_variant_of] = linked_item
+
+	if not linked_items:
+		return
+
+	doc = get_mapped_doc(
+		"BOM",
+		default_bom,
+		{
+			"BOM": {"doctype": "BOM", "validation": {"docstatus": ["=", 1]}},
+			"BOM Item": {
+				"doctype": "BOM Item",
+				"field_no_map": ["bom_no"],
+			},
+		},
+	)
+
+	doc.item = variant_item_code
+	item_data = get_item_details(variant_item_code)
+	doc.update(
+		{
+			"item_name": item_data.item_name,
+			"description": item_data.description,
+			"uom": item_data.stock_uom,
+			"allow_alternative_item": item_data.allow_alternative_item,
+		}
+	)
+
+	for row in doc.items:
+		if row.has_variants and row.item_code in linked_items:
+			replacement = linked_items[row.item_code]
+			row.original_item = row.item_code
+			row.item_code = replacement
+			row.has_variants = 0
+			replacement_data = get_item_details(replacement)
+			row.item_name = replacement_data.item_name
+			row.description = replacement_data.description
+			row.stock_uom = replacement_data.stock_uom
+			row.uom = replacement_data.stock_uom
+
+	doc.insert(ignore_permissions=True)
+	frappe.msgprint(
+		_("Variant BOM {0} created as Draft from template BOM {1}").format(
+			get_link_to_form("BOM", doc.name), default_bom
+		),
+		alert=True,
+	)
+	return doc
+
+
 def get_op_cost_from_sub_assemblies(bom_no, op_cost=0):
 	# Get operating cost from sub-assemblies
 
@@ -1618,9 +2000,6 @@ def get_scrap_items_from_sub_assemblies(bom_no, company, qty, scrap_items=None):
 		fields=["bom_no", "qty"],
 		order_by="idx asc",
 	)
-	# fetch Scrap Items for Parent Bom
-	items = get_bom_items_as_dict(bom_no, company, qty=qty, fetch_exploded=0, fetch_scrap_items=1)
-	scrap_items.update(items)
 
 	for row in bom_items:
 		if not row.bom_no:

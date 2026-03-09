@@ -17,9 +17,7 @@
   "operations_tab",
   "allowed_operations",
   "employees_tab",
-  "allowed_employees",
-  "dashboard_tab",
-  "workplace_dashboard"
+  "allowed_employees"
  ],
  "fields": [
   {
@@ -77,17 +75,6 @@
    "fieldtype": "Table",
    "label": "Employees",
    "options": "Workplace Employee"
-  },
-  {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "dashboard_tab",
-   "fieldtype": "Tab Break",
-   "label": "Dashboard"
-  },
-  {
-   "fieldname": "workplace_dashboard",
-   "fieldtype": "HTML",
-   "label": "Dashboard"
   }
  ],
  "index_web_pages_for_search": 1,

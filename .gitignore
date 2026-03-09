@@ -21,3 +21,4 @@ node_modules/
 .aider*
 .docker/
 .deploy-env
+.mcp.json

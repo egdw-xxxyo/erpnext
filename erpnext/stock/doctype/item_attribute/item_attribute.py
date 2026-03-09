@@ -45,6 +45,29 @@ class ItemAttribute(Document):
 		frappe.flags.attribute_values = None
 		self.validate_numeric()
 		self.validate_duplication()
+		self.validate_linked_items()
+
+	def validate_linked_items(self):
+		for row in self.item_attribute_values:
+			if not row.linked_item:
+				continue
+			item = frappe.get_cached_value(
+				"Item", row.linked_item, ["has_variants", "disabled"], as_dict=True
+			)
+			if not item:
+				frappe.throw(
+					_("Row {0}: Linked Item {1} does not exist").format(row.idx, row.linked_item)
+				)
+			if item.has_variants:
+				frappe.throw(
+					_("Row {0}: Linked Item {1} cannot be a template item").format(
+						row.idx, row.linked_item
+					)
+				)
+			if item.disabled:
+				frappe.throw(
+					_("Row {0}: Linked Item {1} is disabled").format(row.idx, row.linked_item)
+				)
 
 	def on_update(self):
 		self.validate_exising_items()

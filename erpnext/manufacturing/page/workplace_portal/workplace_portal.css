@@ -1,0 +1,123 @@
+.workplace-selector {
+	padding: 15px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.workplace-list-row {
+	padding: 10px 15px;
+	border-bottom: 1px solid var(--border-color);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.workplace-list-row:hover {
+	background: var(--subtle-fg);
+}
+.workplace-list-row .status-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+.workplace-list-row .jc-name {
+	font-weight: 600;
+	min-width: 120px;
+}
+.workplace-list-row .jc-item {
+	color: var(--text-muted);
+	flex: 1;
+}
+.workplace-list-row .jc-op {
+	color: var(--text-muted);
+	font-size: 12px;
+}
+.workplace-list-row .jc-qty {
+	font-size: 12px;
+	color: var(--text-muted);
+	min-width: 60px;
+	text-align: right;
+}
+
+.workplace-detail-header {
+	padding: 15px;
+	border-bottom: 1px solid var(--border-color);
+}
+.workplace-detail-header .jc-title {
+	font-size: 16px;
+	font-weight: 600;
+}
+.workplace-detail-header .jc-subtitle {
+	color: var(--text-muted);
+	font-size: 13px;
+	margin-top: 4px;
+}
+
+.workplace-detail-section {
+	padding: 12px 15px;
+	border-bottom: 1px solid var(--border-color);
+}
+.workplace-detail-section .section-label {
+	font-size: 11px;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.workplace-detail-actions {
+	padding: 15px;
+	display: flex;
+	gap: 8px;
+}
+
+.workplace-back-link {
+	padding: 10px 15px;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 13px;
+}
+.workplace-back-link a {
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.workplace-back-link a:hover {
+	color: var(--text-color);
+}
+
+.material-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	margin: 2px;
+	border-radius: 4px;
+	background: var(--bg-light-gray);
+	border: 1px solid var(--border-color);
+	font-size: 12px;
+}
+.material-badge .remove-material {
+	cursor: pointer;
+	color: var(--text-muted);
+	font-weight: bold;
+}
+.material-badge .remove-material:hover {
+	color: var(--red);
+}
+
+.employee-badge {
+	cursor: pointer;
+}
+
+.workplace-highlight {
+	background-color: var(--yellow-highlight-color) !important;
+	transition: background-color 0.3s ease;
+}
+
+.ws-current-value {
+	margin-top: 4px;
+	font-size: 13px;
+}
+.ws-current-value .ws-name {
+	font-weight: 600;
+	color: var(--text-color);
+}
