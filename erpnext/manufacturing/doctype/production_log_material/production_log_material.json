@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "scan_barcode",
+  "scan_type",
+  "raw_material_item",
+  "raw_material_item_name",
+  "column_break_1",
+  "batch_no",
+  "serial_no",
+  "supplier_label",
+  "column_break_2",
+  "scanned_by",
+  "scan_datetime"
+ ],
+ "fields": [
+  {
+   "fieldname": "scan_barcode",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Scan Barcode",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scan_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Scan Type",
+   "options": "\nBatch\nSerial No\nItem Barcode\nUnknown Label"
+  },
+  {
+   "fieldname": "raw_material_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Raw Material Item",
+   "options": "Item"
+  },
+  {
+   "fetch_from": "raw_material_item.item_name",
+   "fieldname": "raw_material_item_name",
+   "fieldtype": "Data",
+   "label": "Raw Material Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "label": "Serial No"
+  },
+  {
+   "fieldname": "supplier_label",
+   "fieldtype": "Data",
+   "label": "Supplier Label"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "scanned_by",
+   "fieldtype": "Link",
+   "label": "Scanned By",
+   "options": "Employee"
+  },
+  {
+   "default": "Now",
+   "fieldname": "scan_datetime",
+   "fieldtype": "Datetime",
+   "label": "Scan Datetime"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Production Log Material",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

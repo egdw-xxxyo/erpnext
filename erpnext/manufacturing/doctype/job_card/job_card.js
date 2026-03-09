@@ -79,6 +79,56 @@ frappe.ui.form.on("Job Card", {
 		});
 	},
 
+	render_production_data(frm) {
+		frappe.call({
+			method: "erpnext.manufacturing.page.workplace_portal.workplace_portal.get_production_data_for_job_card",
+			args: { job_card: frm.doc.name },
+			callback: (r) => {
+				let data = r.message;
+				if (!data) return;
+
+				// Remove previous section if re-rendering
+				frm.fields_dict.production_data_html && frm.fields_dict.production_data_html.$wrapper.remove();
+				$(frm.layout.wrapper).find(".production-data-section").remove();
+
+				let html = `<div class="production-data-section" style="margin:15px 0;padding:15px;border:1px solid var(--border-color);border-radius:var(--border-radius);">
+					<h6 style="font-weight:600;margin-bottom:12px;">${__("Production Data")}</h6>
+					<div style="display:flex;gap:20px;margin-bottom:10px;font-size:13px;">
+						<div><span style="color:var(--text-muted);">${__("Production Log")}:</span>
+							<a href="/app/production-log/${encodeURIComponent(data.production_log)}">${data.production_log}</a>
+						</div>`;
+
+				if (data.workstation) {
+					html += `<div><span style="color:var(--text-muted);">${__("Workstation")}:</span> ${data.workstation}</div>`;
+				}
+				if (data.workplace) {
+					html += `<div><span style="color:var(--text-muted);">${__("Workplace")}:</span> ${data.workplace}</div>`;
+				}
+				if (data.finished_serial_no) {
+					html += `<div><span style="color:var(--text-muted);">${__("Serial No")}:</span> ${data.finished_serial_no}</div>`;
+				}
+				html += `</div>`;
+
+				if (data.readings && data.readings.length) {
+					html += `<div>
+						<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">${__("Readings")}</div>
+						<table class="table table-bordered table-sm" style="font-size:13px;margin-bottom:0;">
+							<thead><tr><th>${__("Field")}</th><th>${__("Value")}</th></tr></thead>
+							<tbody>`;
+					data.readings.forEach((r) => {
+						html += `<tr><td>${frappe.utils.escape_html(r.label)}</td><td>${frappe.utils.escape_html(r.value || "")}</td></tr>`;
+					});
+					html += `</tbody></table></div>`;
+				}
+
+				html += `</div>`;
+
+				// Insert after the last visible section
+				$(frm.layout.wrapper).find(".form-page:first").append(html);
+			},
+		});
+	},
+
 	make_fields_read_only(frm) {
 		if (frm.doc.docstatus === 1) {
 			frm.set_df_property("employee", "read_only", 1);
@@ -129,6 +179,10 @@ frappe.ui.form.on("Job Card", {
 	refresh: function (frm) {
 		let has_items = frm.doc.items && frm.doc.items.length;
 		frm.trigger("make_fields_read_only");
+
+		if (!frm.is_new()) {
+			frm.trigger("render_production_data");
+		}
 
 		if (!frm.is_new() && frm.doc.__onload?.work_order_closed) {
 			frm.disable_save();

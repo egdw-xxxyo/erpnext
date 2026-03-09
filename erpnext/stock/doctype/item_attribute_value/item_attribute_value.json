@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "attribute_value",
-  "abbr"
+  "abbr",
+  "linked_item"
  ],
  "fields": [
   {
@@ -25,6 +26,14 @@
    "label": "Abbreviation",
    "reqd": 1,
    "search_index": 1
+  },
+  {
+   "description": "Optional. When this attribute value is used in a variant, the linked item will replace the template item in the BOM.",
+   "fieldname": "linked_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Linked Item",
+   "options": "Item"
   }
  ],
  "icon": "fa fa-edit",

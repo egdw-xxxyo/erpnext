@@ -179,6 +179,9 @@ class Item(Document):
 			for default in self.item_defaults or [frappe._dict()]:
 				self.add_price(default.default_price_list)
 
+		if self.variant_of:
+			self._create_variant_bom_if_applicable()
+
 		if self.opening_stock:
 			if self.opening_stock > 10000 and self.has_serial_no:
 				frappe.enqueue(
@@ -197,6 +200,16 @@ class Item(Document):
 
 			else:
 				self.set_opening_stock()
+
+	def _create_variant_bom_if_applicable(self):
+		from erpnext.manufacturing.doctype.bom.bom import create_variant_bom_from_template
+
+		try:
+			create_variant_bom_from_template(self.name)
+		except Exception:
+			frappe.log_error(
+				title=_("Auto Variant BOM Creation Failed for {0}").format(self.name)
+			)
 
 	def validate(self):
 		if not self.item_name:
@@ -232,10 +245,20 @@ class Item(Document):
 		self.cant_change()
 		self.validate_item_tax_net_rate_range()
 
+		self._inherit_serial_fields_from_template()
 		self.resolve_serial_number_template()
 
 		if not self.is_new():
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
+
+	def _inherit_serial_fields_from_template(self):
+		if not self.variant_of:
+			return
+		for field in ("serial_number_template", "serial_no_series"):
+			if not self.get(field):
+				val = frappe.db.get_value("Item", self.variant_of, field)
+				if val:
+					self.set(field, val)
 
 	def resolve_serial_number_template(self):
 		if (
