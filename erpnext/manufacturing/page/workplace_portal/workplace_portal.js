@@ -118,8 +118,20 @@ class WorkplacePortal {
 	render() {
 		this.$content.empty();
 
-		let list_html = this.build_list_html();
-		this.$content.html(list_html + '<div class="workplace-detail-view" style="display:none;"></div>');
+		this.$content.html(`
+			<div class="workplace-list-view">
+				<div class="qrcode-fields" style="padding:10px 15px;"></div>
+				<div class="my-jc-section" style="padding:0 15px 15px;">
+					<h6 style="margin:15px 0 8px;font-weight:600;">${__("My Job Cards")}</h6>
+					<div class="my-jc-table"></div>
+				</div>
+				<div class="other-jc-section" style="padding:0 15px 15px;">
+					<h6 style="margin:15px 0 8px;font-weight:600;">${__("Other Job Cards")}</h6>
+					<div class="other-jc-table"></div>
+				</div>
+			</div>
+			<div class="workplace-detail-view" style="display:none;"></div>
+		`);
 
 		if (this.active_job_card) {
 			let jc = this.job_cards.find((j) => j.name === this.active_job_card);
@@ -134,28 +146,34 @@ class WorkplacePortal {
 		this.render_list_view();
 	}
 
-	build_list_html() {
-		let rows = "";
-		if (!this.job_cards || !this.job_cards.length) {
-			rows = '<div class="text-muted text-center" style="padding:30px;">' +
-				__("No Job Cards found for the configured operations") + '</div>';
-		} else {
-			this.job_cards.forEach((d) => {
-				rows += `<div class="workplace-list-row" data-name="${frappe.utils.escape_html(d.name)}">
-					<span class="status-dot bg-${d.status_colour}"></span>
-					<span class="jc-name">${d.name}</span>
-					<span class="jc-item">${d.production_item}</span>
-					<span class="jc-op">${d.operation}</span>
-					<span class="jc-qty">${d.for_quantity} ${d.fg_uom || ""}</span>
-					<span class="badge badge-${d.status_colour}">${__(d.status)}</span>
-				</div>`;
-			});
-		}
+	get_datatable_columns() {
+		return [
+			{ name: __("Job Card"), editable: false, width: 140 },
+			{ name: __("Item"), editable: false, width: 160 },
+			{ name: __("Operation"), editable: false, width: 140 },
+			{ name: __("Qty"), editable: false, width: 80 },
+			{ name: __("Employee"), editable: false, width: 160 },
+			{ name: __("Status"), editable: false, width: 120, format: (value) => {
+				let color_map = {
+					"Not Started": "gray", "Open": "gray", "Work In Progress": "orange",
+					"On Hold": "yellow", "Completed": "green",
+				};
+				let color = color_map[value] || "blue";
+				return `<span class="badge badge-${color}">${__(value)}</span>`;
+			}},
+		];
+	}
 
-		return `<div class="workplace-list-view">
-			<div class="qrcode-fields" style="padding:10px 15px;"></div>
-			${rows}
-		</div>`;
+	format_jc_row(d) {
+		let emp_names = (d.assigned_employees || []).map((e) => e.employee_name).join(", ");
+		return [
+			d.name,
+			d.production_item,
+			d.operation,
+			`${d.for_quantity} ${d.fg_uom || ""}`,
+			emp_names,
+			d.status === "Open" ? "Not Started" : d.status,
+		];
 	}
 
 	render_list_view() {
@@ -163,7 +181,80 @@ class WorkplacePortal {
 		this.$content.find(".workplace-detail-view").hide();
 
 		this.setup_barcode_field();
-		this.bind_list_events();
+
+		if (!this.job_cards || !this.job_cards.length) {
+			this.$content.find(".my-jc-section").hide();
+			this.$content.find(".other-jc-section").html(
+				'<div class="text-muted text-center" style="padding:30px;">' +
+				__("No Job Cards found for the configured operations") + '</div>'
+			);
+			return;
+		}
+
+		let user_employee = this.job_cards[0]?.user_employee;
+		let my_cards = [];
+		let other_cards = [];
+
+		this.job_cards.forEach((d) => {
+			let is_mine = (d.assigned_employees || []).some((e) => e.employee === user_employee);
+			if (is_mine) {
+				my_cards.push(d);
+			} else {
+				other_cards.push(d);
+			}
+		});
+
+		let columns = this.get_datatable_columns();
+
+		if (my_cards.length) {
+			this.$content.find(".my-jc-section").show();
+			this.my_datatable = new frappe.DataTable(
+				this.$content.find(".my-jc-table").get(0),
+				{
+					columns: columns,
+					data: my_cards.map((d) => this.format_jc_row(d)),
+					dynamicRowHeight: true,
+					checkboxColumn: false,
+					inlineFilters: true,
+					layout: "fluid",
+					cellHeight: 36,
+				}
+			);
+			this.bind_datatable_click(this.my_datatable, my_cards);
+		} else {
+			this.$content.find(".my-jc-section").hide();
+		}
+
+		if (other_cards.length) {
+			this.$content.find(".other-jc-section").show();
+			this.other_datatable = new frappe.DataTable(
+				this.$content.find(".other-jc-table").get(0),
+				{
+					columns: columns,
+					data: other_cards.map((d) => this.format_jc_row(d)),
+					dynamicRowHeight: true,
+					checkboxColumn: false,
+					inlineFilters: true,
+					layout: "fluid",
+					cellHeight: 36,
+				}
+			);
+			this.bind_datatable_click(this.other_datatable, other_cards);
+		} else {
+			this.$content.find(".other-jc-section").hide();
+		}
+	}
+
+	bind_datatable_click(datatable, cards) {
+		let scope = datatable.style.scopeClass;
+		$(`.${scope} .dt-scrollable`).on("click", ".dt-row", (e) => {
+			let $row = $(e.currentTarget);
+			let row_index = $row.attr("data-row-index");
+			if (row_index !== undefined) {
+				let jc = cards[parseInt(row_index)];
+				if (jc) this.open_job_card(jc.name);
+			}
+		});
 	}
 
 	setup_barcode_field() {
@@ -229,13 +320,6 @@ class WorkplacePortal {
 		});
 	}
 
-	bind_list_events() {
-		this.$content.find(".workplace-list-row").on("click", (e) => {
-			let name = $(e.currentTarget).attr("data-name");
-			this.open_job_card(name);
-		});
-	}
-
 	// === DETAIL VIEW ===
 
 	open_job_card(name) {
@@ -290,6 +374,9 @@ class WorkplacePortal {
 			<div class="jc-subtitle">
 				${jc.production_item} \u00b7 ${jc.for_quantity} ${jc.fg_uom || ""} \u00b7 ${jc.operation}
 			</div>
+			${jc.serial_no ? `<div class="jc-serial-numbers" style="margin-top:6px;font-size:12px;color:var(--text-muted);">
+				<strong>${__("Serial No")}:</strong> ${frappe.utils.escape_html(jc.serial_no).replace(/\n/g, ", ")}
+			</div>` : ""}
 			<div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
 				<div class="timer" data-job-card="${frappe.utils.escape_html(jc.name)}" style="font-size:16px;font-weight:600;">
 					<span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span>

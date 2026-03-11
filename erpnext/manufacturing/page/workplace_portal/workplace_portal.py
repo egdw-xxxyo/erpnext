@@ -116,12 +116,33 @@ def _get_or_create_production_log(workplace, job_card):
 
 @frappe.whitelist()
 def get_workplaces():
-	return frappe.get_all(
+	user = frappe.session.user
+	if user == "Administrator":
+		return frappe.get_all(
+			"Workplace",
+			filters={"is_active": 1},
+			fields=["name", "workplace_name", "company"],
+			order_by="workplace_name",
+		)
+
+	all_workplaces = frappe.get_all(
 		"Workplace",
 		filters={"is_active": 1},
 		fields=["name", "workplace_name", "company"],
 		order_by="workplace_name",
 	)
+
+	result = []
+	for wp in all_workplaces:
+		employees = frappe.get_all(
+			"Workplace Employee",
+			filters={"parent": wp.name, "parenttype": "Workplace"},
+			fields=["user"],
+		)
+		if not employees or any(e.user == user for e in employees):
+			result.append(wp)
+
+	return result
 
 
 @frappe.whitelist()
@@ -131,16 +152,11 @@ def get_job_cards(workplace):
 	if not operations:
 		return []
 
-	workstations = [row.workstation for row in wp.allowed_operations if row.workstation]
-
 	filters = {
 		"operation": ["in", operations],
 		"docstatus": ("<", 2),
 		"status": ["not in", ["Completed", "Stopped"]],
 	}
-
-	if workstations:
-		filters["workstation"] = ["in", workstations]
 
 	jc_data = frappe.get_all(
 		"Job Card",
@@ -232,6 +248,7 @@ def get_job_cards(workplace):
 
 		item_code = row.production_item
 		row.fg_uom = frappe.get_cached_value("Item", item_code, "stock_uom")
+		row.serial_no = frappe.db.get_value("Job Card", row.name, "serial_no") or ""
 
 		row.status_colour = _get_status_color(row.status)
 		row.job_card_link = (

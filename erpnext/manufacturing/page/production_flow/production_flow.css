@@ -1,0 +1,254 @@
+.production-flow-container {
+	padding: 0;
+	min-height: calc(100vh - 120px);
+}
+
+.pf-selector {
+	padding: 16px 24px;
+	border-bottom: 2px solid var(--border-color);
+	background: var(--fg-color);
+}
+
+.pf-selector-row {
+	display: flex;
+	gap: 16px;
+	align-items: flex-end;
+}
+
+.pf-selector-field {
+	flex: 1;
+	max-width: 400px;
+}
+
+.pf-empty {
+	padding: 60px 24px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 15px;
+}
+
+.pf-header {
+	padding: 20px 24px;
+	border-bottom: 1px solid var(--border-color);
+}
+.pf-title {
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--text-color);
+}
+.pf-subtitle {
+	font-size: 13px;
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+.pf-diagram {
+	position: relative;
+	padding: 24px;
+	overflow-x: auto;
+}
+
+.pf-lane {
+	margin-bottom: 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.pf-lane-header {
+	padding: 8px 16px;
+	color: #fff;
+	font-weight: 600;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.pf-lane-body {
+	padding: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	background: var(--fg-color);
+}
+
+.pf-workstation {
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	min-width: 200px;
+	max-width: 320px;
+	flex: 1;
+	background: var(--card-bg);
+}
+
+.pf-ws-header {
+	padding: 8px 12px;
+	font-weight: 600;
+	font-size: 12px;
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--subtle-fg);
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.pf-ws-ops {
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.pf-op-node {
+	padding: 10px 12px;
+	border: 2px solid var(--border-color);
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	position: relative;
+	background: var(--fg-color);
+}
+.pf-op-node:hover {
+	border-color: var(--primary);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transform: translateY(-1px);
+}
+
+.pf-op-name {
+	font-weight: 600;
+	font-size: 13px;
+	color: var(--text-color);
+	line-height: 1.3;
+}
+
+.pf-op-time {
+	font-size: 11px;
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+.pf-op-seq {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	font-size: 10px;
+	color: var(--text-light);
+	font-weight: 700;
+	background: var(--subtle-fg);
+	padding: 1px 5px;
+	border-radius: 3px;
+}
+
+.pf-connections-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.pf-connections-svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.pf-edge {
+	fill: none;
+	stroke: var(--text-muted);
+	stroke-width: 1.5;
+	opacity: 0.3;
+	stroke-dasharray: 4 3;
+}
+
+.pf-materials-panel {
+	margin: 0 24px 24px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.pf-materials-header {
+	padding: 12px 16px;
+	font-weight: 600;
+	font-size: 14px;
+	background: var(--subtle-fg);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.pf-materials-toggle {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.pf-materials-body {
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+.pf-material-row {
+	display: flex;
+	padding: 8px 16px;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 13px;
+	gap: 12px;
+	align-items: center;
+}
+.pf-material-row:last-child {
+	border-bottom: none;
+}
+.pf-material-row:hover {
+	background: var(--subtle-fg);
+}
+
+.pf-mat-code {
+	font-family: monospace;
+	font-size: 12px;
+	color: var(--text-muted);
+	min-width: 180px;
+}
+
+.pf-mat-name {
+	flex: 1;
+	color: var(--text-color);
+}
+
+.pf-mat-qty {
+	font-weight: 600;
+	min-width: 80px;
+	text-align: right;
+	color: var(--text-color);
+}
+
+.pf-op-detail {
+	padding: 8px 0;
+}
+.pf-detail-row {
+	display: flex;
+	justify-content: space-between;
+	padding: 6px 0;
+}
+.pf-detail-row label {
+	font-weight: 600;
+	color: var(--text-muted);
+	font-size: 12px;
+	text-transform: uppercase;
+}
+.pf-detail-row span {
+	font-size: 14px;
+}
+
+.pf-detail-item {
+	padding: 4px 0;
+	font-size: 13px;
+	color: var(--text-color);
+	border-bottom: 1px solid var(--border-color);
+}
+.pf-detail-item:last-child {
+	border-bottom: none;
+}
