@@ -93,6 +93,7 @@ sync_files() {
     docker cp "$MFG_SRC/production_log_field" "$CID:$MFG_DST"
     docker cp "$MFG_SRC/operation_field" "$CID:$MFG_DST"
     docker cp "$PAGE_SRC/workplace_portal" "$CID:$PAGE_DST"
+    docker cp "$PAGE_SRC/production_flow" "$CID:$PAGE_DST"
     docker cp "$MFG_SRC/operation/operation.json" "$CID:${MFG_DST}operation/operation.json"
     docker cp "$MFG_SRC/operation/operation.js" "$CID:${MFG_DST}operation/operation.js"
     docker cp "$MFG_SRC/workstation/workstation.py" "$CID:${MFG_DST}workstation/workstation.py"

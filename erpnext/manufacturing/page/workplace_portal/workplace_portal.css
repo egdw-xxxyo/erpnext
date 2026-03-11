@@ -121,3 +121,18 @@
 	font-weight: 600;
 	color: var(--text-color);
 }
+
+.my-jc-table .dt-scrollable,
+.other-jc-table .dt-scrollable {
+	max-height: calc(100vh - 400px);
+}
+
+.my-jc-table .dt-row,
+.other-jc-table .dt-row {
+	cursor: pointer;
+}
+
+.my-jc-table .dt-row:hover .dt-cell__content,
+.other-jc-table .dt-row:hover .dt-cell__content {
+	background: var(--subtle-fg);
+}
