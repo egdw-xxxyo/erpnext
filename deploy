@@ -2,7 +2,6 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-DOCKER_DIR="$DIR/.docker"
 ERPNEXT_VERSION="v15.96.1"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
@@ -23,25 +22,9 @@ require_non_production() {
 
 dc() {
   if docker compose version &>/dev/null; then
-    docker compose -f "$DOCKER_DIR/pwd.yml" "$@"
+    docker compose -f "$DIR/docker-compose.yml" "$@"
   else
-    docker-compose -f "$DOCKER_DIR/pwd.yml" "$@"
-  fi
-}
-
-init_docker() {
-  if [ ! -d "$DOCKER_DIR" ] || [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
-    echo "==> Cloning frappe_docker..."
-    rm -rf "$DOCKER_DIR"
-    git clone --depth 1 https://github.com/frappe/frappe_docker "$DOCKER_DIR"
-
-    if [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
-      echo "ERROR: Failed to clone frappe_docker or pwd.yml not found"
-      exit 1
-    fi
-    echo "==> frappe_docker cloned successfully"
-  else
-    echo "==> frappe_docker already exists, skipping clone"
+    docker-compose -f "$DIR/docker-compose.yml" "$@"
   fi
 }
 
@@ -49,15 +32,6 @@ build_image() {
   echo "==> Building image with Ukrainian translations..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
     -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
-
-  if [ ! -f "$DOCKER_DIR/pwd.yml" ]; then
-    echo "ERROR: $DOCKER_DIR/pwd.yml not found. Run init_docker first."
-    exit 1
-  fi
-
-  echo "==> Patching pwd.yml to use custom image..."
-  sed -i.bak "s|image: frappe/erpnext:.*|image: $IMAGE_NAME|g" "$DOCKER_DIR/pwd.yml"
-  rm -f "$DOCKER_DIR/pwd.yml.bak"
 }
 
 sync_files() {
@@ -154,7 +128,6 @@ case "${1:-}" in
     ;;
 
   init)
-    init_docker
     build_image
 
     echo "==> Starting ERPNext..."

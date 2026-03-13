@@ -20,169 +20,58 @@ Frappe v15 uses a dual translation system with CSV and PO/MO files. Understandin
 erpnext/
 ├── erpnext/
 │   ├── translations/          # CSV translations (primary)
-│   │   └── uk.csv            # Ukrainian translations
+│   │   └── uk.csv            # Ukrainian translations (merged, replaces stock)
 │   └── locale/               # PO/MO translations (secondary)
 │       ├── main.pot          # Template (source of truth for msgids)
 │       ├── uk.po             # Ukrainian PO file
 │       └── uk/LC_MESSAGES/
 │           └── erpnext.mo    # Compiled from uk.po
-└── frappe/ (inside Docker)
-    ├── translations/
-    │   └── uk.csv
-    └── locale/
-        ├── uk.po
-        └── uk/LC_MESSAGES/
-            └── frappe.mo
+├── frappe/                    # Git submodule (egdw-xxxyo/frappe.git)
+│   └── frappe/
+│       ├── translations/
+│       │   └── uk.csv        # Frappe Ukrainian translations (merged)
+│       ├── locale/
+│       │   └── uk.po         # Frappe Ukrainian PO file
+│       └── printing/         # Custom print page modifications
+└── docker-compose.yml         # Docker services configuration
 ```
 
 ## How to Add New Translations
 
-### Option 1: CSV Format (Recommended for Quick Additions)
+### ERPNext translations
 
-**Location**: `erpnext/translations/uk.csv`
+**File**: `erpnext/translations/uk.csv`
 
-**Format**:
 ```csv
-source text,translated text,context
-"Plant Floor","Виробничий цех",
-"Enable email notification","Увімкнути сповіщення електронною поштою",
+"Plant Floor","Виробничий цех"
+"Enable email notification","Увімкнути сповіщення електронною поштою"
 ```
 
-**Steps**:
-1. Find the English source text (msgid) in `erpnext/locale/main.pot`
-2. Add a new line to `erpnext/translations/uk.csv`
-3. Restart the Frappe container or run `bench clear-cache`
+**Deploy**: `./deploy migrate` (copies CSV to containers + clears cache)
 
-### Option 2: PO Format (For Bulk Updates)
+### Frappe translations
 
-**Location**: `erpnext/locale/uk.po`
+**File**: `frappe/frappe/translations/uk.csv` (git submodule)
 
-**Format**:
-```
-msgid "Plant Floor"
-msgstr "Виробничий цех"
+```csv
+"Plant Floor","Виробничий цех"
 ```
 
-**Steps**:
-1. Edit `erpnext/locale/uk.po`
-2. Compile to MO: `msgfmt uk.po -o uk/LC_MESSAGES/erpnext.mo`
-3. Copy both PO and MO files to Docker container
-4. Restart or clear cache
+**Deploy**:
+1. Edit the file
+2. Commit in submodule: `cd frappe && git add -A && git commit -m "message" && git push origin version-15 && cd ..`
+3. `./deploy build` (frappe changes require image rebuild)
 
-## Finding Missing Translations
+### Which file to edit?
 
-### Check what keys exist in main.pot vs what's translated:
+- ERPNext strings (DocType labels, reports, manufacturing, stock, etc.) → `erpnext/translations/uk.csv`
+- Frappe strings (core UI: buttons, dialogs, form controls, print, etc.) → `frappe/frappe/translations/uk.csv`
+- If unsure, search both files for the English text: `grep "English Term" erpnext/translations/uk.csv frappe/frappe/translations/uk.csv`
 
-```bash
-# Count all msgids in main.pot
-grep -c '^msgid ' erpnext/locale/main.pot
-
-# Count translated entries in uk.po
-grep -c '^msgid ' erpnext/locale/uk.po
-
-# Find missing keys
-python3 scripts/find_missing_translations.py
-```
-
-### Find where a specific translation is used:
-
-```bash
-# Search in main.pot for the source key
-grep -A2 "Plant Floor" erpnext/locale/main.pot
-
-# This shows the context (which DocType/file uses it)
-```
-
-## Docker Integration
-
-### Existing translations in Docker image:
-
-- `frappe/translations/uk.csv` - 4,798 entries (Frappe core)
-- `erpnext/translations/uk.csv` - 8,744 entries (ERPNext)
-
-### To add our custom translations:
-
-```dockerfile
-# Copy CSV translations (merged with existing)
-COPY erpnext/translations/uk.csv /home/frappe/frappe-bench/apps/erpnext/translations/uk.csv
-
-# Copy PO files
-COPY erpnext/locale/uk.po /home/frappe/frappe-bench/apps/erpnext/locale/uk.po
-
-# Copy compiled MO files
-COPY erpnext/locale/uk/LC_MESSAGES/erpnext.mo /home/frappe/frappe-bench/apps/erpnext/locale/uk/LC_MESSAGES/erpnext.mo
-```
-
-## Translation Workflow
-
-### For adding 1-10 new translations:
-1. Edit `erpnext/translations/uk.csv` directly
-2. Add comma-separated rows
-3. Rebuild Docker image or copy to running container
-4. Clear cache: `bench clear-cache`
-
-### For bulk updates (100+ translations):
-1. Update `erpnext/locale/uk.po`
-2. Use `scripts/po_to_csv.py` to convert PO → CSV
-3. Merge with existing `erpnext/translations/uk.csv`
-4. Deploy and clear cache
-
-## Common Issues
-
-### Translation not showing up:
-- Check CSV file syntax (proper quoting, no extra columns)
-- Verify the exact msgid matches main.pot
-- Clear cache: `bench clear-cache` or restart container
-- Check loading priority (CSV loads first, MO overrides)
-
-### Missing translations after update:
-- New msgids added to main.pot by upstream
-- Run comparison to find missing keys
-- Add to CSV or update PO and recompile
-
-### CSV vs PO confusion:
-- **CSV is simpler** but less standard
-- **PO is standard** for i18n but requires compilation
-- Frappe loads CSV first, then MO files override
-- Use CSV for quick fixes, PO for large updates
-
-## Tools
-
-### scripts/po_to_csv.py
-Converts PO format to CSV format for Frappe consumption.
-
-```bash
-python3 scripts/po_to_csv.py erpnext/locale/uk.po erpnext/translations/uk.csv
-```
-
-### scripts/find_missing_translations.py
-Finds msgids in main.pot that are not translated in uk.po.
-
-```bash
-python3 scripts/find_missing_translations.py > missing_keys.txt
-```
-
-## Translation Context
-
-The `main.pot` file includes context comments showing where each translation is used:
-
-```
-#. Label of a Data field in DocType 'Workstation'
-#: erpnext/manufacturing/doctype/workstation/workstation.json
-msgid "Plant Floor"
-msgstr ""
-```
-
-This helps understand the context when translating technical terms.
-
-## Best Practices
-
-1. **Always check main.pot first** to find the exact source text
-2. **Use context comments** to understand technical terms
-3. **Test in UI** after adding translations
-4. **Keep CSV files clean** - no trailing commas, proper escaping
-5. **Update both CSV and PO** if maintaining both formats
-6. **Clear cache after changes** - translations are cached aggressively
+### Common issues
+- Translation not showing → `bench clear-cache`, verify exact English source text
+- CSV loads first, PO/MO files override — for quick fixes, CSV is sufficient
+- After any translation change, always clear cache
 
 ## Language Codes
 
@@ -206,51 +95,46 @@ Examples:
 
 ### Translation Reference Table
 
-Use these exact translations from `erpnext_translations_uk.csv` for consistency:
+Use these exact translations from `erpnext/translations/uk.csv` for consistency:
 
-| English | Ukrainian | Source |
-|---|---|---|
-| Work Order | Наряд на роботу | erpnext_translations_uk.csv:10714 |
-| Job Card | Карта завдань | erpnext_translations_uk.csv:5244 |
-| BOM | Норми | erpnext_translations_uk.csv:1846 |
-| Item | Товар | — |
-| Item Group | Група | erpnext_translations_uk.csv:5115 |
-| Operation | Операція | erpnext_translations_uk.csv:6294 |
-| Workstation | Робоча станція | erpnext_translations_uk.csv:10743 |
-| Stock Entry | Рух ТМЦ | erpnext_translations_uk.csv:9243 |
-| Manufacture | Виробництво | erpnext_translations_uk.csv:5628 |
-| Serial No | Серійний номер | erpnext_translations_uk.csv:8813 |
-| Serial Number Series | Серії серійних номерів | erpnext_translations_uk.csv:8853 |
-| Quality Inspection | Перевірка якості | — (corrected from "Сертифікат якості") |
-| Quality Inspection Template | Шаблон перевірки якості | erpnext_translations_uk.csv:7574 |
-| Raw Material | Сировина | erpnext_translations_uk.csv:7681 |
-| Sub Assembly | Підвузли | — |
-| Finished Goods | Готові вироби | erpnext_translations_uk.csv:4071 |
-| Plant Floor | Виробничий цех | erpnext_translations_uk.csv:6860 |
-| WIP Warehouse | Склад "В роботі" | erpnext_translations_uk.csv:10584 |
-| Has Serial No | Має серійний номер | erpnext_translations_uk.csv:4465 |
-| Is Stock Item | Товар на складі | erpnext_translations_uk.csv:5059 |
-| Include Item In Manufacturing | Включити предмет у виробництво | erpnext_translations_uk.csv:4750 |
-| With Operations | З операцій | erpnext_translations_uk.csv:10702 |
-| Use Multi-Level BOM | Використовувати багаторівневі Норми | erpnext_translations_uk.csv:10398 |
-| Skip Material Transfer | Пропустити переміщення матеріалів | erpnext_translations_uk.csv:9104 |
-| Material Transfer for Manufacture | Матеріал для виробництва передачі | erpnext_translations_uk.csv:5699 |
-| Inspection Required before Delivery | Огляд обов'язковий перед поставкою | erpnext_translations_uk.csv:4823 |
-| Workplace | Робоче місце | — (custom DocType) |
+| English | Ukrainian |
+|---|---|
+| Work Order | Наряд на роботу |
+| Job Card | Карта завдань |
+| BOM | Норми |
+| Item | Товар |
+| Item Group | Група |
+| Operation | Операція |
+| Workstation | Робоча станція |
+| Stock Entry | Рух ТМЦ |
+| Manufacture | Виробництво |
+| Serial No | Серійний номер |
+| Serial Number Series | Серії серійних номерів |
+| Quality Inspection | Перевірка якості |
+| Quality Inspection Template | Шаблон перевірки якості |
+| Raw Material | Сировина |
+| Sub Assembly | Підвузли |
+| Finished Goods | Готові вироби |
+| Plant Floor | Виробничий цех |
+| WIP Warehouse | Склад "В роботі" |
+| Has Serial No | Має серійний номер |
+| Is Stock Item | Товар на складі |
+| Include Item In Manufacturing | Включити предмет у виробництво |
+| With Operations | З операцій |
+| Use Multi-Level BOM | Використовувати багаторівневі Норми |
+| Skip Material Transfer | Пропустити переміщення матеріалів |
+| Material Transfer for Manufacture | Матеріал для виробництва передачі |
+| Inspection Required before Delivery | Огляд обов'язковий перед поставкою |
+| Workplace | Робоче місце |
 
 ### Where to Add Translations
 
-1. **For new UI strings** (labels, messages in custom DocTypes):
-   - Add to `erpnext_translations_uk.csv` (two-column: `English,Ukrainian`)
-   - Or add to `erpnext/translations/uk.csv` (three-column: `English,Ukrainian,context`)
+1. **ERPNext UI strings**: Edit `erpnext/translations/uk.csv`
+2. **Frappe UI strings**: Edit `frappe/frappe/translations/uk.csv` (submodule)
+3. **Documentation** (`docs/` folder): Write in Ukrainian, include English in parentheses on first mention
+   - Look up terms with: `grep "^English Term," erpnext/translations/uk.csv`
 
-2. **For documentation** (`docs/` folder):
-   - Write in Ukrainian
-   - Every ERPNext term must include English in parentheses on first mention
-   - Use the translation table above for consistent terminology
-   - Look up terms in `erpnext_translations_uk.csv` with: `grep "^English Term," erpnext_translations_uk.csv`
-
-3. **Documentation files**:
+4. **Documentation files**:
    - `docs/manufacturing-guide.md` — Manufacturing setup guide (Ukrainian)
 
 ### Deployment
@@ -286,8 +170,9 @@ Use these exact translations from `erpnext_translations_uk.csv` for consistency:
 ### ERPNext Version
 
 - ERPNext: v15.96.1
-- Frappe: v15.99.0
+- Frappe: v15.102.0 (git submodule at `frappe/`)
 - Docker-based deployment via `./deploy` script
+- Docker compose config: `docker-compose.yml` (committed in repo)
 
 ## Development Guide — Patching Stock ERPNext Files
 
@@ -321,7 +206,7 @@ The `sync_files()` function in `./deploy` copies only explicitly listed files. S
 
 Files listed in `sync_files()` (like `item.py`, `item.js`, `item_variant.py`) are copied wholesale. These MUST stay compatible with the stock ERPNext version:
 - Do NOT add imports that don't exist in stock ERPNext (e.g., `ItemDetailsCtx` was added in a later version)
-- Test imports with: `docker-compose -f .docker/pwd.yml exec -T backend python3 -c "from erpnext.module.path import thing"`
+- Test imports with: `docker compose -f docker-compose.yml exec -T backend python3 -c "from erpnext.module.path import thing"`
 
 ### Safe way to modify DocType JSON schemas
 
@@ -334,23 +219,23 @@ Files listed in `sync_files()` (like `item.py`, `item.js`, `item_variant.py`) ar
 
 ```bash
 # Interactive console
-docker-compose -f .docker/pwd.yml exec -T backend bench --site frontend console
+docker compose -f docker-compose.yml exec -T backend bench --site frontend console
 
 # Test an import
-docker-compose -f .docker/pwd.yml exec -T backend bench --site frontend console <<'PY'
+docker compose -f docker-compose.yml exec -T backend bench --site frontend console <<'PY'
 from erpnext.manufacturing.doctype.bom.bom import create_variant_bom_from_template
 print("OK")
 PY
 
 # Check if a DB column exists
-docker-compose -f .docker/pwd.yml exec -T backend bench --site frontend console <<'PY'
+docker compose -f docker-compose.yml exec -T backend bench --site frontend console <<'PY'
 import frappe
 cols = frappe.db.sql("SHOW COLUMNS FROM `tabItem Attribute Value` LIKE 'linked_item'")
 print(f"Exists: {bool(cols)}")
 PY
 
 # Check error logs
-docker-compose -f .docker/pwd.yml exec -T backend bench --site frontend console <<'PY'
+docker compose -f docker-compose.yml exec -T backend bench --site frontend console <<'PY'
 import frappe
 errors = frappe.get_all("Error Log", fields=["method", "error"], limit=5, order_by="creation desc")
 for e in errors:
@@ -358,10 +243,10 @@ for e in errors:
 PY
 
 # Clear cache (required after DocType schema changes)
-docker-compose -f .docker/pwd.yml exec -T backend bench --site frontend clear-cache
+docker compose -f docker-compose.yml exec -T backend bench --site frontend clear-cache
 
 # Check file contents in container
-docker-compose -f .docker/pwd.yml exec -T backend grep "function_name" /path/to/file.py
+docker compose -f docker-compose.yml exec -T backend grep "function_name" /path/to/file.py
 ```
 
 ### Patch script gotchas (`erpnext/patches/bom_variant_patch.py`)
