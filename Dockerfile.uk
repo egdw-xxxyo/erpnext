@@ -5,6 +5,8 @@ USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
 
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow
+
 COPY scripts/merge_csv.py /tmp/merge_csv.py
 COPY erpnext_translations_uk.csv /tmp/erpnext_uk_new.csv
 COPY frappe_translations_uk.csv /tmp/frappe_uk_new.csv
@@ -47,5 +49,9 @@ COPY erpnext/stock/doctype/item/item.js /home/frappe/frappe-bench/apps/erpnext/e
 COPY erpnext/stock/doctype/item/item.py /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.py
 COPY erpnext/stock/serial_batch_bundle.py /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/serial_batch_bundle.py
 COPY erpnext/controllers/item_variant.py /home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/item_variant.py
+
+# Custom Frappe fork — print page
+COPY frappe/frappe/printing/page/print/print.js /home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js
+COPY frappe/frappe/printing/doctype/print_format/print_format.json /home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json
 
 USER frappe

@@ -129,6 +129,119 @@ frappe.ui.form.on("Job Card", {
 		});
 	},
 
+	print_labels(frm) {
+		const names = [frm.doc.name];
+		const dlg = new frappe.ui.Dialog({
+			title: __("Print Labels"),
+			fields: [
+				{
+					fieldname: "label_template",
+					fieldtype: "Link",
+					label: __("Label Template"),
+					options: "Label Template",
+					reqd: 1,
+					get_query: () => ({
+						filters: { source_field: ["is", "set"] },
+					}),
+					change: () => {
+						const tmpl = dlg.get_value("label_template");
+						if (!tmpl) {
+							dlg.fields_dict.info_html.$wrapper.html("");
+							return;
+						}
+						frappe.call({
+							method: "erpnext.manufacturing.doctype.label_printer.label_printer.count_labels",
+							args: {
+								source_doctype: "Job Card",
+								source_names: JSON.stringify(names),
+								label_template: tmpl,
+							},
+							callback: (r) => {
+								if (r.message) {
+									dlg.fields_dict.info_html.$wrapper.html(
+										`<div class="text-muted">${r.message.total} ${__("labels will be created")}</div>`
+									);
+								}
+							},
+						});
+					},
+				},
+				{
+					fieldname: "printer_name",
+					fieldtype: "Link",
+					label: __("Printer"),
+					options: "Label Printer",
+					reqd: 1,
+					get_query: () => ({
+						filters: { is_enabled: 1 },
+					}),
+				},
+				{
+					fieldname: "info_html",
+					fieldtype: "HTML",
+				},
+			],
+			primary_action_label: __("Print"),
+			primary_action: (values) => {
+				dlg.hide();
+				frappe.call({
+					method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_labels_batch",
+					args: {
+						source_doctype: "Job Card",
+						source_names: JSON.stringify(names),
+						label_template: values.label_template,
+						printer_name: values.printer_name,
+					},
+					freeze: true,
+					freeze_message: __("Creating print jobs..."),
+					callback: (r) => {
+						if (r.message) {
+							frappe.show_alert({
+								message: __("{0} print jobs created", [r.message.count]),
+								indicator: "green",
+							});
+							frappe.set_route("print-queue");
+						}
+					},
+				});
+			},
+		});
+
+		// Preselect if only one option
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				doctype: "Label Template",
+				filters: { source_field: ["is", "set"] },
+				fields: ["name"],
+				limit_page_length: 2,
+			},
+			async: false,
+			callback: (r) => {
+				if (r.message && r.message.length === 1) {
+					dlg.set_value("label_template", r.message[0].name);
+				}
+			},
+		});
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				doctype: "Label Printer",
+				filters: { is_enabled: 1 },
+				fields: ["name"],
+				limit_page_length: 2,
+			},
+			async: false,
+			callback: (r) => {
+				if (r.message && r.message.length === 1) {
+					dlg.set_value("printer_name", r.message[0].name);
+				}
+			},
+		});
+
+		dlg.show();
+	},
+
 	make_fields_read_only(frm) {
 		if (frm.doc.docstatus === 1) {
 			frm.set_df_property("employee", "read_only", 1);
@@ -182,6 +295,11 @@ frappe.ui.form.on("Job Card", {
 
 		if (!frm.is_new()) {
 			frm.trigger("render_production_data");
+			if (frm.doc.serial_no) {
+				frm.add_custom_button(__("Print Labels"), () => {
+					frm.trigger("print_labels");
+				});
+			}
 		}
 
 		if (!frm.is_new() && frm.doc.__onload?.work_order_closed) {

@@ -1,0 +1,78 @@
+.print-queue-toolbar {
+	padding: 10px 15px;
+	border-bottom: 1px solid var(--border-color);
+	background: var(--card-bg);
+}
+
+.print-queue-toolbar-row {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+	flex-wrap: wrap;
+}
+
+.toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.toolbar-label {
+	font-weight: 600;
+	font-size: 12px;
+	white-space: nowrap;
+	margin: 0;
+}
+
+.toolbar-actions {
+	margin-left: auto;
+	gap: 6px;
+}
+
+.printer-select,
+.status-filter {
+	width: auto;
+	min-width: 150px;
+}
+
+.label-badge,
+.status-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 600;
+	color: white;
+}
+
+.badge-success {
+	background: var(--green-500, #28a745);
+}
+
+.badge-warning {
+	background: var(--orange-500, #ffc107);
+	color: #333;
+}
+
+.badge-danger {
+	background: var(--red-500, #dc3545);
+}
+
+.print-queue-content {
+	padding: 15px;
+}
+
+.print-queue-table {
+	font-size: 13px;
+}
+
+.print-queue-table th {
+	background: var(--subtle-fg);
+	font-weight: 600;
+	font-size: 11px;
+	text-transform: uppercase;
+}
+
+.print-queue-table td {
+	vertical-align: middle;
+}

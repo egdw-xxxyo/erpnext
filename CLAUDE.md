@@ -477,6 +477,55 @@ frappe.db.sql("DELETE FROM `tabBOM` WHERE name=%s", name)
 
 **WARNING:** Force-deleting DocType records via SQL (e.g., deleting from `tabDocType`) will corrupt metadata. Only delete data records, never DocType definitions. If corrupted, `bench migrate` will recreate them.
 
+## Frappe Fork (git submodule)
+
+The Frappe framework is a git submodule at `frappe/` pointing to `https://github.com/egdw-xxxyo/frappe.git` branch `version-15`.
+
+### Committing changes
+
+**ERPNext only (no frappe changes):**
+```
+git add erpnext/...
+git commit -m "message"
+git push
+```
+
+**Frappe only:**
+```
+cd frappe
+git add ... && git commit -m "message" && git push origin version-15
+cd ..
+git add frappe
+git commit -m "Update frappe submodule: <what changed>"
+git push
+```
+
+**Both repos:**
+```
+# 1. Commit frappe changes first
+cd frappe && git add ... && git commit -m "message" && git push origin version-15 && cd ..
+# 2. Commit erpnext changes + submodule pointer together
+git add frappe erpnext/...
+git commit -m "Feature: description"
+git push
+```
+
+### Pulling changes
+```
+./updateRepo
+# Or: git pull && git submodule update --init
+```
+
+### Deploying after frappe changes
+- **Frappe JS changes** → `./deploy init` (image rebuild, runs `bench build`)
+- **Frappe Python/JSON only** → `./deploy migrate` (if file is in sync_files list)
+- **ERPNext changes only** → `./deploy migrate`
+
+### IMPORTANT
+- Always commit and push frappe changes BEFORE committing the submodule pointer in erpnext
+- Never use `git add .` in erpnext root — it stages the frappe submodule pointer even if you didn't intend to
+- The submodule tracks a specific commit, not a branch — after pulling frappe updates, you must `git add frappe` and commit in erpnext
+
 ## Further Reading
 
 - Frappe Translation System: https://frappeframework.com/docs/user/en/translations

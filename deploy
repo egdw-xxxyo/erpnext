@@ -79,12 +79,16 @@ sync_files() {
   # Extract stock bom.py from Docker image once (used to restore before patching)
   docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/bom/bom.py > /tmp/_stock_bom.py 2>/dev/null
 
-  for SERVICE in backend queue-short queue-long scheduler; do
+  for SERVICE in backend queue-short queue-long scheduler frontend; do
     CID=$(dc ps -q "$SERVICE" 2>/dev/null)
     if [ -z "$CID" ]; then
       continue
     fi
     echo "==> Syncing files to $SERVICE ($CID)..."
+    docker cp "$MFG_SRC/label_printer" "$CID:$MFG_DST"
+    docker cp "$MFG_SRC/label_size" "$CID:$MFG_DST"
+    docker cp "$MFG_SRC/label_template" "$CID:$MFG_DST"
+    docker cp "$MFG_SRC/print_job" "$CID:$MFG_DST"
     docker cp "$MFG_SRC/workplace" "$CID:$MFG_DST"
     docker cp "$MFG_SRC/workplace_operation" "$CID:$MFG_DST"
     docker cp "$MFG_SRC/workplace_employee" "$CID:$MFG_DST"
@@ -94,6 +98,7 @@ sync_files() {
     docker cp "$MFG_SRC/operation_field" "$CID:$MFG_DST"
     docker cp "$PAGE_SRC/workplace_portal" "$CID:$PAGE_DST"
     docker cp "$PAGE_SRC/production_flow" "$CID:$PAGE_DST"
+    docker cp "$PAGE_SRC/print_queue" "$CID:$PAGE_DST"
     docker cp "$MFG_SRC/operation/operation.json" "$CID:${MFG_DST}operation/operation.json"
     docker cp "$MFG_SRC/operation/operation.js" "$CID:${MFG_DST}operation/operation.js"
     docker cp "$MFG_SRC/workstation/workstation.py" "$CID:${MFG_DST}workstation/workstation.py"
@@ -103,6 +108,7 @@ sync_files() {
     docker cp "$ITEM_SRC/item.json" "$CID:${ITEM_DST}item.json"
     docker cp "$ITEM_SRC/item.js" "$CID:${ITEM_DST}item.js"
     docker cp "$ITEM_SRC/item.py" "$CID:${ITEM_DST}item.py"
+    docker cp "$ITEM_SRC/item_list.js" "$CID:${ITEM_DST}item_list.js"
     docker cp "$STOCK_PY_SRC/serial_batch_bundle.py" "$CID:${STOCK_PY_DST}serial_batch_bundle.py"
     docker cp "$CONTROLLERS_SRC/item_variant.py" "$CID:${CONTROLLERS_DST}item_variant.py"
     docker cp "$STOCK_SRC/item_attribute_value/item_attribute_value.json" "$CID:${STOCK_DST}item_attribute_value/item_attribute_value.json"
@@ -116,7 +122,13 @@ sync_files() {
     # reference Work Order columns not present in this ERPNext version
     # job_card.js is safe to copy — it only adds a Production Data dashboard section
     docker cp "$MFG_SRC/job_card/job_card.js" "$CID:${MFG_DST}job_card/job_card.js"
+    docker cp "$MFG_SRC/job_card/job_card_list.js" "$CID:${MFG_DST}job_card/job_card_list.js"
+    docker cp "$DIR/erpnext/public/js/print.js" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/public/js/print.js"
+    docker cp "$DIR/frappe/frappe/printing/page/print/print.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js"
+    docker cp "$DIR/frappe/frappe/printing/doctype/print_format/print_format.json" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json"
     docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
+    docker cp "$DIR/erpnext/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/translations/uk.csv"
+    docker cp "$DIR/frappe/frappe/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/translations/uk.csv"
     docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
   done
 
@@ -211,6 +223,32 @@ PY
     echo "Migration complete."
     ;;
 
+  build)
+    build_image
+
+    echo "==> Recreating containers with new image..."
+    dc up -d
+
+    echo "==> Syncing custom files..."
+    sync_files
+
+    echo "==> Running bench migrate..."
+    dc exec -T backend bench --site frontend migrate
+
+    echo "==> Clearing cache..."
+    dc exec -T backend bench --site frontend clear-cache
+
+    echo "==> Restarting workers..."
+    dc restart backend queue-short queue-long scheduler frontend websocket
+    echo "==> Waiting for backend..."
+    sleep 5
+
+    echo "Build complete. http://localhost:8080"
+    if [ "${2:-}" = "--logs" ]; then
+      dc logs -f
+    fi
+    ;;
+
   destroy)
     require_non_production "destroy"
     dc down -v
@@ -229,7 +267,7 @@ PY
 
   *)
     echo "Environment: $DEPLOY_ENV"
-    echo "Usage: ./deploy {init|start|stop|migrate|setup-prod|setup-dev}"
+    echo "Usage: ./deploy {init|start|stop|build|migrate|setup-prod|setup-dev}"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi
