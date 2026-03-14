@@ -2,6 +2,7 @@ frappe.ui.form.on("Label Template", {
 	refresh(frm) {
 		frm.trigger("render_preview");
 		frm.trigger("_load_source_field_options");
+		frm.trigger("_add_template_help");
 
 		if (frm.is_new()) return;
 
@@ -84,6 +85,28 @@ frappe.ui.form.on("Label Template", {
 
 	html_template(frm) {
 		frm.trigger("render_preview");
+	},
+
+	after_save(frm) {
+		frm.trigger("_add_template_help");
+	},
+
+	_add_template_help(frm) {
+		const field = frm.doc.template_type === "EZPL" ? "zpl_template" : "html_template";
+		const $field = frm.fields_dict[field];
+		if (!$field || !$field.$wrapper) return;
+
+		if ($field.$wrapper.find(".template-help-btn").length) return;
+
+		const $btn = $(`<button class="btn btn-xs btn-default template-help-btn" style="margin-top:4px;">
+			<svg class="icon icon-sm" style="vertical-align:middle;margin-right:2px;">
+				<use href="#icon-help"></use>
+			</svg>
+			${__("Template Reference")}
+		</button>`);
+
+		$btn.on("click", () => _show_template_help(frm));
+		$field.$wrapper.append($btn);
 	},
 
 	preview_data(frm) {
@@ -314,4 +337,102 @@ function _draw_code128(ctx, text, px, py, el, dot_to_px, scale) {
 	let barcode_w = bx - px;
 	let text_x = px + (barcode_w - text_w) / 2;
 	ctx.fillText(text, text_x, py + bar_h + 1 * scale);
+}
+
+function _show_template_help(frm) {
+	const is_html = frm.doc.template_type !== "EZPL";
+
+	let body = "";
+	if (is_html) {
+		body = `
+<h4>Контекст Jinja</h4>
+<p>Шаблони рендеряться за допомогою <a href="https://jinja.palletsprojects.com/" target="_blank">Jinja2</a>. Доступні змінні:</p>
+<table class="table table-bordered table-sm">
+<tr><th>Змінна</th><th>Опис</th></tr>
+<tr><td><code>{{ doc.fieldname }}</code></td><td>Поле з документа-джерела (напр. <code>doc.serial_no</code>, <code>doc.item_code</code>, <code>doc.item_name</code>)</td></tr>
+<tr><td><code>{{ parent.fieldname }}</code></td><td>Поле з батьківського документа (коли джерело — дочірня таблиця)</td></tr>
+<tr><td><code>{{ frappe.format(value, df) }}</code></td><td>Форматування значень Frappe</td></tr>
+<tr><td><code>{{ _("text") }}</code></td><td>Функція перекладу</td></tr>
+</table>
+
+<h4>Спеціальні теги</h4>
+
+<h5><code>&lt;barcode&gt;</code> — Вбудоване зображення штрихкоду/QR</h5>
+<table class="table table-bordered table-sm">
+<tr><th>Атрибут</th><th>Обов'язковий</th><th>Опис</th></tr>
+<tr><td><code>type</code></td><td>Так</td><td>Тип штрихкоду: <code>code128</code>, <code>ean13</code>, <code>qr</code> тощо</td></tr>
+<tr><td><code>data</code></td><td>Так</td><td>Дані для кодування (підтримує Jinja: <code>{{ doc.serial_no }}</code>)</td></tr>
+<tr><td><code>module_width</code></td><td>Ні</td><td>Ширина штриха в мм (за замовчуванням: 0.2)</td></tr>
+<tr><td><code>module_height</code></td><td>Ні</td><td>Висота штриха в мм (за замовчуванням: 8)</td></tr>
+<tr><td><code>size</code></td><td>Ні</td><td>Розмір модуля QR-коду (за замовчуванням: 4, тільки для <code>type="qr"</code>)</td></tr>
+<tr><td><code>width</code>, <code>height</code>, <code>style</code></td><td>Ні</td><td>CSS-стилі для згенерованого <code>&lt;img&gt;</code></td></tr>
+</table>
+<p><b>Приклад:</b></p>
+<pre>&lt;barcode type="code128" data="{{ doc.serial_no }}" module_width="0.4" module_height="6" style="width:100%;height:auto" /&gt;</pre>
+
+<h5><code>&lt;attachment&gt;</code> — Вбудоване зображення з завантаженого файлу</h5>
+<p>Знаходить файл у файловій системі Frappe (публічний або приватний) та вставляє його як base64-зображення.</p>
+<table class="table table-bordered table-sm">
+<tr><th>Атрибут</th><th>Обов'язковий</th><th>Опис</th></tr>
+<tr><td><code>name</code></td><td>Так</td><td>Ім'я файлу як у Менеджері файлів (напр. <code>logo.png</code>)</td></tr>
+<tr><td><code>width</code>, <code>height</code>, <code>style</code></td><td>Ні</td><td>CSS-стилі для згенерованого <code>&lt;img&gt;</code></td></tr>
+</table>
+<p><b>Приклад:</b></p>
+<pre>&lt;attachment name="toy_small.jpg" style="width:30px;height:auto" /&gt;</pre>
+
+<h4>Розмітка</h4>
+<p><b>Важливо:</b> Використовуйте <code>&lt;table&gt;</code> замість <code>&lt;div&gt;</code> + flexbox для розмітки. Рендер (wkhtmltoimage) не підтримує flexbox належним чином.</p>
+<table class="table table-bordered table-sm">
+<tr><th>Прийом</th><th>Опис</th></tr>
+<tr><td>Кореневий <code>&lt;table&gt;</code> з <code>width:100%;height:100%</code></td><td>Таблиця як обгортка розтягується на весь розмір етикетки</td></tr>
+<tr><td><code>height:1%</code> на рядках</td><td>Рядок стискається до розміру вмісту</td></tr>
+<tr><td>Один рядок без <code>height</code></td><td>Займає весь вільний простір (для тексту що розтягується)</td></tr>
+<tr><td><code>vertical-align:bottom</code></td><td>Притискає вміст до нижнього краю (для останнього рядка)</td></tr>
+<tr><td>Вкладені <code>&lt;table&gt;</code></td><td>Для горизонтального розміщення елементів (напр. лого + текст + лого)</td></tr>
+</table>
+
+<h4>Повний приклад</h4>
+<pre>&lt;table style="width:100%;height:100%;font-family:Arial,sans-serif;
+  border:0;border-collapse:collapse;"&gt;
+  &lt;tr&gt;
+    &lt;td style="height:1%;padding:10px;text-align:center;font-size:30pt;
+      font-weight:bold;" colspan="2"&gt;{{ doc.item_name }}&lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td style="height:1%;padding:0 10px;font-size:22pt;font-weight:bold;"&gt;
+      {{ doc.serial_no }}&lt;/td&gt;
+    &lt;td style="height:1%;padding:0 10px;text-align:right;"&gt;
+      &lt;barcode type="code128" data="{{ doc.serial_no }}"
+        module_width="0.4" module_height="6" style="width:100%" /&gt;&lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td style="padding:10px;vertical-align:top;" colspan="2"&gt;
+      Додатковий текст&lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+    &lt;td style="height:1%;padding:4px 10px 10px;vertical-align:bottom;
+      text-align:center;" colspan="2"&gt;
+      &lt;attachment name="logo.png" style="width:20px" /&gt;&lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/table&gt;</pre>
+`;
+	} else {
+		body = `
+<h4>Шаблон EZPL</h4>
+<p>Шаблони EZPL використовують мову команд принтерів Godex. Змінні Jinja підставляються перед відправкою.</p>
+<table class="table table-bordered table-sm">
+<tr><th>Змінна</th><th>Опис</th></tr>
+<tr><td><code>{{ doc.fieldname }}</code></td><td>Поле з документа-джерела</td></tr>
+<tr><td><code>{{ parent.fieldname }}</code></td><td>Поле з батьківського документа</td></tr>
+</table>
+<p>Зверніться до інструкції з програмування EZPL вашого принтера для списку доступних команд.</p>
+`;
+	}
+
+	let d = new frappe.ui.Dialog({
+		title: __("Template Reference"),
+		size: "large",
+	});
+	d.$body.html(`<div style="padding:0 15px 15px;font-size:13px;">${body}</div>`);
+	d.show();
 }

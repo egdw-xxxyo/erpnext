@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 import re
 import subprocess
 
@@ -178,6 +179,7 @@ def render_preview(template_type, zpl_template="", html_template="", preview_dat
 
 		html = frappe.render_template(html_template, context)
 		html = _process_barcode_tags(html)
+		html = _process_attachment_tags(html)
 		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"])
 		return {
 			"type": "html_image",
@@ -256,6 +258,61 @@ def _process_barcode_tags(html):
 			return match.group(0)
 
 	return re.sub(r"<barcode\s+(.*?)\s*/?>", _generate_barcode_img, html, flags=re.DOTALL)
+
+
+def _process_attachment_tags(html):
+	"""Replace <attachment name="filename.jpg" /> with inline base64 <img> tags.
+
+	Resolves file from Frappe's file system (public or private).
+	Supports width, height, and style attributes.
+	"""
+	def _get_attr(attrs_str, name):
+		m = re.search(rf'{name}=["\']([^"\']+)["\']', attrs_str)
+		return m.group(1) if m else None
+
+	def _resolve_attachment(match):
+		attrs_str = match.group(1)
+		file_name = _get_attr(attrs_str, "name")
+
+		if not file_name:
+			return match.group(0)
+
+		try:
+			file_doc = frappe.get_value("File", {"file_name": file_name}, ["file_url", "is_private"], as_dict=True)
+			if not file_doc:
+				return match.group(0)
+
+			site_path = frappe.get_site_path()
+			if file_doc.is_private:
+				file_path = os.path.join(site_path, "private", "files", file_name)
+			else:
+				file_path = os.path.join(site_path, "public", "files", file_name)
+
+			if not os.path.exists(file_path):
+				return match.group(0)
+
+			with open(file_path, "rb") as f:
+				file_bytes = f.read()
+
+			ext = file_name.rsplit(".", 1)[-1].lower()
+			mime_map = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "gif": "gif", "svg": "svg+xml", "webp": "webp"}
+			mime = mime_map.get(ext, "png")
+
+			b64 = base64.b64encode(file_bytes).decode("ascii")
+
+			style_parts = []
+			for attr in re.finditer(r'(width|height|style)=["\']([^"\']+)["\']', attrs_str):
+				if attr.group(1) == "style":
+					style_parts.append(attr.group(2))
+				else:
+					style_parts.append(f"{attr.group(1)}:{attr.group(2)}")
+			style = ";".join(style_parts) if style_parts else ""
+
+			return f'<img src="data:image/{mime};base64,{b64}" style="{style}" />'
+		except Exception:
+			return match.group(0)
+
+	return re.sub(r"<attachment\s+(.*?)\s*/?>", _resolve_attachment, html, flags=re.DOTALL)
 
 
 def _wrap_html_for_render(html, width_px, height_px):
@@ -358,4 +415,5 @@ def render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 		context["parent"] = parent_doc
 
 	html = frappe.render_template(template_doc.html_template or "", context)
-	return _process_barcode_tags(html)
+	html = _process_barcode_tags(html)
+	return _process_attachment_tags(html)
