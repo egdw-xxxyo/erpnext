@@ -22,10 +22,23 @@ require_non_production() {
 
 dc() {
   if docker compose version &>/dev/null; then
-    docker compose -f "$DIR/docker-compose.yml" "$@"
+    docker compose -p docker -f "$DIR/docker-compose.yml" "$@"
   else
-    docker-compose -f "$DIR/docker-compose.yml" "$@"
+    docker-compose -p docker -f "$DIR/docker-compose.yml" "$@"
   fi
+}
+
+wait_for_db() {
+  echo "==> Waiting for MariaDB..."
+  for i in $(seq 1 30); do
+    if dc exec -T db mysqladmin ping --password=admin 2>/dev/null | grep -q alive; then
+      echo "==> MariaDB is ready."
+      return 0
+    fi
+    sleep 2
+  done
+  echo "ERROR: MariaDB not ready after 60s. Check: dc logs db"
+  exit 1
 }
 
 build_image() {
@@ -161,6 +174,7 @@ PY
     sync_files
     echo "==> Applying site config..."
     apply_site_config
+    wait_for_db
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
     echo "==> Clearing cache..."
@@ -182,6 +196,7 @@ PY
   migrate)
     sync_files
 
+    wait_for_db
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
 
@@ -205,6 +220,7 @@ PY
     echo "==> Syncing custom files..."
     sync_files
 
+    wait_for_db
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
 

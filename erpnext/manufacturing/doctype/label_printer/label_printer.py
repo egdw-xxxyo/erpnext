@@ -569,18 +569,15 @@ def _save_preview_image(print_job_name, png_data):
 		frappe.logger("label_printer").warning(f"Failed to save preview image for {print_job_name}", exc_info=True)
 
 
-_pcx_counter = 0
-
 def _send_pcx_label(printer_doc, pcx_data, size_doc, copies=1):
-	global _pcx_counter
+	import uuid
 
 	ox = int(getattr(printer_doc, "offset_x", 0) or 0)
 	oy = int(getattr(printer_doc, "offset_y", 0) or 0)
 	timeout = printer_doc.timeout or 5
 
 	for i in range(copies):
-		_pcx_counter = (_pcx_counter + 1) % 100000
-		name = f"P{_pcx_counter:05d}"
+		name = uuid.uuid4().hex[:8].upper()
 
 		parts = []
 		parts.append(f"~EK,{name}\r\n".encode("ascii"))
