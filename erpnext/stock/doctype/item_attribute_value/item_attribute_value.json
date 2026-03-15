@@ -24,7 +24,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Abbreviation",
-   "reqd": 1,
+   "reqd": 0,
    "search_index": 1
   },
   {

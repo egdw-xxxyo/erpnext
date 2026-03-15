@@ -135,6 +135,7 @@ class ItemAttribute(Document):
 				)
 			values.append(d.attribute_value)
 
-			if d.abbr.lower() in map(str.lower, abbrs):
-				frappe.throw(_("Abbreviation: {0} must appear only once").format(d.abbr.title()))
-			abbrs.append(d.abbr)
+			if d.abbr:
+				if d.abbr.lower() in map(str.lower, abbrs):
+					frappe.throw(_("Abbreviation: {0} must appear only once").format(d.abbr.title()))
+				abbrs.append(d.abbr)
