@@ -179,13 +179,18 @@ PY
     dc exec -T backend bench --site frontend migrate
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
+    "$DIR/insights" auto
+    # Remove insights from apps.txt before restart — workers will start without it,
+    # avoiding ModuleNotFoundError spam. The post-restart auto call re-adds it after syncing.
+    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
     echo "==> Restarting workers to load new code..."
     dc restart backend queue-short queue-long scheduler frontend websocket
     echo "==> Waiting for backend..."
     sleep 5
+    "$DIR/insights" auto
     echo "Started at http://localhost:8080"
     if [ "${2:-}" = "--logs" ]; then
-      dc logs -f
+      dc logs -f --since 0s
     fi
     ;;
 
@@ -203,10 +208,15 @@ PY
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
 
+    "$DIR/insights" auto
+    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+
     echo "==> Restarting workers to load new code..."
     dc restart backend queue-short queue-long scheduler frontend websocket
     echo "==> Waiting for backend..."
     sleep 5
+
+    "$DIR/insights" auto
 
     echo "Migration complete."
     ;;
@@ -227,14 +237,19 @@ PY
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
 
+    "$DIR/insights" auto
+    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+
     echo "==> Restarting workers..."
     dc restart backend queue-short queue-long scheduler frontend websocket
     echo "==> Waiting for backend..."
     sleep 5
 
+    "$DIR/insights" auto
+
     echo "Build complete. http://localhost:8080"
     if [ "${2:-}" = "--logs" ]; then
-      dc logs -f
+      dc logs -f --since 0s
     fi
     ;;
 
