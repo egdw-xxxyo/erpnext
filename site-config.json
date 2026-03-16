@@ -1,3 +1,4 @@
 {
-  "server_script_enabled": 1
+  "server_script_enabled": 1,
+  "insights_enabled": 1
 }
