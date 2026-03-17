@@ -62,11 +62,13 @@ remove_insights_before_migrate() {
     echo "==> Cleaning insights from DB ($DB_NAME)..."
     dc exec -T db mysql -uroot -padmin "$DB_NAME" -e "
       UPDATE tabDefaultValue
-      SET defvalue = REPLACE(REPLACE(REPLACE(defvalue, '\"insights\", ', ''), ', \"insights\"', ''), '\"insights\"', '')
-      WHERE parent = '__default'
-      AND parentfield = 'installed_apps'
+      SET defvalue = REPLACE(REPLACE(REPLACE(defvalue, ', \"insights\"', ''), '\"insights\", ', ''), '\"insights\"', '')
+      WHERE parent = '__global'
+      AND parentfield = 'system_defaults'
+      AND defkey = 'installed_apps'
       AND defvalue LIKE '%insights%';
-      SELECT defvalue FROM tabDefaultValue WHERE parent = '__default' AND parentfield = 'installed_apps';
+      SELECT defvalue FROM tabDefaultValue
+      WHERE parent = '__global' AND parentfield = 'system_defaults' AND defkey = 'installed_apps';
     " 2>/dev/null || echo "WARNING: DB cleanup query failed (non-fatal)"
   else
     echo "WARNING: Could not detect DB name, skipping DB cleanup"
