@@ -55,17 +55,20 @@ build_image() {
 remove_insights_before_migrate() {
   echo "==> Removing insights from apps.txt and DB before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-  dc exec -T backend bench --site frontend console <<'PY'
+  dc exec -T backend python3 -c "
 import frappe, json
-installed = json.loads(frappe.db.get_global("installed_apps") or "[]")
-if "insights" in installed:
-    installed.remove("insights")
-    frappe.db.set_global("installed_apps", json.dumps(installed))
+frappe.init(site='frontend')
+frappe.connect()
+installed = json.loads(frappe.db.get_global('installed_apps') or '[]')
+if 'insights' in installed:
+    installed.remove('insights')
+    frappe.db.set_global('installed_apps', json.dumps(installed))
     frappe.db.commit()
-    print(f"Removed insights from DB installed_apps: {installed}")
+    print(f'Removed insights from DB installed_apps: {installed}')
 else:
-    print(f"insights not in DB installed_apps: {installed}")
-PY
+    print(f'insights not in DB installed_apps: {installed}')
+frappe.destroy()
+"
 }
 
 sync_files() {
