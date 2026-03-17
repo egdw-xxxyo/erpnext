@@ -62,7 +62,7 @@ remove_insights_before_migrate() {
     return
   fi
   echo "==> Site: $SITE_NAME"
-  dc exec -T backend /home/frappe/frappe-bench/env/bin/python -c "
+  dc exec -w /home/frappe/frappe-bench -T backend /home/frappe/frappe-bench/env/bin/python -c "
 import frappe, json
 frappe.init(site='$SITE_NAME')
 frappe.connect()
