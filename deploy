@@ -55,16 +55,11 @@ build_image() {
 remove_insights_before_migrate() {
   echo "==> Removing insights from apps.txt and DB before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-  # Get the site name dynamically (first directory in sites/ that has site_config.json)
-  SITE_NAME=$(dc exec -T backend bash -c "ls -1 sites/*/site_config.json 2>/dev/null | head -1 | cut -d/ -f2")
-  if [ -z "$SITE_NAME" ]; then
-    echo "WARNING: Could not detect site name, skipping DB cleanup"
-    return
-  fi
-  echo "==> Site: $SITE_NAME"
-  dc exec -w /home/frappe/frappe-bench -T backend /home/frappe/frappe-bench/env/bin/python -c "
-import frappe, json
-frappe.init(site='$SITE_NAME')
+  # Remove insights from installed_apps in the DB using bench execute
+  dc exec -T backend bash -c "cd /home/frappe/frappe-bench && /home/frappe/frappe-bench/env/bin/python -c \"
+import frappe, json, os
+site = [d for d in os.listdir('sites') if os.path.isfile(os.path.join('sites', d, 'site_config.json'))][0]
+frappe.init(site=site)
 frappe.connect()
 installed = json.loads(frappe.db.get_global('installed_apps') or '[]')
 if 'insights' in installed:
@@ -75,7 +70,7 @@ if 'insights' in installed:
 else:
     print(f'insights not in DB installed_apps: {installed}')
 frappe.destroy()
-"
+\"" || echo "WARNING: Could not clean insights from DB (non-fatal)"
 }
 
 sync_files() {
