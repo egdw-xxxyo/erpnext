@@ -55,7 +55,7 @@ build_image() {
 remove_insights_before_migrate() {
   echo "==> Removing insights from apps.txt and DB before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-  dc exec -T backend python3 -c "
+  dc exec -T backend /home/frappe/frappe-bench/env/bin/python -c "
 import frappe, json
 frappe.init(site='frontend')
 frappe.connect()
