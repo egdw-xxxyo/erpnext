@@ -47,6 +47,27 @@ build_image() {
     -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
 }
 
+# Remove insights from apps.txt AND the database installed_apps list.
+# The configurator writes apps.txt from `ls apps/`, and if insights dir exists
+# in the volume it gets listed. bench migrate also reads installed_apps from
+# tabDefaultValue in the DB. Both must be cleaned before migrate.
+# ./insights auto will re-add insights after migrate if insights_enabled=1.
+remove_insights_before_migrate() {
+  echo "==> Removing insights from apps.txt and DB before migrate..."
+  dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
+  dc exec -T backend bench --site frontend console <<'PY'
+import frappe, json
+installed = json.loads(frappe.db.get_global("installed_apps") or "[]")
+if "insights" in installed:
+    installed.remove("insights")
+    frappe.db.set_global("installed_apps", json.dumps(installed))
+    frappe.db.commit()
+    print(f"Removed insights from DB installed_apps: {installed}")
+else:
+    print(f"insights not in DB installed_apps: {installed}")
+PY
+}
+
 sync_files() {
   MFG_SRC="$DIR/erpnext/manufacturing/doctype"
   MFG_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/"
@@ -177,8 +198,8 @@ PY
     sync_files
     echo "==> Applying site config..."
     apply_site_config
-    dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
     wait_for_db
+    remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
     echo "==> Clearing cache..."
@@ -205,9 +226,8 @@ PY
   migrate)
     sync_files
 
-    dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-
     wait_for_db
+    remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
 
@@ -239,12 +259,8 @@ PY
     echo "==> Syncing custom files..."
     sync_files
 
-    # Remove insights from apps.txt before migrate — the insights directory may
-    # exist in the volume from a prior install, so configurator adds it to apps.txt,
-    # but the Python module isn't installed yet. ./insights auto handles it after migrate.
-    dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-
     wait_for_db
+    remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
 
