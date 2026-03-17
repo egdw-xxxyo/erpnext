@@ -55,22 +55,22 @@ build_image() {
 remove_insights_before_migrate() {
   echo "==> Removing insights from apps.txt and DB before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-  # Remove insights from installed_apps in the DB using bench execute
-  dc exec -T backend bash -c "cd /home/frappe/frappe-bench && /home/frappe/frappe-bench/env/bin/python -c \"
-import frappe, json, os
-site = [d for d in os.listdir('sites') if os.path.isfile(os.path.join('sites', d, 'site_config.json'))][0]
-frappe.init(site=site)
-frappe.connect()
-installed = json.loads(frappe.db.get_global('installed_apps') or '[]')
-if 'insights' in installed:
-    installed.remove('insights')
-    frappe.db.set_global('installed_apps', json.dumps(installed))
-    frappe.db.commit()
-    print(f'Removed insights from DB installed_apps: {installed}')
-else:
-    print(f'insights not in DB installed_apps: {installed}')
-frappe.destroy()
-\"" || echo "WARNING: Could not clean insights from DB (non-fatal)"
+  # Remove insights from installed_apps in DB via direct SQL on the db container.
+  # Get DB name from site_config.json inside the backend container.
+  DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['db_name'])" 2>/dev/null)
+  if [ -n "$DB_NAME" ]; then
+    echo "==> Cleaning insights from DB ($DB_NAME)..."
+    dc exec -T db mysql -uroot -padmin "$DB_NAME" -e "
+      UPDATE tabDefaultValue
+      SET defvalue = REPLACE(REPLACE(REPLACE(defvalue, '\"insights\", ', ''), ', \"insights\"', ''), '\"insights\"', '')
+      WHERE parent = '__default'
+      AND parentfield = 'installed_apps'
+      AND defvalue LIKE '%insights%';
+      SELECT defvalue FROM tabDefaultValue WHERE parent = '__default' AND parentfield = 'installed_apps';
+    " 2>/dev/null || echo "WARNING: DB cleanup query failed (non-fatal)"
+  else
+    echo "WARNING: Could not detect DB name, skipping DB cleanup"
+  fi
 }
 
 sync_files() {
