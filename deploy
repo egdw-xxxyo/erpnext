@@ -171,12 +171,13 @@ PY
 
   start)
     dc up -d
+    echo "==> Waiting for configurator to finish..."
+    dc wait configurator 2>/dev/null || sleep 5
     echo "==> Syncing custom files..."
     sync_files
     echo "==> Applying site config..."
     apply_site_config
-    # Remove insights from apps.txt before migrate — module files don't exist yet
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+    dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
     wait_for_db
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
@@ -204,8 +205,7 @@ PY
   migrate)
     sync_files
 
-    # Remove insights from apps.txt before migrate — module files don't exist yet
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+    dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
 
     wait_for_db
     echo "==> Running bench migrate..."
@@ -233,11 +233,16 @@ PY
     echo "==> Recreating containers with new image..."
     dc up -d
 
+    echo "==> Waiting for configurator to finish..."
+    dc wait configurator 2>/dev/null || sleep 5
+
     echo "==> Syncing custom files..."
     sync_files
 
-    # Remove insights from apps.txt before migrate — module files don't exist yet
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+    # Remove insights from apps.txt before migrate — the insights directory may
+    # exist in the volume from a prior install, so configurator adds it to apps.txt,
+    # but the Python module isn't installed yet. ./insights auto handles it after migrate.
+    dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
 
     wait_for_db
     echo "==> Running bench migrate..."
