@@ -200,7 +200,7 @@ frappe.ui.form.on("Job Card", {
 								message: __("{0} print jobs created", [r.message.count]),
 								indicator: "green",
 							});
-							frappe.set_route("print-queue");
+							frappe.set_route("List", "Print Job");
 						}
 					},
 				});

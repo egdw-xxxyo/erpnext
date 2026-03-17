@@ -246,10 +246,10 @@ def check_status(printer_name):
 		return combined
 	except socket.error as e:
 		frappe.db.set_value("Label Printer", printer_name, {
-			"last_status": f"Connection Error: {e}",
+			"last_status": "Offline",
 			"last_checked": now_datetime(),
 		})
-		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
+		return {"status": {"status": "Offline", "error": str(e)}}
 
 
 def _refresh_printer_info(printer_name):

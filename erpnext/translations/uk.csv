@@ -11280,3 +11280,7 @@ you must select Capital Work in Progress Account in accounts table,у табли
 {} {} is already linked with {} {},{} {} вже пов'язано з {} {}
 {} {} is not affecting bank account {},{} {} не впливає на банківський рахунок {}
 Template Reference,Довідка по шаблону
+"Send to Printer","Надіслати на принтер"
+"Cancel Jobs","Скасувати завдання"
+"Delete Jobs","Видалити завдання"
+"Printer status is '{0}'. Continue anyway?","Статус принтера '{0}'. Продовжити?"

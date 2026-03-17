@@ -79,7 +79,7 @@ frappe.ui.form.on("Label Printer", {
 		}, __("Actions"));
 
 		frm.add_custom_button(__("Print Queue"), () => {
-			frappe.set_route("print-queue");
+			frappe.set_route("List", "Print Job");
 		});
 
 		frm.add_custom_button(__("Send Command"), () => {
