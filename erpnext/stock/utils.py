@@ -583,6 +583,17 @@ def scan_barcode(search_value: str, ctx: dict | str | None = None) -> BarcodeSca
 	if scan_data := get_cache():
 		return scan_data
 
+	# Try original value first, then keyboard layout transliterations
+	candidates = _get_keyboard_layout_variants(search_value)
+	for candidate in candidates:
+		result = _scan_barcode_single(candidate, ctx, set_cache)
+		if result:
+			return result
+
+	return {}
+
+
+def _scan_barcode_single(search_value, ctx, set_cache):
 	# search barcode no
 	barcode_data = frappe.db.get_value(
 		"Item Barcode",
@@ -629,7 +640,56 @@ def scan_barcode(search_value: str, ctx: dict | str | None = None) -> BarcodeSca
 		set_cache(warehouse_data)
 		return warehouse_data
 
-	return {}
+	return None
+
+
+# Keyboard layout maps: each row maps physical key positions across layouts
+# EN (QWERTY) -> UK (Ukrainian) -> RU (Russian ЙЦУКЕН)
+_EN = r"""`1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?"""
+_UK = r"""'1234567890-=йцукенгшщзхї\фівапролджєячсмитьбю.₴!"№;%:?*()_+ЙЦУКЕНГШЩЗХЇ/ФІВАПРОЛДЖЄЯЧСМИТЬБЮ,"""
+_RU = r"""ё1234567890-=йцукенгшщзхъ\фывапролджэячсмитьбю.Ё!"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"""
+
+
+def _transliterate_keyboard(text, from_layout, to_layout):
+	mapping = str.maketrans(from_layout, to_layout)
+	return text.translate(mapping)
+
+
+def _get_keyboard_layout_variants(value):
+	variants = [value]
+	seen = {value}
+
+	# Try converting from each layout to English (the most common barcode encoding)
+	for src in (_UK, _RU):
+		try:
+			converted = _transliterate_keyboard(value, src, _EN)
+			if converted not in seen:
+				variants.append(converted)
+				seen.add(converted)
+		except (ValueError, KeyError):
+			pass
+
+	# Try converting from English to Ukrainian and Russian
+	for dst in (_UK, _RU):
+		try:
+			converted = _transliterate_keyboard(value, _EN, dst)
+			if converted not in seen:
+				variants.append(converted)
+				seen.add(converted)
+		except (ValueError, KeyError):
+			pass
+
+	# Try cross-conversions: UK->RU, RU->UK
+	for src, dst in [(_UK, _RU), (_RU, _UK)]:
+		try:
+			converted = _transliterate_keyboard(value, src, dst)
+			if converted not in seen:
+				variants.append(converted)
+				seen.add(converted)
+		except (ValueError, KeyError):
+			pass
+
+	return variants
 
 
 def _update_item_info(scan_result: dict[str, str | None], ctx: dict | None = None) -> dict[str, str | None]:

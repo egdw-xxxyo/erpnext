@@ -97,6 +97,7 @@ sync_files() {
     docker cp "$ITEM_SRC/item.py" "$CID:${ITEM_DST}item.py"
     docker cp "$ITEM_SRC/item_list.js" "$CID:${ITEM_DST}item_list.js"
     docker cp "$STOCK_PY_SRC/serial_batch_bundle.py" "$CID:${STOCK_PY_DST}serial_batch_bundle.py"
+    docker cp "$STOCK_PY_SRC/utils.py" "$CID:${STOCK_PY_DST}utils.py"
     docker cp "$CONTROLLERS_SRC/item_variant.py" "$CID:${CONTROLLERS_DST}item_variant.py"
     docker cp "$STOCK_SRC/item_attribute_value/item_attribute_value.json" "$CID:${STOCK_DST}item_attribute_value/item_attribute_value.json"
     docker cp "$STOCK_SRC/item_attribute/item_attribute.py" "$CID:${STOCK_DST}item_attribute/item_attribute.py"
@@ -174,6 +175,8 @@ PY
     sync_files
     echo "==> Applying site config..."
     apply_site_config
+    # Remove insights from apps.txt before migrate — module files don't exist yet
+    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
     wait_for_db
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
@@ -200,6 +203,9 @@ PY
 
   migrate)
     sync_files
+
+    # Remove insights from apps.txt before migrate — module files don't exist yet
+    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
 
     wait_for_db
     echo "==> Running bench migrate..."
@@ -229,6 +235,9 @@ PY
 
     echo "==> Syncing custom files..."
     sync_files
+
+    # Remove insights from apps.txt before migrate — module files don't exist yet
+    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
 
     wait_for_db
     echo "==> Running bench migrate..."

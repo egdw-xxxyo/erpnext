@@ -58,21 +58,69 @@
 	background: var(--red-500, #dc3545);
 }
 
+.print-queue-filter-bar {
+	padding: 8px 15px;
+	border-bottom: 1px solid var(--border-color);
+	background: var(--subtle-fg);
+}
+
+.filter-bar-row {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+	flex-wrap: wrap;
+}
+
+.filter-group {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.filter-label {
+	font-weight: 600;
+	font-size: 12px;
+	white-space: nowrap;
+	margin: 0;
+}
+
+.filter-select {
+	width: auto;
+	min-width: 120px;
+	max-width: 200px;
+	font-size: 12px;
+	height: 28px;
+	padding: 2px 8px;
+}
+
+.filter-select-wide {
+	min-width: 160px;
+	max-width: 250px;
+}
+
+.filter-clear-btn {
+	margin-left: auto;
+}
+
 .print-queue-content {
 	padding: 15px;
 }
 
-.print-queue-table {
+.print-queue-datatable .dt-scrollable {
+	height: calc(100vh - 300px) !important;
+	overflow-y: auto;
+}
+
+.print-queue-datatable .dt-cell--col-0 .dt-cell__content {
+	padding: 0 4px;
+}
+
+.print-queue-datatable .dt-row .dt-cell {
 	font-size: 13px;
 }
 
-.print-queue-table th {
-	background: var(--subtle-fg);
-	font-weight: 600;
+.print-queue-datatable .dt-header .dt-cell {
 	font-size: 11px;
 	text-transform: uppercase;
-}
-
-.print-queue-table td {
-	vertical-align: middle;
+	font-weight: 600;
 }

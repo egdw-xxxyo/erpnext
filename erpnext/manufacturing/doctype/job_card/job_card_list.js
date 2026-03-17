@@ -51,7 +51,7 @@ function _show_print_labels_dialog(doctype, names) {
 				callback: (r) => {
 					if (r.message) {
 						frappe.show_alert({ message: __("{0} print jobs created", [r.message.count]), indicator: "green" });
-						frappe.set_route("print-queue");
+						frappe.set_route("List", "Print Job");
 					}
 				},
 			});

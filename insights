@@ -146,7 +146,7 @@ install_insights() {
   echo "  -> Installing app on site..."
   dc exec -T backend bash -c "
     cd /home/frappe/frappe-bench &&
-    bench --site frontend install-app insights 2>&1
+    bench --site frontend install-app insights --force 2>&1
   "
 
   echo "  -> Syncing to worker containers..."
