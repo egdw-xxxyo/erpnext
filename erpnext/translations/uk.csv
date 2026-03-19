@@ -2422,7 +2422,6 @@ Certificate Limit,Обмеження сертифіката
 Certificate No,Свідоцтво No
 Certificate Required,Сертифікат обов&#39;язковий
 Chain,Чейн
-Change,Здача
 Change Amount,Сума змін
 Change Labels,Замінити етикетки
 Change Release Date,Змінити дату випуску
@@ -2508,7 +2507,7 @@ Classification of Customers by region,Класифікація клієнтів 
 Clauses and Conditions,Статті та умови
 Clear Demo Data,Очистити демо-дані
 Clear Notifications,Очистити сповіщення
-Clear Table,Ясно Таблиця
+Clear Table,Очистити таблицю
 Clearance Date,Clearance дата
 Clearance Date not mentioned,Clearance дата не вказано
 Clearance Date updated,Clearance дату оновлено
@@ -2781,7 +2780,7 @@ Copy Fields to Variant,Копіювати поля до варіанта
 Core,Ядро
 Corrective,Коригувальний
 Corrective Action,Коригувальні дії
-Corrective Job Card,Картка на ремонтні роботи
+Corrective Job Card,Коригувальна карта завдань
 Corrective Operation,Коригувальна операція
 Corrective Operation Cost,Вартість коригувальної операції
 Corrective/Preventive,Корекційний / профілактичний
@@ -2862,7 +2861,7 @@ Create Employee records.,Створення записів про працівн
 Create Grouped Asset,Створити згрупований актив
 Create Inter Company Journal Entry,Створіть запис журналу Inter Company
 Create Invoices,Створіть рахунки-фактури
-Create Job Card,Створіть карту роботи
+Create Job Card,Створити карту завдань
 Create Job Card based on Batch Size,Створити картку завдання на основі розміру партії
 Create Journal Entries,Створити журнальні проведення
 Create Journal Entry,Створіть запис у журналі
@@ -3996,7 +3995,7 @@ Export Errored Rows,Експорт рядків з помилками
 Extended Bank Statement,Розширена банківська виписка
 External Work History,Зовнішній роботи Історія
 Extra Consumed Qty,Додаткова спожита кількість
-Extra Job Card Quantity,Додаткова кількість завдань на роботу
+Extra Job Card Quantity,Додаткова кількість карт завдань
 Extra Large,Дуже великий
 Extra Material Transfer,Додаткове переміщення матеріалів
 Extra Small,Дуже невеликий
@@ -4188,7 +4187,7 @@ For Company,За компанію
 For Default Supplier (Optional),Для постачальника за замовчуванням (необов&#39;язково)
 For Item,Для позиції
 For Item {0} cannot be received more than {1} qty against the {2} {3},Для позиції {0} не можна отримати більше ніж {1} одиниць за {2} {3}
-For Job Card,Для виробничої картки
+For Job Card,Для карти завдань
 For Operation,Для операції
 For Price List,Для Прайс-листу
 For Production,Для виробництва
@@ -4256,7 +4255,7 @@ From,Від
 From BOM,З норм
 From BOM No,З номера специфікації (BOM)
 From Company,Від компанії
-From Corrective Job Card,З картки виправлень
+From Corrective Job Card,З коригувальної карти завдань
 From Currency,З валюти
 From Currency and To Currency cannot be same,З валюти і валюти не може бути таким же
 From Customer,Від Замовника
@@ -5067,7 +5066,7 @@ Is Company Account,Чи є обліковий запис компанії?
 Is Composite Asset,Складний актив
 Is Consolidated,Є консолідованим
 Is Container,Є контейнер
-Is Corrective Job Card,Є коригувальною карткою завдання
+Is Corrective Job Card,Є коригувальною картою завдань
 Is Corrective Operation,Є коригувальною операцією
 Is Cumulative,Є сукупним
 Is Customer Provided Item,Чи надається клієнтом товар
@@ -5305,14 +5304,14 @@ Itemwise Recommended Reorder Level,Рекомендовані рівні пер�
 JAN,Січ
 Job,Завдання
 Job Capacity,Потужність робочого місця
-Job Card,Карта вакансій
-Job Card Analysis,Аналіз вакансій
-Job Card Item,Картка для роботи
+Job Card,Карта завдань
+Job Card Analysis,Аналіз карт завдань
+Job Card Item,Товар карти завдань
 Job Card Operation,Операція картки завдання
 Job Card Scheduled Time,Заплановано час картки завдання
 Job Card Scrap Item,Бракований товар у картці завдання
-Job Card Summary,Короткий зміст вакансії
-Job Card Time Log,Журнал часу роботи
+Job Card Summary,Підсумок карт завдань
+Job Card Time Log,Журнал часу карти завдань
 Job Card and Capacity Planning,Робочий наряд та планування потужностей
 Job Card {0} has been completed,Робочий наряд {0} завершено
 Job Cards,Робочі наряди
