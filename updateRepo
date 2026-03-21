@@ -13,6 +13,12 @@ git pull origin "$BRANCH"
 # Read frappe branch from .gitmodules before cd-ing into submodule
 FRAPPE_BRANCH=$(git config -f "$DIR/.gitmodules" submodule.frappe.branch)
 
+# Ensure frappe submodule is initialized
+if [ ! -f "$DIR/frappe/.git" ] && [ ! -d "$DIR/frappe/.git" ]; then
+    echo "==> Initializing frappe submodule..."
+    git -C "$DIR" submodule update --init frappe
+fi
+
 # Fix frappe submodule remote if wrong, then pull
 echo "==> Updating frappe submodule..."
 FRAPPE_REMOTE=$(git -C "$DIR/frappe" remote get-url origin 2>/dev/null || echo "")
