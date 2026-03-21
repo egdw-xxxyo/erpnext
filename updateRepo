@@ -5,12 +5,29 @@ set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
 
-echo "==> Pulling erpnext (branch: uk-translations)..."
-git pull origin uk-translations
+# Pull current erpnext branch
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "==> Pulling erpnext (branch: $BRANCH)..."
+git pull origin "$BRANCH"
 
-echo "==> Pulling frappe submodule (branch: version-15)..."
+# Fix frappe submodule remote if wrong, then pull
+echo "==> Updating frappe submodule..."
 cd frappe
-git pull origin version-15
+FRAPPE_REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
+if [ "$FRAPPE_REMOTE" != "https://github.com/egdw-xxxyo/frappe.git" ]; then
+    echo "    Fixing frappe remote (was: $FRAPPE_REMOTE)..."
+    git remote set-url origin https://github.com/egdw-xxxyo/frappe.git
+fi
+git fetch origin
+FRAPPE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$FRAPPE_BRANCH" = "HEAD" ]; then
+    # detached HEAD — check out the branch from .gitmodules
+    FRAPPE_BRANCH=$(cd "$DIR" && git config -f .gitmodules submodule.frappe.branch)
+    echo "    Checking out frappe branch: $FRAPPE_BRANCH..."
+    git checkout "$FRAPPE_BRANCH"
+fi
+echo "    Pulling frappe (branch: $FRAPPE_BRANCH)..."
+git pull origin "$FRAPPE_BRANCH"
 cd ..
 
 echo "==> Updating submodule reference..."
