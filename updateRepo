@@ -18,11 +18,10 @@ if [ "$FRAPPE_REMOTE" != "https://github.com/egdw-xxxyo/frappe.git" ]; then
     echo "    Fixing frappe remote (was: $FRAPPE_REMOTE)..."
     git remote set-url origin https://github.com/egdw-xxxyo/frappe.git
 fi
+FRAPPE_BRANCH=$(cd "$DIR" && git config -f .gitmodules submodule.frappe.branch)
 git fetch origin
-FRAPPE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$FRAPPE_BRANCH" = "HEAD" ]; then
-    # detached HEAD — check out the branch from .gitmodules
-    FRAPPE_BRANCH=$(cd "$DIR" && git config -f .gitmodules submodule.frappe.branch)
+CURRENT=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT" != "$FRAPPE_BRANCH" ]; then
     echo "    Checking out frappe branch: $FRAPPE_BRANCH..."
     git checkout "$FRAPPE_BRANCH"
 fi
