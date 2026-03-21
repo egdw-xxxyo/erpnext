@@ -10,7 +10,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "==> Pulling erpnext (branch: $BRANCH)..."
 git pull origin "$BRANCH"
 
-# Read frappe branch from .gitmodules before cd-ing into submodule
+# Read frappe branch from .gitmodules before touching submodule
 FRAPPE_BRANCH=$(git config -f "$DIR/.gitmodules" submodule.frappe.branch)
 
 # Ensure frappe submodule is initialized
