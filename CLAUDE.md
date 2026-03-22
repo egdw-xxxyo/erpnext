@@ -141,6 +141,7 @@ Use these exact translations from `erpnext/translations/uk.csv` for consistency:
 
 - `./deploy init` — first-time setup (build image + start)
 - `./deploy migrate` — deploy code changes (copies files to all containers, reloads gunicorn, runs bench migrate)
+- `./deploy migrate --silent` — same as above but suppresses verbose output; only shows patch results and errors. **Claude should always use `--silent` when running deploy.**
 - `./deploy setup-prod` — enable production mode (disables nuke/destroy)
 - `./deploy setup-dev` — enable dev mode
 
