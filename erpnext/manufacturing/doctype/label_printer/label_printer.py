@@ -438,15 +438,15 @@ def print_label(print_job_name):
 
 	ref_doc = None
 	raw_data = None
-	if job.reference_doctype and job.reference_name:
+	if job.raw_data:
+		raw_data = json.loads(job.raw_data)
+		frappe.logger("label_printer").info(f"Using raw_data snapshot ({len(job.raw_data)} bytes)")
+	elif job.reference_doctype and job.reference_name:
 		ref_doc = frappe.get_doc(job.reference_doctype, job.reference_name)
 		frappe.logger("label_printer").info(f"Reference doc: {job.reference_doctype}/{job.reference_name}")
-	elif not job.reference_doctype:
-		if job.raw_data:
-			raw_data = json.loads(job.raw_data)
-		elif job.reference_name:
-			raw_data = {"name": job.reference_name}
-		frappe.logger("label_printer").info(f"Raw data: {raw_data}")
+	elif job.reference_name:
+		raw_data = {"name": job.reference_name}
+		frappe.logger("label_printer").info(f"Raw data fallback: {raw_data}")
 
 	parent_doc = None
 	if job.parent_doctype and job.parent_name:
@@ -804,14 +804,11 @@ def count_labels(source_doctype, source_names, label_template):
 	source_names = json.loads(source_names)
 	template = frappe.get_doc("Label Template", label_template)
 
-	if not template.source_field:
-		frappe.throw(_("Label Template {0} has no Source Field configured").format(label_template))
-
 	total = 0
 	details = []
 	for name in source_names:
 		doc = frappe.get_doc(source_doctype, name)
-		raw = doc.get(template.source_field) or ""
+		raw = (doc.get(template.source_field) or "") if template.source_field else ""
 		items = [line.strip() for line in raw.strip().split("\n") if line.strip()]
 		total += len(items)
 		details.append({"name": name, "count": len(items)})
@@ -820,23 +817,54 @@ def count_labels(source_doctype, source_names, label_template):
 
 
 @frappe.whitelist()
-def print_labels_batch(source_doctype, source_names, label_template, printer_name):
-	source_names = json.loads(source_names)
+def create_print_jobs_for_serials(serial_nos, label_template, printer_name, print_now=0):
+	"""Create Print Job records for a list of serial numbers.
+	print_now=1 sends immediately, print_now=0 queues them."""
+	if isinstance(serial_nos, str):
+		serial_nos = json.loads(serial_nos)
 	template = frappe.get_doc("Label Template", label_template)
+	jobs = []
+	for serial_no in serial_nos:
+		job = frappe.new_doc("Print Job")
+		job.label_template = label_template
+		job.label_printer = printer_name
+		job.label_size = template.label_size
+		job.reference_doctype = template.reference_doctype or "Serial No"
+		job.reference_name = serial_no
+		job.copies = 1
+		job.status = "Printing" if frappe.parse_int(print_now) else "Queued"
+		job.insert()
+		jobs.append(job.name)
+	frappe.db.commit()
+	return {"jobs": jobs, "count": len(jobs)}
 
-	if not template.source_field:
-		frappe.throw(_("Label Template {0} has no Source Field configured").format(label_template))
+
+@frappe.whitelist()
+def print_labels_batch(source_doctype, source_names, label_template, printer_name, copies=1):
+	from erpnext.manufacturing.doctype.label_template.label_template import resolve_field_mapping
+
+	source_names = json.loads(source_names)
+	copies = int(copies) if copies else 1
+	template = frappe.get_doc("Label Template", label_template)
 
 	jobs = []
 	for source_name in source_names:
 		source_doc = frappe.get_doc(source_doctype, source_name)
-		raw = source_doc.get(template.source_field) or ""
-		items = [line.strip() for line in raw.strip().split("\n") if line.strip()]
-
-		if not items:
-			continue
+		if template.source_field:
+			raw = source_doc.get(template.source_field) or ""
+			items = [line.strip() for line in raw.strip().split("\n") if line.strip()]
+		else:
+			items = [source_name]
 
 		for ref_name in items:
+			if template.reference_doctype:
+				ref_doc = frappe.get_doc(template.reference_doctype, ref_name)
+				doc_dict = frappe._dict(ref_doc.as_dict())
+			else:
+				doc_dict = frappe._dict({"name": ref_name})
+
+			resolve_field_mapping(template, doc_dict)
+
 			job = frappe.new_doc("Print Job")
 			job.label_template = label_template
 			job.label_printer = printer_name
@@ -845,8 +873,9 @@ def print_labels_batch(source_doctype, source_names, label_template, printer_nam
 			job.reference_name = ref_name
 			job.parent_doctype = source_doctype
 			job.parent_name = source_name
-			job.copies = 1
+			job.copies = copies
 			job.status = "Queued"
+			job.raw_data = json.dumps(doc_dict, default=str, ensure_ascii=False)
 			job.insert()
 			jobs.append(job.name)
 

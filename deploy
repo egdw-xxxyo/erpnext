@@ -105,8 +105,10 @@ sync_files() {
   CONTROLLERS_SRC="$DIR/erpnext/controllers"
   CONTROLLERS_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/"
 
-  # Extract stock bom.py from Docker image once (used to restore before patching)
+  # Extract stock files from Docker image once (used to restore before patching)
   docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/bom/bom.py > /tmp/_stock_bom.py 2>/dev/null
+  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/purchase_receipt/purchase_receipt.py > /tmp/_stock_pr.py 2>/dev/null
+  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/quality_inspection/quality_inspection.py > /tmp/_stock_qi.py 2>/dev/null
 
   for SERVICE in backend queue-short queue-long scheduler frontend; do
     CID=$(dc ps -q "$SERVICE" 2>/dev/null)
@@ -153,6 +155,22 @@ sync_files() {
     # job_card.js is safe to copy — it only adds a Production Data dashboard section
     docker cp "$MFG_SRC/job_card/job_card.js" "$CID:${MFG_DST}job_card/job_card.js"
     docker cp "$MFG_SRC/job_card/job_card_list.js" "$CID:${MFG_DST}job_card/job_card_list.js"
+    # Purchase Receipt customizations + Item Specification
+    docker cp "$STOCK_SRC/item_specification" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/item_specification_parameter" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/qi_serial_entry" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/item_label_template" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/purchase_receipt/purchase_receipt.js" "$CID:${STOCK_DST}purchase_receipt/purchase_receipt.js"
+    docker cp "$STOCK_SRC/quality_inspection/quality_inspection.js" "$CID:${STOCK_DST}quality_inspection/quality_inspection.js"
+    docker cp "$STOCK_SRC/purchase_receipt/purchase_receipt_utils.py" "$CID:${STOCK_DST}purchase_receipt/purchase_receipt_utils.py"
+    # Restore stock purchase_receipt.py before patching
+    docker cp /tmp/_stock_pr.py "$CID:${STOCK_DST}purchase_receipt/purchase_receipt.py"
+    docker cp "$DIR/erpnext/patches/purchase_receipt_patch.py" "$CID:/tmp/purchase_receipt_patch.py"
+    docker exec -u root "$CID" python3 /tmp/purchase_receipt_patch.py
+    # Restore stock quality_inspection.py before patching
+    docker cp /tmp/_stock_qi.py "$CID:${STOCK_DST}quality_inspection/quality_inspection.py"
+    docker cp "$DIR/erpnext/patches/quality_inspection_spec_patch.py" "$CID:/tmp/quality_inspection_spec_patch.py"
+    docker exec -u root "$CID" python3 /tmp/quality_inspection_spec_patch.py
     docker cp "$DIR/erpnext/public/js/print.js" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/public/js/print.js"
     docker cp "$DIR/frappe/frappe/printing/page/print/print.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js"
     docker cp "$DIR/frappe/frappe/printing/doctype/print_format/print_format.json" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json"
@@ -246,28 +264,41 @@ PY
     ;;
 
   migrate)
-    sync_files
+    SILENT=0
+    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    _log() { [ "$SILENT" = "0" ] && echo "$@"; }
 
-    wait_for_db
-    remove_insights_before_migrate
-    echo "==> Running bench migrate..."
-    dc exec -T backend bench --site frontend migrate
-
-    echo "==> Clearing cache..."
-    dc exec -T backend bench --site frontend clear-cache
-
-    "$DIR/insights" auto
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-
-    echo "==> Restarting workers to load new code..."
-    dc restart backend queue-short queue-long scheduler frontend websocket
-    echo "==> Waiting for backend..."
-    sleep 5
-
-    "$DIR/insights" auto
-    fix_assets
-
-    echo "Migration complete."
+    if [ "$SILENT" = "1" ]; then
+      sync_files 2>&1 | grep -E "\[.*patch\]|ERROR" | sort -u || true
+      wait_for_db >/dev/null 2>&1
+      remove_insights_before_migrate >/dev/null 2>&1
+      dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
+      dc exec -T backend bench --site frontend clear-cache >/dev/null 2>&1
+      "$DIR/insights" auto 2>/dev/null
+      dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+      dc restart backend queue-short queue-long scheduler frontend websocket 2>/dev/null
+      sleep 5
+      "$DIR/insights" auto 2>/dev/null
+      fix_assets 2>/dev/null
+      echo "Migration complete."
+    else
+      sync_files
+      wait_for_db
+      remove_insights_before_migrate
+      echo "==> Running bench migrate..."
+      dc exec -T backend bench --site frontend migrate
+      echo "==> Clearing cache..."
+      dc exec -T backend bench --site frontend clear-cache
+      "$DIR/insights" auto
+      dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+      echo "==> Restarting workers to load new code..."
+      dc restart backend queue-short queue-long scheduler frontend websocket
+      echo "==> Waiting for backend..."
+      sleep 5
+      "$DIR/insights" auto
+      fix_assets
+      echo "Migration complete."
+    fi
     ;;
 
   build)

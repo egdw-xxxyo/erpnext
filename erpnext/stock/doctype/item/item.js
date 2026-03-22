@@ -6,7 +6,7 @@ frappe.provide("erpnext.item");
 const SALES_DOCTYPES = ["Quotation", "Sales Order", "Delivery Note", "Sales Invoice"];
 const PURCHASE_DOCTYPES = ["Purchase Order", "Purchase Receipt", "Purchase Invoice"];
 
-function _show_item_print_labels_dialog(names) {
+function _show_item_print_labels_dialog(names, default_label_template) {
 	const doctype = "Item";
 	const dlg = new frappe.ui.Dialog({
 		title: __("Print Labels"),
@@ -14,7 +14,7 @@ function _show_item_print_labels_dialog(names) {
 			{
 				fieldname: "label_template", fieldtype: "Link", label: __("Label Template"),
 				options: "Label Template", reqd: 1,
-				get_query: () => ({ filters: { source_field: ["is", "set"] } }),
+				get_query: () => ({}),
 				change: () => {
 					const tmpl = dlg.get_value("label_template");
 					if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
@@ -61,7 +61,13 @@ function _show_item_print_labels_dialog(names) {
 		method: "frappe.client.get_list",
 		args: { doctype: "Label Template", filters: { source_field: ["is", "set"] }, fields: ["name"], limit_page_length: 2 },
 		async: false,
-		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("label_template", r.message[0].name); },
+		callback: (r) => {
+			if (default_label_template) {
+				dlg.set_value("label_template", default_label_template);
+			} else if (r.message && r.message.length === 1) {
+				dlg.set_value("label_template", r.message[0].name);
+			}
+		},
 	});
 	frappe.call({
 		method: "frappe.client.get_list",
@@ -153,7 +159,7 @@ frappe.ui.form.on("Item", {
 	refresh: function (frm) {
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Print Labels"), () => {
-				_show_item_print_labels_dialog([frm.doc.name]);
+				_show_item_print_labels_dialog([frm.doc.name], frm.doc.label_template);
 			});
 		}
 
