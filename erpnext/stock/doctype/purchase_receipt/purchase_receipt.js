@@ -39,7 +39,6 @@ frappe.ui.form.on("Purchase Receipt", {
 			frappe.call({
 				method: "frappe.client.get_value",
 				args: { doctype: "Purchase Receipt", filters: frm.doc.name, fieldname: "modified" },
-				async: false,
 				callback: function (r) {
 					if (r.message && r.message.modified !== frm.doc.modified) {
 						frm.reload_doc();
@@ -88,7 +87,6 @@ frappe.ui.form.on("Purchase Receipt", {
 					fields: ["name", "status", "docstatus"],
 					order_by: "creation desc",
 				},
-				async: false,
 				callback: function (r) {
 					if (r.message && r.message.length) {
 						let qis = r.message;

@@ -153,11 +153,17 @@ def render_preview(template_type, zpl_template="", html_template="", field_mappi
 	context = {"frappe": frappe, "_": _}
 	if preview_data:
 		try:
-			context["doc"] = frappe._dict(json.loads(preview_data))
+			doc_dict = frappe._dict(json.loads(preview_data))
 		except Exception:
-			context["doc"] = frappe._dict()
+			doc_dict = frappe._dict()
 	else:
-		context["doc"] = frappe._dict()
+		doc_dict = frappe._dict()
+
+	if doc_dict.get("item_code") and field_mapping:
+		mock_tpl = frappe._dict({"field_mapping": field_mapping})
+		resolve_field_mapping(mock_tpl, doc_dict)
+
+	context["doc"] = doc_dict
 
 	if template_type == "EZPL":
 		if not zpl_template:
@@ -425,18 +431,74 @@ def html_to_image(html, width_px, height_px):
 	return pcx_buf.getvalue(), png_bytes
 
 
-def resolve_field_mapping(template_doc, doc_dict):
-	"""Apply field_mapping config to doc_dict in-place. Returns the mutated dict.
+def _format_spec_value(p):
+	"""Format a spec parameter value with its UOM for label display."""
+	raw = p.get("value")
+	if not raw and raw != 0:
+		return ""
+	raw = str(raw).strip()
+	if not raw:
+		return ""
+	if p.get("numeric"):
+		try:
+			num = float(raw)
+			raw = f"{num:g}"
+		except (ValueError, TypeError):
+			pass
+	uom = (p.get("uom") or "").strip()
+	if uom:
+		return f"{raw}{uom}"
+	return raw
 
-	Fields already set in doc_dict are skipped (preview_data values win).
+
+def _spec_param_to_key(param_name):
+	"""Convert spec parameter name to a flat dict key: lowercase, spaces→underscores, remove apostrophes."""
+	return param_name.lower().replace(" ", "_").replace("ʼ", "").replace("'", "")
+
+
+def _format_spec_for_label(p):
+	"""Format a spec parameter dict into a display string for label use."""
+	if p.get("calculated_value"):
+		val = f"{p['calculated_value']:g}"
+		uom = (p.get("uom") or "").strip()
+		return f"{val}{uom}" if uom else val
+	if p.get("display_value"):
+		return p["display_value"]
+	if p.get("value"):
+		return str(p["value"])
+	if p.get("numeric") and (p.get("min_value") or p.get("max_value")):
+		uom = (p.get("uom") or "").strip()
+		mn, mx = p.get("min_value") or 0, p.get("max_value") or 0
+		nominal = (mn + mx) / 2 if mn and mx else (mn or mx)
+		val = f"{nominal:g}"
+		return f"{val}{uom}" if uom else val
+	return "—"
+
+
+def resolve_field_mapping(template_doc, doc_dict):
+	"""Inject all spec params as flat keys into doc_dict, then apply field_mapping overrides.
+
+	For each spec param, a key is created from the param name (lowercase, spaces→_).
+	E.g. "Струм заряду" → doc_dict["струм_заряду"] = "8.4А"
+	Fields already set in doc_dict are NOT overwritten (preview_data wins).
 	"""
+	item_code = doc_dict.get("item_code")
+	spec = None
+
+	if item_code:
+		from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
+		raw_spec = get_spec_for_item(item_code) or {}
+		spec = {k: frappe._dict(v) for k, v in raw_spec.items()}
+		for param_name, p in spec.items():
+			key = _spec_param_to_key(param_name)
+			if not doc_dict.get(key):
+				doc_dict[key] = _format_spec_for_label(p)
+
 	field_mapping = getattr(template_doc, "field_mapping", None)
 	if not field_mapping:
 		return doc_dict
 	try:
 		mapping = json.loads(field_mapping)
-		item_code = doc_dict.get("item_code")
-		spec = None
 		for field, cfg in mapping.items():
 			if doc_dict.get(field):
 				continue
@@ -444,16 +506,9 @@ def resolve_field_mapping(template_doc, doc_dict):
 			if source == "doc":
 				val = str(doc_dict.get(cfg["param"]) or "")
 				doc_dict[field] = val
-			elif source == "spec" and item_code:
-				if spec is None:
-					from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
-					spec = {k: frappe._dict(v) for k, v in (get_spec_for_item(item_code) or {}).items()}
+			elif source == "spec" and spec:
 				p = spec.get(cfg["param"]) or frappe._dict()
-				dv = p.get("display_value") or ""
-				val = (dv if dv and dv != "—" else None) or (
-					(str(p.get("value") or "").strip() +
-					 (" " + p["uom"] if p.get("uom") else "")).strip()
-				) or "—"
+				val = _format_spec_for_label(p)
 				if cfg.get("transform") == "chemistry":
 					val = "Po" if str(p.get("value") or "").startswith("2") else "ion"
 				doc_dict[field] = val

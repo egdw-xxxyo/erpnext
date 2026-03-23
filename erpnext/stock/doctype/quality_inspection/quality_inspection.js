@@ -114,11 +114,14 @@ frappe.ui.form.on("Quality Inspection", {
 		$wrapper.find(".form-grid-container, .grid-footer, .clearfix, .small.form-clickable-section").hide();
 
 		frappe.call({
-			method: "frappe.client.get",
-			args: { doctype: "Item", name: frm.doc.item_code },
+			method: "erpnext.stock.doctype.item_specification.item_specification.get_spec_for_item",
+			args: { item_code: frm.doc.item_code },
 			callback: function (r) {
 				if (!r.message) return;
-				let params = (r.message.item_spec_parameters || []).filter((p) => p.display_value);
+				let spec = r.message;
+				let params = Object.keys(spec)
+					.map((key) => ({ parameter: key, ...spec[key] }))
+					.filter((p) => p.display_value);
 				if (!params.length) {
 					return;
 				}

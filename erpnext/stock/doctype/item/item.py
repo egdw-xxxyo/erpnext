@@ -233,6 +233,7 @@ class Item(Document):
 
 		self._inherit_serial_fields_from_template()
 		self.resolve_serial_number_template()
+		self._evaluate_spec_formulas()
 
 		if not self.is_new():
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
@@ -271,6 +272,16 @@ class Item(Document):
 					if abbr:
 						series = series.replace(token, abbr)
 			self.serial_no_series = series
+
+	def _evaluate_spec_formulas(self):
+		if not self.variant_of:
+			return
+		if not self.get("item_spec_parameters"):
+			return
+		if not any(row.get("formula") for row in self.item_spec_parameters):
+			return
+		from erpnext.stock.doctype.item_specification_parameter.formula_utils import evaluate_spec_formulas
+		evaluate_spec_formulas(self)
 
 	def on_update(self):
 		self.update_variants()
