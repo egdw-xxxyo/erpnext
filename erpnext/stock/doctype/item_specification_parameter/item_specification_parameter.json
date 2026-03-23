@@ -11,6 +11,9 @@
   "value",
   "min_value",
   "max_value",
+  "formula",
+  "tolerance_percent",
+  "calculated_value",
   "column_break_2",
   "uom",
   "display_value"
@@ -60,6 +63,26 @@
    "in_list_view": 1,
    "depends_on": "eval:doc.numeric",
    "columns": 1
+  },
+  {
+   "fieldname": "formula",
+   "fieldtype": "Small Text",
+   "label": "Formula",
+   "depends_on": "eval:doc.numeric"
+  },
+  {
+   "fieldname": "tolerance_percent",
+   "fieldtype": "Float",
+   "label": "Tolerance %",
+   "default": "0",
+   "depends_on": "eval:doc.numeric && doc.formula"
+  },
+  {
+   "fieldname": "calculated_value",
+   "fieldtype": "Float",
+   "label": "Calculated Value",
+   "read_only": 1,
+   "depends_on": "eval:doc.numeric && doc.formula"
   },
   {
    "fieldname": "column_break_2",

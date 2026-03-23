@@ -232,7 +232,7 @@ def check_all_inspections_passed(purchase_receipt_name):
 @frappe.whitelist()
 def update_pr_quantities_from_qi(quality_inspection_name):
 	"""After QI is submitted, update PR item quantities based on pass/fail results.
-	Passed serials → qty (accepted), Failed serials → rejected_qty."""
+	Passed serials → qty (accepted), Failed serials → rejected_qty with rejected bundle."""
 	frappe.has_permission("Quality Inspection", "write", quality_inspection_name, throw=True)
 	qi = frappe.get_doc("Quality Inspection", quality_inspection_name)
 
@@ -256,21 +256,23 @@ def update_pr_quantities_from_qi(quality_inspection_name):
 	pr = frappe.get_doc("Purchase Receipt", qi.reference_name)
 	for item in pr.items:
 		if item.item_code == qi.item_code:
-			# Only accepted serials enter the warehouse — failed ones stay with supplier
-			item.db_set("received_qty", pass_count, update_modified=False)
+			total = pass_count + fail_count
+			item.db_set("received_qty", total, update_modified=False)
 			item.db_set("qty", pass_count, update_modified=False)
-			item.db_set("rejected_qty", 0, update_modified=False)
-			item.db_set("amount", pass_count * (item.rate or 0), update_modified=False)
-			item.db_set("base_amount", pass_count * (item.base_rate or 0), update_modified=False)
-			# Remove failed serials from the bundle
+			item.db_set("rejected_qty", fail_count, update_modified=False)
+			item.db_set("amount", total * (item.rate or 0), update_modified=False)
+			item.db_set("base_amount", total * (item.base_rate or 0), update_modified=False)
+
 			if failed_serials and item.serial_and_batch_bundle:
-				frappe.db.delete("Serial and Batch Entry", {
-					"parent": item.serial_and_batch_bundle,
-					"serial_no": ("in", failed_serials),
-				})
+				# Move failed serials from main bundle to a rejected bundle
+				_move_serials_to_rejected_bundle(
+					item, failed_serials, pr.name, pr.posting_date,
+					pr.posting_time, pr.company
+				)
 			break
 
-	qi_status = "Accepted" if fail_count == 0 else "Rejected"
+	# Always "Accepted" — rejected serials are handled via rejected_qty/bundle on the PR
+	qi_status = "Accepted"
 	qi.db_set("status", qi_status, update_modified=False)
 
 	frappe.db.commit()
@@ -280,6 +282,62 @@ def update_pr_quantities_from_qi(quality_inspection_name):
 		"failed_serials": failed_serials,
 		"qi_status": qi_status,
 	}
+
+
+def _move_serials_to_rejected_bundle(item, failed_serials, pr_name, posting_date, posting_time, company):
+	"""Remove failed serials from the main bundle and create a rejected bundle for them."""
+	main_bundle = item.serial_and_batch_bundle
+
+	# Get the failed serial entries from the main bundle
+	failed_entries = frappe.get_all(
+		"Serial and Batch Entry",
+		filters={"parent": main_bundle, "serial_no": ("in", failed_serials)},
+		fields=["serial_no", "batch_no", "incoming_rate"],
+	)
+	if not failed_entries:
+		return
+
+	# Remove failed serials from the main bundle
+	frappe.db.delete("Serial and Batch Entry", {
+		"parent": main_bundle,
+		"serial_no": ("in", failed_serials),
+	})
+
+	# Update the main bundle total_qty
+	remaining = frappe.db.count("Serial and Batch Entry", {"parent": main_bundle})
+	frappe.db.set_value("Serial and Batch Bundle", main_bundle, "total_qty", remaining)
+
+	# Delete any existing rejected bundle for this item
+	old_rejected = item.rejected_serial_and_batch_bundle
+	if old_rejected:
+		frappe.delete_doc("Serial and Batch Bundle", old_rejected, force=True)
+
+	# Create a new draft bundle for rejected serials
+	rejected_bundle = frappe.new_doc("Serial and Batch Bundle")
+	rejected_bundle.item_code = item.item_code
+	rejected_bundle.warehouse = item.warehouse
+	rejected_bundle.voucher_type = "Purchase Receipt"
+	rejected_bundle.voucher_no = pr_name
+	rejected_bundle.voucher_detail_no = item.name
+	rejected_bundle.posting_date = posting_date
+	rejected_bundle.posting_time = posting_time
+	rejected_bundle.company = company
+	rejected_bundle.type_of_transaction = "Inward"
+	rejected_bundle.total_qty = len(failed_entries)
+	rejected_bundle.is_rejected = 1
+
+	for entry in failed_entries:
+		rejected_bundle.append("entries", {
+			"serial_no": entry.serial_no,
+			"batch_no": entry.batch_no,
+			"incoming_rate": entry.incoming_rate or 0,
+			"qty": 1,
+		})
+
+	rejected_bundle.flags.ignore_validate = True
+	rejected_bundle.save()
+
+	item.db_set("rejected_serial_and_batch_bundle", rejected_bundle.name, update_modified=False)
 
 
 @frappe.whitelist()
@@ -294,7 +352,6 @@ def get_label_templates_for_items(item_codes):
 		"Item Label Template",
 		filters=[["parent", "in", item_codes]],
 		fields=["parent", "label_template", "label_printer"],
-		ignore_permissions=True,
 	)
 	result = {}
 	for r in rows:
@@ -308,6 +365,7 @@ def get_label_templates_for_items(item_codes):
 @frappe.whitelist()
 def cleanup_draft_bundles(purchase_receipt_name):
 	"""Delete draft Serial and Batch Bundles when PR is cancelled or deleted."""
+	frappe.has_permission("Purchase Receipt", "write", purchase_receipt_name, throw=True)
 	bundles = frappe.get_all(
 		"Serial and Batch Bundle",
 		filters={

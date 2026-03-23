@@ -18,15 +18,12 @@ class ItemSpecification(Document):
 
 @frappe.whitelist()
 def get_spec_for_item(item_code):
-	"""Return spec parameters as dict for label/print template use."""
-	spec_name = frappe.get_cached_value("Item", item_code, "item_specification")
-	if not spec_name:
-		return {}
-
+	"""Return spec parameters as dict for label/print template use.
+	Reads from the Item's own item_spec_parameters child table."""
 	params = frappe.get_all(
 		"Item Specification Parameter",
-		filters={"parent": spec_name},
-		fields=["parameter", "value", "numeric", "min_value", "max_value", "uom", "display_value"],
+		filters={"parent": item_code, "parenttype": "Item", "parentfield": "item_spec_parameters"},
+		fields=["parameter", "value", "numeric", "min_value", "max_value", "calculated_value", "uom", "display_value"],
 		order_by="idx asc",
 	)
 
@@ -37,6 +34,7 @@ def get_spec_for_item(item_code):
 			"numeric": p.numeric,
 			"min_value": p.min_value,
 			"max_value": p.max_value,
+			"calculated_value": p.calculated_value,
 			"uom": p.uom,
 			"display_value": p.display_value,
 		}

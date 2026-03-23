@@ -1,7 +1,10 @@
 """Patch stock quality_inspection.py to:
 1. Pull acceptance criteria from Item Specification
 2. Auto-populate serial_inspections from PR bundle on insert
-3. Update PR quantities on QI submit based on serial pass/fail
+3. Prevent duplicate QI for same PR + item_code
+
+NOTE: PR quantity updates on QI submit are handled by the JS-callable
+update_pr_quantities_from_qi endpoint in purchase_receipt_utils.py.
 """
 import os
 import re
@@ -56,12 +59,12 @@ NEW_METHOD = '''
 			self.manual_inspection = 1
 
 	def _resolve_spec_values(self):
-		"""Load specification parameters from Item's child table."""
+		"""Load specification parameters from Item's own spec child table."""
 		if not self.item_code:
 			return {}
 		spec_params = frappe.get_all(
 			"Item Specification Parameter",
-			filters={"parent": self.item_code, "parenttype": "Item"},
+			filters={"parent": self.item_code, "parenttype": "Item", "parentfield": "item_spec_parameters"},
 			fields=["parameter", "value", "numeric", "min_value", "max_value"],
 		)
 		return {sp.parameter: sp for sp in spec_params}
@@ -126,32 +129,8 @@ NEW_METHOD = '''
 		if not serial_inspections:
 			return
 		try:
-			pass_serials = [e.serial_no for e in serial_inspections if e.status == "Pass"]
-			fail_serials = [e.serial_no for e in serial_inspections if e.status != "Pass"]
-			pass_count = len(pass_serials)
-			fail_count = len(fail_serials)
-			pr_items = frappe.get_all(
-				"Purchase Receipt Item",
-				filters={"parent": self.reference_name, "item_code": self.item_code},
-				fields=["name", "serial_and_batch_bundle", "rate", "base_rate"],
-				limit=1,
-			)
-			if not pr_items:
-				return
-			pr_item = pr_items[0]
-			frappe.db.set_value("Purchase Receipt Item", pr_item.name, {
-				"received_qty": pass_count,
-				"qty": pass_count,
-				"rejected_qty": 0,
-				"amount": pass_count * (pr_item.rate or 0),
-				"base_amount": pass_count * (pr_item.base_rate or 0),
-			})
-			if fail_serials and pr_item.serial_and_batch_bundle:
-				frappe.db.delete("Serial and Batch Entry", {
-					"parent": pr_item.serial_and_batch_bundle,
-					"serial_no": ("in", fail_serials),
-				})
-			frappe.db.commit()
+			from erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils import update_pr_quantities_from_qi
+			update_pr_quantities_from_qi(self.name)
 		except Exception as e:
 			frappe.log_error(title="QI Submit PR Update Error", message=str(e))
 '''
@@ -184,7 +163,7 @@ else:
             print("[qi_spec_patch] ERROR: Could not find get_item_specification_details method")
             exit(1)
 
-    # Step 2: Inject our call into the stock on_submit method
+    # Step 2: Inject _update_pr_from_serial_inspections call into on_submit
     on_submit_pattern = r'(\tdef on_submit\(self\):\n(?:\t\t.*\n)*?\t\t\tself\.update_qc_reference\(\))'
     on_submit_match = re.search(on_submit_pattern, content)
     if on_submit_match:
@@ -199,7 +178,8 @@ else:
             content = content.replace(old, old + "\n\t\tself._update_pr_from_serial_inspections()")
             print("[qi_spec_patch] Injected via fallback pattern")
         else:
-            print("[qi_spec_patch] WARNING: No on_submit found at all")
+            print("[qi_spec_patch] ERROR: Could not find on_submit method to inject PR update")
+            exit(1)
 
     try:
         os.chmod(QI_PY, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)

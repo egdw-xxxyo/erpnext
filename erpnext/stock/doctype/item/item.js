@@ -275,6 +275,46 @@ frappe.ui.form.on("Item", {
 				]),
 				true
 			);
+
+			if (frm.fields_dict.item_spec_parameters) {
+				let $spec = frm.fields_dict.item_spec_parameters.$wrapper;
+				$spec.find(".btn-fetch-parent-spec").remove();
+				let $btn = $(`<button class="btn btn-xs btn-default btn-fetch-parent-spec" style="margin-bottom:10px">
+					${__("Fetch from Template")}
+				</button>`);
+				$btn.on("click", () => {
+					frappe.call({
+						method: "frappe.client.get",
+						args: { doctype: "Item", name: frm.doc.variant_of },
+						callback: function (r) {
+							if (!r.message) return;
+							let tpl_params = r.message.item_spec_parameters || [];
+							if (!tpl_params.length) {
+								frappe.msgprint(__("Template has no specification parameters."));
+								return;
+							}
+							frm.clear_table("item_spec_parameters");
+							for (let tp of tpl_params) {
+								let row = frm.add_child("item_spec_parameters");
+								row.parameter = tp.parameter;
+								row.numeric = tp.numeric;
+								row.value = tp.value;
+								row.min_value = tp.min_value;
+								row.max_value = tp.max_value;
+								row.uom = tp.uom;
+								row.display_value = tp.display_value;
+								row.formula = tp.formula;
+								row.tolerance_percent = tp.tolerance_percent;
+								row.calculated_value = tp.calculated_value;
+							}
+							frm.refresh_field("item_spec_parameters");
+							frm.dirty();
+							frappe.show_alert({ message: __("Fetched from template. Save to evaluate formulas."), indicator: "green" });
+						},
+					});
+				});
+				$spec.prepend($btn);
+			}
 		}
 
 		if (frappe.defaults.get_default("item_naming_by") != "Naming Series" || frm.doc.variant_of) {
