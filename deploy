@@ -171,6 +171,7 @@ sync_files() {
     docker cp /tmp/_stock_qi.py "$CID:${STOCK_DST}quality_inspection/quality_inspection.py"
     docker cp "$DIR/erpnext/patches/quality_inspection_spec_patch.py" "$CID:/tmp/quality_inspection_spec_patch.py"
     docker exec -u root "$CID" python3 /tmp/quality_inspection_spec_patch.py
+    docker cp "$DIR/erpnext/patches/setup_pr_workflow.py" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/patches/setup_pr_workflow.py"
     docker cp "$DIR/erpnext/public/js/print.js" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/public/js/print.js"
     docker cp "$DIR/frappe/frappe/printing/page/print/print.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js"
     docker cp "$DIR/frappe/frappe/printing/doctype/print_format/print_format.json" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json"
@@ -241,6 +242,8 @@ PY
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
+    echo "==> Running setup_pr_workflow (custom fields)..."
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
     "$DIR/insights" auto
@@ -273,6 +276,7 @@ PY
       wait_for_db >/dev/null 2>&1
       remove_insights_before_migrate >/dev/null 2>&1
       dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
+      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute 2>&1 | grep -v "exists" || true
       dc exec -T backend bench --site frontend clear-cache >/dev/null 2>&1
       "$DIR/insights" auto 2>/dev/null
       dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
@@ -317,6 +321,8 @@ PY
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
+    echo "==> Running setup_pr_workflow (custom fields)..."
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
 
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache

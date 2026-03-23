@@ -11,6 +11,7 @@ def execute():
 	create_workflow_actions()
 	create_workflow()
 	create_custom_fields_on_item()
+	create_item_specification_tab()
 	create_custom_fields_on_pr_item()
 	create_custom_field_on_qi()
 	frappe.db.commit()
@@ -163,6 +164,27 @@ def create_custom_fields_on_item():
 			"options": "Item Specification",
 			"insert_after": "item_group",
 			"description": "Специфікація з очікуваними значеннями/діапазонами та налаштуваннями контролю якості",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_item_specification_tab():
+	fields = [
+		{
+			"dt": "Item",
+			"fieldname": "specification_tab",
+			"fieldtype": "Tab Break",
+			"label": "Specification",
+			"insert_after": "default_item_manufacturer",
+		},
+		{
+			"dt": "Item",
+			"fieldname": "item_spec_parameters",
+			"fieldtype": "Table",
+			"label": "Specification Parameters",
+			"options": "Item Specification Parameter",
+			"insert_after": "specification_tab",
 		},
 	]
 	_create_custom_fields(fields)
