@@ -260,8 +260,6 @@ def update_pr_quantities_from_qi(quality_inspection_name):
 			item.db_set("received_qty", total, update_modified=False)
 			item.db_set("qty", pass_count, update_modified=False)
 			item.db_set("rejected_qty", fail_count, update_modified=False)
-			item.db_set("amount", total * (item.rate or 0), update_modified=False)
-			item.db_set("base_amount", total * (item.base_rate or 0), update_modified=False)
 
 			if failed_serials and item.serial_and_batch_bundle:
 				# Move failed serials from main bundle to a rejected bundle
