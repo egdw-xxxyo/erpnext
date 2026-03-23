@@ -138,6 +138,61 @@ frappe.ui.form.on("Purchase Receipt", {
 			});
 		}
 
+		// Create QI button — works on both draft and submitted PRs
+		if (frm.doc.name && !frm.doc.__islocal) {
+			let items_needing_qi = (frm.doc.items || []).filter(
+				item => item.serial_and_batch_bundle && !item.quality_inspection
+			);
+			if (items_needing_qi.length) {
+				frm.add_custom_button(
+					__("Quality Inspection"),
+					function () {
+						if (items_needing_qi.length === 1) {
+							let item = items_needing_qi[0];
+							frappe.new_doc("Quality Inspection", {
+								inspection_type: "Incoming",
+								reference_type: "Purchase Receipt",
+								reference_name: frm.doc.name,
+								item_code: item.item_code,
+								item_name: item.item_name,
+								sample_size: item.qty,
+								company: frm.doc.company,
+								child_row_reference: item.name,
+							});
+						} else {
+							// Multiple items — let user pick
+							let options = items_needing_qi.map(i => i.item_code);
+							frappe.prompt(
+								[{
+									label: __("Item"),
+									fieldname: "item_code",
+									fieldtype: "Select",
+									options: options.join("\n"),
+									reqd: 1,
+								}],
+								function (values) {
+									let item = items_needing_qi.find(i => i.item_code === values.item_code);
+									frappe.new_doc("Quality Inspection", {
+										inspection_type: "Incoming",
+										reference_type: "Purchase Receipt",
+										reference_name: frm.doc.name,
+										item_code: item.item_code,
+										item_name: item.item_name,
+										sample_size: item.qty,
+										company: frm.doc.company,
+										child_row_reference: item.name,
+									});
+								},
+								__("Select Item for Quality Inspection"),
+								__("Create")
+							);
+						}
+					},
+					__("Create")
+				);
+			}
+		}
+
 		if (frm.doc.docstatus === 1 && frm.doc.is_return === 1 && frm.doc.per_billed !== 100) {
 			frm.add_custom_button(
 				__("Debit Note"),
