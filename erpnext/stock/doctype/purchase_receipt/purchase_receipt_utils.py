@@ -253,9 +253,24 @@ def update_pr_quantities_from_qi(quality_inspection_name):
 	if not (pass_count + fail_count):
 		return
 
-	# QI only records pass/fail per serial — PR quantities stay unchanged.
-	# Actual acceptance/rejection (returns, debit notes) is handled separately.
-	qi_status = "Accepted" if fail_count == 0 else "Rejected"
+	pr = frappe.get_doc("Purchase Receipt", qi.reference_name)
+	for item in pr.items:
+		if item.item_code == qi.item_code:
+			total = pass_count + fail_count
+			item.db_set("received_qty", total, update_modified=False)
+			item.db_set("qty", pass_count, update_modified=False)
+			item.db_set("rejected_qty", fail_count, update_modified=False)
+
+			if failed_serials and item.serial_and_batch_bundle:
+				_move_serials_to_rejected_bundle(
+					item, failed_serials, pr.name, pr.posting_date,
+					pr.posting_time, pr.company
+				)
+			break
+
+	# Always "Accepted" so PR submission is not blocked by QI validation.
+	# Individual serial pass/fail is tracked in serial_inspections.
+	qi_status = "Accepted"
 	qi.db_set("status", qi_status, update_modified=False)
 
 	frappe.db.commit()
