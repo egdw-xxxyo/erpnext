@@ -77,30 +77,61 @@ frappe.ui.form.on("Purchase Receipt", {
 			}
 		}
 
-		// Show menu item to navigate to linked Quality Inspections
+		// Show button to navigate to linked Quality Inspections
 		if (frm.doc.name && !frm.doc.name.startsWith("new-")) {
 			frappe.call({
 				method: "frappe.client.get_list",
 				args: {
 					doctype: "Quality Inspection",
 					filters: { reference_name: frm.doc.name, reference_type: "Purchase Receipt", docstatus: ["!=", 2] },
-					fields: ["name", "status", "docstatus"],
+					fields: ["name", "item_code", "status", "docstatus"],
 					order_by: "creation desc",
 				},
 				callback: function (r) {
 					if (r.message && r.message.length) {
 						let qis = r.message;
 						if (qis.length === 1) {
-							frm.page.add_menu_item(__("Quality Inspection"), function () {
-								frappe.set_route("Form", "Quality Inspection", qis[0].name);
-							});
+							let qi = qis[0];
+							let indicator = qi.docstatus === 1
+								? (qi.status === "Accepted" ? "green" : "red")
+								: "orange";
+							let label = qi.docstatus === 1
+								? __("Quality Inspection") + ": " + __(qi.status)
+								: __("Quality Inspection") + " (" + __("Draft") + ")";
+							frm.dashboard.add_indicator(label, indicator);
+							frm.add_custom_button(
+								__("Quality Inspection"),
+								function () {
+									frappe.set_route("Form", "Quality Inspection", qi.name);
+								},
+								__("View")
+							);
 						} else {
-							frm.page.add_menu_item(__("Quality Inspection"), function () {
-								frappe.set_route("List", "Quality Inspection", {
-									reference_name: frm.doc.name,
-									reference_type: "Purchase Receipt",
-								});
-							});
+							let submitted = qis.filter(q => q.docstatus === 1);
+							let draft = qis.filter(q => q.docstatus === 0);
+							if (submitted.length) {
+								let all_accepted = submitted.every(q => q.status === "Accepted");
+								frm.dashboard.add_indicator(
+									__("Quality Inspections") + ": " + submitted.length + " " + (all_accepted ? __("Accepted") : __("Mixed")),
+									all_accepted ? "green" : "orange"
+								);
+							}
+							if (draft.length) {
+								frm.dashboard.add_indicator(
+									__("Quality Inspections") + ": " + draft.length + " " + __("Draft"),
+									"orange"
+								);
+							}
+							frm.add_custom_button(
+								__("Quality Inspections"),
+								function () {
+									frappe.set_route("List", "Quality Inspection", {
+										reference_name: frm.doc.name,
+										reference_type: "Purchase Receipt",
+									});
+								},
+								__("View")
+							);
 						}
 					}
 				},
