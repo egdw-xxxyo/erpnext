@@ -342,7 +342,8 @@ def _move_serials_to_rejected_bundle(item, failed_serials, pr_name, posting_date
 
 @frappe.whitelist()
 def get_label_templates_for_items(item_codes):
-	"""Return label templates configured on items. item_codes is a JSON list."""
+	"""Return label templates configured on items. item_codes is a JSON list.
+	Falls back to the template item's label_templates for variants."""
 	import json
 	if isinstance(item_codes, str):
 		item_codes = json.loads(item_codes)
@@ -359,6 +360,34 @@ def get_label_templates_for_items(item_codes):
 			"label_template": r.label_template,
 			"label_printer": r.label_printer,
 		})
+
+	missing = [ic for ic in item_codes if ic not in result]
+	if missing:
+		template_map = dict(
+			frappe.get_all(
+				"Item",
+				filters=[["name", "in", missing], ["variant_of", "is", "set"]],
+				fields=["name", "variant_of"],
+				as_list=True,
+			)
+		)
+		if template_map:
+			template_codes = list(set(template_map.values()))
+			template_rows = frappe.get_all(
+				"Item Label Template",
+				filters=[["parent", "in", template_codes]],
+				fields=["parent", "label_template", "label_printer"],
+			)
+			templates_by_parent = {}
+			for r in template_rows:
+				templates_by_parent.setdefault(r.parent, []).append({
+					"label_template": r.label_template,
+					"label_printer": r.label_printer,
+				})
+			for item_code, tmpl_code in template_map.items():
+				if tmpl_code in templates_by_parent:
+					result[item_code] = templates_by_parent[tmpl_code]
+
 	return result
 
 
