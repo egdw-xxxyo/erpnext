@@ -1,3 +1,5 @@
+name: docker
+
 services:
   backend:
     image: erpnext-uk:v15.96.1
