@@ -163,6 +163,7 @@ sync_files() {
     docker cp "$DIR/frappe/frappe/printing/page/print/print.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js"
     docker cp "$DIR/frappe/frappe/printing/doctype/print_format/print_format.json" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json"
     docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
+    docker cp "$DIR/erpnext/manufacturing/report/component_stock_balance" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/report/"
     docker cp "$DIR/erpnext/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/translations/uk.csv"
     docker cp "$DIR/frappe/frappe/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/translations/uk.csv"
     docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
