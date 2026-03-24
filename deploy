@@ -260,6 +260,9 @@ PY
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
 
+    echo "==> Rebuilding frontend assets..."
+    dc exec -T backend bench build --force
+
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
 
