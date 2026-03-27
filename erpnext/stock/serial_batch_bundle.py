@@ -1442,10 +1442,6 @@ class SerialBatchCreation:
 					self.item_name,
 					self.description,
 					"Active",
-					voucher_type,
-					voucher_no,
-					posting_date,
-					self.batch_no,
 				)
 			)
 
@@ -1463,10 +1459,6 @@ class SerialBatchCreation:
 				"item_name",
 				"description",
 				"status",
-				"reference_doctype",
-				"reference_name",
-				"posting_date",
-				"batch_no",
 			]
 
 			try:
@@ -1556,11 +1548,14 @@ def get_batchwise_qty(voucher_type, voucher_no):
 	if not bundles:
 		return
 
-	batches = frappe.get_all(
-		"Serial and Batch Entry",
-		filters={"parent": ("in", bundles), "batch_no": ("is", "set")},
-		fields=["batch_no", {"SUM": "qty", "as": "qty"}],
-		group_by="batch_no",
+	batches = frappe.db.sql(
+		"""
+		SELECT batch_no, SUM(qty) as qty
+		FROM `tabSerial and Batch Entry`
+		WHERE parent IN %(bundles)s AND batch_no IS NOT NULL AND batch_no != ''
+		GROUP BY batch_no
+		""",
+		{"bundles": bundles},
 		as_list=1,
 	)
 

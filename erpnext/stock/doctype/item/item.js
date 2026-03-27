@@ -6,7 +6,7 @@ frappe.provide("erpnext.item");
 const SALES_DOCTYPES = ["Quotation", "Sales Order", "Delivery Note", "Sales Invoice"];
 const PURCHASE_DOCTYPES = ["Purchase Order", "Purchase Receipt", "Purchase Invoice"];
 
-function _show_item_print_labels_dialog(names) {
+function _show_item_print_labels_dialog(names, default_label_template) {
 	const doctype = "Item";
 	const dlg = new frappe.ui.Dialog({
 		title: __("Print Labels"),
@@ -14,7 +14,7 @@ function _show_item_print_labels_dialog(names) {
 			{
 				fieldname: "label_template", fieldtype: "Link", label: __("Label Template"),
 				options: "Label Template", reqd: 1,
-				get_query: () => ({ filters: { source_field: ["is", "set"] } }),
+				get_query: () => ({}),
 				change: () => {
 					const tmpl = dlg.get_value("label_template");
 					if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
@@ -61,7 +61,13 @@ function _show_item_print_labels_dialog(names) {
 		method: "frappe.client.get_list",
 		args: { doctype: "Label Template", filters: { source_field: ["is", "set"] }, fields: ["name"], limit_page_length: 2 },
 		async: false,
-		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("label_template", r.message[0].name); },
+		callback: (r) => {
+			if (default_label_template) {
+				dlg.set_value("label_template", default_label_template);
+			} else if (r.message && r.message.length === 1) {
+				dlg.set_value("label_template", r.message[0].name);
+			}
+		},
 	});
 	frappe.call({
 		method: "frappe.client.get_list",
@@ -153,7 +159,7 @@ frappe.ui.form.on("Item", {
 	refresh: function (frm) {
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Print Labels"), () => {
-				_show_item_print_labels_dialog([frm.doc.name]);
+				_show_item_print_labels_dialog([frm.doc.name], frm.doc.label_template);
 			});
 		}
 
@@ -269,6 +275,46 @@ frappe.ui.form.on("Item", {
 				]),
 				true
 			);
+
+			if (frm.fields_dict.item_spec_parameters) {
+				let $spec = frm.fields_dict.item_spec_parameters.$wrapper;
+				$spec.find(".btn-fetch-parent-spec").remove();
+				let $btn = $(`<button class="btn btn-xs btn-default btn-fetch-parent-spec" style="margin-bottom:10px">
+					${__("Fetch from Template")}
+				</button>`);
+				$btn.on("click", () => {
+					frappe.call({
+						method: "frappe.client.get",
+						args: { doctype: "Item", name: frm.doc.variant_of },
+						callback: function (r) {
+							if (!r.message) return;
+							let tpl_params = r.message.item_spec_parameters || [];
+							if (!tpl_params.length) {
+								frappe.msgprint(__("Template has no specification parameters."));
+								return;
+							}
+							frm.clear_table("item_spec_parameters");
+							for (let tp of tpl_params) {
+								let row = frm.add_child("item_spec_parameters");
+								row.parameter = tp.parameter;
+								row.numeric = tp.numeric;
+								row.value = tp.value;
+								row.min_value = tp.min_value;
+								row.max_value = tp.max_value;
+								row.uom = tp.uom;
+								row.display_value = tp.display_value;
+								row.formula = tp.formula;
+								row.tolerance_percent = tp.tolerance_percent;
+								row.calculated_value = tp.calculated_value;
+							}
+							frm.refresh_field("item_spec_parameters");
+							frm.dirty();
+							frappe.show_alert({ message: __("Fetched from template. Save to evaluate formulas."), indicator: "green" });
+						},
+					});
+				});
+				$spec.prepend($btn);
+			}
 		}
 
 		if (frappe.defaults.get_default("item_naming_by") != "Naming Series" || frm.doc.variant_of) {

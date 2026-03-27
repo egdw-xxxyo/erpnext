@@ -2422,6 +2422,7 @@ Certificate Limit,Обмеження сертифіката
 Certificate No,Свідоцтво No
 Certificate Required,Сертифікат обов&#39;язковий
 Chain,Чейн
+Change,Здача
 Change Amount,Сума змін
 Change Labels,Замінити етикетки
 Change Release Date,Змінити дату випуску
@@ -2507,7 +2508,7 @@ Classification of Customers by region,Класифікація клієнтів 
 Clauses and Conditions,Статті та умови
 Clear Demo Data,Очистити демо-дані
 Clear Notifications,Очистити сповіщення
-Clear Table,Очистити таблицю
+Clear Table,Ясно Таблиця
 Clearance Date,Clearance дата
 Clearance Date not mentioned,Clearance дата не вказано
 Clearance Date updated,Clearance дату оновлено
@@ -2780,7 +2781,7 @@ Copy Fields to Variant,Копіювати поля до варіанта
 Core,Ядро
 Corrective,Коригувальний
 Corrective Action,Коригувальні дії
-Corrective Job Card,Коригувальна карта завдань
+Corrective Job Card,Картка на ремонтні роботи
 Corrective Operation,Коригувальна операція
 Corrective Operation Cost,Вартість коригувальної операції
 Corrective/Preventive,Корекційний / профілактичний
@@ -2861,7 +2862,7 @@ Create Employee records.,Створення записів про працівн
 Create Grouped Asset,Створити згрупований актив
 Create Inter Company Journal Entry,Створіть запис журналу Inter Company
 Create Invoices,Створіть рахунки-фактури
-Create Job Card,Створити карту завдань
+Create Job Card,Створіть карту роботи
 Create Job Card based on Batch Size,Створити картку завдання на основі розміру партії
 Create Journal Entries,Створити журнальні проведення
 Create Journal Entry,Створіть запис у журналі
@@ -3995,7 +3996,7 @@ Export Errored Rows,Експорт рядків з помилками
 Extended Bank Statement,Розширена банківська виписка
 External Work History,Зовнішній роботи Історія
 Extra Consumed Qty,Додаткова спожита кількість
-Extra Job Card Quantity,Додаткова кількість карт завдань
+Extra Job Card Quantity,Додаткова кількість завдань на роботу
 Extra Large,Дуже великий
 Extra Material Transfer,Додаткове переміщення матеріалів
 Extra Small,Дуже невеликий
@@ -4187,7 +4188,7 @@ For Company,За компанію
 For Default Supplier (Optional),Для постачальника за замовчуванням (необов&#39;язково)
 For Item,Для позиції
 For Item {0} cannot be received more than {1} qty against the {2} {3},Для позиції {0} не можна отримати більше ніж {1} одиниць за {2} {3}
-For Job Card,Для карти завдань
+For Job Card,Для виробничої картки
 For Operation,Для операції
 For Price List,Для Прайс-листу
 For Production,Для виробництва
@@ -4255,7 +4256,7 @@ From,Від
 From BOM,З норм
 From BOM No,З номера специфікації (BOM)
 From Company,Від компанії
-From Corrective Job Card,З коригувальної карти завдань
+From Corrective Job Card,З картки виправлень
 From Currency,З валюти
 From Currency and To Currency cannot be same,З валюти і валюти не може бути таким же
 From Customer,Від Замовника
@@ -5066,7 +5067,7 @@ Is Company Account,Чи є обліковий запис компанії?
 Is Composite Asset,Складний актив
 Is Consolidated,Є консолідованим
 Is Container,Є контейнер
-Is Corrective Job Card,Є коригувальною картою завдань
+Is Corrective Job Card,Є коригувальною карткою завдання
 Is Corrective Operation,Є коригувальною операцією
 Is Cumulative,Є сукупним
 Is Customer Provided Item,Чи надається клієнтом товар
@@ -5304,14 +5305,14 @@ Itemwise Recommended Reorder Level,Рекомендовані рівні пер�
 JAN,Січ
 Job,Завдання
 Job Capacity,Потужність робочого місця
-Job Card,Карта завдань
-Job Card Analysis,Аналіз карт завдань
-Job Card Item,Товар карти завдань
+Job Card,Карта вакансій
+Job Card Analysis,Аналіз вакансій
+Job Card Item,Картка для роботи
 Job Card Operation,Операція картки завдання
 Job Card Scheduled Time,Заплановано час картки завдання
 Job Card Scrap Item,Бракований товар у картці завдання
-Job Card Summary,Підсумок карт завдань
-Job Card Time Log,Журнал часу карти завдань
+Job Card Summary,Короткий зміст вакансії
+Job Card Time Log,Журнал часу роботи
 Job Card and Capacity Planning,Робочий наряд та планування потужностей
 Job Card {0} has been completed,Робочий наряд {0} завершено
 Job Cards,Робочі наряди
@@ -11283,13 +11284,61 @@ Template Reference,Довідка по шаблону
 "Cancel Jobs","Скасувати завдання"
 "Delete Jobs","Видалити завдання"
 "Printer status is '{0}'. Continue anyway?","Статус принтера '{0}'. Продовжити?"
-"Component Stock Balance","Баланс компонентів"
-"By Item Groups","За групами товарів"
-"By Product BOM","За нормами виробу"
-"Qty to Produce","Кількість для виробництва"
-"Include Sub-groups","Включити підгрупи"
-"Show Value","Показати вартість"
-"In Stock Qty","Кількість на складі"
-"Required Qty","Потрібна кількість"
-"Difference","Різниця"
-"Product BOM","Норми виробу"
+"Generate Serial Numbers","Згенерувати серійні номери"
+"Print Labels","Друк етикеток"
+"Create Quality Inspections","Створити перевірки якості"
+"Accounting Item Name","Бухгалтерське найменування"
+"Logistics Cost","Вартість логістики"
+"Requires Incoming QC","Потребує вхідного контролю"
+"Battery Capacity","Ємність акумулятора"
+"Battery Voltage","Напруга акумулятора"
+"Cell Type","Тип елементів"
+"QI Serial Entry","Запис серійного номера КЯ"
+"Quality Inspection Status","Статус перевірки якості"
+"Serial numbers can only be generated for Draft Purchase Receipts","Серійні номери можна генерувати лише для чернеток прихідних накладних"
+"Quality Inspections can only be created for Draft Purchase Receipts","Перевірки якості можна створювати лише для чернеток прихідних накладних"
+"Please generate serial numbers for {0} before creating Quality Inspections","Будь ласка, спочатку згенеруйте серійні номери для {0}"
+"Item {0} has no Serial No Series configured","Товар {0} не має налаштованої серії серійних номерів"
+"No items require serial number generation","Немає товарів, що потребують генерації серійних номерів"
+"No items require quality inspection","Немає товарів, що потребують перевірки якості"
+"All quality inspections passed","Всі перевірки якості пройдені"
+"Item {0} has no Quality Inspection linked","Товар {0} не має прив'язаної перевірки якості"
+"Quality Inspection {0} is not submitted","Перевірка якості {0} не проведена"
+"Quality Inspection {0}: {1} of {2} serials failed","Перевірка якості {0}: {1} з {2} серійних номерів не пройшли"
+"{0}: {1} serial numbers generated","{0}: згенеровано {1} серійних номерів"
+"Quality Inspections created: {0}","Створено перевірки якості: {0}"
+"{0} print jobs created","Створено {0} завдань друку"
+"No serial numbers found","Серійні номери не знайдені"
+"Please save the Purchase Receipt first","Спочатку збережіть прихідну накладну"
+"Generating serial numbers...","Генерація серійних номерів..."
+"Creating Quality Inspections...","Створення перевірок якості..."
+"Draft","Чернетка"
+"Verification","На перевірці"
+"Pending Approval","На затвердженні"
+"Send for Verification","На перевірку"
+"Quality Confirmed","Якість підтверджено"
+"Return","Повернути"
+"Submit","Провести"
+"Return to Verification","Повернути на перевірку"
+"Item QC Profile","Профіль вхідного контролю"
+"Profile Name","Назва профілю"
+"Label Specifications","Характеристики для етикетки"
+"QC Settings","Налаштування контролю якості"
+"Label Template","Шаблон етикетки"
+"Item Specification","Специфікація товару"
+"Specification Name","Назва специфікації"
+"Item Specification Parameter","Параметр специфікації"
+"Parameters","Параметри"
+"Expected Value","Очікуване значення"
+"Min Value","Мін. значення"
+"Max Value","Макс. значення"
+"Display Value","Значення для відображення"
+"Specification","Специфікація"
+"Specification Parameters","Параметри специфікації"
+"Scanned","Скановано"
+"Scanned: {0}","Скановано: {0}"
+"Serial Inspections","Серійні перевірки"
+"Per-serial-number pass/fail inspection results","Результати перевірки прийнято/відхилено по серійним номерам"
+"Scan serial number barcode...","Сканувати штрихкод серійного номера..."
+"Serial No {0} not found","Серійний номер {0} не знайдено"
+"Scan Serial No","Сканувати серійний номер"

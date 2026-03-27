@@ -144,7 +144,7 @@ def _parse_ezpl_to_elements(ezpl_text):
 
 
 @frappe.whitelist()
-def render_preview(template_type, zpl_template="", html_template="", preview_data="", label_size=""):
+def render_preview(template_type, zpl_template="", html_template="", field_mapping="", preview_data="", label_size=""):
 	if not label_size:
 		return None
 
@@ -153,11 +153,17 @@ def render_preview(template_type, zpl_template="", html_template="", preview_dat
 	context = {"frappe": frappe, "_": _}
 	if preview_data:
 		try:
-			context["doc"] = frappe._dict(json.loads(preview_data))
+			doc_dict = frappe._dict(json.loads(preview_data))
 		except Exception:
-			context["doc"] = frappe._dict()
+			doc_dict = frappe._dict()
 	else:
-		context["doc"] = frappe._dict()
+		doc_dict = frappe._dict()
+
+	if doc_dict.get("item_code") and field_mapping:
+		mock_tpl = frappe._dict({"field_mapping": field_mapping})
+		resolve_field_mapping(mock_tpl, doc_dict)
+
+	context["doc"] = doc_dict
 
 	if template_type == "EZPL":
 		if not zpl_template:
@@ -198,6 +204,32 @@ def preview_zpl(template_name):
 	if template.preview_data:
 		data = json.loads(template.preview_data)
 	return render_ezpl(template, data=data)
+
+
+@frappe.whitelist()
+def render_job_preview(print_job_name):
+	"""Render a preview image for a Print Job using its stored raw_data."""
+	job = frappe.get_doc("Print Job", print_job_name)
+	template = frappe.get_doc("Label Template", job.label_template)
+	size = _get_label_size_data(template.label_size)
+
+	if template.template_type == "HTML":
+		if job.raw_data:
+			data = json.loads(job.raw_data)
+		else:
+			data = {}
+		context = {"frappe": frappe, "_": _, "doc": frappe._dict(data)}
+		html = frappe.render_template(template.html_template or "", context)
+		html = _process_barcode_tags(html)
+		html = _process_attachment_tags(html)
+		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"])
+		return {
+			"type": "html_image",
+			"image_base64": img_b64,
+			**size,
+		}
+
+	return None
 
 
 def _process_barcode_tags(html):
@@ -399,17 +431,106 @@ def html_to_image(html, width_px, height_px):
 	return pcx_buf.getvalue(), png_bytes
 
 
+def _format_spec_value(p):
+	"""Format a spec parameter value with its UOM for label display."""
+	raw = p.get("value")
+	if not raw and raw != 0:
+		return ""
+	raw = str(raw).strip()
+	if not raw:
+		return ""
+	if p.get("numeric"):
+		try:
+			num = float(raw)
+			raw = f"{num:g}"
+		except (ValueError, TypeError):
+			pass
+	uom = (p.get("uom") or "").strip()
+	if uom:
+		return f"{raw}{uom}"
+	return raw
+
+
+def _spec_param_to_key(param_name):
+	"""Convert spec parameter name to a flat dict key: lowercase, spaces→underscores, remove apostrophes."""
+	return param_name.lower().replace(" ", "_").replace("ʼ", "").replace("'", "")
+
+
+def _format_spec_for_label(p):
+	"""Format a spec parameter dict into a display string for label use."""
+	if p.get("calculated_value"):
+		val = f"{p['calculated_value']:g}"
+		uom = (p.get("uom") or "").strip()
+		return f"{val}{uom}" if uom else val
+	if p.get("display_value"):
+		return p["display_value"]
+	if p.get("value"):
+		return str(p["value"])
+	if p.get("numeric") and (p.get("min_value") or p.get("max_value")):
+		uom = (p.get("uom") or "").strip()
+		mn, mx = p.get("min_value") or 0, p.get("max_value") or 0
+		nominal = (mn + mx) / 2 if mn and mx else (mn or mx)
+		val = f"{nominal:g}"
+		return f"{val}{uom}" if uom else val
+	return "—"
+
+
+def resolve_field_mapping(template_doc, doc_dict):
+	"""Inject all spec params as flat keys into doc_dict, then apply field_mapping overrides.
+
+	For each spec param, a key is created from the param name (lowercase, spaces→_).
+	E.g. "Струм заряду" → doc_dict["струм_заряду"] = "8.4А"
+	Fields already set in doc_dict are NOT overwritten (preview_data wins).
+	"""
+	item_code = doc_dict.get("item_code")
+	spec = None
+
+	if item_code:
+		from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
+		raw_spec = get_spec_for_item(item_code) or {}
+		spec = {k: frappe._dict(v) for k, v in raw_spec.items()}
+		for param_name, p in spec.items():
+			key = _spec_param_to_key(param_name)
+			if not doc_dict.get(key):
+				doc_dict[key] = _format_spec_for_label(p)
+
+	field_mapping = getattr(template_doc, "field_mapping", None)
+	if not field_mapping:
+		return doc_dict
+	try:
+		mapping = json.loads(field_mapping)
+		for field, cfg in mapping.items():
+			if doc_dict.get(field):
+				continue
+			source = cfg.get("source")
+			if source == "doc":
+				val = str(doc_dict.get(cfg["param"]) or "")
+				doc_dict[field] = val
+			elif source == "spec" and spec:
+				p = spec.get(cfg["param"]) or frappe._dict()
+				val = _format_spec_for_label(p)
+				if cfg.get("transform") == "chemistry":
+					val = "Po" if str(p.get("value") or "").startswith("2") else "ion"
+				doc_dict[field] = val
+	except Exception:
+		pass
+	return doc_dict
+
+
 def render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 	context = {"frappe": frappe, "_": _}
 
 	if doc:
-		context["doc"] = doc
+		doc_dict = frappe._dict(doc.as_dict() if hasattr(doc, "as_dict") else doc)
 	elif data:
 		if isinstance(data, str):
 			data = json.loads(data)
-		context["doc"] = frappe._dict(data)
+		doc_dict = frappe._dict(data)
 	else:
-		context["doc"] = frappe._dict()
+		doc_dict = frappe._dict()
+
+	resolve_field_mapping(template_doc, doc_dict)
+	context["doc"] = doc_dict
 
 	if parent_doc:
 		context["parent"] = parent_doc

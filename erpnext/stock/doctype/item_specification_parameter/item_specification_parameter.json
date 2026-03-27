@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "parameter",
+  "numeric",
+  "column_break_1",
+  "value",
+  "min_value",
+  "max_value",
+  "formula",
+  "tolerance_percent",
+  "calculated_value",
+  "column_break_2",
+  "uom",
+  "display_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "parameter",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Parameter",
+   "options": "Quality Inspection Parameter",
+   "reqd": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "numeric",
+   "fieldtype": "Check",
+   "label": "Numeric",
+   "default": "1",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Expected Value",
+   "in_list_view": 1,
+   "depends_on": "eval:!doc.numeric",
+   "columns": 2
+  },
+  {
+   "fieldname": "min_value",
+   "fieldtype": "Float",
+   "label": "Min Value",
+   "in_list_view": 1,
+   "depends_on": "eval:doc.numeric",
+   "columns": 1
+  },
+  {
+   "fieldname": "max_value",
+   "fieldtype": "Float",
+   "label": "Max Value",
+   "in_list_view": 1,
+   "depends_on": "eval:doc.numeric",
+   "columns": 1
+  },
+  {
+   "fieldname": "formula",
+   "fieldtype": "Small Text",
+   "label": "Formula",
+   "depends_on": "eval:doc.numeric"
+  },
+  {
+   "fieldname": "tolerance_percent",
+   "fieldtype": "Float",
+   "label": "Tolerance %",
+   "default": "0",
+   "depends_on": "eval:doc.numeric && doc.formula"
+  },
+  {
+   "fieldname": "calculated_value",
+   "fieldtype": "Float",
+   "label": "Calculated Value",
+   "read_only": 1,
+   "depends_on": "eval:doc.numeric && doc.formula"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Data",
+   "label": "UOM",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "display_value",
+   "fieldtype": "Data",
+   "label": "Display Value",
+   "description": "Formatted value for labels (e.g., 22.2V, 9000 mAh)"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Item Specification Parameter",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

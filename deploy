@@ -66,18 +66,12 @@ fix_assets() {
     docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/
 }
 
-get_db_name() {
-  dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['db_name'])" 2>/dev/null
-}
-
-get_branch_slug() {
-  git -C "$DIR" rev-parse --abbrev-ref HEAD 2>/dev/null | tr '/' '-'
-}
-
 remove_insights_before_migrate() {
   echo "==> Removing insights from apps.txt and DB before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-  DB_NAME=$(get_db_name)
+  # Remove insights from installed_apps in DB via direct SQL on the db container.
+  # Get DB name from site_config.json inside the backend container.
+  DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['db_name'])" 2>/dev/null)
   if [ -n "$DB_NAME" ]; then
     echo "==> Cleaning insights from DB ($DB_NAME)..."
     dc exec -T db mysql -uroot -padmin "$DB_NAME" -e "
@@ -111,8 +105,10 @@ sync_files() {
   CONTROLLERS_SRC="$DIR/erpnext/controllers"
   CONTROLLERS_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/"
 
-  # Extract stock bom.py from Docker image once (used to restore before patching)
+  # Extract stock files from Docker image once (used to restore before patching)
   docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/bom/bom.py > /tmp/_stock_bom.py 2>/dev/null
+  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/purchase_receipt/purchase_receipt.py > /tmp/_stock_pr.py 2>/dev/null
+  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/quality_inspection/quality_inspection.py > /tmp/_stock_qi.py 2>/dev/null
 
   for SERVICE in backend queue-short queue-long scheduler frontend; do
     CID=$(dc ps -q "$SERVICE" 2>/dev/null)
@@ -159,12 +155,27 @@ sync_files() {
     # job_card.js is safe to copy — it only adds a Production Data dashboard section
     docker cp "$MFG_SRC/job_card/job_card.js" "$CID:${MFG_DST}job_card/job_card.js"
     docker cp "$MFG_SRC/job_card/job_card_list.js" "$CID:${MFG_DST}job_card/job_card_list.js"
+    # Purchase Receipt customizations + Item Specification
+    docker cp "$STOCK_SRC/item_specification" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/item_specification_parameter" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/qi_serial_entry" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/item_label_template" "$CID:$STOCK_DST"
+    docker cp "$STOCK_SRC/purchase_receipt/purchase_receipt.js" "$CID:${STOCK_DST}purchase_receipt/purchase_receipt.js"
+    docker cp "$STOCK_SRC/quality_inspection/quality_inspection.js" "$CID:${STOCK_DST}quality_inspection/quality_inspection.js"
+    docker cp "$STOCK_SRC/purchase_receipt/purchase_receipt_utils.py" "$CID:${STOCK_DST}purchase_receipt/purchase_receipt_utils.py"
+    # Restore stock purchase_receipt.py before patching
+    docker cp /tmp/_stock_pr.py "$CID:${STOCK_DST}purchase_receipt/purchase_receipt.py"
+    docker cp "$DIR/erpnext/patches/purchase_receipt_patch.py" "$CID:/tmp/purchase_receipt_patch.py"
+    docker exec -u root "$CID" python3 /tmp/purchase_receipt_patch.py
+    # Restore stock quality_inspection.py before patching
+    docker cp /tmp/_stock_qi.py "$CID:${STOCK_DST}quality_inspection/quality_inspection.py"
+    docker cp "$DIR/erpnext/patches/quality_inspection_spec_patch.py" "$CID:/tmp/quality_inspection_spec_patch.py"
+    docker exec -u root "$CID" python3 /tmp/quality_inspection_spec_patch.py
+    docker cp "$DIR/erpnext/patches/setup_pr_workflow.py" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/patches/setup_pr_workflow.py"
     docker cp "$DIR/erpnext/public/js/print.js" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/public/js/print.js"
     docker cp "$DIR/frappe/frappe/printing/page/print/print.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js"
-    docker cp "$DIR/frappe/frappe/public/js/frappe/views/reports/query_report.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/public/js/frappe/views/reports/query_report.js"
     docker cp "$DIR/frappe/frappe/printing/doctype/print_format/print_format.json" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json"
     docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
-    docker cp "$DIR/erpnext/manufacturing/report/component_stock_balance" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/report/"
     docker cp "$DIR/erpnext/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/translations/uk.csv"
     docker cp "$DIR/frappe/frappe/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/translations/uk.csv"
     docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -231,6 +242,8 @@ PY
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
+    echo "==> Running setup_pr_workflow (custom fields)..."
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
     "$DIR/insights" auto
@@ -254,31 +267,42 @@ PY
     ;;
 
   migrate)
-    sync_files
+    SILENT=0
+    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    _log() { [ "$SILENT" = "0" ] && echo "$@"; }
 
-    wait_for_db
-    remove_insights_before_migrate
-    echo "==> Running bench migrate..."
-    dc exec -T backend bench --site frontend migrate
-
-    echo "==> Rebuilding frontend assets..."
-    dc exec -T backend bench build --force
-
-    echo "==> Clearing cache..."
-    dc exec -T backend bench --site frontend clear-cache
-
-    "$DIR/insights" auto
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-
-    echo "==> Restarting workers to load new code..."
-    dc restart backend queue-short queue-long scheduler frontend websocket
-    echo "==> Waiting for backend..."
-    sleep 5
-
-    "$DIR/insights" auto
-    fix_assets
-
-    echo "Migration complete."
+    if [ "$SILENT" = "1" ]; then
+      sync_files 2>&1 | grep -E "\[.*patch\]|ERROR" | sort -u || true
+      wait_for_db >/dev/null 2>&1
+      remove_insights_before_migrate >/dev/null 2>&1
+      dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
+      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute 2>&1 | grep -v "exists" || true
+      dc exec -T backend bench --site frontend clear-cache >/dev/null 2>&1
+      "$DIR/insights" auto 2>/dev/null
+      dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+      dc restart backend queue-short queue-long scheduler frontend websocket 2>/dev/null
+      sleep 5
+      "$DIR/insights" auto 2>/dev/null
+      fix_assets 2>/dev/null
+      echo "Migration complete."
+    else
+      sync_files
+      wait_for_db
+      remove_insights_before_migrate
+      echo "==> Running bench migrate..."
+      dc exec -T backend bench --site frontend migrate
+      echo "==> Clearing cache..."
+      dc exec -T backend bench --site frontend clear-cache
+      "$DIR/insights" auto
+      dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+      echo "==> Restarting workers to load new code..."
+      dc restart backend queue-short queue-long scheduler frontend websocket
+      echo "==> Waiting for backend..."
+      sleep 5
+      "$DIR/insights" auto
+      fix_assets
+      echo "Migration complete."
+    fi
     ;;
 
   build)
@@ -297,6 +321,8 @@ PY
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
+    echo "==> Running setup_pr_workflow (custom fields)..."
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
 
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
@@ -334,93 +360,9 @@ PY
     echo "Environment set to dev. All commands available."
     ;;
 
-  snapshot)
-    SNAP_NAME="${2:-$(get_branch_slug)}"
-    if [ -z "$SNAP_NAME" ]; then
-      echo "ERROR: Could not detect branch name. Usage: ./deploy snapshot [name]"
-      exit 1
-    fi
-    DB_NAME=$(get_db_name)
-    if [ -z "$DB_NAME" ]; then
-      echo "ERROR: Could not detect DB name. Is the backend running?"
-      exit 1
-    fi
-    mkdir -p "$DIR/snapshots"
-    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    SNAP_FILE="$DIR/snapshots/${SNAP_NAME}-${TIMESTAMP}.sql.gz"
-    echo "==> Creating snapshot: ${SNAP_FILE##*/}"
-    dc exec -T db mysqldump -uroot -padmin --single-transaction "$DB_NAME" | gzip > "$SNAP_FILE"
-    SIZE=$(du -h "$SNAP_FILE" | cut -f1)
-    echo "Snapshot saved: ${SNAP_FILE##*/} ($SIZE)"
-    ;;
-
-  restore)
-    require_non_production "restore"
-    SNAP_FILE="${2:-}"
-    if [ -z "$SNAP_FILE" ]; then
-      BRANCH_SLUG=$(get_branch_slug)
-      if [ -z "$BRANCH_SLUG" ]; then
-        echo "ERROR: Could not detect branch name. Usage: ./deploy restore [file]"
-        exit 1
-      fi
-      SNAP_FILE=$(ls -t "$DIR/snapshots/${BRANCH_SLUG}"-*.sql.gz 2>/dev/null | head -1)
-      if [ -z "$SNAP_FILE" ]; then
-        echo "ERROR: No snapshots found for branch '$BRANCH_SLUG'."
-        echo "Available snapshots:"
-        ls -1 "$DIR/snapshots/"*.sql.gz 2>/dev/null || echo "  (none)"
-        exit 1
-      fi
-      echo "Found latest snapshot for '$BRANCH_SLUG': ${SNAP_FILE##*/}"
-    fi
-    if [ ! -f "$SNAP_FILE" ]; then
-      echo "ERROR: File not found: $SNAP_FILE"
-      exit 1
-    fi
-    DB_NAME=$(get_db_name)
-    if [ -z "$DB_NAME" ]; then
-      echo "ERROR: Could not detect DB name. Is the backend running?"
-      exit 1
-    fi
-    echo "WARNING: This will replace the current database with: ${SNAP_FILE##*/}"
-    read -p "Continue? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo "Aborted."
-      exit 0
-    fi
-    echo "==> Dropping and recreating database '$DB_NAME'..."
-    dc exec -T db mysql -uroot -padmin -e "DROP DATABASE IF EXISTS \`$DB_NAME\`; CREATE DATABASE \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-    echo "==> Restoring from ${SNAP_FILE##*/}..."
-    gunzip -c "$SNAP_FILE" | dc exec -T db mysql -uroot -padmin "$DB_NAME"
-    echo "==> Running bench migrate..."
-    dc exec -T backend bench --site frontend migrate
-    echo "==> Clearing cache..."
-    dc exec -T backend bench --site frontend clear-cache
-    echo "==> Restarting workers..."
-    dc restart backend queue-short queue-long scheduler frontend websocket
-    echo "Restore complete."
-    ;;
-
-  snapshots)
-    if [ ! -d "$DIR/snapshots" ] || [ -z "$(ls "$DIR/snapshots/"*.sql.gz 2>/dev/null)" ]; then
-      echo "No snapshots found."
-      exit 0
-    fi
-    echo "Available snapshots:"
-    echo ""
-    for f in $(ls -t "$DIR/snapshots/"*.sql.gz 2>/dev/null); do
-      SIZE=$(du -h "$f" | cut -f1)
-      DATE=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f" 2>/dev/null || stat -c "%y" "$f" 2>/dev/null | cut -d. -f1)
-      echo "  ${f##*/}  ($SIZE, $DATE)"
-    done
-    ;;
-
   *)
     echo "Environment: $DEPLOY_ENV"
     echo "Usage: ./deploy {init|start|stop|build|migrate|setup-prod|setup-dev}"
-    echo "       ./deploy snapshot [name]    — save DB snapshot (default: current branch)"
-    echo "       ./deploy restore [file]     — restore DB (default: latest for current branch)"
-    echo "       ./deploy snapshots          — list available snapshots"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi

@@ -5,36 +5,14 @@ set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
 
-# Pull current erpnext branch
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo "==> Pulling erpnext (branch: $BRANCH)..."
-git pull origin "$BRANCH"
+echo "==> Pulling erpnext (branch: uk-translations)..."
+git pull origin uk-translations
 
-# Read frappe branch from .gitmodules before cd-ing into submodule
-FRAPPE_BRANCH=$(git config -f "$DIR/.gitmodules" submodule.frappe.branch)
-
-# Ensure frappe submodule is initialized
-if [ ! -f "$DIR/frappe/.git" ] && [ ! -d "$DIR/frappe/.git" ]; then
-    echo "==> Initializing frappe submodule..."
-    git -C "$DIR" submodule update --init frappe
-fi
-
-# Fix frappe submodule remote if wrong, then pull
-echo "==> Updating frappe submodule..."
-FRAPPE_REMOTE=$(git -C "$DIR/frappe" remote get-url origin 2>/dev/null || echo "")
-if [ "$FRAPPE_REMOTE" != "https://github.com/egdw-xxxyo/frappe.git" ]; then
-    echo "    Fixing frappe remote (was: $FRAPPE_REMOTE)..."
-    git -C "$DIR/frappe" remote set-url origin https://github.com/egdw-xxxyo/frappe.git
-fi
-git -C "$DIR/frappe" fetch origin
-CURRENT=$(git -C "$DIR/frappe" rev-parse --abbrev-ref HEAD)
-if [ "$CURRENT" != "$FRAPPE_BRANCH" ]; then
-    echo "    Checking out frappe branch: $FRAPPE_BRANCH..."
-    git -C "$DIR/frappe" checkout "$FRAPPE_BRANCH"
-fi
-echo "    Pulling frappe (branch: $FRAPPE_BRANCH)..."
-git -C "$DIR/frappe" pull origin "$FRAPPE_BRANCH"
+echo "==> Pulling frappe submodule (branch: version-15)..."
+cd frappe
+git pull origin version-15
+cd ..
 
 echo "==> Updating submodule reference..."
-git -C "$DIR" add frappe
+git add frappe
 echo "Done. If frappe submodule changed, commit with: git commit -m 'Update frappe submodule'"
