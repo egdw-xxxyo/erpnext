@@ -15,9 +15,9 @@ frappe.listview_settings["Print Job"] = {
 		return [__(doc.status), colors[doc.status] || "grey", "status,=," + doc.status];
 	},
 
+	page_length: 500,
+
 	onload: function (listview) {
-		listview.page_length = 500;
-		listview.selected_page_count = 500;
 
 		// Print selected jobs
 		listview.page.add_action_item(__("Send to Printer"), () => {
