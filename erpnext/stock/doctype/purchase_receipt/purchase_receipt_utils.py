@@ -101,7 +101,7 @@ def get_serial_numbers_for_pr(purchase_receipt_name):
 @frappe.whitelist()
 def create_bulk_quality_inspection(purchase_receipt_name):
 	"""Create a single Quality Inspection document with per-serial pass/fail entries.
-	Only for items with requires_incoming_qc=1."""
+	Only for items with inspection_required_before_purchase=1."""
 	pr = frappe.get_doc("Purchase Receipt", purchase_receipt_name)
 	if pr.docstatus != 0:
 		frappe.throw(_("Quality Inspections can only be created for Draft Purchase Receipts"))
@@ -109,7 +109,7 @@ def create_bulk_quality_inspection(purchase_receipt_name):
 	created_qis = []
 
 	for item in pr.items:
-		requires_qc = frappe.get_cached_value("Item", item.item_code, "requires_incoming_qc")
+		requires_qc = frappe.get_cached_value("Item", item.item_code, "inspection_required_before_purchase")
 		if not requires_qc:
 			continue
 
@@ -186,7 +186,7 @@ def check_all_inspections_passed(purchase_receipt_name):
 
 	items_needing_qc = []
 	for item in pr.items:
-		requires_qc = frappe.get_cached_value("Item", item.item_code, "requires_incoming_qc")
+		requires_qc = frappe.get_cached_value("Item", item.item_code, "inspection_required_before_purchase")
 		if requires_qc:
 			items_needing_qc.append(item)
 

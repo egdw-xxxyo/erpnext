@@ -465,7 +465,12 @@ def _format_spec_for_label(p):
 	if p.get("display_value"):
 		return p["display_value"]
 	if p.get("value"):
-		return str(p["value"])
+		raw = p["value"]
+		try:
+			val = f"{float(raw):g}"
+		except (ValueError, TypeError):
+			val = str(raw)
+		return val
 	if p.get("numeric") and (p.get("min_value") or p.get("max_value")):
 		uom = (p.get("uom") or "").strip()
 		mn, mx = p.get("min_value") or 0, p.get("max_value") or 0

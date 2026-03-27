@@ -291,6 +291,8 @@ PY
       remove_insights_before_migrate
       echo "==> Running bench migrate..."
       dc exec -T backend bench --site frontend migrate
+      echo "==> Running setup_pr_workflow (custom fields)..."
+      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
       echo "==> Clearing cache..."
       dc exec -T backend bench --site frontend clear-cache
       "$DIR/insights" auto
