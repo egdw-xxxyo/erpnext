@@ -149,16 +149,16 @@ def _parse_host_status(raw):
 		elif len(parts) >= 8 and "function_settings" not in result:
 			result["function_settings"] = clean
 	if not any(result.get(k) for k in ["paper_out", "head_up", "ribbon_out"]):
-		result["status"] = "Готовий"
+		result["status"] = "Ready"
 	else:
 		errors = []
 		if result.get("paper_out"):
-			errors.append("Папір закінчився")
+			errors.append("Paper Out")
 		if result.get("head_up"):
-			errors.append("Голівка відкрита")
+			errors.append("Head Open")
 		if result.get("ribbon_out"):
-			errors.append("Стрічка закінчилась")
-		result["status"] = "Помилка: " + ", ".join(errors)
+			errors.append("Ribbon Out")
+		result["status"] = "Error: " + ", ".join(errors)
 	return result
 
 

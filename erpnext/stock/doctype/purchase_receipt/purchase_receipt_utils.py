@@ -261,6 +261,9 @@ def update_pr_quantities_from_qi(quality_inspection_name):
 			item.db_set("qty", pass_count, update_modified=False)
 			item.db_set("rejected_qty", fail_count, update_modified=False)
 
+			rate = item.rate or 0
+			item.db_set("amount", pass_count * rate, update_modified=False)
+
 			if failed_serials and item.serial_and_batch_bundle:
 				_move_serials_to_rejected_bundle(
 					item, failed_serials, pr.name, pr.posting_date,
