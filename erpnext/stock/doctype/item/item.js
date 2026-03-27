@@ -159,7 +159,7 @@ frappe.ui.form.on("Item", {
 	refresh: function (frm) {
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Print Labels"), () => {
-				_show_item_print_labels_dialog([frm.doc.name], frm.doc.label_template);
+				_show_item_print_labels_dialog([frm.doc.name]);
 			});
 		}
 
