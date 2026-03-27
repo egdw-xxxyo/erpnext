@@ -45,29 +45,35 @@ def get_columns(filters, bom_mode=False):
 	return columns
 
 
-def get_warehouse_condition(query, bin_table, filters):
-	warehouse = filters.get("warehouse")
-	if not warehouse:
-		return query
+def _build_bin_join_condition(bin_table, item_code_field, filters):
+	join_cond = bin_table.item_code == item_code_field
 
-	warehouse_details = frappe.db.get_value("Warehouse", warehouse, ["lft", "rgt"], as_dict=1)
-	if warehouse_details:
+	if filters.get("company"):
 		wh = frappe.qb.DocType("Warehouse")
-		query = query.where(
-			ExistsCriterion(
-				frappe.qb.from_(wh)
-				.select(wh.name)
+		join_cond = join_cond & ExistsCriterion(
+			frappe.qb.from_(wh)
+			.select(wh.name)
+			.where((wh.company == filters.get("company")) & (wh.name == bin_table.warehouse))
+		)
+
+	warehouse = filters.get("warehouse")
+	if warehouse:
+		warehouse_details = frappe.db.get_value("Warehouse", warehouse, ["lft", "rgt"], as_dict=1)
+		if warehouse_details:
+			wh2 = frappe.qb.DocType("Warehouse")
+			join_cond = join_cond & ExistsCriterion(
+				frappe.qb.from_(wh2)
+				.select(wh2.name)
 				.where(
-					(wh.lft >= warehouse_details.lft)
-					& (wh.rgt <= warehouse_details.rgt)
-					& (bin_table.warehouse == wh.name)
+					(wh2.lft >= warehouse_details.lft)
+					& (wh2.rgt <= warehouse_details.rgt)
+					& (wh2.name == bin_table.warehouse)
 				)
 			)
-		)
-	else:
-		query = query.where(bin_table.warehouse == warehouse)
+		else:
+			join_cond = join_cond & (bin_table.warehouse == warehouse)
 
-	return query
+	return join_cond
 
 
 def get_group_data(filters):
@@ -84,17 +90,19 @@ def get_group_data(filters):
 	item = frappe.qb.DocType("Item")
 	bin_table = frappe.qb.DocType("Bin")
 
+	join_cond = _build_bin_join_condition(bin_table, item.name, filters)
+
 	query = (
-		frappe.qb.from_(bin_table)
-		.inner_join(item)
-		.on(bin_table.item_code == item.name)
+		frappe.qb.from_(item)
+		.left_join(bin_table)
+		.on(join_cond)
 		.select(
 			item.name.as_("item_code"),
 			item.item_name,
 			item.item_group,
 			item.stock_uom,
-			Sum(bin_table.actual_qty).as_("actual_qty"),
-			Sum(bin_table.stock_value).as_("stock_value"),
+			IfNull(Sum(bin_table.actual_qty), 0).as_("actual_qty"),
+			IfNull(Sum(bin_table.stock_value), 0).as_("stock_value"),
 			bin_table.valuation_rate,
 		)
 		.where(item.item_group.isin(list(all_groups)))
@@ -103,18 +111,6 @@ def get_group_data(filters):
 		.orderby(item.item_group)
 		.orderby(item.item_name)
 	)
-
-	if filters.get("company"):
-		wh = frappe.qb.DocType("Warehouse")
-		query = query.where(
-			ExistsCriterion(
-				frappe.qb.from_(wh)
-				.select(wh.name)
-				.where((wh.company == filters.get("company")) & (bin_table.warehouse == wh.name))
-			)
-		)
-
-	query = get_warehouse_condition(query, bin_table, filters)
 
 	return query.run(as_dict=True)
 
@@ -130,12 +126,14 @@ def get_bom_data(filters):
 	item = frappe.qb.DocType("Item")
 	bin_table = frappe.qb.DocType("Bin")
 
+	join_cond = _build_bin_join_condition(bin_table, bom_item.item_code, filters)
+
 	query = (
 		frappe.qb.from_(bom_item)
 		.inner_join(item)
 		.on(bom_item.item_code == item.name)
 		.left_join(bin_table)
-		.on(bom_item.item_code == bin_table.item_code)
+		.on(join_cond)
 		.select(
 			bom_item.item_code,
 			item.item_name,
@@ -151,8 +149,6 @@ def get_bom_data(filters):
 		.orderby(item.item_group)
 		.orderby(item.item_name)
 	)
-
-	query = get_warehouse_condition(query, bin_table, filters)
 
 	data = query.run(as_dict=True)
 
