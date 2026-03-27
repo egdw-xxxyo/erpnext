@@ -141,23 +141,11 @@ def create_workflow():
 
 def create_custom_fields_on_item():
 	# Remove old fields from previous iterations
-	for old_field in ["battery_specs_section", "battery_capacity", "battery_voltage", "cell_type", "item_qc_profile", "item_specification", "label_template"]:
+	for old_field in ["battery_specs_section", "battery_capacity", "battery_voltage", "cell_type", "item_qc_profile", "item_specification", "label_template", "requires_incoming_qc"]:
 		old_cf = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": old_field})
 		if old_cf:
 			frappe.delete_doc("Custom Field", old_cf, force=True)
 			print(f"  Removed old Custom Field: Item.{old_field}")
-
-	fields = [
-		{
-			"dt": "Item",
-			"fieldname": "requires_incoming_qc",
-			"fieldtype": "Check",
-			"label": "Requires Incoming QC",
-			"insert_after": "inspection_required_before_purchase",
-			"description": "Увімкнути 3-етапний процес прихідної накладної для цього товару",
-		},
-	]
-	_create_custom_fields(fields)
 
 
 def create_item_specification_tab():
