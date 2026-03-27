@@ -141,7 +141,7 @@ def create_workflow():
 
 def create_custom_fields_on_item():
 	# Remove old fields from previous iterations
-	for old_field in ["battery_specs_section", "battery_capacity", "battery_voltage", "cell_type", "item_qc_profile"]:
+	for old_field in ["battery_specs_section", "battery_capacity", "battery_voltage", "cell_type", "item_qc_profile", "item_specification", "label_template"]:
 		old_cf = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": old_field})
 		if old_cf:
 			frappe.delete_doc("Custom Field", old_cf, force=True)
@@ -155,15 +155,6 @@ def create_custom_fields_on_item():
 			"label": "Requires Incoming QC",
 			"insert_after": "inspection_required_before_purchase",
 			"description": "Увімкнути 3-етапний процес прихідної накладної для цього товару",
-		},
-		{
-			"dt": "Item",
-			"fieldname": "item_specification",
-			"fieldtype": "Link",
-			"label": "Item Specification",
-			"options": "Item Specification",
-			"insert_after": "item_group",
-			"description": "Специфікація з очікуваними значеннями/діапазонами та налаштуваннями контролю якості",
 		},
 	]
 	_create_custom_fields(fields)
@@ -185,6 +176,14 @@ def create_item_specification_tab():
 			"label": "Specification Parameters",
 			"options": "Item Specification Parameter",
 			"insert_after": "specification_tab",
+		},
+		{
+			"dt": "Item",
+			"fieldname": "label_templates",
+			"fieldtype": "Table",
+			"label": "Label Templates",
+			"options": "Item Label Template",
+			"insert_after": "item_spec_parameters",
 		},
 	]
 	_create_custom_fields(fields)
