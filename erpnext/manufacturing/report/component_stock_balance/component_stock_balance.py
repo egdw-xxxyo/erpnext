@@ -24,10 +24,10 @@ def execute(filters=None):
 def get_columns(filters, bom_mode=False):
 	columns = [
 		{"fieldname": "item_code", "label": _("Item"), "fieldtype": "Link", "options": "Item", "width": 250},
-		{"fieldname": "item_name", "label": _("Item Name"), "fieldtype": "Data", "width": 350},
+		{"fieldname": "item_name", "label": _("Item Name"), "fieldtype": "Data", "width": 300},
 		{"fieldname": "item_group", "label": _("Item Group"), "fieldtype": "Link", "options": "Item Group", "width": 200},
 		{"fieldname": "stock_uom", "label": _("UOM"), "fieldtype": "Link", "options": "UOM", "width": 80},
-		{"fieldname": "actual_qty", "label": _("In Stock Qty"), "fieldtype": "Float", "width": 150},
+		{"fieldname": "actual_qty", "label": _("In Stock Qty"), "fieldtype": "Float", "width": 180},
 	]
 
 	if bom_mode:

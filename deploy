@@ -235,9 +235,14 @@ apply_site_config() {
   if [ ! -f "$SITE_CONFIG" ]; then
     return
   fi
+  GLOBAL_KEYS="server_script_enabled"
   for key in $(python3 -c "import json; d=json.load(open('$SITE_CONFIG')); [print(k) for k in d]"); do
     value=$(python3 -c "import json; print(json.load(open('$SITE_CONFIG'))['$key'])")
-    dc exec -T backend bench --site frontend set-config "$key" "$value"
+    if echo " $GLOBAL_KEYS " | grep -q " $key "; then
+      dc exec -T backend bench set-config -g "$key" "$value"
+    else
+      dc exec -T backend bench --site frontend set-config "$key" "$value"
+    fi
   done
 }
 

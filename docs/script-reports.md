@@ -10,6 +10,12 @@
 }
 ```
 
+**ВАЖЛИВО:** Frappe читає `server_script_enabled` тільки з `common_site_config.json` (глобальний конфіг), а не з `site_config.json` (конфіг сайту). Скрипт `./deploy migrate` автоматично записує цей ключ з прапорцем `-g` (global). Якщо потрібно ввімкнути вручну:
+
+```bash
+docker compose -f docker-compose.yml exec -T backend bench set-config -g server_script_enabled 1
+```
+
 Після зміни конфігурації запустіть `./deploy start` або `./deploy migrate`.
 
 ---
