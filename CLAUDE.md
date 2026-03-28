@@ -182,7 +182,22 @@ This repo does NOT contain a full ERPNext codebase. It only contains **our custo
 
 ### What the deploy script syncs
 
-The `sync_files()` function in `./deploy` copies only explicitly listed files. See the `deploy` script (~line 77-100) for the full list. If you modify a file that is NOT in this list, **it will not be deployed**. You must add a new `docker cp` line.
+The `sync_files()` function in `./deploy` uses categorized arrays at the top of the function. Each category has a different way to add new items:
+
+| Category | Array | How to add |
+|---|---|---|
+| Custom manufacturing DocTypes | `CUSTOM_MFG_DOCTYPES` | Add folder name to the array |
+| Custom stock DocTypes | `CUSTOM_STOCK_DOCTYPES` | Add folder name to the array |
+| Custom pages | `CUSTOM_MFG_PAGES` | Add folder name to the array |
+| Custom reports | `CUSTOM_MFG_REPORTS` | Add folder name to the array |
+| Stock file overrides | `STOCK_OVERRIDES` | Add `"local_path:container_path"` entry |
+| Patched files | `PATCHED_FILES` | Add `"stock_path:patch_script"` entry |
+
+**When creating new custom doctypes/pages/reports:** add the folder name to the appropriate array in `sync_files()`. This is a single line change. Do NOT add individual `docker cp` lines — the loops handle it.
+
+**When modifying a stock file:** add a `"local:remote"` entry to `STOCK_OVERRIDES`.
+
+**When patching a stock file (restore + patch approach):** add an entry to `PATCHED_FILES`.
 
 ### Safe way to modify stock ERPNext .py files
 
@@ -211,7 +226,7 @@ Files listed in `sync_files()` (like `item.py`, `item.js`, `item_variant.py`) ar
 ### Safe way to modify DocType JSON schemas
 
 1. Edit the `.json` file locally (e.g., `item_attribute_value.json`)
-2. Add the file to `sync_files()` in `./deploy` if not already there
+2. Add the file to the appropriate array in `sync_files()` if not already there
 3. Run `./deploy migrate` — Frappe will read the JSON and add/modify DB columns
 4. **IMPORTANT:** If you set field values via Python BEFORE the migration runs, the column won't exist yet and values will be silently lost. Always deploy first, then set data.
 
@@ -291,7 +306,7 @@ The patch script modifies stock `.py` files at deploy time. These are the hard-w
 | `DocType X not found` | DocType metadata was deleted from DB (e.g., by force-deleting with SQL) | Run `bench migrate` to recreate |
 | Field values are None after setting them | Column didn't exist when values were set (migration hadn't run yet) | Deploy first (`./deploy migrate`), then set values |
 | `bench console` caches old code | Python module cache persists within the console session | Exit and re-enter console, or restart the container |
-| Function not available after deploy | File not in `sync_files()` list | Add `docker cp` line to deploy script |
+| Function not available after deploy | File not in `sync_files()` arrays | Add to the appropriate array in `sync_files()` (see "What the deploy script syncs") |
 | `SyntaxError: cannot assign to function call` | Patch replaced `self.foo = 0` with `self.get("foo") = 0` | Handle assignments separately in patch (use regex, replace with `pass`) |
 | `.pyc` cache serves old broken code | Container has stale bytecode after patching `.py` | Clear `__pycache__` dirs and restart containers |
 | Patch only fixes one container | Each container (backend, queue-short, etc.) has its own FS | Ensure deploy runs patch on ALL containers |

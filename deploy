@@ -90,25 +90,96 @@ remove_insights_before_migrate() {
 }
 
 sync_files() {
-  MFG_SRC="$DIR/erpnext/manufacturing/doctype"
-  MFG_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/"
-  PAGE_SRC="$DIR/erpnext/manufacturing/page"
-  PAGE_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/page/"
-  STOCK_SRC="$DIR/erpnext/stock/doctype"
-  STOCK_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/"
-  WORKSPACE_SRC="$DIR/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
-  WORKSPACE_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json"
-  ITEM_SRC="$DIR/erpnext/stock/doctype/item"
-  ITEM_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/"
-  STOCK_PY_SRC="$DIR/erpnext/stock"
-  STOCK_PY_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/stock/"
-  CONTROLLERS_SRC="$DIR/erpnext/controllers"
-  CONTROLLERS_DST="/home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/"
+  BENCH="/home/frappe/frappe-bench"
+  ERPNEXT="$BENCH/apps/erpnext/erpnext"
+  FRAPPE="$BENCH/apps/frappe/frappe"
+
+  # ── Custom DocTypes (entirely ours, copy whole directory) ──────────
+  # To add a new custom doctype: just add its folder name to the right array.
+  CUSTOM_MFG_DOCTYPES=(
+    label_printer
+    label_size
+    label_template
+    print_job
+    workplace
+    workplace_operation
+    workplace_employee
+    production_log
+    production_log_material
+    production_log_field
+    operation_field
+  )
+  CUSTOM_STOCK_DOCTYPES=(
+    serial_number_template
+    serial_number_template_component
+    item_specification
+    item_specification_parameter
+    qi_serial_entry
+    item_label_template
+  )
+
+  # ── Custom Pages (entirely ours, copy whole directory) ─────────────
+  # To add a new page: just add its folder name here.
+  CUSTOM_MFG_PAGES=(
+    workplace_portal
+    production_flow
+    print_queue
+  )
+
+  # ── Custom Reports (entirely ours, copy whole directory) ───────────
+  # To add a new report: just add its folder name here.
+  CUSTOM_MFG_REPORTS=(
+    component_stock_balance
+  )
+
+  # ── Stock file overrides (individual files we replace wholesale) ───
+  # Format: "local_path:container_path"
+  STOCK_OVERRIDES=(
+    "erpnext/manufacturing/doctype/operation/operation.json:$ERPNEXT/manufacturing/doctype/operation/operation.json"
+    "erpnext/manufacturing/doctype/operation/operation.js:$ERPNEXT/manufacturing/doctype/operation/operation.js"
+    "erpnext/manufacturing/doctype/workstation/workstation.py:$ERPNEXT/manufacturing/doctype/workstation/workstation.py"
+    "erpnext/manufacturing/doctype/workstation/workstation.js:$ERPNEXT/manufacturing/doctype/workstation/workstation.js"
+    "erpnext/stock/doctype/item/item.json:$ERPNEXT/stock/doctype/item/item.json"
+    "erpnext/stock/doctype/item/item.js:$ERPNEXT/stock/doctype/item/item.js"
+    "erpnext/stock/doctype/item/item.py:$ERPNEXT/stock/doctype/item/item.py"
+    "erpnext/stock/doctype/item/item_list.js:$ERPNEXT/stock/doctype/item/item_list.js"
+    "erpnext/stock/serial_batch_bundle.py:$ERPNEXT/stock/serial_batch_bundle.py"
+    "erpnext/stock/utils.py:$ERPNEXT/stock/utils.py"
+    "erpnext/controllers/item_variant.py:$ERPNEXT/controllers/item_variant.py"
+    "erpnext/stock/doctype/item_attribute_value/item_attribute_value.json:$ERPNEXT/stock/doctype/item_attribute_value/item_attribute_value.json"
+    "erpnext/stock/doctype/item_attribute/item_attribute.py:$ERPNEXT/stock/doctype/item_attribute/item_attribute.py"
+    "erpnext/manufacturing/doctype/job_card/job_card.js:$ERPNEXT/manufacturing/doctype/job_card/job_card.js"
+    "erpnext/manufacturing/doctype/job_card/job_card_list.js:$ERPNEXT/manufacturing/doctype/job_card/job_card_list.js"
+    "erpnext/stock/doctype/purchase_receipt/purchase_receipt.js:$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt.js"
+    "erpnext/stock/doctype/quality_inspection/quality_inspection.js:$ERPNEXT/stock/doctype/quality_inspection/quality_inspection.js"
+    "erpnext/stock/doctype/purchase_receipt/purchase_receipt_utils.py:$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt_utils.py"
+    "erpnext/patches/setup_pr_workflow.py:$ERPNEXT/patches/setup_pr_workflow.py"
+    "erpnext/public/js/print.js:$ERPNEXT/public/js/print.js"
+    "erpnext/manufacturing/workspace/manufacturing/manufacturing.json:$ERPNEXT/manufacturing/workspace/manufacturing/manufacturing.json"
+    "erpnext/translations/uk.csv:$ERPNEXT/translations/uk.csv"
+    "frappe/frappe/printing/page/print/print.js:$FRAPPE/printing/page/print/print.js"
+    "frappe/frappe/printing/doctype/print_format/print_format.json:$FRAPPE/printing/doctype/print_format/print_format.json"
+    "frappe/frappe/translations/uk.csv:$FRAPPE/translations/uk.csv"
+  )
+  # Note: do NOT add job_card.json/py — stock v15.96.1 versions are required.
+  # Our custom job_card.json has fields (track_semi_finished_goods etc.) that
+  # reference Work Order columns not present in this ERPNext version.
+
+  # ── Patched files (restore stock → apply patch) ────────────────────
+  # Format: "stock_image_path:patch_script"
+  STOCK_IMAGE="frappe/erpnext:v15.96.1"
+  PATCHED_FILES=(
+    "$ERPNEXT/manufacturing/doctype/bom/bom.py:erpnext/patches/bom_variant_patch.py"
+    "$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt.py:erpnext/patches/purchase_receipt_patch.py"
+    "$ERPNEXT/stock/doctype/quality_inspection/quality_inspection.py:erpnext/patches/quality_inspection_spec_patch.py"
+  )
 
   # Extract stock files from Docker image once (used to restore before patching)
-  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/bom/bom.py > /tmp/_stock_bom.py 2>/dev/null
-  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/purchase_receipt/purchase_receipt.py > /tmp/_stock_pr.py 2>/dev/null
-  docker run --rm frappe/erpnext:v15.96.1 cat /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/quality_inspection/quality_inspection.py > /tmp/_stock_qi.py 2>/dev/null
+  for entry in "${PATCHED_FILES[@]}"; do
+    stock_path="${entry%%:*}"
+    tmp_file="/tmp/_stock_$(basename "$stock_path")"
+    docker run --rm "$STOCK_IMAGE" cat "$stock_path" > "$tmp_file" 2>/dev/null
+  done
 
   for SERVICE in backend queue-short queue-long scheduler frontend; do
     CID=$(dc ps -q "$SERVICE" 2>/dev/null)
@@ -116,68 +187,44 @@ sync_files() {
       continue
     fi
     echo "==> Syncing files to $SERVICE ($CID)..."
-    docker cp "$MFG_SRC/label_printer" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/label_size" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/label_template" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/print_job" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/workplace" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/workplace_operation" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/workplace_employee" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/production_log" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/production_log_material" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/production_log_field" "$CID:$MFG_DST"
-    docker cp "$MFG_SRC/operation_field" "$CID:$MFG_DST"
-    docker cp "$PAGE_SRC/workplace_portal" "$CID:$PAGE_DST"
-    docker cp "$PAGE_SRC/production_flow" "$CID:$PAGE_DST"
-    docker cp "$PAGE_SRC/print_queue" "$CID:$PAGE_DST"
-    docker cp "$MFG_SRC/operation/operation.json" "$CID:${MFG_DST}operation/operation.json"
-    docker cp "$MFG_SRC/operation/operation.js" "$CID:${MFG_DST}operation/operation.js"
-    docker cp "$MFG_SRC/workstation/workstation.py" "$CID:${MFG_DST}workstation/workstation.py"
-    docker cp "$MFG_SRC/workstation/workstation.js" "$CID:${MFG_DST}workstation/workstation.js"
-    docker cp "$STOCK_SRC/serial_number_template" "$CID:$STOCK_DST"
-    docker cp "$STOCK_SRC/serial_number_template_component" "$CID:$STOCK_DST"
-    docker cp "$ITEM_SRC/item.json" "$CID:${ITEM_DST}item.json"
-    docker cp "$ITEM_SRC/item.js" "$CID:${ITEM_DST}item.js"
-    docker cp "$ITEM_SRC/item.py" "$CID:${ITEM_DST}item.py"
-    docker cp "$ITEM_SRC/item_list.js" "$CID:${ITEM_DST}item_list.js"
-    docker cp "$STOCK_PY_SRC/serial_batch_bundle.py" "$CID:${STOCK_PY_DST}serial_batch_bundle.py"
-    docker cp "$STOCK_PY_SRC/utils.py" "$CID:${STOCK_PY_DST}utils.py"
-    docker cp "$CONTROLLERS_SRC/item_variant.py" "$CID:${CONTROLLERS_DST}item_variant.py"
-    docker cp "$STOCK_SRC/item_attribute_value/item_attribute_value.json" "$CID:${STOCK_DST}item_attribute_value/item_attribute_value.json"
-    docker cp "$STOCK_SRC/item_attribute/item_attribute.py" "$CID:${STOCK_DST}item_attribute/item_attribute.py"
-    # Restore stock bom.py before patching (patch may have corrupted it on previous runs)
-    docker cp /tmp/_stock_bom.py "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/bom/bom.py"
-    docker cp "$DIR/erpnext/patches/bom_variant_patch.py" "$CID:/tmp/bom_variant_patch.py"
-    docker exec -u root "$CID" python3 /tmp/bom_variant_patch.py
-    # Note: do NOT copy job_card.json/py — stock v15.96.1 versions are required
-    # Our custom job_card.json has fields (track_semi_finished_goods etc.) that
-    # reference Work Order columns not present in this ERPNext version
-    # job_card.js is safe to copy — it only adds a Production Data dashboard section
-    docker cp "$MFG_SRC/job_card/job_card.js" "$CID:${MFG_DST}job_card/job_card.js"
-    docker cp "$MFG_SRC/job_card/job_card_list.js" "$CID:${MFG_DST}job_card/job_card_list.js"
-    # Purchase Receipt customizations + Item Specification
-    docker cp "$STOCK_SRC/item_specification" "$CID:$STOCK_DST"
-    docker cp "$STOCK_SRC/item_specification_parameter" "$CID:$STOCK_DST"
-    docker cp "$STOCK_SRC/qi_serial_entry" "$CID:$STOCK_DST"
-    docker cp "$STOCK_SRC/item_label_template" "$CID:$STOCK_DST"
-    docker cp "$STOCK_SRC/purchase_receipt/purchase_receipt.js" "$CID:${STOCK_DST}purchase_receipt/purchase_receipt.js"
-    docker cp "$STOCK_SRC/quality_inspection/quality_inspection.js" "$CID:${STOCK_DST}quality_inspection/quality_inspection.js"
-    docker cp "$STOCK_SRC/purchase_receipt/purchase_receipt_utils.py" "$CID:${STOCK_DST}purchase_receipt/purchase_receipt_utils.py"
-    # Restore stock purchase_receipt.py before patching
-    docker cp /tmp/_stock_pr.py "$CID:${STOCK_DST}purchase_receipt/purchase_receipt.py"
-    docker cp "$DIR/erpnext/patches/purchase_receipt_patch.py" "$CID:/tmp/purchase_receipt_patch.py"
-    docker exec -u root "$CID" python3 /tmp/purchase_receipt_patch.py
-    # Restore stock quality_inspection.py before patching
-    docker cp /tmp/_stock_qi.py "$CID:${STOCK_DST}quality_inspection/quality_inspection.py"
-    docker cp "$DIR/erpnext/patches/quality_inspection_spec_patch.py" "$CID:/tmp/quality_inspection_spec_patch.py"
-    docker exec -u root "$CID" python3 /tmp/quality_inspection_spec_patch.py
-    docker cp "$DIR/erpnext/patches/setup_pr_workflow.py" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/patches/setup_pr_workflow.py"
-    docker cp "$DIR/erpnext/public/js/print.js" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/public/js/print.js"
-    docker cp "$DIR/frappe/frappe/printing/page/print/print.js" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js"
-    docker cp "$DIR/frappe/frappe/printing/doctype/print_format/print_format.json" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json"
-    docker cp "$WORKSPACE_SRC" "$CID:$WORKSPACE_DST"
-    docker cp "$DIR/erpnext/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/erpnext/erpnext/translations/uk.csv"
-    docker cp "$DIR/frappe/frappe/translations/uk.csv" "$CID:/home/frappe/frappe-bench/apps/frappe/frappe/translations/uk.csv"
+
+    # Custom manufacturing doctypes
+    for dt in "${CUSTOM_MFG_DOCTYPES[@]}"; do
+      docker cp "$DIR/erpnext/manufacturing/doctype/$dt" "$CID:$ERPNEXT/manufacturing/doctype/"
+    done
+
+    # Custom stock doctypes
+    for dt in "${CUSTOM_STOCK_DOCTYPES[@]}"; do
+      docker cp "$DIR/erpnext/stock/doctype/$dt" "$CID:$ERPNEXT/stock/doctype/"
+    done
+
+    # Custom pages
+    for pg in "${CUSTOM_MFG_PAGES[@]}"; do
+      docker cp "$DIR/erpnext/manufacturing/page/$pg" "$CID:$ERPNEXT/manufacturing/page/"
+    done
+
+    # Custom reports
+    for rpt in "${CUSTOM_MFG_REPORTS[@]}"; do
+      docker cp "$DIR/erpnext/manufacturing/report/$rpt" "$CID:$ERPNEXT/manufacturing/report/"
+    done
+
+    # Stock file overrides
+    for entry in "${STOCK_OVERRIDES[@]}"; do
+      local_path="${entry%%:*}"
+      container_path="${entry##*:}"
+      docker cp "$DIR/$local_path" "$CID:$container_path"
+    done
+
+    # Patched files: restore stock version, then apply patch
+    for entry in "${PATCHED_FILES[@]}"; do
+      stock_path="${entry%%:*}"
+      patch_script="${entry##*:}"
+      tmp_file="/tmp/_stock_$(basename "$stock_path")"
+      docker cp "$tmp_file" "$CID:$stock_path"
+      docker cp "$DIR/$patch_script" "$CID:/tmp/$(basename "$patch_script")"
+      docker exec -u root "$CID" python3 "/tmp/$(basename "$patch_script")"
+    done
+
     docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
   done
 
