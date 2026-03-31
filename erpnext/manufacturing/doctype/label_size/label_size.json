@@ -13,7 +13,8 @@
   "dimensions_section",
   "width_mm",
   "column_break_dims",
-  "height_mm"
+  "height_mm",
+  "print_delay_ms"
  ],
  "fields": [
   {
@@ -52,11 +53,18 @@
   {
    "fieldname": "column_break_dims",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "1500",
+   "description": "Delay between labels when batch printing (milliseconds)",
+   "fieldname": "print_delay_ms",
+   "fieldtype": "Int",
+   "label": "Print Delay (ms)"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-13 13:00:00.000000",
+ "modified": "2026-04-01 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Label Size",

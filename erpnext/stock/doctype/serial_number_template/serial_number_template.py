@@ -19,6 +19,7 @@ COMPONENT_MAP = {
 	"Company Abbreviation": lambda row: "ABBR",
 	"Fiscal Year": lambda row: "FY",
 	"Item Attribute": lambda row: "{ATTR:" + (row.attribute_link or "") + "}",
+	"Supplier": lambda row: "{SUPP}",
 }
 
 PREVIEW_MAP = {
@@ -30,6 +31,7 @@ PREVIEW_MAP = {
 		"Company", frappe.defaults.get_defaults().get("company"), "abbr"
 	) or "XX",
 	"FY": lambda: __import__("datetime").datetime.now().strftime("%Y"),
+	"{SUPP}": lambda: "0",
 }
 
 
@@ -46,6 +48,20 @@ def _get_first_abbr(attribute_name):
 class SerialNumberTemplate(Document):
 	def validate(self):
 		self.build_series()
+
+	def on_update(self):
+		self._propagate_to_template_items()
+
+	def _propagate_to_template_items(self):
+		template_items = frappe.get_all(
+			"Item",
+			filters={"serial_number_template": self.name, "has_variants": 1},
+			pluck="name",
+		)
+		for item_code in template_items:
+			frappe.db.set_value("Item", item_code, "serial_no_series", self.resulting_series)
+			item_doc = frappe.get_doc("Item", item_code)
+			item_doc.update_variants()
 
 	def build_series(self):
 		parts = []
@@ -73,7 +89,7 @@ class SerialNumberTemplate(Document):
 		return "".join(result)
 
 	@frappe.whitelist()
-	def resolve_series(self, item_code):
+	def resolve_series(self, item_code, supplier=None):
 		item = frappe.get_doc("Item", item_code)
 		attr_map = {d.attribute: d.attribute_value for d in (item.attributes or [])}
 
@@ -94,6 +110,12 @@ class SerialNumberTemplate(Document):
 					)
 				series = series.replace(token, abbr)
 
+		if "{SUPP}" in series:
+			supp_abbr = "0"
+			if supplier:
+				supp_abbr = frappe.db.get_value("Supplier", supplier, "abbr") or "0"
+			series = series.replace("{SUPP}", supp_abbr)
+
 		unresolved = re.findall(r"\{ATTR:(.+?)\}", series)
 		if unresolved:
 			frappe.throw(
@@ -105,9 +127,9 @@ class SerialNumberTemplate(Document):
 
 
 @frappe.whitelist()
-def resolve_series_for_item(template_name, item_code):
+def resolve_series_for_item(template_name, item_code, supplier=None):
 	template = frappe.get_doc("Serial Number Template", template_name)
-	return template.resolve_series(item_code)
+	return template.resolve_series(item_code, supplier=supplier)
 
 
 @frappe.whitelist(allow_guest=True)

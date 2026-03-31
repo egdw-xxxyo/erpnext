@@ -400,9 +400,16 @@ def html_to_pcx_bytes(html, width_px, height_px):
 
 def html_to_image(html, width_px, height_px):
 	"""Return (pcx_bytes, png_bytes) for an HTML label."""
+	import time
 	from PIL import Image
 
+	log = frappe.logger("label_printer")
+
+	t0 = time.monotonic()
 	full_html = _wrap_html_for_render(html, width_px, height_px)
+	log.error(f"[TIMING] html_to_image: wrap_html: {(time.monotonic() - t0)*1000:.0f}ms")
+
+	t0 = time.monotonic()
 	result = subprocess.run(
 		[
 			"wkhtmltoimage",
@@ -418,16 +425,23 @@ def html_to_image(html, width_px, height_px):
 		capture_output=True,
 		timeout=15,
 	)
+	wk_ms = (time.monotonic() - t0) * 1000
+	log.error(f"[TIMING] html_to_image: wkhtmltoimage subprocess: {wk_ms:.0f}ms "
+		f"(returncode={result.returncode}, stdout={len(result.stdout)}bytes)")
 	if result.returncode != 0:
 		raise ValueError(f"wkhtmltoimage failed: {result.stderr.decode('utf-8', errors='replace')}")
 
 	png_bytes = result.stdout
 
+	t0 = time.monotonic()
 	img = Image.open(io.BytesIO(png_bytes))
 	img_bw = img.convert("L").point(lambda x: 0 if x < 128 else 255, "1")
 
 	pcx_buf = io.BytesIO()
 	img_bw.save(pcx_buf, format="PCX")
+	pil_ms = (time.monotonic() - t0) * 1000
+	log.error(f"[TIMING] html_to_image: PIL png->pcx conversion: {pil_ms:.0f}ms "
+		f"(pcx={pcx_buf.tell()}bytes)")
 	return pcx_buf.getvalue(), png_bytes
 
 
@@ -523,6 +537,10 @@ def resolve_field_mapping(template_doc, doc_dict):
 
 
 def render_html_template(template_doc, doc=None, data=None, parent_doc=None):
+	import time
+	log = frappe.logger("label_printer")
+	t_start = time.monotonic()
+
 	context = {"frappe": frappe, "_": _}
 
 	if doc:
@@ -534,12 +552,25 @@ def render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 	else:
 		doc_dict = frappe._dict()
 
+	t0 = time.monotonic()
 	resolve_field_mapping(template_doc, doc_dict)
+	log.error(f"[TIMING] render_html_template: resolve_field_mapping: {(time.monotonic() - t0)*1000:.0f}ms")
 	context["doc"] = doc_dict
 
 	if parent_doc:
 		context["parent"] = parent_doc
 
+	t0 = time.monotonic()
 	html = frappe.render_template(template_doc.html_template or "", context)
+	log.error(f"[TIMING] render_html_template: jinja2_render: {(time.monotonic() - t0)*1000:.0f}ms")
+
+	t0 = time.monotonic()
 	html = _process_barcode_tags(html)
-	return _process_attachment_tags(html)
+	log.error(f"[TIMING] render_html_template: process_barcodes: {(time.monotonic() - t0)*1000:.0f}ms")
+
+	t0 = time.monotonic()
+	html = _process_attachment_tags(html)
+	log.error(f"[TIMING] render_html_template: process_attachments: {(time.monotonic() - t0)*1000:.0f}ms")
+
+	log.error(f"[TIMING] render_html_template TOTAL: {(time.monotonic() - t_start)*1000:.0f}ms")
+	return html

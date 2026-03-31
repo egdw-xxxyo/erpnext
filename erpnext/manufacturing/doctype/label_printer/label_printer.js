@@ -78,6 +78,25 @@ frappe.ui.form.on("Label Printer", {
 			});
 		}, __("Actions"));
 
+		frm.add_custom_button(__("Clear Memory"), () => {
+			frappe.confirm(
+				__("Erase all stored images from printer memory?"),
+				() => {
+					frappe.call({
+						method: "erpnext.manufacturing.doctype.label_printer.label_printer.clear_printer_memory",
+						args: { printer_name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Clearing printer memory..."),
+						callback(r) {
+							if (r.message && r.message.success) {
+								frappe.show_alert({ message: __("Printer memory cleared!"), indicator: "green" });
+							}
+						},
+					});
+				}
+			);
+		}, __("Actions"));
+
 		frm.add_custom_button(__("Print Queue"), () => {
 			frappe.set_route("List", "Print Job");
 		});

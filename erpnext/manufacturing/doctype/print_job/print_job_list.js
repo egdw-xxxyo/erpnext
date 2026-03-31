@@ -674,26 +674,99 @@ function _create_jobs(d, values, printer, print_immediately, listview) {
 function _batch_print_sequential(job_names, listview) {
 	let printed = 0, failed = 0;
 	const total = job_names.length;
+	const BATCH_SIZE = 20;
+	let stopped = false;
 
-	const print_next = (i) => {
-		if (i >= job_names.length) {
-			frappe.show_alert({
-				message: __("{0} printed, {1} failed", [printed, failed]),
-				indicator: failed ? "orange" : "green",
-			});
-			if (listview) listview.refresh();
+	const _finish = () => {
+		frappe.hide_progress();
+		const skipped = total - printed - failed;
+		let msg = __("{0} printed, {1} failed", [printed, failed]);
+		if (skipped > 0) {
+			msg += __(", {0} skipped (printer error)", [skipped]);
+		}
+		frappe.show_alert({
+			message: msg,
+			indicator: failed || stopped ? "red" : "green",
+		});
+		if (listview) listview.refresh();
+	};
+
+	const _get_printer = () => {
+		if (listview._selected_printer) return listview._selected_printer.name;
+		const first_job = job_names[0];
+		const row = (listview.data || []).find(d => d.name === first_job);
+		return row ? row.label_printer : null;
+	};
+
+	const _check_status = (callback) => {
+		const printer = _get_printer();
+		if (!printer) { callback(true); return; }
+		frappe.call({
+			method: API_PRINTER + ".check_printer_ready",
+			args: { printer_name: printer },
+			callback: () => { callback(true); },
+			error: (r) => {
+				const msg = (r && r._server_messages) ? r._server_messages : "";
+				if (msg.indexOf("Printer error") !== -1) {
+					stopped = true;
+					frappe.msgprint({
+						title: __("Printing Stopped"),
+						indicator: "red",
+						message: __("Printer reported an error. Remaining {0} labels were skipped.",
+							[total - printed - failed]),
+					});
+					callback(false);
+				} else {
+					callback(true);
+				}
+			},
+		});
+	};
+
+	const _print_one = (i, batch_done_cb) => {
+		if (stopped || i >= job_names.length) {
+			batch_done_cb();
 			return;
 		}
 
-		frappe.show_progress(__("Printing..."), i + 1, total);
+		frappe.show_progress(__("Printing..."), printed + failed + 1, total);
 
 		frappe.call({
 			method: API_PRINTER + ".print_label",
 			args: { print_job_name: job_names[i] },
-			callback: () => { printed++; print_next(i + 1); },
-			error: () => { failed++; print_next(i + 1); },
+			callback: (r) => {
+				printed++;
+				const delay = (r.message && r.message.print_delay_ms) || 1500;
+				setTimeout(batch_done_cb, delay);
+			},
+			error: () => { failed++; batch_done_cb(); },
 		});
 	};
 
-	print_next(0);
+	const _print_batch = (start_idx) => {
+		if (stopped || start_idx >= job_names.length) {
+			_finish();
+			return;
+		}
+
+		// Status check before each batch
+		_check_status((ok) => {
+			if (!ok) { _finish(); return; }
+
+			const end_idx = Math.min(start_idx + BATCH_SIZE, job_names.length);
+			let idx = start_idx;
+
+			const _next = () => {
+				if (stopped || idx >= end_idx) {
+					// Batch done — start next batch (which will status-check first)
+					_print_batch(end_idx);
+					return;
+				}
+				_print_one(idx, () => { idx++; _next(); });
+			};
+			_next();
+		});
+	};
+
+	_print_batch(0);
 }

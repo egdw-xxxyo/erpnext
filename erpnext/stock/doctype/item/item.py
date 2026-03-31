@@ -256,10 +256,9 @@ class Item(Document):
 		if not self.variant_of:
 			return
 		for field in ("serial_number_template", "serial_no_series"):
-			if not self.get(field):
-				val = frappe.db.get_value("Item", self.variant_of, field)
-				if val:
-					self.set(field, val)
+			val = frappe.db.get_value("Item", self.variant_of, field)
+			if val:
+				self.set(field, val)
 
 	def resolve_serial_number_template(self):
 		if (

@@ -332,11 +332,15 @@ frappe.ui.form.on("Purchase Receipt", {
 	},
 
 	open_label_print_dialog: function (frm, by_item, templates_by_item, items) {
+		let _submitting = false;
+
 		let _submit = (queue_only) => {
+			if (_submitting) return;
 			let rows = d.$wrapper.find(".label-item-row");
 			let calls = [];
 			rows.each(function () {
 				let $row = $(this);
+				if (!$row.find(".item-check").prop("checked")) return;
 				let item_code = $row.data("item");
 				let tmpl = $row.find(".tmpl-select").val();
 				let printer = $row.find(".printer-select").val();
@@ -344,7 +348,11 @@ frappe.ui.form.on("Purchase Receipt", {
 				if (!tmpl) return;
 				calls.push({ item_code, tmpl, printer, copies });
 			});
-			if (!calls.length) { frappe.msgprint(__("No templates selected")); return; }
+			if (!calls.length) { frappe.msgprint(__("No items selected")); return; }
+
+			_submitting = true;
+			d.$wrapper.find(".btn-primary, .btn-secondary, .btn-default").prop("disabled", true);
+
 			let done = 0;
 			calls.forEach(p => {
 				let serials = by_item[p.item_code].serials;
@@ -360,8 +368,16 @@ frappe.ui.form.on("Purchase Receipt", {
 					callback: function (r) {
 						done++;
 						if (done === calls.length) {
+							_submitting = false;
 							frappe.show_alert({ message: __("Print jobs created"), indicator: "green" });
 							d.hide();
+						}
+					},
+					error: function () {
+						done++;
+						if (done === calls.length) {
+							_submitting = false;
+							d.$wrapper.find(".btn-primary, .btn-secondary, .btn-default").prop("disabled", false);
 						}
 					},
 				});
@@ -390,6 +406,7 @@ frappe.ui.form.on("Purchase Receipt", {
 				};
 
 				let html = "<table class='table' style='margin-top:8px'><thead><tr>"
+					+ `<th style="width:30px"><input type="checkbox" class="check-all" checked></th>`
 					+ `<th>${__("Item")}</th><th>${__("Qty")}</th><th>${__("Copies")}</th><th>${__("Label Template")}</th><th>${__("Printer")}</th>`
 					+ "</tr></thead><tbody>";
 				items.forEach(item_code => {
@@ -400,6 +417,7 @@ frappe.ui.form.on("Purchase Receipt", {
 					).join("");
 					let printer_opts = build_printer_opts(tmpls[0].label_printer || "");
 					html += `<tr class="label-item-row" data-item="${frappe.utils.escape_html(item_code)}">`
+						+ `<td><input type="checkbox" class="item-check" checked></td>`
 						+ `<td>${frappe.utils.escape_html(info.item_name || item_code)}</td>`
 						+ `<td>${info.serials.length}</td>`
 						+ `<td><input type="number" class="copies-input form-control form-control-sm" value="1" min="1" style="width:60px"></td>`
@@ -409,6 +427,11 @@ frappe.ui.form.on("Purchase Receipt", {
 				});
 				html += "</tbody></table>";
 				d.fields_dict.items_html.$wrapper.html(html);
+
+				d.$wrapper.find(".check-all").on("change", function () {
+					d.$wrapper.find(".item-check").prop("checked", $(this).prop("checked"));
+				});
+
 				d.show();
 			},
 		});

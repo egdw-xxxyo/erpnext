@@ -13,6 +13,7 @@
   "naming_series",
   "supplier_type",
   "supplier_name",
+  "abbr",
   "gender",
   "column_break0",
   "supplier_group",
@@ -100,6 +101,13 @@
    "oldfieldname": "supplier_name",
    "oldfieldtype": "Data",
    "reqd": 1
+  },
+  {
+   "description": "Short code used in serial number generation (e.g., 'K' for a supplier)",
+   "fieldname": "abbr",
+   "fieldtype": "Data",
+   "label": "Abbreviation",
+   "length": 10
   },
   {
    "fieldname": "country",

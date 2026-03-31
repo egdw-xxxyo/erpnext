@@ -1,6 +1,8 @@
+import io
 import json
 import re
 import socket
+import time
 
 import frappe
 from frappe import _
@@ -316,6 +318,19 @@ def beep(printer_name):
 		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
 
 
+@frappe.whitelist()
+def clear_printer_memory(printer_name):
+	doc = _get_printer_doc(printer_name)
+	try:
+		timeout = doc.timeout or 5
+		# Try both EZPL native and ZPL emulation commands
+		_tcp_send_raw(doc.ip_address, doc.port, b"~MDEL*\r\n", timeout)
+		_tcp_send_raw(doc.ip_address, doc.port, b"~EK,*\r\n", timeout)
+		return {"success": True}
+	except socket.error as e:
+		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
+
+
 # ---------------------------------------------------------------------------
 # Whitelisted API — printing
 # ---------------------------------------------------------------------------
@@ -407,18 +422,25 @@ def test_print(printer_name, template_name):
 
 @frappe.whitelist()
 def print_label(print_job_name):
+	t_total = time.monotonic()
+	log = frappe.logger("label_printer")
+
+	t0 = time.monotonic()
 	job = frappe.get_doc("Print Job", print_job_name)
-	frappe.logger("label_printer").info(
-		f"print_label called: job={print_job_name}, status={job.status}, "
+	log.info(
+		f"[TIMING] print_label START job={print_job_name}, status={job.status}, "
 		f"template={job.label_template}, printer={job.label_printer}"
 	)
+	log.error(f"[TIMING] load_job: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	if job.status not in ("Queued", "Failed", "Printed"):
 		frappe.throw(_("Print Job {0} is not in a printable state (status: {1})").format(
 			print_job_name, job.status
 		))
 
+	t0 = time.monotonic()
 	printer = _get_printer_doc(job.label_printer)
+	log.error(f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	if printer.is_label_change_in_progress:
 		frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
@@ -430,54 +452,74 @@ def print_label(print_job_name):
 			)
 		)
 
+	t0 = time.monotonic()
 	template = frappe.get_doc("Label Template", job.label_template)
-	frappe.logger("label_printer").info(
-		f"Template loaded: type={template.template_type}, "
-		f"has_ezpl={bool(template.zpl_template)}, size={template.label_size}"
+	log.info(
+		f"[TIMING] load_template: {(time.monotonic() - t0)*1000:.0f}ms "
+		f"type={template.template_type}, size={template.label_size}"
 	)
 
+	t0 = time.monotonic()
 	ref_doc = None
 	raw_data = None
 	if job.raw_data:
 		raw_data = json.loads(job.raw_data)
-		frappe.logger("label_printer").info(f"Using raw_data snapshot ({len(job.raw_data)} bytes)")
 	elif job.reference_doctype and job.reference_name:
 		ref_doc = frappe.get_doc(job.reference_doctype, job.reference_name)
-		frappe.logger("label_printer").info(f"Reference doc: {job.reference_doctype}/{job.reference_name}")
 	elif job.reference_name:
 		raw_data = {"name": job.reference_name}
-		frappe.logger("label_printer").info(f"Raw data fallback: {raw_data}")
 
 	parent_doc = None
 	if job.parent_doctype and job.parent_name:
 		parent_doc = frappe.get_doc(job.parent_doctype, job.parent_name)
-		frappe.logger("label_printer").info(f"Parent doc: {job.parent_doctype}/{job.parent_name}")
+	log.error(f"[TIMING] load_data: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	try:
+		t0 = time.monotonic()
 		frappe.db.set_value("Print Job", print_job_name, "status", "Printing")
+		log.error(f"[TIMING] set_status_printing: {(time.monotonic() - t0)*1000:.0f}ms")
 
 		if template.template_type == "HTML":
-			rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
-			frappe.logger("label_printer").info(
-				f"Rendered HTML ({len(rendered_html)} chars)"
-			)
-			if not rendered_html or not rendered_html.strip():
-				raise ValueError("Template rendered empty HTML output")
-
 			size = frappe.get_doc("Label Size", template.label_size)
-			dpi = int(printer.dpi or 300)
-			w_dots = _mm_to_dots(size.width_mm, dpi)
-			h_dots = _mm_to_dots(size.height_mm, dpi)
-			pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots)
-			frappe.logger("label_printer").info(f"PCX: {len(pcx_data)} bytes")
+
+			# Try to load pre-rendered PCX from file attachment
+			t0 = time.monotonic()
+			pcx_data = _load_pcx_file(job)
+			if pcx_data:
+				log.error(f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
+					f"({len(pcx_data)}bytes) — skipping wkhtmltoimage")
+			else:
+				log.error(f"[TIMING] no pre-rendered PCX, rendering on the fly")
+				t0 = time.monotonic()
+				rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
+				log.error(f"[TIMING] render_html: {(time.monotonic() - t0)*1000:.0f}ms ({len(rendered_html)} chars)")
+				if not rendered_html or not rendered_html.strip():
+					raise ValueError("Template rendered empty HTML output")
+
+				dpi = int(printer.dpi or 300)
+				w_dots = _mm_to_dots(size.width_mm, dpi)
+				h_dots = _mm_to_dots(size.height_mm, dpi)
+
+				t0 = time.monotonic()
+				pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots)
+				log.error(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
+					f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes")
+
+				t0 = time.monotonic()
+				_save_preview_image(print_job_name, png_data)
+				log.error(f"[TIMING] save_preview_image: {(time.monotonic() - t0)*1000:.0f}ms")
 
 			is_mock = printer.mock_printing
 
 			if not is_mock:
+				t0 = time.monotonic()
 				_send_pcx_label(printer, pcx_data, size, copies=job.copies or 1)
+				log.error(f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
+					f"copies={job.copies or 1}")
 			else:
-				frappe.logger("label_printer").info(f"Mock printing — skipped sending to printer")
+				log.error(f"[TIMING] mock printing — skipped sending to printer")
 
+			t0 = time.monotonic()
 			status_note = "[MOCK] " if is_mock else ""
 			frappe.db.set_value("Print Job", print_job_name, {
 				"status": "Printed",
@@ -485,13 +527,11 @@ def print_label(print_job_name):
 				"zpl_output": f"{status_note}[HTML template rendered to PCX, {len(pcx_data)} bytes]",
 				"error_message": "",
 			})
-
-			_save_preview_image(print_job_name, png_data)
+			log.error(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
 		else:
+			t0 = time.monotonic()
 			ezpl = _render_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
-			frappe.logger("label_printer").info(
-				f"Rendered EZPL ({len(ezpl)} chars): {repr(ezpl[:200])}"
-			)
+			log.error(f"[TIMING] render_ezpl: {(time.monotonic() - t0)*1000:.0f}ms ({len(ezpl)} chars)")
 
 			if not ezpl or not ezpl.strip():
 				raise ValueError("Template rendered empty EZPL output")
@@ -499,14 +539,15 @@ def print_label(print_job_name):
 			is_mock = printer.mock_printing
 
 			if not is_mock:
+				t0 = time.monotonic()
 				for i in range(job.copies or 1):
-					frappe.logger("label_printer").info(
-						f"Sending copy {i+1}/{job.copies or 1} to {printer.ip_address}:{printer.port}"
-					)
 					_send_ezpl(printer, ezpl)
+				log.error(f"[TIMING] send_ezpl (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
+					f"copies={job.copies or 1}")
 			else:
-				frappe.logger("label_printer").info(f"Mock printing — skipped sending to printer")
+				log.error(f"[TIMING] mock printing — skipped sending to printer")
 
+			t0 = time.monotonic()
 			status_note = "[MOCK] " if is_mock else ""
 			frappe.db.set_value("Print Job", print_job_name, {
 				"status": "Printed",
@@ -514,12 +555,19 @@ def print_label(print_job_name):
 				"zpl_output": f"{status_note}{ezpl}",
 				"error_message": "",
 			})
-		frappe.logger("label_printer").info(f"Print job {print_job_name} completed successfully")
-		return {"success": True, "print_job": print_job_name}
+			log.error(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
+
+		total_ms = (time.monotonic() - t_total) * 1000
+		log.error(f"[TIMING] print_label DONE job={print_job_name} TOTAL={total_ms:.0f}ms")
+		print_delay = 1500
+		if job.label_size:
+			print_delay = frappe.db.get_value("Label Size", job.label_size, "print_delay_ms") or 1500
+		return {"success": True, "print_job": print_job_name, "print_delay_ms": int(print_delay)}
 	except Exception as e:
 		import traceback
 		tb = traceback.format_exc()
-		frappe.logger("label_printer").error(f"Print job {print_job_name} failed: {e}\n{tb}")
+		total_ms = (time.monotonic() - t_total) * 1000
+		log.error(f"[TIMING] print_label FAILED job={print_job_name} TOTAL={total_ms:.0f}ms: {e}\n{tb}")
 		frappe.db.set_value("Print Job", print_job_name, {
 			"status": "Failed",
 			"error_message": str(e),
@@ -569,33 +617,142 @@ def _save_preview_image(print_job_name, png_data):
 		frappe.logger("label_printer").warning(f"Failed to save preview image for {print_job_name}", exc_info=True)
 
 
-def _send_pcx_label(printer_doc, pcx_data, size_doc, copies=1):
-	import uuid
+def _save_pcx_file(print_job_name, pcx_data):
+	filename = f"{print_job_name}.pcx"
+	file_doc = frappe.get_doc({
+		"doctype": "File",
+		"file_name": filename,
+		"attached_to_doctype": "Print Job",
+		"attached_to_name": print_job_name,
+		"attached_to_field": "pcx_file",
+		"content": pcx_data,
+		"is_private": 1,
+	})
+	file_doc.save(ignore_permissions=True)
+	frappe.db.set_value("Print Job", print_job_name, "pcx_file", file_doc.file_url)
 
+
+def _load_pcx_file(job):
+	if not job.pcx_file:
+		return None
+	try:
+		file_path = frappe.get_site_path(
+			"private" if "/private/" in job.pcx_file else "public",
+			"files",
+			job.pcx_file.split("/")[-1]
+		)
+		with open(file_path, "rb") as f:
+			return f.read()
+	except Exception:
+		frappe.logger("label_printer").warning(
+			f"Could not load PCX file for {job.name}: {job.pcx_file}", exc_info=True)
+		return None
+
+
+def _prerender_job(job_name, template, printer_doc, ref_doc=None, raw_data=None, parent_doc=None):
+	log = frappe.logger("label_printer")
+	if template.template_type != "HTML":
+		return
+
+	try:
+		t0 = time.monotonic()
+		rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
+		if not rendered_html or not rendered_html.strip():
+			log.warning(f"_prerender_job {job_name}: empty HTML output")
+			return
+
+		size = frappe.get_doc("Label Size", template.label_size)
+		dpi = int(printer_doc.dpi or 300)
+		w_dots = _mm_to_dots(size.width_mm, dpi)
+		h_dots = _mm_to_dots(size.height_mm, dpi)
+		pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots)
+
+		_save_pcx_file(job_name, pcx_data)
+		_save_preview_image(job_name, png_data)
+		log.error(f"[TIMING] _prerender_job {job_name}: {(time.monotonic() - t0)*1000:.0f}ms "
+			f"(pcx={len(pcx_data)}bytes)")
+	except Exception:
+		log.warning(f"_prerender_job {job_name}: pre-render failed, will render at print time",
+			exc_info=True)
+
+
+def _check_printer_status(printer_doc, context=""):
+	log = frappe.logger("label_printer")
+	try:
+		raw = _tcp_query(printer_doc.ip_address, printer_doc.port, "~HS",
+			timeout=printer_doc.timeout or 5, recv_timeout=0.5)
+		if not raw:
+			return
+		status = _parse_host_status(raw)
+		log.error(f"[TIMING] _check_printer_status ({context}): {status.get('status', 'Unknown')}")
+		s = status.get("status", "")
+		if s and s != "Ready":
+			raise PrinterError(f"Printer error after {context}: {s}")
+	except PrinterError:
+		raise
+	except Exception:
+		log.warning(f"_check_printer_status ({context}): could not query status", exc_info=True)
+
+
+class PrinterError(Exception):
+	pass
+
+
+def _pcx_to_raw_bitmap(pcx_data):
+	"""Convert PCX image to raw 1-bit bitmap bytes for EZPL Q command.
+	Q command expects raw monochrome bitmap: 1 bit per pixel, MSB first.
+	Bits are inverted: 0=white (no print), 1=black (print) for Q command.
+	Returns (width_bytes, height, raw_data)."""
+	from PIL import Image
+
+	img = Image.open(io.BytesIO(pcx_data))
+	img_bw = img.convert("1")
+	w, h = img_bw.size
+	width_bytes = (w + 7) // 8
+	raw = img_bw.tobytes()
+	# Invert: Q command needs 1=black 0=white, PIL outputs opposite
+	raw = bytes(b ^ 0xFF for b in raw)
+	return width_bytes, h, raw
+
+
+def _send_pcx_label(printer_doc, pcx_data, size_doc, copies=1):
+	log = frappe.logger("label_printer")
 	ox = int(getattr(printer_doc, "offset_x", 0) or 0)
 	oy = int(getattr(printer_doc, "offset_y", 0) or 0)
 	timeout = printer_doc.timeout or 5
 
-	for i in range(copies):
-		name = uuid.uuid4().hex[:8].upper()
+	t0 = time.monotonic()
 
+	# Convert PCX to raw bitmap for EZPL Q command (inline, no flash storage)
+	width_bytes, height, raw_bitmap = _pcx_to_raw_bitmap(pcx_data)
+	expected_len = width_bytes * height
+	log.error(f"[TIMING] _send_pcx_label: pcx_to_raw: {(time.monotonic() - t0)*1000:.0f}ms "
+		f"({width_bytes}x{height}={expected_len}bytes, actual={len(raw_bitmap)}bytes)")
+
+	t0 = time.monotonic()
+	for i in range(copies):
 		parts = []
-		parts.append(f"~EK,{name}\r\n".encode("ascii"))
-		parts.append(f"~EP,{name},{len(pcx_data)}\r\n".encode("ascii"))
-		parts.append(pcx_data)
-		parts.append(b"\r\n")
 		parts.append(f"^W{int(size_doc.width_mm)}\r\n".encode("ascii"))
 		parts.append(b"^E13\r\n")
 		parts.append(b"^L\r\n")
-		parts.append(f"Y{ox},{oy},{name}\r\n".encode("ascii"))
+		# Q command: inline bitmap, bottom-left origin
+		parts.append(f"Q{ox},{oy},{width_bytes},{height}\r\n".encode("ascii"))
+		parts.append(raw_bitmap)
+		parts.append(b"\r\n")
 		parts.append(b"E\r\n")
-		parts.append(f"~EK,{name}\r\n".encode("ascii"))
-
 		payload = b"".join(parts)
-		frappe.logger("label_printer").info(
-			f"_send_pcx_label: name={name}, copy {i+1}/{copies}, {len(payload)} bytes"
-		)
 		_tcp_send_raw(printer_doc.ip_address, printer_doc.port, payload, timeout)
+
+	log.error(f"[TIMING] _send_pcx_label: Q inline send {copies} copies: "
+		f"{(time.monotonic() - t0)*1000:.0f}ms (payload={len(payload)}bytes)")
+
+
+@frappe.whitelist()
+def check_printer_ready(printer_name):
+	"""Check printer status. Called between batches as a failsafe."""
+	doc = _get_printer_doc(printer_name)
+	_check_printer_status(doc, "batch-check")
+	return {"success": True, "status": "Ready"}
 
 
 def _render_ezpl_template(template_doc, doc=None, data=None, parent_doc=None):
@@ -634,6 +791,7 @@ def _render_ezpl_template(template_doc, doc=None, data=None, parent_doc=None):
 @frappe.whitelist()
 def create_print_job(label_template, printer_name, reference_name=None, raw_data=None, copies=1):
 	template = frappe.get_doc("Label Template", label_template)
+	printer = _get_printer_doc(printer_name)
 
 	job = frappe.new_doc("Print Job")
 	job.label_template = label_template
@@ -650,6 +808,12 @@ def create_print_job(label_template, printer_name, reference_name=None, raw_data
 			job.raw_data = json.dumps(raw_data, ensure_ascii=False)
 	job.insert()
 
+	parsed_raw = json.loads(job.raw_data) if job.raw_data else None
+	ref_doc = None
+	if not parsed_raw and job.reference_doctype and job.reference_name:
+		ref_doc = frappe.get_doc(job.reference_doctype, job.reference_name)
+	_prerender_job(job.name, template, printer, ref_doc=ref_doc, raw_data=parsed_raw)
+
 	return {"print_job": job.name}
 
 
@@ -665,13 +829,21 @@ def cancel_print_job(print_job_name):
 @frappe.whitelist()
 def batch_print_jobs(job_names):
 	job_names = json.loads(job_names)
+	log = frappe.logger("label_printer")
+	t_batch = time.monotonic()
+	log.error(f"[TIMING] batch_print_jobs START: {len(job_names)} jobs")
 	results = {"printed": 0, "failed": 0}
-	for name in job_names:
+	for i, name in enumerate(job_names):
 		try:
 			print_label(name)
 			results["printed"] += 1
 		except Exception:
 			results["failed"] += 1
+		log.error(f"[TIMING] batch_print_jobs [{i+1}/{len(job_names)}] "
+			f"printed={results['printed']} failed={results['failed']}")
+	total_ms = (time.monotonic() - t_batch) * 1000
+	log.error(f"[TIMING] batch_print_jobs DONE: {len(job_names)} jobs in {total_ms:.0f}ms "
+		f"({total_ms/max(len(job_names),1):.0f}ms/job avg)")
 	return results
 
 
@@ -846,6 +1018,7 @@ def print_labels_batch(source_doctype, source_names, label_template, printer_nam
 	source_names = json.loads(source_names)
 	copies = int(copies) if copies else 1
 	template = frappe.get_doc("Label Template", label_template)
+	printer = _get_printer_doc(printer_name)
 
 	jobs = []
 	for source_name in source_names:
@@ -878,6 +1051,8 @@ def print_labels_batch(source_doctype, source_names, label_template, printer_nam
 			job.raw_data = json.dumps(doc_dict, default=str, ensure_ascii=False)
 			job.insert()
 			jobs.append(job.name)
+
+			_prerender_job(job.name, template, printer, raw_data=doc_dict)
 
 	frappe.db.commit()
 	return {"jobs": jobs, "count": len(jobs)}

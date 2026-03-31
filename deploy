@@ -148,6 +148,7 @@ sync_files() {
     "erpnext/controllers/item_variant.py:$ERPNEXT/controllers/item_variant.py"
     "erpnext/stock/doctype/item_attribute_value/item_attribute_value.json:$ERPNEXT/stock/doctype/item_attribute_value/item_attribute_value.json"
     "erpnext/stock/doctype/item_attribute/item_attribute.py:$ERPNEXT/stock/doctype/item_attribute/item_attribute.py"
+    "erpnext/buying/doctype/supplier/supplier.json:$ERPNEXT/buying/doctype/supplier/supplier.json"
     "erpnext/manufacturing/doctype/job_card/job_card.js:$ERPNEXT/manufacturing/doctype/job_card/job_card.js"
     "erpnext/manufacturing/doctype/job_card/job_card_list.js:$ERPNEXT/manufacturing/doctype/job_card/job_card_list.js"
     "erpnext/stock/doctype/purchase_receipt/purchase_receipt.js:$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt.js"
