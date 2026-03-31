@@ -15,7 +15,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Literal\nSeparator\nYear (YYYY)\nShort Year (YY)\nMonth (MM)\nDay (DD)\nCounter\nCompany Abbreviation\nFiscal Year\nItem Attribute",
+   "options": "Literal\nSeparator\nYear (YYYY)\nShort Year (YY)\nMonth (MM)\nDay (DD)\nCounter\nCompany Abbreviation\nFiscal Year\nItem Attribute\nSupplier",
    "reqd": 1
   },
   {

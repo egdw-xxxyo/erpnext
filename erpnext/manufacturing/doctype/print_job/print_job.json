@@ -24,6 +24,7 @@
   "preview_html",
   "output_section",
   "preview_image",
+  "pcx_file",
   "error_message",
   "printed_at",
   "column_break_output",
@@ -153,6 +154,13 @@
    "read_only": 1
   },
   {
+   "fieldname": "pcx_file",
+   "fieldtype": "Attach",
+   "hidden": 1,
+   "label": "PCX File",
+   "read_only": 1
+  },
+  {
    "fieldname": "error_message",
    "fieldtype": "Small Text",
    "label": "Error Message",
@@ -179,7 +187,7 @@
  "allow_comments": 0,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-13 15:00:00.000000",
+ "modified": "2026-03-31 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Print Job",

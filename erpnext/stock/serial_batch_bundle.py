@@ -49,16 +49,27 @@ class SerialBatchBundle:
 			self._resolve_attribute_series()
 
 	def _resolve_attribute_series(self):
-		if "{ATTR:" not in (self.item_details.serial_no_series or ""):
+		series = self.item_details.serial_no_series or ""
+		if "{ATTR:" not in series and "{SUPP}" not in series:
 			return
 		from erpnext.stock.doctype.serial_number_template.serial_number_template import (
 			resolve_series_for_item,
 		)
 
+		supplier = self._get_voucher_supplier()
 		resolved = resolve_series_for_item(
-			self.item_details.serial_number_template, self.sle.item_code
+			self.item_details.serial_number_template, self.sle.item_code, supplier=supplier
 		)
 		self.item_details.serial_no_series = resolved
+
+	def _get_voucher_supplier(self):
+		voucher_type = self.sle.get("voucher_type") if hasattr(self.sle, "get") else getattr(self.sle, "voucher_type", None)
+		voucher_no = self.sle.get("voucher_no") if hasattr(self.sle, "get") else getattr(self.sle, "voucher_no", None)
+		if voucher_type and voucher_no:
+			supplier = frappe.db.get_value(voucher_type, voucher_no, "supplier")
+			if supplier:
+				return supplier
+		return None
 
 	def process_serial_no(self):
 		if (
@@ -1063,12 +1074,19 @@ class SerialBatchCreation:
 
 		self.__dict__.update(item_details)
 
-		if self.get("serial_number_template") and "{ATTR:" in (self.get("serial_no_series") or ""):
+		series = self.get("serial_no_series") or ""
+		if self.get("serial_number_template") and ("{ATTR:" in series or "{SUPP}" in series):
 			from erpnext.stock.doctype.serial_number_template.serial_number_template import (
 				resolve_series_for_item,
 			)
 
-			resolved = resolve_series_for_item(self.serial_number_template, self.item_code)
+			supplier = None
+			voucher_type = self.get("voucher_type")
+			voucher_no = self.get("voucher_no")
+			if voucher_type and voucher_no:
+				supplier = frappe.db.get_value(voucher_type, voucher_no, "supplier")
+
+			resolved = resolve_series_for_item(self.serial_number_template, self.item_code, supplier=supplier)
 			self.serial_no_series = resolved
 			self.__dict__["serial_no_series"] = resolved
 
