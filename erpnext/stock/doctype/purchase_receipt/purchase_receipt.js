@@ -333,6 +333,36 @@ frappe.ui.form.on("Purchase Receipt", {
 
 	open_label_print_dialog: function (frm, by_item, templates_by_item, items) {
 		let _submitting = false;
+		const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+
+		const _print_sequential = (job_names, dialog) => {
+			let printed = 0, failed = 0;
+			const total = job_names.length;
+
+			const _finish = () => {
+				frappe.hide_progress();
+				_submitting = false;
+				let msg = __("{0} printed, {1} failed", [printed, failed]);
+				frappe.show_alert({ message: msg, indicator: failed ? "red" : "green" });
+				dialog.hide();
+			};
+
+			const _print_one = (i) => {
+				if (i >= job_names.length) { _finish(); return; }
+				frappe.show_progress(__("Printing..."), i + 1, total);
+				frappe.call({
+					method: API_PRINTER + ".print_label",
+					args: { print_job_name: job_names[i] },
+					callback: (r) => {
+						printed++;
+						const delay = (r.message && r.message.print_delay_ms) || 1500;
+						setTimeout(() => _print_one(i + 1), delay);
+					},
+					error: () => { failed++; _print_one(i + 1); },
+				});
+			};
+			_print_one(0);
+		};
 
 		let _submit = (queue_only) => {
 			if (_submitting) return;
@@ -353,35 +383,67 @@ frappe.ui.form.on("Purchase Receipt", {
 			_submitting = true;
 			d.$wrapper.find(".btn-primary, .btn-secondary, .btn-default").prop("disabled", true);
 
-			let done = 0;
+			const CHUNK_SIZE = 10;
+			let all_jobs = [];
+			let chunks = [];
+			let total_serials = 0;
+
 			calls.forEach(p => {
 				let serials = by_item[p.item_code].serials;
+				total_serials += serials.length;
+				for (let i = 0; i < serials.length; i += CHUNK_SIZE) {
+					chunks.push({
+						serials: serials.slice(i, i + CHUNK_SIZE),
+						tmpl: p.tmpl,
+						printer: p.printer,
+						copies: p.copies,
+					});
+				}
+			});
+
+			let created = 0;
+			let chunk_idx = 0;
+
+			const create_next_chunk = () => {
+				if (chunk_idx >= chunks.length) {
+					frappe.hide_progress();
+					if (queue_only || !all_jobs.length) {
+						_submitting = false;
+						frappe.show_alert({ message: __("{0} jobs added to queue", [all_jobs.length]), indicator: "green" });
+						d.hide();
+						return;
+					}
+					_print_sequential(all_jobs, d);
+					return;
+				}
+
+				let chunk = chunks[chunk_idx];
+				frappe.show_progress(
+					__("Creating print jobs..."),
+					created, total_serials
+				);
+
 				frappe.call({
-					method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_labels_batch",
+					method: API_PRINTER + ".print_labels_batch",
 					args: {
 						source_doctype: "Serial No",
-						source_names: JSON.stringify(serials),
-						label_template: p.tmpl,
-						printer_name: p.printer || "",
-						copies: p.copies,
+						source_names: JSON.stringify(chunk.serials),
+						label_template: chunk.tmpl,
+						printer_name: chunk.printer || "",
+						copies: chunk.copies,
 					},
-					callback: function (r) {
-						done++;
-						if (done === calls.length) {
-							_submitting = false;
-							frappe.show_alert({ message: __("Print jobs created"), indicator: "green" });
-							d.hide();
+					callback: (r) => {
+						if (r.message && r.message.jobs) {
+							all_jobs.push(...r.message.jobs);
+							created += r.message.jobs.length;
 						}
+						chunk_idx++;
+						create_next_chunk();
 					},
-					error: function () {
-						done++;
-						if (done === calls.length) {
-							_submitting = false;
-							d.$wrapper.find(".btn-primary, .btn-secondary, .btn-default").prop("disabled", false);
-						}
-					},
+					error: () => { chunk_idx++; create_next_chunk(); },
 				});
-			});
+			};
+			create_next_chunk();
 		};
 
 		let d = new frappe.ui.Dialog({
