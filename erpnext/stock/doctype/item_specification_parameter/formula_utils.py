@@ -32,7 +32,6 @@ def evaluate_spec_formulas(variant_doc):
 				min_val, max_val = _apply_tolerance(nominal, tolerance)
 				row.min_value = min_val
 				row.max_value = max_val
-				row.display_value = _format_display_value(min_val, max_val, row.get("uom"))
 			except Exception as e:
 				frappe.log_error(
 					title=f"Spec Formula Error: {row.get('parameter')}",
@@ -40,7 +39,6 @@ def evaluate_spec_formulas(variant_doc):
 				)
 		elif not row.get("numeric") and not row.get("value") and row.parameter in attr_text:
 			row.value = attr_text[row.parameter]
-			row.display_value = attr_text[row.parameter]
 
 
 def _build_text_context(variant_doc):
@@ -178,13 +176,3 @@ def _apply_tolerance(nominal, tolerance_percent):
 	return (round(nominal - delta, 4), round(nominal + delta, 4))
 
 
-def _format_display_value(min_val, max_val, uom):
-	def fmt(v):
-		if v == int(v):
-			return str(int(v))
-		return f"{v:.2f}".rstrip("0").rstrip(".")
-
-	uom_str = f" {uom}" if uom else ""
-	if min_val == max_val:
-		return f"{fmt(min_val)}{uom_str}"
-	return f"{fmt(min_val)}-{fmt(max_val)}{uom_str}"

@@ -121,16 +121,26 @@ frappe.ui.form.on("Quality Inspection", {
 				let spec = r.message;
 				let params = Object.keys(spec)
 					.map((key) => ({ parameter: key, ...spec[key] }))
-					.filter((p) => p.display_value);
+					.filter((p) => p.calculated_value || p.value || p.min_value || p.max_value);
 				if (!params.length) {
 					return;
 				}
 				let rows = params
-					.map(
-						(p) =>
-							`<tr><td style="padding:6px 12px;border-bottom:1px solid var(--border-color)">${frappe.utils.escape_html(p.parameter)}</td>` +
-							`<td style="padding:6px 12px;border-bottom:1px solid var(--border-color);font-weight:500">${frappe.utils.escape_html(p.display_value)}</td></tr>`
-					)
+					.map((p) => {
+						let val = "";
+						if (p.calculated_value) {
+							val = `${parseFloat(p.calculated_value)}`;
+						} else if (p.value) {
+							val = p.value;
+						} else if (p.numeric && (p.min_value || p.max_value)) {
+							let mn = parseFloat(p.min_value) || 0;
+							let mx = parseFloat(p.max_value) || 0;
+							val = mn === mx ? `${mn}` : `${mn}-${mx}`;
+						}
+						if (val && p.uom) val += ` ${p.uom}`;
+						return `<tr><td style="padding:6px 12px;border-bottom:1px solid var(--border-color)">${frappe.utils.escape_html(p.parameter)}</td>` +
+							`<td style="padding:6px 12px;border-bottom:1px solid var(--border-color);font-weight:500">${frappe.utils.escape_html(val)}</td></tr>`;
+					})
 					.join("");
 
 				if (!rows) return;

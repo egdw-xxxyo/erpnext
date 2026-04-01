@@ -302,7 +302,6 @@ frappe.ui.form.on("Item", {
 								row.min_value = tp.min_value;
 								row.max_value = tp.max_value;
 								row.uom = tp.uom;
-								row.display_value = tp.display_value;
 								row.formula = tp.formula;
 								row.tolerance_percent = tp.tolerance_percent;
 								row.calculated_value = tp.calculated_value;

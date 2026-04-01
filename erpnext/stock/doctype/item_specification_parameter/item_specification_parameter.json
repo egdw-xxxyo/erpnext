@@ -15,8 +15,7 @@
   "tolerance_percent",
   "calculated_value",
   "column_break_2",
-  "uom",
-  "display_value"
+  "uom"
  ],
  "fields": [
   {
@@ -94,12 +93,6 @@
    "label": "UOM",
    "in_list_view": 1,
    "columns": 1
-  },
-  {
-   "fieldname": "display_value",
-   "fieldtype": "Data",
-   "label": "Display Value",
-   "description": "Formatted value for labels (e.g., 22.2V, 9000 mAh)"
   }
  ],
  "index_web_pages_for_search": 0,

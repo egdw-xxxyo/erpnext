@@ -471,26 +471,20 @@ def _spec_param_to_key(param_name):
 
 
 def _format_spec_for_label(p):
-	"""Format a spec parameter dict into a display string for label use."""
+	"""Format a spec parameter dict into a display string for label use.
+	Returns the raw value WITHOUT UOM — templates handle units themselves."""
 	if p.get("calculated_value"):
-		val = f"{p['calculated_value']:g}"
-		uom = (p.get("uom") or "").strip()
-		return f"{val}{uom}" if uom else val
-	if p.get("display_value"):
-		return p["display_value"]
+		return f"{p['calculated_value']:g}"
 	if p.get("value"):
 		raw = p["value"]
 		try:
-			val = f"{float(raw):g}"
+			return f"{float(raw):g}"
 		except (ValueError, TypeError):
-			val = str(raw)
-		return val
+			return str(raw)
 	if p.get("numeric") and (p.get("min_value") or p.get("max_value")):
-		uom = (p.get("uom") or "").strip()
 		mn, mx = p.get("min_value") or 0, p.get("max_value") or 0
 		nominal = (mn + mx) / 2 if mn and mx else (mn or mx)
-		val = f"{nominal:g}"
-		return f"{val}{uom}" if uom else val
+		return f"{nominal:g}"
 	return "—"
 
 
