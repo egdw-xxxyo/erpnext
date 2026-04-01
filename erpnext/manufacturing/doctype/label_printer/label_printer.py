@@ -518,6 +518,7 @@ def print_label(print_job_name):
 					f"copies={job.copies or 1}")
 			else:
 				log.error(f"[TIMING] mock printing — skipped sending to printer")
+				time.sleep(1)
 
 			t0 = time.monotonic()
 			status_note = "[MOCK] " if is_mock else ""
@@ -546,6 +547,7 @@ def print_label(print_job_name):
 					f"copies={job.copies or 1}")
 			else:
 				log.error(f"[TIMING] mock printing — skipped sending to printer")
+				time.sleep(1)
 
 			t0 = time.monotonic()
 			status_note = "[MOCK] " if is_mock else ""
