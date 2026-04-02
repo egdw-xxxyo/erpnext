@@ -30,7 +30,6 @@
   "column_break_30",
   "website",
   "language",
-  "customer_numbers",
   "contact_and_address_tab",
   "address_contacts",
   "address_html",
@@ -482,18 +481,6 @@
   {
    "fieldname": "column_break_mglr",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "customer_numbers",
-   "fieldtype": "Table",
-   "label": "Customer Numbers",
-   "options": "Customer Number At Supplier"
-  },
-  {
-   "fieldname": "tax_withholding_group",
-   "fieldtype": "Link",
-   "label": "Tax Withholding Group",
-   "options": "Tax Withholding Group"
   },
   {
    "depends_on": "eval:doc.supplier_type == 'Individual'",
