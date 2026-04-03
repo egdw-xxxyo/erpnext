@@ -46,14 +46,10 @@ NEW_METHOD = '''
 			)
 
 			spec = spec_values.get(d.specification)
-			if spec:
-				if d.get("numeric") and not d.get("formula_based_criteria"):
-					if not child.min_value and not child.max_value:
-						child.min_value = spec.get("min_value") or 0
-						child.max_value = spec.get("max_value") or 0
-				elif not d.get("numeric") and not d.get("formula_based_criteria"):
-					if not child.value:
-						child.value = spec.get("value") or ""
+			if spec and not d.get("formula_based_criteria") and not child.value:
+				val = spec.get("calculated_value") or spec.get("value")
+				if val:
+					child.value = str(val)
 
 		if has_serial_inspections:
 			self.manual_inspection = 1
@@ -65,7 +61,7 @@ NEW_METHOD = '''
 		spec_params = frappe.get_all(
 			"Item Specification Parameter",
 			filters={"parent": self.item_code, "parenttype": "Item", "parentfield": "item_spec_parameters"},
-			fields=["parameter", "value", "numeric", "min_value", "max_value"],
+			fields=["parameter", "value", "calculated_value"],
 		)
 		return {sp.parameter: sp for sp in spec_params}
 

@@ -275,7 +275,7 @@ frappe.ui.form.on("Item", {
 				let $spec = frm.fields_dict.item_spec_parameters.$wrapper;
 				$spec.find(".btn-fetch-parent-spec").remove();
 				let $btn = $(`<button class="btn btn-xs btn-default btn-fetch-parent-spec" style="margin-bottom:10px">
-					${__("Fetch from Template")}
+					${__("Re-sync from Template")}
 				</button>`);
 				$btn.on("click", () => {
 					frappe.call({
@@ -292,14 +292,8 @@ frappe.ui.form.on("Item", {
 							for (let tp of tpl_params) {
 								let row = frm.add_child("item_spec_parameters");
 								row.parameter = tp.parameter;
-								row.numeric = tp.numeric;
 								row.value = tp.value;
-								row.min_value = tp.min_value;
-								row.max_value = tp.max_value;
 								row.uom = tp.uom;
-								row.formula = tp.formula;
-								row.tolerance_percent = tp.tolerance_percent;
-								row.calculated_value = tp.calculated_value;
 							}
 							frm.refresh_field("item_spec_parameters");
 							frm.dirty();

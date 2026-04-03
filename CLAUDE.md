@@ -368,6 +368,7 @@ The patch script modifies stock `.py` files at deploy time. These are the hard-w
 | `serial_no_series` is NULL on variant | Template item has `serial_number_template` but no `serial_no_series` | Set `serial_no_series` on the template to the pattern from the Serial Number Template's `resulting_series` |
 | Patch truncate-to-EOF deletes stock functions | Old approach removed everything from our function to EOF | Deploy now restores stock bom.py from Docker image before patching; patch finds exact function bounds |
 | `ImportError: get_op_cost_from_sub_assemblies` | Patch deleted stock functions after our appended function | Always restore stock file before patching (deploy script does this automatically now) |
+| Migration patch loses data when removing a DocType field | `bench migrate` runs in order: `[pre_model_sync]` patches → schema sync (drops columns) → `[post_model_sync]` patches. A patch in `[post_model_sync]` that reads a column being removed by schema sync will find the column already gone | Patches that need to read data from a column before it's removed by a DocType JSON change **must** be in the `[pre_model_sync]` section of `patches.txt`. The INI sections are `[pre_model_sync]` (runs before schema sync) and `[post_model_sync]` (runs after) |
 
 ### Serial number template resolution
 

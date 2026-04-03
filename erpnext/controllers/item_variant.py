@@ -329,6 +329,7 @@ def copy_attributes_to_variant(item, variant):
 		"opening_stock",
 		"variant_of",
 		"valuation_rate",
+		"item_spec_parameters",
 	]
 
 	if item.variant_based_on == "Manufacturer":
