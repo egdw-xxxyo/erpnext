@@ -453,12 +453,11 @@ def _format_spec_value(p):
 	raw = str(raw).strip()
 	if not raw:
 		return ""
-	if p.get("numeric"):
-		try:
-			num = float(raw)
-			raw = f"{num:g}"
-		except (ValueError, TypeError):
-			pass
+	try:
+		num = float(raw)
+		raw = f"{num:g}"
+	except (ValueError, TypeError):
+		pass
 	uom = (p.get("uom") or "").strip()
 	if uom:
 		return f"{raw}{uom}"
@@ -481,10 +480,6 @@ def _format_spec_for_label(p):
 			return f"{float(raw):g}"
 		except (ValueError, TypeError):
 			return str(raw)
-	if p.get("numeric") and (p.get("min_value") or p.get("max_value")):
-		mn, mx = p.get("min_value") or 0, p.get("max_value") or 0
-		nominal = (mn + mx) / 2 if mn and mx else (mn or mx)
-		return f"{nominal:g}"
 	return "—"
 
 

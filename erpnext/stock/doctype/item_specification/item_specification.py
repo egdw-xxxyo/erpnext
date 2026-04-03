@@ -23,7 +23,7 @@ def get_spec_for_item(item_code):
 	params = frappe.get_all(
 		"Item Specification Parameter",
 		filters={"parent": item_code, "parenttype": "Item", "parentfield": "item_spec_parameters"},
-		fields=["parameter", "value", "numeric", "min_value", "max_value", "calculated_value", "uom"],
+		fields=["parameter", "value", "calculated_value", "uom"],
 		order_by="idx asc",
 	)
 
@@ -31,9 +31,6 @@ def get_spec_for_item(item_code):
 	for p in params:
 		result[p.parameter] = {
 			"value": p.value,
-			"numeric": p.numeric,
-			"min_value": p.min_value,
-			"max_value": p.max_value,
 			"calculated_value": p.calculated_value,
 			"uom": p.uom,
 		}

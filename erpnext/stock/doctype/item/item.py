@@ -247,6 +247,7 @@ class Item(Document):
 
 		self._inherit_serial_fields_from_template()
 		self.resolve_serial_number_template()
+		self._sync_spec_from_template()
 		self._evaluate_spec_formulas()
 
 		if not self.is_new():
@@ -286,14 +287,34 @@ class Item(Document):
 						series = series.replace(token, abbr)
 			self.serial_no_series = series
 
+	def _sync_spec_from_template(self):
+		if not self.variant_of:
+			return
+		template = frappe.get_cached_doc("Item", self.variant_of)
+		tpl_specs = template.get("item_spec_parameters") or []
+		if not tpl_specs:
+			return
+		existing = {row.parameter: row for row in (self.get("item_spec_parameters") or [])}
+		self.set("item_spec_parameters", [])
+		for tp in tpl_specs:
+			old = existing.get(tp.parameter)
+			row = self.append("item_spec_parameters", {})
+			row.parameter = tp.parameter
+			row.uom = tp.uom
+			if old and old.get("override"):
+				row.override = 1
+				row.value = old.value
+			else:
+				row.value = tp.value
+
 	def _evaluate_spec_formulas(self):
 		if not self.variant_of:
 			return
 		if not self.get("item_spec_parameters"):
 			return
-		if not any(row.get("formula") for row in self.item_spec_parameters):
+		from erpnext.stock.doctype.item_specification_parameter.formula_utils import evaluate_spec_formulas, is_formula
+		if not any(is_formula(row.get("value")) for row in self.item_spec_parameters):
 			return
-		from erpnext.stock.doctype.item_specification_parameter.formula_utils import evaluate_spec_formulas
 		evaluate_spec_formulas(self)
 
 	def on_update(self):
