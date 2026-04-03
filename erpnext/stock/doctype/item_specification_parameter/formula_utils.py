@@ -126,7 +126,7 @@ def _get_linked_item_specs(item_code):
 	rows = frappe.get_all(
 		"Item Specification Parameter",
 		filters={"parent": item_code, "parenttype": "Item"},
-		fields=["parameter", "numeric", "value", "calculated_value"],
+		fields=["parameter", "value", "calculated_value"],
 	)
 	result = {}
 	for r in rows:
