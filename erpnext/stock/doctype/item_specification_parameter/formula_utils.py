@@ -16,6 +16,16 @@ TOKEN_RE = re.compile(r"\{([^}]+)\}")
 NUMERIC_RE = re.compile(r"(\d+(?:\.\d+)?)")
 
 
+def is_formula(value):
+	return bool(value) and str(value).startswith("=")
+
+
+def extract_formula(value):
+	if is_formula(value):
+		return str(value)[1:].strip()
+	return str(value) if value else ""
+
+
 def evaluate_spec_formulas(variant_doc):
 	context = _build_context(variant_doc)
 	if not context:
@@ -24,20 +34,16 @@ def evaluate_spec_formulas(variant_doc):
 	attr_text = _build_text_context(variant_doc)
 
 	for row in variant_doc.get("item_spec_parameters") or []:
-		if row.get("formula") and row.get("numeric"):
+		if is_formula(row.get("value")):
 			try:
-				nominal = _evaluate_formula(row.formula, context)
+				nominal = _evaluate_formula(extract_formula(row.value), context)
 				row.calculated_value = round(nominal, 4)
-				tolerance = row.get("tolerance_percent") or 0
-				min_val, max_val = _apply_tolerance(nominal, tolerance)
-				row.min_value = min_val
-				row.max_value = max_val
 			except Exception as e:
 				frappe.log_error(
 					title=f"Spec Formula Error: {row.get('parameter')}",
-					message=f"Formula: {row.formula}\nContext: {context}\nError: {e}",
+					message=f"Formula: {row.value}\nContext: {context}\nError: {e}",
 				)
-		elif not row.get("numeric") and not row.get("value") and row.parameter in attr_text:
+		elif not row.get("value") and row.parameter in attr_text:
 			row.value = attr_text[row.parameter]
 
 
@@ -120,17 +126,12 @@ def _get_linked_item_specs(item_code):
 	rows = frappe.get_all(
 		"Item Specification Parameter",
 		filters={"parent": item_code, "parenttype": "Item"},
-		fields=["parameter", "numeric", "min_value", "max_value", "value"],
+		fields=["parameter", "value", "calculated_value"],
 	)
 	result = {}
 	for r in rows:
-		if r.numeric:
-			if r.min_value and r.max_value:
-				result[r.parameter] = (r.min_value + r.max_value) / 2
-			elif r.min_value:
-				result[r.parameter] = r.min_value
-			elif r.max_value:
-				result[r.parameter] = r.max_value
+		if r.calculated_value:
+			result[r.parameter] = float(r.calculated_value)
 		elif r.value:
 			try:
 				result[r.parameter] = float(r.value)
@@ -168,11 +169,5 @@ def _eval_node(node):
 	else:
 		raise ValueError(f"Unsafe node: {ast.dump(node)}")
 
-
-def _apply_tolerance(nominal, tolerance_percent):
-	if not tolerance_percent:
-		return (round(nominal, 4), round(nominal, 4))
-	delta = abs(nominal) * (tolerance_percent / 100.0)
-	return (round(nominal - delta, 4), round(nominal + delta, 4))
 
 

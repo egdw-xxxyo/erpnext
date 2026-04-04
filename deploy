@@ -41,6 +41,18 @@ wait_for_db() {
   exit 1
 }
 
+wait_for_backend() {
+  echo "==> Waiting for backend..."
+  for i in $(seq 1 30); do
+    if dc exec -T backend bench --site frontend doctor 2>/dev/null | grep -q "OK" 2>/dev/null || \
+       dc exec -T backend python3 -c "import frappe" 2>/dev/null; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
+}
+
 build_image() {
   echo "==> Building image with Ukrainian translations..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
@@ -60,10 +72,46 @@ fix_assets() {
     echo "WARNING: frontend or backend container not running, skipping asset sync"
     return 0
   fi
-  docker exec -u root "$FRONTEND_CID" bash -c \
-    'rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext'
-  docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets frappe erpnext assets.json assets-rtl.json 2>/dev/null | \
-    docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/
+
+  # Wait for both containers to be responsive (up to 30s)
+  for i in $(seq 1 15); do
+    if docker exec "$BACKEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null && \
+       docker exec "$FRONTEND_CID" test -d /home/frappe/frappe-bench/sites/assets 2>/dev/null; then
+      break
+    fi
+    [ "$i" = "15" ] && echo "WARNING: containers not fully ready after 30s, attempting sync anyway"
+    sleep 2
+  done
+
+  # Sync with retry (up to 3 attempts)
+  for attempt in 1 2 3; do
+    docker exec -u root "$FRONTEND_CID" bash -c \
+      'rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext' 2>/dev/null
+
+    if docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets frappe erpnext assets.json assets-rtl.json | \
+       docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/; then
+      # Verify a known asset exists on the frontend
+      if docker exec "$FRONTEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null; then
+        echo "==> Asset sync complete."
+        # Flush cached assets.json from Redis so Frappe serves new hashes.
+        # Frappe stores this as a shared key (not per-site) via
+        # frappe.cache.get_value("assets_json", shared=True) in get_assets_json().
+        # bench clear-cache does NOT clear shared keys, so we must delete it explicitly.
+        dc exec -T backend bench --site frontend console <<'PY' 2>/dev/null
+import frappe
+frappe.cache.delete_value("assets_json", shared=True)
+PY
+        echo "==> Flushed assets_json from Redis cache."
+        return 0
+      fi
+    fi
+
+    echo "WARNING: Asset sync attempt $attempt failed, retrying in 3s..."
+    sleep 3
+  done
+
+  echo "ERROR: Asset sync failed after 3 attempts. Run './deploy fix-assets' to retry manually."
+  return 1
 }
 
 remove_insights_before_migrate() {
@@ -144,6 +192,7 @@ sync_files() {
     "erpnext/stock/doctype/item/item.py:$ERPNEXT/stock/doctype/item/item.py"
     "erpnext/stock/doctype/item/item_list.js:$ERPNEXT/stock/doctype/item/item_list.js"
     "erpnext/stock/serial_batch_bundle.py:$ERPNEXT/stock/serial_batch_bundle.py"
+    "erpnext/stock/doctype/serial_and_batch_entry/serial_and_batch_entry.json:$ERPNEXT/stock/doctype/serial_and_batch_entry/serial_and_batch_entry.json"
     "erpnext/stock/utils.py:$ERPNEXT/stock/utils.py"
     "erpnext/controllers/item_variant.py:$ERPNEXT/controllers/item_variant.py"
     "erpnext/stock/doctype/item_attribute_value/item_attribute_value.json:$ERPNEXT/stock/doctype/item_attribute_value/item_attribute_value.json"
@@ -305,8 +354,7 @@ PY
     dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
     echo "==> Restarting workers to load new code..."
     dc restart backend queue-short queue-long scheduler frontend websocket
-    echo "==> Waiting for backend..."
-    sleep 5
+    wait_for_backend
     "$DIR/insights" auto
     fix_assets
     echo "Started at http://localhost:8080"
@@ -326,6 +374,7 @@ PY
 
     if [ "$SILENT" = "1" ]; then
       sync_files 2>&1 | grep -E "\[.*patch\]|ERROR" | sort -u || true
+      dc exec -T backend bench build >/dev/null 2>&1
       wait_for_db >/dev/null 2>&1
       remove_insights_before_migrate >/dev/null 2>&1
       dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
@@ -334,12 +383,14 @@ PY
       "$DIR/insights" auto 2>/dev/null
       dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
       dc restart backend queue-short queue-long scheduler frontend websocket 2>/dev/null
-      sleep 5
+      wait_for_backend 2>/dev/null
       "$DIR/insights" auto 2>/dev/null
       fix_assets 2>/dev/null
       echo "Migration complete."
     else
       sync_files
+      echo "==> Rebuilding assets (bench build)..."
+      dc exec -T backend bench build
       wait_for_db
       remove_insights_before_migrate
       echo "==> Running bench migrate..."
@@ -352,8 +403,7 @@ PY
       dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
       echo "==> Restarting workers to load new code..."
       dc restart backend queue-short queue-long scheduler frontend websocket
-      echo "==> Waiting for backend..."
-      sleep 5
+      wait_for_backend
       "$DIR/insights" auto
       fix_assets
       echo "Migration complete."
@@ -372,6 +422,9 @@ PY
     echo "==> Syncing custom files..."
     sync_files
 
+    echo "==> Rebuilding assets (bench build)..."
+    dc exec -T backend bench build
+
     wait_for_db
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
@@ -387,8 +440,7 @@ PY
 
     echo "==> Restarting workers..."
     dc restart backend queue-short queue-long scheduler frontend websocket
-    echo "==> Waiting for backend..."
-    sleep 5
+    wait_for_backend
 
     "$DIR/insights" auto
     fix_assets
@@ -415,9 +467,13 @@ PY
     echo "Environment set to dev. All commands available."
     ;;
 
+  fix-assets)
+    fix_assets
+    ;;
+
   *)
     echo "Environment: $DEPLOY_ENV"
-    echo "Usage: ./deploy {init|start|stop|build|migrate|setup-prod|setup-dev}"
+    echo "Usage: ./deploy {init|start|stop|build|migrate|fix-assets|setup-prod|setup-dev}"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi
