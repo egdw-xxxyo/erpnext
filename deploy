@@ -165,6 +165,10 @@ sync_files() {
     qi_serial_entry
     item_label_template
   )
+  CUSTOM_SETUP_DOCTYPES=(
+    vehicle_destination
+    vehicle_trip
+  )
 
   # ── Custom Pages (entirely ours, copy whole directory) ─────────────
   # To add a new page: just add its folder name here.
@@ -206,6 +210,8 @@ sync_files() {
     "erpnext/patches/setup_pr_workflow.py:$ERPNEXT/patches/setup_pr_workflow.py"
     "erpnext/public/js/print.js:$ERPNEXT/public/js/print.js"
     "erpnext/manufacturing/workspace/manufacturing/manufacturing.json:$ERPNEXT/manufacturing/workspace/manufacturing/manufacturing.json"
+    "erpnext/setup/doctype/vehicle/vehicle.json:$ERPNEXT/setup/doctype/vehicle/vehicle.json"
+    "erpnext/setup/doctype/vehicle/vehicle_dashboard.py:$ERPNEXT/setup/doctype/vehicle/vehicle_dashboard.py"
     "erpnext/translations/uk.csv:$ERPNEXT/translations/uk.csv"
     "frappe/frappe/printing/page/print/print.js:$FRAPPE/printing/page/print/print.js"
     "frappe/frappe/printing/doctype/print_format/print_format.json:$FRAPPE/printing/doctype/print_format/print_format.json"
@@ -246,6 +252,11 @@ sync_files() {
     # Custom stock doctypes
     for dt in "${CUSTOM_STOCK_DOCTYPES[@]}"; do
       docker cp "$DIR/erpnext/stock/doctype/$dt" "$CID:$ERPNEXT/stock/doctype/"
+    done
+
+    # Custom setup doctypes
+    for dt in "${CUSTOM_SETUP_DOCTYPES[@]}"; do
+      docker cp "$DIR/erpnext/setup/doctype/$dt" "$CID:$ERPNEXT/setup/doctype/"
     done
 
     # Custom pages
