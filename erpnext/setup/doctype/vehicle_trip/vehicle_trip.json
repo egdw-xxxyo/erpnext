@@ -1,0 +1,271 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-04-04 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "column_break_main",
+  "date",
+  "status",
+  "vehicle_section",
+  "vehicle",
+  "vehicle_make_model",
+  "fuel_type",
+  "column_break_vehicle",
+  "last_odometer",
+  "odometer_start",
+  "trip_details_section",
+  "destination",
+  "column_break_trip",
+  "purpose",
+  "completion_section",
+  "odometer_end",
+  "distance",
+  "column_break_completion",
+  "fuel_qty",
+  "fuel_uom",
+  "notes_section",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "VT-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "default": "Today",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "En Route\nCompleted",
+   "default": "En Route",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "depends_on": "eval:!doc.__islocal"
+  },
+  {
+   "fieldname": "vehicle_section",
+   "fieldtype": "Section Break",
+   "label": "Vehicle"
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Vehicle",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "vehicle.fuel_type",
+   "fieldname": "fuel_type",
+   "fieldtype": "Data",
+   "label": "Fuel Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vehicle_make_model",
+   "fieldtype": "Data",
+   "label": "Vehicle",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vehicle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_odometer",
+   "fieldtype": "Int",
+   "label": "Last Odometer Reading",
+   "read_only": 1,
+   "description": "Last recorded odometer value for this vehicle"
+  },
+  {
+   "fieldname": "odometer_start",
+   "fieldtype": "Int",
+   "label": "Odometer Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "trip_details_section",
+   "fieldtype": "Section Break",
+   "label": "Trip Details"
+  },
+  {
+   "fieldname": "destination",
+   "fieldtype": "Link",
+   "label": "Destination",
+   "options": "Vehicle Destination",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_trip",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Purpose"
+  },
+  {
+   "fieldname": "completion_section",
+   "fieldtype": "Section Break",
+   "label": "Trip Completion",
+   "depends_on": "eval:!doc.__islocal && doc.docstatus == 0",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "odometer_end",
+   "fieldtype": "Int",
+   "label": "Odometer End"
+  },
+  {
+   "fieldname": "distance",
+   "fieldtype": "Int",
+   "label": "Distance",
+   "read_only": 1,
+   "description": "Calculated: Odometer End - Odometer Start"
+  },
+  {
+   "fieldname": "column_break_completion",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fuel_qty",
+   "fieldtype": "Float",
+   "label": "Fuel Quantity",
+   "precision": "2"
+  },
+  {
+   "fetch_from": "vehicle.uom",
+   "fieldname": "fuel_uom",
+   "fieldtype": "Link",
+   "label": "Fuel UOM",
+   "options": "UOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "depends_on": "eval:!doc.__islocal && doc.docstatus == 0",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Vehicle Trip",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-04 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Setup",
+ "name": "Vehicle Trip",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Fleet Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Delivery Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Delivery User",
+   "write": 1
+  }
+ ],
+ "search_fields": "vehicle,employee_name,destination",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "show_title_field_in_link": 0,
+ "show_name_in_global_search": 1,
+ "states": [
+  {
+   "title": "En Route",
+   "color": "blue"
+  },
+  {
+   "title": "Completed",
+   "color": "green"
+  },
+  {
+   "title": "Cancelled",
+   "color": "red"
+  }
+ ],
+ "track_changes": 1
+}
