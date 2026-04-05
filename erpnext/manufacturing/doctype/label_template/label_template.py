@@ -472,14 +472,18 @@ def _spec_param_to_key(param_name):
 def _format_spec_for_label(p):
 	"""Format a spec parameter dict into a display string for label use.
 	Returns the raw value WITHOUT UOM — templates handle units themselves."""
-	if p.get("calculated_value"):
-		return f"{p['calculated_value']:g}"
-	if p.get("value"):
-		raw = p["value"]
+	raw = str(p.get("value") or "")
+	is_formula = raw.startswith("=")
+	cv = p.get("calculated_value")
+	if cv and cv != 0:
+		return f"{float(cv):g}"
+	if is_formula:
+		return "—"
+	if raw:
 		try:
 			return f"{float(raw):g}"
 		except (ValueError, TypeError):
-			return str(raw)
+			return raw
 	return "—"
 
 
