@@ -15,8 +15,12 @@
   "api_key",
   "api_key_preview",
   "regenerate_api_key",
-  "section_users",
-  "users"
+  "section_status",
+  "workplace",
+  "column_break_status",
+  "employee",
+  "section_context",
+  "idle_timeout"
  ],
  "fields": [
   {
@@ -60,15 +64,41 @@
    "label": "Regenerate API Key"
   },
   {
-   "fieldname": "section_users",
+   "fieldname": "section_status",
    "fieldtype": "Section Break",
-   "label": "Allowed Users"
+   "label": "Current Session"
   },
   {
-   "fieldname": "users",
-   "fieldtype": "Table",
-   "label": "Users",
-   "options": "Scanner Setup User"
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "label": "Workplace",
+   "options": "Workplace",
+   "read_only": 1,
+   "description": "Set by scanning a workplace barcode"
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "read_only": 1,
+   "description": "Set by scanning an employee badge"
+  },
+  {
+   "fieldname": "section_context",
+   "fieldtype": "Section Break",
+   "label": "Settings"
+  },
+  {
+   "default": "3600",
+   "fieldname": "idle_timeout",
+   "fieldtype": "Int",
+   "label": "Session Timeout (seconds)",
+   "description": "Workplace/employee assignment resets after this many seconds of inactivity"
   }
  ],
  "index_web_pages_for_search": 1,
