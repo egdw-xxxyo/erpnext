@@ -379,6 +379,29 @@ def make_variant_item_code(template_item_code, template_item_name, variant):
 	if variant.item_code:
 		return
 
+	template_doc = frappe.get_cached_doc("Item", template_item_code)
+	pattern = template_doc.get("variant_name_pattern")
+
+	if pattern:
+		result = pattern
+		for attr in variant.attributes:
+			placeholder = "{" + attr.attribute + "}"
+			if placeholder not in result:
+				continue
+
+			row = frappe.db.get_value(
+				"Item Attribute Value",
+				{"parent": attr.attribute, "attribute_value": attr.attribute_value},
+				["short_name", "abbr"],
+				as_dict=True,
+			)
+			display = (row.short_name or row.abbr) if row else cstr(attr.attribute_value)
+			result = result.replace(placeholder, display)
+
+		variant.item_code = result
+		variant.item_name = result
+		return
+
 	abbreviations = []
 	for attr in variant.attributes:
 		item_attribute = frappe.db.sql(
@@ -392,9 +415,6 @@ def make_variant_item_code(template_item_code, template_item_name, variant):
 
 		if not item_attribute:
 			continue
-			# frappe.throw(_('Invalid attribute {0} {1}').format(frappe.bold(attr.attribute),
-			# 	frappe.bold(attr.attribute_value)), title=_('Invalid Attribute'),
-			# 	exc=InvalidItemAttributeValueError)
 
 		abbr_or_value = (
 			cstr(attr.attribute_value) if item_attribute[0].numeric_values else item_attribute[0].abbr

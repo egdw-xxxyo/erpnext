@@ -8,6 +8,7 @@
  "field_order": [
   "attribute_value",
   "abbr",
+  "short_name",
   "linked_item"
  ],
  "fields": [
@@ -26,6 +27,13 @@
    "label": "Abbreviation",
    "reqd": 1,
    "search_index": 1
+  },
+  {
+   "description": "Short display name used in variant naming patterns. Falls back to abbreviation if empty.",
+   "fieldname": "short_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Short Name"
   },
   {
    "description": "Optional. When this attribute value is used in a variant, the linked item will replace the template item in the BOM.",

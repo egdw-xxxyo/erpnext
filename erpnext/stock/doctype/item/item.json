@@ -67,6 +67,7 @@
   "variants_section",
   "variant_of",
   "variant_based_on",
+  "variant_name_pattern",
   "attributes",
   "accounting",
   "deferred_accounting_section",
@@ -510,6 +511,13 @@
    "fieldtype": "Select",
    "label": "Variant Based On",
    "options": "Item Attribute\nManufacturer"
+  },
+  {
+   "depends_on": "has_variants",
+   "description": "Pattern for variant item code/name. Use {AttributeName} placeholders. Values are resolved from Short Name (falls back to Abbreviation). Example: БпЛА Укропчик {Розмір рами} {Номер ТУ} {Тип камери} {Призначення}",
+   "fieldname": "variant_name_pattern",
+   "fieldtype": "Data",
+   "label": "Variant Name Pattern"
   },
   {
    "depends_on": "eval:(doc.has_variants || doc.variant_of) && doc.variant_based_on==='Item Attribute'",

@@ -140,7 +140,8 @@ Use these exact translations from `erpnext/translations/uk.csv` for consistency:
 ### Deployment
 
 - `./deploy init` — first-time setup (build image + start)
-- `./deploy migrate` — deploy code changes (copies files to all containers, reloads gunicorn, runs bench migrate)
+- `./deploy build` — rebuild Docker image and restart (required for any code/schema changes)
+- `./deploy migrate` — run `bench migrate` on running containers (applies DB schema changes, runs patches)
 - `./deploy migrate --silent` — same as above but suppresses verbose output; only shows patch results and errors. **Claude should always use `--silent` when running deploy.**
 - `./deploy setup-prod` — enable production mode (disables nuke/destroy)
 - `./deploy setup-dev` — enable dev mode
@@ -162,10 +163,11 @@ Use these exact translations from `erpnext/translations/uk.csv` for consistency:
 | `erpnext/stock/doctype/item/item.py` | `_inherit_serial_fields_from_template()`: copies `serial_number_template` and `serial_no_series` from template to variant during `validate()`. `resolve_serial_number_template()`: resolves `{ATTR:...}` tokens to abbreviations. `_create_variant_bom_if_applicable()`: auto-creates variant BOM on `after_insert` |
 | `erpnext/stock/doctype/item/item.js` | Calls resolve_series_for_item for variant Items |
 | `erpnext/stock/serial_batch_bundle.py` | Resolves attribute tokens at serial number generation time |
-| `erpnext/controllers/item_variant.py` | Copies serial_number_template, has_serial_no, serial_no_series to variants |
+| `erpnext/controllers/item_variant.py` | Copies serial_number_template, has_serial_no, serial_no_series to variants. `make_variant_item_code()` supports `variant_name_pattern` with `{AttributeName}` placeholders resolved via `short_name` (falls back to `abbr`) |
 | `erpnext/manufacturing/doctype/job_card/job_card.json` | Unhidden serial_no field |
 | `erpnext/manufacturing/doctype/bom/bom.py` | Added `create_variant_bom_from_template()` for auto-BOM on variant creation |
-| `erpnext/stock/doctype/item_attribute_value/item_attribute_value.json` | Added `linked_item` Link field |
+| `erpnext/stock/doctype/item_attribute_value/item_attribute_value.json` | Added `linked_item` Link field, `short_name` Data field (used in variant naming patterns) |
+| `erpnext/stock/doctype/item/item.json` | Added `variant_name_pattern` Data field (pattern for variant item code/name using `{AttributeName}` placeholders) |
 | `erpnext/stock/doctype/item_attribute/item_attribute.py` | Added `validate_linked_items()` validation |
 
 ### ERPNext Version
@@ -225,61 +227,44 @@ erpnext.patches.v15_0.add_battery_fields
 | Data migration (update existing records) | Patch with `frappe.db.sql()` or ORM |
 | Something must run on every migrate | `after_migrate` hook in `hooks.py` |
 
-## Development Guide — Patching Stock ERPNext Files
+## Development Guide — Modifying ERPNext/Frappe Files
 
-### Critical Architecture Constraint
+### Architecture
 
-This repo does NOT contain a full ERPNext codebase. It only contains **our custom/modified files**. The stock ERPNext code lives inside the Docker image (`erpnext:v15.96.1`). The `./deploy migrate` script copies specific files into running containers via `docker cp`.
+This repo contains the **full ERPNext and Frappe source code**. The `Dockerfile.full` copies the entire `erpnext/` and `frappe/frappe/` directories into the Docker image, replacing the stock code:
 
-### What the deploy script syncs
+```dockerfile
+COPY --chown=frappe:frappe erpnext/ /home/frappe/frappe-bench/apps/erpnext/erpnext/
+COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/frappe/
+```
 
-The `sync_files()` function in `./deploy` uses categorized arrays at the top of the function. Each category has a different way to add new items:
+This means you can **edit any ERPNext or Frappe file directly** — no patch scripts, no `docker cp`, no `sync_files()` arrays needed.
 
-| Category | Array | How to add |
-|---|---|---|
-| Custom manufacturing DocTypes | `CUSTOM_MFG_DOCTYPES` | Add folder name to the array |
-| Custom stock DocTypes | `CUSTOM_STOCK_DOCTYPES` | Add folder name to the array |
-| Custom pages | `CUSTOM_MFG_PAGES` | Add folder name to the array |
-| Custom reports | `CUSTOM_MFG_REPORTS` | Add folder name to the array |
-| Stock file overrides | `STOCK_OVERRIDES` | Add `"local_path:container_path"` entry |
-| Patched files | `PATCHED_FILES` | Add `"stock_path:patch_script"` entry |
+### Development workflow
 
-**When creating new custom doctypes/pages/reports:** add the folder name to the appropriate array in `sync_files()`. This is a single line change. Do NOT add individual `docker cp` lines — the loops handle it.
+1. **Edit files** locally in the repo (Python, JSON, JS — anything under `erpnext/` or `frappe/frappe/`)
+2. **Commit and push** to the repo
+3. **On the server**: pull changes, then `./deploy build` (rebuilds Docker image with new code + runs `bench build` for JS/CSS)
+4. **Run** `./deploy migrate` if there are schema changes (new DocType fields, new patches)
 
-**When modifying a stock file:** add a `"local:remote"` entry to `STOCK_OVERRIDES`.
+### When to use which deploy command
 
-**When patching a stock file (restore + patch approach):** add an entry to `PATCHED_FILES`.
+| Change type | Command |
+|---|---|
+| Python code changes | `./deploy build` (rebuilds image, restarts containers) |
+| DocType JSON schema changes (new fields, field order) | `./deploy build` then `./deploy migrate` |
+| JS/CSS changes | `./deploy build` (includes `bench build`) |
+| Frappe patches (in `patches.txt`) | `./deploy build` then `./deploy migrate` |
+| Only running pending migrations | `./deploy migrate` |
 
-### Safe way to modify stock ERPNext .py files
+### Modifying stock ERPNext/Frappe files
 
-**DO NOT copy our full .py over the stock file** if our local copy has diverged from the stock ERPNext version (e.g., different imports, missing classes). This will break the container.
+You can edit any file directly. Common examples:
+- Add a field to a DocType → edit the `.json` file, add to `field_order` and `fields`
+- Add/modify Python logic → edit the `.py` file directly
+- Change client-side behavior → edit the `.js` file directly
 
-**Safe approach for adding functions to stock files (e.g., bom.py):**
-
-1. Write the new function in our local repo file (for reference/source of truth)
-2. Create a **patch script** in `erpnext/patches/` that appends the function to the stock file at deploy time
-3. The patch script should:
-   - Check if the function already exists (idempotent)
-   - Import dependencies inside the function (not at module top-level) to avoid import conflicts
-   - Fix any import incompatibilities between our local version and the stock version
-4. Add the patch to the deploy script: `docker cp` the patch, then `docker exec` to run it
-
-**Example:** `erpnext/patches/bom_variant_patch.py` — appends `create_variant_bom_from_template` to stock `bom.py`
-
-**CRITICAL:** The deploy script restores the stock `bom.py` from the Docker image (`frappe/erpnext:v15.96.1`) before running the patch. This ensures the patch always starts from a known-good state. The stock file is extracted once with `docker run --rm` and then `docker cp`'d to each container before the patch runs.
-
-**Safe approach for modifying stock files (e.g., item.py):**
-
-Files listed in `sync_files()` (like `item.py`, `item.js`, `item_variant.py`) are copied wholesale. These MUST stay compatible with the stock ERPNext version:
-- Do NOT add imports that don't exist in stock ERPNext (e.g., `ItemDetailsCtx` was added in a later version)
-- Test imports with: `docker compose -f docker-compose.yml exec -T backend python3 -c "from erpnext.module.path import thing"`
-
-### Safe way to modify DocType JSON schemas
-
-1. Edit the `.json` file locally (e.g., `item_attribute_value.json`)
-2. Add the file to the appropriate array in `sync_files()` if not already there
-3. Run `./deploy migrate` — Frappe will read the JSON and add/modify DB columns
-4. **IMPORTANT:** If you set field values via Python BEFORE the migration runs, the column won't exist yet and values will be silently lost. Always deploy first, then set data.
+After editing, commit, push, and rebuild on the server.
 
 ### Debugging in the container
 
@@ -315,26 +300,9 @@ docker compose -f docker-compose.yml exec -T backend bench --site frontend clear
 docker compose -f docker-compose.yml exec -T backend grep "function_name" /path/to/file.py
 ```
 
-### Patch script gotchas (`erpnext/patches/bom_variant_patch.py`)
+### Important notes
 
-The patch script modifies stock `.py` files at deploy time. These are the hard-won rules:
-
-1. **Naive string replacement breaks assignments.** `content.replace("self.foo", 'self.get("foo")')` will turn `self.foo = 0` into `self.get("foo") = 0` which is a SyntaxError. Always handle assignments separately with regex: replace `self.foo = X` with `pass` first, then replace reads with `.get()`.
-
-2. **Python caches bytecode (`.pyc`).** After patching a `.py` file, if the container has a stale `.pyc`, the old (possibly broken) code still runs. The deploy script must clear `__pycache__` directories or restart containers. Symptoms: error messages reference code that no longer exists in the `.py` file.
-
-3. **The patch must run on ALL containers** (backend, queue-short, queue-long, scheduler). Each container has its own filesystem. If you only patch `backend`, the queue workers still have the old code and will crash on background jobs.
-
-4. **The patch must be re-entrant and handle previously-patched files.** If a previous run already replaced `self.foo` with `self.get("foo")`, a subsequent run won't find `self.foo` anymore. The patch must detect and fix BOTH the original and the already-patched (possibly broken) forms.
-
-5. **Updating an existing function requires surgical removal.** Do NOT truncate from the function to EOF — this deletes stock functions that come after yours (e.g., `get_op_cost_from_sub_assemblies` was deleted this way, breaking Stock Entry). Instead: find the exact bounds of your function (from `def your_func` to the next top-level `def` or EOF) and replace only that range. The deploy script now restores the stock `bom.py` from the Docker image before each patch run, making the patch always start from a clean slate.
-
-6. **Stock ERPNext v15.96.1 has fields/code that don't match the DocType JSON.** The Python code references `track_semi_finished_goods` and `is_sub_assembly_item` on BOM/BOM Item, but these fields don't exist in the DocType JSON or the database. The code sets them as dynamic attributes. The patch must handle:
-   - `self.track_semi_finished_goods` — replace reads with `.get()`, replace assignments with `pass`
-   - `d.is_sub_assembly_item` — replace reads in dict literals with `.get("is_sub_assembly_item", 0)`
-   - `row.is_sub_assembly_item = X` — leave assignments as-is (Frappe allows setting arbitrary attrs on child docs)
-
-7. **`get_mapped_doc()` does NOT copy all fields.** When mapping BOM → BOM (for variant BOM creation), custom or non-standard fields like `has_variants` on BOM Item rows are silently dropped (set to 0). You must manually restore them from the source document after mapping.
+- **`get_mapped_doc()` does NOT copy all fields.** When mapping BOM → BOM (for variant BOM creation), custom or non-standard fields like `has_variants` on BOM Item rows are silently dropped (set to 0). You must manually restore them from the source document after mapping.
 
 ### MCP API vs bench execute
 
@@ -353,22 +321,16 @@ The patch script modifies stock `.py` files at deploy time. These are the hard-w
 
 | Problem | Cause | Fix |
 |---|---|---|
-| `ImportError: cannot import name 'X'` | Our local .py imports something not in stock ERPNext | Use imports inside the function body, or use the patch script approach |
 | `DocType X not found` | DocType metadata was deleted from DB (e.g., by force-deleting with SQL) | Run `bench migrate` to recreate |
-| Field values are None after setting them | Column didn't exist when values were set (migration hadn't run yet) | Deploy first (`./deploy migrate`), then set values |
+| Field values are None after setting them | Column didn't exist when values were set (migration hadn't run yet) | `./deploy build` then `./deploy migrate`, then set values |
 | `bench console` caches old code | Python module cache persists within the console session | Exit and re-enter console, or restart the container |
-| Function not available after deploy | File not in `sync_files()` arrays | Add to the appropriate array in `sync_files()` (see "What the deploy script syncs") |
-| `SyntaxError: cannot assign to function call` | Patch replaced `self.foo = 0` with `self.get("foo") = 0` | Handle assignments separately in patch (use regex, replace with `pass`) |
-| `.pyc` cache serves old broken code | Container has stale bytecode after patching `.py` | Clear `__pycache__` dirs and restart containers |
-| Patch only fixes one container | Each container (backend, queue-short, etc.) has its own FS | Ensure deploy runs patch on ALL containers |
+| Code changes not visible after deploy | Forgot to rebuild Docker image | `./deploy build` rebuilds the image with all source changes |
 | `get_mapped_doc` loses custom fields | Non-standard fields silently reset to default (0/null) | Manually restore fields from source doc after mapping |
 | MCP 417 with no error message | `frappe.throw()` returns HTTP 417 without details | Use `bench execute frappe.client.insert` to see actual error |
 | `LinkValidationError: Could not find Item Group` | Item Group names are locale-specific | Check `tabItem Group` for actual names in your locale |
 | Attribute values rejected on variant | Used abbreviation instead of full attribute_value | Always use the full value from `tabItem Attribute Value.attribute_value` |
 | `serial_no_series` is NULL on variant | Template item has `serial_number_template` but no `serial_no_series` | Set `serial_no_series` on the template to the pattern from the Serial Number Template's `resulting_series` |
-| Patch truncate-to-EOF deletes stock functions | Old approach removed everything from our function to EOF | Deploy now restores stock bom.py from Docker image before patching; patch finds exact function bounds |
-| `ImportError: get_op_cost_from_sub_assemblies` | Patch deleted stock functions after our appended function | Always restore stock file before patching (deploy script does this automatically now) |
-| Migration patch loses data when removing a DocType field | `bench migrate` runs in order: `[pre_model_sync]` patches → schema sync (drops columns) → `[post_model_sync]` patches. A patch in `[post_model_sync]` that reads a column being removed by schema sync will find the column already gone | Patches that need to read data from a column before it's removed by a DocType JSON change **must** be in the `[pre_model_sync]` section of `patches.txt`. The INI sections are `[pre_model_sync]` (runs before schema sync) and `[post_model_sync]` (runs after) |
+| Migration patch loses data when removing a DocType field | `bench migrate` runs in order: `[pre_model_sync]` patches → schema sync (drops columns) → `[post_model_sync]` patches | Patches that read a column being removed **must** be in `[pre_model_sync]` section of `patches.txt` |
 
 ### Serial number template resolution
 
