@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:scanner_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "scanner_name",
+  "column_break_1",
+  "is_active",
+  "section_api_key",
+  "api_key",
+  "api_key_preview",
+  "regenerate_api_key",
+  "section_users",
+  "users"
+ ],
+ "fields": [
+  {
+   "fieldname": "scanner_name",
+   "fieldtype": "Data",
+   "label": "Scanner Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "section_api_key",
+   "fieldtype": "Section Break",
+   "label": "API Key"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "API Key (Hidden)"
+  },
+  {
+   "fieldname": "api_key_preview",
+   "fieldtype": "Data",
+   "label": "API Key",
+   "read_only": 1,
+   "description": "Only last 4 characters are shown. Use 'Regenerate' to create a new key."
+  },
+  {
+   "fieldname": "regenerate_api_key",
+   "fieldtype": "Button",
+   "label": "Regenerate API Key"
+  },
+  {
+   "fieldname": "section_users",
+   "fieldtype": "Section Break",
+   "label": "Allowed Users"
+  },
+  {
+   "fieldname": "users",
+   "fieldtype": "Table",
+   "label": "Users",
+   "options": "Scanner Setup User"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Scanner Setup",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
