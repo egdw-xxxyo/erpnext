@@ -965,7 +965,7 @@ def get_batch_nos(serial_and_batch_bundle):
 
 	entries = frappe.get_all(
 		"Serial and Batch Entry",
-		fields=["batch_no", {"SUM": "qty", "as": "qty"}],
+		fields=["batch_no", "SUM(qty) as qty"],
 		filters={"parent": serial_and_batch_bundle, "batch_no": ("is", "set")},
 		order_by="idx",
 		group_by="batch_no",
