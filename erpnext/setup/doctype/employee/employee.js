@@ -33,6 +33,14 @@ frappe.ui.form.on("Employee", {
 		};
 	},
 
+	refresh: function (frm) {
+		setup_employee_barcode(frm);
+	},
+
+	attendance_device_id: function (frm) {
+		render_employee_barcode(frm);
+	},
+
 	onload: function (frm) {
 		frm.set_query("department", function () {
 			return {
@@ -131,3 +139,57 @@ frappe.tour["Employee"] = [
 		),
 	},
 ];
+
+function setup_employee_barcode(frm) {
+	if (!frm.fields_dict.attendance_device_id) return;
+
+	const $wrapper = frm.fields_dict.attendance_device_id.$wrapper;
+	$wrapper.find(".btn-generate-barcode").remove();
+
+	if (!frm.doc.attendance_device_id) {
+		const $btn = $(`<button class="btn btn-xs btn-default btn-generate-barcode" style="margin-top: 6px;">
+			${__("Generate Barcode")}
+		</button>`);
+		$wrapper.find(".help-box").before($btn);
+		$btn.on("click", () => {
+			const hash = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("")
+				.toUpperCase();
+			frm.set_value("attendance_device_id", `EMP-${hash}`);
+			frm.dirty();
+		});
+	}
+
+	render_employee_barcode(frm);
+}
+
+function render_employee_barcode(frm) {
+	const $wrapper = frm.fields_dict.attendance_device_id.$wrapper;
+	$wrapper.find(".barcode-preview").remove();
+
+	if (!frm.doc.attendance_device_id) return;
+
+	const $preview = $(`<div class="barcode-preview" style="margin-top: 8px;"><svg></svg></div>`);
+	$wrapper.append($preview);
+
+	const draw = () => {
+		try {
+			JsBarcode($preview.find("svg")[0], frm.doc.attendance_device_id, {
+				format: "CODE128",
+				height: 50,
+				displayValue: true,
+				fontSize: 14,
+				margin: 5,
+			});
+		} catch (e) {
+			$preview.html(`<code>${frm.doc.attendance_device_id}</code>`);
+		}
+	};
+
+	if (window.JsBarcode) {
+		draw();
+	} else {
+		frappe.require("/assets/frappe/node_modules/jsbarcode/dist/JsBarcode.all.min.js", draw);
+	}
+}

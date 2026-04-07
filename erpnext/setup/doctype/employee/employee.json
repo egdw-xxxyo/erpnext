@@ -39,6 +39,7 @@
   "reports_to",
   "column_break_18",
   "branch",
+  "attendance_device_id",
   "employment_details",
   "scheduled_confirmation_date",
   "column_break_32",
@@ -69,7 +70,6 @@
   "column_break_19",
   "relation",
   "attendance_and_leave_details",
-  "attendance_device_id",
   "column_break_44",
   "holiday_list",
   "salary_information",
@@ -694,7 +694,8 @@
   {
    "fieldname": "attendance_device_id",
    "fieldtype": "Data",
-   "label": "Attendance Device ID (Biometric/RF tag ID)",
+   "label": "Barcode",
+   "options": "Barcode",
    "no_copy": 1,
    "unique": 1
   },

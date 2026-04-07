@@ -13,11 +13,16 @@
   "company",
   "column_break_details",
   "is_active",
+  "barcode",
   "description",
   "operations_tab",
   "allowed_operations",
   "employees_tab",
-  "allowed_employees"
+  "allowed_employees",
+  "scanner_tab",
+  "scanner_script",
+  "scanner_help_section",
+  "scanner_help_html"
  ],
  "fields": [
   {
@@ -50,6 +55,13 @@
    "label": "Active"
   },
   {
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "label": "Barcode",
+   "options": "Barcode",
+   "unique": 1
+  },
+  {
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Description"
@@ -75,6 +87,29 @@
    "fieldtype": "Table",
    "label": "Employees",
    "options": "Workplace Employee"
+  },
+  {
+   "fieldname": "scanner_tab",
+   "fieldtype": "Tab Break",
+   "label": "Scanner Script"
+  },
+  {
+   "fieldname": "scanner_script",
+   "fieldtype": "Code",
+   "label": "Scanner Script",
+   "options": "Python",
+   "description": "Script that runs when a scanner attached to this workplace receives a scan"
+  },
+  {
+   "fieldname": "scanner_help_section",
+   "fieldtype": "Section Break",
+   "label": "API Reference",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "scanner_help_html",
+   "fieldtype": "HTML",
+   "label": "API Reference"
   }
  ],
  "index_web_pages_for_search": 1,

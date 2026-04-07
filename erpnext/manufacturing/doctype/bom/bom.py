@@ -1813,7 +1813,7 @@ def item_query(doctype, txt, searchfield, start, page_len, filters):
 
 	query_filters = [
 		["disabled", "=", 0],
-		[IfNull(Field("end_of_life"), "3099-12-31"), ">", today()],
+		["ifnull(end_of_life, '3099-12-31')", ">", today()],
 	]
 
 	or_cond_filters = {}
