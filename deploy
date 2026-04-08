@@ -118,8 +118,9 @@ sync_files() {
     item_label_template
     packing_template
     packing_template_item
-    packing_box
-    packing_box_item
+    package
+    package_item
+    delivery_note_package
   )
 
   # ── Custom Pages (entirely ours, copy whole directory) ─────────────
