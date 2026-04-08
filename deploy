@@ -159,7 +159,6 @@ sync_files() {
     "erpnext/stock/doctype/quality_inspection/quality_inspection.js:$ERPNEXT/stock/doctype/quality_inspection/quality_inspection.js"
     "erpnext/stock/doctype/purchase_receipt/purchase_receipt_utils.py:$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt_utils.py"
     "erpnext/patches/setup_pr_workflow.py:$ERPNEXT/patches/setup_pr_workflow.py"
-    "erpnext/public/js/print.js:$ERPNEXT/public/js/print.js"
     "erpnext/manufacturing/workspace/manufacturing/manufacturing.json:$ERPNEXT/manufacturing/workspace/manufacturing/manufacturing.json"
     "erpnext/stock/doctype/shipment/shipment.js:$ERPNEXT/stock/doctype/shipment/shipment.js"
     "erpnext/stock/doctype/shipment_parcel_template/shipment_parcel_template.json:$ERPNEXT/stock/doctype/shipment_parcel_template/shipment_parcel_template.json"
