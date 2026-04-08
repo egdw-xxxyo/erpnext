@@ -44,7 +44,7 @@ wait_for_db() {
 build_image() {
   echo "==> Building image with Ukrainian translations..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
-    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
+    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR"
 }
 
 # Remove insights from apps.txt AND the database installed_apps list.
