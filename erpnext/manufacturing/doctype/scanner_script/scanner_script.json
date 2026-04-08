@@ -1,35 +1,29 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:command_name",
+ "autoname": "field:script_name",
  "creation": "2024-01-01 00:00:00.000000",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "command_name",
-  "barcode",
+  "script_name",
   "column_break_1",
   "is_active",
-  "section_action",
-  "prompt"
+  "workplace",
+  "section_script",
+  "script",
+  "section_help",
+  "help_html"
  ],
  "fields": [
   {
-   "fieldname": "command_name",
+   "fieldname": "script_name",
    "fieldtype": "Data",
-   "label": "Command Name",
+   "label": "Script Name",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "fieldname": "barcode",
-   "fieldtype": "Data",
-   "label": "Barcode Value",
-   "reqd": 1,
-   "unique": 1,
-   "description": "The barcode string that triggers this command (e.g. CMD-FINISH)"
   },
   {
    "fieldname": "column_break_1",
@@ -42,15 +36,34 @@
    "label": "Active"
   },
   {
-   "fieldname": "section_action",
-   "fieldtype": "Section Break",
-   "label": "Action"
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "label": "Workplace",
+   "options": "Workplace",
+   "description": "Leave empty for a general script that works on any workplace"
   },
   {
-   "fieldname": "prompt",
-   "fieldtype": "Data",
-   "label": "Prompt",
-   "description": "Message shown to operator after scanning this command (e.g. 'Scan Job Card to finish')"
+   "fieldname": "section_script",
+   "fieldtype": "Section Break",
+   "label": "Script"
+  },
+  {
+   "fieldname": "script",
+   "fieldtype": "Code",
+   "label": "Script",
+   "options": "Python",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_help",
+   "fieldtype": "Section Break",
+   "label": "API Reference",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "help_html",
+   "fieldtype": "HTML",
+   "label": "API Reference"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -58,7 +71,7 @@
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
- "name": "Scanner Command",
+ "name": "Scanner Script",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
@@ -75,8 +88,13 @@
    "write": 1
   },
   {
+   "email": 1,
+   "export": 1,
+   "print": 1,
    "read": 1,
-   "role": "Manufacturing User"
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1
   }
  ],
  "sort_field": "creation",

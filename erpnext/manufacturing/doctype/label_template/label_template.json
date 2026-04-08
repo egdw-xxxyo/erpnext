@@ -11,6 +11,7 @@
   "reference_doctype",
   "source_field",
   "data_fields",
+  "barcode_type",
   "label_size",
   "column_break_details",
   "template_type",
@@ -50,6 +51,12 @@
    "fieldname": "data_fields",
    "fieldtype": "Data",
    "label": "Data Fields"
+  },
+  {
+   "fieldname": "barcode_type",
+   "fieldtype": "Select",
+   "label": "Barcode Type",
+   "options": "\nEAN\nUPC-A\nCODE-39\nEAN-12\nEAN-8\nGS1\nGTIN\nISBN\nISBN-10\nISBN-13\nISSN\nJAN\nPZN\nUPC\nCODE128"
   },
   {
    "fieldname": "label_size",

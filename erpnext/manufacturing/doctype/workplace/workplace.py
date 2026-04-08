@@ -14,7 +14,6 @@ class Workplace(Document):
 		company: DF.Link | None
 		description: DF.SmallText | None
 		is_active: DF.Check
-		scanner_script: DF.Code | None
 		workplace_name: DF.Data | None
 
 	def before_insert(self):

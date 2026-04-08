@@ -1,3 +1,4 @@
+import hmac
 import json
 
 import frappe
@@ -54,10 +55,12 @@ def handle_scan(scanner_key=None, data=None):
 					workplace=scanner.workplace)
 
 	workplace_doc = frappe.get_doc("Workplace", scanner.workplace)
-	if not workplace_doc.scanner_script:
+
+	scripts = _get_scanner_scripts(scanner.workplace)
+	if not scripts:
 		frappe.db.commit()
 		return _resp(success=False,
-					error=f"No scanner script configured for workplace '{scanner.workplace}'")
+					error=f"No scanner scripts configured for workplace '{scanner.workplace}'")
 
 	# Impersonate based on employee's user_id
 	_impersonate(scanner.employee)
@@ -68,11 +71,15 @@ def handle_scan(scanner_key=None, data=None):
 		# 4. Resolve what was scanned
 		scan_type, scan_ctx = _resolve_scan(data)
 
-		# 5. Execute workplace script
-		result = _execute_script(
-			workplace_doc.scanner_script, scan_type, scan_ctx,
-			data, scanner, workplace_doc, scanner.employee
-		)
+		# 5. Execute scripts (workplace-specific first, then general)
+		result = None
+		for script_doc in scripts:
+			result = _execute_script(
+				script_doc.script, scan_type, scan_ctx,
+				data, scanner, workplace_doc, scanner.employee
+			)
+			if result:
+				break
 
 		if result:
 			_update_scan_log(
@@ -93,10 +100,10 @@ def handle_scan(scanner_key=None, data=None):
 			)
 
 		_update_scan_log(scan_log, status="Error",
-						error_message=f"No handler for '{scan_type}' in workplace script")
+						error_message=f"No handler for '{scan_type}' in scanner scripts")
 		frappe.db.commit()
 		return _resp(success=False,
-					error=f"No handler for '{scan_type}' in workplace script",
+					error=f"No handler for '{scan_type}' in scanner scripts",
 					scan_log=scan_log)
 
 	except Exception as e:
@@ -110,14 +117,28 @@ def handle_scan(scanner_key=None, data=None):
 # ---------------------------------------------------------------------------
 
 def _authenticate(scanner_key):
-	name = frappe.db.get_value(
-		"Scanner Setup",
-		{"api_key": scanner_key, "is_active": 1},
-		"name",
+	from erpnext.manufacturing.doctype.scanner_setup.scanner_setup import compute_auth_token
+
+	for row in frappe.get_all("Scanner Setup", filters={"is_active": 1}, fields=["name", "api_key"]):
+		if row.api_key and hmac.compare_digest(compute_auth_token(row.api_key), scanner_key):
+			return frappe.get_doc("Scanner Setup", row.name)
+	return None
+
+
+def _get_scanner_scripts(workplace):
+	workplace_scripts = frappe.get_all(
+		"Scanner Script",
+		filters={"is_active": 1, "workplace": workplace},
+		fields=["name", "script"],
+		order_by="creation",
 	)
-	if not name:
-		return None
-	return frappe.get_doc("Scanner Setup", name)
+	general_scripts = frappe.get_all(
+		"Scanner Script",
+		filters={"is_active": 1, "workplace": ["is", "not set"]},
+		fields=["name", "script"],
+		order_by="creation",
+	)
+	return workplace_scripts + general_scripts
 
 
 def _impersonate(employee_name):

@@ -2,14 +2,13 @@ import frappe
 from frappe.model.document import Document
 
 
-class ScannerCommand(Document):
+class ScannerScript(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		barcode: DF.Data | None
-		command_name: DF.Data | None
 		is_active: DF.Check
-		prompt: DF.Data | None
-		scanner_action: DF.Link | None
+		script: DF.Code | None
+		script_name: DF.Data | None
+		workplace: DF.Link | None

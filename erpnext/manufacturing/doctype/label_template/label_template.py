@@ -144,6 +144,16 @@ def _parse_ezpl_to_elements(ezpl_text):
 
 
 @frappe.whitelist()
+def get_templates_for_barcode_type(barcode_type):
+	"""Return label templates configured for a specific barcode type."""
+	return frappe.get_all(
+		"Label Template",
+		filters={"barcode_type": barcode_type},
+		fields=["name as label_template", "label_size"],
+	)
+
+
+@frappe.whitelist()
 def render_preview(template_type, zpl_template="", html_template="", field_mapping="", preview_data="", label_size=""):
 	if not label_size:
 		return None

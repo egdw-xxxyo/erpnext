@@ -97,16 +97,77 @@ frappe.ui.form.on("Workplace", {
 				frappe.set_route("workplace-portal", { workplace: frm.doc.name });
 			}, __("View"));
 		}
-		if (frm.fields_dict.scanner_help_html) {
-			frm.fields_dict.scanner_help_html.$wrapper.html(SCANNER_API_REFERENCE);
-		}
+		render_scanner_scripts(frm);
 		setup_barcode_generate(frm);
-		render_barcode(frm);
+		if (!frm._barcode_field) {
+			frm._barcode_field = new erpnext.BarcodeField({
+				frm,
+				fieldname: "barcode",
+				barcode_type: "CODE128",
+				format: "CODE128",
+			});
+		}
+		frm._barcode_field.refresh();
 	},
 	barcode(frm) {
-		render_barcode(frm);
+		frm._barcode_field && frm._barcode_field.refresh();
 	},
 });
+
+function render_scanner_scripts(frm) {
+	const $wrapper = frm.fields_dict.scanner_scripts_html?.$wrapper;
+	if (!$wrapper) return;
+
+	if (frm.is_new()) {
+		$wrapper.html('<p class="text-muted">Save the document first.</p>');
+		return;
+	}
+
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Scanner Script",
+			filters: [
+				["is_active", "=", 1],
+				["workplace", "in", [frm.doc.name, null, ""]],
+			],
+			fields: ["name", "script_name", "workplace", "is_active"],
+			order_by: "workplace desc, creation asc",
+		},
+		callback: (r) => {
+			const scripts = r.message || [];
+			if (!scripts.length) {
+				$wrapper.html(`
+					<p class="text-muted">No scanner scripts configured for this workplace.</p>
+					<a class="btn btn-xs btn-default" href="/app/scanner-script/new?workplace=${encodeURIComponent(frm.doc.name)}">
+						+ New Scanner Script
+					</a>
+				`);
+				return;
+			}
+
+			let html = '<div style="margin-bottom: 10px;">';
+			html += `<a class="btn btn-xs btn-default" href="/app/scanner-script/new?workplace=${encodeURIComponent(frm.doc.name)}">
+				+ New Scanner Script
+			</a></div>`;
+			html += '<table class="table table-bordered" style="font-size: 13px;"><thead><tr>';
+			html += '<th>Script</th><th>Scope</th></tr></thead><tbody>';
+
+			for (const s of scripts) {
+				const scope = s.workplace
+					? `<span class="indicator-pill green">This workplace</span>`
+					: `<span class="indicator-pill blue">General</span>`;
+				html += `<tr>
+					<td><a href="/app/scanner-script/${encodeURIComponent(s.name)}">${frappe.utils.escape_html(s.script_name)}</a></td>
+					<td>${scope}</td>
+				</tr>`;
+			}
+
+			html += "</tbody></table>";
+			$wrapper.html(html);
+		},
+	});
+}
 
 function setup_barcode_generate(frm) {
 	const $wrapper = frm.fields_dict.barcode.$wrapper;
@@ -128,34 +189,4 @@ function setup_barcode_generate(frm) {
 		frm.set_value("barcode", `WP-${hash}`);
 		frm.dirty();
 	});
-}
-
-function render_barcode(frm) {
-	const $wrapper = frm.fields_dict.barcode.$wrapper;
-	$wrapper.find(".barcode-preview").remove();
-
-	if (!frm.doc.barcode) return;
-
-	const $preview = $(`<div class="barcode-preview" style="margin-top: 8px;"><svg></svg></div>`);
-	$wrapper.append($preview);
-
-	const draw = () => {
-		try {
-			JsBarcode($preview.find("svg")[0], frm.doc.barcode, {
-				format: "CODE128",
-				height: 50,
-				displayValue: true,
-				fontSize: 14,
-				margin: 5,
-			});
-		} catch (e) {
-			$preview.html(`<code>${frm.doc.barcode}</code>`);
-		}
-	};
-
-	if (window.JsBarcode) {
-		draw();
-	} else {
-		frappe.require("/assets/frappe/node_modules/jsbarcode/dist/JsBarcode.all.min.js", draw);
-	}
 }

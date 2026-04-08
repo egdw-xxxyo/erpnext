@@ -41,36 +41,17 @@ wait_for_db() {
   exit 1
 }
 
-wait_for_backend() {
-  echo "==> Waiting for backend..."
-  for i in $(seq 1 30); do
-    if dc exec -T backend bench --site frontend doctor 2>/dev/null | grep -q "OK" 2>/dev/null || \
-       dc exec -T backend python3 -c "import frappe" 2>/dev/null; then
-      return 0
-    fi
-    sleep 2
-  done
-  echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
-}
-
 build_image() {
-  echo "==> Building full image (all source baked in)..."
+  echo "==> Building image with Ukrainian translations..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
-    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR"
+    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.uk" "$DIR"
 }
 
-sync_built_assets() {
-  echo "==> Syncing built assets from image to sites volume..."
-  # The sites volume shadows /sites/ from the image, so assets built during
-  # docker build are not visible. Extract them from the image and copy in.
-  docker run --rm "$IMAGE_NAME" tar -cf - \
-    -C /home/frappe/frappe-bench/sites/assets \
-    frappe erpnext assets.json assets-rtl.json 2>/dev/null | \
-    dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
-  dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
-  echo "==> Assets synced."
-}
-
+# Remove insights from apps.txt AND the database installed_apps list.
+# The configurator writes apps.txt from `ls apps/`, and if insights dir exists
+# in the volume it gets listed. bench migrate also reads installed_apps from
+# tabDefaultValue in the DB. Both must be cleaned before migrate.
+# ./insights auto will re-add insights after migrate if insights_enabled=1.
 fix_assets() {
   echo "==> Syncing assets from backend to frontend container..."
   FRONTEND_CID=$(dc ps -q frontend 2>/dev/null)
@@ -79,44 +60,17 @@ fix_assets() {
     echo "WARNING: frontend or backend container not running, skipping asset sync"
     return 0
   fi
-
-  for i in $(seq 1 15); do
-    if docker exec "$BACKEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null && \
-       docker exec "$FRONTEND_CID" test -d /home/frappe/frappe-bench/sites/assets 2>/dev/null; then
-      break
-    fi
-    [ "$i" = "15" ] && echo "WARNING: containers not fully ready after 30s, attempting sync anyway"
-    sleep 2
-  done
-
-  for attempt in 1 2 3; do
-    docker exec -u root "$FRONTEND_CID" bash -c \
-      'rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext' 2>/dev/null
-
-    if docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets frappe erpnext assets.json assets-rtl.json | \
-       docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/; then
-      if docker exec "$FRONTEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null; then
-        echo "==> Asset sync complete."
-        dc exec -T backend bench --site frontend console <<'PY' 2>/dev/null
-import frappe
-frappe.cache.delete_value("assets_json", shared=True)
-PY
-        echo "==> Flushed assets_json from Redis cache."
-        return 0
-      fi
-    fi
-
-    echo "WARNING: Asset sync attempt $attempt failed, retrying in 3s..."
-    sleep 3
-  done
-
-  echo "ERROR: Asset sync failed after 3 attempts. Run './deploy fix-assets' to retry manually."
-  return 1
+  docker exec -u root "$FRONTEND_CID" bash -c \
+    'rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext'
+  docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets frappe erpnext assets.json assets-rtl.json 2>/dev/null | \
+    docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/
 }
 
 remove_insights_before_migrate() {
   echo "==> Removing insights from apps.txt and DB before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
+  # Remove insights from installed_apps in DB via direct SQL on the db container.
+  # Get DB name from site_config.json inside the backend container.
   DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['db_name'])" 2>/dev/null)
   if [ -n "$DB_NAME" ]; then
     echo "==> Cleaning insights from DB ($DB_NAME)..."
@@ -133,6 +87,153 @@ remove_insights_before_migrate() {
   else
     echo "WARNING: Could not detect DB name, skipping DB cleanup"
   fi
+}
+
+sync_files() {
+  BENCH="/home/frappe/frappe-bench"
+  ERPNEXT="$BENCH/apps/erpnext/erpnext"
+  FRAPPE="$BENCH/apps/frappe/frappe"
+
+  # ── Custom DocTypes (entirely ours, copy whole directory) ──────────
+  # To add a new custom doctype: just add its folder name to the right array.
+  CUSTOM_MFG_DOCTYPES=(
+    label_printer
+    label_size
+    label_template
+    print_job
+    workplace
+    workplace_operation
+    workplace_employee
+    production_log
+    production_log_material
+    production_log_field
+    operation_field
+  )
+  CUSTOM_STOCK_DOCTYPES=(
+    serial_number_template
+    serial_number_template_component
+    item_specification
+    item_specification_parameter
+    qi_serial_entry
+    item_label_template
+    packing_template
+    packing_template_item
+    packing_box
+    packing_box_item
+  )
+
+  # ── Custom Pages (entirely ours, copy whole directory) ─────────────
+  # To add a new page: just add its folder name here.
+  CUSTOM_MFG_PAGES=(
+    workplace_portal
+    production_flow
+    print_queue
+  )
+
+  # ── Custom Reports (entirely ours, copy whole directory) ───────────
+  # To add a new report: just add its folder name here.
+  CUSTOM_MFG_REPORTS=(
+    component_stock_balance
+  )
+
+  # ── Stock file overrides (individual files we replace wholesale) ───
+  # Format: "local_path:container_path"
+  STOCK_OVERRIDES=(
+    "erpnext/manufacturing/doctype/operation/operation.json:$ERPNEXT/manufacturing/doctype/operation/operation.json"
+    "erpnext/manufacturing/doctype/operation/operation.js:$ERPNEXT/manufacturing/doctype/operation/operation.js"
+    "erpnext/manufacturing/doctype/workstation/workstation.py:$ERPNEXT/manufacturing/doctype/workstation/workstation.py"
+    "erpnext/manufacturing/doctype/workstation/workstation.js:$ERPNEXT/manufacturing/doctype/workstation/workstation.js"
+    "erpnext/stock/doctype/item/item.json:$ERPNEXT/stock/doctype/item/item.json"
+    "erpnext/stock/doctype/item/item.js:$ERPNEXT/stock/doctype/item/item.js"
+    "erpnext/stock/doctype/item/item.py:$ERPNEXT/stock/doctype/item/item.py"
+    "erpnext/stock/doctype/item/item_list.js:$ERPNEXT/stock/doctype/item/item_list.js"
+    "erpnext/stock/serial_batch_bundle.py:$ERPNEXT/stock/serial_batch_bundle.py"
+    "erpnext/stock/utils.py:$ERPNEXT/stock/utils.py"
+    "erpnext/controllers/item_variant.py:$ERPNEXT/controllers/item_variant.py"
+    "erpnext/stock/doctype/item_attribute_value/item_attribute_value.json:$ERPNEXT/stock/doctype/item_attribute_value/item_attribute_value.json"
+    "erpnext/stock/doctype/item_attribute/item_attribute.py:$ERPNEXT/stock/doctype/item_attribute/item_attribute.py"
+    "erpnext/manufacturing/doctype/job_card/job_card.js:$ERPNEXT/manufacturing/doctype/job_card/job_card.js"
+    "erpnext/manufacturing/doctype/job_card/job_card_list.js:$ERPNEXT/manufacturing/doctype/job_card/job_card_list.js"
+    "erpnext/stock/doctype/purchase_receipt/purchase_receipt.js:$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt.js"
+    "erpnext/stock/doctype/quality_inspection/quality_inspection.js:$ERPNEXT/stock/doctype/quality_inspection/quality_inspection.js"
+    "erpnext/stock/doctype/purchase_receipt/purchase_receipt_utils.py:$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt_utils.py"
+    "erpnext/patches/setup_pr_workflow.py:$ERPNEXT/patches/setup_pr_workflow.py"
+    "erpnext/public/js/print.js:$ERPNEXT/public/js/print.js"
+    "erpnext/manufacturing/workspace/manufacturing/manufacturing.json:$ERPNEXT/manufacturing/workspace/manufacturing/manufacturing.json"
+    "erpnext/stock/doctype/shipment/shipment.js:$ERPNEXT/stock/doctype/shipment/shipment.js"
+    "erpnext/stock/doctype/shipment_parcel_template/shipment_parcel_template.json:$ERPNEXT/stock/doctype/shipment_parcel_template/shipment_parcel_template.json"
+    "erpnext/translations/uk.csv:$ERPNEXT/translations/uk.csv"
+    "frappe/frappe/printing/page/print/print.js:$FRAPPE/printing/page/print/print.js"
+    "frappe/frappe/printing/doctype/print_format/print_format.json:$FRAPPE/printing/doctype/print_format/print_format.json"
+    "frappe/frappe/translations/uk.csv:$FRAPPE/translations/uk.csv"
+  )
+  # Note: do NOT add job_card.json/py — stock v15.96.1 versions are required.
+  # Our custom job_card.json has fields (track_semi_finished_goods etc.) that
+  # reference Work Order columns not present in this ERPNext version.
+
+  # ── Patched files (restore stock → apply patch) ────────────────────
+  # Format: "stock_image_path:patch_script"
+  STOCK_IMAGE="frappe/erpnext:v15.96.1"
+  PATCHED_FILES=(
+    "$ERPNEXT/manufacturing/doctype/bom/bom.py:erpnext/patches/bom_variant_patch.py"
+    "$ERPNEXT/stock/doctype/purchase_receipt/purchase_receipt.py:erpnext/patches/purchase_receipt_patch.py"
+    "$ERPNEXT/stock/doctype/quality_inspection/quality_inspection.py:erpnext/patches/quality_inspection_spec_patch.py"
+  )
+
+  # Extract stock files from Docker image once (used to restore before patching)
+  for entry in "${PATCHED_FILES[@]}"; do
+    stock_path="${entry%%:*}"
+    tmp_file="/tmp/_stock_$(basename "$stock_path")"
+    docker run --rm "$STOCK_IMAGE" cat "$stock_path" > "$tmp_file" 2>/dev/null
+  done
+
+  for SERVICE in backend queue-short queue-long scheduler frontend; do
+    CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+    if [ -z "$CID" ]; then
+      continue
+    fi
+    echo "==> Syncing files to $SERVICE ($CID)..."
+
+    # Custom manufacturing doctypes
+    for dt in "${CUSTOM_MFG_DOCTYPES[@]}"; do
+      docker cp "$DIR/erpnext/manufacturing/doctype/$dt" "$CID:$ERPNEXT/manufacturing/doctype/"
+    done
+
+    # Custom stock doctypes
+    for dt in "${CUSTOM_STOCK_DOCTYPES[@]}"; do
+      docker cp "$DIR/erpnext/stock/doctype/$dt" "$CID:$ERPNEXT/stock/doctype/"
+    done
+
+    # Custom pages
+    for pg in "${CUSTOM_MFG_PAGES[@]}"; do
+      docker cp "$DIR/erpnext/manufacturing/page/$pg" "$CID:$ERPNEXT/manufacturing/page/"
+    done
+
+    # Custom reports
+    for rpt in "${CUSTOM_MFG_REPORTS[@]}"; do
+      docker cp "$DIR/erpnext/manufacturing/report/$rpt" "$CID:$ERPNEXT/manufacturing/report/"
+    done
+
+    # Stock file overrides
+    for entry in "${STOCK_OVERRIDES[@]}"; do
+      local_path="${entry%%:*}"
+      container_path="${entry##*:}"
+      docker cp "$DIR/$local_path" "$CID:$container_path"
+    done
+
+    # Patched files: restore stock version, then apply patch
+    for entry in "${PATCHED_FILES[@]}"; do
+      stock_path="${entry%%:*}"
+      patch_script="${entry##*:}"
+      tmp_file="/tmp/_stock_$(basename "$stock_path")"
+      docker cp "$tmp_file" "$CID:$stock_path"
+      docker cp "$DIR/$patch_script" "$CID:/tmp/$(basename "$patch_script")"
+      docker exec -u root "$CID" python3 "/tmp/$(basename "$patch_script")"
+    done
+
+    docker exec "$CID" find /home/frappe/frappe-bench/apps/erpnext -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+  done
+
 }
 
 apply_site_config() {
@@ -164,7 +265,6 @@ case "${1:-}" in
 
     echo "==> Starting ERPNext..."
     dc up -d
-    sync_built_assets
 
     echo "==> Waiting for site to be ready (2-3 min)..."
     until dc exec -T backend bench --site frontend list-apps 2>/dev/null | grep -q erpnext; do
@@ -192,7 +292,8 @@ PY
     dc up -d
     echo "==> Waiting for configurator to finish..."
     dc wait configurator 2>/dev/null || sleep 5
-    sync_built_assets
+    echo "==> Syncing custom files..."
+    sync_files
     echo "==> Applying site config..."
     apply_site_config
     wait_for_db
@@ -204,10 +305,13 @@ PY
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
     "$DIR/insights" auto
+    # Remove insights from apps.txt before restart — workers will start without it,
+    # avoiding ModuleNotFoundError spam. The post-restart auto call re-adds it after syncing.
     dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
     echo "==> Restarting workers to load new code..."
     dc restart backend queue-short queue-long scheduler frontend websocket
-    wait_for_backend
+    echo "==> Waiting for backend..."
+    sleep 5
     "$DIR/insights" auto
     fix_assets
     echo "Started at http://localhost:8080"
@@ -223,13 +327,10 @@ PY
   migrate)
     SILENT=0
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    _log() { [ "$SILENT" = "0" ] && echo "$@"; }
 
     if [ "$SILENT" = "1" ]; then
-      build_image 2>&1 | tail -5
-      dc up -d 2>/dev/null
-      dc wait configurator 2>/dev/null || sleep 5
-      sync_built_assets >/dev/null 2>&1
-      apply_site_config >/dev/null 2>&1
+      sync_files 2>&1 | grep -E "\[.*patch\]|ERROR" | sort -u || true
       wait_for_db >/dev/null 2>&1
       remove_insights_before_migrate >/dev/null 2>&1
       dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
@@ -238,24 +339,12 @@ PY
       "$DIR/insights" auto 2>/dev/null
       dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
       dc restart backend queue-short queue-long scheduler frontend websocket 2>/dev/null
-      wait_for_backend 2>/dev/null
+      sleep 5
       "$DIR/insights" auto 2>/dev/null
       fix_assets 2>/dev/null
       echo "Migration complete."
     else
-      build_image
-
-      echo "==> Recreating containers with new image..."
-      dc up -d
-
-      echo "==> Waiting for configurator to finish..."
-      dc wait configurator 2>/dev/null || sleep 5
-
-      sync_built_assets
-
-      echo "==> Applying site config..."
-      apply_site_config
-
+      sync_files
       wait_for_db
       remove_insights_before_migrate
       echo "==> Running bench migrate..."
@@ -266,9 +355,10 @@ PY
       dc exec -T backend bench --site frontend clear-cache
       "$DIR/insights" auto
       dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-      echo "==> Restarting workers..."
+      echo "==> Restarting workers to load new code..."
       dc restart backend queue-short queue-long scheduler frontend websocket
-      wait_for_backend
+      echo "==> Waiting for backend..."
+      sleep 5
       "$DIR/insights" auto
       fix_assets
       echo "Migration complete."
@@ -284,10 +374,8 @@ PY
     echo "==> Waiting for configurator to finish..."
     dc wait configurator 2>/dev/null || sleep 5
 
-    sync_built_assets
-
-    echo "==> Applying site config..."
-    apply_site_config
+    echo "==> Syncing custom files..."
+    sync_files
 
     wait_for_db
     remove_insights_before_migrate
@@ -304,7 +392,8 @@ PY
 
     echo "==> Restarting workers..."
     dc restart backend queue-short queue-long scheduler frontend websocket
-    wait_for_backend
+    echo "==> Waiting for backend..."
+    sleep 5
 
     "$DIR/insights" auto
     fix_assets
@@ -331,13 +420,9 @@ PY
     echo "Environment set to dev. All commands available."
     ;;
 
-  fix-assets)
-    fix_assets
-    ;;
-
   *)
     echo "Environment: $DEPLOY_ENV"
-    echo "Usage: ./deploy {init|start|stop|build|migrate|fix-assets|setup-prod|setup-dev}"
+    echo "Usage: ./deploy {init|start|stop|build|migrate|setup-prod|setup-dev}"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi

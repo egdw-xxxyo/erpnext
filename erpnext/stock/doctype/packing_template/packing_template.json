@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "autoname": "field:template_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "description",
+  "column_break_details",
+  "box_template",
+  "label_template",
+  "expected_qty",
+  "items_section",
+  "items"
+ ],
+ "fields": [
+  {
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "label": "Template Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "box_template",
+   "fieldtype": "Link",
+   "label": "Box Type",
+   "options": "Shipment Parcel Template",
+   "reqd": 1
+  },
+  {
+   "fieldname": "label_template",
+   "fieldtype": "Link",
+   "label": "Label Template",
+   "options": "Label Template"
+  },
+  {
+   "default": "1",
+   "fieldname": "expected_qty",
+   "fieldtype": "Int",
+   "label": "Expected Qty"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Expected Items"
+  },
+  {
+   "description": "Leave empty to accept any items",
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Packing Template Item"
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Packing Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -38,7 +38,7 @@ frappe.ui.form.on("Employee", {
 	},
 
 	attendance_device_id: function (frm) {
-		render_employee_barcode(frm);
+		frm._barcode_field && frm._barcode_field.refresh();
 	},
 
 	onload: function (frm) {
@@ -161,35 +161,13 @@ function setup_employee_barcode(frm) {
 		});
 	}
 
-	render_employee_barcode(frm);
-}
-
-function render_employee_barcode(frm) {
-	const $wrapper = frm.fields_dict.attendance_device_id.$wrapper;
-	$wrapper.find(".barcode-preview").remove();
-
-	if (!frm.doc.attendance_device_id) return;
-
-	const $preview = $(`<div class="barcode-preview" style="margin-top: 8px;"><svg></svg></div>`);
-	$wrapper.append($preview);
-
-	const draw = () => {
-		try {
-			JsBarcode($preview.find("svg")[0], frm.doc.attendance_device_id, {
-				format: "CODE128",
-				height: 50,
-				displayValue: true,
-				fontSize: 14,
-				margin: 5,
-			});
-		} catch (e) {
-			$preview.html(`<code>${frm.doc.attendance_device_id}</code>`);
-		}
-	};
-
-	if (window.JsBarcode) {
-		draw();
-	} else {
-		frappe.require("/assets/frappe/node_modules/jsbarcode/dist/JsBarcode.all.min.js", draw);
+	if (!frm._barcode_field) {
+		frm._barcode_field = new erpnext.BarcodeField({
+			frm,
+			fieldname: "attendance_device_id",
+			barcode_type: "CODE128",
+			format: "CODE128",
+		});
 	}
+	frm._barcode_field.refresh();
 }
