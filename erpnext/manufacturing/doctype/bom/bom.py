@@ -1565,7 +1565,7 @@ def add_non_stock_items_cost(stock_entry, work_order, expense_account, job_card=
 		fields="name",
 		filters=[
 			["name", "in", list(items.keys())],
-			[IfNull(Field("is_stock_item"), 0), "=", 0],
+			["is_stock_item", "=", 0],
 		],
 		as_list=1,
 	)
