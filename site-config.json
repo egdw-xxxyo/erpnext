@@ -1,5 +1,6 @@
 {
   "server_script_enabled": 1,
   "insights_enabled": 0,
-  "host_name": "http://frontend:8080"
+  "host_name": "http://frontend:8080",
+  "scanner_secret": "e5779f530bf31dc6724e96afa6448cd1889e996e8fc3efb1bf36b0a74a3be461"
 }

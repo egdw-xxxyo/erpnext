@@ -23,6 +23,7 @@ import "./utils/ledger_preview.js";
 import "./utils/unreconcile.js";
 import "./utils/barcode_scanner";
 import "./utils/barcode_field";
+import "./utils/bulk_serial_scanner";
 import "./telephony";
 import "./templates/call_link.html";
 import "./bulk_transaction_processing";

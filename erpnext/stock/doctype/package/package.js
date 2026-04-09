@@ -66,6 +66,9 @@ frappe.ui.form.on("Package", {
 			render_input: true,
 		});
 		scan_field.$wrapper.css("max-width", "400px");
+		erpnext.utils.add_bulk_serial_button(scan_field.$wrapper.find(".control-input"), function (serial) {
+			frm.events.process_scan(frm, serial);
+		});
 
 		scan_field.$input.on("input", function () {
 			clearTimeout(frm._scan_timeout);
