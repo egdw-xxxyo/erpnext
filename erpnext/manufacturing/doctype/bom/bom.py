@@ -656,7 +656,7 @@ class BOM(WebsiteGenerator):
 		if not self.with_operations:
 			self.set("operations", [])
 
-		if not self.with_operations and self.track_semi_finished_goods:
+		if not self.with_operations and getattr(self, "track_semi_finished_goods", 0):
 			self.track_semi_finished_goods = 0
 
 	def clear_inspection(self):
