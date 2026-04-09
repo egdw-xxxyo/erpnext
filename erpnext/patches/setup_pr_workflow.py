@@ -14,8 +14,9 @@ def execute():
 	create_item_specification_tab()
 	create_custom_fields_on_pr_item()
 	create_custom_field_on_qi()
+	create_custom_fields_on_work_order()
 	frappe.db.commit()
-	print("Setup complete: PR workflow, custom fields on Item, PR Item, and Quality Inspection")
+	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, and Work Order")
 
 
 def create_workflow_states():
@@ -211,6 +212,20 @@ def create_custom_field_on_qi():
 			"options": "QI Serial Entry",
 			"insert_after": "readings",
 			"description": "Per-serial-number pass/fail inspection results",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_work_order():
+	fields = [
+		{
+			"dt": "Work Order",
+			"fieldname": "serial_nos_html",
+			"fieldtype": "HTML",
+			"label": "Серійні номери",
+			"insert_after": "has_serial_no",
+			"depends_on": "has_serial_no",
 		},
 	]
 	_create_custom_fields(fields)
