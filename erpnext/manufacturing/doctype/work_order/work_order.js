@@ -182,6 +182,7 @@ frappe.ui.form.on("Work Order", {
 	},
 
 	refresh: function (frm) {
+		frm.trigger("render_serial_nos");
 		erpnext.toggle_naming_series();
 		erpnext.work_order.set_custom_buttons(frm);
 		frm.set_intro("");
@@ -579,6 +580,39 @@ frappe.ui.form.on("Work Order", {
 	additional_operating_cost: function (frm) {
 		erpnext.work_order.calculate_cost(frm.doc);
 		erpnext.work_order.calculate_total_cost(frm);
+	},
+
+	render_serial_nos: function (frm) {
+		if (!frm.doc.has_serial_no || frm.is_new()) return;
+
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				doctype: "Serial No",
+				filters: { work_order: frm.doc.name },
+				fields: ["name", "status"],
+				limit: 100,
+			},
+			callback: function (r) {
+				const field = frm.get_field("serial_nos_html");
+				if (!field) return;
+
+				if (!r.message || !r.message.length) {
+					field.$wrapper.html(`<p class="text-muted">${__("No serial numbers yet")}</p>`);
+					return;
+				}
+
+				const badges = r.message.map((sn) => {
+					const color = sn.status === "Active" ? "green" : sn.status === "Inactive" ? "gray" : "orange";
+					return `<a href="/app/serial-no/${encodeURIComponent(sn.name)}" target="_blank"
+						class="badge" style="background:var(--${color}-200);color:var(--${color}-800);
+						margin:2px 4px 2px 0;padding:4px 8px;border-radius:4px;font-size:12px;
+						text-decoration:none;">${sn.name} <span style="opacity:0.7">(${__(sn.status)})</span></a>`;
+				}).join("");
+
+				field.$wrapper.html(`<div style="padding:8px 0">${badges}</div>`);
+			},
+		});
 	},
 });
 

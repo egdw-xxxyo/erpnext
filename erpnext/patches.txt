@@ -431,3 +431,4 @@ erpnext.patches.v16_0.update_currency_exchange_settings_for_frankfurter #2025-12
 erpnext.patches.v15_0.create_accounting_dimensions_in_advance_taxes_and_charges
 erpnext.patches.v16_0.set_ordered_qty_in_quotation_item
 erpnext.patches.v15_0.rename_packing_box_to_package
+erpnext.patches.v15_0.add_serial_nos_html_to_work_order
