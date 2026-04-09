@@ -31,6 +31,7 @@
   "section_break_21",
   "operations_section_section",
   "with_operations",
+  "track_semi_finished_goods",
   "column_break_23",
   "transfer_material_against",
   "routing",
@@ -169,6 +170,13 @@
    "fieldtype": "Check",
    "ignore_user_permissions": 1,
    "label": "With Operations"
+  },
+  {
+   "default": "0",
+   "depends_on": "with_operations",
+   "fieldname": "track_semi_finished_goods",
+   "fieldtype": "Check",
+   "label": "Track Semi-Finished Goods"
   },
   {
    "default": "0",
