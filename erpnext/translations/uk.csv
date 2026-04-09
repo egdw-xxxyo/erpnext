@@ -4099,7 +4099,7 @@ Financial Services,Фінансові послуги
 Financial Statements,Фінансова звітність
 Financial Year Begins On,Фінансовий рік починається з
 Financial reports will be generated using GL Entry doctypes (should be enabled if Period Closing Voucher is not posted for all years sequentially or missing) ,"Фінансові звіти будуть створюватися на основі записів головної книги (слід увімкнути, якщо документи закриття періоду не були опубліковані послідовно за всі роки або якщо деякі з них відсутні) "
-Finish,обробка
+Finish,Завершити
 Finished Good,Готово Добре
 Finished Good BOM,Специфікація для готової продукції
 Finished Good Item,Елемент готової продукції
