@@ -1,6 +1,6 @@
-"""One-time setup script to create the Purchase Receipt workflow and custom fields.
+"""Idempotent setup script for custom fields and workflows. Safe to re-run on every deploy.
 
-Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
+Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 Or via bench console and calling execute() manually.
 """
 import frappe

@@ -199,8 +199,8 @@ PY
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
-    echo "==> Running setup_pr_workflow (custom fields)..."
-    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
+    echo "==> Running setup_custom_fields (custom fields)..."
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
     "$DIR/insights" auto
@@ -233,7 +233,7 @@ PY
       wait_for_db >/dev/null 2>&1
       remove_insights_before_migrate >/dev/null 2>&1
       dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
-      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute 2>&1 | grep -v "exists" || true
+      dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute 2>&1 | grep -v "exists" || true
       dc exec -T backend bench --site frontend clear-cache >/dev/null 2>&1
       "$DIR/insights" auto 2>/dev/null
       dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
@@ -260,8 +260,8 @@ PY
       remove_insights_before_migrate
       echo "==> Running bench migrate..."
       dc exec -T backend bench --site frontend migrate
-      echo "==> Running setup_pr_workflow (custom fields)..."
-      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
+      echo "==> Running setup_custom_fields (custom fields)..."
+      dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
       echo "==> Clearing cache..."
       dc exec -T backend bench --site frontend clear-cache
       "$DIR/insights" auto
@@ -293,8 +293,8 @@ PY
     remove_insights_before_migrate
     echo "==> Running bench migrate..."
     dc exec -T backend bench --site frontend migrate
-    echo "==> Running setup_pr_workflow (custom fields)..."
-    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
+    echo "==> Running setup_custom_fields (custom fields)..."
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 
     echo "==> Clearing cache..."
     dc exec -T backend bench --site frontend clear-cache
