@@ -18709,7 +18709,7 @@ msgstr "Фінансові звіти будуть створюватися на
 #: erpnext/manufacturing/doctype/work_order/work_order.js:865
 #: erpnext/manufacturing/doctype/work_order/work_order.js:874
 msgid "Finish"
-msgstr "обробка"
+msgstr "Завершити"
 
 #. Label of the fg_item (Link) field in DocType 'Purchase Order Item'
 #. Label of the item_code (Link) field in DocType 'BOM Creator'
