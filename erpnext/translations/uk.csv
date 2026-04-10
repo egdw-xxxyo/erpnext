@@ -11389,3 +11389,6 @@ Template Reference,Довідка по шаблону
 "Enter one serial number per line, or separate with spaces","Введіть один серійний номер на рядок або розділіть пробілами"
 "Bulk Add Serials","Масово додати серійні"
 "Packages","Пакування"
+"Serial Number Selection","Вибір серійного номера"
+"{0} of {1} selected for finishing","{0} з {1} обрано для завершення"
+"Scan or type a serial number to toggle its status","Скануйте або введіть серійний номер, щоб змінити його статус"

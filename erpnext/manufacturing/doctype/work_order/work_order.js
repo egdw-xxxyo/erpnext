@@ -874,6 +874,9 @@ erpnext.work_order = {
 
 	show_prompt_for_qty_input: function (frm, purpose) {
 		let max = this.get_max_transferable_qty(frm, purpose);
+		let has_serial_selection = purpose === "Manufacture" && frm.doc.has_serial_no;
+		let all_serial_nos = [];
+		let finished_set = new Set();
 
 		let fields = [
 			{
@@ -898,33 +901,150 @@ erpnext.work_order = {
 			},
 		];
 
-		return new Promise((resolve, reject) => {
-			frm.qty_prompt = frappe.prompt(
-				fields,
-				(data) => {
-					max += (frm.doc.qty * (frm.doc.__onload.overproduction_percentage || 0.0)) / 100;
+		if (has_serial_selection) {
+			fields.push(
+				{ fieldtype: "Section Break", fieldname: "serial_selection_section", label: __("Serial Number Selection"), hidden: 1 },
+				{ fieldtype: "HTML", fieldname: "serial_counter_html" },
+				{
+					fieldtype: "Data",
+					fieldname: "scan_serial_no",
+					label: __("Scan Serial No"),
+					description: __("Scan or type a serial number to toggle its status"),
+				},
+				{ fieldtype: "HTML", fieldname: "serial_badges_html" }
+			);
+		}
 
-					if (data.qty > max) {
-						frappe.msgprint(__("Quantity must not be more than {0}", [max]));
-						reject();
+		let updating_qty = false;
+
+		function render_badges(dialog, sync_qty) {
+			let finished_count = finished_set.size;
+
+			if (sync_qty) {
+				updating_qty = true;
+				dialog.set_value("qty", finished_count);
+				updating_qty = false;
+			}
+
+			let counter_html = `<div style="margin-bottom:8px;font-weight:600;">
+				${__("{0} of {1} selected for finishing", [finished_count, all_serial_nos.length])}
+			</div>`;
+			dialog.fields_dict.serial_counter_html.$wrapper.html(counter_html);
+
+			let badges = all_serial_nos.map((sn) => {
+				let is_finished = finished_set.has(sn);
+				let color = is_finished ? "green" : "gray";
+				return `<span class="serial-badge" data-serial="${frappe.utils.escape_html(sn)}"
+					style="display:inline-block;cursor:pointer;background:var(--${color}-200);color:var(--${color}-800);
+					margin:2px 4px 2px 0;padding:4px 8px;border-radius:4px;font-size:12px;
+					user-select:none;">${frappe.utils.escape_html(sn)}</span>`;
+			}).join("");
+
+			let wrapper = dialog.fields_dict.serial_badges_html.$wrapper;
+			wrapper.html(`<div style="padding:4px 0;max-height:300px;overflow-y:auto;">${badges}</div>`);
+
+			wrapper.find(".serial-badge").on("click", function () {
+				let sn = $(this).data("serial");
+				if (finished_set.has(sn)) {
+					finished_set.delete(sn);
+				} else {
+					finished_set.add(sn);
+				}
+				render_badges(dialog, true);
+			});
+		}
+
+		function load_serial_nos(dialog) {
+			if (!has_serial_selection) return;
+
+			frappe.xcall(
+				"erpnext.manufacturing.doctype.work_order.work_order.get_work_order_serial_nos",
+				{ work_order_id: frm.doc.name }
+			).then((serials) => {
+				all_serial_nos = serials || [];
+				finished_set = new Set(all_serial_nos);
+				dialog.set_df_property("serial_selection_section", "hidden", 0);
+				render_badges(dialog, true);
+			});
+		}
+
+		return new Promise((resolve, reject) => {
+			let dialog = new frappe.ui.Dialog({
+				title: __("Select Quantity"),
+				fields: fields,
+				primary_action_label: __("Create"),
+				primary_action: (data) => {
+					let effective_max = max + (frm.doc.qty * (frm.doc.__onload.overproduction_percentage || 0.0)) / 100;
+
+					if (data.qty > effective_max) {
+						frappe.msgprint(__("Quantity must not be more than {0}", [effective_max]));
+						return;
 					}
+
+					if (has_serial_selection && all_serial_nos.length) {
+						data.serial_nos = Array.from(finished_set);
+					}
+
 					data.purpose = purpose;
+					dialog.hide();
 					resolve(data);
 				},
-				__("Select Quantity"),
-				__("Create")
-			);
+			});
+
+			frm.qty_prompt = dialog;
+
+			if (has_serial_selection) {
+				let qty_field = dialog.fields_dict.qty;
+				let original_onchange = qty_field.df.onchange;
+				qty_field.df.onchange = function () {
+					if (updating_qty) return;
+					if (original_onchange) original_onchange.call(this);
+				};
+
+				dialog.fields_dict.scan_serial_no.df.onchange = function () {
+					let scanned = this.value && this.value.trim();
+					if (!scanned) return;
+					dialog.set_value("scan_serial_no", "");
+
+					if (!all_serial_nos.includes(scanned)) {
+						frappe.show_alert({
+							message: __("Serial No {0} not found in this Work Order", [scanned]),
+							indicator: "red",
+						});
+						return;
+					}
+
+					if (finished_set.has(scanned)) {
+						finished_set.delete(scanned);
+					} else {
+						finished_set.add(scanned);
+					}
+					render_badges(dialog, true);
+				};
+			}
+
+			dialog.show();
+
+			if (has_serial_selection) {
+				load_serial_nos(dialog);
+			}
 		});
 	},
 
 	make_se: function (frm, purpose) {
 		this.show_prompt_for_qty_input(frm, purpose)
 			.then((data) => {
-				return frappe.xcall("erpnext.manufacturing.doctype.work_order.work_order.make_stock_entry", {
+				let args = {
 					work_order_id: frm.doc.name,
 					purpose: purpose,
 					qty: data.qty,
-				});
+				};
+
+				if (data.serial_nos && data.serial_nos.length) {
+					args.serial_nos = JSON.stringify(data.serial_nos);
+				}
+
+				return frappe.xcall("erpnext.manufacturing.doctype.work_order.work_order.make_stock_entry", args);
 			})
 			.then((stock_entry) => {
 				frappe.model.sync(stock_entry);
