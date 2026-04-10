@@ -3,8 +3,8 @@ FROM frappe/erpnext:${ERPNEXT_VERSION}
 
 USER root
 
-# Build tools for translations and extra pip packages
-RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
+# Extra pip packages
+
 
 # ── Replace ERPNext source with ours ──────────────────────────────────
 # Only copy the erpnext/ package dir — keep the stock pyproject.toml
@@ -22,17 +22,9 @@ RUN cd /home/frappe/frappe-bench \
     && ./env/bin/pip install -e apps/frappe \
     && ./env/bin/pip install -e apps/erpnext
 
-# ── Compile PO → MO translations ─────────────────────────────────────
-RUN mkdir -p /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES \
-    && msgfmt /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po \
-        -o /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES/erpnext.mo \
-    && mkdir -p /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES \
-    && msgfmt /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po \
-        -o /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES/frappe.mo
-
-# ── Rebuild JS/CSS assets ─────────────────────────────────────────────
+# ── Rebuild JS/CSS assets + compile PO→MO translations ───────────────
 USER frappe
 WORKDIR /home/frappe/frappe-bench
-RUN bench build
+RUN bench build --force
 
 USER frappe
