@@ -65,7 +65,7 @@ sync_built_assets() {
   # docker build are not visible. Extract them from the image and copy in.
   docker run --rm "$IMAGE_NAME" tar -cf - \
     -C /home/frappe/frappe-bench/sites/assets \
-    frappe erpnext assets.json assets-rtl.json 2>/dev/null | \
+    frappe erpnext locale assets.json assets-rtl.json 2>/dev/null | \
     dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
   dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
   echo "==> Assets synced."
