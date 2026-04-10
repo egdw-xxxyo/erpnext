@@ -94,6 +94,7 @@ def handle_scan(scanner_key=None, data=None):
 				success=True,
 				message=result.get("message"),
 				prompt=result.get("prompt"),
+				image=result.get("image"),
 				workplace=scanner.workplace,
 				employee=scanner.employee,
 				scan_log=scan_log,
@@ -236,7 +237,7 @@ def _resp(success=True, **kwargs):
 	result = {"success": success}
 	for key in ("action", "message", "error", "prompt", "mode",
 				"scan_log", "target_doctype", "target_document",
-				"workplace", "employee"):
+				"workplace", "employee", "image"):
 		if key in kwargs:
 			result[key] = kwargs[key]
 	return result
