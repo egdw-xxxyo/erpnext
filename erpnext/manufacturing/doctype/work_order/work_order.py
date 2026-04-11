@@ -1474,7 +1474,7 @@ def set_work_order_ops(name):
 
 
 @frappe.whitelist()
-def make_stock_entry(work_order_id, purpose, qty=None, target_warehouse=None):
+def make_stock_entry(work_order_id, purpose, qty=None, target_warehouse=None, serial_nos=None):
 	work_order = frappe.get_doc("Work Order", work_order_id)
 	if not frappe.db.get_value("Warehouse", work_order.wip_warehouse, "is_group"):
 		wip_warehouse = work_order.wip_warehouse
@@ -1515,10 +1515,61 @@ def make_stock_entry(work_order_id, purpose, qty=None, target_warehouse=None):
 	stock_entry.set_stock_entry_type()
 	stock_entry.get_items()
 
+	selected_serial_nos = None
+	if serial_nos:
+		selected_serial_nos = frappe.parse_json(serial_nos)
+		_validate_selected_serial_nos(work_order, selected_serial_nos, qty)
+
 	if purpose != "Disassemble":
-		stock_entry.set_serial_no_batch_for_finished_good()
+		stock_entry.set_serial_no_batch_for_finished_good(selected_serial_nos=selected_serial_nos)
 
 	return stock_entry.as_dict()
+
+
+def _validate_selected_serial_nos(work_order, serial_nos, qty):
+	if len(serial_nos) != cint(qty):
+		frappe.throw(
+			_("Number of selected serial numbers ({0}) must equal quantity ({1})").format(
+				len(serial_nos), cint(qty)
+			)
+		)
+
+	available = frappe.get_all(
+		"Serial No",
+		filters={
+			"name": ("in", serial_nos),
+			"item_code": work_order.production_item,
+			"warehouse": ("is", "not set"),
+			"status": "Inactive",
+			"work_order": work_order.name,
+		},
+		pluck="name",
+	)
+
+	invalid = set(serial_nos) - set(available)
+	if invalid:
+		frappe.throw(
+			_("Serial numbers {0} are not available for this Work Order").format(
+				", ".join(sorted(invalid))
+			)
+		)
+
+
+@frappe.whitelist()
+def get_work_order_serial_nos(work_order_id):
+	work_order = frappe.get_doc("Work Order", work_order_id)
+	data = frappe.get_all(
+		"Serial No",
+		filters={
+			"item_code": work_order.production_item,
+			"warehouse": ("is", "not set"),
+			"status": "Inactive",
+			"work_order": work_order.name,
+		},
+		fields=["name"],
+		order_by="creation asc",
+	)
+	return [row.name for row in data]
 
 
 @frappe.whitelist()

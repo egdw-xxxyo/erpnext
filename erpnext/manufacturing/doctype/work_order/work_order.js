@@ -183,6 +183,7 @@ frappe.ui.form.on("Work Order", {
 
 	refresh: function (frm) {
 		frm.trigger("render_serial_nos");
+		frm.trigger("setup_print_labels");
 		erpnext.toggle_naming_series();
 		erpnext.work_order.set_custom_buttons(frm);
 		frm.set_intro("");
@@ -580,6 +581,51 @@ frappe.ui.form.on("Work Order", {
 	additional_operating_cost: function (frm) {
 		erpnext.work_order.calculate_cost(frm.doc);
 		erpnext.work_order.calculate_total_cost(frm);
+	},
+
+	setup_print_labels: function (frm) {
+		if (!frm.doc.has_serial_no || frm.is_new() || frm.doc.docstatus !== 1) return;
+
+		frm.page.add_menu_item(__("Print Labels"), function () {
+			frm.events.print_serial_labels(frm);
+		});
+	},
+
+	print_serial_labels: function (frm) {
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				doctype: "Serial No",
+				filters: { work_order: frm.doc.name },
+				fields: ["name"],
+				limit: 500,
+			},
+			callback: function (r) {
+				if (!r.message || !r.message.length) {
+					frappe.msgprint(__("No serial numbers found for this Work Order"));
+					return;
+				}
+
+				let serials = r.message.map(s => s.name);
+				let item_code = frm.doc.production_item;
+				let item_name = frm.doc.item_name || item_code;
+				let by_item = {};
+				by_item[item_code] = { item_name: item_name, serials: serials };
+
+				frappe.call({
+					method: "erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils.get_label_templates_for_items",
+					args: { item_codes: JSON.stringify([item_code]) },
+					callback: function (lr) {
+						let templates_by_item = lr.message || {};
+						if (!templates_by_item[item_code] || !templates_by_item[item_code].length) {
+							frappe.msgprint(__("No label templates configured for item {0}", [item_code]));
+							return;
+						}
+						erpnext.utils.open_label_print_dialog({ by_item, templates_by_item, items: [item_code] });
+					},
+				});
+			},
+		});
 	},
 
 	render_serial_nos: function (frm) {

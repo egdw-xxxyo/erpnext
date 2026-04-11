@@ -51,7 +51,7 @@
    "fieldname": "script",
    "fieldtype": "Code",
    "label": "Script",
-   "options": "Python",
+   "options": "py",
    "reqd": 1
   },
   {
