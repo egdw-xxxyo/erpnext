@@ -107,9 +107,14 @@ fix_assets() {
   fi
 
   echo "  -> Syncing all assets to frontend container..."
-  docker exec -u root "$FRONTEND_CID" bash -c \
-    'rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext /home/frappe/frappe-bench/sites/assets/insights'
-  docker exec docker-backend-1 tar -chf - -C /home/frappe/frappe-bench/sites/assets frappe erpnext insights assets.json assets-rtl.json | \
+  local ASSET_APPS="frappe erpnext insights"
+  local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext /home/frappe/frappe-bench/sites/assets/insights"
+  if docker exec docker-backend-1 test -d /home/frappe/frappe-bench/sites/assets/hrms 2>/dev/null; then
+    ASSET_APPS="$ASSET_APPS hrms"
+    ASSET_RM="$ASSET_RM /home/frappe/frappe-bench/sites/assets/hrms"
+  fi
+  docker exec -u root "$FRONTEND_CID" bash -c "$ASSET_RM"
+  docker exec docker-backend-1 tar -chf - -C /home/frappe/frappe-bench/sites/assets $ASSET_APPS assets.json assets-rtl.json | \
     docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/
 }
 
