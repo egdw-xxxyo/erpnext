@@ -83,7 +83,7 @@ erpnext.BarcodeField = class BarcodeField {
 		$container.find(".btn-print-barcode").on("click", () => this._open_print_dialog());
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner_setup.scanner_setup.render_qr_svg",
+			method: "erpnext.manufacturing.doctype.scanner.scanner.render_qr_svg",
 			args: { data: this.value },
 			callback: (r) => {
 				if (r.message) {

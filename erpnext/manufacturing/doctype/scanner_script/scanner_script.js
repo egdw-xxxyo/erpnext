@@ -34,7 +34,7 @@ def on_unknown_scanned(e):
 <table class="table table-bordered" style="font-size: 12px;">
 <tr><th>Property</th><th>Description</th></tr>
 <tr><td><code>e.data</code></td><td>Raw scanned string</td></tr>
-<tr><td><code>e.scanner</code></td><td>Scanner Setup document</td></tr>
+<tr><td><code>e.scanner</code></td><td>Scanner document</td></tr>
 <tr><td><code>e.workplace</code></td><td>Current Workplace document</td></tr>
 <tr><td><code>e.employee</code></td><td>Current Employee name (str) or None</td></tr>
 </table>
