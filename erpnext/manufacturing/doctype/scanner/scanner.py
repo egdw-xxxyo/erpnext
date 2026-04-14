@@ -40,7 +40,11 @@ class Scanner(Document):
 	def get_configuration(self):
 		if self.scanner_configuration:
 			return frappe.get_cached_doc("Scanner Configuration", self.scanner_configuration)
-		return frappe._dict(idle_timeout=3600, display_rows=10, display_chars_per_row=20, message_template="")
+		return frappe._dict(idle_timeout=3600, state_timeout=300, display_rows=10, display_chars_per_row=20, message_template="")
+
+	def get_state_timeout(self):
+		config = self.get_configuration()
+		return config.get("state_timeout") or 300
 
 	def before_insert(self):
 		if not self.api_key:

@@ -12329,3 +12329,120 @@ Template Reference,Довідка по шаблону
 "Employee Lifecycle","Кар'єра працівника"
 "Performance","Продуктивність"
 "Shift & Attendance","Зміни та відвідуваність"
+Scanner,Сканер
+Scanner Name,Назва сканера
+Scanner Configuration,Конфігурація сканера
+Scanner Test,Тест сканера
+Scanner Data,Дані сканера
+Scanner Display,Дисплей сканера
+Active,Активний
+Setup,Налаштування
+API Key,Ключ API
+"Scan this QR code into the scanner device. The scanner combines this with its configured secret to authenticate.","Скануйте цей QR-код у сканер. Сканер комбінує його з налаштованим секретом для автентифікації."
+Regenerate API Key,Перегенерувати ключ API
+QR Code,QR-код
+Configuration Barcodes,Штрих-коди конфігурації
+Current Session,Поточна сесія
+"Set by scanning a workplace barcode","Встановлюється скануванням штрих-коду робочого місця"
+"Set by scanning an employee badge","Встановлюється скануванням бейджа працівника"
+Scan Logs,Журнал сканувань
+Scan Data,Дані сканування
+"Barcode / Job Card / serial number / workplace / employee badge...","Штрих-код / Карта завдань / серійний номер / робоче місце / бейдж працівника..."
+Send Scan,Надіслати скан
+Clear Log,Очистити журнал
+Response Log,Журнал відповідей
+"Please save the document first.","Спочатку збережіть документ."
+"Regenerate API key? The old key will stop working immediately.","Перегенерувати ключ API? Старий ключ перестане працювати негайно."
+"Enter scan data","Введіть дані сканування"
+"Select a scanner first","Спочатку виберіть сканер"
+"No scanner key found","Ключ сканера не знайдено"
+Configuration Name,Назва конфігурації
+Display Settings,Налаштування дисплея
+Display Rows,Рядків дисплея
+"Number of text rows on the scanner display","Кількість текстових рядків на дисплеї сканера"
+Characters Per Row,Символів на рядок
+"Maximum characters per row on the scanner display","Максимальна кількість символів на рядок на дисплеї сканера"
+Message Template,Шаблон повідомлення
+"Template for message header. Available variables: {employee_name}, {workplace}, {scanned_data}. Use \\n for line breaks. Scripts returning 'templateData' get this header prepended; scripts returning 'message' bypass the template.","Шаблон заголовка повідомлення. Доступні змінні: {employee_name}, {workplace}, {scanned_data}. Використовуйте \\n для розриву рядків. Скрипти, що повертають 'templateData', отримають цей заголовок; скрипти, що повертають 'message', обходять шаблон."
+Session,Сесія
+"Session Timeout (seconds)","Тайм-аут сесії (секунди)"
+"Workplace/employee assignment resets after this many seconds of inactivity","Призначення робочого місця/працівника скидається після цієї кількості секунд неактивності"
+"State Timeout (seconds)","Тайм-аут стану (секунди)"
+"Multi-step workflow state expires after this many seconds of inactivity","Стан багатокрокового процесу закінчується після цієї кількості секунд неактивності"
+Timestamp,Мітка часу
+Scanned Data,Скановані дані
+Resolved Action,Визначена дія
+Scanner State,Стан сканера
+Target DocType,Цільовий тип документа
+Target Document,Цільовий документ
+Result Message,Повідомлення результату
+"Scan these in order to configure a physical scanner device.","Скануйте їх по порядку для налаштування фізичного сканера."
+"Scan to enter URL config mode","Скануйте для входу в режим конфігурації URL"
+"Scan after CFG-URL to set the endpoint","Скануйте після CFG-URL для встановлення адреси"
+"Scan to enter API Key config mode","Скануйте для входу в режим конфігурації ключа API"
+"Scan after CFG-KEY to set the scanner identity","Скануйте після CFG-KEY для встановлення ідентифікатора сканера"
+Server URL,URL сервера
+"Loading...","Завантаження..."
+Endpoint,Кінцева точка
+"Leave empty for a default script that runs when no workplace-specific script is found","Залиште порожнім для скрипта за замовчуванням, який виконується коли не знайдено скрипт для конкретного робочого місця"
+Script Name,Назва скрипта
+Script,Скрипт
+API Reference,Довідка API
+Workplace Script,Скрипт робочого місця
+Scanner Script,Скрипт сканера
+"How it works","Як це працює"
+"When a scanner sends data, the system resolves what was scanned and calls","Коли сканер надсилає дані, система визначає що було скановано і викликає"
+"from the Workplace Script matching the scanner's current workplace. If no workplace-specific script is found, the default script (no workplace) runs.","зі Скрипта робочого місця, що відповідає поточному робочому місцю сканера. Якщо скрипт для робочого місця не знайдено, виконується скрипт за замовчуванням (без робочого місця)."
+"The script controls everything — setting workplace/employee, returning messages, managing multi-step state. Reusable logic lives in","Скрипт контролює все — встановлення робочого місця/працівника, повернення повідомлень, керування багатокроковим станом. Повторно використовувана логіка знаходиться в"
+Scanner Scripts,Скрипти сканера
+"accessible via the","доступні через"
+namespace,простір імен
+"Entry point","Точка входу"
+"Event properties","Властивості події"
+Property,Властивість
+Type,Тип
+Description,Опис
+"Raw scanned string","Необроблений сканований рядок"
+"Resolved Frappe document (Workplace, Employee, Job Card, Serial No, Item) or None","Визначений документ Frappe (Робоче місце, Працівник, Карта завдань, Серійний номер, Товар) або None"
+"Item code (for serial_no and item scans)","Код товару (для сканувань серійного номера та товару)"
+"Original barcode (if resolved via Item Barcode)","Оригінальний штрих-код (якщо визначено через Штрих-код товару)"
+"Scanner document","Документ сканера"
+"Current Workplace document (from scanner context, not this scan)","Поточний документ Робочого місця (з контексту сканера, не з цього сканування)"
+"Current Employee name (from scanner context)","Поточне ім'я працівника (з контексту сканера)"
+"State API","API стану"
+"State persists between scans in Redis with automatic timeout.","Стан зберігається між скануваннями в Redis з автоматичним тайм-аутом."
+"Property / Method","Властивість / Метод"
+"Current state name (str) or None if idle","Назва поточного стану (str) або None якщо неактивний"
+"Dict of state context data","Словник даних контексту стану"
+"Transition to a new state with optional context","Перехід до нового стану з необов'язковим контекстом"
+"Clear state (return to idle)","Очистити стан (повернутися до неактивного)"
+"Helper methods","Допоміжні методи"
+Method,Метод
+"Set the scanner's current workplace","Встановити поточне робоче місце сканера"
+"Set the scanner's current employee","Встановити поточного працівника сканера"
+"Calling Scanner Scripts","Виклик скриптів сканера"
+"All active Scanner Scripts are loaded into the","Усі активні скрипти сканера завантажуються в"
+"The key is the script name (lowercased, spaces/dashes → underscores).","Ключ — це назва скрипта (малі літери, пробіли/дефіси → підкреслення)."
+"Scanner Script named","Скрипт сканера з назвою"
+defines,визначає
+"In Workplace Script","У скрипті робочого місця"
+"Return value","Значення, що повертається"
+"text for scanner display","текст для дисплея сканера"
+"optional status line","необов'язковий рядок статусу"
+"optional image data","необов'язкові дані зображення"
+"optional, for scan log","необов'язково, для журналу сканувань"
+"Multi-step example","Приклад з кількома кроками"
+"Step 1: scan item → enter awaiting_employee state","Крок 1: сканувати товар → перейти в стан awaiting_employee"
+"Step 2: in awaiting_employee state → assign employee","Крок 2: у стані awaiting_employee → призначити працівника"
+"Scanner Script — Reusable Library","Скрипт сканера — Бібліотека повторного використання"
+"Scanner Scripts are","Скрипти сканера — це"
+"reusable function libraries","бібліотеки повторно використовуваних функцій"
+"that can be called from","які можна викликати з"
+Workplace Scripts,Скрипти робочого місця
+"They do not have an entry point like","Вони не мають точки входу як"
+"instead, they define functions that Workplace Scripts invoke.","натомість, вони визначають функції, які викликають Скрипти робочого місця."
+"namespace in Workplace Scripts.","простір імен у Скриптах робочого місця."
+"Access them by script name (lowercased, spaces/dashes → underscores).","Доступ за назвою скрипта (малі літери, пробіли/дефіси → підкреслення)."
+"Example Scanner Script","Приклад скрипта сканера"
+"Usage in Workplace Script","Використання у Скрипті робочого місця"
+"frappe and json modules are available in the script scope.","Модулі frappe та json доступні в області видимості скрипта."

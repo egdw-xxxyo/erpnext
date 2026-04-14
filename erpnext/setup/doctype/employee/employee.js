@@ -35,6 +35,7 @@ frappe.ui.form.on("Employee", {
 
 	refresh: function (frm) {
 		setup_employee_barcode(frm);
+		setup_employee_print_labels(frm);
 	},
 
 	attendance_device_id: function (frm) {
@@ -139,6 +140,21 @@ frappe.tour["Employee"] = [
 		),
 	},
 ];
+
+function setup_employee_print_labels(frm) {
+	if (frm.is_new() || !frm.doc.label_templates || !frm.doc.label_templates.length) return;
+	frm.add_custom_button(__("Print Labels"), function () {
+		let templates = frm.doc.label_templates.map((r) => ({
+			label_template: r.label_template,
+			label_printer: r.label_printer,
+		}));
+		erpnext.utils.open_simple_label_print_dialog({
+			doctype: "Employee",
+			doc_name: frm.doc.name,
+			label_templates: templates,
+		});
+	});
+}
 
 function setup_employee_barcode(frm) {
 	if (!frm.fields_dict.attendance_device_id) return;

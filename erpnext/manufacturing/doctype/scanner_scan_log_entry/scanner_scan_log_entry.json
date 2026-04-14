@@ -9,6 +9,7 @@
   "raw_data",
   "status",
   "resolved_action",
+  "scanner_state",
   "column_break_1",
   "target_doctype",
   "target_document",
@@ -43,6 +44,12 @@
    "fieldname": "resolved_action",
    "fieldtype": "Data",
    "label": "Resolved Action"
+  },
+  {
+   "fieldname": "scanner_state",
+   "fieldtype": "Data",
+   "label": "Scanner State",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_1",

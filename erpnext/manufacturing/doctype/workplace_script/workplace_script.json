@@ -11,6 +11,8 @@
   "script_name",
   "column_break_1",
   "is_active",
+  "column_break_2",
+  "workplace",
   "section_script",
   "script",
   "section_help",
@@ -33,6 +35,17 @@
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Active"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "label": "Workplace",
+   "options": "Workplace",
+   "description": "Leave empty for a default script that runs when no workplace-specific script is found"
   },
   {
    "fieldname": "section_script",
@@ -63,7 +76,7 @@
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
- "name": "Scanner Script",
+ "name": "Workplace Script",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

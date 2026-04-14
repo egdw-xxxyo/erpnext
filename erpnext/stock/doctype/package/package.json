@@ -26,7 +26,6 @@
   "references_section",
   "sales_order",
   "delivery_note",
-  "label_template",
   "column_break_refs",
   "shipment",
   "notes_section",
@@ -153,12 +152,6 @@
    "fieldtype": "Link",
    "label": "Delivery Note",
    "options": "Delivery Note"
-  },
-  {
-   "fieldname": "label_template",
-   "fieldtype": "Link",
-   "label": "Label Template",
-   "options": "Label Template"
   },
   {
    "fieldname": "column_break_refs",

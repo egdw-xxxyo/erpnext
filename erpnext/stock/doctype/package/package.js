@@ -1,6 +1,7 @@
 frappe.ui.form.on("Package", {
 	refresh: function (frm) {
 		setup_package_barcode(frm);
+		setup_package_print_labels(frm);
 		frm.events.setup_scanner(frm);
 
 		if (frm.doc.docstatus === 1 && frm.doc.items) {
@@ -21,7 +22,6 @@ frappe.ui.form.on("Package", {
 			let tmpl = frappe.model.get_doc("Packing Template", frm.doc.packing_template);
 
 			frm.set_value("box_template", tmpl.box_template);
-			frm.set_value("label_template", tmpl.label_template || "");
 
 			frm.doc.items = [];
 			if (tmpl.items && tmpl.items.length) {
@@ -183,6 +183,29 @@ frappe.ui.form.on("Package", {
 	},
 
 });
+
+function setup_package_print_labels(frm) {
+	if (frm.is_new() || !frm.doc.packing_template) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Item Label Template",
+			filters: { parent: frm.doc.packing_template, parenttype: "Packing Template" },
+			fields: ["label_template", "label_printer"],
+		},
+		callback: function (r) {
+			let templates = r.message || [];
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "Package",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
+	});
+}
 
 function setup_package_barcode(frm) {
 	if (!frm.fields_dict.box_barcode) return;

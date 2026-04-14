@@ -11,4 +11,3 @@ class ScannerScript(Document):
 		is_active: DF.Check
 		script: DF.Code | None
 		script_name: DF.Data | None
-		workplace: DF.Link | None

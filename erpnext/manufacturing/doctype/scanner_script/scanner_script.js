@@ -1,60 +1,41 @@
-const SCANNER_API_REFERENCE = `
+const SCANNER_SCRIPT_API_REFERENCE = `
 <div style="font-size: 13px; line-height: 1.6;">
-<h5>How it works</h5>
-<p>When a scanner sends data, the system first checks if it's a <strong>Workplace barcode</strong> or
-<strong>Employee barcode</strong> (attendance_device_id). If so, the scanner's context is switched.
-Otherwise, the system resolves what was scanned and calls the matching handler from this script.</p>
+<h5>${__("Scanner Script — Reusable Library")}</h5>
+<p>${__("Scanner Scripts are")} <strong>${__("reusable function libraries")}</strong> ${__("that can be called from")}
+<strong>${__("Workplace Scripts")}</strong>. ${__("They do not have an entry point like")} <code>on_scan</code> —
+${__("instead, they define functions that Workplace Scripts invoke.")}</p>
 
-<p><strong>Execution order:</strong> workplace-specific scripts run first, then general scripts (no workplace).
-The first script that returns a result wins.</p>
+<p>${__("All active Scanner Scripts are loaded into the")} <code>scripts</code> ${__("namespace in Workplace Scripts.")})
+${__("Access them by script name (lowercased, spaces/dashes → underscores).")}</p>
 
-<h5>Events</h5>
+<h5>${__("Example Scanner Script")}: "job_cards"</h5>
 <pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-def on_job_card_scanned(e):
-    # e.job_card — Job Card name (str)
-    # e.doc — Job Card document
-    pass
+def start_or_finish(job_card_doc):
+    if job_card_doc.status == "Open":
+        job_card_doc.start_job()
+    elif job_card_doc.status == "Work In Progress":
+        job_card_doc.complete_job()
 
-def on_serial_no_scanned(e):
-    # e.serial_no — Serial No name (str)
-    # e.item_code — Item code of the serial
-    pass
-
-def on_item_scanned(e):
-    # e.item_code — Item code (str)
-    # e.barcode — original barcode if resolved via Item Barcode
-    pass
-
-def on_unknown_scanned(e):
-    # e.data — raw scanned string
-    pass
+def link_serial(job_card_name, serial_no):
+    frappe.db.set_value("Serial No", serial_no, "job_card", job_card_name)
 </pre>
 
-<h5>Common properties on every event (e)</h5>
-<table class="table table-bordered" style="font-size: 12px;">
-<tr><th>Property</th><th>Description</th></tr>
-<tr><td><code>e.data</code></td><td>Raw scanned string</td></tr>
-<tr><td><code>e.scanner</code></td><td>Scanner document</td></tr>
-<tr><td><code>e.workplace</code></td><td>Current Workplace document</td></tr>
-<tr><td><code>e.employee</code></td><td>Current Employee name (str) or None</td></tr>
-</table>
-
-<h5>Return value</h5>
+<h5>${__("Usage in Workplace Script")}</h5>
 <pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-return {
-    "message": "Job Card JC-001 started",
-    "prompt": "Scan next barcode",           # optional
-    "target_doctype": "Job Card",            # optional, for scan log
-    "target_document": "JC-001",             # optional, for scan log
-}
+def on_scan(e):
+    if e.scan_type == "job_card":
+        scripts.job_cards.start_or_finish(e.doc)
+        return {"message": f"Job Card {e.doc.name} updated"}
 </pre>
+
+<p>${__("frappe and json modules are available in the script scope.")}</p>
 </div>
 `;
 
 frappe.ui.form.on("Scanner Script", {
 	refresh(frm) {
 		if (frm.fields_dict.help_html) {
-			frm.fields_dict.help_html.$wrapper.html(SCANNER_API_REFERENCE);
+			frm.fields_dict.help_html.$wrapper.html(SCANNER_SCRIPT_API_REFERENCE);
 		}
 	},
 });

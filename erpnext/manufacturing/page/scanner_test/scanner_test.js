@@ -1,7 +1,7 @@
 frappe.pages["scanner-test"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: "Scanner Test",
+		title: __("Scanner Test"),
 		single_column: true,
 	});
 
@@ -20,7 +20,7 @@ class ScannerTest {
 			<div class="scanner-test-container" style="max-width: 800px; margin: 0 auto;">
 				<div class="scanner-select-area"></div>
 				<div class="scanner-display-area" style="margin-top: 15px; display: none;">
-					<label class="control-label" style="font-size: 11px;">Scanner Display</label>
+					<label class="control-label" style="font-size: 11px;">${__("Scanner Display")}</label>
 					<div class="scanner-display" style="
 						display: inline-block;
 						background: #1a1a2e;
@@ -42,18 +42,18 @@ class ScannerTest {
 				<div class="endpoint-area" style="margin-top: 15px; display: none;">
 					<div style="background: var(--bg-color); border: 1px solid var(--border-color);
 						border-radius: 4px; padding: 12px; font-family: monospace; font-size: 12px;">
-						<div style="margin-bottom: 4px; color: var(--text-muted);">Endpoint:</div>
+						<div style="margin-bottom: 4px; color: var(--text-muted);">${__("Endpoint")}:</div>
 						<div class="endpoint-url" style="word-break: break-all;"></div>
 					</div>
 				</div>
 
 				<div class="scan-input-area" style="margin-top: 15px;"></div>
 				<div style="margin-top: 15px;">
-					<button class="btn btn-primary btn-send-scan" disabled>Send Scan</button>
-					<button class="btn btn-default btn-clear-log" style="margin-left: 8px;">Clear Log</button>
+					<button class="btn btn-primary btn-send-scan" disabled>${__("Send Scan")}</button>
+					<button class="btn btn-default btn-clear-log" style="margin-left: 8px;">${__("Clear Log")}</button>
 				</div>
 				<div class="scan-log-area" style="margin-top: 20px;">
-					<h5>Response Log</h5>
+					<h5>${__("Response Log")}</h5>
 					<div class="scan-log" style="
 						font-family: monospace;
 						font-size: 12px;
@@ -78,7 +78,7 @@ class ScannerTest {
 			df: {
 				fieldtype: "Link",
 				fieldname: "scanner",
-				label: "Scanner",
+				label: __("Scanner"),
 				options: "Scanner",
 				reqd: 1,
 				change: () => this.on_scanner_change(),
@@ -93,8 +93,8 @@ class ScannerTest {
 			df: {
 				fieldtype: "Data",
 				fieldname: "scan_data",
-				label: "Scan Data",
-				placeholder: "Barcode / Job Card / serial number / workplace / employee badge...",
+				label: __("Scan Data"),
+				placeholder: __("Barcode / Job Card / serial number / workplace / employee badge..."),
 			},
 			parent: this.page.main.find(".scan-input-area"),
 			render_input: true,
@@ -134,7 +134,7 @@ class ScannerTest {
 			args: { scanner_name: scanner_name },
 			callback: (r) => {
 				if (!r.message) {
-					frappe.show_alert({ message: "No scanner key found", indicator: "red" });
+					frappe.show_alert({ message: __("No scanner key found"), indicator: "red" });
 					return;
 				}
 				this.scanner_key = r.message;
@@ -187,11 +187,11 @@ class ScannerTest {
 	send_scan() {
 		const data = this.data_field.get_value();
 		if (!data) {
-			frappe.show_alert({ message: "Enter scan data", indicator: "orange" });
+			frappe.show_alert({ message: __("Enter scan data"), indicator: "orange" });
 			return;
 		}
 		if (!this.scanner_key) {
-			frappe.show_alert({ message: "Select a scanner first", indicator: "orange" });
+			frappe.show_alert({ message: __("Select a scanner first"), indicator: "orange" });
 			return;
 		}
 

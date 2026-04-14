@@ -16,7 +16,9 @@
   "section_message",
   "message_template",
   "section_session",
-  "idle_timeout"
+  "idle_timeout",
+  "column_break_session",
+  "state_timeout"
  ],
  "fields": [
   {
@@ -71,6 +73,17 @@
    "fieldtype": "Int",
    "label": "Session Timeout (seconds)",
    "description": "Workplace/employee assignment resets after this many seconds of inactivity"
+  },
+  {
+   "fieldname": "column_break_session",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "300",
+   "fieldname": "state_timeout",
+   "fieldtype": "Int",
+   "label": "State Timeout (seconds)",
+   "description": "Multi-step workflow state expires after this many seconds of inactivity"
   }
  ],
  "index_web_pages_for_search": 0,

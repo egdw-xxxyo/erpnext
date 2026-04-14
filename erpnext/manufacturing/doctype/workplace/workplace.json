@@ -20,7 +20,7 @@
   "employees_tab",
   "allowed_employees",
   "scanner_tab",
-  "scanner_scripts_html"
+  "workplace_script"
  ],
  "fields": [
   {
@@ -89,12 +89,15 @@
   {
    "fieldname": "scanner_tab",
    "fieldtype": "Tab Break",
-   "label": "Scanner Scripts"
+   "label": "Scanner"
   },
   {
-   "fieldname": "scanner_scripts_html",
-   "fieldtype": "HTML",
-   "label": "Scanner Scripts"
+   "fieldname": "workplace_script",
+   "fieldtype": "Link",
+   "label": "Workplace Script",
+   "options": "Workplace Script",
+   "read_only": 1,
+   "description": "Automatically linked from the Workplace Script that references this workplace"
   }
  ],
  "index_web_pages_for_search": 1,

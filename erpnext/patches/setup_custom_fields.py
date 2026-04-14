@@ -15,8 +15,10 @@ def execute():
 	create_custom_fields_on_pr_item()
 	create_custom_field_on_qi()
 	create_custom_fields_on_work_order()
+	create_label_templates_on_employee()
+	create_label_templates_on_workplace()
 	frappe.db.commit()
-	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, and Work Order")
+	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Employee, and Workplace")
 
 
 def create_workflow_states():
@@ -226,6 +228,34 @@ def create_custom_fields_on_work_order():
 			"label": "Серійні номери",
 			"insert_after": "has_serial_no",
 			"depends_on": "has_serial_no",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_label_templates_on_employee():
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "label_templates",
+			"fieldtype": "Table",
+			"label": "Label Templates",
+			"options": "Item Label Template",
+			"insert_after": "attendance_device_id",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_label_templates_on_workplace():
+	fields = [
+		{
+			"dt": "Workplace",
+			"fieldname": "label_templates",
+			"fieldtype": "Table",
+			"label": "Label Templates",
+			"options": "Item Label Template",
+			"insert_after": "barcode",
 		},
 	]
 	_create_custom_fields(fields)
