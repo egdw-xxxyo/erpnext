@@ -1,5 +1,5 @@
 #!/bin/bash
-# updateRepo — pull latest changes for erpnext, frappe and hrms_app submodules
+# updateRepo — pull latest changes for erpnext and all submodules
 
 set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -10,16 +10,20 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "==> Pulling erpnext (branch: $BRANCH)..."
 git pull origin "$BRANCH"
 
-echo "==> Pulling frappe submodule (branch: version-15)..."
-cd frappe
-git pull origin version-15
-cd ..
+echo "==> Syncing submodule URLs from .gitmodules..."
+git submodule sync
 
-echo "==> Pulling hrms_app submodule (branch: version-15)..."
-cd hrms_app
-git pull origin version-15
-cd ..
+echo "==> Updating submodules to latest remote branch..."
+git submodule update --init --remote
 
-echo "==> Updating submodule references..."
-git add frappe hrms_app
-echo "Done. If submodules changed, commit with: git commit -m 'Update frappe/hrms_app submodules'"
+echo "==> Submodule status:"
+git submodule status
+
+echo ""
+echo "==> Checking for submodule pointer changes..."
+if git diff --quiet frappe hrms_app 2>/dev/null; then
+    echo "No submodule changes."
+else
+    git add frappe hrms_app
+    echo "Submodules updated. Commit with: git commit -m 'Update frappe/hrms_app submodules'"
+fi
