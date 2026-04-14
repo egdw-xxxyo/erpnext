@@ -1,18 +1,25 @@
 #!/bin/bash
-# updateRepo — pull latest changes for erpnext and frappe submodule
+# updateRepo — pull latest changes for erpnext, frappe and hrms_app submodules
 
 set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
 
-echo "==> Pulling erpnext (branch: uk-translations)..."
-git pull origin uk-translations
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+echo "==> Pulling erpnext (branch: $BRANCH)..."
+git pull origin "$BRANCH"
 
 echo "==> Pulling frappe submodule (branch: version-15)..."
 cd frappe
 git pull origin version-15
 cd ..
 
-echo "==> Updating submodule reference..."
-git add frappe
-echo "Done. If frappe submodule changed, commit with: git commit -m 'Update frappe submodule'"
+echo "==> Pulling hrms_app submodule (branch: version-15)..."
+cd hrms_app
+git pull origin version-15
+cd ..
+
+echo "==> Updating submodule references..."
+git add frappe hrms_app
+echo "Done. If submodules changed, commit with: git commit -m 'Update frappe/hrms_app submodules'"
