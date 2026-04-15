@@ -15,6 +15,7 @@
   "is_active",
   "is_default",
   "allow_alternative_item",
+  "is_phantom_bom",
   "set_rate_of_sub_assembly_item_based_on_bom",
   "project",
   "image",
@@ -189,6 +190,12 @@
    "fieldname": "allow_alternative_item",
    "fieldtype": "Check",
    "label": "Allow Alternative Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_phantom_bom",
+   "fieldtype": "Check",
+   "label": "Is Phantom BOM"
   },
   {
    "allow_on_submit": 1,
