@@ -142,17 +142,25 @@ frappe.tour["Employee"] = [
 ];
 
 function setup_employee_print_labels(frm) {
-	if (frm.is_new() || !frm.doc.label_templates || !frm.doc.label_templates.length) return;
-	frm.add_custom_button(__("Print Labels"), function () {
-		let templates = frm.doc.label_templates.map((r) => ({
-			label_template: r.label_template,
-			label_printer: r.label_printer,
-		}));
-		erpnext.utils.open_simple_label_print_dialog({
-			doctype: "Employee",
-			doc_name: frm.doc.name,
-			label_templates: templates,
-		});
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "Employee" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "Employee",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
 	});
 }
 

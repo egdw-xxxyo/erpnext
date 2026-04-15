@@ -15,10 +15,10 @@ def execute():
 	create_custom_fields_on_pr_item()
 	create_custom_field_on_qi()
 	create_custom_fields_on_work_order()
-	create_label_templates_on_employee()
-	create_label_templates_on_workplace()
+	remove_label_templates_from_employee()
+	remove_label_templates_from_workplace()
 	frappe.db.commit()
-	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Employee, and Workplace")
+	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order")
 
 
 def create_workflow_states():
@@ -233,32 +233,22 @@ def create_custom_fields_on_work_order():
 	_create_custom_fields(fields)
 
 
-def create_label_templates_on_employee():
-	fields = [
-		{
-			"dt": "Employee",
-			"fieldname": "label_templates",
-			"fieldtype": "Table",
-			"label": "Label Templates",
-			"options": "Item Label Template",
-			"insert_after": "attendance_device_id",
-		},
-	]
-	_create_custom_fields(fields)
+def remove_label_templates_from_employee():
+	cf = frappe.db.exists("Custom Field", {"dt": "Employee", "fieldname": "label_templates"})
+	if cf:
+		frappe.delete_doc("Custom Field", cf, force=True)
+		print("  Removed Custom Field: Employee.label_templates")
+	else:
+		print("  Custom Field already removed: Employee.label_templates")
 
 
-def create_label_templates_on_workplace():
-	fields = [
-		{
-			"dt": "Workplace",
-			"fieldname": "label_templates",
-			"fieldtype": "Table",
-			"label": "Label Templates",
-			"options": "Item Label Template",
-			"insert_after": "barcode",
-		},
-	]
-	_create_custom_fields(fields)
+def remove_label_templates_from_workplace():
+	cf = frappe.db.exists("Custom Field", {"dt": "Workplace", "fieldname": "label_templates"})
+	if cf:
+		frappe.delete_doc("Custom Field", cf, force=True)
+		print("  Removed Custom Field: Workplace.label_templates")
+	else:
+		print("  Custom Field already removed: Workplace.label_templates")
 
 
 def _create_custom_fields(fields):
