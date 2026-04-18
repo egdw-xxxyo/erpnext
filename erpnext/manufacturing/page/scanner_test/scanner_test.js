@@ -12,6 +12,8 @@ class ScannerTest {
 	constructor(page) {
 		this.page = page;
 		this.scanner_key = null;
+		this.test_steps = [];
+		this.current_step = -1;
 		this.make();
 	}
 
@@ -47,6 +49,26 @@ class ScannerTest {
 					</div>
 				</div>
 
+				<div class="test-case-area" style="margin-top: 15px;"></div>
+				<div class="test-steps-area" style="margin-top: 10px; display: none;">
+					<div class="test-steps-list" style="
+						font-family: monospace;
+						font-size: 12px;
+						background: var(--bg-color);
+						border: 1px solid var(--border-color);
+						border-radius: 4px;
+						padding: 8px;
+						max-height: 200px;
+						overflow-y: auto;
+					"></div>
+					<div style="margin-top: 8px;">
+						<button class="btn btn-primary btn-sm btn-step-next">${__("Send Next Step")}</button>
+						<button class="btn btn-success btn-sm btn-step-all" style="margin-left: 6px;">${__("Run All")}</button>
+						<button class="btn btn-default btn-sm btn-step-reset" style="margin-left: 6px;">${__("Reset")}</button>
+						<span class="step-counter text-muted" style="margin-left: 12px; font-size: 12px;"></span>
+					</div>
+				</div>
+
 				<div class="scan-input-area" style="margin-top: 15px;"></div>
 				<div style="margin-top: 15px;">
 					<button class="btn btn-primary btn-send-scan" disabled>${__("Send Scan")}</button>
@@ -69,6 +91,7 @@ class ScannerTest {
 		`);
 
 		this.make_scanner_select();
+		this.make_test_case_select();
 		this.make_scan_input();
 		this.bind_events();
 	}
@@ -84,6 +107,20 @@ class ScannerTest {
 				change: () => this.on_scanner_change(),
 			},
 			parent: this.page.main.find(".scanner-select-area"),
+			render_input: true,
+		});
+	}
+
+	make_test_case_select() {
+		this.test_case_field = frappe.ui.form.make_control({
+			df: {
+				fieldtype: "Link",
+				fieldname: "test_case",
+				label: __("Test Case"),
+				options: "Scan Test Case",
+				change: () => this.on_test_case_change(),
+			},
+			parent: this.page.main.find(".test-case-area"),
 			render_input: true,
 		});
 	}
@@ -113,6 +150,10 @@ class ScannerTest {
 				this.send_scan();
 			}
 		});
+
+		this.page.main.find(".btn-step-next").on("click", () => this.run_next_step());
+		this.page.main.find(".btn-step-all").on("click", () => this.run_all_steps());
+		this.page.main.find(".btn-step-reset").on("click", () => this.reset_steps());
 	}
 
 	on_scanner_change() {
@@ -157,6 +198,93 @@ class ScannerTest {
 		});
 	}
 
+	on_test_case_change() {
+		const name = this.test_case_field.get_value();
+		const $area = this.page.main.find(".test-steps-area");
+		if (!name) {
+			$area.hide();
+			this.test_steps = [];
+			this.current_step = -1;
+			return;
+		}
+
+		frappe.call({
+			method: "frappe.client.get",
+			args: { doctype: "Scan Test Case", name: name },
+			callback: (r) => {
+				const steps_raw = (r.message.steps || "").split("\n");
+				this.test_steps = steps_raw
+					.map((l) => l.trim())
+					.filter((l) => l && !l.startsWith("#"));
+				this.current_step = -1;
+				this.render_steps();
+				$area.show();
+			},
+		});
+	}
+
+	render_steps() {
+		const $list = this.page.main.find(".test-steps-list");
+		let html = "";
+		this.test_steps.forEach((step, i) => {
+			let style = "padding: 3px 6px; border-radius: 3px;";
+			if (i < this.current_step + 1) {
+				style += " color: var(--text-muted); text-decoration: line-through;";
+			} else if (i === this.current_step + 1) {
+				style += " background: var(--yellow-highlight-color, rgba(255,255,0,0.1)); font-weight: bold;";
+			}
+			html += `<div style="${style}">${i + 1}. ${frappe.utils.escape_html(step)}</div>`;
+		});
+		$list.html(html);
+
+		const done = this.current_step + 1;
+		const total = this.test_steps.length;
+		this.page.main.find(".step-counter").text(`${done} / ${total}`);
+
+		const all_done = done >= total;
+		this.page.main.find(".btn-step-next").prop("disabled", all_done);
+		this.page.main.find(".btn-step-all").prop("disabled", all_done);
+	}
+
+	run_next_step() {
+		if (!this.scanner_key) {
+			frappe.show_alert({ message: __("Select a scanner first"), indicator: "orange" });
+			return;
+		}
+		const next = this.current_step + 1;
+		if (next >= this.test_steps.length) return;
+
+		const data = this.test_steps[next];
+		this.current_step = next;
+		this.render_steps();
+		this._send(data);
+	}
+
+	run_all_steps() {
+		if (!this.scanner_key) {
+			frappe.show_alert({ message: __("Select a scanner first"), indicator: "orange" });
+			return;
+		}
+		this._run_from(this.current_step + 1);
+	}
+
+	_run_from(idx) {
+		if (idx >= this.test_steps.length) return;
+
+		const data = this.test_steps[idx];
+		this.current_step = idx;
+		this.render_steps();
+
+		this._send(data, () => {
+			setTimeout(() => this._run_from(idx + 1), 500);
+		});
+	}
+
+	reset_steps() {
+		this.current_step = -1;
+		this.render_steps();
+	}
+
 	init_display() {
 		const $area = this.page.main.find(".scanner-display-area");
 		const $display = this.page.main.find(".scanner-display");
@@ -195,8 +323,14 @@ class ScannerTest {
 			return;
 		}
 
+		this._send(data);
+		this.data_field.set_value("");
+		this.data_field.$input.focus();
+	}
+
+	_send(data, callback) {
 		const ts = new Date().toLocaleTimeString();
-		this.log_entry(ts, "→", `"${data}"`, "blue");
+		this.log_entry(ts, "\u2192", `"${data}"`, "blue");
 
 		frappe.call({
 			method: "erpnext.manufacturing.doctype.scanner.scanner_api.handle_scan",
@@ -207,16 +341,15 @@ class ScannerTest {
 			callback: (r) => {
 				const res = r.message || r;
 				const color = res.success ? "green" : "red";
-				this.log_entry(ts, "←", JSON.stringify(res, null, 2), color);
+				this.log_entry(ts, "\u2190", JSON.stringify(res, null, 2), color);
 				this.update_display(res.message || res.error);
+				if (callback) callback(res);
 			},
 			error: (r) => {
-				this.log_entry(ts, "←", `HTTP ERROR: ${JSON.stringify(r)}`, "red");
+				this.log_entry(ts, "\u2190", `HTTP ERROR: ${JSON.stringify(r)}`, "red");
+				if (callback) callback(null);
 			},
 		});
-
-		this.data_field.set_value("");
-		this.data_field.$input.focus();
 	}
 
 	log_entry(ts, arrow, text, color) {

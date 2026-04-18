@@ -63,9 +63,8 @@
   },
   {
    "fieldname": "target_document",
-   "fieldtype": "Dynamic Link",
+   "fieldtype": "Data",
    "label": "Target Document",
-   "options": "target_doctype",
    "in_list_view": 1,
    "columns": 2
   },

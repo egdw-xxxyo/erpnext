@@ -186,24 +186,18 @@ frappe.ui.form.on("Package", {
 
 function setup_package_print_labels(frm) {
 	if (frm.is_new() || !frm.doc.packing_template) return;
-	frappe.call({
-		method: "frappe.client.get_list",
-		args: {
-			doctype: "Item Label Template",
-			filters: { parent: frm.doc.packing_template, parenttype: "Packing Template" },
-			fields: ["label_template", "label_printer"],
-		},
-		callback: function (r) {
-			let templates = r.message || [];
-			if (!templates.length) return;
-			frm.page.add_menu_item(__("Print Labels"), function () {
-				erpnext.utils.open_simple_label_print_dialog({
-					doctype: "Package",
-					doc_name: frm.doc.name,
-					label_templates: templates,
-				});
+	frappe.model.with_doc("Packing Template", frm.doc.packing_template, function () {
+		let tmpl = frappe.model.get_doc("Packing Template", frm.doc.packing_template);
+		if (!tmpl.label_template) return;
+		frm.page.add_menu_item(__("Print Labels"), function () {
+			erpnext.utils.open_simple_label_print_dialog({
+				doctype: "Package",
+				doc_name: frm.doc.name,
+				label_templates: [
+					{ label_template: tmpl.label_template, label_printer: tmpl.label_printer },
+				],
 			});
-		},
+		});
 	});
 }
 

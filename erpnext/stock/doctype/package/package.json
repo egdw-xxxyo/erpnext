@@ -132,8 +132,7 @@
    "fieldname": "items",
    "fieldtype": "Table",
    "label": "Items",
-   "options": "Package Item",
-   "reqd": 1
+   "options": "Package Item"
   },
   {
    "collapsible": 1,

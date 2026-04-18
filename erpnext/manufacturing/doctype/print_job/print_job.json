@@ -120,9 +120,8 @@
   },
   {
    "fieldname": "parent_name",
-   "fieldtype": "Dynamic Link",
+   "fieldtype": "Data",
    "label": "Parent Name",
-   "options": "parent_doctype",
    "read_only": 1
   },
   {

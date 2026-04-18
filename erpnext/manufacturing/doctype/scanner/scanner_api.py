@@ -102,6 +102,8 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.response["http_status_code"] = 403
 		return _resp(success=False, error="Invalid or inactive scanner key")
 
+	data = data.strip()
+
 	state_timeout = scanner.get_state_timeout()
 	state_dict = _load_state(scanner.name, state_timeout)
 	state_proxy = ScannerStateProxy(state_dict)
@@ -271,6 +273,14 @@ def _resolve_scan(data):
 		doc = frappe.get_doc("Serial No", data)
 		return "serial_no", {"doc": doc, "item_code": doc.item_code}
 
+	cmd = frappe.db.get_value("Scanner Command", {"barcode_id": data}, "name")
+	if cmd:
+		return "command", {"doc": frappe.get_doc("Scanner Command", cmd)}
+
+	pkg_tmpl = frappe.db.get_value("Packing Template", {"barcode_id": data}, "name")
+	if pkg_tmpl:
+		return "packing_template", {"doc": frappe.get_doc("Packing Template", pkg_tmpl)}
+
 	item_barcode = frappe.db.get_value("Item Barcode", {"barcode": data}, "parent")
 	if item_barcode:
 		return "item", {"doc": frappe.get_doc("Item", item_barcode), "item_code": item_barcode, "barcode": data}
@@ -288,16 +298,15 @@ def _resolve_scan(data):
 def _execute_workplace_script(workplace_script, event, scanner_scripts):
 	scripts = frappe._dict()
 	for ss in scanner_scripts:
-		ns = {}
-		exec(ss.script, {"frappe": frappe, "json": json}, ns)  # noqa: S102
+		ns = {"frappe": frappe, "json": json}
+		exec(ss.script, ns)  # noqa: S102
 		key = ss.script_name.lower().replace(" ", "_").replace("-", "_")
 		scripts[key] = frappe._dict(ns)
 
-	ws_globals = {"frappe": frappe, "json": json, "scripts": scripts}
-	ws_locals = {}
-	exec(workplace_script.script, ws_globals, ws_locals)  # noqa: S102
+	ws_ns = {"frappe": frappe, "json": json, "scripts": scripts}
+	exec(workplace_script.script, ws_ns)  # noqa: S102
 
-	handler = ws_locals.get("on_scan")
+	handler = ws_ns.get("on_scan")
 	if not handler:
 		return None
 	return handler(event)

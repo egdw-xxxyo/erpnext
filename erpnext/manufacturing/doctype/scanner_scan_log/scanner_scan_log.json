@@ -77,9 +77,8 @@
   },
   {
    "fieldname": "target_document",
-   "fieldtype": "Dynamic Link",
-   "label": "Target Document",
-   "options": "target_doctype"
+   "fieldtype": "Data",
+   "label": "Target Document"
   },
   {
    "fieldname": "column_break_result",

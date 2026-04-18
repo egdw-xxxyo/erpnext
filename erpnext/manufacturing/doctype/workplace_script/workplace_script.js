@@ -26,7 +26,7 @@ def on_scan(e):
 <table class="table table-bordered" style="font-size: 12px;">
 <tr><th>${__("Property")}</th><th>${__("Type")}</th><th>${__("Description")}</th></tr>
 <tr><td><code>e.data</code></td><td>str</td><td>${__("Raw scanned string")}</td></tr>
-<tr><td><code>e.scan_type</code></td><td>str</td><td>"workplace" | "employee" | "job_card" | "serial_no" | "item" | "unknown"</td></tr>
+<tr><td><code>e.scan_type</code></td><td>str</td><td>"workplace" | "employee" | "job_card" | "serial_no" | "item" | "command" | "packing_template" | "unknown"</td></tr>
 <tr><td><code>e.doc</code></td><td>Document</td><td>${__("Resolved Frappe document (Workplace, Employee, Job Card, Serial No, Item) or None")}</td></tr>
 <tr><td><code>e.item_code</code></td><td>str</td><td>${__("Item code (for serial_no and item scans)")}</td></tr>
 <tr><td><code>e.barcode</code></td><td>str</td><td>${__("Original barcode (if resolved via Item Barcode)")}</td></tr>
