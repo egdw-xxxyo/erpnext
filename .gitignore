@@ -23,3 +23,5 @@ node_modules/
 .deploy-env
 .mcp.json
 snapshots/
+.db-snapshots/
+site-config.json

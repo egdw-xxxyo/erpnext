@@ -13,8 +13,10 @@
   "is_active",
   "section_api_key",
   "api_key",
-  "api_key_preview",
   "regenerate_api_key",
+  "scanner_key_html",
+  "section_config_barcodes",
+  "config_barcodes_html",
   "section_status",
   "workplace",
   "column_break_status",
@@ -48,20 +50,30 @@
   {
    "fieldname": "api_key",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "API Key (Hidden)"
-  },
-  {
-   "fieldname": "api_key_preview",
-   "fieldtype": "Data",
    "label": "API Key",
    "read_only": 1,
-   "description": "Only last 4 characters are shown. Use 'Regenerate' to create a new key."
+   "description": "Scan this QR code into the scanner device. The scanner combines this with its configured secret to authenticate."
   },
   {
    "fieldname": "regenerate_api_key",
    "fieldtype": "Button",
    "label": "Regenerate API Key"
+  },
+  {
+   "fieldname": "scanner_key_html",
+   "fieldtype": "HTML",
+   "label": "QR Code"
+  },
+  {
+   "fieldname": "section_config_barcodes",
+   "fieldtype": "Section Break",
+   "label": "Configuration Barcodes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "config_barcodes_html",
+   "fieldtype": "HTML",
+   "label": "Configuration Barcodes"
   },
   {
    "fieldname": "section_status",

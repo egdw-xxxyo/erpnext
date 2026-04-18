@@ -1,0 +1,174 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:scanner_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "scanner_name",
+  "column_break_1",
+  "is_active",
+  "column_break_2",
+  "scanner_configuration",
+  "tab_setup",
+  "section_api_key",
+  "api_key",
+  "regenerate_api_key",
+  "scanner_key_html",
+  "section_config_barcodes",
+  "config_barcodes_html",
+  "tab_scanner_data",
+  "section_status",
+  "workplace",
+  "column_break_status",
+  "employee",
+  "section_scan_logs",
+  "scan_logs"
+ ],
+ "fields": [
+  {
+   "fieldname": "scanner_name",
+   "fieldtype": "Data",
+   "label": "Scanner Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "scanner_configuration",
+   "fieldtype": "Link",
+   "label": "Scanner Configuration",
+   "options": "Scanner Configuration"
+  },
+  {
+   "fieldname": "tab_setup",
+   "fieldtype": "Tab Break",
+   "label": "Setup"
+  },
+  {
+   "fieldname": "section_api_key",
+   "fieldtype": "Section Break",
+   "label": "API Key"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "label": "API Key",
+   "read_only": 1,
+   "description": "Scan this QR code into the scanner device. The scanner combines this with its configured secret to authenticate."
+  },
+  {
+   "fieldname": "regenerate_api_key",
+   "fieldtype": "Button",
+   "label": "Regenerate API Key"
+  },
+  {
+   "fieldname": "scanner_key_html",
+   "fieldtype": "HTML",
+   "label": "QR Code"
+  },
+  {
+   "fieldname": "section_config_barcodes",
+   "fieldtype": "Section Break",
+   "label": "Configuration Barcodes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "config_barcodes_html",
+   "fieldtype": "HTML",
+   "label": "Configuration Barcodes"
+  },
+  {
+   "fieldname": "tab_scanner_data",
+   "fieldtype": "Tab Break",
+   "label": "Scanner Data"
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Current Session"
+  },
+  {
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "label": "Workplace",
+   "options": "Workplace",
+   "read_only": 1,
+   "description": "Set by scanning a workplace barcode"
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "read_only": 1,
+   "description": "Set by scanning an employee badge"
+  },
+  {
+   "fieldname": "section_scan_logs",
+   "fieldtype": "Section Break",
+   "label": "Scan Logs"
+  },
+  {
+   "fieldname": "scan_logs",
+   "fieldtype": "Table",
+   "label": "Scan Logs",
+   "options": "Scanner Scan Log Entry",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Scanner",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -7,12 +7,19 @@
  "engine": "InnoDB",
  "field_order": [
   "parcel_template_name",
+  "barcode",
   "length",
   "width",
   "height",
   "weight"
  ],
  "fields": [
+  {
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "label": "Barcode",
+   "unique": 1
+  },
   {
    "fieldname": "length",
    "fieldtype": "Int",

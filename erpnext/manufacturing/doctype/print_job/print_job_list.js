@@ -16,6 +16,9 @@ frappe.listview_settings["Print Job"] = {
 	},
 
 	onload: function (listview) {
+		// Remove the default ID (name) filter — reference_name is more useful
+		listview.page.fields_dict.name && listview.page.fields_dict.name.$wrapper.hide();
+
 
 		// Print selected jobs
 		listview.page.add_action_item(__("Send to Printer"), () => {

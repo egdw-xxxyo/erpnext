@@ -27,7 +27,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Scanner",
-   "options": "Scanner Setup",
+   "options": "Scanner",
    "reqd": 1
   },
   {
@@ -77,9 +77,8 @@
   },
   {
    "fieldname": "target_document",
-   "fieldtype": "Dynamic Link",
-   "label": "Target Document",
-   "options": "target_doctype"
+   "fieldtype": "Data",
+   "label": "Target Document"
   },
   {
    "fieldname": "column_break_result",

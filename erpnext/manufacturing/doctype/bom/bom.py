@@ -656,7 +656,7 @@ class BOM(WebsiteGenerator):
 		if not self.with_operations:
 			self.set("operations", [])
 
-		if not self.with_operations and self.track_semi_finished_goods:
+		if not self.with_operations and getattr(self, "track_semi_finished_goods", 0):
 			self.track_semi_finished_goods = 0
 
 	def clear_inspection(self):
@@ -1467,7 +1467,7 @@ def validate_bom_no(item, bom_no):
 	if not bom.is_active:
 		frappe.throw(_("BOM {0} must be active").format(bom_no))
 	if bom.docstatus != 1:
-		if not frappe.in_test:
+		if not getattr(frappe, "in_test", False):
 			frappe.throw(_("BOM {0} must be submitted").format(bom_no))
 	if item:
 		rm_item_exists = False
@@ -1501,7 +1501,7 @@ def get_children(parent=None, is_root=False, **filters):
 
 		bom_items = frappe.get_all(
 			"BOM Item",
-			fields=["item_code", "bom_no as value", "stock_qty", "qty", "is_phantom_item", "bom_no"],
+			fields=["item_code", "bom_no as value", "stock_qty", "qty", "bom_no"],
 			filters=[["parent", "=", frappe.form_dict.parent]],
 			order_by="idx",
 		)
@@ -1565,7 +1565,7 @@ def add_non_stock_items_cost(stock_entry, work_order, expense_account, job_card=
 		fields="name",
 		filters=[
 			["name", "in", list(items.keys())],
-			[IfNull(Field("is_stock_item"), 0), "=", 0],
+			["is_stock_item", "=", 0],
 		],
 		as_list=1,
 	)
@@ -1647,32 +1647,19 @@ def get_component_account(parent, company):
 
 
 def add_operations_cost(stock_entry, work_order=None, expense_account=None, job_card=None):
-	from erpnext.stock.doctype.stock_entry.stock_entry import (
-		get_consumed_operating_cost,
-		get_operating_cost_per_unit,
-	)
+	from erpnext.stock.doctype.stock_entry.stock_entry import get_operating_cost_per_unit
 
 	operating_cost_per_unit = get_operating_cost_per_unit(work_order, stock_entry.bom_no)
 
 	if operating_cost_per_unit:
-		cost_added = add_operating_cost_component_wise(
-			stock_entry,
-			work_order,
-			get_consumed_operating_cost(work_order.name, stock_entry.bom_no),
-			expense_account,
-			job_card=job_card,
+		stock_entry.append(
+			"additional_costs",
+			{
+				"expense_account": expense_account,
+				"description": _("Operating Cost as per Work Order / BOM"),
+				"amount": operating_cost_per_unit * flt(stock_entry.fg_completed_qty),
+			},
 		)
-
-		if not cost_added and not job_card:
-			stock_entry.append(
-				"additional_costs",
-				{
-					"expense_account": expense_account,
-					"description": _("Operating Cost as per Work Order / BOM"),
-					"amount": operating_cost_per_unit * flt(stock_entry.fg_completed_qty),
-					"has_operating_cost": 1,
-				},
-			)
 
 	if work_order and work_order.additional_operating_cost and work_order.qty:
 		additional_operating_cost_per_unit = flt(work_order.additional_operating_cost) / flt(work_order.qty)

@@ -222,10 +222,12 @@ erpnext.patches.v15_0.add_battery_fields
 
 | Scenario | Approach |
 |---|---|
-| New feature needs Custom Fields | Patch with `create_custom_fields()` |
+| New feature needs Custom Fields | Add to `erpnext/patches/setup_custom_fields.py` (runs on every deploy, idempotent) |
 | New feature needs a new DocType | Add DocType JSON + `__init__.py` to repo, sync via deploy |
 | Data migration (update existing records) | Patch with `frappe.db.sql()` or ORM |
 | Something must run on every migrate | `after_migrate` hook in `hooks.py` |
+
+**IMPORTANT:** Always add new Custom Fields to `erpnext/patches/setup_custom_fields.py`, NOT as one-time patches in `patches.txt`. This script runs on every deploy (`./deploy build/migrate`) and is idempotent — it skips fields that already exist. This ensures custom fields are automatically applied on prod when deploying.
 
 ## Development Guide — Modifying ERPNext/Frappe Files
 

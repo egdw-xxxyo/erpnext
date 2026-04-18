@@ -1,0 +1,227 @@
+{
+ "actions": [],
+ "autoname": "PKG-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "field_order": [
+  "details_section",
+  "packing_template",
+  "box_template",
+  "status",
+  "column_break_details",
+  "box_barcode",
+  "barcode_image",
+  "dimensions_section",
+  "length",
+  "width",
+  "height",
+  "column_break_dims",
+  "tare_weight",
+  "gross_weight",
+  "items_section",
+  "items",
+  "references_section",
+  "sales_order",
+  "delivery_note",
+  "column_break_refs",
+  "shipment",
+  "notes_section",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Package Details"
+  },
+  {
+   "fieldname": "packing_template",
+   "fieldtype": "Link",
+   "label": "Packing Template",
+   "options": "Packing Template"
+  },
+  {
+   "fieldname": "box_template",
+   "fieldtype": "Link",
+   "label": "Box Type",
+   "options": "Shipment Parcel Template",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Draft\nPacked\nShipped\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "box_barcode",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Barcode",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "barcode_image",
+   "fieldtype": "HTML",
+   "label": "Barcode"
+  },
+  {
+   "fieldname": "dimensions_section",
+   "fieldtype": "Section Break",
+   "label": "Dimensions"
+  },
+  {
+   "fetch_from": "box_template.length",
+   "fieldname": "length",
+   "fieldtype": "Int",
+   "label": "Length (cm)",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "box_template.width",
+   "fieldname": "width",
+   "fieldtype": "Int",
+   "label": "Width (cm)",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "box_template.height",
+   "fieldname": "height",
+   "fieldtype": "Int",
+   "label": "Height (cm)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dims",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "box_template.weight",
+   "fieldname": "tare_weight",
+   "fieldtype": "Float",
+   "label": "Tare Weight (kg)",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross Weight (kg)",
+   "precision": "1"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Packed Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Package Item"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "delivery_note",
+   "fieldtype": "Link",
+   "label": "Delivery Note",
+   "options": "Delivery Note"
+  },
+  {
+   "fieldname": "column_break_refs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shipment",
+   "fieldtype": "Link",
+   "label": "Shipment",
+   "options": "Shipment",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Package",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Package",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

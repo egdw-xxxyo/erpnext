@@ -20,9 +20,7 @@
   "employees_tab",
   "allowed_employees",
   "scanner_tab",
-  "scanner_script",
-  "scanner_help_section",
-  "scanner_help_html"
+  "workplace_script"
  ],
  "fields": [
   {
@@ -91,25 +89,15 @@
   {
    "fieldname": "scanner_tab",
    "fieldtype": "Tab Break",
-   "label": "Scanner Script"
+   "label": "Scanner"
   },
   {
-   "fieldname": "scanner_script",
-   "fieldtype": "Code",
-   "label": "Scanner Script",
-   "options": "Python",
-   "description": "Script that runs when a scanner attached to this workplace receives a scan"
-  },
-  {
-   "fieldname": "scanner_help_section",
-   "fieldtype": "Section Break",
-   "label": "API Reference",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "scanner_help_html",
-   "fieldtype": "HTML",
-   "label": "API Reference"
+   "fieldname": "workplace_script",
+   "fieldtype": "Link",
+   "label": "Workplace Script",
+   "options": "Workplace Script",
+   "read_only": 1,
+   "description": "Automatically linked from the Workplace Script that references this workplace"
   }
  ],
  "index_web_pages_for_search": 1,

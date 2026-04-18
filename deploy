@@ -61,11 +61,9 @@ build_image() {
 
 sync_built_assets() {
   echo "==> Syncing built assets from image to sites volume..."
-  # The sites volume shadows /sites/ from the image, so assets built during
-  # docker build are not visible. Extract them from the image and copy in.
   docker run --rm "$IMAGE_NAME" tar -cf - \
     -C /home/frappe/frappe-bench/sites/assets \
-    frappe erpnext assets.json assets-rtl.json 2>/dev/null | \
+    frappe erpnext hrms locale assets.json assets-rtl.json 2>/dev/null | \
     dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
   dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
   echo "==> Assets synced."
@@ -89,11 +87,19 @@ fix_assets() {
     sleep 2
   done
 
-  for attempt in 1 2 3; do
-    docker exec -u root "$FRONTEND_CID" bash -c \
-      'rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext' 2>/dev/null
+  local ASSET_APPS="frappe erpnext hrms"
+  local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext /home/frappe/frappe-bench/sites/assets/hrms"
+  for extra_app in insights; do
+    if docker exec "$BACKEND_CID" test -d "/home/frappe/frappe-bench/sites/assets/$extra_app" 2>/dev/null; then
+      ASSET_APPS="$ASSET_APPS $extra_app"
+      ASSET_RM="$ASSET_RM /home/frappe/frappe-bench/sites/assets/$extra_app"
+    fi
+  done
 
-    if docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets frappe erpnext assets.json assets-rtl.json | \
+  for attempt in 1 2 3; do
+    docker exec -u root "$FRONTEND_CID" bash -c "$ASSET_RM" 2>/dev/null
+
+    if docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets $ASSET_APPS assets.json assets-rtl.json | \
        docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/; then
       if docker exec "$FRONTEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null; then
         echo "==> Asset sync complete."
@@ -114,27 +120,6 @@ PY
   return 1
 }
 
-remove_insights_before_migrate() {
-  echo "==> Removing insights from apps.txt and DB before migrate..."
-  dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt && echo 'apps.txt:' && cat /home/frappe/frappe-bench/sites/apps.txt"
-  DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['db_name'])" 2>/dev/null)
-  if [ -n "$DB_NAME" ]; then
-    echo "==> Cleaning insights from DB ($DB_NAME)..."
-    dc exec -T db mysql -uroot -padmin "$DB_NAME" -e "
-      UPDATE tabDefaultValue
-      SET defvalue = REPLACE(REPLACE(REPLACE(defvalue, ', \"insights\"', ''), '\"insights\", ', ''), '\"insights\"', '')
-      WHERE parent = '__global'
-      AND parentfield = 'system_defaults'
-      AND defkey = 'installed_apps'
-      AND defvalue LIKE '%insights%';
-      SELECT defvalue FROM tabDefaultValue
-      WHERE parent = '__global' AND parentfield = 'system_defaults' AND defkey = 'installed_apps';
-    " 2>/dev/null || echo "WARNING: DB cleanup query failed (non-fatal)"
-  else
-    echo "WARNING: Could not detect DB name, skipping DB cleanup"
-  fi
-}
-
 apply_site_config() {
   SITE_CONFIG="$DIR/site-config.json"
   if [ ! -f "$SITE_CONFIG" ]; then
@@ -149,6 +134,80 @@ apply_site_config() {
       dc exec -T backend bench --site frontend set-config "$key" "$value"
     fi
   done
+}
+
+strip_extra_apps() {
+  echo "==> Removing extra apps before migrate..."
+  dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+  local DB_NAME
+  DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('db_name',''))" 2>/dev/null) || true
+  if [ -n "$DB_NAME" ]; then
+    dc exec -T db mysql -uroot -padmin "$DB_NAME" -e "
+      UPDATE tabDefaultValue
+      SET defvalue = REPLACE(REPLACE(REPLACE(defvalue,
+          ', \"insights\"', ''), '\"insights\", ', ''), '\"insights\"', '')
+      WHERE parent = '__global'
+      AND parentfield = 'system_defaults'
+      AND defkey = 'installed_apps'
+      AND defvalue LIKE '%insights%';
+      DELETE FROM \`tabInstalled Application\` WHERE app_name = 'insights';
+    " 2>/dev/null || true
+  fi
+  dc exec -T redis-cache redis-cli FLUSHALL 2>/dev/null || true
+}
+
+ensure_hrms_installed() {
+  echo "==> Ensuring HRMS is installed on site..."
+  dc exec -T backend bash -c "grep -q '^hrms$' /home/frappe/frappe-bench/sites/apps.txt || echo hrms >> /home/frappe/frappe-bench/sites/apps.txt"
+  dc exec -T backend bench --site frontend install-app hrms --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
+}
+
+install_extra_apps() {
+  ensure_hrms_installed
+  "$DIR/insights" auto || true
+  fix_assets
+  dc exec -T backend bench --site frontend clear-cache 2>/dev/null || true
+}
+
+run_deploy() {
+  local SILENT="${1:-0}"
+
+  local out="/dev/stdout"
+  local err="/dev/stderr"
+  if [ "$SILENT" = "1" ]; then
+    out="/dev/null"
+    err="/dev/null"
+  fi
+
+  echo "==> Recreating containers with new image..."
+  dc up -d > "$out" 2>&1
+
+  echo "==> Waiting for configurator to finish..."
+  dc wait configurator > "$out" 2>&1 || sleep 5
+
+  sync_built_assets > "$out" 2>&1
+
+  echo "==> Applying site config..."
+  apply_site_config > "$out" 2>&1
+
+  wait_for_db > "$out" 2>&1
+
+  strip_extra_apps > "$out" 2>&1
+
+  echo "==> Running bench migrate..."
+  dc exec -T backend bench --site frontend migrate > "$out" 2>&1
+
+  echo "==> Running setup_custom_fields..."
+  dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute 2>&1 | \
+    { if [ "$SILENT" = "1" ]; then grep -v "exists" || true; else cat; fi; }
+
+  echo "==> Clearing cache..."
+  dc exec -T backend bench --site frontend clear-cache > "$out" 2>&1
+
+  install_extra_apps > "$out" 2>&1
+
+  echo "Done. http://localhost:8080"
 }
 
 case "${1:-}" in
@@ -171,6 +230,9 @@ case "${1:-}" in
       sleep 5
     done
 
+    echo "==> Installing HRMS on site..."
+    dc exec -T backend bench --site frontend install-app hrms
+
     echo "==> Enabling Ukrainian language..."
     dc exec -T backend bench --site frontend console <<'PY'
 import frappe
@@ -182,6 +244,9 @@ PY
     apply_site_config
 
     dc exec -T backend bench --site frontend clear-cache
+
+    "$DIR/insights" auto || true
+    fix_assets
 
     echo ""
     echo "Ready at http://localhost:8080  (Administrator / admin)"
@@ -196,20 +261,7 @@ PY
     echo "==> Applying site config..."
     apply_site_config
     wait_for_db
-    remove_insights_before_migrate
-    echo "==> Running bench migrate..."
-    dc exec -T backend bench --site frontend migrate
-    echo "==> Running setup_pr_workflow (custom fields)..."
-    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
-    echo "==> Clearing cache..."
-    dc exec -T backend bench --site frontend clear-cache
-    "$DIR/insights" auto
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-    echo "==> Restarting workers to load new code..."
-    dc restart backend queue-short queue-long scheduler frontend websocket
-    wait_for_backend
-    "$DIR/insights" auto
-    fix_assets
+    install_extra_apps
     echo "Started at http://localhost:8080"
     if [ "${2:-}" = "--logs" ]; then
       dc logs -f --since 0s
@@ -220,99 +272,33 @@ PY
     dc stop
     ;;
 
-  migrate)
+  build)
     SILENT=0
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
 
     if [ "$SILENT" = "1" ]; then
       build_image 2>&1 | tail -5
-      dc up -d 2>/dev/null
-      dc wait configurator 2>/dev/null || sleep 5
-      sync_built_assets >/dev/null 2>&1
-      apply_site_config >/dev/null 2>&1
-      wait_for_db >/dev/null 2>&1
-      remove_insights_before_migrate >/dev/null 2>&1
-      dc exec -T backend bench --site frontend migrate >/dev/null 2>&1
-      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute 2>&1 | grep -v "exists" || true
-      dc exec -T backend bench --site frontend clear-cache >/dev/null 2>&1
-      "$DIR/insights" auto 2>/dev/null
-      dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-      dc restart backend queue-short queue-long scheduler frontend websocket 2>/dev/null
-      wait_for_backend 2>/dev/null
-      "$DIR/insights" auto 2>/dev/null
-      fix_assets 2>/dev/null
-      echo "Migration complete."
     else
       build_image
+    fi
+    run_deploy "$SILENT"
 
-      echo "==> Recreating containers with new image..."
-      dc up -d
-
-      echo "==> Waiting for configurator to finish..."
-      dc wait configurator 2>/dev/null || sleep 5
-
-      sync_built_assets
-
-      echo "==> Applying site config..."
-      apply_site_config
-
-      wait_for_db
-      remove_insights_before_migrate
-      echo "==> Running bench migrate..."
-      dc exec -T backend bench --site frontend migrate
-      echo "==> Running setup_pr_workflow (custom fields)..."
-      dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
-      echo "==> Clearing cache..."
-      dc exec -T backend bench --site frontend clear-cache
-      "$DIR/insights" auto
-      dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-      echo "==> Restarting workers..."
-      dc restart backend queue-short queue-long scheduler frontend websocket
-      wait_for_backend
-      "$DIR/insights" auto
-      fix_assets
-      echo "Migration complete."
+    if [ "${2:-}" = "--logs" ] || [ "${3:-}" = "--logs" ]; then
+      dc logs -f --since 0s
     fi
     ;;
 
-  build)
-    build_image
+  migrate)
+    echo "(migrate is now an alias for build)"
+    SILENT=0
+    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
 
-    echo "==> Recreating containers with new image..."
-    dc up -d
-
-    echo "==> Waiting for configurator to finish..."
-    dc wait configurator 2>/dev/null || sleep 5
-
-    sync_built_assets
-
-    echo "==> Applying site config..."
-    apply_site_config
-
-    wait_for_db
-    remove_insights_before_migrate
-    echo "==> Running bench migrate..."
-    dc exec -T backend bench --site frontend migrate
-    echo "==> Running setup_pr_workflow (custom fields)..."
-    dc exec -T backend bench --site frontend execute erpnext.patches.setup_pr_workflow.execute
-
-    echo "==> Clearing cache..."
-    dc exec -T backend bench --site frontend clear-cache
-
-    "$DIR/insights" auto
-    dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
-
-    echo "==> Restarting workers..."
-    dc restart backend queue-short queue-long scheduler frontend websocket
-    wait_for_backend
-
-    "$DIR/insights" auto
-    fix_assets
-
-    echo "Build complete. http://localhost:8080"
-    if [ "${2:-}" = "--logs" ]; then
-      dc logs -f --since 0s
+    if [ "$SILENT" = "1" ]; then
+      build_image 2>&1 | tail -5
+    else
+      build_image
     fi
+    run_deploy "$SILENT"
     ;;
 
   destroy)
@@ -337,7 +323,7 @@ PY
 
   *)
     echo "Environment: $DEPLOY_ENV"
-    echo "Usage: ./deploy {init|start|stop|build|migrate|fix-assets|setup-prod|setup-dev}"
+    echo "Usage: ./deploy {init|start|stop|build|fix-assets|setup-prod|setup-dev}"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi

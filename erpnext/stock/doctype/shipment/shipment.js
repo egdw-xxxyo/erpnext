@@ -67,11 +67,72 @@ frappe.ui.form.on("Shipment", {
 			}
 		});
 	},
-	refresh: function () {
+	refresh: function (frm) {
 		$("div[data-fieldname=pickup_address] > div > .clearfix").hide();
 		$("div[data-fieldname=pickup_contact] > div > .clearfix").hide();
 		$("div[data-fieldname=delivery_address] > div > .clearfix").hide();
 		$("div[data-fieldname=delivery_contact] > div > .clearfix").hide();
+
+		if (frm.doc.docstatus === 0 && !frm.is_new()) {
+			frm.add_custom_button(
+				__("Scan Package"),
+				function () {
+					let d = new frappe.ui.Dialog({
+						title: __("Scan Package Barcode"),
+						fields: [
+							{
+								fieldname: "box_barcode",
+								fieldtype: "Data",
+								label: __("Package Barcode"),
+								options: "Barcode",
+								reqd: 1,
+							},
+						],
+						primary_action_label: __("Add"),
+						primary_action: function (values) {
+							frappe.call({
+								method: "erpnext.stock.doctype.package.package.add_package_to_shipment",
+								args: {
+									package_name: values.box_barcode,
+									shipment_name: frm.doc.name,
+								},
+								callback: function (r) {
+									if (r.message) {
+										frappe.show_alert({
+											message: r.message.message,
+											indicator: "green",
+										});
+										frm.reload_doc();
+									}
+								},
+							});
+							d.hide();
+						},
+					});
+					d.show();
+					setTimeout(() => d.fields_dict.box_barcode.input.focus(), 300);
+				},
+				__("Actions")
+			);
+		}
+
+		if (frm.doc.name && !frm.is_new()) {
+			frappe.call({
+				method: "frappe.client.get_list",
+				args: {
+					doctype: "Package",
+					filters: { shipment: frm.doc.name },
+					fields: ["name", "box_barcode", "status"],
+				},
+				callback: function (r) {
+					if (r.message && r.message.length) {
+						r.message.forEach(function (pkg) {
+							frm.dashboard.add_indicator(__("Package: {0}", [pkg.name]), "blue");
+						});
+					}
+				},
+			});
+		}
 	},
 	before_save: function (frm) {
 		let delivery_to = `delivery_${frappe.model.scrub(frm.doc.delivery_to_type)}`;

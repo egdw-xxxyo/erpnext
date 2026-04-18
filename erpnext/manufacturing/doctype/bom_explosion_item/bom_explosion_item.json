@@ -25,7 +25,8 @@
   "stock_uom",
   "amount",
   "include_item_in_manufacturing",
-  "sourced_by_supplier"
+  "sourced_by_supplier",
+  "is_sub_assembly_item"
  ],
  "fields": [
   {
@@ -164,6 +165,13 @@
    "fieldname": "sourced_by_supplier",
    "fieldtype": "Check",
    "label": "Sourced by Supplier",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_sub_assembly_item",
+   "fieldtype": "Check",
+   "label": "Is Sub Assembly Item",
    "read_only": 1
   }
  ],

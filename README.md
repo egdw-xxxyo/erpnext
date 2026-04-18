@@ -31,24 +31,26 @@ ERPNext v15.96.1 + Frappe v15.99.0 з українськими переклад�
 ### Повсякденне використання
 
 ```bash
-./deploy start          # Запустити, синхронізувати файли, застосувати конфігурацію, мігрувати
+./deploy start          # Запустити: збирає образ, мігрує, перезапускає всі сервіси
 ./deploy stop           # Зупинити контейнери
-./deploy migrate        # Синхронізувати файли та запустити міграцію (без перезапуску)
+./deploy migrate        # Повний цикл: збирає образ, мігрує, перезапускає сервіси
+./deploy build          # Те саме що migrate, але з іншим повідомленням завершення
 ```
 
-### Деплой змін коду
+Всі команди (`start`, `build`, `migrate`) виконують повний цикл: збирання Docker-образу → запуск контейнерів → синхронізація assets → міграція → перезапуск воркерів.
 
-Після редагування файлів локально:
+### Опції
 
 ```bash
-./deploy migrate
+./deploy migrate --silent   # Тиха міграція: мінімальний вивід, тільки результат
+./deploy start --logs       # Запустити + показати логи контейнерів
+./deploy build --logs       # Зібрати + показати логи контейнерів
 ```
 
-Копіює власні DocType в контейнер, перезавантажує gunicorn, запускає `bench migrate` та очищає кеш.
-
-### Управління середовищем
+### Обслуговування
 
 ```bash
+./deploy fix-assets     # Пересинхронізувати assets між backend та frontend контейнерами
 ./deploy setup-prod     # Увімкнути production-режим (блокує деструктивні команди)
 ./deploy setup-dev      # Увімкнути dev-режим (всі команди доступні)
 ```
@@ -81,12 +83,16 @@ ERPNext v15.96.1 + Frappe v15.99.0 з українськими переклад�
 ## Структура проекту
 
 ```
-├── deploy                  # Скрипт деплою
-├── Dockerfile.uk           # Docker-образ з перекладами
+├── deploy                  # Скрипт деплою (збирання, міграція, перезапуск)
+├── insights                # Скрипт встановлення/видалення Frappe Insights
+├── Dockerfile.full         # Docker-образ (весь код вбудовується в образ)
+├── docker-compose.yml      # Конфігурація Docker-сервісів
 ├── site-config.json        # Параметри конфігурації сайту
 ├── docs/
 │   ├── manufacturing-guide.md   # Посібник з виробництва
-│   └── script-reports.md        # Серверні скрипти та звіти
+│   ├── script-reports.md        # Серверні скрипти та звіти
+│   ├── scanner-actions.md       # Сканер: дії та потоки
+│   └── ...                      # Інша документація
 ├── erpnext/
 │   ├── translations/
 │   │   └── uk.csv               # Українські переклади (CSV)
@@ -95,13 +101,23 @@ ERPNext v15.96.1 + Frappe v15.99.0 з українськими переклад�
 │   │   ├── uk.po                # Українські переклади (PO)
 │   │   └── uk/LC_MESSAGES/
 │   │       └── erpnext.mo       # Скомпільовані переклади
+│   ├── patches/
+│   │   └── setup_custom_fields.py  # Ідемпотентні Custom Fields (запускається при кожному deploy)
 │   ├── manufacturing/doctype/
 │   │   ├── workplace/           # Робоче місце (власний DocType)
 │   │   ├── workplace_operation/ # Дозволені операції
-│   │   └── workplace_employee/  # Призначені працівники
+│   │   ├── workplace_employee/  # Призначені працівники
+│   │   ├── scanner_setup/       # Налаштування сканера
+│   │   ├── scanner_script/      # Скрипти сканера
+│   │   ├── scanner_scan_log/    # Журнал сканувань
+│   │   ├── label_template/      # Шаблони етикеток
+│   │   ├── label_printer/       # Принтери етикеток
+│   │   ├── label_size/          # Розміри етикеток
+│   │   └── production_log/      # Журнал виробництва
 │   └── stock/doctype/
 │       ├── serial_number_template/           # Шаблон серійних номерів
 │       └── serial_number_template_component/ # Компоненти шаблону
+├── frappe/                 # Git submodule (Frappe framework)
 └── .docker/                # frappe_docker (клонується автоматично)
 ```
 

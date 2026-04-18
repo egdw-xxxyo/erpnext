@@ -22,6 +22,7 @@ frappe.ui.form.on("Serial No", "refresh", function (frm) {
 frappe.ui.form.on("Serial No", {
 	refresh(frm) {
 		frm.trigger("view_ledgers");
+		frm.trigger("add_print_labels_button");
 	},
 
 	view_ledgers(frm) {
@@ -33,6 +34,30 @@ frappe.ui.form.on("Serial No", {
 				posting_time: frappe.datetime.now_time(),
 			};
 			frappe.set_route("query-report", "Serial No Ledger");
+		});
+	},
+
+	add_print_labels_button(frm) {
+		if (!frm.doc.item_code || frm.doc.__islocal) return;
+		frappe.call({
+			method: "erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils.get_label_templates_for_items",
+			args: { item_codes: JSON.stringify([frm.doc.item_code]) },
+			callback: function (r) {
+				let templates_by_item = r.message || {};
+				if (!templates_by_item[frm.doc.item_code] || !templates_by_item[frm.doc.item_code].length) return;
+				frm.add_custom_button(__("Print Labels"), function () {
+					let by_item = {};
+					by_item[frm.doc.item_code] = {
+						item_name: frm.doc.item_name || frm.doc.item_code,
+						serials: [frm.doc.name],
+					};
+					erpnext.utils.open_label_print_dialog({
+						by_item: by_item,
+						templates_by_item: templates_by_item,
+						items: [frm.doc.item_code],
+					});
+				});
+			},
 		});
 	},
 });

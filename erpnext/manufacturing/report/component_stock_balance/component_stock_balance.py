@@ -18,6 +18,9 @@ def execute(filters=None):
 		columns = get_columns(filters, bom_mode=False)
 		data = get_group_data(filters)
 
+	if not filters.get("show_zero_qty"):
+		data = [row for row in data if row.get("actual_qty")]
+
 	return columns, data
 
 

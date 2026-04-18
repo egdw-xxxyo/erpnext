@@ -6,6 +6,10 @@ frappe.ui.form.on("Label Template", {
 
 		if (frm.is_new()) return;
 
+		frm.add_custom_button(__("Print"), () => {
+			_print_with_preview(frm);
+		}, __("Actions"));
+
 		frm.add_custom_button(__("Test Print"), () => {
 			let d = new frappe.ui.Dialog({
 				title: __("Test Print"),
@@ -337,6 +341,60 @@ function _draw_code128(ctx, text, px, py, el, dot_to_px, scale) {
 	let barcode_w = bx - px;
 	let text_x = px + (barcode_w - text_w) / 2;
 	ctx.fillText(text, text_x, py + bar_h + 1 * scale);
+}
+
+function _print_with_preview(frm) {
+	frappe.call({
+		method: "erpnext.manufacturing.doctype.label_template.label_template.render_preview",
+		args: {
+			template_type: frm.doc.template_type,
+			zpl_template: frm.doc.zpl_template || "",
+			html_template: frm.doc.html_template || "",
+			field_mapping: frm.doc.field_mapping || "",
+			preview_data: frm.doc.preview_data || "",
+			label_size: frm.doc.label_size,
+		},
+		freeze: true,
+		freeze_message: __("Rendering..."),
+		callback(r) {
+			if (!r.message) {
+				frappe.msgprint(__("Nothing to print. Set a Label Size and template."));
+				return;
+			}
+			let data = r.message;
+			let PX_PER_MM = 3.78;
+			let pw = Math.round(data.width_mm * PX_PER_MM);
+			let ph = Math.round(data.height_mm * PX_PER_MM);
+
+			let body_content = "";
+			if (data.type === "html_image") {
+				body_content = `<img src="data:image/png;base64,${data.image_base64}" style="width:${pw}px;height:${ph}px;display:block;" />`;
+			} else if (data.type === "ezpl_parsed") {
+				frappe.msgprint(__("Print preview is only available for HTML template type."));
+				return;
+			}
+
+			let win = window.open("", "_blank");
+			win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${frm.doc.template_name}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #fff; }
+@media print {
+  @page { size: ${data.width_mm}mm ${data.height_mm}mm; margin: 0; }
+  body { width: ${data.width_mm}mm; height: ${data.height_mm}mm; overflow: hidden; }
+}
+</style>
+</head>
+<body>${body_content}</body>
+</html>`);
+			win.document.close();
+			win.onload = () => win.print();
+		},
+	});
 }
 
 function _show_template_help(frm) {

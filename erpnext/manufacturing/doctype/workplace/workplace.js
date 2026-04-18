@@ -1,95 +1,3 @@
-const SCANNER_API_REFERENCE = `
-<div style="font-size: 13px; line-height: 1.6;">
-<h5>How it works</h5>
-<p>When a scanner sends data, the system first checks if it's a <strong>Workplace barcode</strong> or
-<strong>Employee barcode</strong> (attendance_device_id). If so, the scanner's context is switched.
-Otherwise, the system resolves what was scanned and calls the matching handler from this script.</p>
-
-<h5>Events</h5>
-<pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-def on_job_card_scanned(e):
-    # e.job_card — Job Card name (str)
-    # e.doc — Job Card document
-    pass
-
-def on_serial_no_scanned(e):
-    # e.serial_no — Serial No name (str)
-    # e.item_code — Item code of the serial
-    pass
-
-def on_item_scanned(e):
-    # e.item_code — Item code (str)
-    # e.barcode — original barcode if resolved via Item Barcode
-    pass
-
-def on_unknown_scanned(e):
-    # e.data — raw scanned string
-    pass
-</pre>
-
-<h5>Common properties on every event (e)</h5>
-<table class="table table-bordered" style="font-size: 12px;">
-<tr><th>Property</th><th>Description</th></tr>
-<tr><td><code>e.data</code></td><td>Raw scanned string</td></tr>
-<tr><td><code>e.scanner</code></td><td>Scanner Setup document</td></tr>
-<tr><td><code>e.workplace</code></td><td>Current Workplace document</td></tr>
-<tr><td><code>e.employee</code></td><td>Current Employee name (str) or None</td></tr>
-<tr><td><code>e.state</code></td><td>Current Redis state (dict or None)</td></tr>
-</table>
-
-<h5>Return value</h5>
-<pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-return {
-    "message": "Job Card JC-001 started",
-    "prompt": "Scan next barcode",           # optional
-    "set_state": {"mode": "scanning", ...},  # optional, set Redis state
-    "clear_state": True,                     # optional, clear Redis state
-}
-</pre>
-
-<h5>Example: Start or finish Job Card by serial number</h5>
-<pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-def on_serial_no_scanned(e):
-    jc_list = frappe.get_all("Job Card", filters={
-        "serial_no": ["like", f"%{e.serial_no}%"],
-        "docstatus": ("<", 2),
-        "status": ["not in", ["Completed", "Stopped", "Cancelled"]],
-    }, fields=["name", "status"], order_by="expected_start_date", limit=1)
-
-    if not jc_list:
-        frappe.throw(f"No active Job Card for serial {e.serial_no}")
-
-    jc = jc_list[0]
-    doc = frappe.get_doc("Job Card", jc.name)
-
-    if jc.status in ("Open", "Material Transferred"):
-        if e.employee:
-            if not any(r.employee == e.employee for r in doc.employee):
-                doc.append("employee", {"employee": e.employee})
-            doc.append("time_logs", {
-                "from_time": frappe.utils.now_datetime(),
-                "employee": e.employee,
-            })
-        doc.db_set("status", "Work In Progress")
-        doc.save(ignore_permissions=True)
-        return {"message": f"Started {doc.name}"}
-
-    elif jc.status == "Work In Progress":
-        qty = frappe.utils.flt(doc.for_quantity)
-        for row in doc.time_logs:
-            if row.from_time and not row.to_time:
-                row.to_time = frappe.utils.now_datetime()
-                row.time_in_mins = frappe.utils.time_diff_in_seconds(
-                    row.to_time, row.from_time) / 60
-                row.completed_qty = qty
-                break
-        doc.save(ignore_permissions=True)
-        doc.submit()
-        return {"message": f"Completed {doc.name}"}
-</pre>
-</div>
-`;
-
 frappe.ui.form.on("Workplace", {
 	refresh(frm) {
 		if (!frm.is_new()) {
@@ -97,16 +5,63 @@ frappe.ui.form.on("Workplace", {
 				frappe.set_route("workplace-portal", { workplace: frm.doc.name });
 			}, __("View"));
 		}
-		if (frm.fields_dict.scanner_help_html) {
-			frm.fields_dict.scanner_help_html.$wrapper.html(SCANNER_API_REFERENCE);
-		}
 		setup_barcode_generate(frm);
-		render_barcode(frm);
+		if (!frm._barcode_field) {
+			frm._barcode_field = new erpnext.BarcodeField({
+				frm,
+				fieldname: "barcode",
+				barcode_type: "CODE128",
+				format: "CODE128",
+			});
+		}
+		frm._barcode_field.refresh();
+		render_workplace_script_link(frm);
+		setup_workplace_print_labels(frm);
 	},
 	barcode(frm) {
-		render_barcode(frm);
+		frm._barcode_field && frm._barcode_field.refresh();
 	},
 });
+
+function setup_workplace_print_labels(frm) {
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "Workplace" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "Workplace",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
+	});
+}
+
+function render_workplace_script_link(frm) {
+	if (frm.is_new()) return;
+
+	frappe.db.get_value(
+		"Workplace Script",
+		{ workplace: frm.doc.name, is_active: 1 },
+		"name"
+	).then((r) => {
+		const name = r?.message?.name;
+		if (name && frm.doc.workplace_script !== name) {
+			frm.set_value("workplace_script", name);
+		} else if (!name && frm.doc.workplace_script) {
+			frm.set_value("workplace_script", null);
+		}
+	});
+}
 
 function setup_barcode_generate(frm) {
 	const $wrapper = frm.fields_dict.barcode.$wrapper;
@@ -128,34 +83,4 @@ function setup_barcode_generate(frm) {
 		frm.set_value("barcode", `WP-${hash}`);
 		frm.dirty();
 	});
-}
-
-function render_barcode(frm) {
-	const $wrapper = frm.fields_dict.barcode.$wrapper;
-	$wrapper.find(".barcode-preview").remove();
-
-	if (!frm.doc.barcode) return;
-
-	const $preview = $(`<div class="barcode-preview" style="margin-top: 8px;"><svg></svg></div>`);
-	$wrapper.append($preview);
-
-	const draw = () => {
-		try {
-			JsBarcode($preview.find("svg")[0], frm.doc.barcode, {
-				format: "CODE128",
-				height: 50,
-				displayValue: true,
-				fontSize: 14,
-				margin: 5,
-			});
-		} catch (e) {
-			$preview.html(`<code>${frm.doc.barcode}</code>`);
-		}
-	};
-
-	if (window.JsBarcode) {
-		draw();
-	} else {
-		frappe.require("/assets/frappe/node_modules/jsbarcode/dist/JsBarcode.all.min.js", draw);
-	}
 }

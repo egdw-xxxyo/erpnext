@@ -40,7 +40,9 @@
   "include_item_in_manufacturing",
   "original_item",
   "column_break_33",
-  "sourced_by_supplier"
+  "sourced_by_supplier",
+  "is_sub_assembly_item",
+  "is_phantom_item"
  ],
  "fields": [
   {
@@ -292,6 +294,20 @@
    "fieldname": "is_stock_item",
    "fieldtype": "Check",
    "label": "Is Stock Item",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_sub_assembly_item",
+   "fieldtype": "Check",
+   "label": "Is Sub Assembly Item",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_phantom_item",
+   "fieldtype": "Check",
+   "label": "Is Phantom Item",
    "read_only": 1
   }
  ],

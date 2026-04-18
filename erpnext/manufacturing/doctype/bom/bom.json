@@ -15,6 +15,7 @@
   "is_active",
   "is_default",
   "allow_alternative_item",
+  "is_phantom_bom",
   "set_rate_of_sub_assembly_item_based_on_bom",
   "project",
   "image",
@@ -31,6 +32,7 @@
   "section_break_21",
   "operations_section_section",
   "with_operations",
+  "track_semi_finished_goods",
   "column_break_23",
   "transfer_material_against",
   "routing",
@@ -172,6 +174,13 @@
   },
   {
    "default": "0",
+   "depends_on": "with_operations",
+   "fieldname": "track_semi_finished_goods",
+   "fieldtype": "Check",
+   "label": "Track Semi-Finished Goods"
+  },
+  {
+   "default": "0",
    "fieldname": "inspection_required",
    "fieldtype": "Check",
    "label": "Quality Inspection Required"
@@ -181,6 +190,12 @@
    "fieldname": "allow_alternative_item",
    "fieldtype": "Check",
    "label": "Allow Alternative Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_phantom_bom",
+   "fieldtype": "Check",
+   "label": "Is Phantom BOM"
   },
   {
    "allow_on_submit": 1,

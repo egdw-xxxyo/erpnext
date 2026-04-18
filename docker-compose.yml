@@ -216,17 +216,9 @@ services:
 
 volumes:
   db-data:
-    external: true
-    name: docker_db-data
   redis-queue-data:
-    external: true
-    name: docker_redis-queue-data
   sites:
-    external: true
-    name: docker_sites
   logs:
-    external: true
-    name: docker_logs
 
 networks:
   frappe_network:

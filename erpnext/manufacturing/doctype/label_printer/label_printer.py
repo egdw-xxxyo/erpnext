@@ -1060,6 +1060,37 @@ def print_labels_batch(source_doctype, source_names, label_template, printer_nam
 	return {"jobs": jobs, "count": len(jobs)}
 
 
+@frappe.whitelist()
+def print_raw_label_batch(value, label_template, printer_name, copies=1):
+	"""Create a Print Job from a raw string value — no DocType lookup.
+
+	The template receives ``doc.name`` set to *value*, plus any field_mapping
+	resolution that doesn't require an item_code.  Useful for standalone
+	barcodes (employee ID cards, asset tags, etc.).
+	"""
+	from erpnext.manufacturing.doctype.label_template.label_template import resolve_field_mapping
+
+	copies = int(copies) if copies else 1
+	template = frappe.get_doc("Label Template", label_template)
+	printer = _get_printer_doc(printer_name)
+
+	doc_dict = frappe._dict({"name": value})
+	resolve_field_mapping(template, doc_dict)
+
+	job = frappe.new_doc("Print Job")
+	job.label_template = label_template
+	job.label_printer = printer_name
+	job.label_size = template.label_size
+	job.copies = copies
+	job.status = "Queued"
+	job.raw_data = json.dumps(doc_dict, default=str, ensure_ascii=False)
+	job.insert()
+
+	_prerender_job(job.name, template, printer, raw_data=doc_dict)
+	frappe.db.commit()
+	return {"jobs": [job.name], "count": 1}
+
+
 def cleanup_old_print_jobs(days=7):
 	"""Delete Printed/Failed/Cancelled print jobs older than `days` days.
 	Intended to be called daily via Scheduled Job Type."""

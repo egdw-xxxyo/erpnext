@@ -3,9 +3,6 @@ FROM frappe/erpnext:${ERPNEXT_VERSION}
 
 USER root
 
-# Build tools for translations and extra pip packages
-RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
-
 # ── Replace ERPNext source with ours ──────────────────────────────────
 # Only copy the erpnext/ package dir — keep the stock pyproject.toml
 # (ours has requires-python>=3.14 which is incompatible with the image's Python 3.11)
@@ -14,25 +11,31 @@ COPY --chown=frappe:frappe erpnext/ /home/frappe/frappe-bench/apps/erpnext/erpne
 # ── Replace Frappe source with our fork ───────────────────────────────
 COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/frappe/
 
+# ── Add HRMS app ─────────────────────────────────────────────────────
+COPY --chown=frappe:frappe hrms_app/ /home/frappe/frappe-bench/apps/hrms/
+
 # ── Extra pip dependencies (not in pyproject.toml) ────────────────────
 RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow
 
-# ── Re-install apps in editable mode so Python picks up our source ────
+# ── Install all apps in editable mode ─────────────────────────────────
 RUN cd /home/frappe/frappe-bench \
     && ./env/bin/pip install -e apps/frappe \
-    && ./env/bin/pip install -e apps/erpnext
+    && ./env/bin/pip install -e apps/erpnext \
+    && ./env/bin/pip install -e apps/hrms
 
-# ── Compile PO → MO translations ─────────────────────────────────────
-RUN mkdir -p /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES \
-    && msgfmt /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po \
-        -o /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES/erpnext.mo \
-    && mkdir -p /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES \
-    && msgfmt /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po \
-        -o /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES/frappe.mo
+# ── Install HRMS node dependencies ────────────────────────────────────
+RUN cd /home/frappe/frappe-bench/apps/hrms && yarn install --production
 
-# ── Rebuild JS/CSS assets ─────────────────────────────────────────────
+# ── Register HRMS in apps.txt so bench build includes it ─────────────
+RUN printf '\nhrms\n' >> /home/frappe/frappe-bench/sites/apps.txt
+
+# ── Dummy site config for HRMS frontend build (needs socketio_port) ──
+RUN mkdir -p /home/frappe/frappe-bench/sites \
+    && echo '{"socketio_port": "9000"}' > /home/frappe/frappe-bench/sites/common_site_config.json
+
+# ── Rebuild JS/CSS assets + compile PO→MO translations ───────────────
 USER frappe
 WORKDIR /home/frappe/frappe-bench
-RUN bench build
+RUN bench build --force
 
 USER frappe
