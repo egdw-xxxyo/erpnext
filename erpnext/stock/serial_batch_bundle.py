@@ -1040,6 +1040,28 @@ def set_batch_details_from_package(ids, batches):
 		batches[d.batch_no] -= d.qty
 
 
+def sync_series_counter(serial_no_series: str | None, serial_nos: list) -> None:
+	if not serial_no_series or not serial_nos:
+		return
+
+	try:
+		naming = NamingSeries(serial_no_series)
+		prefix = naming.get_prefix()
+	except Exception:
+		return
+
+	max_counter = 0
+	for sn in serial_nos:
+		if not sn or not sn.startswith(prefix):
+			continue
+		suffix = sn[len(prefix):]
+		if suffix.isdigit():
+			max_counter = max(max_counter, int(suffix))
+
+	if max_counter and max_counter > naming.get_current_value():
+		naming.update_counter(max_counter)
+
+
 class SerialBatchCreation:
 	def __init__(self, args):
 		self.set(args)
@@ -1342,6 +1364,7 @@ class SerialBatchCreation:
 			]
 
 			frappe.db.bulk_insert("Serial No", fields=fields, values=set(serial_nos_details))
+			sync_series_counter(self.get("serial_no_series"), serial_nos)
 
 	def set_serial_batch_entries(self, doc):
 		incoming_rate = self.get("incoming_rate")
