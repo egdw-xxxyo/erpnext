@@ -6062,7 +6062,7 @@ New Serial No cannot have Warehouse. Warehouse must be set by Stock Entry or Pur
 New Task,Нове завдання
 New Version,Нова версія
 New Warehouse Name,Новий склад Ім&#39;я
-New Workplace,Нове місце праці
+New Workplace,Нове робоче місце
 New credit limit is less than current outstanding amount for the customer. Credit limit has to be atleast {0},Новий кредитний ліміт менше поточної суми заборгованості для клієнта. Кредитний ліміт повинен бути зареєстровано не менше {0}
 New fiscal year created :- ,Новий фінансовий рік створено :- 
 New invoices will be generated as per schedule even if current invoices are unpaid or past due date,"Нові рахунки-фактури будуть сформовані відповідно до розкладу, навіть якщо поточні рахунки-фактури не оплачені або прострочені"
@@ -12388,6 +12388,8 @@ Endpoint,Кінцева точка
 Script Name,Назва скрипта
 Script,Скрипт
 API Reference,Довідка API
+Workplace,Робоче місце
+Workplace Name,Назва робочого місця
 Workplace Script,Скрипт робочого місця
 Scanner Script,Скрипт сканера
 "How it works","Як це працює"

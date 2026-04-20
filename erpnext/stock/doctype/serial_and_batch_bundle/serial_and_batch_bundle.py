@@ -29,6 +29,7 @@ from erpnext.stock.serial_batch_bundle import (
 	BatchNoValuation,
 	SerialNoValuation,
 	get_batches_from_bundle,
+	sync_series_counter,
 )
 from erpnext.stock.serial_batch_bundle import get_serial_nos as get_serial_nos_from_bundle
 from erpnext.stock.valuation import FIFOValuation
@@ -1736,14 +1737,17 @@ def create_serial_nos(item_code, serial_nos):
 
 def make_serial_nos(item_code, serial_nos):
 	item = frappe.get_cached_value(
-		"Item", item_code, ["description", "item_code", "item_name", "warranty_period"], as_dict=1
+		"Item",
+		item_code,
+		["description", "item_code", "item_name", "warranty_period", "serial_no_series"],
+		as_dict=1,
 	)
 
-	serial_nos = [d.get("serial_no").strip() for d in serial_nos if d.get("serial_no")]
-	existing_serial_nos = frappe.get_all("Serial No", filters={"name": ("in", serial_nos)})
+	all_serial_names = [d.get("serial_no").strip() for d in serial_nos if d.get("serial_no")]
+	existing_serial_nos = frappe.get_all("Serial No", filters={"name": ("in", all_serial_names)})
 
 	existing_serial_nos = [d.get("name") for d in existing_serial_nos if d.get("name")]
-	serial_nos = list(set(serial_nos) - set(existing_serial_nos))
+	serial_nos = list(set(all_serial_names) - set(existing_serial_nos))
 
 	if not serial_nos:
 		return
@@ -1782,6 +1786,7 @@ def make_serial_nos(item_code, serial_nos):
 	]
 
 	frappe.db.bulk_insert("Serial No", fields=fields, values=set(serial_nos_details))
+	sync_series_counter(item.get("serial_no_series"), all_serial_names)
 
 	frappe.msgprint(_("Serial Nos are created successfully"), alert=True)
 

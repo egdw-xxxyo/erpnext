@@ -31,6 +31,10 @@ class Employee(NestedSet):
 		set_name_by_naming_series(self)
 		self.employee = self.name
 
+	def before_insert(self):
+		if not self.attendance_device_id:
+			self.attendance_device_id = f"EMP-{frappe.generate_hash(length=8).upper()}"
+
 	def validate(self):
 		from erpnext.controllers.status_updater import validate_status
 
