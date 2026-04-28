@@ -1035,6 +1035,8 @@ def print_labels_batch(source_doctype, source_names, label_template, printer_nam
 			if template.reference_doctype:
 				ref_doc = frappe.get_doc(template.reference_doctype, ref_name)
 				doc_dict = frappe._dict(ref_doc.as_dict())
+			elif not template.source_field:
+				doc_dict = frappe._dict(source_doc.as_dict())
 			else:
 				doc_dict = frappe._dict({"name": ref_name})
 
