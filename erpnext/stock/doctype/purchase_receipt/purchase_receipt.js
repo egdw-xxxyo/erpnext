@@ -77,6 +77,28 @@ frappe.ui.form.on("Purchase Receipt", {
 			}
 		}
 
+		if (frm.doc.name && !frm.doc.is_new && frm.doc.docstatus !== 2) {
+			frm.add_custom_button(__("Scan Package"), function () {
+				frappe.prompt(
+					{ label: __("Package or Barcode"), fieldname: "package", fieldtype: "Data", reqd: 1 },
+					function (values) {
+						frappe.call({
+							method: "erpnext.stock.doctype.package.package.add_package_to_purchase_receipt",
+							args: { package_name: values.package, purchase_receipt: frm.doc.name },
+							callback: function (r) {
+								if (r.message) {
+									frappe.show_alert({ message: r.message.message, indicator: "green" });
+									frm.reload_doc();
+								}
+							},
+						});
+					},
+					__("Scan Package"),
+					__("Add")
+				);
+			}, __("Create"));
+		}
+
 		// Show button to navigate to linked Quality Inspections
 		if (frm.doc.name && !frm.doc.name.startsWith("new-")) {
 			frappe.call({

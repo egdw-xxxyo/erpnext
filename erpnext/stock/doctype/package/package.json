@@ -9,6 +9,8 @@
  "field_order": [
   "details_section",
   "packing_template",
+  "auto_pass_qc",
+  "operation",
   "box_template",
   "status",
   "column_break_details",
@@ -26,6 +28,7 @@
   "references_section",
   "sales_order",
   "delivery_note",
+  "purchase_receipt",
   "column_break_refs",
   "shipment",
   "notes_section",
@@ -43,6 +46,22 @@
    "fieldtype": "Link",
    "label": "Packing Template",
    "options": "Packing Template"
+  },
+  {
+   "default": "0",
+   "fetch_from": "packing_template.auto_pass_qc",
+   "fieldname": "auto_pass_qc",
+   "fieldtype": "Check",
+   "label": "Auto-pass QC for packed items",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "packing_template.operation",
+   "fieldname": "operation",
+   "fieldtype": "Link",
+   "label": "Linked Operation",
+   "options": "Operation",
+   "read_only": 1
   },
   {
    "fieldname": "box_template",
@@ -151,6 +170,13 @@
    "fieldtype": "Link",
    "label": "Delivery Note",
    "options": "Delivery Note"
+  },
+  {
+   "fieldname": "purchase_receipt",
+   "fieldtype": "Link",
+   "label": "Purchase Receipt",
+   "options": "Purchase Receipt",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_refs",

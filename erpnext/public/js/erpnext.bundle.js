@@ -24,6 +24,7 @@ import "./utils/unreconcile.js";
 import "./utils/barcode_scanner";
 import "./utils/barcode_field";
 import "./utils/bulk_serial_scanner";
+import "./utils/global_scanner";
 import "./utils/label_print_dialog";
 import "./telephony";
 import "./templates/call_link.html";
