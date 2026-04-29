@@ -51,6 +51,43 @@ class SerialNumberTemplate(Document):
 
 	def on_update(self):
 		self._propagate_to_template_items()
+		self._apply_start_counting_from()
+
+	def _apply_start_counting_from(self):
+		start = cint(self.start_counting_from)
+		if start <= 1:
+			return
+
+		from frappe.model.naming import NamingSeries
+
+		items = frappe.get_all(
+			"Item",
+			filters={"serial_number_template": self.name, "has_variants": 0},
+			pluck="name",
+		)
+		target = start - 1
+		seen_prefixes = set()
+		for item_code in items:
+			try:
+				resolved = resolve_series_for_item(self.name, item_code)
+			except Exception:
+				continue
+			if not resolved:
+				continue
+			try:
+				prefix = NamingSeries(resolved).get_prefix()
+			except Exception:
+				continue
+			if prefix in seen_prefixes:
+				continue
+			seen_prefixes.add(prefix)
+			frappe.db.sql(
+				"""
+				INSERT INTO `tabSeries` (`name`, `current`) VALUES (%s, %s)
+				ON DUPLICATE KEY UPDATE `current` = GREATEST(`current`, VALUES(`current`))
+				""",
+				(prefix, target),
+			)
 
 	def _propagate_to_template_items(self):
 		template_items = frappe.get_all(
