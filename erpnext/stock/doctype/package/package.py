@@ -171,6 +171,20 @@ class Package(Document):
 			)
 		self.db_set("status", "Cancelled")
 
+	def on_trash(self):
+		if self.purchase_receipt:
+			frappe.throw(
+				_("Cannot delete Package {0} because it is linked to Purchase Receipt {1}").format(
+					self.name, self.purchase_receipt
+				)
+			)
+		if self.shipment:
+			frappe.throw(
+				_("Cannot delete Package {0} because it is linked to Shipment {1}").format(
+					self.name, self.shipment
+				)
+			)
+
 	def validate_duplicate_serial_nos(self):
 		serial_nos = [row.serial_no for row in self.items if row.serial_no]
 		if not serial_nos:
@@ -199,6 +213,23 @@ class Package(Document):
 		if existing:
 			msg = ", ".join([f"{e.serial_no} (in {e.name})" for e in existing])
 			frappe.throw(_("Serial numbers already packed: {0}").format(msg))
+
+
+def unlink_packages_from_purchase_receipt(doc, method=None):
+	"""Clear Package links before PR cancel/delete so the link check passes."""
+	frappe.db.sql(
+		"UPDATE `tabPackage` SET purchase_receipt = NULL WHERE purchase_receipt = %s",
+		doc.name,
+	)
+	frappe.db.sql(
+		"UPDATE `tabPackage Item` SET purchase_receipt = NULL WHERE purchase_receipt = %s",
+		doc.name,
+	)
+	frappe.db.sql(
+		"""UPDATE `tabQuality Inspection` SET reference_type = NULL, reference_name = NULL
+		   WHERE reference_type = 'Purchase Receipt' AND reference_name = %s""",
+		doc.name,
+	)
 
 
 @frappe.whitelist()

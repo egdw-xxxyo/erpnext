@@ -371,6 +371,10 @@ doc_events = {
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
 		]
 	},
+	"Purchase Receipt": {
+		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+	},
 	"Payment Entry": {
 		"on_submit": [
 			"erpnext.regional.create_transaction_log",

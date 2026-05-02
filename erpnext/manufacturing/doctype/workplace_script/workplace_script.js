@@ -104,10 +104,92 @@ def on_scan(e):
 </div>
 `;
 
+const MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+
+function load_mermaid() {
+	if (window.mermaid) return Promise.resolve(window.mermaid);
+	if (window._mermaid_loading) return window._mermaid_loading;
+	window._mermaid_loading = new Promise((resolve, reject) => {
+		const script = document.createElement("script");
+		script.src = MERMAID_CDN;
+		script.onload = () => {
+			window.mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
+			resolve(window.mermaid);
+		};
+		script.onerror = reject;
+		document.head.appendChild(script);
+	});
+	return window._mermaid_loading;
+}
+
+function build_diagram_source(frm) {
+	const states = frm.doc.states || [];
+	const transitions = frm.doc.transitions || [];
+	if (!states.length && !transitions.length) return null;
+
+	const lines = ["stateDiagram-v2"];
+	const sanitize = (s) => (s || "").replace(/[^A-Za-z0-9_]/g, "_") || "S";
+	const escape_label = (s) => (s || "").replace(/"/g, "'");
+
+	const ids = {};
+	states.forEach((s) => {
+		ids[s.state] = sanitize(s.state);
+		const label = s.label || s.state;
+		lines.push(`${ids[s.state]} : ${escape_label(label)}`);
+	});
+
+	states.filter((s) => s.is_initial).forEach((s) => lines.push(`[*] --> ${ids[s.state]}`));
+	states.filter((s) => s.is_final).forEach((s) => lines.push(`${ids[s.state]} --> [*]`));
+
+	transitions.forEach((t) => {
+		const from = ids[t.from_state] || sanitize(t.from_state);
+		const to = ids[t.to_state] || sanitize(t.to_state);
+		lines.push(`${from} --> ${to} : ${escape_label(t.event)}`);
+	});
+
+	return lines.join("\n");
+}
+
+async function render_diagram(frm) {
+	const wrapper = frm.fields_dict.diagram_html && frm.fields_dict.diagram_html.$wrapper;
+	if (!wrapper) return;
+
+	const source = build_diagram_source(frm);
+	if (!source) {
+		wrapper.html(`<div class="text-muted small">${__("Add states and transitions to render the diagram.")}</div>`);
+		return;
+	}
+
+	try {
+		const mermaid = await load_mermaid();
+		const id = `wsd_${frm.docname.replace(/[^A-Za-z0-9]/g, "_")}_${Date.now()}`;
+		const { svg } = await mermaid.render(id, source);
+		wrapper.html(`<div class="workplace-script-diagram">${svg}</div>`);
+	} catch (err) {
+		wrapper.html(`<pre style="color: var(--text-muted); font-size: 11px;">${frappe.utils.escape_html(String(err))}\n\n${frappe.utils.escape_html(source)}</pre>`);
+	}
+}
+
 frappe.ui.form.on("Workplace Script", {
 	refresh(frm) {
 		if (frm.fields_dict.help_html) {
 			frm.fields_dict.help_html.$wrapper.html(WORKPLACE_SCRIPT_API_REFERENCE);
 		}
+		render_diagram(frm);
 	},
+});
+
+frappe.ui.form.on("Workplace Script State", {
+	states_remove: render_diagram,
+	state: render_diagram,
+	label: render_diagram,
+	is_initial: render_diagram,
+	is_final: render_diagram,
+});
+
+frappe.ui.form.on("Workplace Script Transition", {
+	transitions_remove: render_diagram,
+	from_state: render_diagram,
+	to_state: render_diagram,
+	event: render_diagram,
 });
