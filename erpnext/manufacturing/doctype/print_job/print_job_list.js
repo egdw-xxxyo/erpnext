@@ -135,7 +135,7 @@ function _setup_printer_banner(listview) {
 
 	const $printer_group = $(`<div style="display:flex;align-items:center;gap:6px;">
 		<strong style="white-space:nowrap;">${__("Printer")}:</strong>
-		<div class="printer-link-wrapper" style="display:inline-block;min-width:180px;"></div>
+		<select class="form-control input-xs printer-select" style="display:inline-block;width:auto;min-width:180px;height:28px;padding:2px 8px;"></select>
 	</div>`);
 	$banner.append($printer_group);
 
@@ -160,46 +160,42 @@ function _setup_printer_banner(listview) {
 
 	listview.$page.find(".frappe-list").prepend($banner);
 
-	const printer_link = frappe.ui.form.make_control({
-		df: {
-			fieldname: "printer",
-			fieldtype: "Link",
-			options: "Label Printer",
-			get_query: () => ({ filters: { is_enabled: 1 } }),
-		},
-		parent: $printer_group.find(".printer-link-wrapper"),
-		render_input: true,
-	});
-	printer_link.$wrapper.find(".form-group").css("margin-bottom", "0");
-	printer_link.$wrapper.find(".clearfix, .help-box").hide();
-	printer_link.$wrapper.css("margin-bottom", "0");
+	const $printer_select = $printer_group.find(".printer-select");
+	listview._printers_by_name = {};
 
-	// Auto-select first enabled printer
-	frappe.call({
-		method: "erpnext.manufacturing.page.print_queue.print_queue.get_printers",
-		callback: (r) => {
-			const printers = r.message || [];
-			if (printers.length) {
-				printer_link.set_value(printers[0].name);
-				_update_printer_info(printers[0], $loaded, $status);
-				listview._selected_printer = printers[0];
-			}
-		},
-	});
-
-	printer_link.$input.on("change", () => {
-		const name = printer_link.get_value();
-		if (!name) return;
-		frappe.call({
+	const _load_printers = (preserve_selection) => {
+		const prev = preserve_selection ? $printer_select.val() : null;
+		return frappe.call({
 			method: "erpnext.manufacturing.page.print_queue.print_queue.get_printers",
-			callback: (r) => {
-				const p = (r.message || []).find((p) => p.name === name);
-				if (p) {
-					_update_printer_info(p, $loaded, $status);
-					listview._selected_printer = p;
-				}
-			},
+		}).then((r) => {
+			const printers = (r.message || []);
+			listview._printers_by_name = {};
+			$printer_select.empty();
+			if (!printers.length) {
+				$printer_select.append(`<option value="">${__("No printers")}</option>`);
+				listview._selected_printer = null;
+				_update_printer_info(null, $loaded, $status);
+				return;
+			}
+			printers.forEach((p) => {
+				listview._printers_by_name[p.name] = p;
+				$("<option>").val(p.name).text(p.name).appendTo($printer_select);
+			});
+			const selected = (prev && listview._printers_by_name[prev]) ? prev : printers[0].name;
+			$printer_select.val(selected);
+			listview._selected_printer = listview._printers_by_name[selected];
+			_update_printer_info(listview._selected_printer, $loaded, $status);
 		});
+	};
+
+	_load_printers(false);
+
+	$printer_select.on("change", () => {
+		const name = $printer_select.val();
+		const p = listview._printers_by_name[name];
+		if (!p) return;
+		listview._selected_printer = p;
+		_update_printer_info(p, $loaded, $status);
 	});
 
 	$change_btn.on("click", () => {
@@ -253,6 +249,12 @@ function _setup_printer_banner(listview) {
 function _update_printer_info(printer, $loaded, $status) {
 	const $loaded_badge = $loaded.find(".loaded-badge");
 	const $status_badge = $status.find(".printer-status-badge");
+
+	if (!printer) {
+		$loaded_badge.text(__("Not set")).css({ background: "var(--gray-500)", color: "white", cursor: "default" });
+		$status_badge.text(__("Unknown")).css("background", "var(--gray-500)");
+		return;
+	}
 
 	if (printer.is_label_change_in_progress) {
 		$loaded_badge

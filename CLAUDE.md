@@ -1,3 +1,15 @@
+## Environment routing by URL
+
+When the user shares an ERPNext URL, pick the MCP server by host IP:
+
+| Host | Environment | MCP server prefix |
+|---|---|---|
+| `172.16.105.102` | prod | `mcp__erp-prod__*` (and `mcp__erp-prod-ssh-mcp__*` for shell) |
+| `172.16.105.103` | dev | `mcp__erp-dev__*` (and `mcp__erp-dev-ssh-mcp__*` for shell) |
+| `localhost` / `127.0.0.1` | local | `mcp__erp-local__*` |
+
+URL-decode the path to get the document name (e.g. `BOM-%D0%91%D0%BF%D0%9B%D0%90%20U%2015...` → `BOM-БпЛА U 15...`). Default to the matching environment for any follow-up reads/writes unless the user says otherwise.
+
 # ERPNext/Frappe Translation System
 
 ## Overview

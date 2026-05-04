@@ -15,6 +15,12 @@
   "workplace",
   "section_script",
   "script",
+  "section_states",
+  "states",
+  "section_transitions",
+  "transitions",
+  "section_diagram",
+  "diagram_html",
   "section_help",
   "help_html"
  ],
@@ -58,6 +64,41 @@
    "label": "Script",
    "options": "py",
    "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_states",
+   "fieldtype": "Section Break",
+   "label": "States"
+  },
+  {
+   "fieldname": "states",
+   "fieldtype": "Table",
+   "label": "States",
+   "options": "Workplace Script State"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_transitions",
+   "fieldtype": "Section Break",
+   "label": "Transitions"
+  },
+  {
+   "fieldname": "transitions",
+   "fieldtype": "Table",
+   "label": "Transitions",
+   "options": "Workplace Script Transition"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_diagram",
+   "fieldtype": "Section Break",
+   "label": "Diagram"
+  },
+  {
+   "fieldname": "diagram_html",
+   "fieldtype": "HTML",
+   "label": "Diagram"
   },
   {
    "fieldname": "section_help",

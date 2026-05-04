@@ -144,6 +144,35 @@ def _parse_ezpl_to_elements(ezpl_text):
 
 
 @frappe.whitelist()
+def get_template_reference():
+	"""Return the Label Template reference (markdown) and published Label Template Examples.
+
+	Single source of truth used by both the UI dialog and the MCP server.
+	"""
+	ref_path = os.path.join(os.path.dirname(__file__), "REFERENCE.md")
+	try:
+		with open(ref_path, "r", encoding="utf-8") as f:
+			reference_md = f.read()
+	except FileNotFoundError:
+		reference_md = ""
+
+	from frappe.utils import markdown
+	reference_html = markdown(reference_md) if reference_md else ""
+
+	examples = frappe.get_all(
+		"Label Template Example",
+		filters={"is_published": 1},
+		fields=["title", "category", "description_uk", "html_snippet", "notes", "display_order"],
+		order_by="category asc, display_order asc, title asc",
+	)
+	return {
+		"reference_md": reference_md,
+		"reference_html": reference_html,
+		"examples": examples,
+	}
+
+
+@frappe.whitelist()
 def get_templates_for_barcode_type(barcode_type):
 	"""Return label templates configured for a specific barcode type."""
 	return frappe.get_all(
@@ -154,11 +183,13 @@ def get_templates_for_barcode_type(barcode_type):
 
 
 @frappe.whitelist()
-def render_preview(template_type, zpl_template="", html_template="", field_mapping="", preview_data="", label_size=""):
+def render_preview(template_type, zpl_template="", html_template="", field_mapping="", preview_data="", label_size="", padding_top_mm=0, padding_right_mm=0, padding_bottom_mm=0, padding_left_mm=0):
 	if not label_size:
 		return None
 
 	size = _get_label_size_data(label_size)
+	from frappe.utils import flt
+	padding_mm = (flt(padding_top_mm), flt(padding_right_mm), flt(padding_bottom_mm), flt(padding_left_mm))
 
 	context = {"frappe": frappe, "_": _}
 	if preview_data:
@@ -196,7 +227,7 @@ def render_preview(template_type, zpl_template="", html_template="", field_mappi
 		html = frappe.render_template(html_template, context)
 		html = _process_barcode_tags(html)
 		html = _process_attachment_tags(html)
-		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"])
+		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=padding_mm)
 		return {
 			"type": "html_image",
 			"image_base64": img_b64,
@@ -232,7 +263,7 @@ def render_job_preview(print_job_name):
 		html = frappe.render_template(template.html_template or "", context)
 		html = _process_barcode_tags(html)
 		html = _process_attachment_tags(html)
-		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"])
+		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=_padding_from_template(template))
 		return {
 			"type": "html_image",
 			"image_base64": img_b64,
@@ -357,7 +388,46 @@ def _process_attachment_tags(html):
 	return re.sub(r"<attachment\s+(.*?)\s*/?>", _resolve_attachment, html, flags=re.DOTALL)
 
 
-def _wrap_html_for_render(html, width_px, height_px):
+DPI = 300
+PX_PER_MM = DPI / 25.4
+UTILITY_MM_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25]
+
+
+def _mm_to_px(mm):
+	return round(float(mm) * PX_PER_MM, 3)
+
+
+def _build_utility_css():
+	rules = []
+	for n in UTILITY_MM_STEPS:
+		px = _mm_to_px(n)
+		rules.append(f".pl_{n}mm{{padding-left:{px}px}}")
+		rules.append(f".pr_{n}mm{{padding-right:{px}px}}")
+		rules.append(f".pt_{n}mm{{padding-top:{px}px}}")
+		rules.append(f".pb_{n}mm{{padding-bottom:{px}px}}")
+		rules.append(f".lr_{n}mm{{padding-left:{px}px;padding-right:{px}px}}")
+		rules.append(f".tb_{n}mm{{padding-top:{px}px;padding-bottom:{px}px}}")
+		rules.append(f".p_{n}mm{{padding:{px}px}}")
+		rules.append(f".ml_{n}mm{{margin-left:{px}px}}")
+		rules.append(f".mr_{n}mm{{margin-right:{px}px}}")
+		rules.append(f".mt_{n}mm{{margin-top:{px}px}}")
+		rules.append(f".mb_{n}mm{{margin-bottom:{px}px}}")
+		rules.append(f".m_{n}mm{{margin:{px}px}}")
+		rules.append(f".w_{n}mm{{width:{px}px}}")
+		rules.append(f".h_{n}mm{{height:{px}px}}")
+	for pct in (25, 50, 75, 100):
+		rules.append(f".w_{pct}{{width:{pct}%}}")
+		rules.append(f".h_{pct}{{height:{pct}%}}")
+	return "\n".join(rules)
+
+
+def _wrap_html_for_render(html, width_px, height_px, padding_mm=None):
+	pt, pr, pb, pl = padding_mm or (0, 0, 0, 0)
+	pt_px = _mm_to_px(pt)
+	pr_px = _mm_to_px(pr)
+	pb_px = _mm_to_px(pb)
+	pl_px = _mm_to_px(pl)
+	utility_css = _build_utility_css()
 	return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -371,14 +441,35 @@ html, body {{
 	font-family: Arial, Helvetica, sans-serif;
 	-webkit-print-color-adjust: exact;
 }}
+body {{ position: relative; }}
+.label-content {{
+	position: absolute;
+	top: {pt_px}px;
+	right: {pr_px}px;
+	bottom: {pb_px}px;
+	left: {pl_px}px;
+}}
+{utility_css}
 </style>
 </head>
-<body>{html}</body>
+<body><div class="label-content">{html}</div></body>
 </html>"""
 
 
-def _html_to_png_base64(html, width_px, height_px):
-	full_html = _wrap_html_for_render(html, width_px, height_px)
+def _padding_from_template(template_doc):
+	if not template_doc:
+		return None
+	from frappe.utils import flt
+	return (
+		flt(getattr(template_doc, "padding_top_mm", 0) or 0),
+		flt(getattr(template_doc, "padding_right_mm", 0) or 0),
+		flt(getattr(template_doc, "padding_bottom_mm", 0) or 0),
+		flt(getattr(template_doc, "padding_left_mm", 0) or 0),
+	)
+
+
+def _html_to_png_base64(html, width_px, height_px, padding_mm=None):
+	full_html = _wrap_html_for_render(html, width_px, height_px, padding_mm=padding_mm)
 	result = subprocess.run(
 		[
 			"wkhtmltoimage",
@@ -403,12 +494,12 @@ def _html_to_png_base64(html, width_px, height_px):
 	return base64.b64encode(result.stdout).decode("ascii")
 
 
-def html_to_pcx_bytes(html, width_px, height_px):
-	pcx_data, _png = html_to_image(html, width_px, height_px)
+def html_to_pcx_bytes(html, width_px, height_px, padding_mm=None):
+	pcx_data, _png = html_to_image(html, width_px, height_px, padding_mm=padding_mm)
 	return pcx_data
 
 
-def html_to_image(html, width_px, height_px):
+def html_to_image(html, width_px, height_px, padding_mm=None):
 	"""Return (pcx_bytes, png_bytes) for an HTML label."""
 	import time
 	from PIL import Image
@@ -416,7 +507,7 @@ def html_to_image(html, width_px, height_px):
 	log = frappe.logger("label_printer")
 
 	t0 = time.monotonic()
-	full_html = _wrap_html_for_render(html, width_px, height_px)
+	full_html = _wrap_html_for_render(html, width_px, height_px, padding_mm=padding_mm)
 	log.error(f"[TIMING] html_to_image: wrap_html: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	t0 = time.monotonic()

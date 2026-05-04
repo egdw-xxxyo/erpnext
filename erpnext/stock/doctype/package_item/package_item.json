@@ -9,7 +9,9 @@
   "item_name",
   "serial_no",
   "batch_no",
-  "qty"
+  "qty",
+  "quality_inspection",
+  "purchase_receipt"
  ],
  "fields": [
   {
@@ -47,6 +49,20 @@
    "in_list_view": 1,
    "label": "Qty",
    "reqd": 1
+  },
+  {
+   "fieldname": "quality_inspection",
+   "fieldtype": "Link",
+   "label": "Quality Inspection",
+   "options": "Quality Inspection",
+   "read_only": 1
+  },
+  {
+   "fieldname": "purchase_receipt",
+   "fieldtype": "Link",
+   "label": "Purchase Receipt",
+   "options": "Purchase Receipt",
+   "read_only": 1
   }
  ],
  "istable": 1,

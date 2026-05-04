@@ -13,6 +13,7 @@ def execute():
 	create_custom_fields_on_item()
 	create_item_specification_tab()
 	create_custom_fields_on_pr_item()
+	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
 	create_custom_fields_on_work_order()
 	remove_label_templates_from_employee()
@@ -199,6 +200,28 @@ def create_custom_fields_on_pr_item():
 			"insert_after": "amount",
 			"description": "Per-item logistics/shipping cost (filled by accounting)",
 			"depends_on": "eval:cur_frm && ['На затвердженні','Проведено'].includes(cur_frm.doc.workflow_state)",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_pr():
+	fields = [
+		{
+			"dt": "Purchase Receipt",
+			"fieldname": "packages_section",
+			"fieldtype": "Section Break",
+			"label": "Packages",
+			"insert_after": "supplied_items",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Purchase Receipt",
+			"fieldname": "packages",
+			"fieldtype": "Table",
+			"label": "Packages",
+			"options": "Purchase Receipt Package",
+			"insert_after": "packages_section",
 		},
 	]
 	_create_custom_fields(fields)

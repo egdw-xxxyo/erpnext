@@ -15,6 +15,7 @@
   "components",
   "section_result",
   "resulting_series",
+  "start_counting_from",
   "column_break_result",
   "preview"
  ],
@@ -57,6 +58,12 @@
    "fieldtype": "Data",
    "label": "Resulting Series",
    "read_only": 1
+  },
+  {
+   "fieldname": "start_counting_from",
+   "fieldtype": "Int",
+   "label": "Start Counting From",
+   "description": "On save, bumps the counter for every item using this template up to (start - 1). Never rolls back a counter that is already higher, so existing ERP-generated serials stay safe."
   },
   {
    "fieldname": "column_break_result",

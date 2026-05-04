@@ -10,6 +10,8 @@
   "column_break_details",
   "box_template",
   "expected_qty",
+  "auto_pass_qc",
+  "operation",
   "barcode_id",
   "label_section",
   "label_template",
@@ -68,6 +70,20 @@
    "fieldname": "expected_qty",
    "fieldtype": "Int",
    "label": "Expected Qty"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_pass_qc",
+   "fieldtype": "Check",
+   "label": "Auto-pass QC for packed items",
+   "description": "When set, packing a serial into a Package marks it Pass + scanned in its draft Quality Inspection."
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Link",
+   "label": "Linked Operation",
+   "options": "Operation",
+   "description": "If set, submitting a Package finishes the matching open Job Card (by operation + serial) for each packed serial."
   },
   {
    "fieldname": "barcode_id",

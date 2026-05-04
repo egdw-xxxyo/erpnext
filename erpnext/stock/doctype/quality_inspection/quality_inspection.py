@@ -279,6 +279,17 @@ class QualityInspection(Document):
 		if not action_if_qi_in_draft or action_if_qi_in_draft == "Warn":
 			self.update_qc_reference()
 
+	def before_submit(self):
+		serial_inspections = self.get("serial_inspections") or []
+		if serial_inspections:
+			unscanned = [e.serial_no for e in serial_inspections if not e.scanned]
+			if unscanned:
+				frappe.throw(
+					_("All serial numbers must be inspected (scanned) before submitting QI. Pending: {0}").format(
+						", ".join(unscanned)
+					)
+				)
+
 	def on_submit(self):
 		if (
 			frappe.db.get_single_value("Stock Settings", "action_if_quality_inspection_is_not_submitted")

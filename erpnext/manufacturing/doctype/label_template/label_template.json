@@ -13,6 +13,10 @@
   "data_fields",
   "barcode_type",
   "label_size",
+  "padding_top_mm",
+  "padding_right_mm",
+  "padding_bottom_mm",
+  "padding_left_mm",
   "column_break_details",
   "template_type",
   "description",
@@ -64,6 +68,35 @@
    "label": "Label Size",
    "options": "Label Size",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Top padding in mm applied to the label body wrapper",
+   "fieldname": "padding_top_mm",
+   "fieldtype": "Float",
+   "label": "Padding Top (mm)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "padding_right_mm",
+   "fieldtype": "Float",
+   "label": "Padding Right (mm)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "padding_bottom_mm",
+   "fieldtype": "Float",
+   "label": "Padding Bottom (mm)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "padding_left_mm",
+   "fieldtype": "Float",
+   "label": "Padding Left (mm)",
+   "precision": "2"
   },
   {
    "fieldname": "column_break_details",
