@@ -501,7 +501,7 @@ def print_label(print_job_name):
 				h_dots = _mm_to_dots(size.height_mm, dpi)
 
 				t0 = time.monotonic()
-				pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots)
+				pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
 				log.error(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
 					f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes")
 
@@ -591,14 +591,19 @@ def _render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 	return render_html_template(template_doc, doc=doc, data=data, parent_doc=parent_doc)
 
 
-def _html_to_pcx(html, width_px, height_px):
+def _html_to_pcx(html, width_px, height_px, padding_mm=None):
 	from erpnext.manufacturing.doctype.label_template.label_template import html_to_pcx_bytes
-	return html_to_pcx_bytes(html, width_px, height_px)
+	return html_to_pcx_bytes(html, width_px, height_px, padding_mm=padding_mm)
 
 
-def _html_to_image(html, width_px, height_px):
+def _html_to_image(html, width_px, height_px, padding_mm=None):
 	from erpnext.manufacturing.doctype.label_template.label_template import html_to_image
-	return html_to_image(html, width_px, height_px)
+	return html_to_image(html, width_px, height_px, padding_mm=padding_mm)
+
+
+def _template_padding(template_doc):
+	from erpnext.manufacturing.doctype.label_template.label_template import _padding_from_template
+	return _padding_from_template(template_doc)
 
 
 def _save_preview_image(print_job_name, png_data):
@@ -667,7 +672,7 @@ def _prerender_job(job_name, template, printer_doc, ref_doc=None, raw_data=None,
 		dpi = int(printer_doc.dpi or 300)
 		w_dots = _mm_to_dots(size.width_mm, dpi)
 		h_dots = _mm_to_dots(size.height_mm, dpi)
-		pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots)
+		pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
 
 		_save_pcx_file(job_name, pcx_data)
 		_save_preview_image(job_name, png_data)

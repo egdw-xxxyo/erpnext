@@ -12490,3 +12490,8 @@ Workplace Scripts,Скрипти робочого місця
 "No loaded size; expected '{0}'","Немає завантаженого розміру; очікується '{0}'"
 "Ready — {0}","Готово — {0}"
 "Offline","Недоступний"
+"Padding Top (mm)","Відступ зверху (мм)"
+"Padding Right (mm)","Відступ справа (мм)"
+"Padding Bottom (mm)","Відступ знизу (мм)"
+"Padding Left (mm)","Відступ зліва (мм)"
+"Top padding in mm applied to the label body wrapper","Відступ зверху в мм, що застосовується до обгортки вмісту етикетки"
