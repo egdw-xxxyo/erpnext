@@ -1,12 +1,13 @@
 {
  "actions": [],
- "autoname": "field:template_code",
+ "autoname": "naming_series:",
  "creation": "2026-05-04 00:00:00.000000",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "details_section",
+  "naming_series",
   "template_code",
   "template_name",
   "column_break_1",
@@ -24,11 +25,18 @@
    "label": "Details"
   },
   {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "BPAK-TMPL-.####",
+   "default": "BPAK-TMPL-.####",
+   "reqd": 1
+  },
+  {
    "fieldname": "template_code",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Template Code",
-   "reqd": 1,
    "unique": 1
   },
   {
@@ -82,7 +90,7 @@
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "BpAK Template",
- "naming_rule": "By fieldname",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
