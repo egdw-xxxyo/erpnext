@@ -12,6 +12,7 @@
   "auto_pass_qc",
   "operation",
   "box_template",
+  "bpak",
   "status",
   "column_break_details",
   "box_barcode",
@@ -26,6 +27,8 @@
   "items_section",
   "items",
   "references_section",
+  "bpak_serial_no",
+  "bpak_template_name",
   "sales_order",
   "delivery_note",
   "purchase_receipt",
@@ -160,6 +163,29 @@
    "label": "References"
   },
   {
+   "fieldname": "bpak",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "BpAK",
+   "options": "BpAK"
+  },
+  {
+   "fetch_from": "bpak.serial_no",
+   "fieldname": "bpak_serial_no",
+   "fieldtype": "Data",
+   "label": "BpAK Serial No",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "bpak.bpak_template_name",
+   "fieldname": "bpak_template_name",
+   "fieldtype": "Data",
+   "label": "BpAK Template Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "bpak.sales_order",
    "fieldname": "sales_order",
    "fieldtype": "Link",
    "label": "Sales Order",
