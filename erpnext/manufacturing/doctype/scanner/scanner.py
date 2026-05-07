@@ -56,8 +56,12 @@ class Scanner(Document):
 
 	def add_scan_log(self, **kwargs):
 		row = self.append("scan_logs", kwargs)
+		self.scan_logs.remove(row)
+		self.scan_logs.insert(0, row)
 		if len(self.scan_logs) > MAX_SCAN_LOGS:
-			self.scan_logs = self.scan_logs[-MAX_SCAN_LOGS:]
+			self.scan_logs = self.scan_logs[:MAX_SCAN_LOGS]
+		for i, r in enumerate(self.scan_logs):
+			r.idx = i + 1
 		self.flags.ignore_permissions = True
 		self.save()
 		return row.name

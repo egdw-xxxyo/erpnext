@@ -14,7 +14,11 @@
   "target_doctype",
   "target_document",
   "result_message",
-  "error_message"
+  "error_message",
+  "timing_section",
+  "resolve_ms",
+  "script_ms",
+  "total_ms"
  ],
  "fields": [
   {
@@ -79,6 +83,34 @@
    "fieldname": "error_message",
    "fieldtype": "Small Text",
    "label": "Error Message"
+  },
+  {
+   "fieldname": "timing_section",
+   "fieldtype": "Section Break",
+   "label": "Timing"
+  },
+  {
+   "fieldname": "resolve_ms",
+   "fieldtype": "Int",
+   "label": "Resolve (ms)",
+   "description": "Time to parse/resolve scanned data (e.g. lookup Serial No, Item, Workplace)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "script_ms",
+   "fieldtype": "Int",
+   "label": "Script (ms)",
+   "description": "Time to execute the Workplace Script on_scan handler",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_ms",
+   "fieldtype": "Int",
+   "label": "Total (ms)",
+   "description": "Total request handling time",
+   "in_list_view": 1,
+   "columns": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,

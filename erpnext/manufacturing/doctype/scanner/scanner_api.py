@@ -93,6 +93,8 @@ def _persist_state(scanner_name, state_proxy, timeout):
 
 @frappe.whitelist(allow_guest=True)
 def handle_scan(scanner_key=None, data=None):
+	t_start = time.perf_counter()
+
 	if not scanner_key or not data:
 		frappe.response["http_status_code"] = 400
 		return _resp(success=False, error="scanner_key and data are required")
@@ -108,7 +110,9 @@ def handle_scan(scanner_key=None, data=None):
 	state_dict = _load_state(scanner.name, state_timeout)
 	state_proxy = ScannerStateProxy(state_dict)
 
+	t_resolve_start = time.perf_counter()
 	scan_type, scan_ctx = _resolve_scan(data)
+	resolve_ms = int((time.perf_counter() - t_resolve_start) * 1000)
 
 	workplace_doc = frappe.get_doc("Workplace", scanner.workplace) if scanner.workplace else None
 
@@ -140,7 +144,9 @@ def handle_scan(scanner_key=None, data=None):
 			fields=["script_name", "script"],
 		)
 
+		t_script_start = time.perf_counter()
 		result = _execute_workplace_script(workplace_script, event, scanner_scripts)
+		script_ms = int((time.perf_counter() - t_script_start) * 1000)
 
 		_persist_state(scanner.name, state_proxy, state_timeout)
 
@@ -151,6 +157,7 @@ def handle_scan(scanner_key=None, data=None):
 					scanner, data, result.get("templateData")
 				)
 
+			total_ms = int((time.perf_counter() - t_start) * 1000)
 			_update_scan_log(
 				scanner,
 				scan_log_row,
@@ -158,6 +165,9 @@ def handle_scan(scanner_key=None, data=None):
 				target_doctype=result.get("target_doctype"),
 				target_document=result.get("target_document"),
 				result_message=message,
+				resolve_ms=resolve_ms,
+				script_ms=script_ms,
+				total_ms=total_ms,
 			)
 			frappe.db.commit()
 			return _resp(
@@ -171,8 +181,10 @@ def handle_scan(scanner_key=None, data=None):
 				scan_log=scan_log_row,
 			)
 
+		total_ms = int((time.perf_counter() - t_start) * 1000)
 		_update_scan_log(scanner, scan_log_row, status="Error",
-						error_message="on_scan handler not found or returned None")
+						error_message="on_scan handler not found or returned None",
+						resolve_ms=resolve_ms, script_ms=script_ms, total_ms=total_ms)
 		frappe.db.commit()
 		return _resp(success=False,
 					error="on_scan handler not found or returned None",
@@ -180,7 +192,9 @@ def handle_scan(scanner_key=None, data=None):
 
 	except Exception as e:
 		_persist_state(scanner.name, state_proxy, state_timeout)
-		_update_scan_log(scanner, scan_log_row, status="Error", error_message=str(e))
+		total_ms = int((time.perf_counter() - t_start) * 1000)
+		_update_scan_log(scanner, scan_log_row, status="Error", error_message=str(e),
+						resolve_ms=resolve_ms, total_ms=total_ms)
 		frappe.db.commit()
 		return _resp(success=False, error=str(e), scan_log=scan_log_row)
 
@@ -245,7 +259,8 @@ def _create_scan_log(scanner, data, scanner_state=None):
 def _update_scan_log(scanner, row_name, **kwargs):
 	updates = {}
 	for key in ("status", "resolved_action", "scanner_mode", "scanner_state",
-				"target_doctype", "target_document", "result_message", "error_message"):
+				"target_doctype", "target_document", "result_message", "error_message",
+				"resolve_ms", "script_ms", "total_ms"):
 		if key in kwargs and kwargs[key] is not None:
 			updates[key] = kwargs[key]
 	if updates:
