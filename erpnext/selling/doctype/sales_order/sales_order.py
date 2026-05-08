@@ -2046,23 +2046,64 @@ def get_bpak_progress(sales_order):
 
 
 @frappe.whitelist()
-def aggregate_bpak_planned_items(bpak_names):
-	"""Aggregate planned items across the given BpAKs, summing qty per item_code."""
-	bpak_names = frappe.parse_json(bpak_names) if isinstance(bpak_names, str) else (bpak_names or [])
-	bpak_names = [b for b in bpak_names if b]
-	if not bpak_names:
+def aggregate_bpak_planned_items(sales_order=None, bpak_rows=None, bpak_names=None):
+	"""Return planned items per BpAK row, mirroring sync_bpak_items.
+
+	Each entry carries `bpak_row` (the Sales Order BpAK child row name) so the
+	client can update only the managed row that came from that BpAK, leaving
+	manually-added rows untouched."""
+	pairs = []
+	if bpak_rows:
+		bpak_rows = frappe.parse_json(bpak_rows) if isinstance(bpak_rows, str) else bpak_rows
+		for r in bpak_rows:
+			row_name = r.get("name") if isinstance(r, dict) else None
+			bpak = r.get("bpak") if isinstance(r, dict) else None
+			if row_name and bpak:
+				pairs.append((row_name, bpak))
+	elif sales_order:
+		for r in frappe.get_all(
+			"Sales Order BpAK",
+			filters={"parent": sales_order, "parenttype": "Sales Order"},
+			fields=["name", "bpak"],
+			order_by="idx asc",
+		):
+			if r.bpak:
+				pairs.append((r.name, r.bpak))
+	elif bpak_names:
+		bpak_names = frappe.parse_json(bpak_names) if isinstance(bpak_names, str) else bpak_names
+		for b in bpak_names:
+			if b:
+				pairs.append((b, b))
+
+	if not pairs:
 		return []
+
+	bpak_to_row = {}
+	for row_name, bpak in pairs:
+		bpak_to_row.setdefault(bpak, []).append(row_name)
+
 	rows = frappe.get_all(
 		"BpAK Planned Item",
-		filters={"parent": ["in", bpak_names], "parenttype": "BpAK"},
-		fields=["item_code", "qty", "uom"],
+		filters={"parent": ["in", list(bpak_to_row.keys())], "parenttype": "BpAK"},
+		fields=["parent", "item_code", "qty", "uom"],
 	)
-	totals = {}
+	aggregated = {}
 	for r in rows:
 		if not r.item_code:
 			continue
-		entry = totals.setdefault(r.item_code, {"item_code": r.item_code, "qty": 0, "uom": r.uom})
-		entry["qty"] += float(r.qty or 0)
-		if not entry["uom"] and r.uom:
-			entry["uom"] = r.uom
-	return list(totals.values())
+		for row_name in bpak_to_row.get(r.parent, []):
+			key = (row_name, r.item_code)
+			entry = aggregated.setdefault(key, {
+				"bpak_row": row_name,
+				"item_code": r.item_code,
+				"qty": 0.0,
+				"uom": r.uom,
+			})
+			entry["qty"] += float(r.qty or 0)
+			if not entry["uom"] and r.uom:
+				entry["uom"] = r.uom
+
+	for entry in aggregated.values():
+		if not entry["qty"]:
+			entry["qty"] = 1.0
+	return list(aggregated.values())

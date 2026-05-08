@@ -1437,40 +1437,67 @@ erpnext.selling.setup_bpak_create_button = function (frm) {
 };
 
 erpnext.selling.refresh_items_from_bpaks = function (frm) {
-	const bpak_names = (frm.doc.bpaks || []).map((r) => r.bpak).filter(Boolean);
-	if (!bpak_names.length) {
+	const bpak_rows = (frm.doc.bpaks || [])
+		.filter((r) => r.bpak)
+		.map((r) => ({ name: r.name, bpak: r.bpak }));
+	if (!bpak_rows.length) {
 		frappe.msgprint(__("No BpAK linked to this Sales Order."));
 		return;
 	}
 	frappe.call({
 		method: "erpnext.selling.doctype.sales_order.sales_order.aggregate_bpak_planned_items",
-		args: { bpak_names: bpak_names },
+		args: { bpak_rows: bpak_rows },
 		freeze: true,
 		freeze_message: __("Refreshing items..."),
 		callback: (r) => {
 			const aggregated = r.message || [];
-			if (!aggregated.length) {
-				frappe.msgprint(__("No planned items found in linked BpAKs."));
-				return;
-			}
-			frm.clear_table("items");
+			const planned_by_key = {};
 			aggregated.forEach((p) => {
+				planned_by_key[`${p.bpak_row}::${p.item_code}`] = p;
+			});
+
+			const kept = [];
+			const seen = new Set();
+			(frm.doc.items || []).forEach((row) => {
+				if (!row.bpak_row) {
+					kept.push(row);
+					return;
+				}
+				const key = `${row.bpak_row}::${row.item_code}`;
+				const planned = planned_by_key[key];
+				if (!planned) return;
+				if (Number(row.qty || 0) !== Number(planned.qty || 0)) {
+					row.qty = planned.qty;
+				}
+				kept.push(row);
+				seen.add(key);
+			});
+			frm.doc.items = kept;
+			(frm.doc.items || []).forEach((row, i) => { row.idx = i + 1; });
+
+			const to_add = aggregated.filter((p) => !seen.has(`${p.bpak_row}::${p.item_code}`));
+			const promises = to_add.map((p) => {
 				const it = frm.add_child("items", {
 					item_code: p.item_code,
 					qty: p.qty,
 					uom: p.uom,
+					bpak_row: p.bpak_row,
 				});
-				frm.script_manager.trigger("item_code", it.doctype, it.name).then(() => {
+				return frm.script_manager.trigger("item_code", it.doctype, it.name).then(() => {
 					frappe.model.set_value(it.doctype, it.name, "qty", p.qty);
 					if (p.uom) {
 						frappe.model.set_value(it.doctype, it.name, "uom", p.uom);
 					}
+					frappe.model.set_value(it.doctype, it.name, "bpak_row", p.bpak_row);
 				});
 			});
-			frm.refresh_field("items");
-			frappe.show_alert({
-				message: __("Items refreshed from {0} BpAK(s)", [bpak_names.length]),
-				indicator: "green",
+
+			Promise.all(promises).then(() => {
+				frm.refresh_field("items");
+				frappe.show_alert({
+					message: __("Items refreshed from {0} BpAK(s)", [bpak_rows.length]),
+					indicator: "green",
+				});
 			});
 		},
 	});
