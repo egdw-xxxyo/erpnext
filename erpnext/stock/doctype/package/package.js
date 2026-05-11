@@ -1,4 +1,16 @@
 frappe.ui.form.on("Package", {
+	setup: function (frm) {
+		frm.set_query("bpak", function () {
+			return {
+				filters: { docstatus: 1, status: ["!=", "Cancelled"] },
+			};
+		});
+	},
+
+	bpak: function (frm) {
+		frm._bpak_allowed_items = null;
+	},
+
 	refresh: function (frm) {
 		setup_package_barcode(frm);
 		setup_package_print_labels(frm);
@@ -13,6 +25,12 @@ frappe.ui.form.on("Package", {
 			frm.dashboard.add_indicator(__("Shipment: {0}", [frm.doc.shipment]), "green");
 		}
 
+		if (frm.is_new() && frm.doc.bpak && frappe.route_options && frappe.route_options.bpak) {
+			frm.set_df_property("bpak", "read_only", 1);
+		}
+		if (!frm.is_new() && frm.doc.bpak) {
+			frm.set_df_property("bpak", "read_only", 1);
+		}
 	},
 
 	packing_template: function (frm) {
@@ -85,6 +103,41 @@ frappe.ui.form.on("Package", {
 	process_scan: function (frm, value) {
 		value = value.trim();
 
+		let bpak_name = null;
+		frappe.call({
+			method: "frappe.client.get_value",
+			args: {
+				doctype: "BpAK",
+				filters: { serial_no: value, docstatus: 1 },
+				fieldname: "name",
+			},
+			async: false,
+			callback: function (r) {
+				if (r.message && r.message.name) bpak_name = r.message.name;
+			},
+		});
+		if (bpak_name) {
+			if (frm.doc.bpak === bpak_name) {
+				frappe.show_alert({
+					message: __("BpAK already set: {0}", [bpak_name]),
+					indicator: "orange",
+				});
+			} else if (frm.doc.bpak) {
+				frappe.show_alert({
+					message: __("BpAK already set to {0}", [frm.doc.bpak]),
+					indicator: "orange",
+				});
+			} else {
+				frm.set_value("bpak", bpak_name);
+				frappe.show_alert({
+					message: __("BpAK set: {0}", [bpak_name]),
+					indicator: "green",
+				});
+				frappe.utils.play_sound("click");
+			}
+			return;
+		}
+
 		frappe.call({
 			method: "frappe.client.get_value",
 			args: {
@@ -124,6 +177,42 @@ frappe.ui.form.on("Package", {
 						}
 
 						let data = r.message;
+
+						let tmpl_requires_bpak = false;
+						if (frm.doc.packing_template) {
+							let tmpl = frappe.get_doc("Packing Template", frm.doc.packing_template);
+							tmpl_requires_bpak = !!(tmpl && tmpl.bpak_required);
+						}
+						if (tmpl_requires_bpak && !frm.doc.bpak) {
+							frappe.show_alert({
+								message: __("Select BpAK before scanning items."),
+								indicator: "red",
+							});
+							return;
+						}
+						if (frm.doc.bpak) {
+							let allowed = frm._bpak_allowed_items;
+							if (!allowed) {
+								let bpak_doc = null;
+								frappe.call({
+									method: "frappe.client.get",
+									args: { doctype: "BpAK", name: frm.doc.bpak },
+									async: false,
+									callback: function (rr) { bpak_doc = rr.message; },
+								});
+								allowed = new Set(
+									((bpak_doc && bpak_doc.planned_items) || []).map((r) => r.item_code)
+								);
+								frm._bpak_allowed_items = allowed;
+							}
+							if (allowed.size && !allowed.has(data.item_code)) {
+								frappe.show_alert({
+									message: __("Item {0} is not in BpAK {1}", [data.item_code, frm.doc.bpak]),
+									indicator: "red",
+								});
+								return;
+							}
+						}
 
 						if (data.serial_no) {
 							let exists = (frm.doc.items || []).some(

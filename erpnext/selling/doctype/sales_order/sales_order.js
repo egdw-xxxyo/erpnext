@@ -9,6 +9,7 @@ erpnext.sales_common.setup_selling_controller();
 
 frappe.ui.form.on("Sales Order", {
 	setup: function (frm) {
+		frappe.model.with_doctype("BpAK Planned Item");
 		frm.custom_make_buttons = {
 			"Delivery Note": "Delivery Note",
 			"Pick List": "Pick List",
@@ -57,7 +58,15 @@ frappe.ui.form.on("Sales Order", {
 		frm.set_df_property("packed_items", "cannot_delete_rows", true);
 	},
 
+	delivered_in_bpaks: function (frm) {
+		erpnext.selling.add_bpak_buttons(frm);
+		erpnext.selling.setup_bpak_create_button(frm);
+	},
+
 	refresh: function (frm) {
+		erpnext.selling.add_bpak_buttons(frm);
+		erpnext.selling.setup_bpak_create_button(frm);
+		erpnext.selling.render_bpak_progress(frm);
 		if (frm.doc.docstatus === 1) {
 			if (
 				frm.doc.status !== "Closed" &&
@@ -1400,3 +1409,254 @@ erpnext.selling.SalesOrderController = class SalesOrderController extends erpnex
 };
 
 extend_cscript(cur_frm.cscript, new erpnext.selling.SalesOrderController({ frm: cur_frm }));
+
+
+
+erpnext.selling.setup_bpak_create_button = function (frm) {
+	const grid = frm.fields_dict.bpaks && frm.fields_dict.bpaks.grid;
+	if (!grid) return;
+	if (!frm.doc.delivered_in_bpaks || frm.doc.docstatus !== 0) {
+		grid.custom_buttons && grid.custom_buttons[__("Create new BpAK")]?.hide();
+		grid.custom_buttons && grid.custom_buttons[__("Refresh Items")]?.hide();
+		return;
+	}
+	if (grid.custom_buttons && grid.custom_buttons[__("Create new BpAK")]) {
+		grid.custom_buttons[__("Create new BpAK")].show();
+	} else {
+		grid.add_custom_button(__("Create new BpAK"), () => {
+			erpnext.selling.open_bpak_create_dialog(frm);
+		});
+	}
+	if (grid.custom_buttons && grid.custom_buttons[__("Refresh Items")]) {
+		grid.custom_buttons[__("Refresh Items")].show();
+	} else {
+		grid.add_custom_button(__("Refresh Items"), () => {
+			erpnext.selling.refresh_items_from_bpaks(frm);
+		});
+	}
+};
+
+erpnext.selling.refresh_items_from_bpaks = function (frm) {
+	const bpak_rows = (frm.doc.bpaks || [])
+		.filter((r) => r.bpak)
+		.map((r) => ({ name: r.name, bpak: r.bpak }));
+	if (!bpak_rows.length) {
+		frappe.msgprint(__("No BpAK linked to this Sales Order."));
+		return;
+	}
+	frappe.call({
+		method: "erpnext.selling.doctype.sales_order.sales_order.aggregate_bpak_planned_items",
+		args: { bpak_rows: bpak_rows },
+		freeze: true,
+		freeze_message: __("Refreshing items..."),
+		callback: (r) => {
+			const aggregated = r.message || [];
+			const planned_by_key = {};
+			aggregated.forEach((p) => {
+				planned_by_key[`${p.bpak_row}::${p.item_code}`] = p;
+			});
+
+			const kept = [];
+			const seen = new Set();
+			(frm.doc.items || []).forEach((row) => {
+				if (!row.bpak_row) {
+					kept.push(row);
+					return;
+				}
+				const key = `${row.bpak_row}::${row.item_code}`;
+				const planned = planned_by_key[key];
+				if (!planned) return;
+				if (Number(row.qty || 0) !== Number(planned.qty || 0)) {
+					row.qty = planned.qty;
+				}
+				kept.push(row);
+				seen.add(key);
+			});
+			frm.doc.items = kept;
+			(frm.doc.items || []).forEach((row, i) => { row.idx = i + 1; });
+
+			const to_add = aggregated.filter((p) => !seen.has(`${p.bpak_row}::${p.item_code}`));
+			const promises = to_add.map((p) => {
+				const it = frm.add_child("items", {
+					item_code: p.item_code,
+					qty: p.qty,
+					uom: p.uom,
+					bpak_row: p.bpak_row,
+				});
+				return frm.script_manager.trigger("item_code", it.doctype, it.name).then(() => {
+					frappe.model.set_value(it.doctype, it.name, "qty", p.qty);
+					if (p.uom) {
+						frappe.model.set_value(it.doctype, it.name, "uom", p.uom);
+					}
+					frappe.model.set_value(it.doctype, it.name, "bpak_row", p.bpak_row);
+				});
+			});
+
+			Promise.all(promises).then(() => {
+				frm.refresh_field("items");
+				frappe.show_alert({
+					message: __("Items refreshed from {0} BpAK(s)", [bpak_rows.length]),
+					indicator: "green",
+				});
+			});
+		},
+	});
+};
+
+erpnext.selling.open_bpak_create_dialog = function (frm) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Create new BpAK"),
+		size: "large",
+		fields: [
+			{
+				fieldname: "bpak_template",
+				fieldtype: "Link",
+				label: __("BpAK Template"),
+				options: "BpAK Template",
+				reqd: 1,
+			},
+			{
+				fieldname: "items",
+				fieldtype: "Table",
+				label: __("Planned Items"),
+				cannot_add_rows: false,
+				in_place_edit: true,
+				data: [],
+				fields: [
+					{
+						fieldtype: "Link",
+						fieldname: "item_code",
+						options: "Item",
+						label: __("Item"),
+						in_list_view: 1,
+						reqd: 1,
+						columns: 4,
+					},
+					{
+						fieldtype: "Float",
+						fieldname: "qty",
+						label: __("Qty"),
+						in_list_view: 1,
+						reqd: 1,
+						default: 1,
+						columns: 2,
+					},
+					{
+						fieldtype: "Link",
+						fieldname: "uom",
+						options: "UOM",
+						label: __("UOM"),
+						in_list_view: 1,
+						fetch_from: "item_code.stock_uom",
+						columns: 2,
+					},
+				],
+			},
+		],
+		primary_action_label: __("Create & Attach"),
+		primary_action: (values) => {
+			if (!values.items || !values.items.length) {
+				frappe.msgprint(__("Add at least one item."));
+				return;
+			}
+			frappe.call({
+				method: "erpnext.stock.doctype.bpak.bpak.create_and_attach",
+				args: {
+					bpak_template: values.bpak_template,
+					items: values.items,
+					sales_order: frm.is_new() ? null : frm.doc.name,
+					customer: frm.doc.customer,
+				},
+				freeze: true,
+				freeze_message: __("Creating BpAK..."),
+				callback: (r) => {
+					if (!r.message) return;
+					const bpak_row = frm.add_child("bpaks", { bpak: r.message.name });
+					frm.script_manager.trigger("bpak", bpak_row.doctype, bpak_row.name);
+					(r.message.planned_items || []).forEach((p) => {
+						const it = frm.add_child("items", {
+							item_code: p.item_code,
+							qty: p.qty,
+							uom: p.uom,
+							bpak_row: bpak_row.name,
+						});
+						frm.script_manager.trigger("item_code", it.doctype, it.name);
+					});
+					frm.refresh_field("bpaks");
+					frm.refresh_field("items");
+					dialog.hide();
+					frappe.show_alert({
+						message: __("BpAK {0} created and attached", [r.message.name]),
+						indicator: "green",
+					});
+				},
+			});
+		},
+	});
+	dialog.show();
+};
+
+erpnext.selling.add_bpak_buttons = function (frm) {
+	if (!frm.doc.delivered_in_bpaks || frm.is_new() || frm.doc.docstatus !== 1) return;
+	frm.add_custom_button(
+		__("Оновити БпАК"),
+		() => {
+			frappe.call({
+				method: "erpnext.stock.doctype.bpak.bpak.refresh_bpak_aggregates",
+				args: { sales_order: frm.doc.name },
+				freeze: true,
+				callback: () => frm.reload_doc(),
+			});
+		}
+	);
+};
+
+erpnext.selling.render_bpak_progress = function (frm) {
+	let wrapper = frm.fields_dict.bpak_progress_html
+		&& frm.fields_dict.bpak_progress_html.$wrapper;
+	if (!wrapper) return;
+	if (frm.is_new() || !frm.doc.delivered_in_bpaks) {
+		wrapper.empty();
+		return;
+	}
+	frappe.call({
+		method: "erpnext.selling.doctype.sales_order.sales_order.get_bpak_progress",
+		args: { sales_order: frm.doc.name },
+		callback: function (r) {
+			let rows = r.message || [];
+			if (!rows.length) {
+				wrapper.html(`<p class="text-muted">${__("No BpAK linked.")}</p>`);
+				return;
+			}
+			let html = `<table class="table table-bordered">
+				<thead><tr>
+					<th>${__("BpAK")}</th>
+					<th>${__("Serial No")}</th>
+					<th>${__("Status")}</th>
+					<th class="text-right">${__("Expected")}</th>
+					<th class="text-right">${__("Packed")}</th>
+					<th class="text-right">${__("Packages")}</th>
+				</tr></thead><tbody>`;
+			rows.forEach((r) => {
+				let bpak_link = `<a href="/app/bpak/${encodeURIComponent(r.bpak)}">${frappe.utils.escape_html(r.bpak)}</a>`;
+				let pkg_link = r.package_count
+					? `<a href="/app/package/view/list?bpak=${encodeURIComponent(r.bpak)}">${r.package_count}</a>`
+					: "0";
+				let packed_cell = r.planned_qty
+					? `${r.packed_qty} / ${r.planned_qty}`
+					: r.packed_qty;
+				html += `<tr>
+					<td>${bpak_link}</td>
+					<td>${frappe.utils.escape_html(r.serial_no || "")}</td>
+					<td>${frappe.utils.escape_html(r.status || "")}</td>
+					<td class="text-right">${r.planned_qty}</td>
+					<td class="text-right">${packed_cell}</td>
+					<td class="text-right">${pkg_link}</td>
+				</tr>`;
+			});
+			html += "</tbody></table>";
+			wrapper.html(html);
+		},
+	});
+};
+

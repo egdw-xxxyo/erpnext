@@ -6,11 +6,73 @@ from frappe.model.document import Document
 class Package(Document):
 	def after_insert(self):
 		self.db_set("box_barcode", self.name)
+		self._sync_bpak_child()
+
+	def on_update(self):
+		self._sync_bpak_child()
+
+	def _sync_bpak_child(self):
+		if not self.bpak:
+			return
+		from erpnext.stock.doctype.bpak.bpak import sync_packages_child
+		sync_packages_child(self.bpak)
 
 	def validate(self):
 		self.validate_duplicate_serial_nos()
+		self._validate_serial_required()
+		self._validate_bpak()
 		if self.docstatus == 0:
 			self.status = "Draft"
+
+	def _validate_serial_required(self):
+		missing = []
+		for row in self.items:
+			if not row.item_code:
+				continue
+			if row.serial_no:
+				continue
+			if frappe.db.get_value("Item", row.item_code, "has_serial_no"):
+				missing.append(f"#{row.idx} {row.item_code}")
+		if missing:
+			frappe.throw(
+				_("Serial No is required for: {0}").format(", ".join(missing))
+			)
+
+	def _validate_bpak(self):
+		if self.packing_template and not self.bpak:
+			if frappe.db.get_value("Packing Template", self.packing_template, "bpak_required"):
+				frappe.throw(
+					_("Packing Template {0} requires a BpAK to be selected.").format(
+						self.packing_template
+					)
+				)
+		if not self.bpak:
+			return
+		bpak_status, bpak_so = frappe.db.get_value(
+			"BpAK", self.bpak, ["docstatus", "sales_order"]
+		) or (None, None)
+		if bpak_status is None:
+			frappe.throw(_("BpAK {0} not found").format(self.bpak))
+		if bpak_status == 2:
+			frappe.throw(_("BpAK {0} is cancelled").format(self.bpak))
+		if self.sales_order and bpak_so and self.sales_order != bpak_so:
+			frappe.throw(
+				_("Package Sales Order {0} does not match BpAK Sales Order {1}").format(
+					self.sales_order, bpak_so
+				)
+			)
+		allowed = {
+			r[0] for r in frappe.db.sql(
+				"SELECT item_code FROM `tabBpAK Planned Item` WHERE parent=%s",
+				self.bpak,
+			)
+		}
+		if allowed:
+			invalid = sorted({r.item_code for r in self.items if r.item_code and r.item_code not in allowed})
+			if invalid:
+				frappe.throw(
+					_("Items not allowed by BpAK {0}: {1}").format(self.bpak, ", ".join(invalid))
+				)
 
 	def before_submit(self):
 		if not self.items:
@@ -60,6 +122,7 @@ class Package(Document):
 		if self.operation:
 			self._finish_operations()
 		self.db_set("status", "Packed")
+		self._update_bpak_status()
 
 	def _apply_qc_pass(self):
 		touched_qis = set()
@@ -170,6 +233,13 @@ class Package(Document):
 				_("Cannot cancel a Package linked to Shipment {0}").format(self.shipment)
 			)
 		self.db_set("status", "Cancelled")
+		self._update_bpak_status()
+
+	def _update_bpak_status(self):
+		if not self.bpak:
+			return
+		from erpnext.stock.doctype.bpak.bpak import update_status_from_package
+		update_status_from_package(self.bpak)
 
 	def on_trash(self):
 		if self.purchase_receipt:
@@ -335,5 +405,8 @@ def add_package_to_shipment(package_name, shipment_name):
 
 	pkg.db_set("shipment", shipment_name)
 	pkg.db_set("status", "Shipped")
+	if pkg.bpak:
+		from erpnext.stock.doctype.bpak.bpak import update_status_from_package
+		update_status_from_package(pkg.bpak)
 
 	return {"message": _("Package {0} added to Shipment {1}").format(package_name, shipment_name)}

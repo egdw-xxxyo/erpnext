@@ -129,10 +129,18 @@ class SerialNumberTemplate(Document):
 	def resolve_series(self, item_code, supplier=None):
 		item = frappe.get_doc("Item", item_code)
 		attr_map = {d.attribute: d.attribute_value for d in (item.attributes or [])}
+		return self.resolve_series_from_attributes(
+			attr_map, supplier=supplier, context_label=f"Item '{item_code}'"
+		)
 
-		series = self.resulting_series
+	def resolve_series_from_attributes(self, attribute_map, supplier=None, context_label=None):
+		"""Resolve {ATTR:Name} and {SUPP} tokens against an explicit attribute name -> value map.
 
-		for attr_name, attr_value in attr_map.items():
+		attribute_map values are looked up in `Item Attribute Value` to find the abbreviation.
+		"""
+		series = self.resulting_series or ""
+
+		for attr_name, attr_value in (attribute_map or {}).items():
 			token = "{ATTR:" + attr_name + "}"
 			if token in series:
 				abbr = frappe.db.get_value(
@@ -155,8 +163,9 @@ class SerialNumberTemplate(Document):
 
 		unresolved = re.findall(r"\{ATTR:(.+?)\}", series)
 		if unresolved:
+			label = context_label or "Document"
 			frappe.throw(
-				f"Item '{item_code}' is missing attributes: {', '.join(unresolved)}. "
+				f"{label} is missing attributes: {', '.join(unresolved)}. "
 				f"Cannot resolve serial number template."
 			)
 

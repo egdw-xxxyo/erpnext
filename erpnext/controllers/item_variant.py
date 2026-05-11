@@ -374,6 +374,28 @@ def copy_attributes_to_variant(item, variant):
 					variant.description = attributes_description
 
 
+def make_code_from_pattern(pattern, attributes):
+	"""Resolve `{AttributeName}` placeholders in `pattern` against an iterable of rows
+	with `attribute` and `attribute_value`. Looks up `Item Attribute Value` and
+	prefers `short_name`, falling back to `abbr`, then to the raw attribute_value.
+	"""
+	result = pattern
+	for attr in attributes or []:
+		placeholder = "{" + attr.attribute + "}"
+		if placeholder not in result:
+			continue
+
+		row = frappe.db.get_value(
+			"Item Attribute Value",
+			{"parent": attr.attribute, "attribute_value": attr.attribute_value},
+			["short_name", "abbr"],
+			as_dict=True,
+		)
+		display = (row.short_name or row.abbr) if row else cstr(attr.attribute_value)
+		result = result.replace(placeholder, display)
+	return result
+
+
 def make_variant_item_code(template_item_code, template_item_name, variant):
 	"""Uses template's item code and abbreviations to make variant's item code"""
 	if variant.item_code:
@@ -383,21 +405,7 @@ def make_variant_item_code(template_item_code, template_item_name, variant):
 	pattern = template_doc.get("variant_name_pattern")
 
 	if pattern:
-		result = pattern
-		for attr in variant.attributes:
-			placeholder = "{" + attr.attribute + "}"
-			if placeholder not in result:
-				continue
-
-			row = frappe.db.get_value(
-				"Item Attribute Value",
-				{"parent": attr.attribute, "attribute_value": attr.attribute_value},
-				["short_name", "abbr"],
-				as_dict=True,
-			)
-			display = (row.short_name or row.abbr) if row else cstr(attr.attribute_value)
-			result = result.replace(placeholder, display)
-
+		result = make_code_from_pattern(pattern, variant.attributes)
 		variant.item_code = result
 		variant.item_name = result
 		return

@@ -10,6 +10,7 @@
   "column_break_details",
   "box_template",
   "expected_qty",
+  "bpak_required",
   "auto_pass_qc",
   "operation",
   "barcode_id",
@@ -70,6 +71,13 @@
    "fieldname": "expected_qty",
    "fieldtype": "Int",
    "label": "Expected Qty"
+  },
+  {
+   "default": "0",
+   "fieldname": "bpak_required",
+   "fieldtype": "Check",
+   "label": "BpAK Required",
+   "description": "If set, a Package using this template must have a BpAK selected before it can be saved/submitted."
   },
   {
    "default": "0",
