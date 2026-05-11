@@ -18,7 +18,9 @@
   "timing_section",
   "resolve_ms",
   "script_ms",
-  "total_ms"
+  "total_ms",
+  "logs_section",
+  "script_logs"
  ],
  "fields": [
   {
@@ -111,6 +113,19 @@
    "in_list_view": 1,
    "columns": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "logs_section",
+   "fieldtype": "Section Break",
+   "label": "Script Logs",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "script_logs",
+   "fieldtype": "Code",
+   "label": "Script Logs",
+   "read_only": 1,
+   "description": "Output from logger.log() / logger.info() / logger.warn() / logger.error() in the workplace/scanner script"
   }
  ],
  "index_web_pages_for_search": 0,

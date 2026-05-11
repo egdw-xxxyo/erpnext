@@ -7,6 +7,35 @@ from frappe.utils import now_datetime
 
 
 # ---------------------------------------------------------------------------
+# Logger — injected into script event as e.logger
+# ---------------------------------------------------------------------------
+
+class ScriptLogger:
+	def __init__(self):
+		self._lines = []
+
+	def _emit(self, level, args):
+		parts = []
+		for a in args:
+			try:
+				parts.append(a if isinstance(a, str) else json.dumps(a, default=str, ensure_ascii=False))
+			except Exception:
+				parts.append(str(a))
+		ts = now_datetime().strftime("%H:%M:%S")
+		self._lines.append(f"[{ts}] {level} {' '.join(parts)}")
+
+	def log(self, *args): self._emit("LOG", args)
+	def info(self, *args): self._emit("INFO", args)
+	def warn(self, *args): self._emit("WARN", args)
+	def warning(self, *args): self._emit("WARN", args)
+	def error(self, *args): self._emit("ERROR", args)
+	def debug(self, *args): self._emit("DEBUG", args)
+
+	def render(self):
+		return "\n".join(self._lines)
+
+
+# ---------------------------------------------------------------------------
 # State proxy — injected into script event as e.state
 # ---------------------------------------------------------------------------
 
@@ -109,6 +138,7 @@ def handle_scan(scanner_key=None, data=None):
 	state_timeout = scanner.get_state_timeout()
 	state_dict = _load_state(scanner.name, state_timeout)
 	state_proxy = ScannerStateProxy(state_dict)
+	logger = ScriptLogger()
 
 	t_resolve_start = time.perf_counter()
 	scan_type, scan_ctx = _resolve_scan(data)
@@ -126,6 +156,7 @@ def handle_scan(scanner_key=None, data=None):
 		"workplace": workplace_doc,
 		"employee": scanner.employee,
 		"state": state_proxy,
+		"logger": logger,
 	})
 
 	workplace_script = _get_workplace_script(scanner.workplace)
@@ -168,6 +199,7 @@ def handle_scan(scanner_key=None, data=None):
 				resolve_ms=resolve_ms,
 				script_ms=script_ms,
 				total_ms=total_ms,
+				script_logs=logger.render() or None,
 			)
 			frappe.db.commit()
 			return _resp(
@@ -184,7 +216,8 @@ def handle_scan(scanner_key=None, data=None):
 		total_ms = int((time.perf_counter() - t_start) * 1000)
 		_update_scan_log(scanner, scan_log_row, status="Error",
 						error_message="on_scan handler not found or returned None",
-						resolve_ms=resolve_ms, script_ms=script_ms, total_ms=total_ms)
+						resolve_ms=resolve_ms, script_ms=script_ms, total_ms=total_ms,
+						script_logs=logger.render() or None)
 		frappe.db.commit()
 		return _resp(success=False,
 					error="on_scan handler not found or returned None",
@@ -194,7 +227,8 @@ def handle_scan(scanner_key=None, data=None):
 		_persist_state(scanner.name, state_proxy, state_timeout)
 		total_ms = int((time.perf_counter() - t_start) * 1000)
 		_update_scan_log(scanner, scan_log_row, status="Error", error_message=str(e),
-						resolve_ms=resolve_ms, total_ms=total_ms)
+						resolve_ms=resolve_ms, total_ms=total_ms,
+						script_logs=logger.render() or None)
 		frappe.db.commit()
 		return _resp(success=False, error=str(e), scan_log=scan_log_row)
 
@@ -260,7 +294,7 @@ def _update_scan_log(scanner, row_name, **kwargs):
 	updates = {}
 	for key in ("status", "resolved_action", "scanner_mode", "scanner_state",
 				"target_doctype", "target_document", "result_message", "error_message",
-				"resolve_ms", "script_ms", "total_ms"):
+				"resolve_ms", "script_ms", "total_ms", "script_logs"):
 		if key in kwargs and kwargs[key] is not None:
 			updates[key] = kwargs[key]
 	if updates:

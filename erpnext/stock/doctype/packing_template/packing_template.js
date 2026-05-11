@@ -45,14 +45,24 @@ function setup_barcode(frm) {
 }
 
 function setup_print_labels(frm) {
-	if (frm.is_new() || !frm.doc.label_template) return;
-	frm.page.add_menu_item(__("Print Labels"), function () {
-		erpnext.utils.open_simple_label_print_dialog({
-			doctype: "Packing Template",
-			doc_name: frm.doc.name,
-			label_templates: [
-				{ label_template: frm.doc.label_template, label_printer: frm.doc.label_printer },
-			],
-		});
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "Packing Template" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "Packing Template",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
 	});
 }
