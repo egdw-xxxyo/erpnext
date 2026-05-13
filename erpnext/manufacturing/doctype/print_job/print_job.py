@@ -24,6 +24,7 @@ class PrintJob(Document):
 		reference_name: DF.DynamicLink | None
 		status: DF.Literal["Queued", "Printing", "Printed", "Failed", "Cancelled"]
 		zpl_output: DF.Code | None
+		log: DF.Code | None
 
 	def validate(self):
 		pass

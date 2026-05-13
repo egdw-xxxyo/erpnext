@@ -26,43 +26,16 @@ frappe.ui.form.on("Scanner", {
 
 				frm.fields_dict.config_barcodes_html.$wrapper.html(`
 					<p class="text-muted" style="font-size: 12px;">
-						${__("Scan these in order to configure a physical scanner device.")}
+						${__("Scan this QR code with the physical scanner to configure both the server URL and API key in one step.")}
 					</p>
-					<div style="display: flex; flex-wrap: wrap; gap: 20px;">
-						<div style="flex: 1; min-width: 280px; border: 1px solid var(--border-color);
+					<div style="display: flex; justify-content: center;">
+						<div style="min-width: 280px; max-width: 400px; border: 1px solid var(--border-color);
 							border-radius: 4px; padding: 15px; text-align: center;">
-							<div style="font-weight: 600; margin-bottom: 4px;">1. CFG-URL</div>
-							<div class="text-muted" style="font-size: 11px; margin-bottom: 8px;">
-								${__("Scan to enter URL config mode")}
+							<div style="font-weight: 600; margin-bottom: 8px;">CFG-SCANNER</div>
+							<div>${d.config_qr}</div>
+							<div class="text-muted" style="font-size: 10px; margin-top: 8px; word-break: break-all;">
+								${d.endpoint_url}
 							</div>
-							<div>${d.cfg_url_barcode}</div>
-						</div>
-						<div style="flex: 1; min-width: 280px; border: 1px solid var(--border-color);
-							border-radius: 4px; padding: 15px; text-align: center;">
-							<div style="font-weight: 600; margin-bottom: 4px;">2. ${__("Server URL")}</div>
-							<div class="text-muted" style="font-size: 11px; margin-bottom: 8px;">
-								${__("Scan after CFG-URL to set the endpoint")}
-							</div>
-							<div>${d.url_qr}</div>
-							<div class="text-muted" style="font-size: 10px; margin-top: 6px; word-break: break-all;">
-								${endpoint_url}
-							</div>
-						</div>
-						<div style="flex: 1; min-width: 280px; border: 1px solid var(--border-color);
-							border-radius: 4px; padding: 15px; text-align: center;">
-							<div style="font-weight: 600; margin-bottom: 4px;">3. CFG-KEY</div>
-							<div class="text-muted" style="font-size: 11px; margin-bottom: 8px;">
-								${__("Scan to enter API Key config mode")}
-							</div>
-							<div>${d.cfg_key_barcode}</div>
-						</div>
-						<div style="flex: 1; min-width: 280px; border: 1px solid var(--border-color);
-							border-radius: 4px; padding: 15px; text-align: center;">
-							<div style="font-weight: 600; margin-bottom: 4px;">4. ${__("API Key")}</div>
-							<div class="text-muted" style="font-size: 11px; margin-bottom: 8px;">
-								${__("Scan after CFG-KEY to set the scanner identity")}
-							</div>
-							<div>${d.api_key_qr}</div>
 							<div style="font-family: monospace; font-size: 14px; margin-top: 6px;">
 								${d.api_key}
 							</div>
