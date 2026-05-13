@@ -16,6 +16,7 @@ def execute():
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
 	create_custom_fields_on_work_order()
+	create_custom_fields_on_employee()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	frappe.db.commit()
@@ -251,6 +252,20 @@ def create_custom_fields_on_work_order():
 			"label": "Серійні номери",
 			"insert_after": "has_serial_no",
 			"depends_on": "has_serial_no",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_employee():
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "shortname",
+			"fieldtype": "Data",
+			"label": "Shortname",
+			"insert_after": "employee_name",
+			"unique": 1,
 		},
 	]
 	_create_custom_fields(fields)
