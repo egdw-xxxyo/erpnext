@@ -285,6 +285,7 @@ function setup_package_print_labels(frm) {
 				label_templates: [
 					{ label_template: tmpl.label_template, label_printer: tmpl.label_printer },
 				],
+				default_copies: tmpl.label_copies,
 			});
 		});
 	});
