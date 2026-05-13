@@ -28,7 +28,8 @@
   "error_message",
   "printed_at",
   "column_break_output",
-  "zpl_output"
+  "zpl_output",
+  "log"
  ],
  "fields": [
   {
@@ -180,6 +181,13 @@
    "fieldname": "zpl_output",
    "fieldtype": "Code",
    "label": "ZPL Output",
+   "options": "Text",
+   "read_only": 1
+  },
+  {
+   "fieldname": "log",
+   "fieldtype": "Code",
+   "label": "Log",
    "options": "Text",
    "read_only": 1
   }

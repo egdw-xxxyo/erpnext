@@ -424,14 +424,21 @@ def test_print(printer_name, template_name):
 def print_label(print_job_name):
 	t_total = time.monotonic()
 	log = frappe.logger("label_printer")
+	log_lines = []
+
+	def tlog(msg, level="info"):
+		from datetime import datetime
+		stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+		log_lines.append(f"{stamp} {msg}")
+		(log.error if level == "error" else log.info)(msg)
 
 	t0 = time.monotonic()
 	job = frappe.get_doc("Print Job", print_job_name)
-	log.info(
+	tlog(
 		f"[TIMING] print_label START job={print_job_name}, status={job.status}, "
 		f"template={job.label_template}, printer={job.label_printer}"
 	)
-	log.error(f"[TIMING] load_job: {(time.monotonic() - t0)*1000:.0f}ms")
+	tlog(f"[TIMING] load_job: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	if job.status not in ("Queued", "Failed", "Printed"):
 		frappe.throw(_("Print Job {0} is not in a printable state (status: {1})").format(
@@ -440,7 +447,7 @@ def print_label(print_job_name):
 
 	t0 = time.monotonic()
 	printer = _get_printer_doc(job.label_printer)
-	log.error(f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms")
+	tlog(f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms printer={printer.name} ip={printer.ip_address}:{printer.port}")
 
 	if printer.is_label_change_in_progress:
 		frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
@@ -454,7 +461,7 @@ def print_label(print_job_name):
 
 	t0 = time.monotonic()
 	template = frappe.get_doc("Label Template", job.label_template)
-	log.info(
+	tlog(
 		f"[TIMING] load_template: {(time.monotonic() - t0)*1000:.0f}ms "
 		f"type={template.template_type}, size={template.label_size}"
 	)
@@ -472,12 +479,12 @@ def print_label(print_job_name):
 	parent_doc = None
 	if job.parent_doctype and job.parent_name:
 		parent_doc = frappe.get_doc(job.parent_doctype, job.parent_name)
-	log.error(f"[TIMING] load_data: {(time.monotonic() - t0)*1000:.0f}ms")
+	tlog(f"[TIMING] load_data: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	try:
 		t0 = time.monotonic()
 		frappe.db.set_value("Print Job", print_job_name, "status", "Printing")
-		log.error(f"[TIMING] set_status_printing: {(time.monotonic() - t0)*1000:.0f}ms")
+		tlog(f"[TIMING] set_status_printing: {(time.monotonic() - t0)*1000:.0f}ms")
 
 		if template.template_type == "HTML":
 			size = frappe.get_doc("Label Size", template.label_size)
@@ -486,13 +493,13 @@ def print_label(print_job_name):
 			t0 = time.monotonic()
 			pcx_data = _load_pcx_file(job)
 			if pcx_data:
-				log.error(f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
+				tlog(f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
 					f"({len(pcx_data)}bytes) — skipping wkhtmltoimage")
 			else:
-				log.error(f"[TIMING] no pre-rendered PCX, rendering on the fly")
+				tlog(f"[TIMING] no pre-rendered PCX, rendering on the fly")
 				t0 = time.monotonic()
 				rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
-				log.error(f"[TIMING] render_html: {(time.monotonic() - t0)*1000:.0f}ms ({len(rendered_html)} chars)")
+				tlog(f"[TIMING] render_html: {(time.monotonic() - t0)*1000:.0f}ms ({len(rendered_html)} chars)")
 				if not rendered_html or not rendered_html.strip():
 					raise ValueError("Template rendered empty HTML output")
 
@@ -502,22 +509,22 @@ def print_label(print_job_name):
 
 				t0 = time.monotonic()
 				pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
-				log.error(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
+				tlog(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
 					f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes")
 
 				t0 = time.monotonic()
 				_save_preview_image(print_job_name, png_data)
-				log.error(f"[TIMING] save_preview_image: {(time.monotonic() - t0)*1000:.0f}ms")
+				tlog(f"[TIMING] save_preview_image: {(time.monotonic() - t0)*1000:.0f}ms")
 
 			is_mock = printer.mock_printing
 
 			if not is_mock:
 				t0 = time.monotonic()
 				_send_pcx_label(printer, pcx_data, size, copies=job.copies or 1)
-				log.error(f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
+				tlog(f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
 					f"copies={job.copies or 1}")
 			else:
-				log.error(f"[TIMING] mock printing — skipped sending to printer")
+				tlog(f"[TIMING] mock printing — skipped sending to printer")
 				time.sleep(1)
 
 			t0 = time.monotonic()
@@ -527,12 +534,13 @@ def print_label(print_job_name):
 				"printed_at": now_datetime(),
 				"zpl_output": f"{status_note}[HTML template rendered to PCX, {len(pcx_data)} bytes]",
 				"error_message": "",
+				"log": "\n".join(log_lines),
 			})
-			log.error(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
+			tlog(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
 		else:
 			t0 = time.monotonic()
 			ezpl = _render_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
-			log.error(f"[TIMING] render_ezpl: {(time.monotonic() - t0)*1000:.0f}ms ({len(ezpl)} chars)")
+			tlog(f"[TIMING] render_ezpl: {(time.monotonic() - t0)*1000:.0f}ms ({len(ezpl)} chars)")
 
 			if not ezpl or not ezpl.strip():
 				raise ValueError("Template rendered empty EZPL output")
@@ -543,10 +551,10 @@ def print_label(print_job_name):
 				t0 = time.monotonic()
 				for i in range(job.copies or 1):
 					_send_ezpl(printer, ezpl)
-				log.error(f"[TIMING] send_ezpl (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
+				tlog(f"[TIMING] send_ezpl (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
 					f"copies={job.copies or 1}")
 			else:
-				log.error(f"[TIMING] mock printing — skipped sending to printer")
+				tlog(f"[TIMING] mock printing — skipped sending to printer")
 				time.sleep(1)
 
 			t0 = time.monotonic()
@@ -556,11 +564,13 @@ def print_label(print_job_name):
 				"printed_at": now_datetime(),
 				"zpl_output": f"{status_note}{ezpl}",
 				"error_message": "",
+				"log": "\n".join(log_lines),
 			})
-			log.error(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
+			tlog(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
 
 		total_ms = (time.monotonic() - t_total) * 1000
-		log.error(f"[TIMING] print_label DONE job={print_job_name} TOTAL={total_ms:.0f}ms")
+		tlog(f"[TIMING] print_label DONE job={print_job_name} TOTAL={total_ms:.0f}ms")
+		frappe.db.set_value("Print Job", print_job_name, "log", "\n".join(log_lines), update_modified=False)
 		print_delay = 1500
 		if job.label_size:
 			print_delay = frappe.db.get_value("Label Size", job.label_size, "print_delay_ms") or 1500
@@ -569,12 +579,32 @@ def print_label(print_job_name):
 		import traceback
 		tb = traceback.format_exc()
 		total_ms = (time.monotonic() - t_total) * 1000
-		log.error(f"[TIMING] print_label FAILED job={print_job_name} TOTAL={total_ms:.0f}ms: {e}\n{tb}")
+		tlog(f"[TIMING] print_label FAILED job={print_job_name} printer={job.label_printer} ip={printer.ip_address}:{printer.port} TOTAL={total_ms:.0f}ms: {e}\n{tb}", level="error")
+		frappe.db.rollback()
 		frappe.db.set_value("Print Job", print_job_name, {
 			"status": "Failed",
 			"error_message": str(e),
+			"log": "\n".join(log_lines),
 		})
-		frappe.throw(_("Print failed: {0}").format(str(e)))
+		frappe.db.commit()
+		err_text = str(e)
+		if "timed out" in err_text.lower() or isinstance(e, (socket.timeout, TimeoutError)):
+			msg = _("Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі.").format(
+				job.label_printer, printer.ip_address, printer.port
+			)
+		elif isinstance(e, ConnectionRefusedError) or "refused" in err_text.lower():
+			msg = _("Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний.").format(
+				job.label_printer, printer.ip_address, printer.port
+			)
+		elif isinstance(e, OSError) and "unreachable" in err_text.lower():
+			msg = _("Принтер {0} ({1}:{2}) недоступний з мережі.").format(
+				job.label_printer, printer.ip_address, printer.port
+			)
+		else:
+			msg = _("Помилка друку на принтері {0} ({1}:{2}): {3}").format(
+				job.label_printer, printer.ip_address, printer.port, err_text
+			)
+		frappe.throw(msg)
 
 
 def _render_template(template_doc, doc=None, data=None, parent_doc=None):

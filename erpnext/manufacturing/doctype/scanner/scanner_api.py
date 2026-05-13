@@ -373,7 +373,11 @@ def _apply_message_template(scanner, scanned_data, template_data):
 
 	employee_name = ""
 	if scanner.employee:
-		employee_name = frappe.db.get_value("Employee", scanner.employee, "employee_name") or scanner.employee
+		emp = frappe.db.get_value("Employee", scanner.employee, ["shortname", "employee_name"], as_dict=True)
+		if emp:
+			employee_name = emp.shortname or emp.employee_name or scanner.employee
+		else:
+			employee_name = scanner.employee
 
 	header = template.replace("{employee_name}", employee_name or "-")
 	header = header.replace("{workplace}", scanner.workplace or "-")
