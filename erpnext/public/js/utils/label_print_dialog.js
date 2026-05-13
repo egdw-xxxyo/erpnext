@@ -233,11 +233,12 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 	});
 };
 
-erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, label_templates }) {
+erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, label_templates, default_copies }) {
 	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
 
 	let tmpl_options = label_templates.map((t) => t.label_template);
 	let default_printer = label_templates[0].label_printer || "";
+	let copies_default = parseInt(default_copies) > 0 ? parseInt(default_copies) : 1;
 
 	const dlg = new frappe.ui.Dialog({
 		title: __("Print Labels"),
@@ -270,7 +271,7 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 				fieldname: "copies",
 				fieldtype: "Int",
 				label: __("Copies"),
-				default: 1,
+				default: copies_default,
 				reqd: 1,
 			},
 			{
