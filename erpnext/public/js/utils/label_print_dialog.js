@@ -14,7 +14,89 @@
  *       doc_name: "HR-EMP-00001",
  *       label_templates: [{ label_template: "T1", label_printer: "P1" }],
  *   });
+ *
+ * Usage (bulk, from list view):
+ *   erpnext.utils.open_bulk_label_print_dialog({
+ *       doctype: "Employee",
+ *       names: ["HR-EMP-00001", "HR-EMP-00002"],
+ *   });
  */
+
+erpnext.utils.open_bulk_label_print_dialog = function ({ doctype, names }) {
+	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const dlg = new frappe.ui.Dialog({
+		title: __("Print Labels"),
+		fields: [
+			{
+				fieldname: "label_template",
+				fieldtype: "Link",
+				label: __("Label Template"),
+				options: "Label Template",
+				reqd: 1,
+				get_query: () => ({ filters: { reference_doctype: doctype } }),
+				change: () => {
+					const tmpl = dlg.get_value("label_template");
+					if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
+					frappe.call({
+						method: API_PRINTER + ".count_labels",
+						args: { source_doctype: doctype, source_names: JSON.stringify(names), label_template: tmpl },
+						callback: (r) => {
+							if (r.message) {
+								dlg.fields_dict.info_html.$wrapper.html(
+									`<div class="text-muted">${__("{0} labels from {1} records", [r.message.total, names.length])}</div>`
+								);
+							}
+						},
+					});
+				},
+			},
+			{
+				fieldname: "printer_name",
+				fieldtype: "Link",
+				label: __("Printer"),
+				options: "Label Printer",
+				reqd: 1,
+				get_query: () => ({ filters: { is_enabled: 1 } }),
+			},
+			{ fieldname: "copies", fieldtype: "Int", label: __("Copies"), default: 1, reqd: 1 },
+			{ fieldname: "info_html", fieldtype: "HTML" },
+		],
+		primary_action_label: __("Print"),
+		primary_action: (values) => {
+			dlg.hide();
+			frappe.call({
+				method: API_PRINTER + ".print_labels_batch",
+				args: {
+					source_doctype: doctype,
+					source_names: JSON.stringify(names),
+					label_template: values.label_template,
+					printer_name: values.printer_name,
+					copies: values.copies,
+				},
+				freeze: true,
+				freeze_message: __("Creating print jobs..."),
+				callback: (r) => {
+					if (r.message) {
+						frappe.show_alert({ message: __("{0} print jobs created", [r.message.count]), indicator: "green" });
+					}
+				},
+			});
+		},
+	});
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: { doctype: "Label Template", filters: { reference_doctype: doctype }, fields: ["name"], limit_page_length: 2 },
+		async: false,
+		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("label_template", r.message[0].name); },
+	});
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: { doctype: "Label Printer", filters: { is_enabled: 1 }, fields: ["name"], limit_page_length: 2 },
+		async: false,
+		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("printer_name", r.message[0].name); },
+	});
+	dlg.show();
+};
 
 erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, items }) {
 	let _submitting = false;
