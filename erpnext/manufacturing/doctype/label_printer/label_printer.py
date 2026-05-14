@@ -421,7 +421,7 @@ def test_print(printer_name, template_name):
 
 
 @frappe.whitelist()
-def print_label(print_job_name):
+def print_label(print_job_name, label_printer=None):
 	t_total = time.monotonic()
 	log = frappe.logger("label_printer")
 	log_lines = []
@@ -434,6 +434,9 @@ def print_label(print_job_name):
 
 	t0 = time.monotonic()
 	job = frappe.get_doc("Print Job", print_job_name)
+	if label_printer and label_printer != job.label_printer:
+		frappe.db.set_value("Print Job", print_job_name, "label_printer", label_printer, update_modified=False)
+		job.label_printer = label_printer
 	tlog(
 		f"[TIMING] print_label START job={print_job_name}, status={job.status}, "
 		f"template={job.label_template}, printer={job.label_printer}"

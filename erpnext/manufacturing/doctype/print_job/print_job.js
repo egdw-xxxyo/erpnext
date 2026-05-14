@@ -4,18 +4,25 @@ frappe.ui.form.on("Print Job", {
 
 		if (frm.doc.status === "Queued" || frm.doc.status === "Failed") {
 			frm.add_custom_button(__("Print Now"), () => {
-				frappe.call({
-					method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_label",
-					args: { print_job_name: frm.doc.name },
-					freeze: true,
-					freeze_message: __("Sending to printer..."),
-					callback(r) {
-						if (r.message && r.message.success) {
-							frappe.show_alert({ message: __("Label printed!"), indicator: "green" });
-						}
-						frm.reload_doc();
-					},
-				});
+				let send = () => {
+					frappe.call({
+						method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_label",
+						args: { print_job_name: frm.doc.name, label_printer: frm.doc.label_printer },
+						freeze: true,
+						freeze_message: __("Sending to printer..."),
+						callback(r) {
+							if (r.message && r.message.success) {
+								frappe.show_alert({ message: __("Label printed!"), indicator: "green" });
+							}
+							frm.reload_doc();
+						},
+					});
+				};
+				if (frm.is_dirty()) {
+					frm.save().then(send);
+				} else {
+					send();
+				}
 			}).addClass("btn-primary");
 		}
 
