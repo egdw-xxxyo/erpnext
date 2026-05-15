@@ -83,6 +83,14 @@ def _state_key(scanner_name):
 	return f"scanner_state:{scanner_name}"
 
 
+def _last_active_key(scanner_name):
+	return f"scanner_last_active:{scanner_name}"
+
+
+def _touch_last_active(scanner_name):
+	frappe.cache().set_value(_last_active_key(scanner_name), str(time.time()), expires_in_sec=86400 * 7)
+
+
 def _load_state(scanner_name, timeout):
 	raw = frappe.cache().get_value(_state_key(scanner_name))
 	if not raw:
@@ -133,6 +141,7 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.response["http_status_code"] = 403
 		return _resp(success=False, error="Invalid or inactive scanner key")
 
+	_touch_last_active(scanner.name)
 	data = data.strip()
 
 	state_timeout = scanner.get_state_timeout()
@@ -397,3 +406,40 @@ def _resp(success=True, **kwargs):
 		if key in kwargs:
 			result[key] = kwargs[key]
 	return result
+
+
+# ---------------------------------------------------------------------------
+# Scheduled job — runs every 5 minutes
+# ---------------------------------------------------------------------------
+
+def expire_scanner_sessions():
+	now = time.time()
+	scanners = frappe.get_all("Scanner", filters={"is_active": 1}, fields=["name", "scanner_configuration", "employee", "workplace"])
+
+	for row in scanners:
+		scanner_name = row.name
+		if row.scanner_configuration:
+			config = frappe.get_cached_doc("Scanner Configuration", row.scanner_configuration)
+			idle_timeout = config.get("idle_timeout") or 3600
+			state_timeout = config.get("state_timeout") or 300
+		else:
+			idle_timeout = 3600
+			state_timeout = 300
+
+		last_active_raw = frappe.cache().get_value(_last_active_key(scanner_name))
+		last_active = float(last_active_raw) if last_active_raw else None
+
+		if last_active is not None and (now - last_active) > idle_timeout:
+			if row.employee or row.workplace:
+				frappe.db.set_value("Scanner", scanner_name, {"employee": None, "workplace": None})
+				frappe.logger().info(f"Scanner session expired: {scanner_name} (idle {int(now - last_active)}s > {idle_timeout}s)")
+
+		state_raw = frappe.cache().get_value(_state_key(scanner_name))
+		if state_raw:
+			state = json.loads(state_raw)
+			updated_at = state.get("updated_at", 0)
+			if (now - updated_at) > state_timeout:
+				_clear_state(scanner_name)
+				frappe.logger().info(f"Scanner state expired: {scanner_name} (idle {int(now - updated_at)}s > {state_timeout}s)")
+
+	frappe.db.commit()
