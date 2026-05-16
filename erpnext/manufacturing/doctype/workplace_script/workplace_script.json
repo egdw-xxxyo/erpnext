@@ -13,6 +13,12 @@
   "is_active",
   "column_break_2",
   "workplace",
+  "section_versions",
+  "default_version",
+  "column_break_v1",
+  "viewing_version",
+  "section_versions_list",
+  "versions",
   "section_script",
   "script",
   "section_states",
@@ -54,9 +60,41 @@
    "description": "Leave empty for a default script that runs when no workplace-specific script is found"
   },
   {
+   "fieldname": "section_versions",
+   "fieldtype": "Section Break",
+   "label": "Versions"
+  },
+  {
+   "fieldname": "default_version",
+   "fieldtype": "Select",
+   "label": "Default Version",
+   "description": "Version used at runtime"
+  },
+  {
+   "fieldname": "column_break_v1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "viewing_version",
+   "fieldtype": "Select",
+   "label": "Editing / Viewing Version",
+   "description": "Switching reloads the working-copy fields below from this version's snapshot. Edits are saved into this version on Save."
+  },
+  {
+   "fieldname": "section_versions_list",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "versions",
+   "fieldtype": "Table",
+   "label": "Versions",
+   "options": "Workplace Script Version",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_script",
    "fieldtype": "Section Break",
-   "label": "Script"
+   "label": "Script (Working Copy)"
   },
   {
    "fieldname": "script",
@@ -114,7 +152,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-05-16 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Workplace Script",

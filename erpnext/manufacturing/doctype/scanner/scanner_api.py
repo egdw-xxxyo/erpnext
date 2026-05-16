@@ -178,11 +178,10 @@ def handle_scan(scanner_key=None, data=None):
 	scan_log_row = _create_scan_log(scanner, data, state_proxy.name)
 
 	try:
-		scanner_scripts = frappe.get_all(
-			"Scanner Script",
-			filters={"is_active": 1},
-			fields=["script_name", "script"],
+		from erpnext.manufacturing.doctype.scanner_script.scanner_script import (
+			get_active_scanner_scripts,
 		)
+		scanner_scripts = get_active_scanner_scripts()
 
 		t_script_start = time.perf_counter()
 		result = _execute_workplace_script(workplace_script, event, scanner_scripts)
@@ -361,8 +360,12 @@ def _execute_workplace_script(workplace_script, event, scanner_scripts):
 		key = ss.script_name.lower().replace(" ", "_").replace("-", "_")
 		scripts[key] = frappe._dict(ns)
 
+	from erpnext.manufacturing.doctype.workplace_script.workplace_script import (
+		_resolve_default_snapshot,
+	)
+	ws_snap = _resolve_default_snapshot(workplace_script)
 	ws_ns = {"frappe": frappe, "json": json, "scripts": scripts}
-	exec(workplace_script.script, ws_ns)  # noqa: S102
+	exec(ws_snap.get("script", "") or "", ws_ns)  # noqa: S102
 
 	handler = ws_ns.get("on_scan")
 	if not handler:

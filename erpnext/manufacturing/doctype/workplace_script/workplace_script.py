@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from frappe.model.document import Document
 
@@ -42,15 +44,55 @@ class _GuardedStateProxy:
 		self._real.clear()
 
 
+def _serialize_state(s):
+	return {
+		"state": s.state,
+		"label": s.label,
+		"is_initial": int(s.is_initial or 0),
+		"is_final": int(s.is_final or 0),
+		"position_x": s.position_x,
+		"position_y": s.position_y,
+		"on_enter_script": s.on_enter_script,
+	}
+
+
+def _serialize_transition(t):
+	return {"from_state": t.from_state, "event": t.event, "to_state": t.to_state}
+
+
+def _capture_working_copy(doc):
+	return {
+		"script": doc.script or "",
+		"states": [_serialize_state(s) for s in (doc.states or [])],
+		"transitions": [_serialize_transition(t) for t in (doc.transitions or [])],
+	}
+
+
+def _load_snapshot(row):
+	try:
+		return json.loads(row.snapshot or "{}")
+	except Exception:
+		return {}
+
+
+def _resolve_default_snapshot(ws):
+	row = next((v for v in (ws.versions or []) if v.is_default), None)
+	if not row:
+		return _capture_working_copy(ws)
+	return _load_snapshot(row)
+
+
 class WorkplaceScript(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		default_version: DF.Data | None
 		is_active: DF.Check
 		script: DF.Code | None
 		script_name: DF.Data | None
+		viewing_version: DF.Data | None
 		workplace: DF.Link | None
 
 	def validate(self):
@@ -71,7 +113,35 @@ class WorkplaceScript(Document):
 						f"An active default Workplace Script (no workplace) already exists: {existing}"
 					)
 
+		self._ensure_versions()
 		self._validate_state_machine()
+
+	def _ensure_versions(self):
+		if not self.versions:
+			self.append("versions", {
+				"version": "v1",
+				"is_default": 1,
+				"snapshot": json.dumps(_capture_working_copy(self)),
+				"created_on": frappe.utils.now_datetime(),
+			})
+			self.default_version = "v1"
+			self.viewing_version = "v1"
+
+		defaults = [v for v in self.versions if v.is_default]
+		if len(defaults) == 0:
+			self.versions[0].is_default = 1
+			defaults = [self.versions[0]]
+		elif len(defaults) > 1:
+			frappe.throw("Exactly one version must be marked as default")
+
+		self.default_version = defaults[0].version
+
+		if not self.viewing_version:
+			self.viewing_version = self.default_version
+		target = next((v for v in self.versions if v.version == self.viewing_version), None)
+		if target is None:
+			frappe.throw(f"Viewing version {self.viewing_version} not found")
+		target.snapshot = json.dumps(_capture_working_copy(self))
 
 	def _validate_state_machine(self):
 		if not self.states and not self.transitions:
@@ -97,29 +167,30 @@ class WorkplaceScript(Document):
 def run_state(script_name, e, scripts=None):
 	"""Dispatch a scan to the current state's script.
 
+	Reads states/transitions from the default version's snapshot, not the working copy.
 	If Redis state is empty, falls back to the row marked as initial.
-	The state's script must define `on_scan(e)`. The state's script may transition
-	via `e.state.set(name, ctx)` (validated against the Transitions table) or
-	`e.state.clear()` (always allowed).
 	"""
 	ws = frappe.get_cached_doc("Workplace Script", script_name)
+	snap = _resolve_default_snapshot(ws)
+	states = snap.get("states", []) or []
+	transitions = snap.get("transitions", []) or []
 
 	current = e.state.name
 	state_row = None
 	if current:
-		state_row = next((s for s in ws.states if s.state == current), None)
+		state_row = next((s for s in states if s.get("state") == current), None)
 
 	if not state_row:
-		state_row = next((s for s in ws.states if s.is_initial), None)
+		state_row = next((s for s in states if s.get("is_initial")), None)
 		if not state_row:
 			raise StateMachineError(f"No initial state defined on {script_name}")
-		current = state_row.state
+		current = state_row.get("state")
 
-	code = state_row.on_enter_script
-	if not code or not code.strip():
+	code = state_row.get("on_enter_script") or ""
+	if not code.strip():
 		return None
 
-	allowed = {t.to_state for t in ws.transitions if t.from_state == current}
+	allowed = {t["to_state"] for t in transitions if t.get("from_state") == current}
 	real_proxy = e.state
 	guard = _GuardedStateProxy(real_proxy, current, allowed)
 	e.state = guard
