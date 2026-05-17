@@ -433,3 +433,4 @@ erpnext.patches.v16_0.set_ordered_qty_in_quotation_item
 erpnext.patches.v15_0.rename_packing_box_to_package
 erpnext.patches.v15_0.rename_scanner_setup_to_scanner
 erpnext.patches.v15_0.add_script_versioning
+erpnext.patches.v15_0.migrate_label_template_type

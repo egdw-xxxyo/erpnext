@@ -23,34 +23,16 @@ class LabelTemplate(Document):
 		reference_doctype: DF.Link | None
 		source_field: DF.Literal[""] | None
 		template_name: DF.Data | None
-		template_type: DF.Literal["EZPL", "HTML"]
-		zpl_template: DF.Code | None
+		template_type: DF.Literal["From DocType", "Raw Data", "Barcode", "Other"]
 
 	def validate(self):
-		if self.template_type == "EZPL" and not self.zpl_template:
-			frappe.throw(_("EZPL Template is required when Template Type is EZPL"))
-		if self.template_type == "HTML" and not self.html_template:
-			frappe.throw(_("HTML Template is required when Template Type is HTML"))
+		if not self.html_template:
+			frappe.throw(_("HTML Template is required"))
 
 	def on_trash(self):
 		jobs = frappe.get_all("Print Job", filters={"label_template": self.name}, pluck="name")
 		for job_name in jobs:
 			frappe.delete_doc("Print Job", job_name, force=True, delete_permanently=True)
-
-
-def render_ezpl(template_doc, doc=None, data=None):
-	context = {"frappe": frappe, "_": _}
-
-	if doc:
-		context["doc"] = doc
-	elif data:
-		if isinstance(data, str):
-			data = json.loads(data)
-		context["doc"] = frappe._dict(data)
-	else:
-		context["doc"] = frappe._dict()
-
-	return frappe.render_template(template_doc.zpl_template, context)
 
 
 def _get_label_size_data(label_size_name):
@@ -65,82 +47,6 @@ def _get_label_size_data(label_size_name):
 		"height_dots": int(flt(size.height_mm) * dots_per_mm),
 		"dpi": dpi,
 	}
-
-
-def _parse_ezpl_to_elements(ezpl_text):
-	elements = []
-	for line in ezpl_text.split("\n"):
-		line = line.strip("\r\n ")
-		if not line:
-			continue
-
-		# Text: AA,x,y,h_mult,v_mult,rot,rev,text  (font A-Z)
-		m = re.match(r"^A([A-Za-z0-9]),(\d+),(\d+),(\d+),(\d+),\d+,\d+,(.+)$", line)
-		if m:
-			elements.append({
-				"type": "text",
-				"font": m.group(1),
-				"x": int(m.group(2)),
-				"y": int(m.group(3)),
-				"h_mult": int(m.group(4)),
-				"v_mult": int(m.group(5)),
-				"text": m.group(6),
-			})
-			continue
-
-		# Barcode 128: BA,x,y,narrow,wide,height,rot,rev,text
-		m = re.match(r"^B([A-Za-z0-9]),(\d+),(\d+),(\d+),(\d+),(\d+),\d+,\d+,(.+)$", line)
-		if m:
-			elements.append({
-				"type": "barcode",
-				"subtype": m.group(1),
-				"x": int(m.group(2)),
-				"y": int(m.group(3)),
-				"narrow": int(m.group(4)),
-				"wide": int(m.group(5)),
-				"height": int(m.group(6)),
-				"text": m.group(7),
-			})
-			continue
-
-		# QR code: BQ,x,y,model,module_size,error_level,data
-		m = re.match(r"^BQ,(\d+),(\d+),\d+,(\d+),.+?,(.+)$", line)
-		if m:
-			elements.append({
-				"type": "qrcode",
-				"x": int(m.group(1)),
-				"y": int(m.group(2)),
-				"module_size": int(m.group(3)),
-				"text": m.group(4),
-			})
-			continue
-
-		# Line: LO,x,y,length,thickness
-		m = re.match(r"^LO,(\d+),(\d+),(\d+),(\d+)", line)
-		if m:
-			elements.append({
-				"type": "line",
-				"x": int(m.group(1)),
-				"y": int(m.group(2)),
-				"length": int(m.group(3)),
-				"thickness": int(m.group(4)),
-			})
-			continue
-
-		# Box: X,x,y,w,h,thickness
-		m = re.match(r"^X,(\d+),(\d+),(\d+),(\d+),(\d+)", line)
-		if m:
-			elements.append({
-				"type": "box",
-				"x": int(m.group(1)),
-				"y": int(m.group(2)),
-				"box_w": int(m.group(3)),
-				"box_h": int(m.group(4)),
-				"thickness": int(m.group(5)),
-			})
-			continue
-
-	return elements
 
 
 @frappe.whitelist()
@@ -183,7 +89,7 @@ def get_templates_for_barcode_type(barcode_type):
 
 
 @frappe.whitelist()
-def render_preview(template_type, zpl_template="", html_template="", field_mapping="", preview_data="", label_size="", padding_top_mm=0, padding_right_mm=0, padding_bottom_mm=0, padding_left_mm=0):
+def render_preview(html_template="", field_mapping="", preview_data="", label_size="", padding_top_mm=0, padding_right_mm=0, padding_bottom_mm=0, padding_left_mm=0, **kwargs):
 	if not label_size:
 		return None
 
@@ -206,45 +112,19 @@ def render_preview(template_type, zpl_template="", html_template="", field_mappi
 
 	context["doc"] = doc_dict
 
-	if template_type == "EZPL":
-		if not zpl_template:
-			return None
+	if not html_template:
+		return None
 
-		rendered = frappe.render_template(zpl_template, context)
-		elements = _parse_ezpl_to_elements(rendered)
-
-		return {
-			"type": "ezpl_parsed",
-			"rendered": rendered,
-			"elements": elements,
-			**size,
-		}
-
-	elif template_type == "HTML":
-		if not html_template:
-			return None
-
-		html = frappe.render_template(html_template, context)
-		html = _process_barcode_tags(html)
-		html = _process_attachment_tags(html)
-		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=padding_mm)
-		return {
-			"type": "html_image",
-			"image_base64": img_b64,
-			"html": html,
-			**size,
-		}
-
-	return None
-
-
-@frappe.whitelist()
-def preview_zpl(template_name):
-	template = frappe.get_doc("Label Template", template_name)
-	data = None
-	if template.preview_data:
-		data = json.loads(template.preview_data)
-	return render_ezpl(template, data=data)
+	html = frappe.render_template(html_template, context)
+	html = _process_barcode_tags(html)
+	html = _process_attachment_tags(html)
+	img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=padding_mm)
+	return {
+		"type": "html_image",
+		"image_base64": img_b64,
+		"html": html,
+		**size,
+	}
 
 
 @frappe.whitelist()
@@ -254,23 +134,20 @@ def render_job_preview(print_job_name):
 	template = frappe.get_doc("Label Template", job.label_template)
 	size = _get_label_size_data(template.label_size)
 
-	if template.template_type == "HTML":
-		if job.raw_data:
-			data = json.loads(job.raw_data)
-		else:
-			data = {}
-		context = {"frappe": frappe, "_": _, "doc": frappe._dict(data)}
-		html = frappe.render_template(template.html_template or "", context)
-		html = _process_barcode_tags(html)
-		html = _process_attachment_tags(html)
-		img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=_padding_from_template(template))
-		return {
-			"type": "html_image",
-			"image_base64": img_b64,
-			**size,
-		}
-
-	return None
+	if job.raw_data:
+		data = json.loads(job.raw_data)
+	else:
+		data = {}
+	context = {"frappe": frappe, "_": _, "doc": frappe._dict(data)}
+	html = frappe.render_template(template.html_template or "", context)
+	html = _process_barcode_tags(html)
+	html = _process_attachment_tags(html)
+	img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=_padding_from_template(template))
+	return {
+		"type": "html_image",
+		"image_base64": img_b64,
+		**size,
+	}
 
 
 def _process_barcode_tags(html):
