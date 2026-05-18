@@ -129,13 +129,11 @@ def render_barcode_svg(data):
 
 @frappe.whitelist()
 def get_config_barcodes(scanner_name, endpoint_url):
-	from urllib.parse import urlencode
-
 	doc = frappe.get_doc("Scanner", scanner_name)
 	doc.check_permission("read")
 
 	api_key = frappe.db.get_value("Scanner", scanner_name, "api_key")
-	payload = "CFG-SCANNER?" + urlencode({"url": endpoint_url, "key": api_key})
+	payload = f"CFG-SCANNER?url={endpoint_url}&key={api_key}"
 
 	return {
 		"config_qr": _make_qr_svg(payload),
