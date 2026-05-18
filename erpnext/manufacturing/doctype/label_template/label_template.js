@@ -83,10 +83,6 @@ frappe.ui.form.on("Label Template", {
 		frm.trigger("render_preview");
 	},
 
-	zpl_template(frm) {
-		frm.trigger("render_preview");
-	},
-
 	html_template(frm) {
 		frm.trigger("render_preview");
 	},
@@ -96,8 +92,7 @@ frappe.ui.form.on("Label Template", {
 	},
 
 	_add_template_help(frm) {
-		const field = frm.doc.template_type === "EZPL" ? "zpl_template" : "html_template";
-		const $field = frm.fields_dict[field];
+		const $field = frm.fields_dict["html_template"];
 		if (!$field || !$field.$wrapper) return;
 
 		if ($field.$wrapper.find(".template-help-btn").length) return;
@@ -111,6 +106,15 @@ frappe.ui.form.on("Label Template", {
 
 		$btn.on("click", () => _show_template_help(frm));
 		$field.$wrapper.append($btn);
+
+		const $fbtn = $(`<button class="btn btn-xs btn-default available-fields-btn" style="margin-top:4px;margin-left:4px;">
+			<svg class="icon icon-sm" style="vertical-align:middle;margin-right:2px;">
+				<use href="#icon-list"></use>
+			</svg>
+			${__("Available Fields")}
+		</button>`);
+		$fbtn.on("click", () => _show_available_fields(frm));
+		$field.$wrapper.append($fbtn);
 	},
 
 	preview_data(frm) {
@@ -139,8 +143,7 @@ function _do_render_preview(frm) {
 		return;
 	}
 
-	let template = frm.doc.template_type === "EZPL" ? frm.doc.zpl_template : frm.doc.html_template;
-	if (!template) {
+	if (!frm.doc.html_template) {
 		$wrapper.html(
 			`<div class="text-muted text-center" style="padding:20px;">${__("Enter template to see preview")}</div>`
 		);
@@ -150,8 +153,6 @@ function _do_render_preview(frm) {
 	frappe.call({
 		method: "erpnext.manufacturing.doctype.label_template.label_template.render_preview",
 		args: {
-			template_type: frm.doc.template_type,
-			zpl_template: frm.doc.zpl_template || "",
 			html_template: frm.doc.html_template || "",
 			preview_data: frm.doc.preview_data || "",
 			label_size: frm.doc.label_size,
@@ -176,28 +177,7 @@ function _do_render_preview(frm) {
 				${data.width_mm} × ${data.height_mm} mm &nbsp;|&nbsp; ${data.width_dots} × ${data.height_dots} dots @ ${data.dpi} DPI
 			</div>`;
 
-			if (data.type === "ezpl_parsed") {
-				let canvas_id = "label-preview-canvas-" + Date.now();
-				$wrapper.html(`
-					<div class="label-preview-container" style="padding:10px;">
-						${info_html}
-						<div style="display:inline-block; border:1px solid var(--border-color); background:#fff; border-radius:4px; overflow:hidden;">
-							<canvas id="${canvas_id}" width="${cw}" height="${ch}" style="width:${pw * scale}px; height:${ph * scale}px;"></canvas>
-						</div>
-						<div style="margin-top:8px;">
-							<details>
-								<summary style="cursor:pointer; font-size:11px; color:var(--text-muted);">${__("Show rendered EZPL")}</summary>
-								<pre style="font-size:10px; max-height:200px; overflow:auto; margin-top:4px; background:var(--bg-color); padding:8px; border-radius:4px;">${frappe.utils.escape_html(data.rendered)}</pre>
-							</details>
-						</div>
-					</div>
-				`);
-
-				let canvas = document.getElementById(canvas_id);
-				if (canvas) {
-					_draw_ezpl_preview(canvas, data.elements, data.width_mm, data.height_mm, scale, PX_PER_MM);
-				}
-			} else if (data.type === "html_image") {
+			if (data.type === "html_image") {
 				$wrapper.html(`
 					<div class="label-preview-container" style="padding:10px;">
 						${info_html}
@@ -218,146 +198,10 @@ function _do_render_preview(frm) {
 	});
 }
 
-function _draw_ezpl_preview(canvas, elements, width_mm, height_mm, scale, PX_PER_MM) {
-	let ctx = canvas.getContext("2d");
-	let w = canvas.width;
-	let h = canvas.height;
-
-	ctx.fillStyle = "#ffffff";
-	ctx.fillRect(0, 0, w, h);
-
-	ctx.strokeStyle = "#e0e0e0";
-	ctx.lineWidth = 1;
-	ctx.strokeRect(0, 0, w, h);
-
-	let dot_to_px = (PX_PER_MM * scale) / 8;
-
-	for (let el of elements) {
-		let px = el.x * dot_to_px;
-		let py = el.y * dot_to_px;
-
-		if (el.type === "text") {
-			let base_size = 10;
-			let font_size = base_size * (el.v_mult || 1) * scale * 0.9;
-			ctx.fillStyle = "#000000";
-			ctx.font = `${font_size}px monospace`;
-			ctx.textBaseline = "top";
-
-			let char_w = font_size * 0.6 * (el.h_mult || 1) / (el.v_mult || 1);
-			for (let i = 0; i < el.text.length; i++) {
-				ctx.fillText(el.text[i], px + i * char_w, py);
-			}
-		} else if (el.type === "barcode") {
-			_draw_code128(ctx, el.text || "", px, py, el, dot_to_px, scale);
-		} else if (el.type === "qrcode") {
-			let size = (el.module_size || 5) * dot_to_px * 20;
-			ctx.fillStyle = "#000000";
-			let cell = size / 10;
-			for (let r = 0; r < 10; r++) {
-				for (let c = 0; c < 10; c++) {
-					if ((r < 3 && c < 3) || (r < 3 && c > 6) || (r > 6 && c < 3) || (r + c) % 3 === 0) {
-						ctx.fillRect(px + c * cell, py + r * cell, cell, cell);
-					}
-				}
-			}
-		} else if (el.type === "line") {
-			ctx.fillStyle = "#000000";
-			ctx.fillRect(px, py, (el.length || 100) * dot_to_px, (el.thickness || 2) * dot_to_px);
-		} else if (el.type === "box") {
-			ctx.strokeStyle = "#000000";
-			ctx.lineWidth = (el.thickness || 2) * dot_to_px;
-			ctx.strokeRect(px, py, (el.box_w || 100) * dot_to_px, (el.box_h || 50) * dot_to_px);
-		}
-	}
-}
-
-// Code 128B encoder + renderer
-const CODE128B_START = 104;
-const CODE128B_STOP = [2, 3, 3, 1, 1, 1, 2];
-
-const CODE128_PATTERNS = [
-	[2,1,2,2,2,2],[2,2,2,1,2,2],[2,2,2,2,2,1],[1,2,1,2,2,3],[1,2,1,3,2,2],
-	[1,3,1,2,2,2],[1,2,2,2,1,3],[1,2,2,3,1,2],[1,3,2,2,1,2],[2,2,1,2,1,3],
-	[2,2,1,3,1,2],[2,3,1,2,1,2],[1,1,2,2,3,2],[1,2,2,1,3,2],[1,2,2,2,3,1],
-	[1,1,3,2,2,2],[1,2,3,1,2,2],[1,2,3,2,2,1],[2,2,3,2,1,1],[2,2,1,1,3,2],
-	[2,2,1,2,3,1],[2,1,3,2,1,2],[2,2,3,1,1,2],[3,1,2,1,3,1],[3,1,1,2,2,2],
-	[3,2,1,1,2,2],[3,2,1,2,2,1],[3,1,2,2,1,2],[3,2,2,1,1,2],[3,2,2,2,1,1],
-	[2,1,2,1,2,3],[2,1,2,3,2,1],[2,3,2,1,2,1],[1,1,1,3,2,3],[1,3,1,1,2,3],
-	[1,3,1,3,2,1],[1,1,2,3,1,3],[1,3,2,1,1,3],[1,3,2,3,1,1],[2,1,1,3,1,3],
-	[2,3,1,1,1,3],[2,3,1,3,1,1],[1,1,2,1,3,3],[1,1,2,3,3,1],[1,3,2,1,3,1],
-	[1,1,3,1,2,3],[1,1,3,3,2,1],[1,3,3,1,2,1],[3,1,3,1,2,1],[2,1,1,3,3,1],
-	[2,3,1,1,3,1],[2,1,3,1,1,3],[2,1,3,3,1,1],[2,1,3,1,3,1],[3,1,1,1,2,3],
-	[3,1,1,3,2,1],[3,3,1,1,2,1],[3,1,2,1,1,3],[3,1,2,3,1,1],[3,3,2,1,1,1],
-	[3,1,4,1,1,1],[2,2,1,4,1,1],[4,3,1,1,1,1],[1,1,1,2,2,4],[1,1,1,4,2,2],
-	[1,2,1,1,2,4],[1,2,1,4,2,1],[1,4,1,1,2,2],[1,4,1,2,2,1],[1,1,2,2,1,4],
-	[1,1,2,4,1,2],[1,2,2,1,1,4],[1,2,2,4,1,1],[1,4,2,1,1,2],[1,4,2,2,1,1],
-	[2,4,1,2,1,1],[2,2,1,1,1,4],[4,1,3,1,1,1],[2,4,1,1,1,2],[1,3,4,1,1,1],
-	[1,1,1,2,4,2],[1,2,1,1,4,2],[1,2,1,2,4,1],[1,1,4,2,1,2],[1,2,4,1,1,2],
-	[1,2,4,2,1,1],[4,1,1,2,1,2],[4,2,1,1,1,2],[4,2,1,2,1,1],[2,1,2,1,4,1],
-	[2,1,4,1,2,1],[4,1,2,1,2,1],[1,1,1,1,4,3],[1,1,1,3,4,1],[1,3,1,1,4,1],
-	[1,1,4,1,1,3],[1,1,4,3,1,1],[4,1,1,1,1,3],[4,1,1,3,1,1],[1,1,3,1,4,1],
-	[1,1,4,1,3,1],[3,1,1,1,4,1],[4,1,1,1,3,1],[2,1,1,4,1,2],[2,1,1,2,1,4],
-	[2,1,1,2,3,2],[2,3,3,1,1,1,2],
-];
-
-function _encode_code128b(text) {
-	let codes = [CODE128B_START];
-	let checksum = CODE128B_START;
-	for (let i = 0; i < text.length; i++) {
-		let val = text.charCodeAt(i) - 32;
-		if (val < 0 || val > 94) val = 0;
-		codes.push(val);
-		checksum += val * (i + 1);
-	}
-	codes.push(checksum % 103);
-	return codes;
-}
-
-function _draw_code128(ctx, text, px, py, el, dot_to_px, scale) {
-	let codes = _encode_code128b(text);
-	let narrow = (el.narrow || 2) * dot_to_px;
-	let bar_h = (el.height || 80) * dot_to_px;
-
-	ctx.fillStyle = "#000000";
-	let bx = px;
-
-	for (let ci = 0; ci < codes.length; ci++) {
-		let pattern = CODE128_PATTERNS[codes[ci]];
-		if (!pattern) continue;
-		for (let pi = 0; pi < pattern.length; pi++) {
-			let w = pattern[pi] * narrow;
-			if (pi % 2 === 0) {
-				ctx.fillRect(bx, py, w, bar_h);
-			}
-			bx += w;
-		}
-	}
-
-	// stop pattern
-	for (let pi = 0; pi < CODE128B_STOP.length; pi++) {
-		let w = CODE128B_STOP[pi] * narrow;
-		if (pi % 2 === 0) {
-			ctx.fillRect(bx, py, w, bar_h);
-		}
-		bx += w;
-	}
-
-	let label_size = 7 * scale;
-	ctx.font = `${label_size}px monospace`;
-	ctx.textBaseline = "top";
-	ctx.fillStyle = "#000000";
-	let text_w = ctx.measureText(text).width;
-	let barcode_w = bx - px;
-	let text_x = px + (barcode_w - text_w) / 2;
-	ctx.fillText(text, text_x, py + bar_h + 1 * scale);
-}
-
 function _print_with_preview(frm) {
 	frappe.call({
 		method: "erpnext.manufacturing.doctype.label_template.label_template.render_preview",
 		args: {
-			template_type: frm.doc.template_type,
-			zpl_template: frm.doc.zpl_template || "",
 			html_template: frm.doc.html_template || "",
 			field_mapping: frm.doc.field_mapping || "",
 			preview_data: frm.doc.preview_data || "",
@@ -379,13 +223,7 @@ function _print_with_preview(frm) {
 			let pw = Math.round(data.width_mm * PX_PER_MM);
 			let ph = Math.round(data.height_mm * PX_PER_MM);
 
-			let body_content = "";
-			if (data.type === "html_image") {
-				body_content = `<img src="data:image/png;base64,${data.image_base64}" style="width:${pw}px;height:${ph}px;display:block;" />`;
-			} else if (data.type === "ezpl_parsed") {
-				frappe.msgprint(__("Print preview is only available for HTML template type."));
-				return;
-			}
+			let body_content = `<img src="data:image/png;base64,${data.image_base64}" style="width:${pw}px;height:${ph}px;display:block;" />`;
 
 			let win = window.open("", "_blank");
 			win.document.write(`<!DOCTYPE html>
@@ -411,26 +249,7 @@ body { background: #fff; }
 }
 
 function _show_template_help(frm) {
-	const is_html = frm.doc.template_type !== "EZPL";
-
-	if (is_html) {
-		_show_html_template_help(frm);
-		return;
-	}
-
-	let body = `
-<h4>Шаблон EZPL</h4>
-<p>Шаблони EZPL використовують мову команд принтерів Godex. Змінні Jinja підставляються перед відправкою.</p>
-<table class="table table-bordered table-sm">
-<tr><th>Змінна</th><th>Опис</th></tr>
-<tr><td><code>{{ doc.fieldname }}</code></td><td>Поле з документа-джерела</td></tr>
-<tr><td><code>{{ parent.fieldname }}</code></td><td>Поле з батьківського документа</td></tr>
-</table>
-<p>Зверніться до інструкції з програмування EZPL вашого принтера для списку доступних команд.</p>
-`;
-	let d = new frappe.ui.Dialog({ title: __("Template Reference"), size: "large" });
-	d.$body.html(`<div style="padding:0 15px 15px;font-size:13px;">${body}</div>`);
-	d.show();
+	_show_html_template_help(frm);
 }
 
 function _show_html_template_help(frm) {
@@ -499,6 +318,269 @@ function _render_html_help_dialog(data) {
 			frappe.show_alert({ message: __("Copied"), indicator: "green" });
 		});
 	});
+	d.show();
+}
+
+const FIELD_PICKER_RENDERABLE_TYPES = [
+	"Data", "Small Text", "Long Text", "Text", "Text Editor", "Code",
+	"Link", "Dynamic Link", "Select", "Read Only", "Password",
+	"Int", "Float", "Currency", "Percent", "Check",
+	"Date", "Datetime", "Time", "Duration",
+	"Barcode", "Attach", "Attach Image", "Color",
+];
+
+function _is_renderable_field(f) {
+	return FIELD_PICKER_RENDERABLE_TYPES.includes(f.fieldtype);
+}
+
+async function _show_available_fields(frm) {
+	const dt = frm.doc.reference_doctype;
+	if (!dt) {
+		_render_available_fields_dialog({ no_doctype: true, frm });
+		return;
+	}
+
+	frappe.dom.freeze(__("Loading fields..."));
+	try {
+		await new Promise((res) => frappe.model.with_doctype(dt, res));
+		const meta = frappe.get_meta(dt) || { fields: [] };
+
+		const link_fields = (meta.fields || []).filter(
+			(f) => f.fieldtype === "Link" && f.options
+		);
+		const child_fields = (meta.fields || []).filter(
+			(f) => f.fieldtype === "Table" && f.options
+		);
+
+		const linked_metas = {};
+		for (const lf of link_fields) {
+			await new Promise((res) => frappe.model.with_doctype(lf.options, res));
+			linked_metas[lf.fieldname] = {
+				doctype: lf.options,
+				meta: frappe.get_meta(lf.options) || { fields: [] },
+			};
+		}
+
+		const child_metas = {};
+		for (const cf of child_fields) {
+			await new Promise((res) => frappe.model.with_doctype(cf.options, res));
+			child_metas[cf.fieldname] = {
+				doctype: cf.options,
+				meta: frappe.get_meta(cf.options) || { fields: [] },
+			};
+		}
+
+		let preview_keys = [];
+		let preview_data = null;
+		try {
+			preview_data = JSON.parse(frm.doc.preview_data || "{}");
+			const meta_fns = new Set((meta.fields || []).map((f) => f.fieldname));
+			meta_fns.add("name");
+			preview_keys = Object.keys(preview_data).filter((k) => !meta_fns.has(k));
+		} catch (e) {
+			preview_data = null;
+		}
+
+		let mapping_keys = [];
+		try {
+			const fm = JSON.parse(frm.doc.field_mapping || "{}");
+			mapping_keys = Object.keys(fm).map((k) => ({ key: k, cfg: fm[k] }));
+		} catch (e) {}
+
+		let spec_keys = [];
+		const item_code = preview_data && preview_data.item_code;
+		if (item_code) {
+			try {
+				const r = await frappe.call({
+					method: "erpnext.manufacturing.doctype.label_template.label_template.get_available_spec_keys",
+					args: { item_code },
+				});
+				spec_keys = r.message || [];
+			} catch (e) {}
+		}
+
+		_render_available_fields_dialog({
+			frm, dt, meta, linked_metas, child_metas,
+			preview_keys, mapping_keys, spec_keys,
+		});
+	} finally {
+		frappe.dom.unfreeze();
+	}
+}
+
+function _field_row_html(expr, label, fieldtype) {
+	const id = "fpx-" + Math.random().toString(36).slice(2, 9);
+	const safe_expr = frappe.utils.escape_html(expr);
+	const safe_label = frappe.utils.escape_html(label || "");
+	const ft = fieldtype ? `<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${frappe.utils.escape_html(fieldtype)}</span>` : "";
+	return `
+		<div class="fpx-row" data-search="${frappe.utils.escape_html((expr + " " + label).toLowerCase())}"
+			style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;border-bottom:1px solid var(--border-color);">
+			<div style="flex:1;min-width:0;">
+				<code id="${id}" style="font-size:12px;">${safe_expr}</code>
+				${safe_label ? `<span style="color:var(--text-muted);margin-left:8px;">${safe_label}</span>` : ""}
+				${ft}
+			</div>
+			<button class="btn btn-xs btn-default" data-copy-target="${id}">${__("Copy")}</button>
+		</div>`;
+}
+
+function _section_html(title, body_html, extra_html) {
+	return `
+		<div class="fpx-section" style="margin-top:14px;">
+			<div style="font-weight:600;margin-bottom:4px;">${title}</div>
+			${extra_html || ""}
+			<div style="border:1px solid var(--border-color);border-radius:4px;">${body_html}</div>
+		</div>`;
+}
+
+function _render_available_fields_dialog(ctx) {
+	const d = new frappe.ui.Dialog({ title: __("Available Fields"), size: "large" });
+
+	if (ctx.no_doctype) {
+		d.$body.html(`<div style="padding:15px;">
+			<p>${__("No Reference DocType is set on this template.")}</p>
+			<p>${__("For Raw Data templates, available keys are defined in the document(s) you pass at print time, or via Field Mapping.")}</p>
+		</div>`);
+		d.show();
+		return;
+	}
+
+	const { frm, dt, meta, linked_metas, child_metas, preview_keys, mapping_keys, spec_keys } = ctx;
+
+	const direct = (meta.fields || [])
+		.filter(_is_renderable_field)
+		.map((f) => _field_row_html(`{{ doc.${f.fieldname} }}`, f.label || "", f.fieldtype))
+		.join("");
+
+	let direct_section = _section_html(
+		`${__("Document fields")} <span style="color:var(--text-muted);font-weight:400;">— ${frappe.utils.escape_html(dt)}</span>`,
+		direct || `<div style="padding:8px;color:var(--text-muted);">${__("(none)")}</div>`
+	);
+
+	let child_section = "";
+	const child_fns = Object.keys(child_metas || {});
+	if (child_fns.length) {
+		let body = "";
+		for (const fn of child_fns) {
+			const cm = child_metas[fn];
+			const loop_id = "fpx-" + Math.random().toString(36).slice(2, 9);
+			const loop = `{% for row in doc.${fn} %}\n  {{ row.fieldname }}\n{% endfor %}`;
+			const inner = (cm.meta.fields || [])
+				.filter(_is_renderable_field)
+				.map((f) => _field_row_html(`{{ row.${f.fieldname} }}`, f.label || "", f.fieldtype))
+				.join("");
+			body += `
+				<details style="border-bottom:1px solid var(--border-color);">
+					<summary style="cursor:pointer;padding:6px 8px;">
+						<code>doc.${fn}</code>
+						<span style="color:var(--text-muted);margin-left:6px;">${__("Table")} → ${frappe.utils.escape_html(cm.doctype)}</span>
+					</summary>
+					<div style="padding:6px 8px;display:flex;align-items:center;gap:8px;">
+						<pre id="${loop_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(loop)}</pre>
+						<button class="btn btn-xs btn-default" data-copy-target="${loop_id}">${__("Copy loop")}</button>
+					</div>
+					${inner || `<div style="padding:6px 8px;color:var(--text-muted);">${__("(no renderable fields)")}</div>`}
+				</details>`;
+		}
+		child_section = _section_html(__("Child tables"), body);
+	}
+
+	let linked_section = "";
+	const link_fns = Object.keys(linked_metas || {});
+	if (link_fns.length) {
+		let body = "";
+		for (const fn of link_fns) {
+			const lm = linked_metas[fn];
+			const var_id = "fpx-" + Math.random().toString(36).slice(2, 9);
+			const setline = `{% set ${fn} = frappe.get_doc("${lm.doctype}", doc.${fn}) if doc.${fn} else None %}`;
+			const inner = (lm.meta.fields || [])
+				.filter(_is_renderable_field)
+				.map((f) => _field_row_html(`{{ ${fn}.${f.fieldname} }}`, f.label || "", f.fieldtype))
+				.join("");
+			body += `
+				<details style="border-bottom:1px solid var(--border-color);">
+					<summary style="cursor:pointer;padding:6px 8px;">
+						<code>doc.${fn}</code>
+						<span style="color:var(--text-muted);margin-left:6px;">${__("Link")} → ${frappe.utils.escape_html(lm.doctype)}</span>
+					</summary>
+					<div style="padding:6px 8px;display:flex;align-items:center;gap:8px;">
+						<pre id="${var_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(setline)}</pre>
+						<button class="btn btn-xs btn-default" data-copy-target="${var_id}">${__("Copy")}</button>
+					</div>
+					${inner || `<div style="padding:6px 8px;color:var(--text-muted);">${__("(no renderable fields)")}</div>`}
+				</details>`;
+		}
+		linked_section = _section_html(__("Linked documents (one-level)"), body);
+	}
+
+	let spec_section = "";
+	if (spec_keys && spec_keys.length) {
+		const body = spec_keys
+			.map((s) => _field_row_html(`{{ doc.${s.key} }}`, s.param, "Spec param"))
+			.join("");
+		spec_section = _section_html(__("Spec params"), body,
+			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__("Flattened from the item's specification.")}</div>`);
+	}
+
+	let mapping_section = "";
+	if (mapping_keys && mapping_keys.length) {
+		const body = mapping_keys
+			.map((m) => {
+				const src = m.cfg && m.cfg.source ? `${m.cfg.source}:${m.cfg.param || ""}` : "";
+				return _field_row_html(`{{ doc.${m.key} }}`, src, "Field Mapping");
+			})
+			.join("");
+		mapping_section = _section_html(__("Field Mapping aliases"), body);
+	}
+
+	let preview_section = "";
+	if (preview_keys && preview_keys.length) {
+		const body = preview_keys
+			.map((k) => _field_row_html(`{{ doc.${k} }}`, "", "preview-only"))
+			.join("");
+		preview_section = _section_html(__("Runtime / preview-only keys"), body,
+			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__("Seen in preview_data but not in doctype meta. Make sure they exist at runtime.")}</div>`);
+	}
+
+	const helpers_section = _section_html(__("Helpers"), [
+		_field_row_html(`{{ _("Hello") }}`, __("Translate"), ""),
+		_field_row_html(`{{ frappe.utils.formatdate(doc.posting_date) }}`, __("Format date"), ""),
+		_field_row_html(`<barcode type="code128" data="{{ doc.name }}" />`, __("Barcode tag"), ""),
+		_field_row_html(`<attachment fieldname="image" />`, __("Attachment tag"), ""),
+	].join(""));
+
+	d.$body.html(`
+		<div style="padding:0 15px 15px;font-size:13px;">
+			<div style="position:sticky;top:0;background:var(--card-bg);padding:10px 0;z-index:1;border-bottom:1px solid var(--border-color);">
+				<input type="text" class="form-control fpx-search" placeholder="${__("Filter fields...")}" />
+			</div>
+			${direct_section}
+			${child_section}
+			${linked_section}
+			${spec_section}
+			${mapping_section}
+			${preview_section}
+			${helpers_section}
+		</div>
+	`);
+
+	d.$body.on("click", "[data-copy-target]", function () {
+		const id = $(this).attr("data-copy-target");
+		const text = document.getElementById(id)?.innerText || "";
+		navigator.clipboard.writeText(text).then(() => {
+			frappe.show_alert({ message: __("Copied"), indicator: "green" });
+		});
+	});
+
+	d.$body.on("input", ".fpx-search", function () {
+		const q = ($(this).val() || "").toLowerCase().trim();
+		d.$body.find(".fpx-row").each(function () {
+			const hay = $(this).attr("data-search") || "";
+			$(this).toggle(!q || hay.indexOf(q) !== -1);
+		});
+	});
+
 	d.show();
 }
 

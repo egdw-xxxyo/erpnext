@@ -415,8 +415,16 @@ def test_print(printer_name, template_name):
 	if template.preview_data:
 		data = json.loads(template.preview_data)
 
-	ezpl = _render_template(template, data=data)
-	_send_ezpl(printer, ezpl)
+	rendered_html = _render_html_template(template, data=data)
+	if not rendered_html or not rendered_html.strip():
+		frappe.throw(_("Template rendered empty HTML output"))
+
+	size = frappe.get_doc("Label Size", template.label_size)
+	dpi = int(printer.dpi or 300)
+	w_dots = _mm_to_dots(size.width_mm, dpi)
+	h_dots = _mm_to_dots(size.height_mm, dpi)
+	pcx_data, _png = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
+	_send_pcx_label(printer, pcx_data, size)
 	return {"success": True}
 
 
@@ -489,87 +497,56 @@ def print_label(print_job_name, label_printer=None):
 		frappe.db.set_value("Print Job", print_job_name, "status", "Printing")
 		tlog(f"[TIMING] set_status_printing: {(time.monotonic() - t0)*1000:.0f}ms")
 
-		if template.template_type == "HTML":
-			size = frappe.get_doc("Label Size", template.label_size)
+		size = frappe.get_doc("Label Size", template.label_size)
 
-			# Try to load pre-rendered PCX from file attachment
-			t0 = time.monotonic()
-			pcx_data = _load_pcx_file(job)
-			if pcx_data:
-				tlog(f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
-					f"({len(pcx_data)}bytes) — skipping wkhtmltoimage")
-			else:
-				tlog(f"[TIMING] no pre-rendered PCX, rendering on the fly")
-				t0 = time.monotonic()
-				rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
-				tlog(f"[TIMING] render_html: {(time.monotonic() - t0)*1000:.0f}ms ({len(rendered_html)} chars)")
-				if not rendered_html or not rendered_html.strip():
-					raise ValueError("Template rendered empty HTML output")
-
-				dpi = int(printer.dpi or 300)
-				w_dots = _mm_to_dots(size.width_mm, dpi)
-				h_dots = _mm_to_dots(size.height_mm, dpi)
-
-				t0 = time.monotonic()
-				pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
-				tlog(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
-					f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes")
-
-				t0 = time.monotonic()
-				_save_preview_image(print_job_name, png_data)
-				tlog(f"[TIMING] save_preview_image: {(time.monotonic() - t0)*1000:.0f}ms")
-
-			is_mock = printer.mock_printing
-
-			if not is_mock:
-				t0 = time.monotonic()
-				_send_pcx_label(printer, pcx_data, size, copies=job.copies or 1)
-				tlog(f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
-					f"copies={job.copies or 1}")
-			else:
-				tlog(f"[TIMING] mock printing — skipped sending to printer")
-				time.sleep(1)
-
-			t0 = time.monotonic()
-			status_note = "[MOCK] " if is_mock else ""
-			frappe.db.set_value("Print Job", print_job_name, {
-				"status": "Printed",
-				"printed_at": now_datetime(),
-				"zpl_output": f"{status_note}[HTML template rendered to PCX, {len(pcx_data)} bytes]",
-				"error_message": "",
-				"log": "\n".join(log_lines),
-			})
-			tlog(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
+		# Try to load pre-rendered PCX from file attachment
+		t0 = time.monotonic()
+		pcx_data = _load_pcx_file(job)
+		if pcx_data:
+			tlog(f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
+				f"({len(pcx_data)}bytes) — skipping wkhtmltoimage")
 		else:
+			tlog(f"[TIMING] no pre-rendered PCX, rendering on the fly")
 			t0 = time.monotonic()
-			ezpl = _render_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
-			tlog(f"[TIMING] render_ezpl: {(time.monotonic() - t0)*1000:.0f}ms ({len(ezpl)} chars)")
+			rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
+			tlog(f"[TIMING] render_html: {(time.monotonic() - t0)*1000:.0f}ms ({len(rendered_html)} chars)")
+			if not rendered_html or not rendered_html.strip():
+				raise ValueError("Template rendered empty HTML output")
 
-			if not ezpl or not ezpl.strip():
-				raise ValueError("Template rendered empty EZPL output")
-
-			is_mock = printer.mock_printing
-
-			if not is_mock:
-				t0 = time.monotonic()
-				for i in range(job.copies or 1):
-					_send_ezpl(printer, ezpl)
-				tlog(f"[TIMING] send_ezpl (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
-					f"copies={job.copies or 1}")
-			else:
-				tlog(f"[TIMING] mock printing — skipped sending to printer")
-				time.sleep(1)
+			dpi = int(printer.dpi or 300)
+			w_dots = _mm_to_dots(size.width_mm, dpi)
+			h_dots = _mm_to_dots(size.height_mm, dpi)
 
 			t0 = time.monotonic()
-			status_note = "[MOCK] " if is_mock else ""
-			frappe.db.set_value("Print Job", print_job_name, {
-				"status": "Printed",
-				"printed_at": now_datetime(),
-				"zpl_output": f"{status_note}{ezpl}",
-				"error_message": "",
-				"log": "\n".join(log_lines),
-			})
-			tlog(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
+			pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
+			tlog(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
+				f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes")
+
+			t0 = time.monotonic()
+			_save_preview_image(print_job_name, png_data)
+			tlog(f"[TIMING] save_preview_image: {(time.monotonic() - t0)*1000:.0f}ms")
+
+		is_mock = printer.mock_printing
+
+		if not is_mock:
+			t0 = time.monotonic()
+			_send_pcx_label(printer, pcx_data, size, copies=job.copies or 1)
+			tlog(f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
+				f"copies={job.copies or 1}")
+		else:
+			tlog(f"[TIMING] mock printing — skipped sending to printer")
+			time.sleep(1)
+
+		t0 = time.monotonic()
+		status_note = "[MOCK] " if is_mock else ""
+		frappe.db.set_value("Print Job", print_job_name, {
+			"status": "Printed",
+			"printed_at": now_datetime(),
+			"zpl_output": f"{status_note}[HTML template rendered to PCX, {len(pcx_data)} bytes]",
+			"error_message": "",
+			"log": "\n".join(log_lines),
+		})
+		tlog(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
 
 		total_ms = (time.monotonic() - t_total) * 1000
 		tlog(f"[TIMING] print_label DONE job={print_job_name} TOTAL={total_ms:.0f}ms")
@@ -611,12 +588,7 @@ def print_label(print_job_name, label_printer=None):
 
 
 def _render_template(template_doc, doc=None, data=None, parent_doc=None):
-	if template_doc.template_type == "EZPL":
-		return _render_ezpl_template(template_doc, doc=doc, data=data, parent_doc=parent_doc)
-	elif template_doc.template_type == "HTML":
-		return _render_html_template(template_doc, doc=doc, data=data, parent_doc=parent_doc)
-	else:
-		frappe.throw(_("Unsupported template type: {0}").format(template_doc.template_type))
+	return _render_html_template(template_doc, doc=doc, data=data, parent_doc=parent_doc)
 
 
 def _render_html_template(template_doc, doc=None, data=None, parent_doc=None):
@@ -691,9 +663,6 @@ def _load_pcx_file(job):
 
 def _prerender_job(job_name, template, printer_doc, ref_doc=None, raw_data=None, parent_doc=None):
 	log = frappe.logger("label_printer")
-	if template.template_type != "HTML":
-		return
-
 	try:
 		t0 = time.monotonic()
 		rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
@@ -793,35 +762,6 @@ def check_printer_ready(printer_name):
 	doc = _get_printer_doc(printer_name)
 	_check_printer_status(doc, "batch-check")
 	return {"success": True, "status": "Ready"}
-
-
-def _render_ezpl_template(template_doc, doc=None, data=None, parent_doc=None):
-	context = {"frappe": frappe, "_": _}
-
-	if doc:
-		context["doc"] = doc
-	elif data:
-		if isinstance(data, str):
-			data = json.loads(data)
-		context["doc"] = frappe._dict(data)
-	else:
-		context["doc"] = frappe._dict()
-
-	if parent_doc:
-		context["parent"] = parent_doc
-
-	template_str = template_doc.zpl_template or ""
-	frappe.logger("label_printer").info(
-		f"_render_ezpl_template: template={template_doc.name}, "
-		f"template_len={len(template_str)}, has_doc={doc is not None}, "
-		f"template_preview={repr(template_str[:100])}"
-	)
-
-	result = frappe.render_template(template_str, context)
-	frappe.logger("label_printer").info(
-		f"_render_ezpl_template: rendered {len(result)} chars: {repr(result[:200])}"
-	)
-	return result
 
 
 # ---------------------------------------------------------------------------
