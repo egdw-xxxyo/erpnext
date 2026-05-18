@@ -106,6 +106,15 @@ frappe.ui.form.on("Label Template", {
 
 		$btn.on("click", () => _show_template_help(frm));
 		$field.$wrapper.append($btn);
+
+		const $fbtn = $(`<button class="btn btn-xs btn-default available-fields-btn" style="margin-top:4px;margin-left:4px;">
+			<svg class="icon icon-sm" style="vertical-align:middle;margin-right:2px;">
+				<use href="#icon-list"></use>
+			</svg>
+			${__("Available Fields")}
+		</button>`);
+		$fbtn.on("click", () => _show_available_fields(frm));
+		$field.$wrapper.append($fbtn);
 	},
 
 	preview_data(frm) {
@@ -309,6 +318,269 @@ function _render_html_help_dialog(data) {
 			frappe.show_alert({ message: __("Copied"), indicator: "green" });
 		});
 	});
+	d.show();
+}
+
+const FIELD_PICKER_RENDERABLE_TYPES = [
+	"Data", "Small Text", "Long Text", "Text", "Text Editor", "Code",
+	"Link", "Dynamic Link", "Select", "Read Only", "Password",
+	"Int", "Float", "Currency", "Percent", "Check",
+	"Date", "Datetime", "Time", "Duration",
+	"Barcode", "Attach", "Attach Image", "Color",
+];
+
+function _is_renderable_field(f) {
+	return FIELD_PICKER_RENDERABLE_TYPES.includes(f.fieldtype);
+}
+
+async function _show_available_fields(frm) {
+	const dt = frm.doc.reference_doctype;
+	if (!dt) {
+		_render_available_fields_dialog({ no_doctype: true, frm });
+		return;
+	}
+
+	frappe.dom.freeze(__("Loading fields..."));
+	try {
+		await new Promise((res) => frappe.model.with_doctype(dt, res));
+		const meta = frappe.get_meta(dt) || { fields: [] };
+
+		const link_fields = (meta.fields || []).filter(
+			(f) => f.fieldtype === "Link" && f.options
+		);
+		const child_fields = (meta.fields || []).filter(
+			(f) => f.fieldtype === "Table" && f.options
+		);
+
+		const linked_metas = {};
+		for (const lf of link_fields) {
+			await new Promise((res) => frappe.model.with_doctype(lf.options, res));
+			linked_metas[lf.fieldname] = {
+				doctype: lf.options,
+				meta: frappe.get_meta(lf.options) || { fields: [] },
+			};
+		}
+
+		const child_metas = {};
+		for (const cf of child_fields) {
+			await new Promise((res) => frappe.model.with_doctype(cf.options, res));
+			child_metas[cf.fieldname] = {
+				doctype: cf.options,
+				meta: frappe.get_meta(cf.options) || { fields: [] },
+			};
+		}
+
+		let preview_keys = [];
+		let preview_data = null;
+		try {
+			preview_data = JSON.parse(frm.doc.preview_data || "{}");
+			const meta_fns = new Set((meta.fields || []).map((f) => f.fieldname));
+			meta_fns.add("name");
+			preview_keys = Object.keys(preview_data).filter((k) => !meta_fns.has(k));
+		} catch (e) {
+			preview_data = null;
+		}
+
+		let mapping_keys = [];
+		try {
+			const fm = JSON.parse(frm.doc.field_mapping || "{}");
+			mapping_keys = Object.keys(fm).map((k) => ({ key: k, cfg: fm[k] }));
+		} catch (e) {}
+
+		let spec_keys = [];
+		const item_code = preview_data && preview_data.item_code;
+		if (item_code) {
+			try {
+				const r = await frappe.call({
+					method: "erpnext.manufacturing.doctype.label_template.label_template.get_available_spec_keys",
+					args: { item_code },
+				});
+				spec_keys = r.message || [];
+			} catch (e) {}
+		}
+
+		_render_available_fields_dialog({
+			frm, dt, meta, linked_metas, child_metas,
+			preview_keys, mapping_keys, spec_keys,
+		});
+	} finally {
+		frappe.dom.unfreeze();
+	}
+}
+
+function _field_row_html(expr, label, fieldtype) {
+	const id = "fpx-" + Math.random().toString(36).slice(2, 9);
+	const safe_expr = frappe.utils.escape_html(expr);
+	const safe_label = frappe.utils.escape_html(label || "");
+	const ft = fieldtype ? `<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${frappe.utils.escape_html(fieldtype)}</span>` : "";
+	return `
+		<div class="fpx-row" data-search="${frappe.utils.escape_html((expr + " " + label).toLowerCase())}"
+			style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;border-bottom:1px solid var(--border-color);">
+			<div style="flex:1;min-width:0;">
+				<code id="${id}" style="font-size:12px;">${safe_expr}</code>
+				${safe_label ? `<span style="color:var(--text-muted);margin-left:8px;">${safe_label}</span>` : ""}
+				${ft}
+			</div>
+			<button class="btn btn-xs btn-default" data-copy-target="${id}">${__("Copy")}</button>
+		</div>`;
+}
+
+function _section_html(title, body_html, extra_html) {
+	return `
+		<div class="fpx-section" style="margin-top:14px;">
+			<div style="font-weight:600;margin-bottom:4px;">${title}</div>
+			${extra_html || ""}
+			<div style="border:1px solid var(--border-color);border-radius:4px;">${body_html}</div>
+		</div>`;
+}
+
+function _render_available_fields_dialog(ctx) {
+	const d = new frappe.ui.Dialog({ title: __("Available Fields"), size: "large" });
+
+	if (ctx.no_doctype) {
+		d.$body.html(`<div style="padding:15px;">
+			<p>${__("No Reference DocType is set on this template.")}</p>
+			<p>${__("For Raw Data templates, available keys are defined in the document(s) you pass at print time, or via Field Mapping.")}</p>
+		</div>`);
+		d.show();
+		return;
+	}
+
+	const { frm, dt, meta, linked_metas, child_metas, preview_keys, mapping_keys, spec_keys } = ctx;
+
+	const direct = (meta.fields || [])
+		.filter(_is_renderable_field)
+		.map((f) => _field_row_html(`{{ doc.${f.fieldname} }}`, f.label || "", f.fieldtype))
+		.join("");
+
+	let direct_section = _section_html(
+		`${__("Document fields")} <span style="color:var(--text-muted);font-weight:400;">— ${frappe.utils.escape_html(dt)}</span>`,
+		direct || `<div style="padding:8px;color:var(--text-muted);">${__("(none)")}</div>`
+	);
+
+	let child_section = "";
+	const child_fns = Object.keys(child_metas || {});
+	if (child_fns.length) {
+		let body = "";
+		for (const fn of child_fns) {
+			const cm = child_metas[fn];
+			const loop_id = "fpx-" + Math.random().toString(36).slice(2, 9);
+			const loop = `{% for row in doc.${fn} %}\n  {{ row.fieldname }}\n{% endfor %}`;
+			const inner = (cm.meta.fields || [])
+				.filter(_is_renderable_field)
+				.map((f) => _field_row_html(`{{ row.${f.fieldname} }}`, f.label || "", f.fieldtype))
+				.join("");
+			body += `
+				<details style="border-bottom:1px solid var(--border-color);">
+					<summary style="cursor:pointer;padding:6px 8px;">
+						<code>doc.${fn}</code>
+						<span style="color:var(--text-muted);margin-left:6px;">${__("Table")} → ${frappe.utils.escape_html(cm.doctype)}</span>
+					</summary>
+					<div style="padding:6px 8px;display:flex;align-items:center;gap:8px;">
+						<pre id="${loop_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(loop)}</pre>
+						<button class="btn btn-xs btn-default" data-copy-target="${loop_id}">${__("Copy loop")}</button>
+					</div>
+					${inner || `<div style="padding:6px 8px;color:var(--text-muted);">${__("(no renderable fields)")}</div>`}
+				</details>`;
+		}
+		child_section = _section_html(__("Child tables"), body);
+	}
+
+	let linked_section = "";
+	const link_fns = Object.keys(linked_metas || {});
+	if (link_fns.length) {
+		let body = "";
+		for (const fn of link_fns) {
+			const lm = linked_metas[fn];
+			const var_id = "fpx-" + Math.random().toString(36).slice(2, 9);
+			const setline = `{% set ${fn} = frappe.get_doc("${lm.doctype}", doc.${fn}) if doc.${fn} else None %}`;
+			const inner = (lm.meta.fields || [])
+				.filter(_is_renderable_field)
+				.map((f) => _field_row_html(`{{ ${fn}.${f.fieldname} }}`, f.label || "", f.fieldtype))
+				.join("");
+			body += `
+				<details style="border-bottom:1px solid var(--border-color);">
+					<summary style="cursor:pointer;padding:6px 8px;">
+						<code>doc.${fn}</code>
+						<span style="color:var(--text-muted);margin-left:6px;">${__("Link")} → ${frappe.utils.escape_html(lm.doctype)}</span>
+					</summary>
+					<div style="padding:6px 8px;display:flex;align-items:center;gap:8px;">
+						<pre id="${var_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(setline)}</pre>
+						<button class="btn btn-xs btn-default" data-copy-target="${var_id}">${__("Copy")}</button>
+					</div>
+					${inner || `<div style="padding:6px 8px;color:var(--text-muted);">${__("(no renderable fields)")}</div>`}
+				</details>`;
+		}
+		linked_section = _section_html(__("Linked documents (one-level)"), body);
+	}
+
+	let spec_section = "";
+	if (spec_keys && spec_keys.length) {
+		const body = spec_keys
+			.map((s) => _field_row_html(`{{ doc.${s.key} }}`, s.param, "Spec param"))
+			.join("");
+		spec_section = _section_html(__("Spec params"), body,
+			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__("Flattened from the item's specification.")}</div>`);
+	}
+
+	let mapping_section = "";
+	if (mapping_keys && mapping_keys.length) {
+		const body = mapping_keys
+			.map((m) => {
+				const src = m.cfg && m.cfg.source ? `${m.cfg.source}:${m.cfg.param || ""}` : "";
+				return _field_row_html(`{{ doc.${m.key} }}`, src, "Field Mapping");
+			})
+			.join("");
+		mapping_section = _section_html(__("Field Mapping aliases"), body);
+	}
+
+	let preview_section = "";
+	if (preview_keys && preview_keys.length) {
+		const body = preview_keys
+			.map((k) => _field_row_html(`{{ doc.${k} }}`, "", "preview-only"))
+			.join("");
+		preview_section = _section_html(__("Runtime / preview-only keys"), body,
+			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__("Seen in preview_data but not in doctype meta. Make sure they exist at runtime.")}</div>`);
+	}
+
+	const helpers_section = _section_html(__("Helpers"), [
+		_field_row_html(`{{ _("Hello") }}`, __("Translate"), ""),
+		_field_row_html(`{{ frappe.utils.formatdate(doc.posting_date) }}`, __("Format date"), ""),
+		_field_row_html(`<barcode type="code128" data="{{ doc.name }}" />`, __("Barcode tag"), ""),
+		_field_row_html(`<attachment fieldname="image" />`, __("Attachment tag"), ""),
+	].join(""));
+
+	d.$body.html(`
+		<div style="padding:0 15px 15px;font-size:13px;">
+			<div style="position:sticky;top:0;background:var(--card-bg);padding:10px 0;z-index:1;border-bottom:1px solid var(--border-color);">
+				<input type="text" class="form-control fpx-search" placeholder="${__("Filter fields...")}" />
+			</div>
+			${direct_section}
+			${child_section}
+			${linked_section}
+			${spec_section}
+			${mapping_section}
+			${preview_section}
+			${helpers_section}
+		</div>
+	`);
+
+	d.$body.on("click", "[data-copy-target]", function () {
+		const id = $(this).attr("data-copy-target");
+		const text = document.getElementById(id)?.innerText || "";
+		navigator.clipboard.writeText(text).then(() => {
+			frappe.show_alert({ message: __("Copied"), indicator: "green" });
+		});
+	});
+
+	d.$body.on("input", ".fpx-search", function () {
+		const q = ($(this).val() || "").toLowerCase().trim();
+		d.$body.find(".fpx-row").each(function () {
+			const hay = $(this).attr("data-search") || "";
+			$(this).toggle(!q || hay.indexOf(q) !== -1);
+		});
+	});
+
 	d.show();
 }
 

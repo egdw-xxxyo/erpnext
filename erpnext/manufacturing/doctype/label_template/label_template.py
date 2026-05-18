@@ -79,6 +79,19 @@ def get_template_reference():
 
 
 @frappe.whitelist()
+def get_available_spec_keys(item_code):
+	"""Return flattened spec-param keys available as `doc.<key>` for the given item."""
+	if not item_code:
+		return []
+	from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
+	spec = get_spec_for_item(item_code) or {}
+	return [
+		{"key": _spec_param_to_key(name), "param": name}
+		for name in spec.keys()
+	]
+
+
+@frappe.whitelist()
 def get_templates_for_barcode_type(barcode_type):
 	"""Return label templates configured for a specific barcode type."""
 	return frappe.get_all(
