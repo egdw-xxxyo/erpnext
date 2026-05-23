@@ -1,6 +1,64 @@
+function check_message_fit(msg, rows, chars) {
+	if (!msg || !rows || !chars) return null;
+	const lines = String(msg).split("\n");
+	const over_lines = lines.length > rows;
+	const long = lines
+		.map((l, i) => ({ i: i + 1, len: l.length }))
+		.filter((x) => x.len > chars);
+	if (!over_lines && long.length === 0) return null;
+	const parts = [];
+	if (over_lines) parts.push(__("Lines: {0} (limit {1})", [lines.length, rows]));
+	if (long.length) {
+		const detail = long.map((x) => __("line {0}: {1} chars", [x.i, x.len])).join(", ");
+		parts.push(__("Too long: {0} (limit {1})", [detail, chars]));
+	}
+	return parts.join("\n");
+}
+
+function mark_oversize_scan_logs(frm) {
+	const grid = frm.fields_dict.scan_logs?.grid;
+	if (!grid) return;
+	const rows = frm._scanner_cfg_rows;
+	const chars = frm._scanner_cfg_chars;
+	if (!rows || !chars) return;
+	(grid.grid_rows || []).forEach((gr) => {
+		const warn = check_message_fit(gr.doc?.result_message, rows, chars);
+		const $row = gr.row || gr.wrapper;
+		if (!$row) return;
+		$row.find(".scanner-overflow-warn").remove();
+		$row.css("border-left", "");
+		if (!warn) return;
+		$row.css("border-left", "3px solid var(--red-500, #e24c4c)");
+		const $cell = $row.find('[data-fieldname="result_message"]').first();
+		const $target = $cell.length ? $cell : $row;
+		$target.prepend(
+			`<span class="scanner-overflow-warn" title="${frappe.utils.escape_html(warn)}" ` +
+				`style="color: var(--red-500, #e24c4c); margin-right: 4px; cursor: help;">⚠</span>`
+		);
+	});
+}
+
 frappe.ui.form.on("Scanner", {
 	refresh(frm) {
 		if (frm.is_new()) return;
+
+		if (frm.doc.scanner_configuration) {
+			frappe.db
+				.get_value("Scanner Configuration", frm.doc.scanner_configuration, [
+					"display_rows",
+					"display_chars_per_row",
+				])
+				.then((r) => {
+					frm._scanner_cfg_rows = r.message?.display_rows;
+					frm._scanner_cfg_chars = r.message?.display_chars_per_row;
+					mark_oversize_scan_logs(frm);
+				});
+		} else {
+			frm._scanner_cfg_rows = null;
+			frm._scanner_cfg_chars = null;
+		}
+
+		setTimeout(() => mark_oversize_scan_logs(frm), 300);
 
 		const qr_svg = frm.doc.__onload?.qr_svg;
 		if (qr_svg) {
@@ -71,5 +129,11 @@ frappe.ui.form.on("Scanner", {
 				});
 			}
 		);
+	},
+});
+
+frappe.ui.form.on("Scanner Scan Log Entry", {
+	form_render(frm) {
+		mark_oversize_scan_logs(frm);
 	},
 });
