@@ -88,6 +88,7 @@
    "label": "Planned Items"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "planned_items",
    "fieldtype": "Table",
    "label": "Planned Items",
@@ -135,8 +136,7 @@
    "fieldname": "packages",
    "fieldtype": "Table",
    "label": "Packages",
-   "options": "BpAK Package",
-   "read_only": 1
+   "options": "BpAK Package"
   },
   {
    "allow_on_submit": 1,

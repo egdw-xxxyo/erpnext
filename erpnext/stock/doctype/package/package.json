@@ -163,6 +163,7 @@
    "label": "References"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "bpak",
    "fieldtype": "Link",
    "in_list_view": 1,

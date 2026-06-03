@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
 
@@ -10,14 +11,56 @@ class BpAK(Document):
 	def validate(self):
 		self._inherit_from_template()
 		self._resolve_serial_series()
+		self._reconcile_packages_link()
 
 	def before_submit(self):
 		if not self.serial_no:
 			self.serial_no = self._issue_serial_no()
 		self.status = "Packing"
 
+	def on_update(self):
+		if not self.is_new():
+			sync_packages_child(self.name)
+
 	def on_cancel(self):
 		self.status = "Cancelled"
+
+	def _reconcile_packages_link(self):
+		"""Sync `Package.bpak` to match this BpAK's `packages` child table.
+		- Added rows: claim the Package (reject if linked to another BpAK).
+		- Removed rows: clear `Package.bpak` if it currently points here."""
+		if self.is_new():
+			return
+		desired = []
+		seen = set()
+		for row in self.packages or []:
+			if not row.package:
+				continue
+			if row.package in seen:
+				frappe.throw(_("Duplicate package row: {0}").format(row.package))
+			seen.add(row.package)
+			desired.append(row.package)
+
+		current = {
+			p.name for p in frappe.get_all("Package", filters={"bpak": self.name}, fields=["name"])
+		}
+		to_add = set(desired) - current
+		to_remove = current - set(desired)
+
+		for pkg_name in to_add:
+			info = frappe.db.get_value(
+				"Package", pkg_name, ["name", "bpak", "docstatus"], as_dict=True
+			)
+			if not info:
+				frappe.throw(_("Package {0} not found").format(pkg_name))
+			if info.bpak and info.bpak != self.name:
+				frappe.throw(
+					_("Package {0} is already linked to BpAK {1}").format(pkg_name, info.bpak)
+				)
+			frappe.db.set_value("Package", pkg_name, "bpak", self.name, update_modified=False)
+
+		for pkg_name in to_remove:
+			frappe.db.set_value("Package", pkg_name, "bpak", None, update_modified=False)
 
 	def _inherit_from_template(self):
 		if not self.bpak_template:
@@ -193,7 +236,7 @@ def get_packed_summary(bpak_name):
 		rows = frappe.get_all(
 			"Package Item",
 			filters={"parent": ["in", [p.name for p in pkgs]], "parenttype": "Package"},
-			fields=["parent", "item_code", "item_name", "qty"],
+			fields=["parent", "item_code", "item_name", "qty", "serial_no"],
 			order_by="parent asc, idx asc",
 		)
 		grouped = {}
@@ -202,6 +245,7 @@ def get_packed_summary(bpak_name):
 				"item_code": r.item_code,
 				"item_name": r.item_name,
 				"qty": int(r.qty or 0),
+				"serial_no": r.serial_no,
 			})
 			packed_total += int(r.qty or 0)
 		for p in pkgs:

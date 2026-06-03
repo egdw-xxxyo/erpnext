@@ -9,13 +9,22 @@ class Package(Document):
 		self._sync_bpak_child()
 
 	def on_update(self):
-		self._sync_bpak_child()
+		self._sync_bpak_child(include_previous=True)
 
-	def _sync_bpak_child(self):
-		if not self.bpak:
-			return
+	def on_update_after_submit(self):
+		self._sync_bpak_child(include_previous=True)
+
+	def _sync_bpak_child(self, include_previous=False):
 		from erpnext.stock.doctype.bpak.bpak import sync_packages_child
-		sync_packages_child(self.bpak)
+		targets = set()
+		if self.bpak:
+			targets.add(self.bpak)
+		if include_previous:
+			prev = self.get_doc_before_save()
+			if prev and prev.get("bpak") and prev.bpak != self.bpak:
+				targets.add(prev.bpak)
+		for name in targets:
+			sync_packages_child(name)
 
 	def validate(self):
 		self.validate_duplicate_serial_nos()
