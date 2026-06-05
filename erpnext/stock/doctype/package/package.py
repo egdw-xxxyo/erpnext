@@ -64,6 +64,17 @@ class Package(Document):
 			frappe.throw(_("BpAK {0} not found").format(self.bpak))
 		if bpak_status == 2:
 			frappe.throw(_("BpAK {0} is cancelled").format(self.bpak))
+		conflicting = frappe.db.sql(
+			"""SELECT parent FROM `tabBpAK Package`
+			   WHERE parenttype='BpAK' AND package=%s AND parent!=%s LIMIT 1""",
+			(self.name, self.bpak),
+		)
+		if conflicting:
+			frappe.throw(
+				_("Package {0} is already linked to BpAK {1}").format(
+					self.name, conflicting[0][0]
+				)
+			)
 		if self.sales_order and bpak_so and self.sales_order != bpak_so:
 			frappe.throw(
 				_("Package Sales Order {0} does not match BpAK Sales Order {1}").format(
