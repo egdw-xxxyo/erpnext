@@ -22,7 +22,6 @@
   "serial_number_template",
   "serial_no_series",
   "packages_section",
-  "packages",
   "packed_summary_html",
   "notes_section",
   "notes",
@@ -130,13 +129,6 @@
    "fieldname": "packages_section",
    "fieldtype": "Section Break",
    "label": "Packages"
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "packages",
-   "fieldtype": "Table",
-   "label": "Packages",
-   "options": "BpAK Package"
   },
   {
    "allow_on_submit": 1,

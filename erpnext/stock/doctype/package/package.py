@@ -6,25 +6,6 @@ from frappe.model.document import Document
 class Package(Document):
 	def after_insert(self):
 		self.db_set("box_barcode", self.name)
-		self._sync_bpak_child()
-
-	def on_update(self):
-		self._sync_bpak_child(include_previous=True)
-
-	def on_update_after_submit(self):
-		self._sync_bpak_child(include_previous=True)
-
-	def _sync_bpak_child(self, include_previous=False):
-		from erpnext.stock.doctype.bpak.bpak import sync_packages_child
-		targets = set()
-		if self.bpak:
-			targets.add(self.bpak)
-		if include_previous:
-			prev = self.get_doc_before_save()
-			if prev and prev.get("bpak") and prev.bpak != self.bpak:
-				targets.add(prev.bpak)
-		for name in targets:
-			sync_packages_child(name)
 
 	def validate(self):
 		self.validate_duplicate_serial_nos()
@@ -64,17 +45,6 @@ class Package(Document):
 			frappe.throw(_("BpAK {0} not found").format(self.bpak))
 		if bpak_status == 2:
 			frappe.throw(_("BpAK {0} is cancelled").format(self.bpak))
-		conflicting = frappe.db.sql(
-			"""SELECT parent FROM `tabBpAK Package`
-			   WHERE parenttype='BpAK' AND package=%s AND parent!=%s LIMIT 1""",
-			(self.name, self.bpak),
-		)
-		if conflicting:
-			frappe.throw(
-				_("Package {0} is already linked to BpAK {1}").format(
-					self.name, conflicting[0][0]
-				)
-			)
 		if self.sales_order and bpak_so and self.sales_order != bpak_so:
 			frappe.throw(
 				_("Package Sales Order {0} does not match BpAK Sales Order {1}").format(

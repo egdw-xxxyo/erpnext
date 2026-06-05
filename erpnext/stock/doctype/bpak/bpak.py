@@ -11,56 +11,14 @@ class BpAK(Document):
 	def validate(self):
 		self._inherit_from_template()
 		self._resolve_serial_series()
-		self._reconcile_packages_link()
 
 	def before_submit(self):
 		if not self.serial_no:
 			self.serial_no = self._issue_serial_no()
 		self.status = "Packing"
 
-	def on_update(self):
-		if not self.is_new():
-			sync_packages_child(self.name)
-
 	def on_cancel(self):
 		self.status = "Cancelled"
-
-	def _reconcile_packages_link(self):
-		"""Sync `Package.bpak` to match this BpAK's `packages` child table.
-		- Added rows: claim the Package (reject if linked to another BpAK).
-		- Removed rows: clear `Package.bpak` if it currently points here."""
-		if self.is_new():
-			return
-		desired = []
-		seen = set()
-		for row in self.packages or []:
-			if not row.package:
-				continue
-			if row.package in seen:
-				frappe.throw(_("Duplicate package row: {0}").format(row.package))
-			seen.add(row.package)
-			desired.append(row.package)
-
-		current = {
-			p.name for p in frappe.get_all("Package", filters={"bpak": self.name}, fields=["name"])
-		}
-		to_add = set(desired) - current
-		to_remove = current - set(desired)
-
-		for pkg_name in to_add:
-			info = frappe.db.get_value(
-				"Package", pkg_name, ["name", "bpak", "docstatus"], as_dict=True
-			)
-			if not info:
-				frappe.throw(_("Package {0} not found").format(pkg_name))
-			if info.bpak and info.bpak != self.name:
-				frappe.throw(
-					_("Package {0} is already linked to BpAK {1}").format(pkg_name, info.bpak)
-				)
-			frappe.db.set_value("Package", pkg_name, "bpak", self.name, update_modified=False)
-
-		for pkg_name in to_remove:
-			frappe.db.set_value("Package", pkg_name, "bpak", None, update_modified=False)
 
 	def _inherit_from_template(self):
 		if not self.bpak_template:
@@ -174,7 +132,6 @@ def refresh_bpak_aggregates(sales_order):
 		)
 		row.package_count = len(pkgs)
 		item_total = 0
-		pkg_item_counts = {}
 		if pkgs:
 			pkg_names = [p.name for p in pkgs]
 			rows = frappe.get_all(
@@ -185,21 +142,8 @@ def refresh_bpak_aggregates(sales_order):
 			for r in rows:
 				q = int(r.qty or 0)
 				item_total += q
-				pkg_item_counts[r.parent] = pkg_item_counts.get(r.parent, 0) + q
 				totals_by_item[r.item_code] = totals_by_item.get(r.item_code, 0) + q
 		row.item_count = item_total
-
-		# Sync BpAK.packages child table
-		bpak = frappe.get_doc("BpAK", row.bpak)
-		bpak.set("packages", [])
-		for p in pkgs:
-			bpak.append("packages", {
-				"package": p.name,
-				"status": p.status,
-				"item_count": pkg_item_counts.get(p.name, 0),
-			})
-		bpak.flags.ignore_validate_update_after_submit = True
-		bpak.save(ignore_permissions=True)
 
 	# Update SO Items qty from aggregated totals (only items already on the SO)
 	for it in so.items or []:
@@ -286,40 +230,3 @@ def update_status_from_package(bpak_name):
 
 	if bpak.status != new_status:
 		frappe.db.set_value("BpAK", bpak_name, "status", new_status)
-
-	sync_packages_child(bpak_name)
-
-
-def sync_packages_child(bpak_name):
-	"""Rebuild BpAK.packages child table from current linked Packages."""
-	if not bpak_name or not frappe.db.exists("BpAK", bpak_name):
-		return
-	pkgs = frappe.get_all(
-		"Package",
-		filters={"bpak": bpak_name, "docstatus": ["<", 2]},
-		fields=["name", "status"],
-		order_by="creation asc",
-	)
-	item_counts = {}
-	if pkgs:
-		rows = frappe.get_all(
-			"Package Item",
-			filters={"parent": ["in", [p.name for p in pkgs]], "parenttype": "Package"},
-			fields=["parent", "qty"],
-		)
-		for r in rows:
-			item_counts[r.parent] = item_counts.get(r.parent, 0) + int(r.qty or 0)
-
-	frappe.db.delete("BpAK Package", {"parent": bpak_name, "parenttype": "BpAK"})
-	for idx, p in enumerate(pkgs, start=1):
-		row = frappe.get_doc({
-			"doctype": "BpAK Package",
-			"parent": bpak_name,
-			"parenttype": "BpAK",
-			"parentfield": "packages",
-			"idx": idx,
-			"package": p.name,
-			"status": p.status,
-			"item_count": item_counts.get(p.name, 0),
-		})
-		row.db_insert()
