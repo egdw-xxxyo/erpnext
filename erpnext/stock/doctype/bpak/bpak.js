@@ -12,8 +12,32 @@ frappe.ui.form.on("BpAK", {
 			});
 		}
 		render_packed_summary(frm);
+		setup_print_labels(frm);
 	},
 });
+
+function setup_print_labels(frm) {
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "BpAK" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "BpAK",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
+	});
+}
 
 function render_packed_summary(frm) {
 	let wrapper = frm.fields_dict.packed_summary_html
