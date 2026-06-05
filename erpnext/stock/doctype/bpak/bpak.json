@@ -99,6 +99,7 @@
    "label": "Serial"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "serial_no",
    "fieldtype": "Data",
    "in_list_view": 1,
