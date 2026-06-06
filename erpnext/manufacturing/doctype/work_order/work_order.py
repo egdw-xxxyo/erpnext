@@ -168,6 +168,8 @@ class WorkOrder(Document):
 		validate_uom_is_integer(self, "stock_uom", ["required_qty"])
 
 		self.set_required_items(reset_only_qty=len(self.get("required_items")))
+		if not self.get("operations"):
+			self.set_work_order_operations()
 		self.validate_operations_sequence()
 
 	def validate_operations_sequence(self):
@@ -666,16 +668,41 @@ class WorkOrder(Document):
 		enable_capacity_planning = not cint(manufacturing_settings_doc.disable_capacity_planning)
 		plan_days = cint(manufacturing_settings_doc.capacity_planning_for_days) or 30
 
-		for idx, row in enumerate(self.operations):
-			qty = self.qty
-			while qty > 0:
-				qty = split_qty_based_on_batch_size(self, row, qty)
-				if row.job_card_qty > 0:
-					self.prepare_data_for_job_card(row, idx, plan_days, enable_capacity_planning)
+		if self.has_serial_no:
+			self._create_job_cards_per_serial(plan_days, enable_capacity_planning)
+		else:
+			for idx, row in enumerate(self.operations):
+				qty = self.qty
+				while qty > 0:
+					qty = split_qty_based_on_batch_size(self, row, qty)
+					if row.job_card_qty > 0:
+						self.prepare_data_for_job_card(row, idx, plan_days, enable_capacity_planning)
 
 		planned_end_date = self.operations and self.operations[-1].planned_end_time
 		if planned_end_date:
 			self.db_set("planned_end_date", planned_end_date)
+
+	def _create_job_cards_per_serial(self, plan_days, enable_capacity_planning):
+		serials = [
+			row[0] for row in frappe.db.sql(
+				"select name from `tabSerial No` where work_order=%s order by name",
+				self.name,
+			)
+		]
+		if not serials:
+			return
+
+		for idx, row in enumerate(self.operations):
+			self.set_operation_start_end_time(row, idx)
+			row.job_card_qty = 1
+			for serial in serials:
+				row.serial_no = serial
+				create_job_card(
+					self, row, auto_create=True,
+					enable_capacity_planning=enable_capacity_planning,
+				)
+			row.serial_no = None
+			row.db_update()
 
 	def prepare_data_for_job_card(self, row, idx, plan_days, enable_capacity_planning):
 		self.set_operation_start_end_time(row, idx)

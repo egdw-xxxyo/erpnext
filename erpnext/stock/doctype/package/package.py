@@ -6,16 +6,6 @@ from frappe.model.document import Document
 class Package(Document):
 	def after_insert(self):
 		self.db_set("box_barcode", self.name)
-		self._sync_bpak_child()
-
-	def on_update(self):
-		self._sync_bpak_child()
-
-	def _sync_bpak_child(self):
-		if not self.bpak:
-			return
-		from erpnext.stock.doctype.bpak.bpak import sync_packages_child
-		sync_packages_child(self.bpak)
 
 	def validate(self):
 		self.validate_duplicate_serial_nos()

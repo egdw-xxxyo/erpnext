@@ -12,8 +12,32 @@ frappe.ui.form.on("BpAK", {
 			});
 		}
 		render_packed_summary(frm);
+		setup_print_labels(frm);
 	},
 });
+
+function setup_print_labels(frm) {
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "BpAK" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "BpAK",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
+	});
+}
 
 function render_packed_summary(frm) {
 	let wrapper = frm.fields_dict.packed_summary_html
@@ -37,10 +61,10 @@ function render_packed_summary(frm) {
 						<th>${__("Package")}</th>
 						<th>${__("Status")}</th>
 						<th>${__("Item")}</th>
-						<th class="text-right">${__("Qty")}</th>
+						<th class="text-right">${__("Serial No / Qty")}</th>
 					</tr></thead><tbody>`;
 				d.packages.forEach((pkg) => {
-					let items = pkg.items.length ? pkg.items : [{ item_code: "", item_name: "", qty: 0 }];
+					let items = pkg.items.length ? pkg.items : [{ item_code: "", item_name: "", qty: 0, serial_no: "" }];
 					items.forEach((it, idx) => {
 						html += "<tr>";
 						if (idx === 0) {
@@ -52,7 +76,10 @@ function render_packed_summary(frm) {
 							? `${frappe.utils.escape_html(it.item_code)}${it.item_name ? " — " + frappe.utils.escape_html(it.item_name) : ""}`
 							: `<span class="text-muted">${__("(empty)")}</span>`;
 						html += `<td>${item_label}</td>`;
-						html += `<td class="text-right">${it.qty}</td>`;
+						let right = it.serial_no
+							? frappe.utils.escape_html(it.serial_no)
+							: it.qty;
+						html += `<td class="text-right">${right}</td>`;
 						html += "</tr>";
 					});
 				});

@@ -28,7 +28,7 @@ frappe.ui.form.on("Package", {
 		if (frm.is_new() && frm.doc.bpak && frappe.route_options && frappe.route_options.bpak) {
 			frm.set_df_property("bpak", "read_only", 1);
 		}
-		if (!frm.is_new() && frm.doc.bpak) {
+		if (frm.doc.shipment) {
 			frm.set_df_property("bpak", "read_only", 1);
 		}
 	},

@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
 
@@ -131,7 +132,6 @@ def refresh_bpak_aggregates(sales_order):
 		)
 		row.package_count = len(pkgs)
 		item_total = 0
-		pkg_item_counts = {}
 		if pkgs:
 			pkg_names = [p.name for p in pkgs]
 			rows = frappe.get_all(
@@ -142,21 +142,8 @@ def refresh_bpak_aggregates(sales_order):
 			for r in rows:
 				q = int(r.qty or 0)
 				item_total += q
-				pkg_item_counts[r.parent] = pkg_item_counts.get(r.parent, 0) + q
 				totals_by_item[r.item_code] = totals_by_item.get(r.item_code, 0) + q
 		row.item_count = item_total
-
-		# Sync BpAK.packages child table
-		bpak = frappe.get_doc("BpAK", row.bpak)
-		bpak.set("packages", [])
-		for p in pkgs:
-			bpak.append("packages", {
-				"package": p.name,
-				"status": p.status,
-				"item_count": pkg_item_counts.get(p.name, 0),
-			})
-		bpak.flags.ignore_validate_update_after_submit = True
-		bpak.save(ignore_permissions=True)
 
 	# Update SO Items qty from aggregated totals (only items already on the SO)
 	for it in so.items or []:
@@ -193,7 +180,7 @@ def get_packed_summary(bpak_name):
 		rows = frappe.get_all(
 			"Package Item",
 			filters={"parent": ["in", [p.name for p in pkgs]], "parenttype": "Package"},
-			fields=["parent", "item_code", "item_name", "qty"],
+			fields=["parent", "item_code", "item_name", "qty", "serial_no"],
 			order_by="parent asc, idx asc",
 		)
 		grouped = {}
@@ -202,6 +189,7 @@ def get_packed_summary(bpak_name):
 				"item_code": r.item_code,
 				"item_name": r.item_name,
 				"qty": int(r.qty or 0),
+				"serial_no": r.serial_no,
 			})
 			packed_total += int(r.qty or 0)
 		for p in pkgs:
@@ -242,40 +230,3 @@ def update_status_from_package(bpak_name):
 
 	if bpak.status != new_status:
 		frappe.db.set_value("BpAK", bpak_name, "status", new_status)
-
-	sync_packages_child(bpak_name)
-
-
-def sync_packages_child(bpak_name):
-	"""Rebuild BpAK.packages child table from current linked Packages."""
-	if not bpak_name or not frappe.db.exists("BpAK", bpak_name):
-		return
-	pkgs = frappe.get_all(
-		"Package",
-		filters={"bpak": bpak_name, "docstatus": ["<", 2]},
-		fields=["name", "status"],
-		order_by="creation asc",
-	)
-	item_counts = {}
-	if pkgs:
-		rows = frappe.get_all(
-			"Package Item",
-			filters={"parent": ["in", [p.name for p in pkgs]], "parenttype": "Package"},
-			fields=["parent", "qty"],
-		)
-		for r in rows:
-			item_counts[r.parent] = item_counts.get(r.parent, 0) + int(r.qty or 0)
-
-	frappe.db.delete("BpAK Package", {"parent": bpak_name, "parenttype": "BpAK"})
-	for idx, p in enumerate(pkgs, start=1):
-		row = frappe.get_doc({
-			"doctype": "BpAK Package",
-			"parent": bpak_name,
-			"parenttype": "BpAK",
-			"parentfield": "packages",
-			"idx": idx,
-			"package": p.name,
-			"status": p.status,
-			"item_count": item_counts.get(p.name, 0),
-		})
-		row.db_insert()
