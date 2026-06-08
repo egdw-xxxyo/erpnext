@@ -60,26 +60,18 @@ class SerialNumberTemplate(Document):
 
 		from frappe.model.naming import NamingSeries
 
-		items = frappe.get_all(
-			"Item",
-			filters={"serial_number_template": self.name, "has_variants": 0},
-			pluck="name",
-		)
 		target = start - 1
 		seen_prefixes = set()
-		for item_code in items:
-			try:
-				resolved = resolve_series_for_item(self.name, item_code)
-			except Exception:
-				continue
+
+		def bump(resolved):
 			if not resolved:
-				continue
+				return
 			try:
 				prefix = NamingSeries(resolved).get_prefix()
 			except Exception:
-				continue
+				return
 			if prefix in seen_prefixes:
-				continue
+				return
 			seen_prefixes.add(prefix)
 			frappe.db.sql(
 				"""
@@ -88,6 +80,32 @@ class SerialNumberTemplate(Document):
 				""",
 				(prefix, target),
 			)
+
+		items = frappe.get_all(
+			"Item",
+			filters={"serial_number_template": self.name, "has_variants": 0},
+			pluck="name",
+		)
+		for item_code in items:
+			try:
+				bump(resolve_series_for_item(self.name, item_code))
+			except Exception:
+				continue
+
+		bpak_templates = frappe.get_all(
+			"BpAK Template",
+			filters={"serial_number_template": self.name},
+			pluck="name",
+		)
+		for tmpl_name in bpak_templates:
+			try:
+				tmpl = frappe.get_doc("BpAK Template", tmpl_name)
+				attr_map = {row.attribute: row.attribute_value for row in (tmpl.attributes or [])}
+				bump(self.resolve_series_from_attributes(
+					attr_map, context_label=f"BpAK Template '{tmpl_name}'"
+				))
+			except Exception:
+				continue
 
 	def _propagate_to_template_items(self):
 		template_items = frappe.get_all(
