@@ -15,6 +15,8 @@ def execute():
 	create_custom_fields_on_pr_item()
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
+	create_custom_field_on_serial_no()
+	remove_flight_test_status_from_serial_no()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
 	remove_label_templates_from_employee()
@@ -241,6 +243,31 @@ def create_custom_field_on_qi():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+def create_custom_field_on_serial_no():
+	fields = [
+		{
+			"dt": "Serial No",
+			"fieldname": "inspection_status",
+			"fieldtype": "Select",
+			"label": "Стан перевірки",
+			"options": "\nPass\nFail",
+			"insert_after": "status",
+			"read_only": 1,
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"description": "Auto-synced from submitted Quality Inspection",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def remove_flight_test_status_from_serial_no():
+	cf = frappe.db.exists("Custom Field", {"dt": "Serial No", "fieldname": "flight_test_status"})
+	if cf:
+		frappe.delete_doc("Custom Field", cf, force=True)
+		print("  Removed Custom Field: Serial No.flight_test_status")
 
 
 def create_custom_fields_on_work_order():
