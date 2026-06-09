@@ -60,17 +60,8 @@ frappe.ui.form.on("Scanner", {
 
 		setTimeout(() => mark_oversize_scan_logs(frm), 300);
 
-		const qr_svg = frm.doc.__onload?.qr_svg;
-		if (qr_svg) {
-			frm.fields_dict.scanner_key_html.$wrapper.html(`
-				<div style="text-align: center; padding: 10px 0;">
-					${qr_svg}
-				</div>
-			`);
-		}
-
 		frm.fields_dict.config_barcodes_html.$wrapper.html(
-			`<div class="text-muted text-center" style="padding: 20px;">${__("Loading...")}</div>`
+			`<div class="text-muted text-center" style="padding: 20px;">Завантаження...</div>`
 		);
 
 		const endpoint_url = `${window.location.origin}/api/method/erpnext.manufacturing.doctype.scanner.scanner_api.handle_scan`;
@@ -83,18 +74,23 @@ frappe.ui.form.on("Scanner", {
 				const d = r.message;
 
 				frm.fields_dict.config_barcodes_html.$wrapper.html(`
-					<p class="text-muted" style="font-size: 12px;">
-						${__("Scan this QR code with the physical scanner to configure both the server URL and API key in one step.")}
-					</p>
+					<style>
+						.scanner-cfg-qr svg {
+							display: block;
+							margin: 0 auto;
+							width: 420px !important;
+							height: 420px !important;
+						}
+					</style>
 					<div style="display: flex; justify-content: center;">
-						<div style="min-width: 280px; max-width: 400px; border: 1px solid var(--border-color);
-							border-radius: 4px; padding: 15px; text-align: center;">
-							<div style="font-weight: 600; margin-bottom: 8px;">CFG-SCANNER</div>
-							<div>${d.config_qr}</div>
-							<div class="text-muted" style="font-size: 10px; margin-top: 8px; word-break: break-all;">
+						<div style="min-width: 480px; max-width: 600px; border: 1px solid var(--border-color);
+							border-radius: 6px; padding: 24px; text-align: center;">
+							<div style="font-weight: 700; font-size: 18px; margin-bottom: 16px;">CFG-SCANNER</div>
+							<div class="scanner-cfg-qr">${d.config_qr}</div>
+							<div class="text-muted" style="font-size: 11px; margin-top: 16px; word-break: break-all;">
 								${d.endpoint_url}
 							</div>
-							<div style="font-family: monospace; font-size: 14px; margin-top: 6px;">
+							<div style="font-family: monospace; font-size: 14px; margin-top: 8px;">
 								${d.api_key}
 							</div>
 						</div>
@@ -106,11 +102,11 @@ frappe.ui.form.on("Scanner", {
 
 	regenerate_api_key(frm) {
 		if (frm.is_new()) {
-			frappe.msgprint(__("Please save the document first."));
+			frappe.msgprint("Спочатку збережіть документ.");
 			return;
 		}
 		frappe.confirm(
-			__("Regenerate API key? The old key will stop working immediately."),
+			"Згенерувати новий API ключ? Старий ключ перестане працювати негайно.",
 			function () {
 				frappe.call({
 					method: "erpnext.manufacturing.doctype.scanner.scanner.regenerate_api_key",
@@ -118,11 +114,6 @@ frappe.ui.form.on("Scanner", {
 					callback: function (r) {
 						if (!r.message) return;
 						frm.set_value("api_key", r.message.api_key);
-						frm.fields_dict.scanner_key_html.$wrapper.html(`
-							<div style="text-align: center; padding: 10px 0;">
-								${r.message.qr_svg}
-							</div>
-						`);
 						frm.refresh_fields();
 						frm.reload_doc();
 					},

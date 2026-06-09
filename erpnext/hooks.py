@@ -378,6 +378,10 @@ doc_events = {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
 		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
 	},
+	"Quality Inspection": {
+		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
+		"on_cancel": "erpnext.stock.doctype.serial_no.inspection.clear_inspection_status_on_cancel",
+	},
 	"Payment Entry": {
 		"on_submit": [
 			"erpnext.regional.create_transaction_log",
