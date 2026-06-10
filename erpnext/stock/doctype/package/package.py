@@ -10,9 +10,19 @@ class Package(Document):
 	def validate(self):
 		self.validate_duplicate_serial_nos()
 		self._validate_serial_required()
+		self._validate_template_active()
 		self._validate_bpak()
 		if self.docstatus == 0:
 			self.status = "Draft"
+
+	def _validate_template_active(self):
+		if not self.packing_template:
+			return
+		is_active = frappe.db.get_value("Packing Template", self.packing_template, "is_active")
+		if not is_active:
+			frappe.throw(
+				_("Packing Template {0} is inactive and cannot be used.").format(self.packing_template)
+			)
 
 	def _validate_serial_required(self):
 		missing = []
@@ -51,18 +61,54 @@ class Package(Document):
 					self.sales_order, bpak_so
 				)
 			)
-		allowed = {
-			r[0] for r in frappe.db.sql(
-				"SELECT item_code FROM `tabBpAK Planned Item` WHERE parent=%s",
+		planned = {
+			r[0]: float(r[1] or 0)
+			for r in frappe.db.sql(
+				"SELECT item_code, qty FROM `tabBpAK Planned Item` WHERE parent=%s",
 				self.bpak,
 			)
 		}
-		if allowed:
-			invalid = sorted({r.item_code for r in self.items if r.item_code and r.item_code not in allowed})
-			if invalid:
-				frappe.throw(
-					_("Items not allowed by BpAK {0}: {1}").format(self.bpak, ", ".join(invalid))
+		if not planned:
+			return
+
+		invalid = sorted({r.item_code for r in self.items if r.item_code and r.item_code not in planned})
+		if invalid:
+			frappe.throw(
+				_("Items not planned in BpAK {0}: {1}").format(self.bpak, ", ".join(invalid))
+			)
+
+		current_totals = {}
+		for r in self.items:
+			if not r.item_code:
+				continue
+			current_totals[r.item_code] = current_totals.get(r.item_code, 0) + float(r.qty or 0)
+
+		other_rows = frappe.db.sql(
+			"""
+			SELECT pi.item_code, SUM(pi.qty)
+			FROM `tabPackage Item` pi
+			JOIN `tabPackage` p ON p.name = pi.parent
+			WHERE p.bpak=%s AND p.docstatus < 2 AND p.status != 'Cancelled' AND p.name != %s
+			GROUP BY pi.item_code
+			""",
+			(self.bpak, self.name or ""),
+		)
+		other_totals = {row[0]: float(row[1] or 0) for row in other_rows}
+
+		exceeded = []
+		for item_code, qty in current_totals.items():
+			planned_qty = planned.get(item_code, 0)
+			used = qty + other_totals.get(item_code, 0)
+			if used > planned_qty:
+				exceeded.append(
+					_("{0}: planned {1}, used {2}").format(item_code, planned_qty, used)
 				)
+		if exceeded:
+			frappe.throw(
+				_("Quantity exceeds BpAK {0} planned amount: {1}").format(
+					self.bpak, "; ".join(exceeded)
+				)
+			)
 
 	def before_submit(self):
 		if not self.items:
@@ -216,6 +262,9 @@ class Package(Document):
 			"package": self.name,
 		})
 		row.db_insert()
+
+	def on_update_after_submit(self):
+		self._update_bpak_status()
 
 	def on_cancel(self):
 		if self.shipment:

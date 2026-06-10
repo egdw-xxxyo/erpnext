@@ -12,6 +12,16 @@ URL-decode the path to get the document name (e.g. `BOM-%D0%91%D0%BF%D0%9B%D0%90
 
 # ERPNext/Frappe Translation System
 
+## Translation Rule (MANDATORY)
+
+**Every user-facing string MUST be translated to Ukrainian, always.** When adding/editing any UI label, button, message, alert, dialog title, validation error, etc. in `.js`/`.py`/`.json` files:
+
+1. Wrap the English string in `__()` (JS) or `_()` (Python)
+2. Add the English→Ukrainian pair to `erpnext/translations/uk.csv` (or `frappe/frappe/translations/uk.csv` for Frappe core strings) in the same commit
+3. Never ship an English-only string
+
+This applies to every change, every time. No exceptions.
+
 ## Overview
 
 Frappe v15 uses a dual translation system with CSV and PO/MO files. Understanding the loading order is critical.

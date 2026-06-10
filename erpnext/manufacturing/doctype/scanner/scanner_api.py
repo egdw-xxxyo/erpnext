@@ -334,7 +334,7 @@ def _resolve_scan(data):
 	if cmd:
 		return "command", {"doc": frappe.get_doc("Scanner Command", cmd)}
 
-	pkg_tmpl = frappe.db.get_value("Packing Template", {"barcode_id": data}, "name")
+	pkg_tmpl = frappe.db.get_value("Packing Template", {"barcode_id": data, "is_active": 1}, "name")
 	if pkg_tmpl:
 		return "packing_template", {"doc": frappe.get_doc("Packing Template", pkg_tmpl)}
 

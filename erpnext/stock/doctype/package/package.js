@@ -5,6 +5,9 @@ frappe.ui.form.on("Package", {
 				filters: { docstatus: 1, status: ["!=", "Cancelled"] },
 			};
 		});
+		frm.set_query("packing_template", function () {
+			return { filters: { is_active: 1 } };
+		});
 	},
 
 	bpak: function (frm) {

@@ -150,6 +150,9 @@ def refresh_bpak_aggregates(sales_order):
 		if it.item_code in totals_by_item:
 			it.qty = totals_by_item[it.item_code]
 
+	if hasattr(so, "_aggregate_bpak_serial_nos"):
+		so._aggregate_bpak_serial_nos()
+
 	so.flags.ignore_validate_update_after_submit = True
 	so.save(ignore_permissions=True)
 	return {"updated": len(so.bpaks)}
