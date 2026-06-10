@@ -112,7 +112,8 @@
   "cost_center",
   "column_break_ihdh",
   "project",
-  "bpak_row"
+  "bpak_row",
+  "serial_no"
  ],
  "fields": [
   {
@@ -973,6 +974,14 @@
    "fieldname": "bpak_row",
    "fieldtype": "Data",
    "label": "BpAK Row",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "description": "Aggregated serial numbers from Package Item rows under the linked BpAK. Auto-managed; do not edit.",
+   "fieldname": "serial_no",
+   "fieldtype": "Small Text",
+   "label": "Serial No",
    "no_copy": 1,
    "read_only": 1
   }

@@ -296,7 +296,7 @@ frappe.ui.form.on("Job Card", {
 		if (!frm.is_new()) {
 			frm.trigger("render_production_data");
 			if (frm.doc.serial_no) {
-				frm.add_custom_button(__("Print Labels"), () => {
+				frm.page.add_menu_item(__("Print Labels"), () => {
 					frm.trigger("print_labels");
 				});
 			}

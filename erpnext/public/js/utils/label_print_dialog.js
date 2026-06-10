@@ -24,79 +24,171 @@
 
 erpnext.utils.open_bulk_label_print_dialog = function ({ doctype, names }) {
 	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+
 	const dlg = new frappe.ui.Dialog({
 		title: __("Print Labels"),
 		fields: [
 			{
 				fieldname: "label_template",
-				fieldtype: "Link",
+				fieldtype: "Select",
 				label: __("Label Template"),
-				options: "Label Template",
+				options: [],
 				reqd: 1,
-				get_query: () => ({ filters: { reference_doctype: doctype } }),
 				change: () => {
-					const tmpl = dlg.get_value("label_template");
-					if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
-					frappe.call({
-						method: API_PRINTER + ".count_labels",
-						args: { source_doctype: doctype, source_names: JSON.stringify(names), label_template: tmpl },
-						callback: (r) => {
-							if (r.message) {
-								dlg.fields_dict.info_html.$wrapper.html(
-									`<div class="text-muted">${__("{0} labels from {1} records", [r.message.total, names.length])}</div>`
-								);
-							}
-						},
-					});
+					_update_count(dlg, doctype, names);
+					_validate_printer(dlg);
 				},
 			},
 			{
 				fieldname: "printer_name",
-				fieldtype: "Link",
+				fieldtype: "Select",
 				label: __("Printer"),
-				options: "Label Printer",
+				options: [],
 				reqd: 1,
-				get_query: () => ({ filters: { is_enabled: 1 } }),
+				change: () => _validate_printer(dlg),
 			},
 			{ fieldname: "copies", fieldtype: "Int", label: __("Copies"), default: 1, reqd: 1 },
 			{ fieldname: "info_html", fieldtype: "HTML" },
+			{
+				fieldname: "validation_status",
+				fieldtype: "HTML",
+				options: `<div class="printer-validation-status text-muted" style="padding:8px 0;">${__("Select a printer to validate")}</div>`,
+			},
 		],
-		primary_action_label: __("Print"),
+		primary_action_label: __("Print Now"),
 		primary_action: (values) => {
-			dlg.hide();
-			frappe.call({
-				method: API_PRINTER + ".print_labels_batch",
-				args: {
-					source_doctype: doctype,
-					source_names: JSON.stringify(names),
-					label_template: values.label_template,
-					printer_name: values.printer_name,
-					copies: values.copies,
-				},
-				freeze: true,
-				freeze_message: __("Creating print jobs..."),
-				callback: (r) => {
-					if (r.message) {
-						frappe.show_alert({ message: __("{0} print jobs created", [r.message.count]), indicator: "green" });
-					}
-				},
-			});
+			if (!dlg._printer_valid) {
+				frappe.show_alert({ message: __("Printer is not ready"), indicator: "red" });
+				return;
+			}
+			_create_bulk_jobs(values, true, dlg, doctype, names);
+		},
+		secondary_action_label: __("Add to Queue"),
+		secondary_action: () => {
+			const values = dlg.get_values();
+			if (values) _create_bulk_jobs(values, false, dlg, doctype, names);
+		},
+	});
+
+	dlg.show();
+
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: doctype },
+			fields: ["name"],
+			limit_page_length: 0,
+			order_by: "name asc",
+		},
+		callback: (r) => {
+			const names_list = (r.message || []).map((t) => t.name);
+			dlg.set_df_property("label_template", "options", [""].concat(names_list).join("\n"));
+			if (names_list.length === 1) dlg.set_value("label_template", names_list[0]);
 		},
 	});
 	frappe.call({
 		method: "frappe.client.get_list",
-		args: { doctype: "Label Template", filters: { reference_doctype: doctype }, fields: ["name"], limit_page_length: 2 },
-		async: false,
-		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("label_template", r.message[0].name); },
+		args: {
+			doctype: "Label Printer",
+			filters: { is_enabled: 1 },
+			fields: ["name"],
+			limit_page_length: 0,
+			order_by: "name asc",
+		},
+		callback: (r) => {
+			const names_list = (r.message || []).map((p) => p.name);
+			dlg.set_df_property("printer_name", "options", [""].concat(names_list).join("\n"));
+			if (names_list.length === 1) dlg.set_value("printer_name", names_list[0]);
+			else _validate_printer(dlg);
+		},
 	});
-	frappe.call({
-		method: "frappe.client.get_list",
-		args: { doctype: "Label Printer", filters: { is_enabled: 1 }, fields: ["name"], limit_page_length: 2 },
-		async: false,
-		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("printer_name", r.message[0].name); },
-	});
-	dlg.show();
 };
+
+function _update_count(dlg, doctype, names) {
+	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const tmpl = dlg.get_value("label_template");
+	if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
+	frappe.call({
+		method: API_PRINTER + ".count_labels",
+		args: { source_doctype: doctype, source_names: JSON.stringify(names), label_template: tmpl },
+		callback: (r) => {
+			if (r.message) {
+				dlg.fields_dict.info_html.$wrapper.html(
+					`<div class="text-muted">${__("{0} labels from {1} records", [r.message.total, names.length])}</div>`
+				);
+			}
+		},
+	});
+}
+
+function _transform_to_go_to_queue(dialog, job_count) {
+	dialog.$wrapper.find(".modal-footer .btn-secondary").hide();
+	dialog.set_primary_action(__("Go to Queue"), () => {
+		dialog.hide();
+		frappe.set_route("List", "Print Job", { status: "Queued" });
+	});
+	dialog.$wrapper.find(".modal-footer .btn-primary")
+		.prop("disabled", false)
+		.removeClass("disabled");
+	dialog.enable_primary_action();
+	frappe.show_alert({
+		message: __("{0} jobs added to queue", [job_count]),
+		indicator: "green",
+	});
+}
+
+function _create_bulk_jobs(values, print_immediately, dialog, doctype, names) {
+	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	if (print_immediately) dialog.hide();
+	frappe.call({
+		method: API_PRINTER + ".print_labels_batch",
+		args: {
+			source_doctype: doctype,
+			source_names: JSON.stringify(names),
+			label_template: values.label_template,
+			printer_name: values.printer_name,
+			copies: values.copies,
+		},
+		freeze: true,
+		freeze_message: __("Creating print jobs..."),
+		callback: (r) => {
+			if (!r.message || !r.message.jobs || !r.message.jobs.length) {
+				frappe.show_alert({ message: __("No print jobs created"), indicator: "orange" });
+				return;
+			}
+			const job_names = r.message.jobs;
+			if (!print_immediately) {
+				_transform_to_go_to_queue(dialog, job_names.length);
+				return;
+			}
+			let printed = 0, failed = 0;
+			const total = job_names.length;
+			const _finish = () => {
+				frappe.hide_progress();
+				frappe.show_alert({
+					message: __("{0} printed, {1} failed", [printed, failed]),
+					indicator: failed ? "red" : "green",
+				});
+			};
+			const _print_one = (i) => {
+				if (i >= job_names.length) { _finish(); return; }
+				frappe.show_progress(__("Printing..."), i + 1, total);
+				frappe.call({
+					method: API_PRINTER + ".print_label",
+					args: { print_job_name: job_names[i] },
+					callback: (r2) => {
+						printed++;
+						const delay = (r2.message && r2.message.print_delay_ms) || 1500;
+						setTimeout(() => _print_one(i + 1), delay);
+					},
+					error: () => { failed++; _print_one(i + 1); },
+				});
+			};
+			_print_one(0);
+		},
+	});
+}
 
 erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, items }) {
 	let _submitting = false;
@@ -192,11 +284,12 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 				frappe.hide_progress();
 				if (queue_only || !all_jobs.length) {
 					_submitting = false;
-					frappe.show_alert({
-						message: __("{0} jobs added to queue", [all_jobs.length]),
-						indicator: "green",
-					});
-					d.hide();
+					if (!all_jobs.length) {
+						frappe.show_alert({ message: __("No print jobs created"), indicator: "orange" });
+						d.hide();
+						return;
+					}
+					_transform_to_go_to_queue(d, all_jobs.length);
 					return;
 				}
 				_print_sequential(all_jobs, d);
@@ -378,7 +471,7 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 	});
 
 	function _create_simple_jobs(values, print_immediately, dialog) {
-		dialog.hide();
+		if (print_immediately) dialog.hide();
 		frappe.call({
 			method: API_PRINTER + ".print_labels_batch",
 			args: {
@@ -397,10 +490,7 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 				}
 				const job_names = r.message.jobs;
 				if (!print_immediately) {
-					frappe.show_alert({
-						message: __("{0} jobs added to queue", [job_names.length]),
-						indicator: "green",
-					});
+					_transform_to_go_to_queue(dialog, job_names.length);
 					return;
 				}
 

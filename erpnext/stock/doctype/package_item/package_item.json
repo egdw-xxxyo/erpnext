@@ -15,6 +15,7 @@
  ],
  "fields": [
   {
+   "allow_on_submit": 1,
    "fieldname": "item_code",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -23,6 +24,7 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "item_code.item_name",
    "fieldname": "item_name",
    "fieldtype": "Data",
@@ -31,18 +33,21 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "serial_no",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Serial No"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "batch_no",
    "fieldtype": "Link",
    "label": "Batch No",
    "options": "Batch"
   },
   {
+   "allow_on_submit": 1,
    "default": "1",
    "fieldname": "qty",
    "fieldtype": "Int",
@@ -51,6 +56,7 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "quality_inspection",
    "fieldtype": "Link",
    "label": "Quality Inspection",
@@ -58,6 +64,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "purchase_receipt",
    "fieldtype": "Link",
    "label": "Purchase Receipt",

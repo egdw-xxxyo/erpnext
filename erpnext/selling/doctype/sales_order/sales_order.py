@@ -266,6 +266,44 @@ class SalesOrder(SellingController):
 				"bpak_row": planned["bpak_row"],
 			})
 
+		self._aggregate_bpak_serial_nos()
+
+	def _aggregate_bpak_serial_nos(self):
+		"""Populate `serial_no` on SO Items from Package Item rows under the linked BpAK."""
+		bpak_by_row = {r.name: r.bpak for r in (self.get("bpaks") or []) if r.bpak}
+		if not bpak_by_row:
+			for it in self.items or []:
+				if it.get("bpak_row"):
+					it.serial_no = None
+			return
+
+		bpak_names = list({b for b in bpak_by_row.values() if b})
+		sn_map = {}
+		if bpak_names:
+			rows = frappe.db.sql(
+				"""
+				SELECT pkg.bpak AS bpak, pi.item_code, pi.serial_no
+				FROM `tabPackage Item` pi
+				JOIN `tabPackage` pkg ON pkg.name = pi.parent
+				WHERE pkg.bpak IN %(bpaks)s
+				  AND pkg.docstatus < 2
+				  AND pi.serial_no IS NOT NULL
+				  AND pi.serial_no != ''
+				ORDER BY pkg.name, pi.idx
+				""",
+				{"bpaks": bpak_names},
+				as_dict=True,
+			)
+			for r in rows:
+				sn_map.setdefault((r.bpak, r.item_code), []).append(r.serial_no)
+
+		for it in self.items or []:
+			if not it.get("bpak_row"):
+				continue
+			bpak = bpak_by_row.get(it.bpak_row)
+			sns = sn_map.get((bpak, it.item_code)) if bpak else None
+			it.serial_no = "\n".join(sns) if sns else None
+
 	def validate(self):
 		super().validate()
 		self.validate_delivery_date()
@@ -1113,6 +1151,7 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 				"rate": "rate",
 				"name": "so_detail",
 				"parent": "against_sales_order",
+				"serial_no": "serial_no",
 			},
 			"condition": lambda d: condition(d) and select_item(d),
 			"postprocess": update_item,

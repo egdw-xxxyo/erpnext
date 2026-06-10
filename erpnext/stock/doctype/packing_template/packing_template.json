@@ -8,6 +8,7 @@
   "template_name",
   "description",
   "column_break_details",
+  "is_active",
   "box_template",
   "expected_qty",
   "bpak_required",
@@ -38,6 +39,12 @@
   {
    "fieldname": "column_break_details",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
   },
   {
    "fieldname": "box_template",

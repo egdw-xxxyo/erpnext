@@ -9004,6 +9004,19 @@ Serial Nos are created successfully,Серійні номери успішно �
 "Serial Nos are reserved in Stock Reservation Entries, you need to unreserve them before proceeding.","Серійні номери зарезервовано в записах про резервування запасів, вам потрібно зняти резервування перед продовженням."
 Serial Nos {0} are already Delivered. You cannot use them again in Manufacture / Repack entry.,Серійні номери {0} вже доставлено. Ви не можете використовувати їх повторно в записі Виробництво / Перепакування.
 Serial Number Series,Серії серійних номерів
+Serial Number Template,Шаблон серійного номера
+Serial Number Templates,Шаблони серійних номерів
+Serial Number Template Component,Компонент шаблону серійного номера
+Components,Компоненти
+Resulting Series,Підсумкова серія
+Start Counting From,Починати лічити з
+Literal,Літерал
+"Year (YYYY)","Рік (YYYY)"
+"Short Year (YY)","Короткий рік (YY)"
+"Month (MM)","Місяць (MM)"
+"Day (DD)","День (DD)"
+"On save, bumps the counter for every item using this template up to (start - 1). Never rolls back a counter that is already higher, so existing ERP-generated serials stay safe.","При збереженні збільшує лічильник для кожної номенклатури, що використовує цей шаблон, до (start - 1). Ніколи не зменшує лічильник, який уже більший, тож наявні згенеровані ERP серійні номери лишаються в безпеці."
+"For Literal: the text to include. For Separator: the character (default: -). For Counter: number of digits (default: 5).","Для Літерал: текст для включення. Для Роздільник: символ (за замовчуванням: -). Для Лічильник: кількість цифр (за замовчуванням: 5)."
 Serial and Batch,Серійний та партійний
 Serial and Batch Bundle,Серійний та партійний комплект
 Serial and Batch Bundle created,Серійний та партійний комплект створено
@@ -12331,6 +12344,9 @@ Template Reference,Довідка по шаблону
 "Shift & Attendance","Зміни та відвідуваність"
 Scanner,Сканер
 Scanner Name,Назва сканера
+Scanner Command,Команда сканера
+"Template for message header. Available variables: {employee_name}, {workplace}, {scanned_data}. Use \n for line breaks. Scripts returning 'templateData' get this header prepended; scripts returning 'message' bypass the template.","Шаблон заголовка повідомлення. Доступні змінні: {employee_name}, {workplace}, {scanned_data}. Використовуйте \n для перенесення рядка. Скрипти, що повертають 'templateData', отримують цей заголовок зверху; скрипти, що повертають 'message', обходять шаблон."
+Scanner Commands,Команди сканера
 Scanner Configuration,Конфігурація сканера
 Scanner Test,Тест сканера
 Scanner Data,Дані сканера
@@ -12552,3 +12568,9 @@ Workplace Scripts,Скрипти робочого місця
 "Cannot remove the only version","Не можна видалити єдину версію"
 "Cannot remove the default version. Switch default to another version first.","Не можна видалити версію за замовчуванням. Спочатку оберіть іншу версію за замовчуванням."
 "Snapshot","Знімок"
+"Active","Активний"
+"Packing Template {0} is inactive and cannot be used.","Шаблон пакування {0} неактивний і не може використовуватись."
+"Go to Queue","Перейти до черги"
+"Items not planned in BpAK {0}: {1}","Товари не заплановані в БпАК {0}: {1}"
+"Quantity exceeds BpAK {0} planned amount: {1}","Кількість перевищує заплановану в БпАК {0}: {1}"
+"{0}: planned {1}, used {2}","{0}: заплановано {1}, використано {2}"
