@@ -12574,3 +12574,8 @@ Workplace Scripts,Скрипти робочого місця
 "Items not planned in BpAK {0}: {1}","Товари не заплановані в БпАК {0}: {1}"
 "Quantity exceeds BpAK {0} planned amount: {1}","Кількість перевищує заплановану в БпАК {0}: {1}"
 "{0}: planned {1}, used {2}","{0}: заплановано {1}, використано {2}"
+"Finishes to Stock","Передає на склад"
+"Auto Stock Entry","Авто-проводка ТМЦ"
+"Stock Entry {0} auto-created from Job Card {1}.","Авто-створено рух ТМЦ {0} з картки завдання {1}."
+"If set, submitting a Job Card for this operation auto-creates a Manufacture Stock Entry to move the produced qty into the Work Order's FG warehouse.","Якщо встановлено, сабміт Картки завдань для цієї операції авто-створює Виробничу проводку ТМЦ для переміщення виготовленої кількості на склад готової продукції наряду на роботу."
+"Stock Entry auto-created on Job Card submit when Operation has Finishes to Stock enabled.","Рух ТМЦ авто-створений при сабміті Картки завдань, коли в Операції увімкнено Передає на склад."

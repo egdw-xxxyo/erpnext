@@ -14,6 +14,7 @@
   "job_card_section",
   "create_job_card_based_on_batch_size",
   "quality_inspection_template",
+  "finishes_to_stock",
   "column_break_6",
   "batch_size",
   "sub_operations_section",
@@ -102,6 +103,13 @@
    "fieldtype": "Link",
    "label": "Quality Inspection Template",
    "options": "Quality Inspection Template"
+  },
+  {
+   "default": "0",
+   "fieldname": "finishes_to_stock",
+   "fieldtype": "Check",
+   "label": "Finishes to Stock",
+   "description": "If set, submitting a Job Card for this operation auto-creates a Manufacture Stock Entry to move the produced qty into the Work Order's FG warehouse."
   },
   {
    "fieldname": "custom_fields_section",
