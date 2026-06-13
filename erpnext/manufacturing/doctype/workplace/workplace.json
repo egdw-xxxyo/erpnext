@@ -10,6 +10,7 @@
  "field_order": [
   "details_tab",
   "workplace_name",
+  "short_name",
   "company",
   "column_break_details",
   "is_active",
@@ -36,6 +37,12 @@
    "label": "Workplace Name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "short_name",
+   "fieldtype": "Data",
+   "label": "Short Name",
+   "description": "Optional short identifier for use in labels and reports"
   },
   {
    "fieldname": "company",

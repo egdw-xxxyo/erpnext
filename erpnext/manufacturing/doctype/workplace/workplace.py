@@ -16,6 +16,7 @@ class Workplace(Document):
 		description: DF.SmallText | None
 		is_active: DF.Check
 		printers: DF.Table["WorkplacePrinter"]
+		short_name: DF.Data | None
 		workplace_name: DF.Data | None
 
 	def before_insert(self):
