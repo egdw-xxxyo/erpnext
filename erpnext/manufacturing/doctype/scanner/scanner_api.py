@@ -53,8 +53,26 @@ class ScannerStateProxy:
 	def context(self):
 		return self._current.get("context", {})
 
+	@property
+	def subflow(self):
+		return self._current.get("subflow")
+
 	def set(self, state_name, context=None):
-		self._next = {"state": state_name, "context": context or {}}
+		next_state = {"state": state_name, "context": context or {}}
+		sub = self.subflow
+		if sub:
+			next_state["subflow"] = sub
+		self._next = next_state
+
+	def set_subflow(self, subflow_name, state_name, context=None):
+		self._next = {"subflow": subflow_name, "state": state_name, "context": context or {}}
+
+	def exit_subflow(self, state_name=None, context=None):
+		if state_name:
+			self._next = {"state": state_name, "context": context or {}}
+		else:
+			self._cleared = True
+			self._next = None
 
 	def clear(self):
 		self._cleared = True
@@ -118,10 +136,88 @@ def _clear_state(scanner_name):
 def _persist_state(scanner_name, state_proxy, timeout):
 	if state_proxy._cleared:
 		_clear_state(scanner_name)
-	elif state_proxy._next:
+		return
+	if state_proxy._next:
 		_save_state(scanner_name, state_proxy._next, timeout)
 	elif state_proxy.name:
 		_save_state(scanner_name, state_proxy._current, timeout)
+
+
+# ---------------------------------------------------------------------------
+# Subflow entries — simple per-state subflow switch (no stack)
+# ---------------------------------------------------------------------------
+
+def _load_subflow_entries(script_name):
+	return frappe.get_all(
+		"Workplace Script Subflow Entry",
+		filters={"parent": script_name, "parenttype": "Workplace Script", "parentfield": "subflow_entries"},
+		fields=["from_state", "trigger_type", "trigger_value", "target_subflow"],
+		order_by="idx asc",
+	)
+
+
+def _match_subflow_entry(entries, scan_type, scan_ctx, current_state):
+	cmd_doc = scan_ctx.get("doc") if scan_type == "command" else None
+	for row in entries:
+		if row.from_state != (current_state or ""):
+			continue
+		if row.trigger_type == "Command":
+			if cmd_doc and getattr(cmd_doc, "barcode_id", None) == row.trigger_value:
+				return row
+		elif row.trigger_type == "Scan Type":
+			if scan_type == row.trigger_value:
+				return row
+	return None
+
+
+def _subflow_initial_state(subflow_name):
+	from erpnext.manufacturing.doctype.workplace_script.workplace_script import (
+		_resolve_default_snapshot,
+	)
+	doc = frappe.get_cached_doc("Workplace Script", subflow_name)
+	snap = _resolve_default_snapshot(doc)
+	for s in snap.get("states", []) or []:
+		if s.get("is_initial"):
+			return s.get("state")
+	return None
+
+
+RESET_BARCODE_IDS = {"CMD-RESET", "CMD-RESET01"}
+
+
+def _is_reset_scan(scan_type, scan_ctx):
+	if scan_type != "command":
+		return False
+	doc = scan_ctx.get("doc")
+	return bool(doc and getattr(doc, "barcode_id", None) in RESET_BARCODE_IDS)
+
+
+def _handle_reset(state_proxy):
+	cur_subflow = state_proxy.subflow
+	if cur_subflow:
+		sub_initial = _subflow_initial_state(cur_subflow)
+		if sub_initial and state_proxy.name != sub_initial:
+			frame = {"subflow": cur_subflow, "state": sub_initial, "context": {}}
+			state_proxy._current = dict(frame)
+			state_proxy._next = dict(frame)
+			state_proxy._cleared = False
+			return {"templateData": f"↺ {cur_subflow}\n{sub_initial}"}
+	state_proxy._cleared = True
+	state_proxy._next = None
+	return {"templateData": "↺ Скинуто"}
+
+
+def _enter_subflow(state_proxy, target_subflow):
+	if not target_subflow:
+		return None
+	initial = _subflow_initial_state(target_subflow)
+	if not initial:
+		return {"templateData": f"Підпотік {target_subflow}\nне має початкового стану"}
+	frame = {"subflow": target_subflow, "state": initial, "context": {}}
+	state_proxy._current = dict(frame)
+	state_proxy._next = dict(frame)
+	state_proxy._cleared = False
+	return None
 
 
 # ---------------------------------------------------------------------------
@@ -182,9 +278,26 @@ def handle_scan(scanner_key=None, data=None):
 			get_active_scanner_scripts,
 		)
 		scanner_scripts = get_active_scanner_scripts()
+		scripts_ns = _build_scripts_namespace(scanner_scripts)
 
 		t_script_start = time.perf_counter()
-		result = _execute_workplace_script(workplace_script, event, scanner_scripts)
+
+		if _is_reset_scan(scan_type, scan_ctx):
+			result = _handle_reset(state_proxy)
+		else:
+			active_script_name = state_proxy.subflow or workplace_script.name
+			entry = _match_subflow_entry(
+				_load_subflow_entries(active_script_name),
+				scan_type,
+				scan_ctx,
+				state_proxy.name,
+			)
+			if entry:
+				err = _enter_subflow(state_proxy, entry.target_subflow)
+				result = err if err else _execute_workplace_script(workplace_script, event, scripts_ns)
+			else:
+				result = _execute_workplace_script(workplace_script, event, scripts_ns)
+
 		script_ms = int((time.perf_counter() - t_script_start) * 1000)
 
 		_persist_state(scanner.name, state_proxy, state_timeout)
@@ -352,14 +465,17 @@ def _resolve_scan(data):
 # Script execution
 # ---------------------------------------------------------------------------
 
-def _execute_workplace_script(workplace_script, event, scanner_scripts):
+def _build_scripts_namespace(scanner_scripts):
 	scripts = frappe._dict()
 	for ss in scanner_scripts:
 		ns = {"frappe": frappe, "json": json}
 		exec(ss.script, ns)  # noqa: S102
 		key = ss.script_name.lower().replace(" ", "_").replace("-", "_")
 		scripts[key] = frappe._dict(ns)
+	return scripts
 
+
+def _execute_workplace_script(workplace_script, event, scripts):
 	from erpnext.manufacturing.doctype.workplace_script.workplace_script import (
 		_resolve_default_snapshot,
 	)

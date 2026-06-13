@@ -56,7 +56,9 @@ wait_for_backend() {
 build_image() {
   echo "==> Building full image (all source baked in)..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
-    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR"
+    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || return 1
+  echo "==> Pruning dangling images..."
+  docker image prune -f --filter "dangling=true" >/dev/null
 }
 
 sync_built_assets() {

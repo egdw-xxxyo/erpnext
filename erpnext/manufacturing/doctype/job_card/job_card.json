@@ -67,6 +67,7 @@
   "serial_and_batch_bundle",
   "batch_no",
   "serial_no",
+  "auto_stock_entry",
   "barcode",
   "job_started",
   "started_time",
@@ -395,6 +396,16 @@
    "hidden": 0,
    "label": "Serial No",
    "read_only": 1
+  },
+  {
+   "fieldname": "auto_stock_entry",
+   "fieldtype": "Link",
+   "label": "Auto Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1,
+   "description": "Stock Entry auto-created on Job Card submit when Operation has Finishes to Stock enabled."
   },
   {
    "fieldname": "batch_no",

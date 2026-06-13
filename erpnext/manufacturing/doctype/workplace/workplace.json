@@ -20,7 +20,9 @@
   "employees_tab",
   "allowed_employees",
   "scanner_tab",
-  "workplace_script"
+  "workplace_script",
+  "printers_tab",
+  "printers"
  ],
  "fields": [
   {
@@ -98,6 +100,17 @@
    "options": "Workplace Script",
    "read_only": 1,
    "description": "Automatically linked from the Workplace Script that references this workplace"
+  },
+  {
+   "fieldname": "printers_tab",
+   "fieldtype": "Tab Break",
+   "label": "Printers"
+  },
+  {
+   "fieldname": "printers",
+   "fieldtype": "Table",
+   "label": "Printers",
+   "options": "Workplace Printer"
   }
  ],
  "index_web_pages_for_search": 1,

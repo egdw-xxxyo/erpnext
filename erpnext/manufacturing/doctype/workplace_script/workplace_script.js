@@ -122,18 +122,36 @@ function load_mermaid() {
 	return window._mermaid_loading;
 }
 
-function build_diagram_source(frm) {
+function unique_id(prefix, raw, seen) {
+	let base = (raw || "").replace(/[^A-Za-z0-9_]/g, "");
+	if (!base) {
+		let hash = 0;
+		for (let i = 0; i < raw.length; i++) hash = ((hash << 5) - hash + raw.charCodeAt(i)) | 0;
+		base = "x" + Math.abs(hash).toString(36);
+	}
+	let id = prefix + base;
+	let n = 1;
+	while (seen.has(id)) {
+		id = prefix + base + "_" + (++n);
+	}
+	seen.add(id);
+	return id;
+}
+
+function build_diagram_source(frm, extras) {
 	const states = frm.doc.states || [];
 	const transitions = frm.doc.transitions || [];
-	if (!states.length && !transitions.length) return null;
+	const subflows = (extras && extras.subflows) || [];
+	const entries = (extras && extras.entries) || [];
+	if (!states.length && !transitions.length && !subflows.length) return null;
 
 	const lines = ["stateDiagram-v2"];
-	const sanitize = (s) => (s || "").replace(/[^A-Za-z0-9_]/g, "_") || "S";
-	const escape_label = (s) => (s || "").replace(/"/g, "'");
+	const escape_label = (s) => (s || "").replace(/"/g, "'").replace(/:/g, "·");
+	const seen = new Set();
 
 	const ids = {};
 	states.forEach((s) => {
-		ids[s.state] = sanitize(s.state);
+		ids[s.state] = unique_id("", s.state, seen);
 		const label = s.label || s.state;
 		lines.push(`${ids[s.state]} : ${escape_label(label)}`);
 	});
@@ -142,19 +160,68 @@ function build_diagram_source(frm) {
 	states.filter((s) => s.is_final).forEach((s) => lines.push(`${ids[s.state]} --> [*]`));
 
 	transitions.forEach((t) => {
-		const from = ids[t.from_state] || sanitize(t.from_state);
-		const to = ids[t.to_state] || sanitize(t.to_state);
+		const from = ids[t.from_state] || unique_id("", t.from_state, seen);
+		const isExit = !t.to_state || t.to_state === "__exit__";
+		const to = isExit ? "[*]" : (ids[t.to_state] || unique_id("", t.to_state, seen));
 		lines.push(`${from} --> ${to} : ${escape_label(t.event)}`);
 	});
 
+	const subflowIds = {};
+	subflows.forEach((sf) => {
+		const sid = unique_id("SUB_", sf.name, seen);
+		subflowIds[sf.name] = sid;
+		const lbl = `▶ ${sf.name}` + (sf.initial_state ? ` → ${sf.initial_state}` : "");
+		lines.push(`${sid} : ${escape_label(lbl)}`);
+	});
+
+	entries.forEach((en) => {
+		const fromState = en.from_state;
+		if (!fromState) return;
+		const fromId = ids[fromState] || unique_id("", fromState, seen);
+		if (!ids[fromState]) {
+			ids[fromState] = fromId;
+			lines.push(`${fromId} : ${escape_label(fromState)}`);
+		}
+		const safeVal = (en.trigger_value || "").replace(/:/g, "·");
+		const trig = en.trigger_type === "Command" ? safeVal : `scan ${safeVal}`;
+		const sid = subflowIds[en.target_subflow];
+		if (sid) lines.push(`${fromId} --> ${sid} : ${escape_label(trig)}`);
+	});
+
 	return lines.join("\n");
+}
+
+function build_subflow_legend(extras) {
+	const subflows = (extras && extras.subflows) || [];
+	if (!subflows.length) return "";
+	const items = subflows.map((sf) => {
+		const url = `/app/workplace-script/${encodeURIComponent(sf.name)}`;
+		const initial = sf.initial_state ? ` <span class="text-muted">→ ${frappe.utils.escape_html(sf.initial_state)}</span>` : "";
+		return `<li><a href="${url}">▶ ${frappe.utils.escape_html(sf.name)}</a>${initial}</li>`;
+	});
+	return `<div class="workplace-script-subflows" style="margin-top:12px;font-size:12px;"><strong>${__("Subflows")}</strong><ul style="margin:4px 0 0 20px;padding:0;">${items.join("")}</ul></div>`;
+}
+
+async function fetch_diagram_extras(frm) {
+	if (frm.doc.parent_script) return null;
+	if (frm.is_new()) return null;
+	try {
+		const r = await frappe.call({
+			method: "erpnext.manufacturing.doctype.workplace_script.workplace_script.get_diagram_extras",
+			args: { script_name: frm.docname },
+		});
+		return r.message || null;
+	} catch (e) {
+		return null;
+	}
 }
 
 async function render_diagram(frm) {
 	const wrapper = frm.fields_dict.diagram_html && frm.fields_dict.diagram_html.$wrapper;
 	if (!wrapper) return;
 
-	const source = build_diagram_source(frm);
+	const extras = await fetch_diagram_extras(frm);
+	const source = build_diagram_source(frm, extras);
 	if (!source) {
 		wrapper.html(`<div class="text-muted small">${__("Add states and transitions to render the diagram.")}</div>`);
 		return;
@@ -164,9 +231,11 @@ async function render_diagram(frm) {
 		const mermaid = await load_mermaid();
 		const id = `wsd_${frm.docname.replace(/[^A-Za-z0-9]/g, "_")}_${Date.now()}`;
 		const { svg } = await mermaid.render(id, source);
-		wrapper.html(`<div class="workplace-script-diagram">${svg}</div>`);
+		const legend = build_subflow_legend(extras);
+		wrapper.html(`<div class="workplace-script-diagram">${svg}</div>${legend}`);
 	} catch (err) {
-		wrapper.html(`<pre style="color: var(--text-muted); font-size: 11px;">${frappe.utils.escape_html(String(err))}\n\n${frappe.utils.escape_html(source)}</pre>`);
+		const legend = build_subflow_legend(extras);
+		wrapper.html(`<pre style="color: var(--text-muted); font-size: 11px;">${frappe.utils.escape_html(String(err))}\n\n${frappe.utils.escape_html(source)}</pre>${legend}`);
 	}
 }
 

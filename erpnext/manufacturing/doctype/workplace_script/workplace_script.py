@@ -35,10 +35,20 @@ class _GuardedStateProxy:
 	def context(self):
 		return self._real.context
 
+	@property
+	def subflow(self):
+		return getattr(self._real, "subflow", None)
+
 	def set(self, state_name, context=None):
 		if state_name != self._current and state_name not in self._allowed:
 			raise TransitionError(f"{self._current} → {state_name}")
 		self._real.set(state_name, context)
+
+	def set_subflow(self, subflow_name, state_name, context=None):
+		self._real.set_subflow(subflow_name, state_name, context)
+
+	def exit_subflow(self, state_name=None, context=None):
+		self._real.exit_subflow(state_name, context)
 
 	def clear(self):
 		self._real.clear()
@@ -90,14 +100,20 @@ class WorkplaceScript(Document):
 
 		default_version: DF.Data | None
 		is_active: DF.Check
+		parent_script: DF.Link | None
 		script: DF.Code | None
 		script_name: DF.Data | None
 		viewing_version: DF.Data | None
 		workplace: DF.Link | None
 
 	def validate(self):
-		if self.is_active:
-			filters = {"is_active": 1, "name": ["!=", self.name]}
+		if self.parent_script:
+			if self.workplace:
+				frappe.throw("Subflow scripts (with Parent Script) must not have a Workplace assigned")
+			if self.parent_script == self.name:
+				frappe.throw("Parent Script cannot reference itself")
+		elif self.is_active:
+			filters = {"is_active": 1, "name": ["!=", self.name], "parent_script": ["is", "not set"]}
 			if self.workplace:
 				filters["workplace"] = self.workplace
 				existing = frappe.db.exists("Workplace Script", filters)
@@ -160,8 +176,50 @@ class WorkplaceScript(Document):
 		for t in self.transitions:
 			if t.from_state not in valid:
 				frappe.throw(f"Transition {t.idx}: from_state '{t.from_state}' is not in States")
-			if t.to_state not in valid:
+			if t.to_state and t.to_state != "__exit__" and t.to_state not in valid:
 				frappe.throw(f"Transition {t.idx}: to_state '{t.to_state}' is not in States")
+
+
+@frappe.whitelist()
+def get_diagram_extras(script_name):
+	"""Return reachable subflows + this script's entries, for diagram enrichment.
+
+	For a root script: subflows = its children.
+	For a subflow: subflows = siblings (children of its parent_script).
+	entries = this script's own Subflow Entries rows.
+	"""
+	this_doc = frappe.get_cached_doc("Workplace Script", script_name)
+	parent = this_doc.parent_script
+	if parent:
+		sibling_rows = frappe.get_all(
+			"Workplace Script",
+			filters={"parent_script": parent, "name": ["!=", script_name]},
+			fields=["name"],
+		)
+	else:
+		sibling_rows = frappe.get_all(
+			"Workplace Script",
+			filters={"parent_script": script_name},
+			fields=["name"],
+		)
+
+	out_subflows = []
+	for sf in sibling_rows:
+		try:
+			doc = frappe.get_cached_doc("Workplace Script", sf.name)
+			snap = _resolve_default_snapshot(doc)
+			initial = next((s.get("state") for s in (snap.get("states") or []) if s.get("is_initial")), None)
+		except Exception:
+			initial = None
+		out_subflows.append({"name": sf.name, "initial_state": initial})
+
+	entries = frappe.get_all(
+		"Workplace Script Subflow Entry",
+		filters={"parent": script_name, "parenttype": "Workplace Script", "parentfield": "subflow_entries"},
+		fields=["from_state", "trigger_type", "trigger_value", "target_subflow", "description"],
+		order_by="idx asc",
+	)
+	return {"subflows": out_subflows, "entries": entries}
 
 
 def run_state(script_name, e, scripts=None):
