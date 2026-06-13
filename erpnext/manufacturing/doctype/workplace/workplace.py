@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -14,8 +15,26 @@ class Workplace(Document):
 		company: DF.Link | None
 		description: DF.SmallText | None
 		is_active: DF.Check
+		printers: DF.Table["WorkplacePrinter"]
 		workplace_name: DF.Data | None
 
 	def before_insert(self):
 		if not self.barcode:
 			self.barcode = f"WP-{frappe.generate_hash(length=8).upper()}"
+
+	def validate(self):
+		self._validate_printers()
+
+	def _validate_printers(self):
+		if not self.printers:
+			return
+		seen = set()
+		default_count = 0
+		for row in self.printers:
+			if row.label_printer in seen:
+				frappe.throw(_("Printer {0} is listed more than once").format(row.label_printer))
+			seen.add(row.label_printer)
+			if row.is_default:
+				default_count += 1
+		if default_count > 1:
+			frappe.throw(_("Only one printer can be marked as Default"))
