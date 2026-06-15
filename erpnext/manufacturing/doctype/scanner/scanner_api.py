@@ -286,11 +286,12 @@ def handle_scan(scanner_key=None, data=None):
 			result = _handle_reset(state_proxy)
 		else:
 			active_script_name = state_proxy.subflow or workplace_script.name
+			current_state = state_proxy.name or _subflow_initial_state(active_script_name)
 			entry = _match_subflow_entry(
 				_load_subflow_entries(active_script_name),
 				scan_type,
 				scan_ctx,
-				state_proxy.name,
+				current_state,
 			)
 			if entry:
 				err = _enter_subflow(state_proxy, entry.target_subflow)
