@@ -132,7 +132,7 @@ def _resolve_serial_no(value: str) -> dict | None:
 	pkg_info = None
 	pkg_row = frappe.db.sql(
 		"""
-		SELECT pi.parent AS name, p.status, p.delivery_note, p.sales_order, p.shipment
+		SELECT pi.parent AS name, p.status, p.delivery_note, p.sales_order, p.shipment, p.bpak
 		FROM `tabPackage Item` pi
 		INNER JOIN `tabPackage` p ON p.name = pi.parent
 		WHERE p.docstatus IN (0, 1)
@@ -146,6 +146,8 @@ def _resolve_serial_no(value: str) -> dict | None:
 	if pkg_row:
 		pkg_info = pkg_row[0]
 
+	bpak_info = _resolve_bpak_for_serial(value, pkg_info.get("bpak") if pkg_info else None)
+
 	return {
 		"type": "serial_no",
 		"barcode": value,
@@ -153,8 +155,28 @@ def _resolve_serial_no(value: str) -> dict | None:
 		"route": f"/app/serial-no/{sn['name']}",
 		"purchase_receipt": pr_info,
 		"package": pkg_info,
+		"bpak": bpak_info,
 		"quality_inspections": qi_rows,
 	}
+
+
+def _resolve_bpak_for_serial(serial_no: str, bpak_from_package: str | None) -> dict | None:
+	name = frappe.db.get_value("BpAK", {"serial_no": serial_no, "docstatus": ["in", [0, 1]]}, "name")
+	if not name and bpak_from_package:
+		name = bpak_from_package
+	if not name:
+		return None
+	return _bpak_summary(name)
+
+
+def _bpak_summary(name: str) -> dict | None:
+	row = frappe.db.get_value(
+		"BpAK",
+		name,
+		["name", "serial_no", "bpak_template", "bpak_template_name", "status", "sales_order", "customer"],
+		as_dict=True,
+	)
+	return row or None
 
 
 def _resolve_package(value: str) -> dict | None:
@@ -175,6 +197,8 @@ def _resolve_package(value: str) -> dict | None:
 			"serial_no": row.serial_no,
 			"batch_no": row.batch_no,
 		})
+	bpak_info = _bpak_summary(doc.bpak) if getattr(doc, "bpak", None) else None
+
 	return {
 		"type": "package",
 		"barcode": value,
@@ -186,8 +210,10 @@ def _resolve_package(value: str) -> dict | None:
 			"delivery_note": doc.delivery_note,
 			"shipment": doc.shipment,
 			"purchase_receipt": getattr(doc, "purchase_receipt", None),
+			"bpak": getattr(doc, "bpak", None),
 		},
 		"items": items,
+		"bpak": bpak_info,
 		"route": f"/app/package/{doc.name}",
 	}
 

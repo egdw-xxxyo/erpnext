@@ -64,6 +64,8 @@ frappe.ui.form.on("Sales Order", {
 	},
 
 	refresh: function (frm) {
+		setup_sales_order_barcode(frm);
+		setup_sales_order_print_labels(frm);
 		erpnext.selling.add_bpak_buttons(frm);
 		erpnext.selling.setup_bpak_create_button(frm);
 		erpnext.selling.render_bpak_progress(frm);
@@ -1659,4 +1661,52 @@ erpnext.selling.render_bpak_progress = function (frm) {
 		},
 	});
 };
+
+function setup_sales_order_barcode(frm) {
+	if (frm.is_new() || !frm.doc.name) return;
+
+	const section = frm.fields_dict.customer_section;
+	const $section = section && $(section.wrapper);
+	if (!$section || !$section.length) return;
+
+	let $mount = $section.find(".sales-order-barcode-mount");
+	if (!$mount.length) {
+		$mount = $(`<div class="sales-order-barcode-mount" style="margin: 10px 0 0; width: 100%;"></div>`);
+		$section.find(".section-body").first().after($mount);
+	}
+
+	if (!frm._barcode_field) {
+		frm._barcode_field = new erpnext.BarcodeField({
+			frm,
+			barcode_type: "CODE128",
+			format: "CODE128",
+			$mount,
+			value_getter: () => frm.doc.name,
+		});
+	}
+	frm._barcode_field.refresh();
+}
+
+function setup_sales_order_print_labels(frm) {
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "Sales Order" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "Sales Order",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
+	});
+}
 

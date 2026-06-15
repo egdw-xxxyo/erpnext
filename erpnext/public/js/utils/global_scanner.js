@@ -207,7 +207,23 @@ erpnext.GlobalScanner = class GlobalScanner {
 			$card.append(`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__("Packaging")}</div>${pkg_body}</div>`);
 		}
 
+		if (r.bpak) {
+			$card.append(this.bpak_section(r.bpak));
+		}
+
 		return $card;
+	}
+
+	bpak_section(b) {
+		const body = [
+			this.row(__("BpAK"), this.doc_link("BpAK", b.name)),
+			this.row(__("Serial No"), frappe.utils.escape_html(b.serial_no || "")),
+			this.row(__("Template"), b.bpak_template ? this.doc_link("BpAK Template", b.bpak_template) + (b.bpak_template_name ? ` — ${frappe.utils.escape_html(b.bpak_template_name)}` : "") : ""),
+			this.row(__("Status"), frappe.utils.escape_html(b.status || "")),
+			this.row(__("Sales Order"), b.sales_order ? this.doc_link("Sales Order", b.sales_order) : ""),
+			this.row(__("Customer"), b.customer ? this.doc_link("Customer", b.customer) : ""),
+		].join("");
+		return `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__("BpAK")}</div>${body}</div>`;
 	}
 
 	render_package(r) {
@@ -242,7 +258,11 @@ erpnext.GlobalScanner = class GlobalScanner {
 			<tbody>${rows || `<tr><td colspan="4" class="text-muted">${__("No items")}</td></tr>`}</tbody>
 		</table>`;
 
-		return this.card(title, refs + table);
+		const $card = this.card(title, refs + table);
+		if (r.bpak) {
+			$card.append(this.bpak_section(r.bpak));
+		}
+		return $card;
 	}
 
 	render_item(r) {
