@@ -8,7 +8,6 @@
  "field_order": [
   "details_section",
   "naming_series",
-  "template_code",
   "template_name",
   "column_break_1",
   "disabled",
@@ -33,17 +32,11 @@
    "reqd": 1
   },
   {
-   "fieldname": "template_code",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Template Code",
-   "unique": 1
-  },
-  {
    "fieldname": "template_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Template Name"
+   "label": "Template Name",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_1",
@@ -118,5 +111,7 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
+ "title_field": "template_name",
+ "show_title_in_link": 1,
  "track_changes": 1
 }

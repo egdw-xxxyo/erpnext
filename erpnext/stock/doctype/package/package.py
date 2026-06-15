@@ -12,8 +12,16 @@ class Package(Document):
 		self._validate_serial_required()
 		self._validate_template_active()
 		self._validate_bpak()
+		self._validate_pallet()
 		if self.docstatus == 0:
 			self.status = "Draft"
+
+	def _validate_pallet(self):
+		if not self.pallet:
+			return
+		pallet_status = frappe.db.get_value("Pallet", self.pallet, "status")
+		if pallet_status == "Cancelled":
+			frappe.throw(_("Pallet {0} is cancelled").format(self.pallet))
 
 	def _validate_template_active(self):
 		if not self.packing_template:

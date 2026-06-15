@@ -11,3 +11,27 @@ class BpAKTemplate(Document):
 			self.serial_no_series = frappe.db.get_value(
 				"Serial Number Template", self.serial_number_template, "resulting_series"
 			)
+		self._set_template_name()
+
+	def autoname(self):
+		from frappe.model.naming import set_name_by_naming_series
+		set_name_by_naming_series(self)
+		self._set_template_name()
+
+	def _set_template_name(self):
+		parts = []
+		for row in self.attributes or []:
+			if not row.attribute or not row.attribute_value:
+				continue
+			vals = frappe.db.get_value(
+				"Item Attribute Value",
+				{"parent": row.attribute, "attribute_value": row.attribute_value},
+				["short_name", "abbr"],
+				as_dict=True,
+			)
+			label = (vals.short_name if vals and vals.short_name else None) \
+				or (vals.abbr if vals and vals.abbr else None) \
+				or row.attribute_value
+			parts.append(label)
+		if parts:
+			self.template_name = " ".join(parts)

@@ -28,20 +28,22 @@
 frappe.provide("erpnext");
 
 erpnext.BarcodeField = class BarcodeField {
-	constructor({ frm, fieldname, barcode_type = "CODE128", format = "CODE128", show_print = false }) {
+	constructor({ frm, fieldname, barcode_type = "CODE128", format = "CODE128", show_print = false, $mount = null, value_getter = null }) {
 		this.frm = frm;
 		this.fieldname = fieldname;
 		this.barcode_type = barcode_type;
 		this.format = format;
 		this.show_print = show_print;
+		this._$mount = $mount;
+		this._value_getter = value_getter;
 	}
 
 	get $wrapper() {
-		return this.frm.fields_dict[this.fieldname]?.$wrapper;
+		return this._$mount || this.frm.fields_dict[this.fieldname]?.$wrapper;
 	}
 
 	get value() {
-		return this.frm.doc[this.fieldname];
+		return this._value_getter ? this._value_getter() : this.frm.doc[this.fieldname];
 	}
 
 	refresh() {
