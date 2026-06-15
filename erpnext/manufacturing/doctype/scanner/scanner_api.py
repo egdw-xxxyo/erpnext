@@ -372,14 +372,14 @@ def _get_workplace_script(workplace):
 	if workplace:
 		script = frappe.db.get_value(
 			"Workplace Script",
-			{"is_active": 1, "workplace": workplace},
+			{"is_active": 1, "workplace": workplace, "parent_script": ["is", "not set"]},
 			["name", "script"],
 			as_dict=True,
 		)
 	if not script:
 		script = frappe.db.get_value(
 			"Workplace Script",
-			{"is_active": 1, "workplace": ["is", "not set"]},
+			{"is_active": 1, "workplace": ["is", "not set"], "parent_script": ["is", "not set"]},
 			["name", "script"],
 			as_dict=True,
 		)
