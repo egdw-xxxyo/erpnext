@@ -230,31 +230,52 @@ frappe.ui.form.on("Package", {
 							}
 						}
 
-						let empty_row = null;
 						if (data.serial_no) {
-							empty_row = (frm.doc.items || []).find(
+							let empty_row = (frm.doc.items || []).find(
+								(row) => row.item_code === data.item_code && !row.serial_no && (row.qty || 1) <= 1
+							);
+							if (empty_row) {
+								frappe.model.set_value(
+									empty_row.doctype,
+									empty_row.name,
+									"serial_no",
+									data.serial_no
+								);
+							} else {
+								let row = frappe.model.add_child(frm.doc, "Package Item", "items");
+								row.item_code = data.item_code;
+								row.serial_no = data.serial_no;
+								row.batch_no = data.batch_no || "";
+								row.qty = 1;
+
+								frappe.db.get_value("Item", data.item_code, "item_name", function (r) {
+									if (r) row.item_name = r.item_name;
+									frm.refresh_field("items");
+								});
+							}
+						} else {
+							let stack_row = (frm.doc.items || []).find(
 								(row) => row.item_code === data.item_code && !row.serial_no
 							);
-						}
+							if (stack_row) {
+								frappe.model.set_value(
+									stack_row.doctype,
+									stack_row.name,
+									"qty",
+									(stack_row.qty || 0) + 1
+								);
+							} else {
+								let row = frappe.model.add_child(frm.doc, "Package Item", "items");
+								row.item_code = data.item_code;
+								row.serial_no = "";
+								row.batch_no = data.batch_no || "";
+								row.qty = 1;
 
-						if (empty_row) {
-							frappe.model.set_value(
-								empty_row.doctype,
-								empty_row.name,
-								"serial_no",
-								data.serial_no
-							);
-						} else {
-							let row = frappe.model.add_child(frm.doc, "Package Item", "items");
-							row.item_code = data.item_code;
-							row.serial_no = data.serial_no || "";
-							row.batch_no = data.batch_no || "";
-							row.qty = 1;
-
-							frappe.db.get_value("Item", data.item_code, "item_name", function (r) {
-								if (r) row.item_name = r.item_name;
-								frm.refresh_field("items");
-							});
+								frappe.db.get_value("Item", data.item_code, "item_name", function (r) {
+									if (r) row.item_name = r.item_name;
+									frm.refresh_field("items");
+								});
+							}
 						}
 
 						frappe.show_alert({

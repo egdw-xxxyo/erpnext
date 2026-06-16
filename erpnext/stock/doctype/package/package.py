@@ -283,10 +283,12 @@ class Package(Document):
 		self._update_bpak_status()
 
 	def _update_bpak_status(self):
-		if not self.bpak:
-			return
-		from erpnext.stock.doctype.bpak.bpak import update_status_from_package
-		update_status_from_package(self.bpak)
+		if self.bpak:
+			from erpnext.stock.doctype.bpak.bpak import update_status_from_package
+			update_status_from_package(self.bpak)
+		if self.sales_order:
+			from erpnext.selling.doctype.sales_order.progress import update_so_progress
+			update_so_progress(self.sales_order)
 
 	def on_trash(self):
 		if self.purchase_receipt:
