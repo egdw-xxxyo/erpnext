@@ -233,3 +233,7 @@ def update_status_from_package(bpak_name):
 
 	if bpak.status != new_status:
 		frappe.db.set_value("BpAK", bpak_name, "status", new_status)
+
+	if bpak.sales_order:
+		from erpnext.selling.doctype.sales_order.progress import update_so_progress
+		update_so_progress(bpak.sales_order)

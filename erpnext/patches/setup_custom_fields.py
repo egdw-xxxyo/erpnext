@@ -21,8 +21,11 @@ def execute():
 	create_custom_fields_on_employee()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
+	create_custom_fields_on_so()
+	create_custom_fields_on_so_item()
+	create_custom_field_on_pallet()
 	frappe.db.commit()
-	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order")
+	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments")
 
 
 def create_workflow_states():
@@ -314,6 +317,111 @@ def remove_label_templates_from_workplace():
 		print("  Removed Custom Field: Workplace.label_templates")
 	else:
 		print("  Custom Field already removed: Workplace.label_templates")
+
+
+def create_custom_fields_on_so():
+	fields = [
+		{
+			"dt": "Sales Order",
+			"fieldname": "attachments_section",
+			"fieldtype": "Section Break",
+			"label": "Attachments",
+			"insert_after": "items",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Sales Order",
+			"fieldname": "packages",
+			"fieldtype": "Table",
+			"label": "Packages",
+			"options": "Sales Order Package",
+			"insert_after": "attachments_section",
+		},
+		{
+			"dt": "Sales Order",
+			"fieldname": "pallets",
+			"fieldtype": "Table",
+			"label": "Pallets",
+			"options": "Sales Order Pallet",
+			"insert_after": "packages",
+		},
+		{
+			"dt": "Sales Order",
+			"fieldname": "attachment_tree_html",
+			"fieldtype": "HTML",
+			"label": "Attachment Tree",
+			"insert_after": "pallets",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_so_item():
+	fields = [
+		{
+			"dt": "Sales Order Item",
+			"fieldname": "source_type",
+			"fieldtype": "Select",
+			"label": "Source",
+			"options": "Direct\nPackage\nBpAK\nPallet",
+			"default": "Direct",
+			"insert_after": "item_code",
+			"read_only": 1,
+			"in_list_view": 0,
+		},
+		{
+			"dt": "Sales Order Item",
+			"fieldname": "source_package",
+			"fieldtype": "Link",
+			"label": "Source Package",
+			"options": "Package",
+			"insert_after": "source_type",
+			"read_only": 1,
+		},
+		{
+			"dt": "Sales Order Item",
+			"fieldname": "source_bpak",
+			"fieldtype": "Link",
+			"label": "Source BpAK",
+			"options": "BpAK",
+			"insert_after": "source_package",
+			"read_only": 1,
+		},
+		{
+			"dt": "Sales Order Item",
+			"fieldname": "source_pallet",
+			"fieldtype": "Link",
+			"label": "Source Pallet",
+			"options": "Pallet",
+			"insert_after": "source_bpak",
+			"read_only": 1,
+		},
+		{
+			"dt": "Sales Order Item",
+			"fieldname": "source_row_key",
+			"fieldtype": "Data",
+			"label": "Source Row Key",
+			"insert_after": "source_pallet",
+			"hidden": 1,
+			"read_only": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_field_on_pallet():
+	fields = [
+		{
+			"dt": "Pallet",
+			"fieldname": "sales_order",
+			"fieldtype": "Link",
+			"label": "Sales Order",
+			"options": "Sales Order",
+			"insert_after": "status",
+			"read_only": 1,
+		},
+	]
+	_create_custom_fields(fields)
 
 
 def _create_custom_fields(fields):

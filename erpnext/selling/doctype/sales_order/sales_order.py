@@ -305,6 +305,8 @@ class SalesOrder(SellingController):
 			it.serial_no = "\n".join(sns) if sns else None
 
 	def validate(self):
+		from erpnext.selling.doctype.sales_order.attachment_resolver import sync_items_from_attachments
+		sync_items_from_attachments(self)
 		super().validate()
 		self.validate_delivery_date()
 		self.validate_proj_cust()
@@ -1205,7 +1207,44 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 	# Should be called after mapping items.
 	set_missing_values(so, target_doc)
 
+	_attach_package_serials_to_dn(so, target_doc)
+
 	return target_doc
+
+
+def _attach_package_serials_to_dn(so, target):
+	from erpnext.selling.doctype.sales_order.attachment_resolver import collect_serials
+	serials_by_item = collect_serials(so)
+	if not serials_by_item:
+		return
+
+	missing = []
+	for row in target.get("items") or []:
+		if not row.item_code:
+			continue
+		if not frappe.db.get_value("Item", row.item_code, "has_serial_no"):
+			continue
+		if row.get("serial_no"):
+			continue
+		available = serials_by_item.get(row.item_code, [])
+		needed = int(row.qty or 0)
+		take = available[:needed]
+		if take:
+			row.serial_no = "\n".join(take)
+			serials_by_item[row.item_code] = available[needed:]
+		if len(take) < needed:
+			missing.append(
+				_("{0}: need {1}, got {2}").format(row.item_code, needed, len(take))
+			)
+
+	if missing:
+		frappe.msgprint(
+			_("Some items are missing serial numbers from attached Packages: {0}").format(
+				"; ".join(missing)
+			),
+			title=_("Missing Serials from Packages"),
+			indicator="orange",
+		)
 
 
 @frappe.whitelist()
