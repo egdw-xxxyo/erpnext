@@ -9,6 +9,9 @@
  "field_order": [
   "details_section",
   "status",
+  "column_break_pallet",
+  "bpak",
+  "bpak_template_name",
   "packages_section",
   "packages_html",
   "notes_section",
@@ -31,6 +34,27 @@
    "label": "Status",
    "no_copy": 1,
    "options": "Draft\nPacked\nShipped\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pallet",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "bpak",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "BpAK",
+   "options": "BpAK"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "bpak.bpak_template_name",
+   "fieldname": "bpak_template_name",
+   "fieldtype": "Data",
+   "label": "BpAK Template Name",
    "read_only": 1
   },
   {
