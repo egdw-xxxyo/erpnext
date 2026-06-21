@@ -12,9 +12,16 @@ def execute():
 def migrate_bpla_spec(doctype, shifr_field, passport_field, name_field):
 	if not frappe.db.exists("DocType", doctype):
 		return
+	cols = _columns(doctype)
+	if "код_виробу" not in cols:
+		return
+	select_fields = ["name", "`код_виробу`"]
+	for f in (shifr_field, passport_field, name_field):
+		if f in cols:
+			select_fields.append(f"`{f}`")
 	rows = frappe.db.sql(
-		f"""SELECT name, `код_виробу`, `{shifr_field}`, `{passport_field}`, `{name_field}`
-		FROM `tab{doctype}` WHERE `код_виробу` IS NOT NULL AND `код_виробу` != ''""",
+		f"""SELECT {', '.join(select_fields)} FROM `tab{doctype}`
+		WHERE `код_виробу` IS NOT NULL AND `код_виробу` != ''""",
 		as_dict=1,
 	)
 	for r in rows:
@@ -28,11 +35,20 @@ def migrate_bpla_spec(doctype, shifr_field, passport_field, name_field):
 		_denormalize_custom_shifr(item_code, r.get(shifr_field))
 
 
+def _columns(doctype):
+	rows = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}`")
+	return {r[0] for r in rows}
+
+
 def migrate_battery_spec():
 	if not frappe.db.exists("DocType", "Battery Spec"):
 		return
+	cols = _columns("Battery Spec")
+	if "код_виробу" not in cols:
+		return
+	shifr_col = "`код_єскд`" if "код_єскд" in cols else "NULL AS `код_єскд`"
 	rows = frappe.db.sql(
-		"""SELECT name, `код_виробу`, `код_єскд` FROM `tabBattery Spec`
+		f"""SELECT name, `код_виробу`, {shifr_col} FROM `tabBattery Spec`
 		WHERE `код_виробу` IS NOT NULL AND `код_виробу` != ''""",
 		as_dict=1,
 	)
@@ -48,9 +64,16 @@ def migrate_battery_spec():
 def migrate_fo_spec():
 	if not frappe.db.exists("DocType", "FO spec"):
 		return
+	cols = _columns("FO spec")
+	if "код_виробу" not in cols:
+		return
+	select_fields = ["name", "`код_виробу`"]
+	for f in ("специфікація", "назва_за_єскд", "довжина_намотки_км"):
+		if f in cols:
+			select_fields.append(f"`{f}`")
 	rows = frappe.db.sql(
-		"""SELECT name, `код_виробу`, `специфікація`, `назва_за_єскд`, `довжина_намотки_км`
-		FROM `tabFO spec` WHERE `код_виробу` IS NOT NULL AND `код_виробу` != ''""",
+		f"""SELECT {', '.join(select_fields)} FROM `tabFO spec`
+		WHERE `код_виробу` IS NOT NULL AND `код_виробу` != ''""",
 		as_dict=1,
 	)
 	for r in rows:
