@@ -28,15 +28,26 @@ def extract_formula(value):
 
 def evaluate_spec_formulas(variant_doc):
 	context = _build_context(variant_doc)
-	if not context:
-		return
-
 	attr_text = _build_text_context(variant_doc)
+	jinja_ctx = _build_jinja_context(variant_doc)
 
 	for row in variant_doc.get("item_spec_parameters") or []:
 		if is_formula(row.get("value")):
+			expr = extract_formula(row.value)
+			if "{{" in expr:
+				try:
+					rendered = frappe.render_template(expr, jinja_ctx)
+					row.display_value = rendered.strip()
+				except Exception as e:
+					frappe.log_error(
+						title=f"Spec Jinja Error: {row.get('parameter')}",
+						message=f"Formula: {row.value}\nError: {e}",
+					)
+				continue
+			if not context:
+				continue
 			try:
-				nominal = _evaluate_formula(extract_formula(row.value), context)
+				nominal = _evaluate_formula(expr, context)
 				row.calculated_value = round(nominal, 4)
 			except Exception as e:
 				frappe.log_error(
@@ -45,6 +56,45 @@ def evaluate_spec_formulas(variant_doc):
 				)
 		elif not row.get("value") and row.parameter in attr_text:
 			row.value = attr_text[row.parameter]
+
+
+def _build_jinja_context(variant_doc):
+	attributes = variant_doc.get("attributes") or []
+
+	abbr_map = {}
+	for attr in attributes:
+		abbr = frappe.db.get_value(
+			"Item Attribute Value",
+			{"parent": attr.attribute, "attribute_value": attr.attribute_value},
+			"abbr",
+		)
+		abbr_map[attr.attribute] = abbr or attr.attribute_value
+
+	def abbr(attr_name):
+		return abbr_map.get(attr_name, "")
+
+	def spec(attr_name, param):
+		attr = next((a for a in attributes if a.attribute == attr_name), None)
+		if not attr:
+			return ""
+		linked_item = frappe.db.get_value(
+			"Item Attribute Value",
+			{"parent": attr_name, "attribute_value": attr.attribute_value},
+			"linked_item",
+		)
+		if not linked_item:
+			return ""
+		return frappe.db.get_value(
+			"Item Specification Parameter",
+			{"parent": linked_item, "parenttype": "Item", "parameter": param},
+			"value",
+		) or ""
+
+	return {
+		"doc": variant_doc,
+		"abbr": abbr,
+		"spec": spec,
+	}
 
 
 def _build_text_context(variant_doc):

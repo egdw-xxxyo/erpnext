@@ -157,6 +157,19 @@ def create_custom_fields_on_item():
 			frappe.delete_doc("Custom Field", old_cf, force=True)
 			print(f"  Removed old Custom Field: Item.{old_field}")
 
+	fields = [
+		{
+			"dt": "Item",
+			"fieldname": "custom_шифр",
+			"fieldtype": "Data",
+			"label": "Шифр",
+			"read_only": 1,
+			"insert_after": "item_name",
+			"description": "Denormalized from Specification Parameters (parameter=Шифр)",
+		},
+	]
+	_create_custom_fields(fields)
+
 
 def create_item_specification_tab():
 	fields = [

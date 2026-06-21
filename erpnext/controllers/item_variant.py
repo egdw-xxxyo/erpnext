@@ -329,7 +329,6 @@ def copy_attributes_to_variant(item, variant):
 		"opening_stock",
 		"variant_of",
 		"valuation_rate",
-		"item_spec_parameters",
 	]
 
 	if item.variant_based_on == "Manufacturer":
@@ -339,12 +338,14 @@ def copy_attributes_to_variant(item, variant):
 	allow_fields = [d.field_name for d in frappe.get_all("Variant Field", fields=["field_name"])]
 	if "variant_based_on" not in allow_fields:
 		allow_fields.append("variant_based_on")
-	for f in ("serial_number_template", "has_serial_no", "serial_no_series"):
+	for f in ("serial_number_template", "has_serial_no", "serial_no_series", "item_spec_parameters"):
 		if f not in allow_fields:
 			allow_fields.append(f)
 	for field in item.meta.fields:
 		# "Table" is part of `no_value_field` but we shouldn't ignore tables
 		if (field.reqd or field.fieldname in allow_fields) and field.fieldname not in exclude_fields:
+			if field.fieldname == "item_spec_parameters" and variant.get("item_spec_parameters"):
+				continue
 			if variant.get(field.fieldname) != item.get(field.fieldname):
 				if field.fieldtype == "Table":
 					variant.set(field.fieldname, [])

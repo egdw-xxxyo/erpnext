@@ -302,6 +302,17 @@ class Item(Document):
 		if not any(is_formula(row.get("value")) for row in self.item_spec_parameters):
 			return
 		evaluate_spec_formulas(self)
+		self._denormalize_shifr()
+
+	def _denormalize_shifr(self):
+		shifr = ""
+		for row in self.get("item_spec_parameters") or []:
+			if row.parameter == "Шифр":
+				shifr = row.get("display_value") or row.get("value") or ""
+				if shifr.startswith("="):
+					shifr = ""
+				break
+		self.custom_шифр = shifr
 
 	def on_update(self):
 		self.update_variants()
