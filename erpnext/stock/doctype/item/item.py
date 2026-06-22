@@ -297,12 +297,30 @@ class Item(Document):
 		if not self.variant_of:
 			return
 		if not self.get("item_spec_parameters"):
+			self._inherit_spec_parameters_from_template()
+		if not self.get("item_spec_parameters"):
 			return
 		from erpnext.stock.doctype.item_specification_parameter.formula_utils import evaluate_spec_formulas, is_formula
 		if not any(is_formula(row.get("value")) for row in self.item_spec_parameters):
+			self._denormalize_shifr()
 			return
 		evaluate_spec_formulas(self)
 		self._denormalize_shifr()
+
+	def _inherit_spec_parameters_from_template(self):
+		template_rows = frappe.get_all(
+			"Item Specification Parameter",
+			filters={"parent": self.variant_of, "parenttype": "Item"},
+			fields=["parameter", "value", "uom", "calculated_value"],
+			order_by="idx",
+		)
+		for r in template_rows:
+			self.append("item_spec_parameters", {
+				"parameter": r.parameter,
+				"value": r.value,
+				"uom": r.uom,
+				"calculated_value": r.calculated_value,
+			})
 
 	def _denormalize_shifr(self):
 		shifr = ""
