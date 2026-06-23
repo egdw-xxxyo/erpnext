@@ -455,6 +455,14 @@ def create_custom_field_on_bpak_template():
 			"label": "Шифр",
 			"insert_after": "template_name",
 		},
+		{
+			"dt": "BpAK Template",
+			"fieldname": "specification_number_template",
+			"fieldtype": "Link",
+			"label": "Specification Number Template",
+			"options": "Specification Number Template",
+			"insert_after": "serial_no_series",
+		},
 	]
 	_create_custom_fields(fields)
 
