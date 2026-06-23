@@ -453,6 +453,7 @@ def create_custom_field_on_bpak_template():
 			"fieldname": "custom_шифр",
 			"fieldtype": "Data",
 			"label": "Шифр",
+			"read_only": 1,
 			"insert_after": "template_name",
 		},
 		{
