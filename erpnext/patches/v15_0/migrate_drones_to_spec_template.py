@@ -1,4 +1,5 @@
 import frappe
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 TEMPLATE = "BPLA-UKR-FO"
 SPEC_TEMPLATE_NAME = "FPV Drone Spec"
@@ -36,6 +37,7 @@ S15 = {
 
 
 def execute():
+	_ensure_custom_field()
 	if not frappe.db.exists("Item", TEMPLATE):
 		return
 
@@ -48,6 +50,20 @@ def execute():
 	_link_template_on_bpla()
 	_resave_variants()
 	frappe.db.commit()
+
+
+def _ensure_custom_field():
+	create_custom_fields({
+		"Item": [
+			{
+				"fieldname": "specification_number_template",
+				"fieldtype": "Link",
+				"label": "Specification Number Template",
+				"options": "Specification Number Template",
+				"insert_after": "serial_number_template",
+			},
+		]
+	})
 
 
 def _ensure_short_names_on_cameras():
