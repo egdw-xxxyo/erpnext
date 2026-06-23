@@ -11,7 +11,7 @@ def execute():
 
 def _rename_template():
     if frappe.db.exists("Item", "BPAK-COMBO") and not frappe.db.exists("Item", "FPV-COMBO"):
-        frappe.rename_doc("Item", "BPAK-COMBO", "FPV-COMBO", force=True, ignore_permissions=True)
+        frappe.rename_doc("Item", "BPAK-COMBO", "FPV-COMBO", force=True)
         frappe.db.set_value("Item", "FPV-COMBO", "item_name", "FPV Комплект")
 
 
@@ -20,7 +20,7 @@ def _rename_variants():
         new = old.replace("BPAK-COMBO-", "FPV-COMBO-", 1)
         if frappe.db.exists("Item", new):
             continue
-        frappe.rename_doc("Item", old, new, force=True, ignore_permissions=True)
+        frappe.rename_doc("Item", old, new, force=True)
         frappe.db.set_value("Item", new, "variant_of", "FPV-COMBO")
 
 
@@ -29,7 +29,7 @@ def _rename_bundles():
         new = old.replace("BPAK-COMBO-", "FPV-COMBO-", 1)
         if frappe.db.exists("Product Bundle", new):
             continue
-        frappe.rename_doc("Product Bundle", old, new, force=True, ignore_permissions=True)
+        frappe.rename_doc("Product Bundle", old, new, force=True)
         frappe.db.set_value("Product Bundle", new, "new_item_code", new)
 
 
