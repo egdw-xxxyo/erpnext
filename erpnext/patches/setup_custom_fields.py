@@ -24,6 +24,7 @@ def execute():
 	create_custom_fields_on_so()
 	create_custom_fields_on_so_item()
 	create_custom_field_on_pallet()
+	create_custom_field_on_bpak_template()
 	frappe.db.commit()
 	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments")
 
@@ -165,7 +166,15 @@ def create_custom_fields_on_item():
 			"label": "Шифр",
 			"read_only": 1,
 			"insert_after": "item_name",
-			"description": "Denormalized from Specification Parameters (parameter=Шифр)",
+			"description": "Resolved from Specification Number Template, or denormalized from Specification Parameters",
+		},
+		{
+			"dt": "Item",
+			"fieldname": "specification_number_template",
+			"fieldtype": "Link",
+			"label": "Specification Number Template",
+			"options": "Specification Number Template",
+			"insert_after": "serial_number_template",
 		},
 	]
 	_create_custom_fields(fields)
@@ -432,6 +441,19 @@ def create_custom_field_on_pallet():
 			"options": "Sales Order",
 			"insert_after": "status",
 			"read_only": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_field_on_bpak_template():
+	fields = [
+		{
+			"dt": "BpAK Template",
+			"fieldname": "custom_шифр",
+			"fieldtype": "Data",
+			"label": "Шифр",
+			"insert_after": "template_name",
 		},
 	]
 	_create_custom_fields(fields)

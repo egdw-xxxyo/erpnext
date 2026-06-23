@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "creation": "2026-06-23 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "component_type",
+  "attribute_link",
+  "value"
+ ],
+ "fields": [
+  {
+   "fieldname": "component_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Literal\nItem Attribute Abbr\nItem Attribute Short Name\nItem Attribute Value",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:['Item Attribute Abbr','Item Attribute Short Name','Item Attribute Value'].indexOf(doc.component_type)>=0",
+   "fieldname": "attribute_link",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Attribute",
+   "mandatory_depends_on": "eval:['Item Attribute Abbr','Item Attribute Short Name','Item Attribute Value'].indexOf(doc.component_type)>=0",
+   "options": "Item Attribute"
+  },
+  {
+   "description": "For Literal: the literal text to include.",
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Value"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Specification Number Template Component",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

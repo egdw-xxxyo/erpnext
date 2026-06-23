@@ -235,6 +235,8 @@ class Item(Document):
 		self.resolve_serial_number_template()
 		self._sync_spec_from_template()
 		self._evaluate_spec_formulas()
+		self._inherit_specification_template_from_template()
+		self._resolve_specification_template()
 
 		if not self.is_new():
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
@@ -272,6 +274,26 @@ class Item(Document):
 					if abbr:
 						series = series.replace(token, abbr)
 			self.serial_no_series = series
+
+	def _inherit_specification_template_from_template(self):
+		if not self.variant_of:
+			return
+		if self.get("specification_number_template"):
+			return
+		val = frappe.db.get_value("Item", self.variant_of, "specification_number_template")
+		if val:
+			self.specification_number_template = val
+
+	def _resolve_specification_template(self):
+		if not self.get("specification_number_template"):
+			return
+		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
+			resolve_specification_template,
+		)
+
+		resolved = resolve_specification_template(self)
+		if resolved:
+			self.set("custom_шифр", resolved)
 
 	def _sync_spec_from_template(self):
 		if not self.variant_of:

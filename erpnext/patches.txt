@@ -438,3 +438,5 @@ erpnext.patches.v15_0.backfill_pallet_sales_order
 erpnext.patches.v15_0.seed_bpak_qi_parameters
 erpnext.patches.v15_0.migrate_bpla_specs_to_items
 erpnext.patches.v15_0.freeze_legacy_spec_doctypes
+erpnext.patches.v15_0.migrate_drones_to_spec_template
+erpnext.patches.v15_0.migrate_other_to_spec_template
