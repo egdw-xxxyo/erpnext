@@ -54,14 +54,19 @@ def get_data(size="15", line="FO"):
         cells = {}
         for gs in gs_items:
             target = comps | {gs["name"]}
-            match = None
+            match_item = None
             for bpak_code, bpak_items in bpak_by_parent.items():
                 if bpak_items == target:
-                    match = frappe.db.get_value("Item", bpak_code, "custom_шифр") or bpak_code
+                    match_item = bpak_code
                     break
-            cells[gs["custom_шифр"]] = match
+            if match_item:
+                shifr = frappe.db.get_value("Item", match_item, "custom_шифр") or match_item
+                cells[gs["custom_шифр"]] = {"shifr": shifr, "item": match_item}
+            else:
+                cells[gs["custom_шифр"]] = None
         rows.append({
             "mod_num": idx,
+            "fpv_item": f["name"],
             "name": f["item_name"] or f["name"],
             "fpv_shifr": f["custom_шифр"],
             "cells": cells,
@@ -70,6 +75,6 @@ def get_data(size="15", line="FO"):
     title = f"Відомість модифікацій БпАК Укропчик {size} {line}"
     return {
         "title": title,
-        "gs_columns": [g["custom_шифр"] for g in gs_items],
+        "gs_columns": [{"shifr": g["custom_шифр"], "item": g["name"]} for g in gs_items],
         "rows": rows,
     }
