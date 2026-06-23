@@ -444,3 +444,4 @@ erpnext.patches.v15_0.migrate_bpak_to_spec_template
 erpnext.patches.v15_0.setup_bpak_combo_foundation
 erpnext.patches.v15_0.setup_bpak_combo_variants
 erpnext.patches.v15_0.rename_bpak_combo_to_fpv_combo
+erpnext.patches.v15_0.keep_one_fpv_combo_and_create_bpak
