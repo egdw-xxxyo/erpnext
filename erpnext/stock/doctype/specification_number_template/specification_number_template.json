@@ -13,6 +13,8 @@
   "description",
   "section_components",
   "components",
+  "section_overrides",
+  "overrides",
   "section_preview",
   "preview"
  ],
@@ -44,6 +46,18 @@
    "label": "Components",
    "options": "Specification Number Template Component",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_overrides",
+   "fieldtype": "Section Break",
+   "label": "Overrides"
+  },
+  {
+   "fieldname": "overrides",
+   "fieldtype": "Table",
+   "label": "Overrides",
+   "options": "Specification Number Override",
+   "description": "If generated value matches Original, replace with Override."
   },
   {
    "fieldname": "section_preview",

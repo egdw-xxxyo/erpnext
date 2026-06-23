@@ -61,4 +61,8 @@ def resolve_specification_template(item_doc):
 		if not resolved:
 			return None
 		parts.append(str(resolved))
-	return "".join(parts)
+	result = "".join(parts)
+	for ov in tmpl.get("overrides") or []:
+		if ov.original_value and ov.original_value == result:
+			return ov.override_value or result
+	return result
