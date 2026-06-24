@@ -5,12 +5,11 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 
-	const size_field = page.add_field({
-		label: __("Розмір"),
-		fieldtype: "Select",
-		fieldname: "size",
-		options: ["15", "10"],
-		default: "15",
+	const spec_field = page.add_field({
+		label: __("Специфікація"),
+		fieldtype: "Link",
+		fieldname: "specification",
+		options: "BpAK Specification",
 		change: () => render(),
 	});
 
@@ -30,7 +29,14 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 			max-width: 36px;
 		}
 		.bpak-mods th.gs-col a { color: inherit; text-decoration: none; }
-		.bpak-mods td { vertical-align: middle; }
+		.bpak-mods td { vertical-align: middle; text-align: center; }
+		.bpak-mods td.cell-name { text-align: left; }
+		.bpak-mods a.icon-link {
+			display: inline-block;
+			color: var(--text-color);
+			padding: 2px 4px;
+		}
+		.bpak-mods a.icon-link:hover { color: var(--primary); }
 	`).appendTo('head');
 
 	function item_link(doctype, name, label) {
@@ -39,11 +45,23 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 		return `<a href="${route}" data-doctype="${doctype}" data-name="${frappe.utils.escape_html(name)}">${text}</a>`;
 	}
 
+	function item_icon_link(name, tooltip) {
+		const route = `/app/item/${encodeURIComponent(name)}`;
+		const tip = frappe.utils.escape_html(tooltip || name);
+		return `<a href="${route}" class="icon-link" data-doctype="Item" data-name="${frappe.utils.escape_html(name)}" title="${tip}">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+		</a>`;
+	}
+
 	function render() {
-		const size = size_field.get_value() || "15";
+		const specification = spec_field.get_value();
+		if (!specification) {
+			$container.html(`<div class="text-muted" style="margin: 15px 0;">${__("Оберіть специфікацію")}</div>`);
+			return;
+		}
 		frappe.call({
 			method: "erpnext.manufacturing.page.bpak_modifications.bpak_modifications.get_data",
-			args: { size: size, line: "FO" },
+			args: { specification },
 			callback: (r) => paint(r.message),
 		});
 	}
@@ -67,22 +85,32 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 		for (const row of rows) {
 			html += "<tr>";
 			html += `<td>${__("Модифікація")} ${row.mod_num}</td>`;
-			html += `<td>${frappe.utils.escape_html(row.name || "")}</td>`;
+			html += `<td class="cell-name">${frappe.utils.escape_html(row.fpv_name || "")}</td>`;
 			html += `<td>${item_link("Item", row.fpv_item, row.fpv_shifr)}</td>`;
 			for (const g of gs) {
-				const cell = row.cells[g.shifr];
-				html += `<td>${cell ? item_link("Item", cell.item, cell.shifr) : ""}</td>`;
+				const cell = row.cells[g.item];
+				html += `<td>${cell ? item_icon_link(cell.item, cell.shifr) : ""}</td>`;
 			}
 			html += "</tr>";
 		}
 		html += "</tbody></table>";
 
 		if (!rows.length) {
-			html += `<div class="text-muted">${__("Немає FPV комбо для цього розміру")}</div>`;
+			html += `<div class="text-muted">${__("Немає модифікацій для цієї специфікації")}</div>`;
 		}
 
 		$container.html(html);
 	}
 
-	render();
+	frappe.call({
+		method: "erpnext.manufacturing.page.bpak_modifications.bpak_modifications.get_specifications",
+		callback: (r) => {
+			const specs = r.message || [];
+			if (specs.length && !spec_field.get_value()) {
+				spec_field.set_value(specs[0].name);
+			} else {
+				render();
+			}
+		},
+	});
 };
