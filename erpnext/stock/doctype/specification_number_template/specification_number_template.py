@@ -9,16 +9,36 @@ class SpecificationNumberTemplate(Document):
 	def _build_preview(self):
 		parts = []
 		for c in self.components or []:
-			t = c.component_type
-			if t == "Literal":
-				parts.append(c.value or "")
-			elif t == "Item Attribute Abbr":
-				parts.append("{ATTR:" + (c.attribute_link or "") + ":abbr}")
-			elif t == "Item Attribute Short Name":
-				parts.append("{ATTR:" + (c.attribute_link or "") + ":short_name}")
-			elif t == "Item Attribute Value":
-				parts.append("{ATTR:" + (c.attribute_link or "") + ":value}")
+			token = _component_token(c)
+			if c.condition_attribute and c.condition_value:
+				token = f"[if {c.condition_attribute}={c.condition_value}]{token}"
+			parts.append(token)
 		return "".join(parts)
+
+
+def _component_token(c):
+	t = c.component_type
+	if t == "Literal":
+		return c.value or ""
+	if t == "Item Attribute Abbr":
+		return "{ATTR:" + (c.attribute_link or "") + ":abbr}"
+	if t == "Item Attribute Short Name":
+		return "{ATTR:" + (c.attribute_link or "") + ":short_name}"
+	if t == "Item Attribute Value":
+		return "{ATTR:" + (c.attribute_link or "") + ":value}"
+	return ""
+
+
+def _condition_matches(component, attr_map):
+	if not component.condition_attribute:
+		return True
+	if not component.condition_value:
+		return True
+	actual = attr_map.get(component.condition_attribute)
+	if actual is None:
+		return False
+	allowed = {v.strip() for v in component.condition_value.split(",") if v.strip()}
+	return str(actual) in allowed
 
 
 def resolve_specification_template(item_doc):
@@ -37,6 +57,8 @@ def resolve_specification_template(item_doc):
 
 	parts = []
 	for c in tmpl.components or []:
+		if not _condition_matches(c, attr_map):
+			continue
 		t = c.component_type
 		if t == "Literal":
 			parts.append(c.value or "")

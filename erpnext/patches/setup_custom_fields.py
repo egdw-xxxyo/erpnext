@@ -168,14 +168,6 @@ def create_custom_fields_on_item():
 			"insert_after": "item_name",
 			"description": "Resolved from Specification Number Template, or denormalized from Specification Parameters",
 		},
-		{
-			"dt": "Item",
-			"fieldname": "specification_number_template",
-			"fieldtype": "Link",
-			"label": "Specification Number Template",
-			"options": "Specification Number Template",
-			"insert_after": "serial_number_template",
-		},
 	]
 	_create_custom_fields(fields)
 
@@ -205,8 +197,26 @@ def create_item_specification_tab():
 			"options": "Item Label Template",
 			"insert_after": "item_spec_parameters",
 		},
+		{
+			"dt": "Item",
+			"fieldname": "specification_number_template",
+			"fieldtype": "Link",
+			"label": "Specification Number Template",
+			"options": "Specification Number Template",
+			"insert_after": "label_templates",
+		},
 	]
 	_create_custom_fields(fields)
+
+	existing = frappe.db.exists(
+		"Custom Field",
+		{"dt": "Item", "fieldname": "specification_number_template"},
+	)
+	if existing:
+		cf = frappe.get_doc("Custom Field", existing)
+		if cf.insert_after != "label_templates":
+			cf.insert_after = "label_templates"
+			cf.save(ignore_permissions=True)
 
 
 def create_custom_fields_on_pr_item():

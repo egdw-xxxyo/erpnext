@@ -7,7 +7,9 @@
  "field_order": [
   "component_type",
   "attribute_link",
-  "value"
+  "value",
+  "condition_attribute",
+  "condition_value"
  ],
  "fields": [
   {
@@ -33,6 +35,19 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Value"
+  },
+  {
+   "fieldname": "condition_attribute",
+   "fieldtype": "Link",
+   "label": "Condition Attribute",
+   "options": "Item Attribute",
+   "description": "If set, component is included only when item's value for this attribute matches Condition Value."
+  },
+  {
+   "fieldname": "condition_value",
+   "fieldtype": "Data",
+   "label": "Condition Value",
+   "description": "Comma-separated whitelist of attribute values that activate this component."
   }
  ],
  "index_web_pages_for_search": 0,
