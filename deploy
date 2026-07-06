@@ -5,6 +5,17 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 ERPNEXT_VERSION="v15.96.1"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
+# Set by the build/migrate handlers when --silent is passed. When 1, the say()
+# helper suppresses '==>' progress labels; per-step stdout is also routed to
+# /dev/null inside run_deploy. Errors still surface because set -e fires on
+# non-zero exit, and stderr is preserved for any step that prints to it.
+DEPLOY_SILENT=0
+say() {
+  if [ "$DEPLOY_SILENT" != "1" ]; then
+    echo "$@"
+  fi
+}
+
 DEPLOY_ENV_FILE="$DIR/.deploy-env"
 if [ -f "$DEPLOY_ENV_FILE" ]; then
   DEPLOY_ENV=$(cat "$DEPLOY_ENV_FILE" | tr -d '[:space:]')
@@ -29,10 +40,10 @@ dc() {
 }
 
 wait_for_db() {
-  echo "==> Waiting for MariaDB..."
+  say "==> Waiting for MariaDB..."
   for i in $(seq 1 30); do
     if dc exec -T db mysqladmin ping --password=admin 2>/dev/null | grep -q alive; then
-      echo "==> MariaDB is ready."
+      say "==> MariaDB is ready."
       return 0
     fi
     sleep 2
@@ -42,7 +53,7 @@ wait_for_db() {
 }
 
 wait_for_backend() {
-  echo "==> Waiting for backend..."
+  say "==> Waiting for backend..."
   for i in $(seq 1 30); do
     if dc exec -T backend bench --site frontend doctor 2>/dev/null | grep -q "OK" 2>/dev/null || \
        dc exec -T backend python3 -c "import frappe" 2>/dev/null; then
@@ -54,25 +65,25 @@ wait_for_backend() {
 }
 
 build_image() {
-  echo "==> Building full image (all source baked in)..."
+  say "==> Building full image (all source baked in)..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
     -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || return 1
-  echo "==> Pruning dangling images..."
+  say "==> Pruning dangling images..."
   docker image prune -f --filter "dangling=true" >/dev/null
 }
 
 sync_built_assets() {
-  echo "==> Syncing built assets from image to sites volume..."
+  say "==> Syncing built assets from image to sites volume..."
   docker run --rm "$IMAGE_NAME" tar -cf - \
     -C /home/frappe/frappe-bench/sites/assets \
     frappe erpnext hrms locale assets.json assets-rtl.json 2>/dev/null | \
     dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
   dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
-  echo "==> Assets synced."
+  say "==> Assets synced."
 }
 
 fix_assets() {
-  echo "==> Syncing assets from backend to frontend container..."
+  say "==> Syncing assets from backend to frontend container..."
   FRONTEND_CID=$(dc ps -q frontend 2>/dev/null)
   BACKEND_CID=$(dc ps -q backend 2>/dev/null)
   if [ -z "$FRONTEND_CID" ] || [ -z "$BACKEND_CID" ]; then
@@ -104,12 +115,12 @@ fix_assets() {
     if docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets $ASSET_APPS assets.json assets-rtl.json | \
        docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/; then
       if docker exec "$FRONTEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null; then
-        echo "==> Asset sync complete."
+        say "==> Asset sync complete."
         dc exec -T backend bench --site frontend console <<'PY' 2>/dev/null
 import frappe
 frappe.cache.delete_value("assets_json", shared=True)
 PY
-        echo "==> Flushed assets_json from Redis cache."
+        say "==> Flushed assets_json from Redis cache."
         return 0
       fi
     fi
@@ -139,7 +150,7 @@ apply_site_config() {
 }
 
 strip_extra_apps() {
-  echo "==> Removing extra apps before migrate..."
+  say "==> Removing extra apps before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
   local DB_NAME
   DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null \
@@ -160,9 +171,13 @@ strip_extra_apps() {
 }
 
 ensure_hrms_installed() {
-  echo "==> Ensuring HRMS is installed on site..."
+  say "==> Ensuring HRMS is installed on site..."
   dc exec -T backend bash -c "grep -q '^hrms$' /home/frappe/frappe-bench/sites/apps.txt || echo hrms >> /home/frappe/frappe-bench/sites/apps.txt"
-  dc exec -T backend bench --site frontend install-app hrms --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
+  if [ "$DEPLOY_SILENT" = "1" ]; then
+    dc exec -T backend bench --site frontend install-app hrms --force >/dev/null 2>&1 || true
+  else
+    dc exec -T backend bench --site frontend install-app hrms --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
+  fi
 }
 
 install_extra_apps() {
@@ -182,29 +197,32 @@ run_deploy() {
     err="/dev/null"
   fi
 
-  echo "==> Recreating containers with new image..."
+  say "==> Recreating containers with new image..."
   dc up -d > "$out" 2>&1
 
-  echo "==> Waiting for configurator to finish..."
+  say "==> Waiting for configurator to finish..."
   dc wait configurator > "$out" 2>&1 || sleep 5
 
   sync_built_assets > "$out" 2>&1
 
-  echo "==> Applying site config..."
+  say "==> Applying site config..."
   apply_site_config > "$out" 2>&1
 
   wait_for_db > "$out" 2>&1
 
   strip_extra_apps > "$out" 2>&1
 
-  echo "==> Running bench migrate..."
+  say "==> Running bench migrate..."
   dc exec -T backend bench --site frontend migrate > "$out" 2>&1
 
-  echo "==> Running setup_custom_fields..."
-  dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute 2>&1 | \
-    { if [ "$SILENT" = "1" ]; then grep -v "exists" || true; else cat; fi; }
+  say "==> Running setup_custom_fields..."
+  if [ "$SILENT" = "1" ]; then
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute >/dev/null 2>&1 || true
+  else
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
+  fi
 
-  echo "==> Clearing cache..."
+  say "==> Clearing cache..."
   dc exec -T backend bench --site frontend clear-cache > "$out" 2>&1
 
   install_extra_apps > "$out" 2>&1
@@ -215,7 +233,7 @@ run_deploy() {
 case "${1:-}" in
   nuke)
     require_non_production "nuke"
-    echo "==> Stopping containers and removing all data..."
+    say "==> Stopping containers and removing all data..."
     dc down -v
     echo "All data has been removed."
     ;;
@@ -223,26 +241,26 @@ case "${1:-}" in
   init)
     build_image
 
-    echo "==> Starting ERPNext..."
+    say "==> Starting ERPNext..."
     dc up -d
     sync_built_assets
 
-    echo "==> Waiting for site to be ready (2-3 min)..."
+    say "==> Waiting for site to be ready (2-3 min)..."
     until dc exec -T backend bench --site frontend list-apps 2>/dev/null | grep -q erpnext; do
       sleep 5
     done
 
-    echo "==> Installing HRMS on site..."
+    say "==> Installing HRMS on site..."
     dc exec -T backend bench --site frontend install-app hrms
 
-    echo "==> Enabling Ukrainian language..."
+    say "==> Enabling Ukrainian language..."
     dc exec -T backend bench --site frontend console <<'PY'
 import frappe
 if not frappe.db.exists("Language", "uk"):
     frappe.get_doc({"doctype": "Language", "language_code": "uk", "language_name": "Українська", "enabled": 1}).insert(ignore_permissions=True)
     frappe.db.commit()
 PY
-    echo "==> Applying site config..."
+    say "==> Applying site config..."
     apply_site_config
 
     dc exec -T backend bench --site frontend clear-cache
@@ -257,10 +275,10 @@ PY
 
   start)
     dc up -d
-    echo "==> Waiting for configurator to finish..."
+    say "==> Waiting for configurator to finish..."
     dc wait configurator 2>/dev/null || sleep 5
     sync_built_assets
-    echo "==> Applying site config..."
+    say "==> Applying site config..."
     apply_site_config
     wait_for_db
     install_extra_apps
@@ -277,9 +295,17 @@ PY
   build)
     SILENT=0
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    DEPLOY_SILENT=$SILENT
 
     if [ "$SILENT" = "1" ]; then
-      build_image 2>&1 | tail -5
+      # Stream build to a temp log so we can show context only if it fails.
+      BUILD_LOG=$(mktemp)
+      trap "rm -f $BUILD_LOG" EXIT
+      if ! build_image > "$BUILD_LOG" 2>&1; then
+        echo "ERROR: docker build failed. Last 30 lines:"
+        tail -30 "$BUILD_LOG"
+        exit 1
+      fi
     else
       build_image
     fi
@@ -291,12 +317,19 @@ PY
     ;;
 
   migrate)
-    echo "(migrate is now an alias for build)"
     SILENT=0
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    DEPLOY_SILENT=$SILENT
 
+    say "(migrate is now an alias for build)"
     if [ "$SILENT" = "1" ]; then
-      build_image 2>&1 | tail -5
+      BUILD_LOG=$(mktemp)
+      trap "rm -f $BUILD_LOG" EXIT
+      if ! build_image > "$BUILD_LOG" 2>&1; then
+        echo "ERROR: docker build failed. Last 30 lines:"
+        tail -30 "$BUILD_LOG"
+        exit 1
+      fi
     else
       build_image
     fi

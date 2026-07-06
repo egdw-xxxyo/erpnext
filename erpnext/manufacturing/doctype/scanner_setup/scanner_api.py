@@ -127,19 +127,13 @@ def _authenticate(scanner_key):
 
 
 def _get_scanner_scripts(workplace):
-	workplace_scripts = frappe.get_all(
-		"Scanner Script",
-		filters={"is_active": 1, "workplace": workplace},
-		fields=["name", "script"],
-		order_by="creation",
-	)
 	general_scripts = frappe.get_all(
-		"Scanner Script",
-		filters={"is_active": 1, "workplace": ["is", "not set"]},
+		"Device Script",
+		filters={"is_active": 1, "script_type": "Scanner"},
 		fields=["name", "script"],
 		order_by="creation",
 	)
-	return workplace_scripts + general_scripts
+	return general_scripts
 
 
 def _impersonate(employee_name):

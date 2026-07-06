@@ -210,6 +210,7 @@ services:
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+      FRAPPE_BACKEND_URL: http://backend:8000
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs

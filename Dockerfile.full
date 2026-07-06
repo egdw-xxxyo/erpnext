@@ -10,12 +10,14 @@ COPY --chown=frappe:frappe erpnext/ /home/frappe/frappe-bench/apps/erpnext/erpne
 
 # ── Replace Frappe source with our fork ───────────────────────────────
 COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/frappe/
+# Frappe realtime JS lives outside the python package — overlay separately
+COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frappe/realtime/
 
 # ── Add HRMS app ─────────────────────────────────────────────────────
 COPY --chown=frappe:frappe hrms_app/ /home/frappe/frappe-bench/apps/hrms/
 
 # ── Extra pip dependencies (not in pyproject.toml) ────────────────────
-RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs
 
 # ── Install all apps in editable mode ─────────────────────────────────
 RUN cd /home/frappe/frappe-bench \

@@ -274,10 +274,10 @@ def handle_scan(scanner_key=None, data=None):
 	scan_log_row = _create_scan_log(scanner, data, state_proxy.name)
 
 	try:
-		from erpnext.manufacturing.doctype.scanner_script.scanner_script import (
-			get_active_scanner_scripts,
+		from erpnext.manufacturing.doctype.device_script.device_script import (
+			get_active_scripts,
 		)
-		scanner_scripts = get_active_scanner_scripts()
+		scanner_scripts = get_active_scripts("Scanner")
 		scripts_ns = _build_scripts_namespace(scanner_scripts)
 
 		t_script_start = time.perf_counter()

@@ -10,6 +10,8 @@
  "field_order": [
   "script_name",
   "column_break_1",
+  "script_type",
+  "trigger_event",
   "is_active",
   "section_versions",
   "default_version",
@@ -19,6 +21,8 @@
   "versions",
   "section_script",
   "script",
+  "tab_runs",
+  "runs",
   "section_help",
   "help_html"
  ],
@@ -28,17 +32,38 @@
    "fieldtype": "Data",
    "label": "Script Name",
    "reqd": 1,
-   "unique": 1
+   "unique": 1,
+   "in_list_view": 1
   },
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
   {
+   "default": "Scanner",
+   "fieldname": "script_type",
+   "fieldtype": "Select",
+   "label": "Script Type",
+   "options": "Scanner\nReflectometer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "trigger_event",
+   "fieldtype": "Select",
+   "label": "Trigger Event",
+   "options": "\nSOR Uploaded",
+   "depends_on": "eval:doc.script_type==='Reflectometer'",
+   "mandatory_depends_on": "eval:doc.script_type==='Reflectometer'",
+   "description": "Event that fires this script. Scanner scripts have no event (called from Workplace Scripts)."
+  },
+  {
    "default": "1",
    "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "Active"
+   "label": "Active",
+   "in_list_view": 1
   },
   {
    "fieldname": "section_versions",
@@ -69,7 +94,7 @@
    "fieldname": "versions",
    "fieldtype": "Table",
    "label": "Versions",
-   "options": "Scanner Script Version",
+   "options": "Device Script Version",
    "read_only": 1
   },
   {
@@ -85,6 +110,19 @@
    "reqd": 1
   },
   {
+   "fieldname": "tab_runs",
+   "fieldtype": "Tab Break",
+   "label": "Recent Runs"
+  },
+  {
+   "fieldname": "runs",
+   "fieldtype": "Table",
+   "label": "Runs",
+   "options": "Device Script Run",
+   "read_only": 1,
+   "description": "Last 200 executions (older rows pruned automatically)."
+  },
+  {
    "fieldname": "section_help",
    "fieldtype": "Section Break",
    "label": "API Reference",
@@ -98,10 +136,10 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-16 00:00:00.000000",
+ "modified": "2026-06-29 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
- "name": "Scanner Script",
+ "name": "Device Script",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

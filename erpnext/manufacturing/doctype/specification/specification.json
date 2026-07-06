@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:specification_name",
+ "creation": "2026-06-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "specification_code",
+  "specification_name",
+  "disabled",
+  "column_break_basic",
+  "variant_of",
+  "specification_number_template",
+  "section_variants",
+  "has_variants",
+  "variant_name_pattern",
+  "section_attributes",
+  "attributes",
+  "section_description",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "For variants with a Specification Number Template set, this is auto-resolved from attribute values.",
+   "fieldname": "specification_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Specification Code",
+   "read_only_depends_on": "eval:doc.specification_number_template && doc.variant_of",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "Name used as the document ID. For variants, auto-resolved from the template's Variant Name Pattern.",
+   "fieldname": "specification_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Specification Name",
+   "read_only_depends_on": "eval:doc.variant_of",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional. When set on a template, variants auto-resolve their specification_code from this template's components.",
+   "fieldname": "specification_number_template",
+   "fieldtype": "Link",
+   "label": "Specification Number Template",
+   "options": "Specification Number Template"
+  },
+  {
+   "depends_on": "eval:!doc.has_variants",
+   "fieldname": "variant_of",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Variant Of",
+   "options": "Specification",
+   "read_only": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "section_variants",
+   "fieldtype": "Section Break",
+   "label": "Variants"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:!doc.variant_of",
+   "description": "If checked, this specification is a template and can have variants based on attributes.",
+   "fieldname": "has_variants",
+   "fieldtype": "Check",
+   "label": "Has Variants"
+  },
+  {
+   "depends_on": "has_variants",
+   "description": "Pattern using {AttributeName} placeholders. Each placeholder is replaced with the Attribute Value's short_name (fallback abbr).",
+   "fieldname": "variant_name_pattern",
+   "fieldtype": "Data",
+   "label": "Variant Name Pattern"
+  },
+  {
+   "depends_on": "eval:doc.has_variants || doc.variant_of",
+   "fieldname": "section_attributes",
+   "fieldtype": "Section Break",
+   "label": "Attributes"
+  },
+  {
+   "fieldname": "attributes",
+   "fieldtype": "Table",
+   "label": "Attributes",
+   "options": "Specification Variant Attribute"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  }
+ ],
+ "icon": "fa fa-file-text-o",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Specification",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "specification_name, variant_of",
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "specification_name",
+ "track_changes": 1
+}

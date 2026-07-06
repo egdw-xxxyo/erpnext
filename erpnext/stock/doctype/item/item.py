@@ -244,7 +244,7 @@ class Item(Document):
 	def _inherit_serial_fields_from_template(self):
 		if not self.variant_of:
 			return
-		for field in ("serial_number_template", "serial_no_series"):
+		for field in ("serial_number_template", "serial_no_series", "has_serial_no"):
 			val = frappe.db.get_value("Item", self.variant_of, field)
 			if val:
 				self.set(field, val)

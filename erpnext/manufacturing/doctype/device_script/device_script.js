@@ -1,12 +1,8 @@
-const SCANNER_SCRIPT_API_REFERENCE = `
+const DEVICE_SCRIPT_API_REFERENCE = `
 <div style="font-size: 13px; line-height: 1.6;">
-<h5>${__("Scanner Script — Reusable Library")}</h5>
-<p>${__("Scanner Scripts are")} <strong>${__("reusable function libraries")}</strong> ${__("that can be called from")}
-<strong>${__("Workplace Scripts")}</strong>. ${__("They do not have an entry point like")} <code>on_scan</code> —
-${__("instead, they define functions that Workplace Scripts invoke.")}</p>
-
-<p>${__("All active Scanner Scripts are loaded into the")} <code>scripts</code> ${__("namespace in Workplace Scripts.")})
-${__("Access them by script name (lowercased, spaces/dashes → underscores).")}</p>
+<h5>${__("Device Script — Scanner vs Reflectometer")}</h5>
+<p><strong>${__("Scanner")}</strong> ${__("scripts are reusable function libraries invoked from Workplace Scripts via the")} <code>scripts</code> ${__("namespace. No entry point — define functions only.")}</p>
+<p><strong>${__("Reflectometer")}</strong> ${__("scripts run automatically after each OTDR measurement is uploaded. Define")} <code>on_event(ctx)</code> ${__("or")} <code>on_reflectometer(ctx)</code>. ${__("ctx fields:")} <code>ctx.otdr</code>, <code>ctx.log_entry</code>, <code>ctx.payload</code> ${__("(parsed dict).")}</p>
 
 <h5>${__("Example Scanner Script")}: "job_cards"</h5>
 <pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
@@ -15,18 +11,18 @@ def start_or_finish(job_card_doc):
         job_card_doc.start_job()
     elif job_card_doc.status == "Work In Progress":
         job_card_doc.complete_job()
-
-def link_serial(job_card_name, serial_no):
-    frappe.db.set_value("Serial No", serial_no, "job_card", job_card_name)
 </pre>
 
-<h5>${__("Usage in Workplace Script")}</h5>
+<h5>${__("Example Reflectometer Script")}</h5>
 <pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-def on_scan(e):
-    if e.scan_type == "job_card":
-        scripts.job_cards.start_or_finish(e.doc)
-        return {"message": f"Job Card {e.doc.name} updated"}
+def on_event(ctx):
+    summary = (ctx.payload.get("Summary") or {})
+    loss = summary.get("end_to_end_loss_db")
+    ctx.log("measurement received", otdr=ctx.otdr.name, loss_db=loss)
+    if loss is not None and loss > 3:
+        ctx.log(f"loss alert: {loss} dB", level="WARN", payload_keys=list(ctx.payload.keys()))
 </pre>
+<p>${__("ctx.log(message, level='INFO'|'WARN'|'ERROR', **extra) appends a line to this run's logs. After the script returns, the run is stored under")} <strong>${__("Recent Runs")}</strong> ${__("on this script (last 200 kept, older auto-pruned).")}</p>
 
 <p>${__("frappe and json modules are available in the script scope.")}</p>
 </div>
@@ -72,13 +68,13 @@ function load_snapshot_into_working_copy(frm, version_name) {
 	frm.set_value("script", snap.script || "");
 }
 
-frappe.ui.form.on("Scanner Script", {
+frappe.ui.form.on("Device Script", {
 	onload(frm) {
 		frm.__prev_viewing = frm.doc.viewing_version;
 	},
 	refresh(frm) {
 		if (frm.fields_dict.help_html) {
-			frm.fields_dict.help_html.$wrapper.html(SCANNER_SCRIPT_API_REFERENCE);
+			frm.fields_dict.help_html.$wrapper.html(DEVICE_SCRIPT_API_REFERENCE);
 		}
 		refresh_version_selects(frm);
 

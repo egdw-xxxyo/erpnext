@@ -1,3 +1,37 @@
+## Related repos
+
+- **`~/git/otdr-sync/`** — Desktop sync application (Python, Senter ST3200H-M / Novker NK1500 OTDR over BLE). Pulls `.sor` files from device, uploads to ERPNext via `OTDR.add_measurement_log` whitelisted method. See `~/git/otdr-sync/README.md`. ERPNext side: `erpnext/manufacturing/doctype/otdr/otdr.py` (API + measurement ingestion), `erpnext/manufacturing/doctype/otdr_configuration/` (sync settings shipped to desktop app), `erpnext/manufacturing/doctype/device_script/` (Reflectometer scripts fired on SOR upload via `trigger_event="SOR Uploaded"`).
+- **`~/git/otdr-sync-android/`** — Android sync application (Kotlin, Jetpack Compose). Core sync scope only: BLE scan/pair, auto-sync `.sor` download, ERPNext `submit_measurement` upload, sync status UI, ERP config. Same protocol constants as desktop (`~/git/otdr-sync/st3200_sync/ble/protocol.py`).
+- **`~/git/otdr/`** — BLE protocol findings / reverse-engineering notes (`FINDINGS.md`).
+
+## Multi-client parity (desktop + Android)
+
+Device-side functionality lives in two client apps:
+- **Desktop**: `~/git/otdr-sync/` (Python, PySide6) — full-featured
+- **Android**: `~/git/otdr-sync-android/` (Kotlin, Jetpack Compose) — core sync only
+
+### Duplication rule
+
+**Core sync features must exist on both clients.** Core = BLE scan/pair, file discovery, auto-sync download, ERPNext `submit_measurement` upload, sync status UI, ERP config.
+
+When changing any core-sync feature on one client, apply the equivalent change on the other in the same task. Do not merge desktop-only changes to core sync without a matching Android change (or an explicit note that Android is deferred).
+
+**Desktop-only** (allowed to diverge): SOR metadata info dialog, manual send tools, advanced debug UI, dev workflow scripts.
+
+**Android-only** (allowed): mobile-specific UX, background sync service, notifications.
+
+### Server-side parsing invariant
+
+SOR parsing should live in ERPNext only. Clients upload raw bytes. Do not re-implement SOR parsing on clients — it drifts, and silent client-side parse failures burn debugging time (see `_submit_to_erp` fallback path in `~/git/otdr-sync/st3200_sync/gui/main_window.py`).
+
+## Deploy command policy (STRICT)
+
+**Only ever run `./deploy build --silent`.** Never run `./deploy migrate`, `./deploy start`, `./deploy init`, or any other `./deploy` subcommand. The other commands have repeatedly broken the running UI in this project, and `build` alone handles image rebuild + container restart + schema sync for our workflow.
+
+`--silent` suppresses verbose Dockerfile / migrate output. On failure the script automatically prints the tail of the build log so you still see errors. Use it every time — the noise from non-silent mode wastes context.
+
+If you believe a different command is required, stop and ask the user before running anything.
+
 ## Environment routing by URL
 
 When the user shares an ERPNext URL, pick the MCP server by host IP:
