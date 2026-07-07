@@ -272,6 +272,23 @@ def who_am_i(**kwargs):
 	return {"otdr": otdr.name, "user": frappe.session.user}
 
 
+@frappe.whitelist(methods=["GET"])
+def get_default_connect_url(otdr_name):
+	"""Return the URL to prefill in the Connect Reflectometer dialog.
+
+	Preference order:
+	1. OTDR Configuration → public_server_url (admin-set LAN/public URL)
+	2. frappe.utils.get_url() (may be internal in Docker)
+	"""
+	doc = frappe.get_doc("OTDR", otdr_name)
+	doc.check_permission("read")
+	cfg_url = None
+	if doc.otdr_configuration:
+		cfg_url = frappe.db.get_value("OTDR Configuration", doc.otdr_configuration, "public_server_url")
+	url = (cfg_url or "").strip().rstrip("/") or frappe.utils.get_url()
+	return {"server_url": url, "source": "configuration" if cfg_url else "site"}
+
+
 @frappe.whitelist(methods=["POST"])
 def generate_connect_bundle(otdr_name, server_url=None):
 	"""Regenerate api_key/api_secret for the OTDR's device_user and return a full

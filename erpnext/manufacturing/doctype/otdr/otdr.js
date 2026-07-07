@@ -117,20 +117,28 @@ function open_connect_dialog(frm) {
 		],
 	});
 	const $body = d.fields_dict.body.$wrapper;
-	const default_url = window.location.origin;
-	const is_local = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(default_url);
-	const warn_local = is_local
-		? `<div style="margin-top: 8px; padding: 8px 10px; border-left: 3px solid #f0ad4e; background: #fff8e5; color: #8a6d3b; font-size: 12px;">
-			${__("URL містить localhost — телефон/інший ПК не зможе підключитись. Введіть LAN IP або публічний домен цього сервера (напр. http://192.168.1.10:8080).")}
-		</div>` : "";
 
-	const initial = `
+	function render_body(default_url, source) {
+		const is_local = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(default_url);
+		const warn_local = is_local
+			? `<div style="margin-top: 8px; padding: 8px 10px; border-left: 3px solid #f0ad4e; background: #fff8e5; color: #8a6d3b; font-size: 12px;">
+				${__("URL містить localhost — телефон/інший ПК не зможе підключитись. Заповніть \"Публічний URL сервера\" в OTDR Configuration або введіть LAN IP тут вручну (напр. http://192.168.1.10:8080).")}
+			</div>` : "";
+		const source_hint = source === "configuration"
+			? `<div class="text-muted" style="font-size: 11px; margin-top: 4px;">${__("Взято з OTDR Configuration → Публічний URL сервера.")}</div>`
+			: "";
+
+		$body.html(initial(default_url, warn_local + source_hint));
+		bind_gen_click();
+	}
+
+	const initial = (default_url, extra_html) => `
 		<div style="max-width: 640px;">
 			<div style="margin-bottom: 12px;">
 				<label style="font-weight: 600; display: block; margin-bottom: 4px;">${__("URL сервера")}</label>
 				<input type="text" id="otdr-server-url" value="${frappe.utils.escape_html(default_url)}"
 					style="width: 100%; font-family: monospace; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px;" />
-				${warn_local}
+				${extra_html || ""}
 			</div>
 			<div style="margin-top: 20px; padding: 12px; border: 1px solid #f5c6cb; background: #f8d7da; color: #721c24; border-radius: 4px;">
 				<b>${__("Увага")}:</b>
@@ -144,25 +152,37 @@ function open_connect_dialog(frm) {
 			<div id="otdr-bundle-result" style="margin-top: 16px;"></div>
 		</div>
 	`;
-	$body.html(initial);
 
-	$body.find("#otdr-gen-keys-btn").on("click", function () {
-		const $btn = $(this);
-		const url_val = ($body.find("#otdr-server-url").val() || "").trim().replace(/\/+$/, "");
-		if (!url_val) { frappe.show_alert({ message: __("Введіть URL"), indicator: "orange" }); return; }
-		$btn.prop("disabled", true).text(__("Генерація..."));
-		frappe.call({
-			method: "erpnext.manufacturing.doctype.otdr.otdr_api.generate_connect_bundle",
-			args: { otdr_name: frm.doc.name, server_url: url_val },
-			callback: (r) => {
-				$btn.prop("disabled", false).text(__("Згенерувати ще раз"));
-				if (!r.message) return;
-				render_bundle($body.find("#otdr-bundle-result"), r.message);
-			},
-			error: () => {
-				$btn.prop("disabled", false).text(__("Згенерувати ключі"));
-			},
+	function bind_gen_click() {
+		$body.find("#otdr-gen-keys-btn").on("click", function () {
+			const $btn = $(this);
+			const url_val = ($body.find("#otdr-server-url").val() || "").trim().replace(/\/+$/, "");
+			if (!url_val) { frappe.show_alert({ message: __("Введіть URL"), indicator: "orange" }); return; }
+			$btn.prop("disabled", true).text(__("Генерація..."));
+			frappe.call({
+				method: "erpnext.manufacturing.doctype.otdr.otdr_api.generate_connect_bundle",
+				args: { otdr_name: frm.doc.name, server_url: url_val },
+				callback: (r) => {
+					$btn.prop("disabled", false).text(__("Згенерувати ще раз"));
+					if (!r.message) return;
+					render_bundle($body.find("#otdr-bundle-result"), r.message);
+				},
+				error: () => {
+					$btn.prop("disabled", false).text(__("Згенерувати ключі"));
+				},
+			});
 		});
+	}
+
+	$body.html(`<div class="text-muted" style="padding: 12px;">${__("Завантаження...")}</div>`);
+	frappe.call({
+		method: "erpnext.manufacturing.doctype.otdr.otdr_api.get_default_connect_url",
+		args: { otdr_name: frm.doc.name },
+		callback: (r) => {
+			const url = r.message?.server_url || window.location.origin;
+			render_body(url, r.message?.source || "");
+		},
+		error: () => { render_body(window.location.origin, ""); },
 	});
 
 	d.$wrapper.on("click", ".otdr-copy-btn", function () {
