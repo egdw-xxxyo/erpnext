@@ -117,11 +117,21 @@ function open_connect_dialog(frm) {
 		],
 	});
 	const $body = d.fields_dict.body.$wrapper;
-	const server_url = window.location.origin;
+	const default_url = window.location.origin;
+	const is_local = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(default_url);
+	const warn_local = is_local
+		? `<div style="margin-top: 8px; padding: 8px 10px; border-left: 3px solid #f0ad4e; background: #fff8e5; color: #8a6d3b; font-size: 12px;">
+			${__("URL містить localhost — телефон/інший ПК не зможе підключитись. Введіть LAN IP або публічний домен цього сервера (напр. http://192.168.1.10:8080).")}
+		</div>` : "";
 
 	const initial = `
 		<div style="max-width: 640px;">
-			${copy_row(__("URL сервера"), server_url, __("Адреса цього ERPNext сервера."))}
+			<div style="margin-bottom: 12px;">
+				<label style="font-weight: 600; display: block; margin-bottom: 4px;">${__("URL сервера")}</label>
+				<input type="text" id="otdr-server-url" value="${frappe.utils.escape_html(default_url)}"
+					style="width: 100%; font-family: monospace; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px;" />
+				${warn_local}
+			</div>
 			<div style="margin-top: 20px; padding: 12px; border: 1px solid #f5c6cb; background: #f8d7da; color: #721c24; border-radius: 4px;">
 				<b>${__("Увага")}:</b>
 				${__("API-ключ і секрет буде показано лише один раз. Скопіюйте їх або відскануйте QR перед закриттям вікна. Попередні ключі цього користувача будуть недійсними.")}
@@ -138,10 +148,12 @@ function open_connect_dialog(frm) {
 
 	$body.find("#otdr-gen-keys-btn").on("click", function () {
 		const $btn = $(this);
+		const url_val = ($body.find("#otdr-server-url").val() || "").trim().replace(/\/+$/, "");
+		if (!url_val) { frappe.show_alert({ message: __("Введіть URL"), indicator: "orange" }); return; }
 		$btn.prop("disabled", true).text(__("Генерація..."));
 		frappe.call({
 			method: "erpnext.manufacturing.doctype.otdr.otdr_api.generate_connect_bundle",
-			args: { otdr_name: frm.doc.name, server_url: window.location.origin },
+			args: { otdr_name: frm.doc.name, server_url: url_val },
 			callback: (r) => {
 				$btn.prop("disabled", false).text(__("Згенерувати ще раз"));
 				if (!r.message) return;
