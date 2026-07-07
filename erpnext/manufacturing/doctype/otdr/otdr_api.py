@@ -136,6 +136,19 @@ def _parse_sor_file(path: str) -> dict:
 	last_prop = (g(last, "event_propogation_time", 0) or 0) if last else 0
 	fiber_length_km = round(last_prop / 10000.0, 4) if last else None
 
+	if last:
+		events.append({
+			"index": g(last, "event_number", len(events) + 1),
+			"distance_km": round(last_prop / 10000.0, 4),
+			"event_code": evt_str(g(last, "event_code", "")),
+			"slope_db_per_km": round((g(last, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4),
+			"splice_loss_db": round((g(last, "event_loss", 0) or 0) / 1000.0, 4),
+			"reflectance_db": round((g(last, "event_reflectance", 0) or 0) / 1000.0, 4),
+			"loss_measurement_technique": g(last, "loss_measurement_technique", ""),
+			"comment": g(last, "comment", ""),
+			"is_end_of_fiber": True,
+		})
+
 	return {
 		"Acquisition": {
 			"wavelength_nm": round((g(fp, "actual_wavelength", 0) or 0) / 10.0, 1),
