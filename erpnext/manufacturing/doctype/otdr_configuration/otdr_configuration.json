@@ -9,7 +9,6 @@
  "engine": "InnoDB",
  "field_order": [
   "configuration_name",
-  "public_server_url",
   "section_sync",
   "sync_folder",
   "simple_sync",
@@ -40,12 +39,6 @@
    "label": "Назва конфігурації",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "fieldname": "public_server_url",
-   "fieldtype": "Data",
-   "label": "Публічний URL сервера",
-   "description": "LAN або публічний URL, який видно клієнтам (телефонам). Використовується як стандартне значення в діалозі \"Підключити рефлектометр\". Приклад: http://192.168.1.10:8080"
   },
   {
    "fieldname": "section_sync",

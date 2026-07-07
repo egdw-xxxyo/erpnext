@@ -343,22 +343,10 @@ def who_am_i(**kwargs):
 
 @frappe.whitelist(methods=["GET"])
 def get_default_connect_url(otdr_name):
-	"""Return the URL to prefill in the Connect Reflectometer dialog.
-
-	Preference order:
-	1. OTDR Configuration → public_server_url (admin-set LAN/public URL)
-	2. frappe.utils.get_url() (may be internal in Docker)
-	"""
+	"""Return auto-detected LAN-reachable server URL for the Connect dialog."""
 	doc = frappe.get_doc("OTDR", otdr_name)
 	doc.check_permission("read")
-	cfg_url = None
-	if doc.otdr_configuration:
-		cfg_url = frappe.db.get_value("OTDR Configuration", doc.otdr_configuration, "public_server_url")
-	cfg_url = (cfg_url or "").strip().rstrip("/")
-	if cfg_url:
-		return {"server_url": cfg_url, "source": "configuration"}
-	url = detect_public_base_url()
-	return {"server_url": url, "source": "auto"}
+	return {"server_url": detect_public_base_url(), "source": "auto"}
 
 
 @frappe.whitelist(methods=["POST"])
