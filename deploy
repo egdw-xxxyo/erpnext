@@ -31,6 +31,27 @@ require_non_production() {
   fi
 }
 
+detect_host_lan_ip() {
+  # macOS
+  if command -v ipconfig >/dev/null 2>&1; then
+    for iface in en0 en1 en2 en3; do
+      ip=$(ipconfig getifaddr "$iface" 2>/dev/null || true)
+      if [ -n "$ip" ] && [[ "$ip" != 127.* ]]; then
+        echo "$ip"; return 0
+      fi
+    done
+  fi
+  # Linux
+  ip route get 8.8.8.8 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}'
+}
+
+if [ -z "${PUBLIC_SERVER_URL:-}" ]; then
+  HOST_LAN_IP=$(detect_host_lan_ip)
+  if [ -n "$HOST_LAN_IP" ]; then
+    export PUBLIC_SERVER_URL="http://${HOST_LAN_IP}:8080"
+  fi
+fi
+
 dc() {
   if docker compose version &>/dev/null; then
     docker compose -p docker -f "$DIR/docker-compose.yml" "$@"

@@ -16,6 +16,7 @@ services:
       DB_PORT: "3306"
       MYSQL_ROOT_PASSWORD: admin
       MARIADB_ROOT_PASSWORD: admin
+      PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
 
   configurator:
     image: erpnext-uk:v15.96.1

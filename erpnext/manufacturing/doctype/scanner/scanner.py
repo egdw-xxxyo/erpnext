@@ -129,8 +129,22 @@ def render_barcode_svg(data):
 
 @frappe.whitelist()
 def get_config_barcodes(scanner_name, endpoint_url):
+	from erpnext.manufacturing.doctype.otdr.otdr_api import detect_public_base_url
+	from urllib.parse import urlparse
+
 	doc = frappe.get_doc("Scanner", scanner_name)
 	doc.check_permission("read")
+
+	# Client sends window.location.origin — replace if it's a non-LAN host (localhost, Docker internal).
+	try:
+		parsed = urlparse(endpoint_url)
+		host = (parsed.hostname or "").lower()
+		bad = host in ("", "localhost", "127.0.0.1") or host.startswith("frontend") or host.startswith("backend")
+		if bad:
+			public = detect_public_base_url().rstrip("/")
+			endpoint_url = public + parsed.path
+	except Exception:
+		pass
 
 	api_key = frappe.db.get_value("Scanner", scanner_name, "api_key")
 	payload = f"CFG-SCANNER?url={endpoint_url}&key={api_key}"
