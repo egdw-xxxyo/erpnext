@@ -341,7 +341,7 @@ def who_am_i(**kwargs):
 	return {"otdr": otdr.name, "user": frappe.session.user}
 
 
-@frappe.whitelist(methods=["GET"])
+@frappe.whitelist(methods=["GET", "POST"])
 def get_default_connect_url(otdr_name):
 	"""Return auto-detected LAN-reachable server URL for the Connect dialog."""
 	doc = frappe.get_doc("OTDR", otdr_name)
