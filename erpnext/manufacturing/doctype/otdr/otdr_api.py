@@ -248,6 +248,7 @@ def parse_and_submit_measurement(auto_sync=None, remote_path=None, filename=None
 		"error": error,
 		"auto_sync": auto_sync_flag,
 		"script_results": script_results,
+		"sor": sor_info,
 	}
 
 
