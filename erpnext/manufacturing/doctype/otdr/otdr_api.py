@@ -236,6 +236,7 @@ def parse_and_submit_measurement(auto_sync=None, remote_path=None, filename=None
 	payload_str = json.dumps(payload, ensure_ascii=False, default=str)
 	result = otdr.add_measurement_log(
 		timestamp=frappe.utils.now_datetime(),
+		test_type="SOR",
 		status="Success" if parsed_ok else "Error",
 		payload=payload_str,
 		error_message=error,
@@ -288,6 +289,7 @@ def submit_measurement(data=None, auto_sync=None, **kwargs):
 
 	result = otdr.add_measurement_log(
 		timestamp=frappe.utils.now_datetime(),
+		test_type="SOR",
 		status="Success" if parsed_ok else "Error",
 		payload=payload_str,
 		error_message=error,
@@ -301,6 +303,58 @@ def submit_measurement(data=None, auto_sync=None, **kwargs):
 		"auto_sync": auto_sync_flag,
 		"script_results": script_results,
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_opm_measurement(
+	otdr=None,
+	wavelength_nm=None,
+	power_dbm=None,
+	power_mw=None,
+	mode=None,
+	reference=None,
+	raw=None,
+	**kwargs,
+):
+	"""Append a single Optical Power Meter reading to the OTDR's measurement log.
+
+	Called by the Android app after paired OPM session. `test_type` is set to `OPM`
+	so downstream reports/scripts can distinguish from SOR uploads.
+	"""
+	# Accept either query/form OTDR name or session-resolved OTDR
+	if otdr:
+		doc = frappe.get_doc("OTDR", otdr)
+		doc.check_permission("write")
+	else:
+		doc = resolve_otdr_for_session()
+
+	def _f(v):
+		if v in (None, ""): return None
+		try: return float(v)
+		except (TypeError, ValueError): return None
+	def _i(v):
+		if v in (None, ""): return None
+		try: return int(v)
+		except (TypeError, ValueError): return None
+
+	payload = {
+		"test_type": "OPM",
+		"wavelength_nm": _i(wavelength_nm),
+		"power_dbm": _f(power_dbm),
+		"power_mw": _f(power_mw),
+		"mode": mode,
+		"reference": _f(reference),
+		"raw": raw,
+	}
+	payload_str = json.dumps(payload, ensure_ascii=False, default=str)
+	result = doc.add_measurement_log(
+		timestamp=frappe.utils.now_datetime(),
+		test_type="OPM",
+		status="Success",
+		payload=payload_str,
+		auto_sync=False,
+	)
+	return {"success": True, "row": (result or {}).get("row")}
 
 
 @frappe.whitelist(methods=["POST"])

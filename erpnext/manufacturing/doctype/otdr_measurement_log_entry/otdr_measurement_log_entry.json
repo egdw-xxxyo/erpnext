@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "timestamp",
+  "test_type",
   "status",
   "workplace",
   "employee",
@@ -21,6 +22,15 @@
    "in_list_view": 1,
    "label": "Час",
    "columns": 2
+  },
+  {
+   "default": "SOR",
+   "fieldname": "test_type",
+   "fieldtype": "Select",
+   "label": "Тип",
+   "options": "SOR\nOPM\nVFL",
+   "in_list_view": 1,
+   "columns": 1
   },
   {
    "fieldname": "status",
