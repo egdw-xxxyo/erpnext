@@ -354,7 +354,54 @@ def submit_opm_measurement(
 		payload=payload_str,
 		auto_sync=False,
 	)
-	return {"success": True, "row": (result or {}).get("row")}
+	# Fire Reflectometer scripts subscribed to 'OPM Measured'
+	script_results = []
+	try:
+		from erpnext.manufacturing.doctype.device_script.device_script import run_scripts_for_event
+		script_results = run_scripts_for_event(
+			"Reflectometer", trigger_event="OPM Measured",
+			otdr=doc, payload_str=payload_str,
+		) or []
+	except Exception:
+		frappe.log_error(title="OPM script dispatch failed")
+	return {"success": True, "row": (result or {}).get("row"), "script_results": script_results}
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_vfl_event(otdr=None, duty=None, **kwargs):
+	"""Log a Visual Fault Locator on/off event to the OTDR measurement log and
+	fire any Reflectometer device scripts subscribed to 'VFL Toggled'.
+	"""
+	if otdr:
+		doc = frappe.get_doc("OTDR", otdr)
+		doc.check_permission("write")
+	else:
+		doc = resolve_otdr_for_session()
+
+	try:
+		duty_int = int(duty) if duty not in (None, "") else 0
+	except (TypeError, ValueError):
+		duty_int = 0
+
+	payload = {"test_type": "VFL", "duty": duty_int, "state": "on" if duty_int > 0 else "off"}
+	payload_str = json.dumps(payload, ensure_ascii=False, default=str)
+	result = doc.add_measurement_log(
+		timestamp=frappe.utils.now_datetime(),
+		test_type="VFL",
+		status="Success",
+		payload=payload_str,
+		auto_sync=False,
+	)
+	script_results = []
+	try:
+		from erpnext.manufacturing.doctype.device_script.device_script import run_scripts_for_event
+		script_results = run_scripts_for_event(
+			"Reflectometer", trigger_event="VFL Toggled",
+			otdr=doc, payload_str=payload_str,
+		) or []
+	except Exception:
+		frappe.log_error(title="VFL script dispatch failed")
+	return {"success": True, "row": (result or {}).get("row"), "script_results": script_results}
 
 
 @frappe.whitelist(methods=["POST"])
