@@ -75,7 +75,7 @@ def _detect_lan_ip() -> str | None:
 		return None
 	return None
 
-from erpnext.manufacturing.doctype.otdr.otdr import push_status, resolve_otdr_for_session
+from erpnext.manufacturing.doctype.otdr.otdr import push_status, resolve_otdr
 
 
 def _parse_sor_file(path: str) -> dict:
@@ -196,12 +196,12 @@ def _parse_sor_file(path: str) -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def parse_and_submit_measurement(auto_sync=None, remote_path=None, filename=None, **kwargs):
+def parse_and_submit_measurement(otdr=None, auto_sync=None, remote_path=None, filename=None, **kwargs):
 	"""Accept raw SOR file bytes (multipart 'file'), parse server-side, submit as measurement.
 
 	Single source of truth for SOR parsing — both desktop + Android clients call this.
 	"""
-	otdr = resolve_otdr_for_session()
+	otdr = resolve_otdr(otdr)
 	files = frappe.request.files if frappe.request is not None else None
 	f = files.get("file") if files else None
 	if f is None:
@@ -266,8 +266,8 @@ def parse_and_submit_measurement(auto_sync=None, remote_path=None, filename=None
 
 
 @frappe.whitelist(methods=["POST"])
-def submit_measurement(data=None, auto_sync=None, **kwargs):
-	otdr = resolve_otdr_for_session()
+def submit_measurement(otdr=None, data=None, auto_sync=None, **kwargs):
+	otdr = resolve_otdr(otdr)
 
 	qs_auto = ""
 	if frappe.request is not None:
@@ -335,12 +335,7 @@ def submit_opm_measurement(
 	Called by the Android app after paired OPM session. `test_type` is set to `OPM`
 	so downstream reports/scripts can distinguish from SOR uploads.
 	"""
-	# Accept either query/form OTDR name or session-resolved OTDR
-	if otdr:
-		doc = frappe.get_doc("OTDR", otdr)
-		doc.check_permission("write")
-	else:
-		doc = resolve_otdr_for_session()
+	doc = resolve_otdr(otdr)
 
 	def _f(v):
 		if v in (None, ""): return None
@@ -386,11 +381,7 @@ def submit_vfl_event(otdr=None, duty=None, **kwargs):
 	"""Log a Visual Fault Locator on/off event to the OTDR measurement log and
 	fire any Reflectometer device scripts subscribed to 'VFL Toggled'.
 	"""
-	if otdr:
-		doc = frappe.get_doc("OTDR", otdr)
-		doc.check_permission("write")
-	else:
-		doc = resolve_otdr_for_session()
+	doc = resolve_otdr(otdr)
 
 	try:
 		duty_int = int(duty) if duty not in (None, "") else 0
@@ -419,8 +410,8 @@ def submit_vfl_event(otdr=None, duty=None, **kwargs):
 
 
 @frappe.whitelist(methods=["POST"])
-def update_status(status=None, file=None, progress=None, total=None, **kwargs):
-	otdr = resolve_otdr_for_session()
+def update_status(otdr=None, status=None, file=None, progress=None, total=None, **kwargs):
+	otdr = resolve_otdr(otdr)
 
 	def _int(v):
 		if v in (None, ""):
@@ -444,16 +435,16 @@ def update_status(status=None, file=None, progress=None, total=None, **kwargs):
 
 
 @frappe.whitelist(methods=["GET"])
-def get_configuration(**kwargs):
-	otdr = resolve_otdr_for_session()
-	return otdr.get_configuration_payload()
+def get_configuration(otdr=None, **kwargs):
+	doc = resolve_otdr(otdr)
+	return doc.get_configuration_payload()
 
 
 @frappe.whitelist(methods=["GET"])
-def who_am_i(**kwargs):
-	"""Debug: returns the OTDR resolved for current session user."""
-	otdr = resolve_otdr_for_session()
-	return {"otdr": otdr.name, "user": frappe.session.user}
+def who_am_i(otdr=None, **kwargs):
+	"""Debug: returns the OTDR + current session user."""
+	doc = resolve_otdr(otdr)
+	return {"otdr": doc.name, "user": frappe.session.user}
 
 
 @frappe.whitelist(methods=["GET", "POST"])
@@ -466,8 +457,9 @@ def get_default_connect_url(otdr_name):
 
 @frappe.whitelist(methods=["POST"])
 def generate_connect_bundle(otdr_name, server_url=None):
-	"""Regenerate api_key/api_secret for the OTDR's device_user and return a full
-	connect bundle (server URL, keys, base64 config token, QR data URI).
+	"""Regenerate api_key/api_secret for the CURRENT session user and return a
+	connect bundle (server URL, keys, base64 config token, QR data URI) bound to
+	the given OTDR via explicit `otdr` field in the token.
 
 	server_url is the client-visible URL (from browser). Fallback to frappe.utils.get_url()
 	which may return an internal hostname on Dockerized setups.
@@ -478,11 +470,13 @@ def generate_connect_bundle(otdr_name, server_url=None):
 	frappe.only_for("System Manager")
 	doc = frappe.get_doc("OTDR", otdr_name)
 	doc.check_permission("write")
-	if not doc.device_user:
-		frappe.throw("OTDR has no device_user assigned")
+
+	user = frappe.session.user
+	if not user or user == "Guest":
+		frappe.throw("Authentication required", frappe.AuthenticationError)
 
 	from frappe.core.doctype.user.user import generate_keys
-	keys = generate_keys(doc.device_user)
+	keys = generate_keys(user)
 	api_key = keys.get("api_key")
 	api_secret = keys.get("api_secret")
 
@@ -504,7 +498,7 @@ def generate_connect_bundle(otdr_name, server_url=None):
 		"server_url": server_url,
 		"api_key": api_key,
 		"api_secret": api_secret,
-		"device_user": doc.device_user,
+		"user": user,
 		"token": token,
 		"qr_data_uri": qr_data_uri,
 	}

@@ -74,34 +74,56 @@ def get_status_snapshot(name):
 	return snap
 
 
-def resolve_otdr_for_session():
-	"""Return the OTDR doc bound to the current session user, or throw."""
+def resolve_otdr(otdr_name):
+	"""Load OTDR by explicit name (from request arg or token). Stamps last_used_by."""
 	user = frappe.session.user
 	if not user or user == "Guest":
 		frappe.throw("Authentication required", frappe.AuthenticationError)
-	rows = frappe.get_all(
-		"OTDR",
-		filters={"device_user": user, "is_active": 1},
-		fields=["name"],
-		limit=1,
-	)
-	if not rows:
-		frappe.throw(f"No active OTDR linked to user {user}", frappe.PermissionError)
-	doc = frappe.get_doc("OTDR", rows[0].name)
+	if not otdr_name:
+		frappe.throw(
+			"Missing 'otdr' argument — clients must pass the OTDR name explicitly.",
+			frappe.ValidationError,
+		)
+	if not frappe.db.exists("OTDR", otdr_name):
+		frappe.throw(f"OTDR '{otdr_name}' not found", frappe.DoesNotExistError)
+	doc = frappe.get_doc("OTDR", otdr_name)
+	doc.check_permission("read")
+	try:
+		if doc.get("last_used_by") != user:
+			frappe.db.set_value("OTDR", otdr_name, "last_used_by", user, update_modified=False)
+			frappe.db.commit()
+	except Exception:
+		frappe.log_error(title="OTDR last_used_by stamp failed")
 	push_status(doc.name)
 	return doc
 
 
+def resolve_otdr_for_session():
+	"""Deprecated: kept as thin shim. New callers must use resolve_otdr(otdr_name)."""
+	otdr_name = None
+	try:
+		otdr_name = (frappe.local.form_dict or {}).get("otdr")
+	except Exception:
+		pass
+	if not otdr_name and frappe.request is not None:
+		try:
+			otdr_name = frappe.request.args.get("otdr")
+		except Exception:
+			pass
+	return resolve_otdr(otdr_name)
+
+
 def publish_config(otdr_name):
-	"""Broadcast the current configuration to the device user for one OTDR."""
+	"""Broadcast the current configuration to the last-known device user for one OTDR."""
 	doc = frappe.get_doc("OTDR", otdr_name)
-	if not doc.device_user:
+	target_user = doc.get("last_used_by")
+	if not target_user:
 		return
 	cfg = doc.get_configuration_payload()
 	frappe.publish_realtime(
 		"otdr_config_update",
 		cfg,
-		user=doc.device_user,
+		user=target_user,
 		after_commit=False,
 	)
 
@@ -114,27 +136,6 @@ def get_status(otdr_name):
 
 
 class OTDR(Document):
-	def validate(self):
-		self._enforce_unique_active_device_user()
-
-	def _enforce_unique_active_device_user(self):
-		if not self.device_user or not self.is_active:
-			return
-		conflict = frappe.db.get_value(
-			"OTDR",
-			{
-				"device_user": self.device_user,
-				"is_active": 1,
-				"name": ["!=", self.name or ""],
-			},
-			"name",
-		)
-		if conflict:
-			frappe.throw(
-				f"OTDR '{conflict}' is already active for user {self.device_user}. "
-				"Deactivate it or assign a different user before activating this one."
-			)
-
 	def get_configuration(self):
 		if self.otdr_configuration:
 			return frappe.get_cached_doc("OTDR Configuration", self.otdr_configuration)
@@ -180,7 +181,7 @@ class OTDR(Document):
 		}
 
 	def on_update(self):
-		watched = ("otdr_configuration", "sync_listening", "device_user", "is_active")
+		watched = ("otdr_configuration", "sync_listening", "is_active")
 		before = self.get_doc_before_save()
 		if before is None:
 			return

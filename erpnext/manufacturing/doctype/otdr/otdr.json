@@ -14,7 +14,7 @@
   "column_break_2",
   "otdr_configuration",
   "section_status",
-  "device_user",
+  "last_used_by",
   "section_sync_control",
   "sync_listening",
   "column_break_sync_control",
@@ -61,11 +61,12 @@
    "label": "Поточна сесія"
   },
   {
-   "fieldname": "device_user",
+   "fieldname": "last_used_by",
    "fieldtype": "Link",
-   "label": "Користувач пристрою",
+   "label": "Останній користувач",
    "options": "User",
-   "description": "Frappe-користувач під яким десктоп-застосунок автентифікується (через api_key/api_secret)."
+   "read_only": 1,
+   "description": "Автоматично оновлюється при кожному виклику API з пристрою."
   },
   {
    "fieldname": "section_progress",

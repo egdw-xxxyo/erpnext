@@ -19,20 +19,11 @@ function copy_row(label, value, hint) {
 
 function render_sync_credentials(frm) {
 	const base_url = window.location.origin;
-	const device_user = frm.doc.device_user || "";
-	const user_link = device_user
-		? `<a href="/app/user/${encodeURIComponent(device_user)}" target="_blank">${frappe.utils.escape_html(device_user)}</a>`
-		: `<span class="text-muted">${__("не вказано")}</span>`;
-
 	frm.fields_dict.endpoints_html.$wrapper.html(`
 		<div style="max-width: 720px;">
 			${copy_row(__("URL сервера"), base_url, __("Поле Server URL в otdr-sync."))}
-			<div style="margin-bottom: 14px;">
-				<div style="font-weight: 600; margin-bottom: 4px;">${__("Користувач пристрою")}</div>
-				<div>${user_link}</div>
-				<div class="text-muted" style="font-size: 11px; margin-top: 4px;">
-					${__("Згенеруйте api_key/api_secret на сторінці цього користувача (розділ API Access) і вставте їх в otdr-sync.")}
-				</div>
+			<div class="text-muted" style="font-size: 12px;">
+				${__("Натисніть \"Підключити рефлектометр\", щоб згенерувати api_key/api_secret для поточного користувача та отримати QR-код.")}
 			</div>
 		</div>
 	`);
