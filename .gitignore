@@ -25,3 +25,4 @@ node_modules/
 snapshots/
 .db-snapshots/
 site-config.json
+apps.json

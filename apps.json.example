@@ -1,0 +1,4 @@
+[
+  { "name": "hrms", "repo": "https://github.com/egdw-xxxyo/hrms.git", "branch": "version-15", "enabled": true },
+  { "name": "crm", "repo": "https://github.com/frappe/crm.git", "branch": "v1.77.3", "enabled": true }
+]

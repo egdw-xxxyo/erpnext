@@ -52,6 +52,18 @@ if [ -z "${PUBLIC_SERVER_URL:-}" ]; then
   fi
 fi
 
+# Extra apps config: apps.json in repo root.
+# [{ "name": ..., "repo": ..., "branch": ..., "enabled": true }]
+extra_apps_enabled() {
+  [ -f "$DIR/apps.json" ] || return 0
+  python3 -c "import json; print(' '.join(a['name'] for a in json.load(open('$DIR/apps.json')) if a.get('enabled')))"
+}
+
+extra_apps_disabled() {
+  [ -f "$DIR/apps.json" ] || return 0
+  python3 -c "import json; print(' '.join(a['name'] for a in json.load(open('$DIR/apps.json')) if not a.get('enabled')))"
+}
+
 dc() {
   if docker compose version &>/dev/null; then
     docker compose -p docker -f "$DIR/docker-compose.yml" "$@"
@@ -95,9 +107,9 @@ build_image() {
 
 sync_built_assets() {
   say "==> Syncing built assets from image to sites volume..."
-  docker run --rm "$IMAGE_NAME" tar -cf - \
+  docker run --rm "$IMAGE_NAME" tar -cf - --ignore-failed-read \
     -C /home/frappe/frappe-bench/sites/assets \
-    frappe erpnext hrms locale assets.json assets-rtl.json 2>/dev/null | \
+    frappe erpnext $(extra_apps_enabled) locale assets.json assets-rtl.json 2>/dev/null | \
     dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
   dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
   say "==> Assets synced."
@@ -121,9 +133,9 @@ fix_assets() {
     sleep 2
   done
 
-  local ASSET_APPS="frappe erpnext hrms"
-  local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext /home/frappe/frappe-bench/sites/assets/hrms"
-  for extra_app in insights; do
+  local ASSET_APPS="frappe erpnext"
+  local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext"
+  for extra_app in $(extra_apps_enabled) insights; do
     if docker exec "$BACKEND_CID" test -d "/home/frappe/frappe-bench/sites/assets/$extra_app" 2>/dev/null; then
       ASSET_APPS="$ASSET_APPS $extra_app"
       ASSET_RM="$ASSET_RM /home/frappe/frappe-bench/sites/assets/$extra_app"
@@ -191,18 +203,29 @@ strip_extra_apps() {
   dc exec -T redis-cache redis-cli FLUSHALL 2>/dev/null || true
 }
 
-ensure_hrms_installed() {
-  say "==> Ensuring HRMS is installed on site..."
-  dc exec -T backend bash -c "grep -q '^hrms$' /home/frappe/frappe-bench/sites/apps.txt || echo hrms >> /home/frappe/frappe-bench/sites/apps.txt"
-  if [ "$DEPLOY_SILENT" = "1" ]; then
-    dc exec -T backend bench --site frontend install-app hrms --force >/dev/null 2>&1 || true
-  else
-    dc exec -T backend bench --site frontend install-app hrms --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
-  fi
+ensure_extra_apps() {
+  local app
+  for app in $(extra_apps_enabled); do
+    say "==> Ensuring $app is installed on site..."
+    dc exec -T backend bash -c "grep -qx '$app' /home/frappe/frappe-bench/sites/apps.txt || echo $app >> /home/frappe/frappe-bench/sites/apps.txt"
+    if [ "$DEPLOY_SILENT" = "1" ]; then
+      dc exec -T backend bench --site frontend install-app "$app" --force >/dev/null 2>&1 || true
+    else
+      dc exec -T backend bench --site frontend install-app "$app" --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
+    fi
+  done
+  for app in $(extra_apps_disabled); do
+    if dc exec -T backend bench --site frontend list-apps 2>/dev/null | grep -qx "$app"; then
+      echo "==> App '$app' is disabled in apps.json but installed on site."
+      echo "    Uninstalling — this DELETES all data of $app DocTypes from the DB."
+      dc exec -T backend bench --site frontend uninstall-app "$app" --yes --no-backup 2>&1 | tail -3
+      dc exec -T backend bash -c "sed -i '/^$app\$/d' /home/frappe/frappe-bench/sites/apps.txt"
+    fi
+  done
 }
 
 install_extra_apps() {
-  ensure_hrms_installed
+  ensure_extra_apps
   "$DIR/insights" auto || true
   fix_assets
   dc exec -T backend bench --site frontend clear-cache 2>/dev/null || true
@@ -271,8 +294,10 @@ case "${1:-}" in
       sleep 5
     done
 
-    say "==> Installing HRMS on site..."
-    dc exec -T backend bench --site frontend install-app hrms
+    for app in $(extra_apps_enabled); do
+      say "==> Installing $app on site..."
+      dc exec -T backend bench --site frontend install-app "$app"
+    done
 
     say "==> Enabling Ukrainian language..."
     dc exec -T backend bench --site frontend console <<'PY'
