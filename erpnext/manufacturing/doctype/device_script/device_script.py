@@ -178,7 +178,5 @@ def run_scripts_for_event(script_type: str, trigger_event: str | None = None, **
 			"script": s.script_name,
 			"status": status,
 			"errors": errors,
-			"logs": list(log_buf),
-			"duration_ms": duration_ms,
 		})
 	return results
