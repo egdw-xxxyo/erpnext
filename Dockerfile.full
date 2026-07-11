@@ -10,32 +10,43 @@ COPY --chown=frappe:frappe erpnext/ /home/frappe/frappe-bench/apps/erpnext/erpne
 
 # ── Replace Frappe source with our fork ───────────────────────────────
 COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/frappe/
-
-# ── Add HRMS app ─────────────────────────────────────────────────────
-COPY --chown=frappe:frappe hrms_app/ /home/frappe/frappe-bench/apps/hrms/
+# Frappe realtime JS lives outside the python package — overlay separately
+COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frappe/realtime/
 
 # ── Extra pip dependencies (not in pyproject.toml) ────────────────────
-RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs
 
-# ── Install all apps in editable mode ─────────────────────────────────
+# ── Install core apps in editable mode ────────────────────────────────
 RUN cd /home/frappe/frappe-bench \
     && ./env/bin/pip install -e apps/frappe \
-    && ./env/bin/pip install -e apps/erpnext \
-    && ./env/bin/pip install -e apps/hrms
+    && ./env/bin/pip install -e apps/erpnext
 
-# ── Install HRMS node dependencies ────────────────────────────────────
-RUN cd /home/frappe/frappe-bench/apps/hrms && yarn install --production
-
-# ── Register HRMS in apps.txt so bench build includes it ─────────────
-RUN printf '\nhrms\n' >> /home/frappe/frappe-bench/sites/apps.txt
+# ── Extra apps from apps.json ─────────────────────────────────────────
+# All apps are cloned regardless of "enabled" so bench uninstall-app can
+# run when an app is disabled (it needs the app code present). The
+# "enabled" flag only controls site install/uninstall in ./deploy.
+COPY apps.json /tmp/apps.json
+RUN python3 -c "import json; [print(a['name'], a['repo'], a['branch']) for a in json.load(open('/tmp/apps.json'))]" > /tmp/extra_apps.txt \
+    && sed -i -e '$a\' /home/frappe/frappe-bench/sites/apps.txt \
+    && while read name repo branch; do \
+         git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name" \
+         && chown -R frappe:frappe "/home/frappe/frappe-bench/apps/$name" \
+         && /home/frappe/frappe-bench/env/bin/pip install -e "/home/frappe/frappe-bench/apps/$name" \
+         && { [ ! -f "/home/frappe/frappe-bench/apps/$name/package.json" ] || (cd "/home/frappe/frappe-bench/apps/$name" && yarn install); } \
+         && echo "$name" >> /home/frappe/frappe-bench/sites/apps.txt \
+         || exit 1; \
+       done < /tmp/extra_apps.txt
 
 # ── Dummy site config for HRMS frontend build (needs socketio_port) ──
 RUN mkdir -p /home/frappe/frappe-bench/sites \
     && echo '{"socketio_port": "9000"}' > /home/frappe/frappe-bench/sites/common_site_config.json
 
 # ── Rebuild JS/CSS assets + compile PO→MO translations ───────────────
+# max-old-space-size keeps vite (CRM frontend) under Docker's memory limit —
+# without it the build gets OOM-killed (exit 137) at "rendering chunks".
 USER frappe
 WORKDIR /home/frappe/frappe-bench
+ENV NODE_OPTIONS=--max-old-space-size=3072
 RUN bench build --force
 
 USER frappe

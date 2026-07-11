@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "autoname": "format:{specification}-MOD-{modification_number}",
+ "creation": "2026-06-24 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "specification",
+  "modification_number",
+  "column_break_1",
+  "fpv_combo",
+  "ground_station",
+  "bpak_combo"
+ ],
+ "fields": [
+  {
+   "fieldname": "specification",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Специфікація",
+   "options": "BpAK Specification",
+   "reqd": 1
+  },
+  {
+   "fieldname": "modification_number",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Номер модифікації",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fpv_combo",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "FPV Combo",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ground_station",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Наземна станція",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bpak_combo",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "BpAK Combo",
+   "options": "Item",
+   "reqd": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-24 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "BpAK Modification",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Manufacturing User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

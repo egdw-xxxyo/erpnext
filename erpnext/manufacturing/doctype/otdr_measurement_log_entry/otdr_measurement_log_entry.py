@@ -1,5 +1,5 @@
 from frappe.model.document import Document
 
 
-class ScannerScriptVersion(Document):
+class OTDRMeasurementLogEntry(Document):
 	pass

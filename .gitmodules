@@ -2,7 +2,3 @@
 	path = frappe
 	url = https://github.com/egdw-xxxyo/frappe.git
 	branch = version-15
-[submodule "hrms_app"]
-	path = hrms_app
-	url = https://github.com/egdw-xxxyo/hrms.git
-	branch = version-15

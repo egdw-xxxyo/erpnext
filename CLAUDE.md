@@ -1,3 +1,37 @@
+## Related repos
+
+- **`~/git/otdr-sync/`** — Desktop sync application (Python, Senter ST3200H-M / Novker NK1500 OTDR over BLE). Pulls `.sor` files from device, uploads to ERPNext via `OTDR.add_measurement_log` whitelisted method. See `~/git/otdr-sync/README.md`. ERPNext side: `erpnext/manufacturing/doctype/otdr/otdr.py` (API + measurement ingestion), `erpnext/manufacturing/doctype/otdr_configuration/` (sync settings shipped to desktop app), `erpnext/manufacturing/doctype/device_script/` (Reflectometer scripts fired on SOR upload via `trigger_event="SOR Uploaded"`).
+- **`~/git/otdr-sync-android/`** — Android sync application (Kotlin, Jetpack Compose). Core sync scope only: BLE scan/pair, auto-sync `.sor` download, ERPNext `submit_measurement` upload, sync status UI, ERP config. Same protocol constants as desktop (`~/git/otdr-sync/st3200_sync/ble/protocol.py`).
+- **`~/git/otdr/`** — BLE protocol findings / reverse-engineering notes (`FINDINGS.md`).
+
+## Multi-client parity (desktop + Android)
+
+Device-side functionality lives in two client apps:
+- **Desktop**: `~/git/otdr-sync/` (Python, PySide6) — full-featured
+- **Android**: `~/git/otdr-sync-android/` (Kotlin, Jetpack Compose) — core sync only
+
+### Duplication rule
+
+**Core sync features must exist on both clients.** Core = BLE scan/pair, file discovery, auto-sync download, ERPNext `submit_measurement` upload, sync status UI, ERP config.
+
+When changing any core-sync feature on one client, apply the equivalent change on the other in the same task. Do not merge desktop-only changes to core sync without a matching Android change (or an explicit note that Android is deferred).
+
+**Desktop-only** (allowed to diverge): SOR metadata info dialog, manual send tools, advanced debug UI, dev workflow scripts.
+
+**Android-only** (allowed): mobile-specific UX, background sync service, notifications.
+
+### Server-side parsing invariant
+
+SOR parsing should live in ERPNext only. Clients upload raw bytes. Do not re-implement SOR parsing on clients — it drifts, and silent client-side parse failures burn debugging time (see `_submit_to_erp` fallback path in `~/git/otdr-sync/st3200_sync/gui/main_window.py`).
+
+## Deploy command policy (STRICT)
+
+**Only ever run `./deploy build --silent`.** Never run `./deploy migrate`, `./deploy start`, `./deploy init`, or any other `./deploy` subcommand. The other commands have repeatedly broken the running UI in this project, and `build` alone handles image rebuild + container restart + schema sync for our workflow.
+
+`--silent` suppresses verbose Dockerfile / migrate output. On failure the script automatically prints the tail of the build log so you still see errors. Use it every time — the noise from non-silent mode wastes context.
+
+If you believe a different command is required, stop and ask the user before running anything.
+
 ## Environment routing by URL
 
 When the user shares an ERPNext URL, pick the MCP server by host IP:
@@ -414,6 +448,24 @@ frappe.db.sql("DELETE FROM `tabBOM` WHERE name=%s", name)
 ```
 
 **WARNING:** Force-deleting DocType records via SQL (e.g., deleting from `tabDocType`) will corrupt metadata. Only delete data records, never DocType definitions. If corrupted, `bench migrate` will recreate them.
+
+## Extra Frappe Apps (apps.json)
+
+Extra apps (HRMS, CRM, ...) are configured in `apps.json` in the repo root. The file is **gitignored** (per-environment config, like `site-config.json`) — copy `apps.json.example` to `apps.json` on each machine. Docker build fails without it:
+
+```json
+[
+  { "name": "hrms", "repo": "https://github.com/egdw-xxxyo/hrms.git", "branch": "version-15", "enabled": true },
+  { "name": "crm", "repo": "https://github.com/frappe/crm.git", "branch": "v1.77.3", "enabled": true }
+]
+```
+
+- **Build time**: `Dockerfile.full` clones ALL listed apps (enabled or not) into the image, pip-installs them, runs `yarn install` if the app has a `package.json`, and adds them to bench `apps.txt` so `bench build` compiles their assets. Disabled apps stay in the image so `bench uninstall-app` can run (it needs the app code).
+- **Deploy time**: `./deploy` (`ensure_extra_apps`) installs every `enabled: true` app on the site and **uninstalls** any `enabled: false` app that is still installed. **Uninstall deletes all of that app's DocType data from the DB.**
+- Asset sync (`sync_built_assets`, `fix_assets`) picks up enabled apps dynamically from `apps.json`.
+- To add an app: add an entry, then `./deploy build --silent`. To disable: set `enabled: false`, rebuild (data loss warning above applies).
+- To customize an app's code: fork it (convention: `egdw-xxxyo/<app>`), point `repo` at the fork. Changes must be pushed to the fork — the image clones from the remote, there is no local submodule for extra apps (only `frappe/` remains a submodule).
+- The old `hrms_app/` submodule was removed; HRMS now comes via apps.json.
 
 ## Frappe Fork (git submodule)
 

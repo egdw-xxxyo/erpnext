@@ -5423,7 +5423,7 @@ Last transacted,Остання транзакція
 Latest,Останній
 Latest Age,Останній вік
 Latitude,Широта
-Lead,Вести
+Lead,Заявка
 Lead -> Prospect,Лід -> Потенційний клієнт
 Lead Conversion Time,Провідний час конвертації
 Lead Count,Ведучий граф
@@ -12410,6 +12410,20 @@ Workplace,Робоче місце
 Workplace Name,Назва робочого місця
 Workplace Script,Скрипт робочого місця
 Scanner Script,Скрипт сканера
+Device Script,Скрипт пристрою
+Device Script Version,Версія скрипта пристрою
+Device Script Run,Запуск скрипту пристрою
+Recent Runs,Останні запуски
+Logs,Журнал
+Runs,Запуски
+Script Type,Тип скрипту
+Reflectometer,Рефлектометр
+Reference DocType,Тип посилання
+Reference Name,Назва посилання
+Timestamp,Час
+Level,Рівень
+Context,Контекст
+"Device Script — Scanner vs Reflectometer","Скрипт пристрою — Сканер vs Рефлектометр"
 "How it works","Як це працює"
 "When a scanner sends data, the system resolves what was scanned and calls","Коли сканер надсилає дані, система визначає що було скановано і викликає"
 "from the Workplace Script matching the scanner's current workplace. If no workplace-specific script is found, the default script (no workplace) runs.","зі Скрипта робочого місця, що відповідає поточному робочому місцю сканера. Якщо скрипт для робочого місця не знайдено, виконується скрипт за замовчуванням (без робочого місця)."
@@ -12620,3 +12634,72 @@ Workplace Scripts,Скрипти робочого місця
 "Source BpAK","Джерело: BpAK"
 "Source Pallet","Джерело: Паллета"
 "Pallets","Паллети"
+"Specification Code","Код специфікації"
+"Specification","Специфікація"
+"Specification Attribute","Атрибут специфікації"
+"Specification Attribute Value","Значення атрибута специфікації"
+"Specification Variant Attribute","Атрибут варіанта специфікації"
+"Specification Variant Settings","Налаштування варіантів специфікації"
+"Specification Variant Field","Поле варіанта специфікації"
+"Attribute Name","Назва атрибута"
+"Attribute Value","Значення атрибута"
+"Has Variants","Має варіанти"
+"Variant Of","Варіант від"
+"Numeric Values","Числові значення"
+"From Range","Від"
+"To Range","До"
+"Increment","Крок"
+"Abbreviation","Скорочення"
+"Short Name","Коротка назва"
+"Single Variant","Один варіант"
+"Multiple Variants","Кілька варіантів"
+"Create Variant","Створити варіант"
+"Create Variants","Створити варіанти"
+"Make 1 Variant","Створити 1 варіант"
+"Select Attribute Values","Виберіть значення атрибутів"
+"Select at least one value from each attribute.","Виберіть принаймні одне значення для кожного атрибута."
+"Variant creation has been queued.","Створення варіантів додано в чергу."
+"Updating Variants...","Оновлення варіантів..."
+"Do not update variants on save","Не оновлювати варіанти при збереженні"
+"Allow Rename Attribute Value","Дозволити перейменування значення атрибута"
+"Copy Fields to Variant","Поля для копіювання у варіант"
+"Attributes table is mandatory for templates and variants","Таблиця атрибутів обов'язкова для шаблонів і варіантів"
+"Attribute {0} appears more than once","Атрибут {0} зустрічається більше ніж один раз"
+"A variant with the same attributes already exists: {0}","Варіант із такими атрибутами вже існує: {0}"
+"Duplicate Variant","Дублікат варіанта"
+"Cannot un-check Has Variants — variants exist for this template","Неможливо зняти «Має варіанти» — для цього шаблону існують варіанти"
+"Specification Variant {0} already exists with same attributes","Варіант специфікації {0} з такими атрибутами вже існує"
+"Please do not create more than 500 specifications at a time","Не створюйте більше 500 специфікацій за один раз"
+"Cannot copy fields to variant: {0}","Не можна копіювати ці поля у варіант: {0}"
+"Template: {0}","Шаблон: {0}"
+"Attribute value: {0} must appear only once","Значення атрибута: {0} має зустрічатися лише один раз"
+"Abbreviation: {0} must appear only once","Скорочення: {0} має зустрічатися лише один раз"
+"Please specify from/to range","Вкажіть діапазон Від/До"
+"From Range has to be less than To Range","«Від» має бути менше за «До»"
+"Increment cannot be 0","Крок не може бути 0"
+"Increment for Attribute {0} cannot be 0","Крок для атрибута {0} не може бути 0"
+"Value for Attribute {0} must be within the range of {1} to {2} in the increments of {3} for {4}","Значення атрибута {0} має бути в діапазоні від {1} до {2} з кроком {3} для {4}"
+"{0} is not a valid Value for Attribute {1} of {2}.","{0} не є допустимим значенням атрибута {1} для {2}."
+"Please specify at least one attribute in the Attributes table","Вкажіть принаймні один атрибут у таблиці атрибутів"
+"Make {0} Variant","Створити {0} варіант"
+"Make {0} Variants","Створити {0} варіантів"
+"{0} variants created.","Створено варіантів: {0}."
+"Min: {0}, Max: {1}, Increment: {2}","Мін: {0}, Макс: {1}, Крок: {2}"
+"Specification Number Template","Шаблон номера специфікації"
+"OTDR","Рефлектометр"
+"OTDR Configuration","Конфігурація рефлектометра"
+"OTDR Measurement Log Entry","Запис журналу вимірювань"
+"Reflectometer","Рефлектометр"
+"Spool QC Labels","Етикетки QC котушок"
+"Passed Label Template","Шаблон етикетки (пройшов QC)"
+"Failed Label Template","Шаблон етикетки (не пройшов QC)"
+"Spool QC","QC котушки"
+"Slope","Нахил"
+"Splice Loss","Втрати на з'єднанні"
+"Reflectance","Відбиття"
+"Намотка оптики + QC","Намотка оптики + QC"
+"Рефлектометр","Рефлектометр"
+"Брак - Ф","Брак - Ф"
+"Trigger Event","Подія тригера"
+"SOR Uploaded","Завантажено SOR-файл"
+"Event that fires this script. Scanner scripts have no event (called from Workplace Scripts).","Подія, яка запускає цей скрипт. Скрипти сканера не мають події (викликаються з Workplace Scripts)."

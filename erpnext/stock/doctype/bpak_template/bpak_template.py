@@ -12,6 +12,17 @@ class BpAKTemplate(Document):
 				"Serial Number Template", self.serial_number_template, "resulting_series"
 			)
 		self._set_template_name()
+		self._resolve_specification_template()
+
+	def _resolve_specification_template(self):
+		if not self.get("specification_number_template"):
+			return
+		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
+			resolve_specification_template,
+		)
+		resolved = resolve_specification_template(self)
+		if resolved:
+			self.set("custom_шифр", resolved)
 
 	def autoname(self):
 		from frappe.model.naming import set_name_by_naming_series

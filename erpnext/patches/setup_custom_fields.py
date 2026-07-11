@@ -24,6 +24,7 @@ def execute():
 	create_custom_fields_on_so()
 	create_custom_fields_on_so_item()
 	create_custom_field_on_pallet()
+	create_custom_field_on_bpak_template()
 	frappe.db.commit()
 	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments")
 
@@ -157,6 +158,19 @@ def create_custom_fields_on_item():
 			frappe.delete_doc("Custom Field", old_cf, force=True)
 			print(f"  Removed old Custom Field: Item.{old_field}")
 
+	fields = [
+		{
+			"dt": "Item",
+			"fieldname": "custom_шифр",
+			"fieldtype": "Data",
+			"label": "Шифр",
+			"read_only": 1,
+			"insert_after": "item_name",
+			"description": "Resolved from Specification Number Template, or denormalized from Specification Parameters",
+		},
+	]
+	_create_custom_fields(fields)
+
 
 def create_item_specification_tab():
 	fields = [
@@ -183,8 +197,26 @@ def create_item_specification_tab():
 			"options": "Item Label Template",
 			"insert_after": "item_spec_parameters",
 		},
+		{
+			"dt": "Item",
+			"fieldname": "specification_number_template",
+			"fieldtype": "Link",
+			"label": "Specification Number Template",
+			"options": "Specification Number Template",
+			"insert_after": "label_templates",
+		},
 	]
 	_create_custom_fields(fields)
+
+	existing = frappe.db.exists(
+		"Custom Field",
+		{"dt": "Item", "fieldname": "specification_number_template"},
+	)
+	if existing:
+		cf = frappe.get_doc("Custom Field", existing)
+		if cf.insert_after != "label_templates":
+			cf.insert_after = "label_templates"
+			cf.save(ignore_permissions=True)
 
 
 def create_custom_fields_on_pr_item():
@@ -419,6 +451,28 @@ def create_custom_field_on_pallet():
 			"options": "Sales Order",
 			"insert_after": "status",
 			"read_only": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_field_on_bpak_template():
+	fields = [
+		{
+			"dt": "BpAK Template",
+			"fieldname": "custom_шифр",
+			"fieldtype": "Data",
+			"label": "Шифр",
+			"read_only": 1,
+			"insert_after": "template_name",
+		},
+		{
+			"dt": "BpAK Template",
+			"fieldname": "specification_number_template",
+			"fieldtype": "Link",
+			"label": "Specification Number Template",
+			"options": "Specification Number Template",
+			"insert_after": "serial_no_series",
 		},
 	]
 	_create_custom_fields(fields)

@@ -34,6 +34,7 @@
   "returned_against",
   "section_break_wzou",
   "is_cancelled",
+  "is_packed",
   "is_rejected",
   "amended_from"
  ],
@@ -127,6 +128,12 @@
    "label": "Is Cancelled",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_packed",
+   "fieldtype": "Check",
+   "label": "Is Packed"
   },
   {
    "fieldname": "amended_from",

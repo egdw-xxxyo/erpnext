@@ -55,7 +55,7 @@
  "modified": "2026-05-16 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
- "name": "Scanner Script Version",
+ "name": "Device Script Version",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "creation",

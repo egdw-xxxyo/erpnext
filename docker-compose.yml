@@ -16,6 +16,7 @@ services:
       DB_PORT: "3306"
       MYSQL_ROOT_PASSWORD: admin
       MARIADB_ROOT_PASSWORD: admin
+      PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
 
   configurator:
     image: erpnext-uk:v15.96.1
@@ -210,6 +211,7 @@ services:
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+      FRAPPE_BACKEND_URL: http://backend:8000
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
