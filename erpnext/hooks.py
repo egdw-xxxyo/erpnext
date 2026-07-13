@@ -61,6 +61,8 @@ before_install = [
 ]
 after_install = "erpnext.setup.install.after_install"
 
+after_migrate = ["erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes"]
+
 boot_session = "erpnext.startup.boot.boot_session"
 notification_config = "erpnext.startup.notifications.get_notification_config"
 get_help_messages = "erpnext.utilities.activation.get_help_messages"

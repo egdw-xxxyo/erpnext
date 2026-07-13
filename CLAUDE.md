@@ -24,6 +24,16 @@ When changing any core-sync feature on one client, apply the equivalent change o
 
 SOR parsing should live in ERPNext only. Clients upload raw bytes. Do not re-implement SOR parsing on clients — it drifts, and silent client-side parse failures burn debugging time (see `_submit_to_erp` fallback path in `~/git/otdr-sync/st3200_sync/gui/main_window.py`).
 
+## Release notes (MANDATORY when finishing work)
+
+When finishing a feature or fixing a bug, **create or update the release-note file for the current release** in `erpnext/release_notes/`:
+
+- One markdown file per release, named by version = git tag, `vYYYY.MM.DD.md` (add `.N` suffix for a 2nd+ release same day).
+- Written **in Ukrainian**. First `# Heading` line = release title; the rest = body (bullet list of changes).
+- If a file for today's release already exists, **append** your change to its body; otherwise create a new file.
+- These files are the source of truth. On every `./deploy migrate` the `after_migrate` hook (`erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes`) upserts a **Release Note** DocType record per file, so the changelog shows in the UI (`/app/release-note`) and the deployed version appears in **Help → About**.
+- Tag the release commit (`git tag -a vYYYY.MM.DD -m "..."`). Prod deploy is blocked for untagged commits (`environment: "prod"` in `site-config.json`).
+
 ## Deploy command policy (STRICT)
 
 **Only ever run `./deploy build --silent`.** Never run `./deploy migrate`, `./deploy start`, `./deploy init`, or any other `./deploy` subcommand. The other commands have repeatedly broken the running UI in this project, and `build` alone handles image rebuild + container restart + schema sync for our workflow.
