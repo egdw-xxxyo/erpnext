@@ -467,7 +467,7 @@ def generate_connect_bundle(otdr_name, server_url=None):
 	Secret is only returned once at generation time — the caller UI must warn
 	the user to copy it now.
 	"""
-	frappe.only_for("System Manager")
+	frappe.only_for(["System Manager", "Manufacturing Manager"])
 	doc = frappe.get_doc("OTDR", otdr_name)
 	doc.check_permission("write")
 
