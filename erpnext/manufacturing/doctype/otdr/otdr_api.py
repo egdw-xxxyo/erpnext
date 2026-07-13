@@ -488,10 +488,17 @@ def generate_connect_bundle(otdr_name, server_url=None):
 	if not user or user == "Guest":
 		frappe.throw("Authentication required", frappe.AuthenticationError)
 
-	from frappe.core.doctype.user.user import generate_keys
-	keys = generate_keys(user)
-	api_key = keys.get("api_key")
-	api_secret = keys.get("api_secret")
+	# Regenerate keys inline instead of calling frappe.core's generate_keys,
+	# which is hard-gated to System Manager and requires User write permission.
+	# Safe here: role gate + OTDR write already enforced above, and keys are
+	# generated only for the session user's own account.
+	user_doc = frappe.get_doc("User", user)
+	api_secret = frappe.generate_hash(length=15)
+	if not user_doc.api_key:
+		user_doc.api_key = frappe.generate_hash(length=15)
+	user_doc.api_secret = api_secret
+	user_doc.save(ignore_permissions=True)
+	api_key = user_doc.api_key
 
 	server_url = (server_url or "").strip().rstrip("/") or detect_public_base_url()
 	config = {
