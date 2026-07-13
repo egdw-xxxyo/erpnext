@@ -163,9 +163,19 @@ class OTDR(Document):
 				extra = json.loads(extra)
 			except Exception:
 				pass
+		qc_items = [
+			{
+				"item_code": r.item_code,
+				"item_name": r.item_name or r.item_code,
+				"quality_inspection_template": r.quality_inspection_template or "",
+			}
+			for r in (self.get("qc_items") or [])
+			if r.item_code
+		]
 		return {
 			"otdr": self.name,
 			"sync_listening": bool(self.get("sync_listening")),
+			"qc_items": qc_items,
 			"sync_folder": cfg.get("sync_folder") or "/otdr",
 			"simple_sync": bool(cfg.get("simple_sync")),
 			"measurement_interval_seconds": cfg.get("measurement_interval_seconds") or 60,
@@ -181,7 +191,7 @@ class OTDR(Document):
 		}
 
 	def on_update(self):
-		watched = ("otdr_configuration", "sync_listening", "is_active")
+		watched = ("otdr_configuration", "sync_listening", "is_active", "qc_items")
 		before = self.get_doc_before_save()
 		if before is None:
 			return

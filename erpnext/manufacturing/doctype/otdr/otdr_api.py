@@ -196,7 +196,7 @@ def _parse_sor_file(path: str) -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def parse_and_submit_measurement(otdr=None, auto_sync=None, remote_path=None, filename=None, **kwargs):
+def parse_and_submit_measurement(otdr=None, auto_sync=None, remote_path=None, filename=None, selected_item=None, **kwargs):
 	"""Accept raw SOR file bytes (multipart 'file'), parse server-side, submit as measurement.
 
 	Single source of truth for SOR parsing — both desktop + Android clients call this.
@@ -234,6 +234,7 @@ def parse_and_submit_measurement(otdr=None, auto_sync=None, remote_path=None, fi
 		"filename": fname,
 		"remote_path": remote_path or "",
 		"size_bytes": size,
+		"selected_item": selected_item or "",
 	}
 	if sor_info:
 		payload["sor"] = sor_info
@@ -266,8 +267,13 @@ def parse_and_submit_measurement(otdr=None, auto_sync=None, remote_path=None, fi
 
 
 @frappe.whitelist(methods=["POST"])
-def submit_measurement(otdr=None, data=None, auto_sync=None, **kwargs):
+def submit_measurement(otdr=None, data=None, auto_sync=None, selected_item=None, **kwargs):
 	otdr = resolve_otdr(otdr)
+	if selected_item is None and frappe.request is not None:
+		try:
+			selected_item = frappe.request.args.get("selected_item")
+		except Exception:
+			selected_item = None
 
 	qs_auto = ""
 	if frappe.request is not None:
@@ -278,7 +284,7 @@ def submit_measurement(otdr=None, data=None, auto_sync=None, **kwargs):
 	auto_sync_flag = str(auto_sync or qs_auto or frappe.local.form_dict.get("auto_sync") or "").lower() in ("1", "true", "yes")
 
 	if data is None:
-		body_dict = {k: v for k, v in (frappe.local.form_dict or {}).items() if k not in ("cmd", "auto_sync")}
+		body_dict = {k: v for k, v in (frappe.local.form_dict or {}).items() if k not in ("cmd", "auto_sync", "selected_item", "otdr")}
 		if body_dict:
 			data = body_dict
 		elif frappe.request is not None:
@@ -287,12 +293,19 @@ def submit_measurement(otdr=None, data=None, auto_sync=None, **kwargs):
 
 	parsed_ok = True
 	error = None
-	if isinstance(data, (dict, list)):
+	if isinstance(data, dict):
+		if selected_item:
+			data["selected_item"] = selected_item
+		payload_str = json.dumps(data, ensure_ascii=False, default=str)
+	elif isinstance(data, list):
 		payload_str = json.dumps(data, ensure_ascii=False, default=str)
 	elif data:
 		payload_str = data
 		try:
-			json.loads(payload_str)
+			parsed = json.loads(payload_str)
+			if selected_item and isinstance(parsed, dict):
+				parsed["selected_item"] = selected_item
+				payload_str = json.dumps(parsed, ensure_ascii=False, default=str)
 		except Exception as e:
 			parsed_ok = False
 			error = str(e)

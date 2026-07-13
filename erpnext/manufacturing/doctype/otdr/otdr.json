@@ -24,6 +24,8 @@
   "live_status_html",
   "section_endpoints",
   "endpoints_html",
+  "tab_qc",
+  "qc_items",
   "tab_logs",
   "measurement_logs"
  ],
@@ -115,6 +117,18 @@
    "fieldname": "endpoints_html",
    "fieldtype": "HTML",
    "label": "Дані для otdr-sync"
+  },
+  {
+   "fieldname": "tab_qc",
+   "fieldtype": "Tab Break",
+   "label": "Товари для контролю якості"
+  },
+  {
+   "fieldname": "qc_items",
+   "fieldtype": "Table",
+   "label": "Товари для контролю якості",
+   "options": "OTDR QC Item",
+   "description": "Оператор обирає товар зі списку у застосунку. QI створюється за обраним товаром."
   },
   {
    "fieldname": "tab_logs",

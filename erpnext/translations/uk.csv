@@ -12703,3 +12703,5 @@ Workplace Scripts,Скрипти робочого місця
 "Trigger Event","Подія тригера"
 "SOR Uploaded","Завантажено SOR-файл"
 "Event that fires this script. Scanner scripts have no event (called from Workplace Scripts).","Подія, яка запускає цей скрипт. Скрипти сканера не мають події (викликаються з Workplace Scripts)."
+"Purpose","Призначення"
+"Comments","Коментарі"

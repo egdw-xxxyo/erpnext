@@ -79,7 +79,7 @@
    "fieldtype": "Select",
    "label": "Reference Type",
    "options": "\nPurchase Receipt\nPurchase Invoice\nSubcontracting Receipt\nDelivery Note\nSales Invoice\nStock Entry\nJob Card",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.inspection_type && doc.inspection_type!='Incoming'"
   },
   {
    "fieldname": "reference_name",
@@ -91,7 +91,7 @@
    "oldfieldname": "purchase_receipt_no",
    "oldfieldtype": "Link",
    "options": "reference_type",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.reference_type"
   },
   {
    "fieldname": "section_break_7",
