@@ -61,6 +61,8 @@ before_install = [
 ]
 after_install = "erpnext.setup.install.after_install"
 
+after_migrate = ["erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes"]
+
 boot_session = "erpnext.startup.boot.boot_session"
 notification_config = "erpnext.startup.notifications.get_notification_config"
 get_help_messages = "erpnext.utilities.activation.get_help_messages"
@@ -446,7 +448,9 @@ scheduler_events = {
 		"erpnext.erpnext_integrations.doctype.plaid_settings.plaid_settings.automatic_synchronization",
 		"erpnext.utilities.doctype.video.video.update_youtube_data",
 	],
-	"daily": [],
+	"daily": [
+		"erpnext.manufacturing.doctype.print_job.print_job.cleanup_old_print_jobs",
+	],
 	"daily_long": [],
 	"daily_maintenance": [
 		"erpnext.support.doctype.issue.issue.auto_close_tickets",

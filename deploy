@@ -31,6 +31,33 @@ require_non_production() {
   fi
 }
 
+# Read the "environment" field from site-config.json (repo root). Empty if the
+# file or key is absent.
+site_environment() {
+  local cfg="$DIR/site-config.json"
+  [ -f "$cfg" ] || return 0
+  python3 -c "import json; print(json.load(open('$cfg')).get('environment',''))" 2>/dev/null
+}
+
+# On a prod site, refuse to deploy a commit that has no git tag. Release tags
+# are the versioning gate — deploying an untagged commit to prod is blocked so
+# what's live always maps to a tagged release.
+require_tag_on_prod() {
+  if [ "$(site_environment)" != "prod" ]; then
+    return 0
+  fi
+  if ! git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "ERROR: prod site but '$DIR' is not a git repo — cannot verify release tag."
+    exit 1
+  fi
+  if ! git -C "$DIR" describe --exact-match --tags HEAD >/dev/null 2>&1; then
+    echo "ERROR: prod deploy blocked — current commit ($(git -C "$DIR" rev-parse --short HEAD)) has no git tag."
+    echo "Tag the release first, e.g.:"
+    echo "  git tag -a v$(date +%Y.%m.%d) -m \"release notes\" && git push origin v$(date +%Y.%m.%d)"
+    exit 1
+  fi
+}
+
 detect_host_lan_ip() {
   # macOS
   if command -v ipconfig >/dev/null 2>&1; then
@@ -343,6 +370,7 @@ PY
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
     DEPLOY_SILENT=$SILENT
 
+    require_tag_on_prod
     if [ "$SILENT" = "1" ]; then
       # Stream build to a temp log so we can show context only if it fails.
       BUILD_LOG=$(mktemp)
@@ -367,6 +395,7 @@ PY
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
     DEPLOY_SILENT=$SILENT
 
+    require_tag_on_prod
     say "(migrate is now an alias for build)"
     if [ "$SILENT" = "1" ]; then
       BUILD_LOG=$(mktemp)

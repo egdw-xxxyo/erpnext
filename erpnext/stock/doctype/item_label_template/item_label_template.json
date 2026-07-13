@@ -6,7 +6,9 @@
  "engine": "InnoDB",
  "field_order": [
   "label_template",
-  "label_printer"
+  "label_printer",
+  "purpose",
+  "comments"
  ],
  "fields": [
   {
@@ -16,7 +18,7 @@
    "label": "Label Template",
    "options": "Label Template",
    "reqd": 1,
-   "columns": 6
+   "columns": 4
   },
   {
    "fieldname": "label_printer",
@@ -24,7 +26,23 @@
    "in_list_view": 1,
    "label": "Label Printer",
    "options": "Label Printer",
-   "columns": 6
+   "columns": 3
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Purpose",
+   "columns": 2,
+   "description": "Коли яку мітку друкувати: Passed — при успішній QI, Failed — при відхиленій."
+  },
+  {
+   "fieldname": "comments",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Comments",
+   "columns": 3,
+   "description": "Пояснення, чому обрано це призначення (Purpose) для цього шаблону мітки."
   }
  ],
  "index_web_pages_for_search": 0,
