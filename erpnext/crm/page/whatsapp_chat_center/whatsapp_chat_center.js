@@ -605,8 +605,6 @@ class WhatsAppChat {
 			return;
 		}
 
-		// hello_world is a Meta sample only sendable from Public Test Numbers (error 131058).
-		templates = templates.filter((t) => t.template_name !== "hello_world");
 		if (!templates.length) {
 			frappe.msgprint(__("No approved templates found. Create and sync a WhatsApp Template first."));
 			return;

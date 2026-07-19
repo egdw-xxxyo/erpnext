@@ -328,6 +328,16 @@ def send_reaction(phone, message_id, emoji):
 	)
 
 
+def _is_meta_sample_template(name):
+	"""Meta's built-in sample/system templates (hello_world, Jasper's Market demos,
+	the auto-created 3p integration test template) can't be sent from a real number
+	(error 131058) — hide them from the chat template picker."""
+	n = (name or "").lower()
+	return n in ("hello_world", "3p_direct_integration_test_template") or n.startswith(
+		("jaspers_market", "sample_")
+	)
+
+
 @frappe.whitelist()
 def list_templates():
 	"""Approved WhatsApp templates that can be sent from the chat, with body-parameter
@@ -339,6 +349,7 @@ def list_templates():
 		fields=["name", "template_name", "language_code", "header_type", "field_names", "sample_values"],
 		order_by="template_name asc",
 	)
+	rows = [r for r in rows if not _is_meta_sample_template(r.get("template_name"))]
 	for r in rows:
 		names = r.get("field_names") or r.get("sample_values") or ""
 		r["params"] = [p.strip() for p in names.split(",") if p.strip()]
