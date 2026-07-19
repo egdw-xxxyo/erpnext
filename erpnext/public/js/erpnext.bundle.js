@@ -41,5 +41,9 @@ import "./utils/demo.js";
 import "./financial_statements.js";
 import "./sales_trends_filters.js";
 import "./purchase_trends_filters.js";
+import "./whatsapp_form_panel.js";
+import "./whatsapp_phone_icon.js";
+import "./deal_documents_panel.js";
+import "./quotation_negotiation.js";
 
 // import { sum } from 'frappe/public/utils/util.js'
