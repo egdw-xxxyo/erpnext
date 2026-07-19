@@ -26,3 +26,4 @@ snapshots/
 .db-snapshots/
 site-config.json
 apps.json
+.tunnel.env

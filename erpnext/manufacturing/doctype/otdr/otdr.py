@@ -8,6 +8,45 @@ log = logging.getLogger(__name__)
 MAX_LOGS = 100
 STATUS_TTL_SECONDS = 600
 
+# Minimum sync-app version compatible with the current OTDR device-side
+# logic/protocol, per client. BUMP the relevant one whenever a change to OTDR
+# behaviour requires a matching client update (config shape, BLE protocol,
+# submit_measurement contract, etc.). Clients report their own version + type on
+# get_configuration; older ones get a soft "please update" warning.
+# The two clients version independently — do NOT assume the same number.
+#   android: ~/git/otdr-sync-android   desktop: ~/git/otdr-sync
+MIN_ANDROID_APP_VERSION = "0.3.4"
+MIN_DESKTOP_APP_VERSION = "0.1.0"
+
+
+def min_version_for(client):
+	"""Minimum compatible version for a client type. Defaults to android."""
+	return MIN_DESKTOP_APP_VERSION if client == "desktop" else MIN_ANDROID_APP_VERSION
+
+
+def _version_tuple(v):
+	"""Parse leading dotted numeric part of a version string ('1.2.3-dev' -> (1,2,3))."""
+	if not v:
+		return ()
+	head = str(v).strip().lstrip("vV").split("-", 1)[0].split("+", 1)[0]
+	parts = []
+	for chunk in head.split("."):
+		if chunk.isdigit():
+			parts.append(int(chunk))
+		else:
+			break
+	return tuple(parts)
+
+
+def is_app_compatible(app_version, client=None):
+	"""True if reported app_version >= minimum for its client type. Unknown/
+	unparseable version -> True (don't nag on missing data; only warn when we
+	can prove it's older)."""
+	cur = _version_tuple(app_version)
+	if not cur:
+		return True
+	return cur >= _version_tuple(min_version_for(client))
+
 
 def _status_cache_key(name):
 	return f"otdr:status:{name}"
@@ -71,6 +110,9 @@ def get_status_snapshot(name):
 		snap["heartbeat_interval_s"] = int(cfg.get("heartbeat_interval_s") or 10)
 	except Exception:
 		snap["heartbeat_interval_s"] = 10
+	client = snap.get("app_client")
+	snap["min_app_version"] = min_version_for(client)
+	snap["app_compatible"] = "1" if is_app_compatible(snap.get("app_version"), client) else "0"
 	return snap
 
 

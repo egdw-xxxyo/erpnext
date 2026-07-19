@@ -448,9 +448,23 @@ def update_status(otdr=None, status=None, file=None, progress=None, total=None, 
 
 
 @frappe.whitelist(methods=["GET"])
-def get_configuration(otdr=None, **kwargs):
+def get_configuration(otdr=None, app_version=None, client=None, **kwargs):
+	from erpnext.manufacturing.doctype.otdr.otdr import is_app_compatible, min_version_for, push_status
+
 	doc = resolve_otdr(otdr)
-	return doc.get_configuration_payload()
+	payload = doc.get_configuration_payload()
+	# Client reports its own version + type ('android'/'desktop'); flag when it's
+	# older than the minimum compatible with current OTDR logic so the client can
+	# show a soft warning. The two clients version independently.
+	client = client or "android"
+	payload["app_version"] = app_version or ""
+	payload["app_client"] = client
+	payload["min_app_version"] = min_version_for(client)
+	payload["app_compatible"] = is_app_compatible(app_version, client)
+	# Record reported version so the OTDR form's live-status panel can show it.
+	if app_version:
+		push_status(doc.name, app_version=app_version, app_client=client)
+	return payload
 
 
 @frappe.whitelist(methods=["GET"])

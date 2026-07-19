@@ -25,6 +25,10 @@ def execute():
 	create_custom_fields_on_so_item()
 	create_custom_field_on_pallet()
 	create_custom_field_on_bpak_template()
+	create_custom_fields_on_opportunity()
+	create_custom_fields_on_quotation()
+	create_custom_fields_on_quotation_item()
+	create_custom_fields_on_whatsapp_message()
 	frappe.db.commit()
 	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments")
 
@@ -473,6 +477,95 @@ def create_custom_field_on_bpak_template():
 			"label": "Specification Number Template",
 			"options": "Specification Number Template",
 			"insert_after": "serial_no_series",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_opportunity():
+	fields = [
+		{
+			"dt": "Opportunity",
+			"fieldname": "deal_tab",
+			"fieldtype": "Tab Break",
+			"label": "Deal",
+			"insert_after": "total",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "participants_section",
+			"fieldtype": "Section Break",
+			"label": "Participants",
+			"insert_after": "deal_tab",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "participants",
+			"fieldtype": "Table",
+			"label": "Participants",
+			"options": "Opportunity Participant",
+			"insert_after": "participants_section",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "deal_documents_section",
+			"fieldtype": "Section Break",
+			"label": "Deal Documents",
+			"insert_after": "participants",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "deal_documents_html",
+			"fieldtype": "HTML",
+			"label": "Deal Documents",
+			"insert_after": "deal_documents_section",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_quotation():
+	fields = [
+		{
+			"dt": "Quotation",
+			"fieldname": "negotiation_status",
+			"fieldtype": "Select",
+			"label": "Negotiation Status",
+			"options": "\nDraft\nInternal Approval\nSent to Client\nFeedback Received\nNeeds Editing\nResent\nApproved\nPartially Approved\nRejected\nConverted to Sales Order",
+			"insert_after": "status",
+			"in_standard_filter": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_quotation_item():
+	fields = [
+		{
+			"dt": "Quotation Item",
+			"fieldname": "supply_status",
+			"fieldtype": "Select",
+			"label": "Supply Status",
+			"options": "\nFinished Goods\nNeeds Production\nNeeds R&D\nPartially In Stock\nAwaiting Purchase\nNeeds Technical Approval\nUnavailable",
+			"insert_after": "stock_uom",
+			"in_list_view": 0,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_fields_on_whatsapp_message():
+	# Stores the failure reason from Meta's status webhook (e.g. error 131047
+	# "Re-engagement message") so the Chat Center can show why a send failed.
+	fields = [
+		{
+			"dt": "WhatsApp Message",
+			"fieldname": "status_error",
+			"label": "Status Error",
+			"fieldtype": "Small Text",
+			"insert_after": "status",
+			"read_only": 1,
+			"no_copy": 1,
 		},
 	]
 	_create_custom_fields(fields)

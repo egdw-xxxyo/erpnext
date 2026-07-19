@@ -216,6 +216,27 @@ services:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
 
+  # Cloudflare Tunnel for public HTTPS (WhatsApp Cloud API webhook, etc.).
+  # Only starts when the "tunnel" compose profile is active — the deploy script
+  # enables it automatically when a .tunnel.env with TUNNEL_TOKEN is present.
+  # Ingress (hostname -> http://frontend:8080) is configured remotely in the
+  # Cloudflare Zero Trust dashboard; the token identifies the tunnel.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles:
+      - tunnel
+    networks:
+      - frappe_network
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+
 volumes:
   db-data:
   redis-queue-data:

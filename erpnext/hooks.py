@@ -325,6 +325,10 @@ period_closing_doctypes = [
 	"Subcontracting Receipt",
 ]
 
+override_doctype_dashboards = {
+	"Contact": "erpnext.crm.dashboard_overrides.get_contact_dashboard_data",
+}
+
 doc_events = {
 	"*": {
 		"validate": [
@@ -337,6 +341,16 @@ doc_events = {
 	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
+	},
+	"Opportunity": {
+		"validate": "erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
+	},
+	"Quotation": {
+		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
+	},
+	"WhatsApp Message": {
+		"after_insert": "erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
+		"on_update": "erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
 	},
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",

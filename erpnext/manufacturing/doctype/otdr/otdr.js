@@ -66,6 +66,16 @@ function render_live_status(frm) {
 		: pill(app_online, __("Застосунок підключено"), __("Застосунок недоступний"), app_sub)
 		  + pill(ble_ready, __("Пристрій BLE готовий"), __("Пристрій BLE недоступний"), ble_sub);
 
+	const app_version = s.app_version;
+	const min_version = s.min_app_version;
+	const app_client = s.app_client;
+	const app_incompatible = app_version && String(s.app_compatible || "") === "0";
+	const version_warn = app_incompatible ? `
+		<div style="margin-top: 12px; padding: 8px 10px; border-left: 3px solid #f0ad4e;
+			background: #fff8e5; color: #8a6d3b; font-size: 12px; max-width: 480px;">
+			${__("Версія застосунку ({0}) застаріла. Оновіть до {1} або новішої — логіку рефлектометра змінено.", [app_version, min_version])}
+		</div>` : "";
+
 	const row = (label, value) => value ? `
 		<tr>
 			<td style="padding: 4px 12px 4px 0; color: var(--text-muted);">${label}</td>
@@ -93,8 +103,12 @@ function render_live_status(frm) {
 				${row(__("Стан"), s.status)}
 				${row(__("Файл"), s.file)}
 				${row(__("Останнє звернення"), s.last_seen)}
+				${row(__("Клієнт"), app_client)}
+				${row(__("Версія застосунку"), app_version)}
+				${row(__("Мін. сумісна версія"), min_version)}
 			</table>
 			${bar_html}
+			${version_warn}
 		</div>
 	`);
 }

@@ -1206,5 +1206,6 @@
  "sort_order": "DESC",
  "states": [],
  "timeline_field": "party_name",
- "title_field": "title"
+ "title_field": "title",
+ "track_changes": 1
 }

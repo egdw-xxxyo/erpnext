@@ -79,6 +79,17 @@ if [ -z "${PUBLIC_SERVER_URL:-}" ]; then
   fi
 fi
 
+# Cloudflare Tunnel (optional, per-host). When .tunnel.env with a TUNNEL_TOKEN is
+# present, enable the "tunnel" compose profile so `dc up -d` also starts the
+# cloudflared sidecar automatically. Absent on localhost => nothing happens.
+if [ -f "$DIR/.tunnel.env" ]; then
+  set -a; . "$DIR/.tunnel.env"; set +a
+  if [ -n "${TUNNEL_TOKEN:-}" ]; then
+    export TUNNEL_TOKEN
+    export COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}tunnel"
+  fi
+fi
+
 # Extra apps config: apps.json in repo root.
 # [{ "name": ..., "repo": ..., "branch": ..., "enabled": true }]
 extra_apps_enabled() {
@@ -125,8 +136,20 @@ wait_for_backend() {
 }
 
 build_image() {
+  # Hash the remote HEAD of every app in apps.json so the Docker clone layer is
+  # invalidated whenever any fork moves (otherwise the clone is cached forever and
+  # fork pushes never reach the image). Empty/offline -> stable 0, layer stays cached.
+  local apps_bust="0"
+  if [ -f "$DIR/apps.json" ]; then
+    apps_bust=$(python3 -c "import json;[print(a['repo'],a['branch']) for a in json.load(open('$DIR/apps.json'))]" \
+      | while read -r repo branch; do git ls-remote "$repo" "$branch" 2>/dev/null | awk '{print $1}'; done \
+      | cksum | awk '{print $1}')
+    [ -n "$apps_bust" ] || apps_bust="0"
+  fi
+  say "==> Extra-apps cache key: $apps_bust"
   say "==> Building full image (all source baked in)..."
   docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
+    --build-arg "APPS_CACHE_BUST=$apps_bust" \
     -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || return 1
   say "==> Pruning dangling images..."
   docker image prune -f --filter "dangling=true" >/dev/null

@@ -73,6 +73,7 @@ class WhatsAppChat {
 			<div class="wa-chat">
 				<div class="wa-sidebar">
 					<div class="wa-search">
+						<button class="btn btn-primary btn-xs wa-new-chat" style="width:100%;margin-bottom:6px;">+ ${__("New chat")}</button>
 						<input type="text" class="form-control input-xs wa-search-input" placeholder="${__("Search number or name")}">
 						<select class="form-control input-xs wa-manager-filter" style="margin-top:6px;">
 							<option value="">${__("All managers")}</option>
@@ -91,6 +92,7 @@ class WhatsAppChat {
 						<div class="wa-compose">
 							<button class="btn btn-default btn-sm wa-attach" title="${__("Attach file")}">📎</button>
 							<button class="btn btn-default btn-sm wa-emoji" title="${__("Add emoji")}">😊</button>
+							<button class="btn btn-default btn-sm wa-template" title="${__("Send template")}">📋</button>
 							<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
 							<button class="btn btn-primary btn-sm wa-send">${__("Send")}</button>
 						</div>
@@ -113,9 +115,11 @@ class WhatsAppChat {
 		this.$manager = this.page.main.find(".wa-manager-filter");
 		this.$context = this.page.main.find(".wa-context");
 
+		this.page.main.find(".wa-new-chat").on("click", () => this.new_chat_prompt());
 		this.page.main.find(".wa-send").on("click", () => this.send());
 		this.page.main.find(".wa-attach").on("click", () => this.attach_media());
 		this.page.main.find(".wa-emoji").on("click", (e) => this.emoji_picker(e));
+		this.page.main.find(".wa-template").on("click", () => this.template_dialog());
 		this.$replyBar.find(".wa-reply-cancel").on("click", () => this.set_reply(null));
 		this.$input.on("keydown", (e) => {
 			if (e.key === "Enter" && !e.shiftKey) {
@@ -155,6 +159,10 @@ class WhatsAppChat {
 		.wa-caption{white-space:pre-wrap;margin-top:4px;}
 		.wa-quote{border-left:3px solid var(--primary);padding:2px 6px;margin-bottom:4px;background:rgba(0,0,0,.05);border-radius:4px;font-size:11px;opacity:.85;}
 		.wa-quote .wa-quote-author{font-weight:600;}
+		.wa-bubble-failed{border:1px solid #e24c4c;}
+		.wa-fail{margin-top:4px;font-size:11px;color:#c0392b;background:rgba(226,76,76,.08);border-radius:4px;padding:3px 6px;white-space:pre-wrap;}
+		.wa-resend{display:inline-block;margin-left:6px;cursor:pointer;font-weight:600;color:#c0392b;text-decoration:underline;white-space:nowrap;}
+		.wa-resend:hover{color:#e24c4c;}
 		.wa-reactions{position:absolute;bottom:-11px;right:6px;display:flex;gap:2px;}
 		.wa-react-badge{background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:0 4px;font-size:11px;line-height:16px;box-shadow:0 1px 2px rgba(0,0,0,.15);}
 		.wa-bubble-actions{position:absolute;top:-10px;display:none;gap:2px;}
@@ -233,7 +241,8 @@ class WhatsAppChat {
 		const msgs = await frappe.db.get_list("WhatsApp Message", {
 			fields: [
 				"name", "type", "from", "to", "message", "profile_name", "creation",
-				"status", "content_type", "attach", "message_id", "reply_to_message_id", "is_reply",
+				"status", "status_error", "content_type", "attach", "message_id",
+				"reply_to_message_id", "is_reply",
 			],
 			order_by: "creation asc",
 			limit: 1000,
@@ -250,13 +259,46 @@ class WhatsAppChat {
 			c.messages.push(m);
 			c.last = m;
 		}
+		// Keep an open but empty conversation (new chat / deep-link to a number with no
+		// messages yet) alive across the rebuild above so it doesn't vanish on poll.
+		if (this.active && !this.conversations[this.active]) {
+			this.conversations[this.active] = { number: this.active, name: this.active, messages: [] };
+		}
 		this.render_list();
 		if (this.active && this.conversations[this.active]) this.render_thread(!silent);
-		if (this.pending_open && this.conversations[this.pending_open]) {
-			const p = this.pending_open;
+		if (this.pending_open) {
+			const p = this.ensure_conv(this.pending_open);
 			this.pending_open = null;
-			this.open(p);
+			if (p) this.open(p);
 		}
+	}
+
+	// Normalize to a digits-only number and make sure a conversation entry exists.
+	ensure_conv(raw) {
+		const number = String(raw || "").replace(/\D/g, "");
+		if (!number) return null;
+		if (!this.conversations[number]) {
+			this.conversations[number] = { number, name: number, messages: [] };
+		}
+		return number;
+	}
+
+	// Open (or create) a conversation for an arbitrary number, e.g. from the New chat button.
+	open_new(raw) {
+		const number = this.ensure_conv(raw);
+		if (!number) return;
+		this.render_list();
+		this.open(number);
+	}
+
+	new_chat_prompt() {
+		frappe.prompt(
+			[{ fieldname: "phone", fieldtype: "Data", label: __("Phone number"), reqd: 1,
+				description: __("Include country code, e.g. 380XXXXXXXXX") }],
+			({ phone }) => this.open_new(phone),
+			__("New chat"),
+			__("Start")
+		);
 	}
 
 	render_list() {
@@ -356,7 +398,16 @@ class WhatsAppChat {
 			if (m.content_type === "reaction") continue; // rendered as badges, not bubbles
 			const out = m.type === "Outgoing";
 			const time = moment.tz(m.creation, sys_tz).local().format("HH:mm");
+			const failed = out && (m.status || "").toLowerCase() === "failed";
 			const status = out ? ` · ${frappe.utils.escape_html(m.status || "")}` : "";
+
+			// Failure notice + Resend for outgoing messages Meta rejected.
+			let fail_html = "";
+			if (failed && m.content_type !== "reaction") {
+				const reason = frappe.utils.escape_html(m.status_error || __("Message failed to send"));
+				fail_html = `<div class="wa-fail">⚠ ${reason}
+					<span class="wa-resend" title="${__("Resend")}">↻ ${__("Resend")}</span></div>`;
+			}
 
 			// Reply quote.
 			let quote = "";
@@ -385,7 +436,7 @@ class WhatsAppChat {
 			const $b = $(
 				`<div class="wa-bubble ${out ? "wa-out" : "wa-in"}" data-mid="${frappe.utils.escape_html(
 					m.message_id || ""
-				)}">${actions}${quote}${this.render_body(m)}<div class="wa-meta">${time}${status}</div>${react_html}</div>`
+				)} ${failed ? "wa-bubble-failed" : ""}">${actions}${quote}${this.render_body(m)}<div class="wa-meta">${time}${status}</div>${fail_html}${react_html}</div>`
 			);
 			$b.data("msg", m);
 			this.$thread.append($b);
@@ -399,8 +450,44 @@ class WhatsAppChat {
 			this.set_reply({ message_id: m.message_id, preview: this.preview_text(m) });
 		});
 		this.$thread.find(".wa-do-react").on("click", (e) => this.react_popover(e));
+		this.$thread.find(".wa-resend").on("click", (e) => {
+			const m = $(e.currentTarget).closest(".wa-bubble").data("msg");
+			this.resend(m);
+		});
 
 		if (scroll) this.$thread.scrollTop(this.$thread[0].scrollHeight);
+	}
+
+	// Re-send a message that Meta rejected, as a fresh outgoing message.
+	async resend(m) {
+		if (!m || !this.active) return;
+		frappe.dom.freeze(__("Resending..."));
+		try {
+			if (MEDIA_TYPES.includes(m.content_type) && m.attach) {
+				await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_media", {
+					phone: this.active,
+					attach: m.attach,
+					content_type: m.content_type,
+					caption: (m.message || "").replace(/<[^>]*>/g, "").trim(),
+				});
+			} else {
+				const text = (m.message || "").replace(/<[^>]*>/g, "").trim();
+				if (!text) {
+					frappe.msgprint(__("Nothing to resend"));
+					return;
+				}
+				await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_text", {
+					phone: this.active,
+					message: text,
+				});
+			}
+			await this.refresh();
+			this.render_thread(true);
+		} catch (e) {
+			frappe.msgprint(__("Failed to resend"));
+		} finally {
+			frappe.dom.unfreeze();
+		}
 	}
 
 	set_reply(reply) {
@@ -496,6 +583,93 @@ class WhatsAppChat {
 			el.selectionStart = el.selectionEnd = start + emoji.length;
 		});
 		setTimeout(() => $(document).one("click", () => $pop.remove()), 0);
+	}
+
+	// Send an approved template — the only way to message a number outside Meta's 24h
+	// customer-service window (free text/media get rejected with error 131047).
+	async template_dialog() {
+		if (!this.active) return;
+		let templates;
+		try {
+			templates = await frappe.xcall(
+				"erpnext.crm.page.whatsapp_chat.whatsapp_chat.list_templates"
+			);
+		} catch (e) {
+			frappe.msgprint(__("Could not load templates"));
+			return;
+		}
+		if (!templates || !templates.length) {
+			frappe.msgprint(
+				__("No approved templates found. Create and sync a WhatsApp Template first.")
+			);
+			return;
+		}
+
+		// hello_world is a Meta sample only sendable from Public Test Numbers (error 131058).
+		templates = templates.filter((t) => t.template_name !== "hello_world");
+		if (!templates.length) {
+			frappe.msgprint(__("No approved templates found. Create and sync a WhatsApp Template first."));
+			return;
+		}
+		const by_name = {};
+		templates.forEach((t) => (by_name[t.name] = t));
+
+		// Step 1: pick the template. Plain-string options so the selected docname is
+		// returned verbatim (object {value,label} options don't bind in frappe.prompt).
+		frappe.prompt(
+			[
+				{
+					fieldname: "template",
+					label: __("Template"),
+					fieldtype: "Select",
+					reqd: 1,
+					options: templates.map((t) => t.name).join("\n"),
+					default: templates[0].name,
+				},
+			],
+			({ template }) => {
+				const t = by_name[template];
+				if (t && (t.params || []).length) {
+					// Step 2: fill the template's body placeholders.
+					frappe.prompt(
+						t.params.map((p, i) => ({
+							fieldname: `param_${i}`,
+							label: p,
+							fieldtype: "Data",
+							reqd: 1,
+						})),
+						(vals) => {
+							const body = {};
+							t.params.forEach((p, i) => (body[p] = vals[`param_${i}`]));
+							this._send_template(template, body);
+						},
+						__("Template parameters"),
+						__("Send")
+					);
+				} else {
+					this._send_template(template, null);
+				}
+			},
+			__("Send template"),
+			__("Next")
+		);
+	}
+
+	async _send_template(template, body_params) {
+		frappe.dom.freeze(__("Sending..."));
+		try {
+			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_template", {
+				phone: this.active,
+				template,
+				body_params: body_params ? JSON.stringify(body_params) : null,
+			});
+			await this.refresh();
+			this.render_thread(true);
+		} catch (e) {
+			frappe.msgprint(__("Failed to send template"));
+		} finally {
+			frappe.dom.unfreeze();
+		}
 	}
 
 	async load_context(number) {

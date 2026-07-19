@@ -25,8 +25,13 @@ RUN cd /home/frappe/frappe-bench \
 # All apps are cloned regardless of "enabled" so bench uninstall-app can
 # run when an app is disabled (it needs the app code present). The
 # "enabled" flag only controls site install/uninstall in ./deploy.
+# Cache-bust for the extra-apps clone below: ./deploy sets this to a hash of the
+# remote HEADs of every app in apps.json, so a fork push forces a fresh clone
+# (Docker otherwise caches this RUN layer forever and never re-pulls fork changes).
+ARG APPS_CACHE_BUST=0
 COPY apps.json /tmp/apps.json
-RUN python3 -c "import json; [print(a['name'], a['repo'], a['branch']) for a in json.load(open('/tmp/apps.json'))]" > /tmp/extra_apps.txt \
+RUN echo "apps-cache-bust: $APPS_CACHE_BUST" \
+    && python3 -c "import json; [print(a['name'], a['repo'], a['branch']) for a in json.load(open('/tmp/apps.json'))]" > /tmp/extra_apps.txt \
     && sed -i -e '$a\' /home/frappe/frappe-bench/sites/apps.txt \
     && while read name repo branch; do \
          git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name" \

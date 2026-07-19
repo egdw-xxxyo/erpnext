@@ -24,9 +24,11 @@ const WA_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentCo
 function inject_styles() {
 	if (document.getElementById("wa-phone-btn-styles")) return;
 	$(`<style id="wa-phone-btn-styles">
-		.control-input .link-btn.wa-phone-btn { z-index: 2; }
-		.link-btn.wa-phone-btn a { color: #25d366; }
-		.link-btn.wa-phone-btn a:hover { color: #1da851; }
+		.control-input-wrapper { position: relative; }
+		.wa-phone-btn { position: absolute; top: 0; right: 8px; height: var(--input-height, 28px);
+			display: flex; align-items: center; z-index: 3; }
+		.wa-phone-btn a { color: #25d366; cursor: pointer; line-height: 0; }
+		.wa-phone-btn a:hover { color: #1da851; }
 	</style>`).appendTo(document.head);
 }
 
@@ -39,26 +41,38 @@ frappe.ui.form.ControlData.prototype.make_input = function () {
 };
 
 frappe.ui.form.ControlData.prototype.setup_whatsapp_btn = function () {
-	const $control_input = this.$wrapper.find(".control-input").first();
-	if (!$control_input.length || $control_input.find(".wa-phone-btn").length) return;
+	// Append into .control-input-wrapper (parent of both the editable .control-input and the
+	// read-only .control-value), so the icon shows in both modes — many phone fields (e.g.
+	// Contact.mobile_no/phone) are read-only, auto-filled from a child table.
+	const $wrapper = (this.$input_wrapper && this.$input_wrapper.length
+		? this.$input_wrapper
+		: this.$wrapper.find(".control-input-wrapper")
+	).first();
+	if (!$wrapper.length || $wrapper.find(".wa-phone-btn").length) return;
 
 	inject_styles();
 
-	$control_input.append(
-		`<span class="link-btn wa-phone-btn" style="display:none;">
+	$wrapper.append(
+		`<span class="wa-phone-btn" style="display:none;">
 			<a class="btn-open no-decoration" title="${__("Open WhatsApp chat")}">${WA_ICON}</a>
 		</span>`
 	);
 
-	const $btn = $control_input.find(".wa-phone-btn");
+	const $btn = $wrapper.find(".wa-phone-btn");
 	const refresh_btn = () => $btn.toggle(/\d/.test(this.get_value() || ""));
 
-	// Show whenever the field holds digits (persistent, not focus-gated). Refresh on typing
-	// and on programmatic value set (form load / fetch_from).
-	this.$input.on("input", refresh_btn);
+	// Show whenever the field holds digits (persistent, not focus-gated). Refresh on typing,
+	// on programmatic value set in edit mode (set_formatted_input), and on read-only display
+	// refresh (set_disp_area).
+	if (this.$input) this.$input.on("input", refresh_btn);
 	const _orig_sfi = this.set_formatted_input.bind(this);
 	this.set_formatted_input = (value) => {
 		_orig_sfi(value);
+		refresh_btn();
+	};
+	const _orig_sda = this.set_disp_area.bind(this);
+	this.set_disp_area = (value) => {
+		_orig_sda(value);
 		refresh_btn();
 	};
 	refresh_btn();

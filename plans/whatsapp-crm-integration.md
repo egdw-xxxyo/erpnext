@@ -93,6 +93,16 @@ Per repo CLAUDE.md: new **DocTypes** → JSON + `__init__.py` committed to repo,
 6. **Quotation**: versioning + item-change log + negotiation status + supply status.
 7. **Funnel report/dashboard** + SO linkage.
 
+## Voice calling — parked (blocked by Meta account gate)
+
+Checked 2026-07-18. WhatsApp Business Calling API (Cloud API) exists and Ukraine numbers are not country-blocked, but **enabling it on our WABA is refused by Meta**:
+
+- `POST /{phone_id}/settings {calling.status=ENABLED}` → error `138015` "Calling APIs cannot be enabled for this phone number."
+- Root cause: owning business **"Ukrerpnext"** (`1043177705117859`) is `business_verification_status: not_verified`; WABA is a test account ("Test WhatsApp Business Account", `verified_name: Тест`, `is_official_business_account: false`, `TIER_250`).
+- GET `/settings` returning `calling.status: NOT_SET` is just a schema default, **not** a green light — the POST is the real gate.
+
+**To unlock later:** (1) complete Business Verification in Meta Business Manager → Security Center; (2) submit display name for review → get Official Business Account; (3) re-run the enable POST — if still `138015`, go via a BSP (Infobip/LivePerson). Then build a WebRTC softphone in the desk (mic capture, SDP offer/answer via `/calls`, ICE/TURN, ringing/hangup UI). Nothing code-side fixes the gate.
+
 ## Open items to confirm with business
 - Exact negotiation status list (spec 5.2 explicitly defers).
 - Bridge provider choice (whatsapp-web.js self-host vs Green API SaaS) — ToS/ban tolerance.

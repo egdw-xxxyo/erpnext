@@ -4,6 +4,16 @@
 - **`~/git/otdr-sync-android/`** — Android sync application (Kotlin, Jetpack Compose). Core sync scope only: BLE scan/pair, auto-sync `.sor` download, ERPNext `submit_measurement` upload, sync status UI, ERP config. Same protocol constants as desktop (`~/git/otdr-sync/st3200_sync/ble/protocol.py`).
 - **`~/git/otdr/`** — BLE protocol findings / reverse-engineering notes (`FINDINGS.md`).
 
+## WhatsApp integration
+
+WhatsApp lives in the **`frappe_whatsapp`** app (Meta Cloud API). **Use our fork, not upstream:**
+
+- **Repo**: `https://github.com/egdw-xxxyo/frappe_whatsapp.git`, branch `master` (configured in `apps.json` / `apps.json.example`).
+- **All WhatsApp app-side improvements** (webhook, message doctype, send path, templates, flows) go into this fork — commit + push there, then `./deploy build --silent` re-clones it into the image. There is no local submodule; the image clones from the remote.
+- **ERPNext-side WhatsApp code** (not the app) lives under `erpnext/`: the Chat Center page `erpnext/crm/page/whatsapp_chat/` (+ its realtime handler `whatsapp_chat.py`) and the `WhatsApp Message` `doc_events` hook in `erpnext/hooks.py`. These stay in the erpnext repo.
+- Decide by layer: transport/protocol/message-model change → fork; desk UI / CRM linking / realtime page → erpnext repo.
+- Roadmap + gap analysis: `plans/whatsapp-crm-integration.md`.
+
 ## Multi-client parity (desktop + Android)
 
 Device-side functionality lives in two client apps:
