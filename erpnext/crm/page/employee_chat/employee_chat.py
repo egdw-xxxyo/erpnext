@@ -602,29 +602,64 @@ def rename_thread(thread, title):
 
 @frappe.whitelist()
 def search_employees(txt=None):
-	"""Active employees with a login, for the new-chat and add-people pickers."""
-	filters = [["Employee", "status", "=", "Active"], ["Employee", "user_id", "is", "set"]]
+	"""People to start a chat with, for the new-chat and add-people pickers.
+
+	The chat is keyed on `User`, not `Employee`, so the list is every enabled internal
+	(System User) login — not only staff who happen to have an Employee record with
+	`user_id` filled. Website/portal accounts and the built-ins are excluded so the
+	picker never offers a customer. Employee name/department decorate a row when the
+	user has an Employee, otherwise the user's own full name is used.
+
+	The return shape is unchanged (`user_id`, `employee_name`, `department`, `image`,
+	`secret_ready`) so the client pickers need no change."""
+	filters = [
+		["User", "enabled", "=", 1],
+		["User", "user_type", "=", "System User"],
+		["User", "name", "not in", ["Administrator", "Guest", frappe.session.user]],
+	]
 	or_filters = None
 	if txt:
 		like = "%" + txt + "%"
 		or_filters = [
-			["Employee", "employee_name", "like", like],
-			["Employee", "user_id", "like", like],
+			["User", "full_name", "like", like],
+			["User", "name", "like", like],
 		]
-	rows = frappe.get_all(
-		"Employee",
+	users = frappe.get_all(
+		"User",
 		filters=filters,
 		or_filters=or_filters,
-		fields=["name", "employee_name", "user_id", "department", "image"],
-		order_by="employee_name asc",
+		fields=["name", "full_name", "user_image"],
+		order_by="full_name asc",
 		limit=50,
 	)
-	rows = [r for r in rows if r.user_id != frappe.session.user]
+	if not users:
+		return []
 
+	emails = [u.name for u in users]
+	# One lookup for the Employee decoration instead of one per row.
+	emp_by_user = {
+		e.user_id: e
+		for e in frappe.get_all(
+			"Employee",
+			filters={"user_id": ["in", emails]},
+			fields=["user_id", "employee_name", "department", "image"],
+		)
+	}
 	# The secret-chat picker needs to know who can receive an encrypted thread key.
 	enrolled = set(frappe.get_all("Chat Encryption Key", pluck="user"))
-	for r in rows:
-		r["secret_ready"] = 1 if r.user_id in enrolled else 0
+
+	rows = []
+	for u in users:
+		emp = emp_by_user.get(u.name)
+		rows.append(
+			{
+				"user_id": u.name,
+				"employee_name": (emp.employee_name if emp else None) or u.full_name or u.name,
+				"department": emp.department if emp else None,
+				"image": (emp.image if emp else None) or u.user_image,
+				"secret_ready": 1 if u.name in enrolled else 0,
+			}
+		)
 	return rows
 
 
