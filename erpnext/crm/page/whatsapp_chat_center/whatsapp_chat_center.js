@@ -57,7 +57,15 @@ class WhatsAppChat {
 		this.load_managers();
 		this.load_account().then(() => this.refresh());
 		// realtime push from server on new/updated WhatsApp Message
-		this.on_rt = () => this.refresh(true);
+		// Incoming messages ring (unless the conversation is muted); everything else just
+		// refreshes.
+		this.on_rt = (d) => {
+			if (d && d.type === "Incoming" && d.number) {
+				const c = this.conversations[d.number];
+				erpnext.chat_sound.play(c && c.muted);
+			}
+			this.refresh(true);
+		};
 		frappe.realtime.on("whatsapp_message", this.on_rt);
 		// Another tab of ours read a conversation — drop the badge here too.
 		frappe.realtime.on("whatsapp_read", this.on_rt);
@@ -141,6 +149,7 @@ class WhatsAppChat {
 
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
+		erpnext.chat_sound.inject_styles();
 		if (document.getElementById("wa-chat-styles-v5")) return;
 		const css = `
 		.wa-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
@@ -263,6 +272,7 @@ class WhatsAppChat {
 				// The open conversation is read by definition — the server cursor catches
 				// up on the mark_read below, the badge must not flash in the meantime.
 				unread: c.phone === this.active ? 0 : c.unread || 0,
+				muted: c.muted || 0,
 				messages: prev.messages || [],
 				all_loaded: !!prev.all_loaded,
 			};
@@ -441,13 +451,7 @@ class WhatsAppChat {
 		this.$thread.empty();
 		this.$compose.show();
 		const c = this.conversations[number];
-		// The title opens the chat overview (contact, linked records, media, files, links).
-		this.$header
-			.html(`<span class="wa-header-title"></span>`)
-			.find(".wa-header-title")
-			.text(c.name === number ? number : `${c.name} · ${number}`)
-			.attr("title", __("Chat info"))
-			.on("click", () => this.show_info());
+		this.render_header(number);
 		this.load_context(number);
 		this.load_page();
 		this.mark_read(number);
@@ -790,6 +794,41 @@ class WhatsAppChat {
 		}
 	}
 
+	// Header: the title opens the chat overview, the bell mutes the conversation.
+	render_header(number) {
+		const c = this.conversations[number] || { number, name: number };
+		this.$header.html(
+			`<span class="wa-header-title"></span>${erpnext.chat_sound.button_html(c.muted)}`
+		);
+		this.$header
+			.find(".wa-header-title")
+			.text(c.name === number ? number : `${c.name} · ${number}`)
+			.attr("title", __("Chat info"))
+			.on("click", () => this.show_info());
+		this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute(number));
+	}
+
+	async toggle_mute(number) {
+		const c = this.conversations[number];
+		if (!c) return;
+		const muted = c.muted ? 0 : 1;
+		c.muted = muted;
+		this.render_header(number);
+		try {
+			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.set_muted", {
+				phone: number,
+				muted,
+			});
+		} catch (e) {
+			c.muted = muted ? 0 : 1;
+			this.render_header(number);
+		}
+		frappe.show_alert({
+			message: muted ? __("Chat muted") : __("Chat unmuted"),
+			indicator: "blue",
+		});
+	}
+
 	// --- chat overview -----------------------------------------------------
 
 	async show_info() {
@@ -846,9 +885,18 @@ class WhatsAppChat {
 				on_click: () => frappe.set_route("Form", e.doctype, e.name),
 			}));
 
-		erpnext.chat_info.show({
+		const dialog = erpnext.chat_info.show({
 			title: info.title,
 			subtitle: info.phone,
+			actions: [
+				{
+					label: info.muted ? __("Unmute chat") : __("Mute chat"),
+					on_click: async () => {
+						await this.toggle_mute(this.active);
+						dialog.hide();
+					},
+				},
+			],
 			source: "whatsapp",
 			people,
 			media,

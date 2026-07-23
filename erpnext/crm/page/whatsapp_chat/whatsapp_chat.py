@@ -167,12 +167,20 @@ def get_chats(manager=None):
 	backfill_previews(chats)
 
 	unread = _unread_counts([c["phone"] for c in chats if c.get("phone")])
+	muted = set(
+		frappe.get_all(
+			"WhatsApp Chat Read",
+			filters={"user": frappe.session.user, "muted": 1},
+			pluck="chat",
+		)
+	)
 	for c in chats:
 		c["preview"] = c.pop("last_preview", None) or ""
 		c["preview_content_type"] = c.pop("last_content_type", None)
 		if not c.get("title"):
 			c["title"] = c["phone"]
 		c["unread"] = unread.get(c["phone"], 0)
+		c["muted"] = 1 if c["name"] in muted else 0
 	return chats
 
 
@@ -212,28 +220,48 @@ def _unread_counts(phones):
 	return {r.phone: r.unread for r in rows}
 
 
+def _set_chat_state(phone, values):
+	"""Upsert the current user's state row (read cursor / mute) for a conversation."""
+	chat = frappe.db.exists("WhatsApp Chat", {"phone": _digits(phone)})
+	if not chat:
+		return None
+
+	name = f"{chat}::{frappe.session.user}"
+	if frappe.db.exists("WhatsApp Chat Read", name):
+		frappe.db.set_value("WhatsApp Chat Read", name, values, update_modified=False)
+	else:
+		frappe.get_doc(
+			dict(
+				{
+					"doctype": "WhatsApp Chat Read",
+					"chat": chat,
+					"user": frappe.session.user,
+				},
+				**values,
+			)
+		).insert(ignore_permissions=True)
+	return name
+
+
+@frappe.whitelist()
+def set_muted(phone, muted):
+	"""Mute/unmute a conversation for the current user only — it silences the
+	notification sound, nothing else."""
+	_require_wa_access()
+	muted = 1 if int(muted or 0) else 0
+	if not _set_chat_state(phone, {"muted": muted}):
+		return {}
+	return {"muted": muted}
+
+
 @frappe.whitelist()
 def mark_read(phone):
 	"""Move the current user's read cursor for this conversation to now."""
 	_require_wa_access()
 	phone = _digits(phone)
-	chat = frappe.db.exists("WhatsApp Chat", {"phone": phone})
-	if not chat:
-		return {}
-
 	ts = now()
-	name = f"{chat}::{frappe.session.user}"
-	if frappe.db.exists("WhatsApp Chat Read", name):
-		frappe.db.set_value("WhatsApp Chat Read", name, "last_read_on", ts, update_modified=False)
-	else:
-		frappe.get_doc(
-			{
-				"doctype": "WhatsApp Chat Read",
-				"chat": chat,
-				"user": frappe.session.user,
-				"last_read_on": ts,
-			}
-		).insert(ignore_permissions=True)
+	if not _set_chat_state(phone, {"last_read_on": ts}):
+		return {}
 
 	# Other tabs of the same user (chat page, chat bubble) drop their badge at once.
 	frappe.publish_realtime(
@@ -376,9 +404,14 @@ def get_chat_overview(phone, limit=200):
 			if len(links) < limit:
 				links.append(dict(item, url=url))
 
+	muted = frappe.db.get_value(
+		"WhatsApp Chat Read", f"{chat.name}::{frappe.session.user}", "muted"
+	) if chat else 0
+
 	return {
 		"phone": phone,
 		"title": (chat.title if chat else None) or phone,
+		"muted": muted or 0,
 		"contact": context.get("contact"),
 		"managers": context.get("managers", []),
 		"linked": context.get("linked", []),

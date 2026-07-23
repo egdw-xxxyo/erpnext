@@ -179,9 +179,11 @@ def get_threads():
 		parts = frappe.get_all(
 			"Chat Participant",
 			filters={"parenttype": "Chat Thread", "parent": t["name"]},
-			fields=["user", "employee_name", "role", "last_read_on"],
+			fields=["user", "employee_name", "role", "last_read_on", "muted"],
 		)
 		t["participants"] = parts
+		mine = next((p for p in parts if p.user == me), None)
+		t["muted"] = mine.muted if mine else 0
 		others = [p for p in parts if p.user != me]
 		if t["thread_type"] == "Direct" and others:
 			o = others[0]
@@ -380,6 +382,23 @@ def mark_read(thread):
 
 
 @frappe.whitelist()
+def set_muted(thread, muted):
+	"""Mute/unmute a thread for the current user only — it silences the notification
+	sound, nothing else (the thread still updates and still counts as unread)."""
+	_require_participant(thread)
+	name = frappe.db.get_value(
+		"Chat Participant",
+		{"parenttype": "Chat Thread", "parent": thread, "user": frappe.session.user},
+		"name",
+	)
+	if not name:
+		return {}
+	muted = 1 if int(muted or 0) else 0
+	frappe.db.set_value("Chat Participant", name, "muted", muted, update_modified=False)
+	return {"muted": muted}
+
+
+@frappe.whitelist()
 def set_reaction(message, emoji):
 	"""Add the current user's reaction to a message and broadcast the new reaction map."""
 	return _mutate_reaction(message, emoji, add=True)
@@ -553,9 +572,12 @@ def get_thread_info(thread, limit=200):
 					}
 				)
 
+	me_row = next((p for p in doc.participants if p.user == me), None)
+
 	return {
 		"thread": thread,
 		"thread_type": doc.thread_type,
+		"muted": me_row.muted if me_row else 0,
 		"title": doc.title,
 		"display_title": display_title,
 		"is_secret": doc.is_secret,

@@ -128,6 +128,7 @@ class EmployeeChat {
 
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
+		erpnext.chat_sound.inject_styles();
 		if (document.getElementById("ec-chat-styles-v2")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
@@ -286,15 +287,20 @@ class EmployeeChat {
 				.attr("title", __("Chat info"))
 				.on("click", () => this.show_info());
 		};
+		const mute_html = t ? erpnext.chat_sound.button_html(t.muted) : "";
+		const bind_mute = () => {
+			this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
+		};
 		if (!t || !t.is_secret) {
-			this.$header.html(`<span class="ec-header-title"></span>`);
+			this.$header.html(`<span class="ec-header-title"></span>${mute_html}`);
 			this.$header.find(".ec-header-title").text(title);
 			bind_info();
+			bind_mute();
 			return;
 		}
 		const locked = !erpnext.chat_crypto.is_unlocked();
 		this.$header.html(
-			`🔒 <span class="ec-header-title"></span>${
+			`🔒 <span class="ec-header-title"></span>${mute_html}${
 				locked
 					? ` <button class="btn btn-xs btn-primary ec-unlock">${__("Unlock")}</button>`
 					: ""
@@ -302,9 +308,29 @@ class EmployeeChat {
 		);
 		this.$header.find(".ec-header-title").text(title);
 		bind_info();
+		bind_mute();
 		this.$header.find(".ec-unlock").on("click", async () => {
 			await erpnext.chat_crypto.ensure_unlocked();
 			if (erpnext.chat_crypto.is_unlocked()) this.open(this.active);
+		});
+	}
+
+	async toggle_mute() {
+		const t = this.threads[this.active];
+		if (!t) return;
+		const muted = t.muted ? 0 : 1;
+		t.muted = muted;
+		this.set_header(t);
+		try {
+			await frappe.xcall(API + "set_muted", { thread: this.active, muted });
+		} catch (e) {
+			t.muted = muted ? 0 : 1;
+			this.set_header(t);
+			return;
+		}
+		frappe.show_alert({
+			message: muted ? __("Chat muted") : __("Chat unmuted"),
+			indicator: "blue",
 		});
 	}
 
@@ -555,7 +581,15 @@ class EmployeeChat {
 					: null,
 		}));
 
-		const actions = [];
+		const actions = [
+			{
+				label: info.muted ? __("Unmute chat") : __("Mute chat"),
+				on_click: async () => {
+					await this.toggle_mute();
+					dialog.hide();
+				},
+			},
+		];
 		if (can_admin) {
 			actions.push({
 				label: __("Rename chat"),
@@ -702,6 +736,11 @@ class EmployeeChat {
 	// --- realtime handlers -------------------------------------------------
 
 	async on_realtime_message(d) {
+		// Someone else's message rings, unless this user muted the thread.
+		if (d && d.sender && d.sender !== this.me) {
+			const t = this.threads[d.thread];
+			erpnext.chat_sound.play(t && t.muted);
+		}
 		if (d && d.thread === this.active && d.name) {
 			// avoid duplicating our own optimistic append
 			if (this.push_message(d)) {

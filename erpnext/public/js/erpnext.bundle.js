@@ -44,6 +44,7 @@ import "./purchase_trends_filters.js";
 import "./chat_crypto.js";
 import "./chat_media.js";
 import "./chat_info.js";
+import "./chat_sound.js";
 import "./whatsapp_form_panel.js";
 import "./whatsapp_phone_icon.js";
 import "./chat_bubble.js";

@@ -10,7 +10,8 @@
  "field_order": [
   "chat",
   "user",
-  "last_read_on"
+  "last_read_on",
+  "muted"
  ],
  "fields": [
   {
@@ -36,6 +37,13 @@
    "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Last Read On"
+  },
+  {
+   "default": "0",
+   "description": "Per-user: no notification sound for this conversation.",
+   "fieldname": "muted",
+   "fieldtype": "Check",
+   "label": "Muted"
   }
  ],
  "index_web_pages_for_search": 0,

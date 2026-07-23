@@ -9,7 +9,8 @@
   "employee",
   "employee_name",
   "role",
-  "last_read_on"
+  "last_read_on",
+  "muted"
  ],
  "fields": [
   {
@@ -46,6 +47,13 @@
    "fieldname": "last_read_on",
    "fieldtype": "Datetime",
    "label": "Last Read On"
+  },
+  {
+   "default": "0",
+   "description": "Per-user: no notification sound for this thread.",
+   "fieldname": "muted",
+   "fieldtype": "Check",
+   "label": "Muted"
   }
  ],
  "index_web_pages_for_search": 0,

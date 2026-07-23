@@ -77,6 +77,7 @@ class WhatsAppSource {
 			preview: c.preview,
 			time: c.last_message_on,
 			unread: c.unread || 0,
+			muted: c.muted || 0,
 		}));
 		return this.chats;
 	}
@@ -100,6 +101,10 @@ class WhatsAppSource {
 		} catch (e) {
 			// non-fatal — the badge reappears on the next poll
 		}
+	}
+
+	set_muted(id, muted) {
+		return frappe.xcall(`${WA_API}.set_muted`, { phone: id, muted });
 	}
 
 	send(id, text) {
@@ -134,6 +139,7 @@ class EmployeeChatSource {
 			preview: t.last_message_preview,
 			time: t.last_message_on,
 			unread: t.unread || 0,
+			muted: t.muted || 0,
 			is_secret: t.is_secret,
 		}));
 		return this.chats;
@@ -189,6 +195,10 @@ class EmployeeChatSource {
 		if (chat) chat.unread = 0;
 	}
 
+	set_muted(id, muted) {
+		return frappe.xcall(`${EC_API}.set_muted`, { thread: id, muted });
+	}
+
 	async send(id, text) {
 		if (!this.is_secret(id)) {
 			return frappe.xcall(`${EC_API}.send_message`, { thread: id, message: text });
@@ -221,11 +231,69 @@ class ChatBubble {
 		this.bind_events();
 		this.refresh();
 
-		this.on_rt = () => this.refresh();
+		this.on_rt = (d) => {
+			this.ring(d);
+			this.refresh();
+		};
 		this.sources.forEach((s) =>
 			s.realtime_events.forEach((ev) => frappe.realtime.on(ev, this.on_rt))
 		);
 		this.poll = setInterval(() => this.refresh(), 60000);
+	}
+
+	// A message from someone else rings, unless the conversation is muted for this user
+	// or the sound is switched off on this device.
+	ring(d) {
+		if (!d) return;
+		let chat = null;
+		if (d.type === "Incoming" && d.number) {
+			// WhatsApp: {name, number, type}
+			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find(
+				(c) => c.id === d.number
+			);
+		} else if (d.sender && d.sender !== frappe.session.user && d.thread) {
+			// Employee Chat: a full message payload
+			chat = (this.sources.find((s) => s.key === "employee")?.chats || []).find(
+				(c) => c.id === d.thread
+			);
+		} else {
+			return;
+		}
+		erpnext.chat_sound.play(chat && chat.muted);
+	}
+
+	render_sound_toggle() {
+		const on = erpnext.chat_sound.enabled();
+		this.$sound.text(on ? "🔊" : "🔇").attr(
+			"title",
+			on ? __("Notification sound is on") : __("Notification sound is off")
+		);
+	}
+
+	// The per-conversation mute is only meaningful with a thread open.
+	render_mute_toggle() {
+		const chat = this.active
+			? (this.source.chats || []).find((c) => c.id === this.active)
+			: null;
+		if (!chat || !this.source.set_muted) return this.$mute.hide();
+		this.$mute
+			.show()
+			.text(chat.muted ? "🔕" : "🔔")
+			.attr("title", chat.muted ? __("Unmute chat") : __("Mute chat"));
+	}
+
+	async toggle_mute() {
+		const chat = (this.source.chats || []).find((c) => c.id === this.active);
+		if (!chat || !this.source.set_muted) return;
+		const muted = chat.muted ? 0 : 1;
+		chat.muted = muted;
+		this.render_mute_toggle();
+		try {
+			await this.source.set_muted(this.active, muted);
+		} catch (e) {
+			chat.muted = muted ? 0 : 1;
+			this.render_mute_toggle();
+		}
 	}
 
 	inject_styles() {
@@ -298,6 +366,8 @@ class ChatBubble {
 				<div class="cb-head">
 					<span class="cb-act cb-back" title="${__("Back")}" style="display:none;">←</span>
 					<span class="cb-title">${__("Chat")}</span>
+					<span class="cb-act cb-mute" title="${__("Mute chat")}" style="display:none;"></span>
+					<span class="cb-act cb-sound" title="${__("Notification sound")}"></span>
 					<span class="cb-act cb-open-page" title="${__("Open full page")}">⤢</span>
 					<span class="cb-act cb-close" title="${__("Close")}">&times;</span>
 				</div>
@@ -317,6 +387,9 @@ class ChatBubble {
 		this.$badge = this.$fab.find(".cb-badge");
 		this.$title = this.$panel.find(".cb-title");
 		this.$back = this.$panel.find(".cb-back");
+		this.$mute = this.$panel.find(".cb-mute");
+		this.$sound = this.$panel.find(".cb-sound");
+		this.render_sound_toggle();
 		this.$compose = this.$panel.find(".cb-compose");
 		this.$input = this.$compose.find("textarea");
 		this.$panel.find(`.cb-tab[data-key="${this.source.key}"]`).addClass("active");
@@ -327,6 +400,11 @@ class ChatBubble {
 		this.$panel.find(".cb-close").on("click", () => this.toggle(false));
 		this.$back.on("click", () => this.show_list());
 		this.$panel.find(".cb-goto, .cb-open-page").on("click", () => this.goto_page());
+		this.$sound.on("click", () => {
+			erpnext.chat_sound.set_enabled(!erpnext.chat_sound.enabled());
+			this.render_sound_toggle();
+		});
+		this.$mute.on("click", () => this.toggle_mute());
 		this.$panel.find(".cb-send").on("click", () => this.send());
 		this.$input.on("keydown", (e) => {
 			if (e.key === "Enter" && !e.shiftKey) {
@@ -399,6 +477,7 @@ class ChatBubble {
 
 	show_list() {
 		this.active = null;
+		if (this.$mute) this.$mute.hide();
 		this.$back.hide();
 		this.$compose.hide();
 		this.$title.text(this.source.label);
@@ -430,6 +509,7 @@ class ChatBubble {
 		this.active = id;
 		const chat = (this.source.chats || []).find((c) => c.id === id);
 		this.$title.text(chat ? chat.title : id);
+		this.render_mute_toggle();
 		this.$back.show();
 		this.$compose.show();
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
