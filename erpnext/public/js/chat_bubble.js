@@ -5,7 +5,6 @@
 
 frappe.provide("erpnext.whatsapp");
 
-const CB_SEEN_KEY = "erpnext_wa_bubble_seen";
 
 const WA_API = "erpnext.crm.page.whatsapp_chat.whatsapp_chat";
 const EC_API = "erpnext.crm.page.employee_chat.employee_chat";
@@ -62,29 +61,12 @@ class WhatsAppSource {
 		this.key = "whatsapp";
 		this.label = __("WhatsApp");
 		this.page_route = "/app/whatsapp-chat-center";
-		this.realtime_events = ["whatsapp_message"];
+		this.realtime_events = ["whatsapp_message", "whatsapp_read"];
 		this.chats = [];
-		this.seen = this.load_seen();
 	}
 
 	static available() {
 		return erpnext.whatsapp.can_use();
-	}
-
-	load_seen() {
-		try {
-			return JSON.parse(localStorage.getItem(CB_SEEN_KEY) || "{}");
-		} catch (e) {
-			return {};
-		}
-	}
-
-	save_seen() {
-		try {
-			localStorage.setItem(CB_SEEN_KEY, JSON.stringify(this.seen));
-		} catch (e) {
-			// storage disabled — badge just stays noisy
-		}
 	}
 
 	async load_list() {
@@ -94,7 +76,7 @@ class WhatsAppSource {
 			title: c.title || c.phone,
 			preview: c.preview,
 			time: c.last_message_on,
-			unread: c.last_message_on && c.last_message_on > (this.seen[c.phone] || "") ? 1 : 0,
+			unread: c.unread || 0,
 		}));
 		return this.chats;
 	}
@@ -109,12 +91,14 @@ class WhatsAppSource {
 		}));
 	}
 
+	// Server-side read cursor (WhatsApp Chat Read), shared with the Chat Center page.
 	async mark_read(id) {
 		const chat = this.chats.find((c) => c.id === id);
-		if (chat && chat.time) {
-			this.seen[id] = chat.time;
-			this.save_seen();
-			chat.unread = 0;
+		if (chat) chat.unread = 0;
+		try {
+			await frappe.xcall(`${WA_API}.mark_read`, { phone: id });
+		} catch (e) {
+			// non-fatal — the badge reappears on the next poll
 		}
 	}
 

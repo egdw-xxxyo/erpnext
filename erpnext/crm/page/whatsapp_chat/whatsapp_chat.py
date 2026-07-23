@@ -3,6 +3,7 @@ import re
 
 import frappe
 from frappe import _
+from frappe.utils import add_days, now, nowdate
 
 # Doctypes whose forms can be reached from a chat's context panel and that carry a
 # `contact_person` link we can use for reverse lookups.
@@ -165,12 +166,83 @@ def get_chats(manager=None):
 	# fields are filled in once, on first read.
 	backfill_previews(chats)
 
+	unread = _unread_counts([c["phone"] for c in chats if c.get("phone")])
 	for c in chats:
 		c["preview"] = c.pop("last_preview", None) or ""
 		c["preview_content_type"] = c.pop("last_content_type", None)
 		if not c.get("title"):
 			c["title"] = c["phone"]
+		c["unread"] = unread.get(c["phone"], 0)
 	return chats
+
+
+# Unread counting only looks this far back: a conversation nobody ever opened would
+# otherwise report its entire history as unread, and count it on every list poll.
+UNREAD_WINDOW_DAYS = 90
+
+
+def _unread_counts(phones):
+	"""Incoming messages newer than the current user's read cursor, per conversation.
+
+	One grouped query for the whole list — the read cursor lives in `WhatsApp Chat Read`
+	(one row per user per chat), so this is the WhatsApp equivalent of the unread count
+	Employee Chat derives from `Chat Participant.last_read_on`."""
+	if not phones:
+		return {}
+
+	rows = frappe.db.sql(
+		"""
+		select m.`from` as phone, count(*) as unread
+		from `tabWhatsApp Message` m
+		left join `tabWhatsApp Chat Read` r
+			on r.chat = m.`from` and r.user = %(user)s
+		where m.type = 'Incoming'
+			and m.`from` in %(phones)s
+			and m.creation > %(window)s
+			and (r.last_read_on is null or m.creation > r.last_read_on)
+		group by m.`from`
+		""",
+		{
+			"user": frappe.session.user,
+			"phones": tuple(phones),
+			"window": add_days(nowdate(), -UNREAD_WINDOW_DAYS),
+		},
+		as_dict=True,
+	)
+	return {r.phone: r.unread for r in rows}
+
+
+@frappe.whitelist()
+def mark_read(phone):
+	"""Move the current user's read cursor for this conversation to now."""
+	_require_wa_access()
+	phone = _digits(phone)
+	chat = frappe.db.exists("WhatsApp Chat", {"phone": phone})
+	if not chat:
+		return {}
+
+	ts = now()
+	name = f"{chat}::{frappe.session.user}"
+	if frappe.db.exists("WhatsApp Chat Read", name):
+		frappe.db.set_value("WhatsApp Chat Read", name, "last_read_on", ts, update_modified=False)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "WhatsApp Chat Read",
+				"chat": chat,
+				"user": frappe.session.user,
+				"last_read_on": ts,
+			}
+		).insert(ignore_permissions=True)
+
+	# Other tabs of the same user (chat page, chat bubble) drop their badge at once.
+	frappe.publish_realtime(
+		event="whatsapp_read",
+		message={"phone": phone, "last_read_on": ts},
+		user=frappe.session.user,
+		after_commit=True,
+	)
+	return {"last_read_on": ts}
 
 
 @frappe.whitelist()

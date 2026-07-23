@@ -59,11 +59,14 @@ class WhatsAppChat {
 		// realtime push from server on new/updated WhatsApp Message
 		this.on_rt = () => this.refresh(true);
 		frappe.realtime.on("whatsapp_message", this.on_rt);
+		// Another tab of ours read a conversation — drop the badge here too.
+		frappe.realtime.on("whatsapp_read", this.on_rt);
 		// slow poll as a safety net if the socket drops
 		this.poll = setInterval(() => this.refresh(true), 30000);
 		$(this.page.wrapper).on("remove", () => {
 			clearInterval(this.poll);
 			frappe.realtime.off("whatsapp_message", this.on_rt);
+			frappe.realtime.off("whatsapp_read", this.on_rt);
 		});
 		// deep-link: /app/whatsapp-chat-center?phone=380...
 		const phone = frappe.utils.get_url_arg("phone");
@@ -147,7 +150,10 @@ class WhatsAppChat {
 		.wa-conv{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-color);}
 		.wa-conv:hover{background:var(--bg-light-gray);}
 		.wa-conv.active{background:var(--bg-blue);}
-		.wa-conv .wa-name{font-weight:600;font-size:var(--text-md);}
+		.wa-conv .wa-name{font-weight:600;font-size:var(--text-md);display:flex;align-items:center;justify-content:space-between;gap:6px;}
+		.wa-conv .wa-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.wa-badge{flex:none;background:var(--primary);color:#fff;border-radius:10px;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;padding:0 5px;}
+		.wa-conv.wa-unread .wa-last{color:var(--text-color);font-weight:600;}
 		.wa-conv .wa-last{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.wa-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;}
 		.wa-thread-header{padding:12px;border-bottom:1px solid var(--border-color);font-weight:600;}
@@ -254,6 +260,9 @@ class WhatsAppChat {
 				preview: c.preview,
 				preview_content_type: c.preview_content_type,
 				last_message_on: c.last_message_on,
+				// The open conversation is read by definition — the server cursor catches
+				// up on the mark_read below, the badge must not flash in the meantime.
+				unread: c.phone === this.active ? 0 : c.unread || 0,
 				messages: prev.messages || [],
 				all_loaded: !!prev.all_loaded,
 			};
@@ -346,6 +355,23 @@ class WhatsAppChat {
 			}
 		}
 		if (changed || force_scroll) this.render_thread(force_scroll || at_bottom);
+		// Anything that arrived while the conversation is open counts as read.
+		if (changed) this.mark_read(this.active);
+	}
+
+	// Move this user's read cursor for a conversation (server-side, shared across the
+	// chat page and the chat bubble).
+	async mark_read(number) {
+		if (!number) return;
+		const c = this.conversations[number];
+		if (c) c.unread = 0;
+		try {
+			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.mark_read", {
+				phone: number,
+			});
+		} catch (e) {
+			// non-fatal — the badge simply reappears on the next poll
+		}
 	}
 
 	// Normalize to a digits-only number and make sure a conversation entry exists.
@@ -394,9 +420,12 @@ class WhatsAppChat {
 					this.preview_text({ content_type: c.preview_content_type, message: c.preview })
 				)
 				.slice(0, 40);
+			const badge = c.unread
+				? `<span class="wa-badge">${c.unread > 99 ? "99+" : c.unread}</span>`
+				: "";
 			const $el = $(`
-				<div class="wa-conv ${c.number === this.active ? "active" : ""}">
-					<div class="wa-name">${frappe.utils.escape_html(c.name)}</div>
+				<div class="wa-conv ${c.number === this.active ? "active" : ""} ${c.unread ? "wa-unread" : ""}">
+					<div class="wa-name"><span>${frappe.utils.escape_html(c.name)}</span>${badge}</div>
 					<div class="wa-last">${preview}</div>
 				</div>
 			`);
@@ -421,6 +450,7 @@ class WhatsAppChat {
 			.on("click", () => this.show_info());
 		this.load_context(number);
 		this.load_page();
+		this.mark_read(number);
 	}
 
 	// Short one-line description of a message for the conversation list.
