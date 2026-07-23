@@ -48,6 +48,21 @@ override_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAdd
 
 override_whitelisted_methods = {"frappe.www.contact.send_message": "erpnext.templates.utils.send_message"}
 
+# Internal Employee Chat — messages/threads are visible only to their participants.
+permission_query_conditions = {
+	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.get_permission_query_conditions",
+	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.get_permission_query_conditions",
+	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.get_permission_query_conditions",
+	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.get_permission_query_conditions",
+}
+
+has_permission = {
+	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
+	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
+	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
+	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.has_permission",
+}
+
 welcome_email = "erpnext.setup.utils.welcome_email"
 
 # setup wizard
@@ -349,8 +364,17 @@ doc_events = {
 		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
 	},
 	"WhatsApp Message": {
-		"after_insert": "erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
-		"on_update": "erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
+		"after_insert": [
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
+			"erpnext.crm.chat_media.queue_thumbnail",
+		],
+		"on_update": [
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
+			"erpnext.crm.chat_media.queue_thumbnail",
+		],
+	},
+	"Chat Message": {
+		"after_insert": "erpnext.crm.chat_media.queue_thumbnail",
 	},
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",

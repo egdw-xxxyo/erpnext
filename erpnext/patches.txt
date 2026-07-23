@@ -439,3 +439,4 @@ erpnext.patches.v15_0.migrate_label_template_type
 erpnext.patches.v15_0.backfill_pallet_sales_order
 erpnext.patches.v15_0.set_reflectometer_trigger_event
 erpnext.patches.v15_0.drop_otdr_configuration_public_server_url
+erpnext.patches.v15_0.link_chat_attachments

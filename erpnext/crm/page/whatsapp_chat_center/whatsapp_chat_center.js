@@ -21,13 +21,16 @@ const QUICK_REACTIONS = EMOJI_SET.slice(0, 6);
 // WhatsApp media content types we render specially.
 const MEDIA_TYPES = ["image", "video", "audio", "document", "sticker"];
 
-// Map a browser MIME type to the WhatsApp content_type we send.
-function mime_to_content_type(mime) {
-	if (!mime) return "document";
-	if (mime.startsWith("image/")) return "image";
-	if (mime.startsWith("video/")) return "video";
-	if (mime.startsWith("audio/")) return "audio";
-	return "document";
+// History is paged: only the newest PAGE_SIZE messages load with a conversation,
+// older ones are fetched as the user scrolls up.
+const PAGE_SIZE = 50;
+// How many trailing messages are re-read on each refresh to pick up status changes.
+const STATUS_TAIL = 30;
+
+// Map whatever the file picker reports (MIME type or bare extension) to the
+// WhatsApp content_type we send. Shared with Employee Chat.
+function mime_to_content_type(type, file_name) {
+	return erpnext.chat_media.detect_type(type, file_name);
 }
 
 // Short labelled icon for a non-text message (list preview + form panel).
@@ -48,7 +51,6 @@ class WhatsAppChat {
 		this.account = null; // default outgoing WhatsApp Account
 		this.conversations = {}; // number -> {number, name, last, messages:[]}
 		this.manager = null; // manager filter
-		this.allowed_phones = null; // null = all; Set = filtered by manager
 		this.context = null; // context of the open chat
 		this.reply_to = null; // {message_id, preview} when composing a reply
 		this.make_layout();
@@ -129,10 +131,14 @@ class WhatsAppChat {
 		});
 		this.$search.on("input", () => this.render_list());
 		this.$manager.on("change", () => this.apply_manager_filter());
+		this.$thread.on("scroll", () => {
+			if (this.$thread.scrollTop() < 40) this.load_older();
+		});
 	}
 
 	inject_styles() {
-		if (document.getElementById("wa-chat-styles-v4")) return;
+		erpnext.chat_media.inject_styles();
+		if (document.getElementById("wa-chat-styles-v5")) return;
 		const css = `
 		.wa-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.wa-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -151,7 +157,7 @@ class WhatsAppChat {
 		.wa-in{align-self:flex-start;background:var(--card-bg);border:1px solid var(--border-color);}
 		.wa-out{align-self:flex-end;background:#d9fdd3;color:#111;}
 		.wa-meta{font-size:10px;color:var(--text-muted);margin-top:1px;text-align:right;opacity:.7;}
-		.wa-media img{max-width:220px;max-height:260px;border-radius:6px;cursor:pointer;display:block;}
+		.wa-media .chat-img,.wa-media .chat-img img{max-width:220px;}
 		.wa-media video{max-width:240px;border-radius:6px;display:block;}
 		.wa-media audio{max-width:240px;display:block;}
 		.wa-media.wa-sticker img{max-width:130px;}
@@ -193,8 +199,10 @@ class WhatsAppChat {
 		.wa-ent .wa-unlink{cursor:pointer;color:var(--text-muted);margin-left:6px;}
 		.wa-ent .wa-unlink:hover{color:var(--red-500);}
 		.wa-context-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+		.wa-thread-header .wa-header-title{cursor:pointer;}
+		.wa-thread-header .wa-header-title:hover{text-decoration:underline;}
 		`;
-		$(`<style id="wa-chat-styles-v3">${css}</style>`).appendTo(document.head);
+		$(`<style id="wa-chat-styles-v5">${css}</style>`).appendTo(document.head);
 	}
 
 	async load_account() {
@@ -225,52 +233,119 @@ class WhatsAppChat {
 
 	async apply_manager_filter() {
 		this.manager = this.$manager.val() || null;
-		if (!this.manager) {
-			this.allowed_phones = null;
-		} else {
-			const chats = await frappe.xcall(
-				"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chats",
-				{ manager: this.manager }
-			);
-			this.allowed_phones = new Set(chats.map((c) => c.phone));
-		}
-		this.render_list();
+		await this.refresh(true);
 	}
 
+	// Reload the conversation list (cheap — one row per dialog) and top up the open
+	// thread with whatever arrived since its newest loaded message. Message history
+	// itself is never bulk-loaded; see load_page / load_older.
 	async refresh(silent) {
-		const msgs = await frappe.db.get_list("WhatsApp Message", {
-			fields: [
-				"name", "type", "from", "to", "message", "profile_name", "creation",
-				"status", "status_error", "content_type", "attach", "message_id",
-				"reply_to_message_id", "is_reply",
-			],
-			order_by: "creation asc",
-			limit: 1000,
-		});
-		this.conversations = {};
-		for (const m of msgs) {
-			const num = m.type === "Incoming" ? m.from : m.to;
-			if (!num) continue;
-			if (!this.conversations[num]) {
-				this.conversations[num] = { number: num, name: num, messages: [] };
-			}
-			const c = this.conversations[num];
-			if (m.type === "Incoming" && m.profile_name) c.name = m.profile_name;
-			c.messages.push(m);
-			c.last = m;
+		const chats = await frappe.xcall(
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chats",
+			{ manager: this.manager || null }
+		);
+
+		const next = {};
+		for (const c of chats) {
+			const prev = this.conversations[c.phone] || {};
+			next[c.phone] = {
+				number: c.phone,
+				name: c.title || prev.name || c.phone,
+				preview: c.preview,
+				preview_content_type: c.preview_content_type,
+				last_message_on: c.last_message_on,
+				messages: prev.messages || [],
+				all_loaded: !!prev.all_loaded,
+			};
 		}
 		// Keep an open but empty conversation (new chat / deep-link to a number with no
 		// messages yet) alive across the rebuild above so it doesn't vanish on poll.
-		if (this.active && !this.conversations[this.active]) {
-			this.conversations[this.active] = { number: this.active, name: this.active, messages: [] };
+		if (this.active && !next[this.active]) {
+			next[this.active] = this.conversations[this.active] || {
+				number: this.active,
+				name: this.active,
+				messages: [],
+			};
 		}
+		this.conversations = next;
 		this.render_list();
-		if (this.active && this.conversations[this.active]) this.render_thread(!silent);
+
+		if (this.active) await this.load_new(!silent);
+
 		if (this.pending_open) {
 			const p = this.ensure_conv(this.pending_open);
 			this.pending_open = null;
 			if (p) this.open(p);
 		}
+	}
+
+	// Newest page of history for the open conversation.
+	async load_page() {
+		const c = this.conversations[this.active];
+		if (!c) return;
+		const msgs = await frappe.xcall(
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_messages",
+			{ phone: this.active, limit: PAGE_SIZE }
+		);
+		c.messages = msgs;
+		c.all_loaded = msgs.length < PAGE_SIZE;
+		this.render_thread(true);
+	}
+
+	// Older page, prepended; keeps the viewport anchored where the user was reading.
+	async load_older() {
+		const c = this.conversations[this.active];
+		if (!c || this.loading_older || c.all_loaded || !c.messages.length) return;
+		this.loading_older = true;
+		try {
+			const older = await frappe.xcall(
+				"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_messages",
+				{ phone: this.active, before: c.messages[0].creation, limit: PAGE_SIZE }
+			);
+			if (older.length < PAGE_SIZE) c.all_loaded = true;
+			if (older.length) {
+				const prev_h = this.$thread[0].scrollHeight;
+				c.messages = older.concat(c.messages);
+				this.render_thread(false);
+				this.$thread.scrollTop(this.$thread[0].scrollHeight - prev_h);
+			}
+		} finally {
+			this.loading_older = false;
+		}
+	}
+
+	// Messages that arrived since the newest one we hold (realtime / poll).
+	async load_new(force_scroll) {
+		const c = this.conversations[this.active];
+		if (!c) return;
+		if (!c.messages.length) return this.load_page();
+
+		const el = this.$thread[0];
+		const at_bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+		// Re-read the recent tail rather than only what is strictly newer: outgoing
+		// rows change status (sent → delivered → failed) after they were loaded.
+		const tail = c.messages.slice(-STATUS_TAIL);
+		const fresh = await frappe.xcall(
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_messages",
+			{ phone: this.active, after: tail[0].creation, limit: 200 }
+		);
+		const index = {};
+		c.messages.forEach((m, i) => (index[m.name] = i));
+		let changed = false;
+		for (const m of fresh) {
+			if (index[m.name] === undefined) {
+				c.messages.push(m);
+				index[m.name] = c.messages.length - 1;
+				changed = true;
+			} else {
+				const old = c.messages[index[m.name]];
+				if (old.status !== m.status || old.message !== m.message || old.attach !== m.attach) {
+					c.messages[index[m.name]] = m;
+					changed = true;
+				}
+			}
+		}
+		if (changed || force_scroll) this.render_thread(force_scroll || at_bottom);
 	}
 
 	// Normalize to a digits-only number and make sure a conversation entry exists.
@@ -304,10 +379,9 @@ class WhatsAppChat {
 	render_list() {
 		const q = (this.$search.val() || "").toLowerCase();
 		let convs = Object.values(this.conversations);
-		if (this.allowed_phones) convs = convs.filter((c) => this.allowed_phones.has(c.number));
 		convs = convs
 			.filter((c) => !q || c.number.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q))
-			.sort((a, b) => (b.last?.creation || "").localeCompare(a.last?.creation || ""));
+			.sort((a, b) => (b.last_message_on || "").localeCompare(a.last_message_on || ""));
 
 		this.$list.empty();
 		if (!convs.length) {
@@ -315,7 +389,11 @@ class WhatsAppChat {
 			return;
 		}
 		for (const c of convs) {
-			const preview = frappe.utils.escape_html(this.preview_text(c.last)).slice(0, 40);
+			const preview = frappe.utils
+				.escape_html(
+					this.preview_text({ content_type: c.preview_content_type, message: c.preview })
+				)
+				.slice(0, 40);
 			const $el = $(`
 				<div class="wa-conv ${c.number === this.active ? "active" : ""}">
 					<div class="wa-name">${frappe.utils.escape_html(c.name)}</div>
@@ -331,11 +409,18 @@ class WhatsAppChat {
 		this.active = number;
 		this.set_reply(null);
 		this.render_list();
-		this.render_thread(true);
+		this.$thread.empty();
 		this.$compose.show();
 		const c = this.conversations[number];
-		this.$header.text(c.name === number ? number : `${c.name} · ${number}`);
+		// The title opens the chat overview (contact, linked records, media, files, links).
+		this.$header
+			.html(`<span class="wa-header-title"></span>`)
+			.find(".wa-header-title")
+			.text(c.name === number ? number : `${c.name} · ${number}`)
+			.attr("title", __("Chat info"))
+			.on("click", () => this.show_info());
 		this.load_context(number);
+		this.load_page();
 	}
 
 	// Short one-line description of a message for the conversation list.
@@ -360,7 +445,11 @@ class WhatsAppChat {
 			const url = frappe.utils.escape_html(m.attach);
 			if (ct === "image" || ct === "sticker") {
 				const cls = ct === "sticker" ? "wa-media wa-sticker" : "wa-media";
-				return `<div class="${cls}"><img src="${url}" data-full="${url}"></div>${ct === "sticker" ? "" : cap_html}`;
+				const img = erpnext.chat_media.image_html(
+					m.attach,
+					ct === "sticker" ? "chat-img-sticker" : ""
+				);
+				return `<div class="${cls}">${img}</div>${ct === "sticker" ? "" : cap_html}`;
 			}
 			if (ct === "video") return `<div class="wa-media"><video controls src="${url}"></video></div>${cap_html}`;
 			if (ct === "audio") return `<div class="wa-media"><audio controls src="${url}"></audio></div>${cap_html}`;
@@ -442,9 +531,7 @@ class WhatsAppChat {
 			this.$thread.append($b);
 		}
 
-		this.$thread.find("img[data-full]").on("click", (e) => {
-			window.open($(e.currentTarget).data("full"), "_blank");
-		});
+		erpnext.chat_media.bind(this.$thread, "whatsapp");
 		this.$thread.find(".wa-do-reply").on("click", (e) => {
 			const m = $(e.currentTarget).closest(".wa-bubble").data("msg");
 			this.set_reply({ message_id: m.message_id, preview: this.preview_text(m) });
@@ -540,7 +627,10 @@ class WhatsAppChat {
 		new frappe.ui.FileUploader({
 			folder: "Home/Attachments",
 			on_success: async (file) => {
-				const content_type = mime_to_content_type(file.file_type || file.type);
+				const content_type = mime_to_content_type(
+					file.file_type || file.type,
+					file.file_name || file.file_url
+				);
 				frappe.dom.freeze(__("Sending..."));
 				try {
 					await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_media", {
@@ -668,6 +758,77 @@ class WhatsAppChat {
 		} finally {
 			frappe.dom.unfreeze();
 		}
+	}
+
+	// --- chat overview -----------------------------------------------------
+
+	async show_info() {
+		if (!this.active) return;
+		const info = await frappe.xcall(
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chat_overview",
+			{ phone: this.active }
+		);
+
+		const media = info.media.map((m) => ({
+			sender_name: m.sender_name,
+			creation: m.creation,
+			caption: m.caption,
+			html:
+				m.content_type === "image" || m.content_type === "sticker"
+					? erpnext.chat_media.image_html(m.attach)
+					: null,
+			icon: m.content_type === "video" ? "🎬" : "🎵",
+			on_click:
+				m.content_type === "image" || m.content_type === "sticker"
+					? null
+					: () => window.open(m.attach, "_blank"),
+		}));
+
+		const files = info.files.map((f) => ({
+			file_name: f.file_name,
+			file_size: f.file_size,
+			sender_name: f.sender_name,
+			creation: f.creation,
+			url: f.attach,
+		}));
+
+		const people = [
+			{
+				name: info.title,
+				subtitle: info.phone,
+				user: info.phone,
+			},
+		];
+		if (info.contact) {
+			people.push({
+				name: info.contact,
+				subtitle: __("Contact"),
+			});
+		}
+		for (const m of info.managers || []) {
+			people.push({ name: m.full_name || m.user, subtitle: __("Manager") });
+		}
+
+		const to_items = (rows) =>
+			(rows || []).map((e) => ({
+				title: e.label || e.name,
+				subtitle: e.doctype,
+				on_click: () => frappe.set_route("Form", e.doctype, e.name),
+			}));
+
+		erpnext.chat_info.show({
+			title: info.title,
+			subtitle: info.phone,
+			source: "whatsapp",
+			people,
+			media,
+			files,
+			links: info.links,
+			sections: [
+				{ label: __("Linked"), items: to_items(info.linked) },
+				{ label: __("Derived"), items: to_items(info.derived) },
+			],
+		});
 	}
 
 	async load_context(number) {

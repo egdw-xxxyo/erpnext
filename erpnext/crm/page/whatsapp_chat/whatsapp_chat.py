@@ -22,6 +22,13 @@ LINKABLE_DOCTYPES = [
 ]
 
 
+def _require_wa_access(ptype="read"):
+	"""Guard every WhatsApp Chat endpoint: the caller must hold the matching
+	permission on WhatsApp Message (read for viewing, create for sending)."""
+	if not frappe.has_permission("WhatsApp Message", ptype):
+		frappe.throw(_("Not permitted to access WhatsApp chats"), frappe.PermissionError)
+
+
 def notify_new_message(doc, method=None):
 	"""On every WhatsApp Message: keep the conversation object in sync and push a
 	realtime event so the WhatsApp Chat page updates instantly."""
@@ -30,15 +37,51 @@ def notify_new_message(doc, method=None):
 	try:
 		from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import sync_chat_from_message
 
-		sync_chat_from_message(doc)
+		chat_name = sync_chat_from_message(doc)
+		# The media file the fork downloaded is attached to the message; re-point it at
+		# the conversation so the chat overview (and the chat form) owns it.
+		if doc.get("attach"):
+			link_attachment_to_chat(doc.get("attach"), chat_name)
 	except Exception:
 		frappe.log_error(title="WhatsApp Chat sync failed", message=frappe.get_traceback())
 
-	frappe.publish_realtime(
-		event="whatsapp_message",
-		message={"name": doc.name, "number": number, "type": doc.get("type")},
-		after_commit=True,
+	payload = {"name": doc.name, "number": number, "type": doc.get("type")}
+	# Fan out only to users who may read WhatsApp Messages — a global broadcast would
+	# leak customer numbers to every logged-in desk user.
+	for user in _users_with_wa_access():
+		frappe.publish_realtime(
+			event="whatsapp_message",
+			message=payload,
+			user=user,
+			after_commit=True,
+		)
+
+
+def _users_with_wa_access():
+	"""Enabled users holding a role that can read WhatsApp Message."""
+	roles = frappe.get_all(
+		"Custom DocPerm",
+		filters={"parent": "WhatsApp Message", "read": 1},
+		pluck="role",
+	) or []
+	roles += frappe.get_all(
+		"DocPerm",
+		filters={"parent": "WhatsApp Message", "read": 1},
+		pluck="role",
+	) or []
+	if not roles:
+		return []
+
+	users = frappe.get_all(
+		"Has Role",
+		filters={"parenttype": "User", "role": ["in", list(set(roles))]},
+		pluck="parent",
 	)
+	users = set(users) | {"Administrator"}
+	enabled = set(
+		frappe.get_all("User", filters={"enabled": 1, "name": ["in", list(users)]}, pluck="name")
+	)
+	return enabled
 
 
 def _ensure_chats():
@@ -46,9 +89,20 @@ def _ensure_chats():
 	chat yet (e.g. threads that predate the conversation model)."""
 	from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import sync_chat_from_message
 
-	numbers = set()
-	for row in frappe.get_all("WhatsApp Message", fields=["`from`", "`to`", "type"]):
-		numbers.add(row["from"] if row["type"] == "Incoming" else row["to"])
+	# The chat list is polled every few seconds — keep the backfill scan off the hot
+	# path once it has run.
+	if frappe.cache().get_value("whatsapp_chats_backfilled"):
+		return
+
+	numbers = {
+		row[0]
+		for row in frappe.db.sql(
+			"""
+			select distinct if(type = 'Incoming', `from`, `to`) as number
+			from `tabWhatsApp Message`
+			"""
+		)
+	}
 	numbers.discard(None)
 
 	existing = set(frappe.get_all("WhatsApp Chat", pluck="phone"))
@@ -69,16 +123,28 @@ def _ensure_chats():
 		if msg:
 			sync_chat_from_message(frappe.get_doc("WhatsApp Message", msg[0]["name"]))
 	frappe.db.commit()
+	# New conversations get their chat from notify_new_message, so the scan only
+	# needs to run once per cache lifetime.
+	frappe.cache().set_value("whatsapp_chats_backfilled", 1, expires_in_sec=3600)
 
 
 @frappe.whitelist()
 def get_chats(manager=None):
 	"""Return the conversation list, optionally filtered by an assigned manager."""
+	_require_wa_access()
 	_ensure_chats()
 
 	chats = frappe.get_all(
 		"WhatsApp Chat",
-		fields=["name", "phone", "contact", "title", "last_message_on"],
+		fields=[
+			"name",
+			"phone",
+			"contact",
+			"title",
+			"last_message_on",
+			"last_preview",
+			"last_content_type",
+		],
 		order_by="last_message_on desc",
 	)
 
@@ -92,24 +158,25 @@ def get_chats(manager=None):
 		)
 		chats = [c for c in chats if c["name"] in allowed]
 
+	from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import backfill_previews
+
+	# The preview is denormalised onto the chat by sync_chat_from_message(), so the
+	# list costs one query instead of one per conversation. Rows that predate those
+	# fields are filled in once, on first read.
+	backfill_previews(chats)
+
 	for c in chats:
-		last = frappe.get_all(
-			"WhatsApp Message",
-			or_filters=[
-				["WhatsApp Message", "from", "=", c["phone"]],
-				["WhatsApp Message", "to", "=", c["phone"]],
-			],
-			fields=["message", "content_type"],
-			order_by="creation desc",
-			limit=1,
-		)
-		c["preview"] = (last[0]["message"] if last else "") or ""
+		c["preview"] = c.pop("last_preview", None) or ""
+		c["preview_content_type"] = c.pop("last_content_type", None)
+		if not c.get("title"):
+			c["title"] = c["phone"]
 	return chats
 
 
 @frappe.whitelist()
 def get_managers():
 	"""Users who can own WhatsApp conversations (Sales / System roles)."""
+	_require_wa_access()
 	users = frappe.get_all(
 		"Has Role",
 		filters={
@@ -137,6 +204,7 @@ def _chat_for_phone(phone):
 def get_chat_context(phone):
 	"""Everything linked to this dialog: explicit links + entities derived from the
 	resolved Contact, plus the assigned managers."""
+	_require_wa_access()
 	chat = _chat_for_phone(phone)
 	if not chat:
 		return {"contact": None, "linked": [], "derived": [], "managers": []}
@@ -165,8 +233,93 @@ def get_chat_context(phone):
 	return {"contact": chat.contact, "linked": linked, "derived": derived, "managers": managers}
 
 
+URL_RE = re.compile(r"https?://[^\s<>\"']+")
+
+# Content types whose attachment belongs in the "Media" tab of the overview; anything
+# else with an attachment is a document/file.
+MEDIA_CONTENT_TYPES = ("image", "sticker", "video", "audio")
+
+
+def link_attachment_to_chat(file_url, chat_name):
+	"""Point a message attachment at the WhatsApp Chat, so a conversation's media is
+	reachable from the dialog itself and not only from the individual message."""
+	if not file_url or not chat_name:
+		return
+	name = frappe.db.get_value("File", {"file_url": file_url}, "name")
+	if not name:
+		return
+	frappe.db.set_value(
+		"File",
+		name,
+		{"attached_to_doctype": "WhatsApp Chat", "attached_to_name": chat_name},
+		update_modified=False,
+	)
+
+
+@frappe.whitelist()
+def get_chat_overview(phone, limit=200):
+	"""Chat overview: who the dialog is with, what is linked to it, and everything
+	shared in it — media, documents and links."""
+	_require_wa_access()
+	phone = _digits(phone)
+	context = get_chat_context(phone)
+	chat = _chat_for_phone(phone)
+	limit = int(limit)
+
+	rows = frappe.db.sql(
+		"""
+		select name, type, `from`, `to`, message, profile_name, content_type, attach, creation
+		from `tabWhatsApp Message`
+		where `from` = %(phone)s or `to` = %(phone)s
+		order by creation desc
+		limit %(limit)s
+		""",
+		{"phone": phone, "limit": limit * 4},
+		as_dict=True,
+	)
+
+	media, files, links = [], [], []
+	for r in rows:
+		out = r.type == "Outgoing"
+		item = {
+			"name": r.name,
+			"content_type": r.content_type,
+			"attach": r.attach,
+			"caption": re.sub(r"<[^>]*>", "", r.message or "").strip(),
+			"sender_name": _("You") if out else (r.profile_name or phone),
+			"creation": str(r.creation),
+		}
+		if r.attach:
+			if r.content_type in MEDIA_CONTENT_TYPES:
+				if len(media) < limit:
+					media.append(item)
+			elif len(files) < limit:
+				meta = frappe.db.get_value(
+					"File", {"file_url": r.attach}, ["file_name", "file_size"], as_dict=True
+				)
+				item["file_name"] = (meta.file_name if meta else None) or r.attach.split("/")[-1]
+				item["file_size"] = meta.file_size if meta else None
+				files.append(item)
+		for url in URL_RE.findall(item["caption"]):
+			if len(links) < limit:
+				links.append(dict(item, url=url))
+
+	return {
+		"phone": phone,
+		"title": (chat.title if chat else None) or phone,
+		"contact": context.get("contact"),
+		"managers": context.get("managers", []),
+		"linked": context.get("linked", []),
+		"derived": context.get("derived", []),
+		"media": media,
+		"files": files,
+		"links": links,
+	}
+
+
 @frappe.whitelist()
 def link_entity(phone, link_doctype, link_name):
+	_require_wa_access("create")
 	if link_doctype not in LINKABLE_DOCTYPES:
 		frappe.throw(_("Cannot link {0}").format(link_doctype))
 	chat = _chat_for_phone(phone)
@@ -179,6 +332,7 @@ def link_entity(phone, link_doctype, link_name):
 
 @frappe.whitelist()
 def unlink_entity(phone, link_doctype, link_name):
+	_require_wa_access("create")
 	chat = _chat_for_phone(phone)
 	if not chat:
 		frappe.throw(_("Chat not found"))
@@ -211,6 +365,7 @@ def _contact_phone(contact):
 @frappe.whitelist()
 def resolve_phone(doctype, docname):
 	"""Best-effort WhatsApp number (digits only) for a CRM document."""
+	_require_wa_access()
 	doc = frappe.get_doc(doctype, docname)
 	phone = None
 
@@ -240,20 +395,79 @@ def resolve_phone(doctype, docname):
 @frappe.whitelist()
 def get_recent_messages(phone, limit=10):
 	"""Recent messages for a number, oldest-first, for the read-only form panel."""
+	_require_wa_access()
 	phone = _digits(phone)
 	if not phone:
 		return []
-	msgs = frappe.get_all(
-		"WhatsApp Message",
-		or_filters=[
-			["WhatsApp Message", "from", "=", phone],
-			["WhatsApp Message", "to", "=", phone],
-		],
-		fields=["type", "message", "creation", "status", "content_type", "attach"],
-		order_by="creation desc",
-		limit=int(limit),
+	return get_messages(phone, limit=limit)
+
+
+MESSAGE_FIELDS = [
+	"name",
+	"type",
+	"`from`",
+	"`to`",
+	"message",
+	"profile_name",
+	"creation",
+	"status",
+	"status_error",
+	"content_type",
+	"attach",
+	"message_id",
+	"reply_to_message_id",
+	"is_reply",
+]
+
+
+@frappe.whitelist()
+def get_messages(phone, before=None, after=None, limit=50):
+	"""Keyset-paginated history for one conversation, oldest-first in the returned
+	batch. Pass `before` (creation of the oldest loaded message) to page backwards,
+	or `after` (creation of the newest loaded message) to fetch what arrived since."""
+	_require_wa_access()
+	phone = _digits(phone)
+	if not phone:
+		return []
+
+	limit = int(limit)
+	params = {"phone": phone, "limit": limit}
+
+	# An OR over `from`/`to` degrades into an index_merge plus a filesort over the
+	# whole conversation. Running the two sides as separate index range scans lets
+	# (from|to, creation) satisfy the ordering, so each branch reads at most `limit`
+	# rows straight off the index.
+	keyset = ""
+	if before:
+		keyset += " and creation < %(before)s"
+		params["before"] = before
+	if after:
+		keyset += " and creation > %(after)s"
+		params["after"] = after
+
+	direction = "asc" if after else "desc"
+	fields = ", ".join(MESSAGE_FIELDS)
+	branch = (
+		"(select {fields} from `tabWhatsApp Message` where `{side}` = %(phone)s{keyset}"
+		" order by creation {direction} limit %(limit)s)"
 	)
-	return list(reversed(msgs))
+	rows = frappe.db.sql(
+		"{outgoing} union all {incoming} order by creation {direction} limit %(limit)s".format(
+			outgoing=branch.format(fields=fields, side="from", keyset=keyset, direction=direction),
+			incoming=branch.format(fields=fields, side="to", keyset=keyset, direction=direction),
+			direction=direction,
+		),
+		params,
+		as_dict=True,
+	)
+
+	# A number messaging itself would match both branches.
+	seen = set()
+	rows = [r for r in rows if not (r["name"] in seen or seen.add(r["name"]))]
+
+	if not after:
+		rows.reverse()
+	return rows
 
 
 def _default_outgoing_account():
@@ -282,6 +496,7 @@ def _insert_outgoing(fields):
 @frappe.whitelist()
 def send_text(phone, message, reply_to_message_id=None):
 	"""Send a plain text message, optionally as a reply to another message."""
+	_require_wa_access("create")
 	phone = _digits(phone)
 	if not phone or not (message or "").strip():
 		frappe.throw(_("Nothing to send"))
@@ -295,6 +510,7 @@ def send_text(phone, message, reply_to_message_id=None):
 @frappe.whitelist()
 def send_media(phone, attach, content_type, caption=None, reply_to_message_id=None):
 	"""Send an image/video/audio/document by its uploaded file URL."""
+	_require_wa_access("create")
 	phone = _digits(phone)
 	if not phone or not attach:
 		frappe.throw(_("Nothing to send"))
@@ -315,6 +531,7 @@ def send_media(phone, attach, content_type, caption=None, reply_to_message_id=No
 @frappe.whitelist()
 def send_reaction(phone, message_id, emoji):
 	"""React to a message with an emoji (empty emoji removes the reaction)."""
+	_require_wa_access("create")
 	phone = _digits(phone)
 	if not phone or not message_id:
 		frappe.throw(_("Nothing to send"))
@@ -343,6 +560,7 @@ def list_templates():
 	"""Approved WhatsApp templates that can be sent from the chat, with body-parameter
 	metadata so the UI can prompt for each placeholder. Templates are the only way to
 	message a number outside Meta's 24h customer-service window."""
+	_require_wa_access()
 	rows = frappe.get_all(
 		"WhatsApp Templates",
 		filters={"status": "APPROVED"},
@@ -360,6 +578,7 @@ def list_templates():
 def send_template(phone, template, body_params=None):
 	"""Send an approved template message (bypasses the 24h window). body_params is an
 	optional JSON object/dict of placeholder values, in template field order."""
+	_require_wa_access("create")
 	phone = _digits(phone)
 	if not phone or not template:
 		frappe.throw(_("Nothing to send"))
@@ -399,6 +618,7 @@ def _party_for_chat(chat):
 @frappe.whitelist()
 def create_opportunity(phone):
 	"""Create an Opportunity for this dialog and link it back into the chat."""
+	_require_wa_access("create")
 	chat = _chat_for_phone(phone)
 	if not chat:
 		frappe.throw(_("Chat not found"))
@@ -421,6 +641,7 @@ def create_opportunity(phone):
 @frappe.whitelist()
 def create_todo(phone, description):
 	"""Create a task (ToDo) referencing this dialog."""
+	_require_wa_access("create")
 	chat = _chat_for_phone(phone)
 	if not chat:
 		frappe.throw(_("Chat not found"))
@@ -435,6 +656,7 @@ def create_todo(phone, description):
 @frappe.whitelist()
 def create_note(phone, title, content=None):
 	"""Create a Note for this dialog."""
+	_require_wa_access("create")
 	note = frappe.new_doc("Note")
 	note.title = title
 	if content:
@@ -446,6 +668,7 @@ def create_note(phone, title, content=None):
 @frappe.whitelist()
 def create_event(phone, subject, starts_on):
 	"""Create a calendar Event linked to this dialog's contact."""
+	_require_wa_access("create")
 	chat = _chat_for_phone(phone)
 	if not chat:
 		frappe.throw(_("Chat not found"))
@@ -462,6 +685,7 @@ def create_event(phone, subject, starts_on):
 @frappe.whitelist()
 def set_managers(phone, users):
 	"""Replace the assigned-manager list for a chat. `users` is a JSON list."""
+	_require_wa_access("create")
 	if isinstance(users, str):
 		users = frappe.parse_json(users)
 	chat = _chat_for_phone(phone)

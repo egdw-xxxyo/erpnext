@@ -29,6 +29,7 @@ def execute():
 	create_custom_fields_on_quotation()
 	create_custom_fields_on_quotation_item()
 	create_custom_fields_on_whatsapp_message()
+	setup_whatsapp_user_role()
 	frappe.db.commit()
 	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments")
 
@@ -569,6 +570,61 @@ def create_custom_fields_on_whatsapp_message():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+def setup_whatsapp_user_role():
+	"""Dedicated role that grants access to WhatsApp: the Chat Center page, the chat
+	bubble, the phone-field icon and the form panel all key off read/create on
+	WhatsApp Message (see whatsapp_chat._require_wa_access)."""
+	role = "WhatsApp User"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc({
+			"doctype": "Role",
+			"role_name": role,
+			"desk_access": 1,
+		}).insert(ignore_permissions=True)
+		print(f"  Created Role: {role}")
+
+	perms = {
+		"WhatsApp Message": {"read": 1, "create": 1, "write": 1},
+		"WhatsApp Chat": {"read": 1, "create": 1, "write": 1},
+	}
+	for doctype, rights in perms.items():
+		if not frappe.db.exists("DocType", doctype):
+			print(f"  Skipped perms, DocType missing: {doctype}")
+			continue
+		existing = frappe.db.exists(
+			"Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}
+		)
+		if existing:
+			print(f"  Custom DocPerm exists: {doctype} / {role}")
+			continue
+		frappe.get_doc({
+			"doctype": "Custom DocPerm",
+			"parent": doctype,
+			"parenttype": "DocType",
+			"parentfield": "permissions",
+			"role": role,
+			"permlevel": 0,
+			**rights,
+		}).insert(ignore_permissions=True)
+		print(f"  Created Custom DocPerm: {doctype} / {role}")
+
+	# WhatsApp access is granted by the dedicated role only — drop the broad Sales
+	# grants that predate it.
+	for doctype in perms:
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		stale = frappe.get_all(
+			"Custom DocPerm",
+			filters={"parent": doctype, "role": ["in", ["Sales User", "Sales Manager"]]},
+			pluck="name",
+		)
+		for name in stale:
+			frappe.delete_doc("Custom DocPerm", name, ignore_permissions=True, force=True)
+			print(f"  Removed Custom DocPerm: {doctype} / {name}")
+
+	frappe.clear_cache()
 
 
 def _create_custom_fields(fields):

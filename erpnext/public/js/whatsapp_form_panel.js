@@ -14,6 +14,8 @@ erpnext.whatsapp.WA_DOCTYPES = [
 
 erpnext.whatsapp.render_panel = async function (frm) {
 	if (frm.is_new()) return;
+	// Only for users allowed into the Chat Center (same check the bubble uses).
+	if (!erpnext.whatsapp.can_use?.()) return;
 
 	let phone;
 	try {

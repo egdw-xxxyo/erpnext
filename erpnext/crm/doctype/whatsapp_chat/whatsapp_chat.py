@@ -5,6 +5,9 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import get_datetime
 
+# The chat list only renders a one-line preview; storing more just bloats the row.
+PREVIEW_LENGTH = 200
+
 
 class WhatsAppChat(Document):
 	def validate(self):
@@ -89,6 +92,63 @@ def sync_chat_from_message(doc):
 			chat.add_link(row.link_doctype, row.link_name)
 
 	chat.last_message_on = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
+	chat.last_preview = (doc.get("message") or "")[:PREVIEW_LENGTH]
+	chat.last_content_type = doc.get("content_type")
 
 	chat.save(ignore_permissions=True)
 	return chat.name
+
+
+def backfill_previews(chats):
+	"""Fill last_preview/last_content_type (and a missing title) for chats created
+	before those fields existed. Costs a query per chat, but only ever runs once per
+	conversation — afterwards the list is a single read."""
+	touched = False
+	for chat in chats:
+		needs_preview = chat.get("last_preview") is None
+		needs_title = not chat.get("title")
+		if not chat.get("phone") or not (needs_preview or needs_title):
+			continue
+
+		update = {}
+		if needs_preview:
+			last = frappe.get_all(
+				"WhatsApp Message",
+				or_filters=[
+					["WhatsApp Message", "from", "=", chat["phone"]],
+					["WhatsApp Message", "to", "=", chat["phone"]],
+				],
+				fields=["message", "content_type"],
+				order_by="creation desc",
+				limit=1,
+			)
+			chat["last_preview"] = ((last[0]["message"] if last else "") or "")[:PREVIEW_LENGTH]
+			chat["last_content_type"] = last[0]["content_type"] if last else None
+			update["last_preview"] = chat["last_preview"]
+			update["last_content_type"] = chat["last_content_type"]
+
+		if needs_title:
+			# Fall back to the WhatsApp profile name seen on the last incoming message.
+			profile = frappe.get_all(
+				"WhatsApp Message",
+				filters=[
+					["WhatsApp Message", "from", "=", chat["phone"]],
+					["WhatsApp Message", "type", "=", "Incoming"],
+					["WhatsApp Message", "profile_name", "is", "set"],
+				],
+				fields=["profile_name"],
+				order_by="creation desc",
+				limit=1,
+			)
+			if profile:
+				chat["title"] = profile[0]["profile_name"]
+				update["title"] = chat["title"]
+
+		if update:
+			frappe.db.set_value(
+				"WhatsApp Chat", chat["name"], update, update_modified=False
+			)
+			touched = True
+
+	if touched:
+		frappe.db.commit()

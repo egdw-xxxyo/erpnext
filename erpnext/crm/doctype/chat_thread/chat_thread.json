@@ -1,0 +1,126 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-07-23 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "details_tab",
+  "thread_type",
+  "title",
+  "is_secret",
+  "dedup_key",
+  "column_break_details",
+  "last_message_on",
+  "last_sender",
+  "last_message_preview",
+  "participants_section",
+  "participants"
+ ],
+ "fields": [
+  {
+   "fieldname": "details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details"
+  },
+  {
+   "default": "Direct",
+   "fieldname": "thread_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Thread Type",
+   "options": "Direct\nGroup",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title"
+  },
+  {
+   "default": "0",
+   "description": "End-to-end encrypted thread. Message bodies are ciphertext the server cannot read.",
+   "fieldname": "is_secret",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Secret",
+   "read_only": 1
+  },
+  {
+   "description": "Sorted participant users, used to de-duplicate direct threads",
+   "fieldname": "dedup_key",
+   "fieldtype": "Data",
+   "label": "Dedup Key",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_message_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Message On"
+  },
+  {
+   "fieldname": "last_sender",
+   "fieldtype": "Link",
+   "label": "Last Sender",
+   "options": "User"
+  },
+  {
+   "fieldname": "last_message_preview",
+   "fieldtype": "Small Text",
+   "label": "Last Message Preview"
+  },
+  {
+   "fieldname": "participants_section",
+   "fieldtype": "Section Break",
+   "label": "Participants"
+  },
+  {
+   "fieldname": "participants",
+   "fieldtype": "Table",
+   "label": "Participants",
+   "options": "Chat Participant"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Chat Thread",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Employee",
+   "write": 1
+  }
+ ],
+ "sort_field": "last_message_on",
+ "sort_order": "DESC",
+ "states": []
+}

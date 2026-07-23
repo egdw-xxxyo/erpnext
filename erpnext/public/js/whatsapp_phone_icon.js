@@ -35,6 +35,8 @@ function inject_styles() {
 const _orig_make_input = frappe.ui.form.ControlData.prototype.make_input;
 frappe.ui.form.ControlData.prototype.make_input = function () {
 	_orig_make_input.apply(this, arguments);
+	// Only for users allowed into the Chat Center (same check the bubble uses).
+	if (!erpnext.whatsapp?.can_use?.()) return;
 	if (is_whatsapp_phone_field(this.df)) {
 		this.setup_whatsapp_btn();
 	}
