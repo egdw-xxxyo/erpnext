@@ -298,6 +298,10 @@ default_roles = [
 sounds = [
 	{"name": "incoming-call", "src": "/assets/erpnext/sounds/incoming-call.mp3", "volume": 0.2},
 	{"name": "call-disconnect", "src": "/assets/erpnext/sounds/call-disconnect.mp3", "volume": 0.2},
+	# Chat notification chime. The file ships with frappe but frappe leaves it
+	# unregistered (commented out in its hooks), so no <audio id="sound-chime">
+	# element is rendered and play_sound("chime") silently fails. Register it here.
+	{"name": "chime", "src": "/assets/frappe/sounds/chime.mp3", "volume": 0.3},
 ]
 
 has_upload_permission = {"Employee": "erpnext.setup.doctype.employee.employee.has_upload_permission"}

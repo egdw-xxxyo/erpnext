@@ -60,8 +60,10 @@ class WhatsAppChat {
 		// Incoming messages ring (unless the conversation is muted); everything else just
 		// refreshes.
 		this.on_rt = (d) => {
+			console.log("[chat] page realtime event", d);
 			if (d && d.type === "Incoming" && d.number) {
 				const c = this.conversations[d.number];
+				console.log("[chat] page incoming ring", { number: d.number, conv_found: !!c, muted: c && c.muted });
 				erpnext.chat_sound.play(c && c.muted);
 			}
 			this.refresh(true);
@@ -97,6 +99,7 @@ class WhatsAppChat {
 				<div class="wa-thread-wrap">
 					<div class="wa-thread-header text-muted">${__("Select a conversation")}</div>
 					<div class="wa-thread"></div>
+					<div class="wa-scroll-fab" title="${__("Scroll to latest")}">⬇<span class="wa-fab-badge" style="display:none;"></span></div>
 					<div class="wa-compose-wrap" style="display:none;">
 						<div class="wa-reply-bar" style="display:none;">
 							<div class="wa-reply-bar-text"></div>
@@ -127,6 +130,8 @@ class WhatsAppChat {
 		this.$search = this.page.main.find(".wa-search-input");
 		this.$manager = this.page.main.find(".wa-manager-filter");
 		this.$context = this.page.main.find(".wa-context");
+		this.$fab = this.page.main.find(".wa-scroll-fab");
+		this.$fab.on("click", () => this.jump_to_latest());
 
 		this.page.main.find(".wa-new-chat").on("click", () => this.new_chat_prompt());
 		this.page.main.find(".wa-send").on("click", () => this.send());
@@ -144,13 +149,15 @@ class WhatsAppChat {
 		this.$manager.on("change", () => this.apply_manager_filter());
 		this.$thread.on("scroll", () => {
 			if (this.$thread.scrollTop() < 40) this.load_older();
+			this.update_read_progress();
+			this.update_fab();
 		});
 	}
 
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("wa-chat-styles-v5")) return;
+		if (document.getElementById("wa-chat-styles-v6")) return;
 		const css = `
 		.wa-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.wa-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -164,9 +171,15 @@ class WhatsAppChat {
 		.wa-badge{flex:none;background:var(--primary);color:#fff;border-radius:10px;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;padding:0 5px;}
 		.wa-conv.wa-unread .wa-last{color:var(--text-color);font-weight:600;}
 		.wa-conv .wa-last{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-		.wa-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;}
+		.wa-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
 		.wa-thread-header{padding:12px;border-bottom:1px solid var(--border-color);font-weight:600;}
-		.wa-thread{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg-gray);display:flex;flex-direction:column;gap:3px;}
+		.wa-thread{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg-gray);display:flex;flex-direction:column;gap:3px;position:relative;}
+		.wa-new-divider{align-self:stretch;display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--red-500,#e24c4c);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+		.wa-new-divider::before,.wa-new-divider::after{content:"";flex:1;height:1px;background:var(--red-500,#e24c4c);opacity:.5;}
+		.wa-scroll-fab{position:absolute;right:16px;bottom:80px;z-index:5;width:40px;height:40px;border-radius:50%;background:var(--card-bg);border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:18px;color:var(--text-color);}
+		.wa-scroll-fab:hover{background:var(--bg-light-gray);}
+		.wa-scroll-fab.show{display:flex;}
+		.wa-scroll-fab .wa-fab-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);color:#fff;font-size:10px;line-height:18px;text-align:center;font-weight:600;}
 		.wa-bubble{position:relative;width:fit-content;max-width:65%;padding:5px 9px 3px;border-radius:8px;font-size:13px;line-height:1.35;text-align:left;word-break:break-word;}
 		.wa-body{white-space:pre-wrap;}
 		.wa-in{align-self:flex-start;background:var(--card-bg);border:1px solid var(--border-color);}
@@ -217,7 +230,7 @@ class WhatsAppChat {
 		.wa-thread-header .wa-header-title{cursor:pointer;}
 		.wa-thread-header .wa-header-title:hover{text-decoration:underline;}
 		`;
-		$(`<style id="wa-chat-styles-v5">${css}</style>`).appendTo(document.head);
+		$(`<style id="wa-chat-styles-v6">${css}</style>`).appendTo(document.head);
 	}
 
 	async load_account() {
@@ -269,9 +282,11 @@ class WhatsAppChat {
 				preview: c.preview,
 				preview_content_type: c.preview_content_type,
 				last_message_on: c.last_message_on,
-				// The open conversation is read by definition — the server cursor catches
-				// up on the mark_read below, the badge must not flash in the meantime.
-				unread: c.phone === this.active ? 0 : c.unread || 0,
+				// Server-derived message count (reflects this user's read cursor). Progressive
+				// read-on-scroll advances that cursor, so the open conversation shows however
+				// many messages still sit below the fold — no longer forced to 0.
+				unread: c.unread || 0,
+				my_last_read: c.my_last_read || prev.my_last_read || null,
 				muted: c.muted || 0,
 				messages: prev.messages || [],
 				all_loaded: !!prev.all_loaded,
@@ -308,7 +323,38 @@ class WhatsAppChat {
 		);
 		c.messages = msgs;
 		c.all_loaded = msgs.length < PAGE_SIZE;
-		this.render_thread(true);
+		// Anchor the "New messages" divider once per open, then land on the first unread
+		// message (or the bottom when nothing is unread) and reconcile the read cursor.
+		this.new_divider_before = this.first_unread_name();
+		this.render_thread(false);
+		this.scroll_to_start();
+	}
+
+	// Name of the first message the current user hasn't read yet (incoming, non-reaction).
+	// Null when the conversation is fully read.
+	first_unread_name() {
+		const c = this.conversations[this.active];
+		if (!c) return null;
+		const cursor = this.read_cursor;
+		const m = (c.messages || []).find(
+			(x) =>
+				x.type === "Incoming" &&
+				x.content_type !== "reaction" &&
+				(!cursor || x.creation > cursor)
+		);
+		return m ? m.name : null;
+	}
+
+	// On open: land on the first unread message (divider just above) if any, else the bottom.
+	scroll_to_start() {
+		const divider = this.$thread.find(".wa-new-divider")[0];
+		if (divider) {
+			this.$thread.scrollTop(Math.max(0, divider.offsetTop - 60));
+		} else {
+			this.$thread.scrollTop(this.$thread[0].scrollHeight);
+		}
+		this.update_read_progress();
+		this.update_fab();
 	}
 
 	// Older page, prepended; keeps the viewport anchored where the user was reading.
@@ -326,7 +372,14 @@ class WhatsAppChat {
 				const prev_h = this.$thread[0].scrollHeight;
 				c.messages = older.concat(c.messages);
 				this.render_thread(false);
-				this.$thread.scrollTop(this.$thread[0].scrollHeight - prev_h);
+				const new_h = this.$thread[0].scrollHeight;
+				console.log("[chat] load_older: restoring scroll", {
+					older_count: older.length,
+					prev_h,
+					new_h,
+					new_scrollTop: new_h - prev_h,
+				});
+				this.$thread.scrollTop(new_h - prev_h);
 			}
 		} finally {
 			this.loading_older = false;
@@ -341,6 +394,13 @@ class WhatsAppChat {
 
 		const el = this.$thread[0];
 		const at_bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+		console.log("[chat] load_new: before fetch", {
+			scrollTop: el.scrollTop,
+			scrollHeight: el.scrollHeight,
+			clientHeight: el.clientHeight,
+			dist_from_bottom: el.scrollHeight - el.scrollTop - el.clientHeight,
+			at_bottom,
+		});
 		// Re-read the recent tail rather than only what is strictly newer: outgoing
 		// rows change status (sent → delivered → failed) after they were loaded.
 		const tail = c.messages.slice(-STATUS_TAIL);
@@ -365,23 +425,91 @@ class WhatsAppChat {
 			}
 		}
 		if (changed || force_scroll) this.render_thread(force_scroll || at_bottom);
-		// Anything that arrived while the conversation is open counts as read.
-		if (changed) this.mark_read(this.active);
+		if (changed) {
+			// At the bottom → new arrivals are read as they land; scrolled up → they stay
+			// unread and just bump the badge + FAB counter.
+			if (force_scroll || at_bottom) this.update_read_progress();
+			else this.recount_unread(this.active);
+			this.update_fab();
+		}
 	}
 
-	// Move this user's read cursor for a conversation (server-side, shared across the
-	// chat page and the chat bubble).
-	async mark_read(number) {
+	// Advance the read cursor for a conversation. `upto` (a message creation timestamp) marks
+	// read only that far; omit it to mark the whole conversation read.
+	async mark_read(number, upto) {
 		if (!number) return;
 		const c = this.conversations[number];
-		if (c) c.unread = 0;
 		try {
-			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.mark_read", {
-				phone: number,
-			});
+			const res = await frappe.xcall(
+				"erpnext.crm.page.whatsapp_chat.whatsapp_chat.mark_read",
+				{ phone: number, upto: upto || null }
+			);
+			const cursor = (res && res.last_read_on) || upto || frappe.datetime.now_datetime();
+			if (c) c.my_last_read = cursor;
+			if (number === this.active) this.read_cursor = cursor;
+			this.recount_unread(number);
 		} catch (e) {
 			// non-fatal — the badge simply reappears on the next poll
 		}
+	}
+
+	// Recompute a conversation's unread badge from the local read cursor.
+	recount_unread(number) {
+		const c = this.conversations[number];
+		if (!c) return;
+		if (number === this.active) {
+			const cursor = this.read_cursor;
+			c.unread = (c.messages || []).filter(
+				(m) =>
+					m.type === "Incoming" &&
+					m.content_type !== "reaction" &&
+					(!cursor || m.creation > cursor)
+			).length;
+		}
+		this.render_list();
+	}
+
+	// Progressive read-on-scroll: any unread incoming message whose top has scrolled into the
+	// viewport counts as seen. Advance the cursor to the newest such message (never backwards),
+	// debounced so a scroll gesture makes at most one server call.
+	update_read_progress() {
+		if (!this.active) return;
+		const el = this.$thread[0];
+		if (!el) return;
+		const bottom_edge = el.scrollTop + el.clientHeight;
+		let newest = this.read_cursor || "";
+		this.$thread.find(".wa-bubble").each((_, b) => {
+			const m = $(b).data("msg");
+			if (!m || m.type !== "Incoming" || m.content_type === "reaction") return;
+			if (b.offsetTop < bottom_edge && m.creation > newest) newest = m.creation;
+		});
+		if (newest && newest > (this.read_cursor || "")) {
+			this.read_cursor = newest;
+			this.recount_unread(this.active);
+			clearTimeout(this._read_timer);
+			const upto = newest;
+			this._read_timer = setTimeout(() => this.mark_read(this.active, upto), 350);
+		}
+	}
+
+	// Show the scroll-to-latest button when the user is away from the bottom; badge it with
+	// how many messages still sit below the fold unread.
+	update_fab() {
+		if (!this.$fab) return;
+		const el = this.$thread[0];
+		if (!el || !this.active) return this.$fab.removeClass("show");
+		const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+		this.$fab.toggleClass("show", dist > 120);
+		const c = this.conversations[this.active];
+		const n = (c && c.unread) || 0;
+		this.$fab.find(".wa-fab-badge").toggle(n > 0).text(n > 99 ? "99+" : n);
+	}
+
+	// FAB / "mark all read": jump to the newest message and clear the conversation's unread.
+	jump_to_latest() {
+		this.$thread.scrollTop(this.$thread[0].scrollHeight);
+		this.mark_read(this.active);
+		this.update_fab();
 	}
 
 	// Normalize to a digits-only number and make sure a conversation entry exists.
@@ -447,14 +575,16 @@ class WhatsAppChat {
 	open(number) {
 		this.active = number;
 		this.set_reply(null);
+		const c = this.conversations[number];
+		// My read cursor at open time — drives the divider and first-unread scroll. load_page
+		// takes over read tracking from here (progressive on scroll), so no blanket mark_read.
+		this.read_cursor = (c && c.my_last_read) || null;
 		this.render_list();
 		this.$thread.empty();
 		this.$compose.show();
-		const c = this.conversations[number];
 		this.render_header(number);
 		this.load_context(number);
 		this.load_page();
-		this.mark_read(number);
 	}
 
 	// Short one-line description of a message for the conversation list.
@@ -519,6 +649,10 @@ class WhatsAppChat {
 		const sys_tz = frappe.sys_defaults.time_zone || "UTC";
 		for (const m of c.messages) {
 			if (m.content_type === "reaction") continue; // rendered as badges, not bubbles
+			// "New messages" divider, anchored at the first message that was unread on open.
+			if (this.new_divider_before && m.name === this.new_divider_before) {
+				this.$thread.append(`<div class="wa-new-divider">${__("New messages")}</div>`);
+			}
 			const out = m.type === "Outgoing";
 			const time = moment.tz(m.creation, sys_tz).local().format("HH:mm");
 			const failed = out && (m.status || "").toLowerCase() === "failed";
@@ -576,6 +710,11 @@ class WhatsAppChat {
 			this.resend(m);
 		});
 
+		console.log("[chat] render_thread", {
+			scroll: !!scroll,
+			msg_count: c.messages.length,
+			scrollHeight: this.$thread[0].scrollHeight,
+		});
 		if (scroll) this.$thread.scrollTop(this.$thread[0].scrollHeight);
 	}
 
@@ -833,6 +972,7 @@ class WhatsAppChat {
 
 	async show_info() {
 		if (!this.active) return;
+		console.log("[chat] page show_info (conversation name pressed)", { phone: this.active });
 		const info = await frappe.xcall(
 			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chat_overview",
 			{ phone: this.active }

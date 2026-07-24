@@ -33,14 +33,29 @@ erpnext.chat_sound = {
 
 	// `muted` is the per-conversation flag; pass it straight from the chat row.
 	play(muted) {
-		if (muted || !this.enabled()) return;
+		const audio_el = document.getElementById("sound-" + SOUND_NAME);
+		console.log("[chat] sound.play", {
+			muted: !!muted,
+			enabled: this.enabled(),
+			audio_el_present: !!audio_el,
+			mute_sounds: frappe.boot?.user?.mute_sounds,
+			since_last_ms: Date.now() - last_played,
+		});
+		if (muted || !this.enabled()) {
+			console.log("[chat] sound.play skipped: muted or disabled on this device");
+			return;
+		}
 		const now = Date.now();
-		if (now - last_played < MIN_GAP_MS) return;
+		if (now - last_played < MIN_GAP_MS) {
+			console.log("[chat] sound.play skipped: throttled (<", MIN_GAP_MS, "ms)");
+			return;
+		}
 		last_played = now;
 		try {
 			frappe.utils.play_sound(SOUND_NAME);
+			console.log("[chat] sound.play -> play_sound('" + SOUND_NAME + "') called");
 		} catch (e) {
-			// no audio device / autoplay blocked until the user interacts with the page
+			console.log("[chat] sound.play FAILED:", e && e.message, e);
 		}
 	},
 

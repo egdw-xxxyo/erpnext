@@ -232,6 +232,7 @@ class ChatBubble {
 		this.refresh();
 
 		this.on_rt = (d) => {
+			console.log("[chat] bubble realtime event", d);
 			this.ring(d);
 			this.refresh();
 		};
@@ -251,12 +252,15 @@ class ChatBubble {
 			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find(
 				(c) => c.id === d.number
 			);
+			console.log("[chat] ring: whatsapp incoming", { number: d.number, chat_found: !!chat, muted: chat && chat.muted });
 		} else if (d.sender && d.sender !== frappe.session.user && d.thread) {
 			// Employee Chat: a full message payload
 			chat = (this.sources.find((s) => s.key === "employee")?.chats || []).find(
 				(c) => c.id === d.thread
 			);
+			console.log("[chat] ring: employee message", { thread: d.thread, sender: d.sender, chat_found: !!chat, muted: chat && chat.muted });
 		} else {
+			console.log("[chat] ring: event ignored (not an incoming/foreign message)", d);
 			return;
 		}
 		erpnext.chat_sound.play(chat && chat.muted);
@@ -465,7 +469,14 @@ class ChatBubble {
 	render_badges() {
 		let total = 0;
 		this.sources.forEach((s) => {
-			const count = (s.chats || []).reduce((n, c) => n + (c.unread ? 1 : 0), 0);
+			// Sum unread *messages* across conversations (each c.unread is already a message
+			// count, secret threads included — the server counts rows, never plaintext), not
+			// the number of conversations that have something unread.
+			const count = (s.chats || []).reduce((n, c) => n + (c.unread || 0), 0);
+			console.log("[chat] render_badges source=" + s.key, {
+				convs_with_unread: count,
+				rows: (s.chats || []).map((c) => ({ id: c.id, unread: c.unread })),
+			});
 			total += count;
 			this.$panel
 				.find(`.cb-tab[data-key="${s.key}"] .cb-tab-count`)
@@ -506,6 +517,7 @@ class ChatBubble {
 	}
 
 	open_thread(id) {
+		console.log("[chat] open_thread (conversation clicked)", { source: this.source.key, id });
 		this.active = id;
 		const chat = (this.source.chats || []).find((c) => c.id === id);
 		this.$title.text(chat ? chat.title : id);
@@ -527,8 +539,17 @@ class ChatBubble {
 		}
 		if (this.active !== id || this.source !== source) return;
 
-		await source.mark_read(id);
-		this.render_badges();
+		// Only move the read cursor when there is actually something unread. mark_read
+		// publishes a realtime event (chat_seen / whatsapp_read) that every open bubble —
+		// including this one — reacts to with a refresh() that re-enters load_thread. Marking
+		// unconditionally on every refresh therefore feedback-loops at socket speed. Gating on
+		// unread breaks it: after the first mark the count is 0, so the echo can't re-arm it.
+		const chat = (source.chats || []).find((c) => c.id === id);
+		if (chat && chat.unread) {
+			console.log("[chat] load_thread: marking read (unread=" + chat.unread + ")", { id });
+			await source.mark_read(id);
+			this.render_badges();
+		}
 
 		const bubbles = msgs
 			.map(

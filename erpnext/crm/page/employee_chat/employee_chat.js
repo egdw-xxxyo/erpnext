@@ -79,6 +79,7 @@ class EmployeeChat {
 				<div class="ec-thread-wrap">
 					<div class="ec-thread-header text-muted">${__("Select a chat")}</div>
 					<div class="ec-thread"></div>
+					<div class="ec-scroll-fab" title="${__("Scroll to latest")}">⬇<span class="ec-fab-badge" style="display:none;"></span></div>
 					<div class="ec-typing text-muted" style="display:none;"></div>
 					<div class="ec-compose-wrap" style="display:none;">
 						<div class="ec-reply-bar" style="display:none;">
@@ -101,6 +102,8 @@ class EmployeeChat {
 		this.$thread = this.page.main.find(".ec-thread");
 		this.$header = this.page.main.find(".ec-thread-header");
 		this.$typing = this.page.main.find(".ec-typing");
+		this.$fab = this.page.main.find(".ec-scroll-fab");
+		this.$fab.on("click", () => this.jump_to_latest());
 		this.$compose = this.page.main.find(".ec-compose-wrap");
 		this.$input = this.page.main.find(".ec-compose textarea");
 		this.$replyBar = this.page.main.find(".ec-reply-bar");
@@ -123,13 +126,15 @@ class EmployeeChat {
 		this.$search.on("input", () => this.render_list());
 		this.$thread.on("scroll", () => {
 			if (this.$thread.scrollTop() < 40) this.load_older();
+			this.update_read_progress();
+			this.update_fab();
 		});
 	}
 
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("ec-chat-styles-v2")) return;
+		if (document.getElementById("ec-chat-styles-v3")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.ec-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -144,9 +149,9 @@ class EmployeeChat {
 		.ec-conv .ec-name{font-weight:600;font-size:var(--text-md);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.ec-conv .ec-last{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.ec-badge{flex:none;background:var(--primary);color:#fff;border-radius:10px;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;padding:0 5px;}
-		.ec-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;}
+		.ec-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
 		.ec-thread-header{padding:12px;border-bottom:1px solid var(--border-color);font-weight:600;}
-		.ec-thread{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg-gray);display:flex;flex-direction:column;gap:3px;}
+		.ec-thread{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg-gray);display:flex;flex-direction:column;gap:3px;position:relative;}
 		.ec-bubble{position:relative;width:fit-content;max-width:65%;padding:5px 9px 3px;border-radius:8px;font-size:13px;line-height:1.35;text-align:left;word-break:break-word;}
 		.ec-body{white-space:pre-wrap;}
 		.ec-in{align-self:flex-start;background:var(--card-bg);border:1px solid var(--border-color);}
@@ -188,8 +193,14 @@ class EmployeeChat {
 		.ec-thread-header .ec-unlock{margin-left:8px;}
 		.ec-thread-header .ec-header-title{cursor:pointer;}
 		.ec-thread-header .ec-header-title:hover{text-decoration:underline;}
+		.ec-new-divider{align-self:stretch;display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--red-500,#e24c4c);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+		.ec-new-divider::before,.ec-new-divider::after{content:"";flex:1;height:1px;background:var(--red-500,#e24c4c);opacity:.5;}
+		.ec-scroll-fab{position:absolute;right:16px;bottom:80px;z-index:5;width:40px;height:40px;border-radius:50%;background:var(--card-bg);border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:18px;color:var(--text-color);}
+		.ec-scroll-fab:hover{background:var(--bg-light-gray);}
+		.ec-scroll-fab.show{display:flex;}
+		.ec-scroll-fab .ec-fab-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);color:#fff;font-size:10px;line-height:18px;text-align:center;font-weight:600;}
 		`;
-		$(`<style id="ec-chat-styles-v2">${css}</style>`).appendTo(document.head);
+		$(`<style id="ec-chat-styles-v3">${css}</style>`).appendTo(document.head);
 	}
 
 	// --- thread list -------------------------------------------------------
@@ -271,10 +282,39 @@ class EmployeeChat {
 			this.other_last_read = other ? other.last_read_on : null;
 		}
 
+		// My read cursor at open time — used to place the "New messages" divider and to
+		// decide whether to land on the first unread message or at the bottom.
+		this.read_cursor = (t && t.my_last_read) || null;
+
 		this.messages = await frappe.xcall(API + "get_messages", { thread: name });
 		await this.decrypt_messages(this.messages);
-		this.render_thread(true);
-		this.mark_read();
+		// Anchor the divider once per open; it stays put even as messages get marked read.
+		this.new_divider_before = this.first_unread_name();
+		this.render_thread(false);
+		this.scroll_to_start();
+	}
+
+	// Name of the first message the current user hasn't read yet (incoming only). Null when
+	// the thread is fully read.
+	first_unread_name() {
+		const cursor = this.read_cursor;
+		const m = this.messages.find(
+			(x) => x.sender !== this.me && (!cursor || x.creation > cursor)
+		);
+		return m ? m.name : null;
+	}
+
+	// On open: land on the first unread message (with the divider just above it) if there is
+	// one, otherwise at the bottom. Then reconcile the read cursor with what's on screen.
+	scroll_to_start() {
+		const divider = this.$thread.find(".ec-new-divider")[0];
+		if (divider) {
+			this.$thread.scrollTop(Math.max(0, divider.offsetTop - 60));
+		} else {
+			this.$thread.scrollTop(this.$thread[0].scrollHeight);
+		}
+		this.update_read_progress();
+		this.update_fab();
 	}
 
 	set_header(t) {
@@ -374,7 +414,14 @@ class EmployeeChat {
 			const prev_h = this.$thread[0].scrollHeight;
 			this.messages = older.concat(this.messages);
 			this.render_thread(false);
-			this.$thread.scrollTop(this.$thread[0].scrollHeight - prev_h);
+			const new_h = this.$thread[0].scrollHeight;
+			console.log("[chat] employee load_older: restoring scroll", {
+				older_count: older.length,
+				prev_h,
+				new_h,
+				new_scrollTop: new_h - prev_h,
+			});
+			this.$thread.scrollTop(new_h - prev_h);
 		}
 		this.loading_older = false;
 	}
@@ -393,6 +440,10 @@ class EmployeeChat {
 		for (const m of this.messages) if (m.sender === this.me) last_out_name = m.name;
 
 		for (const m of this.messages) {
+			// "New messages" divider, anchored at the first message that was unread on open.
+			if (this.new_divider_before && m.name === this.new_divider_before) {
+				this.$thread.append(`<div class="ec-new-divider">${__("New messages")}</div>`);
+			}
 			const out = m.sender === this.me;
 			const time = frappe.datetime.str_to_user(m.creation).split(" ").slice(1).join(" ");
 
@@ -447,6 +498,11 @@ class EmployeeChat {
 			this.toggle_reaction(m, $badge.data("emoji"));
 		});
 
+		console.log("[chat] employee render_thread", {
+			scroll: !!scroll,
+			msg_count: this.messages.length,
+			scrollHeight: this.$thread[0].scrollHeight,
+		});
 		if (scroll) this.$thread.scrollTop(this.$thread[0].scrollHeight);
 	}
 
@@ -475,6 +531,7 @@ class EmployeeChat {
 
 	async show_info() {
 		if (!this.active) return;
+		console.log("[chat] employee show_info (conversation name pressed)", { thread: this.active });
 		const info = await frappe.xcall(API + "get_thread_info", { thread: this.active });
 		const media = [];
 		const files = [];
@@ -736,17 +793,31 @@ class EmployeeChat {
 	// --- realtime handlers -------------------------------------------------
 
 	async on_realtime_message(d) {
+		console.log("[chat] employee page realtime message", d);
 		// Someone else's message rings, unless this user muted the thread.
 		if (d && d.sender && d.sender !== this.me) {
 			const t = this.threads[d.thread];
+			console.log("[chat] employee ring", { thread: d.thread, sender: d.sender, thread_found: !!t, muted: t && t.muted });
 			erpnext.chat_sound.play(t && t.muted);
 		}
 		if (d && d.thread === this.active && d.name) {
 			// avoid duplicating our own optimistic append
 			if (this.push_message(d)) {
 				await this.decrypt_messages([d]);
-				this.render_thread(true);
-				this.mark_read();
+				// Only follow the conversation to the bottom if the user was already there;
+				// otherwise keep their scroll position so reading history isn't yanked.
+				const el = this.$thread[0];
+				const at_bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+				const mine = d.sender === this.me;
+				this.render_thread(at_bottom || mine);
+				if (at_bottom || mine) {
+					// At the bottom (or it's our own message) → it's read as it lands.
+					this.update_read_progress();
+				} else {
+					// Scrolled up → leave it unread, just refresh the badge + FAB counter.
+					this.recount_unread(this.active);
+				}
+				this.update_fab();
 			}
 		}
 		this.load_threads();
@@ -1011,12 +1082,74 @@ class EmployeeChat {
 
 	// --- read receipts -----------------------------------------------------
 
-	mark_read() {
+	// Advance the read cursor. `upto` (a message creation timestamp) marks read only that far,
+	// leaving anything below the fold unread; omit it to mark the whole thread read.
+	mark_read(upto) {
 		if (!this.active) return;
-		frappe.xcall(API + "mark_read", { thread: this.active }).then(() => {
-			if (this.threads[this.active]) this.threads[this.active].unread = 0;
-			this.render_list();
+		const thread = this.active;
+		frappe.xcall(API + "mark_read", { thread, upto: upto || null }).then((res) => {
+			const cursor = (res && res.last_read_on) || upto || frappe.datetime.now_datetime();
+			if (this.active === thread) this.read_cursor = cursor;
+			this.recount_unread(thread);
 		});
+	}
+
+	// Recompute the per-thread unread badge from the local cursor (messages the current user
+	// hasn't reached yet). Cheap — the open thread's messages are already in memory.
+	recount_unread(thread) {
+		const t = this.threads[thread];
+		if (!t) return;
+		if (thread === this.active) {
+			const cursor = this.read_cursor;
+			t.unread = this.messages.filter(
+				(m) => m.sender !== this.me && (!cursor || m.creation > cursor)
+			).length;
+		}
+		this.render_list();
+	}
+
+	// Progressive read-on-scroll: any unread incoming message whose top has scrolled into the
+	// viewport counts as seen. Advance the cursor to the newest such message (never backwards),
+	// debounced so a scroll gesture makes at most one server call.
+	update_read_progress() {
+		if (!this.active) return;
+		const el = this.$thread[0];
+		if (!el) return;
+		const bottom_edge = el.scrollTop + el.clientHeight;
+		let newest = this.read_cursor || "";
+		this.$thread.find(".ec-bubble").each((_, b) => {
+			const m = $(b).data("msg");
+			if (!m || m.sender === this.me) return;
+			if (b.offsetTop < bottom_edge && m.creation > newest) newest = m.creation;
+		});
+		if (newest && newest > (this.read_cursor || "")) {
+			this.read_cursor = newest;
+			this.recount_unread(this.active);
+			clearTimeout(this._read_timer);
+			const upto = newest;
+			this._read_timer = setTimeout(() => this.mark_read(upto), 350);
+		}
+	}
+
+	// Show the scroll-to-latest button when the user is away from the bottom; badge it with
+	// how many messages still sit below the fold unread.
+	update_fab() {
+		if (!this.$fab) return;
+		const el = this.$thread[0];
+		if (!el || !this.active) return this.$fab.removeClass("show");
+		const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+		const away = dist > 120;
+		this.$fab.toggleClass("show", away);
+		const t = this.threads[this.active];
+		const n = (t && t.unread) || 0;
+		this.$fab.find(".ec-fab-badge").toggle(n > 0).text(n > 99 ? "99+" : n);
+	}
+
+	// FAB / "mark all read": jump to the newest message and clear the whole thread's unread.
+	jump_to_latest() {
+		this.$thread.scrollTop(this.$thread[0].scrollHeight);
+		this.mark_read();
+		this.update_fab();
 	}
 
 	// --- new chat ----------------------------------------------------------

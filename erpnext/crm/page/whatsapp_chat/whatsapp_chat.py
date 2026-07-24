@@ -167,13 +167,15 @@ def get_chats(manager=None):
 	backfill_previews(chats)
 
 	unread = _unread_counts([c["phone"] for c in chats if c.get("phone")])
-	muted = set(
-		frappe.get_all(
-			"WhatsApp Chat Read",
-			filters={"user": frappe.session.user, "muted": 1},
-			pluck="chat",
-		)
+	states = frappe.get_all(
+		"WhatsApp Chat Read",
+		filters={"user": frappe.session.user},
+		fields=["chat", "muted", "last_read_on"],
 	)
+	muted = {s.chat for s in states if s.muted}
+	# The client needs its own read cursor to place the "New messages" divider and scroll
+	# to the first unread message on open.
+	cursor = {s.chat: str(s.last_read_on) if s.last_read_on else None for s in states}
 	for c in chats:
 		c["preview"] = c.pop("last_preview", None) or ""
 		c["preview_content_type"] = c.pop("last_content_type", None)
@@ -181,6 +183,7 @@ def get_chats(manager=None):
 			c["title"] = c["phone"]
 		c["unread"] = unread.get(c["phone"], 0)
 		c["muted"] = 1 if c["name"] in muted else 0
+		c["my_last_read"] = cursor.get(c["name"])
 	return chats
 
 
@@ -255,11 +258,25 @@ def set_muted(phone, muted):
 
 
 @frappe.whitelist()
-def mark_read(phone):
-	"""Move the current user's read cursor for this conversation to now."""
+def mark_read(phone, upto=None):
+	"""Advance the current user's read cursor for this conversation.
+
+	`upto` (a message creation timestamp) marks read only up to a specific message — used
+	by progressive read-on-scroll so messages still below the fold stay unread. The cursor
+	only ever moves forward. With no `upto` the whole conversation is marked read as of now."""
 	_require_wa_access()
 	phone = _digits(phone)
-	ts = now()
+	ts = upto or now()
+
+	chat = frappe.db.exists("WhatsApp Chat", {"phone": phone})
+	if chat:
+		current = frappe.db.get_value(
+			"WhatsApp Chat Read", f"{chat}::{frappe.session.user}", "last_read_on"
+		)
+		if current and str(current) >= str(ts):
+			# Never move the cursor backwards.
+			return {"last_read_on": str(current)}
+
 	if not _set_chat_state(phone, {"last_read_on": ts}):
 		return {}
 
@@ -270,7 +287,7 @@ def mark_read(phone):
 		user=frappe.session.user,
 		after_commit=True,
 	)
-	return {"last_read_on": ts}
+	return {"last_read_on": str(ts)}
 
 
 @frappe.whitelist()

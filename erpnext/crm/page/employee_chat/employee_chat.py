@@ -184,6 +184,9 @@ def get_threads():
 		t["participants"] = parts
 		mine = next((p for p in parts if p.user == me), None)
 		t["muted"] = mine.muted if mine else 0
+		# The client needs its own read cursor to place the "New messages" divider and
+		# scroll to the first unread message on open.
+		t["my_last_read"] = str(last_read[t["name"]]) if last_read[t["name"]] else None
 		others = [p for p in parts if p.user != me]
 		if t["thread_type"] == "Direct" and others:
 			o = others[0]
@@ -366,8 +369,13 @@ def send_message(
 
 
 @frappe.whitelist()
-def mark_read(thread):
-	"""Mark the thread read up to now for the current user; notify others (seen ticks)."""
+def mark_read(thread, upto=None):
+	"""Advance the current user's read cursor for a thread; notify others (seen ticks).
+
+	`upto` (a message creation timestamp) marks read only up to a specific message — used
+	by progressive read-on-scroll so messages still below the fold stay unread. The cursor
+	only ever moves forward, so an out-of-order call (e.g. scrolling back up) can't un-read
+	newer messages. With no `upto` the whole thread is marked read as of now."""
 	doc = _require_participant(thread)
 	me = frappe.session.user
 	name = frappe.db.get_value(
@@ -375,10 +383,14 @@ def mark_read(thread):
 	)
 	if not name:
 		return
-	ts = now()
+	ts = upto or now()
+	current = frappe.db.get_value("Chat Participant", name, "last_read_on")
+	if current and str(current) >= str(ts):
+		# Never move the cursor backwards.
+		return {"last_read_on": str(current)}
 	frappe.db.set_value("Chat Participant", name, "last_read_on", ts, update_modified=False)
 	_fanout(doc, "chat_seen", {"thread": thread, "user": me, "last_read_on": ts})
-	return {"last_read_on": ts}
+	return {"last_read_on": str(ts)}
 
 
 @frappe.whitelist()
