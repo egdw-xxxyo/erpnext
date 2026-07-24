@@ -465,7 +465,7 @@ auto_cancel_exempted_doctypes = [
 scheduler_events = {
 	"cron": {
 		"0/5 * * * *": [
-			"erpnext.manufacturing.doctype.scanner.scanner_api.expire_scanner_sessions",
+			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
@@ -491,7 +491,7 @@ scheduler_events = {
 		"erpnext.utilities.doctype.video.video.update_youtube_data",
 	],
 	"daily": [
-		"erpnext.manufacturing.doctype.print_job.print_job.cleanup_old_print_jobs",
+		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 	],
 	"daily_long": [],
 	"daily_maintenance": [

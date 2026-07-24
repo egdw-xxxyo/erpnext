@@ -1,0 +1,171 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:script_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "script_name",
+  "column_break_1",
+  "script_type",
+  "trigger_event",
+  "is_active",
+  "section_versions",
+  "default_version",
+  "column_break_v1",
+  "viewing_version",
+  "section_versions_list",
+  "versions",
+  "section_script",
+  "script",
+  "tab_runs",
+  "runs",
+  "section_help",
+  "help_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "script_name",
+   "fieldtype": "Data",
+   "label": "Script Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Scanner",
+   "fieldname": "script_type",
+   "fieldtype": "Select",
+   "label": "Script Type",
+   "options": "Scanner\nReflectometer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "trigger_event",
+   "fieldtype": "Select",
+   "label": "Trigger Event",
+   "options": "\nSOR Uploaded\nOPM Measured\nVFL Toggled",
+   "depends_on": "eval:doc.script_type==='Reflectometer'",
+   "mandatory_depends_on": "eval:doc.script_type==='Reflectometer'",
+   "description": "Event that fires this script. Scanner scripts have no event (called from Workplace Scripts)."
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_versions",
+   "fieldtype": "Section Break",
+   "label": "Versions"
+  },
+  {
+   "fieldname": "default_version",
+   "fieldtype": "Select",
+   "label": "Default Version",
+   "description": "Version used at runtime"
+  },
+  {
+   "fieldname": "column_break_v1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "viewing_version",
+   "fieldtype": "Select",
+   "label": "Editing / Viewing Version",
+   "description": "Switching reloads the working-copy script below from this version's snapshot. Edits are saved into this version on Save."
+  },
+  {
+   "fieldname": "section_versions_list",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "versions",
+   "fieldtype": "Table",
+   "label": "Versions",
+   "options": "Device Script Version",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_script",
+   "fieldtype": "Section Break",
+   "label": "Script (Working Copy)"
+  },
+  {
+   "fieldname": "script",
+   "fieldtype": "Code",
+   "label": "Script",
+   "options": "py",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tab_runs",
+   "fieldtype": "Tab Break",
+   "label": "Recent Runs"
+  },
+  {
+   "fieldname": "runs",
+   "fieldtype": "Table",
+   "label": "Runs",
+   "options": "Device Script Run",
+   "read_only": 1,
+   "description": "Last 200 executions (older rows pruned automatically)."
+  },
+  {
+   "fieldname": "section_help",
+   "fieldtype": "Section Break",
+   "label": "API Reference",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "help_html",
+   "fieldtype": "HTML",
+   "label": "API Reference"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Device Script",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Operator",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

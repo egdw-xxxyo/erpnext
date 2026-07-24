@@ -379,7 +379,7 @@ def submit_opm_measurement(
 	# Fire Reflectometer scripts subscribed to 'OPM Measured'
 	script_results = []
 	try:
-		from erpnext.manufacturing.doctype.device_script.device_script import run_scripts_for_event
+		from erpnext.devices.doctype.device_script.device_script import run_scripts_for_event
 		script_results = run_scripts_for_event(
 			"Reflectometer", trigger_event="OPM Measured",
 			otdr=doc, payload_str=payload_str,
@@ -412,7 +412,7 @@ def submit_vfl_event(otdr=None, duty=None, **kwargs):
 	)
 	script_results = []
 	try:
-		from erpnext.manufacturing.doctype.device_script.device_script import run_scripts_for_event
+		from erpnext.devices.doctype.device_script.device_script import run_scripts_for_event
 		script_results = run_scripts_for_event(
 			"Reflectometer", trigger_event="VFL Toggled",
 			otdr=doc, payload_str=payload_str,

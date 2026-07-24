@@ -254,7 +254,7 @@ class OTDR(Document):
 		script_results: list[dict] = []
 		if auto_sync:
 			try:
-				from erpnext.manufacturing.doctype.device_script.device_script import run_scripts_for_event
+				from erpnext.devices.doctype.device_script.device_script import run_scripts_for_event
 				script_results = run_scripts_for_event(
 					"Reflectometer",
 					trigger_event="SOR Uploaded",
