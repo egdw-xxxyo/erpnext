@@ -3,6 +3,13 @@ FROM frappe/erpnext:${ERPNEXT_VERSION}
 
 USER root
 
+# ── System packages ───────────────────────────────────────────────────
+# ffmpeg: transcode browser-recorded voice notes (webm/opus) to ogg/opus so
+# Meta's WhatsApp Cloud API accepts them (see whatsapp_chat._ensure_whatsapp_audio).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Replace ERPNext source with ours ──────────────────────────────────
 # Only copy the erpnext/ package dir — keep the stock pyproject.toml
 # (ours has requires-python>=3.14 which is incompatible with the image's Python 3.11)

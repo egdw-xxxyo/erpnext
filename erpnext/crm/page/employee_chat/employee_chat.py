@@ -60,6 +60,8 @@ def _preview_text(content_type, message, attach, is_encrypted=False):
 		return "🔒 " + _("Encrypted message")
 	if content_type == "image":
 		return "📷 " + _("Photo")
+	if content_type == "audio":
+		return "🎤 " + _("Audio")
 	if content_type == "file":
 		fname = (attach or "").split("/")[-1]
 		return "📎 " + (fname or _("File"))
@@ -333,7 +335,7 @@ def send_message(
 			frappe.throw(_("This chat is not a secret chat"))
 		if content_type == "text" and not (message or "").strip():
 			frappe.throw(_("Nothing to send"))
-		if content_type in ("image", "file") and not attach:
+		if content_type in ("image", "audio", "file") and not attach:
 			frappe.throw(_("Nothing to send"))
 
 	me = frappe.session.user

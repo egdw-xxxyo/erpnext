@@ -12964,3 +12964,7 @@ Workplace Scripts,Скрипти робочого місця
 "Label Printing","Друк етикеток"
 "Device Scripts","Скрипти пристроїв"
 "Masters & Logs","Довідники та журнали"
+"Record voice message","Записати голосове повідомлення"
+"Voice recording is not supported in this browser","Запис голосу не підтримується у цьому браузері"
+"Microphone access was denied","Доступ до мікрофона заборонено"
+"Failed to send voice message","Не вдалося надіслати голосове повідомлення"

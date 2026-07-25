@@ -629,6 +629,68 @@ def send_text(phone, message, reply_to_message_id=None):
 	return _insert_outgoing(fields)
 
 
+# Audio containers Meta's Cloud API accepts as-is. Anything else (notably webm, which is
+# all Chrome's MediaRecorder can produce) is transcoded to ogg/opus before sending.
+META_AUDIO_EXT = {"aac", "m4a", "mp4", "amr", "mp3", "mpeg", "ogg", "opus"}
+
+
+def _ensure_whatsapp_audio(attach):
+	"""Return a Meta-compatible audio file URL for `attach`, transcoding to ogg/opus with
+	ffmpeg when the uploaded file is in a container Meta rejects. On any failure the
+	original url is returned unchanged so the send still attempts (and surfaces Meta's
+	own error) rather than being silently dropped."""
+	import os
+	import subprocess
+	import tempfile
+
+	ext = (attach or "").rsplit(".", 1)[-1].lower()
+	if ext in META_AUDIO_EXT:
+		return attach
+	try:
+		file_doc = frappe.get_doc("File", {"file_url": attach})
+		src_path = file_doc.get_full_path()
+	except Exception:
+		return attach  # remote / unknown file — let Meta decide
+
+	out_fd, out_path = tempfile.mkstemp(suffix=".ogg")
+	os.close(out_fd)
+	try:
+		subprocess.run(
+			[
+				"ffmpeg", "-y", "-i", src_path,
+				"-vn", "-c:a", "libopus", "-b:a", "32k", "-ar", "48000",
+				out_path,
+			],
+			check=True,
+			capture_output=True,
+			timeout=120,
+		)
+		with open(out_path, "rb") as f:
+			content = f.read()
+	except Exception as e:
+		frappe.log_error(title="WhatsApp audio transcode failed", message=str(e))
+		return attach
+	finally:
+		try:
+			os.remove(out_path)
+		except OSError:
+			pass
+
+	from frappe.utils.file_manager import save_file
+
+	base = (file_doc.file_name or "voice").rsplit(".", 1)[0]
+	new_file = save_file(
+		base + ".ogg",
+		content,
+		None,
+		None,
+		folder="Home/Attachments",
+		is_private=file_doc.is_private,
+		decode=False,
+	)
+	return new_file.file_url
+
+
 @frappe.whitelist()
 def send_media(phone, attach, content_type, caption=None, reply_to_message_id=None):
 	"""Send an image/video/audio/document by its uploaded file URL."""
@@ -638,6 +700,8 @@ def send_media(phone, attach, content_type, caption=None, reply_to_message_id=No
 		frappe.throw(_("Nothing to send"))
 	if content_type not in ("image", "video", "audio", "document"):
 		frappe.throw(_("Unsupported media type"))
+	if content_type == "audio":
+		attach = _ensure_whatsapp_audio(attach)
 	fields = {
 		"to": phone,
 		"attach": attach,

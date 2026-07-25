@@ -42,7 +42,7 @@
    "fieldname": "content_type",
    "fieldtype": "Select",
    "label": "Content Type",
-   "options": "text\nimage\nfile"
+   "options": "text\nimage\naudio\nfile"
   },
   {
    "fieldname": "message",

@@ -47,11 +47,60 @@ function cb_fmt_time(dt) {
 	return moment.tz(dt, tz).local().format("DD.MM HH:mm");
 }
 
-function cb_text(msg) {
-	const caption = frappe.utils.escape_html((msg.message || "").replace(/<[^>]*>/g, ""));
-	const label = cb_media_label(msg.content_type);
-	if (label) return caption ? `${label}: ${caption}` : label;
-	return caption || `<i>(${__("no text")})</i>`;
+// Body of a bubble message: inline image (with lazy preview + lightbox via chat_media),
+// a download link for other files, or plain/labelled text. `m` is the normalized message
+// object built by the sources' load_messages.
+function cb_render_body(m) {
+	if (m.is_encrypted) {
+		if (!m.dec) return `🔒 ${__("Encrypted")}`;
+		const text = m.dec.text || "";
+		const cap = text ? `<div class="cb-caption">${frappe.utils.escape_html(text)}</div>` : "";
+		const file = m.dec.file;
+		if (file && m.content_type === "audio") {
+			return `<div class="cb-media">${erpnext.chat_media.encrypted_audio_html({
+				url: file.url,
+				key: file.key,
+				iv: file.iv,
+				mime: file.mime,
+				file_name: file.name,
+			})}</div>${cap}`;
+		}
+		if (file && m.content_type === "image") {
+			return `<div class="cb-media">${erpnext.chat_media.encrypted_image_html({
+				url: file.url,
+				key: file.key,
+				iv: file.iv,
+				mime: file.mime,
+				file_name: file.name,
+				thumb_url: (m.dec.thumb || {}).url,
+				thumb_key: (m.dec.thumb || {}).key,
+				thumb_iv: (m.dec.thumb || {}).iv,
+			})}</div>${cap}`;
+		}
+		if (file) {
+			return `<span class="cb-doc">📎 ${frappe.utils.escape_html(file.name || __("File"))}</span>${cap}`;
+		}
+		return text ? `<span>${frappe.utils.escape_html(text)}</span>` : `<i>(${__("no text")})</i>`;
+	}
+
+	const caption = m.text || "";
+	const cap = caption ? `<div class="cb-caption">${frappe.utils.escape_html(caption)}</div>` : "";
+	if ((m.content_type === "image" || m.content_type === "sticker") && m.attach) {
+		return `<div class="cb-media">${erpnext.chat_media.image_html(m.attach)}</div>${cap}`;
+	}
+	if (m.content_type === "audio" && m.attach) {
+		return `<div class="cb-media">${erpnext.chat_media.audio_html(m.attach)}</div>${cap}`;
+	}
+	if (m.attach) {
+		const url = frappe.utils.escape_html(m.attach);
+		const fname = frappe.utils.escape_html(
+			decodeURIComponent(m.attach.split("/").pop() || __("File"))
+		);
+		return `<a class="cb-doc" href="${url}" target="_blank" download>📎 ${fname}</a>${cap}`;
+	}
+	const label = cb_media_label(m.content_type);
+	if (label) return caption ? `${label}${cap}` : label;
+	return caption ? `<span>${frappe.utils.escape_html(caption)}</span>` : `<i>(${__("no text")})</i>`;
 }
 
 // --- WhatsApp source -------------------------------------------------------
@@ -62,6 +111,7 @@ class WhatsAppSource {
 		this.label = __("WhatsApp");
 		this.page_route = "/app/whatsapp-chat-center";
 		this.realtime_events = ["whatsapp_message", "whatsapp_read"];
+		this.media_source = "whatsapp"; // get_thumbnails source key
 		this.chats = [];
 	}
 
@@ -86,9 +136,11 @@ class WhatsAppSource {
 		const msgs = await frappe.xcall(`${WA_API}.get_recent_messages`, { phone: id, limit: 20 });
 		return msgs.map((m) => ({
 			out: m.type === "Outgoing",
-			html: cb_text(m),
 			time: m.creation,
 			author: null,
+			content_type: m.content_type,
+			attach: m.attach,
+			text: (m.message || "").replace(/<[^>]*>/g, ""),
 		}));
 	}
 
@@ -111,6 +163,46 @@ class WhatsAppSource {
 		return frappe.xcall(`${WA_API}.send_text`, { phone: id, message: text });
 	}
 
+	// Pick a file, upload it, and send it as a media message — same content-type
+	// detection the full Chat Center uses.
+	attach(id, caption) {
+		return new Promise((resolve, reject) => {
+			new frappe.ui.FileUploader({
+				folder: "Home/Attachments",
+				on_success: async (file) => {
+					let ct = erpnext.chat_media.detect_type(
+						file.file_type || file.type,
+						file.file_name || file.file_url
+					);
+					if (!["image", "video", "audio"].includes(ct)) ct = "document";
+					try {
+						await frappe.xcall(`${WA_API}.send_media`, {
+							phone: id,
+							attach: file.file_url,
+							content_type: ct,
+							caption: caption || null,
+						});
+						resolve();
+					} catch (e) {
+						reject(e);
+					}
+				},
+			});
+		});
+	}
+
+	// Send an already-recorded voice note (blob). The server transcodes webm to
+	// ogg/opus so Meta accepts Chrome recordings.
+	async send_voice(id, rec) {
+		const url = await erpnext.chat_media.upload_audio(rec.blob, rec.ext);
+		await frappe.xcall(`${WA_API}.send_media`, {
+			phone: id,
+			attach: url,
+			content_type: "audio",
+			caption: null,
+		});
+	}
+
 	route_for(id) {
 		return id ? `${this.page_route}?phone=${encodeURIComponent(id)}` : this.page_route;
 	}
@@ -124,6 +216,7 @@ class EmployeeChatSource {
 		this.label = __("Employees");
 		this.page_route = "/app/employee-chat";
 		this.realtime_events = ["chat_message", "chat_seen"];
+		this.media_source = "chat"; // get_thumbnails source key
 		this.chats = [];
 	}
 
@@ -158,29 +251,27 @@ class EmployeeChatSource {
 		const unlocked = erpnext.chat_crypto.is_unlocked();
 		const out = [];
 		for (const m of msgs) {
-			let html;
+			const item = {
+				out: m.sender === me,
+				time: m.creation,
+				author: m.sender === me ? null : m.sender_name,
+				content_type: m.content_type,
+			};
 			if (m.is_encrypted) {
-				html = `🔒 ${__("Encrypted")}`;
+				item.is_encrypted = true;
+				item.dec = null; // stays locked unless the key is already in memory
 				if (unlocked) {
 					try {
-						const dec = await erpnext.chat_crypto.decrypt(id, m.message, m.enc_iv);
-						html = cb_text({
-							content_type: m.content_type,
-							message: dec.text || "",
-						});
+						item.dec = await erpnext.chat_crypto.decrypt(id, m.message, m.enc_iv);
 					} catch (e) {
 						// leave the lock
 					}
 				}
 			} else {
-				html = cb_text(m);
+				item.attach = m.attach;
+				item.text = m.message || "";
 			}
-			out.push({
-				out: m.sender === me,
-				html,
-				time: m.creation,
-				author: m.sender === me ? null : m.sender_name,
-			});
+			out.push(item);
 		}
 		return out;
 	}
@@ -210,6 +301,134 @@ class EmployeeChatSource {
 			message: ciphertext,
 			is_encrypted: 1,
 			enc_iv: iv,
+		});
+	}
+
+	attach(id, caption) {
+		if (this.is_secret(id)) return this.attach_secret(id, caption);
+		return new Promise((resolve, reject) => {
+			new frappe.ui.FileUploader({
+				folder: "Home/Attachments",
+				on_success: async (file) => {
+					const content_type =
+						erpnext.chat_media.detect_type(
+							file.file_type || file.type,
+							file.file_name || file.file_url
+						) === "image"
+							? "image"
+							: "file";
+					try {
+						await frappe.xcall(`${EC_API}.send_message`, {
+							thread: id,
+							content_type,
+							attach: file.file_url,
+							message: caption || "",
+						});
+						resolve();
+					} catch (e) {
+						reject(e);
+					}
+				},
+			});
+		});
+	}
+
+	// Secret attachments are encrypted in the browser and uploaded as opaque blobs,
+	// together with a browser-built preview — mirrors the full chat page.
+	async attach_secret(id, caption) {
+		if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
+		const file = await new Promise((resolve) => {
+			const input = $('<input type="file" style="display:none">').appendTo(document.body);
+			input.on("change", () => {
+				const f = input[0].files && input[0].files[0];
+				input.remove();
+				resolve(f || null);
+			});
+			input.trigger("click");
+		});
+		if (!file) return;
+
+		const content_type =
+			erpnext.chat_media.detect_type(file.type, file.name) === "image" ? "image" : "file";
+		frappe.dom.freeze(__("Encrypting…"));
+		try {
+			const enc = await erpnext.chat_crypto.encrypt_blob(file);
+			const url = await erpnext.chat_media.upload_encrypted(enc.blob, file.name);
+			const payload = {
+				text: caption || "",
+				file: {
+					url,
+					key: enc.key,
+					iv: enc.iv,
+					name: file.name,
+					mime: file.type,
+					size: file.size,
+				},
+			};
+
+			const preview = await erpnext.chat_media.make_preview_blob(file);
+			if (preview) {
+				const enc_thumb = await erpnext.chat_crypto.encrypt_blob(preview);
+				payload.thumb = {
+					url: await erpnext.chat_media.upload_encrypted(
+						enc_thumb.blob,
+						"preview-" + file.name
+					),
+					key: enc_thumb.key,
+					iv: enc_thumb.iv,
+				};
+			}
+
+			const { ciphertext, iv } = await erpnext.chat_crypto.encrypt(id, payload);
+			await frappe.xcall(`${EC_API}.send_message`, {
+				thread: id,
+				content_type,
+				attach: url,
+				message: ciphertext,
+				is_encrypted: 1,
+				enc_iv: iv,
+			});
+		} finally {
+			frappe.dom.unfreeze();
+		}
+	}
+
+	async send_voice(id, rec) {
+		if (this.is_secret(id)) {
+			if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
+			const enc = await erpnext.chat_crypto.encrypt_blob(rec.blob);
+			const url = await erpnext.chat_media.upload_encrypted(
+				enc.blob,
+				"voice-" + Date.now() + "." + rec.ext
+			);
+			const payload = {
+				text: "",
+				file: {
+					url,
+					key: enc.key,
+					iv: enc.iv,
+					name: "voice." + rec.ext,
+					mime: rec.mime,
+					size: rec.blob.size,
+				},
+			};
+			const { ciphertext, iv } = await erpnext.chat_crypto.encrypt(id, payload);
+			await frappe.xcall(`${EC_API}.send_message`, {
+				thread: id,
+				content_type: "audio",
+				attach: url,
+				message: ciphertext,
+				is_encrypted: 1,
+				enc_iv: iv,
+			});
+			return;
+		}
+		const url = await erpnext.chat_media.upload_audio(rec.blob, rec.ext);
+		await frappe.xcall(`${EC_API}.send_message`, {
+			thread: id,
+			content_type: "audio",
+			attach: url,
+			message: "",
 		});
 	}
 
@@ -301,6 +520,7 @@ class ChatBubble {
 	}
 
 	inject_styles() {
+		erpnext.chat_media.inject_styles();
 		if (document.getElementById("cb-bubble-styles")) return;
 		const css = `
 		.cb-fab{position:fixed;right:24px;bottom:24px;z-index:1035;width:56px;height:56px;border-radius:50%;
@@ -339,8 +559,14 @@ class ChatBubble {
 		.cb-out{align-self:flex-end;background:#d9fdd3;color:#111;}
 		.cb-msg .cb-meta{font-size:10px;color:var(--text-muted);text-align:right;opacity:.75;margin-top:1px;}
 		.cb-empty{padding:24px 12px;text-align:center;color:var(--text-muted);font-size:var(--text-sm);}
+		.cb-msg .cb-media{margin-bottom:2px;}
+		.cb-msg .chat-img{min-width:70px;min-height:54px;max-width:180px;}
+		.cb-msg .chat-img img{max-width:180px;max-height:200px;}
+		.cb-msg .cb-caption{white-space:pre-wrap;margin-top:2px;}
+		.cb-msg .cb-doc{color:inherit;text-decoration:underline;word-break:break-all;display:inline-block;}
 		.cb-compose{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border-color);align-items:flex-end;}
 		.cb-compose textarea{resize:none;flex:1;font-size:12px;}
+		.cb-compose .cb-attach{flex:none;}
 		.cb-foot{padding:6px 8px;border-top:1px solid var(--border-color);}
 		@media (max-width:600px){
 			.cb-panel{right:12px;left:12px;width:auto;bottom:84px;height:70vh;}
@@ -378,6 +604,8 @@ class ChatBubble {
 				<div class="cb-tabs" ${this.sources.length > 1 ? "" : 'style="display:none;"'}>${tabs}</div>
 				<div class="cb-body"></div>
 				<div class="cb-compose" style="display:none;">
+					<button class="btn btn-default btn-xs cb-attach" title="${__("Attach file")}">📎</button>
+					<button class="btn btn-default btn-xs cb-mic" title="${__("Record voice message")}">🎤</button>
 					<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
 					<button class="btn btn-primary btn-xs cb-send">${__("Send")}</button>
 				</div>
@@ -410,6 +638,8 @@ class ChatBubble {
 		});
 		this.$mute.on("click", () => this.toggle_mute());
 		this.$panel.find(".cb-send").on("click", () => this.send());
+		this.$panel.find(".cb-attach").on("click", () => this.attach_media());
+		this.$panel.find(".cb-mic").on("click", () => this.record_voice());
 		this.$input.on("keydown", (e) => {
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
@@ -555,7 +785,7 @@ class ChatBubble {
 			.map(
 				(m) => `<div class="cb-msg ${m.out ? "cb-out" : "cb-in"}">
 					${m.author ? `<div class="cb-author">${frappe.utils.escape_html(m.author)}</div>` : ""}
-					<div class="cb-msg-text">${m.html}</div>
+					<div class="cb-msg-text">${cb_render_body(m)}</div>
 					<div class="cb-meta">${cb_fmt_time(m.time)}</div>
 				</div>`
 			)
@@ -564,7 +794,42 @@ class ChatBubble {
 		this.$body.html(
 			`<div class="cb-thread">${bubbles || `<div class="cb-empty">${__("No messages yet")}</div>`}</div>`
 		);
+		// Lazy-load previews + wire the shared lightbox for any images in the thread.
+		if (source.media_source) {
+			erpnext.chat_media.bind(this.$body.find(".cb-thread"), source.media_source);
+		}
 		this.$body.scrollTop(this.$body[0].scrollHeight);
+	}
+
+	async record_voice() {
+		if (!this.active || !this.source.send_voice) return;
+		const rec = await erpnext.chat_media.record_audio();
+		if (!rec) return;
+		frappe.dom.freeze(__("Sending…"));
+		try {
+			await this.source.send_voice(this.active, rec);
+		} catch (e) {
+			frappe.msgprint(__("Failed to send voice message"));
+			return;
+		} finally {
+			frappe.dom.unfreeze();
+		}
+		this.load_thread(this.active);
+		this.refresh();
+	}
+
+	async attach_media() {
+		if (!this.active || !this.source.attach) return;
+		const caption = (this.$input.val() || "").trim();
+		try {
+			await this.source.attach(this.active, caption);
+		} catch (e) {
+			frappe.msgprint(__("Failed to send file"));
+			return;
+		}
+		this.$input.val("");
+		this.load_thread(this.active);
+		this.refresh();
 	}
 
 	async send() {

@@ -88,6 +88,7 @@ class EmployeeChat {
 						</div>
 						<div class="ec-compose">
 							<button class="btn btn-default btn-sm ec-attach" title="${__("Attach file")}">📎</button>
+							<button class="btn btn-default btn-sm ec-mic" title="${__("Record voice message")}">🎤</button>
 							<button class="btn btn-default btn-sm ec-emoji" title="${__("Add emoji")}">😊</button>
 							<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
 							<button class="btn btn-primary btn-sm ec-send">${__("Send")}</button>
@@ -113,6 +114,7 @@ class EmployeeChat {
 		this.page.main.find(".ec-new-chat").on("click", () => this.new_chat_dialog());
 		this.page.main.find(".ec-send").on("click", () => this.send());
 		this.page.main.find(".ec-attach").on("click", () => this.attach_media());
+		this.page.main.find(".ec-mic").on("click", () => this.record_voice());
 		this.page.main.find(".ec-emoji").on("click", (e) => this.emoji_picker(e));
 		this.$replyBar.find(".ec-reply-cancel").on("click", () => this.set_reply(null));
 		this.$input.on("keydown", (e) => {
@@ -166,6 +168,7 @@ class EmployeeChat {
 		.ec-quote{border-left:3px solid var(--primary);padding:2px 6px;margin-bottom:4px;background:rgba(0,0,0,.05);border-radius:4px;font-size:11px;opacity:.85;}
 		.ec-quote .ec-quote-author{font-weight:600;}
 		.ec-reactions{position:absolute;bottom:-11px;right:6px;display:flex;gap:2px;}
+		.ec-bubble:has(.ec-reactions){margin-bottom:12px;}
 		.ec-react-badge{cursor:pointer;background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:0 4px;font-size:11px;line-height:16px;box-shadow:0 1px 2px rgba(0,0,0,.15);}
 		.ec-react-badge.mine{border-color:var(--primary);}
 		.ec-bubble-actions{position:absolute;top:-10px;display:none;gap:2px;}
@@ -707,6 +710,9 @@ class EmployeeChat {
 		if (m.content_type === "image" && m.attach) {
 			return `<div class="ec-media">${erpnext.chat_media.image_html(m.attach)}</div>${cap_html}`;
 		}
+		if (m.content_type === "audio" && m.attach) {
+			return `<div class="ec-media">${erpnext.chat_media.audio_html(m.attach)}</div>${cap_html}`;
+		}
 		if (m.content_type === "file" && m.attach) {
 			const url = frappe.utils.escape_html(m.attach);
 			const fname = frappe.utils.escape_html(
@@ -732,6 +738,15 @@ class EmployeeChat {
 			? `<div class="ec-caption">${frappe.utils.escape_html(text)}</div>`
 			: "";
 		const file = m._dec.file;
+		if (file && m.content_type === "audio") {
+			return `<div class="ec-media">${erpnext.chat_media.encrypted_audio_html({
+				url: file.url,
+				key: file.key,
+				iv: file.iv,
+				mime: file.mime,
+				file_name: file.name,
+			})}</div>${cap_html}`;
+		}
 		if (file && m.content_type === "image") {
 			return `<div class="ec-media">${erpnext.chat_media.encrypted_image_html({
 				url: file.url,
@@ -778,12 +793,14 @@ class EmployeeChat {
 			return this.preview_of_payload(m.content_type, m._dec);
 		}
 		if (m.content_type === "image") return "📷 " + __("Photo");
+		if (m.content_type === "audio") return "🎤 " + __("Audio");
 		if (m.content_type === "file") return "📎 " + __("File");
 		return m.message || "";
 	}
 
 	preview_of_payload(content_type, payload) {
 		if (content_type === "image") return "📷 " + __("Photo");
+		if (content_type === "audio") return "🎤 " + __("Audio");
 		if (content_type === "file") {
 			return "📎 " + (((payload || {}).file || {}).name || __("File"));
 		}
@@ -1020,6 +1037,73 @@ class EmployeeChat {
 			}
 		});
 		input.trigger("click");
+	}
+
+	// Record a voice message and send it as an audio message. Secret threads encrypt the
+	// blob in the browser, exactly like attach_media_secret.
+	async record_voice() {
+		if (!this.active) return;
+		const rec = await erpnext.chat_media.record_audio();
+		if (!rec) return;
+		if (this.is_secret_thread()) return this.send_voice_secret(rec);
+		frappe.dom.freeze(__("Sending…"));
+		try {
+			const url = await erpnext.chat_media.upload_audio(rec.blob, rec.ext);
+			const msg = await frappe.xcall(API + "send_message", {
+				thread: this.active,
+				content_type: "audio",
+				attach: url,
+				message: "",
+				reply_to: this.reply_to ? this.reply_to.name : null,
+			});
+			this.set_reply(null);
+			this.push_message(msg);
+			this.render_thread(true);
+			this.load_threads();
+		} catch (err) {
+			frappe.msgprint(__("Failed to send voice message"));
+		} finally {
+			frappe.dom.unfreeze();
+		}
+	}
+
+	async send_voice_secret(rec) {
+		if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
+		frappe.dom.freeze(__("Encrypting…"));
+		try {
+			const enc = await erpnext.chat_crypto.encrypt_blob(rec.blob);
+			const url = await erpnext.chat_media.upload_encrypted(
+				enc.blob,
+				"voice-" + Date.now() + "." + rec.ext
+			);
+			const payload = {
+				text: "",
+				file: {
+					url,
+					key: enc.key,
+					iv: enc.iv,
+					name: "voice." + rec.ext,
+					mime: rec.mime,
+					size: rec.blob.size,
+				},
+			};
+			const args = await this.encrypted_args(payload);
+			const msg = await frappe.xcall(API + "send_message", {
+				thread: this.active,
+				content_type: "audio",
+				attach: url,
+				reply_to: this.reply_to ? this.reply_to.name : null,
+				...args,
+			});
+			this.set_reply(null);
+			if (this.push_message(msg)) await this.decrypt_messages([msg]);
+			this.render_thread(true);
+			this.load_threads();
+		} catch (err) {
+			frappe.msgprint(__("Failed to send voice message"));
+		} finally {
+			frappe.dom.unfreeze();
+		}
 	}
 
 	emoji_picker(e) {

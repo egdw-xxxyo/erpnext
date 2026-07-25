@@ -107,6 +107,7 @@ class WhatsAppChat {
 						</div>
 						<div class="wa-compose">
 							<button class="btn btn-default btn-sm wa-attach" title="${__("Attach file")}">📎</button>
+							<button class="btn btn-default btn-sm wa-mic" title="${__("Record voice message")}">🎤</button>
 							<button class="btn btn-default btn-sm wa-emoji" title="${__("Add emoji")}">😊</button>
 							<button class="btn btn-default btn-sm wa-template" title="${__("Send template")}">📋</button>
 							<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
@@ -136,6 +137,7 @@ class WhatsAppChat {
 		this.page.main.find(".wa-new-chat").on("click", () => this.new_chat_prompt());
 		this.page.main.find(".wa-send").on("click", () => this.send());
 		this.page.main.find(".wa-attach").on("click", () => this.attach_media());
+		this.page.main.find(".wa-mic").on("click", () => this.record_voice());
 		this.page.main.find(".wa-emoji").on("click", (e) => this.emoji_picker(e));
 		this.page.main.find(".wa-template").on("click", () => this.template_dialog());
 		this.$replyBar.find(".wa-reply-cancel").on("click", () => this.set_reply(null));
@@ -187,7 +189,7 @@ class WhatsAppChat {
 		.wa-meta{font-size:10px;color:var(--text-muted);margin-top:1px;text-align:right;opacity:.7;}
 		.wa-media .chat-img,.wa-media .chat-img img{max-width:220px;}
 		.wa-media video{max-width:240px;border-radius:6px;display:block;}
-		.wa-media audio{max-width:240px;display:block;}
+		.wa-media audio{width:240px;max-width:100%;display:block;}
 		.wa-media.wa-sticker img{max-width:130px;}
 		.wa-doc{display:inline-flex;align-items:center;gap:6px;color:inherit;text-decoration:underline;}
 		.wa-caption{white-space:pre-wrap;margin-top:4px;}
@@ -198,6 +200,7 @@ class WhatsAppChat {
 		.wa-resend{display:inline-block;margin-left:6px;cursor:pointer;font-weight:600;color:#c0392b;text-decoration:underline;white-space:nowrap;}
 		.wa-resend:hover{color:#e24c4c;}
 		.wa-reactions{position:absolute;bottom:-11px;right:6px;display:flex;gap:2px;}
+		.wa-bubble:has(.wa-reactions){margin-bottom:12px;}
 		.wa-react-badge{background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:0 4px;font-size:11px;line-height:16px;box-shadow:0 1px 2px rgba(0,0,0,.15);}
 		.wa-bubble-actions{position:absolute;top:-10px;display:none;gap:2px;}
 		.wa-in .wa-bubble-actions{right:4px;}
@@ -824,6 +827,32 @@ class WhatsAppChat {
 				}
 			},
 		});
+	}
+
+	// Record a voice message and send it as audio. The server transcodes to an
+	// ogg/opus file when the browser could only produce webm (Chrome), so Meta accepts it.
+	async record_voice() {
+		if (!this.active) return;
+		const rec = await erpnext.chat_media.record_audio();
+		if (!rec) return;
+		frappe.dom.freeze(__("Sending..."));
+		try {
+			const url = await erpnext.chat_media.upload_audio(rec.blob, rec.ext);
+			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_media", {
+				phone: this.active,
+				attach: url,
+				content_type: "audio",
+				caption: "",
+				reply_to_message_id: this.reply_to ? this.reply_to.message_id : null,
+			});
+			this.set_reply(null);
+			await this.refresh();
+			this.render_thread(true);
+		} catch (err) {
+			frappe.msgprint(__("Failed to send voice message"));
+		} finally {
+			frappe.dom.unfreeze();
+		}
 	}
 
 	emoji_picker(e) {

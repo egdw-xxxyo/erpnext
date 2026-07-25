@@ -64,6 +64,20 @@ erpnext.chat_media = {
 		</div>`;
 	},
 
+	// Markup for a plain audio message (voice note or uploaded audio file).
+	audio_html(url) {
+		const safe = frappe.utils.escape_html(url);
+		return `<audio class="chat-audio" controls preload="none" src="${safe}"></audio>`;
+	},
+
+	// Markup for an encrypted audio message. Like encrypted_image_html, the keys stay in
+	// the JS registry; bind() fetches + decrypts and wires up a blob: URL as the source.
+	encrypted_audio_html(meta) {
+		const id = "e" + ENC_SEQ++;
+		ENC_REGISTRY[id] = meta;
+		return `<audio class="chat-audio" controls preload="none" data-chat-enc-audio="${id}"></audio>`;
+	},
+
 	// Fetch an encrypted attachment and turn it back into a Blob. Used for previews,
 	// the lightbox, and downloads alike.
 	async fetch_encrypted(url, key, iv, mime) {
@@ -92,6 +106,105 @@ erpnext.chat_media = {
 		}
 	},
 
+	// Upload a plain (unencrypted) blob as a private File, returning its file_url. Used
+	// for voice notes recorded in the browser.
+	async upload_audio(blob, ext) {
+		const form = new FormData();
+		form.append("file", blob, `voice-${Date.now()}.${ext || "webm"}`);
+		form.append("is_private", 1);
+		form.append("folder", "Home/Attachments");
+		const res = await fetch("/api/method/upload_file", {
+			method: "POST",
+			headers: { "X-Frappe-CSRF-Token": frappe.csrf_token },
+			credentials: "same-origin",
+			body: form,
+		});
+		if (!res.ok) throw new Error("upload-failed");
+		return (await res.json()).message.file_url;
+	},
+
+	// Record a voice message from the microphone. Shows a small overlay bar with the
+	// elapsed time, Send (stop) and Cancel; resolves with {blob, mime, ext} or null if
+	// the user cancels or the mic is unavailable. Callers upload + send the blob.
+	//
+	// The container is picked to be WhatsApp-friendly when the browser can (ogg/opus,
+	// mp4); Chrome only offers webm, which the server transcodes for WhatsApp.
+	async record_audio() {
+		if (!navigator.mediaDevices || !window.MediaRecorder) {
+			frappe.msgprint(__("Voice recording is not supported in this browser"));
+			return null;
+		}
+		let stream;
+		try {
+			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		} catch (e) {
+			frappe.msgprint(__("Microphone access was denied"));
+			return null;
+		}
+		const candidates = [
+			["audio/ogg;codecs=opus", "ogg"],
+			["audio/mp4", "m4a"],
+			["audio/webm;codecs=opus", "webm"],
+			["audio/webm", "webm"],
+		];
+		let mime = "";
+		let ext = "webm";
+		for (const [m, e] of candidates) {
+			if (MediaRecorder.isTypeSupported(m)) {
+				mime = m;
+				ext = e;
+				break;
+			}
+		}
+		const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+		const chunks = [];
+		rec.ondataavailable = (ev) => {
+			if (ev.data && ev.data.size) chunks.push(ev.data);
+		};
+
+		return await new Promise((resolve) => {
+			const started = Date.now();
+			let outcome = null; // "stop" | "cancel"
+			const $bar = $(`
+				<div class="chat-rec">
+					<span class="chat-rec-dot"></span>
+					<span class="chat-rec-time">0:00</span>
+					<button class="btn btn-xs btn-default chat-rec-cancel">${__("Cancel")}</button>
+					<button class="btn btn-xs btn-primary chat-rec-stop">${__("Send")}</button>
+				</div>
+			`);
+			$("body").append($bar);
+			const timer = setInterval(() => {
+				const s = Math.floor((Date.now() - started) / 1000);
+				$bar.find(".chat-rec-time").text(
+					`${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+				);
+			}, 250);
+			const cleanup = () => {
+				clearInterval(timer);
+				$bar.remove();
+				stream.getTracks().forEach((t) => t.stop());
+			};
+			rec.onstop = () => {
+				cleanup();
+				if (outcome !== "stop" || !chunks.length) return resolve(null);
+				const type = (rec.mimeType || mime || "audio/webm").split(";")[0];
+				resolve({ blob: new Blob(chunks, { type }), mime: type, ext });
+			};
+			$bar.find(".chat-rec-stop").on("click", () => {
+				if (outcome) return;
+				outcome = "stop";
+				rec.stop();
+			});
+			$bar.find(".chat-rec-cancel").on("click", () => {
+				if (outcome) return;
+				outcome = "cancel";
+				rec.stop();
+			});
+			rec.start();
+		});
+	},
+
 	// Upload an already-encrypted blob as a private File. The bytes are opaque to the
 	// server, so the name carries an `.enc` suffix to make that obvious on disk.
 	async upload_encrypted(blob, file_name) {
@@ -113,6 +226,7 @@ erpnext.chat_media = {
 	// $container. Safe to call after each re-render.
 	bind($container, source) {
 		this._bind_encrypted($container);
+		this._bind_encrypted_audio($container);
 		const els = $container.find("img[data-chat-src]").toArray();
 		if (!els.length) return;
 
@@ -245,6 +359,29 @@ erpnext.chat_media = {
 			});
 	},
 
+	// Encrypted audio: fetch + decrypt the whole file (voice notes are small) and hand the
+	// <audio> element a blob: URL. There is no small preview to defer, so this is eager.
+	_bind_encrypted_audio($container) {
+		const els = $container.find("audio[data-chat-enc-audio]").toArray();
+		for (const el of els) {
+			const id = el.dataset.chatEncAudio;
+			const meta = ENC_REGISTRY[id];
+			if (!meta || el.getAttribute("src")) continue;
+			if (OBJECT_URLS[id]) {
+				el.setAttribute("src", OBJECT_URLS[id]);
+				continue;
+			}
+			this.fetch_encrypted(meta.url, meta.key, meta.iv, meta.mime)
+				.then((blob) => {
+					OBJECT_URLS[id] = URL.createObjectURL(blob);
+					el.setAttribute("src", OBJECT_URLS[id]);
+				})
+				.catch(() => {
+					el.outerHTML = `<div class="chat-img-failed">🔒 ${__("Cannot decrypt")}</div>`;
+				});
+		}
+	},
+
 	_apply(el, url) {
 		el.setAttribute("src", url);
 		el.classList.add("chat-img-loaded");
@@ -337,6 +474,12 @@ erpnext.chat_media = {
 		.chat-lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:12px;}
 		.chat-lightbox-body img{max-width:100%;max-height:100%;border-radius:4px;}
 		.chat-img-failed{padding:10px 12px;font-size:12px;color:var(--text-muted);}
+		.chat-audio{width:240px;max-width:100%;display:block;}
+		.chat-rec{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:1060;display:flex;align-items:center;gap:10px;
+			padding:8px 14px;border-radius:24px;background:var(--card-bg,#fff);border:1px solid var(--border-color);box-shadow:0 6px 20px rgba(0,0,0,.25);}
+		.chat-rec-time{font-variant-numeric:tabular-nums;font-size:13px;min-width:38px;}
+		.chat-rec-dot{width:10px;height:10px;border-radius:50%;background:var(--red-500,#e24c4c);animation:chat-rec-pulse 1s infinite;}
+		@keyframes chat-rec-pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 		`;
 		$(`<style id="chat-media-styles">${css}</style>`).appendTo(document.head);
 	},
