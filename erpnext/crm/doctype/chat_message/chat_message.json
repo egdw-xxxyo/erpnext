@@ -13,6 +13,7 @@
   "content_type",
   "message",
   "attach",
+  "link_data",
   "reply_to",
   "reactions",
   "encryption_section",
@@ -42,7 +43,7 @@
    "fieldname": "content_type",
    "fieldtype": "Select",
    "label": "Content Type",
-   "options": "text\nimage\naudio\nfile"
+   "options": "text\nimage\naudio\nfile\nlink"
   },
   {
    "fieldname": "message",
@@ -53,6 +54,12 @@
    "fieldname": "attach",
    "fieldtype": "Attach",
    "label": "Attach"
+  },
+  {
+   "description": "JSON link card payload for content_type=link (url, kind, doctype, name, title, subtitle, image)",
+   "fieldname": "link_data",
+   "fieldtype": "Long Text",
+   "label": "Link Data"
   },
   {
    "fieldname": "reply_to",

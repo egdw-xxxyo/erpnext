@@ -38,7 +38,70 @@ function cb_media_label(content_type) {
 		document: "📎 " + __("Document"),
 		file: "📎 " + __("File"),
 		sticker: "🩷 " + __("Sticker"),
+		link: "🔗 " + __("Link"),
 	}[content_type];
+}
+
+// Compact link card for a shared ERPNext object (mirrors the full chat page).
+function cb_link_card(card) {
+	if (!card || !card.url) return `<i>(${__("link")})</i>`;
+	const icon = card.image
+		? `<img src="${frappe.utils.escape_html(card.image)}" style="width:100%;height:100%;object-fit:cover;">`
+		: { document: "📄", report: "📊", list: "🗂️" }[card.kind] || "🔗";
+	const title = frappe.utils.escape_html(card.title || card.url);
+	const sub = frappe.utils.escape_html(card.subtitle || card.doctype || "");
+	const removed = !!card.removed;
+	const badge = removed
+		? ` <span style="display:inline-block;margin-left:4px;padding:0 5px;border-radius:8px;background:var(--red-500,#e24c4c);color:#fff;font-size:9px;font-weight:600;line-height:15px;">${frappe.utils.escape_html(
+				__("Removed")
+		  )}</span>`
+		: "";
+	// A deleted target has nowhere to go: drop the href so the card is inert but still legible.
+	const attrs = removed
+		? ""
+		: ` href="${frappe.utils.escape_html(card.url)}" target="_blank" rel="noopener"`;
+	return `<a class="cb-link-card"${attrs} style="display:flex;gap:6px;align-items:center;text-decoration:none;color:inherit;padding:5px 7px;border:1px solid var(--border-color);border-radius:7px;background:rgba(0,0,0,.03);max-width:240px;${
+		removed ? "opacity:.6;pointer-events:none;" : ""
+	}">
+		<div style="flex:none;width:30px;height:30px;border-radius:5px;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden;">${icon}</div>
+		<div style="min-width:0;">
+			<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}${badge}</div>
+			${sub ? `<div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>` : ""}
+		</div>
+	</a>`;
+}
+
+// Pinned card atop a Document thread in the bubble: the record the chat is about.
+// Clickable (routes to the form) unless the record was deleted.
+function cb_reference_banner(chat) {
+	const dt = chat.reference_doctype;
+	const name = chat.reference_name;
+	const removed = !!chat.reference_removed;
+	const title = frappe.utils.escape_html(chat.reference_label || name || __("Document"));
+	const sub = frappe.utils.escape_html(dt ? `${__(dt)} · ${name}` : "");
+	const badge = removed
+		? ` <span style="display:inline-block;margin-left:4px;padding:0 5px;border-radius:8px;background:var(--red-500,#e24c4c);color:#fff;font-size:9px;font-weight:600;line-height:15px;">${frappe.utils.escape_html(
+				__("Removed")
+		  )}</span>`
+		: "";
+	const arch =
+		chat.is_archived && !removed
+			? ` <span style="display:inline-block;margin-left:4px;padding:0 5px;border-radius:8px;background:var(--gray-500,#8d99a6);color:#fff;font-size:9px;font-weight:600;line-height:15px;">${frappe.utils.escape_html(
+					__("Archived")
+			  )}</span>`
+			: "";
+	const data = removed
+		? ""
+		: ` data-dt="${frappe.utils.escape_html(dt)}" data-name="${frappe.utils.escape_html(name)}"`;
+	return `<div class="cb-ref-banner"${data} style="display:flex;gap:6px;align-items:center;padding:7px 9px;margin-bottom:6px;border:1px solid var(--border-color);border-radius:7px;background:var(--card-bg);${
+		removed ? "opacity:.6;" : "cursor:pointer;"
+	}">
+		<div style="flex:none;font-size:16px;">📄</div>
+		<div style="min-width:0;">
+			<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}${badge}${arch}</div>
+			${sub ? `<div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>` : ""}
+		</div>
+	</div>`;
 }
 
 function cb_fmt_time(dt) {
@@ -53,6 +116,7 @@ function cb_fmt_time(dt) {
 function cb_render_body(m) {
 	if (m.is_encrypted) {
 		if (!m.dec) return `🔒 ${__("Encrypted")}`;
+		if (m.dec.link) return cb_link_card(m.dec.link);
 		const text = m.dec.text || "";
 		const cap = text ? `<div class="cb-caption">${frappe.utils.escape_html(text)}</div>` : "";
 		const file = m.dec.file;
@@ -83,6 +147,9 @@ function cb_render_body(m) {
 		return text ? `<span>${frappe.utils.escape_html(text)}</span>` : `<i>(${__("no text")})</i>`;
 	}
 
+	if (m.content_type === "link" && m.link_data) {
+		return cb_link_card(m.link_data);
+	}
 	const caption = m.text || "";
 	const cap = caption ? `<div class="cb-caption">${frappe.utils.escape_html(caption)}</div>` : "";
 	if ((m.content_type === "image" || m.content_type === "sticker") && m.attach) {
@@ -234,6 +301,11 @@ class EmployeeChatSource {
 			unread: t.unread || 0,
 			muted: t.muted || 0,
 			is_secret: t.is_secret,
+			reference_doctype: t.reference_doctype,
+			reference_name: t.reference_name,
+			reference_label: t.reference_label,
+			reference_removed: t.reference_removed,
+			is_archived: t.is_archived,
 		}));
 		return this.chats;
 	}
@@ -270,6 +342,7 @@ class EmployeeChatSource {
 			} else {
 				item.attach = m.attach;
 				item.text = m.message || "";
+				item.link_data = m.link_data;
 			}
 			out.push(item);
 		}
@@ -291,13 +364,33 @@ class EmployeeChatSource {
 	}
 
 	async send(id, text) {
+		// Autoparse a lone desk URL into a link card (same as the full chat page).
+		let card = null;
+		if (/^https?:\/\/\S+$/.test((text || "").trim())) {
+			try {
+				const c = await frappe.xcall(`${EC_API}.resolve_link`, { url: text.trim() });
+				if (c && c.kind && c.kind !== "external") card = c;
+			} catch (e) {
+				// fall back to plain text
+			}
+		}
+
 		if (!this.is_secret(id)) {
+			if (card) {
+				return frappe.xcall(`${EC_API}.send_message`, {
+					thread: id,
+					content_type: "link",
+					link_data: JSON.stringify(card),
+				});
+			}
 			return frappe.xcall(`${EC_API}.send_message`, { thread: id, message: text });
 		}
 		if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
-		const { ciphertext, iv } = await erpnext.chat_crypto.encrypt(id, { text });
+		const payload = card ? { link: card } : { text };
+		const { ciphertext, iv } = await erpnext.chat_crypto.encrypt(id, payload);
 		return frappe.xcall(`${EC_API}.send_message`, {
 			thread: id,
+			content_type: card ? "link" : "text",
 			message: ciphertext,
 			is_encrypted: 1,
 			enc_iv: iv,
@@ -791,9 +884,13 @@ class ChatBubble {
 			)
 			.join("");
 
+		const banner = chat && chat.reference_doctype ? cb_reference_banner(chat) : "";
 		this.$body.html(
-			`<div class="cb-thread">${bubbles || `<div class="cb-empty">${__("No messages yet")}</div>`}</div>`
+			`${banner}<div class="cb-thread">${bubbles || `<div class="cb-empty">${__("No messages yet")}</div>`}</div>`
 		);
+		this.$body.find(".cb-ref-banner[data-dt]").on("click", (e) => {
+			frappe.set_route("Form", $(e.currentTarget).attr("data-dt"), $(e.currentTarget).attr("data-name"));
+		});
 		// Lazy-load previews + wire the shared lightbox for any images in the thread.
 		if (source.media_source) {
 			erpnext.chat_media.bind(this.$body.find(".cb-thread"), source.media_source);

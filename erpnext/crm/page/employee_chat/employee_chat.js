@@ -113,7 +113,7 @@ class EmployeeChat {
 		this.page.add_menu_item(__("Secret chats"), () => this.secret_settings_dialog());
 		this.page.main.find(".ec-new-chat").on("click", () => this.new_chat_dialog());
 		this.page.main.find(".ec-send").on("click", () => this.send());
-		this.page.main.find(".ec-attach").on("click", () => this.attach_media());
+		this.page.main.find(".ec-attach").on("click", (e) => this.attach_menu(e));
 		this.page.main.find(".ec-mic").on("click", () => this.record_voice());
 		this.page.main.find(".ec-emoji").on("click", (e) => this.emoji_picker(e));
 		this.$replyBar.find(".ec-reply-cancel").on("click", () => this.set_reply(null));
@@ -136,7 +136,7 @@ class EmployeeChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("ec-chat-styles-v3")) return;
+		if (document.getElementById("ec-chat-styles-v5")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.ec-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -202,8 +202,26 @@ class EmployeeChat {
 		.ec-scroll-fab:hover{background:var(--bg-light-gray);}
 		.ec-scroll-fab.show{display:flex;}
 		.ec-scroll-fab .ec-fab-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);color:#fff;font-size:10px;line-height:18px;text-align:center;font-weight:600;}
+		.ec-link-card{display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit;padding:6px 8px;border:1px solid var(--border-color);border-radius:8px;background:rgba(0,0,0,.03);max-width:280px;}
+		.ec-link-card:hover{background:rgba(0,0,0,.06);}
+		.ec-link-icon{flex:none;width:34px;height:34px;border-radius:6px;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;}
+		.ec-link-icon img{width:100%;height:100%;object-fit:cover;}
+		.ec-link-main{min-width:0;}
+		.ec-link-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+		.ec-link-sub{color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+		.ec-link-removed{opacity:.6;cursor:default;pointer-events:none;}
+		.ec-removed-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--red-500,#e24c4c);color:#fff;font-size:10px;font-weight:600;line-height:16px;vertical-align:middle;}
+		.ec-archived-badge{background:var(--gray-500,#8d99a6);}
+		.ec-ref-banner{position:sticky;top:0;z-index:6;display:flex;gap:8px;align-items:center;padding:8px 10px;margin-bottom:8px;border:1px solid var(--border-color);border-radius:8px;background:var(--card-bg);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+		.ec-ref-banner:hover{background:var(--bg-light-gray);}
+		.ec-ref-banner.ec-link-removed:hover{background:var(--card-bg);}
+		.ec-bubble.ec-highlight{animation:ec-flash 1.6s ease-out;}
+		@keyframes ec-flash{0%,40%{background:var(--yellow-100,#fff3cd);}100%{}}
+		.ec-attach-pop{position:absolute;z-index:30;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:4px;min-width:160px;}
+		.ec-attach-opt{padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;}
+		.ec-attach-opt:hover{background:var(--bg-light-gray);}
 		`;
-		$(`<style id="ec-chat-styles-v3">${css}</style>`).appendTo(document.head);
+		$(`<style id="ec-chat-styles-v5">${css}</style>`).appendTo(document.head);
 	}
 
 	// --- thread list -------------------------------------------------------
@@ -427,12 +445,41 @@ class EmployeeChat {
 			this.$thread.scrollTop(new_h - prev_h);
 		}
 		this.loading_older = false;
+		return older.length > 0;
+	}
+
+	// Scroll a message into view (paging older history in if it isn't loaded yet) and
+	// flash it — used when tapping a shared link in the chat overview.
+	async jump_to_message(name) {
+		if (!name) return;
+		let el = document.getElementById("ec-msg-" + name);
+		let guard = 0;
+		while (!el && guard++ < 30) {
+			const grew = await this.load_older();
+			if (!grew) break;
+			el = document.getElementById("ec-msg-" + name);
+		}
+		if (!el) {
+			frappe.show_alert({ message: __("Message not found"), indicator: "orange" });
+			return;
+		}
+		el.scrollIntoView({ behavior: "smooth", block: "center" });
+		const $b = $(el);
+		$b.addClass("ec-highlight");
+		setTimeout(() => $b.removeClass("ec-highlight"), 1700);
 	}
 
 	render_thread(scroll) {
 		this.$thread.empty();
 		const t = this.threads[this.active] || {};
 		const is_group = t.thread_type === "Group";
+
+		if (t.thread_type === "Document" && t.reference_doctype) {
+			const $ref = $(this.reference_banner_html(t)).appendTo(this.$thread);
+			$ref.filter("[data-dt]").on("click", (e) => {
+				frappe.set_route("Form", $(e.currentTarget).attr("data-dt"), $(e.currentTarget).attr("data-name"));
+			});
+		}
 
 		// index for reply lookups
 		this.msg_by_name = {};
@@ -475,7 +522,9 @@ class EmployeeChat {
 			)}">😊</span><span class="ec-act ec-do-reply" title="${__("Reply")}">↩</span></div>`;
 
 			const $b = $(
-				`<div class="ec-bubble ${out ? "ec-out" : "ec-in"}">${actions}${sender_html}${quote}${this.render_body(
+				`<div class="ec-bubble ${out ? "ec-out" : "ec-in"}" id="ec-msg-${frappe.utils.escape_html(
+					m.name
+				)}">${actions}${sender_html}${quote}${this.render_body(
 					m
 				)}<div class="ec-meta">${time}${tick}</div>${react_html}</div>`
 			);
@@ -581,7 +630,15 @@ class EmployeeChat {
 						});
 					}
 					for (const url of (dec.text || "").match(URL_RE) || []) {
-						links.push({ url, sender_name: m.sender_name, creation: m.creation });
+						links.push({
+							url,
+							sender_name: m.sender_name,
+							creation: m.creation,
+							on_click: () => {
+								dialog.hide();
+								this.jump_to_message(m.name);
+							},
+						});
 					}
 				}
 				for (const m of info.links) {
@@ -592,7 +649,15 @@ class EmployeeChat {
 						continue;
 					}
 					for (const url of (dec.text || "").match(URL_RE) || []) {
-						links.push({ url, sender_name: m.sender_name, creation: m.creation });
+						links.push({
+							url,
+							sender_name: m.sender_name,
+							creation: m.creation,
+							on_click: () => {
+								dialog.hide();
+								this.jump_to_message(m.name);
+							},
+						});
 					}
 				}
 			}
@@ -614,7 +679,17 @@ class EmployeeChat {
 					});
 				}
 			}
-			links.push(...info.links);
+			for (const l of info.links) {
+				links.push({
+					...l,
+					on_click: l.message
+						? () => {
+								dialog.hide();
+								this.jump_to_message(l.message);
+						  }
+						: null,
+				});
+			}
 		}
 
 		const is_group = info.thread_type === "Group";
@@ -701,12 +776,68 @@ class EmployeeChat {
 		});
 	}
 
+	link_card_html(card) {
+		if (!card || !card.url) return `<i>(${__("link")})</i>`;
+		const icon = card.image
+			? `<img src="${frappe.utils.escape_html(card.image)}">`
+			: {
+					document: "📄",
+					report: "📊",
+					list: "🗂️",
+			  }[card.kind] || "🔗";
+		const title = frappe.utils.escape_html(card.title || card.url);
+		const sub = frappe.utils.escape_html(card.subtitle || card.doctype || "");
+		const removed = !!card.removed;
+		const badge = removed ? `<span class="ec-removed-badge">${__("Removed")}</span>` : "";
+		// A deleted target has nowhere to go: drop the href so the card is inert but still legible.
+		const cls = "ec-link-card" + (removed ? " ec-link-removed" : "");
+		const attrs = removed
+			? ""
+			: ` href="${frappe.utils.escape_html(card.url)}" target="_blank" rel="noopener"`;
+		return `<a class="${cls}"${attrs}>
+			<div class="ec-link-icon">${icon}</div>
+			<div class="ec-link-main">
+				<div class="ec-link-title">${title}${badge}</div>
+				${sub ? `<div class="ec-link-sub">${sub}</div>` : ""}
+			</div>
+		</a>`;
+	}
+
+	// Pinned card at the top of a Document thread: the record the chat is about. Clickable
+	// (routes to the form) unless the record was deleted, in which case it shows a Removed
+	// badge and stays inert — the ghost label keeps the conversation legible.
+	reference_banner_html(t) {
+		const dt = t.reference_doctype;
+		const name = t.reference_name;
+		const removed = !!t.reference_removed;
+		const title = frappe.utils.escape_html(t.reference_label || name || __("Document"));
+		const sub = frappe.utils.escape_html(dt ? `${__(dt)} · ${name}` : "");
+		const badge = removed ? `<span class="ec-removed-badge">${__("Removed")}</span>` : "";
+		const arch =
+			t.is_archived && !removed
+				? `<span class="ec-removed-badge ec-archived-badge">${__("Archived")}</span>`
+				: "";
+		const data = removed
+			? ""
+			: ` data-dt="${frappe.utils.escape_html(dt)}" data-name="${frappe.utils.escape_html(name)}"`;
+		return `<div class="ec-ref-banner${removed ? " ec-link-removed" : ""}"${data}>
+			<div class="ec-link-icon">📄</div>
+			<div class="ec-link-main">
+				<div class="ec-link-title">${title}${badge}${arch}</div>
+				${sub ? `<div class="ec-link-sub">${sub}</div>` : ""}
+			</div>
+		</div>`;
+	}
+
 	render_body(m) {
 		if (m.is_encrypted) return this.render_encrypted_body(m);
 		const caption = m.message || "";
 		const cap_html = caption
 			? `<div class="ec-caption">${frappe.utils.escape_html(caption)}</div>`
 			: "";
+		if (m.content_type === "link") {
+			return this.link_card_html(m.link_data);
+		}
 		if (m.content_type === "image" && m.attach) {
 			return `<div class="ec-media">${erpnext.chat_media.image_html(m.attach)}</div>${cap_html}`;
 		}
@@ -732,6 +863,10 @@ class EmployeeChat {
 			return `<span class="ec-locked">🔒 ${__("Cannot decrypt this message")}</span>`;
 		}
 		if (!m._dec) return `<span class="ec-locked">🔒 ${__("Encrypted")}</span>`;
+
+		if (m._dec.link) {
+			return this.link_card_html(m._dec.link);
+		}
 
 		const text = m._dec.text || "";
 		const cap_html = text
@@ -795,6 +930,9 @@ class EmployeeChat {
 		if (m.content_type === "image") return "📷 " + __("Photo");
 		if (m.content_type === "audio") return "🎤 " + __("Audio");
 		if (m.content_type === "file") return "📎 " + __("File");
+		if (m.content_type === "link") {
+			return "🔗 " + ((m.link_data || {}).title || m.message || __("Link"));
+		}
 		return m.message || "";
 	}
 
@@ -803,6 +941,9 @@ class EmployeeChat {
 		if (content_type === "audio") return "🎤 " + __("Audio");
 		if (content_type === "file") {
 			return "📎 " + (((payload || {}).file || {}).name || __("File"));
+		}
+		if (content_type === "link" || (payload || {}).link) {
+			return "🔗 " + (((payload || {}).link || {}).title || __("Link"));
 		}
 		return (payload || {}).text || "";
 	}
@@ -923,11 +1064,29 @@ class EmployeeChat {
 		const secret = this.is_secret_thread();
 		if (secret && !(await erpnext.chat_crypto.ensure_unlocked())) return;
 
+		// Autoparse: a message that is nothing but a desk URL becomes a rich link card.
+		let card = null;
+		if (/^https?:\/\/\S+$/.test(text)) {
+			try {
+				const c = await frappe.xcall(API + "resolve_link", { url: text });
+				if (c && c.kind && c.kind !== "external") card = c;
+			} catch (e) {
+				// fall back to plain text
+			}
+		}
+
 		this.$input.val("");
 		const reply_to = this.reply_to ? this.reply_to.name : null;
 		this.set_reply(null);
 		try {
-			const args = secret ? await this.encrypted_args({ text }) : { message: text };
+			let args;
+			if (card) {
+				args = { content_type: "link" };
+				if (secret) Object.assign(args, await this.encrypted_args({ link: card }));
+				else args.link_data = JSON.stringify(card);
+			} else {
+				args = secret ? await this.encrypted_args({ text }) : { message: text };
+			}
 			const msg = await frappe.xcall(API + "send_message", {
 				thread: this.active,
 				reply_to,
@@ -939,6 +1098,94 @@ class EmployeeChat {
 		} catch (e) {
 			frappe.msgprint(__("Failed to send message"));
 			this.$input.val(text);
+		}
+	}
+
+	// The paperclip offers two things: a file/photo upload (existing) or an ERPNext link.
+	attach_menu(e) {
+		if (!this.active) return;
+		$(".ec-attach-pop").remove();
+		const $btn = $(e.currentTarget);
+		const off = $btn.offset();
+		const $pop = $(`<div class="ec-attach-pop">
+			<div class="ec-attach-opt" data-act="media">📎 ${__("Media / File")}</div>
+			<div class="ec-attach-opt" data-act="link">🔗 ${__("Link")}</div>
+		</div>`);
+		$("body").append($pop);
+		$pop.css({ top: off.top - $pop.outerHeight() - 6, left: off.left });
+		$pop.find('[data-act="media"]').on("click", () => {
+			$pop.remove();
+			this.attach_media();
+		});
+		$pop.find('[data-act="link"]').on("click", () => {
+			$pop.remove();
+			this.attach_link_dialog();
+		});
+		setTimeout(() => $(document).one("click", () => $pop.remove()), 0);
+	}
+
+	attach_link_dialog() {
+		const d = new frappe.ui.Dialog({
+			title: __("Share a link"),
+			fields: [
+				{
+					fieldtype: "Link",
+					fieldname: "link_doctype",
+					label: __("Document Type"),
+					options: "DocType",
+					reqd: 1,
+				},
+				{
+					fieldtype: "Dynamic Link",
+					fieldname: "link_name",
+					label: __("Document"),
+					options: "link_doctype",
+					reqd: 1,
+				},
+			],
+			primary_action_label: __("Send"),
+			primary_action: async (v) => {
+				d.hide();
+				const url = frappe.urllib.get_full_url(
+					frappe.utils.get_form_link(v.link_doctype, v.link_name)
+				);
+				await this.send_link(url);
+			},
+		});
+		d.show();
+	}
+
+	// Resolve a desk URL to a card and post it as a link message (secret-aware).
+	async send_link(url) {
+		if (!this.active) return;
+		const secret = this.is_secret_thread();
+		if (secret && !(await erpnext.chat_crypto.ensure_unlocked())) return;
+		let card;
+		try {
+			card = await frappe.xcall(API + "resolve_link", { url });
+		} catch (e) {
+			card = { kind: "page", url, title: url };
+		}
+		if (!card || !card.url) card = { kind: "page", url, title: url };
+		const reply_to = this.reply_to ? this.reply_to.name : null;
+		this.set_reply(null);
+		frappe.dom.freeze(__("Sending…"));
+		try {
+			const args = { content_type: "link" };
+			if (secret) Object.assign(args, await this.encrypted_args({ link: card }));
+			else args.link_data = JSON.stringify(card);
+			const msg = await frappe.xcall(API + "send_message", {
+				thread: this.active,
+				reply_to,
+				...args,
+			});
+			if (this.push_message(msg)) await this.decrypt_messages([msg]);
+			this.render_thread(true);
+			this.load_threads();
+		} catch (e) {
+			frappe.msgprint(__("Failed to send message"));
+		} finally {
+			frappe.dom.unfreeze();
 		}
 	}
 

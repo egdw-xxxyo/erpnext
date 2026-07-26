@@ -17,6 +17,13 @@
   "last_message_on",
   "last_sender",
   "last_message_preview",
+  "reference_section",
+  "reference_doctype",
+  "reference_name",
+  "reference_label",
+  "column_break_reference",
+  "is_archived",
+  "reference_removed",
   "participants_section",
   "participants"
  ],
@@ -33,7 +40,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Thread Type",
-   "options": "Direct\nGroup",
+   "options": "Direct\nGroup\nDocument",
    "reqd": 1
   },
   {
@@ -79,6 +86,55 @@
    "fieldname": "last_message_preview",
    "fieldtype": "Small Text",
    "label": "Last Message Preview"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "reference_section",
+   "fieldtype": "Section Break",
+   "label": "Linked Document"
+  },
+  {
+   "description": "For a Document thread: the DocType this chat is about",
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference DocType",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Name",
+   "options": "reference_doctype",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "description": "Snapshot of the record's title, kept so the link is still legible after the record is deleted",
+   "fieldname": "reference_label",
+   "fieldtype": "Data",
+   "label": "Reference Label",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_reference",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_archived",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Archived",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "The linked record was deleted; the ghost reference is kept for context",
+   "fieldname": "reference_removed",
+   "fieldtype": "Check",
+   "label": "Reference Removed",
+   "read_only": 1
   },
   {
    "fieldname": "participants_section",

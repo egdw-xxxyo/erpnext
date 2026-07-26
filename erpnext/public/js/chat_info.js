@@ -221,17 +221,44 @@ erpnext.chat_info = {
 
 	render_links($pane, links) {
 		if (!links.length) return $pane.append(`<div class="ci-empty">${__("No links yet")}</div>`);
+		const kind_icon = { document: "📄", report: "📊", list: "🗂️", page: "🔗" };
 		for (const l of links) {
 			const $row = $(`
 				<div class="ci-row">
-					<div class="ci-file-icon">🔗</div>
+					<div class="ci-file-icon"></div>
 					<div class="ci-row-main">
-						<div class="ci-row-title"><a target="_blank" rel="noopener"></a></div>
+						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>
 					</div>
+					<div class="ci-row-action" title="${__("Open")}" style="display:none;">↗</div>
 				</div>
 			`);
-			$row.find("a").attr("href", l.url).text(l.url);
+			$row.find(".ci-file-icon").text(kind_icon[l.kind] || "🔗");
+
+			// A shared card shows its title and, when we know the source message, jumps to
+			// it on click. A bare pasted URL keeps the old behaviour (the title is a link).
+			const $title = $row.find(".ci-row-title");
+			const badge = l.removed
+				? ` <span style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--red-500,#e24c4c);color:#fff;font-size:10px;font-weight:600;line-height:16px;">${esc(
+						__("Removed")
+				  )}</span>`
+				: "";
+			if (l.on_click) {
+				$title.html(esc(l.title || l.url) + badge);
+				$row.css("cursor", "pointer").on("click", () => l.on_click());
+				// The target still exists only when not removed — offer "open" just then.
+				if (!l.removed) {
+					$row.find(".ci-row-action")
+						.show()
+						.on("click", (e) => {
+							e.stopPropagation();
+							window.open(l.url, "_blank");
+						});
+				}
+			} else {
+				$title.html(`<a target="_blank" rel="noopener"></a>${badge}`);
+				$title.find("a").attr("href", l.url).text(l.title || l.url);
+			}
 			$row.find(".ci-row-sub").text(
 				[l.sender_name, when(l.creation)].filter(Boolean).join(" · ")
 			);

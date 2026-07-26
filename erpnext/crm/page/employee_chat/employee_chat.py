@@ -14,12 +14,18 @@ never site-wide.
 
 import json
 import re
+from urllib.parse import unquote, urlparse
 
 import frappe
 from frappe import _
 from frappe.utils import now
 
 URL_RE = re.compile(r"https?://[^\s<>\"']+")
+
+# Report-style desk routes: /app/query-report/<name> and /app/report/<name>.
+_REPORT_VIEWS = {"query-report", "report"}
+# Desk routes that are neither a DocType nor a report — treated as generic pages.
+_PAGE_VIEWS = {"dashboard", "dashboard-view", "kanban", "gantt", "calendar", "print"}
 
 
 # ---------------------------------------------------------------------------
@@ -44,17 +50,45 @@ def _participant_users(thread_doc):
 	return [p.user for p in thread_doc.participants if p.user]
 
 
-def _fanout(thread_doc, event, message):
-	"""Emit a realtime event to every participant's private user room."""
-	for user in _participant_users(thread_doc):
+def _fanout(thread_doc, event, message, users=None):
+	"""Emit a realtime event to each user's private room. Defaults to every participant;
+	pass `users` to target a subset (e.g. only assignees of a Document thread's record)."""
+	for user in users if users is not None else _participant_users(thread_doc):
 		frappe.publish_realtime(event=event, message=message, user=user, after_commit=True)
+
+
+def _assigned_users(reference_doctype, reference_name):
+	"""Users assigned to a record (its `_assign` list). Empty when the record has no
+	assignees or is gone."""
+	if not reference_doctype or not reference_name:
+		return set()
+	try:
+		raw = frappe.db.get_value(reference_doctype, reference_name, "_assign")
+	except Exception:
+		return set()
+	try:
+		return set(frappe.parse_json(raw) or [])
+	except (ValueError, TypeError):
+		return set()
+
+
+def _notify_users(thread_doc, sender):
+	"""Who gets a realtime notification for a new message. Normally every participant; for a
+	Document thread only the participants assigned to the linked record — plus the sender, so
+	their own other tabs stay in sync. Non-assignees still see the message on open/poll, they
+	just aren't pinged."""
+	participants = set(_participant_users(thread_doc))
+	if thread_doc.thread_type != "Document":
+		return participants
+	assigned = _assigned_users(thread_doc.reference_doctype, thread_doc.reference_name)
+	return (participants & assigned) | {sender}
 
 
 def _user_name(user):
 	return frappe.db.get_value("User", user, "full_name") or user
 
 
-def _preview_text(content_type, message, attach, is_encrypted=False):
+def _preview_text(content_type, message, attach, is_encrypted=False, link_title=None):
 	if is_encrypted:
 		# The server cannot read the body — and must not store a hint about it either.
 		return "🔒 " + _("Encrypted message")
@@ -65,6 +99,8 @@ def _preview_text(content_type, message, attach, is_encrypted=False):
 	if content_type == "file":
 		fname = (attach or "").split("/")[-1]
 		return "📎 " + (fname or _("File"))
+	if content_type == "link":
+		return "🔗 " + (link_title or (message or "").strip() or _("Link"))
 	return (message or "").strip()
 
 
@@ -83,6 +119,163 @@ def link_attachment_to_thread(file_url, thread):
 		{"attached_to_doctype": "Chat Thread", "attached_to_name": thread},
 		update_modified=False,
 	)
+
+
+def _parse_link_data(raw):
+	if not raw:
+		return None
+	if isinstance(raw, dict):
+		return raw
+	try:
+		return json.loads(raw)
+	except (ValueError, TypeError):
+		return None
+
+
+def _doctype_from_slug(slug):
+	"""Desk routes a DocType as its scrubbed, hyphenated name ("Sales Order" → "sales-order").
+	Resolve back to the real DocType name, or None if it isn't one."""
+	if not slug:
+		return None
+	guess = frappe.unscrub(slug.replace("-", "_"))
+	if frappe.db.exists("DocType", guess):
+		return guess
+	# Fallback for odd casing/naming — scan (only runs on the rare miss).
+	for dt in frappe.get_all("DocType", pluck="name"):
+		if frappe.scrub(dt).replace("_", "-") == slug:
+			return dt
+	return None
+
+
+def _document_card(doctype, name):
+	"""Title/subtitle/image for a record the current user may read, else None."""
+	if not frappe.has_permission(doctype, "read", doc=name):
+		return None
+	meta = frappe.get_meta(doctype)
+	title_field = meta.get_title_field()
+	image_field = meta.image_field
+	fields = ["name"]
+	if title_field and title_field != "name":
+		fields.append(title_field)
+	if image_field:
+		fields.append(image_field)
+	rows = frappe.get_list(doctype, filters={"name": name}, fields=fields, limit=1)
+	if not rows:
+		return None
+	row = rows[0]
+	title = str((row.get(title_field) if title_field else None) or name)
+	# Always surface the DocType and, when the record has a human title distinct from its
+	# id, the id too — so the card reads "Item · R202ADV", not just a bare URL.
+	subtitle = _(doctype) if title == str(name) else f"{_(doctype)} · {name}"
+	return {
+		"kind": "document",
+		"doctype": doctype,
+		"name": name,
+		"title": title,
+		"subtitle": subtitle,
+		"image": row.get(image_field) if image_field else None,
+	}
+
+
+def _mark_removed(cards):
+	"""Set `removed` on each document-kind card whose target record no longer exists.
+	Batched: one existence query per distinct doctype. `cards` are mutated in place."""
+	by_dt = {}
+	for c in cards:
+		if isinstance(c, dict) and c.get("kind") == "document" and c.get("doctype") and c.get("name"):
+			by_dt.setdefault(c["doctype"], set()).add(c["name"])
+	existing = {}
+	for dt, names in by_dt.items():
+		if not frappe.db.exists("DocType", dt):
+			existing[dt] = set()
+			continue
+		existing[dt] = set(frappe.get_all(dt, filters={"name": ["in", list(names)]}, pluck="name"))
+	for c in cards:
+		if isinstance(c, dict) and c.get("kind") == "document" and c.get("doctype") and c.get("name"):
+			c["removed"] = c["name"] not in existing.get(c["doctype"], set())
+
+
+def _annotate_removed(payloads):
+	"""Flag inline document link cards whose target has been deleted, so the client can
+	badge them 'Removed'."""
+	_mark_removed([p["link_data"] for p in payloads if isinstance(p.get("link_data"), dict)])
+	return payloads
+
+
+def _reference_card(doc):
+	"""Header card for a Document thread's linked record. Live records resolve to a full
+	card (with a URL to the form); a deleted record degrades to a ghost card built from the
+	stored `reference_label`, flagged `removed`."""
+	if not doc.reference_doctype or not doc.reference_name:
+		return None
+	if not doc.reference_removed:
+		card = _document_card(doc.reference_doctype, doc.reference_name)
+		if card:
+			card["url"] = frappe.utils.get_url_to_form(doc.reference_doctype, doc.reference_name)
+			return card
+	return {
+		"kind": "document",
+		"doctype": doc.reference_doctype,
+		"name": doc.reference_name,
+		"title": doc.reference_label or doc.reference_name,
+		"subtitle": f"{_(doc.reference_doctype)} · {doc.reference_name}",
+		"removed": True,
+	}
+
+
+@frappe.whitelist()
+def resolve_link(url):
+	"""Turn a desk URL into a link-card payload the chat renders.
+
+	Understands `/app/<doctype>/<name>` (a record), `/app/<doctype>` (a list),
+	`/app/query-report|report/<name>` and other `/app/<page>` routes. Anything whose path
+	is not a desk (`/app/...`) route comes back as `kind:"external"` so the client just
+	sends the raw text. Document cards are permission-checked — a link to a record you
+	cannot read resolves to a bare URL, never a title leak.
+
+	Note: we key off the URL path, not the host. The host is unreliable server-side
+	(docker/reverse-proxy rewrites `request.host` and the site URL), so any `/app/...` link
+	is treated as ours; the stored URL keeps its original host so it still opens correctly."""
+	url = (url or "").strip()
+	if not url:
+		frappe.throw(_("No link given"))
+
+	parsed = urlparse(url)
+	path = parsed.path or ""
+	segments = [unquote(s) for s in path.split("/") if s]
+	# Expect ["app", <view>, <name?>]
+	if len(segments) < 2 or segments[0] != "app":
+		return {"kind": "external", "url": url}
+
+	view = segments[1].lower()
+	rest = segments[2] if len(segments) > 2 else None
+
+	if view in _REPORT_VIEWS and rest:
+		return {"kind": "report", "url": url, "name": rest, "title": rest, "subtitle": _("Report")}
+
+	if view in _PAGE_VIEWS or (not _doctype_from_slug(segments[1]) and not rest):
+		title = frappe.unscrub((rest or segments[1]).replace("-", "_"))
+		return {"kind": "page", "url": url, "title": title, "subtitle": _("Page")}
+
+	doctype = _doctype_from_slug(segments[1])
+	if not doctype:
+		return {"kind": "page", "url": url, "title": segments[1], "subtitle": _("Page")}
+
+	if not rest:
+		return {
+			"kind": "list",
+			"url": url,
+			"doctype": doctype,
+			"title": _(doctype),
+			"subtitle": _("List"),
+		}
+
+	card = _document_card(doctype, rest)
+	if not card:
+		# No read access (or gone) — degrade to a plain URL card.
+		return {"kind": "page", "url": url, "title": rest, "subtitle": _(doctype)}
+	card["url"] = url
+	return card
 
 
 def _message_payload(row, name_cache=None):
@@ -105,7 +298,7 @@ def _message_payload(row, name_cache=None):
 		rt = frappe.db.get_value(
 			"Chat Message",
 			row["reply_to"],
-			["sender", "content_type", "message", "attach", "is_encrypted", "enc_iv"],
+			["sender", "content_type", "message", "attach", "link_data", "is_encrypted", "enc_iv"],
 			as_dict=True,
 		)
 		if rt:
@@ -123,7 +316,10 @@ def _message_payload(row, name_cache=None):
 				reply_preview["enc_iv"] = rt.enc_iv
 				reply_preview["text"] = ""
 			else:
-				reply_preview["text"] = _preview_text(rt.content_type, rt.message, rt.attach)[:120]
+				rt_title = (_parse_link_data(rt.link_data) or {}).get("title")
+				reply_preview["text"] = _preview_text(
+					rt.content_type, rt.message, rt.attach, link_title=rt_title
+				)[:120]
 
 	return {
 		"name": row.get("name"),
@@ -133,6 +329,7 @@ def _message_payload(row, name_cache=None):
 		"content_type": row.get("content_type") or "text",
 		"message": row.get("message") or "",
 		"attach": row.get("attach"),
+		"link_data": _parse_link_data(row.get("link_data")),
 		"reply_to": row.get("reply_to"),
 		"reply_preview": reply_preview,
 		"reactions": reactions,
@@ -173,6 +370,11 @@ def get_threads():
 			"last_message_on",
 			"last_message_preview",
 			"last_sender",
+			"reference_doctype",
+			"reference_name",
+			"reference_label",
+			"is_archived",
+			"reference_removed",
 		],
 		order_by="last_message_on desc",
 	)
@@ -194,6 +396,13 @@ def get_threads():
 			o = others[0]
 			t["display_title"] = o.employee_name or _user_name(o.user)
 			t["other_user"] = o.user
+		elif t["thread_type"] == "Document":
+			t["display_title"] = t["reference_label"] or (
+				f"{t['reference_doctype']}: {t['reference_name']}"
+				if t["reference_doctype"]
+				else _("Document chat")
+			)
+			t["other_user"] = None
 		else:
 			t["display_title"] = t["title"] or ", ".join(
 				p.employee_name or p.user for p in others
@@ -273,6 +482,58 @@ def create_thread(participant_users, thread_type="Direct", title=None, is_secret
 	return {"name": doc.name, "existing": False, "is_secret": is_secret}
 
 
+@frappe.whitelist()
+def open_document_thread(reference_doctype, reference_name):
+	"""Open (or create) the single canonical chat about a specific record. There is one
+	thread per record — everyone who opens it from the form joins the same conversation.
+
+	Returns the thread name; the caller routes the Employee Chat page to it."""
+	if not frappe.has_permission(reference_doctype, "read", doc=reference_name):
+		frappe.throw(_("You do not have access to this document"))
+
+	from erpnext.crm.doctype.chat_thread.chat_thread import document_dedup_key
+
+	me = frappe.session.user
+	emp = frappe.db.get_value("Employee", {"user_id": me}, ["name", "employee_name"], as_dict=True)
+	key = document_dedup_key(reference_doctype, reference_name)
+
+	existing = frappe.db.exists("Chat Thread", {"dedup_key": key})
+	if existing:
+		doc = frappe.get_doc("Chat Thread", existing)
+		if not doc.is_participant(me):
+			# Shared thread — anyone opening the record joins the conversation.
+			doc.append(
+				"participants",
+				{
+					"user": me,
+					"employee": emp.name if emp else None,
+					"employee_name": emp.employee_name if emp else None,
+					"role": "Member",
+				},
+			)
+			doc.save(ignore_permissions=True)
+		return {"name": doc.name, "existing": True}
+
+	card = _document_card(reference_doctype, reference_name)
+	doc = frappe.new_doc("Chat Thread")
+	doc.thread_type = "Document"
+	doc.is_secret = 0
+	doc.reference_doctype = reference_doctype
+	doc.reference_name = reference_name
+	doc.reference_label = (card or {}).get("title") or reference_name
+	doc.append(
+		"participants",
+		{
+			"user": me,
+			"employee": emp.name if emp else None,
+			"employee_name": emp.employee_name if emp else None,
+			"role": "Admin",
+		},
+	)
+	doc.insert(ignore_permissions=True)
+	return {"name": doc.name, "existing": False}
+
+
 # ---------------------------------------------------------------------------
 # Messages
 # ---------------------------------------------------------------------------
@@ -297,6 +558,7 @@ def get_messages(thread, before=None, limit=50):
 			"content_type",
 			"message",
 			"attach",
+			"link_data",
 			"reply_to",
 			"reactions",
 			"is_encrypted",
@@ -309,27 +571,40 @@ def get_messages(thread, before=None, limit=50):
 	)
 	rows.reverse()
 	name_cache = {}
-	return [_message_payload(r, name_cache) for r in rows]
+	return _annotate_removed([_message_payload(r, name_cache) for r in rows])
 
 
 @frappe.whitelist()
 def send_message(
-	thread, message=None, content_type="text", attach=None, reply_to=None, is_encrypted=0, enc_iv=None
+	thread,
+	message=None,
+	content_type="text",
+	attach=None,
+	link_data=None,
+	reply_to=None,
+	is_encrypted=0,
+	enc_iv=None,
 ):
 	"""Insert a message, update the thread's last-message metadata, and push it to every
 	participant's private room.
 
 	In a secret thread `message` must already be ciphertext produced in the sender's
 	browser. Plaintext is rejected outright rather than stored — a client-side bug must
-	not be able to leak a body into the database."""
+	not be able to leak a body into the database. A `link` card in a secret thread carries
+	its payload inside the encrypted `message`, so `link_data` stays empty there."""
 	doc = _require_participant(thread)
 	is_encrypted = int(is_encrypted or 0)
+
+	link = _parse_link_data(link_data)
+	link_title = link.get("title") if link else None
 
 	if doc.is_secret:
 		if not is_encrypted or not enc_iv:
 			frappe.throw(_("This chat only accepts encrypted messages"))
 		if not (message or "").strip():
 			frappe.throw(_("Nothing to send"))
+		# Never persist a cleartext card in a secret thread — it belongs in the ciphertext.
+		link = None
 	else:
 		if is_encrypted:
 			frappe.throw(_("This chat is not a secret chat"))
@@ -337,6 +612,11 @@ def send_message(
 			frappe.throw(_("Nothing to send"))
 		if content_type in ("image", "audio", "file") and not attach:
 			frappe.throw(_("Nothing to send"))
+		if content_type == "link":
+			if not link or not link.get("url"):
+				frappe.throw(_("Nothing to send"))
+			# Keep the URL in `message` too, so URL scanning / the Links tab still work.
+			message = link["url"]
 
 	me = frappe.session.user
 	msg = frappe.get_doc(
@@ -347,6 +627,7 @@ def send_message(
 			"content_type": content_type,
 			"message": message or "",
 			"attach": attach,
+			"link_data": json.dumps(link) if link else None,
 			"reply_to": reply_to,
 			"is_encrypted": is_encrypted,
 			"enc_iv": enc_iv,
@@ -357,7 +638,9 @@ def send_message(
 	if attach:
 		link_attachment_to_thread(attach, thread)
 
-	preview = _preview_text(content_type, message, attach, is_encrypted=is_encrypted)
+	preview = _preview_text(
+		content_type, message, attach, is_encrypted=is_encrypted, link_title=link_title
+	)
 	frappe.db.set_value(
 		"Chat Thread",
 		thread,
@@ -366,7 +649,7 @@ def send_message(
 	)
 
 	payload = _message_payload(msg.as_dict())
-	_fanout(doc, "chat_message", payload)
+	_fanout(doc, "chat_message", payload, users=_notify_users(doc, me))
 	return payload
 
 
@@ -499,6 +782,12 @@ def get_thread_info(thread, limit=200):
 	others = [p for p in participants if not p["is_me"]]
 	if doc.thread_type == "Direct" and others:
 		display_title = others[0]["name"]
+	elif doc.thread_type == "Document":
+		display_title = doc.reference_label or (
+			f"{doc.reference_doctype}: {doc.reference_name}"
+			if doc.reference_doctype
+			else _("Document chat")
+		)
 	else:
 		display_title = doc.title or ", ".join(p["name"] for p in others)
 
@@ -509,6 +798,7 @@ def get_thread_info(thread, limit=200):
 		"content_type",
 		"message",
 		"attach",
+		"link_data",
 		"is_encrypted",
 		"enc_iv",
 		"creation",
@@ -576,6 +866,22 @@ def get_thread_info(thread, limit=200):
 				if row["sender"]
 				else ""
 			)
+			if row.get("content_type") == "link":
+				# A shared card — surface its title/kind, not a bare URL.
+				card = _parse_link_data(row.get("link_data")) or {}
+				links.append(
+					{
+						"url": card.get("url") or (row.get("message") or ""),
+						"title": card.get("title"),
+						"kind": card.get("kind"),
+						"doctype": card.get("doctype"),
+						"name": card.get("name"),
+						"message": row["name"],
+						"sender_name": sender_name,
+						"creation": str(row["creation"]),
+					}
+				)
+				continue
 			for url in URL_RE.findall(row["message"] or ""):
 				links.append(
 					{
@@ -585,6 +891,8 @@ def get_thread_info(thread, limit=200):
 						"creation": str(row["creation"]),
 					}
 				)
+
+	_mark_removed(links)
 
 	me_row = next((p for p in doc.participants if p.user == me), None)
 
@@ -598,6 +906,12 @@ def get_thread_info(thread, limit=200):
 		"participants": participants,
 		"attachments": attachments,
 		"links": links,
+		"reference_doctype": doc.reference_doctype,
+		"reference_name": doc.reference_name,
+		"reference_label": doc.reference_label,
+		"is_archived": doc.is_archived,
+		"reference_removed": doc.reference_removed,
+		"reference_card": _reference_card(doc),
 	}
 
 
