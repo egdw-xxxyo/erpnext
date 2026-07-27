@@ -78,7 +78,7 @@
  "links": [],
  "modified": "2026-06-26 00:00:00.000000",
  "modified_by": "Administrator",
- "module": "Manufacturing",
+ "module": "Devices",
  "name": "OTDR Measurement Log Entry",
  "naming_rule": "Random",
  "owner": "Administrator",

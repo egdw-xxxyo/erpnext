@@ -1,18 +1,26 @@
 import json
 
+import os
+
 import frappe
+from frappe import get_app_path
+
+
+def _reload(doctype_dir):
+	for module in ("devices", "manufacturing"):
+		path = os.path.join(get_app_path("erpnext", module, "doctype"), doctype_dir)
+		if os.path.isdir(path):
+			frappe.reload_doc(module, "doctype", doctype_dir)
+			return
 
 
 def execute():
-	frappe.reload_doc("manufacturing", "doctype", "workplace_script_version")
-	frappe.reload_doc("manufacturing", "doctype", "workplace_script")
+	# Workplace Script moved to the Devices module; reload from wherever the JSON lives.
+	_reload("workplace_script_version")
+	_reload("workplace_script")
 	# Scanner Script was unified into Device Script later; only reload if old folder still present (legacy installs).
-	import os
-	from frappe import get_app_path
-	scanner_dir = os.path.join(get_app_path("erpnext", "manufacturing", "doctype"), "scanner_script")
-	if os.path.isdir(scanner_dir):
-		frappe.reload_doc("manufacturing", "doctype", "scanner_script_version")
-		frappe.reload_doc("manufacturing", "doctype", "scanner_script")
+	_reload("scanner_script_version")
+	_reload("scanner_script")
 
 	for name in frappe.get_all("Workplace Script", pluck="name"):
 		doc = frappe.get_doc("Workplace Script", name)

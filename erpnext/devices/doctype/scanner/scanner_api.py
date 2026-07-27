@@ -171,7 +171,7 @@ def _match_subflow_entry(entries, scan_type, scan_ctx, current_state):
 
 
 def _subflow_initial_state(subflow_name):
-	from erpnext.manufacturing.doctype.workplace_script.workplace_script import (
+	from erpnext.devices.doctype.workplace_script.workplace_script import (
 		_resolve_default_snapshot,
 	)
 	doc = frappe.get_cached_doc("Workplace Script", subflow_name)
@@ -477,7 +477,7 @@ def _build_scripts_namespace(scanner_scripts):
 
 
 def _execute_workplace_script(workplace_script, event, scripts):
-	from erpnext.manufacturing.doctype.workplace_script.workplace_script import (
+	from erpnext.devices.doctype.workplace_script.workplace_script import (
 		_resolve_default_snapshot,
 	)
 	ws_snap = _resolve_default_snapshot(workplace_script)

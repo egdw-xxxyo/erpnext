@@ -13,7 +13,7 @@ function _show_print_labels_dialog(doctype, names) {
 					const tmpl = dlg.get_value("label_template");
 					if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
 					frappe.call({
-						method: "erpnext.manufacturing.doctype.label_printer.label_printer.count_labels",
+						method: "erpnext.devices.doctype.label_printer.label_printer.count_labels",
 						args: { source_doctype: doctype, source_names: JSON.stringify(names), label_template: tmpl },
 						callback: (r) => {
 							if (r.message) {
@@ -39,7 +39,7 @@ function _show_print_labels_dialog(doctype, names) {
 		primary_action: (values) => {
 			dlg.hide();
 			frappe.call({
-				method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_labels_batch",
+				method: "erpnext.devices.doctype.label_printer.label_printer.print_labels_batch",
 				args: {
 					source_doctype: doctype,
 					source_names: JSON.stringify(names),

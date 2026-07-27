@@ -64,10 +64,10 @@ frappe.ui.form.on("Scanner", {
 			`<div class="text-muted text-center" style="padding: 20px;">Завантаження...</div>`
 		);
 
-		const endpoint_url = `${window.location.origin}/api/method/erpnext.manufacturing.doctype.scanner.scanner_api.handle_scan`;
+		const endpoint_url = `${window.location.origin}/api/method/erpnext.devices.doctype.scanner.scanner_api.handle_scan`;
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner.scanner.get_config_barcodes",
+			method: "erpnext.devices.doctype.scanner.scanner.get_config_barcodes",
 			args: { scanner_name: frm.doc.name, endpoint_url: endpoint_url },
 			callback: (r) => {
 				if (!r.message) return;
@@ -109,7 +109,7 @@ frappe.ui.form.on("Scanner", {
 			"Згенерувати новий API ключ? Старий ключ перестане працювати негайно.",
 			function () {
 				frappe.call({
-					method: "erpnext.manufacturing.doctype.scanner.scanner.regenerate_api_key",
+					method: "erpnext.devices.doctype.scanner.scanner.regenerate_api_key",
 					args: { scanner_name: frm.doc.name },
 					callback: function (r) {
 						if (!r.message) return;

@@ -34,8 +34,9 @@ def execute():
 	)
 
 	# Reload the renamed DocType so its new field set (script_type, ...) is synced before backfill.
-	frappe.reload_doc("manufacturing", "doctype", "device_script_version")
-	frappe.reload_doc("manufacturing", "doctype", "device_script")
+	# Device Script now lives in the Devices module (older installs: manufacturing).
+	frappe.reload_doc("devices", "doctype", "device_script_version")
+	frappe.reload_doc("devices", "doctype", "device_script")
 
 	# Backfill script_type for any existing rows.
 	if frappe.db.table_exists("Device Script"):

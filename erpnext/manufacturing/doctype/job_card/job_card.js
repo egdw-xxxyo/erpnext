@@ -150,7 +150,7 @@ frappe.ui.form.on("Job Card", {
 							return;
 						}
 						frappe.call({
-							method: "erpnext.manufacturing.doctype.label_printer.label_printer.count_labels",
+							method: "erpnext.devices.doctype.label_printer.label_printer.count_labels",
 							args: {
 								source_doctype: "Job Card",
 								source_names: JSON.stringify(names),
@@ -185,7 +185,7 @@ frappe.ui.form.on("Job Card", {
 			primary_action: (values) => {
 				dlg.hide();
 				frappe.call({
-					method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_labels_batch",
+					method: "erpnext.devices.doctype.label_printer.label_printer.print_labels_batch",
 					args: {
 						source_doctype: "Job Card",
 						source_names: JSON.stringify(names),

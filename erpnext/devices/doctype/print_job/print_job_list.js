@@ -1,4 +1,4 @@
-const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 
 frappe.listview_settings["Print Job"] = {
 	add_fields: ["label_size", "label_printer", "created_by_user", "reference_doctype", "reference_name"],
@@ -166,7 +166,7 @@ function _setup_printer_banner(listview) {
 	const _load_printers = (preserve_selection) => {
 		const prev = preserve_selection ? $printer_select.val() : null;
 		return frappe.call({
-			method: "erpnext.manufacturing.page.print_queue.print_queue.get_printers",
+			method: "erpnext.devices.page.print_queue.print_queue.get_printers",
 		}).then((r) => {
 			const printers = (r.message || []);
 			listview._printers_by_name = {};
@@ -391,7 +391,7 @@ function _show_add_to_queue_dialog(listview) {
 				reqd: 1,
 				get_query: () => {
 					return {
-						query: "erpnext.manufacturing.page.print_queue.print_queue.get_template_doctypes",
+						query: "erpnext.devices.page.print_queue.print_queue.get_template_doctypes",
 					};
 				},
 				change: () => {
@@ -521,7 +521,7 @@ function _show_add_to_queue_dialog(listview) {
 		const pills = d.fields_dict.reference_name;
 
 		frappe.call({
-			method: "erpnext.manufacturing.page.print_queue.print_queue.resolve_scan",
+			method: "erpnext.devices.page.print_queue.print_queue.resolve_scan",
 			args: { doctype: ref_dt, value: val },
 			callback: (r) => {
 				if (r.message) {

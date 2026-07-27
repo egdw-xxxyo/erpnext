@@ -134,7 +134,7 @@
 ### URL
 
 ```
-GET/POST /api/method/erpnext.manufacturing.doctype.scanner_setup.scanner_api.handle_scan
+GET/POST /api/method/erpnext.devices.doctype.scanner_setup.scanner_api.handle_scan
 ```
 
 ### Параметри (Parameters)
@@ -197,7 +197,7 @@ GET/POST /api/method/erpnext.manufacturing.doctype.scanner_setup.scanner_api.han
 
 ```bash
 # scanner_key = HMAC-SHA256("site-secret", "a1b2c3d4")[:16]
-curl "https://erp.example.com/api/method/erpnext.manufacturing.doctype.scanner_setup.scanner_api.handle_scan?scanner_key=f9e8d7c6b5a43210&data=JC-MFG-00042"
+curl "https://erp.example.com/api/method/erpnext.devices.doctype.scanner_setup.scanner_api.handle_scan?scanner_key=f9e8d7c6b5a43210&data=JC-MFG-00042"
 ```
 
 ---
@@ -498,7 +498,7 @@ scanner_state:{scanner_name}
 
 | # | Параметр | Як встановлюється | Приклад |
 |---|----------|-------------------|---------|
-| 1 | **URL сервера** (Server URL) | Командний штрих-код | `https://erp.example.com/api/method/erpnext.manufacturing.doctype.scanner_setup.scanner_api.handle_scan` |
+| 1 | **URL сервера** (Server URL) | Командний штрих-код | `https://erp.example.com/api/method/erpnext.devices.doctype.scanner_setup.scanner_api.handle_scan` |
 | 2 | **Секрет** (Secret) | Прошивка / одноразова конфігурація | `e5779f530bf31dc6724e96afa6448cd1889e996e8fc3efb1bf36b0a74a3be461` |
 | 3 | **API Key** | Командний штрих-код (QR з форми Scanner Setup) | `a1b2c3d4` |
 
@@ -552,9 +552,9 @@ scanner_state:{scanner_name}
 
 | Файл | Призначення |
 |------|-------------|
-| `erpnext/manufacturing/doctype/scanner_action/` | Дочірня таблиця дій сканера |
-| `erpnext/manufacturing/doctype/scanner_command/` | DocType командних штрих-кодів |
-| `erpnext/manufacturing/doctype/scanner_scan_log/` | DocType журналу сканувань |
-| `erpnext/manufacturing/doctype/scanner_setup/scanner_api.py` | Головний ендпоінт та обробники |
-| `erpnext/manufacturing/doctype/scanner_setup/scanner_setup.json` | Додати нові поля |
+| `erpnext/devices/doctype/scanner_action/` | Дочірня таблиця дій сканера |
+| `erpnext/devices/doctype/scanner_command/` | DocType командних штрих-кодів |
+| `erpnext/devices/doctype/scanner_scan_log/` | DocType журналу сканувань |
+| `erpnext/devices/doctype/scanner_setup/scanner_api.py` | Головний ендпоінт та обробники |
+| `erpnext/devices/doctype/scanner_setup/scanner_setup.json` | Додати нові поля |
 | `erpnext/manufacturing/page/workplace_portal/workplace_portal.py` | Існуючі методи (без змін) |

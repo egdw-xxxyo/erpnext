@@ -171,7 +171,7 @@ class ScannerTest {
 		}
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner.scanner.get_scanner_key",
+			method: "erpnext.devices.doctype.scanner.scanner.get_scanner_key",
 			args: { scanner_name: scanner_name },
 			callback: (r) => {
 				if (!r.message) {
@@ -182,14 +182,14 @@ class ScannerTest {
 				$send.prop("disabled", false);
 
 				const base = window.location.origin;
-				const url = `${base}/api/method/erpnext.manufacturing.doctype.scanner.scanner_api.handle_scan?scanner_key=${this.scanner_key}&data=<BARCODE>`;
+				const url = `${base}/api/method/erpnext.devices.doctype.scanner.scanner_api.handle_scan?scanner_key=${this.scanner_key}&data=<BARCODE>`;
 				$endpoint.find(".endpoint-url").text(url);
 				$endpoint.show();
 			},
 		});
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner.scanner.get_display_config",
+			method: "erpnext.devices.doctype.scanner.scanner.get_display_config",
 			args: { scanner_name: scanner_name },
 			callback: (r) => {
 				this.display_config = r.message || { rows: 10, cols: 20 };
@@ -333,7 +333,7 @@ class ScannerTest {
 		this.log_entry(ts, "\u2192", `"${data}"`, "blue");
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner.scanner_api.handle_scan",
+			method: "erpnext.devices.doctype.scanner.scanner_api.handle_scan",
 			args: {
 				scanner_key: this.scanner_key,
 				data: data,

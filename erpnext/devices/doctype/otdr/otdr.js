@@ -165,7 +165,7 @@ function open_connect_dialog(frm) {
 			if (!url_val) { frappe.show_alert({ message: __("Введіть URL"), indicator: "orange" }); return; }
 			$btn.prop("disabled", true).text(__("Генерація..."));
 			frappe.call({
-				method: "erpnext.manufacturing.doctype.otdr.otdr_api.generate_connect_bundle",
+				method: "erpnext.devices.doctype.otdr.otdr_api.generate_connect_bundle",
 				args: { otdr_name: frm.doc.name, server_url: url_val },
 				callback: (r) => {
 					$btn.prop("disabled", false).text(__("Згенерувати ще раз"));
@@ -181,7 +181,7 @@ function open_connect_dialog(frm) {
 
 	$body.html(`<div class="text-muted" style="padding: 12px;">${__("Завантаження...")}</div>`);
 	frappe.call({
-		method: "erpnext.manufacturing.doctype.otdr.otdr_api.get_default_connect_url",
+		method: "erpnext.devices.doctype.otdr.otdr_api.get_default_connect_url",
 		args: { otdr_name: frm.doc.name },
 		callback: (r) => {
 			const url = r.message?.server_url || window.location.origin;
@@ -240,7 +240,7 @@ frappe.ui.form.on("OTDR", {
 		render_live_status(frm);
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.otdr.otdr.get_status",
+			method: "erpnext.devices.doctype.otdr.otdr.get_status",
 			args: { otdr_name: frm.doc.name },
 			callback: (r) => {
 				if (r.message) {
@@ -318,7 +318,7 @@ frappe.ui.form.on("OTDR", {
 			return;
 		}
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.otdr.otdr.set_sync_listening",
+			method: "erpnext.devices.doctype.otdr.otdr.set_sync_listening",
 			args: { otdr_name: frm.doc.name, listening: 1 },
 			callback: () => {
 				frappe.show_alert({ message: __("Слухання увімкнено"), indicator: "green" });
@@ -330,7 +330,7 @@ frappe.ui.form.on("OTDR", {
 	btn_stop_sync(frm) {
 		if (frm.is_new()) return;
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.otdr.otdr.set_sync_listening",
+			method: "erpnext.devices.doctype.otdr.otdr.set_sync_listening",
 			args: { otdr_name: frm.doc.name, listening: 0 },
 			callback: () => {
 				frappe.show_alert({ message: __("Слухання вимкнено"), indicator: "orange" });

@@ -108,6 +108,6 @@ The script takes effect immediately — no deploy or restart needed since it's e
 
 Remind the user they can test by scanning a barcode with a scanner configured for the matching workplace, or by calling the API directly:
 ```
-POST /api/method/erpnext.manufacturing.doctype.scanner.scanner_api.handle_scan
+POST /api/method/erpnext.devices.doctype.scanner.scanner_api.handle_scan
 {"scanner_key": "...", "data": "..."}
 ```

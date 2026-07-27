@@ -23,7 +23,7 @@
  */
 
 erpnext.utils.open_bulk_label_print_dialog = function ({ doctype, names }) {
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 
 	const dlg = new frappe.ui.Dialog({
 		title: __("Print Labels"),
@@ -106,7 +106,7 @@ erpnext.utils.open_bulk_label_print_dialog = function ({ doctype, names }) {
 };
 
 function _update_count(dlg, doctype, names) {
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 	const tmpl = dlg.get_value("label_template");
 	if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
 	frappe.call({
@@ -139,7 +139,7 @@ function _transform_to_go_to_queue(dialog, job_count) {
 }
 
 function _create_bulk_jobs(values, print_immediately, dialog, doctype, names) {
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 	if (print_immediately) dialog.hide();
 	frappe.call({
 		method: API_PRINTER + ".print_labels_batch",
@@ -192,7 +192,7 @@ function _create_bulk_jobs(values, print_immediately, dialog, doctype, names) {
 
 erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, items }) {
 	let _submitting = false;
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 
 	const _print_sequential = (job_names, dialog) => {
 		let printed = 0,
@@ -409,7 +409,7 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 };
 
 erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, label_templates, default_copies }) {
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 
 	let tmpl_options = label_templates.map((t) => t.label_template);
 	let default_printer = label_templates[0].label_printer || "";
@@ -543,7 +543,7 @@ function _set_validation_message(dlg, html) {
 }
 
 function _validate_printer(dlg) {
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 	const printer = dlg.get_value("printer_name");
 	const template = dlg.get_value("label_template");
 
@@ -638,7 +638,7 @@ function _validate_all_rows(d) {
 }
 
 function _validate_row(d, $row) {
-	const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 	const $status = $row.find(".row-status");
 	const checked = $row.find(".item-check").prop("checked");
 	const tmpl = $row.find(".tmpl-select").val();

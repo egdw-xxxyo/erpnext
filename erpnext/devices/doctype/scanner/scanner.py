@@ -129,7 +129,7 @@ def render_barcode_svg(data):
 
 @frappe.whitelist()
 def get_config_barcodes(scanner_name, endpoint_url):
-	from erpnext.manufacturing.doctype.otdr.otdr_api import detect_public_base_url
+	from erpnext.devices.doctype.otdr.otdr_api import detect_public_base_url
 	from urllib.parse import urlparse
 
 	doc = frappe.get_doc("Scanner", scanner_name)

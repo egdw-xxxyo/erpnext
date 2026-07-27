@@ -88,7 +88,7 @@ erpnext.BarcodeField = class BarcodeField {
 		$container.find(".btn-print-barcode").on("click", () => this._open_print_dialog());
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner.scanner.render_qr_svg",
+			method: "erpnext.devices.doctype.scanner.scanner.render_qr_svg",
 			args: { data: this.value },
 			callback: (r) => {
 				if (r.message) {
@@ -131,7 +131,7 @@ erpnext.BarcodeField = class BarcodeField {
 
 	_open_print_dialog() {
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.label_template.label_template.get_templates_for_barcode_type",
+			method: "erpnext.devices.doctype.label_template.label_template.get_templates_for_barcode_type",
 			args: { barcode_type: this.barcode_type },
 			callback: (r) => {
 				const templates = r.message || [];
@@ -145,7 +145,7 @@ erpnext.BarcodeField = class BarcodeField {
 	}
 
 	_show_print_dialog(templates) {
-		const API_PRINTER = "erpnext.manufacturing.doctype.label_printer.label_printer";
+		const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 		let _submitting = false;
 
 		const _print_sequential = (job_names, dialog) => {

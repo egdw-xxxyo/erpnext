@@ -207,7 +207,7 @@ async function fetch_diagram_extras(frm) {
 	if (frm.is_new()) return null;
 	try {
 		const r = await frappe.call({
-			method: "erpnext.manufacturing.doctype.workplace_script.workplace_script.get_diagram_extras",
+			method: "erpnext.devices.doctype.workplace_script.workplace_script.get_diagram_extras",
 			args: { script_name: frm.docname },
 		});
 		return r.message || null;

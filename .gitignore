@@ -27,3 +27,5 @@ snapshots/
 site-config.json
 apps.json
 .tunnel.env
+graphify-out/
+raw/

@@ -15,10 +15,10 @@ frappe.ui.form.on("Scanner Setup", {
 			'<div class="text-muted text-center" style="padding: 20px;">Loading...</div>'
 		);
 
-		const endpoint_url = `${window.location.origin}/api/method/erpnext.manufacturing.doctype.scanner_setup.scanner_api.handle_scan`;
+		const endpoint_url = `${window.location.origin}/api/method/erpnext.devices.doctype.scanner_setup.scanner_api.handle_scan`;
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.scanner_setup.scanner_setup.get_config_barcodes",
+			method: "erpnext.devices.doctype.scanner_setup.scanner_setup.get_config_barcodes",
 			args: { scanner_name: frm.doc.name, endpoint_url: endpoint_url },
 			callback: (r) => {
 				if (!r.message) return;
@@ -82,7 +82,7 @@ frappe.ui.form.on("Scanner Setup", {
 			__("Regenerate API key? The old key will stop working immediately."),
 			function () {
 				frappe.call({
-					method: "erpnext.manufacturing.doctype.scanner_setup.scanner_setup.regenerate_api_key",
+					method: "erpnext.devices.doctype.scanner_setup.scanner_setup.regenerate_api_key",
 					args: { scanner_name: frm.doc.name },
 					callback: function (r) {
 						if (!r.message) return;

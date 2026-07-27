@@ -4,7 +4,7 @@ from frappe.model.document import Document
 
 class OTDRConfiguration(Document):
 	def on_update(self):
-		from erpnext.manufacturing.doctype.otdr.otdr import publish_config
+		from erpnext.devices.doctype.otdr.otdr import publish_config
 
 		linked = frappe.get_all(
 			"OTDR",

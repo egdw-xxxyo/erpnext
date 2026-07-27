@@ -6,7 +6,7 @@ frappe.ui.form.on("Label Printer", {
 
 		frm.add_custom_button(__("Check Status"), () => {
 			frappe.call({
-				method: "erpnext.manufacturing.doctype.label_printer.label_printer.check_status",
+				method: "erpnext.devices.doctype.label_printer.label_printer.check_status",
 				args: { printer_name: frm.doc.name },
 				freeze: true,
 				freeze_message: __("Checking printer status..."),
@@ -32,7 +32,7 @@ frappe.ui.form.on("Label Printer", {
 
 		frm.add_custom_button(__("Get Full Info"), () => {
 			frappe.call({
-				method: "erpnext.manufacturing.doctype.label_printer.label_printer.get_printer_info",
+				method: "erpnext.devices.doctype.label_printer.label_printer.get_printer_info",
 				args: { printer_name: frm.doc.name },
 				freeze: true,
 				freeze_message: __("Getting printer info..."),
@@ -50,7 +50,7 @@ frappe.ui.form.on("Label Printer", {
 
 		frm.add_custom_button(__("Beep"), () => {
 			frappe.call({
-				method: "erpnext.manufacturing.doctype.label_printer.label_printer.beep",
+				method: "erpnext.devices.doctype.label_printer.label_printer.beep",
 				args: { printer_name: frm.doc.name },
 				callback(r) {
 					if (r.message && r.message.success) {
@@ -62,7 +62,7 @@ frappe.ui.form.on("Label Printer", {
 
 		frm.add_custom_button(__("Calibration Print"), () => {
 			frappe.call({
-				method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_calibration_label",
+				method: "erpnext.devices.doctype.label_printer.label_printer.print_calibration_label",
 				args: { printer_name: frm.doc.name },
 				freeze: true,
 				freeze_message: __("Printing calibration label..."),
@@ -83,7 +83,7 @@ frappe.ui.form.on("Label Printer", {
 				__("Erase all stored images from printer memory?"),
 				() => {
 					frappe.call({
-						method: "erpnext.manufacturing.doctype.label_printer.label_printer.clear_printer_memory",
+						method: "erpnext.devices.doctype.label_printer.label_printer.clear_printer_memory",
 						args: { printer_name: frm.doc.name },
 						freeze: true,
 						freeze_message: __("Clearing printer memory..."),
@@ -117,7 +117,7 @@ frappe.ui.form.on("Label Printer", {
 				primary_action(values) {
 					d.hide();
 					frappe.call({
-						method: "erpnext.manufacturing.doctype.label_printer.label_printer.send_raw_command",
+						method: "erpnext.devices.doctype.label_printer.label_printer.send_raw_command",
 						args: { printer_name: frm.doc.name, command: values.command },
 						callback(r) {
 							if (r.message) {
@@ -164,7 +164,7 @@ function _render_check_connection(frm) {
 		let t0 = performance.now();
 
 		frappe.call({
-			method: "erpnext.manufacturing.doctype.label_printer.label_printer.check_connection",
+			method: "erpnext.devices.doctype.label_printer.label_printer.check_connection",
 			args: { printer_name: frm.doc.name },
 			callback(r) {
 				let elapsed = ((performance.now() - t0) / 1000).toFixed(1);

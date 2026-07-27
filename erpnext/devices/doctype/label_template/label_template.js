@@ -29,7 +29,7 @@ frappe.ui.form.on("Label Template", {
 				primary_action(values) {
 					d.hide();
 					frappe.call({
-						method: "erpnext.manufacturing.doctype.label_printer.label_printer.test_print",
+						method: "erpnext.devices.doctype.label_printer.label_printer.test_print",
 						args: {
 							printer_name: values.printer,
 							template_name: frm.doc.name,
@@ -151,7 +151,7 @@ function _do_render_preview(frm) {
 	}
 
 	frappe.call({
-		method: "erpnext.manufacturing.doctype.label_template.label_template.render_preview",
+		method: "erpnext.devices.doctype.label_template.label_template.render_preview",
 		args: {
 			html_template: frm.doc.html_template || "",
 			preview_data: frm.doc.preview_data || "",
@@ -200,7 +200,7 @@ function _do_render_preview(frm) {
 
 function _print_with_preview(frm) {
 	frappe.call({
-		method: "erpnext.manufacturing.doctype.label_template.label_template.render_preview",
+		method: "erpnext.devices.doctype.label_template.label_template.render_preview",
 		args: {
 			html_template: frm.doc.html_template || "",
 			field_mapping: frm.doc.field_mapping || "",
@@ -254,7 +254,7 @@ function _show_template_help(frm) {
 
 function _show_html_template_help(frm) {
 	frappe.call({
-		method: "erpnext.manufacturing.doctype.label_template.label_template.get_template_reference",
+		method: "erpnext.devices.doctype.label_template.label_template.get_template_reference",
 		freeze: true,
 		callback(r) {
 			if (!r.message) return;
@@ -392,7 +392,7 @@ async function _show_available_fields(frm) {
 		if (item_code) {
 			try {
 				const r = await frappe.call({
-					method: "erpnext.manufacturing.doctype.label_template.label_template.get_available_spec_keys",
+					method: "erpnext.devices.doctype.label_template.label_template.get_available_spec_keys",
 					args: { item_code },
 				});
 				spec_keys = r.message || [];

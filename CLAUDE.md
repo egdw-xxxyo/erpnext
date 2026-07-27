@@ -1,6 +1,6 @@
 ## Related repos
 
-- **`~/git/otdr-sync/`** — Desktop sync application (Python, Senter ST3200H-M / Novker NK1500 OTDR over BLE). Pulls `.sor` files from device, uploads to ERPNext via `OTDR.add_measurement_log` whitelisted method. See `~/git/otdr-sync/README.md`. ERPNext side: `erpnext/manufacturing/doctype/otdr/otdr.py` (API + measurement ingestion), `erpnext/manufacturing/doctype/otdr_configuration/` (sync settings shipped to desktop app), `erpnext/manufacturing/doctype/device_script/` (Reflectometer scripts fired on SOR upload via `trigger_event="SOR Uploaded"`).
+- **`~/git/otdr-sync/`** — Desktop sync application (Python, Senter ST3200H-M / Novker NK1500 OTDR over BLE). Pulls `.sor` files from device, uploads to ERPNext via `OTDR.add_measurement_log` whitelisted method. See `~/git/otdr-sync/README.md`. ERPNext side: `erpnext/devices/doctype/otdr/otdr.py` (API + measurement ingestion), `erpnext/devices/doctype/otdr_configuration/` (sync settings shipped to desktop app), `erpnext/devices/doctype/device_script/` (Reflectometer scripts fired on SOR upload via `trigger_event="SOR Uploaded"`).
 - **`~/git/otdr-sync-android/`** — Android sync application (Kotlin, Jetpack Compose). Core sync scope only: BLE scan/pair, auto-sync `.sor` download, ERPNext `submit_measurement` upload, sync status UI, ERP config. Same protocol constants as desktop (`~/git/otdr-sync/st3200_sync/ble/protocol.py`).
 - **`~/git/otdr/`** — BLE protocol findings / reverse-engineering notes (`FINDINGS.md`).
 
@@ -51,6 +51,17 @@ When finishing a feature or fixing a bug, **create or update the release-note fi
 `--silent` suppresses verbose Dockerfile / migrate output. On failure the script automatically prints the tail of the build log so you still see errors. Use it every time — the noise from non-silent mode wastes context.
 
 If you believe a different command is required, stop and ask the user before running anything.
+
+## UI Icons (default: Font Awesome)
+
+**Use Font Awesome 4 icons by default for custom UI**, not emoji. FA4 is bundled in the frappe fork (`frappe/frappe/public/css/fonts/fontawesome/font-awesome.min.css`) and `<i class="fa fa-...">` works on every desk page.
+
+- Markup: `<i class="fa fa-comment"></i>` (v4 syntax — `fa fa-<name>`, not `fa-solid`).
+- Prefer FA over emoji for buttons, launchers, menu items, badges, and any new component icon.
+- Frappe's native SVG sprite (`frappe.utils.icon("message", "md")`) is also fine and theme-aware — acceptable alternative when a matching glyph exists.
+- Existing emoji in older code (e.g. chat compose 📎🎤) may stay; convert to FA when touching that code.
+
+Example (chat bubble launcher): `erpnext/public/js/chat_bubble.js` `CB_LAUNCH` uses `fa fa-whatsapp` / `fa fa-users` / `fa fa-file-text-o`.
 
 ## Environment routing by URL
 

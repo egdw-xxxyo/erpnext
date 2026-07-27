@@ -6,7 +6,7 @@ frappe.ui.form.on("Print Job", {
 			frm.add_custom_button(__("Print Now"), () => {
 				let send = () => {
 					frappe.call({
-						method: "erpnext.manufacturing.doctype.label_printer.label_printer.print_label",
+						method: "erpnext.devices.doctype.label_printer.label_printer.print_label",
 						args: { print_job_name: frm.doc.name, label_printer: frm.doc.label_printer },
 						freeze: true,
 						freeze_message: __("Sending to printer..."),
@@ -29,7 +29,7 @@ frappe.ui.form.on("Print Job", {
 		if (frm.doc.status === "Queued") {
 			frm.add_custom_button(__("Cancel"), () => {
 				frappe.call({
-					method: "erpnext.manufacturing.doctype.label_printer.label_printer.cancel_print_job",
+					method: "erpnext.devices.doctype.label_printer.label_printer.cancel_print_job",
 					args: { print_job_name: frm.doc.name },
 					callback() {
 						frm.reload_doc();
@@ -54,7 +54,7 @@ function _render_job_preview(frm) {
 	$wrapper.html(`<div class="text-muted" style="padding:12px;">${__("Rendering preview...")}</div>`);
 
 	frappe.call({
-		method: "erpnext.manufacturing.doctype.label_template.label_template.render_job_preview",
+		method: "erpnext.devices.doctype.label_template.label_template.render_job_preview",
 		args: { print_job_name: frm.doc.name },
 		callback(r) {
 			if (!r.message) {
