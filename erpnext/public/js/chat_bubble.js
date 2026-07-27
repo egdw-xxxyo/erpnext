@@ -532,6 +532,15 @@ class EmployeeChatSource {
 
 // --- Bubble widget ---------------------------------------------------------
 
+// Launcher buttons, left→right. `document` is virtual: it drives the employee
+// source into the single Document thread of whatever form is open (see
+// open_document_chat), and only shows while a saved form is on screen.
+const CB_LAUNCH = {
+	whatsapp: { icon: "fa fa-whatsapp", color: "#25d366", title: __("WhatsApp") },
+	employee: { icon: "fa fa-users", color: "#2490ef", title: __("Employee Chat") },
+	document: { icon: "fa fa-file-text-o", color: "#6c7680", title: __("Chat about this document") },
+};
+
 class ChatBubble {
 	constructor(sources) {
 		this.sources = sources;
@@ -616,12 +625,15 @@ class ChatBubble {
 		erpnext.chat_media.inject_styles();
 		if (document.getElementById("cb-bubble-styles")) return;
 		const css = `
-		.cb-fab{position:fixed;right:24px;bottom:24px;z-index:1035;width:56px;height:56px;border-radius:50%;
-			background:#25d366;color:#fff;border:none;box-shadow:0 4px 14px rgba(0,0,0,.28);font-size:26px;line-height:56px;
-			text-align:center;cursor:pointer;transition:transform .15s ease;}
-		.cb-fab:hover{transform:scale(1.06);}
-		.cb-badge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
-			background:var(--red-500,#e24c4c);color:#fff;font-size:11px;line-height:20px;font-weight:600;text-align:center;display:none;}
+		.cb-launcher{position:fixed;right:24px;bottom:24px;z-index:1035;display:flex;gap:10px;align-items:center;}
+		.cb-fab{position:relative;width:52px;height:52px;border-radius:50%;color:#fff;border:none;
+			box-shadow:0 4px 14px rgba(0,0,0,.28);font-size:24px;line-height:52px;text-align:center;cursor:pointer;
+			transition:transform .15s ease;}
+		.cb-fab:hover{transform:scale(1.08);}
+		.cb-fab.cb-active{outline:3px solid rgba(255,255,255,.65);outline-offset:1px;}
+		.cb-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
+			background:var(--red-500,#e24c4c);color:#fff;font-size:11px;line-height:20px;font-weight:600;text-align:center;display:none;
+			border:2px solid var(--card-bg);}
 		.cb-panel{position:fixed;right:24px;bottom:92px;z-index:1035;width:360px;height:480px;display:none;
 			flex-direction:column;background:var(--card-bg);border:1px solid var(--border-color);
 			border-radius:var(--border-radius-md);box-shadow:0 8px 28px rgba(0,0,0,.25);overflow:hidden;}
@@ -631,12 +643,6 @@ class ChatBubble {
 		.cb-title{flex:1;font-weight:600;font-size:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 		.cb-head .cb-act{cursor:pointer;opacity:.85;font-size:15px;line-height:1;padding:2px 4px;}
 		.cb-head .cb-act:hover{opacity:1;}
-		.cb-tabs{display:flex;border-bottom:1px solid var(--border-color);}
-		.cb-tab{flex:1;padding:6px 8px;text-align:center;cursor:pointer;font-size:var(--text-sm);color:var(--text-muted);
-			border-bottom:2px solid transparent;}
-		.cb-tab.active{color:var(--text-color);font-weight:600;border-bottom-color:#25d366;}
-		.cb-tab .cb-tab-count{display:inline-block;min-width:16px;height:16px;padding:0 4px;margin-left:4px;border-radius:8px;
-			background:var(--red-500,#e24c4c);color:#fff;font-size:10px;line-height:16px;}
 		.cb-body{flex:1;overflow-y:auto;}
 		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;}
 		.cb-conv:hover{background:var(--bg-light-gray);}
@@ -663,26 +669,33 @@ class ChatBubble {
 		.cb-foot{padding:6px 8px;border-top:1px solid var(--border-color);}
 		@media (max-width:600px){
 			.cb-panel{right:12px;left:12px;width:auto;bottom:84px;height:70vh;}
-			.cb-fab{right:16px;bottom:16px;}
+			.cb-launcher{right:12px;bottom:16px;gap:8px;}
+			.cb-fab{width:48px;height:48px;font-size:22px;line-height:48px;}
 		}
 		`;
 		$(`<style id="cb-bubble-styles">${css}</style>`).appendTo(document.head);
 	}
 
 	make_dom() {
-		this.$fab = $(`
-			<button class="cb-fab" title="${__("Chat")}">
-				<span>💬</span>
-				<span class="cb-badge"></span>
-			</button>
-		`).appendTo(document.body);
-
-		const tabs = this.sources
-			.map(
-				(s) =>
-					`<div class="cb-tab" data-key="${s.key}">${frappe.utils.escape_html(s.label)}<span class="cb-tab-count" style="display:none;"></span></div>`
-			)
+		// One round launcher per category, right→left: document (nearest = whatsapp).
+		const keys = this.sources.map((s) => s.key);
+		this.has_employee = keys.includes("employee");
+		const btns = ["document", "employee", "whatsapp"]
+			.filter((k) => (k === "document" ? this.has_employee : keys.includes(k)))
+			.map((k) => {
+				const m = CB_LAUNCH[k];
+				// The document button rides the employee source but starts hidden;
+				// update_document_button reveals it only on a saved form.
+				const hide = k === "document" ? "display:none;" : "";
+				return `<button class="cb-fab cb-fab-${k}" data-key="${k}" title="${frappe.utils.escape_html(
+					m.title
+				)}" style="background:${m.color};${hide}">
+					<i class="${m.icon}"></i><span class="cb-badge"></span>
+				</button>`;
+			})
 			.join("");
+		this.$launcher = $(`<div class="cb-launcher">${btns}</div>`).appendTo(document.body);
+		this.$fab = this.$launcher; // legacy alias used by toggle_bubble_visibility
 
 		this.$panel = $(`
 			<div class="cb-panel">
@@ -694,7 +707,6 @@ class ChatBubble {
 					<span class="cb-act cb-open-page" title="${__("Open full page")}">⤢</span>
 					<span class="cb-act cb-close" title="${__("Close")}">&times;</span>
 				</div>
-				<div class="cb-tabs" ${this.sources.length > 1 ? "" : 'style="display:none;"'}>${tabs}</div>
 				<div class="cb-body"></div>
 				<div class="cb-compose" style="display:none;">
 					<button class="btn btn-default btn-xs cb-attach" title="${__("Attach file")}">📎</button>
@@ -709,7 +721,6 @@ class ChatBubble {
 		`).appendTo(document.body);
 
 		this.$body = this.$panel.find(".cb-body");
-		this.$badge = this.$fab.find(".cb-badge");
 		this.$title = this.$panel.find(".cb-title");
 		this.$back = this.$panel.find(".cb-back");
 		this.$mute = this.$panel.find(".cb-mute");
@@ -717,11 +728,47 @@ class ChatBubble {
 		this.render_sound_toggle();
 		this.$compose = this.$panel.find(".cb-compose");
 		this.$input = this.$compose.find("textarea");
-		this.$panel.find(`.cb-tab[data-key="${this.source.key}"]`).addClass("active");
+		this.update_document_button();
+	}
+
+	// The launcher key currently driving the open panel ("whatsapp"/"employee"/"document").
+	set_active_fab(key) {
+		this.active_key = key;
+		this.$launcher.find(".cb-fab").removeClass("cb-active");
+		if (key) this.$launcher.find(`.cb-fab[data-key="${key}"]`).addClass("cb-active");
+	}
+
+	// {doctype, name} of the saved form on screen, else null.
+	doc_ref() {
+		const frm = window.cur_frm;
+		if (!frm || !frm.doc || frm.is_new() || !frm.doc.name) return null;
+		if ((frappe.get_route() || [])[0] !== "Form") return null;
+		return { doctype: frm.doctype, name: frm.docname };
+	}
+
+	// Employee-chat thread already opened for the current form, if any.
+	doc_thread() {
+		const ref = this.doc_ref();
+		if (!ref) return null;
+		const emp = this.sources.find((s) => s.key === "employee");
+		return (emp?.chats || []).find(
+			(c) => c.reference_doctype === ref.doctype && c.reference_name === ref.name
+		);
+	}
+
+	// Reveal the document launcher button only while a saved form is open.
+	update_document_button() {
+		const $btn = this.$launcher.find(`.cb-fab[data-key="document"]`);
+		if (!$btn.length) return;
+		$btn.toggle(!!this.doc_ref());
 	}
 
 	bind_events() {
-		this.$fab.on("click", () => this.toggle());
+		this.$launcher.on("click", ".cb-fab", (e) => {
+			const key = $(e.currentTarget).attr("data-key");
+			if (key === "document") this.open_document_chat();
+			else this.open_source(key);
+		});
 		this.$panel.find(".cb-close").on("click", () => this.toggle(false));
 		this.$back.on("click", () => this.show_list());
 		this.$panel.find(".cb-goto, .cb-open-page").on("click", () => this.goto_page());
@@ -739,22 +786,59 @@ class ChatBubble {
 				this.send();
 			}
 		});
-		this.$panel.find(".cb-tab").on("click", (e) => {
-			this.switch_source($(e.currentTarget).attr("data-key"));
-		});
 		this.$body.on("click", ".cb-conv", (e) => {
 			this.open_thread($(e.currentTarget).attr("data-id"));
 		});
 	}
 
-	switch_source(key) {
+	// Click a category button: open its conversation list. Clicking the same
+	// button again (while showing its list) closes the panel.
+	open_source(key) {
 		const src = this.sources.find((s) => s.key === key);
-		if (!src || src === this.source) return;
+		if (!src) return;
+		if (this.open && this.source === src && this.active_key === key && !this.active) {
+			this.toggle(false);
+			return;
+		}
 		this.source = src;
-		this.$panel.find(".cb-tab").removeClass("active");
-		this.$panel.find(`.cb-tab[data-key="${key}"]`).addClass("active");
+		this.active = null;
+		this.set_active_fab(key);
+		this.open = true;
+		this.$panel.addClass("open");
 		this.show_list();
 		this.refresh();
+	}
+
+	// Open (creating on first use) the single Document thread for the current form,
+	// inside the employee source. Its unread badge lives on the document button.
+	async open_document_chat() {
+		const ref = this.doc_ref();
+		const emp = this.sources.find((s) => s.key === "employee");
+		if (!ref || !emp) return;
+		this.source = emp;
+		this.active = null;
+		this.set_active_fab("document");
+		this.open = true;
+		this.$panel.addClass("open");
+		this.$title.text(__("Chat about this document"));
+		this.$back.hide();
+		this.$mute.hide();
+		this.$compose.hide();
+		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
+		let name;
+		try {
+			const res = await frappe.xcall(`${EC_API}.open_document_thread`, {
+				reference_doctype: ref.doctype,
+				reference_name: ref.name,
+			});
+			name = res.name;
+		} catch (e) {
+			this.$body.html(`<div class="cb-empty">${__("Failed to open chat")}</div>`);
+			return;
+		}
+		await emp.load_list();
+		this.render_badges();
+		this.open_thread(name);
 	}
 
 	goto_page() {
@@ -767,6 +851,8 @@ class ChatBubble {
 		if (this.open) {
 			this.refresh();
 			if (!this.active) this.show_list();
+		} else {
+			this.set_active_fab(null);
 		}
 	}
 
@@ -790,23 +876,26 @@ class ChatBubble {
 	}
 
 	render_badges() {
-		let total = 0;
+		const set = (key, count) => {
+			this.$launcher
+				.find(`.cb-fab[data-key="${key}"] .cb-badge`)
+				.text(count > 99 ? "99+" : count)
+				.toggle(count > 0);
+		};
+		// Each category button carries only its own unread — WhatsApp stays visible
+		// even while the employee chat is ignored, and vice versa.
 		this.sources.forEach((s) => {
 			// Sum unread *messages* across conversations (each c.unread is already a message
 			// count, secret threads included — the server counts rows, never plaintext), not
 			// the number of conversations that have something unread.
 			const count = (s.chats || []).reduce((n, c) => n + (c.unread || 0), 0);
-			console.log("[chat] render_badges source=" + s.key, {
-				convs_with_unread: count,
-				rows: (s.chats || []).map((c) => ({ id: c.id, unread: c.unread })),
-			});
-			total += count;
-			this.$panel
-				.find(`.cb-tab[data-key="${s.key}"] .cb-tab-count`)
-				.text(count > 99 ? "99+" : count)
-				.toggle(count > 0);
+			set(s.key, count);
 		});
-		this.$badge.text(total > 99 ? "99+" : total).toggle(total > 0);
+		// Document button reflects just the current form's thread.
+		if (this.has_employee) {
+			const dt = this.doc_thread();
+			set("document", dt ? dt.unread || 0 : 0);
+		}
 	}
 
 	show_list() {
@@ -955,6 +1044,13 @@ erpnext.whatsapp.init_bubble = function () {
 	erpnext.whatsapp.bubble = new ChatBubble(sources);
 	erpnext.whatsapp.toggle_bubble_visibility();
 	frappe.router?.on("change", () => erpnext.whatsapp.toggle_bubble_visibility());
+	// A form finishes loading after the route change; refresh the document button then.
+	$(document).on("form-refresh", () => {
+		const b = erpnext.whatsapp.bubble;
+		if (!b) return;
+		b.update_document_button();
+		b.render_badges();
+	});
 };
 
 // Hide the bubble on the full chat pages themselves.
@@ -964,8 +1060,10 @@ erpnext.whatsapp.toggle_bubble_visibility = function () {
 	const route = (frappe.get_route() || []).join("/");
 	const on_chat_page =
 		route.includes("whatsapp-chat-center") || route.includes("employee-chat");
-	b.$fab.toggle(!on_chat_page);
+	b.$launcher.toggle(!on_chat_page);
 	if (on_chat_page) b.toggle(false);
+	b.update_document_button();
+	b.render_badges();
 };
 
 $(document).on("app_ready", function () {
