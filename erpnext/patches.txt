@@ -442,3 +442,5 @@ erpnext.patches.v15_0.drop_otdr_configuration_public_server_url
 erpnext.patches.v15_0.link_chat_attachments
 erpnext.patches.v15_0.move_devices_to_new_module
 erpnext.patches.v15_0.move_otdr_workplace_script_to_devices
+erpnext.patches.v15_0.rework_task_status
+erpnext.patches.v15_0.batt_pack_brand_attribute
