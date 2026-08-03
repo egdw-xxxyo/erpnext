@@ -10,9 +10,7 @@ class ItemSpecification(Document):
 		seen = set()
 		for row in self.parameters:
 			if row.parameter in seen:
-				frappe.throw(
-					f"Duplicate parameter: {row.parameter}. Each parameter can only appear once."
-				)
+				frappe.throw(f"Duplicate parameter: {row.parameter}. Each parameter can only appear once.")
 			seen.add(row.parameter)
 
 

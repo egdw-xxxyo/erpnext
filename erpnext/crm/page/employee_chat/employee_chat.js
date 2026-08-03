@@ -11,10 +11,30 @@ const API = "erpnext.crm.page.employee_chat.employee_chat.";
 
 // Emoji shown in the compose picker and (first 6) as quick reactions.
 const EMOJI_SET = [
-	"👍", "❤️", "😂", "😮", "😢", "🙏",
-	"👏", "🔥", "🎉", "😊", "😍", "🤔",
-	"👌", "✅", "❌", "⚠️", "💰", "📦",
-	"😅", "😁", "😉", "🥳", "💪", "🚀",
+	"👍",
+	"❤️",
+	"😂",
+	"😮",
+	"😢",
+	"🙏",
+	"👏",
+	"🔥",
+	"🎉",
+	"😊",
+	"😍",
+	"🤔",
+	"👌",
+	"✅",
+	"❌",
+	"⚠️",
+	"💰",
+	"📦",
+	"😅",
+	"😁",
+	"😉",
+	"🥳",
+	"💪",
+	"🚀",
 ];
 const QUICK_REACTIONS = EMOJI_SET.slice(0, 6);
 
@@ -71,7 +91,9 @@ class EmployeeChat {
 			<div class="ec-chat">
 				<div class="ec-sidebar">
 					<div class="ec-search">
-						<button class="btn btn-primary btn-xs ec-new-chat" style="width:100%;margin-bottom:6px;">+ ${__("New chat")}</button>
+						<button class="btn btn-primary btn-xs ec-new-chat" style="width:100%;margin-bottom:6px;">+ ${__(
+							"New chat"
+						)}</button>
 						<input type="text" class="form-control input-xs ec-search-input" placeholder="${__("Search chats")}">
 					</div>
 					<div class="ec-thread-list"></div>
@@ -79,7 +101,9 @@ class EmployeeChat {
 				<div class="ec-thread-wrap">
 					<div class="ec-thread-header text-muted">${__("Select a chat")}</div>
 					<div class="ec-thread"></div>
-					<div class="ec-scroll-fab" title="${__("Scroll to latest")}">⬇<span class="ec-fab-badge" style="display:none;"></span></div>
+					<div class="ec-scroll-fab" title="${__(
+						"Scroll to latest"
+					)}">⬇<span class="ec-fab-badge" style="display:none;"></span></div>
 					<div class="ec-typing text-muted" style="display:none;"></div>
 					<div class="ec-compose-wrap" style="display:none;">
 						<div class="ec-reply-bar" style="display:none;">
@@ -319,9 +343,7 @@ class EmployeeChat {
 	// the thread is fully read.
 	first_unread_name() {
 		const cursor = this.read_cursor;
-		const m = this.messages.find(
-			(x) => x.sender !== this.me && (!cursor || x.creation > cursor)
-		);
+		const m = this.messages.find((x) => x.sender !== this.me && (!cursor || x.creation > cursor));
 		return m ? m.name : null;
 	}
 
@@ -362,9 +384,7 @@ class EmployeeChat {
 		const locked = !erpnext.chat_crypto.is_unlocked();
 		this.$header.html(
 			`🔒 <span class="ec-header-title"></span>${mute_html}${
-				locked
-					? ` <button class="btn btn-xs btn-primary ec-unlock">${__("Unlock")}</button>`
-					: ""
+				locked ? ` <button class="btn btn-xs btn-primary ec-unlock">${__("Unlock")}</button>` : ""
 			}`
 		);
 		this.$header.find(".ec-header-title").text(title);
@@ -409,11 +429,7 @@ class EmployeeChat {
 			const rp = m.reply_preview;
 			if (rp && rp.is_encrypted && rp.ciphertext) {
 				try {
-					const dec = await erpnext.chat_crypto.decrypt(
-						m.thread,
-						rp.ciphertext,
-						rp.enc_iv
-					);
+					const dec = await erpnext.chat_crypto.decrypt(m.thread, rp.ciphertext, rp.enc_iv);
 					rp.text = this.preview_of_payload(rp.content_type, dec);
 				} catch (e) {
 					rp.text = "🔒 " + __("Encrypted");
@@ -477,7 +493,11 @@ class EmployeeChat {
 		if (t.thread_type === "Document" && t.reference_doctype) {
 			const $ref = $(this.reference_banner_html(t)).appendTo(this.$thread);
 			$ref.filter("[data-dt]").on("click", (e) => {
-				frappe.set_route("Form", $(e.currentTarget).attr("data-dt"), $(e.currentTarget).attr("data-name"));
+				frappe.set_route(
+					"Form",
+					$(e.currentTarget).attr("data-dt"),
+					$(e.currentTarget).attr("data-name")
+				);
 			});
 		}
 
@@ -563,14 +583,11 @@ class EmployeeChat {
 	async download_encrypted(file) {
 		frappe.dom.freeze(__("Decrypting…"));
 		try {
-			const blob = await erpnext.chat_media.fetch_encrypted(
-				file.url,
-				file.key,
-				file.iv,
-				file.mime
-			);
+			const blob = await erpnext.chat_media.fetch_encrypted(file.url, file.key, file.iv, file.mime);
 			const url = URL.createObjectURL(blob);
-			$("<a>").attr({ href: url, download: file.name || "file" })[0].click();
+			$("<a>")
+				.attr({ href: url, download: file.name || "file" })[0]
+				.click();
 			setTimeout(() => URL.revokeObjectURL(url), 10000);
 		} catch (err) {
 			frappe.msgprint(__("Cannot decrypt this file"));
@@ -832,9 +849,7 @@ class EmployeeChat {
 	render_body(m) {
 		if (m.is_encrypted) return this.render_encrypted_body(m);
 		const caption = m.message || "";
-		const cap_html = caption
-			? `<div class="ec-caption">${frappe.utils.escape_html(caption)}</div>`
-			: "";
+		const cap_html = caption ? `<div class="ec-caption">${frappe.utils.escape_html(caption)}</div>` : "";
 		if (m.content_type === "link") {
 			return this.link_card_html(m.link_data);
 		}
@@ -869,9 +884,7 @@ class EmployeeChat {
 		}
 
 		const text = m._dec.text || "";
-		const cap_html = text
-			? `<div class="ec-caption">${frappe.utils.escape_html(text)}</div>`
-			: "";
+		const cap_html = text ? `<div class="ec-caption">${frappe.utils.escape_html(text)}</div>` : "";
 		const file = m._dec.file;
 		if (file && m.content_type === "audio") {
 			return `<div class="ec-media">${erpnext.chat_media.encrypted_audio_html({
@@ -955,7 +968,12 @@ class EmployeeChat {
 		// Someone else's message rings, unless this user muted the thread.
 		if (d && d.sender && d.sender !== this.me) {
 			const t = this.threads[d.thread];
-			console.log("[chat] employee ring", { thread: d.thread, sender: d.sender, thread_found: !!t, muted: t && t.muted });
+			console.log("[chat] employee ring", {
+				thread: d.thread,
+				sender: d.sender,
+				thread_found: !!t,
+				muted: t && t.muted,
+			});
 			erpnext.chat_sound.play(t && t.muted);
 		}
 		if (d && d.thread === this.active && d.name) {
@@ -984,10 +1002,7 @@ class EmployeeChat {
 	on_realtime_typing(d) {
 		if (!d || d.thread !== this.active || d.user === this.me) return;
 		const t = this.threads[this.active] || {};
-		const who =
-			t.thread_type === "Group"
-				? (t.participants || []).find((p) => p.user === d.user)
-				: null;
+		const who = t.thread_type === "Group" ? (t.participants || []).find((p) => p.user === d.user) : null;
 		const name = who ? who.employee_name || d.user : "";
 		this.$typing.text(name ? `${name} ${__("is typing…")}` : __("typing…")).show();
 		clearTimeout(this.typing_timer);
@@ -1232,8 +1247,7 @@ class EmployeeChat {
 			if (!file) return;
 			if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
 
-			const content_type =
-				mime_to_content_type(file.type, file.name) === "image" ? "image" : "file";
+			const content_type = mime_to_content_type(file.type, file.name) === "image" ? "image" : "file";
 			frappe.dom.freeze(__("Encrypting…"));
 			try {
 				const enc = await erpnext.chat_crypto.encrypt_blob(file);
@@ -1382,9 +1396,9 @@ class EmployeeChat {
 		this.page.main.find(".ec-react-pop").remove();
 		const m = $(e.currentTarget).closest(".ec-bubble").data("msg");
 		const $pop = $(
-			`<div class="ec-react-pop">${QUICK_REACTIONS.map(
-				(x) => `<span data-e="${x}">${x}</span>`
-			).join("")}</div>`
+			`<div class="ec-react-pop">${QUICK_REACTIONS.map((x) => `<span data-e="${x}">${x}</span>`).join(
+				""
+			)}</div>`
 		);
 		$("body").append($pop);
 		const off = $(e.currentTarget).offset();
@@ -1473,7 +1487,10 @@ class EmployeeChat {
 		this.$fab.toggleClass("show", away);
 		const t = this.threads[this.active];
 		const n = (t && t.unread) || 0;
-		this.$fab.find(".ec-fab-badge").toggle(n > 0).text(n > 99 ? "99+" : n);
+		this.$fab
+			.find(".ec-fab-badge")
+			.toggle(n > 0)
+			.text(n > 99 ? "99+" : n);
 	}
 
 	// FAB / "mark all read": jump to the newest message and clear the whole thread's unread.
@@ -1500,7 +1517,9 @@ class EmployeeChat {
 								d.set_df_property(
 									"people",
 									"description",
-									__("No employees found. An Employee must be Active and have a User linked in the field 'User ID'.")
+									__(
+										"No employees found. An Employee must be Active and have a User linked in the field 'User ID'."
+									)
 								);
 							}
 							// 🔒 marks people who can already receive an encrypted thread key.
@@ -1509,9 +1528,9 @@ class EmployeeChat {
 							);
 							return rows.map((r) => ({
 								value: r.user_id,
-								description: `${r.employee_name}${
-									r.department ? " · " + r.department : ""
-								}${r.secret_ready ? " · 🔒" : ""}`,
+								description: `${r.employee_name}${r.department ? " · " + r.department : ""}${
+									r.secret_ready ? " · 🔒" : ""
+								}`,
 							}));
 						}),
 				},
@@ -1546,18 +1565,14 @@ class EmployeeChat {
 					const not_ready = people.filter((u) => !ready.has(u));
 					if (not_ready.length) {
 						frappe.msgprint(
-							__("These people have not enabled secret chats yet: {0}", [
-								not_ready.join(", "),
-							])
+							__("These people have not enabled secret chats yet: {0}", [not_ready.join(", ")])
 						);
 						return;
 					}
 					if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
 					// The thread key is generated here and wrapped per participant — the
 					// server only ever files the wrapped copies.
-					const { wrapped } = await erpnext.chat_crypto.new_thread_key(
-						people.concat([this.me])
-					);
+					const { wrapped } = await erpnext.chat_crypto.new_thread_key(people.concat([this.me]));
 					args.is_secret = 1;
 					args.thread_keys = JSON.stringify(wrapped);
 				}
@@ -1613,9 +1628,7 @@ class EmployeeChat {
 					const not_ready = people.filter((u) => !ready.has(u));
 					if (not_ready.length) {
 						frappe.msgprint(
-							__("These people have not enabled secret chats yet: {0}", [
-								not_ready.join(", "),
-							])
+							__("These people have not enabled secret chats yet: {0}", [not_ready.join(", ")])
 						);
 						return;
 					}

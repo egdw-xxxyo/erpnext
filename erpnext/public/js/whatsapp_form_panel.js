@@ -3,14 +3,7 @@
 
 frappe.provide("erpnext.whatsapp");
 
-erpnext.whatsapp.WA_DOCTYPES = [
-	"Lead",
-	"Contact",
-	"Customer",
-	"Opportunity",
-	"Quotation",
-	"Sales Order",
-];
+erpnext.whatsapp.WA_DOCTYPES = ["Lead", "Contact", "Customer", "Opportunity", "Quotation", "Sales Order"];
 
 erpnext.whatsapp.render_panel = async function (frm) {
 	if (frm.is_new()) return;
@@ -19,10 +12,10 @@ erpnext.whatsapp.render_panel = async function (frm) {
 
 	let phone;
 	try {
-		phone = await frappe.xcall(
-			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.resolve_phone",
-			{ doctype: frm.doctype, docname: frm.doc.name }
-		);
+		phone = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.resolve_phone", {
+			doctype: frm.doctype,
+			docname: frm.doc.name,
+		});
 	} catch (e) {
 		return;
 	}
@@ -38,10 +31,10 @@ erpnext.whatsapp.render_panel = async function (frm) {
 
 	let msgs = [];
 	try {
-		msgs = await frappe.xcall(
-			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_recent_messages",
-			{ phone, limit: 8 }
-		);
+		msgs = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_recent_messages", {
+			phone,
+			limit: 8,
+		});
 	} catch (e) {
 		return;
 	}
@@ -54,7 +47,7 @@ erpnext.whatsapp.render_panel = async function (frm) {
 			audio: "🎤 " + __("Audio"),
 			document: "📎 " + __("Document"),
 			sticker: "🩷 " + __("Sticker"),
-		})[ct];
+		}[ct]);
 
 	const sys_tz = frappe.sys_defaults.time_zone || "UTC";
 	const bubbles = msgs
@@ -87,10 +80,7 @@ erpnext.whatsapp.render_panel = async function (frm) {
 		</style>`).appendTo(document.head);
 	}
 
-	frm.dashboard.add_section(
-		`<div class="wa-fp-wrap">${bubbles}</div>`,
-		__("WhatsApp Conversation")
-	);
+	frm.dashboard.add_section(`<div class="wa-fp-wrap">${bubbles}</div>`, __("WhatsApp Conversation"));
 };
 
 erpnext.whatsapp.WA_DOCTYPES.forEach((dt) => {

@@ -28,13 +28,12 @@ class Pallet(Document):
 		if not self.get("sales_order"):
 			return
 		from erpnext.selling.doctype.sales_order.progress import update_so_progress
+
 		update_so_progress(self.sales_order)
 
 	def on_trash(self):
 		if self._linked_package_count():
-			frappe.throw(
-				_("Cannot delete Pallet {0}: packages are still linked").format(self.name)
-			)
+			frappe.throw(_("Cannot delete Pallet {0}: packages are still linked").format(self.name))
 
 	def _linked_package_count(self):
 		return frappe.db.count("Package", {"pallet": self.name, "docstatus": ["<", 2]})

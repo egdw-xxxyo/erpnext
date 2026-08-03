@@ -49,13 +49,9 @@ function random_bytes(n) {
 // --- key derivation --------------------------------------------------------
 
 async function derive_kek(passphrase, salt, iterations) {
-	const base = await subtle().importKey(
-		"raw",
-		new TextEncoder().encode(passphrase),
-		"PBKDF2",
-		false,
-		["deriveKey"]
-	);
+	const base = await subtle().importKey("raw", new TextEncoder().encode(passphrase), "PBKDF2", false, [
+		"deriveKey",
+	]);
 	return subtle().deriveKey(
 		{ name: "PBKDF2", salt, iterations: iterations || KDF_ITERATIONS, hash: "SHA-256" },
 		base,
@@ -72,11 +68,7 @@ async function wrap_identity(kek, ecdh_private, ecdsa_private) {
 		ecdsa: ecdsa_private ? to_b64(await subtle().exportKey("pkcs8", ecdsa_private)) : null,
 	});
 	const iv = random_bytes(12);
-	const ct = await subtle().encrypt(
-		{ name: "AES-GCM", iv },
-		kek,
-		new TextEncoder().encode(payload)
-	);
+	const ct = await subtle().encrypt({ name: "AES-GCM", iv }, kek, new TextEncoder().encode(payload));
 	return to_b64(new Uint8Array([...iv, ...new Uint8Array(ct)]));
 }
 
@@ -85,9 +77,7 @@ async function unwrap_identity(kek, wrapped) {
 	const iv = raw.slice(0, 12);
 	const plain = await subtle().decrypt({ name: "AES-GCM", iv }, kek, raw.slice(12));
 	const blob = JSON.parse(new TextDecoder().decode(plain));
-	const ecdh = await subtle().importKey("pkcs8", from_b64(blob.ecdh), EC_PARAMS, true, [
-		"deriveBits",
-	]);
+	const ecdh = await subtle().importKey("pkcs8", from_b64(blob.ecdh), EC_PARAMS, true, ["deriveBits"]);
 	const ecdsa = blob.ecdsa
 		? await subtle().importKey("pkcs8", from_b64(blob.ecdsa), SIGN_PARAMS, true, ["sign"])
 		: null;
@@ -97,11 +87,7 @@ async function unwrap_identity(kek, wrapped) {
 // ECDH-ES: one ephemeral keypair per wrap, HKDF over the shared secret. Mirrors
 // seal_for_users() in chat_crypto.py so server-sealed WhatsApp messages open here too.
 async function derive_wrap_key(private_key, peer_public_key) {
-	const shared = await subtle().deriveBits(
-		{ name: "ECDH", public: peer_public_key },
-		private_key,
-		256
-	);
+	const shared = await subtle().deriveBits({ name: "ECDH", public: peer_public_key }, private_key, 256);
 	const hkdf = await subtle().importKey("raw", shared, "HKDF", false, ["deriveKey"]);
 	return subtle().deriveKey(
 		{
@@ -132,9 +118,7 @@ async function prf_secret(credential_id, salt_b64) {
 	const assertion = await navigator.credentials.get({
 		publicKey: {
 			challenge: random_bytes(32),
-			allowCredentials: credential_id
-				? [{ id: from_b64(credential_id), type: "public-key" }]
-				: [],
+			allowCredentials: credential_id ? [{ id: from_b64(credential_id), type: "public-key" }] : [],
 			userVerification: "required",
 			timeout: 60000,
 			extensions: { prf: { eval: { first: from_b64(salt_b64) } } },
@@ -334,18 +318,13 @@ erpnext.chat_crypto = {
 			const row = pubs[user];
 			if (!row) continue;
 			const ephemeral = await subtle().generateKey(EC_PARAMS, true, ["deriveBits"]);
-			const wrap_key = await derive_wrap_key(
-				ephemeral.privateKey,
-				await import_public(row.public_key)
-			);
+			const wrap_key = await derive_wrap_key(ephemeral.privateKey, await import_public(row.public_key));
 			const iv = random_bytes(12);
 			const ct = await subtle().encrypt({ name: "AES-GCM", iv }, wrap_key, raw);
 			out.push({
 				user,
 				wrapped_thread_key: to_b64(new Uint8Array([...iv, ...new Uint8Array(ct)])),
-				ephemeral_public_key: to_b64(
-					await subtle().exportKey("spki", ephemeral.publicKey)
-				),
+				ephemeral_public_key: to_b64(await subtle().exportKey("spki", ephemeral.publicKey)),
 			});
 		}
 		return out;
@@ -357,10 +336,7 @@ erpnext.chat_crypto = {
 
 		const row = await frappe.xcall(CRYPTO_API + "get_thread_key", { thread });
 		if (!row) throw new Error("no-key");
-		const wrap_key = await derive_wrap_key(
-			IDENTITY.ecdh,
-			await import_public(row.ephemeral_public_key)
-		);
+		const wrap_key = await derive_wrap_key(IDENTITY.ecdh, await import_public(row.ephemeral_public_key));
 		const blob = from_b64(row.wrapped_thread_key);
 		const raw = await subtle().decrypt(
 			{ name: "AES-GCM", iv: blob.slice(0, 12) },
@@ -419,11 +395,7 @@ erpnext.chat_crypto = {
 			"decrypt",
 		]);
 		const iv = random_bytes(12);
-		const ct = await subtle().encrypt(
-			{ name: "AES-GCM", iv },
-			key,
-			await blob.arrayBuffer()
-		);
+		const ct = await subtle().encrypt({ name: "AES-GCM", iv }, key, await blob.arrayBuffer());
 		return {
 			blob: new Blob([ct], { type: "application/octet-stream" }),
 			key: to_b64(await subtle().exportKey("raw", key)),
@@ -432,18 +404,10 @@ erpnext.chat_crypto = {
 	},
 
 	async decrypt_blob(array_buffer, key_b64, iv_b64, mime) {
-		const key = await subtle().importKey(
-			"raw",
-			from_b64(key_b64),
-			{ name: "AES-GCM" },
-			false,
-			["decrypt"]
-		);
-		const plain = await subtle().decrypt(
-			{ name: "AES-GCM", iv: from_b64(iv_b64) },
-			key,
-			array_buffer
-		);
+		const key = await subtle().importKey("raw", from_b64(key_b64), { name: "AES-GCM" }, false, [
+			"decrypt",
+		]);
+		const plain = await subtle().decrypt({ name: "AES-GCM", iv: from_b64(iv_b64) }, key, array_buffer);
 		return new Blob([plain], { type: mime || "application/octet-stream" });
 	},
 

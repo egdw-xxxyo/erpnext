@@ -201,7 +201,9 @@ frappe.ui.form.on("Package", {
 									method: "frappe.client.get",
 									args: { doctype: "BpAK", name: frm.doc.bpak },
 									async: false,
-									callback: function (rr) { bpak_doc = rr.message; },
+									callback: function (rr) {
+										bpak_doc = rr.message;
+									},
 								});
 								allowed = new Set(
 									((bpak_doc && bpak_doc.planned_items) || []).map((r) => r.item_code)
@@ -210,7 +212,10 @@ frappe.ui.form.on("Package", {
 							}
 							if (allowed.size && !allowed.has(data.item_code)) {
 								frappe.show_alert({
-									message: __("Item {0} is not in BpAK {1}", [data.item_code, frm.doc.bpak]),
+									message: __("Item {0} is not in BpAK {1}", [
+										data.item_code,
+										frm.doc.bpak,
+									]),
 									indicator: "red",
 								});
 								return;
@@ -232,7 +237,8 @@ frappe.ui.form.on("Package", {
 
 						if (data.serial_no) {
 							let empty_row = (frm.doc.items || []).find(
-								(row) => row.item_code === data.item_code && !row.serial_no && (row.qty || 1) <= 1
+								(row) =>
+									row.item_code === data.item_code && !row.serial_no && (row.qty || 1) <= 1
 							);
 							if (empty_row) {
 								frappe.model.set_value(
@@ -279,10 +285,7 @@ frappe.ui.form.on("Package", {
 						}
 
 						frappe.show_alert({
-							message: __("Added {0} ({1})", [
-								data.item_code,
-								data.serial_no || "no serial",
-							]),
+							message: __("Added {0} ({1})", [data.item_code, data.serial_no || "no serial"]),
 							indicator: "green",
 						});
 						frappe.utils.play_sound("click");
@@ -294,7 +297,6 @@ frappe.ui.form.on("Package", {
 			},
 		});
 	},
-
 });
 
 function setup_package_print_labels(frm) {
@@ -306,9 +308,7 @@ function setup_package_print_labels(frm) {
 			erpnext.utils.open_simple_label_print_dialog({
 				doctype: "Package",
 				doc_name: frm.doc.name,
-				label_templates: [
-					{ label_template: tmpl.label_template, label_printer: tmpl.label_printer },
-				],
+				label_templates: [{ label_template: tmpl.label_template, label_printer: tmpl.label_printer }],
 				default_copies: tmpl.label_copies,
 			});
 		});

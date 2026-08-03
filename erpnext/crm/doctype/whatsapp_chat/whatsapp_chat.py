@@ -18,9 +18,7 @@ class WhatsAppChat(Document):
 		linked doc never makes the chat unsaveable."""
 		kept = []
 		for row in self.links:
-			if row.link_doctype and row.link_name and frappe.db.exists(
-				row.link_doctype, row.link_name
-			):
+			if row.link_doctype and row.link_name and frappe.db.exists(row.link_doctype, row.link_name):
 				kept.append(row)
 		if len(kept) != len(self.links):
 			self.links = kept
@@ -145,9 +143,7 @@ def backfill_previews(chats):
 				update["title"] = chat["title"]
 
 		if update:
-			frappe.db.set_value(
-				"WhatsApp Chat", chat["name"], update, update_modified=False
-			)
+			frappe.db.set_value("WhatsApp Chat", chat["name"], update, update_modified=False)
 			touched = True
 
 	if touched:

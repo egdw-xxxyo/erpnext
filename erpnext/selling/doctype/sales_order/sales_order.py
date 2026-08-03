@@ -259,12 +259,15 @@ class SalesOrder(SellingController):
 		self.items = kept
 
 		for planned in aggregated.values():
-			self.append("items", {
-				"item_code": planned["item_code"],
-				"qty": planned["qty"],
-				"uom": planned["uom"],
-				"bpak_row": planned["bpak_row"],
-			})
+			self.append(
+				"items",
+				{
+					"item_code": planned["item_code"],
+					"qty": planned["qty"],
+					"uom": planned["uom"],
+					"bpak_row": planned["bpak_row"],
+				},
+			)
 
 		self._aggregate_bpak_serial_nos()
 
@@ -306,6 +309,7 @@ class SalesOrder(SellingController):
 
 	def validate(self):
 		from erpnext.selling.doctype.sales_order.attachment_resolver import sync_items_from_attachments
+
 		sync_items_from_attachments(self)
 		super().validate()
 		self.validate_delivery_date()
@@ -1214,6 +1218,7 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 
 def _attach_package_serials_to_dn(so, target):
 	from erpnext.selling.doctype.sales_order.attachment_resolver import collect_serials
+
 	serials_by_item = collect_serials(so)
 	if not serials_by_item:
 		return
@@ -1233,15 +1238,11 @@ def _attach_package_serials_to_dn(so, target):
 			row.serial_no = "\n".join(take)
 			serials_by_item[row.item_code] = available[needed:]
 		if len(take) < needed:
-			missing.append(
-				_("{0}: need {1}, got {2}").format(row.item_code, needed, len(take))
-			)
+			missing.append(_("{0}: need {1}, got {2}").format(row.item_code, needed, len(take)))
 
 	if missing:
 		frappe.msgprint(
-			_("Some items are missing serial numbers from attached Packages: {0}").format(
-				"; ".join(missing)
-			),
+			_("Some items are missing serial numbers from attached Packages: {0}").format("; ".join(missing)),
 			title=_("Missing Serials from Packages"),
 			indicator="orange",
 		)
@@ -2056,12 +2057,14 @@ def get_bpak_progress(sales_order):
 	if not sales_order:
 		return []
 	bpak_names = [
-		r.bpak for r in frappe.get_all(
+		r.bpak
+		for r in frappe.get_all(
 			"Sales Order BpAK",
 			filters={"parent": sales_order, "parenttype": "Sales Order"},
 			fields=["bpak"],
 			order_by="idx asc",
-		) if r.bpak
+		)
+		if r.bpak
 	]
 	if not bpak_names:
 		return []
@@ -2111,15 +2114,17 @@ def get_bpak_progress(sales_order):
 		b = bpak_by_name.get(name)
 		if not b:
 			continue
-		out.append({
-			"bpak": name,
-			"serial_no": b.serial_no,
-			"status": b.status,
-			"template_name": b.bpak_template_name,
-			"planned_qty": planned_by_bpak.get(name, 0),
-			"packed_qty": packed_by_bpak.get(name, 0),
-			"package_count": pkg_count_by_bpak.get(name, 0),
-		})
+		out.append(
+			{
+				"bpak": name,
+				"serial_no": b.serial_no,
+				"status": b.status,
+				"template_name": b.bpak_template_name,
+				"planned_qty": planned_by_bpak.get(name, 0),
+				"packed_qty": packed_by_bpak.get(name, 0),
+				"package_count": pkg_count_by_bpak.get(name, 0),
+			}
+		)
 	return out
 
 
@@ -2171,12 +2176,15 @@ def aggregate_bpak_planned_items(sales_order=None, bpak_rows=None, bpak_names=No
 			continue
 		for row_name in bpak_to_row.get(r.parent, []):
 			key = (row_name, r.item_code)
-			entry = aggregated.setdefault(key, {
-				"bpak_row": row_name,
-				"item_code": r.item_code,
-				"qty": 0.0,
-				"uom": r.uom,
-			})
+			entry = aggregated.setdefault(
+				key,
+				{
+					"bpak_row": row_name,
+					"item_code": r.item_code,
+					"qty": 0.0,
+					"uom": r.uom,
+				},
+			)
 			entry["qty"] += float(r.qty or 0)
 			if not entry["uom"] and r.uom:
 				entry["uom"] = r.uom

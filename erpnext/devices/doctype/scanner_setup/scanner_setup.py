@@ -9,15 +9,15 @@ from frappe.model.document import Document
 def _get_scanner_secret():
 	secret = frappe.conf.get("scanner_secret")
 	if not secret:
-		frappe.throw("scanner_secret is not set in site_config.json. Run: bench set-config scanner_secret <your-secret>")
+		frappe.throw(
+			"scanner_secret is not set in site_config.json. Run: bench set-config scanner_secret <your-secret>"
+		)
 	return secret
 
 
 def compute_auth_token(api_key):
 	secret = _get_scanner_secret()
-	return hmac.new(
-		secret.encode(), api_key.encode(), hashlib.sha256
-	).hexdigest()[:16]
+	return hmac.new(secret.encode(), api_key.encode(), hashlib.sha256).hexdigest()[:16]
 
 
 class ScannerSetup(Document):
@@ -65,9 +65,10 @@ def get_scanner_key(scanner_name):
 @frappe.whitelist()
 def render_barcode_svg(data):
 	try:
+		from io import BytesIO
+
 		import barcode
 		from barcode.writer import SVGWriter
-		from io import BytesIO
 
 		code128 = barcode.get_barcode_class("code128")
 		writer = SVGWriter()

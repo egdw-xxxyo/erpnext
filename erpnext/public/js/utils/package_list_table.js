@@ -20,15 +20,7 @@ erpnext.utils.render_package_list_table = function (opts) {
 	frappe.db
 		.get_list("Package", {
 			filters: opts.filters || {},
-			fields: [
-				"name",
-				"status",
-				"box_template",
-				"bpak",
-				"gross_weight",
-				"sales_order",
-				"shipment",
-			],
+			fields: ["name", "status", "box_template", "bpak", "gross_weight", "sales_order", "shipment"],
 			order_by: "creation asc",
 			limit: 0,
 		})
@@ -44,9 +36,7 @@ erpnext.utils.render_package_list_table = function (opts) {
 
 			const esc = (v) => frappe.utils.escape_html(v == null ? "" : String(v));
 			const link = (dt, name) =>
-				name
-					? `<a href="/app/${dt}/${encodeURIComponent(name)}">${esc(name)}</a>`
-					: "";
+				name ? `<a href="/app/${dt}/${encodeURIComponent(name)}">${esc(name)}</a>` : "";
 
 			let html = `<table class="table table-bordered">
 				<thead><tr>

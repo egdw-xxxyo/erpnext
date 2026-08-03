@@ -103,7 +103,6 @@ frappe.ui.form.on("Quality Inspection", {
 		if (has_serial) {
 			frm.events.setup_serial_scanner(frm);
 		}
-
 	},
 
 	show_spec_summary: function (frm) {
@@ -134,8 +133,14 @@ frappe.ui.form.on("Quality Inspection", {
 							val = p.value;
 						}
 						if (val && p.uom) val += ` ${p.uom}`;
-						return `<tr><td style="padding:6px 12px;border-bottom:1px solid var(--border-color)">${frappe.utils.escape_html(p.parameter)}</td>` +
-							`<td style="padding:6px 12px;border-bottom:1px solid var(--border-color);font-weight:500">${frappe.utils.escape_html(val)}</td></tr>`;
+						return (
+							`<tr><td style="padding:6px 12px;border-bottom:1px solid var(--border-color)">${frappe.utils.escape_html(
+								p.parameter
+							)}</td>` +
+							`<td style="padding:6px 12px;border-bottom:1px solid var(--border-color);font-weight:500">${frappe.utils.escape_html(
+								val
+							)}</td></tr>`
+						);
 					})
 					.join("");
 
@@ -160,8 +165,9 @@ frappe.ui.form.on("Quality Inspection", {
 		frm._serial_scanner_added = true;
 
 		let wrapper = frm.fields_dict.serial_inspections.wrapper;
-		let $container = $('<div class="serial-scanner-wrapper" style="margin-bottom: 15px;"></div>')
-			.prependTo(wrapper);
+		let $container = $(
+			'<div class="serial-scanner-wrapper" style="margin-bottom: 15px;"></div>'
+		).prependTo(wrapper);
 
 		let scan_field = frappe.ui.form.make_control({
 			df: {
@@ -187,10 +193,12 @@ frappe.ui.form.on("Quality Inspection", {
 		});
 
 		if (!document.getElementById("serial-scanner-style")) {
-			$("<style id='serial-scanner-style'>" +
-				".highlight-serial { background-color: #fef3cd !important; " +
-				"box-shadow: 0 0 0 2px #ffc107; border-radius: 4px; transition: all 0.3s; }" +
-			"</style>").appendTo("head");
+			$(
+				"<style id='serial-scanner-style'>" +
+					".highlight-serial { background-color: #fef3cd !important; " +
+					"box-shadow: 0 0 0 2px #ffc107; border-radius: 4px; transition: all 0.3s; }" +
+					"</style>"
+			).appendTo("head");
 		}
 	},
 

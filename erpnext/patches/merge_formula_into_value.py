@@ -6,9 +6,11 @@ def execute():
 	if not frappe.db.has_column("Item Specification Parameter", "formula"):
 		return
 
-	frappe.db.sql("""
+	frappe.db.sql(
+		"""
 		UPDATE `tabItem Specification Parameter`
 		SET value = CONCAT('=', formula)
 		WHERE formula IS NOT NULL AND formula != ''
-	""")
+	"""
+	)
 	frappe.db.commit()

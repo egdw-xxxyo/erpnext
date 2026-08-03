@@ -5,7 +5,6 @@ import frappe
 from frappe import _
 from frappe.utils import cstr, flt
 
-
 PARENT_DOCTYPE = "Specification"
 ATTRIBUTE_DOCTYPE = "Item Attribute"
 ATTRIBUTE_VALUE_DOCTYPE = "Item Attribute Value"

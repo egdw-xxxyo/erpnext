@@ -94,21 +94,21 @@ def create_and_attach(bpak_template, items, sales_order=None, customer=None):
 	for it in items:
 		if not it.get("item_code"):
 			continue
-		bpak.append("planned_items", {
-			"item_code": it.get("item_code"),
-			"qty": it.get("qty") or 1,
-			"uom": it.get("uom"),
-		})
+		bpak.append(
+			"planned_items",
+			{
+				"item_code": it.get("item_code"),
+				"qty": it.get("qty") or 1,
+				"uom": it.get("uom"),
+			},
+		)
 	bpak.insert(ignore_permissions=True)
 	bpak.submit()
 	return {
 		"name": bpak.name,
 		"serial_no": bpak.serial_no,
 		"status": bpak.status,
-		"planned_items": [
-			{"item_code": p.item_code, "qty": p.qty, "uom": p.uom}
-			for p in bpak.planned_items
-		],
+		"planned_items": [{"item_code": p.item_code, "qty": p.qty, "uom": p.uom} for p in bpak.planned_items],
 	}
 
 
@@ -188,19 +188,23 @@ def get_packed_summary(bpak_name):
 		)
 		grouped = {}
 		for r in rows:
-			grouped.setdefault(r.parent, []).append({
-				"item_code": r.item_code,
-				"item_name": r.item_name,
-				"qty": int(r.qty or 0),
-				"serial_no": r.serial_no,
-			})
+			grouped.setdefault(r.parent, []).append(
+				{
+					"item_code": r.item_code,
+					"item_name": r.item_name,
+					"qty": int(r.qty or 0),
+					"serial_no": r.serial_no,
+				}
+			)
 			packed_total += int(r.qty or 0)
 		for p in pkgs:
-			packages.append({
-				"name": p.name,
-				"status": p.status,
-				"items": grouped.get(p.name, []),
-			})
+			packages.append(
+				{
+					"name": p.name,
+					"status": p.status,
+					"items": grouped.get(p.name, []),
+				}
+			)
 
 	return {
 		"packages": packages,
@@ -236,4 +240,5 @@ def update_status_from_package(bpak_name):
 
 	if bpak.sales_order:
 		from erpnext.selling.doctype.sales_order.progress import update_so_progress
+
 		update_so_progress(bpak.sales_order)

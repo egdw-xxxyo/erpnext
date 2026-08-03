@@ -92,7 +92,9 @@ def _upsert_param(item_code, parameter, value):
 	if not value:
 		return
 	if not frappe.db.exists("Quality Inspection Parameter", parameter):
-		frappe.get_doc({"doctype": "Quality Inspection Parameter", "parameter": parameter}).insert(ignore_permissions=True)
+		frappe.get_doc({"doctype": "Quality Inspection Parameter", "parameter": parameter}).insert(
+			ignore_permissions=True
+		)
 	existing = frappe.db.exists(
 		"Item Specification Parameter",
 		{"parent": item_code, "parenttype": "Item", "parameter": parameter},

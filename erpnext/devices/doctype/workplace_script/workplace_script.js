@@ -2,9 +2,13 @@ const WORKPLACE_SCRIPT_API_REFERENCE = `
 <div style="font-size: 13px; line-height: 1.6;">
 <h5>${__("How it works")}</h5>
 <p>${__("When a scanner sends data, the system resolves what was scanned and calls")} <code>on_scan(e)</code>
-${__("from the Workplace Script matching the scanner's current workplace. If no workplace-specific script is found, the default script (no workplace) runs.")}</p>
+${__(
+	"from the Workplace Script matching the scanner's current workplace. If no workplace-specific script is found, the default script (no workplace) runs."
+)}</p>
 
-<p>${__("The script controls everything — setting workplace/employee, returning messages, managing multi-step state. Reusable logic lives in")} <strong>${__("Scanner Scripts")}</strong>, ${__("accessible via the")}
+<p>${__(
+	"The script controls everything — setting workplace/employee, returning messages, managing multi-step state. Reusable logic lives in"
+)} <strong>${__("Scanner Scripts")}</strong>, ${__("accessible via the")}
 <code>scripts</code> ${__("namespace")}.</p>
 
 <h5>${__("Entry point")}</h5>
@@ -27,12 +31,22 @@ def on_scan(e):
 <tr><th>${__("Property")}</th><th>${__("Type")}</th><th>${__("Description")}</th></tr>
 <tr><td><code>e.data</code></td><td>str</td><td>${__("Raw scanned string")}</td></tr>
 <tr><td><code>e.scan_type</code></td><td>str</td><td>"workplace" | "employee" | "job_card" | "serial_no" | "item" | "command" | "packing_template" | "unknown"</td></tr>
-<tr><td><code>e.doc</code></td><td>Document</td><td>${__("Resolved Frappe document (Workplace, Employee, Job Card, Serial No, Item) or None")}</td></tr>
-<tr><td><code>e.item_code</code></td><td>str</td><td>${__("Item code (for serial_no and item scans)")}</td></tr>
-<tr><td><code>e.barcode</code></td><td>str</td><td>${__("Original barcode (if resolved via Item Barcode)")}</td></tr>
+<tr><td><code>e.doc</code></td><td>Document</td><td>${__(
+	"Resolved Frappe document (Workplace, Employee, Job Card, Serial No, Item) or None"
+)}</td></tr>
+<tr><td><code>e.item_code</code></td><td>str</td><td>${__(
+	"Item code (for serial_no and item scans)"
+)}</td></tr>
+<tr><td><code>e.barcode</code></td><td>str</td><td>${__(
+	"Original barcode (if resolved via Item Barcode)"
+)}</td></tr>
 <tr><td><code>e.scanner</code></td><td>Document</td><td>${__("Scanner document")}</td></tr>
-<tr><td><code>e.workplace</code></td><td>Document</td><td>${__("Current Workplace document (from scanner context, not this scan)")}</td></tr>
-<tr><td><code>e.employee</code></td><td>str</td><td>${__("Current Employee name (from scanner context)")}</td></tr>
+<tr><td><code>e.workplace</code></td><td>Document</td><td>${__(
+	"Current Workplace document (from scanner context, not this scan)"
+)}</td></tr>
+<tr><td><code>e.employee</code></td><td>str</td><td>${__(
+	"Current Employee name (from scanner context)"
+)}</td></tr>
 </table>
 
 <h5>${__("State API")} (e.state)</h5>
@@ -41,7 +55,9 @@ def on_scan(e):
 <tr><th>${__("Property / Method")}</th><th>${__("Description")}</th></tr>
 <tr><td><code>e.state.name</code></td><td>${__("Current state name (str) or None if idle")}</td></tr>
 <tr><td><code>e.state.context</code></td><td>${__("Dict of state context data")}</td></tr>
-<tr><td><code>e.state.set("name", {ctx})</code></td><td>${__("Transition to a new state with optional context")}</td></tr>
+<tr><td><code>e.state.set("name", {ctx})</code></td><td>${__(
+	"Transition to a new state with optional context"
+)}</td></tr>
 <tr><td><code>e.state.clear()</code></td><td>${__("Clear state (return to idle)")}</td></tr>
 </table>
 
@@ -132,7 +148,7 @@ function unique_id(prefix, raw, seen) {
 	let id = prefix + base;
 	let n = 1;
 	while (seen.has(id)) {
-		id = prefix + base + "_" + (++n);
+		id = prefix + base + "_" + ++n;
 	}
 	seen.add(id);
 	return id;
@@ -162,7 +178,7 @@ function build_diagram_source(frm, extras) {
 	transitions.forEach((t) => {
 		const from = ids[t.from_state] || unique_id("", t.from_state, seen);
 		const isExit = !t.to_state || t.to_state === "__exit__";
-		const to = isExit ? "[*]" : (ids[t.to_state] || unique_id("", t.to_state, seen));
+		const to = isExit ? "[*]" : ids[t.to_state] || unique_id("", t.to_state, seen);
 		lines.push(`${from} --> ${to} : ${escape_label(t.event)}`);
 	});
 
@@ -196,10 +212,14 @@ function build_subflow_legend(extras) {
 	if (!subflows.length) return "";
 	const items = subflows.map((sf) => {
 		const url = `/app/workplace-script/${encodeURIComponent(sf.name)}`;
-		const initial = sf.initial_state ? ` <span class="text-muted">→ ${frappe.utils.escape_html(sf.initial_state)}</span>` : "";
+		const initial = sf.initial_state
+			? ` <span class="text-muted">→ ${frappe.utils.escape_html(sf.initial_state)}</span>`
+			: "";
 		return `<li><a href="${url}">▶ ${frappe.utils.escape_html(sf.name)}</a>${initial}</li>`;
 	});
-	return `<div class="workplace-script-subflows" style="margin-top:12px;font-size:12px;"><strong>${__("Subflows")}</strong><ul style="margin:4px 0 0 20px;padding:0;">${items.join("")}</ul></div>`;
+	return `<div class="workplace-script-subflows" style="margin-top:12px;font-size:12px;"><strong>${__(
+		"Subflows"
+	)}</strong><ul style="margin:4px 0 0 20px;padding:0;">${items.join("")}</ul></div>`;
 }
 
 async function fetch_diagram_extras(frm) {
@@ -223,7 +243,9 @@ async function render_diagram(frm) {
 	const extras = await fetch_diagram_extras(frm);
 	const source = build_diagram_source(frm, extras);
 	if (!source) {
-		wrapper.html(`<div class="text-muted small">${__("Add states and transitions to render the diagram.")}</div>`);
+		wrapper.html(
+			`<div class="text-muted small">${__("Add states and transitions to render the diagram.")}</div>`
+		);
 		return;
 	}
 
@@ -235,7 +257,11 @@ async function render_diagram(frm) {
 		wrapper.html(`<div class="workplace-script-diagram">${svg}</div>${legend}`);
 	} catch (err) {
 		const legend = build_subflow_legend(extras);
-		wrapper.html(`<pre style="color: var(--text-muted); font-size: 11px;">${frappe.utils.escape_html(String(err))}\n\n${frappe.utils.escape_html(source)}</pre>${legend}`);
+		wrapper.html(
+			`<pre style="color: var(--text-muted); font-size: 11px;">${frappe.utils.escape_html(
+				String(err)
+			)}\n\n${frappe.utils.escape_html(source)}</pre>${legend}`
+		);
 	}
 }
 
@@ -318,54 +344,72 @@ frappe.ui.form.on("Workplace Script", {
 		refresh_version_selects(frm);
 		render_diagram(frm);
 
-		frm.add_custom_button(__("+ Add Version"), () => {
-			persist_working_copy_to(frm, frm.doc.viewing_version);
-			const name = next_version_name(frm);
-			const row = frm.add_child("versions");
-			row.version = name;
-			row.is_default = 0;
-			row.snapshot = capture_working_copy_json(frm);
-			row.created_on = frappe.datetime.now_datetime();
-			refresh_version_selects(frm);
-			frm.refresh_field("versions");
-			frm.__prev_viewing = name;
-			frm.set_value("viewing_version", name);
-			frm.dirty();
-		}, __("Versions"));
-
-		frm.add_custom_button(__("Remove Version"), () => {
-			const versions = frm.doc.versions || [];
-			if (versions.length <= 1) {
-				frappe.msgprint(__("Cannot remove the only version"));
-				return;
-			}
-			const cur = frm.doc.viewing_version;
-			const row = versions.find((v) => v.version === cur);
-			if (!row) return;
-			if (row.is_default) {
-				frappe.msgprint(__("Cannot remove the default version. Switch default to another version first."));
-				return;
-			}
-			frappe.confirm(__("Remove version {0}?", [cur]), () => {
-				const idx = versions.indexOf(row);
-				versions.splice(idx, 1);
-				versions.forEach((v, i) => { v.idx = i + 1; });
+		frm.add_custom_button(
+			__("+ Add Version"),
+			() => {
+				persist_working_copy_to(frm, frm.doc.viewing_version);
+				const name = next_version_name(frm);
+				const row = frm.add_child("versions");
+				row.version = name;
+				row.is_default = 0;
+				row.snapshot = capture_working_copy_json(frm);
+				row.created_on = frappe.datetime.now_datetime();
 				refresh_version_selects(frm);
 				frm.refresh_field("versions");
-				frm.__prev_viewing = frm.doc.default_version;
-				frm.set_value("viewing_version", frm.doc.default_version);
+				frm.__prev_viewing = name;
+				frm.set_value("viewing_version", name);
 				frm.dirty();
-			});
-		}, __("Versions"));
+			},
+			__("Versions")
+		);
 
-		frm.add_custom_button(__("Set Displayed as Default"), () => {
-			const cur = frm.doc.viewing_version;
-			(frm.doc.versions || []).forEach((v) => { v.is_default = (v.version === cur) ? 1 : 0; });
-			frm.doc.default_version = cur;
-			frm.refresh_field("versions");
-			frm.refresh_field("default_version");
-			frm.dirty();
-		}, __("Versions"));
+		frm.add_custom_button(
+			__("Remove Version"),
+			() => {
+				const versions = frm.doc.versions || [];
+				if (versions.length <= 1) {
+					frappe.msgprint(__("Cannot remove the only version"));
+					return;
+				}
+				const cur = frm.doc.viewing_version;
+				const row = versions.find((v) => v.version === cur);
+				if (!row) return;
+				if (row.is_default) {
+					frappe.msgprint(
+						__("Cannot remove the default version. Switch default to another version first.")
+					);
+					return;
+				}
+				frappe.confirm(__("Remove version {0}?", [cur]), () => {
+					const idx = versions.indexOf(row);
+					versions.splice(idx, 1);
+					versions.forEach((v, i) => {
+						v.idx = i + 1;
+					});
+					refresh_version_selects(frm);
+					frm.refresh_field("versions");
+					frm.__prev_viewing = frm.doc.default_version;
+					frm.set_value("viewing_version", frm.doc.default_version);
+					frm.dirty();
+				});
+			},
+			__("Versions")
+		);
+
+		frm.add_custom_button(
+			__("Set Displayed as Default"),
+			() => {
+				const cur = frm.doc.viewing_version;
+				(frm.doc.versions || []).forEach((v) => {
+					v.is_default = v.version === cur ? 1 : 0;
+				});
+				frm.doc.default_version = cur;
+				frm.refresh_field("versions");
+				frm.refresh_field("default_version");
+				frm.dirty();
+			},
+			__("Versions")
+		);
 	},
 	viewing_version(frm) {
 		const next = frm.doc.viewing_version;
@@ -379,7 +423,9 @@ frappe.ui.form.on("Workplace Script", {
 	default_version(frm) {
 		const cur = frm.doc.default_version;
 		if (!cur) return;
-		(frm.doc.versions || []).forEach((v) => { v.is_default = (v.version === cur) ? 1 : 0; });
+		(frm.doc.versions || []).forEach((v) => {
+			v.is_default = v.version === cur ? 1 : 0;
+		});
 		frm.refresh_field("versions");
 	},
 });

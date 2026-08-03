@@ -141,9 +141,6 @@ class QualityInspection(Document):
 				).format(get_link_to_form("Item", self.item_code))
 			)
 
-	def before_submit(self):
-		self.validate_readings_status_mandatory()
-
 	@frappe.whitelist()
 	def get_item_specification_details(self):
 		if not self.quality_inspection_template:
@@ -198,17 +195,20 @@ class QualityInspection(Document):
 		"""Prevent duplicate QI for same PR + item_code."""
 		if self.reference_type != "Purchase Receipt" or not self.reference_name:
 			return
-		existing = frappe.db.exists("Quality Inspection", {
-			"reference_type": "Purchase Receipt",
-			"reference_name": self.reference_name,
-			"item_code": self.item_code,
-			"docstatus": ["!=", 2],
-		})
+		existing = frappe.db.exists(
+			"Quality Inspection",
+			{
+				"reference_type": "Purchase Receipt",
+				"reference_name": self.reference_name,
+				"item_code": self.item_code,
+				"docstatus": ["!=", 2],
+			},
+		)
 		if existing:
 			frappe.throw(
 				f"Quality Inspection {existing} already exists for this Purchase Receipt and Item. "
 				f"<a href='/app/quality-inspection/{existing}'>{existing}</a>",
-				title="Duplicate Quality Inspection"
+				title="Duplicate Quality Inspection",
 			)
 
 	def after_insert(self):
@@ -235,14 +235,16 @@ class QualityInspection(Document):
 			for entry in entries:
 				if not entry.serial_no:
 					continue
-				frappe.get_doc({
-					"doctype": "QI Serial Entry",
-					"parent": self.name,
-					"parentfield": "serial_inspections",
-					"parenttype": "Quality Inspection",
-					"serial_no": entry.serial_no,
-					"status": "Pass",
-				}).insert(ignore_permissions=True)
+				frappe.get_doc(
+					{
+						"doctype": "QI Serial Entry",
+						"parent": self.name,
+						"parentfield": "serial_inspections",
+						"parenttype": "Quality Inspection",
+						"serial_no": entry.serial_no,
+						"status": "Pass",
+					}
+				).insert(ignore_permissions=True)
 		except Exception as e:
 			frappe.log_error(title="QI Serial Auto-populate Error", message=str(e))
 
@@ -254,7 +256,10 @@ class QualityInspection(Document):
 		if not serial_inspections:
 			return
 		try:
-			from erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils import update_pr_quantities_from_qi
+			from erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils import (
+				update_pr_quantities_from_qi,
+			)
+
 			update_pr_quantities_from_qi(self.name)
 		except Exception as e:
 			frappe.log_error(title="QI Submit PR Update Error", message=str(e))
@@ -280,14 +285,16 @@ class QualityInspection(Document):
 			self.update_qc_reference()
 
 	def before_submit(self):
+		self.validate_readings_status_mandatory()
+
 		serial_inspections = self.get("serial_inspections") or []
 		if serial_inspections:
 			unscanned = [e.serial_no for e in serial_inspections if not e.scanned]
 			if unscanned:
 				frappe.throw(
-					_("All serial numbers must be inspected (scanned) before submitting QI. Pending: {0}").format(
-						", ".join(unscanned)
-					)
+					_(
+						"All serial numbers must be inspected (scanned) before submitting QI. Pending: {0}"
+					).format(", ".join(unscanned))
 				)
 
 	def on_submit(self):

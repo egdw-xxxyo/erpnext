@@ -10,11 +10,23 @@ def execute(filters=None):
 def get_columns():
 	return [
 		{"label": _("Timestamp"), "fieldname": "timestamp", "fieldtype": "Datetime", "width": 165},
-		{"label": _("Scanner"), "fieldname": "scanner", "fieldtype": "Link", "options": "Scanner", "width": 130},
+		{
+			"label": _("Scanner"),
+			"fieldname": "scanner",
+			"fieldtype": "Link",
+			"options": "Scanner",
+			"width": 130,
+		},
 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 100},
 		{"label": _("Scanned Data"), "fieldname": "raw_data", "fieldtype": "Data", "width": 180},
 		{"label": _("State"), "fieldname": "scanner_state", "fieldtype": "Data", "width": 130},
-		{"label": _("Target Document"), "fieldname": "target_document", "fieldtype": "Dynamic Link", "options": "target_doctype", "width": 170},
+		{
+			"label": _("Target Document"),
+			"fieldname": "target_document",
+			"fieldtype": "Dynamic Link",
+			"options": "target_doctype",
+			"width": 170,
+		},
 		{"label": _("Result"), "fieldname": "result_message", "fieldtype": "Small Text", "width": 220},
 		{"label": _("Error"), "fieldname": "error_message", "fieldtype": "Small Text", "width": 200},
 		{"label": _("Total (ms)"), "fieldname": "total_ms", "fieldtype": "Int", "width": 90},

@@ -32,7 +32,9 @@ def detect_public_base_url() -> str:
 		return req_url
 
 	host = (parsed.hostname or "").lower()
-	needs_swap = host in ("", "localhost", "127.0.0.1") or host.startswith("frontend") or host.startswith("backend")
+	needs_swap = (
+		host in ("", "localhost", "127.0.0.1") or host.startswith("frontend") or host.startswith("backend")
+	)
 	if not needs_swap:
 		return base.rstrip("/")
 
@@ -54,7 +56,11 @@ def _url_from_request() -> str | None:
 		if not host_hdr:
 			return None
 		hostname = host_hdr.split(":", 1)[0].lower()
-		if hostname in ("localhost", "127.0.0.1", "") or hostname.startswith("frontend") or hostname.startswith("backend"):
+		if (
+			hostname in ("localhost", "127.0.0.1", "")
+			or hostname.startswith("frontend")
+			or hostname.startswith("backend")
+		):
 			return None
 		scheme = (req.headers.get("X-Forwarded-Proto") or req.scheme or "http").split(",")[0].strip()
 		return f"{scheme}://{host_hdr}".rstrip("/")
@@ -75,13 +81,15 @@ def _detect_lan_ip() -> str | None:
 		return None
 	return None
 
+
 from erpnext.devices.doctype.otdr.otdr import push_status, resolve_otdr
 
 
 def _parse_sor_file(path: str) -> dict:
 	"""Parse SOR file via otdrs Rust wheel. Mirrors desktop read_sor_info."""
-	import otdrs
 	from datetime import datetime, timezone
+
+	import otdrs
 
 	def g(o, k, d=None):
 		try:
@@ -100,8 +108,8 @@ def _parse_sor_file(path: str) -> dict:
 		if t is None:
 			return ""
 		try:
-			b = bytes(t) if not isinstance(t, (bytes, bytearray, str)) else t
-			if isinstance(b, (bytes, bytearray)):
+			b = bytes(t) if not isinstance(t, bytes | bytearray | str) else t
+			if isinstance(b, bytes | bytearray):
 				return b.decode("ascii", errors="replace").strip()
 			return str(b).strip()
 		except Exception:
@@ -119,16 +127,18 @@ def _parse_sor_file(path: str) -> dict:
 	events = []
 	for i, e in enumerate(g(ke, "key_events", []) or []):
 		prop = g(e, "event_propogation_time", 0) or 0
-		events.append({
-			"index": g(e, "event_number", i + 1),
-			"distance_km": round(prop / 10000.0, 4),
-			"event_code": evt_str(g(e, "event_code", "")),
-			"slope_db_per_km": round((g(e, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4),
-			"splice_loss_db": round((g(e, "event_loss", 0) or 0) / 1000.0, 4),
-			"reflectance_db": round((g(e, "event_reflectance", 0) or 0) / 1000.0, 4),
-			"loss_measurement_technique": g(e, "loss_measurement_technique", ""),
-			"comment": g(e, "comment", ""),
-		})
+		events.append(
+			{
+				"index": g(e, "event_number", i + 1),
+				"distance_km": round(prop / 10000.0, 4),
+				"event_code": evt_str(g(e, "event_code", "")),
+				"slope_db_per_km": round((g(e, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4),
+				"splice_loss_db": round((g(e, "event_loss", 0) or 0) / 1000.0, 4),
+				"reflectance_db": round((g(e, "event_reflectance", 0) or 0) / 1000.0, 4),
+				"loss_measurement_technique": g(e, "loss_measurement_technique", ""),
+				"comment": g(e, "comment", ""),
+			}
+		)
 
 	last = g(ke, "last_key_event", None)
 	end_to_end_db = round((g(last, "end_to_end_loss", 0) or 0) / 1000.0, 4) if last else None
@@ -137,17 +147,21 @@ def _parse_sor_file(path: str) -> dict:
 	fiber_length_km = round(last_prop / 10000.0, 4) if last else None
 
 	if last:
-		events.append({
-			"index": g(last, "event_number", len(events) + 1),
-			"distance_km": round(last_prop / 10000.0, 4),
-			"event_code": evt_str(g(last, "event_code", "")),
-			"slope_db_per_km": round((g(last, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4),
-			"splice_loss_db": round((g(last, "event_loss", 0) or 0) / 1000.0, 4),
-			"reflectance_db": round((g(last, "event_reflectance", 0) or 0) / 1000.0, 4),
-			"loss_measurement_technique": g(last, "loss_measurement_technique", ""),
-			"comment": g(last, "comment", ""),
-			"is_end_of_fiber": True,
-		})
+		events.append(
+			{
+				"index": g(last, "event_number", len(events) + 1),
+				"distance_km": round(last_prop / 10000.0, 4),
+				"event_code": evt_str(g(last, "event_code", "")),
+				"slope_db_per_km": round(
+					(g(last, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4
+				),
+				"splice_loss_db": round((g(last, "event_loss", 0) or 0) / 1000.0, 4),
+				"reflectance_db": round((g(last, "event_reflectance", 0) or 0) / 1000.0, 4),
+				"loss_measurement_technique": g(last, "loss_measurement_technique", ""),
+				"comment": g(last, "comment", ""),
+				"is_end_of_fiber": True,
+			}
+		)
 
 	return {
 		"Acquisition": {
@@ -196,7 +210,9 @@ def _parse_sor_file(path: str) -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def parse_and_submit_measurement(otdr=None, auto_sync=None, remote_path=None, filename=None, selected_item=None, **kwargs):
+def parse_and_submit_measurement(
+	otdr=None, auto_sync=None, remote_path=None, filename=None, selected_item=None, **kwargs
+):
 	"""Accept raw SOR file bytes (multipart 'file'), parse server-side, submit as measurement.
 
 	Single source of truth for SOR parsing — both desktop + Android clients call this.
@@ -281,10 +297,18 @@ def submit_measurement(otdr=None, data=None, auto_sync=None, selected_item=None,
 			qs_auto = frappe.request.args.get("auto_sync", "") or ""
 		except Exception:
 			qs_auto = ""
-	auto_sync_flag = str(auto_sync or qs_auto or frappe.local.form_dict.get("auto_sync") or "").lower() in ("1", "true", "yes")
+	auto_sync_flag = str(auto_sync or qs_auto or frappe.local.form_dict.get("auto_sync") or "").lower() in (
+		"1",
+		"true",
+		"yes",
+	)
 
 	if data is None:
-		body_dict = {k: v for k, v in (frappe.local.form_dict or {}).items() if k not in ("cmd", "auto_sync", "selected_item", "otdr")}
+		body_dict = {
+			k: v
+			for k, v in (frappe.local.form_dict or {}).items()
+			if k not in ("cmd", "auto_sync", "selected_item", "otdr")
+		}
 		if body_dict:
 			data = body_dict
 		elif frappe.request is not None:
@@ -351,13 +375,20 @@ def submit_opm_measurement(
 	doc = resolve_otdr(otdr)
 
 	def _f(v):
-		if v in (None, ""): return None
-		try: return float(v)
-		except (TypeError, ValueError): return None
+		if v in (None, ""):
+			return None
+		try:
+			return float(v)
+		except (TypeError, ValueError):
+			return None
+
 	def _i(v):
-		if v in (None, ""): return None
-		try: return int(v)
-		except (TypeError, ValueError): return None
+		if v in (None, ""):
+			return None
+		try:
+			return int(v)
+		except (TypeError, ValueError):
+			return None
 
 	payload = {
 		"test_type": "OPM",
@@ -380,10 +411,16 @@ def submit_opm_measurement(
 	script_results = []
 	try:
 		from erpnext.devices.doctype.device_script.device_script import run_scripts_for_event
-		script_results = run_scripts_for_event(
-			"Reflectometer", trigger_event="OPM Measured",
-			otdr=doc, payload_str=payload_str,
-		) or []
+
+		script_results = (
+			run_scripts_for_event(
+				"Reflectometer",
+				trigger_event="OPM Measured",
+				otdr=doc,
+				payload_str=payload_str,
+			)
+			or []
+		)
 	except Exception:
 		frappe.log_error(title="OPM script dispatch failed")
 	return {"success": True, "row": (result or {}).get("row"), "script_results": script_results}
@@ -413,10 +450,16 @@ def submit_vfl_event(otdr=None, duty=None, **kwargs):
 	script_results = []
 	try:
 		from erpnext.devices.doctype.device_script.device_script import run_scripts_for_event
-		script_results = run_scripts_for_event(
-			"Reflectometer", trigger_event="VFL Toggled",
-			otdr=doc, payload_str=payload_str,
-		) or []
+
+		script_results = (
+			run_scripts_for_event(
+				"Reflectometer",
+				trigger_event="VFL Toggled",
+				otdr=doc,
+				payload_str=payload_str,
+			)
+			or []
+		)
 	except Exception:
 		frappe.log_error(title="VFL script dispatch failed")
 	return {"success": True, "row": (result or {}).get("row"), "script_results": script_results}
@@ -522,9 +565,9 @@ def generate_connect_bundle(otdr_name, server_url=None):
 		"api_secret": api_secret,
 		"otdr": doc.name,
 	}
-	token = base64.urlsafe_b64encode(
-		json.dumps(config, separators=(",", ":")).encode("utf-8")
-	).decode("ascii")
+	token = base64.urlsafe_b64encode(json.dumps(config, separators=(",", ":")).encode("utf-8")).decode(
+		"ascii"
+	)
 
 	qr_data_uri = _make_qr_data_uri(token)
 

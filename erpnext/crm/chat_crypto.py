@@ -174,9 +174,7 @@ def touch_device(credential_id):
 		return
 	for row in doc.devices:
 		if row.credential_id == credential_id:
-			frappe.db.set_value(
-				"Chat Device Key", row.name, "last_used_on", now(), update_modified=False
-			)
+			frappe.db.set_value("Chat Device Key", row.name, "last_used_on", now(), update_modified=False)
 			break
 
 
@@ -238,14 +236,12 @@ def get_thread_keys(threads, thread_doctype="Chat Thread"):
 	return {r.thread: r for r in rows}
 
 
-def store_thread_key(thread, user, wrapped_thread_key, ephemeral_public_key, thread_doctype="Chat Thread", granted_by=None):
+def store_thread_key(
+	thread, user, wrapped_thread_key, ephemeral_public_key, thread_doctype="Chat Thread", granted_by=None
+):
 	"""Upsert one participant's wrapped copy of a thread key."""
 	existing = frappe.db.exists("Chat Thread Key", {"thread": thread, "user": user})
-	doc = (
-		frappe.get_doc("Chat Thread Key", existing)
-		if existing
-		else frappe.new_doc("Chat Thread Key")
-	)
+	doc = frappe.get_doc("Chat Thread Key", existing) if existing else frappe.new_doc("Chat Thread Key")
 	doc.thread = thread
 	doc.thread_doctype = thread_doctype
 	doc.user = user
@@ -285,9 +281,7 @@ def grant_thread_key(thread, keys, thread_doctype="Chat Thread"):
 def drop_thread_keys(thread, user):
 	"""Revoke a user's access to a thread (e.g. removed from a group). Past messages they
 	already read are of course beyond recall."""
-	for name in frappe.get_all(
-		"Chat Thread Key", filters={"thread": thread, "user": user}, pluck="name"
-	):
+	for name in frappe.get_all("Chat Thread Key", filters={"thread": thread, "user": user}, pluck="name"):
 		frappe.delete_doc("Chat Thread Key", name, ignore_permissions=True, force=True)
 
 
@@ -330,9 +324,7 @@ def seal_for_users(payload, users):
 		peer = serialization.load_der_public_key(_unb64(row.public_key))
 		ephemeral = ec.generate_private_key(ec.SECP256R1())
 		shared = ephemeral.exchange(ec.ECDH(), peer)
-		kek = HKDF(
-			algorithm=hashes.SHA256(), length=32, salt=None, info=SEAL_ALG.encode()
-		).derive(shared)
+		kek = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=SEAL_ALG.encode()).derive(shared)
 		wrap_iv = os.urandom(12)
 		wrapped_key = AESGCM(kek).encrypt(wrap_iv, content_key, None)
 		wrapped.append(

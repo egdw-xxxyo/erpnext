@@ -135,9 +135,7 @@ erpnext.send_to_chat.open = async function (url) {
 		}
 
 		const in_thread = new Set(
-			(threads || [])
-				.filter((t) => t.thread_type === "Direct" && t.other_user)
-				.map((t) => t.other_user)
+			(threads || []).filter((t) => t.thread_type === "Direct" && t.other_user).map((t) => t.other_user)
 		);
 		const matching_people = (people || []).filter(
 			(p) =>
@@ -168,12 +166,14 @@ erpnext.send_to_chat.open = async function (url) {
 			);
 			return;
 		}
-		const $wrap = $(
-			`<div style="max-height:46vh;overflow-y:auto;margin-top:6px;"></div>`
-		).appendTo($list);
+		const $wrap = $(`<div style="max-height:46vh;overflow-y:auto;margin-top:6px;"></div>`).appendTo(
+			$list
+		);
 		for (const r of rows) {
 			const av = r.image
-				? `<img src="${frappe.utils.escape_html(r.image)}" style="width:100%;height:100%;object-fit:cover;">`
+				? `<img src="${frappe.utils.escape_html(
+						r.image
+				  )}" style="width:100%;height:100%;object-fit:cover;">`
 				: frappe.utils.escape_html((r.title || "?").trim().charAt(0).toUpperCase());
 			const $row = $(`
 				<div style="display:flex;gap:10px;align-items:center;padding:7px 6px;border-bottom:1px solid var(--border-color);cursor:pointer;">
@@ -202,11 +202,7 @@ erpnext.send_to_chat.open = async function (url) {
 // dedupes by label, so re-adding on each refresh is safe.
 $(document).on("form-refresh", (e, frm) => {
 	if (!stc_can_use() || !frm || frm.is_new()) return;
-	frm.page.add_menu_item(
-		__("Send to chat"),
-		() => erpnext.send_to_chat.open(stc_desk_url()),
-		false
-	);
+	frm.page.add_menu_item(__("Send to chat"), () => erpnext.send_to_chat.open(stc_desk_url()), false);
 	// Open (or create) the single canonical chat about this record.
 	frm.page.add_menu_item(
 		__("Chat about this document"),
@@ -246,11 +242,7 @@ function stc_inject_view_menu() {
 	if (view === "query-report" && frappe.query_report) page = frappe.query_report.page;
 	else if ((view === "List" || view === "report") && window.cur_list) page = cur_list.page;
 	if (!page || !page.add_menu_item) return;
-	page.add_menu_item(
-		__("Send to chat"),
-		() => erpnext.send_to_chat.open(stc_desk_url()),
-		false
-	);
+	page.add_menu_item(__("Send to chat"), () => erpnext.send_to_chat.open(stc_desk_url()), false);
 }
 
 frappe.router.on("change", () => {

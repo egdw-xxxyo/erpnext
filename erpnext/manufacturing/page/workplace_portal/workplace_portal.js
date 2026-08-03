@@ -29,7 +29,9 @@ class WorkplacePortal {
 			this.active_job_card = jc_param;
 		}
 
-		this.$switcher = $('<div class="workplace-switcher" style="padding:10px 15px;border-bottom:1px solid var(--border-color);"></div>');
+		this.$switcher = $(
+			'<div class="workplace-switcher" style="padding:10px 15px;border-bottom:1px solid var(--border-color);"></div>'
+		);
 		this.$wrapper.append(this.$switcher);
 
 		this.$content = $('<div class="workplace-portal-content"></div>');
@@ -47,8 +49,8 @@ class WorkplacePortal {
 				if (workplaces.length === 0) {
 					this.$content.html(
 						'<div class="text-muted text-center" style="padding:30px;">' +
-						__("No active Workplaces found. Create one first.") +
-						'</div>'
+							__("No active Workplaces found. Create one first.") +
+							"</div>"
 					);
 					return;
 				}
@@ -69,7 +71,11 @@ class WorkplacePortal {
 		let $row = $('<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>');
 
 		workplaces.forEach((wp) => {
-			let $btn = $(`<button class="btn btn-default btn-sm workplace-switch-btn" data-workplace="${frappe.utils.escape_html(wp.name)}">${frappe.utils.escape_html(wp.name)}</button>`);
+			let $btn = $(
+				`<button class="btn btn-default btn-sm workplace-switch-btn" data-workplace="${frappe.utils.escape_html(
+					wp.name
+				)}">${frappe.utils.escape_html(wp.name)}</button>`
+			);
 			$btn.on("click", () => {
 				this.select_workplace(wp.name);
 			});
@@ -153,14 +159,22 @@ class WorkplacePortal {
 			{ name: __("Operation"), editable: false, width: 140 },
 			{ name: __("Qty"), editable: false, width: 80 },
 			{ name: __("Employee"), editable: false, width: 160 },
-			{ name: __("Status"), editable: false, width: 120, format: (value) => {
-				let color_map = {
-					"Not Started": "gray", "Open": "gray", "Work In Progress": "orange",
-					"On Hold": "yellow", "Completed": "green",
-				};
-				let color = color_map[value] || "blue";
-				return `<span class="badge badge-${color}">${__(value)}</span>`;
-			}},
+			{
+				name: __("Status"),
+				editable: false,
+				width: 120,
+				format: (value) => {
+					let color_map = {
+						"Not Started": "gray",
+						Open: "gray",
+						"Work In Progress": "orange",
+						"On Hold": "yellow",
+						Completed: "green",
+					};
+					let color = color_map[value] || "blue";
+					return `<span class="badge badge-${color}">${__(value)}</span>`;
+				},
+			},
 		];
 	}
 
@@ -184,10 +198,13 @@ class WorkplacePortal {
 
 		if (!this.job_cards || !this.job_cards.length) {
 			this.$content.find(".my-jc-section").hide();
-			this.$content.find(".other-jc-section").html(
-				'<div class="text-muted text-center" style="padding:30px;">' +
-				__("No Job Cards found for the configured operations") + '</div>'
-			);
+			this.$content
+				.find(".other-jc-section")
+				.html(
+					'<div class="text-muted text-center" style="padding:30px;">' +
+						__("No Job Cards found for the configured operations") +
+						"</div>"
+				);
 			return;
 		}
 
@@ -208,18 +225,15 @@ class WorkplacePortal {
 
 		if (my_cards.length) {
 			this.$content.find(".my-jc-section").show();
-			this.my_datatable = new frappe.DataTable(
-				this.$content.find(".my-jc-table").get(0),
-				{
-					columns: columns,
-					data: my_cards.map((d) => this.format_jc_row(d)),
-					dynamicRowHeight: true,
-					checkboxColumn: false,
-					inlineFilters: true,
-					layout: "fluid",
-					cellHeight: 36,
-				}
-			);
+			this.my_datatable = new frappe.DataTable(this.$content.find(".my-jc-table").get(0), {
+				columns: columns,
+				data: my_cards.map((d) => this.format_jc_row(d)),
+				dynamicRowHeight: true,
+				checkboxColumn: false,
+				inlineFilters: true,
+				layout: "fluid",
+				cellHeight: 36,
+			});
 			this.bind_datatable_click(this.my_datatable, my_cards);
 		} else {
 			this.$content.find(".my-jc-section").hide();
@@ -227,18 +241,15 @@ class WorkplacePortal {
 
 		if (other_cards.length) {
 			this.$content.find(".other-jc-section").show();
-			this.other_datatable = new frappe.DataTable(
-				this.$content.find(".other-jc-table").get(0),
-				{
-					columns: columns,
-					data: other_cards.map((d) => this.format_jc_row(d)),
-					dynamicRowHeight: true,
-					checkboxColumn: false,
-					inlineFilters: true,
-					layout: "fluid",
-					cellHeight: 36,
-				}
-			);
+			this.other_datatable = new frappe.DataTable(this.$content.find(".other-jc-table").get(0), {
+				columns: columns,
+				data: other_cards.map((d) => this.format_jc_row(d)),
+				dynamicRowHeight: true,
+				checkboxColumn: false,
+				inlineFilters: true,
+				layout: "fluid",
+				cellHeight: 36,
+			});
 			this.bind_datatable_click(this.other_datatable, other_cards);
 		} else {
 			this.$content.find(".other-jc-section").hide();
@@ -305,7 +316,9 @@ class WorkplacePortal {
 						frappe.msgprint({
 							title: __("Job Card Found"),
 							message: __("Job Card {0} for {1} ({2})", [
-								found.name, found.production_item, found.operation,
+								found.name,
+								found.production_item,
+								found.operation,
 							]),
 							indicator: "blue",
 						});
@@ -368,28 +381,41 @@ class WorkplacePortal {
 		</div>
 		<div class="workplace-detail-header">
 			<div style="display:flex;justify-content:space-between;align-items:center;">
-				<a class="jc-title" href="/app/job-card/${encodeURIComponent(jc.name)}" style="color:inherit;text-decoration:underline;">${jc.name}</a>
+				<a class="jc-title" href="/app/job-card/${encodeURIComponent(
+					jc.name
+				)}" style="color:inherit;text-decoration:underline;">${jc.name}</a>
 				<span class="badge badge-${jc.status_colour}">${__(status_label)}</span>
 			</div>
 			<div class="jc-subtitle">
 				${jc.production_item} \u00b7 ${jc.for_quantity} ${jc.fg_uom || ""} \u00b7 ${jc.operation}
 			</div>
-			${jc.serial_no ? `<div class="jc-serial-numbers" style="margin-top:6px;font-size:12px;color:var(--text-muted);">
+			${
+				jc.serial_no
+					? `<div class="jc-serial-numbers" style="margin-top:6px;font-size:12px;color:var(--text-muted);">
 				<strong>${__("Serial No")}:</strong> ${frappe.utils.escape_html(jc.serial_no).replace(/\n/g, ", ")}
-			</div>` : ""}
+			</div>`
+					: ""
+			}
 			<div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
-				<div class="timer" data-job-card="${frappe.utils.escape_html(jc.name)}" style="font-size:16px;font-weight:600;">
+				<div class="timer" data-job-card="${frappe.utils.escape_html(
+					jc.name
+				)}" style="font-size:16px;font-weight:600;">
 					<span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span>
 				</div>
 				<div class="detail-employees" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-					${(jc.assigned_employees || []).map((emp) =>
-						`<span class="badge badge-secondary employee-badge"
+					${(jc.assigned_employees || [])
+						.map(
+							(emp) =>
+								`<span class="badge badge-secondary employee-badge"
 							data-job-card="${jc.name}" data-employee="${emp.employee}"
 							title="${__("Click to unassign")}">
 							${emp.employee_name} \u2715
 						</span>`
-					).join("")}
-					<button class="btn btn-xs btn-default btn-assign" data-job-card="${jc.name}" title="${__("Assign Employee")}">+</button>
+						)
+						.join("")}
+					<button class="btn btn-xs btn-default btn-assign" data-job-card="${jc.name}" title="${__(
+			"Assign Employee"
+		)}">+</button>
 				</div>
 			</div>
 		</div>
@@ -444,7 +470,11 @@ class WorkplacePortal {
 	parse_link_filters(raw) {
 		if (!raw) return {};
 		let parsed;
-		try { parsed = JSON.parse(raw); } catch(e) { return {}; }
+		try {
+			parsed = JSON.parse(raw);
+		} catch (e) {
+			return {};
+		}
 
 		let tuples = [];
 		if (Array.isArray(parsed) && parsed.length === 3 && typeof parsed[0] === "string") {
@@ -468,7 +498,7 @@ class WorkplacePortal {
 
 	render_single_link_field(jc, cf, $container, saved_data) {
 		let is_workstation = cf.link_doctype === "Workstation";
-		let current_value = is_workstation ? (jc.plog_workstation || "") : (saved_data[cf.fieldname] || "");
+		let current_value = is_workstation ? jc.plog_workstation || "" : saved_data[cf.fieldname] || "";
 
 		let scan_col = cf.show_barcode_scanner ? '<div class="col-sm-4 link-scan-input"></div>' : "";
 		let $section = $(`
@@ -495,7 +525,7 @@ class WorkplacePortal {
 			label: cf.label,
 			options: cf.link_doctype,
 			reqd: cf.reqd,
-			change: function() {
+			change: function () {
 				let val = link_ctrl.get_value();
 				on_value_change(val);
 			},
@@ -590,7 +620,12 @@ class WorkplacePortal {
 
 		// Current values stored as comma-separated in readings
 		let current_csv = saved_data[cf.fieldname] || "";
-		let selected_values = current_csv ? current_csv.split(",").map((v) => v.trim()).filter(Boolean) : [];
+		let selected_values = current_csv
+			? current_csv
+					.split(",")
+					.map((v) => v.trim())
+					.filter(Boolean)
+			: [];
 
 		let scan_col = cf.show_barcode_scanner ? '<div class="col-sm-4 multi-scan-input"></div>' : "";
 		let $section = $(`
@@ -842,7 +877,11 @@ class WorkplacePortal {
 		if (Object.keys(custom_data).length) {
 			frappe.call({
 				method: API + ".save_custom_data",
-				args: { workplace: this.workplace, job_card: jc.name, custom_data: JSON.stringify(custom_data) },
+				args: {
+					workplace: this.workplace,
+					job_card: jc.name,
+					custom_data: JSON.stringify(custom_data),
+				},
 				callback: save_and_complete,
 			});
 		} else {
@@ -862,7 +901,8 @@ class WorkplacePortal {
 					callback: () => this.reload_dashboard(),
 				});
 			},
-			__("Assign Employee"), __("Assign")
+			__("Assign Employee"),
+			__("Assign")
 		);
 	}
 
@@ -882,9 +922,16 @@ class WorkplacePortal {
 				let employee = r.message;
 				if (!employee) {
 					frappe.prompt(
-						{ fieldtype: "Link", label: __("Select Employee"), options: "Employee", fieldname: "employee", reqd: 1 },
+						{
+							fieldtype: "Link",
+							label: __("Select Employee"),
+							options: "Employee",
+							fieldname: "employee",
+							reqd: 1,
+						},
 						(data) => this.do_start_job(job_card, data.employee),
-						__("No employee linked to your user"), __("Start")
+						__("No employee linked to your user"),
+						__("Start")
 					);
 					return;
 				}
@@ -903,21 +950,33 @@ class WorkplacePortal {
 
 	complete_job(job_card, for_quantity) {
 		frappe.prompt(
-			{ fieldname: "qty", label: __("Completed Quantity"), fieldtype: "Float", reqd: 1, default: flt(for_quantity || 0) },
+			{
+				fieldname: "qty",
+				label: __("Completed Quantity"),
+				fieldtype: "Float",
+				reqd: 1,
+				default: flt(for_quantity || 0),
+			},
 			(data) => {
 				if (flt(data.qty) <= 0) {
 					frappe.throw(__("Quantity should be greater than 0"));
 				}
 				frappe.call({
 					method: API + ".complete_job",
-					args: { workplace: this.workplace, job_card: job_card, qty: flt(data.qty), end_time: frappe.datetime.now_datetime() },
+					args: {
+						workplace: this.workplace,
+						job_card: job_card,
+						qty: flt(data.qty),
+						end_time: frappe.datetime.now_datetime(),
+					},
 					callback: () => {
 						this.active_job_card = null;
 						this.reload_dashboard();
 					},
 				});
 			},
-			__("Enter Value"), __("Submit")
+			__("Enter Value"),
+			__("Submit")
 		);
 	}
 
@@ -948,7 +1007,9 @@ class WorkplacePortal {
 		let minutes = Math.floor((increment - hours * 3600) / 60);
 		let seconds = cint(increment - hours * 3600 - minutes * 60);
 
-		let $timer = this.$content.find(`[data-job-card='${data.name}'] .timer, .timer[data-job-card='${data.name}']`);
+		let $timer = this.$content.find(
+			`[data-job-card='${data.name}'] .timer, .timer[data-job-card='${data.name}']`
+		);
 		$timer.find(".hours").text(hours < 10 ? "0" + hours : hours);
 		$timer.find(".minutes").text(minutes < 10 ? "0" + minutes : minutes);
 		$timer.find(".seconds").text(seconds < 10 ? "0" + seconds : seconds);

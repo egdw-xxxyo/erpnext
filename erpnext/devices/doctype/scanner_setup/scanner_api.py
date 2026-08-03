@@ -4,10 +4,10 @@ import json
 import frappe
 from frappe.utils import now_datetime
 
-
 # ---------------------------------------------------------------------------
 # Public endpoint
 # ---------------------------------------------------------------------------
+
 
 @frappe.whitelist(allow_guest=True)
 def handle_scan(scanner_key=None, data=None):
@@ -27,10 +27,14 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.db.commit()
 		emp = scanner.employee
 		emp_label = frappe.db.get_value("Employee", emp, "employee_name") if emp else None
-		return _resp(success=True, action="switch_workplace",
-					message=f"Workplace: {workplace_name}",
-					prompt=f"Workplace: {workplace_name} | Employee: {emp_label or '—'}",
-					workplace=workplace_name, employee=emp)
+		return _resp(
+			success=True,
+			action="switch_workplace",
+			message=f"Workplace: {workplace_name}",
+			prompt=f"Workplace: {workplace_name} | Employee: {emp_label or '—'}",
+			workplace=workplace_name,
+			employee=emp,
+		)
 
 	# 2. Check if scanned data is an Employee barcode (attendance_device_id)
 	employee_name = frappe.db.get_value("Employee", {"attendance_device_id": data}, "name")
@@ -39,10 +43,14 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.db.commit()
 		emp_label = frappe.db.get_value("Employee", employee_name, "employee_name")
 		wp = scanner.workplace or "—"
-		return _resp(success=True, action="switch_employee",
-					message=f"Employee: {emp_label or employee_name}",
-					prompt=f"Workplace: {wp} | Employee: {emp_label or employee_name}",
-					workplace=scanner.workplace, employee=employee_name)
+		return _resp(
+			success=True,
+			action="switch_employee",
+			message=f"Employee: {emp_label or employee_name}",
+			prompt=f"Workplace: {wp} | Employee: {emp_label or employee_name}",
+			workplace=scanner.workplace,
+			employee=employee_name,
+		)
 
 	# 3. Need both workplace and employee
 	if not scanner.workplace:
@@ -51,16 +59,20 @@ def handle_scan(scanner_key=None, data=None):
 
 	if not scanner.employee:
 		frappe.db.commit()
-		return _resp(success=False, error="No employee assigned. Scan an employee badge first.",
-					workplace=scanner.workplace)
+		return _resp(
+			success=False,
+			error="No employee assigned. Scan an employee badge first.",
+			workplace=scanner.workplace,
+		)
 
 	workplace_doc = frappe.get_doc("Workplace", scanner.workplace)
 
 	scripts = _get_scanner_scripts(scanner.workplace)
 	if not scripts:
 		frappe.db.commit()
-		return _resp(success=False,
-					error=f"No scanner scripts configured for workplace '{scanner.workplace}'")
+		return _resp(
+			success=False, error=f"No scanner scripts configured for workplace '{scanner.workplace}'"
+		)
 
 	# Impersonate based on employee's user_id
 	_impersonate(scanner.employee)
@@ -75,8 +87,7 @@ def handle_scan(scanner_key=None, data=None):
 		result = None
 		for script_doc in scripts:
 			result = _execute_script(
-				script_doc.script, scan_type, scan_ctx,
-				data, scanner, workplace_doc, scanner.employee
+				script_doc.script, scan_type, scan_ctx, data, scanner, workplace_doc, scanner.employee
 			)
 			if result:
 				break
@@ -100,12 +111,13 @@ def handle_scan(scanner_key=None, data=None):
 				scan_log=scan_log,
 			)
 
-		_update_scan_log(scan_log, status="Error",
-						error_message=f"No handler for '{scan_type}' in scanner scripts")
+		_update_scan_log(
+			scan_log, status="Error", error_message=f"No handler for '{scan_type}' in scanner scripts"
+		)
 		frappe.db.commit()
-		return _resp(success=False,
-					error=f"No handler for '{scan_type}' in scanner scripts",
-					scan_log=scan_log)
+		return _resp(
+			success=False, error=f"No handler for '{scan_type}' in scanner scripts", scan_log=scan_log
+		)
 
 	except Exception as e:
 		_update_scan_log(scan_log, status="Error", error_message=str(e))
@@ -116,6 +128,7 @@ def handle_scan(scanner_key=None, data=None):
 # ---------------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------------
+
 
 def _authenticate(scanner_key):
 	from erpnext.devices.doctype.scanner_setup.scanner_setup import compute_auth_token
@@ -149,6 +162,7 @@ def _impersonate(employee_name):
 # Scan log
 # ---------------------------------------------------------------------------
 
+
 def _create_scan_log(scanner, data):
 	log = frappe.new_doc("Scanner Scan Log")
 	log.scanner = scanner.name
@@ -163,8 +177,15 @@ def _create_scan_log(scanner, data):
 
 def _update_scan_log(log_name, **kwargs):
 	updates = {}
-	for key in ("status", "resolved_action", "scanner_mode", "target_doctype",
-				"target_document", "result_message", "error_message"):
+	for key in (
+		"status",
+		"resolved_action",
+		"scanner_mode",
+		"target_doctype",
+		"target_document",
+		"result_message",
+		"error_message",
+	):
 		if key in kwargs and kwargs[key] is not None:
 			updates[key] = kwargs[key]
 	if updates:
@@ -174,6 +195,7 @@ def _update_scan_log(log_name, **kwargs):
 # ---------------------------------------------------------------------------
 # Resolution: what was scanned?
 # ---------------------------------------------------------------------------
+
 
 def _resolve_scan(data):
 	if frappe.db.exists("Job Card", data):
@@ -197,16 +219,19 @@ def _resolve_scan(data):
 # Script execution
 # ---------------------------------------------------------------------------
 
+
 def _execute_script(script, scan_type, scan_ctx, data, scanner, workplace_doc, employee):
 	handler_name = f"on_{scan_type}_scanned"
 
-	event = frappe._dict({
-		"data": data,
-		"scanner": scanner,
-		"workplace": workplace_doc,
-		"employee": employee,
-		**scan_ctx,
-	})
+	event = frappe._dict(
+		{
+			"data": data,
+			"scanner": scanner,
+			"workplace": workplace_doc,
+			"employee": employee,
+			**scan_ctx,
+		}
+	)
 
 	script_globals = {
 		"frappe": frappe,
@@ -214,7 +239,7 @@ def _execute_script(script, scan_type, scan_ctx, data, scanner, workplace_doc, e
 	}
 	script_locals = {}
 
-	exec(script, script_globals, script_locals)  # noqa: S102
+	exec(script, script_globals, script_locals)
 
 	handler = script_locals.get(handler_name)
 	if not handler:
@@ -227,11 +252,22 @@ def _execute_script(script, scan_type, scan_ctx, data, scanner, workplace_doc, e
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _resp(success=True, **kwargs):
 	result = {"success": success}
-	for key in ("action", "message", "error", "prompt", "mode",
-				"scan_log", "target_doctype", "target_document",
-				"workplace", "employee", "image"):
+	for key in (
+		"action",
+		"message",
+		"error",
+		"prompt",
+		"mode",
+		"scan_log",
+		"target_doctype",
+		"target_document",
+		"workplace",
+		"employee",
+		"image",
+	):
 		if key in kwargs:
 			result[key] = kwargs[key]
 	return result

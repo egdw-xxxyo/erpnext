@@ -60,8 +60,15 @@ ignore = [
     "F722", # syntax error in forward type annotation
     "W191", # indentation contains tabs
     "RUF001", # string contains ambiguous unicode character
+    "RUF002", # docstring contains ambiguous unicode character (Ukrainian docstrings)
+    "RUF003", # comment contains ambiguous unicode character (Ukrainian comments)
 ]
 typing-modules = ["frappe.types.DF"]
+
+[tool.ruff.lint.isort]
+# `frappe/` exists in this repo as a git submodule, so ruff would otherwise
+# classify frappe imports as first-party and reorder every upstream file.
+known-third-party = ["frappe"]
 
 [tool.ruff.format]
 quote-style = "double"

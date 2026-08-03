@@ -1,3 +1,4 @@
+/* global JsBarcode */
 /**
  * BarcodeField — reusable barcode preview + print button component.
  *
@@ -28,7 +29,15 @@
 frappe.provide("erpnext");
 
 erpnext.BarcodeField = class BarcodeField {
-	constructor({ frm, fieldname, barcode_type = "CODE128", format = "CODE128", show_print = false, $mount = null, value_getter = null }) {
+	constructor({
+		frm,
+		fieldname,
+		barcode_type = "CODE128",
+		format = "CODE128",
+		show_print = false,
+		$mount = null,
+		value_getter = null,
+	}) {
 		this.frm = frm;
 		this.fieldname = fieldname;
 		this.barcode_type = barcode_type;
@@ -66,14 +75,18 @@ erpnext.BarcodeField = class BarcodeField {
 	}
 
 	_make_container() {
-		const print_btn = this.show_print ? `
-				<button class="btn btn-xs btn-default btn-print-barcode" title="${__("Print Label")}" style="margin-bottom:4px;">
+		const print_btn = this.show_print
+			? `
+				<button class="btn btn-xs btn-default btn-print-barcode" title="${__(
+					"Print Label"
+				)}" style="margin-bottom:4px;">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
 						fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16
 							a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
 				</svg>
-				</button>` : "";
+				</button>`
+			: "";
 		return $(`
 			<div class="barcode-field-preview" style="margin-top:8px; display:flex; align-items:flex-end; gap:8px;">
 				<div class="barcode-visual"></div>
@@ -94,9 +107,9 @@ erpnext.BarcodeField = class BarcodeField {
 				if (r.message) {
 					$container.find(".barcode-visual").html(r.message);
 				} else {
-					$container.find(".barcode-visual").html(
-						`<code>${frappe.utils.escape_html(this.value)}</code>`
-					);
+					$container
+						.find(".barcode-visual")
+						.html(`<code>${frappe.utils.escape_html(this.value)}</code>`);
 				}
 			},
 		});
@@ -118,7 +131,9 @@ erpnext.BarcodeField = class BarcodeField {
 					margin: 5,
 				});
 			} catch (e) {
-				$container.find(".barcode-svg").replaceWith(`<code>${frappe.utils.escape_html(this.value)}</code>`);
+				$container
+					.find(".barcode-svg")
+					.replaceWith(`<code>${frappe.utils.escape_html(this.value)}</code>`);
 			}
 		};
 
@@ -136,7 +151,9 @@ erpnext.BarcodeField = class BarcodeField {
 			callback: (r) => {
 				const templates = r.message || [];
 				if (!templates.length) {
-					frappe.msgprint(__("No Label Templates configured for barcode type: {0}", [this.barcode_type]));
+					frappe.msgprint(
+						__("No Label Templates configured for barcode type: {0}", [this.barcode_type])
+					);
 					return;
 				}
 				this._show_print_dialog(templates);
@@ -149,7 +166,8 @@ erpnext.BarcodeField = class BarcodeField {
 		let _submitting = false;
 
 		const _print_sequential = (job_names, dialog) => {
-			let printed = 0, failed = 0;
+			let printed = 0,
+				failed = 0;
 			const total = job_names.length;
 
 			const _finish = () => {
@@ -163,7 +181,10 @@ erpnext.BarcodeField = class BarcodeField {
 			};
 
 			const _print_one = (i) => {
-				if (i >= job_names.length) { _finish(); return; }
+				if (i >= job_names.length) {
+					_finish();
+					return;
+				}
 				frappe.show_progress(__("Printing..."), i + 1, total);
 				frappe.call({
 					method: API_PRINTER + ".print_label",
@@ -173,7 +194,10 @@ erpnext.BarcodeField = class BarcodeField {
 						const delay = (r.message && r.message.print_delay_ms) || 1500;
 						setTimeout(() => _print_one(i + 1), delay);
 					},
-					error: () => { failed++; _print_one(i + 1); },
+					error: () => {
+						failed++;
+						_print_one(i + 1);
+					},
 				});
 			};
 			_print_one(0);
@@ -184,7 +208,10 @@ erpnext.BarcodeField = class BarcodeField {
 			const tmpl = dialog.get_value("label_template");
 			const printer = dialog.get_value("label_printer");
 			const copies = dialog.get_value("copies") || 1;
-			if (!tmpl) { frappe.msgprint(__("Please select a Label Template")); return; }
+			if (!tmpl) {
+				frappe.msgprint(__("Please select a Label Template"));
+				return;
+			}
 
 			_submitting = true;
 			dialog.$wrapper.find(".btn-primary, .btn-secondary, .btn-default").prop("disabled", true);
@@ -201,7 +228,10 @@ erpnext.BarcodeField = class BarcodeField {
 					const jobs = (r.message && r.message.jobs) || [];
 					if (queue_only || !jobs.length) {
 						_submitting = false;
-						frappe.show_alert({ message: __("{0} jobs added to queue", [jobs.length]), indicator: "green" });
+						frappe.show_alert({
+							message: __("{0} jobs added to queue", [jobs.length]),
+							indicator: "green",
+						});
 						dialog.hide();
 						return;
 					}
@@ -209,17 +239,24 @@ erpnext.BarcodeField = class BarcodeField {
 				},
 				error: () => {
 					_submitting = false;
-					dialog.$wrapper.find(".btn-primary, .btn-secondary, .btn-default").prop("disabled", false);
+					dialog.$wrapper
+						.find(".btn-primary, .btn-secondary, .btn-default")
+						.prop("disabled", false);
 				},
 			});
 		};
 
 		frappe.call({
 			method: "frappe.client.get_list",
-			args: { doctype: "Label Printer", filters: { is_enabled: 1 }, fields: ["name"], limit_page_length: 50 },
+			args: {
+				doctype: "Label Printer",
+				filters: { is_enabled: 1 },
+				fields: ["name"],
+				limit_page_length: 50,
+			},
 			callback: (pr) => {
-				const printers = (pr.message || []).map(p => p.name);
-				const tmpl_opts = templates.map(t => t.label_template);
+				const printers = (pr.message || []).map((p) => p.name);
+				const tmpl_opts = templates.map((t) => t.label_template);
 				const default_printer = printers.length === 1 ? printers[0] : "";
 
 				const dialog = new frappe.ui.Dialog({
@@ -248,9 +285,13 @@ erpnext.BarcodeField = class BarcodeField {
 						},
 					],
 					primary_action_label: __("Print Now"),
-					primary_action: function () { _submit(false, dialog); },
+					primary_action: function () {
+						_submit(false, dialog);
+					},
 					secondary_action_label: __("Add to Queue"),
-					secondary_action: function () { _submit(true, dialog); },
+					secondary_action: function () {
+						_submit(true, dialog);
+					},
 				});
 
 				dialog.show();

@@ -58,13 +58,15 @@ def get_data(specification=None):
 			"item": m["bpak_combo"],
 			"shifr": m["bpak_shifr"] or m["bpak_combo"],
 		}
-		rows.append({
-			"mod_num": m["modification_number"],
-			"fpv_item": m["fpv_combo"],
-			"fpv_name": m["fpv_name"] or m["fpv_combo"],
-			"fpv_shifr": m["fpv_shifr"],
-			"cells": cells,
-		})
+		rows.append(
+			{
+				"mod_num": m["modification_number"],
+				"fpv_item": m["fpv_combo"],
+				"fpv_name": m["fpv_name"] or m["fpv_combo"],
+				"fpv_shifr": m["fpv_shifr"],
+				"cells": cells,
+			}
+		)
 
 	title = f"Відомість модифікацій БпАК {spec['specification_name']} {spec['specification_code']}"
 	return {

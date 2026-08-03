@@ -84,11 +84,14 @@ def _build_jinja_context(variant_doc):
 		)
 		if not linked_item:
 			return ""
-		return frappe.db.get_value(
-			"Item Specification Parameter",
-			{"parent": linked_item, "parenttype": "Item", "parameter": param},
-			"value",
-		) or ""
+		return (
+			frappe.db.get_value(
+				"Item Specification Parameter",
+				{"parent": linked_item, "parenttype": "Item", "parameter": param},
+				"value",
+			)
+			or ""
+		)
 
 	return {
 		"doc": variant_doc,
@@ -210,7 +213,7 @@ def _safe_arithmetic(expr_str):
 
 
 def _eval_node(node):
-	if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+	if isinstance(node, ast.Constant) and isinstance(node.value, int | float):
 		return float(node.value)
 	elif isinstance(node, ast.BinOp) and type(node.op) in _OPS:
 		return _OPS[type(node.op)](_eval_node(node.left), _eval_node(node.right))
@@ -218,6 +221,3 @@ def _eval_node(node):
 		return _OPS[type(node.op)](_eval_node(node.operand))
 	else:
 		raise ValueError(f"Unsafe node: {ast.dump(node)}")
-
-
-

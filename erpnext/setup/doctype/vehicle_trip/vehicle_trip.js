@@ -25,10 +25,7 @@ frappe.ui.form.on("Vehicle Trip", {
 				function (r) {
 					if (r) {
 						frm.set_value("last_odometer", r.last_odometer);
-						frm.set_value(
-							"vehicle_make_model",
-							r.make + " " + r.model
-						);
+						frm.set_value("vehicle_make_model", r.make + " " + r.model);
 						frm.set_value("fuel_type", r.fuel_type);
 						frm.set_value("fuel_uom", r.uom);
 						frm.set_value("odometer_start", r.last_odometer);
@@ -40,10 +37,7 @@ frappe.ui.form.on("Vehicle Trip", {
 
 	odometer_end: function (frm) {
 		if (frm.doc.odometer_end && frm.doc.odometer_start) {
-			frm.set_value(
-				"distance",
-				frm.doc.odometer_end - frm.doc.odometer_start
-			);
+			frm.set_value("distance", frm.doc.odometer_end - frm.doc.odometer_start);
 		}
 	},
 });

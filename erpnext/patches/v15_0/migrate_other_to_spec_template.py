@@ -47,17 +47,21 @@ def execute():
 def _ensure_spec_template(cfg):
 	if frappe.db.exists("Specification Number Template", cfg["spec_name"]):
 		return
-	doc = frappe.get_doc({
-		"doctype": "Specification Number Template",
-		"template_name": cfg["spec_name"],
-		"description": cfg["description"],
-		"components": cfg["components"],
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "Specification Number Template",
+			"template_name": cfg["spec_name"],
+			"description": cfg["description"],
+			"components": cfg["components"],
+		}
+	)
 	doc.insert(ignore_permissions=True)
 
 
 def _link_on_item_template(item_template, spec_name):
-	frappe.db.set_value("Item", item_template, "specification_number_template", spec_name, update_modified=False)
+	frappe.db.set_value(
+		"Item", item_template, "specification_number_template", spec_name, update_modified=False
+	)
 
 
 def _resave_variants(item_template):

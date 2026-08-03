@@ -80,7 +80,9 @@ erpnext.GlobalScanner = class GlobalScanner {
 			});
 			$results.empty().append(this.render(r.message || {}));
 		} catch (e) {
-			$results.html(`<div class="text-danger">${frappe.utils.escape_html(e.message || String(e))}</div>`);
+			$results.html(
+				`<div class="text-danger">${frappe.utils.escape_html(e.message || String(e))}</div>`
+			);
 		}
 		setTimeout(() => {
 			const $input = dialog.fields_dict.barcode.$input;
@@ -140,7 +142,9 @@ erpnext.GlobalScanner = class GlobalScanner {
 	render_workplace(r) {
 		const d = r.doc;
 		const title = `${__("Workplace")}: ${this.doc_link("Workplace", d.name)}`;
-		const ops = (d.operations || []).map((o) => `<span class="badge" style="margin-right:4px;">${frappe.utils.escape_html(o)}</span>`).join("");
+		const ops = (d.operations || [])
+			.map((o) => `<span class="badge" style="margin-right:4px;">${frappe.utils.escape_html(o)}</span>`)
+			.join("");
 		const body = [
 			this.row(__("Name"), frappe.utils.escape_html(d.workplace_name || "")),
 			this.row(__("Company"), frappe.utils.escape_html(d.company || "")),
@@ -167,7 +171,13 @@ erpnext.GlobalScanner = class GlobalScanner {
 		const d = r.doc;
 		const title = `${__("Serial No")}: ${this.doc_link("Serial No", d.name)}`;
 		const body = [
-			this.row(__("Item"), d.item_code ? this.doc_link("Item", d.item_code) + (d.item_name ? ` — ${frappe.utils.escape_html(d.item_name)}` : "") : ""),
+			this.row(
+				__("Item"),
+				d.item_code
+					? this.doc_link("Item", d.item_code) +
+							(d.item_name ? ` — ${frappe.utils.escape_html(d.item_name)}` : "")
+					: ""
+			),
 			this.row(__("Batch"), d.batch_no ? this.doc_link("Batch", d.batch_no) : ""),
 			this.row(__("Warehouse"), d.warehouse ? this.doc_link("Warehouse", d.warehouse) : ""),
 			this.row(__("Status"), frappe.utils.escape_html(d.status || "")),
@@ -178,22 +188,44 @@ erpnext.GlobalScanner = class GlobalScanner {
 			const pr = r.purchase_receipt;
 			const pr_body = [
 				this.row(__("Purchase Receipt"), this.doc_link("Purchase Receipt", pr.name)),
-				this.row(__("Posting Date"), pr.posting_date ? frappe.format(pr.posting_date, { fieldtype: "Date" }) : ""),
-				this.row(__("Supplier"), pr.supplier ? this.doc_link("Supplier", pr.supplier) + (pr.supplier_name ? ` — ${frappe.utils.escape_html(pr.supplier_name)}` : "") : ""),
+				this.row(
+					__("Posting Date"),
+					pr.posting_date ? frappe.format(pr.posting_date, { fieldtype: "Date" }) : ""
+				),
+				this.row(
+					__("Supplier"),
+					pr.supplier
+						? this.doc_link("Supplier", pr.supplier) +
+								(pr.supplier_name ? ` — ${frappe.utils.escape_html(pr.supplier_name)}` : "")
+						: ""
+				),
 			].join("");
-			$card.append(`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__("Origin")}</div>${pr_body}</div>`);
+			$card.append(
+				`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__(
+					"Origin"
+				)}</div>${pr_body}</div>`
+			);
 		}
 
 		if (r.quality_inspections && r.quality_inspections.length) {
-			const rows = r.quality_inspections.map((q) => {
-				return [
-					this.row(__("Quality Inspection"), this.doc_link("Quality Inspection", q.name)),
-					this.row(__("Status"), frappe.utils.escape_html(q.status || "")),
-					this.row(__("Inspection Type"), frappe.utils.escape_html(q.inspection_type || "")),
-					this.row(__("Report Date"), q.report_date ? frappe.format(q.report_date, { fieldtype: "Date" }) : ""),
-				].join("");
-			}).join('<hr style="border:0;border-top:1px dashed var(--border-color);margin:6px 0;">');
-			$card.append(`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__("Quality Inspections")}</div>${rows}</div>`);
+			const rows = r.quality_inspections
+				.map((q) => {
+					return [
+						this.row(__("Quality Inspection"), this.doc_link("Quality Inspection", q.name)),
+						this.row(__("Status"), frappe.utils.escape_html(q.status || "")),
+						this.row(__("Inspection Type"), frappe.utils.escape_html(q.inspection_type || "")),
+						this.row(
+							__("Report Date"),
+							q.report_date ? frappe.format(q.report_date, { fieldtype: "Date" }) : ""
+						),
+					].join("");
+				})
+				.join('<hr style="border:0;border-top:1px dashed var(--border-color);margin:6px 0;">');
+			$card.append(
+				`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__(
+					"Quality Inspections"
+				)}</div>${rows}</div>`
+			);
 		}
 
 		if (r.package) {
@@ -201,10 +233,17 @@ erpnext.GlobalScanner = class GlobalScanner {
 			const pkg_body = [
 				this.row(__("Package"), this.doc_link("Package", p.name)),
 				this.row(__("Status"), frappe.utils.escape_html(p.status || "")),
-				this.row(__("Delivery Note"), p.delivery_note ? this.doc_link("Delivery Note", p.delivery_note) : ""),
+				this.row(
+					__("Delivery Note"),
+					p.delivery_note ? this.doc_link("Delivery Note", p.delivery_note) : ""
+				),
 				this.row(__("Sales Order"), p.sales_order ? this.doc_link("Sales Order", p.sales_order) : ""),
 			].join("");
-			$card.append(`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__("Packaging")}</div>${pkg_body}</div>`);
+			$card.append(
+				`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__(
+					"Packaging"
+				)}</div>${pkg_body}</div>`
+			);
 		}
 
 		if (r.bpak) {
@@ -218,12 +257,22 @@ erpnext.GlobalScanner = class GlobalScanner {
 		const body = [
 			this.row(__("BpAK"), this.doc_link("BpAK", b.name)),
 			this.row(__("Serial No"), frappe.utils.escape_html(b.serial_no || "")),
-			this.row(__("Template"), b.bpak_template ? this.doc_link("BpAK Template", b.bpak_template) + (b.bpak_template_name ? ` — ${frappe.utils.escape_html(b.bpak_template_name)}` : "") : ""),
+			this.row(
+				__("Template"),
+				b.bpak_template
+					? this.doc_link("BpAK Template", b.bpak_template) +
+							(b.bpak_template_name
+								? ` — ${frappe.utils.escape_html(b.bpak_template_name)}`
+								: "")
+					: ""
+			),
 			this.row(__("Status"), frappe.utils.escape_html(b.status || "")),
 			this.row(__("Sales Order"), b.sales_order ? this.doc_link("Sales Order", b.sales_order) : ""),
 			this.row(__("Customer"), b.customer ? this.doc_link("Customer", b.customer) : ""),
 		].join("");
-		return `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__("BpAK")}</div>${body}</div>`;
+		return `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__(
+			"BpAK"
+		)}</div>${body}</div>`;
 	}
 
 	render_package(r) {
@@ -231,25 +280,37 @@ erpnext.GlobalScanner = class GlobalScanner {
 		const title = `${__("Package")}: ${this.doc_link("Package", d.name)}`;
 		const refs = [
 			this.row(__("Status"), frappe.utils.escape_html(d.status || "")),
-			this.row(__("Purchase Receipt"), d.purchase_receipt ? this.doc_link("Purchase Receipt", d.purchase_receipt) : ""),
+			this.row(
+				__("Purchase Receipt"),
+				d.purchase_receipt ? this.doc_link("Purchase Receipt", d.purchase_receipt) : ""
+			),
 			this.row(__("Sales Order"), d.sales_order ? this.doc_link("Sales Order", d.sales_order) : ""),
-			this.row(__("Delivery Note"), d.delivery_note ? this.doc_link("Delivery Note", d.delivery_note) : ""),
+			this.row(
+				__("Delivery Note"),
+				d.delivery_note ? this.doc_link("Delivery Note", d.delivery_note) : ""
+			),
 			this.row(__("Shipment"), d.shipment ? this.doc_link("Shipment", d.shipment) : ""),
 		].join("");
 
-		const rows = (r.items || []).map((it) => {
-			const serials = (it.serial_no || "")
-				.split(/[\s,]+/)
-				.filter(Boolean)
-				.map((s) => this.doc_link("Serial No", s))
-				.join(", ");
-			return `<tr>
-				<td>${it.item_code ? this.doc_link("Item", it.item_code) : ""}${it.item_name ? `<div class="text-muted small">${frappe.utils.escape_html(it.item_name)}</div>` : ""}</td>
+		const rows = (r.items || [])
+			.map((it) => {
+				const serials = (it.serial_no || "")
+					.split(/[\s,]+/)
+					.filter(Boolean)
+					.map((s) => this.doc_link("Serial No", s))
+					.join(", ");
+				return `<tr>
+				<td>${it.item_code ? this.doc_link("Item", it.item_code) : ""}${
+					it.item_name
+						? `<div class="text-muted small">${frappe.utils.escape_html(it.item_name)}</div>`
+						: ""
+				}</td>
 				<td>${frappe.utils.escape_html(String(it.qty || ""))}</td>
 				<td>${it.batch_no ? this.doc_link("Batch", it.batch_no) : ""}</td>
 				<td>${serials}</td>
 			</tr>`;
-		}).join("");
+			})
+			.join("");
 
 		const table = `<table class="table table-bordered" style="margin-top:8px;">
 			<thead><tr>

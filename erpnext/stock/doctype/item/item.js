@@ -12,19 +12,32 @@ function _show_item_print_labels_dialog(names, default_label_template) {
 		title: __("Print Labels"),
 		fields: [
 			{
-				fieldname: "label_template", fieldtype: "Link", label: __("Label Template"),
-				options: "Label Template", reqd: 1,
+				fieldname: "label_template",
+				fieldtype: "Link",
+				label: __("Label Template"),
+				options: "Label Template",
+				reqd: 1,
 				get_query: () => ({}),
 				change: () => {
 					const tmpl = dlg.get_value("label_template");
-					if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
+					if (!tmpl) {
+						dlg.fields_dict.info_html.$wrapper.html("");
+						return;
+					}
 					frappe.call({
 						method: "erpnext.devices.doctype.label_printer.label_printer.count_labels",
-						args: { source_doctype: doctype, source_names: JSON.stringify(names), label_template: tmpl },
+						args: {
+							source_doctype: doctype,
+							source_names: JSON.stringify(names),
+							label_template: tmpl,
+						},
 						callback: (r) => {
 							if (r.message) {
 								dlg.fields_dict.info_html.$wrapper.html(
-									`<div class="text-muted">${__("{0} labels from {1} records", [r.message.total, names.length])}</div>`
+									`<div class="text-muted">${__("{0} labels from {1} records", [
+										r.message.total,
+										names.length,
+									])}</div>`
 								);
 							}
 						},
@@ -32,8 +45,11 @@ function _show_item_print_labels_dialog(names, default_label_template) {
 				},
 			},
 			{
-				fieldname: "printer_name", fieldtype: "Link", label: __("Printer"),
-				options: "Label Printer", reqd: 1,
+				fieldname: "printer_name",
+				fieldtype: "Link",
+				label: __("Printer"),
+				options: "Label Printer",
+				reqd: 1,
 				get_query: () => ({ filters: { is_enabled: 1 } }),
 			},
 			{ fieldname: "info_html", fieldtype: "HTML" },
@@ -44,13 +60,19 @@ function _show_item_print_labels_dialog(names, default_label_template) {
 			frappe.call({
 				method: "erpnext.devices.doctype.label_printer.label_printer.print_labels_batch",
 				args: {
-					source_doctype: doctype, source_names: JSON.stringify(names),
-					label_template: values.label_template, printer_name: values.printer_name,
+					source_doctype: doctype,
+					source_names: JSON.stringify(names),
+					label_template: values.label_template,
+					printer_name: values.printer_name,
 				},
-				freeze: true, freeze_message: __("Creating print jobs..."),
+				freeze: true,
+				freeze_message: __("Creating print jobs..."),
 				callback: (r) => {
 					if (r.message) {
-						frappe.show_alert({ message: __("{0} print jobs created", [r.message.count]), indicator: "green" });
+						frappe.show_alert({
+							message: __("{0} print jobs created", [r.message.count]),
+							indicator: "green",
+						});
 						frappe.set_route("List", "Print Job");
 					}
 				},
@@ -59,7 +81,12 @@ function _show_item_print_labels_dialog(names, default_label_template) {
 	});
 	frappe.call({
 		method: "frappe.client.get_list",
-		args: { doctype: "Label Template", filters: { source_field: ["is", "set"] }, fields: ["name"], limit_page_length: 2 },
+		args: {
+			doctype: "Label Template",
+			filters: { source_field: ["is", "set"] },
+			fields: ["name"],
+			limit_page_length: 2,
+		},
 		async: false,
 		callback: (r) => {
 			if (default_label_template) {
@@ -71,9 +98,16 @@ function _show_item_print_labels_dialog(names, default_label_template) {
 	});
 	frappe.call({
 		method: "frappe.client.get_list",
-		args: { doctype: "Label Printer", filters: { is_enabled: 1 }, fields: ["name"], limit_page_length: 2 },
+		args: {
+			doctype: "Label Printer",
+			filters: { is_enabled: 1 },
+			fields: ["name"],
+			limit_page_length: 2,
+		},
 		async: false,
-		callback: (r) => { if (r.message && r.message.length === 1) dlg.set_value("printer_name", r.message[0].name); },
+		callback: (r) => {
+			if (r.message && r.message.length === 1) dlg.set_value("printer_name", r.message[0].name);
+		},
 	});
 	dlg.show();
 }
@@ -274,7 +308,8 @@ frappe.ui.form.on("Item", {
 			if (frm.fields_dict.item_spec_parameters) {
 				let $spec = frm.fields_dict.item_spec_parameters.$wrapper;
 				$spec.find(".btn-fetch-parent-spec").remove();
-				let $btn = $(`<button class="btn btn-xs btn-default btn-fetch-parent-spec" style="margin-bottom:10px">
+				let $btn =
+					$(`<button class="btn btn-xs btn-default btn-fetch-parent-spec" style="margin-bottom:10px">
 					${__("Re-sync from Template")}
 				</button>`);
 				$btn.on("click", () => {
@@ -297,7 +332,10 @@ frappe.ui.form.on("Item", {
 							}
 							frm.refresh_field("item_spec_parameters");
 							frm.dirty();
-							frappe.show_alert({ message: __("Fetched from template. Save to evaluate formulas."), indicator: "green" });
+							frappe.show_alert({
+								message: __("Fetched from template. Save to evaluate formulas."),
+								indicator: "green",
+							});
 						},
 					});
 				});
@@ -422,15 +460,13 @@ frappe.ui.form.on("Item", {
 					},
 				});
 			} else {
-				frappe.db.get_value(
-					"Serial Number Template",
-					frm.doc.serial_number_template,
-					"resulting_series"
-				).then((r) => {
-					if (r.message && r.message.resulting_series) {
-						frm.set_value("serial_no_series", r.message.resulting_series);
-					}
-				});
+				frappe.db
+					.get_value("Serial Number Template", frm.doc.serial_number_template, "resulting_series")
+					.then((r) => {
+						if (r.message && r.message.resulting_series) {
+							frm.set_value("serial_no_series", r.message.resulting_series);
+						}
+					});
 			}
 		}
 	},

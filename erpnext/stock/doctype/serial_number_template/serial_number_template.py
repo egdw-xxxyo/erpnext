@@ -7,7 +7,6 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import cint
 
-
 COMPONENT_MAP = {
 	"Literal": lambda row: row.value or "",
 	"Separator": lambda row: row.value or "-",
@@ -27,9 +26,8 @@ PREVIEW_MAP = {
 	"YY": lambda: __import__("datetime").datetime.now().strftime("%y"),
 	"MM": lambda: __import__("datetime").datetime.now().strftime("%m"),
 	"DD": lambda: __import__("datetime").datetime.now().strftime("%d"),
-	"ABBR": lambda: frappe.db.get_value(
-		"Company", frappe.defaults.get_defaults().get("company"), "abbr"
-	) or "XX",
+	"ABBR": lambda: frappe.db.get_value("Company", frappe.defaults.get_defaults().get("company"), "abbr")
+	or "XX",
 	"FY": lambda: __import__("datetime").datetime.now().strftime("%Y"),
 	"{SUPP}": lambda: "0",
 }
@@ -101,9 +99,11 @@ class SerialNumberTemplate(Document):
 			try:
 				tmpl = frappe.get_doc("BpAK Template", tmpl_name)
 				attr_map = {row.attribute: row.attribute_value for row in (tmpl.attributes or [])}
-				bump(self.resolve_series_from_attributes(
-					attr_map, context_label=f"BpAK Template '{tmpl_name}'"
-				))
+				bump(
+					self.resolve_series_from_attributes(
+						attr_map, context_label=f"BpAK Template '{tmpl_name}'"
+					)
+				)
 			except Exception:
 				continue
 

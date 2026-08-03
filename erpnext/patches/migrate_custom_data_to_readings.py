@@ -49,12 +49,15 @@ def run():
 		fields_map = get_op_fields(log.operation) if log.operation else {}
 		for fieldname, value in data.items():
 			field_def = fields_map.get(fieldname, {})
-			plog.append("readings", {
-				"operation_field": fieldname,
-				"label": field_def.get("label", fieldname),
-				"fieldtype": field_def.get("fieldtype", "Data"),
-				"value": str(value) if value is not None else "",
-			})
+			plog.append(
+				"readings",
+				{
+					"operation_field": fieldname,
+					"label": field_def.get("label", fieldname),
+					"fieldtype": field_def.get("fieldtype", "Data"),
+					"value": str(value) if value is not None else "",
+				},
+			)
 
 		plog.save(ignore_permissions=True)
 		migrated += 1

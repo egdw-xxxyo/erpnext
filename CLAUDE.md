@@ -44,6 +44,31 @@ When finishing a feature or fixing a bug, **create or update the release-note fi
 - These files are the source of truth. On every `./deploy migrate` the `after_migrate` hook (`erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes`) upserts a **Release Note** DocType record per file, so the changelog shows in the UI (`/app/release-note`) and the deployed version appears in **Help → About**.
 - Tag the release commit (`git tag -a vYYYY.MM.DD -m "..."`). Prod deploy is blocked for untagged commits (`environment: "prod"` in `site-config.json`).
 
+## Linting / CI (pre-commit) — MANDATORY before committing code
+
+PRs run `.github/workflows/linters.yml`, which executes **pre-commit on ALL files** (`pre-commit/action@v3`) plus semgrep. Hooks: prettier, eslint, ruff (import sorter / linter / formatter). Config: `.pre-commit-config.yaml`, rules in `pyproject.toml` `[tool.ruff]`.
+
+**Before committing any `.py` / `.js` change, run pre-commit and make it pass:**
+
+```
+pre-commit run --files <changed files>   # or --all-files
+```
+
+A local git hook is NOT installed (global `core.hooksPath` is set to `~/.git-hooks`, and `pre-commit install` refuses to overwrite that) — so the run is manual. If pre-commit isn't on PATH, use a venv: `python3 -m venv .venv-lint && .venv-lint/bin/pip install pre-commit`.
+
+### Rules that this repo keeps violating
+
+- **No duplicate `def` in a module** (ruff `F811`). This repo's pattern of *appending* functions/methods to stock files (`bom.py`, `quality_inspection.py`) has twice produced two defs of the same name — Python keeps only the last, so the first silently becomes dead code and its logic stops running. Always `grep -n "def <name>" <file>` before appending.
+- **Names used in `TYPE_CHECKING` blocks must be imported** (`F821`) — child DocType classes referenced as `DF.Table["WorkplaceEmployee"]` need a real `from ... import WorkplaceEmployee` inside the `if TYPE_CHECKING:` block.
+- **No stale `# noqa`** (`RUF100`) — `S102`/`F401` are not enabled here, so `# noqa: S102` is itself an error.
+- No f-string without placeholders (`F541`), no unused locals (`F841`), no `for i in ...` where `i` is unused — use `_i` (`B007`).
+- `isinstance(x, (A, B))` → `isinstance(x, A | B)` (`UP038`); `"...".format(...)` → f-string (`UP032`).
+
+### Config notes (do not remove)
+
+- `[tool.ruff.lint.isort] known-third-party = ["frappe"]` — the `frappe/` git submodule lives inside this repo, so without this ruff classifies frappe imports as first-party and rewrites the import block of **every upstream file**.
+- `RUF002` / `RUF003` are ignored — Ukrainian docstrings and comments are full of Cyrillic characters ruff calls "ambiguous".
+
 ## Deploy command policy (STRICT)
 
 **Only ever run `./deploy build --silent`.** Never run `./deploy migrate`, `./deploy start`, `./deploy init`, or any other `./deploy` subcommand. The other commands have repeatedly broken the running UI in this project, and `build` alone handles image rebuild + container restart + schema sync for our workflow.

@@ -257,11 +257,12 @@ erpnext.chat_info = {
 				}
 			} else {
 				$title.html(`<a target="_blank" rel="noopener"></a>${badge}`);
-				$title.find("a").attr("href", l.url).text(l.title || l.url);
+				$title
+					.find("a")
+					.attr("href", l.url)
+					.text(l.title || l.url);
 			}
-			$row.find(".ci-row-sub").text(
-				[l.sender_name, when(l.creation)].filter(Boolean).join(" · ")
-			);
+			$row.find(".ci-row-sub").text([l.sender_name, when(l.creation)].filter(Boolean).join(" · "));
 			$pane.append($row);
 		}
 	},

@@ -197,9 +197,9 @@ def rename_with_brand(item_code):
 def insert_child(doctype, parent, parenttype, parentfield, values, idx=None):
 	if idx is None:
 		idx = (
-			frappe.db.sql(
-				"select ifnull(max(idx), 0) + 1 from `tab{0}` where parent = %s".format(doctype), parent
-			)[0][0]
+			frappe.db.sql(f"select ifnull(max(idx), 0) + 1 from `tab{doctype}` where parent = %s", parent)[0][
+				0
+			]
 			or 1
 		)
 
@@ -217,9 +217,9 @@ def insert_child(doctype, parent, parenttype, parentfield, values, idx=None):
 	}
 	row.update(values)
 
-	columns = ", ".join("`{0}`".format(key) for key in row)
+	columns = ", ".join(f"`{key}`" for key in row)
 	placeholders = ", ".join(["%s"] * len(row))
 	frappe.db.sql(
-		"insert into `tab{0}` ({1}) values ({2})".format(doctype, columns, placeholders),
+		f"insert into `tab{doctype}` ({columns}) values ({placeholders})",
 		list(row.values()),
 	)

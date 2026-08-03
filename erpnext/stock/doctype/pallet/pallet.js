@@ -6,8 +6,7 @@ frappe.ui.form.on("Pallet", {
 });
 
 function render_pallet_packages(frm) {
-	const wrapper =
-		frm.fields_dict.packages_html && frm.fields_dict.packages_html.$wrapper;
+	const wrapper = frm.fields_dict.packages_html && frm.fields_dict.packages_html.$wrapper;
 	if (!wrapper) return;
 	if (frm.is_new()) {
 		wrapper.empty();

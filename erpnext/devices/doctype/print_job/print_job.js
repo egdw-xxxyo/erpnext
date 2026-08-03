@@ -58,12 +58,18 @@ function _render_job_preview(frm) {
 		args: { print_job_name: frm.doc.name },
 		callback(r) {
 			if (!r.message) {
-				$wrapper.html(`<div class="text-muted" style="padding:12px;">${__("Preview not available")}</div>`);
+				$wrapper.html(
+					`<div class="text-muted" style="padding:12px;">${__("Preview not available")}</div>`
+				);
 				return;
 			}
 			let data = r.message;
 			if (data.type !== "html_image") {
-				$wrapper.html(`<div class="text-muted" style="padding:12px;">${__("Preview not available for this template type")}</div>`);
+				$wrapper.html(
+					`<div class="text-muted" style="padding:12px;">${__(
+						"Preview not available for this template type"
+					)}</div>`
+				);
 				return;
 			}
 			let PX_PER_MM = 3.78;

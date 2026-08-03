@@ -1415,8 +1415,6 @@ erpnext.selling.SalesOrderController = class SalesOrderController extends erpnex
 
 extend_cscript(cur_frm.cscript, new erpnext.selling.SalesOrderController({ frm: cur_frm }));
 
-
-
 erpnext.selling.setup_bpak_create_button = function (frm) {
 	const grid = frm.fields_dict.bpaks && frm.fields_dict.bpaks.grid;
 	if (!grid) return;
@@ -1478,7 +1476,9 @@ erpnext.selling.refresh_items_from_bpaks = function (frm) {
 				seen.add(key);
 			});
 			frm.doc.items = kept;
-			(frm.doc.items || []).forEach((row, i) => { row.idx = i + 1; });
+			(frm.doc.items || []).forEach((row, i) => {
+				row.idx = i + 1;
+			});
 
 			const to_add = aggregated.filter((p) => !seen.has(`${p.bpak_row}::${p.item_code}`));
 			const promises = to_add.map((p) => {
@@ -1603,22 +1603,18 @@ erpnext.selling.open_bpak_create_dialog = function (frm) {
 
 erpnext.selling.add_bpak_buttons = function (frm) {
 	if (!frm.doc.delivered_in_bpaks || frm.is_new() || frm.doc.docstatus !== 1) return;
-	frm.add_custom_button(
-		__("Оновити БпАК"),
-		() => {
-			frappe.call({
-				method: "erpnext.stock.doctype.bpak.bpak.refresh_bpak_aggregates",
-				args: { sales_order: frm.doc.name },
-				freeze: true,
-				callback: () => frm.reload_doc(),
-			});
-		}
-	);
+	frm.add_custom_button(__("Оновити БпАК"), () => {
+		frappe.call({
+			method: "erpnext.stock.doctype.bpak.bpak.refresh_bpak_aggregates",
+			args: { sales_order: frm.doc.name },
+			freeze: true,
+			callback: () => frm.reload_doc(),
+		});
+	});
 };
 
 erpnext.selling.render_bpak_progress = function (frm) {
-	let wrapper = frm.fields_dict.bpak_progress_html
-		&& frm.fields_dict.bpak_progress_html.$wrapper;
+	let wrapper = frm.fields_dict.bpak_progress_html && frm.fields_dict.bpak_progress_html.$wrapper;
 	if (!wrapper) return;
 	if (frm.is_new() || !frm.doc.delivered_in_bpaks) {
 		wrapper.empty();
@@ -1643,13 +1639,15 @@ erpnext.selling.render_bpak_progress = function (frm) {
 					<th class="text-right">${__("Packages")}</th>
 				</tr></thead><tbody>`;
 			rows.forEach((r) => {
-				let bpak_link = `<a href="/app/bpak/${encodeURIComponent(r.bpak)}">${frappe.utils.escape_html(r.bpak)}</a>`;
+				let bpak_link = `<a href="/app/bpak/${encodeURIComponent(r.bpak)}">${frappe.utils.escape_html(
+					r.bpak
+				)}</a>`;
 				let pkg_link = r.package_count
-					? `<a href="/app/package/view/list?bpak=${encodeURIComponent(r.bpak)}">${r.package_count}</a>`
+					? `<a href="/app/package/view/list?bpak=${encodeURIComponent(r.bpak)}">${
+							r.package_count
+					  }</a>`
 					: "0";
-				let packed_cell = r.planned_qty
-					? `${r.packed_qty} / ${r.planned_qty}`
-					: r.packed_qty;
+				let packed_cell = r.planned_qty ? `${r.packed_qty} / ${r.planned_qty}` : r.packed_qty;
 				html += `<tr>
 					<td>${bpak_link}</td>
 					<td>${frappe.utils.escape_html(r.serial_no || "")}</td>
@@ -1713,15 +1711,22 @@ function setup_sales_order_print_labels(frm) {
 	});
 }
 
-
 erpnext.selling.setup_attachment_buttons = function (frm) {
 	if (frm.doc.docstatus !== 0) return;
-	frm.add_custom_button(__("Add Package"), function () {
-		erpnext.selling.open_pick_dialog(frm, "Package", "packages", "package");
-	}, __("Get Items From"));
-	frm.add_custom_button(__("Add Pallet"), function () {
-		erpnext.selling.open_pick_dialog(frm, "Pallet", "pallets", "pallet");
-	}, __("Get Items From"));
+	frm.add_custom_button(
+		__("Add Package"),
+		function () {
+			erpnext.selling.open_pick_dialog(frm, "Package", "packages", "package");
+		},
+		__("Get Items From")
+	);
+	frm.add_custom_button(
+		__("Add Pallet"),
+		function () {
+			erpnext.selling.open_pick_dialog(frm, "Pallet", "pallets", "pallet");
+		},
+		__("Get Items From")
+	);
 };
 
 erpnext.selling.open_pick_dialog = function (frm, doctype, table_field, link_field) {
@@ -1746,9 +1751,7 @@ erpnext.selling.open_pick_dialog = function (frm, doctype, table_field, link_fie
 		],
 		primary_action_label: __("Add"),
 		primary_action: function (values) {
-			let exists = (frm.doc[table_field] || []).some(
-				(r) => r[link_field] === values[link_field]
-			);
+			let exists = (frm.doc[table_field] || []).some((r) => r[link_field] === values[link_field]);
 			if (exists) {
 				frappe.show_alert({
 					message: __("{0} already attached", [values[link_field]]),
@@ -1782,33 +1785,51 @@ erpnext.selling.build_tree_html = function (tree) {
 	if (!pkgs) {
 		return `<div class="text-muted small">${__("No Package/BpAK/Pallet attachments")}</div>`;
 	}
-	let html = `<div class="attachment-tree small" style="margin-bottom:8px;"><b>${__("Attachment Tree")}</b><ul>`;
+	let html = `<div class="attachment-tree small" style="margin-bottom:8px;"><b>${__(
+		"Attachment Tree"
+	)}</b><ul>`;
 
 	const render_pkg = (p, indent_label) => {
-		let items_html = (p.items || []).map((it) => {
-			let sn = it.serial_no ? ` <span class="text-muted">[${frappe.utils.escape_html(it.serial_no)}]</span>` : "";
-			return `<li>${frappe.utils.escape_html(it.item_code)} × ${it.qty}${sn}</li>`;
-		}).join("");
-		return `<li>📋 ${indent_label}: <b>${p.name}</b> <span class="indicator-pill ${p.status === 'Shipped' ? 'green' : (p.status === 'Packed' ? 'blue' : 'orange')}">${p.status || ''}</span>
+		let items_html = (p.items || [])
+			.map((it) => {
+				let sn = it.serial_no
+					? ` <span class="text-muted">[${frappe.utils.escape_html(it.serial_no)}]</span>`
+					: "";
+				return `<li>${frappe.utils.escape_html(it.item_code)} × ${it.qty}${sn}</li>`;
+			})
+			.join("");
+		return `<li>📋 ${indent_label}: <b>${p.name}</b> <span class="indicator-pill ${
+			p.status === "Shipped" ? "green" : p.status === "Packed" ? "blue" : "orange"
+		}">${p.status || ""}</span>
 			<ul>${items_html}</ul></li>`;
 	};
 
 	(tree.pallets || []).forEach((pl) => {
-		html += `<li>🟫 ${__("Pallet")}: <b>${pl.name}</b> <span class="indicator-pill ${pl.status === 'Shipped' ? 'green' : (pl.status === 'Packed' ? 'blue' : 'orange')}">${pl.status || ''}</span><ul>`;
-		(pl.packages || []).forEach((p) => { html += render_pkg(p, __("Package")); });
+		html += `<li>🟫 ${__("Pallet")}: <b>${pl.name}</b> <span class="indicator-pill ${
+			pl.status === "Shipped" ? "green" : pl.status === "Packed" ? "blue" : "orange"
+		}">${pl.status || ""}</span><ul>`;
+		(pl.packages || []).forEach((p) => {
+			html += render_pkg(p, __("Package"));
+		});
 		html += `</ul></li>`;
 	});
 
 	(tree.bpaks || []).forEach((b) => {
-		html += `<li>🔖 BpAK: <b>${b.name}</b> <span class="indicator-pill blue">${b.status || ''}</span><ul>`;
-		(b.packages || []).forEach((p) => { html += render_pkg(p, __("Package")); });
+		html += `<li>🔖 BpAK: <b>${b.name}</b> <span class="indicator-pill blue">${
+			b.status || ""
+		}</span><ul>`;
+		(b.packages || []).forEach((p) => {
+			html += render_pkg(p, __("Package"));
+		});
 		(b.planned || []).forEach((it) => {
 			html += `<li>📝 ${__("Planned")}: ${frappe.utils.escape_html(it.item_code)} × ${it.qty}</li>`;
 		});
 		html += `</ul></li>`;
 	});
 
-	(tree.packages || []).forEach((p) => { html += render_pkg(p, __("Package")); });
+	(tree.packages || []).forEach((p) => {
+		html += render_pkg(p, __("Package"));
+	});
 
 	html += `</ul></div>`;
 	return html;
@@ -1816,8 +1837,7 @@ erpnext.selling.build_tree_html = function (tree) {
 
 erpnext.selling.render_attachment_progress = function (frm) {
 	if (frm.is_new()) return;
-	let wrapper = frm.fields_dict.attachment_tree_html
-		&& frm.fields_dict.attachment_tree_html.$wrapper;
+	let wrapper = frm.fields_dict.attachment_tree_html && frm.fields_dict.attachment_tree_html.$wrapper;
 	if (!wrapper) return;
 	frappe.call({
 		method: "erpnext.selling.doctype.sales_order.progress.get_attachment_progress",
@@ -1829,34 +1849,41 @@ erpnext.selling.render_attachment_progress = function (frm) {
 			if (data.total_planned || data.total_attached) {
 				frm.dashboard.add_indicator(
 					__("Packed: {0} / {1} ({2}%)", [
-						data.total_attached, data.total_planned, data.overall_pct,
+						data.total_attached,
+						data.total_planned,
+						data.overall_pct,
 					]),
-					data.overall_pct >= 100 ? "green" : (data.overall_pct > 0 ? "orange" : "red")
+					data.overall_pct >= 100 ? "green" : data.overall_pct > 0 ? "orange" : "red"
 				);
 			}
 			if (data.package_count) {
 				let ps = data.package_status || {};
 				frm.dashboard.add_indicator(
 					__("Packages: {0} (Packed {1}, Shipped {2})", [
-						data.package_count, ps.Packed || 0, ps.Shipped || 0,
+						data.package_count,
+						ps.Packed || 0,
+						ps.Shipped || 0,
 					]),
-					(ps.Shipped === data.package_count) ? "green"
-						: ((ps.Packed + ps.Shipped) === data.package_count ? "blue" : "orange")
+					ps.Shipped === data.package_count
+						? "green"
+						: ps.Packed + ps.Shipped === data.package_count
+						? "blue"
+						: "orange"
 				);
 			}
 			if (data.pallet_count) {
 				let ls = data.pallet_status || {};
 				frm.dashboard.add_indicator(
 					__("Pallets: {0} (Packed {1}, Shipped {2})", [
-						data.pallet_count, ls.Packed || 0, ls.Shipped || 0,
+						data.pallet_count,
+						ls.Packed || 0,
+						ls.Shipped || 0,
 					]),
 					"blue"
 				);
 			}
 			if (data.bpak_count) {
-				frm.dashboard.add_indicator(
-					__("BpAKs: {0}", [data.bpak_count]), "blue"
-				);
+				frm.dashboard.add_indicator(__("BpAKs: {0}", [data.bpak_count]), "blue");
 			}
 
 			wrapper.empty();
@@ -1873,7 +1900,7 @@ erpnext.selling.render_attachment_progress = function (frm) {
 						<th style="width:140px;">${__("Progress")}</th>
 					</tr></thead><tbody>`;
 			data.rows.forEach((row) => {
-				let color = row.pct >= 100 ? "#28a745" : (row.pct > 0 ? "#ffc107" : "#dc3545");
+				let color = row.pct >= 100 ? "#28a745" : row.pct > 0 ? "#ffc107" : "#dc3545";
 				html += `<tr>
 					<td>${frappe.utils.escape_html(row.item_code)}</td>
 					<td class="text-right">${row.planned}</td>
@@ -1882,7 +1909,7 @@ erpnext.selling.render_attachment_progress = function (frm) {
 					<td class="text-right">${row.over ? `<span style="color:#dc3545;">${row.over}</span>` : 0}</td>
 					<td>
 						<div style="background:#eee;height:14px;border-radius:3px;overflow:hidden;">
-							<div style="background:${color};width:${Math.min(row.pct,100)}%;height:100%;"></div>
+							<div style="background:${color};width:${Math.min(row.pct, 100)}%;height:100%;"></div>
 						</div>
 						<small>${row.pct}%</small>
 					</td>

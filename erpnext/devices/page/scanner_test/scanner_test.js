@@ -213,9 +213,7 @@ class ScannerTest {
 			args: { doctype: "Scan Test Case", name: name },
 			callback: (r) => {
 				const steps_raw = (r.message.steps || "").split("\n");
-				this.test_steps = steps_raw
-					.map((l) => l.trim())
-					.filter((l) => l && !l.startsWith("#"));
+				this.test_steps = steps_raw.map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
 				this.current_step = -1;
 				this.render_steps();
 				$area.show();
@@ -231,7 +229,8 @@ class ScannerTest {
 			if (i < this.current_step + 1) {
 				style += " color: var(--text-muted); text-decoration: line-through;";
 			} else if (i === this.current_step + 1) {
-				style += " background: var(--yellow-highlight-color, rgba(255,255,0,0.1)); font-weight: bold;";
+				style +=
+					" background: var(--yellow-highlight-color, rgba(255,255,0,0.1)); font-weight: bold;";
 			}
 			html += `<div style="${style}">${i + 1}. ${frappe.utils.escape_html(step)}</div>`;
 		});
@@ -360,7 +359,9 @@ class ScannerTest {
 			red: "var(--red-600)",
 		};
 		$log.prepend(
-			`<div style="margin-bottom: 6px; color: ${colorMap[color] || "inherit"}; white-space: pre-wrap;">[${ts}] ${arrow} ${frappe.utils.escape_html(text)}</div>`
+			`<div style="margin-bottom: 6px; color: ${
+				colorMap[color] || "inherit"
+			}; white-space: pre-wrap;">[${ts}] ${arrow} ${frappe.utils.escape_html(text)}</div>`
 		);
 	}
 }

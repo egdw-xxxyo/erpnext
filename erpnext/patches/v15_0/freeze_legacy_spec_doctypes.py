@@ -10,8 +10,13 @@ def execute():
 		meta = frappe.get_meta(doctype)
 		for f in meta.fields:
 			if f.fieldtype in (
-				"Section Break", "Column Break", "Tab Break", "Heading",
-				"Button", "HTML", "Read Only",
+				"Section Break",
+				"Column Break",
+				"Tab Break",
+				"Heading",
+				"Button",
+				"HTML",
+				"Read Only",
 			):
 				continue
 			if f.read_only:
@@ -29,14 +34,16 @@ def _set_read_only(doctype, fieldname):
 	if existing:
 		frappe.db.set_value("Property Setter", existing, "value", "1")
 		return
-	doc = frappe.get_doc({
-		"doctype": "Property Setter",
-		"doctype_or_field": "DocField",
-		"doc_type": doctype,
-		"field_name": fieldname,
-		"property": "read_only",
-		"property_type": "Check",
-		"value": "1",
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "Property Setter",
+			"doctype_or_field": "DocField",
+			"doc_type": doctype,
+			"field_name": fieldname,
+			"property": "read_only",
+			"property_type": "Check",
+			"value": "1",
+		}
+	)
 	doc.insert(ignore_permissions=True)
 	print(f"  Set read_only on {doctype}.{fieldname}")

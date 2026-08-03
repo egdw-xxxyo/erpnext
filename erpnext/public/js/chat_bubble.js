@@ -5,7 +5,6 @@
 
 frappe.provide("erpnext.whatsapp");
 
-
 const WA_API = "erpnext.crm.page.whatsapp_chat.whatsapp_chat";
 const EC_API = "erpnext.crm.page.employee_chat.employee_chat";
 
@@ -24,10 +23,7 @@ erpnext.whatsapp.can_use = function () {
 };
 
 erpnext.whatsapp.can_use_employee_chat = function () {
-	return (
-		(frappe.boot?.user?.can_read || []).includes("Chat Thread") &&
-		cb_page_allowed("employee-chat")
-	);
+	return (frappe.boot?.user?.can_read || []).includes("Chat Thread") && cb_page_allowed("employee-chat");
 };
 
 function cb_media_label(content_type) {
@@ -46,7 +42,9 @@ function cb_media_label(content_type) {
 function cb_link_card(card) {
 	if (!card || !card.url) return `<i>(${__("link")})</i>`;
 	const icon = card.image
-		? `<img src="${frappe.utils.escape_html(card.image)}" style="width:100%;height:100%;object-fit:cover;">`
+		? `<img src="${frappe.utils.escape_html(
+				card.image
+		  )}" style="width:100%;height:100%;object-fit:cover;">`
 		: { document: "📄", report: "📊", list: "🗂️" }[card.kind] || "🔗";
 	const title = frappe.utils.escape_html(card.title || card.url);
 	const sub = frappe.utils.escape_html(card.subtitle || card.doctype || "");
@@ -66,7 +64,11 @@ function cb_link_card(card) {
 		<div style="flex:none;width:30px;height:30px;border-radius:5px;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden;">${icon}</div>
 		<div style="min-width:0;">
 			<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}${badge}</div>
-			${sub ? `<div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>` : ""}
+			${
+				sub
+					? `<div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>`
+					: ""
+			}
 		</div>
 	</a>`;
 }
@@ -99,7 +101,11 @@ function cb_reference_banner(chat) {
 		<div style="flex:none;font-size:16px;">📄</div>
 		<div style="min-width:0;">
 			<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}${badge}${arch}</div>
-			${sub ? `<div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>` : ""}
+			${
+				sub
+					? `<div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</div>`
+					: ""
+			}
 		</div>
 	</div>`;
 }
@@ -142,7 +148,9 @@ function cb_render_body(m) {
 			})}</div>${cap}`;
 		}
 		if (file) {
-			return `<span class="cb-doc">📎 ${frappe.utils.escape_html(file.name || __("File"))}</span>${cap}`;
+			return `<span class="cb-doc">📎 ${frappe.utils.escape_html(
+				file.name || __("File")
+			)}</span>${cap}`;
 		}
 		return text ? `<span>${frappe.utils.escape_html(text)}</span>` : `<i>(${__("no text")})</i>`;
 	}
@@ -160,9 +168,7 @@ function cb_render_body(m) {
 	}
 	if (m.attach) {
 		const url = frappe.utils.escape_html(m.attach);
-		const fname = frappe.utils.escape_html(
-			decodeURIComponent(m.attach.split("/").pop() || __("File"))
-		);
+		const fname = frappe.utils.escape_html(decodeURIComponent(m.attach.split("/").pop() || __("File")));
 		return `<a class="cb-doc" href="${url}" target="_blank" download>📎 ${fname}</a>${cap}`;
 	}
 	const label = cb_media_label(m.content_type);
@@ -463,10 +469,7 @@ class EmployeeChatSource {
 			if (preview) {
 				const enc_thumb = await erpnext.chat_crypto.encrypt_blob(preview);
 				payload.thumb = {
-					url: await erpnext.chat_media.upload_encrypted(
-						enc_thumb.blob,
-						"preview-" + file.name
-					),
+					url: await erpnext.chat_media.upload_encrypted(enc_thumb.blob, "preview-" + file.name),
 					key: enc_thumb.key,
 					iv: enc_thumb.iv,
 				};
@@ -557,9 +560,7 @@ class ChatBubble {
 			this.ring(d);
 			this.refresh();
 		};
-		this.sources.forEach((s) =>
-			s.realtime_events.forEach((ev) => frappe.realtime.on(ev, this.on_rt))
-		);
+		this.sources.forEach((s) => s.realtime_events.forEach((ev) => frappe.realtime.on(ev, this.on_rt)));
 		this.poll = setInterval(() => this.refresh(), 60000);
 	}
 
@@ -573,13 +574,22 @@ class ChatBubble {
 			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find(
 				(c) => c.id === d.number
 			);
-			console.log("[chat] ring: whatsapp incoming", { number: d.number, chat_found: !!chat, muted: chat && chat.muted });
+			console.log("[chat] ring: whatsapp incoming", {
+				number: d.number,
+				chat_found: !!chat,
+				muted: chat && chat.muted,
+			});
 		} else if (d.sender && d.sender !== frappe.session.user && d.thread) {
 			// Employee Chat: a full message payload
 			chat = (this.sources.find((s) => s.key === "employee")?.chats || []).find(
 				(c) => c.id === d.thread
 			);
-			console.log("[chat] ring: employee message", { thread: d.thread, sender: d.sender, chat_found: !!chat, muted: chat && chat.muted });
+			console.log("[chat] ring: employee message", {
+				thread: d.thread,
+				sender: d.sender,
+				chat_found: !!chat,
+				muted: chat && chat.muted,
+			});
 		} else {
 			console.log("[chat] ring: event ignored (not an incoming/foreign message)", d);
 			return;
@@ -589,17 +599,14 @@ class ChatBubble {
 
 	render_sound_toggle() {
 		const on = erpnext.chat_sound.enabled();
-		this.$sound.text(on ? "🔊" : "🔇").attr(
-			"title",
-			on ? __("Notification sound is on") : __("Notification sound is off")
-		);
+		this.$sound
+			.text(on ? "🔊" : "🔇")
+			.attr("title", on ? __("Notification sound is on") : __("Notification sound is off"));
 	}
 
 	// The per-conversation mute is only meaningful with a thread open.
 	render_mute_toggle() {
-		const chat = this.active
-			? (this.source.chats || []).find((c) => c.id === this.active)
-			: null;
+		const chat = this.active ? (this.source.chats || []).find((c) => c.id === this.active) : null;
 		if (!chat || !this.source.set_muted) return this.$mute.hide();
 		this.$mute
 			.show()
@@ -916,10 +923,10 @@ class ChatBubble {
 		const rows = chats
 			.map((c) => {
 				const name = frappe.utils.escape_html(c.title);
-				const prev = frappe.utils.escape_html(
-					(c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80)
-				);
-				return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(c.id)}">
+				const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
+				return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(
+					c.id
+				)}">
 					<div class="cb-name"><span>${name}</span><span class="cb-time">${cb_fmt_time(c.time)}</span></div>
 					<div class="cb-prev">${prev || __("(no text)")}</div>
 				</div>`;
@@ -975,10 +982,16 @@ class ChatBubble {
 
 		const banner = chat && chat.reference_doctype ? cb_reference_banner(chat) : "";
 		this.$body.html(
-			`${banner}<div class="cb-thread">${bubbles || `<div class="cb-empty">${__("No messages yet")}</div>`}</div>`
+			`${banner}<div class="cb-thread">${
+				bubbles || `<div class="cb-empty">${__("No messages yet")}</div>`
+			}</div>`
 		);
 		this.$body.find(".cb-ref-banner[data-dt]").on("click", (e) => {
-			frappe.set_route("Form", $(e.currentTarget).attr("data-dt"), $(e.currentTarget).attr("data-name"));
+			frappe.set_route(
+				"Form",
+				$(e.currentTarget).attr("data-dt"),
+				$(e.currentTarget).attr("data-name")
+			);
 		});
 		// Lazy-load previews + wire the shared lightbox for any images in the thread.
 		if (source.media_source) {
@@ -1058,8 +1071,7 @@ erpnext.whatsapp.toggle_bubble_visibility = function () {
 	const b = erpnext.whatsapp.bubble;
 	if (!b) return;
 	const route = (frappe.get_route() || []).join("/");
-	const on_chat_page =
-		route.includes("whatsapp-chat-center") || route.includes("employee-chat");
+	const on_chat_page = route.includes("whatsapp-chat-center") || route.includes("employee-chat");
 	b.$launcher.toggle(!on_chat_page);
 	if (on_chat_page) b.toggle(false);
 	b.update_document_button();

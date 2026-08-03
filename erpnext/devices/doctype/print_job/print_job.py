@@ -40,8 +40,11 @@ class PrintJob(Document):
 		)
 		for file_name in file_names:
 			frappe.delete_doc(
-				"File", file_name,
-				force=True, ignore_permissions=True, delete_permanently=True,
+				"File",
+				file_name,
+				force=True,
+				ignore_permissions=True,
+				delete_permanently=True,
 			)
 
 
@@ -61,12 +64,14 @@ def cleanup_old_print_jobs(days=7, batch_size=500):
 	for i, name in enumerate(job_names):
 		try:
 			frappe.delete_doc(
-				"Print Job", name,
-				force=True, ignore_permissions=True, delete_permanently=True,
+				"Print Job",
+				name,
+				force=True,
+				ignore_permissions=True,
+				delete_permanently=True,
 			)
 		except Exception:
-			frappe.logger("label_printer").warning(
-				f"Failed to clean up Print Job {name}", exc_info=True)
+			frappe.logger("label_printer").warning(f"Failed to clean up Print Job {name}", exc_info=True)
 		if i % 100 == 0:
 			frappe.db.commit()
 	frappe.db.commit()

@@ -5,10 +5,10 @@ import time
 import frappe
 from frappe.utils import now_datetime
 
-
 # ---------------------------------------------------------------------------
 # Logger — injected into script event as e.logger
 # ---------------------------------------------------------------------------
+
 
 class ScriptLogger:
 	def __init__(self):
@@ -24,12 +24,23 @@ class ScriptLogger:
 		ts = now_datetime().strftime("%H:%M:%S")
 		self._lines.append(f"[{ts}] {level} {' '.join(parts)}")
 
-	def log(self, *args): self._emit("LOG", args)
-	def info(self, *args): self._emit("INFO", args)
-	def warn(self, *args): self._emit("WARN", args)
-	def warning(self, *args): self._emit("WARN", args)
-	def error(self, *args): self._emit("ERROR", args)
-	def debug(self, *args): self._emit("DEBUG", args)
+	def log(self, *args):
+		self._emit("LOG", args)
+
+	def info(self, *args):
+		self._emit("INFO", args)
+
+	def warn(self, *args):
+		self._emit("WARN", args)
+
+	def warning(self, *args):
+		self._emit("WARN", args)
+
+	def error(self, *args):
+		self._emit("ERROR", args)
+
+	def debug(self, *args):
+		self._emit("DEBUG", args)
 
 	def render(self):
 		return "\n".join(self._lines)
@@ -38,6 +49,7 @@ class ScriptLogger:
 # ---------------------------------------------------------------------------
 # State proxy — injected into script event as e.state
 # ---------------------------------------------------------------------------
+
 
 class ScannerStateProxy:
 	def __init__(self, state_dict):
@@ -83,6 +95,7 @@ class ScannerStateProxy:
 # Scan event — wraps frappe._dict with helper methods
 # ---------------------------------------------------------------------------
 
+
 class ScanEvent(frappe._dict):
 	def set_workplace(self, workplace_name):
 		frappe.db.set_value("Scanner", self.scanner.name, "workplace", workplace_name)
@@ -96,6 +109,7 @@ class ScanEvent(frappe._dict):
 # ---------------------------------------------------------------------------
 # Redis state helpers
 # ---------------------------------------------------------------------------
+
 
 def _state_key(scanner_name):
 	return f"scanner_state:{scanner_name}"
@@ -147,6 +161,7 @@ def _persist_state(scanner_name, state_proxy, timeout):
 # Subflow entries — simple per-state subflow switch (no stack)
 # ---------------------------------------------------------------------------
 
+
 def _load_subflow_entries(script_name):
 	return frappe.get_all(
 		"Workplace Script Subflow Entry",
@@ -174,6 +189,7 @@ def _subflow_initial_state(subflow_name):
 	from erpnext.devices.doctype.workplace_script.workplace_script import (
 		_resolve_default_snapshot,
 	)
+
 	doc = frappe.get_cached_doc("Workplace Script", subflow_name)
 	snap = _resolve_default_snapshot(doc)
 	for s in snap.get("states", []) or []:
@@ -224,6 +240,7 @@ def _enter_subflow(state_proxy, target_subflow):
 # Public endpoint
 # ---------------------------------------------------------------------------
 
+
 @frappe.whitelist(allow_guest=True)
 def handle_scan(scanner_key=None, data=None):
 	t_start = time.perf_counter()
@@ -251,18 +268,20 @@ def handle_scan(scanner_key=None, data=None):
 
 	workplace_doc = frappe.get_doc("Workplace", scanner.workplace) if scanner.workplace else None
 
-	event = ScanEvent({
-		"data": data,
-		"scan_type": scan_type,
-		"doc": scan_ctx.get("doc"),
-		"item_code": scan_ctx.get("item_code"),
-		"barcode": scan_ctx.get("barcode"),
-		"scanner": scanner,
-		"workplace": workplace_doc,
-		"employee": scanner.employee,
-		"state": state_proxy,
-		"logger": logger,
-	})
+	event = ScanEvent(
+		{
+			"data": data,
+			"scan_type": scan_type,
+			"doc": scan_ctx.get("doc"),
+			"item_code": scan_ctx.get("item_code"),
+			"barcode": scan_ctx.get("barcode"),
+			"scanner": scanner,
+			"workplace": workplace_doc,
+			"employee": scanner.employee,
+			"state": state_proxy,
+			"logger": logger,
+		}
+	)
 
 	workplace_script = _get_workplace_script(scanner.workplace)
 	if not workplace_script:
@@ -277,6 +296,7 @@ def handle_scan(scanner_key=None, data=None):
 		from erpnext.devices.doctype.device_script.device_script import (
 			get_active_scripts,
 		)
+
 		scanner_scripts = get_active_scripts("Scanner")
 		scripts_ns = _build_scripts_namespace(scanner_scripts)
 
@@ -306,9 +326,7 @@ def handle_scan(scanner_key=None, data=None):
 		if result:
 			message = result.get("message")
 			if result.get("templateData") is not None:
-				message = _apply_message_template(
-					scanner, data, result.get("templateData")
-				)
+				message = _apply_message_template(scanner, data, result.get("templateData"))
 
 			total_ms = int((time.perf_counter() - t_start) * 1000)
 			_update_scan_log(
@@ -331,26 +349,40 @@ def handle_scan(scanner_key=None, data=None):
 				image=result.get("image"),
 				workplace=scanner.workplace,
 				employee=scanner.employee,
-				state=state_proxy._next.get("state") if state_proxy._next else state_proxy.name if not state_proxy._cleared else None,
+				state=state_proxy._next.get("state")
+				if state_proxy._next
+				else state_proxy.name
+				if not state_proxy._cleared
+				else None,
 				scan_log=scan_log_row,
 			)
 
 		total_ms = int((time.perf_counter() - t_start) * 1000)
-		_update_scan_log(scanner, scan_log_row, status="Error",
-						error_message="on_scan handler not found or returned None",
-						resolve_ms=resolve_ms, script_ms=script_ms, total_ms=total_ms,
-						script_logs=logger.render() or None)
+		_update_scan_log(
+			scanner,
+			scan_log_row,
+			status="Error",
+			error_message="on_scan handler not found or returned None",
+			resolve_ms=resolve_ms,
+			script_ms=script_ms,
+			total_ms=total_ms,
+			script_logs=logger.render() or None,
+		)
 		frappe.db.commit()
-		return _resp(success=False,
-					error="on_scan handler not found or returned None",
-					scan_log=scan_log_row)
+		return _resp(success=False, error="on_scan handler not found or returned None", scan_log=scan_log_row)
 
 	except Exception as e:
 		_persist_state(scanner.name, state_proxy, state_timeout)
 		total_ms = int((time.perf_counter() - t_start) * 1000)
-		_update_scan_log(scanner, scan_log_row, status="Error", error_message=str(e),
-						resolve_ms=resolve_ms, total_ms=total_ms,
-						script_logs=logger.render() or None)
+		_update_scan_log(
+			scanner,
+			scan_log_row,
+			status="Error",
+			error_message=str(e),
+			resolve_ms=resolve_ms,
+			total_ms=total_ms,
+			script_logs=logger.render() or None,
+		)
 		frappe.db.commit()
 		return _resp(success=False, error=str(e), scan_log=scan_log_row)
 
@@ -358,6 +390,7 @@ def handle_scan(scanner_key=None, data=None):
 # ---------------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------------
+
 
 def _authenticate(scanner_key):
 	from erpnext.devices.doctype.scanner.scanner import compute_auth_token
@@ -400,6 +433,7 @@ def _impersonate(employee_name):
 # Scan log (child table on Scanner doc)
 # ---------------------------------------------------------------------------
 
+
 def _create_scan_log(scanner, data, scanner_state=None):
 	row_name = scanner.add_scan_log(
 		timestamp=now_datetime(),
@@ -413,9 +447,20 @@ def _create_scan_log(scanner, data, scanner_state=None):
 
 def _update_scan_log(scanner, row_name, **kwargs):
 	updates = {}
-	for key in ("status", "resolved_action", "scanner_mode", "scanner_state",
-				"target_doctype", "target_document", "result_message", "error_message",
-				"resolve_ms", "script_ms", "total_ms", "script_logs"):
+	for key in (
+		"status",
+		"resolved_action",
+		"scanner_mode",
+		"scanner_state",
+		"target_doctype",
+		"target_document",
+		"result_message",
+		"error_message",
+		"resolve_ms",
+		"script_ms",
+		"total_ms",
+		"script_logs",
+	):
 		if key in kwargs and kwargs[key] is not None:
 			updates[key] = kwargs[key]
 	if updates:
@@ -425,6 +470,7 @@ def _update_scan_log(scanner, row_name, **kwargs):
 # ---------------------------------------------------------------------------
 # Resolution: what was scanned?
 # ---------------------------------------------------------------------------
+
 
 def _resolve_scan(data):
 	wp = frappe.db.get_value("Workplace", {"barcode": data}, "name")
@@ -452,7 +498,11 @@ def _resolve_scan(data):
 
 	item_barcode = frappe.db.get_value("Item Barcode", {"barcode": data}, "parent")
 	if item_barcode:
-		return "item", {"doc": frappe.get_doc("Item", item_barcode), "item_code": item_barcode, "barcode": data}
+		return "item", {
+			"doc": frappe.get_doc("Item", item_barcode),
+			"item_code": item_barcode,
+			"barcode": data,
+		}
 
 	if frappe.db.exists("Item", data):
 		return "item", {"doc": frappe.get_doc("Item", data), "item_code": data}
@@ -464,11 +514,12 @@ def _resolve_scan(data):
 # Script execution
 # ---------------------------------------------------------------------------
 
+
 def _build_scripts_namespace(scanner_scripts):
 	scripts = frappe._dict()
 	for ss in scanner_scripts:
 		ns = {"frappe": frappe, "json": json}
-		exec(ss.script, ns)  # noqa: S102
+		exec(ss.script, ns)
 		key = ss.script_name.lower().replace(" ", "_").replace("-", "_")
 		scripts[key] = frappe._dict(ns)
 	return scripts
@@ -478,9 +529,10 @@ def _execute_workplace_script(workplace_script, event, scripts):
 	from erpnext.devices.doctype.workplace_script.workplace_script import (
 		_resolve_default_snapshot,
 	)
+
 	ws_snap = _resolve_default_snapshot(workplace_script)
 	ws_ns = {"frappe": frappe, "json": json, "scripts": scripts}
-	exec(ws_snap.get("script", "") or "", ws_ns)  # noqa: S102
+	exec(ws_snap.get("script", "") or "", ws_ns)
 
 	handler = ws_ns.get("on_scan")
 	if not handler:
@@ -491,6 +543,7 @@ def _execute_workplace_script(workplace_script, event, scripts):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _apply_message_template(scanner, scanned_data, template_data):
 	config = scanner.get_configuration()
@@ -518,9 +571,20 @@ def _apply_message_template(scanner, scanned_data, template_data):
 
 def _resp(success=True, **kwargs):
 	result = {"success": success}
-	for key in ("action", "message", "error", "prompt", "mode",
-				"scan_log", "target_doctype", "target_document",
-				"workplace", "employee", "image", "state"):
+	for key in (
+		"action",
+		"message",
+		"error",
+		"prompt",
+		"mode",
+		"scan_log",
+		"target_doctype",
+		"target_document",
+		"workplace",
+		"employee",
+		"image",
+		"state",
+	):
 		if key in kwargs:
 			result[key] = kwargs[key]
 	return result
@@ -530,9 +594,12 @@ def _resp(success=True, **kwargs):
 # Scheduled job — runs every 5 minutes
 # ---------------------------------------------------------------------------
 
+
 def expire_scanner_sessions():
 	now = time.time()
-	scanners = frappe.get_all("Scanner", filters={"is_active": 1}, fields=["name", "scanner_configuration", "employee", "workplace"])
+	scanners = frappe.get_all(
+		"Scanner", filters={"is_active": 1}, fields=["name", "scanner_configuration", "employee", "workplace"]
+	)
 
 	for row in scanners:
 		scanner_name = row.name
@@ -550,7 +617,9 @@ def expire_scanner_sessions():
 		if last_active is not None and (now - last_active) > idle_timeout:
 			if row.employee or row.workplace:
 				frappe.db.set_value("Scanner", scanner_name, {"employee": None, "workplace": None})
-				frappe.logger().info(f"Scanner session expired: {scanner_name} (idle {int(now - last_active)}s > {idle_timeout}s)")
+				frappe.logger().info(
+					f"Scanner session expired: {scanner_name} (idle {int(now - last_active)}s > {idle_timeout}s)"
+				)
 
 		state_raw = frappe.cache().get_value(_state_key(scanner_name))
 		if state_raw:
@@ -558,6 +627,8 @@ def expire_scanner_sessions():
 			updated_at = state.get("updated_at", 0)
 			if (now - updated_at) > state_timeout:
 				_clear_state(scanner_name)
-				frappe.logger().info(f"Scanner state expired: {scanner_name} (idle {int(now - updated_at)}s > {state_timeout}s)")
+				frappe.logger().info(
+					f"Scanner state expired: {scanner_name} (idle {int(now - updated_at)}s > {state_timeout}s)"
+				)
 
 	frappe.db.commit()

@@ -13,7 +13,9 @@ def execute():
 	if frappe.db.exists("DocType", "Scanner Script Version") and not frappe.db.exists(
 		"DocType", "Device Script Version"
 	):
-		frappe.rename_doc("DocType", "Scanner Script Version", "Device Script Version", force=True, merge=False)
+		frappe.rename_doc(
+			"DocType", "Scanner Script Version", "Device Script Version", force=True, merge=False
+		)
 
 	if frappe.db.exists("DocType", "Scanner Script") and not frappe.db.exists("DocType", "Device Script"):
 		frappe.rename_doc("DocType", "Scanner Script", "Device Script", force=True, merge=False)

@@ -16,26 +16,24 @@ def generate_serial_numbers_for_pr(purchase_receipt_name):
 			continue
 
 		item_details = frappe.get_cached_value(
-			"Item", item.item_code,
+			"Item",
+			item.item_code,
 			["has_serial_no", "serial_no_series", "serial_number_template"],
-			as_dict=True
+			as_dict=True,
 		)
 		if not item_details or not item_details.has_serial_no:
 			continue
 
 		serial_no_series = item_details.serial_no_series
 		if not serial_no_series:
-			frappe.throw(
-				_("Item {0} has no Serial No Series configured").format(item.item_code)
-			)
+			frappe.throw(_("Item {0} has no Serial No Series configured").format(item.item_code))
 
 		if item_details.serial_number_template and "{ATTR:" in (serial_no_series or ""):
 			from erpnext.stock.doctype.serial_number_template.serial_number_template import (
 				resolve_series_for_item,
 			)
-			serial_no_series = resolve_series_for_item(
-				item_details.serial_number_template, item.item_code
-			)
+
+			serial_no_series = resolve_series_for_item(item_details.serial_number_template, item.item_code)
 
 		from erpnext.stock.serial_batch_bundle import SerialBatchCreation
 
@@ -43,31 +41,35 @@ def generate_serial_numbers_for_pr(purchase_receipt_name):
 		if qty <= 0:
 			continue
 
-		sbc = SerialBatchCreation({
-			"item_code": item.item_code,
-			"warehouse": item.warehouse,
-			"voucher_type": "Purchase Receipt",
-			"voucher_no": "",
-			"posting_date": pr.posting_date,
-			"posting_time": pr.posting_time,
-			"company": pr.company,
-			"qty": qty,
-			"total_qty": qty,
-			"type_of_transaction": "Inward",
-			"serial_no_series": serial_no_series,
-			"do_not_submit": True,
-			"ignore_sabb_validation": True,
-		})
+		sbc = SerialBatchCreation(
+			{
+				"item_code": item.item_code,
+				"warehouse": item.warehouse,
+				"voucher_type": "Purchase Receipt",
+				"voucher_no": "",
+				"posting_date": pr.posting_date,
+				"posting_time": pr.posting_time,
+				"company": pr.company,
+				"qty": qty,
+				"total_qty": qty,
+				"type_of_transaction": "Inward",
+				"serial_no_series": serial_no_series,
+				"do_not_submit": True,
+				"ignore_sabb_validation": True,
+			}
+		)
 		bundle = sbc.make_serial_and_batch_bundle()
 		if bundle and bundle.name:
 			frappe.db.set_value("Serial and Batch Bundle", bundle.name, "voucher_no", pr.name)
 			item.db_set("serial_and_batch_bundle", bundle.name, update_modified=False)
 			item.db_set("use_serial_batch_fields", 0, update_modified=False)
-			created_bundles.append({
-				"item_code": item.item_code,
-				"bundle": bundle.name,
-				"qty": int(qty),
-			})
+			created_bundles.append(
+				{
+					"item_code": item.item_code,
+					"bundle": bundle.name,
+					"qty": int(qty),
+				}
+			)
 
 	if created_bundles:
 		frappe.db.commit()
@@ -90,11 +92,13 @@ def get_serial_numbers_for_pr(purchase_receipt_name):
 			order_by="idx asc",
 		)
 		for entry in entries:
-			result.append({
-				"item_code": item.item_code,
-				"serial_no": entry.serial_no,
-				"item_name": item.item_name,
-			})
+			result.append(
+				{
+					"item_code": item.item_code,
+					"serial_no": entry.serial_no,
+					"item_name": item.item_name,
+				}
+			)
 	return result
 
 
@@ -120,12 +124,15 @@ def create_bulk_quality_inspection(purchase_receipt_name):
 				)
 			)
 
-		existing_qi = frappe.db.exists("Quality Inspection", {
-			"reference_type": "Purchase Receipt",
-			"reference_name": pr.name,
-			"item_code": item.item_code,
-			"docstatus": ["!=", 2],
-		})
+		existing_qi = frappe.db.exists(
+			"Quality Inspection",
+			{
+				"reference_type": "Purchase Receipt",
+				"reference_name": pr.name,
+				"item_code": item.item_code,
+				"docstatus": ["!=", 2],
+			},
+		)
 		if existing_qi:
 			created_qis.append(existing_qi)
 			continue
@@ -162,10 +169,13 @@ def create_bulk_quality_inspection(purchase_receipt_name):
 			qi.quality_inspection_template = qi_template
 
 		for entry in entries:
-			qi.append("serial_inspections", {
-				"serial_no": entry.serial_no,
-				"status": "Pass",
-			})
+			qi.append(
+				"serial_inspections",
+				{
+					"serial_no": entry.serial_no,
+					"status": "Pass",
+				},
+			)
 
 		qi.insert(ignore_permissions=True)
 		created_qis.append(qi.name)
@@ -266,8 +276,7 @@ def update_pr_quantities_from_qi(quality_inspection_name):
 
 			if failed_serials and item.serial_and_batch_bundle:
 				_move_serials_to_rejected_bundle(
-					item, failed_serials, pr.name, pr.posting_date,
-					pr.posting_time, pr.company
+					item, failed_serials, pr.name, pr.posting_date, pr.posting_time, pr.company
 				)
 			break
 
@@ -299,10 +308,13 @@ def _move_serials_to_rejected_bundle(item, failed_serials, pr_name, posting_date
 		return
 
 	# Remove failed serials from the main bundle
-	frappe.db.delete("Serial and Batch Entry", {
-		"parent": main_bundle,
-		"serial_no": ("in", failed_serials),
-	})
+	frappe.db.delete(
+		"Serial and Batch Entry",
+		{
+			"parent": main_bundle,
+			"serial_no": ("in", failed_serials),
+		},
+	)
 
 	# Update the main bundle total_qty
 	remaining = frappe.db.count("Serial and Batch Entry", {"parent": main_bundle})
@@ -328,12 +340,15 @@ def _move_serials_to_rejected_bundle(item, failed_serials, pr_name, posting_date
 	rejected_bundle.is_rejected = 1
 
 	for entry in failed_entries:
-		rejected_bundle.append("entries", {
-			"serial_no": entry.serial_no,
-			"batch_no": entry.batch_no,
-			"incoming_rate": entry.incoming_rate or 0,
-			"qty": 1,
-		})
+		rejected_bundle.append(
+			"entries",
+			{
+				"serial_no": entry.serial_no,
+				"batch_no": entry.batch_no,
+				"incoming_rate": entry.incoming_rate or 0,
+				"qty": 1,
+			},
+		)
 
 	rejected_bundle.flags.ignore_validate = True
 	rejected_bundle.save()
@@ -346,6 +361,7 @@ def get_label_templates_for_items(item_codes):
 	"""Return label templates configured on items. item_codes is a JSON list.
 	Falls back to the template item's label_templates for variants."""
 	import json
+
 	if isinstance(item_codes, str):
 		item_codes = json.loads(item_codes)
 	if not item_codes:
@@ -357,10 +373,12 @@ def get_label_templates_for_items(item_codes):
 	)
 	result = {}
 	for r in rows:
-		result.setdefault(r.parent, []).append({
-			"label_template": r.label_template,
-			"label_printer": r.label_printer,
-		})
+		result.setdefault(r.parent, []).append(
+			{
+				"label_template": r.label_template,
+				"label_printer": r.label_printer,
+			}
+		)
 
 	missing = [ic for ic in item_codes if ic not in result]
 	if missing:
@@ -381,10 +399,12 @@ def get_label_templates_for_items(item_codes):
 			)
 			templates_by_parent = {}
 			for r in template_rows:
-				templates_by_parent.setdefault(r.parent, []).append({
-					"label_template": r.label_template,
-					"label_printer": r.label_printer,
-				})
+				templates_by_parent.setdefault(r.parent, []).append(
+					{
+						"label_template": r.label_template,
+						"label_printer": r.label_printer,
+					}
+				)
 			for item_code, tmpl_code in template_map.items():
 				if tmpl_code in templates_by_parent:
 					result[item_code] = templates_by_parent[tmpl_code]

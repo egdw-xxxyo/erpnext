@@ -198,6 +198,7 @@ class OTDR(Document):
 
 	def get_configuration_payload(self):
 		import json
+
 		cfg = self.get_configuration()
 		extra = cfg.get("extra_config")
 		if extra:
@@ -255,13 +256,17 @@ class OTDR(Document):
 		if auto_sync:
 			try:
 				from erpnext.devices.doctype.device_script.device_script import run_scripts_for_event
-				script_results = run_scripts_for_event(
-					"Reflectometer",
-					trigger_event="SOR Uploaded",
-					otdr=self,
-					log_entry=row,
-					payload_str=kwargs.get("payload"),
-				) or []
+
+				script_results = (
+					run_scripts_for_event(
+						"Reflectometer",
+						trigger_event="SOR Uploaded",
+						otdr=self,
+						log_entry=row,
+						payload_str=kwargs.get("payload"),
+					)
+					or []
+				)
 			except Exception as e:
 				frappe.log_error(title="Reflectometer script dispatch failed")
 				script_results = [{"script": "(dispatch)", "status": "Error", "errors": [str(e)]}]

@@ -60,16 +60,22 @@ def notify_new_message(doc, method=None):
 
 def _users_with_wa_access():
 	"""Enabled users holding a role that can read WhatsApp Message."""
-	roles = frappe.get_all(
-		"Custom DocPerm",
-		filters={"parent": "WhatsApp Message", "read": 1},
-		pluck="role",
-	) or []
-	roles += frappe.get_all(
-		"DocPerm",
-		filters={"parent": "WhatsApp Message", "read": 1},
-		pluck="role",
-	) or []
+	roles = (
+		frappe.get_all(
+			"Custom DocPerm",
+			filters={"parent": "WhatsApp Message", "read": 1},
+			pluck="role",
+		)
+		or []
+	)
+	roles += (
+		frappe.get_all(
+			"DocPerm",
+			filters={"parent": "WhatsApp Message", "read": 1},
+			pluck="role",
+		)
+		or []
+	)
 	if not roles:
 		return []
 
@@ -79,9 +85,7 @@ def _users_with_wa_access():
 		pluck="parent",
 	)
 	users = set(users) | {"Administrator"}
-	enabled = set(
-		frappe.get_all("User", filters={"enabled": 1, "name": ["in", list(users)]}, pluck="name")
-	)
+	enabled = set(frappe.get_all("User", filters={"enabled": 1, "name": ["in", list(users)]}, pluck="name"))
 	return enabled
 
 
@@ -110,7 +114,10 @@ def _ensure_chats():
 	for number in numbers - existing:
 		msg = frappe.get_all(
 			"WhatsApp Message",
-			filters=[["WhatsApp Message", "from", "=", number], ["WhatsApp Message", "type", "=", "Incoming"]],
+			filters=[
+				["WhatsApp Message", "from", "=", number],
+				["WhatsApp Message", "type", "=", "Incoming"],
+			],
 			fields=["name"],
 			order_by="creation desc",
 			limit=1,
@@ -270,9 +277,7 @@ def mark_read(phone, upto=None):
 
 	chat = frappe.db.exists("WhatsApp Chat", {"phone": phone})
 	if chat:
-		current = frappe.db.get_value(
-			"WhatsApp Chat Read", f"{chat}::{frappe.session.user}", "last_read_on"
-		)
+		current = frappe.db.get_value("WhatsApp Chat Read", f"{chat}::{frappe.session.user}", "last_read_on")
 		if current and str(current) >= str(ts):
 			# Never move the cursor backwards.
 			return {"last_read_on": str(current)}
@@ -332,9 +337,7 @@ def get_chat_context(phone):
 		key = (row.link_doctype, row.link_name)
 		if row.link_name and key not in seen:
 			seen.add(key)
-			linked.append(
-				{"doctype": row.link_doctype, "name": row.link_name, "label": row.link_name}
-			)
+			linked.append({"doctype": row.link_doctype, "name": row.link_name, "label": row.link_name})
 
 	derived = []
 	if chat.contact:
@@ -421,9 +424,11 @@ def get_chat_overview(phone, limit=200):
 			if len(links) < limit:
 				links.append(dict(item, url=url))
 
-	muted = frappe.db.get_value(
-		"WhatsApp Chat Read", f"{chat.name}::{frappe.session.user}", "muted"
-	) if chat else 0
+	muted = (
+		frappe.db.get_value("WhatsApp Chat Read", f"{chat.name}::{frappe.session.user}", "muted")
+		if chat
+		else 0
+	)
 
 	return {
 		"phone": phone,
@@ -458,9 +463,7 @@ def unlink_entity(phone, link_doctype, link_name):
 	chat = _chat_for_phone(phone)
 	if not chat:
 		frappe.throw(_("Chat not found"))
-	chat.links = [
-		r for r in chat.links if not (r.link_doctype == link_doctype and r.link_name == link_name)
-	]
+	chat.links = [r for r in chat.links if not (r.link_doctype == link_doctype and r.link_name == link_name)]
 	chat.save(ignore_permissions=True)
 	return get_chat_context(phone)
 
@@ -657,8 +660,17 @@ def _ensure_whatsapp_audio(attach):
 	try:
 		subprocess.run(
 			[
-				"ffmpeg", "-y", "-i", src_path,
-				"-vn", "-c:a", "libopus", "-b:a", "32k", "-ar", "48000",
+				"ffmpeg",
+				"-y",
+				"-i",
+				src_path,
+				"-vn",
+				"-c:a",
+				"libopus",
+				"-b:a",
+				"32k",
+				"-ar",
+				"48000",
 				out_path,
 			],
 			check=True,

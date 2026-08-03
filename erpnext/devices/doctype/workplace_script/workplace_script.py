@@ -134,12 +134,15 @@ class WorkplaceScript(Document):
 
 	def _ensure_versions(self):
 		if not self.versions:
-			self.append("versions", {
-				"version": "v1",
-				"is_default": 1,
-				"snapshot": json.dumps(_capture_working_copy(self)),
-				"created_on": frappe.utils.now_datetime(),
-			})
+			self.append(
+				"versions",
+				{
+					"version": "v1",
+					"is_default": 1,
+					"snapshot": json.dumps(_capture_working_copy(self)),
+					"created_on": frappe.utils.now_datetime(),
+				},
+			)
 			self.default_version = "v1"
 			self.viewing_version = "v1"
 
@@ -255,7 +258,7 @@ def run_state(script_name, e, scripts=None):
 
 	try:
 		ns = {"frappe": frappe, "scripts": scripts, "e": e}
-		exec(code, ns)  # noqa: S102
+		exec(code, ns)
 
 		handler = ns.get("on_scan")
 		if not handler:

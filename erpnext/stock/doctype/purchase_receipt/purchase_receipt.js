@@ -50,7 +50,7 @@ frappe.ui.form.on("Purchase Receipt", {
 
 	after_save: function (frm) {
 		if (frm.doc.docstatus !== 0) return;
-		let has_unbundled = (frm.doc.items || []).some(item => !item.serial_and_batch_bundle);
+		let has_unbundled = (frm.doc.items || []).some((item) => !item.serial_and_batch_bundle);
 		if (!has_unbundled) return;
 		frappe.call({
 			method: "erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils.generate_serial_numbers_for_pr",
@@ -69,7 +69,7 @@ frappe.ui.form.on("Purchase Receipt", {
 		}
 
 		if (frm.doc.docstatus === 0) {
-			let has_serial_items = (frm.doc.items || []).some(item => item.serial_and_batch_bundle);
+			let has_serial_items = (frm.doc.items || []).some((item) => item.serial_and_batch_bundle);
 			if (has_serial_items) {
 				frm.page.add_menu_item(__("Print Labels"), function () {
 					frm.events.print_serial_labels(frm);
@@ -78,25 +78,29 @@ frappe.ui.form.on("Purchase Receipt", {
 		}
 
 		if (frm.doc.name && !frm.doc.is_new && frm.doc.docstatus !== 2) {
-			frm.add_custom_button(__("Scan Package"), function () {
-				frappe.prompt(
-					{ label: __("Package or Barcode"), fieldname: "package", fieldtype: "Data", reqd: 1 },
-					function (values) {
-						frappe.call({
-							method: "erpnext.stock.doctype.package.package.add_package_to_purchase_receipt",
-							args: { package_name: values.package, purchase_receipt: frm.doc.name },
-							callback: function (r) {
-								if (r.message) {
-									frappe.show_alert({ message: r.message.message, indicator: "green" });
-									frm.reload_doc();
-								}
-							},
-						});
-					},
-					__("Scan Package"),
-					__("Add")
-				);
-			}, __("Create"));
+			frm.add_custom_button(
+				__("Scan Package"),
+				function () {
+					frappe.prompt(
+						{ label: __("Package or Barcode"), fieldname: "package", fieldtype: "Data", reqd: 1 },
+						function (values) {
+							frappe.call({
+								method: "erpnext.stock.doctype.package.package.add_package_to_purchase_receipt",
+								args: { package_name: values.package, purchase_receipt: frm.doc.name },
+								callback: function (r) {
+									if (r.message) {
+										frappe.show_alert({ message: r.message.message, indicator: "green" });
+										frm.reload_doc();
+									}
+								},
+							});
+						},
+						__("Scan Package"),
+						__("Add")
+					);
+				},
+				__("Create")
+			);
 		}
 
 		// Show button to navigate to linked Quality Inspections
@@ -105,7 +109,11 @@ frappe.ui.form.on("Purchase Receipt", {
 				method: "frappe.client.get_list",
 				args: {
 					doctype: "Quality Inspection",
-					filters: { reference_name: frm.doc.name, reference_type: "Purchase Receipt", docstatus: ["!=", 2] },
+					filters: {
+						reference_name: frm.doc.name,
+						reference_type: "Purchase Receipt",
+						docstatus: ["!=", 2],
+					},
 					fields: ["name", "item_code", "status", "docstatus"],
 					order_by: "creation desc",
 				},
@@ -114,12 +122,12 @@ frappe.ui.form.on("Purchase Receipt", {
 						let qis = r.message;
 						if (qis.length === 1) {
 							let qi = qis[0];
-							let indicator = qi.docstatus === 1
-								? (qi.status === "Accepted" ? "green" : "red")
-								: "orange";
-							let label = qi.docstatus === 1
-								? __("Quality Inspection") + ": " + __(qi.status)
-								: __("Quality Inspection") + " (" + __("Draft") + ")";
+							let indicator =
+								qi.docstatus === 1 ? (qi.status === "Accepted" ? "green" : "red") : "orange";
+							let label =
+								qi.docstatus === 1
+									? __("Quality Inspection") + ": " + __(qi.status)
+									: __("Quality Inspection") + " (" + __("Draft") + ")";
 							frm.dashboard.add_indicator(label, indicator);
 							frm.add_custom_button(
 								__("Quality Inspection"),
@@ -129,12 +137,16 @@ frappe.ui.form.on("Purchase Receipt", {
 								__("View")
 							);
 						} else {
-							let submitted = qis.filter(q => q.docstatus === 1);
-							let draft = qis.filter(q => q.docstatus === 0);
+							let submitted = qis.filter((q) => q.docstatus === 1);
+							let draft = qis.filter((q) => q.docstatus === 0);
 							if (submitted.length) {
-								let all_accepted = submitted.every(q => q.status === "Accepted");
+								let all_accepted = submitted.every((q) => q.status === "Accepted");
 								frm.dashboard.add_indicator(
-									__("Quality Inspections") + ": " + submitted.length + " " + (all_accepted ? __("Accepted") : __("Mixed")),
+									__("Quality Inspections") +
+										": " +
+										submitted.length +
+										" " +
+										(all_accepted ? __("Accepted") : __("Mixed")),
 									all_accepted ? "green" : "orange"
 								);
 							}
@@ -163,7 +175,7 @@ frappe.ui.form.on("Purchase Receipt", {
 		// Create QI button — works on both draft and submitted PRs
 		if (frm.doc.name && !frm.doc.__islocal) {
 			let items_needing_qi = (frm.doc.items || []).filter(
-				item => item.serial_and_batch_bundle && !item.quality_inspection
+				(item) => item.serial_and_batch_bundle && !item.quality_inspection
 			);
 			if (items_needing_qi.length) {
 				frm.add_custom_button(
@@ -183,17 +195,19 @@ frappe.ui.form.on("Purchase Receipt", {
 							});
 						} else {
 							// Multiple items — let user pick
-							let options = items_needing_qi.map(i => i.item_code);
+							let options = items_needing_qi.map((i) => i.item_code);
 							frappe.prompt(
-								[{
-									label: __("Item"),
-									fieldname: "item_code",
-									fieldtype: "Select",
-									options: options.join("\n"),
-									reqd: 1,
-								}],
+								[
+									{
+										label: __("Item"),
+										fieldname: "item_code",
+										fieldtype: "Select",
+										options: options.join("\n"),
+										reqd: 1,
+									},
+								],
 								function (values) {
-									let item = items_needing_qi.find(i => i.item_code === values.item_code);
+									let item = items_needing_qi.find((i) => i.item_code === values.item_code);
 									frappe.new_doc("Quality Inspection", {
 										inspection_type: "Incoming",
 										reference_type: "Purchase Receipt",
@@ -331,7 +345,7 @@ frappe.ui.form.on("Purchase Receipt", {
 					return;
 				}
 				let by_item = {};
-				r.message.forEach(s => {
+				r.message.forEach((s) => {
 					if (!by_item[s.item_code]) by_item[s.item_code] = { item_name: s.item_name, serials: [] };
 					by_item[s.item_code].serials.push(s.serial_no);
 				});
@@ -341,7 +355,9 @@ frappe.ui.form.on("Purchase Receipt", {
 					args: { item_codes: JSON.stringify(item_codes) },
 					callback: function (lr) {
 						let templates_by_item = lr.message || {};
-						let items = item_codes.filter(c => templates_by_item[c] && templates_by_item[c].length);
+						let items = item_codes.filter(
+							(c) => templates_by_item[c] && templates_by_item[c].length
+						);
 						if (!items.length) {
 							frappe.msgprint(__("No items have label templates configured"));
 							return;

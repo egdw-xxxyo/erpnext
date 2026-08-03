@@ -44,7 +44,8 @@ frappe.ui.form.on("Serial No", {
 			args: { item_codes: JSON.stringify([frm.doc.item_code]) },
 			callback: function (r) {
 				let templates_by_item = r.message || {};
-				if (!templates_by_item[frm.doc.item_code] || !templates_by_item[frm.doc.item_code].length) return;
+				if (!templates_by_item[frm.doc.item_code] || !templates_by_item[frm.doc.item_code].length)
+					return;
 				frm.page.add_menu_item(__("Print Labels"), function () {
 					let by_item = {};
 					by_item[frm.doc.item_code] = {

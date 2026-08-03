@@ -17,13 +17,16 @@ def execute():
 
 	# Migrate existing Scanner Scan Log records into child table rows
 	if frappe.db.exists("DocType", "Scanner Scan Log"):
-		logs = frappe.db.sql("""
+		logs = frappe.db.sql(
+			"""
 			SELECT scanner, timestamp, raw_data, status, resolved_action,
 				scanner_mode, target_doctype, target_document,
 				result_message, error_message
 			FROM `tabScanner Scan Log`
 			ORDER BY timestamp ASC
-		""", as_dict=True)
+		""",
+			as_dict=True,
+		)
 
 		scanners = {}
 		for log in logs:
@@ -41,16 +44,19 @@ def execute():
 
 			doc = frappe.get_doc("Scanner", scanner_name)
 			for log in scanner_logs:
-				doc.append("scan_logs", {
-					"timestamp": log.get("timestamp"),
-					"raw_data": log.get("raw_data"),
-					"status": log.get("status"),
-					"resolved_action": log.get("resolved_action"),
-					"target_doctype": log.get("target_doctype"),
-					"target_document": log.get("target_document"),
-					"result_message": log.get("result_message"),
-					"error_message": log.get("error_message"),
-				})
+				doc.append(
+					"scan_logs",
+					{
+						"timestamp": log.get("timestamp"),
+						"raw_data": log.get("raw_data"),
+						"status": log.get("status"),
+						"resolved_action": log.get("resolved_action"),
+						"target_doctype": log.get("target_doctype"),
+						"target_document": log.get("target_document"),
+						"result_message": log.get("result_message"),
+						"error_message": log.get("error_message"),
+					},
+				)
 			doc.flags.ignore_permissions = True
 			doc.save()
 

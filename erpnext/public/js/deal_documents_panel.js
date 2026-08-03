@@ -27,9 +27,7 @@ erpnext.deal_documents.render = async function (frm) {
 				(f) =>
 					`<div class="wa-doc-row"><a href="${frappe.utils.escape_html(
 						f.file_url
-					)}" target="_blank">${frappe.utils.escape_html(
-						f.file_name || f.file_url
-					)}</a></div>`
+					)}" target="_blank">${frappe.utils.escape_html(f.file_name || f.file_url)}</a></div>`
 			)
 			.join("") ||
 		`<div class="text-muted" style="font-size:var(--text-sm);">${__("No documents yet")}</div>`;
@@ -61,15 +59,18 @@ erpnext.deal_documents.render = async function (frm) {
 		frm.dashboard.add_section(html, __("Deal Documents"));
 	}
 
-	frm.$wrapper.find(".wa-doc-add").off("click").on("click", () => {
-		new frappe.ui.FileUploader({
-			doctype: "Opportunity",
-			docname: data.opportunity,
-			on_success() {
-				erpnext.deal_documents.render(frm);
-			},
+	frm.$wrapper
+		.find(".wa-doc-add")
+		.off("click")
+		.on("click", () => {
+			new frappe.ui.FileUploader({
+				doctype: "Opportunity",
+				docname: data.opportunity,
+				on_success() {
+					erpnext.deal_documents.render(frm);
+				},
+			});
 		});
-	});
 };
 
 erpnext.deal_documents.DOCTYPES.forEach((dt) => {

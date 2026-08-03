@@ -669,17 +669,22 @@ def _scan_barcode_single(search_value, ctx, set_cache):
 		pkg = frappe.get_doc("Package", pkg_name)
 		pkg_items = []
 		for row in pkg.items:
-			item_info = frappe.get_cached_value(
-				"Item", row.item_code, ("has_batch_no", "has_serial_no"), as_dict=True
-			) or {}
-			pkg_items.append({
-				"item_code": row.item_code,
-				"serial_no": row.serial_no,
-				"batch_no": row.batch_no,
-				"qty": row.qty,
-				"has_batch_no": item_info.get("has_batch_no"),
-				"has_serial_no": item_info.get("has_serial_no"),
-			})
+			item_info = (
+				frappe.get_cached_value(
+					"Item", row.item_code, ("has_batch_no", "has_serial_no"), as_dict=True
+				)
+				or {}
+			)
+			pkg_items.append(
+				{
+					"item_code": row.item_code,
+					"serial_no": row.serial_no,
+					"batch_no": row.batch_no,
+					"qty": row.qty,
+					"has_batch_no": item_info.get("has_batch_no"),
+					"has_serial_no": item_info.get("has_serial_no"),
+				}
+			)
 		package_data = {
 			"package_name": pkg.name,
 			"package_items": pkg_items,

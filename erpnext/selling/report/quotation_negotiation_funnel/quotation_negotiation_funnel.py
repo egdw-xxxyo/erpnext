@@ -13,8 +13,20 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		{"label": _("Opportunity"), "fieldname": "opportunity", "fieldtype": "Link", "options": "Opportunity", "width": 150},
-		{"label": _("Quotation"), "fieldname": "quotation", "fieldtype": "Link", "options": "Quotation", "width": 160},
+		{
+			"label": _("Opportunity"),
+			"fieldname": "opportunity",
+			"fieldtype": "Link",
+			"options": "Opportunity",
+			"width": 150,
+		},
+		{
+			"label": _("Quotation"),
+			"fieldname": "quotation",
+			"fieldtype": "Link",
+			"options": "Quotation",
+			"width": 160,
+		},
 		{"label": _("Versions"), "fieldname": "versions", "fieldtype": "Int", "width": 90},
 		{"label": _("First Total"), "fieldname": "first_total", "fieldtype": "Currency", "width": 120},
 		{"label": _("Final Total"), "fieldname": "final_total", "fieldtype": "Currency", "width": 120},

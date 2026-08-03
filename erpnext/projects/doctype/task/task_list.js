@@ -37,11 +37,7 @@ frappe.listview_settings["Task"] = {
 			!["Completed", "Cancelled"].includes(doc.status) &&
 			frappe.datetime.get_diff(doc.exp_end_date, frappe.datetime.get_today()) < 0
 		) {
-			return [
-				__("Overdue") + " (" + __(doc.status) + ")",
-				"red",
-				"exp_end_date,<,Today",
-			];
+			return [__("Overdue") + " (" + __(doc.status) + ")", "red", "exp_end_date,<,Today"];
 		}
 
 		return [__(doc.status), colors[doc.status], "status,=," + doc.status];

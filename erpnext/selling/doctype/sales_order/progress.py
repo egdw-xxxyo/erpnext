@@ -24,14 +24,16 @@ def get_attachment_progress(sales_order):
 		p = planned.get(code, 0)
 		a = attached.get(code, 0)
 		pct = round(min(a, p) / p * 100, 1) if p else (100.0 if a else 0.0)
-		rows.append({
-			"item_code": code,
-			"planned": p,
-			"attached": a,
-			"remaining": max(p - a, 0),
-			"over": max(a - p, 0) if p else 0,
-			"pct": pct,
-		})
+		rows.append(
+			{
+				"item_code": code,
+				"planned": p,
+				"attached": a,
+				"remaining": max(p - a, 0),
+				"over": max(a - p, 0) if p else 0,
+				"pct": pct,
+			}
+		)
 
 	total_planned = sum(planned.values())
 	total_attached = sum(attached.values())
@@ -99,9 +101,7 @@ def _build_attachment_tree(so):
 		)
 
 	def pkg_meta(name):
-		return frappe.db.get_value(
-			"Package", name, ["status", "bpak", "pallet"], as_dict=True
-		) or {}
+		return frappe.db.get_value("Package", name, ["status", "bpak", "pallet"], as_dict=True) or {}
 
 	seen = set()
 	pallets = []
@@ -116,15 +116,21 @@ def _build_attachment_tree(so):
 		pkg_nodes = []
 		for p in pkgs:
 			seen.add(p.name)
-			pkg_nodes.append({
-				"name": p.name, "status": p.status, "bpak": p.bpak,
-				"items": pkg_items(p.name),
-			})
-		pallets.append({
-			"name": sop.pallet,
-			"status": frappe.db.get_value("Pallet", sop.pallet, "status"),
-			"packages": pkg_nodes,
-		})
+			pkg_nodes.append(
+				{
+					"name": p.name,
+					"status": p.status,
+					"bpak": p.bpak,
+					"items": pkg_items(p.name),
+				}
+			)
+		pallets.append(
+			{
+				"name": sop.pallet,
+				"status": frappe.db.get_value("Pallet", sop.pallet, "status"),
+				"packages": pkg_nodes,
+			}
+		)
 
 	bpaks = []
 	for sob in so.get("bpaks") or []:
@@ -140,10 +146,14 @@ def _build_attachment_tree(so):
 			if p.name in seen:
 				continue
 			seen.add(p.name)
-			pkg_nodes.append({
-				"name": p.name, "status": p.status, "pallet": p.pallet,
-				"items": pkg_items(p.name),
-			})
+			pkg_nodes.append(
+				{
+					"name": p.name,
+					"status": p.status,
+					"pallet": p.pallet,
+					"items": pkg_items(p.name),
+				}
+			)
 		planned = []
 		if not pkg_nodes:
 			planned = frappe.get_all(
@@ -152,12 +162,14 @@ def _build_attachment_tree(so):
 				fields=["item_code", "qty"],
 				order_by="idx asc",
 			)
-		bpaks.append({
-			"name": sob.bpak,
-			"status": frappe.db.get_value("BpAK", sob.bpak, "status"),
-			"packages": pkg_nodes,
-			"planned": planned,
-		})
+		bpaks.append(
+			{
+				"name": sob.bpak,
+				"status": frappe.db.get_value("BpAK", sob.bpak, "status"),
+				"packages": pkg_nodes,
+				"planned": planned,
+			}
+		)
 
 	packages = []
 	for sopkg in so.get("packages") or []:
@@ -165,13 +177,15 @@ def _build_attachment_tree(so):
 			continue
 		seen.add(sopkg.package)
 		meta = pkg_meta(sopkg.package)
-		packages.append({
-			"name": sopkg.package,
-			"status": meta.get("status"),
-			"bpak": meta.get("bpak"),
-			"pallet": meta.get("pallet"),
-			"items": pkg_items(sopkg.package),
-		})
+		packages.append(
+			{
+				"name": sopkg.package,
+				"status": meta.get("status"),
+				"bpak": meta.get("bpak"),
+				"pallet": meta.get("pallet"),
+				"items": pkg_items(sopkg.package),
+			}
+		)
 
 	return {"pallets": pallets, "bpaks": bpaks, "packages": packages}
 

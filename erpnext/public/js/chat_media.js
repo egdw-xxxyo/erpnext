@@ -98,9 +98,7 @@ erpnext.chat_media = {
 			canvas.width = Math.round(bitmap.width * scale);
 			canvas.height = Math.round(bitmap.height * scale);
 			canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-			return await new Promise((resolve) =>
-				canvas.toBlob(resolve, "image/jpeg", 0.8)
-			);
+			return await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
 		} catch (e) {
 			return null;
 		}
@@ -176,9 +174,7 @@ erpnext.chat_media = {
 			$("body").append($bar);
 			const timer = setInterval(() => {
 				const s = Math.floor((Date.now() - started) / 1000);
-				$bar.find(".chat-rec-time").text(
-					`${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
-				);
+				$bar.find(".chat-rec-time").text(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 			}, 250);
 			const cleanup = () => {
 				clearInterval(timer);
@@ -289,7 +285,8 @@ erpnext.chat_media = {
 			$container.data("chat-img-observer", observer);
 		}
 
-		$container.find(".chat-img-el[data-chat-src]")
+		$container
+			.find(".chat-img-el[data-chat-src]")
 			.off("click.chatmedia")
 			.on("click.chatmedia", (e) => {
 				const el = e.currentTarget;
@@ -343,7 +340,8 @@ erpnext.chat_media = {
 			$container.data("chat-enc-observer", observer);
 		}
 
-		$container.find(".chat-img-el[data-chat-enc]")
+		$container
+			.find(".chat-img-el[data-chat-enc]")
 			.off("click.chatmedia")
 			.on("click.chatmedia", async (e) => {
 				const el = e.currentTarget;
@@ -394,8 +392,7 @@ erpnext.chat_media = {
 		$(".chat-lightbox").remove();
 		opts = opts || {};
 		const src = preview_url || full_url;
-		const fname =
-			opts.name || decodeURIComponent((full_url || "").split("/").pop() || "image");
+		const fname = opts.name || decodeURIComponent((full_url || "").split("/").pop() || "image");
 		// An encrypted image has no fetchable URL — the download link is wired up to the
 		// decrypted blob once it exists.
 		const download_href = full_url ? frappe.utils.escape_html(full_url) : "#";
@@ -406,8 +403,8 @@ erpnext.chat_media = {
 					<span class="chat-lightbox-actions">
 						<button class="btn btn-xs btn-default chat-lightbox-original">${__("Show original")}</button>
 						<a class="btn btn-xs btn-default chat-lightbox-download" href="${download_href}" download="${frappe.utils.escape_html(
-							fname
-						)}" target="_blank">${__("Download")}</a>
+			fname
+		)}" target="_blank">${__("Download")}</a>
 						<button class="btn btn-xs btn-default chat-lightbox-close">&times;</button>
 					</span>
 				</div>

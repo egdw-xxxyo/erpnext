@@ -42,23 +42,20 @@ class Package(Document):
 			if frappe.db.get_value("Item", row.item_code, "has_serial_no"):
 				missing.append(f"#{row.idx} {row.item_code}")
 		if missing:
-			frappe.throw(
-				_("Serial No is required for: {0}").format(", ".join(missing))
-			)
+			frappe.throw(_("Serial No is required for: {0}").format(", ".join(missing)))
 
 	def _validate_bpak(self):
 		if self.packing_template and not self.bpak:
 			if frappe.db.get_value("Packing Template", self.packing_template, "bpak_required"):
 				frappe.throw(
-					_("Packing Template {0} requires a BpAK to be selected.").format(
-						self.packing_template
-					)
+					_("Packing Template {0} requires a BpAK to be selected.").format(self.packing_template)
 				)
 		if not self.bpak:
 			return
-		bpak_status, bpak_so = frappe.db.get_value(
-			"BpAK", self.bpak, ["docstatus", "sales_order"]
-		) or (None, None)
+		bpak_status, bpak_so = frappe.db.get_value("BpAK", self.bpak, ["docstatus", "sales_order"]) or (
+			None,
+			None,
+		)
 		if bpak_status is None:
 			frappe.throw(_("BpAK {0} not found").format(self.bpak))
 		if bpak_status == 2:
@@ -81,9 +78,7 @@ class Package(Document):
 
 		invalid = sorted({r.item_code for r in self.items if r.item_code and r.item_code not in planned})
 		if invalid:
-			frappe.throw(
-				_("Items not planned in BpAK {0}: {1}").format(self.bpak, ", ".join(invalid))
-			)
+			frappe.throw(_("Items not planned in BpAK {0}: {1}").format(self.bpak, ", ".join(invalid)))
 
 		current_totals = {}
 		for r in self.items:
@@ -108,14 +103,10 @@ class Package(Document):
 			planned_qty = planned.get(item_code, 0)
 			used = qty + other_totals.get(item_code, 0)
 			if used > planned_qty:
-				exceeded.append(
-					_("{0}: planned {1}, used {2}").format(item_code, planned_qty, used)
-				)
+				exceeded.append(_("{0}: planned {1}, used {2}").format(item_code, planned_qty, used))
 		if exceeded:
 			frappe.throw(
-				_("Quantity exceeds BpAK {0} planned amount: {1}").format(
-					self.bpak, "; ".join(exceeded)
-				)
+				_("Quantity exceeds BpAK {0} planned amount: {1}").format(self.bpak, "; ".join(exceeded))
 			)
 
 	def before_submit(self):
@@ -209,9 +200,7 @@ class Package(Document):
 			self._link_to_purchase_receipt(pr_name)
 
 		for qi_name in touched_qis:
-			pending = frappe.db.count(
-				"QI Serial Entry", {"parent": qi_name, "scanned": 0}
-			)
+			pending = frappe.db.count("QI Serial Entry", {"parent": qi_name, "scanned": 0})
 			if pending == 0:
 				try:
 					qi = frappe.get_doc("Quality Inspection", qi_name)
@@ -220,7 +209,8 @@ class Package(Document):
 					frappe.log_error(title="Auto-submit QI from Package", message=str(e))
 
 	def _finish_operations(self):
-		from frappe.utils import now_datetime, add_to_date
+		from frappe.utils import add_to_date, now_datetime
+
 		for row in self.items:
 			if not row.serial_no:
 				continue
@@ -238,12 +228,15 @@ class Package(Document):
 				remaining = (jc.for_quantity or 0) - (jc.total_completed_qty or 0)
 				if remaining <= 0:
 					remaining = jc.for_quantity or 1
-				jc.append("time_logs", {
-					"from_time": from_time,
-					"to_time": to_time,
-					"completed_qty": remaining,
-					"time_in_mins": 1,
-				})
+				jc.append(
+					"time_logs",
+					{
+						"from_time": from_time,
+						"to_time": to_time,
+						"completed_qty": remaining,
+						"time_in_mins": 1,
+					},
+				)
 				jc.save(ignore_permissions=True)
 				jc.submit()
 			except Exception as e:
@@ -261,14 +254,16 @@ class Package(Document):
 			   WHERE parent=%s AND parenttype='Purchase Receipt' AND parentfield='packages'""",
 			pr_name,
 		)[0][0]
-		row = frappe.get_doc({
-			"doctype": "Purchase Receipt Package",
-			"parent": pr_name,
-			"parenttype": "Purchase Receipt",
-			"parentfield": "packages",
-			"idx": max_idx + 1,
-			"package": self.name,
-		})
+		row = frappe.get_doc(
+			{
+				"doctype": "Purchase Receipt Package",
+				"parent": pr_name,
+				"parenttype": "Purchase Receipt",
+				"parentfield": "packages",
+				"idx": max_idx + 1,
+				"package": self.name,
+			}
+		)
 		row.db_insert()
 
 	def on_update_after_submit(self):
@@ -276,18 +271,18 @@ class Package(Document):
 
 	def on_cancel(self):
 		if self.shipment:
-			frappe.throw(
-				_("Cannot cancel a Package linked to Shipment {0}").format(self.shipment)
-			)
+			frappe.throw(_("Cannot cancel a Package linked to Shipment {0}").format(self.shipment))
 		self.db_set("status", "Cancelled")
 		self._update_bpak_status()
 
 	def _update_bpak_status(self):
 		if self.bpak:
 			from erpnext.stock.doctype.bpak.bpak import update_status_from_package
+
 			update_status_from_package(self.bpak)
 		if self.sales_order:
 			from erpnext.selling.doctype.sales_order.progress import update_so_progress
+
 			update_so_progress(self.sales_order)
 
 	def on_trash(self):
@@ -371,10 +366,7 @@ def get_package_details(box_barcode):
 		"gross_weight": pkg.gross_weight or pkg.tare_weight,
 		"status": pkg.status,
 		"shipment": pkg.shipment,
-		"items": [
-			{"item_code": r.item_code, "serial_no": r.serial_no, "qty": r.qty}
-			for r in pkg.items
-		],
+		"items": [{"item_code": r.item_code, "serial_no": r.serial_no, "qty": r.qty} for r in pkg.items],
 	}
 
 
@@ -404,14 +396,16 @@ def add_package_to_purchase_receipt(package_name, purchase_receipt):
 		   WHERE parent=%s AND parenttype='Purchase Receipt' AND parentfield='packages'""",
 		purchase_receipt,
 	)[0][0]
-	row = frappe.get_doc({
-		"doctype": "Purchase Receipt Package",
-		"parent": purchase_receipt,
-		"parenttype": "Purchase Receipt",
-		"parentfield": "packages",
-		"idx": max_idx + 1,
-		"package": package_name,
-	})
+	row = frappe.get_doc(
+		{
+			"doctype": "Purchase Receipt Package",
+			"parent": purchase_receipt,
+			"parenttype": "Purchase Receipt",
+			"parentfield": "packages",
+			"idx": max_idx + 1,
+			"package": package_name,
+		}
+	)
 	row.db_insert()
 	if not pkg.purchase_receipt:
 		pkg.db_set("purchase_receipt", purchase_receipt)
@@ -430,11 +424,7 @@ def add_package_to_shipment(package_name, shipment_name):
 	if pkg.docstatus != 1:
 		frappe.throw(_("Package {0} must be submitted first").format(package_name))
 	if pkg.shipment:
-		frappe.throw(
-			_("Package {0} is already linked to Shipment {1}").format(
-				package_name, pkg.shipment
-			)
-		)
+		frappe.throw(_("Package {0} is already linked to Shipment {1}").format(package_name, pkg.shipment))
 
 	shipment = frappe.get_doc("Shipment", shipment_name)
 	if shipment.docstatus != 0:
@@ -456,6 +446,7 @@ def add_package_to_shipment(package_name, shipment_name):
 	pkg.db_set("status", "Shipped")
 	if pkg.bpak:
 		from erpnext.stock.doctype.bpak.bpak import update_status_from_package
+
 		update_status_from_package(pkg.bpak)
 
 	return {"message": _("Package {0} added to Shipment {1}").format(package_name, shipment_name)}

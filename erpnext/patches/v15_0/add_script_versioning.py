@@ -1,5 +1,4 @@
 import json
-
 import os
 
 import frappe
@@ -45,12 +44,15 @@ def execute():
 				for t in (doc.transitions or [])
 			],
 		}
-		doc.append("versions", {
-			"version": "v1",
-			"is_default": 1,
-			"snapshot": json.dumps(snap),
-			"created_on": doc.modified,
-		})
+		doc.append(
+			"versions",
+			{
+				"version": "v1",
+				"is_default": 1,
+				"snapshot": json.dumps(snap),
+				"created_on": doc.modified,
+			},
+		)
 		doc.default_version = "v1"
 		doc.viewing_version = "v1"
 		doc.save(ignore_permissions=True)
@@ -60,12 +62,15 @@ def execute():
 			doc = frappe.get_doc("Scanner Script", name)
 			if doc.versions:
 				continue
-			doc.append("versions", {
-				"version": "v1",
-				"is_default": 1,
-				"snapshot": json.dumps({"script": doc.script or ""}),
-				"created_on": doc.modified,
-			})
+			doc.append(
+				"versions",
+				{
+					"version": "v1",
+					"is_default": 1,
+					"snapshot": json.dumps({"script": doc.script or ""}),
+					"created_on": doc.modified,
+				},
+			)
 			doc.default_version = "v1"
 			doc.viewing_version = "v1"
 			doc.save(ignore_permissions=True)

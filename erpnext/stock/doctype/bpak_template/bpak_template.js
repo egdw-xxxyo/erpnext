@@ -10,10 +10,12 @@ async function open_set_values_dialog(frm) {
 
 	const value_lists = await Promise.all(
 		rows.map((row) =>
-			frappe.call({
-				method: "erpnext.stock.doctype.bpak.bpak.get_attribute_values",
-				args: { attribute: row.attribute },
-			}).then((r) => r.message || [])
+			frappe
+				.call({
+					method: "erpnext.stock.doctype.bpak.bpak.get_attribute_values",
+					args: { attribute: row.attribute },
+				})
+				.then((r) => r.message || [])
 		)
 	);
 

@@ -46,11 +46,10 @@ def flatten_attachment(so):
 		if not sopkg.package or sopkg.package in seen_packages:
 			continue
 		seen_packages.add(sopkg.package)
-		pkg = frappe.db.get_value(
-			"Package", sopkg.package, ["pallet", "bpak"], as_dict=True
-		)
+		pkg = frappe.db.get_value("Package", sopkg.package, ["pallet", "bpak"], as_dict=True)
 		_append_package_items(
-			rows, sopkg.package,
+			rows,
+			sopkg.package,
 			pallet=pkg.pallet if pkg else None,
 			bpak=pkg.bpak if pkg else None,
 		)
@@ -68,16 +67,18 @@ def _append_package_items(rows, package_name, pallet=None, bpak=None):
 	for idx, pi in enumerate(pkg_items):
 		if not pi.item_code:
 			continue
-		rows.append({
-			"item_code": pi.item_code,
-			"item_name": pi.item_name,
-			"qty": flt(pi.qty) or 1,
-			"source_type": "Package",
-			"source_package": package_name,
-			"source_bpak": bpak,
-			"source_pallet": pallet,
-			"source_row_key": f"pkg:{package_name}|item:{pi.item_code}|idx:{idx}",
-		})
+		rows.append(
+			{
+				"item_code": pi.item_code,
+				"item_name": pi.item_name,
+				"qty": flt(pi.qty) or 1,
+				"source_type": "Package",
+				"source_package": package_name,
+				"source_bpak": bpak,
+				"source_pallet": pallet,
+				"source_row_key": f"pkg:{package_name}|item:{pi.item_code}|idx:{idx}",
+			}
+		)
 
 
 def _append_bpak_planned(rows, bpak_name):
@@ -90,17 +91,19 @@ def _append_bpak_planned(rows, bpak_name):
 	for idx, p in enumerate(planned):
 		if not p.item_code:
 			continue
-		rows.append({
-			"item_code": p.item_code,
-			"item_name": p.item_name,
-			"qty": flt(p.qty) or 1,
-			"uom": p.uom,
-			"source_type": "BpAK",
-			"source_package": None,
-			"source_bpak": bpak_name,
-			"source_pallet": None,
-			"source_row_key": f"bpak:{bpak_name}|item:{p.item_code}|idx:{idx}",
-		})
+		rows.append(
+			{
+				"item_code": p.item_code,
+				"item_name": p.item_name,
+				"qty": flt(p.qty) or 1,
+				"uom": p.uom,
+				"source_type": "BpAK",
+				"source_package": None,
+				"source_bpak": bpak_name,
+				"source_pallet": None,
+				"source_row_key": f"bpak:{bpak_name}|item:{p.item_code}|idx:{idx}",
+			}
+		)
 
 
 def collect_serials(so):
@@ -160,9 +163,7 @@ def collect_serials(so):
 def sync_items_from_attachments(so):
 	"""Remove items with source_type != Direct, re-insert flattened rows.
 	Preserve Direct rows untouched."""
-	has_attachments = bool(
-		(so.get("pallets") or []) or (so.get("packages") or []) or (so.get("bpaks") or [])
-	)
+	has_attachments = bool((so.get("pallets") or []) or (so.get("packages") or []) or (so.get("bpaks") or []))
 
 	kept = []
 	for it in so.get("items") or []:
@@ -177,8 +178,8 @@ def sync_items_from_attachments(so):
 		so.set("items", kept)
 		return
 
-	from erpnext.stock.get_item_details import get_price_list_rate
 	from erpnext.stock.doctype.item.item import get_item_defaults
+	from erpnext.stock.get_item_details import get_price_list_rate
 
 	flattened = flatten_attachment(so)
 
@@ -188,19 +189,22 @@ def sync_items_from_attachments(so):
 	for r in flattened:
 		if r["item_code"] in direct_item_codes:
 			continue
-		new_row = so.append("items", {
-			"item_code": r["item_code"],
-			"item_name": r.get("item_name"),
-			"qty": r["qty"],
-			"uom": r.get("uom"),
-			"delivery_date": so.delivery_date,
-			"warehouse": so.set_warehouse,
-			"source_type": r["source_type"],
-			"source_package": r.get("source_package"),
-			"source_bpak": r.get("source_bpak"),
-			"source_pallet": r.get("source_pallet"),
-			"source_row_key": r["source_row_key"],
-		})
+		new_row = so.append(
+			"items",
+			{
+				"item_code": r["item_code"],
+				"item_name": r.get("item_name"),
+				"qty": r["qty"],
+				"uom": r.get("uom"),
+				"delivery_date": so.delivery_date,
+				"warehouse": so.set_warehouse,
+				"source_type": r["source_type"],
+				"source_package": r.get("source_package"),
+				"source_bpak": r.get("source_bpak"),
+				"source_pallet": r.get("source_pallet"),
+				"source_row_key": r["source_row_key"],
+			},
+		)
 		_apply_default_rate(so, new_row, get_price_list_rate, get_item_defaults)
 
 
@@ -210,25 +214,25 @@ def _apply_default_rate(so, row, get_price_list_rate, get_item_defaults):
 	try:
 		defaults = get_item_defaults(row.item_code, so.company) or {}
 		if not row.uom:
-			row.uom = defaults.get("stock_uom") or frappe.db.get_value(
-				"Item", row.item_code, "stock_uom"
-			)
+			row.uom = defaults.get("stock_uom") or frappe.db.get_value("Item", row.item_code, "stock_uom")
 		row.stock_uom = row.uom
 		row.conversion_factor = 1
 		if so.selling_price_list:
-			args = frappe._dict({
-				"item_code": row.item_code,
-				"price_list": so.selling_price_list,
-				"qty": row.qty,
-				"uom": row.uom,
-				"transaction_date": so.transaction_date,
-				"customer": so.customer,
-				"currency": so.currency,
-				"plc_conversion_rate": so.plc_conversion_rate or 1,
-				"conversion_rate": so.conversion_rate or 1,
-				"company": so.company,
-				"doctype": "Sales Order",
-			})
+			args = frappe._dict(
+				{
+					"item_code": row.item_code,
+					"price_list": so.selling_price_list,
+					"qty": row.qty,
+					"uom": row.uom,
+					"transaction_date": so.transaction_date,
+					"customer": so.customer,
+					"currency": so.currency,
+					"plc_conversion_rate": so.plc_conversion_rate or 1,
+					"conversion_rate": so.conversion_rate or 1,
+					"company": so.company,
+					"doctype": "Sales Order",
+				}
+			)
 			price = get_price_list_rate(args, frappe.get_cached_doc("Item", row.item_code)) or {}
 			if price.get("price_list_rate"):
 				row.rate = price["price_list_rate"]

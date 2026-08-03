@@ -12,7 +12,6 @@ frappe.ui.form.on("Specification", {
 			let used = (doc.attributes || []).filter((d) => d.name !== row.name).map((d) => d.attribute);
 			return { filters: { name: ["not in", used] } };
 		};
-
 	},
 
 	refresh: function (frm) {
@@ -37,12 +36,9 @@ frappe.ui.form.on("Specification", {
 		}
 
 		if (frm.doc.variant_of) {
-			frm.add_custom_button(
-				__("Template: {0}", [frm.doc.variant_of]),
-				function () {
-					frappe.set_route("Form", "Specification", frm.doc.variant_of);
-				}
-			);
+			frm.add_custom_button(__("Template: {0}", [frm.doc.variant_of]), function () {
+				frappe.set_route("Form", "Specification", frm.doc.variant_of);
+			});
 		}
 	},
 

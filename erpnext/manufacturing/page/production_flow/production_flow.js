@@ -15,21 +15,24 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 	var API = "erpnext.manufacturing.page.production_flow.production_flow";
 
 	var SWIM_LANE_CONFIG = {
-		"prep": {
+		prep: {
 			label: "Підготовчі операції",
 			color: "#4a6fa5",
 			keywords: ["Підготовчі операції"],
 		},
-		"conveyor": {
+		conveyor: {
 			label: "Конвеїрна збірка",
 			color: "#6a994e",
 			keywords: [
-				"Перший етап", "Пайка силової", "Підготовка шлейф на оптику (конвеїр)",
-				"Підготовка плати ініціації (Буратіно)", "Фінальна збірка (конвеїр)",
+				"Перший етап",
+				"Пайка силової",
+				"Підготовка шлейф на оптику (конвеїр)",
+				"Підготовка плати ініціації (Буратіно)",
+				"Фінальна збірка (конвеїр)",
 				"Підготовчі операції мотори (конвеїр)",
 			],
 		},
-		"final": {
+		final: {
 			label: "Фінальний етап виробництва",
 			color: "#bc4749",
 			keywords: ["Фінальний етап"],
@@ -122,7 +125,9 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 						this.bom_field.set_value(r.message[0].name);
 					} else {
 						this.$container.html(
-							'<div class="pf-empty">' + __("No BOM with operations found for this item") + "</div>"
+							'<div class="pf-empty">' +
+								__("No BOM with operations found for this item") +
+								"</div>"
 						);
 					}
 				},
@@ -176,18 +181,18 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 			for (var li = 0; li < lane_order.length; li++) {
 				var lane_id = lane_order[li];
 				for (var wi = 0; wi < lanes[lane_id].length; wi++) {
-					var ws = lanes[lane_id][wi];
-					ws.node_id = node_id;
-					ws.op_nodes = [];
-					for (var oi = 0; oi < ws.operations.length; oi++) {
-						var op = ws.operations[oi];
+					var lane_ws = lanes[lane_id][wi];
+					lane_ws.node_id = node_id;
+					lane_ws.op_nodes = [];
+					for (var oi = 0; oi < lane_ws.operations.length; oi++) {
+						var op = lane_ws.operations[oi];
 						var nid = node_id++;
 						op_to_node[op.idx] = nid;
-						ws.op_nodes.push(nid);
+						lane_ws.op_nodes.push(nid);
 						nodes.push({
 							id: nid,
 							label: op.operation,
-							workstation: ws.name,
+							workstation: lane_ws.name,
 							lane: lane_id,
 							time: op.time_in_mins,
 							idx: op.idx,
@@ -196,7 +201,9 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				}
 			}
 
-			var sorted_ops = this.data.operations.slice().sort(function (a, b) { return a.idx - b.idx; });
+			var sorted_ops = this.data.operations.slice().sort(function (a, b) {
+				return a.idx - b.idx;
+			});
 			for (var si = 1; si < sorted_ops.length; si++) {
 				var from_idx = sorted_ops[si - 1].idx;
 				var to_idx = sorted_ops[si].idx;
@@ -213,12 +220,19 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 
 			var graph = this.build_graph();
 
-			var header = '<div class="pf-header">'
-				+ '<div class="pf-title">' + this.data.item_name + "</div>"
-				+ '<div class="pf-subtitle">' + this.data.bom_name + " &middot; "
-				+ this.data.operations.length + " операцій &middot; "
-				+ this.data.items.length + " матеріалів</div>"
-				+ "</div>";
+			var header =
+				'<div class="pf-header">' +
+				'<div class="pf-title">' +
+				this.data.item_name +
+				"</div>" +
+				'<div class="pf-subtitle">' +
+				this.data.bom_name +
+				" &middot; " +
+				this.data.operations.length +
+				" операцій &middot; " +
+				this.data.items.length +
+				" матеріалів</div>" +
+				"</div>";
 			this.$container.append(header);
 
 			var $diagram = $('<div class="pf-diagram"></div>');
@@ -240,10 +254,16 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				if (!workstations.length) continue;
 
 				var $lane = $(
-					'<div class="pf-lane" data-lane="' + lane_id + '">'
-					+ '<div class="pf-lane-header" style="background: ' + config.color + '">'
-					+ '<span class="pf-lane-label">' + config.label + "</span></div>"
-					+ '<div class="pf-lane-body"></div></div>'
+					'<div class="pf-lane" data-lane="' +
+						lane_id +
+						'">' +
+						'<div class="pf-lane-header" style="background: ' +
+						config.color +
+						'">' +
+						'<span class="pf-lane-label">' +
+						config.label +
+						"</span></div>" +
+						'<div class="pf-lane-body"></div></div>'
 				);
 
 				var $body = $lane.find(".pf-lane-body");
@@ -251,24 +271,42 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				for (var wi = 0; wi < workstations.length; wi++) {
 					var ws = workstations[wi];
 					var $ws = $(
-						'<div class="pf-workstation" data-ws="' + ws.name + '">'
-						+ '<div class="pf-ws-header">' + ws.name + "</div>"
-						+ '<div class="pf-ws-ops"></div></div>'
+						'<div class="pf-workstation" data-ws="' +
+							ws.name +
+							'">' +
+							'<div class="pf-ws-header">' +
+							ws.name +
+							"</div>" +
+							'<div class="pf-ws-ops"></div></div>'
 					);
 
 					var $ops = $ws.find(".pf-ws-ops");
 					for (var oi = 0; oi < ws.operations.length; oi++) {
 						var op = ws.operations[oi];
-						var node = graph.nodes.find(function (n) { return n.idx === op.idx; });
+						var node = graph.nodes.find(function (n) {
+							return n.idx === op.idx;
+						});
 						var $op = $(
-							'<div class="pf-op-node" data-node-id="' + node.id + '" data-idx="' + op.idx + '">'
-							+ '<div class="pf-op-name">' + op.operation + "</div>"
-							+ '<div class="pf-op-time">' + op.time_in_mins + " хв</div>"
-							+ '<div class="pf-op-seq">#' + op.idx + "</div></div>"
+							'<div class="pf-op-node" data-node-id="' +
+								node.id +
+								'" data-idx="' +
+								op.idx +
+								'">' +
+								'<div class="pf-op-name">' +
+								op.operation +
+								"</div>" +
+								'<div class="pf-op-time">' +
+								op.time_in_mins +
+								" хв</div>" +
+								'<div class="pf-op-seq">#' +
+								op.idx +
+								"</div></div>"
 						);
 
 						(function (op_ref, ws_ref) {
-							$op.on("click", function () { self.show_operation_detail(op_ref, ws_ref); });
+							$op.on("click", function () {
+								self.show_operation_detail(op_ref, ws_ref);
+							});
 						})(op, ws);
 						$ops.append($op);
 					}
@@ -368,7 +406,23 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 						} else if (Math.abs(x2 - x1) < 5) {
 							d = "M " + x1 + " " + y1 + " L " + x2 + " " + y2;
 						} else {
-							d = "M " + x1 + " " + y1 + " C " + mx + " " + y1 + ", " + mx + " " + y2 + ", " + x2 + " " + y2;
+							d =
+								"M " +
+								x1 +
+								" " +
+								y1 +
+								" C " +
+								mx +
+								" " +
+								y1 +
+								", " +
+								mx +
+								" " +
+								y2 +
+								", " +
+								x2 +
+								" " +
+								y2;
 						}
 						path.setAttribute("d", d);
 						path.setAttribute("class", "pf-edge");
@@ -386,21 +440,34 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 			for (var i = 0; i < this.data.items.length; i++) {
 				var item = this.data.items[i];
 				rows.push(
-					'<div class="pf-material-row">'
-					+ '<span class="pf-mat-code">' + item.item_code + "</span>"
-					+ '<span class="pf-mat-name">' + item.item_name + "</span>"
-					+ '<span class="pf-mat-qty">' + item.qty + " " + item.uom + "</span>"
-					+ "</div>"
+					'<div class="pf-material-row">' +
+						'<span class="pf-mat-code">' +
+						item.item_code +
+						"</span>" +
+						'<span class="pf-mat-name">' +
+						item.item_name +
+						"</span>" +
+						'<span class="pf-mat-qty">' +
+						item.qty +
+						" " +
+						item.uom +
+						"</span>" +
+						"</div>"
 				);
 			}
 
-			var panel = '<div class="pf-materials-panel">'
-				+ '<div class="pf-materials-header" style="cursor: pointer">'
-				+ "<span>" + __("Матеріали") + " (" + this.data.items.length + ")</span>"
-				+ '<span class="pf-materials-toggle">&#9660;</span></div>'
-				+ '<div class="pf-materials-body" style="display: none">'
-				+ rows.join("")
-				+ "</div></div>";
+			var panel =
+				'<div class="pf-materials-panel">' +
+				'<div class="pf-materials-header" style="cursor: pointer">' +
+				"<span>" +
+				__("Матеріали") +
+				" (" +
+				this.data.items.length +
+				")</span>" +
+				'<span class="pf-materials-toggle">&#9660;</span></div>' +
+				'<div class="pf-materials-body" style="display: none">' +
+				rows.join("") +
+				"</div></div>";
 
 			this.$container.append(panel);
 
@@ -420,9 +487,15 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				for (var i = 0; i < items_for_op.length; i++) {
 					var it = items_for_op[i];
 					parts.push(
-						'<div class="pf-detail-item">'
-						+ '<a href="/app/item/' + encodeURIComponent(it.item_code) + '">' + it.item_name + "</a>"
-						+ '<span class="text-muted"> x' + it.qty + "</span></div>"
+						'<div class="pf-detail-item">' +
+							'<a href="/app/item/' +
+							encodeURIComponent(it.item_code) +
+							'">' +
+							it.item_name +
+							"</a>" +
+							'<span class="text-muted"> x' +
+							it.qty +
+							"</span></div>"
 					);
 				}
 				items_html = parts.join("");
@@ -438,19 +511,46 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				fields: [
 					{
 						fieldtype: "HTML",
-						options: '<div class="pf-op-detail">'
-							+ '<div class="pf-detail-row"><label>' + __("Операція") + '</label>'
-							+ '<a href="' + op_link + '">' + op.operation + " &#8599;</a></div>"
-							+ '<div class="pf-detail-row"><label>' + __("Робоча станція") + '</label>'
-							+ '<a href="' + ws_link + '">' + ws.name + " &#8599;</a></div>"
-							+ '<div class="pf-detail-row"><label>' + __("Час") + "</label>"
-							+ "<span>" + op.time_in_mins + " " + __("хв") + "</span></div>"
-							+ '<div class="pf-detail-row"><label>' + __("Крок") + "</label>"
-							+ "<span>#" + op.idx + " з " + this.data.operations.length + "</span></div>"
-							+ "<hr>"
-							+ '<div class="pf-detail-row"><label>' + __("Матеріали") + "</label></div>"
-							+ items_html
-							+ "</div>",
+						options:
+							'<div class="pf-op-detail">' +
+							'<div class="pf-detail-row"><label>' +
+							__("Операція") +
+							"</label>" +
+							'<a href="' +
+							op_link +
+							'">' +
+							op.operation +
+							" &#8599;</a></div>" +
+							'<div class="pf-detail-row"><label>' +
+							__("Робоча станція") +
+							"</label>" +
+							'<a href="' +
+							ws_link +
+							'">' +
+							ws.name +
+							" &#8599;</a></div>" +
+							'<div class="pf-detail-row"><label>' +
+							__("Час") +
+							"</label>" +
+							"<span>" +
+							op.time_in_mins +
+							" " +
+							__("хв") +
+							"</span></div>" +
+							'<div class="pf-detail-row"><label>' +
+							__("Крок") +
+							"</label>" +
+							"<span>#" +
+							op.idx +
+							" з " +
+							this.data.operations.length +
+							"</span></div>" +
+							"<hr>" +
+							'<div class="pf-detail-row"><label>' +
+							__("Матеріали") +
+							"</label></div>" +
+							items_html +
+							"</div>",
 					},
 				],
 			});
@@ -463,30 +563,51 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				var code = item.item_code.toLowerCase();
 
 				if (op_lower.includes("мотор")) {
-					return code.startsWith("motor") || code.startsWith("washer") ||
-						code.startsWith("prop-") || code.startsWith("spring") ||
-						code.startsWith("spacer") || code === "nut-m5-lock" ||
-						code.startsWith("screw-motor");
+					return (
+						code.startsWith("motor") ||
+						code.startsWith("washer") ||
+						code.startsWith("prop-") ||
+						code.startsWith("spring") ||
+						code.startsWith("spacer") ||
+						code === "nut-m5-lock" ||
+						code.startsWith("screw-motor")
+					);
 				}
 				if (op_lower.includes("рам") || op_lower.includes("гайок")) {
-					return code.startsWith("frame") || code.startsWith("seal") ||
-						code.startsWith("3dp-") || code.startsWith("standoff") ||
-						code.startsWith("screw-") || code.startsWith("nut-press") ||
-						code.startsWith("nut-nylon");
+					return (
+						code.startsWith("frame") ||
+						code.startsWith("seal") ||
+						code.startsWith("3dp-") ||
+						code.startsWith("standoff") ||
+						code.startsWith("screw-") ||
+						code.startsWith("nut-press") ||
+						code.startsWith("nut-nylon")
+					);
 				}
 				if (op_lower.includes("електроніки")) {
-					return code.startsWith("esc-") || code.startsWith("fc-") ||
-						code.startsWith("capacitor") || code.startsWith("power-wire") ||
-						code.startsWith("damper") || code.startsWith("inter-stack") ||
-						code.startsWith("heatshrink");
+					return (
+						code.startsWith("esc-") ||
+						code.startsWith("fc-") ||
+						code.startsWith("capacitor") ||
+						code.startsWith("power-wire") ||
+						code.startsWith("damper") ||
+						code.startsWith("inter-stack") ||
+						code.startsWith("heatshrink")
+					);
 				}
 				if (op_lower.includes("шлейф") && op_lower.includes("оптик")) {
-					return code.startsWith("optics-cable") || code.startsWith("conn-xh") ||
-						code.startsWith("pin-xh");
+					return (
+						code.startsWith("optics-cable") ||
+						code.startsWith("conn-xh") ||
+						code.startsWith("pin-xh")
+					);
 				}
 				if (op_lower.includes("плати ініціації") || op_lower.includes("пайка плати")) {
-					return code.startsWith("board-") || code.startsWith("resistor") ||
-						code.startsWith("cable-init");
+					return (
+						code.startsWith("board-") ||
+						code.startsWith("resistor") ||
+						code.startsWith("cable-init")
+					);
 				}
 				if (op_lower.includes("камер")) {
 					return code.startsWith("cam-");
@@ -495,8 +616,11 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 					return code.startsWith("leg-") || code === "rubber-band-leg";
 				}
 				if (op_lower.includes("ременців")) {
-					return code.startsWith("strap-") || code.startsWith("ziptie-") ||
-						code === "rubber-band-strap";
+					return (
+						code.startsWith("strap-") ||
+						code.startsWith("ziptie-") ||
+						code === "rubber-band-strap"
+					);
 				}
 				if (op_lower.includes("проп")) {
 					return code.startsWith("prop-blade") || code.startsWith("prop-stand");

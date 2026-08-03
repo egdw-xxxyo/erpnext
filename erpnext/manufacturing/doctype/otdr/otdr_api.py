@@ -8,7 +8,7 @@
 #
 # Remove once every client ships the new base path.
 
-from erpnext.devices.doctype.otdr.otdr_api import (  # noqa: F401
+from erpnext.devices.doctype.otdr.otdr_api import (
 	generate_connect_bundle,
 	get_configuration,
 	get_default_connect_url,

@@ -190,9 +190,7 @@ class Item(Document):
 		try:
 			create_variant_bom_from_template(self.name)
 		except Exception:
-			frappe.log_error(
-				title=_("Auto Variant BOM Creation Failed for {0}").format(self.name)
-			)
+			frappe.log_error(title=_("Auto Variant BOM Creation Failed for {0}").format(self.name))
 
 	def validate(self):
 		if not self.item_name:
@@ -322,7 +320,11 @@ class Item(Document):
 			self._inherit_spec_parameters_from_template()
 		if not self.get("item_spec_parameters"):
 			return
-		from erpnext.stock.doctype.item_specification_parameter.formula_utils import evaluate_spec_formulas, is_formula
+		from erpnext.stock.doctype.item_specification_parameter.formula_utils import (
+			evaluate_spec_formulas,
+			is_formula,
+		)
+
 		if not any(is_formula(row.get("value")) for row in self.item_spec_parameters):
 			self._denormalize_shifr()
 			return
@@ -337,12 +339,15 @@ class Item(Document):
 			order_by="idx",
 		)
 		for r in template_rows:
-			self.append("item_spec_parameters", {
-				"parameter": r.parameter,
-				"value": r.value,
-				"uom": r.uom,
-				"calculated_value": r.calculated_value,
-			})
+			self.append(
+				"item_spec_parameters",
+				{
+					"parameter": r.parameter,
+					"value": r.value,
+					"uom": r.uom,
+					"calculated_value": r.calculated_value,
+				},
+			)
 
 	def _denormalize_shifr(self):
 		shifr = ""

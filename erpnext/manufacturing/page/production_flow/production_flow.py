@@ -9,23 +9,27 @@ def get_bom_flow(bom_name):
 
 	operations = []
 	for op in bom.operations:
-		operations.append({
-			"idx": op.idx,
-			"operation": op.operation,
-			"workstation": op.workstation,
-			"time_in_mins": op.time_in_mins,
-			"description": op.description,
-		})
+		operations.append(
+			{
+				"idx": op.idx,
+				"operation": op.operation,
+				"workstation": op.workstation,
+				"time_in_mins": op.time_in_mins,
+				"description": op.description,
+			}
+		)
 
 	items = []
 	for item in bom.items:
-		items.append({
-			"idx": item.idx,
-			"item_code": item.item_code,
-			"item_name": item.item_name,
-			"qty": item.qty,
-			"uom": item.uom,
-		})
+		items.append(
+			{
+				"idx": item.idx,
+				"item_code": item.item_code,
+				"item_name": item.item_name,
+				"qty": item.qty,
+				"uom": item.uom,
+			}
+		)
 
 	workstations = {}
 	for op in operations:

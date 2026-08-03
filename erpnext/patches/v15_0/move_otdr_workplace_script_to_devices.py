@@ -21,11 +21,13 @@ MOVED_PAGES = ["print-queue"]
 
 def execute():
 	if not frappe.db.exists("Module Def", "Devices"):
-		frappe.get_doc({
-			"doctype": "Module Def",
-			"module_name": "Devices",
-			"app_name": "erpnext",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Module Def",
+				"module_name": "Devices",
+				"app_name": "erpnext",
+			}
+		).insert(ignore_permissions=True)
 
 	for dt in MOVED_DOCTYPES:
 		if frappe.db.exists("DocType", dt):

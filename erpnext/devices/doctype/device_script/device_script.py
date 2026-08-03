@@ -40,12 +40,15 @@ class DeviceScript(Document):
 			self.script_type = "Scanner"
 
 		if not self.versions:
-			self.append("versions", {
-				"version": "v1",
-				"is_default": 1,
-				"snapshot": json.dumps(_capture_working_copy(self)),
-				"created_on": frappe.utils.now_datetime(),
-			})
+			self.append(
+				"versions",
+				{
+					"version": "v1",
+					"is_default": 1,
+					"snapshot": json.dumps(_capture_working_copy(self)),
+					"created_on": frappe.utils.now_datetime(),
+				},
+			)
 			self.default_version = "v1"
 			self.viewing_version = "v1"
 
@@ -80,11 +83,15 @@ def get_active_scripts(script_type: str = "Scanner", trigger_event: str | None =
 	for name in names:
 		doc = frappe.get_cached_doc("Device Script", name)
 		snap = _resolve_default_snapshot(doc)
-		out.append(frappe._dict({
-			"script_name": doc.script_name,
-			"script_type": doc.script_type,
-			"script": snap.get("script", "") or "",
-		}))
+		out.append(
+			frappe._dict(
+				{
+					"script_name": doc.script_name,
+					"script_type": doc.script_type,
+					"script": snap.get("script", "") or "",
+				}
+			)
+		)
 	return out
 
 
@@ -130,6 +137,7 @@ def run_scripts_for_event(script_type: str, trigger_event: str | None = None, **
 		seed_context = {}
 
 	import time
+
 	from erpnext.devices.doctype.device_script_run.device_script_run import insert_run
 
 	fn_name = f"on_{script_type.lower()}"
@@ -152,7 +160,7 @@ def run_scripts_for_event(script_type: str, trigger_event: str | None = None, **
 		t0 = time.perf_counter()
 		status = "Success"
 		try:
-			exec(s.script, ns)  # noqa: S102
+			exec(s.script, ns)
 			fn = ns.get("on_event") or ns.get(fn_name)
 			if callable(fn):
 				fn(ctx)
@@ -174,9 +182,11 @@ def run_scripts_for_event(script_type: str, trigger_event: str | None = None, **
 			reference_name=ref_name,
 		)
 		errors = [ln for ln in log_buf if " WARN " in ln or " ERROR " in ln or ln.startswith("[ERROR]")]
-		results.append({
-			"script": s.script_name,
-			"status": status,
-			"errors": errors,
-		})
+		results.append(
+			{
+				"script": s.script_name,
+				"status": status,
+				"errors": errors,
+			}
+		)
 	return results

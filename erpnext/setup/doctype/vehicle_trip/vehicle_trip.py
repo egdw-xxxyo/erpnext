@@ -32,9 +32,7 @@ class VehicleTrip(Document):
 			},
 		)
 		if existing:
-			frappe.throw(
-				_("Vehicle {0} is already en route in trip {1}").format(self.vehicle, existing)
-			)
+			frappe.throw(_("Vehicle {0} is already en route in trip {1}").format(self.vehicle, existing))
 
 	def set_vehicle_info(self):
 		if self.vehicle:

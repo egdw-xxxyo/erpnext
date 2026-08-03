@@ -56,6 +56,7 @@ class LabelPrinter(Document):
 # Low-level TCP helpers
 # ---------------------------------------------------------------------------
 
+
 def _tcp_query(ip, port, command, timeout=5, recv_timeout=0.5):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.settimeout(timeout)
@@ -70,7 +71,7 @@ def _tcp_query(ip, port, command, timeout=5, recv_timeout=0.5):
 				if not chunk:
 					break
 				response += chunk
-		except socket.timeout:
+		except TimeoutError:
 			pass
 		return response.decode("utf-8", errors="replace").strip()
 	finally:
@@ -100,6 +101,7 @@ def _send_ezpl(printer_doc, ezpl_str):
 # EZPL label builder
 # ---------------------------------------------------------------------------
 
+
 def build_ezpl_label(content_lines, width_mm=65, height_mm=20, gap_mm=3, heat=13, copies=1):
 	lines = []
 	lines.append(f"^Q{height_mm},{gap_mm}")
@@ -122,6 +124,7 @@ def build_barcode_128(x, y, text, narrow=2, wide=6, height=80):
 # ---------------------------------------------------------------------------
 # Response parsers
 # ---------------------------------------------------------------------------
+
 
 def _get_printer_doc(printer_name):
 	doc = frappe.get_doc("Label Printer", printer_name)
@@ -207,6 +210,7 @@ def _parse_memory_info(raw):
 # Whitelisted API — status / info
 # ---------------------------------------------------------------------------
 
+
 @frappe.whitelist()
 def check_connection(printer_name):
 	doc = frappe.get_doc("Label Printer", printer_name)
@@ -214,16 +218,26 @@ def check_connection(printer_name):
 	try:
 		raw_info = _tcp_query(doc.ip_address, doc.port, "~HI", timeout)
 		info = _parse_host_info(raw_info)
-		frappe.db.set_value("Label Printer", printer_name, {
-			"last_status": "Ready",
-			"last_checked": now_datetime(),
-		}, update_modified=False)
+		frappe.db.set_value(
+			"Label Printer",
+			printer_name,
+			{
+				"last_status": "Ready",
+				"last_checked": now_datetime(),
+			},
+			update_modified=False,
+		)
 		return {"connected": True, "status": "Ready", "identification": info}
-	except socket.error as e:
-		frappe.db.set_value("Label Printer", printer_name, {
-			"last_status": f"Connection Error",
-			"last_checked": now_datetime(),
-		}, update_modified=False)
+	except OSError as e:
+		frappe.db.set_value(
+			"Label Printer",
+			printer_name,
+			{
+				"last_status": "Connection Error",
+				"last_checked": now_datetime(),
+			},
+			update_modified=False,
+		)
 		return {"connected": False, "status": str(e)}
 
 
@@ -239,18 +253,26 @@ def check_status(printer_name):
 
 		combined = {"status": status, "identification": info}
 
-		frappe.db.set_value("Label Printer", printer_name, {
-			"last_status": status.get("status", "Unknown"),
-			"last_checked": now_datetime(),
-			"printer_info": json.dumps(combined, indent=2, ensure_ascii=False),
-		})
+		frappe.db.set_value(
+			"Label Printer",
+			printer_name,
+			{
+				"last_status": status.get("status", "Unknown"),
+				"last_checked": now_datetime(),
+				"printer_info": json.dumps(combined, indent=2, ensure_ascii=False),
+			},
+		)
 
 		return combined
-	except socket.error as e:
-		frappe.db.set_value("Label Printer", printer_name, {
-			"last_status": "Offline",
-			"last_checked": now_datetime(),
-		})
+	except OSError as e:
+		frappe.db.set_value(
+			"Label Printer",
+			printer_name,
+			{
+				"last_status": "Offline",
+				"last_checked": now_datetime(),
+			},
+		)
 		return {"status": {"status": "Offline", "error": str(e)}}
 
 
@@ -290,7 +312,7 @@ def _refresh_printer_info(printer_name):
 def get_printer_info(printer_name):
 	try:
 		return _refresh_printer_info(printer_name)
-	except socket.error as e:
+	except OSError as e:
 		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
 
 
@@ -300,7 +322,7 @@ def send_raw_command(printer_name, command):
 	try:
 		response = _tcp_query(doc.ip_address, doc.port, command, doc.timeout or 5)
 		return {"command": command, "response": response}
-	except socket.error as e:
+	except OSError as e:
 		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
 
 
@@ -309,12 +331,13 @@ def beep(printer_name):
 	doc = _get_printer_doc(printer_name)
 	try:
 		_tcp_send_raw(
-			doc.ip_address, doc.port,
+			doc.ip_address,
+			doc.port,
 			b"^XSET,BUZZ,200\r\n",
 			doc.timeout or 5,
 		)
 		return {"success": True}
-	except socket.error as e:
+	except OSError as e:
 		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
 
 
@@ -327,13 +350,14 @@ def clear_printer_memory(printer_name):
 		_tcp_send_raw(doc.ip_address, doc.port, b"~MDEL*\r\n", timeout)
 		_tcp_send_raw(doc.ip_address, doc.port, b"~EK,*\r\n", timeout)
 		return {"success": True}
-	except socket.error as e:
+	except OSError as e:
 		frappe.throw(_("Cannot connect to printer: {0}").format(str(e)))
 
 
 # ---------------------------------------------------------------------------
 # Whitelisted API — printing
 # ---------------------------------------------------------------------------
+
 
 @frappe.whitelist()
 def print_test_label(printer_name, text, text2=None):
@@ -436,6 +460,7 @@ def print_label(print_job_name, label_printer=None):
 
 	def tlog(msg, level="info"):
 		from datetime import datetime
+
 		stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 		log_lines.append(f"{stamp} {msg}")
 		(log.error if level == "error" else log.info)(msg)
@@ -443,7 +468,9 @@ def print_label(print_job_name, label_printer=None):
 	t0 = time.monotonic()
 	job = frappe.get_doc("Print Job", print_job_name)
 	if label_printer and label_printer != job.label_printer:
-		frappe.db.set_value("Print Job", print_job_name, "label_printer", label_printer, update_modified=False)
+		frappe.db.set_value(
+			"Print Job", print_job_name, "label_printer", label_printer, update_modified=False
+		)
 		job.label_printer = label_printer
 	tlog(
 		f"[TIMING] print_label START job={print_job_name}, status={job.status}, "
@@ -452,13 +479,15 @@ def print_label(print_job_name, label_printer=None):
 	tlog(f"[TIMING] load_job: {(time.monotonic() - t0)*1000:.0f}ms")
 
 	if job.status not in ("Queued", "Failed", "Printed"):
-		frappe.throw(_("Print Job {0} is not in a printable state (status: {1})").format(
-			print_job_name, job.status
-		))
+		frappe.throw(
+			_("Print Job {0} is not in a printable state (status: {1})").format(print_job_name, job.status)
+		)
 
 	t0 = time.monotonic()
 	printer = _get_printer_doc(job.label_printer)
-	tlog(f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms printer={printer.name} ip={printer.ip_address}:{printer.port}")
+	tlog(
+		f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms printer={printer.name} ip={printer.ip_address}:{printer.port}"
+	)
 
 	if printer.is_label_change_in_progress:
 		frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
@@ -503,10 +532,12 @@ def print_label(print_job_name, label_printer=None):
 		t0 = time.monotonic()
 		pcx_data = _load_pcx_file(job)
 		if pcx_data:
-			tlog(f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
-				f"({len(pcx_data)}bytes) — skipping wkhtmltoimage")
+			tlog(
+				f"[TIMING] load_prerendered_pcx: {(time.monotonic() - t0)*1000:.0f}ms "
+				f"({len(pcx_data)}bytes) — skipping wkhtmltoimage"
+			)
 		else:
-			tlog(f"[TIMING] no pre-rendered PCX, rendering on the fly")
+			tlog("[TIMING] no pre-rendered PCX, rendering on the fly")
 			t0 = time.monotonic()
 			rendered_html = _render_html_template(template, doc=ref_doc, data=raw_data, parent_doc=parent_doc)
 			tlog(f"[TIMING] render_html: {(time.monotonic() - t0)*1000:.0f}ms ({len(rendered_html)} chars)")
@@ -518,9 +549,13 @@ def print_label(print_job_name, label_printer=None):
 			h_dots = _mm_to_dots(size.height_mm, dpi)
 
 			t0 = time.monotonic()
-			pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
-			tlog(f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
-				f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes")
+			pcx_data, png_data = _html_to_image(
+				rendered_html, w_dots, h_dots, padding_mm=_template_padding(template)
+			)
+			tlog(
+				f"[TIMING] html_to_image (wkhtmltoimage+PIL): {(time.monotonic() - t0)*1000:.0f}ms "
+				f"PCX={len(pcx_data)}bytes PNG={len(png_data)}bytes"
+			)
 
 			t0 = time.monotonic()
 			_save_preview_image(print_job_name, png_data)
@@ -531,21 +566,27 @@ def print_label(print_job_name, label_printer=None):
 		if not is_mock:
 			t0 = time.monotonic()
 			_send_pcx_label(printer, pcx_data, size, copies=job.copies or 1)
-			tlog(f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
-				f"copies={job.copies or 1}")
+			tlog(
+				f"[TIMING] send_pcx_label (TCP to printer): {(time.monotonic() - t0)*1000:.0f}ms "
+				f"copies={job.copies or 1}"
+			)
 		else:
-			tlog(f"[TIMING] mock printing — skipped sending to printer")
+			tlog("[TIMING] mock printing — skipped sending to printer")
 			time.sleep(1)
 
 		t0 = time.monotonic()
 		status_note = "[MOCK] " if is_mock else ""
-		frappe.db.set_value("Print Job", print_job_name, {
-			"status": "Printed",
-			"printed_at": now_datetime(),
-			"zpl_output": f"{status_note}[HTML template rendered to PCX, {len(pcx_data)} bytes]",
-			"error_message": "",
-			"log": "\n".join(log_lines),
-		})
+		frappe.db.set_value(
+			"Print Job",
+			print_job_name,
+			{
+				"status": "Printed",
+				"printed_at": now_datetime(),
+				"zpl_output": f"{status_note}[HTML template rendered to PCX, {len(pcx_data)} bytes]",
+				"error_message": "",
+				"log": "\n".join(log_lines),
+			},
+		)
 		tlog(f"[TIMING] db_update_status: {(time.monotonic() - t0)*1000:.0f}ms")
 
 		total_ms = (time.monotonic() - t_total) * 1000
@@ -557,25 +598,33 @@ def print_label(print_job_name, label_printer=None):
 		return {"success": True, "print_job": print_job_name, "print_delay_ms": int(print_delay)}
 	except Exception as e:
 		import traceback
+
 		tb = traceback.format_exc()
 		total_ms = (time.monotonic() - t_total) * 1000
-		tlog(f"[TIMING] print_label FAILED job={print_job_name} printer={job.label_printer} ip={printer.ip_address}:{printer.port} TOTAL={total_ms:.0f}ms: {e}\n{tb}", level="error")
+		tlog(
+			f"[TIMING] print_label FAILED job={print_job_name} printer={job.label_printer} ip={printer.ip_address}:{printer.port} TOTAL={total_ms:.0f}ms: {e}\n{tb}",
+			level="error",
+		)
 		frappe.db.rollback()
-		frappe.db.set_value("Print Job", print_job_name, {
-			"status": "Failed",
-			"error_message": str(e),
-			"log": "\n".join(log_lines),
-		})
+		frappe.db.set_value(
+			"Print Job",
+			print_job_name,
+			{
+				"status": "Failed",
+				"error_message": str(e),
+				"log": "\n".join(log_lines),
+			},
+		)
 		frappe.db.commit()
 		err_text = str(e)
-		if "timed out" in err_text.lower() or isinstance(e, (socket.timeout, TimeoutError)):
-			msg = _("Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі.").format(
-				job.label_printer, printer.ip_address, printer.port
-			)
+		if "timed out" in err_text.lower() or isinstance(e, socket.timeout | TimeoutError):
+			msg = _(
+				"Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі."
+			).format(job.label_printer, printer.ip_address, printer.port)
 		elif isinstance(e, ConnectionRefusedError) or "refused" in err_text.lower():
-			msg = _("Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний.").format(
-				job.label_printer, printer.ip_address, printer.port
-			)
+			msg = _(
+				"Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний."
+			).format(job.label_printer, printer.ip_address, printer.port)
 		elif isinstance(e, OSError) and "unreachable" in err_text.lower():
 			msg = _("Принтер {0} ({1}:{2}) недоступний з мережі.").format(
 				job.label_printer, printer.ip_address, printer.port
@@ -593,53 +642,63 @@ def _render_template(template_doc, doc=None, data=None, parent_doc=None):
 
 def _render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 	from erpnext.devices.doctype.label_template.label_template import render_html_template
+
 	return render_html_template(template_doc, doc=doc, data=data, parent_doc=parent_doc)
 
 
 def _html_to_pcx(html, width_px, height_px, padding_mm=None):
 	from erpnext.devices.doctype.label_template.label_template import html_to_pcx_bytes
+
 	return html_to_pcx_bytes(html, width_px, height_px, padding_mm=padding_mm)
 
 
 def _html_to_image(html, width_px, height_px, padding_mm=None):
 	from erpnext.devices.doctype.label_template.label_template import html_to_image
+
 	return html_to_image(html, width_px, height_px, padding_mm=padding_mm)
 
 
 def _template_padding(template_doc):
 	from erpnext.devices.doctype.label_template.label_template import _padding_from_template
+
 	return _padding_from_template(template_doc)
 
 
 def _save_preview_image(print_job_name, png_data):
 	try:
 		filename = f"{print_job_name}.png"
-		file_doc = frappe.get_doc({
-			"doctype": "File",
-			"file_name": filename,
-			"attached_to_doctype": "Print Job",
-			"attached_to_name": print_job_name,
-			"attached_to_field": "preview_image",
-			"content": png_data,
-			"is_private": 1,
-		})
+		file_doc = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": filename,
+				"attached_to_doctype": "Print Job",
+				"attached_to_name": print_job_name,
+				"attached_to_field": "preview_image",
+				"content": png_data,
+				"is_private": 1,
+			}
+		)
 		file_doc.save(ignore_permissions=True)
 		frappe.db.set_value("Print Job", print_job_name, "preview_image", file_doc.file_url)
 	except Exception:
-		frappe.logger("label_printer").warning(f"Failed to save preview image for {print_job_name}", exc_info=True)
+		frappe.logger("label_printer").warning(
+			f"Failed to save preview image for {print_job_name}", exc_info=True
+		)
 
 
 def _save_pcx_file(print_job_name, pcx_data):
 	filename = f"{print_job_name}.pcx"
-	file_doc = frappe.get_doc({
-		"doctype": "File",
-		"file_name": filename,
-		"attached_to_doctype": "Print Job",
-		"attached_to_name": print_job_name,
-		"attached_to_field": "pcx_file",
-		"content": pcx_data,
-		"is_private": 1,
-	})
+	file_doc = frappe.get_doc(
+		{
+			"doctype": "File",
+			"file_name": filename,
+			"attached_to_doctype": "Print Job",
+			"attached_to_name": print_job_name,
+			"attached_to_field": "pcx_file",
+			"content": pcx_data,
+			"is_private": 1,
+		}
+	)
 	file_doc.save(ignore_permissions=True)
 	frappe.db.set_value("Print Job", print_job_name, "pcx_file", file_doc.file_url)
 
@@ -649,15 +708,14 @@ def _load_pcx_file(job):
 		return None
 	try:
 		file_path = frappe.get_site_path(
-			"private" if "/private/" in job.pcx_file else "public",
-			"files",
-			job.pcx_file.split("/")[-1]
+			"private" if "/private/" in job.pcx_file else "public", "files", job.pcx_file.split("/")[-1]
 		)
 		with open(file_path, "rb") as f:
 			return f.read()
 	except Exception:
 		frappe.logger("label_printer").warning(
-			f"Could not load PCX file for {job.name}: {job.pcx_file}", exc_info=True)
+			f"Could not load PCX file for {job.name}: {job.pcx_file}", exc_info=True
+		)
 		return None
 
 
@@ -674,22 +732,30 @@ def _prerender_job(job_name, template, printer_doc, ref_doc=None, raw_data=None,
 		dpi = int(printer_doc.dpi or 300)
 		w_dots = _mm_to_dots(size.width_mm, dpi)
 		h_dots = _mm_to_dots(size.height_mm, dpi)
-		pcx_data, png_data = _html_to_image(rendered_html, w_dots, h_dots, padding_mm=_template_padding(template))
+		pcx_data, png_data = _html_to_image(
+			rendered_html, w_dots, h_dots, padding_mm=_template_padding(template)
+		)
 
 		_save_pcx_file(job_name, pcx_data)
 		_save_preview_image(job_name, png_data)
-		log.error(f"[TIMING] _prerender_job {job_name}: {(time.monotonic() - t0)*1000:.0f}ms "
-			f"(pcx={len(pcx_data)}bytes)")
+		log.error(
+			f"[TIMING] _prerender_job {job_name}: {(time.monotonic() - t0)*1000:.0f}ms "
+			f"(pcx={len(pcx_data)}bytes)"
+		)
 	except Exception:
-		log.warning(f"_prerender_job {job_name}: pre-render failed, will render at print time",
-			exc_info=True)
+		log.warning(f"_prerender_job {job_name}: pre-render failed, will render at print time", exc_info=True)
 
 
 def _check_printer_status(printer_doc, context=""):
 	log = frappe.logger("label_printer")
 	try:
-		raw = _tcp_query(printer_doc.ip_address, printer_doc.port, "~HS",
-			timeout=printer_doc.timeout or 5, recv_timeout=0.5)
+		raw = _tcp_query(
+			printer_doc.ip_address,
+			printer_doc.port,
+			"~HS",
+			timeout=printer_doc.timeout or 5,
+			recv_timeout=0.5,
+		)
 		if not raw:
 			return
 		status = _parse_host_status(raw)
@@ -735,11 +801,13 @@ def _send_pcx_label(printer_doc, pcx_data, size_doc, copies=1):
 	# Convert PCX to raw bitmap for EZPL Q command (inline, no flash storage)
 	width_bytes, height, raw_bitmap = _pcx_to_raw_bitmap(pcx_data)
 	expected_len = width_bytes * height
-	log.error(f"[TIMING] _send_pcx_label: pcx_to_raw: {(time.monotonic() - t0)*1000:.0f}ms "
-		f"({width_bytes}x{height}={expected_len}bytes, actual={len(raw_bitmap)}bytes)")
+	log.error(
+		f"[TIMING] _send_pcx_label: pcx_to_raw: {(time.monotonic() - t0)*1000:.0f}ms "
+		f"({width_bytes}x{height}={expected_len}bytes, actual={len(raw_bitmap)}bytes)"
+	)
 
 	t0 = time.monotonic()
-	for i in range(copies):
+	for _i in range(copies):
 		parts = []
 		parts.append(f"^W{int(size_doc.width_mm)}\r\n".encode("ascii"))
 		parts.append(b"^E13\r\n")
@@ -752,8 +820,10 @@ def _send_pcx_label(printer_doc, pcx_data, size_doc, copies=1):
 		payload = b"".join(parts)
 		_tcp_send_raw(printer_doc.ip_address, printer_doc.port, payload, timeout)
 
-	log.error(f"[TIMING] _send_pcx_label: Q inline send {copies} copies: "
-		f"{(time.monotonic() - t0)*1000:.0f}ms (payload={len(payload)}bytes)")
+	log.error(
+		f"[TIMING] _send_pcx_label: Q inline send {copies} copies: "
+		f"{(time.monotonic() - t0)*1000:.0f}ms (payload={len(payload)}bytes)"
+	)
 
 
 @frappe.whitelist()
@@ -767,6 +837,7 @@ def check_printer_ready(printer_name):
 # ---------------------------------------------------------------------------
 # Whitelisted API — queue management
 # ---------------------------------------------------------------------------
+
 
 @frappe.whitelist()
 def create_print_job(label_template, printer_name, reference_name=None, raw_data=None, copies=1):
@@ -819,11 +890,15 @@ def batch_print_jobs(job_names):
 			results["printed"] += 1
 		except Exception:
 			results["failed"] += 1
-		log.error(f"[TIMING] batch_print_jobs [{i+1}/{len(job_names)}] "
-			f"printed={results['printed']} failed={results['failed']}")
+		log.error(
+			f"[TIMING] batch_print_jobs [{i+1}/{len(job_names)}] "
+			f"printed={results['printed']} failed={results['failed']}"
+		)
 	total_ms = (time.monotonic() - t_batch) * 1000
-	log.error(f"[TIMING] batch_print_jobs DONE: {len(job_names)} jobs in {total_ms:.0f}ms "
-		f"({total_ms/max(len(job_names),1):.0f}ms/job avg)")
+	log.error(
+		f"[TIMING] batch_print_jobs DONE: {len(job_names)} jobs in {total_ms:.0f}ms "
+		f"({total_ms/max(len(job_names),1):.0f}ms/job avg)"
+	)
 	return results
 
 
@@ -855,34 +930,47 @@ def batch_delete_jobs(job_names):
 # Whitelisted API — label change
 # ---------------------------------------------------------------------------
 
+
 @frappe.whitelist()
 def start_label_change(printer_name, new_label_size, message=None):
-	frappe.db.set_value("Label Printer", printer_name, {
-		"is_label_change_in_progress": 1,
-		"label_change_message": message or _("Changing labels..."),
-		"pending_label_size": new_label_size,
-	})
+	frappe.db.set_value(
+		"Label Printer",
+		printer_name,
+		{
+			"is_label_change_in_progress": 1,
+			"label_change_message": message or _("Changing labels..."),
+			"pending_label_size": new_label_size,
+		},
+	)
 	return {"success": True}
 
 
 @frappe.whitelist()
 def cancel_label_change(printer_name):
-	frappe.db.set_value("Label Printer", printer_name, {
-		"is_label_change_in_progress": 0,
-		"label_change_message": "",
-		"pending_label_size": "",
-	})
+	frappe.db.set_value(
+		"Label Printer",
+		printer_name,
+		{
+			"is_label_change_in_progress": 0,
+			"label_change_message": "",
+			"pending_label_size": "",
+		},
+	)
 	return {"success": True}
 
 
 @frappe.whitelist()
 def complete_label_change(printer_name, new_label_size):
-	frappe.db.set_value("Label Printer", printer_name, {
-		"is_label_change_in_progress": 0,
-		"label_change_message": "",
-		"pending_label_size": "",
-		"loaded_label_size": new_label_size,
-	})
+	frappe.db.set_value(
+		"Label Printer",
+		printer_name,
+		{
+			"is_label_change_in_progress": 0,
+			"label_change_message": "",
+			"pending_label_size": "",
+			"loaded_label_size": new_label_size,
+		},
+	)
 
 	try:
 		_refresh_printer_info(printer_name)
@@ -901,10 +989,14 @@ def complete_label_change(printer_name, new_label_size):
 		pluck="name",
 	)
 	for job_name in queued_jobs:
-		frappe.db.set_value("Print Job", job_name, {
-			"status": "Cancelled",
-			"error_message": _("Cancelled: label size changed to {0}").format(new_label_size),
-		})
+		frappe.db.set_value(
+			"Print Job",
+			job_name,
+			{
+				"status": "Cancelled",
+				"error_message": _("Cancelled: label size changed to {0}").format(new_label_size),
+			},
+		)
 
 	return {"success": True, "cancelled_jobs": len(queued_jobs)}
 
@@ -912,6 +1004,7 @@ def complete_label_change(printer_name, new_label_size):
 # ---------------------------------------------------------------------------
 # Whitelisted API — queue list / printers list
 # ---------------------------------------------------------------------------
+
 
 @frappe.whitelist()
 def get_queue(printer_name=None, status=None):
@@ -925,9 +1018,17 @@ def get_queue(printer_name=None, status=None):
 		"Print Job",
 		filters=filters,
 		fields=[
-			"name", "label_template", "label_printer", "label_size",
-			"reference_doctype", "reference_name", "status", "copies",
-			"creation", "printed_at", "error_message",
+			"name",
+			"label_template",
+			"label_printer",
+			"label_size",
+			"reference_doctype",
+			"reference_name",
+			"status",
+			"copies",
+			"creation",
+			"printed_at",
+			"error_message",
 		],
 		order_by="creation desc",
 		limit=100,
@@ -940,9 +1041,14 @@ def get_printers():
 		"Label Printer",
 		filters={"is_enabled": 1},
 		fields=[
-			"name", "printer_name", "printer_model", "ip_address",
-			"loaded_label_size", "is_label_change_in_progress",
-			"label_change_message", "last_status",
+			"name",
+			"printer_name",
+			"printer_model",
+			"ip_address",
+			"loaded_label_size",
+			"is_label_change_in_progress",
+			"label_change_message",
+			"last_status",
 		],
 	)
 
@@ -950,6 +1056,7 @@ def get_printers():
 # ---------------------------------------------------------------------------
 # Whitelisted API — batch label printing
 # ---------------------------------------------------------------------------
+
 
 @frappe.whitelist()
 def count_labels(source_doctype, source_names, label_template):
@@ -1091,4 +1198,6 @@ def cleanup_old_print_jobs(days=7):
 
 	if old_jobs:
 		frappe.db.commit()
-		frappe.logger("label_printer").info(f"Cleaned up {len(old_jobs)} old print jobs (older than {cutoff})")
+		frappe.logger("label_printer").info(
+			f"Cleaned up {len(old_jobs)} old print jobs (older than {cutoff})"
+		)

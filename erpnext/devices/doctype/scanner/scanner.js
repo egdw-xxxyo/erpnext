@@ -2,9 +2,7 @@ function check_message_fit(msg, rows, chars) {
 	if (!msg || !rows || !chars) return null;
 	const lines = String(msg).split("\n");
 	const over_lines = lines.length > rows;
-	const long = lines
-		.map((l, i) => ({ i: i + 1, len: l.length }))
-		.filter((x) => x.len > chars);
+	const long = lines.map((l, i) => ({ i: i + 1, len: l.length })).filter((x) => x.len > chars);
 	if (!over_lines && long.length === 0) return null;
 	const parts = [];
 	if (over_lines) parts.push(__("Lines: {0} (limit {1})", [lines.length, rows]));
@@ -105,21 +103,18 @@ frappe.ui.form.on("Scanner", {
 			frappe.msgprint("Спочатку збережіть документ.");
 			return;
 		}
-		frappe.confirm(
-			"Згенерувати новий API ключ? Старий ключ перестане працювати негайно.",
-			function () {
-				frappe.call({
-					method: "erpnext.devices.doctype.scanner.scanner.regenerate_api_key",
-					args: { scanner_name: frm.doc.name },
-					callback: function (r) {
-						if (!r.message) return;
-						frm.set_value("api_key", r.message.api_key);
-						frm.refresh_fields();
-						frm.reload_doc();
-					},
-				});
-			}
-		);
+		frappe.confirm("Згенерувати новий API ключ? Старий ключ перестане працювати негайно.", function () {
+			frappe.call({
+				method: "erpnext.devices.doctype.scanner.scanner.regenerate_api_key",
+				args: { scanner_name: frm.doc.name },
+				callback: function (r) {
+					if (!r.message) return;
+					frm.set_value("api_key", r.message.api_key);
+					frm.refresh_fields();
+					frm.reload_doc();
+				},
+			});
+		});
 	},
 });
 

@@ -119,8 +119,6 @@ def snapshot_quotation(doc, method=None, manual=False, change_reason=None, chang
 def create_manual_version(quotation, change_reason=None, change_summary=None):
 	"""Force a negotiation-step snapshot with a reason/summary from the UI."""
 	doc = frappe.get_doc("Quotation", quotation)
-	name = snapshot_quotation(
-		doc, manual=True, change_reason=change_reason, change_summary=change_summary
-	)
+	name = snapshot_quotation(doc, manual=True, change_reason=change_reason, change_summary=change_summary)
 	frappe.db.commit()
 	return name

@@ -9,15 +9,15 @@ from frappe.model.document import Document
 def _get_scanner_secret():
 	secret = frappe.conf.get("scanner_secret")
 	if not secret:
-		frappe.throw("scanner_secret is not set in site_config.json. Run: bench set-config scanner_secret <your-secret>")
+		frappe.throw(
+			"scanner_secret is not set in site_config.json. Run: bench set-config scanner_secret <your-secret>"
+		)
 	return secret
 
 
 def compute_auth_token(api_key):
 	secret = _get_scanner_secret()
-	return hmac.new(
-		secret.encode(), api_key.encode(), hashlib.sha256
-	).hexdigest()[:16]
+	return hmac.new(secret.encode(), api_key.encode(), hashlib.sha256).hexdigest()[:16]
 
 
 MAX_SCAN_LOGS = 100
@@ -60,6 +60,10 @@ class Scanner(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.devices.doctype.scanner_scan_log_entry.scanner_scan_log_entry import (
+			ScannerScanLogEntry,
+		)
+
 		api_key: DF.Data | None
 		employee: DF.Link | None
 		is_active: DF.Check
@@ -71,7 +75,13 @@ class Scanner(Document):
 	def get_configuration(self):
 		if self.scanner_configuration:
 			return frappe.get_cached_doc("Scanner Configuration", self.scanner_configuration)
-		return frappe._dict(idle_timeout=3600, state_timeout=300, display_rows=10, display_chars_per_row=20, message_template="")
+		return frappe._dict(
+			idle_timeout=3600,
+			state_timeout=300,
+			display_rows=10,
+			display_chars_per_row=20,
+			message_template="",
+		)
 
 	def get_state_timeout(self):
 		config = self.get_configuration()
@@ -92,23 +102,23 @@ class Scanner(Document):
 		(~150ms at the 100-row cap, twice per scan). Rows are append-only now and
 		trimmed by the hourly `cleanup_scan_logs` job instead.
 		"""
-		row = frappe.get_doc({
-			"doctype": "Scanner Scan Log Entry",
-			"parent": self.name,
-			"parenttype": "Scanner",
-			"parentfield": "scan_logs",
-			"idx": _next_scan_log_idx(self.name),
-			**kwargs,
-		})
+		row = frappe.get_doc(
+			{
+				"doctype": "Scanner Scan Log Entry",
+				"parent": self.name,
+				"parenttype": "Scanner",
+				"parentfield": "scan_logs",
+				"idx": _next_scan_log_idx(self.name),
+				**kwargs,
+			}
+		)
 		row.db_insert()
 		return row.name
 
 	def update_scan_log(self, row_name, **kwargs):
 		updates = {k: v for k, v in kwargs.items() if v is not None}
 		if updates:
-			frappe.db.set_value(
-				"Scanner Scan Log Entry", row_name, updates, update_modified=False
-			)
+			frappe.db.set_value("Scanner Scan Log Entry", row_name, updates, update_modified=False)
 
 
 @frappe.whitelist()
@@ -145,9 +155,10 @@ def get_display_config(scanner_name):
 @frappe.whitelist()
 def render_barcode_svg(data):
 	try:
+		from io import BytesIO
+
 		import barcode
 		from barcode.writer import SVGWriter
-		from io import BytesIO
 
 		code128 = barcode.get_barcode_class("code128")
 		writer = SVGWriter()
@@ -163,8 +174,9 @@ def render_barcode_svg(data):
 
 @frappe.whitelist()
 def get_config_barcodes(scanner_name, endpoint_url):
-	from erpnext.devices.doctype.otdr.otdr_api import detect_public_base_url
 	from urllib.parse import urlparse
+
+	from erpnext.devices.doctype.otdr.otdr_api import detect_public_base_url
 
 	doc = frappe.get_doc("Scanner", scanner_name)
 	doc.check_permission("read")
@@ -173,7 +185,11 @@ def get_config_barcodes(scanner_name, endpoint_url):
 	try:
 		parsed = urlparse(endpoint_url)
 		host = (parsed.hostname or "").lower()
-		bad = host in ("", "localhost", "127.0.0.1") or host.startswith("frontend") or host.startswith("backend")
+		bad = (
+			host in ("", "localhost", "127.0.0.1")
+			or host.startswith("frontend")
+			or host.startswith("backend")
+		)
 		if bad:
 			public = detect_public_base_url().rstrip("/")
 			endpoint_url = public + parsed.path

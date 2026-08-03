@@ -15,7 +15,7 @@ def get_permission_query_conditions(user=None):
 	user = user or frappe.session.user
 	if user == "Administrator":
 		return ""
-	return "`tabChat Encryption Key`.user = {user}".format(user=frappe.db.escape(user))
+	return f"`tabChat Encryption Key`.user = {frappe.db.escape(user)}"
 
 
 def has_permission(doc, ptype=None, user=None):

@@ -404,9 +404,7 @@ def get_threads():
 			)
 			t["other_user"] = None
 		else:
-			t["display_title"] = t["title"] or ", ".join(
-				p.employee_name or p.user for p in others
-			)
+			t["display_title"] = t["title"] or ", ".join(p.employee_name or p.user for p in others)
 			t["other_user"] = None
 
 		unread_filters = [
@@ -444,9 +442,7 @@ def create_thread(participant_users, thread_type="Direct", title=None, is_secret
 
 		missing = [u for u in users if not chat_crypto.is_enrolled(u)]
 		if missing:
-			frappe.throw(
-				_("These people have not enabled secret chats yet: {0}").format(", ".join(missing))
-			)
+			frappe.throw(_("These people have not enabled secret chats yet: {0}").format(", ".join(missing)))
 
 	if thread_type == "Direct":
 		from erpnext.crm.doctype.chat_thread.chat_thread import make_dedup_key
@@ -460,9 +456,7 @@ def create_thread(participant_users, thread_type="Direct", title=None, is_secret
 	doc.is_secret = is_secret
 	doc.title = title if thread_type == "Group" else None
 	for u in users:
-		emp = frappe.db.get_value(
-			"Employee", {"user_id": u}, ["name", "employee_name"], as_dict=True
-		)
+		emp = frappe.db.get_value("Employee", {"user_id": u}, ["name", "employee_name"], as_dict=True)
 		doc.append(
 			"participants",
 			{
@@ -638,9 +632,7 @@ def send_message(
 	if attach:
 		link_attachment_to_thread(attach, thread)
 
-	preview = _preview_text(
-		content_type, message, attach, is_encrypted=is_encrypted, link_title=link_title
-	)
+	preview = _preview_text(content_type, message, attach, is_encrypted=is_encrypted, link_title=link_title)
 	frappe.db.set_value(
 		"Chat Thread",
 		thread,
@@ -730,9 +722,7 @@ def _mutate_reaction(message, emoji, add):
 	else:
 		reactions.pop(emoji, None)
 
-	frappe.db.set_value(
-		"Chat Message", message, "reactions", json.dumps(reactions), update_modified=False
-	)
+	frappe.db.set_value("Chat Message", message, "reactions", json.dumps(reactions), update_modified=False)
 	_fanout(doc, "chat_reaction", {"thread": thread, "message": message, "reactions": reactions})
 	return reactions
 
@@ -744,9 +734,7 @@ def typing(thread):
 	me = frappe.session.user
 	for user in _participant_users(doc):
 		if user != me:
-			frappe.publish_realtime(
-				event="chat_typing", message={"thread": thread, "user": me}, user=user
-			)
+			frappe.publish_realtime(event="chat_typing", message={"thread": thread, "user": me}, user=user)
 
 
 # ---------------------------------------------------------------------------
@@ -784,9 +772,7 @@ def get_thread_info(thread, limit=200):
 		display_title = others[0]["name"]
 	elif doc.thread_type == "Document":
 		display_title = doc.reference_label or (
-			f"{doc.reference_doctype}: {doc.reference_name}"
-			if doc.reference_doctype
-			else _("Document chat")
+			f"{doc.reference_doctype}: {doc.reference_name}" if doc.reference_doctype else _("Document chat")
 		)
 	else:
 		display_title = doc.title or ", ".join(p["name"] for p in others)
@@ -843,9 +829,7 @@ def get_thread_info(thread, limit=200):
 		)
 		for row in rows:
 			row["sender_name"] = (
-				name_cache.setdefault(row["sender"], _user_name(row["sender"]))
-				if row["sender"]
-				else ""
+				name_cache.setdefault(row["sender"], _user_name(row["sender"])) if row["sender"] else ""
 			)
 			row["creation"] = str(row["creation"])
 		links = rows
@@ -862,9 +846,7 @@ def get_thread_info(thread, limit=200):
 		)
 		for row in rows:
 			sender_name = (
-				name_cache.setdefault(row["sender"], _user_name(row["sender"]))
-				if row["sender"]
-				else ""
+				name_cache.setdefault(row["sender"], _user_name(row["sender"])) if row["sender"] else ""
 			)
 			if row.get("content_type") == "link":
 				# A shared card — surface its title/kind, not a bare URL.

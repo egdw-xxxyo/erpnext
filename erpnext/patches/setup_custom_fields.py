@@ -31,7 +31,9 @@ def execute():
 	create_custom_fields_on_whatsapp_message()
 	setup_whatsapp_user_role()
 	frappe.db.commit()
-	print("Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments")
+	print(
+		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
+	)
 
 
 def create_workflow_states():
@@ -43,11 +45,13 @@ def create_workflow_states():
 	]
 	for s in states:
 		if not frappe.db.exists("Workflow State", s["workflow_state_name"]):
-			doc = frappe.get_doc({
-				"doctype": "Workflow State",
-				"workflow_state_name": s["workflow_state_name"],
-				"style": s["style"],
-			})
+			doc = frappe.get_doc(
+				{
+					"doctype": "Workflow State",
+					"workflow_state_name": s["workflow_state_name"],
+					"style": s["style"],
+				}
+			)
 			doc.insert(ignore_permissions=True)
 			print(f"  Created Workflow State: {s['workflow_state_name']}")
 		else:
@@ -64,10 +68,12 @@ def create_workflow_actions():
 	]
 	for action_name in actions:
 		if not frappe.db.exists("Workflow Action Master", action_name):
-			doc = frappe.get_doc({
-				"doctype": "Workflow Action Master",
-				"workflow_action_name": action_name,
-			})
+			doc = frappe.get_doc(
+				{
+					"doctype": "Workflow Action Master",
+					"workflow_action_name": action_name,
+				}
+			)
 			doc.insert(ignore_permissions=True)
 			print(f"  Created Workflow Action: {action_name}")
 		else:
@@ -80,84 +86,95 @@ def create_workflow():
 		print(f"  Workflow exists: {workflow_name}")
 		return
 
-	doc = frappe.get_doc({
-		"doctype": "Workflow",
-		"workflow_name": workflow_name,
-		"document_type": "Purchase Receipt",
-		"is_active": 1,
-		"override_status": 0,
-		"send_email_alert": 0,
-		"states": [
-			{
-				"state": "Чернетка",
-				"doc_status": "0",
-				"allow_edit": "Stock User",
-				"is_optional_state": 0,
-			},
-			{
-				"state": "На перевірці",
-				"doc_status": "0",
-				"allow_edit": "Quality Manager",
-				"is_optional_state": 0,
-			},
-			{
-				"state": "На затвердженні",
-				"doc_status": "0",
-				"allow_edit": "Accounts User",
-				"is_optional_state": 0,
-			},
-			{
-				"state": "Проведено",
-				"doc_status": "1",
-				"allow_edit": "Accounts User",
-				"is_optional_state": 0,
-			},
-		],
-		"transitions": [
-			{
-				"state": "Чернетка",
-				"action": "На перевірку",
-				"next_state": "На перевірці",
-				"allowed": "Stock User",
-				"allow_self_approval": 1,
-			},
-			{
-				"state": "На перевірці",
-				"action": "Якість підтверджено",
-				"next_state": "На затвердженні",
-				"allowed": "Quality Manager",
-				"allow_self_approval": 1,
-			},
-			{
-				"state": "На перевірці",
-				"action": "Повернути",
-				"next_state": "Чернетка",
-				"allowed": "Quality Manager",
-				"allow_self_approval": 1,
-			},
-			{
-				"state": "На затвердженні",
-				"action": "Провести",
-				"next_state": "Проведено",
-				"allowed": "Accounts User",
-				"allow_self_approval": 1,
-			},
-			{
-				"state": "На затвердженні",
-				"action": "Повернути на перевірку",
-				"next_state": "На перевірці",
-				"allowed": "Accounts User",
-				"allow_self_approval": 1,
-			},
-		],
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "Workflow",
+			"workflow_name": workflow_name,
+			"document_type": "Purchase Receipt",
+			"is_active": 1,
+			"override_status": 0,
+			"send_email_alert": 0,
+			"states": [
+				{
+					"state": "Чернетка",
+					"doc_status": "0",
+					"allow_edit": "Stock User",
+					"is_optional_state": 0,
+				},
+				{
+					"state": "На перевірці",
+					"doc_status": "0",
+					"allow_edit": "Quality Manager",
+					"is_optional_state": 0,
+				},
+				{
+					"state": "На затвердженні",
+					"doc_status": "0",
+					"allow_edit": "Accounts User",
+					"is_optional_state": 0,
+				},
+				{
+					"state": "Проведено",
+					"doc_status": "1",
+					"allow_edit": "Accounts User",
+					"is_optional_state": 0,
+				},
+			],
+			"transitions": [
+				{
+					"state": "Чернетка",
+					"action": "На перевірку",
+					"next_state": "На перевірці",
+					"allowed": "Stock User",
+					"allow_self_approval": 1,
+				},
+				{
+					"state": "На перевірці",
+					"action": "Якість підтверджено",
+					"next_state": "На затвердженні",
+					"allowed": "Quality Manager",
+					"allow_self_approval": 1,
+				},
+				{
+					"state": "На перевірці",
+					"action": "Повернути",
+					"next_state": "Чернетка",
+					"allowed": "Quality Manager",
+					"allow_self_approval": 1,
+				},
+				{
+					"state": "На затвердженні",
+					"action": "Провести",
+					"next_state": "Проведено",
+					"allowed": "Accounts User",
+					"allow_self_approval": 1,
+				},
+				{
+					"state": "На затвердженні",
+					"action": "Повернути на перевірку",
+					"next_state": "На перевірці",
+					"allowed": "Accounts User",
+					"allow_self_approval": 1,
+				},
+			],
+		}
+	)
 	doc.insert(ignore_permissions=True)
 	print(f"  Created Workflow: {workflow_name}")
 
 
 def create_custom_fields_on_item():
 	# Remove old fields from previous iterations
-	for old_field in ["battery_specs_section", "battery_capacity", "battery_voltage", "cell_type", "item_qc_profile", "item_specification", "label_template", "requires_incoming_qc"]:
+	for old_field in [
+		"battery_specs_section",
+		"battery_capacity",
+		"battery_voltage",
+		"cell_type",
+		"item_qc_profile",
+		"item_specification",
+		"label_template",
+		"requires_incoming_qc",
+	]:
 		old_cf = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": old_field})
 		if old_cf:
 			frappe.delete_doc("Custom Field", old_cf, force=True)
@@ -578,11 +595,13 @@ def setup_whatsapp_user_role():
 	WhatsApp Message (see whatsapp_chat._require_wa_access)."""
 	role = "WhatsApp User"
 	if not frappe.db.exists("Role", role):
-		frappe.get_doc({
-			"doctype": "Role",
-			"role_name": role,
-			"desk_access": 1,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Role",
+				"role_name": role,
+				"desk_access": 1,
+			}
+		).insert(ignore_permissions=True)
 		print(f"  Created Role: {role}")
 
 	perms = {
@@ -593,21 +612,21 @@ def setup_whatsapp_user_role():
 		if not frappe.db.exists("DocType", doctype):
 			print(f"  Skipped perms, DocType missing: {doctype}")
 			continue
-		existing = frappe.db.exists(
-			"Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}
-		)
+		existing = frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0})
 		if existing:
 			print(f"  Custom DocPerm exists: {doctype} / {role}")
 			continue
-		frappe.get_doc({
-			"doctype": "Custom DocPerm",
-			"parent": doctype,
-			"parenttype": "DocType",
-			"parentfield": "permissions",
-			"role": role,
-			"permlevel": 0,
-			**rights,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Custom DocPerm",
+				"parent": doctype,
+				"parenttype": "DocType",
+				"parentfield": "permissions",
+				"role": role,
+				"permlevel": 0,
+				**rights,
+			}
+		).insert(ignore_permissions=True)
 		print(f"  Created Custom DocPerm: {doctype} / {role}")
 
 	# WhatsApp access is granted by the dedicated role only — drop the broad Sales
@@ -634,9 +653,11 @@ def _create_custom_fields(fields):
 			print(f"  Custom Field exists: {f['dt']}.{f['fieldname']}")
 			continue
 
-		doc = frappe.get_doc({
-			"doctype": "Custom Field",
-			**f,
-		})
+		doc = frappe.get_doc(
+			{
+				"doctype": "Custom Field",
+				**f,
+			}
+		)
 		doc.insert(ignore_permissions=True)
 		print(f"  Created Custom Field: {f['dt']}.{f['fieldname']}")

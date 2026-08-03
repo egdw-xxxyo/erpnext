@@ -216,17 +216,13 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 		// Add package to packages child table if it exists on the DocType
 		if (added && frappe.meta.has_field(this.frm.doctype, "packages")) {
-			const already = (this.frm.doc.packages || []).find(
-				(r) => r.package === data.package_name
-			);
+			const already = (this.frm.doc.packages || []).find((r) => r.package === data.package_name);
 			if (!already) {
 				const serial_list = items
 					.map((i) => i.serial_no)
 					.filter(Boolean)
 					.join("\n");
-				const pkg_row = frappe.model.add_child(
-					this.frm.doc, "Delivery Note Package", "packages"
-				);
+				const pkg_row = frappe.model.add_child(this.frm.doc, "Delivery Note Package", "packages");
 				frappe.model.set_value(pkg_row.doctype, pkg_row.name, {
 					package: data.package_name,
 					serial_nos: serial_list,
@@ -235,11 +231,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 			}
 		}
 
-		this.show_alert(
-			__("Package {0}: {1} items added", [data.package_name, added]),
-			"green",
-			5
-		);
+		this.show_alert(__("Package {0}: {1} items added", [data.package_name, added]), "green", 5);
 	}
 
 	// batch and serial selector is reduandant when all info can be added by scan

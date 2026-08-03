@@ -35,11 +35,13 @@ ROLE_BACKFILL = [
 def execute():
 	# 1. Module Def (modules.txt sync also creates it; be explicit for safety).
 	if not frappe.db.exists("Module Def", "Devices"):
-		frappe.get_doc({
-			"doctype": "Module Def",
-			"module_name": "Devices",
-			"app_name": "erpnext",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Module Def",
+				"module_name": "Devices",
+				"app_name": "erpnext",
+			}
+		).insert(ignore_permissions=True)
 
 	# 2. Reassign module on existing DocType records (JSON sync also does this).
 	for dt in MOVED_DOCTYPES:
@@ -49,11 +51,13 @@ def execute():
 	# 3. Create the new roles idempotently (perms come from JSON permissions blocks).
 	for role in NEW_ROLES:
 		if not frappe.db.exists("Role", role):
-			frappe.get_doc({
-				"doctype": "Role",
-				"role_name": role,
-				"desk_access": 1,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Role",
+					"role_name": role,
+					"desk_access": 1,
+				}
+			).insert(ignore_permissions=True)
 
 	# 4. Backfill: give current holders of the Manufacturing roles the matching
 	#    Device role so scanner/label access is not lost by the module move.

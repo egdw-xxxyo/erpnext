@@ -108,9 +108,7 @@ class TestTask(unittest.TestCase):
 		# overdue is derived, the status must stay untouched
 		self.assertEqual(frappe.db.get_value("Task", task.name, "status"), "New")
 		self.assertTrue(task.is_overdue())
-		self.assertIn(
-			task.name, frappe.get_all("Task", filters=get_overdue_filters(), pluck="name")
-		)
+		self.assertIn(task.name, frappe.get_all("Task", filters=get_overdue_filters(), pluck="name"))
 
 		task.status = "Completed"
 		task.save()

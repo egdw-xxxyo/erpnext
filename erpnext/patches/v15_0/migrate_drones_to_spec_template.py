@@ -26,13 +26,13 @@ S10 = {
 # Size 15: (length, spool) → (ww, ee)
 S15 = {
 	(15, "125мм 0.25"): ("21", "13"),
-	(20, "125мм 0.2"):  ("22", "21"),
-	(25, "125мм 0.2"):  ("22", "22"),
+	(20, "125мм 0.2"): ("22", "21"),
+	(25, "125мм 0.2"): ("22", "22"),
 	(15, "150мм 0.25"): ("22", "31"),
 	(20, "150мм 0.25"): ("22", "32"),
 	(25, "150мм 0.25"): ("22", "33"),
-	(30, "150мм 0.2"):  ("23", "41"),
-	(40, "150мм 0.2"):  ("24", "42"),
+	(30, "150мм 0.2"): ("23", "41"),
+	(40, "150мм 0.2"): ("24", "42"),
 }
 
 
@@ -53,17 +53,19 @@ def execute():
 
 
 def _ensure_custom_field():
-	create_custom_fields({
-		"Item": [
-			{
-				"fieldname": "specification_number_template",
-				"fieldtype": "Link",
-				"label": "Specification Number Template",
-				"options": "Specification Number Template",
-				"insert_after": "serial_number_template",
-			},
-		]
-	})
+	create_custom_fields(
+		{
+			"Item": [
+				{
+					"fieldname": "specification_number_template",
+					"fieldtype": "Link",
+					"label": "Specification Number Template",
+					"options": "Specification Number Template",
+					"insert_after": "serial_number_template",
+				},
+			]
+		}
+	)
 
 
 def _ensure_short_names_on_cameras():
@@ -77,7 +79,7 @@ def _ensure_short_names_on_cameras():
 
 
 def _ensure_size_short_names():
-	for full, sn in (("10\"", "10"), ("15\"", "15")):
+	for full, sn in (('10"', "10"), ('15"', "15")):
 		exists = frappe.db.exists(
 			"Item Attribute Value",
 			{"parent": "Розмір рами", "attribute_value": full},
@@ -106,7 +108,7 @@ def _build_shifr_codes():
 	)
 	out = {}
 	for r in rows:
-		size_raw = (r.size or "").replace("\"", "")
+		size_raw = (r.size or "").replace('"', "")
 		length_int = int((r.length or "0").split()[0])
 		if size_raw == "10":
 			ww, ee = S10.get(length_int, ("", ""))
@@ -124,11 +126,13 @@ def _ensure_shifr_attr_values():
 	if not codes:
 		return
 	if not frappe.db.exists("Item Attribute", ATTR_NAME):
-		doc = frappe.get_doc({
-			"doctype": "Item Attribute",
-			"attribute_name": ATTR_NAME,
-			"item_attribute_values": [{"attribute_value": c, "abbr": c} for c in codes],
-		})
+		doc = frappe.get_doc(
+			{
+				"doctype": "Item Attribute",
+				"attribute_name": ATTR_NAME,
+				"item_attribute_values": [{"attribute_value": c, "abbr": c} for c in codes],
+			}
+		)
 		doc.insert(ignore_permissions=True)
 		return
 	doc = frappe.get_doc("Item Attribute", ATTR_NAME)
@@ -158,7 +162,9 @@ def _set_shifr_code_per_variant():
 			{"parent": variant, "attribute": ATTR_NAME},
 		)
 		if existing:
-			frappe.db.set_value("Item Variant Attribute", existing, "attribute_value", code, update_modified=False)
+			frappe.db.set_value(
+				"Item Variant Attribute", existing, "attribute_value", code, update_modified=False
+			)
 		else:
 			row_name = frappe.generate_hash(length=10)
 			frappe.db.sql(
@@ -173,23 +179,27 @@ def _set_shifr_code_per_variant():
 def _ensure_spec_template_doc():
 	if frappe.db.exists("Specification Number Template", SPEC_TEMPLATE_NAME):
 		return
-	doc = frappe.get_doc({
-		"doctype": "Specification Number Template",
-		"template_name": SPEC_TEMPLATE_NAME,
-		"description": "FPV drone specification: УКРП.200121.{size}{cam}{ww}00{ee}С",
-		"components": [
-			{"component_type": "Literal", "value": "УКРП.200121."},
-			{"component_type": "Item Attribute Short Name", "attribute_link": "Розмір рами"},
-			{"component_type": "Item Attribute Short Name", "attribute_link": "Тип камери"},
-			{"component_type": "Item Attribute Abbr", "attribute_link": ATTR_NAME},
-			{"component_type": "Literal", "value": "С"},
-		],
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "Specification Number Template",
+			"template_name": SPEC_TEMPLATE_NAME,
+			"description": "FPV drone specification: УКРП.200121.{size}{cam}{ww}00{ee}С",
+			"components": [
+				{"component_type": "Literal", "value": "УКРП.200121."},
+				{"component_type": "Item Attribute Short Name", "attribute_link": "Розмір рами"},
+				{"component_type": "Item Attribute Short Name", "attribute_link": "Тип камери"},
+				{"component_type": "Item Attribute Abbr", "attribute_link": ATTR_NAME},
+				{"component_type": "Literal", "value": "С"},
+			],
+		}
+	)
 	doc.insert(ignore_permissions=True)
 
 
 def _link_template_on_bpla():
-	frappe.db.set_value("Item", TEMPLATE, "specification_number_template", SPEC_TEMPLATE_NAME, update_modified=False)
+	frappe.db.set_value(
+		"Item", TEMPLATE, "specification_number_template", SPEC_TEMPLATE_NAME, update_modified=False
+	)
 
 
 def _resave_variants():

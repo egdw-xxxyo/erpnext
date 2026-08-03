@@ -78,25 +78,22 @@ frappe.ui.form.on("Scanner Setup", {
 			frappe.msgprint(__("Please save the document first."));
 			return;
 		}
-		frappe.confirm(
-			__("Regenerate API key? The old key will stop working immediately."),
-			function () {
-				frappe.call({
-					method: "erpnext.devices.doctype.scanner_setup.scanner_setup.regenerate_api_key",
-					args: { scanner_name: frm.doc.name },
-					callback: function (r) {
-						if (!r.message) return;
-						frm.set_value("api_key", r.message.api_key);
-						frm.fields_dict.scanner_key_html.$wrapper.html(`
+		frappe.confirm(__("Regenerate API key? The old key will stop working immediately."), function () {
+			frappe.call({
+				method: "erpnext.devices.doctype.scanner_setup.scanner_setup.regenerate_api_key",
+				args: { scanner_name: frm.doc.name },
+				callback: function (r) {
+					if (!r.message) return;
+					frm.set_value("api_key", r.message.api_key);
+					frm.fields_dict.scanner_key_html.$wrapper.html(`
 							<div style="text-align: center; padding: 10px 0;">
 								${r.message.qr_svg}
 							</div>
 						`);
-						frm.refresh_fields();
-						frm.reload_doc();
-					},
-				});
-			}
-		);
+					frm.refresh_fields();
+					frm.reload_doc();
+				},
+			});
+		});
 	},
 });

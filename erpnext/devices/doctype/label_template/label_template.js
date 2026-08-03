@@ -6,46 +6,57 @@ frappe.ui.form.on("Label Template", {
 
 		if (frm.is_new()) return;
 
-		frm.add_custom_button(__("Print"), () => {
-			_print_with_preview(frm);
-		}, __("Actions"));
+		frm.add_custom_button(
+			__("Print"),
+			() => {
+				_print_with_preview(frm);
+			},
+			__("Actions")
+		);
 
-		frm.add_custom_button(__("Test Print"), () => {
-			let d = new frappe.ui.Dialog({
-				title: __("Test Print"),
-				fields: [
-					{
-						fieldname: "printer",
-						fieldtype: "Link",
-						label: __("Printer"),
-						options: "Label Printer",
-						reqd: 1,
-						get_query() {
-							return { filters: { is_enabled: 1 } };
+		frm.add_custom_button(
+			__("Test Print"),
+			() => {
+				let d = new frappe.ui.Dialog({
+					title: __("Test Print"),
+					fields: [
+						{
+							fieldname: "printer",
+							fieldtype: "Link",
+							label: __("Printer"),
+							options: "Label Printer",
+							reqd: 1,
+							get_query() {
+								return { filters: { is_enabled: 1 } };
+							},
 						},
+					],
+					primary_action_label: __("Print"),
+					primary_action(values) {
+						d.hide();
+						frappe.call({
+							method: "erpnext.devices.doctype.label_printer.label_printer.test_print",
+							args: {
+								printer_name: values.printer,
+								template_name: frm.doc.name,
+							},
+							freeze: true,
+							freeze_message: __("Sending to printer..."),
+							callback(r) {
+								if (r.message && r.message.success) {
+									frappe.show_alert({
+										message: __("Label sent to printer!"),
+										indicator: "green",
+									});
+								}
+							},
+						});
 					},
-				],
-				primary_action_label: __("Print"),
-				primary_action(values) {
-					d.hide();
-					frappe.call({
-						method: "erpnext.devices.doctype.label_printer.label_printer.test_print",
-						args: {
-							printer_name: values.printer,
-							template_name: frm.doc.name,
-						},
-						freeze: true,
-						freeze_message: __("Sending to printer..."),
-						callback(r) {
-							if (r.message && r.message.success) {
-								frappe.show_alert({ message: __("Label sent to printer!"), indicator: "green" });
-							}
-						},
-					});
-				},
-			});
-			d.show();
-		}, __("Actions"));
+				});
+				d.show();
+			},
+			__("Actions")
+		);
 	},
 
 	reference_doctype(frm) {
@@ -62,10 +73,7 @@ frappe.ui.form.on("Label Template", {
 		frappe.model.with_doctype(dt, () => {
 			const fields = frappe.get_meta(dt).fields || [];
 			const opts = fields
-				.filter(
-					(f) =>
-						["Small Text", "Long Text", "Text", "Code", "Data"].includes(f.fieldtype)
-				)
+				.filter((f) => ["Small Text", "Long Text", "Text", "Code", "Data"].includes(f.fieldtype))
 				.map((f) => ({
 					label: `${f.label} (${f.fieldname})`,
 					value: f.fieldname,
@@ -107,7 +115,8 @@ frappe.ui.form.on("Label Template", {
 		$btn.on("click", () => _show_template_help(frm));
 		$field.$wrapper.append($btn);
 
-		const $fbtn = $(`<button class="btn btn-xs btn-default available-fields-btn" style="margin-top:4px;margin-left:4px;">
+		const $fbtn =
+			$(`<button class="btn btn-xs btn-default available-fields-btn" style="margin-top:4px;margin-left:4px;">
 			<svg class="icon icon-sm" style="vertical-align:middle;margin-right:2px;">
 				<use href="#icon-list"></use>
 			</svg>
@@ -121,10 +130,18 @@ frappe.ui.form.on("Label Template", {
 		frm.trigger("render_preview");
 	},
 
-	padding_top_mm(frm) { frm.trigger("render_preview"); },
-	padding_right_mm(frm) { frm.trigger("render_preview"); },
-	padding_bottom_mm(frm) { frm.trigger("render_preview"); },
-	padding_left_mm(frm) { frm.trigger("render_preview"); },
+	padding_top_mm(frm) {
+		frm.trigger("render_preview");
+	},
+	padding_right_mm(frm) {
+		frm.trigger("render_preview");
+	},
+	padding_bottom_mm(frm) {
+		frm.trigger("render_preview");
+	},
+	padding_left_mm(frm) {
+		frm.trigger("render_preview");
+	},
 
 	render_preview(frm) {
 		if (frm._preview_timer) clearTimeout(frm._preview_timer);
@@ -138,14 +155,18 @@ function _do_render_preview(frm) {
 
 	if (!frm.doc.label_size) {
 		$wrapper.html(
-			`<div class="text-muted text-center" style="padding:20px;">${__("Select a Label Size to see preview")}</div>`
+			`<div class="text-muted text-center" style="padding:20px;">${__(
+				"Select a Label Size to see preview"
+			)}</div>`
 		);
 		return;
 	}
 
 	if (!frm.doc.html_template) {
 		$wrapper.html(
-			`<div class="text-muted text-center" style="padding:20px;">${__("Enter template to see preview")}</div>`
+			`<div class="text-muted text-center" style="padding:20px;">${__(
+				"Enter template to see preview"
+			)}</div>`
 		);
 		return;
 	}
@@ -188,7 +209,9 @@ function _do_render_preview(frm) {
 						<div style="margin-top:8px;">
 							<details>
 								<summary style="cursor:pointer; font-size:11px; color:var(--text-muted);">${__("Show HTML source")}</summary>
-								<pre style="font-size:10px; max-height:200px; overflow:auto; margin-top:4px; background:var(--bg-color); padding:8px; border-radius:4px;">${frappe.utils.escape_html(data.html)}</pre>
+								<pre style="font-size:10px; max-height:200px; overflow:auto; margin-top:4px; background:var(--bg-color); padding:8px; border-radius:4px;">${frappe.utils.escape_html(
+									data.html
+								)}</pre>
 							</details>
 						</div>
 					</div>
@@ -279,11 +302,11 @@ function _render_html_help_dialog(data) {
 			examples_html += `<h3>${frappe.utils.escape_html(cat)}</h3>`;
 			for (const ex of examples_by_category[cat]) {
 				const title = frappe.utils.escape_html(ex.title);
-				const desc = ex.description_uk
-					? `<p>${frappe.utils.escape_html(ex.description_uk)}</p>`
-					: "";
+				const desc = ex.description_uk ? `<p>${frappe.utils.escape_html(ex.description_uk)}</p>` : "";
 				const notes = ex.notes
-					? `<p style="font-style:italic;color:var(--text-muted);">${frappe.utils.escape_html(ex.notes)}</p>`
+					? `<p style="font-style:italic;color:var(--text-muted);">${frappe.utils.escape_html(
+							ex.notes
+					  )}</p>`
 					: "";
 				const snippet_id = "snippet-" + Math.random().toString(36).slice(2, 9);
 				const snippet = frappe.utils.escape_html(ex.html_snippet || "");
@@ -322,11 +345,30 @@ function _render_html_help_dialog(data) {
 }
 
 const FIELD_PICKER_RENDERABLE_TYPES = [
-	"Data", "Small Text", "Long Text", "Text", "Text Editor", "Code",
-	"Link", "Dynamic Link", "Select", "Read Only", "Password",
-	"Int", "Float", "Currency", "Percent", "Check",
-	"Date", "Datetime", "Time", "Duration",
-	"Barcode", "Attach", "Attach Image", "Color",
+	"Data",
+	"Small Text",
+	"Long Text",
+	"Text",
+	"Text Editor",
+	"Code",
+	"Link",
+	"Dynamic Link",
+	"Select",
+	"Read Only",
+	"Password",
+	"Int",
+	"Float",
+	"Currency",
+	"Percent",
+	"Check",
+	"Date",
+	"Datetime",
+	"Time",
+	"Duration",
+	"Barcode",
+	"Attach",
+	"Attach Image",
+	"Color",
 ];
 
 function _is_renderable_field(f) {
@@ -345,12 +387,8 @@ async function _show_available_fields(frm) {
 		await new Promise((res) => frappe.model.with_doctype(dt, res));
 		const meta = frappe.get_meta(dt) || { fields: [] };
 
-		const link_fields = (meta.fields || []).filter(
-			(f) => f.fieldtype === "Link" && f.options
-		);
-		const child_fields = (meta.fields || []).filter(
-			(f) => f.fieldtype === "Table" && f.options
-		);
+		const link_fields = (meta.fields || []).filter((f) => f.fieldtype === "Link" && f.options);
+		const child_fields = (meta.fields || []).filter((f) => f.fieldtype === "Table" && f.options);
 
 		const linked_metas = {};
 		for (const lf of link_fields) {
@@ -385,7 +423,9 @@ async function _show_available_fields(frm) {
 		try {
 			const fm = JSON.parse(frm.doc.field_mapping || "{}");
 			mapping_keys = Object.keys(fm).map((k) => ({ key: k, cfg: fm[k] }));
-		} catch (e) {}
+		} catch (e) {
+			// ignore malformed data, fall back to defaults
+		}
 
 		let spec_keys = [];
 		const item_code = preview_data && preview_data.item_code;
@@ -396,12 +436,20 @@ async function _show_available_fields(frm) {
 					args: { item_code },
 				});
 				spec_keys = r.message || [];
-			} catch (e) {}
+			} catch (e) {
+				// ignore malformed data, fall back to defaults
+			}
 		}
 
 		_render_available_fields_dialog({
-			frm, dt, meta, linked_metas, child_metas,
-			preview_keys, mapping_keys, spec_keys,
+			frm,
+			dt,
+			meta,
+			linked_metas,
+			child_metas,
+			preview_keys,
+			mapping_keys,
+			spec_keys,
 		});
 	} finally {
 		frappe.dom.unfreeze();
@@ -412,7 +460,11 @@ function _field_row_html(expr, label, fieldtype) {
 	const id = "fpx-" + Math.random().toString(36).slice(2, 9);
 	const safe_expr = frappe.utils.escape_html(expr);
 	const safe_label = frappe.utils.escape_html(label || "");
-	const ft = fieldtype ? `<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${frappe.utils.escape_html(fieldtype)}</span>` : "";
+	const ft = fieldtype
+		? `<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${frappe.utils.escape_html(
+				fieldtype
+		  )}</span>`
+		: "";
 	return `
 		<div class="fpx-row" data-search="${frappe.utils.escape_html((expr + " " + label).toLowerCase())}"
 			style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;border-bottom:1px solid var(--border-color);">
@@ -440,7 +492,9 @@ function _render_available_fields_dialog(ctx) {
 	if (ctx.no_doctype) {
 		d.$body.html(`<div style="padding:15px;">
 			<p>${__("No Reference DocType is set on this template.")}</p>
-			<p>${__("For Raw Data templates, available keys are defined in the document(s) you pass at print time, or via Field Mapping.")}</p>
+			<p>${__(
+				"For Raw Data templates, available keys are defined in the document(s) you pass at print time, or via Field Mapping."
+			)}</p>
 		</div>`);
 		d.show();
 		return;
@@ -454,7 +508,9 @@ function _render_available_fields_dialog(ctx) {
 		.join("");
 
 	let direct_section = _section_html(
-		`${__("Document fields")} <span style="color:var(--text-muted);font-weight:400;">— ${frappe.utils.escape_html(dt)}</span>`,
+		`${__(
+			"Document fields"
+		)} <span style="color:var(--text-muted);font-weight:400;">— ${frappe.utils.escape_html(dt)}</span>`,
 		direct || `<div style="padding:8px;color:var(--text-muted);">${__("(none)")}</div>`
 	);
 
@@ -474,10 +530,14 @@ function _render_available_fields_dialog(ctx) {
 				<details style="border-bottom:1px solid var(--border-color);">
 					<summary style="cursor:pointer;padding:6px 8px;">
 						<code>doc.${fn}</code>
-						<span style="color:var(--text-muted);margin-left:6px;">${__("Table")} → ${frappe.utils.escape_html(cm.doctype)}</span>
+						<span style="color:var(--text-muted);margin-left:6px;">${__("Table")} → ${frappe.utils.escape_html(
+				cm.doctype
+			)}</span>
 					</summary>
 					<div style="padding:6px 8px;display:flex;align-items:center;gap:8px;">
-						<pre id="${loop_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(loop)}</pre>
+						<pre id="${loop_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(
+				loop
+			)}</pre>
 						<button class="btn btn-xs btn-default" data-copy-target="${loop_id}">${__("Copy loop")}</button>
 					</div>
 					${inner || `<div style="padding:6px 8px;color:var(--text-muted);">${__("(no renderable fields)")}</div>`}
@@ -502,10 +562,14 @@ function _render_available_fields_dialog(ctx) {
 				<details style="border-bottom:1px solid var(--border-color);">
 					<summary style="cursor:pointer;padding:6px 8px;">
 						<code>doc.${fn}</code>
-						<span style="color:var(--text-muted);margin-left:6px;">${__("Link")} → ${frappe.utils.escape_html(lm.doctype)}</span>
+						<span style="color:var(--text-muted);margin-left:6px;">${__("Link")} → ${frappe.utils.escape_html(
+				lm.doctype
+			)}</span>
 					</summary>
 					<div style="padding:6px 8px;display:flex;align-items:center;gap:8px;">
-						<pre id="${var_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(setline)}</pre>
+						<pre id="${var_id}" style="flex:1;margin:0;font-size:11px;background:var(--bg-color);padding:6px;border-radius:4px;">${frappe.utils.escape_html(
+				setline
+			)}</pre>
 						<button class="btn btn-xs btn-default" data-copy-target="${var_id}">${__("Copy")}</button>
 					</div>
 					${inner || `<div style="padding:6px 8px;color:var(--text-muted);">${__("(no renderable fields)")}</div>`}
@@ -519,8 +583,13 @@ function _render_available_fields_dialog(ctx) {
 		const body = spec_keys
 			.map((s) => _field_row_html(`{{ doc.${s.key} }}`, s.param, "Spec param"))
 			.join("");
-		spec_section = _section_html(__("Spec params"), body,
-			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__("Flattened from the item's specification.")}</div>`);
+		spec_section = _section_html(
+			__("Spec params"),
+			body,
+			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__(
+				"Flattened from the item's specification."
+			)}</div>`
+		);
 	}
 
 	let mapping_section = "";
@@ -536,19 +605,25 @@ function _render_available_fields_dialog(ctx) {
 
 	let preview_section = "";
 	if (preview_keys && preview_keys.length) {
-		const body = preview_keys
-			.map((k) => _field_row_html(`{{ doc.${k} }}`, "", "preview-only"))
-			.join("");
-		preview_section = _section_html(__("Runtime / preview-only keys"), body,
-			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__("Seen in preview_data but not in doctype meta. Make sure they exist at runtime.")}</div>`);
+		const body = preview_keys.map((k) => _field_row_html(`{{ doc.${k} }}`, "", "preview-only")).join("");
+		preview_section = _section_html(
+			__("Runtime / preview-only keys"),
+			body,
+			`<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${__(
+				"Seen in preview_data but not in doctype meta. Make sure they exist at runtime."
+			)}</div>`
+		);
 	}
 
-	const helpers_section = _section_html(__("Helpers"), [
-		_field_row_html(`{{ _("Hello") }}`, __("Translate"), ""),
-		_field_row_html(`{{ frappe.utils.formatdate(doc.posting_date) }}`, __("Format date"), ""),
-		_field_row_html(`<barcode type="code128" data="{{ doc.name }}" />`, __("Barcode tag"), ""),
-		_field_row_html(`<attachment fieldname="image" />`, __("Attachment tag"), ""),
-	].join(""));
+	const helpers_section = _section_html(
+		__("Helpers"),
+		[
+			_field_row_html(`{{ _("Hello") }}`, __("Translate"), ""),
+			_field_row_html(`{{ frappe.utils.formatdate(doc.posting_date) }}`, __("Format date"), ""),
+			_field_row_html(`<barcode type="code128" data="{{ doc.name }}" />`, __("Barcode tag"), ""),
+			_field_row_html(`<attachment fieldname="image" />`, __("Attachment tag"), ""),
+		].join("")
+	);
 
 	d.$body.html(`
 		<div style="padding:0 15px 15px;font-size:13px;">
@@ -583,4 +658,3 @@ function _render_available_fields_dialog(ctx) {
 
 	d.show();
 }
-

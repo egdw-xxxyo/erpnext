@@ -52,7 +52,9 @@ erpnext.utils.open_bulk_label_print_dialog = function ({ doctype, names }) {
 			{
 				fieldname: "validation_status",
 				fieldtype: "HTML",
-				options: `<div class="printer-validation-status text-muted" style="padding:8px 0;">${__("Select a printer to validate")}</div>`,
+				options: `<div class="printer-validation-status text-muted" style="padding:8px 0;">${__(
+					"Select a printer to validate"
+				)}</div>`,
 			},
 		],
 		primary_action_label: __("Print Now"),
@@ -108,14 +110,20 @@ erpnext.utils.open_bulk_label_print_dialog = function ({ doctype, names }) {
 function _update_count(dlg, doctype, names) {
 	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 	const tmpl = dlg.get_value("label_template");
-	if (!tmpl) { dlg.fields_dict.info_html.$wrapper.html(""); return; }
+	if (!tmpl) {
+		dlg.fields_dict.info_html.$wrapper.html("");
+		return;
+	}
 	frappe.call({
 		method: API_PRINTER + ".count_labels",
 		args: { source_doctype: doctype, source_names: JSON.stringify(names), label_template: tmpl },
 		callback: (r) => {
 			if (r.message) {
 				dlg.fields_dict.info_html.$wrapper.html(
-					`<div class="text-muted">${__("{0} labels from {1} records", [r.message.total, names.length])}</div>`
+					`<div class="text-muted">${__("{0} labels from {1} records", [
+						r.message.total,
+						names.length,
+					])}</div>`
 				);
 			}
 		},
@@ -128,9 +136,7 @@ function _transform_to_go_to_queue(dialog, job_count) {
 		dialog.hide();
 		frappe.set_route("List", "Print Job", { status: "Queued" });
 	});
-	dialog.$wrapper.find(".modal-footer .btn-primary")
-		.prop("disabled", false)
-		.removeClass("disabled");
+	dialog.$wrapper.find(".modal-footer .btn-primary").prop("disabled", false).removeClass("disabled");
 	dialog.enable_primary_action();
 	frappe.show_alert({
 		message: __("{0} jobs added to queue", [job_count]),
@@ -162,7 +168,8 @@ function _create_bulk_jobs(values, print_immediately, dialog, doctype, names) {
 				_transform_to_go_to_queue(dialog, job_names.length);
 				return;
 			}
-			let printed = 0, failed = 0;
+			let printed = 0,
+				failed = 0;
 			const total = job_names.length;
 			const _finish = () => {
 				frappe.hide_progress();
@@ -172,7 +179,10 @@ function _create_bulk_jobs(values, print_immediately, dialog, doctype, names) {
 				});
 			};
 			const _print_one = (i) => {
-				if (i >= job_names.length) { _finish(); return; }
+				if (i >= job_names.length) {
+					_finish();
+					return;
+				}
 				frappe.show_progress(__("Printing..."), i + 1, total);
 				frappe.call({
 					method: API_PRINTER + ".print_label",
@@ -182,7 +192,10 @@ function _create_bulk_jobs(values, print_immediately, dialog, doctype, names) {
 						const delay = (r2.message && r2.message.print_delay_ms) || 1500;
 						setTimeout(() => _print_one(i + 1), delay);
 					},
-					error: () => { failed++; _print_one(i + 1); },
+					error: () => {
+						failed++;
+						_print_one(i + 1);
+					},
 				});
 			};
 			_print_one(0);
@@ -352,13 +365,13 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 			let build_printer_opts = (default_printer) => {
 				if (printers.length === 1) default_printer = printers[0];
 				return (
-					(printers.length > 1
-						? `<option value="">${__("— select printer —")}</option>`
-						: "") +
+					(printers.length > 1 ? `<option value="">${__("— select printer —")}</option>` : "") +
 					printers
 						.map(
 							(p) =>
-								`<option value="${frappe.utils.escape_html(p)}"${p === default_printer ? " selected" : ""}>${frappe.utils.escape_html(p)}</option>`
+								`<option value="${frappe.utils.escape_html(p)}"${
+									p === default_printer ? " selected" : ""
+								}>${frappe.utils.escape_html(p)}</option>`
 						)
 						.join("")
 				);
@@ -367,7 +380,9 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 			let html =
 				"<table class='table' style='margin-top:8px'><thead><tr>" +
 				`<th style="width:30px"><input type="checkbox" class="check-all" checked></th>` +
-				`<th>${__("Item")}</th><th>${__("Qty")}</th><th>${__("Copies")}</th><th>${__("Label Template")}</th><th>${__("Printer")}</th><th>${__("Status")}</th>` +
+				`<th>${__("Item")}</th><th>${__("Qty")}</th><th>${__("Copies")}</th><th>${__(
+					"Label Template"
+				)}</th><th>${__("Printer")}</th><th>${__("Status")}</th>` +
 				"</tr></thead><tbody>";
 			items.forEach((item_code) => {
 				let info = by_item[item_code];
@@ -375,7 +390,9 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 				let tmpl_opts = tmpls
 					.map(
 						(t) =>
-							`<option value="${frappe.utils.escape_html(t.label_template)}">${frappe.utils.escape_html(t.label_template)}</option>`
+							`<option value="${frappe.utils.escape_html(
+								t.label_template
+							)}">${frappe.utils.escape_html(t.label_template)}</option>`
 					)
 					.join("");
 				let printer_opts = build_printer_opts(tmpls[0].label_printer || "");
@@ -408,7 +425,12 @@ erpnext.utils.open_label_print_dialog = function ({ by_item, templates_by_item, 
 	});
 };
 
-erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, label_templates, default_copies }) {
+erpnext.utils.open_simple_label_print_dialog = function ({
+	doctype,
+	doc_name,
+	label_templates,
+	default_copies,
+}) {
 	const API_PRINTER = "erpnext.devices.doctype.label_printer.label_printer";
 
 	let tmpl_options = label_templates.map((t) => t.label_template);
@@ -452,7 +474,9 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 			{
 				fieldname: "validation_status",
 				fieldtype: "HTML",
-				options: `<div class="printer-validation-status text-muted" style="padding:8px 0;">${__("Select a printer to validate")}</div>`,
+				options: `<div class="printer-validation-status text-muted" style="padding:8px 0;">${__(
+					"Select a printer to validate"
+				)}</div>`,
 			},
 		],
 		primary_action_label: __("Print Now"),
@@ -494,7 +518,8 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 					return;
 				}
 
-				let printed = 0, failed = 0;
+				let printed = 0,
+					failed = 0;
 				const total = job_names.length;
 				const _finish = () => {
 					frappe.hide_progress();
@@ -502,7 +527,10 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 					frappe.show_alert({ message: msg, indicator: failed ? "red" : "green" });
 				};
 				const _print_one = (i) => {
-					if (i >= job_names.length) { _finish(); return; }
+					if (i >= job_names.length) {
+						_finish();
+						return;
+					}
 					frappe.show_progress(__("Printing..."), i + 1, total);
 					frappe.call({
 						method: API_PRINTER + ".print_label",
@@ -512,7 +540,10 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 							const delay = (r2.message && r2.message.print_delay_ms) || 1500;
 							setTimeout(() => _print_one(i + 1), delay);
 						},
-						error: () => { failed++; _print_one(i + 1); },
+						error: () => {
+							failed++;
+							_print_one(i + 1);
+						},
 					});
 				};
 				_print_one(0);
@@ -524,7 +555,13 @@ erpnext.utils.open_simple_label_print_dialog = function ({ doctype, doc_name, la
 
 	frappe.call({
 		method: "frappe.client.get_list",
-		args: { doctype: "Label Printer", filters: { is_enabled: 1 }, fields: ["name"], limit_page_length: 0, order_by: "name asc" },
+		args: {
+			doctype: "Label Printer",
+			filters: { is_enabled: 1 },
+			fields: ["name"],
+			limit_page_length: 0,
+			order_by: "name asc",
+		},
 		callback: (r) => {
 			const names = (r.message || []).map((p) => p.name);
 			const options = [""].concat(names).join("\n");
@@ -551,14 +588,20 @@ function _validate_printer(dlg) {
 	dlg.disable_primary_action();
 
 	if (!printer || !template) {
-		_set_validation_message(dlg, `<div class="text-muted">${__("Select printer and template to validate")}</div>`);
+		_set_validation_message(
+			dlg,
+			`<div class="text-muted">${__("Select printer and template to validate")}</div>`
+		);
 		return;
 	}
 
 	const token = (dlg._validation_token || 0) + 1;
 	dlg._validation_token = token;
 
-	_set_validation_message(dlg, `<div class="text-muted"><i class="fa fa-spinner fa-spin"></i> ${__("Validating printer...")}</div>`);
+	_set_validation_message(
+		dlg,
+		`<div class="text-muted"><i class="fa fa-spinner fa-spin"></i> ${__("Validating printer...")}</div>`
+	);
 
 	const _fail = (msg) => {
 		if (dlg._validation_token !== token) return;
@@ -576,41 +619,61 @@ function _validate_printer(dlg) {
 	frappe.db.get_value("Label Template", template, "label_size").then((r1) => {
 		if (dlg._validation_token !== token) return;
 		const required_size = r1.message && r1.message.label_size;
-		if (!required_size) { _fail(__("Template has no label size")); return; }
+		if (!required_size) {
+			_fail(__("Template has no label size"));
+			return;
+		}
 
-		frappe.db.get_value("Label Printer", printer,
-			["loaded_label_size", "is_label_change_in_progress", "mock_printing"]
-		).then((r2) => {
-			if (dlg._validation_token !== token) return;
-			const p = r2.message || {};
-			if (p.is_label_change_in_progress) {
-				_fail(__("Printer is in label-change mode")); return;
-			}
-			if (p.loaded_label_size && p.loaded_label_size !== required_size) {
-				_fail(__("Loaded label size '{0}' does not match template '{1}'", [p.loaded_label_size, required_size]));
-				return;
-			}
-			if (p.mock_printing) {
-				_ok(__("Mock printing — Label: {0}", [required_size]));
-				return;
-			}
+		frappe.db
+			.get_value("Label Printer", printer, [
+				"loaded_label_size",
+				"is_label_change_in_progress",
+				"mock_printing",
+			])
+			.then((r2) => {
+				if (dlg._validation_token !== token) return;
+				const p = r2.message || {};
+				if (p.is_label_change_in_progress) {
+					_fail(__("Printer is in label-change mode"));
+					return;
+				}
+				if (p.loaded_label_size && p.loaded_label_size !== required_size) {
+					_fail(
+						__("Loaded label size '{0}' does not match template '{1}'", [
+							p.loaded_label_size,
+							required_size,
+						])
+					);
+					return;
+				}
+				if (p.mock_printing) {
+					_ok(__("Mock printing — Label: {0}", [required_size]));
+					return;
+				}
 
-			frappe.call({
-				method: API_PRINTER + ".check_status",
-				args: { printer_name: printer },
-				error_handlers: { 500: () => {} },
-				callback: (r3) => {
-					const status = (r3.message && r3.message.status && r3.message.status.status) || "Offline";
-					if (status !== "Ready") { _fail(__("Printer status: {0}", [status])); return; }
-					const loaded = p.loaded_label_size || __("Not set");
-					if (!p.loaded_label_size) {
-						_fail(__("Printer has no loaded label size set; expected '{0}'", [required_size])); return;
-					}
-					_ok(__("Ready — Label: {0}", [loaded]));
-				},
-				error: () => _fail(__("Printer offline")),
+				frappe.call({
+					method: API_PRINTER + ".check_status",
+					args: { printer_name: printer },
+					error_handlers: { 500: () => {} },
+					callback: (r3) => {
+						const status =
+							(r3.message && r3.message.status && r3.message.status.status) || "Offline";
+						if (status !== "Ready") {
+							_fail(__("Printer status: {0}", [status]));
+							return;
+						}
+						const loaded = p.loaded_label_size || __("Not set");
+						if (!p.loaded_label_size) {
+							_fail(
+								__("Printer has no loaded label size set; expected '{0}'", [required_size])
+							);
+							return;
+						}
+						_ok(__("Ready — Label: {0}", [loaded]));
+					},
+					error: () => _fail(__("Printer offline")),
+				});
 			});
-		});
 	});
 }
 
@@ -664,7 +727,9 @@ function _validate_row(d, $row) {
 	const _fail = (msg) => {
 		if ($row.data("token") !== token) return;
 		$row.data("valid", false);
-		$status.html(`<span style="color:var(--red-500);" title="${frappe.utils.escape_html(msg)}">✗ ${msg}</span>`);
+		$status.html(
+			`<span style="color:var(--red-500);" title="${frappe.utils.escape_html(msg)}">✗ ${msg}</span>`
+		);
 		_refresh_print_now_state(d);
 	};
 	const _ok = (msg) => {
@@ -677,31 +742,52 @@ function _validate_row(d, $row) {
 	frappe.db.get_value("Label Template", tmpl, "label_size").then((r1) => {
 		if ($row.data("token") !== token) return;
 		const required_size = r1.message && r1.message.label_size;
-		if (!required_size) { _fail(__("No label size")); return; }
+		if (!required_size) {
+			_fail(__("No label size"));
+			return;
+		}
 
-		frappe.db.get_value("Label Printer", printer,
-			["loaded_label_size", "is_label_change_in_progress", "mock_printing"]
-		).then((r2) => {
-			if ($row.data("token") !== token) return;
-			const p = r2.message || {};
-			if (p.is_label_change_in_progress) { _fail(__("Label change in progress")); return; }
-			if (p.loaded_label_size && p.loaded_label_size !== required_size) {
-				_fail(__("Loaded '{0}' ≠ '{1}'", [p.loaded_label_size, required_size])); return;
-			}
-			if (p.mock_printing) { _ok(__("Mock — {0}", [required_size])); return; }
+		frappe.db
+			.get_value("Label Printer", printer, [
+				"loaded_label_size",
+				"is_label_change_in_progress",
+				"mock_printing",
+			])
+			.then((r2) => {
+				if ($row.data("token") !== token) return;
+				const p = r2.message || {};
+				if (p.is_label_change_in_progress) {
+					_fail(__("Label change in progress"));
+					return;
+				}
+				if (p.loaded_label_size && p.loaded_label_size !== required_size) {
+					_fail(__("Loaded '{0}' ≠ '{1}'", [p.loaded_label_size, required_size]));
+					return;
+				}
+				if (p.mock_printing) {
+					_ok(__("Mock — {0}", [required_size]));
+					return;
+				}
 
-			frappe.call({
-				method: API_PRINTER + ".check_status",
-				args: { printer_name: printer },
-				error_handlers: { 500: () => {} },
-				callback: (r3) => {
-					const status = (r3.message && r3.message.status && r3.message.status.status) || "Offline";
-					if (status !== "Ready") { _fail(__("Printer: {0}", [status])); return; }
-					if (!p.loaded_label_size) { _fail(__("No loaded size; expected '{0}'", [required_size])); return; }
-					_ok(__("Ready — {0}", [p.loaded_label_size]));
-				},
-				error: () => _fail(__("Offline")),
+				frappe.call({
+					method: API_PRINTER + ".check_status",
+					args: { printer_name: printer },
+					error_handlers: { 500: () => {} },
+					callback: (r3) => {
+						const status =
+							(r3.message && r3.message.status && r3.message.status.status) || "Offline";
+						if (status !== "Ready") {
+							_fail(__("Printer: {0}", [status]));
+							return;
+						}
+						if (!p.loaded_label_size) {
+							_fail(__("No loaded size; expected '{0}'", [required_size]));
+							return;
+						}
+						_ok(__("Ready — {0}", [p.loaded_label_size]));
+					},
+					error: () => _fail(__("Offline")),
+				});
 			});
-		});
 	});
 }

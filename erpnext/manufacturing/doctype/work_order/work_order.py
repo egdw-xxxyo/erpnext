@@ -684,7 +684,8 @@ class WorkOrder(Document):
 
 	def _create_job_cards_per_serial(self, plan_days, enable_capacity_planning):
 		serials = [
-			row[0] for row in frappe.db.sql(
+			row[0]
+			for row in frappe.db.sql(
 				"select name from `tabSerial No` where work_order=%s order by name",
 				self.name,
 			)
@@ -698,7 +699,9 @@ class WorkOrder(Document):
 			for serial in serials:
 				row.serial_no = serial
 				create_job_card(
-					self, row, auto_create=True,
+					self,
+					row,
+					auto_create=True,
 					enable_capacity_planning=enable_capacity_planning,
 				)
 			row.serial_no = None
@@ -1576,9 +1579,7 @@ def _validate_selected_serial_nos(work_order, serial_nos, qty):
 	invalid = set(serial_nos) - set(available)
 	if invalid:
 		frappe.throw(
-			_("Serial numbers {0} are not available for this Work Order").format(
-				", ".join(sorted(invalid))
-			)
+			_("Serial numbers {0} are not available for this Work Order").format(", ".join(sorted(invalid)))
 		)
 
 

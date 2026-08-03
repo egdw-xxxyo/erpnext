@@ -1,8 +1,14 @@
 const DEVICE_SCRIPT_API_REFERENCE = `
 <div style="font-size: 13px; line-height: 1.6;">
 <h5>${__("Device Script — Scanner vs Reflectometer")}</h5>
-<p><strong>${__("Scanner")}</strong> ${__("scripts are reusable function libraries invoked from Workplace Scripts via the")} <code>scripts</code> ${__("namespace. No entry point — define functions only.")}</p>
-<p><strong>${__("Reflectometer")}</strong> ${__("scripts run automatically after each OTDR measurement is uploaded. Define")} <code>on_event(ctx)</code> ${__("or")} <code>on_reflectometer(ctx)</code>. ${__("ctx fields:")} <code>ctx.otdr</code>, <code>ctx.log_entry</code>, <code>ctx.payload</code> ${__("(parsed dict).")}</p>
+<p><strong>${__("Scanner")}</strong> ${__(
+	"scripts are reusable function libraries invoked from Workplace Scripts via the"
+)} <code>scripts</code> ${__("namespace. No entry point — define functions only.")}</p>
+<p><strong>${__("Reflectometer")}</strong> ${__(
+	"scripts run automatically after each OTDR measurement is uploaded. Define"
+)} <code>on_event(ctx)</code> ${__("or")} <code>on_reflectometer(ctx)</code>. ${__(
+	"ctx fields:"
+)} <code>ctx.otdr</code>, <code>ctx.log_entry</code>, <code>ctx.payload</code> ${__("(parsed dict).")}</p>
 
 <h5>${__("Example Scanner Script")}: "job_cards"</h5>
 <pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
@@ -22,7 +28,9 @@ def on_event(ctx):
     if loss is not None and loss > 3:
         ctx.log(f"loss alert: {loss} dB", level="WARN", payload_keys=list(ctx.payload.keys()))
 </pre>
-<p>${__("ctx.log(message, level='INFO'|'WARN'|'ERROR', **extra) appends a line to this run's logs. After the script returns, the run is stored under")} <strong>${__("Recent Runs")}</strong> ${__("on this script (last 200 kept, older auto-pruned).")}</p>
+<p>${__(
+	"ctx.log(message, level='INFO'|'WARN'|'ERROR', **extra) appends a line to this run's logs. After the script returns, the run is stored under"
+)} <strong>${__("Recent Runs")}</strong> ${__("on this script (last 200 kept, older auto-pruned).")}</p>
 
 <p>${__("frappe and json modules are available in the script scope.")}</p>
 </div>
@@ -78,54 +86,72 @@ frappe.ui.form.on("Device Script", {
 		}
 		refresh_version_selects(frm);
 
-		frm.add_custom_button(__("+ Add Version"), () => {
-			persist_working_copy_to(frm, frm.doc.viewing_version);
-			const name = next_version_name(frm);
-			const row = frm.add_child("versions");
-			row.version = name;
-			row.is_default = 0;
-			row.snapshot = capture_working_copy_json(frm);
-			row.created_on = frappe.datetime.now_datetime();
-			refresh_version_selects(frm);
-			frm.refresh_field("versions");
-			frm.__prev_viewing = name;
-			frm.set_value("viewing_version", name);
-			frm.dirty();
-		}, __("Versions"));
-
-		frm.add_custom_button(__("Remove Version"), () => {
-			const versions = frm.doc.versions || [];
-			if (versions.length <= 1) {
-				frappe.msgprint(__("Cannot remove the only version"));
-				return;
-			}
-			const cur = frm.doc.viewing_version;
-			const row = versions.find((v) => v.version === cur);
-			if (!row) return;
-			if (row.is_default) {
-				frappe.msgprint(__("Cannot remove the default version. Switch default to another version first."));
-				return;
-			}
-			frappe.confirm(__("Remove version {0}?", [cur]), () => {
-				const idx = versions.indexOf(row);
-				versions.splice(idx, 1);
-				versions.forEach((v, i) => { v.idx = i + 1; });
+		frm.add_custom_button(
+			__("+ Add Version"),
+			() => {
+				persist_working_copy_to(frm, frm.doc.viewing_version);
+				const name = next_version_name(frm);
+				const row = frm.add_child("versions");
+				row.version = name;
+				row.is_default = 0;
+				row.snapshot = capture_working_copy_json(frm);
+				row.created_on = frappe.datetime.now_datetime();
 				refresh_version_selects(frm);
 				frm.refresh_field("versions");
-				frm.__prev_viewing = frm.doc.default_version;
-				frm.set_value("viewing_version", frm.doc.default_version);
+				frm.__prev_viewing = name;
+				frm.set_value("viewing_version", name);
 				frm.dirty();
-			});
-		}, __("Versions"));
+			},
+			__("Versions")
+		);
 
-		frm.add_custom_button(__("Set Displayed as Default"), () => {
-			const cur = frm.doc.viewing_version;
-			(frm.doc.versions || []).forEach((v) => { v.is_default = (v.version === cur) ? 1 : 0; });
-			frm.doc.default_version = cur;
-			frm.refresh_field("versions");
-			frm.refresh_field("default_version");
-			frm.dirty();
-		}, __("Versions"));
+		frm.add_custom_button(
+			__("Remove Version"),
+			() => {
+				const versions = frm.doc.versions || [];
+				if (versions.length <= 1) {
+					frappe.msgprint(__("Cannot remove the only version"));
+					return;
+				}
+				const cur = frm.doc.viewing_version;
+				const row = versions.find((v) => v.version === cur);
+				if (!row) return;
+				if (row.is_default) {
+					frappe.msgprint(
+						__("Cannot remove the default version. Switch default to another version first.")
+					);
+					return;
+				}
+				frappe.confirm(__("Remove version {0}?", [cur]), () => {
+					const idx = versions.indexOf(row);
+					versions.splice(idx, 1);
+					versions.forEach((v, i) => {
+						v.idx = i + 1;
+					});
+					refresh_version_selects(frm);
+					frm.refresh_field("versions");
+					frm.__prev_viewing = frm.doc.default_version;
+					frm.set_value("viewing_version", frm.doc.default_version);
+					frm.dirty();
+				});
+			},
+			__("Versions")
+		);
+
+		frm.add_custom_button(
+			__("Set Displayed as Default"),
+			() => {
+				const cur = frm.doc.viewing_version;
+				(frm.doc.versions || []).forEach((v) => {
+					v.is_default = v.version === cur ? 1 : 0;
+				});
+				frm.doc.default_version = cur;
+				frm.refresh_field("versions");
+				frm.refresh_field("default_version");
+				frm.dirty();
+			},
+			__("Versions")
+		);
 	},
 	viewing_version(frm) {
 		const next = frm.doc.viewing_version;
@@ -139,7 +165,9 @@ frappe.ui.form.on("Device Script", {
 	default_version(frm) {
 		const cur = frm.doc.default_version;
 		if (!cur) return;
-		(frm.doc.versions || []).forEach((v) => { v.is_default = (v.version === cur) ? 1 : 0; });
+		(frm.doc.versions || []).forEach((v) => {
+			v.is_default = v.version === cur ? 1 : 0;
+		});
 		frm.refresh_field("versions");
 	},
 });

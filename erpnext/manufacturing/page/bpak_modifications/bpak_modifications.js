@@ -15,7 +15,9 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 
 	const $container = $('<div class="bpak-mods"></div>').appendTo(page.body);
 
-	$('<style>').text(`
+	$("<style>")
+		.text(
+			`
 		.bpak-mods table { font-size: 13px; }
 		.bpak-mods th.gs-col {
 			writing-mode: vertical-rl;
@@ -37,18 +39,24 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 			padding: 2px 4px;
 		}
 		.bpak-mods a.icon-link:hover { color: var(--primary); }
-	`).appendTo('head');
+	`
+		)
+		.appendTo("head");
 
 	function item_link(doctype, name, label) {
 		const route = `/app/${doctype.toLowerCase().replace(/ /g, "-")}/${encodeURIComponent(name)}`;
 		const text = frappe.utils.escape_html(label || name);
-		return `<a href="${route}" data-doctype="${doctype}" data-name="${frappe.utils.escape_html(name)}">${text}</a>`;
+		return `<a href="${route}" data-doctype="${doctype}" data-name="${frappe.utils.escape_html(
+			name
+		)}">${text}</a>`;
 	}
 
 	function item_icon_link(name, tooltip) {
 		const route = `/app/item/${encodeURIComponent(name)}`;
 		const tip = frappe.utils.escape_html(tooltip || name);
-		return `<a href="${route}" class="icon-link" data-doctype="Item" data-name="${frappe.utils.escape_html(name)}" title="${tip}">
+		return `<a href="${route}" class="icon-link" data-doctype="Item" data-name="${frappe.utils.escape_html(
+			name
+		)}" title="${tip}">
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
 		</a>`;
 	}
@@ -56,7 +64,9 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 	function render() {
 		const specification = spec_field.get_value();
 		if (!specification) {
-			$container.html(`<div class="text-muted" style="margin: 15px 0;">${__("Оберіть специфікацію")}</div>`);
+			$container.html(
+				`<div class="text-muted" style="margin: 15px 0;">${__("Оберіть специфікацію")}</div>`
+			);
 			return;
 		}
 		frappe.call({

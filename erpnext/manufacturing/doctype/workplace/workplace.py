@@ -9,6 +9,12 @@ class Workplace(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.manufacturing.doctype.workplace_employee.workplace_employee import WorkplaceEmployee
+		from erpnext.manufacturing.doctype.workplace_operation.workplace_operation import (
+			WorkplaceOperation,
+		)
+		from erpnext.manufacturing.doctype.workplace_printer.workplace_printer import WorkplacePrinter
+
 		allowed_employees: DF.Table["WorkplaceEmployee"]
 		allowed_operations: DF.Table["WorkplaceOperation"]
 		barcode: DF.Data | None

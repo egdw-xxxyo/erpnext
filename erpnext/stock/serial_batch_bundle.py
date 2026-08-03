@@ -63,8 +63,14 @@ class SerialBatchBundle:
 		self.item_details.serial_no_series = resolved
 
 	def _get_voucher_supplier(self):
-		voucher_type = self.sle.get("voucher_type") if hasattr(self.sle, "get") else getattr(self.sle, "voucher_type", None)
-		voucher_no = self.sle.get("voucher_no") if hasattr(self.sle, "get") else getattr(self.sle, "voucher_no", None)
+		voucher_type = (
+			self.sle.get("voucher_type")
+			if hasattr(self.sle, "get")
+			else getattr(self.sle, "voucher_type", None)
+		)
+		voucher_no = (
+			self.sle.get("voucher_no") if hasattr(self.sle, "get") else getattr(self.sle, "voucher_no", None)
+		)
 		if voucher_type and voucher_no:
 			supplier = frappe.db.get_value(voucher_type, voucher_no, "supplier")
 			if supplier:
@@ -1054,7 +1060,7 @@ def sync_series_counter(serial_no_series: str | None, serial_nos: list) -> None:
 	for sn in serial_nos:
 		if not sn or not sn.startswith(prefix):
 			continue
-		suffix = sn[len(prefix):]
+		suffix = sn[len(prefix) :]
 		if suffix.isdigit():
 			max_counter = max(max_counter, int(suffix))
 
@@ -1444,25 +1450,11 @@ class SerialBatchCreation:
 			msg = f"Please set Serial No Series in the item {self.item_code} or create Serial and Batch Bundle manually."
 			frappe.throw(_(msg))
 
-		voucher_no = ""
-		if self.get("voucher_no"):
-			voucher_no = self.get("voucher_no")
-
-		voucher_type = ""
-		if self.get("voucher_type"):
-			voucher_type = self.get("voucher_type")
-
 		obj = NamingSeries(self.serial_no_series)
 		current_value = obj.get_current_value()
 
 		def get_series(partial_series, digits):
 			return f"{current_value:0{digits}d}"
-
-		posting_date = frappe.db.get_value(
-			voucher_type,
-			voucher_no,
-			"posting_date",
-		)
 
 		for _i in range(abs(cint(self.actual_qty))):
 			current_value += 1

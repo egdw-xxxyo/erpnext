@@ -46,9 +46,9 @@ function open_filter_dialog(frm, cdt, cdn, row) {
 				saved_filters = [[doctype, ...parsed]];
 			} else if (Array.isArray(parsed)) {
 				// Array of tuples
-				saved_filters = parsed.map(f => [doctype, ...f]);
+				saved_filters = parsed.map((f) => [doctype, ...f]);
 			} else if (parsed.and) {
-				saved_filters = parsed.and.map(f => [doctype, ...f]);
+				saved_filters = parsed.and.map((f) => [doctype, ...f]);
 			}
 		} catch (e) {
 			// Invalid JSON, start fresh
@@ -67,9 +67,7 @@ function open_filter_dialog(frm, cdt, cdn, row) {
 			],
 			primary_action_label: __("Apply"),
 			primary_action: () => {
-				let filters = filter_group
-					.get_filters()
-					.map(f => [f[1], f[2], f[3]]);
+				let filters = filter_group.get_filters().map((f) => [f[1], f[2], f[3]]);
 
 				let value = "";
 				if (filters.length === 1) {

@@ -102,14 +102,16 @@ def _get_or_create_production_log(workplace, job_card):
 		return frappe.get_doc("Production Log", existing)
 
 	jc = frappe.get_doc("Job Card", job_card)
-	plog = frappe.get_doc({
-		"doctype": "Production Log",
-		"job_card": job_card,
-		"work_order": jc.work_order,
-		"production_item": jc.production_item,
-		"operation": jc.operation,
-		"workplace": workplace,
-	})
+	plog = frappe.get_doc(
+		{
+			"doctype": "Production Log",
+			"job_card": job_card,
+			"work_order": jc.work_order,
+			"production_item": jc.production_item,
+			"operation": jc.operation,
+			"workplace": workplace,
+		}
+	)
 	plog.insert(ignore_permissions=True)
 	return plog
 
@@ -196,15 +198,19 @@ def get_job_cards(workplace):
 		emp_names = {}
 		emp_ids = list({a.employee for a in assignment_data if a.employee})
 		if emp_ids:
-			for emp in frappe.get_all("Employee", filters={"name": ["in", emp_ids]}, fields=["name", "employee_name"]):
+			for emp in frappe.get_all(
+				"Employee", filters={"name": ["in", emp_ids]}, fields=["name", "employee_name"]
+			):
 				emp_names[emp.name] = emp.employee_name
 
 		for a in assignment_data:
 			if a.employee and a.employee not in [e["employee"] for e in assignments.get(a.parent, [])]:
-				assignments.setdefault(a.parent, []).append({
-					"employee": a.employee,
-					"employee_name": emp_names.get(a.employee, a.employee),
-				})
+				assignments.setdefault(a.parent, []).append(
+					{
+						"employee": a.employee,
+						"employee_name": emp_names.get(a.employee, a.employee),
+					}
+				)
 
 	plog_data = {}
 	if job_cards:
@@ -213,9 +219,7 @@ def get_job_cards(workplace):
 			filters={"job_card": ["in", job_cards]},
 			fields=["job_card", "workstation", "name"],
 		):
-			material_count = frappe.db.count(
-				"Production Log Material", {"parent": plog.name}
-			)
+			material_count = frappe.db.count("Production Log Material", {"parent": plog.name})
 			readings = frappe.get_all(
 				"Production Log Field",
 				filters={"parent": plog.name},
@@ -235,8 +239,17 @@ def get_job_cards(workplace):
 		fields = frappe.get_all(
 			"Operation Field",
 			filters={"parent": op_name, "parenttype": "Operation"},
-			fields=["label", "fieldname", "fieldtype", "options", "reqd",
-			"link_doctype", "link_scan_filters", "show_barcode_scanner", "multiple"],
+			fields=[
+				"label",
+				"fieldname",
+				"fieldtype",
+				"options",
+				"reqd",
+				"link_doctype",
+				"link_scan_filters",
+				"show_barcode_scanner",
+				"multiple",
+			],
 			order_by="idx",
 		)
 		if fields:
@@ -352,10 +365,13 @@ def start_job(job_card, employee, start_time=None):
 	if not any(row.employee == employee for row in doc.employee):
 		doc.append("employee", {"employee": employee})
 
-	doc.append("time_logs", {
-		"from_time": start_time,
-		"employee": employee,
-	})
+	doc.append(
+		"time_logs",
+		{
+			"from_time": start_time,
+			"employee": employee,
+		},
+	)
 	doc.db_set("status", "Work In Progress")
 	doc.save(ignore_permissions=True)
 
@@ -388,10 +404,13 @@ def resume_job(job_card, employee=None, start_time=None):
 				employee = row.employee
 				break
 
-	doc.append("time_logs", {
-		"from_time": start_time,
-		"employee": employee,
-	})
+	doc.append(
+		"time_logs",
+		{
+			"from_time": start_time,
+			"employee": employee,
+		},
+	)
 	doc.db_set("status", "Work In Progress")
 	doc.db_set("is_paused", 0)
 	doc.save(ignore_permissions=True)
@@ -406,7 +425,13 @@ def scan_raw_material(workplace, job_card, barcode, item_filter=""):
 
 	if item_code and item_filter:
 		try:
-			filter_obj = item_filter if isinstance(item_filter, dict) else json.loads(item_filter) if item_filter else {}
+			filter_obj = (
+				item_filter
+				if isinstance(item_filter, dict)
+				else json.loads(item_filter)
+				if item_filter
+				else {}
+			)
 		except (json.JSONDecodeError, TypeError):
 			filter_obj = {}
 		if filter_obj:
@@ -430,16 +455,19 @@ def scan_raw_material(workplace, job_card, barcode, item_filter=""):
 					elif actual != val:
 						frappe.throw(f"Item {item_code}: {key} is '{actual}', expected '{val}'")
 
-	plog.append("materials", {
-		"scan_barcode": barcode,
-		"scan_type": scan_type,
-		"raw_material_item": item_code,
-		"batch_no": batch_no,
-		"serial_no": serial_no,
-		"supplier_label": barcode if scan_type == "Unknown Label" else "",
-		"scanned_by": employee,
-		"scan_datetime": now_datetime(),
-	})
+	plog.append(
+		"materials",
+		{
+			"scan_barcode": barcode,
+			"scan_type": scan_type,
+			"raw_material_item": item_code,
+			"batch_no": batch_no,
+			"serial_no": serial_no,
+			"supplier_label": barcode if scan_type == "Unknown Label" else "",
+			"scanned_by": employee,
+			"scan_datetime": now_datetime(),
+		},
+	)
 	plog.save(ignore_permissions=True)
 
 	item_name = ""
@@ -508,12 +536,15 @@ def save_custom_data(workplace, job_card, custom_data):
 		else:
 			if str_value:
 				changes.append(f"{fieldname}: {str_value}")
-			plog.append("readings", {
-				"operation_field": fieldname,
-				"label": field_def.get("label", fieldname),
-				"fieldtype": field_def.get("fieldtype", "Data"),
-				"value": str_value,
-			})
+			plog.append(
+				"readings",
+				{
+					"operation_field": fieldname,
+					"label": field_def.get("label", fieldname),
+					"fieldtype": field_def.get("fieldtype", "Data"),
+					"value": str_value,
+				},
+			)
 
 	plog.custom_data = json.dumps(custom_data, ensure_ascii=False)
 	plog.save(ignore_permissions=True)
@@ -549,16 +580,18 @@ def get_production_log(job_card):
 	plog = frappe.get_doc("Production Log", existing)
 	materials = []
 	for m in plog.materials:
-		materials.append({
-			"scan_barcode": m.scan_barcode,
-			"scan_type": m.scan_type,
-			"raw_material_item": m.raw_material_item,
-			"raw_material_item_name": m.raw_material_item_name,
-			"batch_no": m.batch_no,
-			"serial_no": m.serial_no,
-			"supplier_label": m.supplier_label,
-			"name": m.name,
-		})
+		materials.append(
+			{
+				"scan_barcode": m.scan_barcode,
+				"scan_type": m.scan_type,
+				"raw_material_item": m.raw_material_item,
+				"raw_material_item_name": m.raw_material_item_name,
+				"batch_no": m.batch_no,
+				"serial_no": m.serial_no,
+				"supplier_label": m.supplier_label,
+				"name": m.name,
+			}
+		)
 	return {
 		"workstation": plog.workstation or "",
 		"materials": materials,
@@ -636,11 +669,13 @@ def get_production_data_for_job_card(job_card):
 
 	readings = []
 	for r in plog.readings:
-		readings.append({
-			"label": r.label or r.operation_field,
-			"value": r.value,
-			"fieldtype": r.fieldtype,
-		})
+		readings.append(
+			{
+				"label": r.label or r.operation_field,
+				"value": r.value,
+				"fieldtype": r.fieldtype,
+			}
+		)
 
 	return {
 		"production_log": plog.name,

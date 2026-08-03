@@ -20,12 +20,14 @@ class BpAKTemplate(Document):
 		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
 			resolve_specification_template,
 		)
+
 		resolved = resolve_specification_template(self)
 		if resolved:
 			self.set("custom_шифр", resolved)
 
 	def autoname(self):
 		from frappe.model.naming import set_name_by_naming_series
+
 		set_name_by_naming_series(self)
 		self._set_template_name()
 
@@ -40,9 +42,11 @@ class BpAKTemplate(Document):
 				["short_name", "abbr"],
 				as_dict=True,
 			)
-			label = (vals.short_name if vals and vals.short_name else None) \
-				or (vals.abbr if vals and vals.abbr else None) \
+			label = (
+				(vals.short_name if vals and vals.short_name else None)
+				or (vals.abbr if vals and vals.abbr else None)
 				or row.attribute_value
+			)
 			parts.append(label)
 		if parts:
 			self.template_name = " ".join(parts)

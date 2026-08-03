@@ -39,6 +39,7 @@ def _get_label_size_data(label_size_name):
 	size = frappe.get_doc("Label Size", label_size_name)
 	dpi = 300
 	from frappe.utils import flt
+
 	dots_per_mm = dpi / 25.4
 	return {
 		"width_mm": size.width_mm,
@@ -57,12 +58,13 @@ def get_template_reference():
 	"""
 	ref_path = os.path.join(os.path.dirname(__file__), "REFERENCE.md")
 	try:
-		with open(ref_path, "r", encoding="utf-8") as f:
+		with open(ref_path, encoding="utf-8") as f:
 			reference_md = f.read()
 	except FileNotFoundError:
 		reference_md = ""
 
 	from frappe.utils import markdown
+
 	reference_html = markdown(reference_md) if reference_md else ""
 
 	examples = frappe.get_all(
@@ -84,11 +86,9 @@ def get_available_spec_keys(item_code):
 	if not item_code:
 		return []
 	from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
+
 	spec = get_spec_for_item(item_code) or {}
-	return [
-		{"key": _spec_param_to_key(name), "param": name}
-		for name in spec.keys()
-	]
+	return [{"key": _spec_param_to_key(name), "param": name} for name in spec.keys()]
 
 
 @frappe.whitelist()
@@ -102,12 +102,23 @@ def get_templates_for_barcode_type(barcode_type):
 
 
 @frappe.whitelist()
-def render_preview(html_template="", field_mapping="", preview_data="", label_size="", padding_top_mm=0, padding_right_mm=0, padding_bottom_mm=0, padding_left_mm=0, **kwargs):
+def render_preview(
+	html_template="",
+	field_mapping="",
+	preview_data="",
+	label_size="",
+	padding_top_mm=0,
+	padding_right_mm=0,
+	padding_bottom_mm=0,
+	padding_left_mm=0,
+	**kwargs,
+):
 	if not label_size:
 		return None
 
 	size = _get_label_size_data(label_size)
 	from frappe.utils import flt
+
 	padding_mm = (flt(padding_top_mm), flt(padding_right_mm), flt(padding_bottom_mm), flt(padding_left_mm))
 
 	context = {"frappe": frappe, "_": _}
@@ -155,7 +166,9 @@ def render_job_preview(print_job_name):
 	html = frappe.render_template(template.html_template or "", context)
 	html = _process_barcode_tags(html)
 	html = _process_attachment_tags(html)
-	img_b64 = _html_to_png_base64(html, size["width_dots"], size["height_dots"], padding_mm=_padding_from_template(template))
+	img_b64 = _html_to_png_base64(
+		html, size["width_dots"], size["height_dots"], padding_mm=_padding_from_template(template)
+	)
 	return {
 		"type": "html_image",
 		"image_base64": img_b64,
@@ -165,8 +178,8 @@ def render_job_preview(print_job_name):
 
 def _process_barcode_tags(html):
 	"""Replace <barcode type="qr|code128|ean13|..." data="..." /> with inline base64 <img> tags."""
-	import qrcode as qrcode_lib
 	import barcode as barcode_lib
+	import qrcode as qrcode_lib
 	from barcode.writer import ImageWriter
 	from PIL import Image
 
@@ -192,7 +205,9 @@ def _process_barcode_tags(html):
 
 			if bc_type == "qr":
 				box_size = int(bc_size) if bc_size else 4
-				qr = qrcode_lib.QRCode(box_size=box_size, border=1, error_correction=qrcode_lib.constants.ERROR_CORRECT_M)
+				qr = qrcode_lib.QRCode(
+					box_size=box_size, border=1, error_correction=qrcode_lib.constants.ERROR_CORRECT_M
+				)
 				qr.add_data(bc_data)
 				qr.make(fit=True)
 				img = qr.make_image(fill_color="black", back_color="white")
@@ -229,6 +244,7 @@ def _process_attachment_tags(html):
 	Resolves file from Frappe's file system (public or private).
 	Supports width, height, and style attributes.
 	"""
+
 	def _get_attr(attrs_str, name):
 		m = re.search(rf'{name}=["\']([^"\']+)["\']', attrs_str)
 		return m.group(1) if m else None
@@ -241,7 +257,9 @@ def _process_attachment_tags(html):
 			return match.group(0)
 
 		try:
-			file_doc = frappe.get_value("File", {"file_name": file_name}, ["file_url", "is_private"], as_dict=True)
+			file_doc = frappe.get_value(
+				"File", {"file_name": file_name}, ["file_url", "is_private"], as_dict=True
+			)
 			if not file_doc:
 				return match.group(0)
 
@@ -258,7 +276,14 @@ def _process_attachment_tags(html):
 				file_bytes = f.read()
 
 			ext = file_name.rsplit(".", 1)[-1].lower()
-			mime_map = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "gif": "gif", "svg": "svg+xml", "webp": "webp"}
+			mime_map = {
+				"jpg": "jpeg",
+				"jpeg": "jpeg",
+				"png": "png",
+				"gif": "gif",
+				"svg": "svg+xml",
+				"webp": "webp",
+			}
 			mime = mime_map.get(ext, "png")
 
 			b64 = base64.b64encode(file_bytes).decode("ascii")
@@ -350,6 +375,7 @@ def _padding_from_template(template_doc):
 	if not template_doc:
 		return None
 	from frappe.utils import flt
+
 	return (
 		flt(getattr(template_doc, "padding_top_mm", 0) or 0),
 		flt(getattr(template_doc, "padding_right_mm", 0) or 0),
@@ -363,13 +389,19 @@ def _html_to_png_base64(html, width_px, height_px, padding_mm=None):
 	result = subprocess.run(
 		[
 			"wkhtmltoimage",
-			"--encoding", "utf-8",
-			"--width", str(width_px),
-			"--height", str(height_px),
-			"--quality", "100",
-			"--format", "png",
+			"--encoding",
+			"utf-8",
+			"--width",
+			str(width_px),
+			"--height",
+			str(height_px),
+			"--quality",
+			"100",
+			"--format",
+			"png",
 			"--disable-smart-width",
-			"-", "-",
+			"-",
+			"-",
 		],
 		input=full_html.encode("utf-8"),
 		capture_output=True,
@@ -392,6 +424,7 @@ def html_to_pcx_bytes(html, width_px, height_px, padding_mm=None):
 def html_to_image(html, width_px, height_px, padding_mm=None):
 	"""Return (pcx_bytes, png_bytes) for an HTML label."""
 	import time
+
 	from PIL import Image
 
 	log = frappe.logger("label_printer")
@@ -404,21 +437,29 @@ def html_to_image(html, width_px, height_px, padding_mm=None):
 	result = subprocess.run(
 		[
 			"wkhtmltoimage",
-			"--encoding", "utf-8",
-			"--width", str(width_px),
-			"--height", str(height_px),
-			"--quality", "100",
-			"--format", "png",
+			"--encoding",
+			"utf-8",
+			"--width",
+			str(width_px),
+			"--height",
+			str(height_px),
+			"--quality",
+			"100",
+			"--format",
+			"png",
 			"--disable-smart-width",
-			"-", "-",
+			"-",
+			"-",
 		],
 		input=full_html.encode("utf-8"),
 		capture_output=True,
 		timeout=15,
 	)
 	wk_ms = (time.monotonic() - t0) * 1000
-	log.error(f"[TIMING] html_to_image: wkhtmltoimage subprocess: {wk_ms:.0f}ms "
-		f"(returncode={result.returncode}, stdout={len(result.stdout)}bytes)")
+	log.error(
+		f"[TIMING] html_to_image: wkhtmltoimage subprocess: {wk_ms:.0f}ms "
+		f"(returncode={result.returncode}, stdout={len(result.stdout)}bytes)"
+	)
 	if result.returncode != 0:
 		raise ValueError(f"wkhtmltoimage failed: {result.stderr.decode('utf-8', errors='replace')}")
 
@@ -431,8 +472,9 @@ def html_to_image(html, width_px, height_px, padding_mm=None):
 	pcx_buf = io.BytesIO()
 	img_bw.save(pcx_buf, format="PCX")
 	pil_ms = (time.monotonic() - t0) * 1000
-	log.error(f"[TIMING] html_to_image: PIL png->pcx conversion: {pil_ms:.0f}ms "
-		f"(pcx={pcx_buf.tell()}bytes)")
+	log.error(
+		f"[TIMING] html_to_image: PIL png->pcx conversion: {pil_ms:.0f}ms " f"(pcx={pcx_buf.tell()}bytes)"
+	)
 	return pcx_buf.getvalue(), png_bytes
 
 
@@ -490,6 +532,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 
 	if item_code:
 		from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
+
 		raw_spec = get_spec_for_item(item_code) or {}
 		spec = {k: frappe._dict(v) for k, v in raw_spec.items()}
 		for param_name, p in spec.items():
@@ -522,6 +565,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 
 def render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 	import time
+
 	log = frappe.logger("label_printer")
 	t_start = time.monotonic()
 

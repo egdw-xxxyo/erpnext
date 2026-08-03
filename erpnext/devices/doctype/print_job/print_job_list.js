@@ -19,7 +19,6 @@ frappe.listview_settings["Print Job"] = {
 		// Remove the default ID (name) filter — reference_name is more useful
 		listview.page.fields_dict.name && listview.page.fields_dict.name.$wrapper.hide();
 
-
 		// Print selected jobs
 		listview.page.add_action_item(__("Send to Printer"), () => {
 			const checked = listview.get_checked_items();
@@ -30,13 +29,18 @@ frappe.listview_settings["Print Job"] = {
 			const printer = listview._selected_printer;
 			if (!printer || printer.last_status !== "Ready") {
 				const status = (printer && printer.last_status) || __("Unknown");
-				frappe.confirm(
-					__("Printer status is '{0}'. Continue anyway?", [status]),
-					() => _batch_print_sequential(checked.map((d) => d.name), listview)
+				frappe.confirm(__("Printer status is '{0}'. Continue anyway?", [status]), () =>
+					_batch_print_sequential(
+						checked.map((d) => d.name),
+						listview
+					)
 				);
 				return;
 			}
-			_batch_print_sequential(checked.map((d) => d.name), listview);
+			_batch_print_sequential(
+				checked.map((d) => d.name),
+				listview
+			);
 		});
 
 		// Cancel selected jobs
@@ -46,23 +50,23 @@ frappe.listview_settings["Print Job"] = {
 				frappe.msgprint(__("Please select at least one Print Job"));
 				return;
 			}
-			frappe.confirm(
-				__("Cancel {0} print jobs?", [checked.length]),
-				() => {
-					frappe.call({
-						method: API_PRINTER + ".batch_cancel_jobs",
-						args: { job_names: JSON.stringify(checked.map((d) => d.name)) },
-						freeze: true,
-						freeze_message: __("Cancelling..."),
-						callback: (r) => {
-							if (r.message && r.message.cancelled !== undefined) {
-								frappe.show_alert({ message: __("{0} cancelled", [r.message.cancelled]), indicator: "green" });
-							}
-							listview.refresh();
-						},
-					});
-				}
-			);
+			frappe.confirm(__("Cancel {0} print jobs?", [checked.length]), () => {
+				frappe.call({
+					method: API_PRINTER + ".batch_cancel_jobs",
+					args: { job_names: JSON.stringify(checked.map((d) => d.name)) },
+					freeze: true,
+					freeze_message: __("Cancelling..."),
+					callback: (r) => {
+						if (r.message && r.message.cancelled !== undefined) {
+							frappe.show_alert({
+								message: __("{0} cancelled", [r.message.cancelled]),
+								indicator: "green",
+							});
+						}
+						listview.refresh();
+					},
+				});
+			});
 		});
 
 		// Delete selected jobs
@@ -72,31 +76,35 @@ frappe.listview_settings["Print Job"] = {
 				frappe.msgprint(__("Please select at least one Print Job"));
 				return;
 			}
-			frappe.confirm(
-				__("Permanently delete {0} print jobs?", [checked.length]),
-				() => {
-					frappe.call({
-						method: API_PRINTER + ".batch_delete_jobs",
-						args: { job_names: JSON.stringify(checked.map((d) => d.name)) },
-						freeze: true,
-						freeze_message: __("Deleting..."),
-						callback: (r) => {
-							if (r.message && r.message.deleted !== undefined) {
-								frappe.show_alert({ message: __("{0} deleted", [r.message.deleted]), indicator: "green" });
-							}
-							listview.refresh();
-						},
-					});
-				}
-			);
+			frappe.confirm(__("Permanently delete {0} print jobs?", [checked.length]), () => {
+				frappe.call({
+					method: API_PRINTER + ".batch_delete_jobs",
+					args: { job_names: JSON.stringify(checked.map((d) => d.name)) },
+					freeze: true,
+					freeze_message: __("Deleting..."),
+					callback: (r) => {
+						if (r.message && r.message.deleted !== undefined) {
+							frappe.show_alert({
+								message: __("{0} deleted", [r.message.deleted]),
+								indicator: "green",
+							});
+						}
+						listview.refresh();
+					},
+				});
+			});
 		});
 
 		// Override the primary action after Frappe sets it up
 		const orig_set_primary = listview.set_primary_action;
 		listview.set_primary_action = function () {
-			listview.page.set_primary_action(__("Add to Queue"), () => {
-				_show_add_to_queue_dialog(listview);
-			}, "add");
+			listview.page.set_primary_action(
+				__("Add to Queue"),
+				() => {
+					_show_add_to_queue_dialog(listview);
+				},
+				"add"
+			);
 		};
 		listview.set_primary_action();
 
@@ -155,7 +163,9 @@ function _setup_printer_banner(listview) {
 	</div>`);
 	$banner.append($status);
 
-	const $change_btn = $(`<button class="btn btn-xs btn-default" style="margin-left:auto;">${__("Change Labels")}</button>`);
+	const $change_btn = $(
+		`<button class="btn btn-xs btn-default" style="margin-left:auto;">${__("Change Labels")}</button>`
+	);
 	$banner.append($change_btn);
 
 	listview.$page.find(".frappe-list").prepend($banner);
@@ -165,27 +175,29 @@ function _setup_printer_banner(listview) {
 
 	const _load_printers = (preserve_selection) => {
 		const prev = preserve_selection ? $printer_select.val() : null;
-		return frappe.call({
-			method: "erpnext.devices.page.print_queue.print_queue.get_printers",
-		}).then((r) => {
-			const printers = (r.message || []);
-			listview._printers_by_name = {};
-			$printer_select.empty();
-			if (!printers.length) {
-				$printer_select.append(`<option value="">${__("No printers")}</option>`);
-				listview._selected_printer = null;
-				_update_printer_info(null, $loaded, $status);
-				return;
-			}
-			printers.forEach((p) => {
-				listview._printers_by_name[p.name] = p;
-				$("<option>").val(p.name).text(p.name).appendTo($printer_select);
+		return frappe
+			.call({
+				method: "erpnext.devices.page.print_queue.print_queue.get_printers",
+			})
+			.then((r) => {
+				const printers = r.message || [];
+				listview._printers_by_name = {};
+				$printer_select.empty();
+				if (!printers.length) {
+					$printer_select.append(`<option value="">${__("No printers")}</option>`);
+					listview._selected_printer = null;
+					_update_printer_info(null, $loaded, $status);
+					return;
+				}
+				printers.forEach((p) => {
+					listview._printers_by_name[p.name] = p;
+					$("<option>").val(p.name).text(p.name).appendTo($printer_select);
+				});
+				const selected = prev && listview._printers_by_name[prev] ? prev : printers[0].name;
+				$printer_select.val(selected);
+				listview._selected_printer = listview._printers_by_name[selected];
+				_update_printer_info(listview._selected_printer, $loaded, $status);
 			});
-			const selected = (prev && listview._printers_by_name[prev]) ? prev : printers[0].name;
-			$printer_select.val(selected);
-			listview._selected_printer = listview._printers_by_name[selected];
-			_update_printer_info(listview._selected_printer, $loaded, $status);
-		});
 	};
 
 	_load_printers(false);
@@ -213,7 +225,9 @@ function _setup_printer_banner(listview) {
 				{
 					fieldname: "info",
 					fieldtype: "HTML",
-					options: `<p class="text-muted">${__("This will block all print jobs while you change labels in the printer.")}</p>`,
+					options: `<p class="text-muted">${__(
+						"This will block all print jobs while you change labels in the printer."
+					)}</p>`,
 				},
 				{
 					fieldname: "new_label_size",
@@ -251,7 +265,9 @@ function _update_printer_info(printer, $loaded, $status) {
 	const $status_badge = $status.find(".printer-status-badge");
 
 	if (!printer) {
-		$loaded_badge.text(__("Not set")).css({ background: "var(--gray-500)", color: "white", cursor: "default" });
+		$loaded_badge
+			.text(__("Not set"))
+			.css({ background: "var(--gray-500)", color: "white", cursor: "default" });
 		$status_badge.text(__("Unknown")).css("background", "var(--gray-500)");
 		return;
 	}
@@ -465,15 +481,17 @@ function _show_add_to_queue_dialog(listview) {
 				get_data: function (txt) {
 					const ref_dt = d._ref_doctype;
 					if (!ref_dt) return [];
-					return frappe.call({
-						method: "frappe.client.get_list",
-						args: {
-							doctype: ref_dt,
-							filters: { name: ["like", `%${txt}%`] },
-							fields: ["name"],
-							limit_page_length: 20,
-						},
-					}).then((r) => (r.message || []).map((v) => ({ value: v.name, description: v.name })));
+					return frappe
+						.call({
+							method: "frappe.client.get_list",
+							args: {
+								doctype: ref_dt,
+								filters: { name: ["like", `%${txt}%`] },
+								fields: ["name"],
+								limit_page_length: 20,
+							},
+						})
+						.then((r) => (r.message || []).map((v) => ({ value: v.name, description: v.name })));
 				},
 			},
 			{
@@ -503,7 +521,11 @@ function _show_add_to_queue_dialog(listview) {
 		},
 	});
 
-	d.$wrapper.find(".btn-secondary").removeClass("btn-secondary").addClass("btn-success").text(__("Print Now"));
+	d.$wrapper
+		.find(".btn-secondary")
+		.removeClass("btn-secondary")
+		.addClass("btn-success")
+		.text(__("Print Now"));
 
 	// Use event delegation on the dialog wrapper since scan_input is hidden
 	// and its $input doesn't exist until the field is shown
@@ -586,10 +608,16 @@ function _parse_items(values, data_fields) {
 
 	const text = (values.data_input || "").trim();
 	if (!text) return [];
-	const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+	const lines = text
+		.split("\n")
+		.map((l) => l.trim())
+		.filter(Boolean);
 	if (!lines.length) return [];
 
-	let fields = (data_fields || "").split(",").map((f) => f.trim()).filter(Boolean);
+	let fields = (data_fields || "")
+		.split(",")
+		.map((f) => f.trim())
+		.filter(Boolean);
 	if (!fields.length) {
 		return lines.map((line) => ({ reference_name: line, raw_data: { name: line } }));
 	}
@@ -605,7 +633,9 @@ function _parse_items(values, data_fields) {
 	for (let i = start; i < lines.length; i++) {
 		const cols = lines[i].split(",").map((c) => c.trim());
 		const data = {};
-		fields.forEach((f, idx) => { data[f] = cols[idx] || ""; });
+		fields.forEach((f, idx) => {
+			data[f] = cols[idx] || "";
+		});
 		items.push({ reference_name: cols[0] || "", raw_data: data });
 	}
 	return items;
@@ -635,10 +665,16 @@ function _create_jobs(d, values, printer, print_immediately, listview) {
 
 				setTimeout(() => {
 					if (print_immediately && created_jobs.length) {
-						frappe.show_alert({ message: __("{0} jobs created, printing...", [created_jobs.length]), indicator: "blue" });
+						frappe.show_alert({
+							message: __("{0} jobs created, printing...", [created_jobs.length]),
+							indicator: "blue",
+						});
 						_batch_print_sequential(created_jobs, listview);
 					} else {
-						frappe.show_alert({ message: __("{0} jobs added to queue", [created_jobs.length]), indicator: "green" });
+						frappe.show_alert({
+							message: __("{0} jobs added to queue", [created_jobs.length]),
+							indicator: "green",
+						});
 					}
 					listview.refresh();
 				}, 300);
@@ -677,7 +713,8 @@ function _create_jobs(d, values, printer, print_immediately, listview) {
 }
 
 function _batch_print_sequential(job_names, listview) {
-	let printed = 0, failed = 0;
+	let printed = 0,
+		failed = 0;
 	const total = job_names.length;
 	const BATCH_SIZE = 20;
 	let stopped = false;
@@ -699,26 +736,32 @@ function _batch_print_sequential(job_names, listview) {
 	const _get_printer = () => {
 		if (listview._selected_printer) return listview._selected_printer.name;
 		const first_job = job_names[0];
-		const row = (listview.data || []).find(d => d.name === first_job);
+		const row = (listview.data || []).find((d) => d.name === first_job);
 		return row ? row.label_printer : null;
 	};
 
 	const _check_status = (callback) => {
 		const printer = _get_printer();
-		if (!printer) { callback(true); return; }
+		if (!printer) {
+			callback(true);
+			return;
+		}
 		frappe.call({
 			method: API_PRINTER + ".check_printer_ready",
 			args: { printer_name: printer },
-			callback: () => { callback(true); },
+			callback: () => {
+				callback(true);
+			},
 			error: (r) => {
-				const msg = (r && r._server_messages) ? r._server_messages : "";
+				const msg = r && r._server_messages ? r._server_messages : "";
 				if (msg.indexOf("Printer error") !== -1) {
 					stopped = true;
 					frappe.msgprint({
 						title: __("Printing Stopped"),
 						indicator: "red",
-						message: __("Printer reported an error. Remaining {0} labels were skipped.",
-							[total - printed - failed]),
+						message: __("Printer reported an error. Remaining {0} labels were skipped.", [
+							total - printed - failed,
+						]),
 					});
 					callback(false);
 				} else {
@@ -744,7 +787,10 @@ function _batch_print_sequential(job_names, listview) {
 				const delay = (r.message && r.message.print_delay_ms) || 1500;
 				setTimeout(batch_done_cb, delay);
 			},
-			error: () => { failed++; batch_done_cb(); },
+			error: () => {
+				failed++;
+				batch_done_cb();
+			},
 		});
 	};
 
@@ -756,7 +802,10 @@ function _batch_print_sequential(job_names, listview) {
 
 		// Status check before each batch
 		_check_status((ok) => {
-			if (!ok) { _finish(); return; }
+			if (!ok) {
+				_finish();
+				return;
+			}
 
 			const end_idx = Math.min(start_idx + BATCH_SIZE, job_names.length);
 			let idx = start_idx;
@@ -767,7 +816,10 @@ function _batch_print_sequential(job_names, listview) {
 					_print_batch(end_idx);
 					return;
 				}
-				_print_one(idx, () => { idx++; _next(); });
+				_print_one(idx, () => {
+					idx++;
+					_next();
+				});
 			};
 			_next();
 		});

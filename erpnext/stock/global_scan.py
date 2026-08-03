@@ -44,7 +44,9 @@ def _resolve_workplace(value: str) -> dict | None:
 			"workplace_name": doc.workplace_name,
 			"company": doc.company,
 			"description": doc.description,
-			"operations": [op.operation for op in (doc.allowed_operations or []) if getattr(op, "operation", None)],
+			"operations": [
+				op.operation for op in (doc.allowed_operations or []) if getattr(op, "operation", None)
+			],
 			"employees": [
 				emp.employee_name or emp.employee
 				for emp in (doc.allowed_employees or [])
@@ -190,13 +192,15 @@ def _resolve_package(value: str) -> dict | None:
 	doc = frappe.get_doc("Package", name)
 	items = []
 	for row in doc.items:
-		items.append({
-			"item_code": row.item_code,
-			"item_name": row.item_name,
-			"qty": row.qty,
-			"serial_no": row.serial_no,
-			"batch_no": row.batch_no,
-		})
+		items.append(
+			{
+				"item_code": row.item_code,
+				"item_name": row.item_name,
+				"qty": row.qty,
+				"serial_no": row.serial_no,
+				"batch_no": row.batch_no,
+			}
+		)
 	bpak_info = _bpak_summary(doc.bpak) if getattr(doc, "bpak", None) else None
 
 	return {

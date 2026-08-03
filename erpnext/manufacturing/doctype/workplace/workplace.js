@@ -1,9 +1,13 @@
 frappe.ui.form.on("Workplace", {
 	refresh(frm) {
 		if (!frm.is_new()) {
-			frm.add_custom_button(__("Open Portal"), () => {
-				frappe.set_route("workplace-portal", { workplace: frm.doc.name });
-			}, __("View"));
+			frm.add_custom_button(
+				__("Open Portal"),
+				() => {
+					frappe.set_route("workplace-portal", { workplace: frm.doc.name });
+				},
+				__("View")
+			);
 		}
 		setup_barcode_generate(frm);
 		if (!frm._barcode_field) {
@@ -49,11 +53,7 @@ function setup_workplace_print_labels(frm) {
 function render_workplace_script_link(frm) {
 	if (frm.is_new()) return;
 
-	frappe.db.get_value(
-		"Workplace Script",
-		{ workplace: frm.doc.name, is_active: 1 },
-		"name"
-	).then((r) => {
+	frappe.db.get_value("Workplace Script", { workplace: frm.doc.name, is_active: 1 }, "name").then((r) => {
 		const name = r?.message?.name;
 		if (name && frm.doc.workplace_script !== name) {
 			frm.set_value("workplace_script", name);

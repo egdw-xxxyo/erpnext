@@ -46,9 +46,10 @@ frappe.ui.form.ControlData.prototype.setup_whatsapp_btn = function () {
 	// Append into .control-input-wrapper (parent of both the editable .control-input and the
 	// read-only .control-value), so the icon shows in both modes — many phone fields (e.g.
 	// Contact.mobile_no/phone) are read-only, auto-filled from a child table.
-	const $wrapper = (this.$input_wrapper && this.$input_wrapper.length
-		? this.$input_wrapper
-		: this.$wrapper.find(".control-input-wrapper")
+	const $wrapper = (
+		this.$input_wrapper && this.$input_wrapper.length
+			? this.$input_wrapper
+			: this.$wrapper.find(".control-input-wrapper")
 	).first();
 	if (!$wrapper.length || $wrapper.find(".wa-phone-btn").length) return;
 
@@ -85,9 +86,6 @@ frappe.ui.form.ControlData.prototype.setup_whatsapp_btn = function () {
 			frappe.msgprint(__("No phone number"));
 			return;
 		}
-		window.open(
-			`/app/whatsapp-chat-center?phone=${encodeURIComponent(digits)}`,
-			"_blank"
-		);
+		window.open(`/app/whatsapp-chat-center?phone=${encodeURIComponent(digits)}`, "_blank");
 	});
 };

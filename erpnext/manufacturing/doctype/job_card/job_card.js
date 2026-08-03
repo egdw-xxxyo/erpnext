@@ -88,7 +88,8 @@ frappe.ui.form.on("Job Card", {
 				if (!data) return;
 
 				// Remove previous section if re-rendering
-				frm.fields_dict.production_data_html && frm.fields_dict.production_data_html.$wrapper.remove();
+				frm.fields_dict.production_data_html &&
+					frm.fields_dict.production_data_html.$wrapper.remove();
 				$(frm.layout.wrapper).find(".production-data-section").remove();
 
 				let html = `<div class="production-data-section" style="margin:15px 0;padding:15px;border:1px solid var(--border-color);border-radius:var(--border-radius);">
@@ -99,13 +100,19 @@ frappe.ui.form.on("Job Card", {
 						</div>`;
 
 				if (data.workstation) {
-					html += `<div><span style="color:var(--text-muted);">${__("Workstation")}:</span> ${data.workstation}</div>`;
+					html += `<div><span style="color:var(--text-muted);">${__("Workstation")}:</span> ${
+						data.workstation
+					}</div>`;
 				}
 				if (data.workplace) {
-					html += `<div><span style="color:var(--text-muted);">${__("Workplace")}:</span> ${data.workplace}</div>`;
+					html += `<div><span style="color:var(--text-muted);">${__("Workplace")}:</span> ${
+						data.workplace
+					}</div>`;
 				}
 				if (data.finished_serial_no) {
-					html += `<div><span style="color:var(--text-muted);">${__("Serial No")}:</span> ${data.finished_serial_no}</div>`;
+					html += `<div><span style="color:var(--text-muted);">${__("Serial No")}:</span> ${
+						data.finished_serial_no
+					}</div>`;
 				}
 				html += `</div>`;
 
@@ -116,7 +123,9 @@ frappe.ui.form.on("Job Card", {
 							<thead><tr><th>${__("Field")}</th><th>${__("Value")}</th></tr></thead>
 							<tbody>`;
 					data.readings.forEach((r) => {
-						html += `<tr><td>${frappe.utils.escape_html(r.label)}</td><td>${frappe.utils.escape_html(r.value || "")}</td></tr>`;
+						html += `<tr><td>${frappe.utils.escape_html(
+							r.label
+						)}</td><td>${frappe.utils.escape_html(r.value || "")}</td></tr>`;
 					});
 					html += `</tbody></table></div>`;
 				}
@@ -159,7 +168,9 @@ frappe.ui.form.on("Job Card", {
 							callback: (r) => {
 								if (r.message) {
 									dlg.fields_dict.info_html.$wrapper.html(
-										`<div class="text-muted">${r.message.total} ${__("labels will be created")}</div>`
+										`<div class="text-muted">${r.message.total} ${__(
+											"labels will be created"
+										)}</div>`
 									);
 								}
 							},

@@ -23,7 +23,9 @@ function render_sync_credentials(frm) {
 		<div style="max-width: 720px;">
 			${copy_row(__("URL сервера"), base_url, __("Поле Server URL в otdr-sync."))}
 			<div class="text-muted" style="font-size: 12px;">
-				${__("Натисніть \"Підключити рефлектометр\", щоб згенерувати api_key/api_secret для поточного користувача та отримати QR-код.")}
+				${__(
+					'Натисніть "Підключити рефлектометр", щоб згенерувати api_key/api_secret для поточного користувача та отримати QR-код.'
+				)}
 			</div>
 		</div>
 	`);
@@ -59,34 +61,44 @@ function render_live_status(frm) {
 	};
 
 	const app_sub = age !== null ? __("{0} с тому", [age]) : __("ніколи");
-	const ble_sub = ble_ready ? "" : (app_online ? __("не підключено") : "");
+	const ble_sub = ble_ready ? "" : app_online ? __("не підключено") : "";
 	const badge_html = !last_seen
 		? `<span style="display:inline-block; padding:4px 10px; border-radius:4px;
 			background: var(--bg-gray, #eee); color: var(--text-muted);">● ${__("Не підключався")}</span>`
-		: pill(app_online, __("Застосунок підключено"), __("Застосунок недоступний"), app_sub)
-		  + pill(ble_ready, __("Пристрій BLE готовий"), __("Пристрій BLE недоступний"), ble_sub);
+		: pill(app_online, __("Застосунок підключено"), __("Застосунок недоступний"), app_sub) +
+		  pill(ble_ready, __("Пристрій BLE готовий"), __("Пристрій BLE недоступний"), ble_sub);
 
 	const app_version = s.app_version;
 	const min_version = s.min_app_version;
 	const app_client = s.app_client;
 	const app_incompatible = app_version && String(s.app_compatible || "") === "0";
-	const version_warn = app_incompatible ? `
+	const version_warn = app_incompatible
+		? `
 		<div style="margin-top: 12px; padding: 8px 10px; border-left: 3px solid #f0ad4e;
 			background: #fff8e5; color: #8a6d3b; font-size: 12px; max-width: 480px;">
-			${__("Версія застосунку ({0}) застаріла. Оновіть до {1} або новішої — логіку рефлектометра змінено.", [app_version, min_version])}
-		</div>` : "";
+			${__("Версія застосунку ({0}) застаріла. Оновіть до {1} або новішої — логіку рефлектометра змінено.", [
+				app_version,
+				min_version,
+			])}
+		</div>`
+		: "";
 
-	const row = (label, value) => value ? `
+	const row = (label, value) =>
+		value
+			? `
 		<tr>
 			<td style="padding: 4px 12px 4px 0; color: var(--text-muted);">${label}</td>
 			<td style="padding: 4px 0; font-family: monospace;">${frappe.utils.escape_html(String(value))}</td>
-		</tr>` : "";
+		</tr>`
+			: "";
 
-	const progress = s.progress, total = s.total;
-	const pct = (progress && total && Number(total) > 0)
-		? Math.round((Number(progress) * 100) / Number(total))
-		: null;
-	const bar_html = pct !== null ? `
+	const progress = s.progress,
+		total = s.total;
+	const pct =
+		progress && total && Number(total) > 0 ? Math.round((Number(progress) * 100) / Number(total)) : null;
+	const bar_html =
+		pct !== null
+			? `
 		<div style="margin-top: 8px; max-width: 480px;">
 			<div style="height: 8px; background: var(--bg-gray, #eee); border-radius: 4px; overflow: hidden;">
 				<div style="height: 100%; width: ${pct}%; background: #1e8e3e;"></div>
@@ -94,7 +106,8 @@ function render_live_status(frm) {
 			<div class="text-muted" style="font-size: 11px; margin-top: 4px;">
 				${progress} / ${total} (${pct}%)
 			</div>
-		</div>` : "";
+		</div>`
+			: "";
 
 	wrap.html(`
 		<div style="padding: 4px 0;">
@@ -117,9 +130,7 @@ function open_connect_dialog(frm) {
 	const d = new frappe.ui.Dialog({
 		title: __("Підключити рефлектометр"),
 		size: "large",
-		fields: [
-			{ fieldtype: "HTML", fieldname: "body" },
-		],
+		fields: [{ fieldtype: "HTML", fieldname: "body" }],
 	});
 	const $body = d.fields_dict.body.$wrapper;
 
@@ -127,11 +138,17 @@ function open_connect_dialog(frm) {
 		const is_local = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(default_url);
 		const warn_local = is_local
 			? `<div style="margin-top: 8px; padding: 8px 10px; border-left: 3px solid #f0ad4e; background: #fff8e5; color: #8a6d3b; font-size: 12px;">
-				${__("URL містить localhost — телефон/інший ПК не зможе підключитись. Заповніть \"Публічний URL сервера\" в OTDR Configuration або введіть LAN IP тут вручну (напр. http://192.168.1.10:8080).")}
-			</div>` : "";
-		const source_hint = source === "configuration"
-			? `<div class="text-muted" style="font-size: 11px; margin-top: 4px;">${__("Взято з OTDR Configuration → Публічний URL сервера.")}</div>`
+				${__(
+					'URL містить localhost — телефон/інший ПК не зможе підключитись. Заповніть "Публічний URL сервера" в OTDR Configuration або введіть LAN IP тут вручну (напр. http://192.168.1.10:8080).'
+				)}
+			</div>`
 			: "";
+		const source_hint =
+			source === "configuration"
+				? `<div class="text-muted" style="font-size: 11px; margin-top: 4px;">${__(
+						"Взято з OTDR Configuration → Публічний URL сервера."
+				  )}</div>`
+				: "";
 
 		$body.html(initial(default_url, warn_local + source_hint));
 		bind_gen_click();
@@ -147,7 +164,9 @@ function open_connect_dialog(frm) {
 			</div>
 			<div style="margin-top: 20px; padding: 12px; border: 1px solid #f5c6cb; background: #f8d7da; color: #721c24; border-radius: 4px;">
 				<b>${__("Увага")}:</b>
-				${__("API-ключ і секрет буде показано лише один раз. Скопіюйте їх або відскануйте QR перед закриттям вікна. Попередні ключі цього користувача будуть недійсними.")}
+				${__(
+					"API-ключ і секрет буде показано лише один раз. Скопіюйте їх або відскануйте QR перед закриттям вікна. Попередні ключі цього користувача будуть недійсними."
+				)}
 			</div>
 			<div style="margin-top: 16px;">
 				<button class="btn btn-primary" id="otdr-gen-keys-btn">
@@ -162,7 +181,10 @@ function open_connect_dialog(frm) {
 		$body.find("#otdr-gen-keys-btn").on("click", function () {
 			const $btn = $(this);
 			const url_val = ($body.find("#otdr-server-url").val() || "").trim().replace(/\/+$/, "");
-			if (!url_val) { frappe.show_alert({ message: __("Введіть URL"), indicator: "orange" }); return; }
+			if (!url_val) {
+				frappe.show_alert({ message: __("Введіть URL"), indicator: "orange" });
+				return;
+			}
 			$btn.prop("disabled", true).text(__("Генерація..."));
 			frappe.call({
 				method: "erpnext.devices.doctype.otdr.otdr_api.generate_connect_bundle",
@@ -187,7 +209,9 @@ function open_connect_dialog(frm) {
 			const url = r.message?.server_url || window.location.origin;
 			render_body(url, r.message?.source || "");
 		},
-		error: () => { render_body(window.location.origin, ""); },
+		error: () => {
+			render_body(window.location.origin, "");
+		},
 	});
 
 	d.$wrapper.on("click", ".otdr-copy-btn", function () {
@@ -223,14 +247,17 @@ frappe.ui.form.on("OTDR", {
 	refresh(frm) {
 		if (frm.is_new()) {
 			frm.fields_dict.endpoints_html.$wrapper.html(
-				`<div class="text-muted" style="padding: 12px;">${__("Збережіть документ, щоб отримати API ключ.")}</div>`
+				`<div class="text-muted" style="padding: 12px;">${__(
+					"Збережіть документ, щоб отримати API ключ."
+				)}</div>`
 			);
 			return;
 		}
 		render_sync_credentials(frm);
 
-		frm.add_custom_button(__("Підключити рефлектометр"), () => open_connect_dialog(frm))
-			.addClass("btn-primary");
+		frm.add_custom_button(__("Підключити рефлектометр"), () => open_connect_dialog(frm)).addClass(
+			"btn-primary"
+		);
 
 		const listening = !!frm.doc.sync_listening;
 		frm.toggle_display("btn_start_sync", !listening);
@@ -267,9 +294,11 @@ frappe.ui.form.on("OTDR", {
 				sock.on("connect", () => console.log("[OTDR] socket connect event id=", sock.id));
 				sock.on("connect_error", (e) => console.log("[OTDR] socket connect_error:", e && e.message));
 				sock.on("disconnect", (r) => console.log("[OTDR] socket disconnect:", r));
-				sock.onAny && sock.onAny((event, ...args) => {
-					if (event === "otdr_status_update") console.log("[OTDR] onAny otdr_status_update", args);
-				});
+				sock.onAny &&
+					sock.onAny((event, ...args) => {
+						if (event === "otdr_status_update")
+							console.log("[OTDR] onAny otdr_status_update", args);
+					});
 			}
 			if (frappe.realtime.doc_subscribe) {
 				frappe.realtime.doc_subscribe("OTDR", frm.doc.name);
@@ -338,5 +367,4 @@ frappe.ui.form.on("OTDR", {
 			},
 		});
 	},
-
 });

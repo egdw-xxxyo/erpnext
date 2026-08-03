@@ -17,8 +17,8 @@ def get_permission_query_conditions(user=None):
 	return (
 		"`tabChat Message`.thread in"
 		" (select parent from `tabChat Participant`"
-		" where parenttype = 'Chat Thread' and user = {user})"
-	).format(user=frappe.db.escape(user))
+		f" where parenttype = 'Chat Thread' and user = {frappe.db.escape(user)})"
+	)
 
 
 def has_permission(doc, ptype=None, user=None):
