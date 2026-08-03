@@ -401,7 +401,6 @@ def _impersonate(employee_name):
 # ---------------------------------------------------------------------------
 
 def _create_scan_log(scanner, data, scanner_state=None):
-	scanner.reload()
 	row_name = scanner.add_scan_log(
 		timestamp=now_datetime(),
 		raw_data=data,
@@ -420,7 +419,6 @@ def _update_scan_log(scanner, row_name, **kwargs):
 		if key in kwargs and kwargs[key] is not None:
 			updates[key] = kwargs[key]
 	if updates:
-		scanner.reload()
 		scanner.update_scan_log(row_name, **updates)
 
 

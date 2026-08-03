@@ -23,6 +23,37 @@ def compute_auth_token(api_key):
 MAX_SCAN_LOGS = 100
 
 
+def _next_scan_log_idx(scanner_name):
+	return (
+		frappe.db.sql(
+			"""SELECT IFNULL(MAX(idx), 0) FROM `tabScanner Scan Log Entry`
+			WHERE parent = %s AND parenttype = 'Scanner'""",
+			scanner_name,
+		)[0][0]
+		+ 1
+	)
+
+
+def cleanup_scan_logs():
+	"""Keep only the newest MAX_SCAN_LOGS rows per scanner. Runs hourly.
+
+	idx is monotonically increasing per scanner (append-only), so "newest" is
+	simply the highest idx values.
+	"""
+	frappe.db.sql(
+		"""DELETE t FROM `tabScanner Scan Log Entry` t
+		JOIN (
+			SELECT parent, MAX(idx) AS max_idx
+			FROM `tabScanner Scan Log Entry`
+			WHERE parenttype = 'Scanner'
+			GROUP BY parent
+		) x ON x.parent = t.parent
+		WHERE t.parenttype = 'Scanner' AND t.idx <= x.max_idx - %s""",
+		MAX_SCAN_LOGS,
+	)
+	frappe.db.commit()
+
+
 class Scanner(Document):
 	from typing import TYPE_CHECKING
 
@@ -55,26 +86,29 @@ class Scanner(Document):
 			self.set_onload("qr_svg", _make_qr_svg(self.api_key))
 
 	def add_scan_log(self, **kwargs):
-		row = self.append("scan_logs", kwargs)
-		self.scan_logs.remove(row)
-		self.scan_logs.insert(0, row)
-		if len(self.scan_logs) > MAX_SCAN_LOGS:
-			self.scan_logs = self.scan_logs[:MAX_SCAN_LOGS]
-		for i, r in enumerate(self.scan_logs):
-			r.idx = i + 1
-		self.flags.ignore_permissions = True
-		self.save()
+		"""Append one scan log row without touching the parent doc.
+
+		`self.save()` here used to rewrite the whole scan_logs table on every scan
+		(~150ms at the 100-row cap, twice per scan). Rows are append-only now and
+		trimmed by the hourly `cleanup_scan_logs` job instead.
+		"""
+		row = frappe.get_doc({
+			"doctype": "Scanner Scan Log Entry",
+			"parent": self.name,
+			"parenttype": "Scanner",
+			"parentfield": "scan_logs",
+			"idx": _next_scan_log_idx(self.name),
+			**kwargs,
+		})
+		row.db_insert()
 		return row.name
 
 	def update_scan_log(self, row_name, **kwargs):
-		for row in self.scan_logs:
-			if row.name == row_name:
-				for key, val in kwargs.items():
-					if val is not None:
-						row.set(key, val)
-				break
-		self.flags.ignore_permissions = True
-		self.save()
+		updates = {k: v for k, v in kwargs.items() if v is not None}
+		if updates:
+			frappe.db.set_value(
+				"Scanner Scan Log Entry", row_name, updates, update_modified=False
+			)
 
 
 @frappe.whitelist()

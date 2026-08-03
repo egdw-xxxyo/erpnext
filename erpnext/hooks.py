@@ -481,6 +481,7 @@ scheduler_events = {
 	},
 	"hourly": [
 		"erpnext.projects.doctype.project.project.hourly_reminder",
+		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [
