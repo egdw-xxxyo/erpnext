@@ -29,3 +29,4 @@ apps.json
 .tunnel.env
 graphify-out/
 raw/
+.tunnel.env*
