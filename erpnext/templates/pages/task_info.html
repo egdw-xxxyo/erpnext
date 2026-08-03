@@ -68,13 +68,10 @@
 				<div class="form-group">
 					<label for="status" class="control-label text-muted small">{{ __("Status") }}</label>
 					<select class="form-control" name="status" id="status" data-label="Status" data-fieldtype="Select">
-						<option value="Open" selected="selected">
-							{{ __("Open") }}</option><option value="Working">
-							{{ __("Working") }}</option><option value="Pending Review">
-							{{ __("Pending Review") }}</option><option value="Overdue">
-							{{ __("Overdue") }}</option><option value="Closed">
-							{{ __("Closed") }}</option><option value="Cancelled">
-							{{ __("Cancelled") }}</option>
+						{% for option in ["New", "In Progress", "Awaiting Info", "Blocked", "In Review", "Completed", "Cancelled"] %}
+						<option value="{{ option }}" {% if doc.status == option %}selected="selected"{% endif %}>
+							{{ __(option) }}</option>
+						{% endfor %}
 					</select>
 				</div>
 			</div>

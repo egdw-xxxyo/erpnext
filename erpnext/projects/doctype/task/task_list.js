@@ -9,12 +9,12 @@ frappe.listview_settings["Task"] = {
 		"progress",
 		"depends_on_tasks",
 	],
-	filters: [["status", "=", "Open"]],
+	filters: [["status", "not in", ["Completed", "Cancelled"]]],
 	onload: function (listview) {
 		var method = "erpnext.projects.doctype.task.task.set_multiple_status";
 
-		listview.page.add_menu_item(__("Set as Open"), function () {
-			listview.call_for_selected_items(method, { status: "Open" });
+		listview.page.add_menu_item(__("Set as New"), function () {
+			listview.call_for_selected_items(method, { status: "New" });
 		});
 
 		listview.page.add_menu_item(__("Set as Completed"), function () {
@@ -23,14 +23,27 @@ frappe.listview_settings["Task"] = {
 	},
 	get_indicator: function (doc) {
 		var colors = {
-			Open: "orange",
-			Overdue: "red",
-			"Pending Review": "orange",
-			Working: "orange",
+			New: "grey",
+			"In Progress": "blue",
+			"Awaiting Info": "yellow",
+			Blocked: "red",
+			"In Review": "purple",
 			Completed: "green",
 			Cancelled: "dark grey",
-			Template: "blue",
 		};
+
+		if (
+			doc.exp_end_date &&
+			!["Completed", "Cancelled"].includes(doc.status) &&
+			frappe.datetime.get_diff(doc.exp_end_date, frappe.datetime.get_today()) < 0
+		) {
+			return [
+				__("Overdue") + " (" + __(doc.status) + ")",
+				"red",
+				"exp_end_date,<,Today",
+			];
+		}
+
 		return [__(doc.status), colors[doc.status], "status,=," + doc.status];
 	},
 	gantt_custom_popup_html: function (ganttobj, task) {

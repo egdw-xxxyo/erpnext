@@ -62,7 +62,7 @@ class Task(NestedSet):
 		rgt: DF.Int
 		start: DF.Int
 		status: DF.Literal[
-			"Open", "Working", "Pending Review", "Overdue", "Template", "Completed", "Cancelled"
+			"New", "In Progress", "Awaiting Info", "Blocked", "In Review", "Completed", "Cancelled"
 		]
 		subject: DF.Data
 		task_weight: DF.Float
@@ -130,8 +130,6 @@ class Task(NestedSet):
 					)
 
 	def validate_status(self):
-		if self.is_template and self.status != "Template":
-			self.status = "Template"
 		if self.status != self.get_db_value("status") and self.status == "Completed":
 			for d in self.depends_on:
 				if frappe.db.get_value("Task", d.task, "status") not in ("Completed", "Cancelled"):
@@ -220,8 +218,8 @@ class Task(NestedSet):
 			self.name,
 			as_dict=1,
 		)[0]
-		if self.status == "Open":
-			self.status = "Working"
+		if self.status == "New":
+			self.status = "In Progress"
 		self.total_costing_amount = tl.total_costing_amount
 		self.total_billing_amount = tl.total_billing_amount
 		self.actual_time = tl.time
@@ -272,7 +270,7 @@ class Task(NestedSet):
 					task.exp_start_date
 					and task.exp_end_date
 					and task.exp_start_date < getdate(end_date)
-					and task.status == "Open"
+					and task.status == "New"
 				):
 					task_duration = date_diff(task.exp_end_date, task.exp_start_date)
 					task.exp_start_date = add_days(end_date, 1)
@@ -305,13 +303,12 @@ class Task(NestedSet):
 	def after_delete(self):
 		self.update_project()
 
-	def update_status(self):
-		if self.status not in ("Cancelled", "Completed") and self.exp_end_date:
-			from datetime import datetime
+	def is_overdue(self):
+		"""Overdue is derived from the expected end date, it is not a status."""
+		if self.status in ("Cancelled", "Completed") or not self.exp_end_date:
+			return False
 
-			if self.exp_end_date < datetime.now().date():
-				self.db_set("status", "Overdue", update_modified=False)
-				self.update_project()
+		return getdate(self.exp_end_date) < getdate(today())
 
 
 @frappe.whitelist()
@@ -357,17 +354,12 @@ def set_multiple_status(names, status):
 		task.save()
 
 
-def set_tasks_as_overdue():
-	tasks = frappe.get_all(
-		"Task",
-		filters={"status": ["not in", ["Cancelled", "Completed"]]},
-		fields=["name", "status", "review_date"],
-	)
-	for task in tasks:
-		if task.status == "Pending Review":
-			if getdate(task.review_date) > getdate(today()):
-				continue
-		frappe.get_doc("Task", task.name).update_status()
+def get_overdue_filters():
+	"""Filters for tasks that are past their expected end date and still open."""
+	return {
+		"status": ["not in", ["Cancelled", "Completed"]],
+		"exp_end_date": ["<", today()],
+	}
 
 
 @frappe.whitelist()

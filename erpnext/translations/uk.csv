@@ -2096,7 +2096,7 @@ Blanket Order Item,Пункти замовлення в ковдру
 Blanket Order Rate,Швидкість замовлення ковдри
 Block Invoice,Блок-рахунок-фактура
 Block Supplier,Блок постачальника
-Blocked,Заблоковано
+Blocked,Заблокована
 Blog Subscriber,Абонент блогу
 Blood Group,Група крові
 Blue,Синій
@@ -2273,7 +2273,7 @@ Cancel Subscription After Grace Period,Скасувати підписку пі�
 Cancel {0} print jobs?,Скасувати {0} завдань друку?
 Cancelation Date,Дата скасування
 Canceled,Скасовано
-Cancelled,Скасовано
+Cancelled,Скасована
 Cancelled: label size changed to {0},Скасовано: розмір етикетки змінено на {0}
 Cannot Assign Cashier,Неможливо призначити касира
 Cannot Calculate Arrival Time as Driver Address is Missing.,"Неможливо обчислити час прибуття, оскільки адреса драйвера відсутня."
@@ -2638,7 +2638,7 @@ Competitors,Конкуренти
 Complete,Завершено
 Complete Job,Завершити роботу
 Complete Order,Завершити замовлення
-Completed,Завершено
+Completed,Завершена
 Completed By,Завершено
 Completed On,Завершено
 Completed On cannot be greater than Today,Дата завершення не може бути пізніше сьогоднішньої
@@ -4768,7 +4768,7 @@ In Party Currency,У валюті контрагента
 In Percentage,У відсотках
 In Process,В процесі
 In Production,У виробництві
-In Progress,Виконується
+In Progress,В роботі
 In Qty,у к-сті
 In Stock,В наявності
 In Stock Qty,В наявності Кількість
@@ -6025,7 +6025,7 @@ Net Total (Company Currency),Чистий підсумок (у валюті ко
 Net Weight,Вага нетто
 Net Weight UOM,Вага нетто Одиниця виміру
 Net total calculation precision loss,Втрата точності розрахунку чистої суми
-New,Новий
+New,Нова
 New Account Name,Новий акаунт Ім&#39;я
 New Asset Value,Нове значення вартості активів
 New Assets (This Year),Нові активи (цього року)
@@ -6504,7 +6504,7 @@ Over Transfer Allowance (%),Посібник за переказ (%)
 Over Withheld,Надмірно утримано
 Overbilling of {0} {1} ignored for item {2} because you have {3} role.,"Надлишково виставлена сума {0} {1} ігнорується для товару {2}, оскільки у вас є роль {3}."
 Overbilling of {} ignored because you have {} role.,"Надлишково виставлена сума {} ігнорується, оскільки у вас є роль {}."
-Overdue,Прострочені
+Overdue,Прострочено
 Overdue Days,Прострочені дні
 Overdue Payment,Прострочений платіж
 Overdue Payments,Прострочені платежі
@@ -12609,7 +12609,7 @@ Workplace Scripts,Скрипти робочого місця
 "Pallet","Паллета"
 "Pallets","Паллети"
 "Pallet Details","Деталі паллети"
-"Cancelled","Скасовано"
+"Cancelled","Скасована"
 "Cannot submit an empty Pallet. Add packages first.","Неможливо подати порожню паллету. Спочатку додайте пакування."
 "Cannot delete Pallet {0}: packages are still linked","Неможливо видалити паллету {0}: до неї прив'язані пакування"
 "Pallet {0} is cancelled","Паллета {0} скасована"
@@ -12991,3 +12991,6 @@ Workplace Scripts,Скрипти робочого місця
 "Opening chat…","Відкриваємо чат…"
 "Failed to open chat","Не вдалося відкрити чат"
 "You do not have access to this document","У вас немає доступу до цього документа"
+"In Review","На перевірці"
+"Awaiting Info","Очікує інформацію"
+"Set as New","Позначити як «Нова»"

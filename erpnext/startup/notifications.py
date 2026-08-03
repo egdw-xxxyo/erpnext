@@ -10,7 +10,7 @@ def get_notification_config():
 		"for_doctype": {
 			"Issue": {"status": "Open"},
 			"Warranty Claim": {"status": "Open"},
-			"Task": {"status": ("in", ("Open", "Overdue"))},
+			"Task": {"status": ("not in", ("Completed", "Cancelled"))},
 			"Project": {"status": "Open"},
 			"Lead": {"status": "Open"},
 			"Contact": {"status": "Open"},

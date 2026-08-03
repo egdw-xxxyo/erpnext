@@ -23,11 +23,11 @@ class TestDelayedTasksSummary(unittest.TestCase):
 				"from_date": add_months(nowdate(), -1),
 				"to_date": nowdate(),
 				"priority": "Low",
-				"status": "Open",
+				"status": "New",
 			}
 		)
 		expected_data = [
-			{"subject": "_Test Task 99", "status": "Open", "priority": "Low", "delay": 1},
+			{"subject": "_Test Task 99", "status": "New", "priority": "Low", "delay": 1},
 			{"subject": "_Test Task 98", "status": "Completed", "priority": "Low", "delay": -1},
 		]
 		report = execute(filters)

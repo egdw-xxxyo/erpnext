@@ -217,7 +217,7 @@
    "format": "{} Assigned",
    "label": "Task",
    "link_to": "Task",
-   "stats_filter": "{\n    \"_assign\": [\"like\", '%' + frappe.session.user + '%'],\n    \"status\": \"Open\"\n}",
+   "stats_filter": "{\n    \"_assign\": [\"like\", '%' + frappe.session.user + '%'],\n    \"status\": [\"not in\", [\"Completed\", \"Cancelled\"]]\n}",
    "type": "DocType"
   },
   {

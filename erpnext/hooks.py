@@ -500,7 +500,6 @@ scheduler_events = {
 		"erpnext.crm.doctype.opportunity.opportunity.auto_close_opportunity",
 		"erpnext.controllers.accounts_controller.update_invoice_status",
 		"erpnext.accounts.doctype.fiscal_year.fiscal_year.auto_create_fiscal_year",
-		"erpnext.projects.doctype.task.task.set_tasks_as_overdue",
 		"erpnext.stock.doctype.serial_no.serial_no.update_maintenance_status",
 		"erpnext.buying.doctype.supplier_scorecard.supplier_scorecard.refresh_scorecards",
 		"erpnext.setup.doctype.company.company.cache_companies_monthly_sales_history",

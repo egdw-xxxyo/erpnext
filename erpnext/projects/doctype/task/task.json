@@ -110,6 +110,7 @@
   },
   {
    "bold": 1,
+   "default": "New",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -118,7 +119,7 @@
    "no_copy": 1,
    "oldfieldname": "status",
    "oldfieldtype": "Select",
-   "options": "Open\nWorking\nPending Review\nOverdue\nTemplate\nCompleted\nCancelled"
+   "options": "New\nIn Progress\nAwaiting Info\nBlocked\nIn Review\nCompleted\nCancelled"
   },
   {
    "fieldname": "priority",
@@ -304,7 +305,7 @@
    "label": "More Info"
   },
   {
-   "depends_on": "eval:doc.status == \"Closed\" || doc.status == \"Pending Review\"",
+   "depends_on": "eval:doc.status == \"In Review\"",
    "fieldname": "review_date",
    "fieldtype": "Date",
    "label": "Review Date",
@@ -312,7 +313,7 @@
    "oldfieldtype": "Date"
   },
   {
-   "depends_on": "eval:doc.status == \"Closed\"",
+   "depends_on": "eval:doc.status == \"Completed\"",
    "fieldname": "closing_date",
    "fieldtype": "Date",
    "label": "Closing Date",

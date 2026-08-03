@@ -59,7 +59,7 @@
    "label": "Status", 
    "max_length": 0, 
    "max_value": 0, 
-   "options": "Open\nWorking\nPending Review\nOverdue\nClosed\nCancelled", 
+   "options": "New\nIn Progress\nAwaiting Info\nBlocked\nIn Review\nCompleted\nCancelled",
    "read_only": 0, 
    "reqd": 0
   }, 

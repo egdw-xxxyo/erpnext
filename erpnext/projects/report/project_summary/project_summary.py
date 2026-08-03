@@ -5,6 +5,8 @@
 import frappe
 from frappe import _
 
+from erpnext.projects.doctype.task.task import get_overdue_filters
+
 
 def execute(filters=None):
 	columns = get_columns()
@@ -31,7 +33,7 @@ def execute(filters=None):
 			"Task", filters={"project": project.name, "status": "Completed"}
 		)
 		project["overdue_tasks"] = frappe.db.count(
-			"Task", filters={"project": project.name, "status": "Overdue"}
+			"Task", filters={"project": project.name, **get_overdue_filters()}
 		)
 
 	chart = get_chart_data(data)
