@@ -222,8 +222,8 @@ class Quotation(SellingController):
 		return self.get_ordered_status() == "Partially Ordered"
 
 	def update_lead(self):
-		if self.quotation_to == "Lead" and self.party_name:
-			frappe.get_doc("Lead", self.party_name).set_status(update=True)
+		"""No-op: a Quotation does not change the Lead status under the «Запит» spec."""
+		pass
 
 	def set_customer_name(self):
 		if self.party_name and self.quotation_to == "Customer":

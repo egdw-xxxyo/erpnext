@@ -1106,7 +1106,7 @@ Action on New Invoice,Дія для нового рахунку-фактури
 Actions,Дії
 Actions performed,Виконані дії
 Active,Активний
-Active Leads,Активні потенційні клієнти
+Active Leads,Активні Запити
 Active Status,Активний статус
 Active Subcontracted Items,Активні субпідрядні позиції
 Activities,Діяльності
@@ -1347,7 +1347,7 @@ All Departments,Всі кафедри
 All Employee (Active),Всі Співробітник (Активний)
 All Item Groups,Всі Групи товарів
 All Items,Усі позиції
-All Lead (Open),Всі Lead (відкрито)
+All Lead (Open),Усі Запити (відкриті)
 All Parties ,Усі сторони 
 All Sales Partner Contact,Усі контакти торгового партнеру
 All Sales Person,Всі Відповідальні з продажу
@@ -2866,8 +2866,8 @@ Create Job Card,Створіть карту роботи
 Create Job Card based on Batch Size,Створити картку завдання на основі розміру партії
 Create Journal Entries,Створити журнальні проведення
 Create Journal Entry,Створіть запис у журналі
-Create Lead,Створіть Lead
-Create Leads,створення потенційних
+Create Lead,Створити Запит
+Create Leads,Створення Запитів
 Create Ledger Entries for Change Amount,Створити записи в бухгалтерській книзі для зміни суми
 Create Link,Створити посилання
 Create MPS,Створити план основного виробництва
@@ -5423,28 +5423,28 @@ Last transacted,Остання транзакція
 Latest,Останній
 Latest Age,Останній вік
 Latitude,Широта
-Lead,Заявка
-Lead -> Prospect,Лід -> Потенційний клієнт
-Lead Conversion Time,Провідний час конвертації
-Lead Count,Ведучий граф
-Lead Details,Деталі Lead-а
-Lead Name,Назва Lead-а
-Lead Owner,Власник Lead-а
-Lead Owner Efficiency,Свинець Власник Ефективність
-Lead Owner cannot be same as the Lead Email Address,Власник ліда не може співпадати з адресою електронної пошти ліда
-Lead Source,Lead Source
+Lead,Запит
+Lead -> Prospect,Запит -> Потенційний клієнт
+Lead Conversion Time,Час конвертації Запиту
+Lead Count,Кількість Запитів
+Lead Details,Деталі Запиту
+Lead Name,Назва Запиту
+Lead Owner,Відповідальний менеджер
+Lead Owner Efficiency,Ефективність відповідального менеджера
+Lead Owner cannot be same as the Lead Email Address,Відповідальний менеджер не може збігатися з адресою електронної пошти Запиту
+Lead Source,Канал залучення
 Lead Time,Час виконання
 Lead Time (Days),Час виконання (дні)
 Lead Time (in mins),Час виконання (у хвилинах)
 Lead Time Date,Дата з врахування часу на поставку
 Lead Time Days,Час на поставку в днях
 Lead Time in days,Час на поставку в днях
-Lead Type,Тип Lead-а
-Lead {0} has been added to prospect {1}.,Лід {0} був доданий до потенційного клієнта {1}.
-"Lead, Opportunity, Customer, and more.","Лід, Можливість, Клієнт та інше."
+Lead Type,Тип Запиту
+Lead {0} has been added to prospect {1}.,Запит {0} додано до потенційного клієнта {1}.
+"Lead, Opportunity, Customer, and more.","Запит, Можливість, Клієнт та інше."
 Leaderboard,Таблиця лідерів
-Leads,Ліди
-"Leads help you get business, add all your contacts and more as your leads","Веде допомогти вам отримати бізнес, додати всі ваші контакти і багато іншого в ваших потенційних клієнтів"
+Leads,Запити
+"Leads help you get business, add all your contacts and more as your leads","Запити допомагають отримувати замовлення — вносьте сюди всі свої контакти"
 Learn Accounting,Вивчити Бухгалтерію
 Learn Inventory Management,Вивчити Управління Запасами
 Learn Manufacturing,Вивчити Виробництво
@@ -5575,7 +5575,6 @@ Log the selling and buying rate of an Item,Записувати ціну про�
 Logo,Логотип
 Long-term Provisions,Довгострокові забезпечення
 Longitude,Довгота
-Lost,Втрачений
 Lost Opportunity,Втрачена можливість
 Lost Quotation,програв цитати
 Lost Quotations,Програні пропозиції
@@ -6211,7 +6210,6 @@ Not in Stock,Немає в наявності
 Not in stock,Не в наявності
 Not permitted,Не дозволено
 Not permitted to make Purchase Orders,Немає дозволу на створення замовлень на закупівлю
-Note,Примітка
 Note: Automatic log deletion only applies to logs of type <i>Update Cost</i>,Примітка: Автоматичне видалення журналів застосовується лише до журналів типу <i>Оновлення вартості</i>
 Note: Due / Reference Date exceeds allowed customer credit days by {0} day(s),Примітка: Дата оплати / Довідкова дата перевищує дозволені кредитні дні клієнта на {0} днів
 Note: Due Date exceeds allowed {0} credit days by {1} day(s),Примітка: Термін оплати перевищує дозволені {0} кредитних днів на {1} день(днів)
@@ -6462,7 +6460,6 @@ Organization Name,Назва організації
 Orientation,Орієнтація
 Original Item,Оригінальний предмет
 Original invoice should be consolidated before or along with the return invoice.,Оригінальний рахунок має бути консолідовано до або разом з рахунком повернення.
-Other,Інше
 Other Details,Інші деталі
 Other Info,Інша інформація
 Other Reports,Інші звіти
@@ -6691,7 +6688,6 @@ Partly Paid,Частково оплачено
 Partly Paid and Discounted,Частково оплачено зі знижкою
 Partner Type,Тип Партнер
 Partner website,Веб-сайт партнера
-Partnership,Партнерство
 Parts Per Million,Частин на мільйон
 Party,Контрагент
 Party Account,Рахунок контрагента
@@ -10727,7 +10723,7 @@ View Cost Center Tree,Переглянути дерево центрів вит�
 View Data Based on,Переглянути дані на основі
 View Exchange Gain/Loss Journals,Переглянути журнали про прибуток/збиток від зміни курсу валют
 View General Ledger,Переглянути головну книгу
-View Leads,Подивитися Lead-и
+View Leads,Переглянути Запити
 View Ledger,Подивитися Леджер
 View Ledgers,Переглянути бухгалтерські книги
 View MRP,Переглянути MRP
@@ -12994,3 +12990,69 @@ Workplace Scripts,Скрипти робочого місця
 "In Review","На перевірці"
 "Awaiting Info","Очікує інформацію"
 "Set as New","Позначити як «Нова»"
+Contacted,Первинний контакт
+Requirement Gathering,Потреба уточнюється
+Awaiting Response,Очікує відповідь
+Converted to Opportunity,Конвертований в Opportunity
+Not Relevant,Нецільовий
+Purpose of Request,Мета звернення
+Product Purchase,Закупівля продукції
+Quotation Request,Запит комерційної пропозиції
+Technical Information,Запит технічної інформації
+Demonstration,Демонстрація
+Testing,Тестування
+Consultation,Консультація
+Training,Навчання
+Acquisition Channel,Канал залучення
+Customer Need,Потреба клієнта
+Product Category,Категорія продукції
+Estimated Quantity,Орієнтовна кількість
+Estimated Customer Budget,Орієнтовний бюджет клієнта
+Lead Assessment,Оцінка Запиту
+Conversion Probability,Ймовірність переходу в Opportunity
+Next Action Control,Контроль наступних дій
+Next Action,Наступна дія
+Next Action Date,Дата наступної дії
+Next Action Overdue,Прострочена наступна дія
+On Hold Details,Деталі відкладення
+Return Date,Дата повернення
+Hold Reason,Причина відкладення
+Closing Details,Деталі закриття
+Close Reason,Причина закриття Запиту
+Status Reversal History,Історія повернень статусу
+Status Reversals,Повернення статусу
+Previous Status,Первинний статус
+Reverted By,Автор повернення
+Reverted On,Дата повернення статусу
+Military Unit,Військова частина
+Military Units,Військові частини
+Military Unit Code,Код номеру ВЧ
+Organization Type,Тип організації
+Return from Final Status,Повернути з фінального статусу
+Return Lead to Postponed,Повернути Запит у «Відкладений / На паузі»
+Returning Lead...,Повернення Запиту...
+Comment,Коментар
+Overdue Next Action,Прострочені наступні дії
+My Leads,Мої Запити
+Assigned to Me,Призначені на мене
+"A Lead can be linked to either a Prospect or a Customer, but not to both","Запит можна пов'язати або з Prospect, або з Customer, але не з обома одночасно"
+Conflicting Links,Конфлікт зв'язків
+Status {0} is set automatically when an Opportunity is created and cannot be selected manually,Статус {0} встановлюється автоматично під час створення Opportunity і не може бути обраний вручну
+{0} is mandatory when the status is {1},"{0} обов'язково, коли статус — {1}"
+Missing Value,Відсутнє значення
+Only a Sales Manager can return a Lead from a final status,Лише керівник відділу продажів може повернути Запит із фінального статусу
+Lead {0} is not in a final status,Запит {0} не перебуває у фінальному статусі
+"Reason, comment and return date are mandatory","Причина, коментар і дата повернення обов'язкові"
+Returned from final status {0}. Reason: {1}. Comment: {2},Повернуто з фінального статусу {0}. Причина: {1}. Коментар: {2}
+Prospect {0} was converted to Customer {1},Prospect {0} конвертовано в Customer {1}
+Next action due today: {0},Наступна дія запланована на сьогодні: {0}
+Lost,Втрачений
+Note,Примітка
+Other,Інше
+Partnership,Партнерство
+New Request,Новий
+Postponed,Відкладений / На паузі
+Low Probability,Низька
+Medium Probability,Середня
+High Probability,Висока
+Customer Requirement,Потреба
