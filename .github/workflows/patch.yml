@@ -111,6 +111,8 @@ jobs:
           FRAPPE_BRANCH: ${{ github.event.inputs.branch || 'version-15' }}
 
       - name: Run Patch Tests
+        env:
+          FRAPPE_BRANCH: ${{ github.event.inputs.branch || 'version-15' }}
         run: |
           cd ~/frappe-bench/
           bench remove-app payments --force
@@ -149,7 +151,7 @@ jobs:
           update_to_version 14
 
           echo "Updating to latest version"
-          git -C "apps/frappe" checkout -q -f "${GITHUB_BASE_REF:-${GITHUB_REF##*/}}"
+          git -C "apps/frappe" checkout -q -f "${FRAPPE_BRANCH}"
           git -C "apps/erpnext" checkout -q -f "$GITHUB_SHA"
 
           pgrep honcho | xargs kill
