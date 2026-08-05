@@ -341,6 +341,19 @@ erpnext.patches.v15_0.add_battery_fields
 
 **IMPORTANT:** Always add new Custom Fields to `erpnext/patches/setup_custom_fields.py`, NOT as one-time patches in `patches.txt`. This script runs on every deploy (`./deploy build/migrate`) and is idempotent — it skips fields that already exist. This ensures custom fields are automatically applied on prod when deploying.
 
+## Codifying desk-created DocTypes (`./codify`)
+
+DocTypes built in the desk UI carry `custom = 1` and exist **only in that site's database** — they never travel in the Docker image, never reach git, and are lost on a site rebuild. Prototyping that way is fine; leaving them there is not.
+
+- `./codify drift --env prod|dev|local` — lists DocTypes that exist only in the DB. The same report is printed by `./deploy` after every migrate (advisory, never fails the deploy).
+- `./codify export "<DocType>" --module <stock module> --env prod [--dry-run]` — exports the DocType and its child tables into `erpnext/<module>/doctype/...`, folds Custom Fields and Property Setters into the JSON, generates `erpnext/patches/v15_0/codify_<snake>.py` and registers it in `patches.txt`.
+
+Target modules must be **existing stock modules** (`manufacturing`, `stock`, `quality_management`, `crm`, …) — the desk-only modules `УКРОПЧИК` / `Custom` have no repo home.
+
+Flipping `custom` to 0 moves no data: the table is `tab<DocType>` either way and fieldnames (= column names) are kept verbatim. Server Scripts, Client Script review and English labels + `uk.csv` pairs are manual steps. Full procedure: `.claude/skills/codify-doctype/SKILL.md`. Implementation: `erpnext/utilities/doctype_codifier.py`, `erpnext/utilities/doctype_drift.py`. Precedent for the generated patch: `erpnext/patches/v15_0/codify_military_unit.py`.
+
+Password-only SSH hosts: `export SSHPASS=... CODIFY_SSH_CMD='sshpass -e ssh'`.
+
 ## Development Guide — Modifying ERPNext/Frappe Files
 
 ### Architecture

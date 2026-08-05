@@ -319,6 +319,11 @@ run_deploy() {
   say "==> Clearing cache..."
   dc exec -T backend bench --site frontend clear-cache > "$out" 2>&1
 
+  # Advisory only: lists DocTypes that exist solely in this site's database
+  # (created through the desk UI, custom=1) and never reach git or the image.
+  # Graduate one with ./codify. Never fails the deploy.
+  dc exec -T backend bench --site frontend execute erpnext.utilities.doctype_drift.report || true
+
   install_extra_apps > "$out" 2>&1
 
   echo "Done. http://localhost:8080"

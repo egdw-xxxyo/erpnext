@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""Graduate a desk-created DocType into repo-owned code.
+
+DocTypes built in the desk UI have ``custom = 1`` and live only in that site's
+database — they never travel in the Docker image and never reach git. This
+driver ships erpnext/utilities/doctype_codifier.py into the target environment's
+backend container, renders the file set a code-owned DocType needs, and unpacks
+it into this working tree for review.
+
+    ./codify drift  --env prod
+    ./codify export "Department Timesheet" --module Manufacturing --env prod --dry-run
+    ./codify export "Department Timesheet" --module Manufacturing --env prod
+
+Nothing is committed and nothing is deployed: review the diff, port the Server
+Scripts by hand, add the uk.csv pairs, run pre-commit, then commit.
+"""
+
+import argparse
+import base64
+import io
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+
+DIR = os.path.dirname(os.path.abspath(__file__))
+CODIFIER = os.path.join(DIR, "erpnext", "utilities", "doctype_codifier.py")
+CONTAINER_PATH = "/home/frappe/frappe-bench/apps/erpnext/erpnext/utilities/doctype_codifier.py"
+BENCH = "cd /home/frappe/frappe-bench && bench --site frontend"
+
+PAYLOAD_START = "<<<CODIFY_PAYLOAD_START>>>"
+PAYLOAD_END = "<<<CODIFY_PAYLOAD_END>>>"
+
+ENVS = {
+	"local": {"ssh": None},
+	"dev": {"ssh": os.environ.get("CODIFY_DEV_SSH", "sergadm@172.16.105.103")},
+	"prod": {"ssh": os.environ.get("CODIFY_PROD_SSH", "sergadm@172.16.105.102")},
+}
+REMOTE_CONTAINER = os.environ.get("CODIFY_CONTAINER", "docker-backend-1")
+
+
+def run_in_backend(env: str, inner: str, stdin: bytes) -> str:
+	"""Run a shell command inside the backend container of ``env``."""
+	if env not in ENVS:
+		die(f"unknown env {env!r} — one of: {', '.join(ENVS)}")
+
+	ssh = ENVS[env]["ssh"]
+	if ssh:
+		# CODIFY_SSH_CMD lets a password-only host work, e.g.
+		#   export CODIFY_SSH_CMD='sshpass -e ssh'   (with SSHPASS set)
+		ssh_cmd = shlex.split(os.environ.get("CODIFY_SSH_CMD", "ssh"))
+		cmd = [*ssh_cmd, ssh, f"docker exec -i {REMOTE_CONTAINER} bash -c {shlex.quote(inner)}"]
+	else:
+		compose = "docker compose" if shutil.which("docker") else None
+		if not compose:
+			die("docker not found on PATH")
+		cmd = [
+			"docker",
+			"compose",
+			"-p",
+			"docker",
+			"-f",
+			os.path.join(DIR, "docker-compose.yml"),
+			"exec",
+			"-T",
+			"backend",
+			"bash",
+			"-c",
+			inner,
+		]
+
+	proc = subprocess.run(cmd, input=stdin, capture_output=True)
+	if proc.returncode != 0:
+		sys.stderr.write(proc.stderr.decode(errors="replace"))
+		die(f"remote command failed (exit {proc.returncode})")
+	return proc.stdout.decode(errors="replace")
+
+
+def ship_and_call(env: str, method: str, kwargs: dict) -> str:
+	"""Copy the codifier into the container, then call ``method`` on it."""
+	with open(CODIFIER, "rb") as fh:
+		source = fh.read()
+	inner = (
+		f"cat > {CONTAINER_PATH} && {BENCH} execute "
+		f"erpnext.utilities.doctype_codifier.{method} --kwargs {shlex.quote(repr(kwargs))}"
+	)
+	return run_in_backend(env, inner, source)
+
+
+def extract_payload(stdout: str, dest: str) -> dict:
+	if PAYLOAD_START not in stdout or PAYLOAD_END not in stdout:
+		sys.stderr.write(stdout)
+		die("no payload in output — the export did not complete")
+	blob = stdout.split(PAYLOAD_START, 1)[1].split(PAYLOAD_END, 1)[0].strip()
+	raw = base64.b64decode(blob)
+	with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as tar:
+		tar.extractall(dest)
+	with open(os.path.join(dest, "report.json"), encoding="utf-8") as fh:
+		return json.load(fh)
+
+
+def print_report(report: dict) -> None:
+	print(f"\n{report['doctype']} → module {report['module']} ({report['module_dir']}/)")
+	print(f"  cluster: {len(report['order'])} DocType(s), patch {report['patch']}")
+	for d in report["doctypes"]:
+		kind = "child" if d["istable"] else "doc"
+		print(
+			f"    {d['name']:<40} {kind:<6} {d['fields']:>3} fields  {d['documents']:>5} docs"
+			f"  cf={len(d['custom_fields'])} ps={len(d['property_setters'])} cs={len(d['client_scripts'])}"
+		)
+		for cs in d["client_scripts"]:
+			print(f"        client script: {cs}")
+	if report["stock_children"]:
+		print("  child tables already in code (left alone): " + ", ".join(report["stock_children"]))
+	if report["server_scripts"]:
+		print("\n  Server Scripts — port these to whitelisted methods by hand:")
+		for name in report["server_scripts"]:
+			print(f"    - {name}")
+	if report["warnings"]:
+		print("\n  Warnings:")
+		for w in report["warnings"]:
+			print(f"    ! {w}")
+	if report["translations"]:
+		print("\n  Ukrainian labels found in the schema. Replace them with English in the JSON")
+		print("  and add the pairs to erpnext/translations/uk.csv:")
+		for label in report["translations"]:
+			print(f'    "<English>","{label}"')
+
+
+def install(report: dict, staged: str, force: bool) -> None:
+	files_root = os.path.join(staged, "files")
+	target_root = os.path.join(DIR, "erpnext")
+	written, skipped = [], []
+
+	for rel in report["files"]:
+		src = os.path.join(files_root, rel)
+		dst = os.path.join(target_root, rel)
+		if os.path.exists(dst) and not force:
+			skipped.append(rel)
+			continue
+		os.makedirs(os.path.dirname(dst), exist_ok=True)
+		shutil.copyfile(src, dst)
+		written.append(rel)
+
+	print("\nWrote:")
+	for rel in written:
+		print(f"  erpnext/{rel}")
+	if skipped:
+		print("Skipped (already exist, pass --force to overwrite):")
+		for rel in skipped:
+			print(f"  erpnext/{rel}")
+
+	register_patch(report["patch"])
+
+
+def register_patch(patch: str) -> None:
+	"""Append the generated patch to the post_model_sync section of patches.txt."""
+	path = os.path.join(DIR, "erpnext", "patches.txt")
+	with open(path, encoding="utf-8") as fh:
+		content = fh.read()
+	if patch in content:
+		print(f"patches.txt: {patch} already registered")
+		return
+	content = content.rstrip("\n") + f"\n{patch}\n"
+	with open(path, "w", encoding="utf-8") as fh:
+		fh.write(content)
+	print(f"patches.txt: appended {patch}")
+
+
+def cmd_export(args: argparse.Namespace) -> None:
+	stdout = ship_and_call(args.env, "run_cli", {"doctype": args.doctype, "module": args.module})
+	staged = tempfile.mkdtemp(prefix="codify-")
+	try:
+		report = extract_payload(stdout, staged)
+		print_report(report)
+		if args.dry_run:
+			print("\n--dry-run: nothing written. Drop the flag to stage the files.")
+			return
+		install(report, staged, args.force)
+		print(
+			"\nNext: port the Server Scripts, swap Ukrainian labels for English + uk.csv,\n"
+			"      pre-commit run --files <changed>, ./deploy build --silent on local,\n"
+			"      then a release note in erpnext/release_notes/."
+		)
+	finally:
+		shutil.rmtree(staged, ignore_errors=True)
+
+
+def cmd_drift(args: argparse.Namespace) -> None:
+	with open(os.path.join(DIR, "erpnext", "utilities", "doctype_drift.py"), "rb") as fh:
+		source = fh.read()
+	target = CONTAINER_PATH.replace("doctype_codifier.py", "doctype_drift.py")
+	inner = f"cat > {target} && {BENCH} execute erpnext.utilities.doctype_drift.report"
+	print(run_in_backend(args.env, inner, source), end="")
+
+
+def die(msg: str) -> None:
+	sys.stderr.write(f"codify: {msg}\n")
+	sys.exit(1)
+
+
+def main() -> None:
+	parser = argparse.ArgumentParser(prog="codify", description=__doc__)
+	sub = parser.add_subparsers(dest="command", required=True)
+
+	export = sub.add_parser("export", help="render a custom DocType into repo files")
+	export.add_argument("doctype", help='DocType name, e.g. "Department Timesheet"')
+	export.add_argument("--module", required=True, help="target stock module, e.g. Manufacturing")
+	export.add_argument("--env", default="prod", choices=sorted(ENVS), help="source environment")
+	export.add_argument("--dry-run", action="store_true", help="report only, write nothing")
+	export.add_argument("--force", action="store_true", help="overwrite files that already exist")
+	export.set_defaults(func=cmd_export)
+
+	drift = sub.add_parser("drift", help="list DocTypes that exist only in the database")
+	drift.add_argument("--env", default="prod", choices=sorted(ENVS), help="environment to inspect")
+	drift.set_defaults(func=cmd_drift)
+
+	args = parser.parse_args()
+	args.func(args)
+
+
+if __name__ == "__main__":
+	main()
