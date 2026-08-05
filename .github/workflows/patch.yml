@@ -9,6 +9,17 @@ on:
       - '**.html'
       - '**.csv'
   workflow_dispatch:
+    inputs:
+      user:
+        description: 'Frappe Framework repository user (add your username for forks)'
+        required: true
+        default: 'egdw-xxxyo'
+        type: string
+      branch:
+        description: 'Frappe Framework branch'
+        default: 'version-15'
+        required: false
+        type: string
 
 concurrency:
   group: patch-develop-${{ github.event_name }}-${{ github.event.number || github.event_name == 'workflow_dispatch' && github.run_id || '' }}
@@ -96,8 +107,12 @@ jobs:
         env:
           DB: mariadb
           TYPE: server
+          FRAPPE_USER: ${{ github.event.inputs.user || 'egdw-xxxyo' }}
+          FRAPPE_BRANCH: ${{ github.event.inputs.branch || 'version-15' }}
 
       - name: Run Patch Tests
+        env:
+          FRAPPE_BRANCH: ${{ github.event.inputs.branch || 'version-15' }}
         run: |
           cd ~/frappe-bench/
           bench remove-app payments --force
@@ -136,7 +151,7 @@ jobs:
           update_to_version 14
 
           echo "Updating to latest version"
-          git -C "apps/frappe" checkout -q -f "${GITHUB_BASE_REF:-${GITHUB_REF##*/}}"
+          git -C "apps/frappe" checkout -q -f "${FRAPPE_BRANCH}"
           git -C "apps/erpnext" checkout -q -f "$GITHUB_SHA"
 
           pgrep honcho | xargs kill
