@@ -1159,7 +1159,7 @@ Add Employees,Додати співробітників
 Add Item,Додати елемент
 Add Items,Додати товари
 Add Items in the Purpose Table,Додати елементи до таблиці призначення
-Add Lead to Prospect,Додати ліда до проспекту
+Add Lead to Prospect,Додати Запит до потенційного клієнта
 Add Leads,Додати підписки
 Add Local Holidays,Додати місцеві свята
 Add Manually,Додати вручну
@@ -1203,7 +1203,7 @@ Added On,Додано
 Added Supplier Role to User {0}.,Додано роль постачальника для користувача {0}.
 Added {0} ({1}),Додано {0} ({1})
 Added {1} Role to User {0}.,Додано роль {1} для користувача {0}.
-Adding Lead to Prospect...,Додавання ліда до потенційного клієнта...
+Adding Lead to Prospect...,Додавання Запиту до потенційного клієнта...
 Additional,Додатково
 Additional Asset Cost,Вартість додаткових активів
 Additional Cost,Додаткова вартість
@@ -1365,7 +1365,7 @@ All items have already been transferred for this Work Order.,Всі предме
 All items in this document already have a linked Quality Inspection.,Всі товари в цьому документі вже мають пов'язану перевірку якості.
 All items must be linked to a Sales Order or Subcontracting Inward Order for this Sales Invoice.,Усі позиції повинні бути пов'язані із замовленням на продаж або замовленням на вхідну субпідрядну роботу для цього рахунку-фактури.
 All linked Sales Orders must be subcontracted.,Усі пов'язані замовлення на продаж повинні бути субпідрядними.
-All the Comments and Emails will be copied from one document to another newly created document(Lead -> Opportunity -> Quotation) throughout the CRM documents.,Всі коментарі та електронні листи будуть скопійовані з одного документа в інший новостворений документ (Лід -> Можливість -> Пропозиція) в усіх документах CRM.
+All the Comments and Emails will be copied from one document to another newly created document(Lead -> Opportunity -> Quotation) throughout the CRM documents.,Всі коментарі та електронні листи будуть скопійовані з одного документа в інший новостворений документ (Запит -> Можливість -> Пропозиція) в усіх документах CRM.
 All the items have been already returned.,Усі позиції вже повернуті.
 "All the required items (raw materials) will be fetched from BOM and populated in this table. Here you can also change the Source Warehouse for any item. And during the production, you can track transferred raw materials from this table.",Всі необхідні товари (сировина) будуть отримані зі специфікації та заповнені в цій таблиці. Тут ви також можете змінити склад-джерело для будь-якого товару. І під час виробництва ви можете відстежувати передану сировину з цієї таблиці.
 All these items have already been Invoiced/Returned,Всі ці товари вже виставлені рахунки / повернені
@@ -1398,7 +1398,7 @@ Allow Internal Transfers at Arm's Length Price,Дозволити внутріш
 Allow Item To Be Added Multiple Times in a Transaction,Дозволити додавати елемент у транзакції кілька разів
 Allow Item to Be Added Multiple Times in a Transaction,Дозволити додавання позиції кілька разів у транзакції
 Allow Item to be Added Multiple Times in a Transaction,Дозволити багаторазове додавання позиції в транзакцію
-Allow Lead Duplication based on Emails,Дозволити дублювання лідів на основі електронних адрес
+Allow Lead Duplication based on Emails,Дозволити дублювання Запитів на основі електронних адрес
 Allow Material Transfer from Delivery Note to Sales Invoice,Дозволити передачу матеріалу з накладного на поставку на рахунок-фактуру
 Allow Material Transfer from Purchase Receipt to Purchase Invoice,Дозволити передачу матеріалу з квитанції про придбання на рахунок-фактуру
 Allow Multiple Material Consumption,Дозволити багато матеріалу споживання
@@ -3070,7 +3070,7 @@ Custom?,Власний?
 Customer,Клієнт
 Customer ,Клієнт 
 Customer / Item / Item Group,Клієнт / Товар / Група товарів
-Customer / Lead Address,Адреса Клієнта /  Lead-а
+Customer / Lead Address,Адреса Клієнта / Запиту
 Customer > Customer Group > Territory,Клієнт > Група клієнтів > Територія
 Customer Acquisition and Loyalty,Придбання та лояльність клієнтів
 Customer Address,Адреса клієнта
@@ -3352,7 +3352,7 @@ Delete Accounting and Stock Ledger Entries on deletion of Transaction,Видал
 Delete Bins,Видалити комірки
 Delete Cancelled Ledger Entries,Видалити скасовані записи в бухгалтерській книзі
 Delete Dimension,Видалити вимір
-Delete Leads and Addresses,Видалити ліди та адреси
+Delete Leads and Addresses,Видалити Запити та адреси
 Delete Transactions,Видалити операції
 Delete all the Transactions for this Company,Видалити всі транзакції цієї компанії
 Deleted Documents,Дистанційні документи
@@ -5882,7 +5882,7 @@ Min Qty should be greater than Recurse Over Qty,Мінімальна кільк�
 "Min Value: {0}, Max Value: {1}, in Increments of: {2}","Мін. значення: {0}, Макс. значення: {1}, з кроком: {2}"
 Mine,Моє
 Minimum Invoice Amount,Мінімальна Сума рахунку
-Minimum Lead Age (Days),Мінімальний Lead Вік (дні)
+Minimum Lead Age (Days),Мінімальний вік Запиту (днів)
 Minimum Net Rate,Мінімальна чиста ставка
 Minimum Order Qty,Мінімальна к-сть замовлень
 Minimum Order Quantity,Мінімальна Кількість Замовлення
@@ -6046,7 +6046,7 @@ New Income,нові надходження
 New Invoice,Нова рахунок-фактура
 New Journal Entry will be posted for the difference amount. The Posting Date can be modified.,Новий журнальний запис буде створено на суму різниці. Дату проведення можна змінити.
 New Label Size,Новий розмір етикетки
-New Lead (Last 1 Month),Новий лід (за останній 1 місяць)
+New Lead (Last 1 Month),Новий Запит (за останній 1 місяць)
 New Location,Нове місцезнаходження
 New Note,Нова нотатка
 New Opportunity (Last 1 Month),Нова можливість (за останній 1 місяць)
@@ -6407,8 +6407,8 @@ Operations,Операції
 Operations Routing,Маршрутизація операцій
 Operations cannot be left blank,"Операції, що не може бути залишено порожнім"
 Operator,Оператор
-Opp Count,Opp граф
-Opp/Lead %,ОПП / Свинець%
+Opp Count,Кількість Можливостей
+Opp/Lead %,Можливості/Запити %
 Opportunities,Нагоди
 Opportunities by Campaign,Можливості за кампанією
 Opportunities by Medium,Можливості за каналом
@@ -6439,7 +6439,7 @@ Order Amount,Сума замовлення
 Order By,Сортувати за
 Order Confirmation Date,Дата підтвердження замовлення
 Order Confirmation No,Підтвердження замовлення №
-Order Count,замовлення граф
+Order Count,Кількість Замовлень
 Order Date,Дата замовлення
 Order Information,Інформація про замовлення
 Order No,Номер замовлення
@@ -6449,7 +6449,7 @@ Order Summary,Підсумок замовлення
 Order Type,Тип замовлення
 Order Value,Вартість замовлення
 "Order in which sections should appear. 0 is first, 1 is second and so on.","Порядок, у якому мають з'являтися розділи. 0 - перший, 1 - другий тощо."
-Order/Quot %,Замовлення / Quot%
+Order/Quot %,Замовлення/Пропозиції %
 Ordered,Замовлено
 Ordered Qty,Замовлена (ordered) к-сть
 "Ordered Qty: Quantity ordered for purchase, but not received.","Замовлена кількість: Кількість, замовлена для закупівлі, але ще не отримана."
@@ -7536,7 +7536,7 @@ Proposal/Price Quote,Пропозиція / Цитата ціни
 Proprietorship,Приватне підприємство
 Prorate,Прорат
 Prospect,Потенційний клієнт
-Prospect Lead,Потенційний лід
+Prospect Lead,Запит потенційного клієнта
 Prospect Opportunity,Потенційна можливість
 Prospect Owner,Власник потенційного клієнта
 Prospect {0} already exists,Потенційний клієнт {0} вже існує
@@ -7752,8 +7752,8 @@ Quick Stock Balance,Швидкий балансовий баланс
 QuickBooks Migrator,QuickBooks Migrator
 Quickbooks Company ID,Ідентифікатор компанії Quickbooks
 Quintal,Центнер
-Quot Count,Quot граф
-Quot/Lead %,Quot / Свинець%
+Quot Count,Кількість Пропозицій
+Quot/Lead %,Пропозиції/Запити %
 Quotation,Пропозиція
 Quotation Amount,Сума котирування
 Quotation Item,Позиція у пропозиції
@@ -10542,7 +10542,7 @@ Update Type,Тип оновлення
 Update frequency of Project,Частота оновлення проєкту
 Update latest price in all BOMs,Оновити останню ціну у всіх БОМ
 Update stock must be enabled for the purchase invoice {0},Для рахунку-фактури на покупку необхідно увімкнути оновлення запасів {0}
-Update the modified timestamp on new communications received in Lead & Opportunity.,Оновлювати мітку часу зміни при отриманні нових повідомлень у ліді та можливості.
+Update the modified timestamp on new communications received in Lead & Opportunity.,Оновлювати мітку часу зміни при отриманні нових повідомлень у Запиті та Можливості.
 Update timestamp on new communication,Оновлювати мітку часу при новому повідомленні
 Updated via 'Time Log' (In Minutes),Оновлено через 'Журнал часу' (у хвилинах)
 Updated {0} Financial Report Row(s) with new category name,Оновлено {0} рядок(ів) фінансового звіту з новою назвою категорії
