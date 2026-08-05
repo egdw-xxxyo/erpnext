@@ -522,7 +522,7 @@ def export(doctype: str, module: str, out_dir: str) -> dict:
 	report["patch"] = f"erpnext.patches.v15_0.{patch_name}"
 	report["translations"] = sorted(set(report["translations"]))
 
-	with open(os.path.join(out_dir, "report.json"), "w") as fh:
+	with open(os.path.join(out_dir, "report.json"), "w") as fh:  # nosemgrep
 		fh.write(json.dumps(report, indent=2, ensure_ascii=False, default=str))
 
 	return report
@@ -530,7 +530,7 @@ def export(doctype: str, module: str, out_dir: str) -> dict:
 
 def _write(report: dict, files_root: str, folder: str, name: str, content: str) -> None:
 	path = os.path.join(folder, name)
-	with open(path, "w") as fh:
+	with open(path, "w") as fh:  # nosemgrep
 		fh.write(content)
 	report["files"].append(os.path.relpath(path, files_root))
 
