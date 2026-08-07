@@ -198,6 +198,10 @@ frappe.ui.form.on("Sales Order", {
 		);
 	},
 
+	customer: function (frm) {
+		erpnext.utils.set_military_unit_from_party(frm, "Customer", frm.doc.customer);
+	},
+
 	onload: function (frm) {
 		if (!frm.doc.transaction_date) {
 			frm.set_value("transaction_date", frappe.datetime.get_today());

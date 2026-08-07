@@ -4,6 +4,8 @@
 frappe.provide("erpnext");
 cur_frm.email_field = "email_id";
 
+const LEAD_FINAL_STATUSES = ["Converted to Opportunity", "Not Relevant", "Lost"];
+
 erpnext.LeadController = class LeadController extends frappe.ui.form.Controller {
 	setup() {
 		this.frm.make_methods = {
@@ -27,7 +29,13 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 		let doc = this.frm.doc;
 		erpnext.toggle_naming_series();
 
-		if (!this.frm.is_new() && doc.__onload && !doc.__onload.is_customer) {
+		const is_final = LEAD_FINAL_STATUSES.includes(doc.status);
+
+		if (!this.frm.is_new() && is_final && frappe.user.has_role("Sales Manager")) {
+			this.frm.add_custom_button(__("Return from Final Status"), () => this.revert_from_final_status());
+		}
+
+		if (!this.frm.is_new() && !is_final && doc.__onload && !doc.__onload.is_customer) {
 			this.frm.add_custom_button(__("Customer"), this.make_customer.bind(this), __("Create"));
 			this.frm.add_custom_button(__("Opportunity"), this.make_opportunity.bind(this), __("Create"));
 			this.frm.add_custom_button(__("Quotation"), this.make_quotation.bind(this), __("Create"));
@@ -51,6 +59,50 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 
 		this.show_notes();
 		this.show_activities();
+	}
+
+	revert_from_final_status() {
+		const frm = this.frm;
+		frappe.prompt(
+			[
+				{
+					fieldname: "reason",
+					label: __("Reason"),
+					fieldtype: "Data",
+					reqd: 1,
+				},
+				{
+					fieldname: "return_date",
+					label: __("Return Date"),
+					fieldtype: "Date",
+					reqd: 1,
+				},
+				{
+					fieldname: "comment",
+					label: __("Comment"),
+					fieldtype: "Small Text",
+					reqd: 1,
+				},
+			],
+			function (values) {
+				frappe.call({
+					method: "erpnext.crm.doctype.lead.lead.revert_from_final_status",
+					args: {
+						lead: frm.doc.name,
+						reason: values.reason,
+						return_date: values.return_date,
+						comment: values.comment,
+					},
+					freeze: true,
+					freeze_message: __("Returning Lead..."),
+					callback: function () {
+						frm.reload_doc();
+					},
+				});
+			},
+			__("Return Lead to Postponed"),
+			__("Return")
+		);
 	}
 
 	add_lead_to_prospect(frm) {

@@ -13,6 +13,7 @@ from frappe.query_builder import DocType, Interval
 from frappe.query_builder.functions import Now
 from frappe.utils import flt, get_fullname
 
+from erpnext.crm.doctype.lead.lead import mark_converted_to_opportunity
 from erpnext.crm.utils import (
 	CRMNote,
 	copy_comments,
@@ -117,7 +118,7 @@ class Opportunity(TransactionBase, CRMNote):
 
 	def after_insert(self):
 		if self.opportunity_from == "Lead":
-			frappe.get_doc("Lead", self.party_name).set_status(update=True)
+			mark_converted_to_opportunity(self.party_name)
 
 			link_open_tasks(self.opportunity_from, self.party_name, self)
 			link_open_events(self.opportunity_from, self.party_name, self)

@@ -57,6 +57,8 @@ permission_query_conditions = {
 }
 
 has_permission = {
+	# Leads in a final status are read-only until a Sales Manager returns them.
+	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
@@ -361,12 +363,23 @@ doc_events = {
 	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
 	},
 	"Opportunity": {
-		"validate": "erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
+		"validate": [
+			"erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
+			"erpnext.crm.utils.set_military_unit_from_party",
+		],
+	},
+	"Issue": {
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+	},
+	"Customer": {
+		"after_insert": "erpnext.crm.doctype.prospect.prospect.propagate_customer_to_leads",
 	},
 	"Quotation": {
 		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
 	},
 	"WhatsApp Message": {
 		"after_insert": [
@@ -494,6 +507,7 @@ scheduler_events = {
 	],
 	"daily": [
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
+		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
 	],
 	"daily_long": [],
 	"daily_maintenance": [

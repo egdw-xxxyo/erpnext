@@ -9,12 +9,36 @@ from frappe.contacts.address_and_contact import (
 )
 from frappe.email.inbox import link_communication_to_document
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import comma_and, get_link_to_form, has_gravatar, validate_email_address
+from frappe.share import add_docshare
+from frappe.utils import (
+	comma_and,
+	get_link_to_form,
+	getdate,
+	has_gravatar,
+	now_datetime,
+	nowdate,
+	validate_email_address,
+)
 
 from erpnext.accounts.party import set_taxes
 from erpnext.controllers.selling_controller import SellingController
 from erpnext.crm.utils import CRMNote, copy_comments, link_communications, link_open_events
 from erpnext.selling.doctype.customer.customer import parse_full_name
+
+CONVERTED_STATUS = "Converted to Opportunity"
+
+#: Statuses that close a Lead. A Lead in one of these is read-only for Sales Users and is
+#: excluded from the default list view; only a Sales Manager can bring it back (see
+#: `revert_from_final_status`).
+FINAL_STATUSES = (CONVERTED_STATUS, "Not Relevant", "Lost")
+
+#: Fields that become mandatory for a given status.
+STATUS_REQUIRED_FIELDS = {
+	"Awaiting Response": ("next_action", "next_action_date"),
+	"Postponed": ("return_date", "hold_reason"),
+	"Not Relevant": ("close_reason",),
+	"Lost": ("close_reason",),
+}
 
 
 class Lead(SellingController, CRMNote):
@@ -27,20 +51,26 @@ class Lead(SellingController, CRMNote):
 		from frappe.types import DF
 
 		from erpnext.crm.doctype.crm_note.crm_note import CRMNote
+		from erpnext.crm.doctype.lead_requirement.lead_requirement import LeadRequirement
+		from erpnext.crm.doctype.lead_status_reversal.lead_status_reversal import LeadStatusReversal
 
 		annual_revenue: DF.Currency
 		blog_subscriber: DF.Check
 		campaign_name: DF.Link | None
 		city: DF.Data | None
+		close_reason: DF.SmallText | None
 		company: DF.Link | None
 		company_name: DF.Data | None
+		conversion_probability: DF.Literal["", "Low Probability", "Medium Probability", "High Probability"]
 		country: DF.Link | None
 		customer: DF.Link | None
+		customer_need: DF.SmallText | None
 		disabled: DF.Check
 		email_id: DF.Data | None
 		fax: DF.Data | None
 		first_name: DF.Data | None
 		gender: DF.Link | None
+		hold_reason: DF.SmallText | None
 		image: DF.AttachImage | None
 		industry: DF.Link | None
 		job_title: DF.Data | None
@@ -50,30 +80,48 @@ class Lead(SellingController, CRMNote):
 		lead_owner: DF.Link | None
 		market_segment: DF.Link | None
 		middle_name: DF.Data | None
+		military_unit: DF.Link | None
 		mobile_no: DF.Data | None
 		naming_series: DF.Literal["CRM-LEAD-.YYYY.-"]
+		next_action: DF.SmallText | None
+		next_action_date: DF.Date | None
+		next_action_overdue: DF.Check
 		no_of_employees: DF.Literal["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"]
 		notes: DF.Table[CRMNote]
 		phone: DF.Data | None
 		phone_ext: DF.Data | None
+		prospect: DF.Link | None
 		qualification_status: DF.Literal["Unqualified", "In Process", "Qualified"]
 		qualified_by: DF.Link | None
 		qualified_on: DF.Date | None
-		request_type: DF.Literal["", "Product Enquiry", "Request for Information", "Suggestions", "Other"]
+		request_type: DF.Literal[
+			"",
+			"Product Purchase",
+			"Quotation Request",
+			"Technical Information",
+			"Demonstration",
+			"Testing",
+			"Consultation",
+			"Partnership",
+			"Training",
+			"Other",
+		]
+		requirement: DF.Table[LeadRequirement]
+		return_date: DF.Date | None
 		salutation: DF.Link | None
 		source: DF.Link | None
 		state: DF.Data | None
 		status: DF.Literal[
-			"Lead",
-			"Open",
-			"Replied",
-			"Opportunity",
-			"Quotation",
-			"Lost Quotation",
-			"Interested",
-			"Converted",
-			"Do Not Contact",
+			"New Request",
+			"Contacted",
+			"Requirement Gathering",
+			"Awaiting Response",
+			"Postponed",
+			"Converted to Opportunity",
+			"Not Relevant",
+			"Lost",
 		]
+		status_reversals: DF.Table[LeadStatusReversal]
 		territory: DF.Link | None
 		title: DF.Data | None
 		type: DF.Literal["", "Client", "Channel Partner", "Consultant"]
@@ -92,9 +140,13 @@ class Lead(SellingController, CRMNote):
 		self.set_full_name()
 		self.set_lead_name()
 		self.set_title()
-		self.set_status()
 		self.check_email_id_is_unique()
 		self.validate_email_id()
+		self.validate_party_link()
+		self.set_military_unit()
+		self.validate_conversion_status()
+		self.validate_status_requirements()
+		self.set_next_action_overdue()
 
 	def before_insert(self):
 		self.contact_doc = None
@@ -119,6 +171,7 @@ class Lead(SellingController, CRMNote):
 
 	def on_update(self):
 		self.update_prospect()
+		self.share_with_lead_owner()
 
 	def on_trash(self):
 		frappe.db.set_value("Issue", {"lead": self.name}, "lead", None)
@@ -219,6 +272,80 @@ class Lead(SellingController, CRMNote):
 			"Prospect Lead",
 			filters={"lead": self.name},
 			fields=["parent"],
+		)
+
+	def validate_party_link(self):
+		"""A Lead describes one organization, which is either a Prospect or a Customer."""
+		if self.prospect and self.customer:
+			frappe.throw(
+				_("A Lead can be linked to either a Prospect or a Customer, but not to both"),
+				title=_("Conflicting Links"),
+			)
+
+	def set_military_unit(self):
+		"""Mirror the Military Unit of the linked organization. Never edited on the Lead itself."""
+		military_unit = None
+		if self.prospect:
+			military_unit = frappe.db.get_value("Prospect", self.prospect, "military_unit")
+		elif self.customer:
+			military_unit = frappe.db.get_value("Customer", self.customer, "military_unit")
+
+		self.military_unit = military_unit or None
+
+	def validate_conversion_status(self):
+		"""`Converted to Opportunity` is set by the system only, when an Opportunity is created."""
+		if self.status != CONVERTED_STATUS:
+			return
+
+		if self.flags.converting_to_opportunity or self.has_opportunity():
+			return
+
+		frappe.throw(
+			_(
+				"Status {0} is set automatically when an Opportunity is created and cannot be selected manually"
+			).format(frappe.bold(_(CONVERTED_STATUS)))
+		)
+
+	def validate_status_requirements(self):
+		for fieldname in STATUS_REQUIRED_FIELDS.get(self.status, ()):
+			if self.get(fieldname):
+				continue
+
+			frappe.throw(
+				_("{0} is mandatory when the status is {1}").format(
+					frappe.bold(_(self.meta.get_label(fieldname))), frappe.bold(_(self.status))
+				),
+				title=_("Missing Value"),
+			)
+
+	def set_next_action_overdue(self):
+		"""Persist the overdue flag so the list view can filter and indicate on it."""
+		overdue = (
+			self.next_action_date
+			and getdate(self.next_action_date) < getdate(nowdate())
+			and self.status not in FINAL_STATUSES
+		)
+		self.next_action_overdue = 1 if overdue else 0
+
+	def share_with_lead_owner(self):
+		"""Give the responsible manager individual access, since Sales Users only see their own Leads."""
+		if not self.lead_owner or self.lead_owner == self.owner:
+			return
+
+		if not self.has_value_changed("lead_owner"):
+			return
+
+		if not frappe.db.get_value("User", self.lead_owner, "enabled"):
+			return
+
+		add_docshare(
+			self.doctype,
+			self.name,
+			self.lead_owner,
+			read=1,
+			write=1,
+			flags={"ignore_share_permission": True},
+			notify=0,
 		)
 
 	def has_customer(self):
@@ -538,4 +665,117 @@ def add_lead_to_prospect(lead, prospect):
 		_("Lead {0} has been added to prospect {1}.").format(frappe.bold(lead), frappe.bold(prospect.name)),
 		title=_("Lead -> Prospect"),
 		indicator="green",
+	)
+
+
+def mark_converted_to_opportunity(lead_name):
+	"""Move a Lead to its converted status. Called when an Opportunity is created from it.
+
+	Uses `db_set` on purpose: conversion must not fail because of the conditional mandatory
+	rules that apply to the status the Lead is leaving, and the status must stay
+	system-only (`validate_conversion_status` rejects it when a user sets it by hand).
+	"""
+	if not lead_name or not frappe.db.exists("Lead", lead_name):
+		return
+
+	if frappe.db.get_value("Lead", lead_name, "status") == CONVERTED_STATUS:
+		return
+
+	lead = frappe.get_doc("Lead", lead_name)
+	lead.db_set("status", CONVERTED_STATUS, update_modified=False)
+	lead.add_comment("Label", _(CONVERTED_STATUS))
+
+
+@frappe.whitelist()
+def revert_from_final_status(lead: str, reason: str, comment: str, return_date: str):
+	"""Return a closed Lead to `Postponed`, keeping a journal of who did it and why.
+
+	The linked Opportunity is deliberately left untouched — this only reopens the Lead so
+	it can be corrected or completed.
+	"""
+	if "Sales Manager" not in frappe.get_roles():
+		frappe.throw(_("Only a Sales Manager can return a Lead from a final status"), frappe.PermissionError)
+
+	doc = frappe.get_doc("Lead", lead)
+
+	if doc.status not in FINAL_STATUSES:
+		frappe.throw(_("Lead {0} is not in a final status").format(frappe.bold(doc.name)))
+
+	if not (reason and comment and return_date):
+		frappe.throw(_("Reason, comment and return date are mandatory"))
+
+	previous_status = doc.status
+
+	doc.append(
+		"status_reversals",
+		{
+			"previous_status": previous_status,
+			"reason": reason,
+			"comment": comment,
+			"reverted_by": frappe.session.user,
+			"reverted_on": now_datetime(),
+		},
+	)
+	doc.status = "Postponed"
+	doc.return_date = return_date
+	doc.hold_reason = reason
+	doc.save()
+
+	doc.add_comment(
+		"Comment",
+		_("Returned from final status {0}. Reason: {1}. Comment: {2}").format(
+			_(previous_status), reason, comment
+		),
+	)
+
+	return doc.name
+
+
+def has_permission(doc, ptype, user=None, debug=False):
+	"""Make Leads in a final status read-only for everyone but a Sales Manager.
+
+	Returns None to defer to the standard role permissions.
+	"""
+	if ptype not in ("write", "create", "delete"):
+		return None
+
+	if doc.get("status") not in FINAL_STATUSES:
+		return None
+
+	user = user or frappe.session.user
+	if user == "Administrator":
+		return None
+
+	roles = frappe.get_roles(user)
+	if "Sales Manager" in roles or "System Manager" in roles:
+		return None
+
+	return False
+
+
+def refresh_overdue_flags():
+	"""Daily job keeping `next_action_overdue` accurate without touching each Lead."""
+	today = nowdate()
+	final = list(FINAL_STATUSES)
+
+	frappe.db.sql(
+		"""
+		update `tabLead`
+		set next_action_overdue = 1
+		where ifnull(next_action_overdue, 0) = 0
+			and next_action_date is not null
+			and next_action_date < %(today)s
+			and status not in %(final)s
+		""",
+		{"today": today, "final": final},
+	)
+
+	frappe.db.sql(
+		"""
+		update `tabLead`
+		set next_action_overdue = 0
+		where ifnull(next_action_overdue, 0) = 1
+			and (next_action_date is null or next_action_date >= %(today)s or status in %(final)s)
+		""",
+		{"today": today, "final": final},
 	)

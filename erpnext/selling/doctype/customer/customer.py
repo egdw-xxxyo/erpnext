@@ -272,10 +272,12 @@ class Customer(TransactionBase):
 			self.db_set("primary_address", address_display)
 
 	def update_lead_status(self):
-		"""If Customer created from Lead, update lead status to "Converted"
-		update Customer link in Quotation, Opportunity"""
-		if self.lead_name:
-			frappe.db.set_value("Lead", self.lead_name, "status", "Converted")
+		"""No-op: a Lead is converted by creating an Opportunity, not a Customer.
+
+		See erpnext/crm/doctype/lead/lead.py — "Converted to Opportunity" is written only by
+		`mark_converted_to_opportunity`, so creating a Customer must not touch the status.
+		"""
+		pass
 
 	def link_address_and_contact(self):
 		linked_documents = {
@@ -369,8 +371,8 @@ class Customer(TransactionBase):
 			self.db_set("customer_primary_address", None)
 
 		delete_contact_and_address("Customer", self.name)
-		if self.lead_name:
-			frappe.db.sql("update `tabLead` set status='Interested' where name=%s", self.lead_name)
+		# Deleting a Customer no longer rewrites the Lead status — "Interested" is not part of
+		# the «Запит» status set, and the Lead keeps whatever the sales team set.
 
 	def before_rename(self, olddn, newdn, merge=False):
 		if merge:

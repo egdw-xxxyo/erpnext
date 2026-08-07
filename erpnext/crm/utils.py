@@ -115,6 +115,40 @@ def get_linked_prospect(reference_doctype, reference_name):
 	return prospect
 
 
+@frappe.whitelist()
+def get_party_military_unit(party_type: str | None, party_name: str | None):
+	"""Military Unit of a sales party.
+
+	It is maintained on the organization (Prospect / Customer); a Lead only mirrors it
+	(see `Lead.set_military_unit`)."""
+	if not party_type or not party_name:
+		return None
+
+	if party_type not in ("Customer", "Prospect", "Lead"):
+		return None
+
+	return frappe.db.get_value(party_type, party_name, "military_unit")
+
+
+def set_military_unit_from_party(doc, method=None):
+	"""Fill `military_unit` from the document's party, without overwriting a manual choice.
+
+	Wired through `doc_events` for Opportunity, Quotation, Sales Order and Issue. The
+	client scripts refill the field when the party changes; here we only cover the empty
+	case (new document, API insert, mapped document whose source had no party)."""
+	if doc.get("military_unit") or not doc.meta.has_field("military_unit"):
+		return
+
+	if doc.doctype == "Opportunity":
+		party_type, party_name = doc.opportunity_from, doc.party_name
+	elif doc.doctype == "Quotation":
+		party_type, party_name = doc.quotation_to, doc.party_name
+	else:
+		party_type, party_name = "Customer", doc.get("customer")
+
+	doc.military_unit = get_party_military_unit(party_type, party_name)
+
+
 def link_events_with_prospect(event, method):
 	if event.event_participants:
 		ref_doctype = event.event_participants[0].reference_doctype
@@ -201,7 +235,9 @@ def open_leads_opportunities_based_on_todays_event():
 		.on(event_link.parent == event.name)
 		.select(event_link.reference_doctype, event_link.reference_docname)
 		.where(
-			(event_link.reference_doctype.isin(["Lead", "Opportunity"]))
+			# Leads are excluded on purpose: "Open" is not part of the «Запит» status set, and a
+			# calendar event must not silently move a Lead out of the status its owner chose.
+			(event_link.reference_doctype == "Opportunity")
 			& (event.status == "Open")
 			& (functions.Date(event.starts_on) == today())
 		)

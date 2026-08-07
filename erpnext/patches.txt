@@ -444,3 +444,6 @@ erpnext.patches.v15_0.move_devices_to_new_module
 erpnext.patches.v15_0.move_otdr_workplace_script_to_devices
 erpnext.patches.v15_0.rework_task_status
 erpnext.patches.v15_0.batt_pack_brand_attribute
+erpnext.patches.v15_0.codify_military_unit
+erpnext.patches.v15_0.rework_lead_status
+erpnext.patches.v15_0.drop_legacy_lead_military_unit_field

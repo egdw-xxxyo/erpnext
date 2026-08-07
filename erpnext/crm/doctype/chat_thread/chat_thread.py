@@ -50,6 +50,10 @@ def on_reference_deleted(doc, method=None):
 	# Never react to our own chat doctypes (they carry no such reference and it avoids noise).
 	if (doc.doctype or "").startswith("Chat "):
 		return
+	# A fresh site deletes documents (e.g. `remove_event_streaming`) while patches run, before
+	# the Chat Thread table has been created by the model sync.
+	if not frappe.db.table_exists("Chat Thread"):
+		return
 	threads = frappe.get_all(
 		"Chat Thread",
 		filters={"reference_doctype": doc.doctype, "reference_name": doc.name},
