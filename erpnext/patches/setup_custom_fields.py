@@ -654,7 +654,10 @@ def setup_whatsapp_user_role():
 def create_military_unit_fields():
 	"""«Військова частина» is maintained on the organization, never on the Lead.
 
-	The Lead mirrors it read-only (see Lead.set_military_unit)."""
+	The Lead mirrors it read-only (see Lead.set_military_unit). Sales documents autofill
+	it from their party (`erpnext.crm.utils.set_military_unit_from_party`) but stay
+	editable, so a one-off deviation can be recorded on the document itself. The Prospect
+	grids only display the value of the linked document."""
 	fields = [
 		{
 			"dt": "Prospect",
@@ -671,6 +674,64 @@ def create_military_unit_fields():
 			"label": "Military Unit",
 			"options": "Military Unit",
 			"insert_after": "customer_name",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "customer_name",
+			"in_standard_filter": 1,
+		},
+		{
+			"dt": "Quotation",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "customer_name",
+			"in_standard_filter": 1,
+		},
+		{
+			"dt": "Sales Order",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "customer_name",
+			"in_standard_filter": 1,
+		},
+		{
+			"dt": "Issue",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "customer",
+			"in_standard_filter": 1,
+		},
+		{
+			"dt": "Prospect Lead",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "status",
+			"fetch_from": "lead.military_unit",
+			"read_only": 1,
+			"in_list_view": 1,
+		},
+		{
+			"dt": "Prospect Opportunity",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "contact_person",
+			"fetch_from": "opportunity.military_unit",
+			"read_only": 1,
+			"in_list_view": 1,
 		},
 	]
 	_create_custom_fields(fields)

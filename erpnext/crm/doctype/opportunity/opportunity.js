@@ -35,6 +35,7 @@ frappe.ui.form.on("Opportunity", {
 
 	party_name: function (frm) {
 		frm.trigger("set_contact_link");
+		erpnext.utils.set_military_unit_from_party(frm, frm.doc.opportunity_from, frm.doc.party_name);
 
 		if (frm.doc.opportunity_from == "Customer") {
 			erpnext.utils.get_party_details(frm);

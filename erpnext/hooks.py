@@ -363,15 +363,23 @@ doc_events = {
 	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
 	},
 	"Opportunity": {
-		"validate": "erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
+		"validate": [
+			"erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
+			"erpnext.crm.utils.set_military_unit_from_party",
+		],
+	},
+	"Issue": {
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
 	},
 	"Customer": {
 		"after_insert": "erpnext.crm.doctype.prospect.prospect.propagate_customer_to_leads",
 	},
 	"Quotation": {
 		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
 	},
 	"WhatsApp Message": {
 		"after_insert": [
