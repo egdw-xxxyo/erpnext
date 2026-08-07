@@ -2,7 +2,7 @@ name: docker
 
 services:
   backend:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
@@ -19,7 +19,7 @@ services:
       PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
 
   configurator:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
@@ -48,7 +48,7 @@ services:
       - logs:/home/frappe/frappe-bench/logs
 
   create-site:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
@@ -103,7 +103,7 @@ services:
       - db-data:/var/lib/mysql
 
   frontend:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     depends_on:
@@ -129,7 +129,7 @@ services:
       - "8080:8080"
 
   queue-long:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
@@ -148,7 +148,7 @@ services:
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
 
   queue-short:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
@@ -185,7 +185,7 @@ services:
         condition: on-failure
 
   scheduler:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
@@ -199,7 +199,7 @@ services:
       - logs:/home/frappe/frappe-bench/logs
 
   websocket:
-    image: erpnext-uk:v15.96.1
+    image: erpnext-uk:v15.119.0
     networks:
       - frappe_network
     deploy:
