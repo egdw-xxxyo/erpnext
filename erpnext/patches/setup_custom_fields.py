@@ -783,11 +783,15 @@ def setup_lead_sources():
 		"Партнерські організації",
 		"Інше",
 	]
+	# version-16 dropped the Lead Source DocType in favour of frappe's UTM Source
+	# (see erpnext/patches/v15_0/migrate_to_utm_analytics.py).
+	doctype = "UTM Source" if frappe.db.exists("DocType", "UTM Source") else "Lead Source"
 	for source in sources:
-		if frappe.db.exists("Lead Source", source):
+		if frappe.db.exists(doctype, source):
 			continue
-		frappe.get_doc({"doctype": "Lead Source", "source_name": source}).insert(ignore_permissions=True)
-		print(f"  Created Lead Source: {source}")
+		field = "source_name" if doctype == "Lead Source" else "name"
+		frappe.get_doc({"doctype": doctype, field: source}).insert(ignore_permissions=True)
+		print(f"  Created {doctype}: {source}")
 
 
 def setup_lead_permissions():
