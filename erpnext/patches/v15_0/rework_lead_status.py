@@ -66,6 +66,7 @@ OVERRIDDEN_PROPERTIES = [
 
 def execute():
 	frappe.reload_doctype("Lead")
+	ensure_lead_custom_fields()
 
 	stale = frappe.get_all(
 		"Property Setter",
@@ -102,7 +103,22 @@ def execute():
 	rebuild_lead_kanban_boards()
 
 
+def ensure_lead_custom_fields():
+	"""On version-16 the CRM fields live as Custom Fields, not in the stock lead.json.
+
+	`bench migrate` runs patches before ./deploy calls setup_custom_fields, so this patch
+	would hit "Unknown column 'next_action_overdue'" on a site that has never had them.
+	The creator is idempotent."""
+	from erpnext.patches.setup_custom_fields import create_v16_ported_fields
+
+	create_v16_ported_fields()
+	frappe.reload_doctype("Lead")
+
+
 def backfill_overdue_flags():
+	if not frappe.db.has_column("Lead", "next_action_overdue"):
+		return
+
 	frappe.db.sql(
 		"""
 		update `tabLead`
