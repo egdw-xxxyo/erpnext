@@ -181,6 +181,9 @@ class Employee(NestedSet):
 	def before_insert(self):
 		self.validate_auto_user_creation()
 
+		if not self.attendance_device_id:
+			self.attendance_device_id = f"EMP-{frappe.generate_hash(length=8).upper()}"
+
 	def after_insert(self):
 		if not self.create_user_automatically:
 			return
@@ -513,12 +516,18 @@ def get_employee_emails(employee_list):
 
 
 @frappe.whitelist()
-def get_children(doctype, parent=None, company=None, is_root=False, is_tree=False):
+def get_children(
+	doctype: str,
+	parent: str | None = None,
+	company: str | None = None,
+	is_root: bool = False,
+	is_tree: bool = False,
+):
 	filters = [["status", "=", "Active"]]
 	if company and company != "All Companies":
 		filters.append(["company", "=", company])
 
-	fields = ["name as value", "employee_name as title"]
+	fields = ["name as value", "employee_name as title", "designation"]
 
 	if is_root:
 		parent = ""
@@ -532,6 +541,9 @@ def get_children(doctype, parent=None, company=None, is_root=False, is_tree=Fals
 	for employee in employees:
 		is_expandable = frappe.get_all(doctype, filters=[["reports_to", "=", employee.get("value")]])
 		employee.expandable = 1 if is_expandable else 0
+		designation = employee.get("designation")
+		if designation:
+			employee.title = f"{employee.get('title')} — {_(designation)}"
 
 	return employees
 

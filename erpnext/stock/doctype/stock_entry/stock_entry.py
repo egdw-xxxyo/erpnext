@@ -4067,7 +4067,7 @@ class StockEntry(StockController, SubcontractingInwardController):
 
 				frappe.db.set_value("Material Request", material_request, "transfer_status", status)
 
-	def set_serial_no_batch_for_finished_good(self):
+	def set_serial_no_batch_for_finished_good(self, selected_serial_nos=None):
 		if not (
 			(self.pro_doc.has_serial_no or self.pro_doc.has_batch_no)
 			and frappe.db.get_single_value("Manufacturing Settings", "make_serial_no_batch_from_work_order")
@@ -4080,9 +4080,14 @@ class StockEntry(StockController, SubcontractingInwardController):
 				and d.item_code == self.pro_doc.production_item
 				and not d.serial_and_batch_bundle
 			):
-				serial_nos = self.get_available_serial_nos()
-				if serial_nos:
-					row = frappe._dict({"serial_nos": serial_nos[0 : cint(d.qty)]})
+				if selected_serial_nos:
+					serial_nos_to_use = selected_serial_nos
+				else:
+					all_serial_nos = self.get_available_serial_nos()
+					serial_nos_to_use = all_serial_nos[0 : cint(d.qty)] if all_serial_nos else []
+
+				if serial_nos_to_use:
+					row = frappe._dict({"serial_nos": serial_nos_to_use})
 
 					id = create_serial_and_batch_bundle(
 						self,

@@ -21,5 +21,17 @@ frappe.listview_settings["Employee"] = {
 				}
 			});
 		}
+
+		listview.page.add_action_item(__("Print Labels"), () => {
+			const checked = listview.get_checked_items();
+			if (!checked.length) {
+				frappe.msgprint(__("Please select at least one Employee"));
+				return;
+			}
+			erpnext.utils.open_bulk_label_print_dialog({
+				doctype: "Employee",
+				names: checked.map((d) => d.name),
+			});
+		});
 	},
 };

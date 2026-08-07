@@ -461,9 +461,14 @@ def copy_attributes_to_variant(item, variant):
 	allow_fields = [d.field_name for d in frappe.get_all("Variant Field", fields=["field_name"])]
 	if "variant_based_on" not in allow_fields:
 		allow_fields.append("variant_based_on")
+	for f in ("serial_number_template", "has_serial_no", "serial_no_series", "item_spec_parameters"):
+		if f not in allow_fields:
+			allow_fields.append(f)
 	for field in item.meta.fields:
 		# "Table" is part of `no_value_field` but we shouldn't ignore tables
 		if (field.reqd or field.fieldname in allow_fields) and field.fieldname not in exclude_fields:
+			if field.fieldname == "item_spec_parameters" and variant.get("item_spec_parameters"):
+				continue
 			if variant.get(field.fieldname) != item.get(field.fieldname):
 				if field.fieldtype == "Table":
 					variant.set(field.fieldname, [])
@@ -493,9 +498,40 @@ def copy_attributes_to_variant(item, variant):
 					variant.description = attributes_description
 
 
+def make_code_from_pattern(pattern, attributes):
+	"""Resolve `{AttributeName}` placeholders in `pattern` against an iterable of rows
+	with `attribute` and `attribute_value`. Looks up `Item Attribute Value` and
+	prefers `short_name`, falling back to `abbr`, then to the raw attribute_value.
+	"""
+	result = pattern
+	for attr in attributes or []:
+		placeholder = "{" + attr.attribute + "}"
+		if placeholder not in result:
+			continue
+
+		row = frappe.db.get_value(
+			"Item Attribute Value",
+			{"parent": attr.attribute, "attribute_value": attr.attribute_value},
+			["short_name", "abbr"],
+			as_dict=True,
+		)
+		display = (row.short_name or row.abbr) if row else cstr(attr.attribute_value)
+		result = result.replace(placeholder, display)
+	return result
+
+
 def make_variant_item_code(template_item_code, template_item_name, variant):
 	"""Uses template's item code and abbreviations to make variant's item code"""
 	if variant.item_code:
+		return
+
+	template_doc = frappe.get_cached_doc("Item", template_item_code)
+	pattern = template_doc.get("variant_name_pattern")
+
+	if pattern:
+		result = make_code_from_pattern(pattern, variant.attributes)
+		variant.item_code = result
+		variant.item_name = result
 		return
 
 	abbreviations = []
@@ -511,9 +547,6 @@ def make_variant_item_code(template_item_code, template_item_name, variant):
 
 		if not item_attribute:
 			continue
-			# frappe.throw(_('Invalid attribute {0} {1}').format(frappe.bold(attr.attribute),
-			# 	frappe.bold(attr.attribute_value)), title=_('Invalid Attribute'),
-			# 	exc=InvalidItemAttributeValueError)
 
 		abbr_or_value = (
 			cstr(attr.attribute_value) if item_attribute[0].numeric_values else item_attribute[0].abbr

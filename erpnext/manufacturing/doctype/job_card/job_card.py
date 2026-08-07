@@ -779,8 +779,10 @@ class JobCard(Document):
 		self.validate_job_card()
 		self.update_work_order()
 		self.set_transferred_qty()
+		self.auto_post_finished_to_stock()
 
 	def on_cancel(self):
+		self.cancel_auto_stock_entry()
 		self.update_work_order()
 		self.set_transferred_qty()
 
@@ -843,6 +845,44 @@ class JobCard(Document):
 						alert=True,
 						indicator="orange",
 					)
+
+	def auto_post_finished_to_stock(self):
+		if not self.operation or not self.work_order:
+			return
+		if not frappe.db.get_value("Operation", self.operation, "finishes_to_stock"):
+			return
+		if self.auto_stock_entry:
+			return
+
+		wo = frappe.get_doc("Work Order", self.work_order)
+		remaining = flt(wo.qty) - flt(wo.produced_qty)
+		qty = min(flt(self.total_completed_qty) or flt(self.for_quantity), remaining)
+		if qty <= 0:
+			return
+
+		from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
+
+		se_dict = make_stock_entry(self.work_order, "Manufacture", qty=qty)
+		se = frappe.get_doc(se_dict)
+		se.flags.from_job_card = self.name
+		se.insert()
+		se.submit()
+		self.db_set("auto_stock_entry", se.name)
+		frappe.msgprint(
+			_("Stock Entry {0} auto-created from Job Card {1}.").format(
+				get_link_to_form("Stock Entry", se.name), self.name
+			),
+			indicator="green",
+			alert=True,
+		)
+
+	def cancel_auto_stock_entry(self):
+		if not self.auto_stock_entry:
+			return
+		if frappe.db.get_value("Stock Entry", self.auto_stock_entry, "docstatus") == 1:
+			se = frappe.get_doc("Stock Entry", self.auto_stock_entry)
+			se.flags.ignore_permissions = True
+			se.cancel()
 
 	def validate_transfer_qty(self):
 		if (

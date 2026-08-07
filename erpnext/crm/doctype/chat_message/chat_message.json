@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-07-23 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "thread",
+  "sender",
+  "content_type",
+  "message",
+  "attach",
+  "link_data",
+  "reply_to",
+  "reactions",
+  "encryption_section",
+  "is_encrypted",
+  "enc_iv",
+  "enc_version"
+ ],
+ "fields": [
+  {
+   "fieldname": "thread",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Thread",
+   "options": "Chat Thread",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sender",
+   "options": "User"
+  },
+  {
+   "default": "text",
+   "fieldname": "content_type",
+   "fieldtype": "Select",
+   "label": "Content Type",
+   "options": "text\nimage\naudio\nfile\nlink"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Text",
+   "label": "Message"
+  },
+  {
+   "fieldname": "attach",
+   "fieldtype": "Attach",
+   "label": "Attach"
+  },
+  {
+   "description": "JSON link card payload for content_type=link (url, kind, doctype, name, title, subtitle, image)",
+   "fieldname": "link_data",
+   "fieldtype": "Long Text",
+   "label": "Link Data"
+  },
+  {
+   "fieldname": "reply_to",
+   "fieldtype": "Link",
+   "label": "Reply To",
+   "options": "Chat Message"
+  },
+  {
+   "description": "JSON map of emoji -> list of user emails",
+   "fieldname": "reactions",
+   "fieldtype": "Long Text",
+   "label": "Reactions"
+  },
+  {
+   "fieldname": "encryption_section",
+   "fieldtype": "Section Break",
+   "label": "Encryption"
+  },
+  {
+   "default": "0",
+   "description": "When set, `message` holds base64 AES-GCM ciphertext produced in the sender's browser.",
+   "fieldname": "is_encrypted",
+   "fieldtype": "Check",
+   "label": "Is Encrypted",
+   "read_only": 1
+  },
+  {
+   "fieldname": "enc_iv",
+   "fieldtype": "Data",
+   "label": "Encryption IV",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enc_version",
+   "fieldtype": "Int",
+   "label": "Encryption Version",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Chat Message",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Employee"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

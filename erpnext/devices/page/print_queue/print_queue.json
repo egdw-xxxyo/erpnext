@@ -1,0 +1,32 @@
+{
+ "content": null,
+ "creation": "2024-01-01 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "print-queue",
+ "owner": "Administrator",
+ "page_name": "print-queue",
+ "roles": [
+  {
+   "role": "Device Operator"
+  },
+  {
+   "role": "Device Manager"
+  },
+  {
+   "role": "Manufacturing User"
+  },
+  {
+   "role": "Manufacturing Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Print Queue"
+}

@@ -10,7 +10,7 @@
       {% endif %}
       {{ task.subject }}</a>
   </div>
-  <div class="col-sm-2">{{ task.status }}</div>
+  <div class="col-sm-2">{{ _(task.status) }}</div>
   <div class="col-sm-2 small text-muted">
     {% if task.exp_end_date %}
       {{ task.exp_end_date }}

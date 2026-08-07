@@ -37,6 +37,7 @@ web_include_icons = [
 
 doctype_js = {
 	"Address": "public/js/address.js",
+	"Job Card": "public/js/custom/job_card.js",
 	"Communication": "public/js/communication.js",
 	"Event": "public/js/event.js",
 	"Newsletter": "public/js/newsletter.js",
@@ -57,6 +58,23 @@ extend_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAddre
 
 override_whitelisted_methods = {"frappe.www.contact.send_message": "erpnext.templates.utils.send_message"}
 
+# Internal Employee Chat — messages/threads are visible only to their participants.
+permission_query_conditions = {
+	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.get_permission_query_conditions",
+	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.get_permission_query_conditions",
+	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.get_permission_query_conditions",
+	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.get_permission_query_conditions",
+}
+
+has_permission = {
+	# Leads in a final status are read-only until a Sales Manager returns them.
+	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
+	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
+	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
+	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
+	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.has_permission",
+}
+
 welcome_email = "erpnext.setup.utils.welcome_email"
 
 # setup wizard
@@ -67,6 +85,7 @@ after_install = "erpnext.setup.install.after_install"
 
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
+after_migrate = ["erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes"]
 
 boot_session = "erpnext.startup.boot.boot_session"
 notification_config = "erpnext.startup.notifications.get_notification_config"
@@ -304,6 +323,10 @@ sounds = [
 	{"name": "incoming-call", "src": "/assets/erpnext/sounds/incoming-call.mp3", "volume": 0.2},
 	{"name": "call-disconnect", "src": "/assets/erpnext/sounds/call-disconnect.mp3", "volume": 0.2},
 	{"name": "numpad-touch", "src": "/assets/erpnext/sounds/numpad-touch.mp3", "volume": 0.8},
+	# Chat notification chime. The file ships with frappe but frappe leaves it
+	# unregistered (commented out in its hooks), so no <audio id="sound-chime">
+	# element is rendered and play_sound("chime") silently fails. Register it here.
+	{"name": "chime", "src": "/assets/frappe/sounds/chime.mp3", "volume": 0.3},
 ]
 
 has_upload_permission = {"Employee": "erpnext.setup.doctype.employee.employee.has_upload_permission"}
@@ -344,15 +367,53 @@ period_closing_doctypes = [
 	"Subcontracting Receipt",
 ]
 
+override_doctype_dashboards = {
+	"Contact": "erpnext.crm.dashboard_overrides.get_contact_dashboard_data",
+}
+
 doc_events = {
 	"*": {
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",
 			"erpnext.setup.doctype.transaction_deletion_record.transaction_deletion_record.check_for_running_deletion_job",
 		],
+		"on_trash": "erpnext.crm.doctype.chat_thread.chat_thread.on_reference_deleted",
 	},
 	tuple(period_closing_doctypes): {
 		"validate": "erpnext.accounts.doctype.accounting_period.accounting_period.validate_accounting_period_on_doc_save",
+	},
+	"Sales Order": {
+		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+	},
+	"Opportunity": {
+		"validate": [
+			"erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
+			"erpnext.crm.utils.set_military_unit_from_party",
+		],
+	},
+	"Issue": {
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+	},
+	"Customer": {
+		"after_insert": "erpnext.crm.doctype.prospect.prospect.propagate_customer_to_leads",
+	},
+	"Quotation": {
+		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
+		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+	},
+	"WhatsApp Message": {
+		"after_insert": [
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
+			"erpnext.crm.chat_media.queue_thumbnail",
+		],
+		"on_update": [
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.notify_new_message",
+			"erpnext.crm.chat_media.queue_thumbnail",
+		],
+	},
+	"Chat Message": {
+		"after_insert": "erpnext.crm.chat_media.queue_thumbnail",
 	},
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
@@ -394,6 +455,14 @@ doc_events = {
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
 		],
 	},
+	"Purchase Receipt": {
+		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+	},
+	"Quality Inspection": {
+		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
+		"on_cancel": "erpnext.stock.doctype.serial_no.inspection.clear_inspection_status_on_cancel",
+	},
 	"Payment Entry": {
 		"on_trash": "erpnext.regional.check_deletion_permission",
 	},
@@ -431,6 +500,9 @@ auto_cancel_exempted_doctypes = [
 
 scheduler_events = {
 	"cron": {
+		"0/5 * * * *": [
+			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
+		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
 			"erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.run_parallel_reposting",
@@ -444,6 +516,7 @@ scheduler_events = {
 	},
 	"hourly": [
 		"erpnext.projects.doctype.project.project.hourly_reminder",
+		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [
@@ -456,14 +529,16 @@ scheduler_events = {
 		"erpnext.utilities.doctype.video.video.update_youtube_data",
 		"erpnext.accounts.doctype.bank_transaction_rule.bank_transaction_rule.scheduler_run_rule_evaluation",
 	],
-	"daily": [],
+	"daily": [
+		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
+		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
+	],
 	"daily_long": [],
 	"daily_maintenance": [
 		"erpnext.support.doctype.issue.issue.auto_close_tickets",
 		"erpnext.crm.doctype.opportunity.opportunity.auto_close_opportunity",
 		"erpnext.controllers.accounts_controller.update_invoice_status",
 		"erpnext.accounts.doctype.fiscal_year.fiscal_year.auto_create_fiscal_year",
-		"erpnext.projects.doctype.task.task.set_tasks_as_overdue",
 		"erpnext.stock.doctype.serial_no.serial_no.update_maintenance_status",
 		"erpnext.buying.doctype.supplier_scorecard.supplier_scorecard.refresh_scorecards",
 		"erpnext.setup.doctype.company.company.cache_companies_monthly_sales_history",

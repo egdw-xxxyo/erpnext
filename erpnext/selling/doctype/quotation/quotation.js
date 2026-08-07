@@ -96,6 +96,12 @@ erpnext.selling.QuotationController = class QuotationController extends erpnext.
 			me.apply_price_list();
 		});
 
+		erpnext.utils.set_military_unit_from_party(
+			this.frm,
+			this.frm.doc.quotation_to,
+			this.frm.doc.party_name
+		);
+
 		if (me.frm.doc.quotation_to == "Lead" && me.frm.doc.party_name) {
 			me.frm.trigger("get_lead_details");
 		}

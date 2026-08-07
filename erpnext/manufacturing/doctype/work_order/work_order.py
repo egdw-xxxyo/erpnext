@@ -1166,16 +1166,44 @@ class WorkOrder(Document):
 		enable_capacity_planning = not cint(manufacturing_settings_doc.disable_capacity_planning)
 		plan_days = cint(manufacturing_settings_doc.capacity_planning_for_days) or 30
 
-		for idx, row in enumerate(self.operations):
-			qty = self.qty
-			while qty > 0:
-				qty = split_qty_based_on_batch_size(self, row, qty)
-				if row.job_card_qty > 0:
-					self.prepare_data_for_job_card(row, idx, plan_days, enable_capacity_planning)
+		if self.has_serial_no:
+			self._create_job_cards_per_serial(plan_days, enable_capacity_planning)
+		else:
+			for idx, row in enumerate(self.operations):
+				qty = self.qty
+				while qty > 0:
+					qty = split_qty_based_on_batch_size(self, row, qty)
+					if row.job_card_qty > 0:
+						self.prepare_data_for_job_card(row, idx, plan_days, enable_capacity_planning)
 
 		planned_end_date = self.operations and self.operations[-1].planned_end_time
 		if planned_end_date:
 			self.db_set("planned_end_date", planned_end_date)
+
+	def _create_job_cards_per_serial(self, plan_days, enable_capacity_planning):
+		serials = [
+			row[0]
+			for row in frappe.db.sql(
+				"select name from `tabSerial No` where work_order=%s order by name",
+				self.name,
+			)
+		]
+		if not serials:
+			return
+
+		for idx, row in enumerate(self.operations):
+			self.set_operation_start_end_time(row, idx)
+			row.job_card_qty = 1
+			for serial in serials:
+				row.serial_no = serial
+				create_job_card(
+					self,
+					row,
+					auto_create=True,
+					enable_capacity_planning=enable_capacity_planning,
+				)
+			row.serial_no = None
+			row.db_update()
 
 	def prepare_data_for_job_card(self, row, idx, plan_days, enable_capacity_planning):
 		self.set_operation_start_end_time(row, idx)
@@ -2676,6 +2704,7 @@ def make_stock_entry(
 	target_warehouse: str | None = None,
 	is_additional_transfer_entry: bool = False,
 	source_stock_entry: str | None = None,
+	serial_nos=None,
 ):
 	work_order = frappe.get_doc("Work Order", work_order_id)
 	if not frappe.db.get_value("Warehouse", work_order.wip_warehouse, "is_group"):
@@ -2724,10 +2753,59 @@ def make_stock_entry(
 	stock_entry.get_items()
 	stock_entry.set_secondary_items_from_job_card()
 
+	selected_serial_nos = None
+	if serial_nos:
+		selected_serial_nos = frappe.parse_json(serial_nos)
+		_validate_selected_serial_nos(work_order, selected_serial_nos, qty)
+
 	if purpose != "Disassemble":
-		stock_entry.set_serial_no_batch_for_finished_good()
+		stock_entry.set_serial_no_batch_for_finished_good(selected_serial_nos=selected_serial_nos)
 
 	return stock_entry.as_dict()
+
+
+def _validate_selected_serial_nos(work_order, serial_nos, qty):
+	if len(serial_nos) != cint(qty):
+		frappe.throw(
+			_("Number of selected serial numbers ({0}) must equal quantity ({1})").format(
+				len(serial_nos), cint(qty)
+			)
+		)
+
+	available = frappe.get_all(
+		"Serial No",
+		filters={
+			"name": ("in", serial_nos),
+			"item_code": work_order.production_item,
+			"warehouse": ("is", "not set"),
+			"status": "Inactive",
+			"work_order": work_order.name,
+		},
+		pluck="name",
+	)
+
+	invalid = set(serial_nos) - set(available)
+	if invalid:
+		frappe.throw(
+			_("Serial numbers {0} are not available for this Work Order").format(", ".join(sorted(invalid)))
+		)
+
+
+@frappe.whitelist()
+def get_work_order_serial_nos(work_order_id):
+	work_order = frappe.get_doc("Work Order", work_order_id)
+	data = frappe.get_all(
+		"Serial No",
+		filters={
+			"item_code": work_order.production_item,
+			"warehouse": ("is", "not set"),
+			"status": "Inactive",
+			"work_order": work_order.name,
+		},
+		fields=["name"],
+		order_by="creation asc",
+	)
+	return [row.name for row in data]
 
 
 @frappe.whitelist()

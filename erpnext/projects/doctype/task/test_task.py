@@ -130,13 +130,18 @@ class TestTask(ERPNextTestSuite):
 		self.assertEqual(todo.status, "Closed")
 
 	def test_overdue(self):
+		from erpnext.projects.doctype.task.task import get_overdue_filters
+
 		task = create_task("Testing Overdue", add_days(nowdate(), -10), add_days(nowdate(), -5))
 
-		from erpnext.projects.doctype.task.task import set_tasks_as_overdue
+		# overdue is derived, the status must stay untouched
+		self.assertEqual(frappe.db.get_value("Task", task.name, "status"), "New")
+		self.assertTrue(task.is_overdue())
+		self.assertIn(task.name, frappe.get_all("Task", filters=get_overdue_filters(), pluck="name"))
 
-		set_tasks_as_overdue()
-
-		self.assertEqual(frappe.db.get_value("Task", task.name, "status"), "Overdue")
+		task.status = "Completed"
+		task.save()
+		self.assertFalse(task.is_overdue())
 
 	def test_parent_task_must_be_group(self):
 		parent_task = create_task(
@@ -175,7 +180,7 @@ def create_task(
 ):
 	if not frappe.db.exists("Task", subject):
 		task = frappe.new_doc("Task")
-		task.status = "Open"
+		task.status = "New"
 		task.subject = subject
 		task.exp_start_date = start or nowdate()
 		task.exp_end_date = end or nowdate()

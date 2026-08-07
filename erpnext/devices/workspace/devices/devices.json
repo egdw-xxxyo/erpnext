@@ -1,0 +1,260 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"dv_hdr_sc\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\",\"col\":12}},{\"id\":\"dv_sc_scanner\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Scanner\",\"col\":3}},{\"id\":\"dv_sc_printer\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Label Printer\",\"col\":3}},{\"id\":\"dv_sc_printjob\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Print Job\",\"col\":3}},{\"id\":\"dv_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"dv_hdr_mst\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters &amp; Logs</b></span>\",\"col\":12}},{\"id\":\"dv_card_scanner\",\"type\":\"card\",\"data\":{\"card_name\":\"Scanner\",\"col\":4}},{\"id\":\"dv_card_label\",\"type\":\"card\",\"data\":{\"card_name\":\"Label Printing\",\"col\":4}},{\"id\":\"dv_card_scripts\",\"type\":\"card\",\"data\":{\"card_name\":\"Device Scripts\",\"col\":4}},{\"id\":\"dv_card_otdr\",\"type\":\"card\",\"data\":{\"card_name\":\"OTDR\",\"col\":4}}]",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "scan",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Devices",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scanner",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scanner",
+   "link_count": 0,
+   "link_to": "Scanner",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scanner Configuration",
+   "link_count": 0,
+   "link_to": "Scanner Configuration",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scanner Command",
+   "link_count": 0,
+   "link_to": "Scanner Command",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scanner Scan Log",
+   "link_count": 0,
+   "link_to": "Scanner Scan Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scanner Test",
+   "link_count": 0,
+   "link_to": "scanner-test",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Label Printing",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Label Printer",
+   "link_count": 0,
+   "link_to": "Label Printer",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Label Template",
+   "link_count": 0,
+   "link_to": "Label Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Label Size",
+   "link_count": 0,
+   "link_to": "Label Size",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Print Job",
+   "link_count": 0,
+   "link_to": "Print Job",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Print Queue",
+   "link_count": 0,
+   "link_to": "print-queue",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Device Scripts",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Device Script",
+   "link_count": 0,
+   "link_to": "Device Script",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Device Script Run",
+   "link_count": 0,
+   "link_to": "Device Script Run",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scan Test Case",
+   "link_count": 0,
+   "link_to": "Scan Test Case",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Workplace Script",
+   "link_count": 0,
+   "link_to": "Workplace Script",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "OTDR",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "OTDR",
+   "link_count": 0,
+   "link_to": "OTDR",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "OTDR Configuration",
+   "link_count": 0,
+   "link_to": "OTDR Configuration",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-07-24 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Devices",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "Device Manager"
+  },
+  {
+   "role": "Device Operator"
+  }
+ ],
+ "sequence_id": 20.0,
+ "shortcuts": [
+  {
+   "label": "Scanner",
+   "link_to": "Scanner",
+   "type": "DocType"
+  },
+  {
+   "label": "Label Printer",
+   "link_to": "Label Printer",
+   "type": "DocType"
+  },
+  {
+   "label": "Print Job",
+   "link_to": "Print Job",
+   "type": "DocType"
+  }
+ ],
+ "title": "Devices"
+}

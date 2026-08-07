@@ -1,0 +1,216 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:configuration_name",
+ "creation": "2026-06-26 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "configuration_name",
+  "section_sync",
+  "sync_folder",
+  "simple_sync",
+  "section_session",
+  "idle_timeout",
+  "column_break_session",
+  "measurement_interval_seconds",
+  "section_device",
+  "device_filter",
+  "phone_name",
+  "scan_path",
+  "column_break_device",
+  "window_hours",
+  "poll_interval_s",
+  "chunk_size",
+  "heartbeat_interval_s",
+  "section_spool_qc_labels",
+  "passed_label_template",
+  "column_break_qc_labels",
+  "failed_label_template",
+  "section_extra",
+  "extra_config"
+ ],
+ "fields": [
+  {
+   "fieldname": "configuration_name",
+   "fieldtype": "Data",
+   "label": "Назва конфігурації",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "section_sync",
+   "fieldtype": "Section Break",
+   "label": "Синхронізація"
+  },
+  {
+   "default": "/otdr",
+   "fieldname": "sync_folder",
+   "fieldtype": "Data",
+   "label": "Папка синхронізації",
+   "description": "Шлях на пристрої, з якого десктоп-застосунок забирає файли"
+  },
+  {
+   "default": "0",
+   "fieldname": "simple_sync",
+   "fieldtype": "Check",
+   "label": "Простий режим синхронізації",
+   "description": "Завантажити лише найновіший файл, прочитати з нього інформацію, надіслати в ERP. Після цього файл можна видалити з локального сховища."
+  },
+  {
+   "fieldname": "section_session",
+   "fieldtype": "Section Break",
+   "label": "Сесія"
+  },
+  {
+   "default": "3600",
+   "fieldname": "idle_timeout",
+   "fieldtype": "Int",
+   "label": "Таймаут сесії (секунд)",
+   "description": "Призначення робочого місця/працівника скидається після цього часу неактивності"
+  },
+  {
+   "fieldname": "column_break_session",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "60",
+   "fieldname": "measurement_interval_seconds",
+   "fieldtype": "Int",
+   "label": "Інтервал вимірювань (секунд)",
+   "description": "Як часто пристрій опитує/надсилає вимірювання"
+  },
+  {
+   "fieldname": "section_device",
+   "fieldtype": "Section Break",
+   "label": "Пристрій"
+  },
+  {
+   "default": "adminvasa",
+   "fieldname": "device_filter",
+   "fieldtype": "Data",
+   "label": "BLE фільтр імені пристрою",
+   "description": "Назва пристрою для BLE-сканування містить цей текст"
+  },
+  {
+   "fieldname": "phone_name",
+   "fieldtype": "Data",
+   "label": "Ім'я телефону (передається пристрою)"
+  },
+  {
+   "fieldname": "scan_path",
+   "fieldtype": "Data",
+   "label": "Шлях сканування (конкретна тека)",
+   "description": "Порожньо = пройти remote директорії"
+  },
+  {
+   "fieldname": "column_break_device",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "2400",
+   "fieldname": "window_hours",
+   "fieldtype": "Int",
+   "label": "Вікно синхронізації (годин)"
+  },
+  {
+   "default": "5",
+   "fieldname": "poll_interval_s",
+   "fieldtype": "Float",
+   "label": "Інтервал опитування (с)"
+  },
+  {
+   "default": "20224",
+   "fieldname": "chunk_size",
+   "fieldtype": "Int",
+   "label": "Розмір блоку (Б)"
+  },
+  {
+   "default": "10",
+   "fieldname": "heartbeat_interval_s",
+   "fieldtype": "Int",
+   "label": "Інтервал heartbeat (с)",
+   "description": "Як часто застосунок повідомляє ERP про з'єднання та стан BLE"
+  },
+  {
+   "fieldname": "section_spool_qc_labels",
+   "fieldtype": "Section Break",
+   "label": "Етикетки QC котушок"
+  },
+  {
+   "fieldname": "passed_label_template",
+   "fieldtype": "Link",
+   "options": "Label Template",
+   "label": "Шаблон етикетки (пройшов QC)"
+  },
+  {
+   "fieldname": "column_break_qc_labels",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "failed_label_template",
+   "fieldtype": "Link",
+   "options": "Label Template",
+   "label": "Шаблон етикетки (не пройшов QC)"
+  },
+  {
+   "fieldname": "section_extra",
+   "fieldtype": "Section Break",
+   "label": "Додаткові параметри"
+  },
+  {
+   "fieldname": "extra_config",
+   "fieldtype": "Code",
+   "label": "Додаткові параметри (JSON)",
+   "options": "JSON",
+   "description": "Довільні параметри, що повертаються пристрою як є"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-06-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "OTDR Configuration",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Manufacturing User"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Device Operator"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

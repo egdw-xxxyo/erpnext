@@ -1,0 +1,29 @@
+#!/bin/bash
+# updateRepo — pull latest changes for erpnext and all submodules
+
+set -e
+DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR"
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+echo "==> Pulling erpnext (branch: $BRANCH)..."
+git pull origin "$BRANCH"
+
+echo "==> Syncing submodule URLs from .gitmodules..."
+git submodule sync
+
+echo "==> Updating submodules to latest remote branch..."
+git submodule update --init --remote
+
+echo "==> Submodule status:"
+git submodule status
+
+echo ""
+echo "==> Checking for submodule pointer changes..."
+if git diff --quiet frappe 2>/dev/null; then
+    echo "No submodule changes."
+else
+    git add frappe
+    echo "Submodules updated. Commit with: git commit -m 'Update frappe submodule'"
+fi

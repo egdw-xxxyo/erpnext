@@ -189,8 +189,19 @@ class Item(Document):
 				alert=True,
 			)
 
+		if self.variant_of:
+			self._create_variant_bom_if_applicable()
+
 		if self.opening_stock:
 			self.set_opening_stock()
+
+	def _create_variant_bom_if_applicable(self):
+		from erpnext.manufacturing.variant_bom import create_variant_bom_from_template
+
+		try:
+			create_variant_bom_from_template(self.name)
+		except Exception:
+			frappe.log_error(title=_("Auto Variant BOM Creation Failed for {0}").format(self.name))
 
 	def validate(self):
 		if not self.item_name:
@@ -228,8 +239,135 @@ class Item(Document):
 		self.validate_serialized_change_with_bundle()
 		self.validate_item_tax_net_rate_range()
 
+		self._inherit_serial_fields_from_template()
+		self.resolve_serial_number_template()
+		self._sync_spec_from_template()
+		self._evaluate_spec_formulas()
+		self._inherit_specification_template_from_template()
+		self._resolve_specification_template()
+
 		if not self.is_new():
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
+
+	def _inherit_serial_fields_from_template(self):
+		if not self.variant_of:
+			return
+		for field in ("serial_number_template", "serial_no_series", "has_serial_no"):
+			val = frappe.db.get_value("Item", self.variant_of, field)
+			if val:
+				self.set(field, val)
+
+	def resolve_serial_number_template(self):
+		if (
+			self.serial_number_template
+			and self.variant_of
+			and self.attributes
+			and "{ATTR:" in (self.serial_no_series or "")
+		):
+			from erpnext.stock.doctype.serial_number_template.serial_number_template import (
+				SerialNumberTemplate,
+			)
+
+			template = frappe.get_doc("Serial Number Template", self.serial_number_template)
+			attr_map = {d.attribute: d.attribute_value for d in self.attributes}
+			series = template.resulting_series
+			for attr_name, attr_value in attr_map.items():
+				token = "{ATTR:" + attr_name + "}"
+				if token in series:
+					abbr = frappe.db.get_value(
+						"Item Attribute Value",
+						{"parent": attr_name, "attribute_value": attr_value},
+						"abbr",
+					)
+					if abbr:
+						series = series.replace(token, abbr)
+			self.serial_no_series = series
+
+	def _inherit_specification_template_from_template(self):
+		if not self.variant_of:
+			return
+		if self.get("specification_number_template"):
+			return
+		val = frappe.db.get_value("Item", self.variant_of, "specification_number_template")
+		if val:
+			self.specification_number_template = val
+
+	def _resolve_specification_template(self):
+		if not self.get("specification_number_template"):
+			return
+		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
+			resolve_specification_template,
+		)
+
+		resolved = resolve_specification_template(self)
+		if resolved:
+			self.set("custom_шифр", resolved)
+
+	def _sync_spec_from_template(self):
+		if not self.variant_of:
+			return
+		template = frappe.get_cached_doc("Item", self.variant_of)
+		tpl_specs = template.get("item_spec_parameters") or []
+		if not tpl_specs:
+			return
+		existing = {row.parameter: row for row in (self.get("item_spec_parameters") or [])}
+		self.set("item_spec_parameters", [])
+		for tp in tpl_specs:
+			old = existing.get(tp.parameter)
+			row = self.append("item_spec_parameters", {})
+			row.parameter = tp.parameter
+			row.uom = tp.uom
+			if old and old.get("override"):
+				row.override = 1
+				row.value = old.value
+			else:
+				row.value = tp.value
+
+	def _evaluate_spec_formulas(self):
+		if not self.variant_of:
+			return
+		if not self.get("item_spec_parameters"):
+			self._inherit_spec_parameters_from_template()
+		if not self.get("item_spec_parameters"):
+			return
+		from erpnext.stock.doctype.item_specification_parameter.formula_utils import (
+			evaluate_spec_formulas,
+			is_formula,
+		)
+
+		if not any(is_formula(row.get("value")) for row in self.item_spec_parameters):
+			self._denormalize_shifr()
+			return
+		evaluate_spec_formulas(self)
+		self._denormalize_shifr()
+
+	def _inherit_spec_parameters_from_template(self):
+		template_rows = frappe.get_all(
+			"Item Specification Parameter",
+			filters={"parent": self.variant_of, "parenttype": "Item"},
+			fields=["parameter", "value", "uom", "calculated_value"],
+			order_by="idx",
+		)
+		for r in template_rows:
+			self.append(
+				"item_spec_parameters",
+				{
+					"parameter": r.parameter,
+					"value": r.value,
+					"uom": r.uom,
+					"calculated_value": r.calculated_value,
+				},
+			)
+
+	def _denormalize_shifr(self):
+		shifr = ""
+		for row in self.get("item_spec_parameters") or []:
+			if row.parameter == "Шифр":
+				shifr = row.get("display_value") or row.get("value") or ""
+				if shifr.startswith("="):
+					shifr = ""
+				break
+		self.custom_шифр = shifr
 
 	def on_update(self):
 		self.update_variants()

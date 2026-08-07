@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:user",
+ "creation": "2026-07-23 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "key_version",
+  "column_break_details",
+  "enrolled_on",
+  "identity_section",
+  "public_key",
+  "signing_public_key",
+  "wrapped_private_key",
+  "kdf_salt",
+  "kdf_iterations",
+  "devices_section",
+  "devices"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "key_version",
+   "fieldtype": "Int",
+   "label": "Key Version"
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "enrolled_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Enrolled On"
+  },
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "description": "ECDH P-256 public key (SPKI, base64). Public by design.",
+   "fieldname": "public_key",
+   "fieldtype": "Long Text",
+   "label": "Public Key",
+   "reqd": 1
+  },
+  {
+   "description": "ECDSA P-256 public key (SPKI, base64), used to verify thread key grants.",
+   "fieldname": "signing_public_key",
+   "fieldtype": "Long Text",
+   "label": "Signing Public Key"
+  },
+  {
+   "description": "Private key encrypted in the browser with a key derived from the user's passphrase. Useless without it — the server never sees the passphrase.",
+   "fieldname": "wrapped_private_key",
+   "fieldtype": "Long Text",
+   "label": "Wrapped Private Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "kdf_salt",
+   "fieldtype": "Data",
+   "label": "KDF Salt",
+   "reqd": 1
+  },
+  {
+   "default": "600000",
+   "fieldname": "kdf_iterations",
+   "fieldtype": "Int",
+   "label": "KDF Iterations"
+  },
+  {
+   "fieldname": "devices_section",
+   "fieldtype": "Section Break",
+   "label": "Biometric Devices"
+  },
+  {
+   "fieldname": "devices",
+   "fieldtype": "Table",
+   "label": "Devices",
+   "options": "Chat Device Key"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Chat Encryption Key",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Employee",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

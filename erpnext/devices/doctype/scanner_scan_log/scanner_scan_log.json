@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "autoname": "SLOG-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "scanner",
+  "timestamp",
+  "raw_data",
+  "column_break_1",
+  "status",
+  "resolved_action",
+  "scanner_mode",
+  "section_result",
+  "target_doctype",
+  "target_document",
+  "column_break_result",
+  "result_message",
+  "error_message"
+ ],
+ "fields": [
+  {
+   "fieldname": "scanner",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Scanner",
+   "options": "Scanner",
+   "reqd": 1
+  },
+  {
+   "default": "Now",
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Timestamp"
+  },
+  {
+   "fieldname": "raw_data",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Scanned Data"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Processing\nSuccess\nError\nCommand"
+  },
+  {
+   "fieldname": "resolved_action",
+   "fieldtype": "Data",
+   "label": "Resolved Action"
+  },
+  {
+   "fieldname": "scanner_mode",
+   "fieldtype": "Data",
+   "label": "Scanner Mode"
+  },
+  {
+   "fieldname": "section_result",
+   "fieldtype": "Section Break",
+   "label": "Result"
+  },
+  {
+   "fieldname": "target_doctype",
+   "fieldtype": "Link",
+   "label": "Target DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "target_document",
+   "fieldtype": "Data",
+   "label": "Target Document"
+  },
+  {
+   "fieldname": "column_break_result",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "result_message",
+   "fieldtype": "Small Text",
+   "label": "Result Message"
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Scanner Scan Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "role": "Device Manager"
+  },
+  {
+   "read": 1,
+   "role": "Device Operator"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

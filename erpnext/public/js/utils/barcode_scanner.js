@@ -82,6 +82,20 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					return;
 				}
 
+				// Handle package scanning
+				if (data.package_name && data.package_items) {
+					this.add_package_items(data)
+						.then(() => {
+							this.play_success_sound();
+							resolve();
+						})
+						.catch(() => {
+							this.play_fail_sound();
+							reject();
+						});
+					return;
+				}
+
 				me.update_table(data)
 					.then((row) => {
 						this.play_success_sound();
@@ -143,13 +157,13 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			frappe.run_serially([
 				() => this.set_selector_trigger_flag(data),
+				() => this.set_serial_no(row, serial_no),
 				() => this.set_barcode(row, barcode),
 				() => this.set_warehouse(row),
 				() =>
 					this.set_item(row, item_code, barcode, batch_no, serial_no).then((qty) => {
 						this.show_scan_message(row.idx, !is_new_row, qty);
 					}),
-				() => this.set_serial_no(row, serial_no),
 				() => this.set_batch_no(row, batch_no),
 				() => this.clean_up(),
 				() => this.set_barcode_uom(row, uom),
@@ -157,6 +171,72 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				() => resolve(row),
 			]);
 		});
+	}
+
+	async add_package_items(data) {
+		const items = data.package_items || [];
+		if (!items.length) {
+			this.show_alert(__("Package {0} is empty", [data.package_name]), "orange");
+			this.clean_up();
+			return;
+		}
+
+		let added = 0;
+		for (const pkg_item of items) {
+			const serial_nos = pkg_item.serial_no
+				? pkg_item.serial_no.split("\n").filter((s) => s.trim())
+				: [];
+
+			if (serial_nos.length) {
+				for (const sn of serial_nos) {
+					const item_data = {
+						item_code: pkg_item.item_code,
+						serial_no: sn,
+						batch_no: pkg_item.batch_no,
+						has_serial_no: pkg_item.has_serial_no,
+						has_batch_no: pkg_item.has_batch_no,
+					};
+					try {
+						await this.update_table(item_data);
+						added++;
+					} catch (e) {
+						// duplicate serial or other error — skip
+					}
+				}
+			} else {
+				const item_data = {
+					item_code: pkg_item.item_code,
+					batch_no: pkg_item.batch_no,
+					has_serial_no: pkg_item.has_serial_no,
+					has_batch_no: pkg_item.has_batch_no,
+				};
+				try {
+					await this.update_table(item_data);
+					added++;
+				} catch (e) {
+					// skip
+				}
+			}
+		}
+
+		// Add package to packages child table if it exists on the DocType
+		if (added && frappe.meta.has_field(this.frm.doctype, "packages")) {
+			const already = (this.frm.doc.packages || []).find((r) => r.package === data.package_name);
+			if (!already) {
+				const serial_list = items
+					.map((i) => i.serial_no)
+					.filter(Boolean)
+					.join("\n");
+				const pkg_row = frappe.model.add_child(this.frm.doc, "Delivery Note Package", "packages");
+				frappe.model.set_value(pkg_row.doctype, pkg_row.name, {
+					package: data.package_name,
+					serial_nos: serial_list,
+				});
+				this.frm.refresh_field("packages");
+			}
+		}
+
+		this.show_alert(__("Package {0}: {1} items added", [data.package_name, added]), "green", 5);
 	}
 
 	// batch and serial selector is reduandant when all info can be added by scan

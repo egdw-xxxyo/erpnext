@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:military_unit_code",
+ "creation": "2026-08-04 12:00:30.166684",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "military_unit_section",
+  "military_unit_code",
+  "name_of_military_unit",
+  "organization_type",
+  "status",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "military_unit_section",
+   "fieldtype": "Section Break",
+   "label": "Military Unit"
+  },
+  {
+   "fieldname": "military_unit_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Military Unit Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "name_of_military_unit",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name"
+  },
+  {
+   "fieldname": "organization_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Organization Type",
+   "options": "Військова частина\nБригада\nБатальйон\nПолк\nЦентр\nПідрозділ\nІнше"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Потенційна\nАктивна\nНеактивна\nАрхів"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-04 12:00:30.166684",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Military Unit",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "military_unit_code,name_of_military_unit",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "name_of_military_unit",
+ "track_changes": 1
+}

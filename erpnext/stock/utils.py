@@ -593,6 +593,17 @@ def scan_barcode(search_value: str, ctx: dict | str | None = None) -> BarcodeSca
 	if scan_data := get_cache():
 		return scan_data
 
+	# Try original value first, then keyboard layout transliterations
+	candidates = _get_keyboard_layout_variants(search_value)
+	for candidate in candidates:
+		result = _scan_barcode_single(candidate, ctx, set_cache)
+		if result:
+			return result
+
+	return {}
+
+
+def _scan_barcode_single(search_value, ctx, set_cache):
 	# search barcode no
 	barcode_data = frappe.db.get_value(
 		"Item Barcode",
@@ -633,13 +644,94 @@ def scan_barcode(search_value: str, ctx: dict | str | None = None) -> BarcodeSca
 		set_cache(batch_no_data)
 		return batch_no_data
 
+	# search package barcode
+	pkg_name = frappe.db.get_value(
+		"Package",
+		{"box_barcode": search_value, "docstatus": ["in", [0, 1]]},
+		"name",
+	)
+	if pkg_name:
+		pkg = frappe.get_doc("Package", pkg_name)
+		pkg_items = []
+		for row in pkg.items:
+			item_info = (
+				frappe.get_cached_value(
+					"Item", row.item_code, ("has_batch_no", "has_serial_no"), as_dict=True
+				)
+				or {}
+			)
+			pkg_items.append(
+				{
+					"item_code": row.item_code,
+					"serial_no": row.serial_no,
+					"batch_no": row.batch_no,
+					"qty": row.qty,
+					"has_batch_no": item_info.get("has_batch_no"),
+					"has_serial_no": item_info.get("has_serial_no"),
+				}
+			)
+		package_data = {
+			"package_name": pkg.name,
+			"package_items": pkg_items,
+		}
+		return package_data
+
 	warehouse = frappe.get_cached_value("Warehouse", search_value, ("name", "disabled"), as_dict=True)
 	if warehouse and not warehouse.disabled:
 		warehouse_data = {"warehouse": warehouse.name}
 		set_cache(warehouse_data)
 		return warehouse_data
 
-	return {}
+	return None
+
+
+# Keyboard layout maps: each row maps physical key positions across layouts
+# EN (QWERTY) -> UK (Ukrainian) -> RU (Russian ЙЦУКЕН)
+_EN = r"""`1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?"""
+_UK = r"""'1234567890-=йцукенгшщзхї\фівапролджєячсмитьбю.₴!"№;%:?*()_+ЙЦУКЕНГШЩЗХЇ/ФІВАПРОЛДЖЄЯЧСМИТЬБЮ,"""
+_RU = r"""ё1234567890-=йцукенгшщзхъ\фывапролджэячсмитьбю.Ё!"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"""
+
+
+def _transliterate_keyboard(text, from_layout, to_layout):
+	mapping = str.maketrans(from_layout, to_layout)
+	return text.translate(mapping)
+
+
+def _get_keyboard_layout_variants(value):
+	variants = [value]
+	seen = {value}
+
+	# Try converting from each layout to English (the most common barcode encoding)
+	for src in (_UK, _RU):
+		try:
+			converted = _transliterate_keyboard(value, src, _EN)
+			if converted not in seen:
+				variants.append(converted)
+				seen.add(converted)
+		except (ValueError, KeyError):
+			pass
+
+	# Try converting from English to Ukrainian and Russian
+	for dst in (_UK, _RU):
+		try:
+			converted = _transliterate_keyboard(value, _EN, dst)
+			if converted not in seen:
+				variants.append(converted)
+				seen.add(converted)
+		except (ValueError, KeyError):
+			pass
+
+	# Try cross-conversions: UK->RU, RU->UK
+	for src, dst in [(_UK, _RU), (_RU, _UK)]:
+		try:
+			converted = _transliterate_keyboard(value, src, dst)
+			if converted not in seen:
+				variants.append(converted)
+				seen.add(converted)
+		except (ValueError, KeyError):
+			pass
+
+	return variants
 
 
 def _update_item_info(scan_result: dict[str, str | None], ctx: dict | None = None) -> dict[str, str | None]:

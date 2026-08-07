@@ -1,0 +1,325 @@
+<mxfile host="app.diagrams.net" modified="2026-07-31T00:00:00.000Z" agent="Claude" version="24.0.0" type="device">
+  <diagram id="drone-config-flow" name="1. Потік: Продаж → Виробництво">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Конфігурований БпЛА — опційні позиції в замовленні (Option Lines) + слоти в BOM" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="15" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Одне item code для дрона · ціна за опцію з прайсу · собівартість точна на кожен серійний номер · каталог опцій — вкладка 2" style="text;html=1;fontSize=12;align=center;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="900" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ==== LANE BACKGROUNDS ==== -->
+        <mxCell id="lane1" value="1. Довідники (Master Data)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontStyle=1;fontSize=13;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="1500" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="lane2" value="2. Продажі (Sales)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f4fd;strokeColor=#7ea6d0;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontStyle=1;fontSize=13;fontColor=#1a4a72;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1500" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="lane3" value="3. Виробництво (Production)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf5ea;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontStyle=1;fontSize=13;fontColor=#2d5a2d;" vertex="1" parent="1">
+          <mxGeometry x="40" y="510" width="1500" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="lane4" value="4. Облік і простежуваність (Costing &amp; Traceability)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf1e0;strokeColor=#d79b00;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontStyle=1;fontSize=13;fontColor=#7a5200;" vertex="1" parent="1">
+          <mxGeometry x="40" y="710" width="1500" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ==== LANE 1: MASTER DATA ==== -->
+        <mxCell id="a1" value="&lt;b&gt;Базовий товар (Base Item)&lt;/b&gt;&#xa;БпЛА U 15 FO Серійний&#xa;&#xa;is_stock_item = 1&#xa;has_serial_no = 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="135" width="210" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a2" value="&lt;b&gt;Опційні товари (Option Items)&lt;/b&gt;&#xa;4 групи опцій:&#xa;OPT-DAY-* · OPT-THR-*&#xa;OPT-VTX-A-* · OPT-VTX-D-*&#xa;&lt;i&gt;повний каталог — вкладка 2&lt;/i&gt;&#xa;is_stock_item = 0, носій ціни" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="135" width="220" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a3" value="&lt;b&gt;Custom Field&lt;/b&gt;&#xa;Item.component_item&#xa;&#xa;OPT-THR-IRAY-MINI2 →&#xa;InfiRay Mini2 640×512" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="135" width="200" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a4" value="&lt;b&gt;Компоненти (Components)&lt;/b&gt;&#xa;Денні: Caddx · RunCam · Foxeer&#xa;Термальні: InfiRay · Guide · FLIR&#xa;Аналог. VTX: TBS · Rush · Foxeer&#xa;Цифрові: DJI O3/O4 · Walksnail · HDZero&#xa;is_stock_item = 1, серійні" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=8;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="135" width="200" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a5" value="&lt;b&gt;BOM-МАСТЕР — 4 слоти&lt;/b&gt;&#xa;FRAME-15 ×1 (фіксовано)&#xa;&lt;b&gt;TPL-CAM-DAY&lt;/b&gt; has_variants=1&#xa;&lt;b&gt;TPL-CAM-THERMAL&lt;/b&gt; has_variants=1&#xa;&lt;b&gt;TPL-VTX&lt;/b&gt; has_variants=1&#xa;&lt;b&gt;TPL-ANT&lt;/b&gt; has_variants=1&#xa;use_multi_level_bom = 0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="130" width="250" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a6" value="&lt;b&gt;Прайс (Item Price)&lt;/b&gt;&#xa;БпЛА базовий — 30 000&#xa;OPT-DAY-* — −600…+1 200&#xa;OPT-THR-* — 0…+71 000&#xa;OPT-VTX-* — −300…+18 000" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="135" width="140" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- ==== LANE 2: SALES ==== -->
+        <mxCell id="b1" value="&lt;b&gt;Замовлення клієнта&lt;/b&gt;&#xa;(Sales Order)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="365" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b2" value="Рядок 1 — БпЛА U 15 FO Серійний ×2 — 30 000 = 60 000&#xa;&lt;i&gt;складський, відвантажується, серійний&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="325" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" value="Рядок 2 — OPT-THR-IRAY-MINI2 ×2 — +62 000 = 124 000&#xa;&lt;i&gt;InfiRay Mini2 640×512 · не складський&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="379" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" value="Рядок 3 — OPT-VTX-D-DJI-O3 ×2 — +14 000 = 28 000&#xa;&lt;i&gt;цифра ⇒ денна камера вбудована (OPT-DAY-NONE)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="433" width="330" height="46" as="geometry" />
+        </mxCell>
+
+        <mxCell id="btotal" value="&lt;b&gt;Разом 212 000&lt;/b&gt;&#xa;ціна конфігурації&#xa;з прайсу, без ручних правок" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="360" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b6" value="&lt;b&gt;on_submit хук (custom, ~70 рядків)&lt;/b&gt;&#xa;перевіряє правила сумісності (вкладка 2)&#xa;variant_items = [&#xa;  {TPL-CAM-THERMAL → InfiRay Mini2},&#xa;  {TPL-VTX → DJI O3 Air Unit} ]&#xa;+ прибирає слот TPL-CAM-DAY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="890" y="355" width="300" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b7" value="&lt;b&gt;Альтернатива без коду&lt;/b&gt;&#xa;BOM → Create &gt; Work Order&#xa;діалог питає кожен слот&#xa;&lt;i&gt;bom.js:340 setup_variant_prompt()&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="355" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ==== LANE 3: PRODUCTION ==== -->
+        <mxCell id="c1" value="&lt;b&gt;make_work_order()&lt;/b&gt;&#xa;bom_no · item · qty · variant_items&#xa;&lt;i&gt;work_order.py:1401&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="570" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c2" value="&lt;b&gt;add_variant_item()&lt;/b&gt;&#xa;&lt;i&gt;work_order.py:1430&lt;/i&gt;&#xa;TPL-CAM-THERMAL → InfiRay Mini2&#xa;TPL-VTX → DJI O3 Air Unit&#xa;+ перераховує get_bom_item_rate()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="570" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c3" value="&lt;b&gt;Наряд на роботу (Work Order)&lt;/b&gt;&#xa;required_items:&#xa;• FRAME-15&#xa;• &lt;b&gt;InfiRay Mini2 640×512&lt;/b&gt; ← не шаблон&#xa;• &lt;b&gt;DJI O3 Air Unit&lt;/b&gt;&#xa;• антена 5.8 ГГц" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="565" width="270" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c4" value="&lt;b&gt;Карти завдань (Job Cards)&lt;/b&gt;&#xa;компоненти згруповані за операцією&#xa;(BOM Item.operation)&#xa;&#xa;Монтаж камери → бачить лише камеру + кріплення" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="565" width="290" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c5" value="⚠ Працює лише при&#xa;use_multi_level_bom = 0&#xa;&lt;i&gt;work_order.py:1424&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="575" width="165" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==== LANE 4: COSTING ==== -->
+        <mxCell id="d1" value="&lt;b&gt;Рух ТМЦ: Виробництво&lt;/b&gt;&#xa;(Stock Entry — Manufacture)&#xa;списує &lt;b&gt;реальну&lt;/b&gt; камеру за її вартістю" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="770" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d2" value="&lt;b&gt;Серійний номер (Serial No)&lt;/b&gt;&#xa;Serial and Batch Entry.incoming_rate&#xa;= фактична собівартість цього борта&#xa;&lt;i&gt;борт з FLIR Boson ≠ борт з Caddx Ant&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="770" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d3" value="&lt;b&gt;Собівартість продажу (COGS)&lt;/b&gt;&#xa;SerialNoValuation за конкретними&#xa;відвантаженими серійниками&#xa;&lt;i&gt;stock_ledger.py:966&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="770" width="270" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d4" value="&lt;b&gt;Простежуваність (Traceability)&lt;/b&gt;&#xa;Serial No → work_order → bom_no&#xa;(план)&#xa;Stock Entry рядки → як зібрано (факт)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="770" width="290" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d5" value="⚠ Серійник &lt;b&gt;не кодує&lt;/b&gt; конфігурацію:&#xa;Item.serial_no_series — на рівні товару&#xa;&lt;i&gt;work_order.py:602&lt;/i&gt;&#xa;Потрібен окремий хук (~30 рядків)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="770" width="165" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==== DELIVERY NOTE ==== -->
+        <mxCell id="dn" value="&lt;b&gt;Постачання (Delivery Note)&lt;/b&gt;&#xa;лише Рядок 1 (складський)&#xa;опції не відвантажуються →&#xa;&lt;b&gt;немає подвійного обліку&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="915" width="290" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="&lt;b&gt;Легенда&lt;/b&gt;&#xa;біле / зелене — стандартний ERPNext, коду не треба&#xa;жовте пунктиром — кастом (Custom Field + хук)&#xa;червоне — обмеження / застереження" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="915" width="330" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==== EDGES ==== -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="a2" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="вказує на реальний компонент" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d6b656;dashed=1;fontSize=10;" edge="1" parent="1" source="a3" target="a4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="слоти заповнюються з a4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="a4" target="a5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="a2" target="b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#666666;" edge="1" parent="1" source="a1" target="b1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="ціна рядків" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;strokeColor=#6c8ebf;dashed=1;fontSize=10;" edge="1" parent="1" source="a6" target="btotal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="b1" target="b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="b3" target="btotal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="btotal" target="b6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="variant_items" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=1;entryX=0.5;entryY=0;strokeColor=#d6b656;dashed=1;fontSize=10;" edge="1" parent="1" source="b6" target="c1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="ручний шлях" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;strokeColor=#b85450;dashed=1;fontSize=10;" edge="1" parent="1" source="b7" target="c1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#82b366;" edge="1" parent="1" source="c1" target="c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#82b366;" edge="1" parent="1" source="c2" target="c3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#82b366;" edge="1" parent="1" source="c3" target="c4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="BOM-МАСТЕР" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=1;entryX=0.5;entryY=0;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="a5" target="c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="завершення операцій" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;fontSize=10;" edge="1" parent="1" source="c3" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;" edge="1" parent="1" source="d1" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;" edge="1" parent="1" source="d2" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;" edge="1" parent="1" source="d3" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="лише складський рядок" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=0.5;entryX=0;entryY=0;strokeColor=#9673a6;dashed=1;fontSize=10;" edge="1" parent="1" source="b2" target="dn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="348" />
+              <mxPoint x="270" y="905" />
+              <mxPoint x="640" y="905" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e21" value="списання за серійником" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;fontSize=10;" edge="1" parent="1" source="d3" target="dn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="drone-option-catalog" name="2. Каталог опцій (Option Catalog)">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c_title" value="Каталог опцій — камери та передавачі за виробниками" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="900" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="c_sub" value="Кожна опція = окремий Item (is_stock_item=0) з Item Price. component_item вказує на реальний компонент, який споживає Наряд на роботу. Ціни — приклад, замінити на реальні." style="text;html=1;fontSize=12;align=center;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="250" y="56" width="1100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h_day" value="&lt;b&gt;Денна камера (Day Camera)&lt;/b&gt;&#xa;слот BOM: TPL-CAM-DAY&#xa;Item Attribute: Денна камера" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="350" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="r_day_0" value="&lt;b&gt;OPT-DAY-NONE&lt;/b&gt;&#xa;component_item: — без денної камери —&#xa;дельта ціни: &lt;b&gt;0&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_day_1" value="&lt;b&gt;OPT-DAY-CADDX-RATEL2&lt;/b&gt;&#xa;component_item: Caddx Ratel 2 Pro&#xa;виробник: &lt;b&gt;Caddx&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;базова, 0&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="248" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_day_2" value="&lt;b&gt;OPT-DAY-RUNCAM-P2SE&lt;/b&gt;&#xa;component_item: RunCam Phoenix 2 SE&#xa;виробник: &lt;b&gt;RunCam&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+1 200&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="306" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_day_3" value="&lt;b&gt;OPT-DAY-FOXEER-RAZER&lt;/b&gt;&#xa;component_item: Foxeer Razer Micro&#xa;виробник: &lt;b&gt;Foxeer&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+900&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="364" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_day_4" value="&lt;b&gt;OPT-DAY-CADDX-ANT&lt;/b&gt;&#xa;component_item: Caddx Ant Lite&#xa;виробник: &lt;b&gt;Caddx&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;−600&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="422" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="e_day" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="h_day" target="r_day_0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h_thr" value="&lt;b&gt;Термальна камера (Thermal)&lt;/b&gt;&#xa;слот BOM: TPL-CAM-THERMAL&#xa;Item Attribute: Нічна камера" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="350" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="r_thr_0" value="&lt;b&gt;OPT-THR-NONE&lt;/b&gt;&#xa;component_item: — без термальної —&#xa;дельта ціни: &lt;b&gt;0&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="190" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_thr_1" value="&lt;b&gt;OPT-THR-IRAY-TINY2&lt;/b&gt;&#xa;component_item: InfiRay Tiny2 384×288&#xa;виробник: &lt;b&gt;InfiRay&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+38 000&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="248" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_thr_2" value="&lt;b&gt;OPT-THR-IRAY-MINI2&lt;/b&gt;&#xa;component_item: InfiRay Mini2 640×512&#xa;виробник: &lt;b&gt;InfiRay&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+62 000&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="306" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_thr_3" value="&lt;b&gt;OPT-THR-GUIDE-GAT&lt;/b&gt;&#xa;component_item: Guide Sensmart GAT-M&#xa;виробник: &lt;b&gt;Guide Sensmart&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+34 000&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="364" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_thr_4" value="&lt;b&gt;OPT-THR-FLIR-BOSON&lt;/b&gt;&#xa;component_item: FLIR Boson 320&#xa;виробник: &lt;b&gt;FLIR&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+71 000&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="422" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="e_thr" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="h_thr" target="r_thr_0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h_vtxa" value="&lt;b&gt;Аналоговий передавач (Analog VTX)&lt;/b&gt;&#xa;слот BOM: TPL-VTX&#xa;Item Attribute: Тип передавача = Аналог" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="800" y="120" width="350" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxa_0" value="&lt;b&gt;OPT-VTX-A-TBS-U32&lt;/b&gt;&#xa;component_item: TBS Unify Pro32 HV&#xa;виробник: &lt;b&gt;TBS&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;базова, 0&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="800" y="190" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxa_1" value="&lt;b&gt;OPT-VTX-A-RUSH-TANK&lt;/b&gt;&#xa;component_item: Rush Tank Ultimate&#xa;виробник: &lt;b&gt;Rush&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+400&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="800" y="248" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxa_2" value="&lt;b&gt;OPT-VTX-A-FOXEER-REAPER&lt;/b&gt;&#xa;component_item: Foxeer Reaper Extreme 2.5W&#xa;виробник: &lt;b&gt;Foxeer&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+1 100&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="800" y="306" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxa_3" value="&lt;b&gt;OPT-VTX-A-AKK-1W&lt;/b&gt;&#xa;component_item: AKK Ultimate 1W&#xa;виробник: &lt;b&gt;AKK&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;−300&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="800" y="364" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="e_vtxa" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="h_vtxa" target="r_vtxa_0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h_vtxd" value="&lt;b&gt;Цифровий передавач (Digital VTX)&lt;/b&gt;&#xa;слот BOM: TPL-VTX&#xa;Item Attribute: Тип передавача = Цифра" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="120" width="350" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxd_0" value="&lt;b&gt;OPT-VTX-D-DJI-O3&lt;/b&gt;&#xa;component_item: DJI O3 Air Unit&#xa;виробник: &lt;b&gt;DJI&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+14 000&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="190" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxd_1" value="&lt;b&gt;OPT-VTX-D-DJI-O4&lt;/b&gt;&#xa;component_item: DJI O4 Air Unit Pro&#xa;виробник: &lt;b&gt;DJI&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+18 000&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="248" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxd_2" value="&lt;b&gt;OPT-VTX-D-WS-AVATAR&lt;/b&gt;&#xa;component_item: Walksnail Avatar HD Pro&#xa;виробник: &lt;b&gt;Walksnail&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+12 500&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="306" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxd_3" value="&lt;b&gt;OPT-VTX-D-HDZ-FS2&lt;/b&gt;&#xa;component_item: HDZero Freestyle V2&#xa;виробник: &lt;b&gt;HDZero&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+9 800&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="364" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r_vtxd_4" value="&lt;b&gt;OPT-VTX-D-CADDX-VISTA&lt;/b&gt;&#xa;component_item: Caddx Vista Nebula Pro&#xa;виробник: &lt;b&gt;Caddx&lt;/b&gt;&#xa;дельта ціни: &lt;b&gt;+8 400&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="422" width="350" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="e_vtxd" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;dashed=1;" edge="1" parent="1" source="h_vtxd" target="r_vtxd_0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rules" value="&lt;b&gt;Правила сумісності (перевіряє хук on_submit)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="530" width="1490" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rule0" value="&lt;b&gt;1. Рівно одна опція з групи&lt;/b&gt;&#xa;У замовленні максимум один рядок з кожної групи (Денна / Термальна / Передавач). Дві камери одного типу — помилка валідації." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="1000" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="rule1" value="&lt;b&gt;2. Цифровий передавач ⇒ денна камера вбудована&lt;/b&gt;&#xa;DJI O3/O4, Walksnail, HDZero мають власний сенсор. При виборі OPT-VTX-D-* денна опція має бути OPT-DAY-NONE, а хук прибирає слот TPL-CAM-DAY з Наряду на роботу." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="642" width="1000" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="rule2" value="&lt;b&gt;3. Аналоговий передавач ⇒ потрібна аналогова камера&lt;/b&gt;&#xa;OPT-VTX-A-* вимагає щонайменше одну аналогову камеру (денну або термальну), інакше немає відеосигналу." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="704" width="1000" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="rule3" value="&lt;b&gt;4. Денна + термальна одночасно&lt;/b&gt;&#xa;Потрібен додатковий модуль перемикання / PiP — окремий компонент OPT-ACC-PIP додається хуком автоматично." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="766" width="1000" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="rule4" value="&lt;b&gt;5. Термальна цифрова&lt;/b&gt;&#xa;InfiRay/Guide з цифровим виходом сумісні лише з цифровим передавачем — комбінація OPT-THR-*-D + OPT-VTX-A-* заборонена." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="828" width="1000" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="scale" value="&lt;b&gt;Масштаб каталогу&lt;/b&gt;&#xa;5 денних × 5 термальних × 9 передавачів&#xa;= &lt;b&gt;225&lt;/b&gt; комбінацій&#xa;&#xa;Варіантами товару — 225 item codes.&#xa;Опційними рядками — &lt;b&gt;1&lt;/b&gt; item code&#xa;+ 19 опційних товарів." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="580" width="460" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cost_note" value="&lt;b&gt;Собівартість не змішується&lt;/b&gt;&#xa;Борт з FLIR Boson і борт з Caddx Ant — один item code,&#xa;але різні incoming_rate на своїх серійних номерах&#xa;(Serial and Batch Entry.incoming_rate, stock_ledger.py:966)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=10;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="720" width="460" height="120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

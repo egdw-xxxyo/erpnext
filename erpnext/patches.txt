@@ -260,6 +260,10 @@ execute:frappe.rename_doc("Report", "TDS Payable Monthly", "Tax Withholding Deta
 erpnext.patches.v14_0.update_proprietorship_to_individual
 erpnext.patches.v15_0.rename_subcontracting_fields
 erpnext.patches.v15_0.unset_incorrect_additional_discount_percentage
+erpnext.patches.v16_0.create_company_custom_fields
+erpnext.patches.merge_formula_into_value
+erpnext.patches.v15_0.rename_scanner_script_to_device_script
+erpnext.patches.v15_0.convert_device_script_log_to_runs
 
 [post_model_sync]
 erpnext.patches.v15_0.rename_gross_purchase_amount_to_net_purchase_amount
@@ -496,3 +500,18 @@ erpnext.patches.v16_0.rename_ar_ap_ageing_filter
 erpnext.patches.v16_0.fix_subcontracting_titles
 erpnext.patches.v16_0.backfill_repost_accounting_ledger_status
 erpnext.patches.v16_0.merge_seeded_item_group_root
+erpnext.patches.v15_0.rename_packing_box_to_package
+erpnext.patches.v15_0.rename_scanner_setup_to_scanner
+erpnext.patches.v15_0.add_script_versioning
+erpnext.patches.v15_0.migrate_label_template_type
+erpnext.patches.v15_0.backfill_pallet_sales_order
+erpnext.patches.v15_0.set_reflectometer_trigger_event
+erpnext.patches.v15_0.drop_otdr_configuration_public_server_url
+erpnext.patches.v15_0.link_chat_attachments
+erpnext.patches.v15_0.move_devices_to_new_module
+erpnext.patches.v15_0.move_otdr_workplace_script_to_devices
+erpnext.patches.v15_0.rework_task_status
+erpnext.patches.v15_0.batt_pack_brand_attribute
+erpnext.patches.v15_0.codify_military_unit
+erpnext.patches.v15_0.rework_lead_status
+erpnext.patches.v15_0.drop_legacy_lead_military_unit_field

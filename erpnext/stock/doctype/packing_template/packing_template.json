@@ -1,0 +1,165 @@
+{
+ "actions": [],
+ "autoname": "field:template_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "description",
+  "column_break_details",
+  "is_active",
+  "box_template",
+  "expected_qty",
+  "bpak_required",
+  "auto_pass_qc",
+  "operation",
+  "barcode_id",
+  "label_section",
+  "label_template",
+  "column_break_label",
+  "label_printer",
+  "label_copies",
+  "items_section",
+  "items"
+ ],
+ "fields": [
+  {
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "label": "Template Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "box_template",
+   "fieldtype": "Link",
+   "label": "Box Type",
+   "options": "Shipment Parcel Template",
+   "reqd": 1
+  },
+  {
+   "fieldname": "label_section",
+   "fieldtype": "Section Break",
+   "label": "Label"
+  },
+  {
+   "fieldname": "label_template",
+   "fieldtype": "Link",
+   "label": "Label Template",
+   "options": "Label Template"
+  },
+  {
+   "fieldname": "column_break_label",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "label_printer",
+   "fieldtype": "Link",
+   "label": "Label Printer",
+   "options": "Label Printer"
+  },
+  {
+   "default": "1",
+   "fieldname": "label_copies",
+   "fieldtype": "Int",
+   "label": "Label Copies",
+   "non_negative": 1,
+   "description": "Number of label copies to print per package."
+  },
+  {
+   "default": "1",
+   "fieldname": "expected_qty",
+   "fieldtype": "Int",
+   "label": "Expected Qty"
+  },
+  {
+   "default": "0",
+   "fieldname": "bpak_required",
+   "fieldtype": "Check",
+   "label": "BpAK Required",
+   "description": "If set, a Package using this template must have a BpAK selected before it can be saved/submitted."
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_pass_qc",
+   "fieldtype": "Check",
+   "label": "Auto-pass QC for packed items",
+   "description": "When set, packing a serial into a Package marks it Pass + scanned in its draft Quality Inspection."
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Link",
+   "label": "Linked Operation",
+   "options": "Operation",
+   "description": "If set, submitting a Package finishes the matching open Job Card (by operation + serial) for each packed serial."
+  },
+  {
+   "fieldname": "barcode_id",
+   "fieldtype": "Data",
+   "label": "Barcode",
+   "unique": 1
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Expected Items"
+  },
+  {
+   "description": "Leave empty to accept any items",
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Packing Template Item"
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Packing Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

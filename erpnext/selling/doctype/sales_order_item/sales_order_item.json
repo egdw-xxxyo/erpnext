@@ -117,7 +117,9 @@
   "accounting_dimensions_section",
   "cost_center",
   "column_break_ihdh",
-  "project"
+  "project",
+  "bpak_row",
+  "serial_no"
  ],
  "fields": [
   {
@@ -983,6 +985,22 @@
    "label": "Project",
    "options": "Project",
    "search_index": 1
+  },
+  {
+   "description": "Set when this row was generated from a BpAK row's planned items. Auto-managed; do not edit.",
+   "fieldname": "bpak_row",
+   "fieldtype": "Data",
+   "label": "BpAK Row",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "description": "Aggregated serial numbers from Package Item rows under the linked BpAK. Auto-managed; do not edit.",
+   "fieldname": "serial_no",
+   "fieldtype": "Small Text",
+   "label": "Serial No",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "sales_order_schedule_section",

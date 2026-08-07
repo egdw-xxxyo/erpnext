@@ -80,11 +80,43 @@ class SerialBatchBundle:
 			"item_name",
 			"item_group",
 			"serial_no_series",
+			"serial_number_template",
 			"create_new_batch",
 			"batch_number_series",
 		]
 
 		self.item_details = frappe.get_cached_value("Item", self.sle.item_code, fields, as_dict=1)
+		if self.item_details.serial_number_template and self.item_details.serial_no_series:
+			self._resolve_attribute_series()
+
+	def _resolve_attribute_series(self):
+		series = self.item_details.serial_no_series or ""
+		if "{ATTR:" not in series and "{SUPP}" not in series:
+			return
+		from erpnext.stock.doctype.serial_number_template.serial_number_template import (
+			resolve_series_for_item,
+		)
+
+		supplier = self._get_voucher_supplier()
+		resolved = resolve_series_for_item(
+			self.item_details.serial_number_template, self.sle.item_code, supplier=supplier
+		)
+		self.item_details.serial_no_series = resolved
+
+	def _get_voucher_supplier(self):
+		voucher_type = (
+			self.sle.get("voucher_type")
+			if hasattr(self.sle, "get")
+			else getattr(self.sle, "voucher_type", None)
+		)
+		voucher_no = (
+			self.sle.get("voucher_no") if hasattr(self.sle, "get") else getattr(self.sle, "voucher_no", None)
+		)
+		if voucher_type and voucher_no:
+			supplier = frappe.db.get_value(voucher_type, voucher_no, "supplier")
+			if supplier:
+				return supplier
+		return None
 
 	def process_serial_no(self):
 		if (
@@ -657,6 +689,9 @@ class SerialNoValuation(DeprecatedSerialNoValuation):
 			self.old_serial_nos = []
 
 			serial_nos = self.get_serial_nos()
+			if not serial_nos:
+				return
+
 			result = self.get_serial_no_wise_incoming_rate(serial_nos)
 			for serial_no in serial_nos:
 				incoming_rate = result.get(serial_no)
@@ -1035,6 +1070,28 @@ def set_batch_details_from_package(ids, batches):
 		batches[d.batch_no] -= d.qty
 
 
+def sync_series_counter(serial_no_series: str | None, serial_nos: list) -> None:
+	if not serial_no_series or not serial_nos:
+		return
+
+	try:
+		naming = NamingSeries(serial_no_series)
+		prefix = naming.get_prefix()
+	except Exception:
+		return
+
+	max_counter = 0
+	for sn in serial_nos:
+		if not sn or not sn.startswith(prefix):
+			continue
+		suffix = sn[len(prefix) :]
+		if suffix.isdigit():
+			max_counter = max(max_counter, int(suffix))
+
+	if max_counter and max_counter > naming.get_current_value():
+		naming.update_counter(max_counter)
+
+
 class SerialBatchCreation:
 	def __init__(self, args):
 		self.set(args)
@@ -1057,6 +1114,7 @@ class SerialBatchCreation:
 			"item_name",
 			"item_group",
 			"serial_no_series",
+			"serial_number_template",
 			"create_new_batch",
 			"batch_number_series",
 			"description",
@@ -1067,6 +1125,22 @@ class SerialBatchCreation:
 			setattr(self, key, value)
 
 		self.__dict__.update(item_details)
+
+		series = self.get("serial_no_series") or ""
+		if self.get("serial_number_template") and ("{ATTR:" in series or "{SUPP}" in series):
+			from erpnext.stock.doctype.serial_number_template.serial_number_template import (
+				resolve_series_for_item,
+			)
+
+			supplier = None
+			voucher_type = self.get("voucher_type")
+			voucher_no = self.get("voucher_no")
+			if voucher_type and voucher_no:
+				supplier = frappe.db.get_value(voucher_type, voucher_no, "supplier")
+
+			resolved = resolve_series_for_item(self.serial_number_template, self.item_code, supplier=supplier)
+			self.serial_no_series = resolved
+			self.__dict__["serial_no_series"] = resolved
 
 	def set_other_details(self):
 		from erpnext.stock.utils import get_combine_datetime
@@ -1326,6 +1400,7 @@ class SerialBatchCreation:
 			]
 
 			frappe.db.bulk_insert("Serial No", fields=fields, values=set(serial_nos_details))
+			sync_series_counter(self.get("serial_no_series"), serial_nos)
 
 	def set_serial_batch_entries(self, doc):
 		incoming_rate = self.get("incoming_rate")

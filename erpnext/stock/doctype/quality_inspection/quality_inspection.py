@@ -153,9 +153,6 @@ class QualityInspection(Document):
 				).format(get_link_to_form("Item", self.item_code))
 			)
 
-	def before_submit(self):
-		self.validate_readings_status_mandatory()
-
 	@frappe.whitelist()
 	def get_item_specification_details(self):
 		if not self.quality_inspection_template:
@@ -168,13 +165,116 @@ class QualityInspection(Document):
 
 		self.set("readings", [])
 		parameters = get_template_details(self.quality_inspection_template)
+
+		spec_values = self._resolve_spec_values()
+
+		# When using serial inspections, readings are reference-only
+		has_serial_inspections = bool(self.get("serial_inspections")) or (
+			self.reference_type == "Purchase Receipt" and self.reference_name
+		)
+
 		for d in parameters:
 			child = self.append("readings", {})
 			child.update(d)
 			child.status = "Accepted"
+			if has_serial_inspections:
+				child.manual_inspection = 1
 			child.parameter_group = frappe.get_value(
 				"Quality Inspection Parameter", d.specification, "parameter_group"
 			)
+
+			spec = spec_values.get(d.specification)
+			if spec and not d.get("formula_based_criteria") and not child.value:
+				val = spec.get("calculated_value") or spec.get("value")
+				if val:
+					child.value = str(val)
+
+		if has_serial_inspections:
+			self.manual_inspection = 1
+
+	def _resolve_spec_values(self):
+		"""Load specification parameters from Item's own spec child table."""
+		if not self.item_code:
+			return {}
+		spec_params = frappe.get_all(
+			"Item Specification Parameter",
+			filters={"parent": self.item_code, "parenttype": "Item", "parentfield": "item_spec_parameters"},
+			fields=["parameter", "value", "calculated_value"],
+		)
+		return {sp.parameter: sp for sp in spec_params}
+
+	def before_insert(self):
+		"""Prevent duplicate QI for same PR + item_code."""
+		if self.reference_type != "Purchase Receipt" or not self.reference_name:
+			return
+		existing = frappe.db.exists(
+			"Quality Inspection",
+			{
+				"reference_type": "Purchase Receipt",
+				"reference_name": self.reference_name,
+				"item_code": self.item_code,
+				"docstatus": ["!=", 2],
+			},
+		)
+		if existing:
+			frappe.throw(
+				f"Quality Inspection {existing} already exists for this Purchase Receipt and Item. "
+				f"<a href='/app/quality-inspection/{existing}'>{existing}</a>",
+				title="Duplicate Quality Inspection",
+			)
+
+	def after_insert(self):
+		"""Auto-populate serial_inspections from linked PR bundle."""
+		if self.reference_type != "Purchase Receipt" or not self.reference_name:
+			return
+		if self.get("serial_inspections"):
+			return
+		try:
+			pr_items = frappe.get_all(
+				"Purchase Receipt Item",
+				filters={"parent": self.reference_name, "item_code": self.item_code},
+				fields=["serial_and_batch_bundle"],
+				limit=1,
+			)
+			if not pr_items or not pr_items[0].serial_and_batch_bundle:
+				return
+			entries = frappe.get_all(
+				"Serial and Batch Entry",
+				filters={"parent": pr_items[0].serial_and_batch_bundle},
+				fields=["serial_no"],
+				order_by="idx asc",
+			)
+			for entry in entries:
+				if not entry.serial_no:
+					continue
+				frappe.get_doc(
+					{
+						"doctype": "QI Serial Entry",
+						"parent": self.name,
+						"parentfield": "serial_inspections",
+						"parenttype": "Quality Inspection",
+						"serial_no": entry.serial_no,
+						"status": "Pass",
+					}
+				).insert(ignore_permissions=True)
+		except Exception as e:
+			frappe.log_error(title="QI Serial Auto-populate Error", message=str(e))
+
+	def _update_pr_from_serial_inspections(self):
+		"""Update PR item quantities based on serial pass/fail results."""
+		if self.reference_type != "Purchase Receipt" or not self.reference_name:
+			return
+		serial_inspections = self.get("serial_inspections") or []
+		if not serial_inspections:
+			return
+		try:
+			from erpnext.stock.doctype.purchase_receipt.purchase_receipt_utils import (
+				update_pr_quantities_from_qi,
+			)
+
+			update_pr_quantities_from_qi(self.name)
+		except Exception as e:
+			frappe.log_error(title="QI Submit PR Update Error", message=str(e))
 
 	@frappe.whitelist()
 	def get_quality_inspection_template(self):
@@ -196,12 +296,26 @@ class QualityInspection(Document):
 		if not action_if_qi_in_draft or action_if_qi_in_draft == "Warn":
 			self.update_qc_reference()
 
+	def before_submit(self):
+		self.validate_readings_status_mandatory()
+
+		serial_inspections = self.get("serial_inspections") or []
+		if serial_inspections:
+			unscanned = [e.serial_no for e in serial_inspections if not e.scanned]
+			if unscanned:
+				frappe.throw(
+					_(
+						"All serial numbers must be inspected (scanned) before submitting QI. Pending: {0}"
+					).format(", ".join(unscanned))
+				)
+
 	def on_submit(self):
 		if (
 			frappe.db.get_single_value("Stock Settings", "action_if_quality_inspection_is_not_submitted")
 			== "Stop"
 		):
 			self.update_qc_reference()
+		self._update_pr_from_serial_inspections()
 
 	def on_cancel(self):
 		self.ignore_linked_doctypes = "Serial and Batch Bundle"

@@ -1,0 +1,201 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:otdr_name",
+ "creation": "2026-06-26 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "otdr_name",
+  "column_break_1",
+  "is_active",
+  "column_break_2",
+  "otdr_configuration",
+  "section_status",
+  "last_used_by",
+  "section_sync_control",
+  "sync_listening",
+  "column_break_sync_control",
+  "btn_start_sync",
+  "btn_stop_sync",
+  "section_progress",
+  "live_status_html",
+  "section_endpoints",
+  "endpoints_html",
+  "tab_qc",
+  "qc_items",
+  "tab_logs",
+  "measurement_logs"
+ ],
+ "fields": [
+  {
+   "fieldname": "otdr_name",
+   "fieldtype": "Data",
+   "label": "Назва рефлектометра",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Активний"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "otdr_configuration",
+   "fieldtype": "Link",
+   "label": "Конфігурація рефлектометра",
+   "options": "OTDR Configuration"
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Поточна сесія"
+  },
+  {
+   "fieldname": "last_used_by",
+   "fieldtype": "Link",
+   "label": "Останній користувач",
+   "options": "User",
+   "read_only": 1,
+   "description": "Автоматично оновлюється при кожному виклику API з пристрою."
+  },
+  {
+   "fieldname": "section_progress",
+   "fieldtype": "Section Break",
+   "label": "Поточний прогрес (live)",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "live_status_html",
+   "fieldtype": "HTML",
+   "label": "Live status"
+  },
+  {
+   "fieldname": "section_sync_control",
+   "fieldtype": "Section Break",
+   "label": "Керування синхронізацією"
+  },
+  {
+   "default": "0",
+   "fieldname": "sync_listening",
+   "fieldtype": "Check",
+   "label": "Слухає синхронізацію",
+   "read_only": 1,
+   "description": "Десктоп-застосунок отримує цей прапорець через get_configuration і запускає/зупиняє слухача"
+  },
+  {
+   "fieldname": "column_break_sync_control",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "btn_start_sync",
+   "fieldtype": "Button",
+   "label": "Почати слухати"
+  },
+  {
+   "fieldname": "btn_stop_sync",
+   "fieldtype": "Button",
+   "label": "Зупинити"
+  },
+  {
+   "fieldname": "section_endpoints",
+   "fieldtype": "Section Break",
+   "label": "Дані для otdr-sync"
+  },
+  {
+   "fieldname": "endpoints_html",
+   "fieldtype": "HTML",
+   "label": "Дані для otdr-sync"
+  },
+  {
+   "fieldname": "tab_qc",
+   "fieldtype": "Tab Break",
+   "label": "Товари для контролю якості"
+  },
+  {
+   "fieldname": "qc_items",
+   "fieldtype": "Table",
+   "label": "Товари для контролю якості",
+   "options": "OTDR QC Item",
+   "description": "Оператор обирає товар зі списку у застосунку. QI створюється за обраним товаром."
+  },
+  {
+   "fieldname": "tab_logs",
+   "fieldtype": "Tab Break",
+   "label": "Журнал вимірювань"
+  },
+  {
+   "fieldname": "measurement_logs",
+   "fieldtype": "Table",
+   "label": "Журнал вимірювань",
+   "options": "OTDR Measurement Log Entry",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "OTDR",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Operator",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

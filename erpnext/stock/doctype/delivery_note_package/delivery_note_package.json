@@ -1,0 +1,58 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "package",
+  "box_template",
+  "status",
+  "serial_nos"
+ ],
+ "fields": [
+  {
+   "fieldname": "package",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Package",
+   "options": "Package",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "package.box_template",
+   "fieldname": "box_template",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Box Type",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "package.status",
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "serial_nos",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Serial Nos",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Delivery Note Package",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

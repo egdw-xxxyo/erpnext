@@ -1,0 +1,231 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:script_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "script_name",
+  "column_break_1",
+  "is_active",
+  "column_break_2",
+  "workplace",
+  "parent_script",
+  "section_subflow_entries",
+  "subflow_entries",
+  "section_versions",
+  "default_version",
+  "column_break_v1",
+  "viewing_version",
+  "section_versions_list",
+  "versions",
+  "section_script",
+  "script",
+  "section_states",
+  "states",
+  "section_transitions",
+  "transitions",
+  "section_diagram",
+  "diagram_html",
+  "section_help",
+  "help_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "script_name",
+   "fieldtype": "Data",
+   "label": "Script Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "label": "Workplace",
+   "options": "Workplace",
+   "description": "Leave empty for a default script that runs when no workplace-specific script is found"
+  },
+  {
+   "fieldname": "parent_script",
+   "fieldtype": "Link",
+   "label": "Parent Script (Subflow Of)",
+   "options": "Workplace Script",
+   "description": "If set, this script is a subflow invoked by the parent. Subflows have no Workplace and are not subject to per-workplace uniqueness."
+  },
+  {
+   "fieldname": "section_subflow_entries",
+   "fieldtype": "Section Break",
+   "label": "Subflow Entries",
+   "collapsible": 1,
+   "description": "Declarative entry points to subflows. The dispatcher matches each scan against these rows BEFORE running the main script. On match, the current state is pushed onto the stack and the target subflow runs with the same event (so its initial state can process the trigger scan). Diagram renders an edge per row."
+  },
+  {
+   "fieldname": "subflow_entries",
+   "fieldtype": "Table",
+   "label": "Subflow Entries",
+   "options": "Workplace Script Subflow Entry"
+  },
+  {
+   "fieldname": "section_versions",
+   "fieldtype": "Section Break",
+   "label": "Versions"
+  },
+  {
+   "fieldname": "default_version",
+   "fieldtype": "Select",
+   "label": "Default Version",
+   "description": "Version used at runtime"
+  },
+  {
+   "fieldname": "column_break_v1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "viewing_version",
+   "fieldtype": "Select",
+   "label": "Editing / Viewing Version",
+   "description": "Switching reloads the working-copy fields below from this version's snapshot. Edits are saved into this version on Save."
+  },
+  {
+   "fieldname": "section_versions_list",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "versions",
+   "fieldtype": "Table",
+   "label": "Versions",
+   "options": "Workplace Script Version",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_script",
+   "fieldtype": "Section Break",
+   "label": "Script (Working Copy)"
+  },
+  {
+   "fieldname": "script",
+   "fieldtype": "Code",
+   "label": "Script",
+   "options": "py",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_states",
+   "fieldtype": "Section Break",
+   "label": "States"
+  },
+  {
+   "fieldname": "states",
+   "fieldtype": "Table",
+   "label": "States",
+   "options": "Workplace Script State"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_transitions",
+   "fieldtype": "Section Break",
+   "label": "Transitions"
+  },
+  {
+   "fieldname": "transitions",
+   "fieldtype": "Table",
+   "label": "Transitions",
+   "options": "Workplace Script Transition"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_diagram",
+   "fieldtype": "Section Break",
+   "label": "Diagram"
+  },
+  {
+   "fieldname": "diagram_html",
+   "fieldtype": "HTML",
+   "label": "Diagram"
+  },
+  {
+   "fieldname": "section_help",
+   "fieldtype": "Section Break",
+   "label": "API Reference",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "help_html",
+   "fieldtype": "HTML",
+   "label": "API Reference"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Workplace Script",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Operator",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "creation": "2026-07-23 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "credential_id",
+  "prf_salt",
+  "wrapped_private_key",
+  "last_used_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Device"
+  },
+  {
+   "description": "WebAuthn credential id (base64url)",
+   "fieldname": "credential_id",
+   "fieldtype": "Small Text",
+   "label": "Credential ID",
+   "reqd": 1
+  },
+  {
+   "description": "Salt fed to the WebAuthn PRF extension",
+   "fieldname": "prf_salt",
+   "fieldtype": "Data",
+   "label": "PRF Salt",
+   "reqd": 1
+  },
+  {
+   "description": "Private key wrapped with the key derived from the PRF secret",
+   "fieldname": "wrapped_private_key",
+   "fieldtype": "Long Text",
+   "label": "Wrapped Private Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_used_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Used On"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Chat Device Key",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

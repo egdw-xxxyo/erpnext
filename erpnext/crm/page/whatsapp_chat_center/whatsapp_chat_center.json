@@ -1,0 +1,24 @@
+{
+ "content": null,
+ "creation": "2026-07-18 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "fa fa-comments",
+ "idx": 0,
+ "modified": "2026-07-23 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "whatsapp-chat-center",
+ "owner": "Administrator",
+ "page_name": "whatsapp-chat-center",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "WhatsApp User"
+  }
+ ],
+ "standard": "Yes",
+ "title": "WhatsApp Chat"
+}

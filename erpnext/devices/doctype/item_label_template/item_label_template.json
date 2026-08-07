@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "creation": "2026-03-20 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "label_template",
+  "label_printer",
+  "purpose",
+  "comments"
+ ],
+ "fields": [
+  {
+   "fieldname": "label_template",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Label Template",
+   "options": "Label Template",
+   "reqd": 1,
+   "columns": 4
+  },
+  {
+   "fieldname": "label_printer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Label Printer",
+   "options": "Label Printer",
+   "columns": 3
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Purpose",
+   "columns": 2,
+   "description": "Коли яку мітку друкувати: Passed — при успішній QI, Failed — при відхиленій."
+  },
+  {
+   "fieldname": "comments",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Comments",
+   "columns": 3,
+   "description": "Пояснення, чому обрано це призначення (Purpose) для цього шаблону мітки."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Item Label Template",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

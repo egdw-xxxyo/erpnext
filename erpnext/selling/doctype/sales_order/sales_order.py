@@ -233,10 +233,110 @@ class SalesOrder(SellingController):
 		return result
 
 	def before_validate(self):
+		self.sync_bpak_items()
 		self.set_has_unit_price_items()
 		self.flags.allow_zero_qty = self.has_unit_price_items
 
+	def sync_bpak_items(self):
+		"""Mirror planned items from each BpAK row into the SO Items table.
+		Rows tagged with `bpak_row` are auto-managed: removed when their BpAK row
+		or planned item disappears, qty updated when it changes. Manually-added
+		rows (no bpak_row) are left untouched."""
+		if not self.get("delivered_in_bpaks"):
+			# Drop any leftover bpak-managed rows when the flag is turned off
+			self.items = [r for r in (self.items or []) if not r.get("bpak_row")]
+			return
+
+		aggregated = {}
+		for bpak_row in self.get("bpaks") or []:
+			if not bpak_row.bpak:
+				continue
+			planned = frappe.get_all(
+				"BpAK Planned Item",
+				filters={"parent": bpak_row.bpak, "parenttype": "BpAK"},
+				fields=["item_code", "qty", "uom"],
+			)
+			for it in planned:
+				if not it.item_code:
+					continue
+				key = (bpak_row.name, it.item_code)
+				if key in aggregated:
+					aggregated[key]["qty"] += float(it.qty or 0)
+				else:
+					aggregated[key] = {
+						"bpak_row": bpak_row.name,
+						"item_code": it.item_code,
+						"qty": float(it.qty or 0) or 1.0,
+						"uom": it.uom,
+					}
+
+		kept = []
+		for row in self.items or []:
+			if not row.get("bpak_row"):
+				kept.append(row)
+				continue
+			key = (row.bpak_row, row.item_code)
+			planned = aggregated.pop(key, None)
+			if not planned:
+				continue
+			if float(row.qty or 0) != planned["qty"]:
+				row.qty = planned["qty"]
+			kept.append(row)
+		self.items = kept
+
+		for planned in aggregated.values():
+			self.append(
+				"items",
+				{
+					"item_code": planned["item_code"],
+					"qty": planned["qty"],
+					"uom": planned["uom"],
+					"bpak_row": planned["bpak_row"],
+				},
+			)
+
+		self._aggregate_bpak_serial_nos()
+
+	def _aggregate_bpak_serial_nos(self):
+		"""Populate `serial_no` on SO Items from Package Item rows under the linked BpAK."""
+		bpak_by_row = {r.name: r.bpak for r in (self.get("bpaks") or []) if r.bpak}
+		if not bpak_by_row:
+			for it in self.items or []:
+				if it.get("bpak_row"):
+					it.serial_no = None
+			return
+
+		bpak_names = list({b for b in bpak_by_row.values() if b})
+		sn_map = {}
+		if bpak_names:
+			rows = frappe.db.sql(
+				"""
+				SELECT pkg.bpak AS bpak, pi.item_code, pi.serial_no
+				FROM `tabPackage Item` pi
+				JOIN `tabPackage` pkg ON pkg.name = pi.parent
+				WHERE pkg.bpak IN %(bpaks)s
+				  AND pkg.docstatus < 2
+				  AND pi.serial_no IS NOT NULL
+				  AND pi.serial_no != ''
+				ORDER BY pkg.name, pi.idx
+				""",
+				{"bpaks": bpak_names},
+				as_dict=True,
+			)
+			for r in rows:
+				sn_map.setdefault((r.bpak, r.item_code), []).append(r.serial_no)
+
+		for it in self.items or []:
+			if not it.get("bpak_row"):
+				continue
+			bpak = bpak_by_row.get(it.bpak_row)
+			sns = sn_map.get((bpak, it.item_code)) if bpak else None
+			it.serial_no = "\n".join(sns) if sns else None
+
 	def validate(self):
+		from erpnext.selling.doctype.sales_order.attachment_resolver import sync_items_from_attachments
+
+		sync_items_from_attachments(self)
 		super().validate()
 		self.validate_delivery_date()
 		self.validate_proj_cust()
@@ -1251,6 +1351,7 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 				"rate": "rate",
 				"name": "so_detail",
 				"parent": "against_sales_order",
+				"serial_no": "serial_no",
 			},
 			"condition": lambda d: condition(d) and select_item(d),
 			"postprocess": update_item,
@@ -1316,7 +1417,41 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 	# Should be called after mapping items.
 	set_missing_values(so, target_doc)
 
+	_attach_package_serials_to_dn(so, target_doc)
+
 	return target_doc
+
+
+def _attach_package_serials_to_dn(so, target):
+	from erpnext.selling.doctype.sales_order.attachment_resolver import collect_serials
+
+	serials_by_item = collect_serials(so)
+	if not serials_by_item:
+		return
+
+	missing = []
+	for row in target.get("items") or []:
+		if not row.item_code:
+			continue
+		if not frappe.db.get_value("Item", row.item_code, "has_serial_no"):
+			continue
+		if row.get("serial_no"):
+			continue
+		available = serials_by_item.get(row.item_code, [])
+		needed = int(row.qty or 0)
+		take = available[:needed]
+		if take:
+			row.serial_no = "\n".join(take)
+			serials_by_item[row.item_code] = available[needed:]
+		if len(take) < needed:
+			missing.append(_("{0}: need {1}, got {2}").format(row.item_code, needed, len(take)))
+
+	if missing:
+		frappe.msgprint(
+			_("Some items are missing serial numbers from attached Packages: {0}").format("; ".join(missing)),
+			title=_("Missing Serials from Packages"),
+			indicator="orange",
+		)
 
 
 @frappe.whitelist()
@@ -2127,3 +2262,148 @@ def get_mapped_subcontracting_inward_order(source_name, target_doc=None):
 	)
 
 	return target_doc
+	return frappe.db.get_single_value("Stock Settings", "enable_stock_reservation")
+
+
+@frappe.whitelist()
+def get_bpak_progress(sales_order):
+	"""Per-BpAK packing progress for a Sales Order."""
+	if not sales_order:
+		return []
+	bpak_names = [
+		r.bpak
+		for r in frappe.get_all(
+			"Sales Order BpAK",
+			filters={"parent": sales_order, "parenttype": "Sales Order"},
+			fields=["bpak"],
+			order_by="idx asc",
+		)
+		if r.bpak
+	]
+	if not bpak_names:
+		return []
+
+	bpaks = frappe.get_all(
+		"BpAK",
+		filters={"name": ["in", bpak_names]},
+		fields=["name", "serial_no", "status", "bpak_template_name"],
+	)
+	bpak_by_name = {b.name: b for b in bpaks}
+
+	planned_rows = frappe.get_all(
+		"BpAK Planned Item",
+		filters={"parent": ["in", bpak_names], "parenttype": "BpAK"},
+		fields=["parent", "qty"],
+	)
+	planned_by_bpak = {}
+	for r in planned_rows:
+		planned_by_bpak[r.parent] = planned_by_bpak.get(r.parent, 0) + int(r.qty or 0)
+
+	pkgs = frappe.get_all(
+		"Package",
+		filters={"bpak": ["in", bpak_names], "docstatus": ["<", 2]},
+		fields=["name", "bpak"],
+	)
+	pkg_count_by_bpak = {}
+	pkg_to_bpak = {}
+	for p in pkgs:
+		pkg_count_by_bpak[p.bpak] = pkg_count_by_bpak.get(p.bpak, 0) + 1
+		pkg_to_bpak[p.name] = p.bpak
+
+	packed_by_bpak = {}
+	if pkg_to_bpak:
+		item_rows = frappe.get_all(
+			"Package Item",
+			filters={"parent": ["in", list(pkg_to_bpak.keys())], "parenttype": "Package"},
+			fields=["parent", "qty"],
+		)
+		for r in item_rows:
+			b = pkg_to_bpak.get(r.parent)
+			if not b:
+				continue
+			packed_by_bpak[b] = packed_by_bpak.get(b, 0) + int(r.qty or 0)
+
+	out = []
+	for name in bpak_names:
+		b = bpak_by_name.get(name)
+		if not b:
+			continue
+		out.append(
+			{
+				"bpak": name,
+				"serial_no": b.serial_no,
+				"status": b.status,
+				"template_name": b.bpak_template_name,
+				"planned_qty": planned_by_bpak.get(name, 0),
+				"packed_qty": packed_by_bpak.get(name, 0),
+				"package_count": pkg_count_by_bpak.get(name, 0),
+			}
+		)
+	return out
+
+
+@frappe.whitelist()
+def aggregate_bpak_planned_items(sales_order=None, bpak_rows=None, bpak_names=None):
+	"""Return planned items per BpAK row, mirroring sync_bpak_items.
+
+	Each entry carries `bpak_row` (the Sales Order BpAK child row name) so the
+	client can update only the managed row that came from that BpAK, leaving
+	manually-added rows untouched."""
+	pairs = []
+	if bpak_rows:
+		bpak_rows = frappe.parse_json(bpak_rows) if isinstance(bpak_rows, str) else bpak_rows
+		for r in bpak_rows:
+			row_name = r.get("name") if isinstance(r, dict) else None
+			bpak = r.get("bpak") if isinstance(r, dict) else None
+			if row_name and bpak:
+				pairs.append((row_name, bpak))
+	elif sales_order:
+		for r in frappe.get_all(
+			"Sales Order BpAK",
+			filters={"parent": sales_order, "parenttype": "Sales Order"},
+			fields=["name", "bpak"],
+			order_by="idx asc",
+		):
+			if r.bpak:
+				pairs.append((r.name, r.bpak))
+	elif bpak_names:
+		bpak_names = frappe.parse_json(bpak_names) if isinstance(bpak_names, str) else bpak_names
+		for b in bpak_names:
+			if b:
+				pairs.append((b, b))
+
+	if not pairs:
+		return []
+
+	bpak_to_row = {}
+	for row_name, bpak in pairs:
+		bpak_to_row.setdefault(bpak, []).append(row_name)
+
+	rows = frappe.get_all(
+		"BpAK Planned Item",
+		filters={"parent": ["in", list(bpak_to_row.keys())], "parenttype": "BpAK"},
+		fields=["parent", "item_code", "qty", "uom"],
+	)
+	aggregated = {}
+	for r in rows:
+		if not r.item_code:
+			continue
+		for row_name in bpak_to_row.get(r.parent, []):
+			key = (row_name, r.item_code)
+			entry = aggregated.setdefault(
+				key,
+				{
+					"bpak_row": row_name,
+					"item_code": r.item_code,
+					"qty": 0.0,
+					"uom": r.uom,
+				},
+			)
+			entry["qty"] += float(r.qty or 0)
+			if not entry["uom"] and r.uom:
+				entry["uom"] = r.uom
+
+	for entry in aggregated.values():
+		if not entry["qty"]:
+			entry["qty"] = 1.0
+	return list(aggregated.values())

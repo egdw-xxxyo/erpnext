@@ -43,6 +43,8 @@
   "set_target_warehouse",
   "section_break_30",
   "items",
+  "packages_section",
+  "packages",
   "section_break_31",
   "total_qty",
   "total_net_weight",
@@ -565,6 +567,18 @@
    "fieldtype": "HTML",
    "label": "Product Bundle Help",
    "print_hide": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "packages_section",
+   "fieldtype": "Section Break",
+   "label": "Packages"
+  },
+  {
+   "fieldname": "packages",
+   "fieldtype": "Table",
+   "label": "Packages",
+   "options": "Delivery Note Package"
   },
   {
    "fieldname": "section_break_31",

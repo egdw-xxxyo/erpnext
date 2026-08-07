@@ -1,0 +1,92 @@
+{
+ "actions": [],
+ "creation": "2026-04-30 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "state",
+  "label",
+  "is_initial",
+  "is_final",
+  "col1",
+  "position_x",
+  "position_y",
+  "section_handler",
+  "on_enter_script"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "State",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "translatable": 1
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "is_initial",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Initial"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "is_final",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Final"
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "position_x",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "X"
+  },
+  {
+   "fieldname": "position_y",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Y"
+  },
+  {
+   "fieldname": "section_handler",
+   "fieldtype": "Section Break",
+   "label": "Script"
+  },
+  {
+   "description": "Define def on_scan(e): ... — called every scan while in this state. Available: e, scripts, frappe. Use e.state.set(name, ctx) to transition, e.state.clear() to reset.",
+   "fieldname": "on_enter_script",
+   "fieldtype": "Code",
+   "label": "Script",
+   "options": "py"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Workplace Script State",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

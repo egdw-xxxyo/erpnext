@@ -6,6 +6,112 @@ frappe.provide("erpnext.item");
 const SALES_DOCTYPES = ["Quotation", "Sales Order", "Delivery Note", "Sales Invoice"];
 const PURCHASE_DOCTYPES = ["Purchase Order", "Purchase Receipt", "Purchase Invoice"];
 
+function _show_item_print_labels_dialog(names, default_label_template) {
+	const doctype = "Item";
+	const dlg = new frappe.ui.Dialog({
+		title: __("Print Labels"),
+		fields: [
+			{
+				fieldname: "label_template",
+				fieldtype: "Link",
+				label: __("Label Template"),
+				options: "Label Template",
+				reqd: 1,
+				get_query: () => ({}),
+				change: () => {
+					const tmpl = dlg.get_value("label_template");
+					if (!tmpl) {
+						dlg.fields_dict.info_html.$wrapper.html("");
+						return;
+					}
+					frappe.call({
+						method: "erpnext.devices.doctype.label_printer.label_printer.count_labels",
+						args: {
+							source_doctype: doctype,
+							source_names: JSON.stringify(names),
+							label_template: tmpl,
+						},
+						callback: (r) => {
+							if (r.message) {
+								dlg.fields_dict.info_html.$wrapper.html(
+									`<div class="text-muted">${__("{0} labels from {1} records", [
+										r.message.total,
+										names.length,
+									])}</div>`
+								);
+							}
+						},
+					});
+				},
+			},
+			{
+				fieldname: "printer_name",
+				fieldtype: "Link",
+				label: __("Printer"),
+				options: "Label Printer",
+				reqd: 1,
+				get_query: () => ({ filters: { is_enabled: 1 } }),
+			},
+			{ fieldname: "info_html", fieldtype: "HTML" },
+		],
+		primary_action_label: __("Print"),
+		primary_action: (values) => {
+			dlg.hide();
+			frappe.call({
+				method: "erpnext.devices.doctype.label_printer.label_printer.print_labels_batch",
+				args: {
+					source_doctype: doctype,
+					source_names: JSON.stringify(names),
+					label_template: values.label_template,
+					printer_name: values.printer_name,
+				},
+				freeze: true,
+				freeze_message: __("Creating print jobs..."),
+				callback: (r) => {
+					if (r.message) {
+						frappe.show_alert({
+							message: __("{0} print jobs created", [r.message.count]),
+							indicator: "green",
+						});
+						frappe.set_route("List", "Print Job");
+					}
+				},
+			});
+		},
+	});
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { source_field: ["is", "set"] },
+			fields: ["name"],
+			limit_page_length: 2,
+		},
+		async: false,
+		callback: (r) => {
+			if (default_label_template) {
+				dlg.set_value("label_template", default_label_template);
+			} else if (r.message && r.message.length === 1) {
+				dlg.set_value("label_template", r.message[0].name);
+			}
+		},
+	});
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Printer",
+			filters: { is_enabled: 1 },
+			fields: ["name"],
+			limit_page_length: 2,
+		},
+		async: false,
+		callback: (r) => {
+			if (r.message && r.message.length === 1) dlg.set_value("printer_name", r.message[0].name);
+		},
+	});
+	dlg.show();
+}
+
 frappe.ui.form.on("Item", {
 	valuation_method(frm) {
 		if (!frm.is_new() && frm.doc.valuation_method === "Moving Average") {
@@ -143,6 +249,12 @@ frappe.ui.form.on("Item", {
 
 		frm.toggle_display("disabled", true);
 
+		if (!frm.is_new()) {
+			frm.page.add_menu_item(__("Print Labels"), () => {
+				_show_item_print_labels_dialog([frm.doc.name]);
+			});
+		}
+
 		if (frm.doc.is_stock_item) {
 			frm.add_custom_button(
 				__("Stock Balance"),
@@ -253,6 +365,43 @@ frappe.ui.form.on("Item", {
 				]),
 				true
 			);
+
+			if (frm.fields_dict.item_spec_parameters) {
+				let $spec = frm.fields_dict.item_spec_parameters.$wrapper;
+				$spec.find(".btn-fetch-parent-spec").remove();
+				let $btn =
+					$(`<button class="btn btn-xs btn-default btn-fetch-parent-spec" style="margin-bottom:10px">
+					${__("Re-sync from Template")}
+				</button>`);
+				$btn.on("click", () => {
+					frappe.call({
+						method: "frappe.client.get",
+						args: { doctype: "Item", name: frm.doc.variant_of },
+						callback: function (r) {
+							if (!r.message) return;
+							let tpl_params = r.message.item_spec_parameters || [];
+							if (!tpl_params.length) {
+								frappe.msgprint(__("Template has no specification parameters."));
+								return;
+							}
+							frm.clear_table("item_spec_parameters");
+							for (let tp of tpl_params) {
+								let row = frm.add_child("item_spec_parameters");
+								row.parameter = tp.parameter;
+								row.value = tp.value;
+								row.uom = tp.uom;
+							}
+							frm.refresh_field("item_spec_parameters");
+							frm.dirty();
+							frappe.show_alert({
+								message: __("Fetched from template. Save to evaluate formulas."),
+								indicator: "green",
+							});
+						},
+					});
+				});
+				$spec.prepend($btn);
+			}
 		}
 
 		erpnext.item.toggle_attributes(frm);
@@ -343,6 +492,33 @@ frappe.ui.form.on("Item", {
 
 	has_variants: function (frm) {
 		erpnext.item.toggle_attributes(frm);
+	},
+
+	serial_number_template: function (frm) {
+		if (frm.doc.serial_number_template) {
+			if (frm.doc.variant_of) {
+				frappe.call({
+					method: "erpnext.stock.doctype.serial_number_template.serial_number_template.resolve_series_for_item",
+					args: {
+						template_name: frm.doc.serial_number_template,
+						item_code: frm.doc.name,
+					},
+					callback: function (r) {
+						if (r.message) {
+							frm.set_value("serial_no_series", r.message);
+						}
+					},
+				});
+			} else {
+				frappe.db
+					.get_value("Serial Number Template", frm.doc.serial_number_template, "resulting_series")
+					.then((r) => {
+						if (r.message && r.message.resulting_series) {
+							frm.set_value("serial_no_series", r.message.resulting_series);
+						}
+					});
+			}
+		}
 	},
 });
 

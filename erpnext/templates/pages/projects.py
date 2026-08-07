@@ -29,6 +29,10 @@ def get_tasks(project, start=0, search=None, item_status=None):
 	filters = {"project": project}
 	if search:
 		filters["subject"] = ("like", f"%{search}%")
+	if item_status == "open":
+		filters["status"] = ("not in", ("Completed", "Cancelled"))
+	elif item_status == "completed":
+		filters["status"] = ("in", ("Completed", "Cancelled"))
 	tasks = frappe.get_all(
 		"Task",
 		filters=filters,
