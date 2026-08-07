@@ -7,7 +7,7 @@ from collections import defaultdict
 
 import frappe
 from frappe import _, bold, qb, throw
-from frappe.model.workflow import get_workflow_name, is_transition_condition_satisfied
+from frappe.model.workflow import get_workflow_name
 from frappe.query_builder import Criterion, DocType
 from frappe.query_builder.custom import ConstantColumn
 from frappe.query_builder.functions import Abs, Sum
@@ -68,6 +68,8 @@ from erpnext.stock.doctype.item.item import get_uom_conv_factor
 from erpnext.stock.doctype.packed_item.packed_item import make_packing_list
 from erpnext.stock.get_item_details import (
 	_get_item_tax_template,
+	_get_item_tax_template_from_item_group,
+	get_bin_details,
 	get_conversion_factor,
 	get_item_details,
 	get_item_tax_map,
@@ -139,6 +141,26 @@ class AccountsController(TransactionBase):
 			if self.doctype in relevant_docs:
 				self.set_payment_schedule()
 
+	def before_insert(self):
+		self.clear_clearance_date_on_amend()
+
+	def clear_clearance_date_on_amend(self):
+		"""Drop the bank reconciliation clearance date copied over while amending.
+
+		The framework copies `no_copy` fields when amending, so a reconciled
+		voucher would carry a stale clearance date into its amendment even though
+		the linked bank transaction gets unreconciled on cancellation.
+		"""
+		if not self.get("amended_from"):
+			return
+
+		if self.meta.has_field("clearance_date"):
+			self.clearance_date = None
+
+		for payment in self.get("payments") or []:
+			if payment.meta.has_field("clearance_date"):
+				payment.clearance_date = None
+
 	def remove_bundle_for_non_stock_invoices(self):
 		has_sabb = False
 		if self.doctype in ("Sales Invoice", "Purchase Invoice") and not self.update_stock:
@@ -176,7 +198,7 @@ class AccountsController(TransactionBase):
 		if not get_meta(self.doctype).has_field("outstanding_amount"):
 			return
 
-		if self.get("is_return") and self.return_against and not self.get("is_pos"):
+		if self.get("is_return") and self.return_against and not (self.get("is_pos") or self.get("is_paid")):
 			against_voucher_outstanding = frappe.get_value(
 				self.doctype, self.return_against, "outstanding_amount"
 			)
@@ -325,6 +347,7 @@ class AccountsController(TransactionBase):
 		# Determine if drop ship applies
 		is_drop_ship = self.doctype in {
 			"Purchase Order",
+			"Purchase Invoice",
 			"Sales Order",
 			"Sales Invoice",
 		} and self.is_drop_ship(self.items)
@@ -1751,6 +1774,7 @@ class AccountsController(TransactionBase):
 									arg.get("referenced_row"),
 									arg.get("cost_center"),
 									dimensions_dict,
+									arg.get("project"),
 								)
 								frappe.msgprint(
 									_("Exchange Gain/Loss amount has been booked through {0}").format(
@@ -1835,6 +1859,7 @@ class AccountsController(TransactionBase):
 							d.idx,
 							self.cost_center,
 							dimensions_dict,
+							self.project,
 						)
 						frappe.msgprint(
 							_("Exchange Gain/Loss amount has been booked through {0}").format(
@@ -1844,7 +1869,7 @@ class AccountsController(TransactionBase):
 
 	def is_payable_account(self, reference_doctype, account):
 		if reference_doctype == "Purchase Invoice" or (
-			reference_doctype == "Journal Entry"
+			reference_doctype in ("Journal Entry", "Payment Entry")
 			and frappe.get_cached_value("Account", account, "account_type") == "Payable"
 		):
 			return True
@@ -2297,6 +2322,16 @@ class AccountsController(TransactionBase):
 
 		return stock_items
 
+	def get_asset_items(self):
+		asset_items = []
+		item_codes = list(set(item.item_code for item in self.get("items")))
+		if item_codes:
+			asset_items = frappe.db.get_values(
+				"Item", {"name": ["in", item_codes], "is_fixed_asset": 1}, pluck="name", cache=True
+			)
+
+		return asset_items
+
 	def calculate_total_advance_from_ledger(self):
 		adv = frappe.qb.DocType("Advance Payment Ledger Entry")
 		return (
@@ -2502,13 +2537,14 @@ class AccountsController(TransactionBase):
 		grand_total = self.get("rounded_total") or self.grand_total
 		automatically_fetch_payment_terms = 0
 
-		if self.doctype in ("Sales Invoice", "Purchase Invoice"):
-			base_grand_total = base_grand_total - flt(self.base_write_off_amount)
-			grand_total = grand_total - flt(self.write_off_amount)
+		if self.doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order"):
 			po_or_so, doctype, fieldname = self.get_order_details()
 			automatically_fetch_payment_terms = cint(
 				frappe.db.get_single_value("Accounts Settings", "automatically_fetch_payment_terms")
 			)
+			if self.doctype != "Sales Order":
+				base_grand_total = base_grand_total - flt(self.base_write_off_amount)
+				grand_total = grand_total - flt(self.write_off_amount)
 
 		if self.get("total_advance"):
 			if party_account_currency == self.company_currency:
@@ -2524,7 +2560,7 @@ class AccountsController(TransactionBase):
 
 		if not self.get("payment_schedule"):
 			if (
-				self.doctype in ["Sales Invoice", "Purchase Invoice"]
+				self.doctype in ["Sales Invoice", "Purchase Invoice", "Sales Order"]
 				and automatically_fetch_payment_terms
 				and self.linked_order_has_payment_terms(po_or_so, fieldname, doctype)
 			):
@@ -2579,17 +2615,23 @@ class AccountsController(TransactionBase):
 			self.ignore_default_payment_terms_template = 1
 
 	def get_order_details(self):
+		if not self.get("items"):
+			return None, None, None
 		if self.doctype == "Sales Invoice":
-			po_or_so = self.get("items")[0].get("sales_order")
-			po_or_so_doctype = "Sales Order"
-			po_or_so_doctype_name = "sales_order"
-
+			prev_doc = self.get("items")[0].get("sales_order")
+			prev_doctype = "Sales Order"
+			prev_doctype_name = "sales_order"
+		elif self.doctype == "Purchase Invoice":
+			prev_doc = self.get("items")[0].get("purchase_order")
+			prev_doctype = "Purchase Order"
+			prev_doctype_name = "purchase_order"
+		elif self.doctype == "Sales Order":
+			prev_doc = self.get("items")[0].get("prevdoc_docname")
+			prev_doctype = "Quotation"
+			prev_doctype_name = "prevdoc_docname"
 		else:
-			po_or_so = self.get("items")[0].get("purchase_order")
-			po_or_so_doctype = "Purchase Order"
-			po_or_so_doctype_name = "purchase_order"
-
-		return po_or_so, po_or_so_doctype, po_or_so_doctype_name
+			return None, None, None
+		return prev_doc, prev_doctype, prev_doctype_name
 
 	def linked_order_has_payment_terms(self, po_or_so, fieldname, doctype):
 		if po_or_so and self.all_items_have_same_po_or_so(po_or_so, fieldname):
@@ -2685,7 +2727,9 @@ class AccountsController(TransactionBase):
 
 		for d in self.get("payment_schedule"):
 			d.validate_from_to_dates("discount_date", "due_date")
-			if self.doctype == "Sales Order" and getdate(d.due_date) < getdate(self.transaction_date):
+			if self.doctype in ["Sales Order", "Quotation"] and getdate(d.due_date) < getdate(
+				self.transaction_date
+			):
 				frappe.throw(
 					_("Row {0}: Due Date in the Payment Terms table cannot be before Posting Date").format(
 						d.idx
@@ -3625,6 +3669,10 @@ def set_child_tax_template_and_map(item, child_item, parent_doc):
 	}
 
 	child_item.item_tax_template = _get_item_tax_template(args, item.taxes)
+
+	if not child_item.get("item_tax_template"):
+		child_item.item_tax_template = _get_item_tax_template_from_item_group(args, item.item_group)
+
 	if child_item.get("item_tax_template"):
 		child_item.item_tax_rate = get_item_tax_map(
 			parent_doc.get("company"), child_item.item_tax_template, as_json=True
@@ -3677,8 +3725,9 @@ def set_order_defaults(parent_doctype, parent_doctype_name, child_doctype, child
 	child_item.warehouse = get_item_warehouse(item, p_doc, overwrite_warehouse=True)
 	conversion_factor = flt(get_conversion_factor(item.item_code, child_item.uom).get("conversion_factor"))
 	child_item.conversion_factor = flt(trans_item.get("conversion_factor")) or conversion_factor
+	child_item.update(get_bin_details(child_item.item_code, child_item.warehouse, p_doc.get("company")))
 
-	if child_doctype == "Purchase Order Item":
+	if child_doctype in ["Purchase Order Item", "Supplier Quotation Item"]:
 		# Initialized value will update in parent validation
 		child_item.base_rate = 1
 		child_item.base_amount = 1
@@ -3696,7 +3745,7 @@ def set_order_defaults(parent_doctype, parent_doctype_name, child_doctype, child
 	return child_item
 
 
-def validate_child_on_delete(row, parent):
+def validate_child_on_delete(row, parent, ordered_item=None):
 	"""Check if partially transacted item (row) is being deleted."""
 	if parent.doctype == "Sales Order":
 		if flt(row.delivered_qty):
@@ -3724,13 +3773,17 @@ def validate_child_on_delete(row, parent):
 				row.idx, row.item_code
 			)
 		)
-
-	if flt(row.billed_amt):
-		frappe.throw(
-			_("Row #{0}: Cannot delete item {1} which has already been billed.").format(
-				row.idx, row.item_code
+	if parent.doctype in ["Purchase Order", "Sales Order"]:
+		if flt(row.billed_amt):
+			frappe.throw(
+				_("Row #{0}: Cannot delete item {1} which has already been billed.").format(
+					row.idx, row.item_code
+				)
 			)
-		)
+
+	if parent.doctype == "Quotation":
+		if ordered_item.get(row.name):
+			frappe.throw(_("Cannot delete an item which has been ordered"))
 
 
 def update_bin_on_delete(row, doctype):
@@ -3756,7 +3809,7 @@ def update_bin_on_delete(row, doctype):
 		update_bin_qty(row.item_code, row.warehouse, qty_dict)
 
 
-def validate_and_delete_children(parent, data) -> bool:
+def validate_and_delete_children(parent, data, ordered_item=None) -> bool:
 	deleted_children = []
 	updated_item_names = [d.get("docname") for d in data]
 	for item in parent.items:
@@ -3764,7 +3817,7 @@ def validate_and_delete_children(parent, data) -> bool:
 			deleted_children.append(item)
 
 	for d in deleted_children:
-		validate_child_on_delete(d, parent)
+		validate_child_on_delete(d, parent, ordered_item)
 		d.cancel()
 		d.delete()
 
@@ -3773,16 +3826,21 @@ def validate_and_delete_children(parent, data) -> bool:
 
 	# need to update ordered qty in Material Request first
 	# bin uses Material Request Items to recalculate & update
-	parent.update_prevdoc_status()
-
-	for d in deleted_children:
-		update_bin_on_delete(d, parent.doctype)
+	if parent.doctype not in ["Quotation", "Supplier Quotation"]:
+		parent.update_prevdoc_status()
+		for d in deleted_children:
+			update_bin_on_delete(d, parent.doctype)
 
 	return bool(deleted_children)
 
 
 @frappe.whitelist()
-def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, child_docname="items"):
+def update_child_qty_rate(
+	parent_doctype: str, trans_items: str, parent_doctype_name: str, child_docname: str = "items"
+):
+	from erpnext.buying.doctype.supplier_quotation.supplier_quotation import get_purchased_items
+	from erpnext.selling.doctype.quotation.quotation import get_ordered_items
+
 	def check_doc_permissions(doc, perm_type="create"):
 		try:
 			doc.check_permission(perm_type)
@@ -3805,14 +3863,12 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 		current_state = doc.get(workflow_doc.workflow_state_field)
 		roles = frappe.get_roles()
 
-		transitions = []
-		for transition in workflow_doc.transitions:
-			if transition.next_state == current_state and transition.allowed in roles:
-				if not is_transition_condition_satisfied(transition, doc):
-					continue
-				transitions.append(transition.as_dict())
+		allowed = any(
+			state.state == current_state and (not state.allow_edit or state.allow_edit in roles)
+			for state in workflow_doc.states
+		)
 
-		if not transitions:
+		if not allowed:
 			frappe.throw(
 				_("You are not allowed to update as per the conditions set in {} Workflow.").format(
 					get_link_to_form("Workflow", workflow)
@@ -3821,7 +3877,7 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			)
 
 	def get_new_child_item(item_row):
-		child_doctype = "Sales Order Item" if parent_doctype == "Sales Order" else "Purchase Order Item"
+		child_doctype = parent_doctype + " Item"
 		return set_order_defaults(parent_doctype, parent_doctype_name, child_doctype, child_docname, item_row)
 
 	def is_allowed_zero_qty():
@@ -3831,20 +3887,51 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			return frappe.db.get_single_value("Buying Settings", "allow_zero_qty_in_purchase_order") or False
 		return False
 
-	def validate_quantity(child_item, new_data):
+	def validate_quantity_and_rate(child_item, new_data):
 		if not flt(new_data.get("qty")) and not is_allowed_zero_qty():
 			frappe.throw(
-				_("Row #{0}: Quantity for Item {1} cannot be zero.").format(
+				_("Row #{0}:Quantity for Item {1} cannot be zero.").format(
 					new_data.get("idx"), frappe.bold(new_data.get("item_code"))
 				),
 				title=_("Invalid Qty"),
 			)
 
-		if parent_doctype == "Sales Order" and flt(new_data.get("qty")) < flt(child_item.delivered_qty):
-			frappe.throw(_("Cannot set quantity less than delivered quantity"))
+		qty_limits = {
+			"Sales Order": ("delivered_qty", _("Cannot set quantity less than delivered quantity")),
+			"Purchase Order": ("received_qty", _("Cannot set quantity less than received quantity")),
+		}
 
-		if parent_doctype == "Purchase Order" and flt(new_data.get("qty")) < flt(child_item.received_qty):
-			frappe.throw(_("Cannot set quantity less than received quantity"))
+		if parent_doctype in qty_limits:
+			qty_field, error_message = qty_limits[parent_doctype]
+			if flt(new_data.get("qty")) < flt(child_item.get(qty_field)):
+				frappe.throw(
+					_("Row #{0}:").format(new_data.get("idx"))
+					+ error_message.format(frappe.bold(new_data.get("item_code"))),
+					title=_("Invalid Qty"),
+				)
+
+		if parent_doctype in ["Quotation", "Supplier Quotation"]:
+			if (parent_doctype == "Quotation" and not ordered_items) or (
+				parent_doctype == "Supplier Quotation" and not purchased_items
+			):
+				return
+
+			qty_to_check = (
+				ordered_items.get(child_item.name)
+				if parent_doctype == "Quotation"
+				else purchased_items.get(child_item.name)
+			)
+
+			if qty_to_check:
+				if not rate_unchanged:
+					frappe.throw(
+						_(
+							"Cannot update rate as item {0} is already ordered or purchased against this quotation"
+						).format(frappe.bold(new_data.get("item_code")))
+					)
+
+				if flt(new_data.get("qty")) < qty_to_check:
+					frappe.throw(_("Cannot reduce quantity than ordered or purchased quantity"))
 
 	def should_update_supplied_items(doc) -> bool:
 		"""Subcontracted PO can allow following changes *after submit*:
@@ -3888,7 +3975,6 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			frappe.throw(_("Finished Good Item {0} Qty can not be zero").format(new_data["fg_item"]))
 
 	data = json.loads(trans_items)
-
 	any_qty_changed = False  # updated to true if any item's qty changes
 	items_added_or_removed = False  # updated to true if any new item is added or removed
 	any_conversion_factor_changed = False
@@ -3896,7 +3982,16 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 	parent = frappe.get_doc(parent_doctype, parent_doctype_name)
 
 	check_doc_permissions(parent, "write")
-	_removed_items = validate_and_delete_children(parent, data)
+
+	if parent_doctype == "Quotation":
+		ordered_items = get_ordered_items(parent.name)
+		_removed_items = validate_and_delete_children(parent, data, ordered_items)
+	elif parent_doctype == "Supplier Quotation":
+		purchased_items = get_purchased_items(parent.name)
+		_removed_items = validate_and_delete_children(parent, data, purchased_items)
+	else:
+		_removed_items = validate_and_delete_children(parent, data)
+
 	items_added_or_removed |= _removed_items
 
 	for d in data:
@@ -3936,7 +4031,9 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			conversion_factor_unchanged = prev_con_fac == new_con_fac
 			any_conversion_factor_changed |= not conversion_factor_unchanged
 			date_unchanged = (
-				prev_date == getdate(new_date) if prev_date and new_date else False
+				(prev_date == getdate(new_date) if prev_date and new_date else False)
+				if parent_doctype not in ["Quotation", "Supplier Quotation"]
+				else None
 			)  # in case of delivery note etc
 			if (
 				rate_unchanged
@@ -3948,7 +4045,8 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			):
 				continue
 
-		validate_quantity(child_item, d)
+		validate_quantity_and_rate(child_item, d)
+
 		if flt(child_item.get("qty")) != flt(d.get("qty")):
 			any_qty_changed = True
 
@@ -3972,18 +4070,21 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 		rate_unchanged = prev_rate == new_rate
 		if not rate_unchanged and not child_item.get("qty") and is_allowed_zero_qty():
 			frappe.throw(_("Rate of '{}' items cannot be changed").format(frappe.bold(_("Unit Price"))))
-
 		# Amount cannot be lesser than billed amount, except for negative amounts
 		row_rate = flt(d.get("rate"), rate_precision)
-		amount_below_billed_amt = flt(child_item.billed_amt, rate_precision) > flt(
-			row_rate * flt(d.get("qty"), qty_precision), rate_precision
-		)
-		if amount_below_billed_amt and row_rate > 0.0:
-			frappe.throw(
-				_(
-					"Row #{0}: Cannot set Rate if the billed amount is greater than the amount for Item {1}."
-				).format(child_item.idx, child_item.item_code)
+
+		if parent_doctype in ["Purchase Order", "Sales Order"]:
+			amount_below_billed_amt = flt(child_item.billed_amt, rate_precision) > flt(
+				row_rate * flt(d.get("qty"), qty_precision), rate_precision
 			)
+			if amount_below_billed_amt and row_rate > 0.0:
+				frappe.throw(
+					_(
+						"Row #{0}: Cannot set Rate if the billed amount is greater than the amount for Item {1}."
+					).format(child_item.idx, child_item.item_code)
+				)
+			else:
+				child_item.rate = row_rate
 		else:
 			child_item.rate = row_rate
 
@@ -4002,6 +4103,12 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 				flt(d.get("conversion_factor"), conv_fac_precision) or conversion_factor
 			)
 
+		if child_item.get("total_weight") and child_item.get("weight_per_unit"):
+			child_item.total_weight = flt(
+				child_item.weight_per_unit * child_item.qty * child_item.conversion_factor,
+				child_item.precision("total_weight"),
+			)
+
 		if d.get("delivery_date") and parent_doctype == "Sales Order":
 			child_item.delivery_date = d.get("delivery_date")
 
@@ -4011,26 +4118,27 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 		if d.get("bom_no") and parent_doctype == "Sales Order":
 			child_item.bom_no = d.get("bom_no")
 
-		if flt(child_item.price_list_rate):
-			if flt(child_item.rate) > flt(child_item.price_list_rate):
-				#  if rate is greater than price_list_rate, set margin
-				#  or set discount
-				child_item.discount_percentage = 0
-				child_item.margin_type = "Amount"
-				child_item.margin_rate_or_amount = flt(
-					child_item.rate - child_item.price_list_rate,
-					child_item.precision("margin_rate_or_amount"),
-				)
-				child_item.rate_with_margin = child_item.rate
-			else:
-				child_item.discount_percentage = flt(
-					(1 - flt(child_item.rate) / flt(child_item.price_list_rate)) * 100.0,
-					child_item.precision("discount_percentage"),
-				)
-				child_item.discount_amount = flt(child_item.price_list_rate) - flt(child_item.rate)
-				child_item.margin_type = ""
-				child_item.margin_rate_or_amount = 0
-				child_item.rate_with_margin = 0
+		if parent_doctype in ["Sales Order", "Purchase Order"]:
+			if flt(child_item.price_list_rate):
+				if flt(child_item.rate) > flt(child_item.price_list_rate):
+					#  if rate is greater than price_list_rate, set margin
+					#  or set discount
+					child_item.discount_percentage = 0
+					child_item.margin_type = "Amount"
+					child_item.margin_rate_or_amount = flt(
+						child_item.rate - child_item.price_list_rate,
+						child_item.precision("margin_rate_or_amount"),
+					)
+					child_item.rate_with_margin = child_item.rate
+				else:
+					child_item.discount_percentage = flt(
+						(1 - flt(child_item.rate) / flt(child_item.price_list_rate)) * 100.0,
+						child_item.precision("discount_percentage"),
+					)
+					child_item.discount_amount = flt(child_item.price_list_rate) - flt(child_item.rate)
+					child_item.margin_type = ""
+					child_item.margin_rate_or_amount = 0
+					child_item.rate_with_margin = 0
 
 		child_item.flags.ignore_validate_update_after_submit = True
 		if new_child_flag:
@@ -4038,7 +4146,7 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			child_item.idx = len(parent.items) + 1
 			child_item.insert()
 		else:
-			child_item.save()
+			child_item.save(ignore_permissions=True)
 
 	parent.reload()
 	parent.flags.ignore_validate_update_after_submit = True
@@ -4052,13 +4160,15 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 		parent.doctype, parent.company, parent.base_grand_total
 	)
 
-	parent.set_payment_schedule()
+	if parent_doctype != "Supplier Quotation":
+		parent.set_payment_schedule()
 	if parent_doctype == "Purchase Order":
+		parent.set_tax_withholding()
 		parent.validate_minimum_order_qty()
 		parent.validate_budget()
 		if parent.is_against_so():
 			parent.update_status_updater()
-	else:
+	elif parent_doctype == "Sales Order":
 		parent.check_credit_limit()
 
 	# reset index of child table
@@ -4091,7 +4201,7 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 							"Items cannot be updated as Subcontracting Order is created against the Purchase Order {0}."
 						).format(frappe.bold(parent.name))
 					)
-	else:  # Sales Order
+	elif parent_doctype == "Sales Order":
 		parent.validate_selling_price()
 		parent.validate_for_duplicate_items()
 		parent.validate_warehouse()
@@ -4103,9 +4213,10 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 	parent.reload()
 	validate_workflow_conditions(parent)
 
-	parent.update_blanket_order()
-	parent.update_billing_percentage()
-	parent.set_status()
+	if parent_doctype in ["Purchase Order", "Sales Order"]:
+		parent.update_blanket_order()
+		parent.update_billing_percentage()
+		parent.set_status()
 
 	parent.validate_uom_is_integer("uom", "qty")
 	parent.validate_uom_is_integer("stock_uom", "stock_qty")

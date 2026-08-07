@@ -5,6 +5,7 @@ from erpnext.accounts.report.tax_withholding_details.tax_withholding_details imp
 	get_result,
 	get_tds_docs,
 )
+from erpnext.accounts.report.utils import validate_mandatory_date_range
 from erpnext.accounts.utils import get_fiscal_year
 
 
@@ -20,16 +21,12 @@ def execute(filters=None):
 
 	columns = get_columns(filters)
 	(
-		tds_docs,
 		tds_accounts,
 		tax_category_map,
-		journal_entry_party_map,
-		invoice_total_map,
+		net_total_map,
 	) = get_tds_docs(filters)
 
-	res = get_result(
-		filters, tds_docs, tds_accounts, tax_category_map, journal_entry_party_map, invoice_total_map
-	)
+	res = get_result(filters, tds_accounts, tax_category_map, net_total_map)
 	final_result = group_by_party_and_category(res, filters)
 
 	return columns, final_result
@@ -37,8 +34,7 @@ def execute(filters=None):
 
 def validate_filters(filters):
 	"""Validate if dates are properly set and lie in the same fiscal year"""
-	if filters.from_date > filters.to_date:
-		frappe.throw(_("From Date must be before To Date"))
+	validate_mandatory_date_range(filters)
 
 	from_year = get_fiscal_year(filters.from_date)[0]
 	to_year = get_fiscal_year(filters.to_date)[0]
@@ -52,28 +48,25 @@ def group_by_party_and_category(data, filters):
 	party_category_wise_map = {}
 
 	for row in data:
+		key = (row.get("party_type"), row.get("party"), row.get("tax_withholding_category"))
 		party_category_wise_map.setdefault(
-			(row.get("party"), row.get("section_code")),
+			key,
 			{
 				"pan": row.get("pan"),
 				"tax_id": row.get("tax_id"),
 				"party": row.get("party"),
+				"party_type": row.get("party_type"),
 				"party_name": row.get("party_name"),
-				"section_code": row.get("section_code"),
-				"entity_type": row.get("entity_type"),
+				"tax_withholding_category": row.get("tax_withholding_category"),
+				"party_entity_type": row.get("party_entity_type"),
 				"rate": row.get("rate"),
 				"total_amount": 0.0,
 				"tax_amount": 0.0,
 			},
 		)
 
-		party_category_wise_map.get((row.get("party"), row.get("section_code")))["total_amount"] += row.get(
-			"total_amount", 0.0
-		)
-
-		party_category_wise_map.get((row.get("party"), row.get("section_code")))["tax_amount"] += row.get(
-			"tax_amount", 0.0
-		)
+		party_category_wise_map.get(key)["total_amount"] += row.get("total_amount", 0.0)
+		party_category_wise_map.get(key)["tax_amount"] += row.get("tax_amount", 0.0)
 
 	final_result = get_final_result(party_category_wise_map)
 
@@ -114,13 +107,18 @@ def get_columns(filters):
 	columns.extend(
 		[
 			{
-				"label": _("Section Code"),
+				"label": _("Tax Withholding Category"),
 				"options": "Tax Withholding Category",
-				"fieldname": "section_code",
+				"fieldname": "tax_withholding_category",
 				"fieldtype": "Link",
 				"width": 180,
 			},
-			{"label": _("Entity Type"), "fieldname": "entity_type", "fieldtype": "Data", "width": 180},
+			{
+				"label": _(f"{filters.get('party_type', 'Party')} Type"),
+				"fieldname": "party_entity_type",
+				"fieldtype": "Data",
+				"width": 180,
+			},
 			{
 				"label": _("TDS Rate %") if filters.get("party_type") == "Supplier" else _("TCS Rate %"),
 				"fieldname": "rate",
@@ -128,7 +126,7 @@ def get_columns(filters):
 				"width": 120,
 			},
 			{
-				"label": _("Total Amount"),
+				"label": _("Total Taxable Amount"),
 				"fieldname": "total_amount",
 				"fieldtype": "Float",
 				"width": 120,

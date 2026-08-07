@@ -472,6 +472,8 @@ erpnext.SerialBatchPackageSelector = class SerialNoBatchBundleUpdate {
 								warehouse:
 									this.item.s_warehouse || this.item.t_warehouse || this.item.warehouse,
 								is_inward: is_inward,
+								posting_date: this.frm.doc.posting_date,
+								posting_time: this.frm.doc.posting_time,
 								include_expired_batches: include_expired_batches,
 							},
 						};
@@ -707,7 +709,7 @@ erpnext.SerialBatchPackageSelector = class SerialNoBatchBundleUpdate {
 	}
 
 	render_data() {
-		if (this.bundle || this.frm.doc.is_return) {
+		if (this.bundle || (this.frm.doc.is_return && this.frm.doc.return_against)) {
 			frappe
 				.call({
 					method: "erpnext.stock.doctype.serial_and_batch_bundle.serial_and_batch_bundle.get_serial_batch_ledgers",

@@ -17,7 +17,7 @@ from frappe.utils.data import (
 	nowdate,
 )
 
-from erpnext.accounts.doctype.subscription.subscription import get_prorata_factor
+from erpnext.accounts.doctype.subscription.subscription import get_plan_dimensions, get_prorata_factor
 
 test_dependencies = ("UOM", "Item Group", "Item")
 
@@ -583,6 +583,48 @@ class TestSubscription(FrappeTestCase):
 		subscription.process(nowdate())
 		self.assertEqual(len(subscription.invoices), 1)
 
+	def test_plan_dimensions_resolve_from_plan_then_item(self):
+		from erpnext.stock.doctype.item.test_item import make_item
+
+		# Plan-level cost center takes precedence.
+		create_plan(plan_name="_Test Sub Plan CC", cost=100, currency="INR")
+		frappe.db.set_value(
+			"Subscription Plan", "_Test Sub Plan CC", "cost_center", "_Test Cost Center - _TC"
+		)
+		self.assertEqual(
+			get_plan_dimensions("_Test Sub Plan CC", "_Test Company", "Customer").get("cost_center"),
+			"_Test Cost Center - _TC",
+		)
+
+		# No plan cost center: fall back to the item's company default (selling vs buying by party type).
+		item = make_item(
+			"_Test Sub Dimension Item",
+			{
+				"is_stock_item": 0,
+				"item_defaults": [
+					{
+						"company": "_Test Company",
+						"default_warehouse": "_Test Warehouse - _TC",
+						"selling_cost_center": "_Test Cost Center - _TC",
+						"buying_cost_center": "_Test Cost Center 2 - _TC",
+					}
+				],
+			},
+		)
+		create_plan(plan_name="_Test Sub Plan No CC", cost=100, currency="INR", item=item.name)
+
+		self.assertEqual(
+			get_plan_dimensions("_Test Sub Plan No CC", "_Test Company", "Customer").get("cost_center"),
+			"_Test Cost Center - _TC",
+		)
+		self.assertEqual(
+			get_plan_dimensions("_Test Sub Plan No CC", "_Test Company", "Supplier").get("cost_center"),
+			"_Test Cost Center 2 - _TC",
+		)
+
+		# Without a company the item fallback is skipped.
+		self.assertNotIn("cost_center", get_plan_dimensions("_Test Sub Plan No CC"))
+
 
 def make_plans():
 	create_plan(plan_name="_Test Plan Name", cost=900, currency="INR")
@@ -629,18 +671,21 @@ def create_parties():
 		customer.customer_name = "_Test Subscription Customer"
 		customer.default_currency = "USD"
 		customer.append("accounts", {"company": "_Test Company", "account": "_Test Receivable USD - _TC"})
+		customer.customer_group = "Individual"
 		customer.insert()
 
 	if not frappe.db.exists("Customer", "_Test Subscription Customer Multi Currency"):
 		customer = frappe.new_doc("Customer")
 		customer.customer_name = "Test Subscription Customer Multi Currency"
 		customer.default_currency = "USD"
+		customer.customer_group = "Individual"
 		customer.insert()
 
 	if not frappe.db.exists("Customer", "_Test Subscription Customer John Doe"):
 		customer = frappe.new_doc("Customer")
 		customer.customer_name = "_Test Subscription Customer John Doe"
 		customer.append("accounts", {"company": "_Test Company", "account": "_Test Receivable - _TC"})
+		customer.customer_group = "Individual"
 		customer.insert()
 
 

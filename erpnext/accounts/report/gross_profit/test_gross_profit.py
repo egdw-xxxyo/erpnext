@@ -82,6 +82,7 @@ class TestGrossProfit(FrappeTestCase):
 			customer = frappe.new_doc("Customer")
 			customer.customer_name = name
 			customer.type = "Individual"
+			customer.customer_group = "Individual"
 			customer.save()
 			self.customer = customer.name
 
@@ -439,6 +440,7 @@ class TestGrossProfit(FrappeTestCase):
 			qty=-1, rate=100, posting_date=nowdate(), do_not_save=True, do_not_submit=True
 		)
 		sinv.is_return = 1
+		sinv.items[0].allow_zero_valuation_rate = 1
 		sinv = sinv.save().submit()
 
 		filters = frappe._dict(
@@ -465,7 +467,7 @@ class TestGrossProfit(FrappeTestCase):
 			"selling_amount": -100.0,
 			"buying_amount": 0.0,
 			"gross_profit": -100.0,
-			"gross_profit_%": 100.0,
+			"gross_profit_%": -100.0,
 		}
 		gp_entry = [x for x in data if x.parent_invoice == sinv.name]
 		self.assertDictContainsSubset(expected_entry, gp_entry[0])
@@ -642,21 +644,24 @@ class TestGrossProfit(FrappeTestCase):
 	def test_profit_for_later_period_return(self):
 		month_start_date, month_end_date = get_first_day(nowdate()), get_last_day(nowdate())
 
+		sales_inv_date = month_start_date
+		return_inv_date = add_days(month_end_date, 1)
+
 		# create sales invoice on month start date
 		sinv = self.create_sales_invoice(qty=1, rate=100, do_not_save=True, do_not_submit=True)
 		sinv.set_posting_time = 1
-		sinv.posting_date = month_start_date
+		sinv.posting_date = sales_inv_date
 		sinv.save().submit()
 
 		# create credit note on next month start date
 		cr_note = make_sales_return(sinv.name)
 		cr_note.set_posting_time = 1
-		cr_note.posting_date = add_days(month_end_date, 1)
+		cr_note.posting_date = return_inv_date
 		cr_note.save().submit()
 
 		# apply filters for invoiced period
 		filters = frappe._dict(
-			company=self.company, from_date=month_start_date, to_date=month_end_date, group_by="Invoice"
+			company=self.company, from_date=month_start_date, to_date=month_start_date, group_by="Invoice"
 		)
 
 		_, data = execute(filters=filters)
@@ -668,7 +673,7 @@ class TestGrossProfit(FrappeTestCase):
 		self.assertEqual(total.get("gross_profit_%"), 100.0)
 
 		# extend filters upto returned period
-		filters.update(to_date=add_days(month_end_date, 1))
+		filters.update({"to_date": return_inv_date})
 
 		_, data = execute(filters=filters)
 		total = data[-1]
@@ -677,3 +682,217 @@ class TestGrossProfit(FrappeTestCase):
 		self.assertEqual(total.buying_amount, 0.0)
 		self.assertEqual(total.gross_profit, 0.0)
 		self.assertEqual(total.get("gross_profit_%"), 0.0)
+
+		# apply filters only on returned period
+		filters.update({"from_date": return_inv_date, "to_date": return_inv_date})
+		_, data = execute(filters=filters)
+		total = data[-1]
+
+		self.assertEqual(total.selling_amount, -100.0)
+		self.assertEqual(total.buying_amount, 0.0)
+		self.assertEqual(total.gross_profit, -100.0)
+		self.assertEqual(total.get("gross_profit_%"), -100.0)
+
+	def test_sales_person_wise_gross_profit(self):
+		sales_person = make_sales_person("_Test Sales Person")
+
+		posting_date = get_first_day(nowdate())
+		qty = 10
+		rate = 100
+
+		sinv = self.create_sales_invoice(qty=qty, rate=rate, do_not_save=True, do_not_submit=True)
+		sinv.set_posting_time = 1
+		sinv.posting_date = posting_date
+		sinv.append(
+			"sales_team",
+			{
+				"sales_person": sales_person.name,
+				"allocated_percentage": 100,
+				"allocated_amount": 1000.0,
+				"commission_rate": 5,
+				"incentives": 5,
+			},
+		)
+		sinv.save().submit()
+
+		filters = frappe._dict(
+			company=self.company, from_date=posting_date, to_date=posting_date, group_by="Sales Person"
+		)
+
+		_, data = execute(filters=filters)
+		total = data[-1]
+
+		self.assertEqual(total[5], 1000.0)
+		self.assertEqual(total[6], 0.0)
+		self.assertEqual(total[7], 1000.0)
+		self.assertEqual(total[8], 100.0)
+
+	def create_rate_adjustment_debit_note(self, against_invoice, adjustment_rate, item_code=None):
+		"""Create a rate adjustment debit note with no stock movement."""
+		dn = self.create_sales_invoice(qty=1, rate=adjustment_rate, do_not_save=True, do_not_submit=True)
+		if item_code:
+			dn.items[0].item_code = item_code
+			dn.items[0].item_name = item_code
+		dn.is_debit_note = 1
+		dn.return_against = against_invoice.name
+		dn.items[0].allow_zero_valuation_rate = 1
+		return dn.save().submit()
+
+	def test_debit_note_has_zero_buying_amount_and_full_gross_profit(self):
+		"""
+		Rate adjustment debit note (is_debit_note=1) should show buying_amount=0
+		since there is no stock movement. Gross profit equals the adjustment amount
+		and gross profit % equals 100%.
+		"""
+		make_stock_entry(
+			company=self.company,
+			item_code=self.item,
+			target=self.warehouse,
+			qty=1,
+			basic_rate=100,
+		)
+
+		sinv = self.create_sales_invoice(qty=1, rate=200, do_not_submit=True)
+		sinv.update_stock = 1
+		sinv = sinv.save().submit()
+
+		debit_note = self.create_rate_adjustment_debit_note(sinv, adjustment_rate=20)
+
+		filters = frappe._dict(
+			company=self.company,
+			from_date=nowdate(),
+			to_date=nowdate(),
+			group_by="Invoice",
+		)
+
+		columns, data = execute(filters=filters)
+
+		dn_item_rows = [
+			x for x in data if x.get("parent_invoice") == debit_note.name and x.get("indent") == 1.0
+		]
+		self.assertEqual(len(dn_item_rows), 1)
+
+		dn_row = dn_item_rows[0]
+		self.assertEqual(dn_row.buying_amount, 0.0)
+		self.assertEqual(dn_row.selling_amount, 20.0)
+		self.assertEqual(dn_row.gross_profit, 20.0)
+		self.assertEqual(dn_row["gross_profit_%"], 100.0)
+
+	def test_original_invoice_unaffected_by_rate_adjustment_debit_note(self):
+		"""
+		The original invoice's GP should be derived solely from its own selling
+		amount and COGS — the rate adjustment debit note must not alter it.
+		"""
+		make_stock_entry(
+			company=self.company,
+			item_code=self.item,
+			target=self.warehouse,
+			qty=1,
+			basic_rate=100,
+		)
+
+		sinv = self.create_sales_invoice(qty=1, rate=200, do_not_submit=True)
+		sinv.update_stock = 1
+		sinv = sinv.save().submit()
+
+		self.create_rate_adjustment_debit_note(sinv, adjustment_rate=20)
+
+		filters = frappe._dict(
+			company=self.company,
+			from_date=nowdate(),
+			to_date=nowdate(),
+			group_by="Invoice",
+		)
+
+		columns, data = execute(filters=filters)
+
+		sinv_item_rows = [x for x in data if x.get("parent_invoice") == sinv.name and x.get("indent") == 1.0]
+		self.assertEqual(len(sinv_item_rows), 1)
+
+		sinv_row = sinv_item_rows[0]
+		self.assertEqual(sinv_row.selling_amount, 200.0)
+		self.assertEqual(sinv_row.buying_amount, 100.0)
+		self.assertEqual(sinv_row.gross_profit, 100.0)
+		self.assertEqual(sinv_row["gross_profit_%"], 50.0)
+
+	def test_debit_note_qty_not_inflated_in_grouped_report(self):
+		"""
+		When grouped by Item Code, the debit note (qty=0) must not inflate
+		the group's qty or buying_amount. The selling amount and average
+		selling rate correctly reflect the rate adjustment.
+		"""
+		item = create_item("_Test Rate Adjustment Debit Note Item")
+
+		make_stock_entry(
+			company=self.company,
+			item_code=item.item_code,
+			target=self.warehouse,
+			qty=1,
+			basic_rate=100,
+		)
+
+		sinv = create_sales_invoice(
+			qty=1,
+			rate=200,
+			company=self.company,
+			customer=self.customer,
+			item_code=item.item_code,
+			item_name=item.item_code,
+			cost_center=self.cost_center,
+			warehouse=self.warehouse,
+			debit_to=self.debit_to,
+			parent_cost_center=self.cost_center,
+			update_stock=1,
+			currency="INR",
+			income_account=self.income_account,
+			expense_account=self.expense_account,
+		)
+
+		self.create_rate_adjustment_debit_note(sinv, adjustment_rate=20, item_code=item.item_code)
+
+		filters = frappe._dict(
+			company=self.company,
+			from_date=nowdate(),
+			to_date=nowdate(),
+			group_by="Item Code",
+		)
+
+		columns, data = execute(filters=filters)
+
+		# group_by="Item Code" column order:
+		# [item_code, item_name, brand, description, qty, base_rate,
+		#  buying_rate, base_amount, buying_amount, gross_profit, gross_profit_percent, currency]
+		item_row = next((row for row in data if row[0] == item.item_code), None)
+		self.assertIsNotNone(item_row)
+
+		qty, base_rate, buying_amount, base_amount, gross_profit, gp_percent = (
+			item_row[4],
+			item_row[5],
+			item_row[8],
+			item_row[7],
+			item_row[9],
+			item_row[10],
+		)
+
+		self.assertEqual(qty, 1.0)  # debit note adds qty=0, not inflated
+		self.assertEqual(buying_amount, 100.0)  # only original invoice COGS
+		self.assertEqual(base_amount, 220.0)  # 200 (original) + 20 (adjustment)
+		self.assertEqual(base_rate, 220.0)  # avg selling rate = 220/1
+		self.assertEqual(gross_profit, 120.0)  # 220 - 100
+		self.assertAlmostEqual(gp_percent, 54.545, places=2)  # 120/220 * 100
+
+
+def make_sales_person(sales_person_name="_Test Sales Person"):
+	if not frappe.db.exists("Sales Person", {"sales_person_name": sales_person_name}):
+		sales_person_doc = frappe.get_doc(
+			{
+				"doctype": "Sales Person",
+				"is_group": 0,
+				"parent_sales_person": "Sales Team",
+				"sales_person_name": sales_person_name,
+			}
+		).insert(ignore_permissions=True)
+	else:
+		sales_person_doc = frappe.get_doc("Sales Person", {"sales_person_name": sales_person_name})
+
+	return sales_person_doc

@@ -79,6 +79,7 @@
   "acc_frozen_upto",
   "ignore_account_closing_balance",
   "use_legacy_controller_for_pcv",
+  "pcv_job_timeout",
   "column_break_25",
   "frozen_accounts_modifier",
   "tab_break_dpet",
@@ -95,7 +96,6 @@
   "receivable_payable_fetch_method",
   "default_ageing_range",
   "column_break_ntmi",
-  "drop_ar_procedures",
   "legacy_section",
   "ignore_is_opening_check_for_reporting",
   "payment_request_settings",
@@ -216,7 +216,7 @@
    "description": "Payment Terms from orders will be fetched into the invoices as is",
    "fieldname": "automatically_fetch_payment_terms",
    "fieldtype": "Check",
-   "label": "Automatically Fetch Payment Terms from Order"
+   "label": "Automatically Fetch Payment Terms from Order/Quotation"
   },
   {
    "description": "The percentage you are allowed to bill more against the amount ordered. For example, if the order value is $100 for an item and tolerance is set as 10%, then you are allowed to bill up to $110 ",
@@ -307,7 +307,7 @@
   },
   {
    "default": "0",
-   "description": "Learn about <a href=\"https://docs.frappe.io/erpnext/user/manual/en/common_party_accounting\">Common Party</a>",
+   "description": "Learn about <a href=\"https://docs.erpnext.com/docs/v13/user/manual/en/accounts/articles/common_party_accounting#:~:text=Common%20Party%20Accounting%20in%20ERPNext,Invoice%20against%20a%20primary%20Supplier.\">Common Party</a>",
    "fieldname": "enable_common_party_accounting",
    "fieldtype": "Check",
    "label": "Enable Common Party Accounting"
@@ -561,7 +561,7 @@
    "fieldname": "receivable_payable_fetch_method",
    "fieldtype": "Select",
    "label": "Data Fetch Method",
-   "options": "Buffered Cursor\nUnBuffered Cursor\nRaw SQL"
+   "options": "Buffered Cursor\nUnBuffered Cursor"
   },
   {
    "fieldname": "accounts_receivable_payable_tuning_section",
@@ -624,13 +624,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.receivable_payable_fetch_method == \"Raw SQL\"",
-   "description": "Drops existing SQL Procedures and Function setup by Accounts Receivable report",
-   "fieldname": "drop_ar_procedures",
-   "fieldtype": "Button",
-   "label": "Drop Procedures"
-  },
-  {
    "default": "0",
    "fieldname": "fetch_valuation_rate_for_internal_transaction",
    "fieldtype": "Check",
@@ -660,6 +653,14 @@
    "label": "Show Party Balance"
   },
   {
+   "default": "3600",
+   "depends_on": "eval: !doc.use_legacy_controller_for_pcv",
+   "description": "Timeout (in seconds) for each background job enqueued by Process Period Closing Voucher",
+   "fieldname": "pcv_job_timeout",
+   "fieldtype": "Int",
+   "label": "PCV Job Timeout (seconds)"
+  },
+  {
    "default": "30, 60, 90, 120",
    "fieldname": "default_ageing_range",
    "fieldtype": "Data",
@@ -671,7 +672,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-26 19:46:55.093717",
+ "modified": "2026-06-24 12:59:41.868865",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Accounts Settings",

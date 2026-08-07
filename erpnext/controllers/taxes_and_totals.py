@@ -38,7 +38,9 @@ class calculate_taxes_and_totals:
 
 		self._items = self.filter_rows() if self.doc.doctype == "Quotation" else self.doc.get("items")
 
-		get_round_off_applicable_accounts(self.doc.company, frappe.flags.round_off_applicable_accounts)
+		get_round_off_applicable_accounts(
+			self.doc.company, frappe.flags.round_off_applicable_accounts, self.doc
+		)
 		self.calculate()
 
 	def filter_rows(self):
@@ -183,8 +185,15 @@ class calculate_taxes_and_totals:
 			return
 
 		if not self.discount_amount_applied:
+			do_not_round_fields = [
+				"valuation_rate",
+				"incoming_rate",
+				"sales_incoming_rate",
+				"conversion_factor",
+			]
+
 			for item in self.doc.items:
-				self.doc.round_floats_in(item)
+				self.doc.round_floats_in(item, do_not_round_fields=do_not_round_fields)
 
 				if item.discount_percentage == 100:
 					item.rate = 0.0
@@ -602,6 +611,11 @@ class calculate_taxes_and_totals:
 			else:
 				self.grand_total_diff = 0
 
+			# Apply rounding adjustment to grand_total_for_distributing_discount
+			# to prevent precision errors during discount distribution
+			if hasattr(self, "grand_total_for_distributing_discount") and not self.discount_amount_applied:
+				self.grand_total_for_distributing_discount += self.grand_total_diff
+
 	def calculate_totals(self):
 		grand_total_diff = self.grand_total_diff
 
@@ -669,18 +683,17 @@ class calculate_taxes_and_totals:
 		if self.doc.meta.get_field("rounded_total"):
 			if self.doc.is_rounded_total_disabled():
 				self.doc.rounded_total = 0
-				self.doc.base_rounded_total = 0
 				self.doc.rounding_adjustment = 0
-				return
 
-			self.doc.rounded_total = round_based_on_smallest_currency_fraction(
-				self.doc.grand_total, self.doc.currency, self.doc.precision("rounded_total")
-			)
+			else:
+				self.doc.rounded_total = round_based_on_smallest_currency_fraction(
+					self.doc.grand_total, self.doc.currency, self.doc.precision("rounded_total")
+				)
 
-			# rounding adjustment should always be the difference vetween grand and rounded total
-			self.doc.rounding_adjustment = flt(
-				self.doc.rounded_total - self.doc.grand_total, self.doc.precision("rounding_adjustment")
-			)
+				# rounding adjustment should always be the difference between grand and rounded total
+				self.doc.rounding_adjustment = flt(
+					self.doc.rounded_total - self.doc.grand_total, self.doc.precision("rounding_adjustment")
+				)
 
 			self._set_in_company_currency(self.doc, ["rounding_adjustment", "rounded_total"])
 
@@ -719,7 +732,8 @@ class calculate_taxes_and_totals:
 			discount_amount += total_return_discount
 
 		# validate that discount amount cannot exceed the total before discount
-		if (
+		# only during save (i.e. when `_action` is set)
+		if self.doc.get("_action") and (
 			(grand_total >= 0 and discount_amount > grand_total)
 			or (grand_total < 0 and discount_amount < grand_total)  # returns
 		):
@@ -1121,14 +1135,14 @@ def get_itemised_tax_breakup_html(doc):
 
 
 @frappe.whitelist()
-def get_round_off_applicable_accounts(company, account_list):
+def get_round_off_applicable_accounts(company, account_list, doc=None):
 	# required to set correct region
 	with temporary_flag("company", company):
-		return get_regional_round_off_accounts(company, account_list)
+		return get_regional_round_off_accounts(company, account_list, doc)
 
 
 @erpnext.allow_regional
-def get_regional_round_off_accounts(company, account_list):
+def get_regional_round_off_accounts(company, account_list, doc=None):
 	pass
 
 

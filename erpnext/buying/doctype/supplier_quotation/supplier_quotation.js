@@ -30,6 +30,14 @@ erpnext.buying.SupplierQuotationController = class SupplierQuotationController e
 			cur_frm.add_custom_button(__("Purchase Order"), this.make_purchase_order, __("Create"));
 			cur_frm.page.set_inner_btn_group_as_primary(__("Create"));
 			cur_frm.add_custom_button(__("Quotation"), this.make_quotation, __("Create"));
+
+			this.frm.add_custom_button(__("Update Items"), () => {
+				erpnext.utils.update_child_items({
+					frm: this.frm,
+					child_docname: "items",
+					cannot_add_row: false,
+				});
+			});
 		} else if (this.frm.doc.docstatus === 0) {
 			erpnext.set_unit_price_items_note(this.frm);
 
@@ -107,9 +115,3 @@ erpnext.buying.SupplierQuotationController = class SupplierQuotationController e
 
 // for backward compatibility: combine new and previous states
 extend_cscript(cur_frm.cscript, new erpnext.buying.SupplierQuotationController({ frm: cur_frm }));
-
-cur_frm.fields_dict["items"].grid.get_field("project").get_query = function (doc, cdt, cdn) {
-	return {
-		filters: [["Project", "status", "not in", "Completed, Cancelled"]],
-	};
-};

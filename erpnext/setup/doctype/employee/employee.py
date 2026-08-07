@@ -57,7 +57,7 @@ class Employee(NestedSet):
 				user = frappe.get_doc("User", existing_user_id)
 				validate_employee_role(user, ignore_emp_check=True)
 				user.save(ignore_permissions=True)
-				remove_user_permission("Employee", self.name, existing_user_id)
+				remove_user_permission("Employee", self.name, existing_user_id, ignore_permissions=True)
 
 	def after_rename(self, old, new, merge):
 		self.db_set("employee", new)
@@ -68,15 +68,11 @@ class Employee(NestedSet):
 		)
 
 	def validate_user_details(self):
-		if self.user_id:
-			data = frappe.db.get_value("User", self.user_id, ["enabled"], as_dict=1)
+		if not self.user_id:
+			return
 
-			if not data:
-				self.user_id = None
-				return
-
-			self.validate_for_enabled_user_id(data.get("enabled", 0))
-			self.validate_duplicate_user_id()
+		self.validate_for_enabled_user_id()
+		self.validate_duplicate_user_id()
 
 	def update_nsm_model(self):
 		frappe.utils.nestedset.update_nsm(self)
@@ -87,6 +83,7 @@ class Employee(NestedSet):
 		if self.user_id:
 			self.update_user()
 			self.update_user_permissions()
+			self.update_user_status()
 		self.reset_employee_emails_cache()
 
 	def update_user_permissions(self):
@@ -98,11 +95,11 @@ class Employee(NestedSet):
 		)
 
 		if employee_user_permission_exists and not self.create_user_permission:
-			remove_user_permission("Employee", self.name, self.user_id)
-			remove_user_permission("Company", self.company, self.user_id)
+			remove_user_permission("Employee", self.name, self.user_id, ignore_permissions=True)
+			remove_user_permission("Company", self.company, self.user_id, ignore_permissions=True)
 		elif not employee_user_permission_exists and self.create_user_permission:
-			add_user_permission("Employee", self.name, self.user_id)
-			add_user_permission("Company", self.company, self.user_id)
+			add_user_permission("Employee", self.name, self.user_id, ignore_permissions=True)
+			add_user_permission("Company", self.company, self.user_id, ignore_permissions=True)
 
 	def update_user(self):
 		# add employee role if missing
@@ -188,14 +185,20 @@ class Employee(NestedSet):
 			if not self.relieving_date:
 				throw(_("Please enter relieving date."))
 
-	def validate_for_enabled_user_id(self, enabled):
-		if not self.status == "Active":
+	def validate_for_enabled_user_id(self):
+		if not frappe.db.exists("User", self.user_id):
+			frappe.throw(_("User {0} does not exist").format(self.user_id))
+
+	def update_user_status(self):
+		if not self.user_id:
 			return
 
-		if enabled is None:
-			frappe.throw(_("User {0} does not exist").format(self.user_id))
-		if enabled == 0:
-			frappe.throw(_("User {0} is disabled").format(self.user_id), EmployeeUserDisabledError)
+		user = frappe.get_doc("User", self.user_id)
+		enabled = user.enabled
+		if self.status != "Active" and enabled or self.status == "Active" and enabled == 0:
+			user.enabled = not enabled
+			# Keep linked User status in sync from the Employee lifecycle and record the audit log.
+			user.save(ignore_permissions=True)
 
 	def validate_duplicate_user_id(self):
 		Employee = frappe.qb.DocType("Employee")
@@ -317,6 +320,7 @@ def is_holiday(employee, date=None, raise_exception=True, only_non_weekly=False,
 
 @frappe.whitelist()
 def deactivate_sales_person(status=None, employee=None):
+	frappe.has_permission("Employee", doc=employee, ptype="write", throw=True)
 	if status == "Left":
 		sales_person = frappe.db.get_value("Sales Person", {"Employee": employee})
 		if sales_person:
@@ -326,6 +330,9 @@ def deactivate_sales_person(status=None, employee=None):
 @frappe.whitelist()
 def create_user(employee, user=None, email=None):
 	emp = frappe.get_doc("Employee", employee)
+	emp.check_permission("write")
+	if emp.user_id:
+		frappe.throw(_("Employee {0} already has a linked user").format(emp.name))
 
 	employee_name = emp.employee_name.split(" ")
 	middle_name = last_name = ""
@@ -449,3 +456,59 @@ def has_upload_permission(doc, ptype="read", user=None):
 	if get_doc_permissions(doc, user=user, ptype=ptype).get(ptype):
 		return True
 	return doc.user_id == user
+
+
+@frappe.whitelist()
+def get_contact_details(employee: str) -> dict:
+	"""
+	Returns basic contact details for the given employee.
+
+	Email is selected based on the following priority:
+	1. Prefered Email
+	2. Company Email
+	3. Personal Email
+	4. User ID
+	"""
+	if not employee:
+		frappe.throw(msg=_("Employee is required"), title=_("Missing Parameter"))
+
+	frappe.has_permission("Employee", "read", employee, throw=True)
+
+	return _get_contact_details(employee)
+
+
+def _get_contact_details(employee: str) -> dict:
+	contact_data = frappe.db.get_value(
+		"Employee",
+		employee,
+		[
+			"employee_name",
+			"prefered_email",
+			"company_email",
+			"personal_email",
+			"user_id",
+			"cell_number",
+			"designation",
+			"department",
+		],
+		as_dict=True,
+	)
+
+	if not contact_data:
+		frappe.throw(msg=_("Employee {0} not found").format(employee), title=_("Not Found"))
+
+	# Email with priority
+	employee_email = (
+		contact_data.get("prefered_email")
+		or contact_data.get("company_email")
+		or contact_data.get("personal_email")
+		or contact_data.get("user_id")
+	)
+
+	return {
+		"contact_display": contact_data.get("employee_name"),
+		"contact_email": employee_email,
+		"contact_mobile": contact_data.get("cell_number"),
+		"contact_designation": contact_data.get("designation"),
+		"contact_department": contact_data.get("department"),
+	}

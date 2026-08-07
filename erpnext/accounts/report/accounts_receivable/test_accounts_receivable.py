@@ -7,6 +7,7 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_ent
 from erpnext.accounts.doctype.sales_invoice.test_sales_invoice import create_sales_invoice
 from erpnext.accounts.report.accounts_receivable.accounts_receivable import execute
 from erpnext.accounts.test.accounts_mixin import AccountsTestMixin
+from erpnext.controllers.sales_and_purchase_return import make_return_doc
 from erpnext.selling.doctype.sales_order.test_sales_order import make_sales_order
 
 
@@ -779,6 +780,7 @@ class TestAccountsReceivable(AccountsTestMixin, FrappeTestCase):
 					"customer_name": "Jane Doe",
 					"type": "Individual",
 					"default_currency": "USD",
+					"customer_group": "Individual",
 				}
 			)
 			.insert()
@@ -1002,6 +1004,7 @@ class TestAccountsReceivable(AccountsTestMixin, FrappeTestCase):
 					"customer_name": "Jane Doe",
 					"type": "Individual",
 					"default_currency": "USD",
+					"customer_group": "Individual",
 				}
 			)
 			.insert()
@@ -1139,3 +1142,223 @@ class TestAccountsReceivable(AccountsTestMixin, FrappeTestCase):
 		self.assertEqual(len(report[1]), 1)
 		row = report[1][0]
 		self.assertEqual(expected_data_after_payment, [row.voucher_no, row.cost_center, row.outstanding])
+
+	def test_payment_terms_template_filters(self):
+		from erpnext.controllers.accounts_controller import get_payment_terms
+
+		payment_term1 = frappe.get_doc(
+			{"doctype": "Payment Term", "payment_term_name": "_Test 50% on 15 Days"}
+		).insert()
+		payment_term2 = frappe.get_doc(
+			{"doctype": "Payment Term", "payment_term_name": "_Test 50% on 30 Days"}
+		).insert()
+
+		template = frappe.get_doc(
+			{
+				"doctype": "Payment Terms Template",
+				"template_name": "_Test 50-50",
+				"terms": [
+					{
+						"doctype": "Payment Terms Template Detail",
+						"due_date_based_on": "Day(s) after invoice date",
+						"payment_term": payment_term1.name,
+						"description": "_Test 50-50",
+						"invoice_portion": 50,
+						"credit_days": 15,
+					},
+					{
+						"doctype": "Payment Terms Template Detail",
+						"due_date_based_on": "Day(s) after invoice date",
+						"payment_term": payment_term2.name,
+						"description": "_Test 50-50",
+						"invoice_portion": 50,
+						"credit_days": 30,
+					},
+				],
+			}
+		)
+		template.insert()
+
+		filters = {
+			"company": self.company,
+			"report_date": today(),
+			"range": "30, 60, 90, 120",
+			"based_on_payment_terms": 1,
+			"payment_terms_template": template.name,
+			"ageing_based_on": "Posting Date",
+		}
+
+		si = self.create_sales_invoice(no_payment_schedule=True, do_not_submit=True)
+		si.payment_terms_template = template.name
+		schedule = get_payment_terms(template.name)
+		si.set("payment_schedule", [])
+
+		for row in schedule:
+			row["due_date"] = add_days(si.posting_date, row.get("credit_days", 0))
+			si.append("payment_schedule", row)
+
+		si.save()
+		si.submit()
+
+		report = execute(filters)
+		row = report[1][0]
+
+		self.assertEqual(len(report[1]), 2)
+		self.assertEqual([si.name, payment_term1.payment_term_name], [row.voucher_no, row.payment_term])
+
+	def test_project_filter(self):
+		project = frappe.get_doc(
+			{"doctype": "Project", "project_name": "_Test AR Project", "company": self.company}
+		).insert()
+
+		si = self.create_sales_invoice(no_payment_schedule=True, do_not_submit=True)
+		si.project = project.name
+		si.save().submit()
+
+		filters = {
+			"company": self.company,
+			"report_date": today(),
+			"range": "30, 60, 90, 120",
+			"project": [project.name],
+		}
+
+		report = execute(filters)[1]
+		self.assertEqual(len(report), 1)
+		row = report[0]
+		self.assertEqual(row.project, project.name)
+		self.assertEqual(row.invoiced, 100.0)
+
+	def test_project_on_report_output(self):
+		"""
+		Report row must carry the invoice's project even when the payment entry
+		has no project set.
+		"""
+		filters = {
+			"company": self.company,
+			"report_date": today(),
+			"range": "30, 60, 90, 120",
+		}
+
+		project = frappe.get_doc(
+			{"doctype": "Project", "project_name": "_Test AR Project Output", "company": self.company}
+		).insert()
+
+		si = self.create_sales_invoice(no_payment_schedule=True, do_not_submit=True)
+		si.project = project.name
+		si.save().submit()
+
+		# payment has no project — report row must still show the invoice's project
+		self.create_payment_entry(si.name)
+		report = execute(filters)
+
+		self.assertEqual(len(report[1]), 1)
+		row = report[1][0]
+		self.assertEqual([si.name, project.name, 60], [row.voucher_no, row.project, row.outstanding])
+
+	def test_accounts_receivable_respects_user_permissions(self):
+		# Party is a dynamic link on Payment Ledger Entry, so user permissions on Customer
+		# must be applied explicitly. The report should only show permitted customers.
+
+		# Running the report writes an access log that commits, so these invoices survive
+		# tearDown's rollback. Delete and commit them so they don't leak into other tests.
+		def remove_committed_entries():
+			self.clear_old_entries()
+			frappe.db.commit()  # nosemgrep
+
+		self.addCleanup(remove_committed_entries)
+
+		original_customer = self.customer
+		second_customer = "_Test AR Perm Customer"
+
+		# create_customer overrides self.customer, so build the restricted invoice first
+		self.create_customer(customer_name=second_customer)
+		self.create_sales_invoice(no_payment_schedule=True)
+
+		self.customer = original_customer
+		allowed_invoice = self.create_sales_invoice(no_payment_schedule=True)
+
+		test_user = "test_ar_user_permission@example.com"
+		if not frappe.db.exists("User", test_user):
+			user = frappe.new_doc("User")
+			user.email = test_user
+			user.first_name = "AR Perm"
+			user.append("roles", {"role": "Accounts User"})
+			user.save()
+
+		frappe.permissions.add_user_permission("Customer", original_customer, test_user)
+
+		filters = {
+			"company": self.company,
+			"party_type": "Customer",
+			"report_date": today(),
+			"range": "30, 60, 90, 120",
+		}
+
+		frappe.set_user(test_user)
+		try:
+			report = execute(filters)
+		finally:
+			frappe.set_user("Administrator")
+
+		parties = {row.party for row in report[1]}
+		self.assertIn(original_customer, parties)
+		self.assertNotIn(second_customer, parties)
+		self.assertEqual(allowed_invoice.customer, original_customer)
+
+	def test_receivable_filtered_by_sales_partner(self):
+		frappe.set_user("Administrator")
+		partner_a, partner_b = "_Test AR Sales Partner A", "_Test AR Sales Partner B"
+		for partner in (partner_a, partner_b):
+			if not frappe.db.exists("Sales Partner", partner):
+				frappe.get_doc(
+					{
+						"doctype": "Sales Partner",
+						"partner_name": partner,
+						"commission_rate": 0,
+						"territory": "All Territories",
+					}
+				).insert()
+
+		def _si(sales_partner):
+			si = self.create_sales_invoice(no_payment_schedule=True, do_not_submit=True, qty=2)
+			si.sales_partner = sales_partner
+			return si.save().submit()
+
+		partner_a_si = _si(partner_a)
+		partner_b_si = _si(partner_b)
+		no_partner_si = _si(None)
+
+		# a return is folded onto the invoice it settles, so it nets against that
+		# invoice's partner even when the return's own partner is cleared
+		no_partner_return = make_return_doc("Sales Invoice", partner_a_si.name)
+		no_partner_return.sales_partner = None
+		no_partner_return.items[0].qty = -1
+		no_partner_return.update_outstanding_for_self = 0
+		no_partner_return.save().submit()
+
+		filters = {
+			"company": self.company,
+			"party_type": "Customer",
+			"report_date": today(),
+			"range": "30, 60, 90, 120",
+		}
+
+		def rows_for(partner):
+			return {
+				r.voucher_no: r
+				for r in execute({**filters, "sales_partner": partner})[1]
+				if r.get("voucher_no")
+			}
+
+		rows_a = rows_for(partner_a)
+		self.assertIn(partner_a_si.name, rows_a)
+		self.assertEqual(rows_a[partner_a_si.name].sales_partner, partner_a)
+		self.assertNotIn(partner_b_si.name, rows_a)
+		self.assertNotIn(no_partner_si.name, rows_a)
+		self.assertNotIn(no_partner_return.name, rows_a)
+		self.assertEqual(rows_a[partner_a_si.name].credit_note, 100)
+		self.assertEqual(rows_a[partner_a_si.name].outstanding, 100)
+
+		rows_b = rows_for(partner_b)
+		self.assertIn(partner_b_si.name, rows_b)
+		self.assertNotIn(partner_a_si.name, rows_b)
