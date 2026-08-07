@@ -201,7 +201,9 @@ def open_leads_opportunities_based_on_todays_event():
 		.on(event_link.parent == event.name)
 		.select(event_link.reference_doctype, event_link.reference_docname)
 		.where(
-			(event_link.reference_doctype.isin(["Lead", "Opportunity"]))
+			# Leads are excluded on purpose: "Open" is not part of the «Запит» status set, and a
+			# calendar event must not silently move a Lead out of the status its owner chose.
+			(event_link.reference_doctype == "Opportunity")
 			& (event.status == "Open")
 			& (functions.Date(event.starts_on) == today())
 		)

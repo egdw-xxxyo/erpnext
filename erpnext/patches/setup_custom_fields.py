@@ -30,6 +30,11 @@ def execute():
 	create_custom_fields_on_quotation_item()
 	create_custom_fields_on_whatsapp_message()
 	setup_whatsapp_user_role()
+	create_military_unit_fields()
+	create_customer_prospect_link()
+	setup_lead_sources()
+	setup_lead_permissions()
+	setup_lead_next_action_notification()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -644,6 +649,128 @@ def setup_whatsapp_user_role():
 			print(f"  Removed Custom DocPerm: {doctype} / {name}")
 
 	frappe.clear_cache()
+
+
+def create_military_unit_fields():
+	"""«Військова частина» is maintained on the organization, never on the Lead.
+
+	The Lead mirrors it read-only (see Lead.set_military_unit)."""
+	fields = [
+		{
+			"dt": "Prospect",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "company_name",
+		},
+		{
+			"dt": "Customer",
+			"fieldname": "military_unit",
+			"fieldtype": "Link",
+			"label": "Military Unit",
+			"options": "Military Unit",
+			"insert_after": "customer_name",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_customer_prospect_link():
+	"""Persisted trace of the Prospect a Customer was converted from.
+
+	`Prospect.make_customer` returns an unsaved mapped doc, so flags set during mapping do
+	not survive the client-side save. This field is what lets `Customer.after_insert`
+	find the Leads that must be repointed (see prospect.propagate_customer_to_leads)."""
+	fields = [
+		{
+			"dt": "Customer",
+			"fieldname": "prospect",
+			"fieldtype": "Link",
+			"label": "Prospect",
+			"options": "Prospect",
+			"insert_after": "lead_name",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def setup_lead_sources():
+	"""«Канал залучення» values.
+
+	Created with Ukrainian names on purpose: these are data records, not code, and their
+	English forms ("Online", "Other", ...) are generic msgids whose translation would leak
+	into unrelated parts of the UI. `Existing Customer` is stock and is left alone —
+	Lead.before_insert still branches on it."""
+	sources = [
+		"Онлайн",
+		"Офлайн",
+		"Рекомендації",
+		"Холодний контакт",
+		"Державні закупівлі",
+		"Партнерські організації",
+		"Інше",
+	]
+	for source in sources:
+		if frappe.db.exists("Lead Source", source):
+			continue
+		frappe.get_doc({"doctype": "Lead Source", "source_name": source}).insert(ignore_permissions=True)
+		print(f"  Created Lead Source: {source}")
+
+
+def setup_lead_permissions():
+	"""Safety net for deployed sites that already have Custom DocPerm rows on Lead.
+
+	Custom DocPerms shadow the DocType JSON permissions block entirely, so without this the
+	`if_owner` restriction shipped in lead.json would silently do nothing."""
+	if not frappe.db.exists("Custom DocPerm", {"parent": "Lead"}):
+		return
+
+	sales_user = frappe.db.exists("Custom DocPerm", {"parent": "Lead", "role": "Sales User", "permlevel": 0})
+	if sales_user:
+		frappe.db.set_value("Custom DocPerm", sales_user, {"if_owner": 1, "delete": 0})
+		print("  Lead: Sales User restricted to own documents")
+
+	sales_manager = frappe.db.exists(
+		"Custom DocPerm", {"parent": "Lead", "role": "Sales Manager", "permlevel": 0}
+	)
+	if sales_manager:
+		frappe.db.set_value("Custom DocPerm", sales_manager, "delete", 0)
+		print("  Lead: Sales Manager delete revoked")
+
+	frappe.clear_cache(doctype="Lead")
+
+
+def setup_lead_next_action_notification():
+	"""System reminder to the responsible manager on the day the next action is due."""
+	name = "Lead Next Action Reminder"
+	if frappe.db.exists("Notification", name):
+		print(f"  Notification exists: {name}")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Notification",
+			"name": name,
+			"subject": "Next action due today: {{ doc.name }}",
+			"document_type": "Lead",
+			"is_standard": 0,
+			"enabled": 1,
+			"channel": "System Notification",
+			"event": "Days After",
+			"date_changed": "next_action_date",
+			"days_in_advance": 0,
+			"condition": "doc.status not in ('Converted to Opportunity', 'Not Relevant', 'Lost')",
+			"message": (
+				"Next action for Lead {{ doc.name }} ({{ doc.lead_name }}) is due today.\n\n"
+				"{{ doc.next_action }}"
+			),
+			"recipients": [{"receiver_by_document_field": "lead_owner"}],
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Notification: {name}")
 
 
 def _create_custom_fields(fields):

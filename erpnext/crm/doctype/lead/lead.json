@@ -24,8 +24,27 @@
   "lead_owner",
   "status",
   "customer",
+  "prospect",
   "type",
   "request_type",
+  "customer_need_section",
+  "customer_need",
+  "requirement_section",
+  "requirement",
+  "assessment_section",
+  "conversion_probability",
+  "next_action_section",
+  "next_action",
+  "next_action_date",
+  "column_break_next_action",
+  "next_action_overdue",
+  "hold_section",
+  "return_date",
+  "hold_reason",
+  "close_section",
+  "close_reason",
+  "reversal_section",
+  "status_reversals",
   "contact_info_tab",
   "email_id",
   "website",
@@ -37,6 +56,7 @@
   "phone_ext",
   "organization_section",
   "company_name",
+  "military_unit",
   "no_of_employees",
   "column_break_28",
   "annual_revenue",
@@ -103,7 +123,6 @@
   {
    "fieldname": "company_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Organization Name",
    "mandatory_depends_on": "eval: !(doc.first_name)",
@@ -128,14 +147,16 @@
    "default": "__user",
    "fieldname": "lead_owner",
    "fieldtype": "Link",
-   "label": "Lead Owner",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Responsible Manager",
    "oldfieldname": "lead_owner",
    "oldfieldtype": "Link",
    "options": "User",
    "search_index": 1
   },
   {
-   "default": "Lead",
+   "default": "New Request",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -144,39 +165,48 @@
    "no_copy": 1,
    "oldfieldname": "status",
    "oldfieldtype": "Select",
-   "options": "Lead\nOpen\nReplied\nOpportunity\nQuotation\nLost Quotation\nInterested\nConverted\nDo Not Contact",
+   "options": "New Request\nContacted\nRequirement Gathering\nAwaiting Response\nPostponed\nConverted to Opportunity\nNot Relevant\nLost",
    "reqd": 1,
    "search_index": 1
   },
   {
    "fieldname": "salutation",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Salutation",
    "options": "Salutation"
   },
   {
    "fieldname": "gender",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Gender",
    "options": "Gender"
   },
   {
    "fieldname": "source",
    "fieldtype": "Link",
-   "label": "Source",
+   "label": "Acquisition Channel",
    "oldfieldname": "source",
    "oldfieldtype": "Select",
    "options": "Lead Source"
   },
   {
-   "depends_on": "eval:doc.source == 'Existing Customer'",
+   "description": "Fill in when the organization is already a customer. A Lead may link either a Prospect or a Customer, not both.",
    "fieldname": "customer",
    "fieldtype": "Link",
-   "label": "From Customer",
+   "label": "Customer",
    "no_copy": 1,
    "oldfieldname": "customer",
    "oldfieldtype": "Link",
    "options": "Customer"
+  },
+  {
+   "description": "Fill in when the organization is not a customer yet. A Lead may link either a Prospect or a Customer, not both.",
+   "fieldname": "prospect",
+   "fieldtype": "Link",
+   "label": "Prospect",
+   "options": "Prospect"
   },
   {
    "fieldname": "campaign_name",
@@ -233,6 +263,7 @@
   {
    "fieldname": "fax",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Fax",
    "oldfieldname": "fax",
    "oldfieldtype": "Data"
@@ -248,6 +279,7 @@
   {
    "fieldname": "market_segment",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Market Segment",
    "oldfieldname": "market_segment",
    "oldfieldtype": "Select",
@@ -256,6 +288,7 @@
   {
    "fieldname": "industry",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Industry",
    "oldfieldname": "industry",
    "oldfieldtype": "Link",
@@ -264,10 +297,10 @@
   {
    "fieldname": "request_type",
    "fieldtype": "Select",
-   "label": "Request Type",
+   "label": "Purpose of Request",
    "oldfieldname": "request_type",
    "oldfieldtype": "Select",
-   "options": "\nProduct Enquiry\nRequest for Information\nSuggestions\nOther"
+   "options": "\nProduct Purchase\nQuotation Request\nTechnical Information\nDemonstration\nTesting\nConsultation\nPartnership\nTraining\nOther"
   },
   {
    "fieldname": "company",
@@ -288,7 +321,6 @@
   {
    "fieldname": "territory",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Territory",
    "oldfieldname": "territory",
@@ -341,6 +373,7 @@
   {
    "fieldname": "no_of_employees",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "No of Employees",
    "options": "1-10\n11-50\n51-200\n201-500\n501-1000\n1000+"
   },
@@ -371,6 +404,7 @@
    "collapsible": 1,
    "fieldname": "qualification_tab",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Qualification"
   },
   {
@@ -392,17 +426,20 @@
   {
    "fieldname": "qualified_by",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Qualified By",
    "options": "User"
   },
   {
    "fieldname": "qualified_on",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Qualified on"
   },
   {
    "fieldname": "qualification_status",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Qualification Status",
    "options": "Unqualified\nIn Process\nQualified"
   },
@@ -414,7 +451,8 @@
   },
   {
    "fieldname": "column_break_64",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "hidden": 1
   },
   {
    "fieldname": "column_break_20",
@@ -423,13 +461,13 @@
   {
    "fieldname": "job_title",
    "fieldtype": "Data",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
+   "hidden": 1,
    "label": "Job Title"
   },
   {
    "fieldname": "annual_revenue",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Annual Revenue"
   },
   {
@@ -510,6 +548,120 @@
    "fieldtype": "Tab Break",
    "label": "Connections",
    "show_dashboard": 1
+  },
+  {
+   "fieldname": "military_unit",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Military Unit",
+   "no_copy": 1,
+   "options": "Military Unit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_need_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Need"
+  },
+  {
+   "fieldname": "customer_need",
+   "fieldtype": "Small Text",
+   "label": "Customer Need"
+  },
+  {
+   "fieldname": "requirement_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Requirement"
+  },
+  {
+   "fieldname": "requirement",
+   "fieldtype": "Table",
+   "label": "Customer Requirement",
+   "options": "Lead Requirement"
+  },
+  {
+   "fieldname": "assessment_section",
+   "fieldtype": "Section Break",
+   "label": "Lead Assessment"
+  },
+  {
+   "fieldname": "conversion_probability",
+   "fieldtype": "Select",
+   "label": "Conversion Probability",
+   "options": "\nLow Probability\nMedium Probability\nHigh Probability"
+  },
+  {
+   "fieldname": "next_action_section",
+   "fieldtype": "Section Break",
+   "label": "Next Action Control"
+  },
+  {
+   "fieldname": "next_action",
+   "fieldtype": "Small Text",
+   "label": "Next Action"
+  },
+  {
+   "fieldname": "next_action_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Next Action Date"
+  },
+  {
+   "fieldname": "column_break_next_action",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "next_action_overdue",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Next Action Overdue",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.status == 'Postponed' || doc.return_date || doc.hold_reason",
+   "fieldname": "hold_section",
+   "fieldtype": "Section Break",
+   "label": "On Hold Details"
+  },
+  {
+   "fieldname": "return_date",
+   "fieldtype": "Date",
+   "label": "Return Date"
+  },
+  {
+   "fieldname": "hold_reason",
+   "fieldtype": "Small Text",
+   "label": "Hold Reason"
+  },
+  {
+   "depends_on": "eval:['Not Relevant', 'Lost'].includes(doc.status) || doc.close_reason",
+   "fieldname": "close_section",
+   "fieldtype": "Section Break",
+   "label": "Closing Details"
+  },
+  {
+   "fieldname": "close_reason",
+   "fieldtype": "Small Text",
+   "label": "Close Reason"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:(doc.status_reversals || []).length",
+   "fieldname": "reversal_section",
+   "fieldtype": "Section Break",
+   "label": "Status Reversal History"
+  },
+  {
+   "fieldname": "status_reversals",
+   "fieldtype": "Table",
+   "label": "Status Reversals",
+   "no_copy": 1,
+   "options": "Lead Status Reversal",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -533,6 +685,7 @@
   {
    "create": 1,
    "email": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,
@@ -542,7 +695,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "import": 1,

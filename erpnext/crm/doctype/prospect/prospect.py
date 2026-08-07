@@ -2,11 +2,13 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.contacts.address_and_contact import (
 	delete_contact_and_address,
 	load_address_and_contact,
 )
 from frappe.model.mapper import get_mapped_doc
+from frappe.utils import get_link_to_form
 
 from erpnext.crm.utils import CRMNote, copy_comments, link_communications, link_open_events
 
@@ -99,7 +101,15 @@ def make_customer(source_name, target_doc=None):
 		{
 			"Prospect": {
 				"doctype": "Customer",
-				"field_map": {"company_name": "customer_name", "currency": "default_currency", "fax": "fax"},
+				"field_map": {
+					"company_name": "customer_name",
+					"currency": "default_currency",
+					"fax": "fax",
+					"military_unit": "military_unit",
+					# Persisted so Customer.after_insert can find the Leads to repoint; flags set
+					# during mapping do not survive the client-side save of the mapped doc.
+					"name": "prospect",
+				},
 			}
 		},
 		target_doc,
@@ -154,3 +164,35 @@ def get_opportunities(prospect):
 			"name",
 		],
 	)
+
+
+def propagate_customer_to_leads(doc, method=None):
+	"""Repoint Leads of a Prospect that has just become a Customer.
+
+	`Customer.prospect` is set by `make_customer`, so this only fires for Customers created
+	through the Prospect conversion. Uses `db_set` rather than `save` so a Lead in a final
+	status can still be updated and so the Prospect/Customer exclusivity rule cannot trip
+	half-way through the write.
+	"""
+	if not doc.get("prospect"):
+		return
+
+	lead_names = set(frappe.get_all("Prospect Lead", filters={"parent": doc.prospect}, pluck="lead"))
+	lead_names |= set(frappe.get_all("Lead", filters={"prospect": doc.prospect}, pluck="name"))
+
+	for lead_name in filter(None, lead_names):
+		lead = frappe.get_doc("Lead", lead_name)
+		lead.db_set(
+			{
+				"customer": doc.name,
+				"prospect": None,
+				"military_unit": doc.get("military_unit"),
+			},
+			update_modified=False,
+		)
+		lead.add_comment(
+			"Comment",
+			_("Prospect {0} was converted to Customer {1}").format(
+				get_link_to_form("Prospect", doc.prospect), get_link_to_form("Customer", doc.name)
+			),
+		)
