@@ -7,12 +7,19 @@
  "engine": "InnoDB",
  "field_order": [
   "parcel_template_name",
+  "barcode",
   "length",
   "width",
   "height",
   "weight"
  ],
  "fields": [
+  {
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "label": "Barcode",
+   "unique": 1
+  },
   {
    "fieldname": "length",
    "fieldtype": "Float",
@@ -69,6 +76,27 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1
   }
  ],
  "quick_entry": 1,

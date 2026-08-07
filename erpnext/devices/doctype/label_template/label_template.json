@@ -1,0 +1,187 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:template_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "template_type",
+  "reference_doctype",
+  "source_field",
+  "data_fields",
+  "barcode_type",
+  "label_size",
+  "padding_top_mm",
+  "padding_right_mm",
+  "padding_bottom_mm",
+  "padding_left_mm",
+  "column_break_details",
+  "description",
+  "template_section",
+  "html_template",
+  "field_mapping",
+  "preview_data",
+  "preview_section",
+  "preview_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "label": "Template Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "depends_on": "eval:doc.template_type=='From DocType'",
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference DocType",
+   "options": "DocType",
+   "mandatory_depends_on": "eval:doc.template_type=='From DocType'"
+  },
+  {
+   "depends_on": "eval:doc.template_type=='From DocType' && doc.reference_doctype",
+   "description": "Field on parent doc with newline-separated references (e.g. serial_no)",
+   "fieldname": "source_field",
+   "fieldtype": "Select",
+   "label": "Source Field"
+  },
+  {
+   "depends_on": "eval:doc.template_type=='Raw Data'",
+   "description": "Comma-separated field names for raw data input (e.g. serial_no,item_name). Leave empty for single-value input (accessible as doc.name).",
+   "fieldname": "data_fields",
+   "fieldtype": "Data",
+   "label": "Data Fields"
+  },
+  {
+   "depends_on": "eval:doc.template_type=='Barcode'",
+   "fieldname": "barcode_type",
+   "fieldtype": "Select",
+   "label": "Barcode Type",
+   "options": "\nEAN\nUPC-A\nCODE-39\nEAN-12\nEAN-8\nGS1\nGTIN\nISBN\nISBN-10\nISBN-13\nISSN\nJAN\nPZN\nUPC\nCODE128",
+   "mandatory_depends_on": "eval:doc.template_type=='Barcode'"
+  },
+  {
+   "fieldname": "label_size",
+   "fieldtype": "Link",
+   "label": "Label Size",
+   "options": "Label Size",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Top padding in mm applied to the label body wrapper",
+   "fieldname": "padding_top_mm",
+   "fieldtype": "Float",
+   "label": "Padding Top (mm)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "padding_right_mm",
+   "fieldtype": "Float",
+   "label": "Padding Right (mm)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "padding_bottom_mm",
+   "fieldtype": "Float",
+   "label": "Padding Bottom (mm)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "padding_left_mm",
+   "fieldtype": "Float",
+   "label": "Padding Left (mm)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "From DocType",
+   "fieldname": "template_type",
+   "fieldtype": "Select",
+   "label": "Template Type",
+   "options": "From DocType\nRaw Data\nBarcode\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "template_section",
+   "fieldtype": "Section Break",
+   "label": "Template"
+  },
+  {
+   "description": "Body content only. The &lt;html&gt;, &lt;head&gt;, and &lt;body&gt; wrapper with exact label dimensions is added automatically.",
+   "fieldname": "html_template",
+   "fieldtype": "Code",
+   "label": "HTML Template",
+   "options": "HTML"
+  },
+  {
+   "description": "Maps template field names to data sources. Format: {\"field\": {\"source\": \"spec\", \"param\": \"Parameter Name\", \"transform\": \"chemistry\"}}. Supported transforms: chemistry (2S/4S... \u2192 Po/ion).",
+   "fieldname": "field_mapping",
+   "fieldtype": "Code",
+   "label": "Field Mapping (JSON)",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "preview_data",
+   "fieldtype": "Code",
+   "label": "Preview Data (JSON)",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "preview_section",
+   "fieldtype": "Section Break",
+   "label": "Preview"
+  },
+  {
+   "fieldname": "preview_html",
+   "fieldtype": "HTML",
+   "label": "Preview"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-20 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Label Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Device Operator"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

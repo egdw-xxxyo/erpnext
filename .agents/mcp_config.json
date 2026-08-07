@@ -1,0 +1,63 @@
+{
+  "mcpServers": {
+    "erp-local": {
+      "command": "node",
+      "args": [
+        "/Users/xxxyo/mcp/erpnext-mcp-server/build/index.js"
+      ],
+      "env": {
+        "ERPNEXT_URL": "http://localhost:8080",
+        "ERPNEXT_API_KEY": "75a54d2cbf1f69d",
+        "ERPNEXT_API_SECRET": "1ef9f105fb06379"
+      }
+    },
+    "erp-dev": {
+      "command": "node",
+      "args": [
+        "/Users/xxxyo/mcp/erpnext-mcp-server/build/index.js"
+      ],
+      "env": {
+        "ERPNEXT_URL": "http://172.16.105.103:8080",
+        "ERPNEXT_API_KEY": "e261084a4bd8430",
+        "ERPNEXT_API_SECRET": "07d92d2c19592c2"
+      }
+    },
+    "erp-prod": {
+      "command": "node",
+      "args": [
+        "/Users/xxxyo/mcp/erpnext-mcp-server/build/index.js"
+      ],
+      "env": {
+        "ERPNEXT_URL": "http://172.16.105.102:8080",
+        "ERPNEXT_API_KEY": "6ed9df2d37ea6e5",
+        "ERPNEXT_API_SECRET": "bfdb046a5a30eff"
+      }
+    },
+    "erp-dev-ssh-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "ssh-mcp",
+        "--",
+        "--host=172.16.105.103",
+        "--port=22",
+        "--user=sergadm",
+        "--password=Pa$$4access2026$x"
+      ],
+      "env": {}
+    },
+    "erp-prod-ssh-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "ssh-mcp",
+        "--",
+        "--host=172.16.105.102",
+        "--port=22",
+        "--user=sergadm",
+        "--password=Pa$$4access2026$x"
+      ],
+      "env": {}
+    }
+  }
+}

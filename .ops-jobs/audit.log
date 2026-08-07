@@ -1,0 +1,49 @@
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:03:53+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:04:34+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:05:06+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:07:44+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:07:45+0000", "user": "xxxyo"}
+{"action": "sftp-config-save", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/db_local", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-01T22:08:47+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:11:39+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: could not stage SFTP credentials on host: service \"backend\" is not running", "ts": "2026-09-01T22:11:45+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:12:04+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: curl: (9) Could not open directory for reading: Permission denied", "ts": "2026-09-01T22:12:06+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/db_local", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: curl: (78) Could not open directory for reading: No such file or directory", "ts": "2026-09-01T22:12:12+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/db_local", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: curl: (78) Could not open directory for reading: No such file or directory", "ts": "2026-09-01T22:12:31+0000", "user": "xxxyo"}
+{"action": "sftp-config-save", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-01T22:12:39+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: could not stage SFTP credentials on host: service \"backend\" is not running", "ts": "2026-09-01T22:12:40+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:15:16+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: ./deploy: line 839: curl: command not found", "ts": "2026-09-01T22:15:20+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-01T22:15:53+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: curl: (2) Failed initialization", "ts": "2026-09-01T22:15:53+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: timed out", "ts": "2026-09-01T22:18:26+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:35:10+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:35:12+0000", "user": "xxxyo"}
+{"action": "sftp-config-save", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-02T07:35:47+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: timed out", "ts": "2026-09-02T07:35:48+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: timed out", "ts": "2026-09-02T07:36:09+0000", "user": "xxxyo"}
+{"action": "sftp-config-save", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/bd_backup", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-02T07:39:24+0000", "user": "xxxyo"}
+{"action": "sftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 22, "remote_dir": "/bd_backup", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: timed out", "ts": "2026-09-02T07:39:45+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:49:24+0000", "user": "xxxyo"}
+{"action": "ftp-config-test", "args": {"host": "test.rebex.net", "port": 21, "remote_dir": "/", "username": "demo"}, "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:49:25+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:51:22+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:51:23+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T07:51:34+0000", "user": "xxxyo"}
+{"action": "ftp-config-save", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 21, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-02T07:52:04+0000", "user": "xxxyo"}
+{"action": "ftp-config-test", "args": {"host": "bh5.tuchastore.tucha13.net", "port": 21, "remote_dir": "/", "username": "a20260142.customers"}, "client_ip": "172.19.0.1", "result": "failed: timed out", "ts": "2026-09-02T07:52:25+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T08:23:17+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T08:36:26+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T08:50:27+0000", "user": "xxxyo"}
+{"action": "ftp-config-save", "args": {"host": "example.com", "name": "Temp dev test", "port": 21, "remote_dir": "/", "username": "u"}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-02T08:51:02+0000", "user": "xxxyo"}
+{"action": "ftp-config-delete", "args": {"host": "example.com", "name": "Temp dev test", "port": 21, "remote_dir": "/", "username": "u"}, "client_ip": "172.19.0.1", "result": "deleted", "ts": "2026-09-02T08:51:09+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T10:19:43+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T10:20:03+0000", "user": "xxxyo"}
+{"action": "space-clean", "args": {}, "client_ip": "172.19.0.1", "job_id": "3cb3bd3050584e34", "result": "launched", "ts": "2026-09-02T10:20:03+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T10:40:35+0000", "user": "xxxyo"}
+{"action": "git-key-save", "args": {}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-02T10:40:50+0000", "user": "xxxyo"}
+{"action": "git-key-test", "args": {}, "client_ip": "172.19.0.1", "result": "failed: bash: line 2: ssh: command not found", "ts": "2026-09-02T10:40:54+0000", "user": "xxxyo"}
+{"action": "login", "client_ip": "172.19.0.1", "result": "ok", "ts": "2026-09-02T10:41:59+0000", "user": "xxxyo"}
+{"action": "git-key-save", "args": {}, "client_ip": "172.19.0.1", "result": "saved", "ts": "2026-09-02T10:41:59+0000", "user": "xxxyo"}
+{"action": "git-key-test", "args": {}, "client_ip": "172.19.0.1", "result": "failed: Warning: Permanently added 'github.com' (ED25519) to the list of known hosts.\ngit@github.com: Permission denied (publickey).", "ts": "2026-09-02T10:42:00+0000", "user": "xxxyo"}
+{"action": "update-repo", "args": {}, "client_ip": "172.19.0.1", "job_id": "25700702ff0649b4", "result": "launched", "ts": "2026-09-02T10:42:20+0000", "user": "xxxyo"}
+{"action": "git-key-delete", "args": {}, "client_ip": "172.19.0.1", "result": "deleted", "ts": "2026-09-02T10:42:37+0000", "user": "xxxyo"}

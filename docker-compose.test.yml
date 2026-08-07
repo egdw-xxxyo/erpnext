@@ -1,0 +1,17 @@
+services:
+  backend:
+    image: erpnext-full:v15.96.1
+  frontend:
+    image: erpnext-full:v15.96.1
+  queue-short:
+    image: erpnext-full:v15.96.1
+  queue-long:
+    image: erpnext-full:v15.96.1
+  scheduler:
+    image: erpnext-full:v15.96.1
+  websocket:
+    image: erpnext-full:v15.96.1
+  configurator:
+    image: erpnext-full:v15.96.1
+  create-site:
+    image: erpnext-full:v15.96.1

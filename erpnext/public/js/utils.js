@@ -551,6 +551,23 @@ $.extend(erpnext.utils, {
 		return fiscal_year;
 	},
 
+	set_military_unit_from_party: function (frm, party_type, party_name) {
+		if (!frm.fields_dict.military_unit) return;
+
+		if (!party_type || !party_name) {
+			frm.set_value("military_unit", null);
+			return;
+		}
+
+		frappe.call({
+			method: "erpnext.crm.utils.get_party_military_unit",
+			args: { party_type: party_type, party_name: party_name },
+			callback: function (r) {
+				frm.set_value("military_unit", r.message || null);
+			},
+		});
+	},
+
 	set_letter_head: function (frm) {
 		if (frm.fields_dict.letter_head) {
 			frappe.db.get_value("Company", frm.doc.company, "default_letter_head").then((res) => {

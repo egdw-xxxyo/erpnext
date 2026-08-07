@@ -1,4 +1,8 @@
 frappe.ui.form.on("Issue", {
+	customer: function (frm) {
+		erpnext.utils.set_military_unit_from_party(frm, "Customer", frm.doc.customer);
+	},
+
 	onload: function (frm) {
 		frm.email_field = "raised_by";
 

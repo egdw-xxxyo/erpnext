@@ -1,0 +1,275 @@
+#!/bin/bash
+set -e
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+ERPNEXT_VERSION="v15.96.1"
+INSIGHTS_REPO="https://github.com/egdw-xxxyo/insights.git"
+INSIGHTS_BRANCH="version-3"
+SITE_CONFIG="$DIR/site-config.json"
+
+dc() {
+  if docker compose version &>/dev/null; then
+    docker compose -p docker -f "$DIR/docker-compose.yml" "$@"
+  else
+    docker-compose -p docker -f "$DIR/docker-compose.yml" "$@"
+  fi
+}
+
+is_insights_enabled() {
+  python3 -c "import json; c=json.load(open('$SITE_CONFIG')); exit(0 if c.get('insights_enabled') else 1)" 2>/dev/null
+}
+
+is_insights_installed() {
+  dc exec -T backend bash -c 'test -d /home/frappe/frappe-bench/apps/insights' 2>/dev/null
+}
+
+set_config_flag() {
+  # Set insights_enabled in site-config.json
+  local VALUE="$1"
+  python3 -c "
+import json
+with open('$SITE_CONFIG') as f:
+    c = json.load(f)
+c['insights_enabled'] = $VALUE
+with open('$SITE_CONFIG', 'w') as f:
+    json.dump(c, f, indent=2, ensure_ascii=False)
+    f.write('\n')
+"
+}
+
+ensure_build_deps_for() {
+  local CID="$1"
+  docker exec -u root "$CID" bash -c '
+    if ! command -v pkg-config &>/dev/null; then
+      apt-get update -qq && apt-get install -y -qq --no-install-recommends pkg-config libmariadb-dev gcc >/dev/null 2>&1
+    fi
+  '
+}
+
+ensure_build_deps() {
+  for SERVICE in backend queue-short queue-long scheduler; do
+    CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+    if [ -n "$CID" ]; then
+      ensure_build_deps_for "$CID"
+    fi
+  done
+}
+
+ensure_apps_txt() {
+  dc exec -T backend bash -c '
+    grep -q insights /home/frappe/frappe-bench/sites/apps.txt 2>/dev/null || echo insights >> /home/frappe/frappe-bench/sites/apps.txt
+  ' 2>/dev/null
+}
+
+
+sync_worker() {
+  local CID="$1"
+  # Remove old insights dir first (may have root-owned files from previous installs)
+  docker exec -u root "$CID" rm -rf /home/frappe/frappe-bench/apps/insights 2>/dev/null || true
+  docker exec docker-backend-1 tar -cf - -C /home/frappe/frappe-bench/apps insights | \
+    docker exec -i "$CID" tar -xf - -C /home/frappe/frappe-bench/apps/
+  ensure_build_deps_for "$CID"
+  docker exec "$CID" bash -c "cd /home/frappe/frappe-bench && ./env/bin/pip install -e apps/insights 2>&1" | tail -1
+}
+
+ensure_workers() {
+  local NEEDS_RESTART=""
+  for SERVICE in queue-short queue-long scheduler; do
+    CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+    if [ -n "$CID" ]; then
+      if ! docker exec "$CID" bash -c 'cd /home/frappe/frappe-bench && ./env/bin/python -c "import insights" 2>/dev/null'; then
+        echo "  -> Syncing insights to $SERVICE..."
+        sync_worker "$CID"
+        NEEDS_RESTART="$NEEDS_RESTART $SERVICE"
+      fi
+    fi
+  done
+  if [ -n "$NEEDS_RESTART" ]; then
+    echo "  -> Restarting workers..."
+    dc restart $NEEDS_RESTART 2>/dev/null
+    sleep 3
+    echo "  -> Re-syncing after restart..."
+    for SERVICE in $NEEDS_RESTART; do
+      CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+      if [ -n "$CID" ]; then
+        sync_worker "$CID"
+      fi
+    done
+  fi
+}
+
+fix_assets() {
+  local FRONTEND_CID
+  FRONTEND_CID=$(dc ps -q frontend 2>/dev/null)
+  if [ -z "$FRONTEND_CID" ]; then
+    echo "  WARNING: frontend container not running, skipping asset fix"
+    return 0
+  fi
+
+  echo "  -> Syncing all assets to frontend container..."
+  local ASSET_APPS="frappe erpnext insights"
+  local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext /home/frappe/frappe-bench/sites/assets/insights"
+  if docker exec docker-backend-1 test -d /home/frappe/frappe-bench/sites/assets/hrms 2>/dev/null; then
+    ASSET_APPS="$ASSET_APPS hrms"
+    ASSET_RM="$ASSET_RM /home/frappe/frappe-bench/sites/assets/hrms"
+  fi
+  docker exec -u root "$FRONTEND_CID" bash -c "$ASSET_RM"
+  docker exec docker-backend-1 tar -chf - -C /home/frappe/frappe-bench/sites/assets $ASSET_APPS assets.json assets-rtl.json | \
+    docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/
+}
+
+install_insights() {
+  if is_insights_installed; then
+    echo "==> Insights already installed, ensuring config..."
+    ensure_apps_txt
+    ensure_workers
+    fix_assets
+    dc exec -T backend bench --site frontend clear-cache 2>/dev/null
+    return 0
+  fi
+
+  echo "==> Installing Frappe Insights..."
+
+  echo "  -> Installing build dependencies..."
+  ensure_build_deps
+
+  echo "  -> Getting app from GitHub..."
+  dc exec -T backend bash -c "
+    cd /home/frappe/frappe-bench &&
+    bench get-app --branch $INSIGHTS_BRANCH --skip-assets $INSIGHTS_REPO
+  "
+
+  echo "  -> Building frontend assets (all apps)..."
+  dc exec -T backend bash -c "
+    cd /home/frappe/frappe-bench &&
+    bench build 2>&1 | tail -5
+  "
+
+  echo "  -> Adding insights to apps.txt..."
+  ensure_apps_txt
+
+  echo "  -> Installing app on site..."
+  dc exec -T backend bash -c "
+    cd /home/frappe/frappe-bench &&
+    bench --site frontend install-app insights --force 2>&1
+  "
+
+  echo "  -> Syncing to worker containers..."
+  ensure_workers
+
+  echo "  -> Fixing assets for nginx..."
+  fix_assets
+
+  echo "  -> Clearing cache and restarting..."
+  dc exec -T backend bench --site frontend clear-cache
+  dc restart backend queue-short queue-long scheduler frontend websocket
+  sleep 5
+
+  echo "  -> Final worker sync after restart..."
+  for SERVICE in queue-short queue-long scheduler; do
+    CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+    if [ -n "$CID" ]; then
+      sync_worker "$CID"
+    fi
+  done
+
+  echo "==> Insights installed! Access at http://localhost:8080/insights"
+}
+
+uninstall_insights() {
+  echo "==> Uninstalling Insights..."
+
+  echo "  -> Uninstalling app from site..."
+  dc exec -T backend bash -c "
+    cd /home/frappe/frappe-bench &&
+    bench --site frontend uninstall-app insights --yes 2>/dev/null || true &&
+    bench remove-app insights --no-backup 2>/dev/null || true
+  "
+
+  echo "  -> Cleaning up database references..."
+  dc exec -T db bash -c 'mysql -u root -padmin _5e5899d8398b5f7b <<SQL
+-- Remove insights from installed_apps in DefaultValue
+UPDATE \`tabDefaultValue\`
+  SET defvalue = REPLACE(REPLACE(defvalue, ", \"insights\"", ""), "\"insights\", ", "")
+  WHERE defkey = "installed_apps" AND defvalue LIKE "%insights%";
+-- Drop all Insights tables and metadata
+DROP PROCEDURE IF EXISTS drop_insights;
+DELIMITER //
+CREATE PROCEDURE drop_insights()
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE dt_name VARCHAR(255);
+  DECLARE cur CURSOR FOR SELECT name FROM \`tabDocType\` WHERE module = "Insights";
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+  OPEN cur;
+  read_loop: LOOP
+    FETCH cur INTO dt_name;
+    IF done THEN LEAVE read_loop; END IF;
+    SET @s = CONCAT("DROP TABLE IF EXISTS \`tab", dt_name, "\`");
+    PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+  END LOOP;
+  CLOSE cur;
+END //
+DELIMITER ;
+CALL drop_insights();
+DROP PROCEDURE IF EXISTS drop_insights;
+DELETE FROM \`tabDocType\` WHERE module = "Insights";
+DELETE FROM \`tabDocField\` WHERE parent LIKE "Insights%";
+DELETE FROM \`tabDocPerm\` WHERE parent LIKE "Insights%";
+DELETE FROM \`tabProperty Setter\` WHERE doc_type LIKE "Insights%";
+DELETE FROM \`tabModule Def\` WHERE name = "Insights";
+DELETE FROM \`tabRole\` WHERE name LIKE "Insights%";
+DELETE FROM \`tabHas Role\` WHERE role LIKE "Insights%";
+DELETE FROM \`tabCustom Role\` WHERE ref_doctype LIKE "Insights%";
+DELETE FROM \`tabInstalled Application\` WHERE app_name = "insights";
+SQL
+  ' 2>/dev/null || true
+
+  echo "  -> Removing from workers..."
+  for SERVICE in queue-short queue-long scheduler; do
+    CID=$(dc ps -q "$SERVICE" 2>/dev/null)
+    if [ -n "$CID" ]; then
+      docker exec "$CID" bash -c "rm -rf /home/frappe/frappe-bench/apps/insights" 2>/dev/null || true
+      docker exec "$CID" bash -c "cd /home/frappe/frappe-bench && ./env/bin/pip uninstall -y insights" 2>/dev/null || true
+    fi
+  done
+
+  echo "  -> Removing from apps.txt..."
+  dc exec -T backend bash -c "sed -i '/insights/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+
+  dc exec -T backend bench --site frontend clear-cache
+  dc restart backend queue-short queue-long scheduler frontend websocket
+  sleep 3
+
+  echo "Insights fully removed."
+}
+
+case "${1:-}" in
+  install)
+    set_config_flag 1
+    echo "Set insights_enabled=1 in site-config.json"
+    install_insights
+    ;;
+
+  uninstall)
+    uninstall_insights
+    set_config_flag 0
+    echo "Set insights_enabled=0 in site-config.json"
+    ;;
+
+  auto)
+    # Called from ./deploy — only install/ensure if enabled
+    if is_insights_enabled; then
+      install_insights
+    fi
+    ;;
+
+  *)
+    if is_insights_enabled; then
+      echo "Insights: enabled (insights_enabled=1 in site-config.json)"
+    else
+      echo "Insights: disabled"
+    fi
+    echo "Usage: ./insights {install|uninstall}"
+    ;;
+esac

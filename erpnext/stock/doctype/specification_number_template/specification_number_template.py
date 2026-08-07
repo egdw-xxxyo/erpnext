@@ -1,0 +1,90 @@
+import frappe
+from frappe.model.document import Document
+
+
+class SpecificationNumberTemplate(Document):
+	def validate(self):
+		self.preview = self._build_preview()
+
+	def _build_preview(self):
+		parts = []
+		for c in self.components or []:
+			token = _component_token(c)
+			if c.condition_attribute and c.condition_value:
+				token = f"[if {c.condition_attribute}={c.condition_value}]{token}"
+			parts.append(token)
+		return "".join(parts)
+
+
+def _component_token(c):
+	t = c.component_type
+	if t == "Literal":
+		return c.value or ""
+	if t == "Item Attribute Abbr":
+		return "{ATTR:" + (c.attribute_link or "") + ":abbr}"
+	if t == "Item Attribute Short Name":
+		return "{ATTR:" + (c.attribute_link or "") + ":short_name}"
+	if t == "Item Attribute Value":
+		return "{ATTR:" + (c.attribute_link or "") + ":value}"
+	return ""
+
+
+def _condition_matches(component, attr_map):
+	if not component.condition_attribute:
+		return True
+	if not component.condition_value:
+		return True
+	actual = attr_map.get(component.condition_attribute)
+	if actual is None:
+		return False
+	allowed = {v.strip() for v in component.condition_value.split(",") if v.strip()}
+	return str(actual) in allowed
+
+
+def resolve_specification_template(item_doc):
+	"""Resolve Specification Number Template for an Item variant.
+
+	Reads item_doc.specification_number_template + item_doc.attributes; returns the assembled
+	specification string, or None if no template / unresolved attributes.
+	"""
+	tmpl_name = item_doc.get("specification_number_template")
+	if not tmpl_name:
+		return None
+	if not frappe.db.exists("Specification Number Template", tmpl_name):
+		return None
+	tmpl = frappe.get_cached_doc("Specification Number Template", tmpl_name)
+	attr_map = {a.attribute: a.attribute_value for a in (item_doc.get("attributes") or [])}
+
+	parts = []
+	for c in tmpl.components or []:
+		if not _condition_matches(c, attr_map):
+			continue
+		t = c.component_type
+		if t == "Literal":
+			parts.append(c.value or "")
+			continue
+		attr = c.attribute_link
+		if not attr:
+			continue
+		attr_value = attr_map.get(attr)
+		if attr_value is None:
+			return None
+		if t == "Item Attribute Value":
+			parts.append(str(attr_value))
+			continue
+		field = {"Item Attribute Abbr": "abbr", "Item Attribute Short Name": "short_name"}.get(t)
+		if not field:
+			continue
+		resolved = frappe.db.get_value(
+			"Item Attribute Value",
+			{"parent": attr, "attribute_value": attr_value},
+			field,
+		)
+		if not resolved:
+			return None
+		parts.append(str(resolved))
+	result = "".join(parts)
+	for ov in tmpl.get("overrides") or []:
+		if ov.original_value and ov.original_value == result:
+			return ov.override_value or result
+	return result

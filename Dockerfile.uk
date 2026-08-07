@@ -1,0 +1,46 @@
+ARG ERPNEXT_VERSION=v15.96.1
+FROM frappe/erpnext:${ERPNEXT_VERSION}
+
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
+
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow
+
+# ERPNext translations (replaces stock)
+COPY erpnext/translations/uk.csv /home/frappe/frappe-bench/apps/erpnext/erpnext/translations/uk.csv
+COPY erpnext/locale/uk.po /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po
+RUN mkdir -p /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES && \
+    msgfmt /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk.po \
+      -o /home/frappe/frappe-bench/apps/erpnext/erpnext/locale/uk/LC_MESSAGES/erpnext.mo && \
+    echo "Compiled erpnext.mo"
+
+# Frappe translations (from submodule — already merged)
+COPY frappe/frappe/translations/uk.csv /home/frappe/frappe-bench/apps/frappe/frappe/translations/uk.csv
+COPY frappe/frappe/locale/uk.po /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po
+RUN mkdir -p /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES && \
+    msgfmt /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk.po \
+      -o /home/frappe/frappe-bench/apps/frappe/frappe/locale/uk/LC_MESSAGES/frappe.mo && \
+    echo "Compiled frappe.mo"
+
+# Custom doctypes — manufacturing
+COPY erpnext/manufacturing/doctype/workplace/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace/
+COPY erpnext/manufacturing/doctype/workplace_operation/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace_operation/
+COPY erpnext/manufacturing/doctype/workplace_employee/ /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/workplace_employee/
+COPY erpnext/manufacturing/doctype/job_card/job_card.json /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/doctype/job_card/job_card.json
+COPY erpnext/manufacturing/workspace/manufacturing/manufacturing.json /home/frappe/frappe-bench/apps/erpnext/erpnext/manufacturing/workspace/manufacturing/manufacturing.json
+
+# Custom doctypes — stock (serial number templates)
+COPY erpnext/stock/doctype/serial_number_template/ /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/serial_number_template/
+COPY erpnext/stock/doctype/serial_number_template_component/ /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/serial_number_template_component/
+COPY erpnext/stock/doctype/item/item.json /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.json
+COPY erpnext/stock/doctype/item/item.js /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.js
+COPY erpnext/stock/doctype/item/item.py /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/doctype/item/item.py
+COPY erpnext/stock/serial_batch_bundle.py /home/frappe/frappe-bench/apps/erpnext/erpnext/stock/serial_batch_bundle.py
+COPY erpnext/controllers/item_variant.py /home/frappe/frappe-bench/apps/erpnext/erpnext/controllers/item_variant.py
+
+# Custom Frappe fork — print page
+COPY frappe/frappe/printing/page/print/print.js /home/frappe/frappe-bench/apps/frappe/frappe/printing/page/print/print.js
+COPY frappe/frappe/printing/doctype/print_format/print_format.json /home/frappe/frappe-bench/apps/frappe/frappe/printing/doctype/print_format/print_format.json
+
+USER frappe

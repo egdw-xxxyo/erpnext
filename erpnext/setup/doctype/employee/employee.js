@@ -33,6 +33,10 @@ frappe.ui.form.on("Employee", {
 		};
 	},
 
+	attendance_device_id: function (frm) {
+		frm._barcode_field && frm._barcode_field.refresh();
+	},
+
 	onload: function (frm) {
 		frm.set_query("department", function () {
 			return {
@@ -44,6 +48,9 @@ frappe.ui.form.on("Employee", {
 	},
 
 	refresh: function (frm) {
+		setup_employee_barcode(frm);
+		setup_employee_print_labels(frm);
+
 		frm.fields_dict.date_of_birth.datepicker?.update({ maxDate: new Date() });
 
 		if (!frm.is_new() && !frm.doc.user_id) {
@@ -176,3 +183,58 @@ frappe.tour["Employee"] = [
 		),
 	},
 ];
+
+function setup_employee_print_labels(frm) {
+	if (frm.is_new()) return;
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Label Template",
+			filters: { reference_doctype: "Employee" },
+			fields: ["name"],
+		},
+		callback: function (r) {
+			let templates = (r.message || []).map((t) => ({ label_template: t.name }));
+			if (!templates.length) return;
+			frm.page.add_menu_item(__("Print Labels"), function () {
+				erpnext.utils.open_simple_label_print_dialog({
+					doctype: "Employee",
+					doc_name: frm.doc.name,
+					label_templates: templates,
+				});
+			});
+		},
+	});
+}
+
+function setup_employee_barcode(frm) {
+	if (!frm.fields_dict.attendance_device_id) return;
+
+	const $wrapper = frm.fields_dict.attendance_device_id.$wrapper;
+	$wrapper.find(".btn-generate-barcode").remove();
+
+	if (!frm.doc.attendance_device_id) {
+		const $btn = $(`<button class="btn btn-xs btn-default btn-generate-barcode" style="margin-top: 6px;">
+			${__("Generate Barcode")}
+		</button>`);
+		$wrapper.find(".help-box").before($btn);
+		$btn.on("click", () => {
+			const hash = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("")
+				.toUpperCase();
+			frm.set_value("attendance_device_id", `EMP-${hash}`);
+			frm.dirty();
+		});
+	}
+
+	if (!frm._barcode_field) {
+		frm._barcode_field = new erpnext.BarcodeField({
+			frm,
+			fieldname: "attendance_device_id",
+			barcode_type: "CODE128",
+			format: "CODE128",
+		});
+	}
+	frm._barcode_field.refresh();
+}

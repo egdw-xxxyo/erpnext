@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-07-23 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "thread",
+  "thread_doctype",
+  "user",
+  "column_break_details",
+  "alg",
+  "granted_by",
+  "key_section",
+  "wrapped_thread_key",
+  "ephemeral_public_key"
+ ],
+ "fields": [
+  {
+   "description": "Chat Thread name, or WhatsApp Chat name for sealed WhatsApp conversations",
+   "fieldname": "thread",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Thread",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Chat Thread",
+   "fieldname": "thread_doctype",
+   "fieldtype": "Select",
+   "label": "Thread DocType",
+   "options": "Chat Thread\nWhatsApp Chat"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "ECDH-ES-P256-A256GCM",
+   "fieldname": "alg",
+   "fieldtype": "Data",
+   "label": "Algorithm"
+  },
+  {
+   "description": "Who wrapped this key for the user (the participant's browser, or the server for sealed WhatsApp ingest)",
+   "fieldname": "granted_by",
+   "fieldtype": "Data",
+   "label": "Granted By"
+  },
+  {
+   "fieldname": "key_section",
+   "fieldtype": "Section Break",
+   "label": "Key"
+  },
+  {
+   "description": "Thread key wrapped for this user's public key. Only their private key opens it.",
+   "fieldname": "wrapped_thread_key",
+   "fieldtype": "Long Text",
+   "label": "Wrapped Thread Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ephemeral_public_key",
+   "fieldtype": "Long Text",
+   "label": "Ephemeral Public Key",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Chat Thread Key",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Employee"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

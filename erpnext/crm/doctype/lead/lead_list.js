@@ -1,9 +1,60 @@
+const LEAD_FINAL_STATUSES = ["Converted to Opportunity", "Not Relevant", "Lost"];
+
+const LEAD_STATUS_COLOURS = {
+	"New Request": "blue",
+	Contacted: "orange",
+	"Requirement Gathering": "purple",
+	"Awaiting Response": "yellow",
+	Postponed: "gray",
+	"Converted to Opportunity": "green",
+	"Not Relevant": "gray",
+	Lost: "red",
+};
+
 frappe.listview_settings["Lead"] = {
+	add_fields: ["status", "lead_owner", "military_unit", "next_action_date", "next_action_overdue"],
+	// Closed Leads stay out of the way until someone asks for them explicitly.
+	filters: [["status", "not in", LEAD_FINAL_STATUSES]],
+	// Plain ASC would float Leads without a date above the urgent ones, so park them last.
+	order_by: "ifnull(`tabLead`.next_action_date, '2999-12-31') asc",
 	get_indicator: function (doc) {
-		var indicator = [__(doc.status), frappe.utils.guess_colour(doc.status), "status,=," + doc.status];
-		return indicator;
+		if (doc.next_action_overdue && !LEAD_FINAL_STATUSES.includes(doc.status)) {
+			return [__("Overdue"), "red", "next_action_overdue,=,1"];
+		}
+		return [
+			__(doc.status),
+			LEAD_STATUS_COLOURS[doc.status] || frappe.utils.guess_colour(doc.status),
+			"status,=," + doc.status,
+		];
 	},
 	onload: function (listview) {
+		const apply_preset = (filters) => {
+			listview.filter_area.clear().then(() => {
+				listview.filter_area.add(filters).then(() => listview.refresh());
+			});
+		};
+
+		listview.page.add_inner_button(
+			__("My Leads"),
+			() => apply_preset([["Lead", "owner", "=", frappe.session.user]]),
+			__("Filters")
+		);
+		listview.page.add_inner_button(
+			__("Assigned to Me"),
+			() => apply_preset([["Lead", "lead_owner", "=", frappe.session.user]]),
+			__("Filters")
+		);
+		listview.page.add_inner_button(
+			__("Active Leads"),
+			() => apply_preset([["Lead", "status", "not in", LEAD_FINAL_STATUSES]]),
+			__("Filters")
+		);
+		listview.page.add_inner_button(
+			__("Overdue Next Action"),
+			() => apply_preset([["Lead", "next_action_overdue", "=", 1]]),
+			__("Filters")
+		);
+
 		if (frappe.boot.user.can_create.includes("Prospect")) {
 			listview.page.add_action_item(__("Create Prospect"), function () {
 				frappe.model.with_doctype("Prospect", function () {

@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:workplace_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "details_tab",
+  "workplace_name",
+  "short_name",
+  "company",
+  "column_break_details",
+  "is_active",
+  "barcode",
+  "description",
+  "operations_tab",
+  "allowed_operations",
+  "employees_tab",
+  "allowed_employees",
+  "scanner_tab",
+  "workplace_script",
+  "printers_tab",
+  "printers"
+ ],
+ "fields": [
+  {
+   "fieldname": "details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "workplace_name",
+   "fieldtype": "Data",
+   "label": "Workplace Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "short_name",
+   "fieldtype": "Data",
+   "label": "Short Name",
+   "description": "Optional short identifier for use in labels and reports"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "label": "Barcode",
+   "options": "Barcode",
+   "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "operations_tab",
+   "fieldtype": "Tab Break",
+   "label": "Allowed Operations"
+  },
+  {
+   "fieldname": "allowed_operations",
+   "fieldtype": "Table",
+   "label": "Allowed Operations",
+   "options": "Workplace Operation"
+  },
+  {
+   "fieldname": "employees_tab",
+   "fieldtype": "Tab Break",
+   "label": "Employees"
+  },
+  {
+   "fieldname": "allowed_employees",
+   "fieldtype": "Table",
+   "label": "Employees",
+   "options": "Workplace Employee"
+  },
+  {
+   "fieldname": "scanner_tab",
+   "fieldtype": "Tab Break",
+   "label": "Scanner"
+  },
+  {
+   "fieldname": "workplace_script",
+   "fieldtype": "Link",
+   "label": "Workplace Script",
+   "options": "Workplace Script",
+   "read_only": 1,
+   "description": "Automatically linked from the Workplace Script that references this workplace"
+  },
+  {
+   "fieldname": "printers_tab",
+   "fieldtype": "Tab Break",
+   "label": "Printers"
+  },
+  {
+   "fieldname": "printers",
+   "fieldtype": "Table",
+   "label": "Printers",
+   "options": "Workplace Printer"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Workplace",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

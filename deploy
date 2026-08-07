@@ -1,0 +1,471 @@
+#!/bin/bash
+set -e
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+ERPNEXT_VERSION="v16.31.1"
+IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
+
+# Set by the build/migrate handlers when --silent is passed. When 1, the say()
+# helper suppresses '==>' progress labels; per-step stdout is also routed to
+# /dev/null inside run_deploy. Errors still surface because set -e fires on
+# non-zero exit, and stderr is preserved for any step that prints to it.
+DEPLOY_SILENT=0
+say() {
+  if [ "$DEPLOY_SILENT" != "1" ]; then
+    echo "$@"
+  fi
+}
+
+DEPLOY_ENV_FILE="$DIR/.deploy-env"
+if [ -f "$DEPLOY_ENV_FILE" ]; then
+  DEPLOY_ENV=$(cat "$DEPLOY_ENV_FILE" | tr -d '[:space:]')
+else
+  DEPLOY_ENV="dev"
+fi
+
+require_non_production() {
+  if [ "$DEPLOY_ENV" = "production" ]; then
+    echo "ERROR: '$1' is disabled in production environment."
+    echo "To change, run: ./deploy setup-dev"
+    exit 1
+  fi
+}
+
+# Read the "environment" field from site-config.json (repo root). Empty if the
+# file or key is absent.
+site_environment() {
+  local cfg="$DIR/site-config.json"
+  [ -f "$cfg" ] || return 0
+  python3 -c "import json; print(json.load(open('$cfg')).get('environment',''))" 2>/dev/null
+}
+
+# On a prod site, refuse to deploy a commit that has no git tag. Release tags
+# are the versioning gate — deploying an untagged commit to prod is blocked so
+# what's live always maps to a tagged release.
+require_tag_on_prod() {
+  if [ "$(site_environment)" != "prod" ]; then
+    return 0
+  fi
+  if ! git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "ERROR: prod site but '$DIR' is not a git repo — cannot verify release tag."
+    exit 1
+  fi
+  if ! git -C "$DIR" describe --exact-match --tags HEAD >/dev/null 2>&1; then
+    echo "ERROR: prod deploy blocked — current commit ($(git -C "$DIR" rev-parse --short HEAD)) has no git tag."
+    echo "Tag the release first, e.g.:"
+    echo "  git tag -a v$(date +%Y.%m.%d) -m \"release notes\" && git push origin v$(date +%Y.%m.%d)"
+    exit 1
+  fi
+}
+
+detect_host_lan_ip() {
+  # macOS
+  if command -v ipconfig >/dev/null 2>&1; then
+    for iface in en0 en1 en2 en3; do
+      ip=$(ipconfig getifaddr "$iface" 2>/dev/null || true)
+      if [ -n "$ip" ] && [[ "$ip" != 127.* ]]; then
+        echo "$ip"; return 0
+      fi
+    done
+  fi
+  # Linux
+  ip route get 8.8.8.8 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}'
+}
+
+if [ -z "${PUBLIC_SERVER_URL:-}" ]; then
+  HOST_LAN_IP=$(detect_host_lan_ip)
+  if [ -n "$HOST_LAN_IP" ]; then
+    export PUBLIC_SERVER_URL="http://${HOST_LAN_IP}:8080"
+  fi
+fi
+
+# Cloudflare Tunnel (optional, per-host). When .tunnel.env with a TUNNEL_TOKEN is
+# present, enable the "tunnel" compose profile so `dc up -d` also starts the
+# cloudflared sidecar automatically. Absent on localhost => nothing happens.
+if [ -f "$DIR/.tunnel.env" ]; then
+  set -a; . "$DIR/.tunnel.env"; set +a
+  if [ -n "${TUNNEL_TOKEN:-}" ]; then
+    export TUNNEL_TOKEN
+    export COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}tunnel"
+  fi
+fi
+
+# Extra apps config: apps.json in repo root.
+# [{ "name": ..., "repo": ..., "branch": ..., "enabled": true }]
+extra_apps_enabled() {
+  [ -f "$DIR/apps.json" ] || return 0
+  python3 -c "import json; print(' '.join(a['name'] for a in json.load(open('$DIR/apps.json')) if a.get('enabled')))"
+}
+
+extra_apps_disabled() {
+  [ -f "$DIR/apps.json" ] || return 0
+  python3 -c "import json; print(' '.join(a['name'] for a in json.load(open('$DIR/apps.json')) if not a.get('enabled')))"
+}
+
+dc() {
+  if docker compose version &>/dev/null; then
+    docker compose -p docker -f "$DIR/docker-compose.yml" "$@"
+  else
+    docker-compose -p docker -f "$DIR/docker-compose.yml" "$@"
+  fi
+}
+
+wait_for_db() {
+  say "==> Waiting for MariaDB..."
+  for i in $(seq 1 30); do
+    if dc exec -T db mysqladmin ping --password=admin 2>/dev/null | grep -q alive; then
+      say "==> MariaDB is ready."
+      return 0
+    fi
+    sleep 2
+  done
+  echo "ERROR: MariaDB not ready after 60s. Check: dc logs db"
+  exit 1
+}
+
+wait_for_backend() {
+  say "==> Waiting for backend..."
+  for i in $(seq 1 30); do
+    if dc exec -T backend bench --site frontend doctor 2>/dev/null | grep -q "OK" 2>/dev/null || \
+       dc exec -T backend python3 -c "import frappe" 2>/dev/null; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
+}
+
+build_image() {
+  # Hash the remote HEAD of every app in apps.json so the Docker clone layer is
+  # invalidated whenever any fork moves (otherwise the clone is cached forever and
+  # fork pushes never reach the image). Empty/offline -> stable 0, layer stays cached.
+  local apps_bust="0"
+  if [ -f "$DIR/apps.json" ]; then
+    apps_bust=$(python3 -c "import json;[print(a['repo'],a['branch']) for a in json.load(open('$DIR/apps.json'))]" \
+      | while read -r repo branch; do git ls-remote "$repo" "$branch" 2>/dev/null | awk '{print $1}'; done \
+      | cksum | awk '{print $1}')
+    [ -n "$apps_bust" ] || apps_bust="0"
+  fi
+  say "==> Extra-apps cache key: $apps_bust"
+  say "==> Building full image (all source baked in)..."
+  docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
+    --build-arg "APPS_CACHE_BUST=$apps_bust" \
+    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || return 1
+  say "==> Pruning dangling images..."
+  docker image prune -f --filter "dangling=true" >/dev/null
+}
+
+sync_built_assets() {
+  say "==> Syncing built assets from image to sites volume..."
+  # --entrypoint tar: the image entrypoint prints "Linking fresh assets to volume..."
+  # on stdout, which corrupts the tar stream piped into the backend container.
+  docker run --rm --entrypoint tar "$IMAGE_NAME" -cf - --ignore-failed-read \
+    -C /home/frappe/frappe-bench/sites/assets \
+    frappe erpnext $(extra_apps_enabled) locale assets.json assets-rtl.json 2>/dev/null | \
+    dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
+  dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
+  say "==> Assets synced."
+}
+
+fix_assets() {
+  say "==> Syncing assets from backend to frontend container..."
+  FRONTEND_CID=$(dc ps -q frontend 2>/dev/null)
+  BACKEND_CID=$(dc ps -q backend 2>/dev/null)
+  if [ -z "$FRONTEND_CID" ] || [ -z "$BACKEND_CID" ]; then
+    echo "WARNING: frontend or backend container not running, skipping asset sync"
+    return 0
+  fi
+
+  for i in $(seq 1 15); do
+    if docker exec "$BACKEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null && \
+       docker exec "$FRONTEND_CID" test -d /home/frappe/frappe-bench/sites/assets 2>/dev/null; then
+      break
+    fi
+    [ "$i" = "15" ] && echo "WARNING: containers not fully ready after 30s, attempting sync anyway"
+    sleep 2
+  done
+
+  local ASSET_APPS="frappe erpnext"
+  local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext"
+  for extra_app in $(extra_apps_enabled) insights; do
+    if docker exec "$BACKEND_CID" test -d "/home/frappe/frappe-bench/sites/assets/$extra_app" 2>/dev/null; then
+      ASSET_APPS="$ASSET_APPS $extra_app"
+      ASSET_RM="$ASSET_RM /home/frappe/frappe-bench/sites/assets/$extra_app"
+    fi
+  done
+
+  for attempt in 1 2 3; do
+    docker exec -u root "$FRONTEND_CID" bash -c "$ASSET_RM" 2>/dev/null
+
+    if docker exec "$BACKEND_CID" tar -chf - -C /home/frappe/frappe-bench/sites/assets $ASSET_APPS assets.json assets-rtl.json | \
+       docker exec -u root -i "$FRONTEND_CID" tar -xf - -C /home/frappe/frappe-bench/sites/assets/; then
+      if docker exec "$FRONTEND_CID" test -f /home/frappe/frappe-bench/sites/assets/assets.json 2>/dev/null; then
+        say "==> Asset sync complete."
+        dc exec -T backend bench --site frontend console <<'PY' 2>/dev/null
+import frappe
+frappe.cache.delete_value("assets_json", shared=True)
+PY
+        say "==> Flushed assets_json from Redis cache."
+        return 0
+      fi
+    fi
+
+    echo "WARNING: Asset sync attempt $attempt failed, retrying in 3s..."
+    sleep 3
+  done
+
+  echo "ERROR: Asset sync failed after 3 attempts. Run './deploy fix-assets' to retry manually."
+  return 1
+}
+
+apply_site_config() {
+  SITE_CONFIG="$DIR/site-config.json"
+  if [ ! -f "$SITE_CONFIG" ]; then
+    return
+  fi
+  GLOBAL_KEYS="server_script_enabled"
+  for key in $(python3 -c "import json; d=json.load(open('$SITE_CONFIG')); [print(k) for k in d]"); do
+    value=$(python3 -c "import json; print(json.load(open('$SITE_CONFIG'))['$key'])")
+    if echo " $GLOBAL_KEYS " | grep -q " $key "; then
+      dc exec -T backend bench set-config -g "$key" "$value"
+    else
+      dc exec -T backend bench --site frontend set-config "$key" "$value"
+    fi
+  done
+}
+
+strip_extra_apps() {
+  say "==> Removing extra apps before migrate..."
+  dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
+  local DB_NAME
+  DB_NAME=$(dc exec -T backend bash -c "cat /home/frappe/frappe-bench/sites/*/site_config.json" 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('db_name',''))" 2>/dev/null) || true
+  if [ -n "$DB_NAME" ]; then
+    dc exec -T db mysql -uroot -padmin "$DB_NAME" -e "
+      UPDATE tabDefaultValue
+      SET defvalue = REPLACE(REPLACE(REPLACE(defvalue,
+          ', \"insights\"', ''), '\"insights\", ', ''), '\"insights\"', '')
+      WHERE parent = '__global'
+      AND parentfield = 'system_defaults'
+      AND defkey = 'installed_apps'
+      AND defvalue LIKE '%insights%';
+      DELETE FROM \`tabInstalled Application\` WHERE app_name = 'insights';
+    " 2>/dev/null || true
+  fi
+  dc exec -T redis-cache redis-cli FLUSHALL 2>/dev/null || true
+}
+
+ensure_extra_apps() {
+  local app
+  for app in $(extra_apps_enabled); do
+    say "==> Ensuring $app is installed on site..."
+    dc exec -T backend bash -c "grep -qx '$app' /home/frappe/frappe-bench/sites/apps.txt || echo $app >> /home/frappe/frappe-bench/sites/apps.txt"
+    if [ "$DEPLOY_SILENT" = "1" ]; then
+      dc exec -T backend bench --site frontend install-app "$app" --force >/dev/null 2>&1 || true
+    else
+      dc exec -T backend bench --site frontend install-app "$app" --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
+    fi
+  done
+  for app in $(extra_apps_disabled); do
+    if dc exec -T backend bench --site frontend list-apps 2>/dev/null | grep -qx "$app"; then
+      echo "==> App '$app' is disabled in apps.json but installed on site."
+      echo "    Uninstalling — this DELETES all data of $app DocTypes from the DB."
+      dc exec -T backend bench --site frontend uninstall-app "$app" --yes --no-backup 2>&1 | tail -3
+      dc exec -T backend bash -c "sed -i '/^$app\$/d' /home/frappe/frappe-bench/sites/apps.txt"
+    fi
+  done
+}
+
+install_extra_apps() {
+  ensure_extra_apps
+  "$DIR/insights" auto || true
+  fix_assets
+  dc exec -T backend bench --site frontend clear-cache 2>/dev/null || true
+}
+
+run_deploy() {
+  local SILENT="${1:-0}"
+
+  local out="/dev/stdout"
+  local err="/dev/stderr"
+  if [ "$SILENT" = "1" ]; then
+    out="/dev/null"
+    err="/dev/null"
+  fi
+
+  say "==> Recreating containers with new image..."
+  dc up -d > "$out" 2>&1
+
+  say "==> Waiting for configurator to finish..."
+  dc wait configurator > "$out" 2>&1 || sleep 5
+
+  sync_built_assets > "$out" 2>&1
+
+  say "==> Applying site config..."
+  apply_site_config > "$out" 2>&1
+
+  wait_for_db > "$out" 2>&1
+
+  strip_extra_apps > "$out" 2>&1
+
+  say "==> Running bench migrate..."
+  dc exec -T backend bench --site frontend migrate > "$out" 2>&1
+
+  say "==> Running setup_custom_fields..."
+  if [ "$SILENT" = "1" ]; then
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute >/dev/null 2>&1 || true
+  else
+    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
+  fi
+
+  say "==> Clearing cache..."
+  dc exec -T backend bench --site frontend clear-cache > "$out" 2>&1
+
+  # Advisory only: lists DocTypes that exist solely in this site's database
+  # (created through the desk UI, custom=1) and never reach git or the image.
+  # Graduate one with ./codify. Never fails the deploy.
+  dc exec -T backend bench --site frontend execute erpnext.utilities.doctype_drift.report || true
+
+  install_extra_apps > "$out" 2>&1
+
+  echo "Done. http://localhost:8080"
+}
+
+case "${1:-}" in
+  nuke)
+    require_non_production "nuke"
+    say "==> Stopping containers and removing all data..."
+    dc down -v
+    echo "All data has been removed."
+    ;;
+
+  init)
+    build_image
+
+    say "==> Starting ERPNext..."
+    dc up -d
+    sync_built_assets
+
+    say "==> Waiting for site to be ready (2-3 min)..."
+    until dc exec -T backend bench --site frontend list-apps 2>/dev/null | grep -q erpnext; do
+      sleep 5
+    done
+
+    for app in $(extra_apps_enabled); do
+      say "==> Installing $app on site..."
+      dc exec -T backend bench --site frontend install-app "$app"
+    done
+
+    say "==> Enabling Ukrainian language..."
+    dc exec -T backend bench --site frontend console <<'PY'
+import frappe
+if not frappe.db.exists("Language", "uk"):
+    frappe.get_doc({"doctype": "Language", "language_code": "uk", "language_name": "Українська", "enabled": 1}).insert(ignore_permissions=True)
+    frappe.db.commit()
+PY
+    say "==> Applying site config..."
+    apply_site_config
+
+    dc exec -T backend bench --site frontend clear-cache
+
+    "$DIR/insights" auto || true
+    fix_assets
+
+    echo ""
+    echo "Ready at http://localhost:8080  (Administrator / admin)"
+    echo "Switch language: Settings -> Language -> Українська"
+    ;;
+
+  start)
+    dc up -d
+    say "==> Waiting for configurator to finish..."
+    dc wait configurator 2>/dev/null || sleep 5
+    sync_built_assets
+    say "==> Applying site config..."
+    apply_site_config
+    wait_for_db
+    install_extra_apps
+    echo "Started at http://localhost:8080"
+    if [ "${2:-}" = "--logs" ]; then
+      dc logs -f --since 0s
+    fi
+    ;;
+
+  stop)
+    dc stop
+    ;;
+
+  build)
+    SILENT=0
+    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    DEPLOY_SILENT=$SILENT
+
+    require_tag_on_prod
+    if [ "$SILENT" = "1" ]; then
+      # Stream build to a temp log so we can show context only if it fails.
+      BUILD_LOG=$(mktemp)
+      trap "rm -f $BUILD_LOG" EXIT
+      if ! build_image > "$BUILD_LOG" 2>&1; then
+        echo "ERROR: docker build failed. Last 30 lines:"
+        tail -30 "$BUILD_LOG"
+        exit 1
+      fi
+    else
+      build_image
+    fi
+    run_deploy "$SILENT"
+
+    if [ "${2:-}" = "--logs" ] || [ "${3:-}" = "--logs" ]; then
+      dc logs -f --since 0s
+    fi
+    ;;
+
+  migrate)
+    SILENT=0
+    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    DEPLOY_SILENT=$SILENT
+
+    require_tag_on_prod
+    say "(migrate is now an alias for build)"
+    if [ "$SILENT" = "1" ]; then
+      BUILD_LOG=$(mktemp)
+      trap "rm -f $BUILD_LOG" EXIT
+      if ! build_image > "$BUILD_LOG" 2>&1; then
+        echo "ERROR: docker build failed. Last 30 lines:"
+        tail -30 "$BUILD_LOG"
+        exit 1
+      fi
+    else
+      build_image
+    fi
+    run_deploy "$SILENT"
+    ;;
+
+  destroy)
+    require_non_production "destroy"
+    dc down -v
+    echo "Stopped and removed all data."
+    ;;
+
+  setup-prod)
+    echo "production" > "$DEPLOY_ENV_FILE"
+    echo "Environment set to production. Destructive commands (nuke, destroy) are now disabled."
+    ;;
+
+  setup-dev)
+    echo "dev" > "$DEPLOY_ENV_FILE"
+    echo "Environment set to dev. All commands available."
+    ;;
+
+  fix-assets)
+    fix_assets
+    ;;
+
+  *)
+    echo "Environment: $DEPLOY_ENV"
+    echo "Usage: ./deploy {init|start|stop|build|fix-assets|setup-prod|setup-dev}"
+    if [ "$DEPLOY_ENV" != "production" ]; then
+      echo "       ./deploy {nuke|destroy}  (dev only)"
+    fi
+    ;;
+esac

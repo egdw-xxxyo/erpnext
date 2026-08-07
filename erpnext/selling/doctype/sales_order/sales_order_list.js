@@ -123,5 +123,17 @@ frappe.listview_settings["Sales Order"] = {
 				erpnext.bulk_transaction_processing.create(listview, "Sales Order", "Payment Entry");
 			});
 		}
+
+		listview.page.add_action_item(__("Print Labels"), () => {
+			const checked = listview.get_checked_items();
+			if (!checked.length) {
+				frappe.msgprint(__("Please select at least one Sales Order"));
+				return;
+			}
+			erpnext.utils.open_bulk_label_print_dialog({
+				doctype: "Sales Order",
+				names: checked.map((d) => d.name),
+			});
+		});
 	},
 };

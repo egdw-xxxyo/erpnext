@@ -79,6 +79,18 @@ frappe.ui.form.on("Delivery Note", {
 	},
 
 	refresh: function (frm) {
+		if (frm.doc.docstatus === 0 && !frm._bulk_serial_btn_added) {
+			frm._bulk_serial_btn_added = true;
+			let scan_field = frm.fields_dict["scan_barcode"];
+			if (scan_field) {
+				let $input_area = scan_field.$wrapper.find(".control-input");
+				erpnext.utils.add_bulk_serial_button($input_area, function (serial) {
+					scan_field.set_value(serial);
+					frm.script_manager.trigger("scan_barcode");
+				});
+			}
+		}
+
 		if (
 			frm.doc.docstatus === 1 &&
 			frm.doc.is_return === 1 &&

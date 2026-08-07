@@ -15,4 +15,18 @@ frappe.listview_settings["Job Card"] = {
 
 		return [__(status), color, `status,=,${status}`];
 	},
+
+	onload: function (listview) {
+		listview.page.add_action_item(__("Print Labels"), () => {
+			const checked = listview.get_checked_items();
+			if (!checked.length) {
+				frappe.msgprint(__("Please select at least one Job Card"));
+				return;
+			}
+			erpnext.utils.open_bulk_label_print_dialog({
+				doctype: "Job Card",
+				names: checked.map((d) => d.name),
+			});
+		});
+	},
 };
