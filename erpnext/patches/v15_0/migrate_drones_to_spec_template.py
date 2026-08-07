@@ -37,6 +37,7 @@ S15 = {
 
 
 def execute():
+	_ensure_ported_fields()
 	_ensure_custom_field()
 	if not frappe.db.exists("Item", TEMPLATE):
 		return
@@ -50,6 +51,17 @@ def execute():
 	_link_template_on_bpla()
 	_resave_variants()
 	frappe.db.commit()
+
+
+def _ensure_ported_fields():
+	"""`Item Attribute Value.short_name` is a Custom Field on version-16.
+
+	Patches run before ./deploy calls setup_custom_fields, so create it here first —
+	otherwise the set_value calls below hit an unknown column. Idempotent."""
+	from erpnext.patches.setup_custom_fields import create_v16_ported_fields
+
+	create_v16_ported_fields()
+	frappe.reload_doctype("Item Attribute Value")
 
 
 def _ensure_custom_field():
@@ -69,6 +81,9 @@ def _ensure_custom_field():
 
 
 def _ensure_short_names_on_cameras():
+	if not frappe.db.has_column("Item Attribute Value", "short_name"):
+		return
+
 	for full, qq in CAM_QQ.items():
 		exists = frappe.db.exists(
 			"Item Attribute Value",
@@ -79,6 +94,9 @@ def _ensure_short_names_on_cameras():
 
 
 def _ensure_size_short_names():
+	if not frappe.db.has_column("Item Attribute Value", "short_name"):
+		return
+
 	for full, sn in (('10"', "10"), ('15"', "15")):
 		exists = frappe.db.exists(
 			"Item Attribute Value",
