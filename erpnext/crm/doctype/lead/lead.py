@@ -687,7 +687,7 @@ def mark_converted_to_opportunity(lead_name):
 
 
 @frappe.whitelist()
-def revert_from_final_status(lead, reason, comment, return_date):
+def revert_from_final_status(lead: str, reason: str, comment: str, return_date: str):
 	"""Return a closed Lead to `Postponed`, keeping a journal of who did it and why.
 
 	The linked Opportunity is deliberately left untouched — this only reopens the Lead so

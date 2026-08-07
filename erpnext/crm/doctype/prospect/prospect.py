@@ -89,7 +89,7 @@ class Prospect(CRMNote):
 
 
 @frappe.whitelist()
-def make_customer(source_name, target_doc=None):
+def make_customer(source_name: str, target_doc: str | None = None):
 	def set_missing_values(source, target):
 		target.customer_type = "Company"
 		target.company_name = source.name
@@ -179,8 +179,9 @@ def propagate_customer_to_leads(doc, method=None):
 
 	lead_names = set(frappe.get_all("Prospect Lead", filters={"parent": doc.prospect}, pluck="lead"))
 	lead_names |= set(frappe.get_all("Lead", filters={"prospect": doc.prospect}, pluck="name"))
+	lead_names.discard(None)
 
-	for lead_name in filter(None, lead_names):
+	for lead_name in lead_names:
 		lead = frappe.get_doc("Lead", lead_name)
 		lead.db_set(
 			{

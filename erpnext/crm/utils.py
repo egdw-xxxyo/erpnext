@@ -116,7 +116,7 @@ def get_linked_prospect(reference_doctype, reference_name):
 
 
 @frappe.whitelist()
-def get_party_military_unit(party_type, party_name):
+def get_party_military_unit(party_type: str | None, party_name: str | None):
 	"""Military Unit of a sales party.
 
 	It is maintained on the organization (Prospect / Customer); a Lead only mirrors it

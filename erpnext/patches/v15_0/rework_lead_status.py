@@ -1,6 +1,7 @@
 """Move Lead onto the «Запит» status set agreed with the sales department."""
 
 import frappe
+from frappe.query_builder.functions import Coalesce
 
 NEW_OPTIONS = [
 	"New Request",
@@ -81,11 +82,12 @@ def execute():
 	for old_status, new_status in STATUS_MAP.items():
 		frappe.db.sql("update `tabLead` set status = %s where status = %s", (new_status, old_status))
 
-	placeholders = "(" + ", ".join(["%s"] * len(NEW_OPTIONS)) + ")"
-	frappe.db.sql(
-		f"update `tabLead` set status = 'New Request' where ifnull(status, '') not in {placeholders}",
-		tuple(NEW_OPTIONS),
-	)
+	lead = frappe.qb.DocType("Lead")
+	(
+		frappe.qb.update(lead)
+		.set(lead.status, "New Request")
+		.where(Coalesce(lead.status, "").notin(NEW_OPTIONS))
+	).run()
 
 	# Prospect Lead rows mirror Lead.status (see Lead.update_prospect).
 	frappe.db.sql(
