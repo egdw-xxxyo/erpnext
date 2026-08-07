@@ -308,15 +308,40 @@ run_deploy() {
 
   strip_extra_apps > "$out" 2>&1
 
+  # Workers hold a metadata lock on tabDocType, which starves the ALTER TABLE in
+  # frappe.patches.v16_0.switch_default_sort_order until it dies with a lock wait
+  # timeout and takes the whole migration with it. Quiesce them first.
+  say "==> Stopping workers for migrate..."
+  dc stop scheduler queue-short queue-long websocket > "$out" 2>&1 || true
+
   say "==> Running bench migrate..."
-  dc exec -T backend bench --site frontend migrate > "$out" 2>&1
+  local migrate_log
+  migrate_log="$(mktemp)"
+  if ! dc exec -T backend bench --site frontend migrate > "$migrate_log" 2>&1; then
+    echo "!! bench migrate FAILED — last 40 lines:" >&2
+    tail -40 "$migrate_log" >&2
+    dc start scheduler queue-short queue-long websocket >/dev/null 2>&1 || true
+    rm -f "$migrate_log"
+    exit 1
+  fi
+  [ "$SILENT" = "1" ] || cat "$migrate_log"
+  rm -f "$migrate_log"
+
+  say "==> Starting workers..."
+  dc start scheduler queue-short queue-long websocket > "$out" 2>&1 || true
 
   say "==> Running setup_custom_fields..."
-  if [ "$SILENT" = "1" ]; then
-    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute >/dev/null 2>&1 || true
+  local scf_log
+  scf_log="$(mktemp)"
+  if ! dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute > "$scf_log" 2>&1; then
+    # Not fatal — the site is already migrated — but never swallow it silently:
+    # a throw in here leaves every custom field of the release uncreated.
+    echo "!! setup_custom_fields FAILED — last 20 lines:" >&2
+    tail -20 "$scf_log" >&2
   else
-    dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
+    [ "$SILENT" = "1" ] || cat "$scf_log"
   fi
+  rm -f "$scf_log"
 
   say "==> Clearing cache..."
   dc exec -T backend bench --site frontend clear-cache > "$out" 2>&1
