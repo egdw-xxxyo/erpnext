@@ -268,6 +268,22 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 		}
 	}
 
+	prospect() {
+		this.mirror_military_unit();
+	}
+
+	customer() {
+		this.mirror_military_unit();
+	}
+
+	mirror_military_unit() {
+		const doc = this.frm.doc;
+		const party_type = doc.prospect ? "Prospect" : doc.customer ? "Customer" : null;
+		const party_name = doc.prospect || doc.customer;
+
+		erpnext.utils.set_military_unit_from_party(this.frm, party_type, party_name);
+	}
+
 	show_notes() {
 		if (this.frm.doc.docstatus == 1) return;
 
