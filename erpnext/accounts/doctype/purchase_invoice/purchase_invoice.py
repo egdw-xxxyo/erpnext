@@ -38,7 +38,7 @@ from erpnext.accounts.utils import get_account_currency, get_fiscal_year, update
 from erpnext.assets.doctype.asset.asset import is_cwip_accounting_enabled
 from erpnext.assets.doctype.asset_category.asset_category import get_asset_category_account
 from erpnext.buying.utils import check_on_hold_or_closed_status
-from erpnext.controllers.accounts_controller import validate_account_head
+from erpnext.controllers.accounts_controller import merge_taxes, validate_account_head
 from erpnext.controllers.buying_controller import BuyingController
 from erpnext.stock import get_warehouse_account_map
 from erpnext.stock.doctype.purchase_receipt.purchase_receipt import (
@@ -287,6 +287,7 @@ class PurchaseInvoice(BuyingController):
 		self.validate_expense_account()
 		self.set_against_expense_account()
 		self.validate_write_off_account()
+		self.validate_write_off_cost_center()
 		self.validate_multiple_billing("Purchase Receipt", "pr_detail", "amount")
 		self.set_status()
 		self.validate_purchase_receipt_if_update_stock()
@@ -612,12 +613,13 @@ class PurchaseInvoice(BuyingController):
 		frappe.db.set_value(self.doctype, self.name, "against_expense_account", self.against_expense_account)
 
 	def po_required(self):
-		if frappe.db.get_value("Buying Settings", None, "po_required") == "Yes":
-			if frappe.get_value(
+		if (
+			frappe.db.get_single_value("Buying Settings", "po_required") == "Yes"
+			and not self.is_internal_transfer()
+			and not frappe.db.get_value(
 				"Supplier", self.supplier, "allow_purchase_invoice_creation_without_purchase_order"
-			):
-				return
-
+			)
+		):
 			for d in self.get("items"):
 				if not d.purchase_order:
 					msg = _("Purchase Order Required for item {}").format(frappe.bold(d.item_code))
@@ -632,15 +634,16 @@ class PurchaseInvoice(BuyingController):
 					throw(msg, title=_("Mandatory Purchase Order"))
 
 	def pr_required(self):
-		stock_items = self.get_stock_items()
-		if frappe.db.get_value("Buying Settings", None, "pr_required") == "Yes":
+		if frappe.db.get_single_value("Buying Settings", "pr_required") == "Yes":
+			stock_and_asset_items = self.get_stock_items()
+			stock_and_asset_items.extend(self.get_asset_items())
 			if frappe.get_value(
 				"Supplier", self.supplier, "allow_purchase_invoice_creation_without_purchase_receipt"
 			):
 				return
 
 			for d in self.get("items"):
-				if not d.purchase_receipt and d.item_code in stock_items:
+				if not d.purchase_receipt and d.item_code in stock_and_asset_items:
 					msg = _("Purchase Receipt Required for item {}").format(frappe.bold(d.item_code))
 					msg += "<br><br>"
 					msg += _(
@@ -655,6 +658,27 @@ class PurchaseInvoice(BuyingController):
 	def validate_write_off_account(self):
 		if self.write_off_amount and not self.write_off_account:
 			throw(_("Please enter Write Off Account"))
+
+		if not self.write_off_account:
+			return
+
+		doc = frappe.db.get_value(
+			"Account", self.write_off_account, ["report_type", "is_group", "company"], as_dict=True
+		)
+
+		if not doc or doc.report_type != "Profit and Loss" or doc.is_group or doc.company != self.company:
+			throw(_("Please enter a valid Write Off Account"))
+
+	def validate_write_off_cost_center(self):
+		if not self.write_off_cost_center:
+			return
+
+		doc = frappe.db.get_value(
+			"Cost Center", self.write_off_cost_center, ["is_group", "company"], as_dict=True
+		)
+
+		if not doc or doc.is_group or doc.company != self.company:
+			throw(_("Please enter a valid Write Off Cost Center"))
 
 	def check_prev_docstatus(self):
 		for d in self.get("items"):
@@ -728,13 +752,15 @@ class PurchaseInvoice(BuyingController):
 			for item in self.get("items"):
 				if item.purchase_receipt:
 					frappe.throw(
-						_("Stock cannot be updated against Purchase Receipt {0}").format(
-							item.purchase_receipt
-						)
+						_(
+							"Stock cannot be updated for Purchase Invoice {0} because a Purchase Receipt {1} has already been created for this transaction. Please disable the 'Update Stock' checkbox in the Purchase Invoice and save the invoice."
+						).format(self.name, item.purchase_receipt),
+						title=_("Stock Update Not Allowed"),
 					)
 
 	def validate_for_repost(self):
 		self.validate_write_off_account()
+		self.validate_write_off_cost_center()
 		self.validate_expense_account()
 		validate_docs_for_voucher_types(["Purchase Invoice"])
 		validate_docs_for_deferred_accounting([], [self.name])
@@ -848,7 +874,9 @@ class PurchaseInvoice(BuyingController):
 		if update_outstanding == "No":
 			update_voucher_outstanding(
 				voucher_type=self.doctype,
-				voucher_no=self.return_against if cint(self.is_return) and self.return_against else self.name,
+				voucher_no=self.return_against
+				if (cint(self.is_return) and self.return_against)
+				else self.name,
 				account=self.credit_to,
 				party_type="Supplier",
 				party=self.supplier,
@@ -975,6 +1003,10 @@ class PurchaseInvoice(BuyingController):
 		)
 		if provisional_accounting_for_non_stock_items:
 			self.get_provisional_accounts()
+
+		adjust_incoming_rate = frappe.db.get_single_value(
+			"Buying Settings", "set_landed_cost_based_on_purchase_invoice_rate"
+		)
 
 		for item in self.get("items"):
 			if flt(item.base_net_amount) or (self.get("update_stock") and item.valuation_rate):
@@ -1144,7 +1176,11 @@ class PurchaseInvoice(BuyingController):
 						)
 
 						# check if the exchange rate has changed
-						if item.get("purchase_receipt") and self.auto_accounting_for_stock:
+						if (
+							not adjust_incoming_rate
+							and item.get("purchase_receipt")
+							and self.auto_accounting_for_stock
+						):
 							if (
 								exchange_rate_map[item.purchase_receipt]
 								and self.conversion_rate != exchange_rate_map[item.purchase_receipt]
@@ -1181,6 +1217,7 @@ class PurchaseInvoice(BuyingController):
 										item=item,
 									)
 								)
+
 			if (
 				self.auto_accounting_for_stock
 				and self.is_opening == "No"
@@ -1522,6 +1559,9 @@ class PurchaseInvoice(BuyingController):
 	def make_payment_gl_entries(self, gl_entries):
 		# Make Cash GL Entries
 		if cint(self.is_paid) and self.cash_bank_account and self.paid_amount:
+			against_voucher = self.name
+			if self.is_return and self.return_against and not self.update_outstanding_for_self:
+				against_voucher = self.return_against
 			bank_account_currency = get_account_currency(self.cash_bank_account)
 			# CASH, make payment entries
 			gl_entries.append(
@@ -1536,9 +1576,7 @@ class PurchaseInvoice(BuyingController):
 						if self.party_account_currency == self.company_currency
 						else self.paid_amount,
 						"debit_in_transaction_currency": self.paid_amount,
-						"against_voucher": self.return_against
-						if cint(self.is_return) and self.return_against
-						else self.name,
+						"against_voucher": against_voucher,
 						"against_voucher_type": self.doctype,
 						"cost_center": self.cost_center,
 						"project": self.project,
@@ -1729,10 +1767,6 @@ class PurchaseInvoice(BuyingController):
 			project_doc.db_update()
 
 	def validate_supplier_invoice(self):
-		if self.bill_date:
-			if getdate(self.bill_date) > getdate(self.posting_date):
-				frappe.throw(_("Supplier Invoice Date cannot be greater than Posting Date"))
-
 		if self.bill_no:
 			if cint(frappe.db.get_single_value("Accounts Settings", "check_supplier_invoice_uniqueness")):
 				fiscal_year = get_fiscal_year(self.posting_date, company=self.company, as_dict=True)
@@ -2052,6 +2086,7 @@ def make_stock_entry(source_name, target_doc=None):
 def change_release_date(name, release_date=None):
 	if frappe.db.exists("Purchase Invoice", name):
 		pi = frappe.get_doc("Purchase Invoice", name)
+		pi.check_permission()
 		pi.db_set("release_date", release_date)
 
 
@@ -2082,6 +2117,19 @@ def make_purchase_receipt(source_name, target_doc=None, args=None):
 		args = {}
 	if isinstance(args, str):
 		args = json.loads(args)
+
+	def post_parent_process(source_parent, target_parent):
+		remove_items_with_zero_qty(target_parent)
+		set_missing_values(source_parent, target_parent)
+
+	def remove_items_with_zero_qty(target_parent):
+		target_parent.items = [row for row in target_parent.get("items") if row.get("qty") != 0]
+
+	def set_missing_values(source_parent, target_parent):
+		target_parent.run_method("set_missing_values")
+		if args and args.get("merge_taxes"):
+			merge_taxes(source_parent, target_parent)
+		target_parent.run_method("calculate_taxes_and_totals")
 
 	def update_item(obj, target, source_parent):
 		target.qty = flt(obj.qty) - flt(obj.received_qty)
@@ -2122,7 +2170,11 @@ def make_purchase_receipt(source_name, target_doc=None, args=None):
 				"postprocess": update_item,
 				"condition": lambda doc: abs(doc.received_qty) < abs(doc.qty) and select_item(doc),
 			},
-			"Purchase Taxes and Charges": {"doctype": "Purchase Taxes and Charges"},
+			"Purchase Taxes and Charges": {
+				"doctype": "Purchase Taxes and Charges",
+				"reset_value": not (args and args.get("merge_taxes")),
+				"ignore": args.get("merge_taxes") if args else 0,
+			},
 		},
 		target_doc,
 	)

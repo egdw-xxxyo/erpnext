@@ -118,12 +118,12 @@ class TestInventoryDimension(FrappeTestCase):
 		inward.load_from_db()
 
 		sle_data = frappe.db.get_value(
-			"Stock Ledger Entry", {"voucher_no": inward.name}, ["shelf", "warehouse"], as_dict=1
+			"Stock Ledger Entry", {"voucher_no": inward.name}, ["to_shelf", "warehouse"], as_dict=1
 		)
 
 		self.assertEqual(inward.items[0].to_shelf, "Shelf 1")
 		self.assertEqual(sle_data.warehouse, warehouse)
-		self.assertEqual(sle_data.shelf, "Shelf 1")
+		self.assertEqual(sle_data.to_shelf, "Shelf 1")
 
 		outward = make_stock_entry(
 			item_code=item_code,
@@ -220,9 +220,9 @@ class TestInventoryDimension(FrappeTestCase):
 		doc = create_inventory_dimension(
 			reference_document="Pallet",
 			type_of_transaction="Outward",
-			dimension_name="Pallet",
+			dimension_name="Pallet 75",
 			apply_to_all_doctypes=0,
-			document_type="Stock Entry Detail",
+			document_type="Delivery Note Item",
 		)
 
 		doc.reqd = 1
@@ -230,7 +230,7 @@ class TestInventoryDimension(FrappeTestCase):
 
 		self.assertTrue(
 			frappe.db.get_value(
-				"Custom Field", {"fieldname": "pallet", "dt": "Stock Entry Detail", "reqd": 1}, "name"
+				"Custom Field", {"fieldname": "pallet_75", "dt": "Delivery Note Item", "reqd": 1}, "name"
 			)
 		)
 

@@ -23,7 +23,12 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 	get_party_tax_withholding_details,
 )
 from erpnext.accounts.general_ledger import get_round_off_account_and_cost_center
-from erpnext.accounts.party import get_due_date, get_party_account, get_party_details
+from erpnext.accounts.party import (
+	CROSS_PARTY_FIELD_NO_MAP,
+	get_due_date,
+	get_party_account,
+	get_party_details,
+)
 from erpnext.accounts.utils import (
 	cancel_exchange_gain_loss_journal,
 	get_account_currency,
@@ -323,10 +328,22 @@ class SalesInvoice(SellingController):
 			)
 
 		self.set_against_income_account()
-		self.validate_time_sheets_are_submitted()
+
+		if self.is_return and not self.return_against and self.timesheets:
+			frappe.throw(_("Direct return is not allowed for Timesheet."))
+
+		if not self.is_return:
+			self.validate_time_sheets_are_submitted()
+
 		self.validate_multiple_billing("Delivery Note", "dn_detail", "amount")
-		if self.is_return:
-			self.timesheets = []
+
+		if self.is_return and self.return_against:
+			for row in self.timesheets:
+				if row.billing_hours:
+					row.billing_hours = -abs(row.billing_hours)
+				if row.billing_amount:
+					row.billing_amount = -abs(row.billing_amount)
+
 		self.update_packing_list()
 		self.set_billing_hours_and_amount()
 		self.update_timesheet_billing_for_project()
@@ -438,8 +455,8 @@ class SalesInvoice(SellingController):
 		self.calculate_taxes_and_totals()
 
 	def before_save(self):
-		self.set_account_for_mode_of_payment()
 		self.set_paid_amount()
+		self.set_account_for_mode_of_payment()
 
 	def before_submit(self):
 		self.add_remarks()
@@ -494,7 +511,7 @@ class SalesInvoice(SellingController):
 		if not cint(self.is_pos) == 1 and not self.is_return:
 			self.update_against_document_in_jv()
 
-		self.update_time_sheet(self.name)
+		self.update_time_sheet(None if (self.is_return and self.return_against) else self.name)
 
 		if frappe.db.get_single_value("Selling Settings", "sales_update_frequency") == "Each Transaction":
 			update_company_current_month_sales(self.company)
@@ -550,7 +567,7 @@ class SalesInvoice(SellingController):
 		self.check_if_consolidated_invoice()
 
 		super().before_cancel()
-		self.update_time_sheet(None)
+		self.update_time_sheet(self.return_against if (self.is_return and self.return_against) else None)
 
 	def on_cancel(self):
 		check_if_return_invoice_linked_with_payment_entry(self)
@@ -735,8 +752,20 @@ class SalesInvoice(SellingController):
 		for data in timesheet.time_logs:
 			if (
 				(self.project and args.timesheet_detail == data.name)
-				or (not self.project and not data.sales_invoice)
-				or (not sales_invoice and data.sales_invoice == self.name)
+				or (not self.project and not data.sales_invoice and args.timesheet_detail == data.name)
+				or (
+					not sales_invoice
+					and data.sales_invoice == self.name
+					and args.timesheet_detail == data.name
+				)
+				or (
+					self.is_return
+					and self.return_against
+					and data.sales_invoice
+					and data.sales_invoice == self.return_against
+					and not sales_invoice
+					and args.timesheet_detail == data.name
+				)
 			):
 				data.sales_invoice = sales_invoice
 
@@ -762,6 +791,13 @@ class SalesInvoice(SellingController):
 	def set_paid_amount(self):
 		paid_amount = 0.0
 		base_paid_amount = 0.0
+
+		if not cint(self.is_pos) and self.is_return:
+			self.set("payments", [])
+			self.paid_amount = paid_amount
+			self.base_paid_amount = base_paid_amount
+			return
+
 		for data in self.payments:
 			data.base_amount = flt(data.amount * self.conversion_rate, self.precision("base_paid_amount"))
 			paid_amount += data.amount
@@ -776,11 +812,25 @@ class SalesInvoice(SellingController):
 			payment.account = get_bank_cash_account(payment.mode_of_payment, self.company).get("account")
 
 	def validate_time_sheets_are_submitted(self):
+		# Note: This validation is skipped for return invoices
+		# to allow returns to reference already-billed timesheet details
 		for data in self.timesheets:
+			# Handle invoice duplication
+			if data.time_sheet and data.timesheet_detail:
+				if sales_invoice := frappe.db.get_value(
+					"Timesheet Detail", data.timesheet_detail, "sales_invoice"
+				):
+					frappe.throw(
+						_("Row {0}: Sales Invoice {1} is already created for {2}").format(
+							data.idx, frappe.bold(sales_invoice), frappe.bold(data.time_sheet)
+						)
+					)
 			if data.time_sheet:
 				status = frappe.db.get_value("Timesheet", data.time_sheet, "status")
-				if status not in ["Submitted", "Payslip"]:
-					frappe.throw(_("Timesheet {0} is already completed or cancelled").format(data.time_sheet))
+				if status not in ["Submitted", "Payslip", "Partially Billed"]:
+					frappe.throw(
+						_("Timesheet {0} cannot be invoiced in its current state").format(data.time_sheet)
+					)
 
 	def set_pos_fields(self, for_validate=False):
 		"""Set retail related fields from POS Profiles"""
@@ -804,11 +854,9 @@ class SalesInvoice(SellingController):
 		if self.pos_profile:
 			pos = frappe.get_doc("POS Profile", self.pos_profile)
 
-		if not self.get("payments") and not for_validate:
-			update_multi_mode_option(self, pos)
-
 		if pos:
 			if not for_validate:
+				update_multi_mode_option(self, pos)
 				self.tax_category = pos.get("tax_category")
 
 			if not for_validate and not self.customer:
@@ -853,9 +901,6 @@ class SalesInvoice(SellingController):
 
 			if selling_price_list:
 				self.set("selling_price_list", selling_price_list)
-
-			if not for_validate:
-				self.update_stock = cint(pos.get("update_stock"))
 
 			# set pos values in items
 			for item in self.get("items"):
@@ -1097,7 +1142,9 @@ class SalesInvoice(SellingController):
 			d.projected_qty = bin and flt(bin[0]["projected_qty"]) or 0
 
 	def update_packing_list(self):
-		if cint(self.update_stock) == 1:
+		if self.doctype == "POS Invoice" or (
+			self.doctype == "Sales Invoice" and cint(self.update_stock) == 1
+		):
 			from erpnext.stock.doctype.packed_item.packed_item import make_packing_list
 
 			make_packing_list(self)
@@ -1115,7 +1162,12 @@ class SalesInvoice(SellingController):
 					timesheet.billing_amount = ts_doc.total_billable_amount
 
 	def update_timesheet_billing_for_project(self):
-		if not self.timesheets and self.project and self.is_auto_fetch_timesheet_enabled():
+		if (
+			not self.is_return
+			and not self.timesheets
+			and self.project
+			and self.is_auto_fetch_timesheet_enabled()
+		):
 			self.add_timesheet_data()
 		else:
 			self.calculate_billing_amount_for_timesheet()
@@ -1200,6 +1252,9 @@ class SalesInvoice(SellingController):
 				throw(_("Delivery Note {0} is not submitted").format(d.delivery_note))
 
 	def process_asset_depreciation(self):
+		if self.is_internal_transfer():
+			return
+
 		if (self.is_return and self.docstatus == 2) or (not self.is_return and self.docstatus == 1):
 			self.depreciate_asset_on_sale()
 		else:
@@ -2483,7 +2538,7 @@ def make_inter_company_transaction(doctype, source_name, target_doc=None):
 			"rate": "rate",
 		},
 		"postprocess": update_item,
-		"condition": lambda doc: doc.qty > 0,
+		"condition": lambda doc: doc.qty - received_items.get(doc.name, 0.0) > 0,
 	}
 
 	if doctype in ["Sales Invoice", "Sales Order"]:
@@ -2516,18 +2571,25 @@ def make_inter_company_transaction(doctype, source_name, target_doc=None):
 				"doctype": target_doctype,
 				"postprocess": update_details,
 				"set_target_warehouse": "set_from_warehouse",
-				"field_no_map": ["taxes_and_charges", "set_warehouse", "shipping_address"],
+				"field_no_map": [*CROSS_PARTY_FIELD_NO_MAP, "set_warehouse", "cost_center"],
 			},
 			doctype + " Item": item_field_map,
 		},
 		target_doc,
 		set_missing_values,
 	)
-
+	if not doclist.get("items"):
+		frappe.throw(
+			_(
+				"Cannot create Intercompany {0}. All items in the source {1} have already been fully invoiced. "
+				"Please check the existing linked {2}s."
+			).format(target_doctype, doctype, target_doctype)
+		)
 	return doclist
 
 
-def get_received_items(reference_name, doctype, reference_fieldname):
+@frappe.whitelist()
+def get_received_items(reference_name: str, doctype: str, reference_fieldname: str):
 	reference_field = "inter_company_invoice_reference"
 	if doctype == "Purchase Order":
 		reference_field = "inter_company_order_reference"
@@ -2540,20 +2602,19 @@ def get_received_items(reference_name, doctype, reference_fieldname):
 	target_doctypes = frappe.get_all(
 		doctype,
 		filters=filters,
-		as_list=True,
+		pluck="name",
 	)
-
+	received_items_map = {}
 	if target_doctypes:
-		target_doctypes = list(target_doctypes[0])
-
-	received_items_map = frappe._dict(
-		frappe.get_all(
+		received_items_data = frappe.get_all(
 			doctype + " Item",
 			filters={"parent": ("in", target_doctypes)},
 			fields=[reference_fieldname, "qty"],
-			as_list=1,
 		)
-	)
+		for item in received_items_data:
+			key = item.get(reference_fieldname)
+			if key:
+				received_items_map[key] = received_items_map.get(key, 0.0) + flt(item.qty)
 
 	return received_items_map
 
@@ -2745,6 +2806,8 @@ def update_multi_mode_option(doc, pos_profile):
 		payment.account = payment_mode.default_account
 		payment.type = payment_mode.type
 
+	mop_refetched = bool(doc.payments)
+
 	doc.set("payments", [])
 	invalid_modes = []
 	mode_of_payments = [d.mode_of_payment for d in pos_profile.get("payments")]
@@ -2765,6 +2828,11 @@ def update_multi_mode_option(doc, pos_profile):
 		else:
 			msg = _("Please set default Cash or Bank account in Mode of Payments {}")
 		frappe.throw(msg.format(", ".join(invalid_modes)), title=_("Missing Account"))
+
+	if mop_refetched:
+		frappe.msgprint(
+			_("Payment methods refreshed. Please review before proceeding."), indicator="orange", alert=True
+		)
 
 
 def get_all_mode_of_payments(doc):
@@ -2816,8 +2884,6 @@ def create_dunning(source_name, target_doc=None, ignore_permissions=False):
 	from frappe.model.mapper import get_mapped_doc
 
 	def postprocess_dunning(source, target):
-		from erpnext.accounts.doctype.dunning.dunning import get_dunning_letter_text
-
 		dunning_type = frappe.db.exists("Dunning Type", {"is_default": 1, "company": source.company})
 		if dunning_type:
 			dunning_type = frappe.get_doc("Dunning Type", dunning_type)
@@ -2826,14 +2892,8 @@ def create_dunning(source_name, target_doc=None, ignore_permissions=False):
 			target.dunning_fee = dunning_type.dunning_fee
 			target.income_account = dunning_type.income_account
 			target.cost_center = dunning_type.cost_center
-			letter_text = get_dunning_letter_text(
-				dunning_type=dunning_type.name, doc=target.as_dict(), language=source.language
-			)
-
-			if letter_text:
-				target.body_text = letter_text.get("body_text")
-				target.closing_text = letter_text.get("closing_text")
-				target.language = letter_text.get("language")
+			target.language = source.language
+			target.get_dunning_letter_text()
 
 		# update outstanding from doc
 		if source.payment_schedule and len(source.payment_schedule) == 1:

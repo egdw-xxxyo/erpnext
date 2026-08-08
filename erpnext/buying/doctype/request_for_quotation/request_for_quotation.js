@@ -165,14 +165,10 @@ frappe.ui.form.on("Request for Quotation", {
 	},
 
 	show_supplier_quotation_comparison(frm) {
-		const today = new Date();
-		const oneMonthAgo = new Date(today);
-		oneMonthAgo.setMonth(today.getMonth() - 1);
-
 		frappe.route_options = {
 			company: frm.doc.company,
-			from_date: moment(oneMonthAgo).format("YYYY-MM-DD"),
-			to_date: moment(today).format("YYYY-MM-DD"),
+			from_date: moment(frm.doc.transaction_date).format("YYYY-MM-DD"),
+			to_date: moment(new Date()).format("YYYY-MM-DD"),
 			request_for_quotation: frm.doc.name,
 		};
 		frappe.set_route("query-report", "Supplier Quotation Comparison");
@@ -250,10 +246,17 @@ frappe.ui.form.on("Request for Quotation", {
 					"subject",
 				])
 				.then((r) => {
-					frm.set_value(
-						"message_for_supplier",
-						r.message.use_html ? r.message.response_html : r.message.response
-					);
+					if (r.message.use_html) {
+						frm.set_value({
+							mfs_html: r.message.response_html,
+							use_html: 1,
+						});
+					} else {
+						frm.set_value({
+							message_for_supplier: r.message.response,
+							use_html: 0,
+						});
+					}
 					frm.set_value("subject", r.message.subject);
 				});
 		}

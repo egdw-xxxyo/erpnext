@@ -24,6 +24,8 @@ from erpnext.selling.doctype.sales_order.sales_order import (
 	create_pick_list,
 	make_delivery_note,
 	make_material_request,
+	make_purchase_order,
+	make_purchase_order_for_default_supplier,
 	make_raw_material_request,
 	make_sales_invoice,
 	make_work_orders,
@@ -56,6 +58,67 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 
 	def tearDown(self):
 		frappe.set_user("Administrator")
+
+	@change_settings(
+		"Stock Settings",
+		{
+			"auto_insert_price_list_rate_if_missing": 1,
+			"update_existing_price_list_rate": 1,
+			"update_price_list_based_on": "Rate",
+		},
+	)
+	def test_sales_order_expired_item_price(self):
+		price_list = "_Test Price List"
+
+		item_1 = make_item("_Test Expired Item 1", {"is_stock_item": 1})
+
+		frappe.db.delete("Item Price", {"item_code": item_1.item_code})
+
+		item_price = frappe.new_doc("Item Price")
+		item_price.item_code = item_1.item_code
+		item_price.price_list = price_list
+		item_price.price_list_rate = 100
+		item_price.valid_from = add_days(today(), -10)
+		item_price.valid_upto = add_days(today(), -5)
+		item_price.save()
+
+		so = make_sales_order(
+			item_code=item_1.item_code, qty=1, rate=1000, selling_price_list=price_list, do_not_save=True
+		)
+		so.save()
+		so.reload()
+
+		self.assertEqual(frappe.db.get_value("Item Price", item_price.name, "price_list_rate"), 100)
+		self.assertEqual(
+			frappe.db.count("Item Price", {"item_code": item_1.item_code, "price_list": price_list}),
+			2,
+		)
+		all_item_prices = frappe.get_all(
+			"Item Price", filters={"item_code": item_1.item_code}, order_by="valid_from desc"
+		)
+		self.assertEqual(frappe.db.get_value("Item Price", all_item_prices[0].name, "price_list_rate"), 1000)
+
+	def test_sales_order_skip_delivery_note(self):
+		so = make_sales_order(do_not_submit=True)
+		so.order_type = "Maintenance"
+		so.skip_delivery_note = 1
+		so.append(
+			"items",
+			{
+				"item_code": "_Test Item 2",
+				"qty": 2,
+				"rate": 100,
+			},
+		)
+		so.save()
+		so.submit()
+
+		so.reload()
+		si = make_sales_invoice(so.name)
+		si.insert()
+		si.submit()
+		so.reload()
+		self.assertEqual(so.status, "Completed")
 
 	@change_settings("Selling Settings", {"allow_negative_rates_for_items": 1})
 	def test_sales_order_with_negative_rate(self):
@@ -180,7 +243,11 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 
 	@change_settings(
 		"Accounts Settings",
-		{"add_taxes_from_item_tax_template": 0, "add_taxes_from_taxes_and_charges_template": 1},
+		{
+			"add_taxes_from_item_tax_template": 0,
+			"add_taxes_from_taxes_and_charges_template": 1,
+			"automatically_fetch_payment_terms": 1,
+		},
 	)
 	def test_make_sales_invoice_with_terms(self):
 		so = make_sales_order(do_not_submit=True)
@@ -209,6 +276,34 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 
 		si1 = make_sales_invoice(so.name)
 		self.assertEqual(len(si1.get("items")), 0)
+
+	@change_settings("Accounts Settings", {"automatically_fetch_payment_terms": 1})  # Enable auto fetch
+	def test_auto_fetch_terms_enable(self):
+		so = make_sales_order(do_not_submit=True)
+
+		so.payment_terms_template = "_Test Payment Term Template"
+		so.save()
+		so.submit()
+
+		si = make_sales_invoice(so.name)
+		# Check if payment terms are copied from sales order to sales invoice
+		self.assertTrue(si.payment_terms_template)
+		si.insert()
+		si.submit()
+
+	@change_settings("Accounts Settings", {"automatically_fetch_payment_terms": 0})  # Disable auto fetch
+	def test_auto_fetch_terms_disable(self):
+		so = make_sales_order(do_not_submit=True)
+
+		so.payment_terms_template = "_Test Payment Term Template"
+		so.save()
+		so.submit()
+
+		si = make_sales_invoice(so.name)
+		# Check if payment terms are not copied from sales order to sales invoice
+		self.assertFalse(si.payment_terms_template)
+		si.insert()
+		si.submit()
 
 	def test_update_qty(self):
 		so = make_sales_order()
@@ -596,6 +691,40 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		frappe.set_user("Administrator")
 		test_user.remove_roles("Sales User", "Test Junior Approver", "Test Approver")
 		test_user2.remove_roles("Sales User", "Test Junior Approver", "Test Approver")
+		workflow.is_active = 0
+		workflow.save()
+
+	def test_update_child_qty_rate_follows_allow_edit(self):
+		from frappe.model.workflow import apply_workflow
+
+		workflow = make_sales_order_edit_perm_workflow()
+		so = make_sales_order(item_code="_Test Item", qty=1, rate=150, do_not_submit=1)
+		apply_workflow(so, "Approve")
+
+		trans_item = json.dumps(
+			[{"item_code": "_Test Item", "rate": 150, "qty": 2, "docname": so.items[0].name}]
+		)
+
+		mover = "test@example.com"
+		mover_user = frappe.get_doc("User", mover)
+		mover_user.add_roles("Sales User", "Test Junior Approver")
+		with self.set_user(mover):
+			# transitioned the doc into Approved but is not the configured editor
+			self.assertRaises(
+				frappe.ValidationError, update_child_qty_rate, "Sales Order", trans_item, so.name
+			)
+
+		editor = "test2@example.com"
+		editor_user = frappe.get_doc("User", editor)
+		editor_user.add_roles("Sales User", "Test Approver")
+		with self.set_user(editor):
+			# Test Approver is the "Only Allow Edit For" role on Approved
+			update_child_qty_rate("Sales Order", trans_item, so.name)
+			so.reload()
+			self.assertEqual(so.items[0].qty, 2)
+
+		mover_user.remove_roles("Sales User", "Test Junior Approver", "Test Approver")
+		editor_user.remove_roles("Sales User", "Test Junior Approver", "Test Approver")
 		workflow.is_active = 0
 		workflow.save()
 
@@ -1237,8 +1366,6 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		Tests if the the Product Bundles in the Items table of Sales Orders are replaced with
 		their child items(from the Packed Items table) on creating a Purchase Order from it.
 		"""
-		from erpnext.selling.doctype.sales_order.sales_order import make_purchase_order
-
 		product_bundle = make_item("_Test Product Bundle", {"is_stock_item": 0})
 		make_item("_Test Bundle Item 1", {"is_stock_item": 1})
 		make_item("_Test Bundle Item 2", {"is_stock_item": 1})
@@ -1267,8 +1394,6 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		"""
 		Tests if the packed item's `ordered_qty` is updated with the quantity of the Purchase Order
 		"""
-		from erpnext.selling.doctype.sales_order.sales_order import make_purchase_order
-
 		product_bundle = make_item("_Test Product Bundle", {"is_stock_item": 0})
 		make_item("_Test Bundle Item 1", {"is_stock_item": 1})
 		make_item("_Test Bundle Item 2", {"is_stock_item": 1})
@@ -1495,7 +1620,7 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		make_item(  # template item
 			"Test-WO-Tshirt",
 			{
-				"has_variant": 1,
+				"has_variants": 1,
 				"variant_based_on": "Item Attribute",
 				"attributes": [{"attribute": "Test Colour"}],
 			},
@@ -1858,6 +1983,41 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		sales_order.items[0].qty = 21
 		sales_order.save()
 		self.assertEqual(sales_order.taxes[0].tax_amount, 0)
+
+	def test_sales_order_with_shipping_rule_without_cost_center(self):
+		from erpnext import get_default_cost_center
+
+		shipping_rule = frappe.get_doc(
+			{
+				"doctype": "Shipping Rule",
+				"label": "Shipping Rule Without Cost Center - Sales Order Test",
+				"shipping_rule_type": "Selling",
+				"company": "_Test Company",
+				"account": "_Test Account Shipping Charges - _TC",
+				"calculate_based_on": "Fixed",
+				"shipping_amount": 50,
+			}
+		).insert()
+		sales_order = make_sales_order(do_not_save=True)
+		sales_order.shipping_rule = shipping_rule.name
+		company_cost_center = get_default_cost_center(sales_order.company)
+
+		shipping_rule.apply(sales_order)
+		self.assertEqual(len(sales_order.taxes), 1)
+		self.assertIsNone(sales_order.taxes[0].cost_center)
+
+		for cost_center in (None, "", company_cost_center):
+			sales_order.taxes[0].cost_center = cost_center
+			shipping_rule.apply(sales_order)
+			self.assertEqual(len(sales_order.taxes), 1)
+			self.assertEqual(sales_order.taxes[0].cost_center, cost_center)
+
+		sales_order.taxes[0].cost_center = ""
+		sales_order.save()
+		sales_order.reload()
+		shipping_rule.apply(sales_order)
+		self.assertEqual(len(sales_order.taxes), 1)
+		self.assertEqual(sales_order.taxes[0].cost_center, "")
 
 	@change_settings(
 		"Accounts Settings",
@@ -2292,8 +2452,6 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		self.assertRaises(frappe.ValidationError, so1.update_status, "Draft")
 
 	def test_item_tax_transfer_from_sales_to_purchase(self):
-		from erpnext.selling.doctype.sales_order.sales_order import make_purchase_order
-
 		item_tax = frappe.new_doc("Item Tax Template")
 		item_tax.title = "Test Item Tax Template"
 		item_tax.company = "_Test Company"
@@ -2394,6 +2552,33 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 		self.assertFalse(so.per_billed)
 		self.assertEqual(so.status, "To Deliver and Bill")
 
+	def test_make_purchase_order_does_not_inherit_party_fields(self):
+		"""
+		Customer-derived fields must not leak from a drop-ship SO into the PO.
+		"""
+		so_items = [
+			{
+				"item_code": "_Test Item",
+				"warehouse": "",
+				"qty": 1,
+				"rate": 100,
+				"delivered_by_supplier": 1,
+				"supplier": "_Test Supplier",
+			}
+		]
+		so = make_sales_order(item_list=so_items, do_not_submit=True)
+		so.tax_category = "_Test Tax Category 1"
+		so.language = "ar"
+		so.payment_terms_template = "_Test Payment Term Template"
+		so.submit()
+
+		po = make_purchase_order_for_default_supplier(so.name, selected_items=so_items)[0]
+
+		supplier = frappe.get_doc("Supplier", "_Test Supplier")
+		self.assertEqual(po.tax_category or None, supplier.tax_category or None)
+		self.assertEqual(po.language or None, supplier.language or None)
+		self.assertEqual(po.payment_terms_template or None, supplier.payment_terms or None)
+
 	def test_pending_quantity_after_update_item_during_invoice_creation(self):
 		so = make_sales_order(qty=30, rate=100)
 
@@ -2417,6 +2602,49 @@ class TestSalesOrder(AccountsTestMixin, FrappeTestCase):
 
 		si2 = make_sales_invoice(so.name)
 		self.assertEqual(si2.items[0].qty, 20)
+
+	@change_settings("Selling Settings", {"validate_selling_price": 1})
+	def test_selling_price_validation_for_manufactured_item(self):
+		"""
+		Unit test to check the selling price validation for manufactured item, without last purchae rate in Item master.
+		"""
+
+		from erpnext.manufacturing.doctype.production_plan.test_production_plan import make_bom
+		from erpnext.stock.doctype.warehouse.test_warehouse import create_warehouse
+
+		# create a FG Item and RM Item
+		rm_item = make_item(
+			"_Test RM Item for SO selling validation",
+			{"is_stock_item": 1, "valuation_rate": 100, "stock_uom": "Nos"},
+		).name
+		rm_warehouse = create_warehouse("_Test RM SPV Warehouse")
+		fg_item = make_item("_Test FG Item for SO selling validation", {"is_stock_item": 1}).name
+		fg_warehouse = create_warehouse("_Test FG SPV Warehouse")
+
+		# create BOM and inward entry for RM Item
+		bom_no = make_bom(item=fg_item, raw_materials=[rm_item]).name
+		make_stock_entry(item_code=rm_item, target=rm_warehouse, qty=10, rate=100)
+
+		# create a manufacture entry, so system won't update the last purchase rate in Item master.
+		se = make_stock_entry(item_code=fg_item, qty=10, purpose="Manufacture", do_not_save=True)
+
+		se.from_bom = 1
+		se.use_multi_level_bom = 1
+		se.bom_no = bom_no
+		se.fg_completed_qty = 1
+		se.from_warehouse = rm_warehouse
+		se.to_warehouse = fg_warehouse
+
+		se.get_items()
+		se.save()
+		se.submit()
+
+		# check valuation of FG Item
+		self.assertEqual(se.items[1].valuation_rate, 100)
+
+		# create a SO for FG Item with selling rate than valuation rate.
+		so = make_sales_order(item_code=fg_item, qty=10, rate=50, warehouse=fg_warehouse, do_not_save=1)
+		self.assertRaises(frappe.ValidationError, so.save)
 
 
 def compare_payment_schedules(doc, doc1, doc2):
@@ -2542,6 +2770,44 @@ def make_sales_order_workflow():
 			allowed="Test Approver",
 			allow_self_approval=1,
 			condition="doc.grand_total > 200",
+		),
+	)
+	workflow.insert(ignore_permissions=True)
+
+	return workflow
+
+
+def make_sales_order_edit_perm_workflow():
+	if frappe.db.exists("Workflow", "SO Edit Perm Workflow"):
+		doc = frappe.get_doc("Workflow", "SO Edit Perm Workflow")
+		doc.set("is_active", 1)
+		doc.save()
+		return doc
+
+	frappe.get_doc(doctype="Role", role_name="Test Junior Approver").insert(ignore_if_duplicate=True)
+	frappe.get_doc(doctype="Role", role_name="Test Approver").insert(ignore_if_duplicate=True)
+	frappe.cache().hdel("roles", frappe.session.user)
+
+	workflow = frappe.get_doc(
+		{
+			"doctype": "Workflow",
+			"workflow_name": "SO Edit Perm Workflow",
+			"document_type": "Sales Order",
+			"workflow_state_field": "workflow_state",
+			"is_active": 1,
+			"send_email_alert": 0,
+		}
+	)
+	workflow.append("states", dict(state="Pending", allow_edit="All"))
+	workflow.append("states", dict(state="Approved", allow_edit="Test Approver", doc_status=1))
+	workflow.append(
+		"transitions",
+		dict(
+			state="Pending",
+			action="Approve",
+			next_state="Approved",
+			allowed="Test Junior Approver",
+			allow_self_approval=1,
 		),
 	)
 	workflow.insert(ignore_permissions=True)

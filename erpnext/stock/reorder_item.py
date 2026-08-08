@@ -7,7 +7,7 @@ from math import ceil
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, flt, nowdate
+from frappe.utils import add_days, cint, escape_html, flt, nowdate
 
 import erpnext
 
@@ -186,6 +186,10 @@ def get_item_warehouse_projected_qty(items_to_consider):
 	item_warehouse_projected_qty = {}
 	items_to_consider = list(items_to_consider.keys())
 
+	warehouse_parent_map = frappe._dict(
+		frappe.get_all("Warehouse", fields=["name", "parent_warehouse"], as_list=True)
+	)
+
 	for item_code, warehouse, projected_qty in frappe.db.sql(
 		"""select item_code, warehouse, projected_qty
 		from tabBin where item_code in ({})
@@ -200,16 +204,14 @@ def get_item_warehouse_projected_qty(items_to_consider):
 		if warehouse not in item_warehouse_projected_qty.get(item_code):
 			item_warehouse_projected_qty[item_code][warehouse] = flt(projected_qty)
 
-		warehouse_doc = frappe.get_doc("Warehouse", warehouse)
+		parent_warehouse = warehouse_parent_map.get(warehouse)
 
-		while warehouse_doc.parent_warehouse:
-			if not item_warehouse_projected_qty.get(item_code, {}).get(warehouse_doc.parent_warehouse):
-				item_warehouse_projected_qty.setdefault(item_code, {})[warehouse_doc.parent_warehouse] = flt(
-					projected_qty
-				)
+		while parent_warehouse:
+			if not item_warehouse_projected_qty.get(item_code, {}).get(parent_warehouse):
+				item_warehouse_projected_qty.setdefault(item_code, {})[parent_warehouse] = flt(projected_qty)
 			else:
-				item_warehouse_projected_qty[item_code][warehouse_doc.parent_warehouse] += flt(projected_qty)
-			warehouse_doc = frappe.get_doc("Warehouse", warehouse_doc.parent_warehouse)
+				item_warehouse_projected_qty[item_code][parent_warehouse] += flt(projected_qty)
+			parent_warehouse = warehouse_parent_map.get(parent_warehouse)
 
 	return item_warehouse_projected_qty
 
@@ -218,15 +220,6 @@ def create_material_request(material_requests):
 	"""Create indent on reaching reorder level"""
 	mr_list = []
 	exceptions_list = []
-
-	def _log_exception(mr):
-		if frappe.local.message_log:
-			exceptions_list.extend(frappe.local.message_log)
-			frappe.local.message_log = []
-		else:
-			exceptions_list.append(frappe.get_traceback(with_context=True))
-
-		mr.log_error("Unable to create material request")
 
 	company_wise_mr = frappe._dict({})
 	for request_type in material_requests:
@@ -297,8 +290,9 @@ def create_material_request(material_requests):
 
 				company_wise_mr.setdefault(company, []).append(mr)
 
-			except Exception:
-				_log_exception(mr)
+			except Exception as exception:
+				exceptions_list.append(exception)
+				mr.log_error("Unable to create material request")
 
 	if company_wise_mr:
 		if getattr(frappe.local, "reorder_email_notify", None) is None:
@@ -383,10 +377,7 @@ def notify_errors(exceptions_list):
 
 	for exception in exceptions_list:
 		try:
-			exception = json.loads(exception)
-			error_message = """<div class='small text-muted'>{}</div><br>""".format(
-				_(exception.get("message"))
-			)
+			error_message = f"<div class='small text-muted'>{escape_html(str(exception))}</div><br>"
 			content += error_message
 		except Exception:
 			pass

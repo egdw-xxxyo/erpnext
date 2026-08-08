@@ -67,6 +67,14 @@ frappe.ui.form.on("Job Card", {
 				},
 			};
 		});
+
+		frm.set_query("work_order", function () {
+			return {
+				filters: {
+					status: ["not in", ["Cancelled", "Closed", "Stopped"]],
+				},
+			};
+		});
 	},
 
 	set_company_filters(frm, fieldname) {
@@ -332,9 +340,10 @@ frappe.ui.form.on("Job Card", {
 			frm.fields_dict["time_logs"].grid.update_docfield_property("time_in_mins", "read_only", 1);
 		}
 
-		if (!frm.is_new() && !frm.doc.skip_material_transfer && frm.doc.docstatus < 2) {
-			let to_request = frm.doc.for_quantity > frm.doc.transferred_qty;
-			let excess_transfer_allowed = frm.doc.__onload.job_card_excess_transfer;
+		if (!frm.is_new() && has_items && !frm.doc.skip_material_transfer && frm.doc.docstatus < 2) {
+			const excess_transfer_allowed = frm.doc.__onload.job_card_excess_transfer;
+			const to_transfer = frm.doc.items.some((row) => flt(row.transferred_qty) < flt(row.required_qty));
+			const to_request = to_transfer;
 
 			if (has_items && (to_request || excess_transfer_allowed)) {
 				frm.add_custom_button(
@@ -346,11 +355,7 @@ frappe.ui.form.on("Job Card", {
 				);
 			}
 
-			// check if any row has untransferred materials
-			// in case of multiple items in JC
-			let to_transfer = frm.doc.items.some((row) => row.transferred_qty < row.required_qty);
-
-			if (has_items && (to_transfer || excess_transfer_allowed)) {
+			if (to_transfer || excess_transfer_allowed) {
 				frm.add_custom_button(
 					__("Material Transfer"),
 					() => {
@@ -380,11 +385,13 @@ frappe.ui.form.on("Job Card", {
 		let is_timer_running = false;
 
 		if (
+			frm.doc.docstatus == 0 &&
+			!frm.is_new() &&
 			frm.doc.for_quantity + frm.doc.process_loss_qty > frm.doc.total_completed_qty &&
 			(frm.doc.skip_material_transfer ||
-				frm.doc.transferred_qty >= frm.doc.for_quantity + frm.doc.process_loss_qty ||
 				!frm.doc.finished_good ||
-				!has_items?.length)
+				!frm.doc.items.length ||
+				!frm.doc.items.some((row) => flt(row.transferred_qty) < flt(row.required_qty)))
 		) {
 			let last_row = {};
 			if (frm.doc.sub_operations?.length && frm.doc.time_logs?.length) {

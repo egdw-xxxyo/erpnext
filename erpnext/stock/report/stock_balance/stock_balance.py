@@ -8,14 +8,18 @@ from typing import Any, TypedDict
 import frappe
 from frappe import _
 from frappe.query_builder import Order
-from frappe.query_builder.functions import Coalesce
+from frappe.query_builder.functions import Coalesce, Count
 from frappe.utils import add_days, cint, date_diff, flt, getdate
 from frappe.utils.nestedset import get_descendants_of
 
 import erpnext
 from erpnext.stock.doctype.inventory_dimension.inventory_dimension import get_inventory_dimensions
 from erpnext.stock.doctype.warehouse.warehouse import apply_warehouse_filter
-from erpnext.stock.report.stock_ageing.stock_ageing import FIFOSlots, get_average_age
+from erpnext.stock.report.stock_ageing.stock_ageing import (
+	FIFOSlots,
+	get_average_age,
+	normalize_fifo_queue,
+)
 from erpnext.stock.utils import add_additional_uom_columns
 
 
@@ -96,8 +100,6 @@ class StockBalanceReport:
 			self.filters["show_warehouse_wise_stock"] = True
 			item_wise_fifo_queue = FIFOSlots(self.filters, self.sle_entries).generate()
 
-		_func = itemgetter(1)
-
 		del self.sle_entries
 
 		sre_details = self.get_sre_reserved_qty_details()
@@ -122,15 +124,7 @@ class StockBalanceReport:
 
 				stock_ageing_data = {"average_age": 0, "earliest_age": 0, "latest_age": 0}
 				if opening_fifo_queue:
-					fifo_queue = sorted(filter(_func, opening_fifo_queue), key=_func)
-					if not fifo_queue:
-						continue
-
-					to_date = self.to_date
-					stock_ageing_data["average_age"] = get_average_age(fifo_queue, to_date)
-					stock_ageing_data["earliest_age"] = date_diff(to_date, fifo_queue[0][1])
-					stock_ageing_data["latest_age"] = date_diff(to_date, fifo_queue[-1][1])
-					stock_ageing_data["fifo_queue"] = fifo_queue
+					stock_ageing_data.update(get_stock_ageing_data(opening_fifo_queue, self.to_date))
 
 				report_data.update(stock_ageing_data)
 
@@ -154,6 +148,8 @@ class StockBalanceReport:
 
 		if self.filters.get("show_stock_ageing_data"):
 			self.sle_entries = self.sle_query.run(as_dict=True)
+
+		self.prepare_stock_reco_voucher_wise_count()
 
 		# HACK: This is required to avoid causing db query in flt
 		_system_settings = frappe.get_cached_doc("System Settings")
@@ -181,6 +177,71 @@ class StockBalanceReport:
 
 		return item_warehouse_map
 
+	def prepare_stock_reco_voucher_wise_count(self):
+		self.stock_reco_voucher_wise_count = frappe._dict()
+
+		doctype = frappe.qb.DocType("Stock Ledger Entry")
+		item = frappe.qb.DocType("Item")
+
+		query = (
+			frappe.qb.from_(doctype)
+			.inner_join(item)
+			.on(doctype.item_code == item.name)
+			.select(doctype.voucher_detail_no, Count(doctype.name).as_("count"))
+			.where(
+				(doctype.voucher_type == "Stock Reconciliation")
+				& (doctype.docstatus < 2)
+				& (doctype.is_cancelled == 0)
+				& (item.has_serial_no == 1)
+			)
+			.groupby(doctype.voucher_detail_no)
+		)
+
+		if items := self.filters.item_code:
+			if isinstance(items, str):
+				items = [items]
+
+			query = query.where(item.name.isin(items))
+
+		if self.filters.item_group:
+			childrens = []
+			childrens.append(self.filters.item_group)
+			if item_group_childrens := get_descendants_of(
+				"Item Group", self.filters.item_group, ignore_permissions=True
+			):
+				childrens.extend(item_group_childrens)
+
+			if childrens:
+				query = query.where(item.item_group.isin(childrens))
+
+		if warehouses := self.filters.get("warehouse"):
+			if isinstance(warehouses, str):
+				warehouses = [warehouses]
+
+			childrens = []
+			for warehouse in warehouses:
+				childrens.append(warehouse)
+				if warehouse_childrens := get_descendants_of("Warehouse", warehouse, ignore_permissions=True):
+					childrens.extend(warehouse_childrens)
+
+			if childrens:
+				query = query.where(doctype.warehouse.isin(childrens))
+
+		data = query.run(as_dict=True)
+		if not data:
+			return
+
+		for row in data:
+			if row.count != 1:
+				continue
+
+			sr_item = frappe.db.get_value(
+				"Stock Reconciliation Item", row.voucher_detail_no, ["current_qty", "qty"], as_dict=True
+			)
+
+			if sr_item.qty and sr_item.current_qty:
+				self.stock_reco_voucher_wise_count[row.voucher_detail_no] = sr_item.current_qty
+
 	def get_sre_reserved_qty_details(self) -> dict:
 		from erpnext.stock.doctype.stock_reservation_entry.stock_reservation_entry import (
 			get_sre_reserved_qty_for_items_and_warehouses as get_reserved_qty_details,
@@ -199,13 +260,19 @@ class StockBalanceReport:
 			qty_dict[field] = entry.get(field)
 
 		if entry.voucher_type == "Stock Reconciliation" and (
-			not entry.batch_no and not entry.serial_no and not entry.serial_and_batch_bundle
+			not entry.batch_no or entry.serial_no or entry.serial_and_batch_bundle
 		):
-			qty_diff = flt(entry.qty_after_transaction) - flt(qty_dict.bal_qty)
+			if entry.serial_no and entry.voucher_detail_no in self.stock_reco_voucher_wise_count:
+				qty_dict.opening_qty -= self.stock_reco_voucher_wise_count.get(entry.voucher_detail_no, 0)
+				qty_dict.bal_qty = 0.0
+				qty_diff = flt(entry.actual_qty)
+				value_diff = flt(entry.stock_value_difference)
+			else:
+				qty_diff = flt(entry.qty_after_transaction) - flt(qty_dict.bal_qty)
+				value_diff = flt(entry.stock_value) - flt(qty_dict.bal_val)
 		else:
 			qty_diff = flt(entry.actual_qty)
-
-		value_diff = flt(entry.stock_value_difference)
+			value_diff = flt(entry.stock_value_difference)
 
 		if entry.posting_date < self.from_date or entry.voucher_no in self.opening_vouchers.get(
 			entry.voucher_type, []
@@ -317,7 +384,9 @@ class StockBalanceReport:
 				sle.batch_no,
 				sle.serial_no,
 				sle.serial_and_batch_bundle,
-				sle.has_serial_no,
+				sle.voucher_detail_no,
+				item_table.has_serial_no,
+				item_table.has_batch_no,
 				item_table.item_group,
 				item_table.stock_uom,
 				item_table.item_name,
@@ -613,6 +682,21 @@ class StockBalanceReport:
 			row[1] = getdate(row[1])
 
 		return opening_fifo_queue
+
+
+def get_stock_ageing_data(fifo_queue: list, to_date: str) -> dict:
+	stock_ageing_data = {"average_age": 0, "earliest_age": 0, "latest_age": 0}
+	fifo_queue = sorted(filter(itemgetter(1), normalize_fifo_queue(fifo_queue)), key=itemgetter(1))
+
+	if not fifo_queue:
+		return stock_ageing_data
+
+	stock_ageing_data["average_age"] = get_average_age(fifo_queue, to_date)
+	stock_ageing_data["earliest_age"] = date_diff(to_date, fifo_queue[0][1])
+	stock_ageing_data["latest_age"] = date_diff(to_date, fifo_queue[-1][1])
+	stock_ageing_data["fifo_queue"] = fifo_queue
+
+	return stock_ageing_data
 
 
 def filter_items_with_no_transactions(

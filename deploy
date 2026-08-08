@@ -2,7 +2,7 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-ERPNEXT_VERSION="v15.96.1"
+ERPNEXT_VERSION="v15.119.0"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
 # Set by the build/migrate handlers when --silent is passed. When 1, the say()
@@ -157,7 +157,9 @@ build_image() {
 
 sync_built_assets() {
   say "==> Syncing built assets from image to sites volume..."
-  docker run --rm "$IMAGE_NAME" tar -cf - --ignore-failed-read \
+  # --entrypoint tar: the image entrypoint prints "Linking fresh assets to volume..."
+  # on stdout, which corrupts the tar stream piped into the backend container.
+  docker run --rm --entrypoint tar "$IMAGE_NAME" -cf - --ignore-failed-read \
     -C /home/frappe/frappe-bench/sites/assets \
     frappe erpnext $(extra_apps_enabled) locale assets.json assets-rtl.json 2>/dev/null | \
     dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/

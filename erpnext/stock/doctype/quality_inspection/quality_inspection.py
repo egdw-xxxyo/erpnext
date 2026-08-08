@@ -388,7 +388,9 @@ class QualityInspection(Document):
 
 	def set_status_based_on_acceptance_values(self, reading):
 		if not cint(reading.numeric):
-			result = reading.get("reading_value") == reading.get("value")
+			reading_value = reading.get("reading_value") or ""
+			value = reading.get("value") or ""
+			result = reading_value == value
 		else:
 			# numeric readings
 			result = self.min_max_criteria_passed(reading)
@@ -476,10 +478,11 @@ def item_query(doctype, txt, searchfield, start, page_len, filters):
 	from frappe.desk.reportview import get_match_cond
 
 	from_doctype = cstr(filters.get("from"))
+	parent_doctype = cstr(filters.get("parent_doctype"))
 	if not from_doctype or not frappe.db.exists("DocType", from_doctype):
 		return []
 
-	mcond = get_match_cond(from_doctype)
+	mcond = get_match_cond(parent_doctype or from_doctype)
 	cond, qi_condition = "", "and (quality_inspection is null or quality_inspection = '')"
 
 	if filters.get("parent"):
@@ -503,9 +506,10 @@ def item_query(doctype, txt, searchfield, start, page_len, filters):
 
 		return frappe.db.sql(
 			f"""
-				SELECT distinct item_code, item_name
+				SELECT distinct `tab{from_doctype}`.item_code, `tab{from_doctype}`.item_name
 				FROM `tab{from_doctype}`
-				WHERE parent=%(parent)s and docstatus < 2 and item_code like %(txt)s
+				JOIN `tab{parent_doctype}` ON `tab{parent_doctype}`.name = `tab{from_doctype}`.parent
+				WHERE `tab{from_doctype}`.parent=%(parent)s and `tab{parent_doctype}`.docstatus < 2 and `tab{from_doctype}`.item_code like %(txt)s
 				{qi_condition} {cond} {mcond}
 				ORDER BY item_code limit {cint(page_len)} offset {cint(start)}
 			""",

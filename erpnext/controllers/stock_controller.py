@@ -26,6 +26,7 @@ from erpnext.stock.doctype.inventory_dimension.inventory_dimension import (
 	get_evaluated_inventory_dimension,
 )
 from erpnext.stock.doctype.serial_and_batch_bundle.serial_and_batch_bundle import (
+	combine_datetime,
 	get_type_of_transaction,
 )
 from erpnext.stock.stock_ledger import get_items_to_be_repost
@@ -57,6 +58,8 @@ class StockController(AccountsController):
 
 		if not self.get("is_return"):
 			self.validate_inspection()
+
+		self.validate_warehouse_of_sabb()
 		self.validate_serialized_batch()
 		self.clean_serial_nos()
 		self.validate_customer_provided_item()
@@ -64,6 +67,45 @@ class StockController(AccountsController):
 		self.validate_internal_transfer()
 		self.validate_putaway_capacity()
 		self.reset_conversion_factor()
+
+	def validate_warehouse_of_sabb(self):
+		if self.is_internal_transfer():
+			return
+
+		doc_before_save = self.get_doc_before_save()
+
+		for row in self.items:
+			if not row.get("serial_and_batch_bundle"):
+				continue
+
+			sabb_details = frappe.db.get_value(
+				"Serial and Batch Bundle",
+				row.serial_and_batch_bundle,
+				["type_of_transaction", "warehouse", "has_serial_no"],
+				as_dict=True,
+			)
+			if not sabb_details:
+				continue
+
+			if sabb_details.type_of_transaction != "Outward":
+				continue
+
+			warehouse = row.get("warehouse") or row.get("s_warehouse")
+			if sabb_details.warehouse != warehouse:
+				frappe.throw(
+					_(
+						"Row #{0}: Warehouse {1} does not match with the warehouse {2} in Serial and Batch Bundle {3}."
+					).format(row.idx, warehouse, sabb_details.warehouse, row.serial_and_batch_bundle)
+				)
+
+			if self.doctype == "Stock Reconciliation":
+				continue
+
+			if sabb_details.has_serial_no and doc_before_save and doc_before_save.get("items"):
+				prev_row = doc_before_save.get("items", {"idx": row.idx})
+				if prev_row and prev_row[0].serial_and_batch_bundle != row.serial_and_batch_bundle:
+					sabb_doc = frappe.get_doc("Serial and Batch Bundle", row.serial_and_batch_bundle)
+					sabb_doc.validate_serial_no_status()
 
 	def reset_conversion_factor(self):
 		for row in self.get("items"):
@@ -135,13 +177,18 @@ class StockController(AccountsController):
 		)
 
 		is_asset_pr = any(d.get("is_fixed_asset") for d in self.get("items"))
+		need_inventory_map = (self.get_stock_items() or self.get("packed_items")) and cint(
+			erpnext.is_perpetual_inventory_enabled(self.company)
+		)
 
 		if (
 			cint(erpnext.is_perpetual_inventory_enabled(self.company))
 			or provisional_accounting_for_non_stock_items
 			or is_asset_pr
 		):
-			warehouse_account = get_warehouse_account_map(self.company)
+			warehouse_account = frappe._dict()
+			if need_inventory_map:
+				warehouse_account = get_warehouse_account_map(self.company)
 
 			if self.docstatus == 1:
 				if not gl_entries:
@@ -221,6 +268,10 @@ class StockController(AccountsController):
 			parent_details = self.get_parent_details_for_packed_items()
 
 		for row in self.get(table_name):
+			item_code = row.get("rm_item_code") or row.get("item_code")
+			if not item_code or not self.is_serial_batch_item(item_code):
+				continue
+
 			if (
 				not via_landed_cost_voucher
 				and row.serial_and_batch_bundle
@@ -241,8 +292,7 @@ class StockController(AccountsController):
 			):
 				bundle_details = {
 					"item_code": row.get("rm_item_code") or row.item_code,
-					"posting_date": self.posting_date,
-					"posting_time": self.posting_time,
+					"posting_datetime": combine_datetime(self.posting_date, self.posting_time),
 					"voucher_type": self.doctype,
 					"voucher_no": self.name,
 					"voucher_detail_no": row.name,
@@ -1094,6 +1144,16 @@ class StockController(AccountsController):
 				continue
 
 			if qi_required:  # validate row only if inspection is required on item level
+				if self.doctype in [
+					"Purchase Receipt",
+					"Purchase Invoice",
+					"Sales Invoice",
+					"Delivery Note",
+				] and frappe.get_single_value(
+					"Stock Settings", "allow_to_make_quality_inspection_after_purchase_or_delivery"
+				):
+					return
+
 				self.validate_qi_presence(row)
 				if self.docstatus == 1:
 					self.validate_qi_submission(row)
@@ -1101,16 +1161,6 @@ class StockController(AccountsController):
 
 	def validate_qi_presence(self, row):
 		"""Check if QI is present on row level. Warn on save and stop on submit if missing."""
-		if self.doctype in [
-			"Purchase Receipt",
-			"Purchase Invoice",
-			"Sales Invoice",
-			"Delivery Note",
-		] and frappe.db.get_single_value(
-			"Stock Settings", "allow_to_make_quality_inspection_after_purchase_or_delivery"
-		):
-			return
-
 		if not row.quality_inspection:
 			msg = _("Row #{0}: Quality Inspection is required for Item {1}").format(
 				row.idx, frappe.bold(row.item_code)
@@ -1449,6 +1499,9 @@ class StockController(AccountsController):
 			"remarks": remarks,
 		}
 
+		if project:
+			gl_entry.update({"project": project})
+
 		if voucher_detail_no:
 			gl_entry.update({"voucher_detail_no": voucher_detail_no})
 
@@ -1465,9 +1518,10 @@ class StockController(AccountsController):
 
 
 @frappe.whitelist()
-def show_accounting_ledger_preview(company, doctype, docname):
+def show_accounting_ledger_preview(company: str, doctype: str, docname: str):
 	filters = frappe._dict(company=company, include_dimensions=1)
 	doc = frappe.get_doc(doctype, docname)
+	doc.check_permission("read")
 	doc.run_method("before_gl_preview")
 
 	gl_columns, gl_data = get_accounting_ledger_preview(doc, filters)
@@ -1478,9 +1532,10 @@ def show_accounting_ledger_preview(company, doctype, docname):
 
 
 @frappe.whitelist()
-def show_stock_ledger_preview(company, doctype, docname):
+def show_stock_ledger_preview(company: str, doctype: str, docname: str):
 	filters = frappe._dict(company=company)
 	doc = frappe.get_doc(doctype, docname)
+	doc.check_permission("read")
 	doc.run_method("before_sl_preview")
 
 	sl_columns, sl_data = get_stock_ledger_preview(doc, filters)
@@ -1591,7 +1646,7 @@ def get_gl_entries_for_preview(doctype, docname, fields):
 
 def get_columns(raw_columns, fields):
 	return [
-		{"name": d.get("label"), "editable": False, "width": 110}
+		{"name": d.get("label"), "editable": False, "width": 110, "fieldtype": d.get("fieldtype")}
 		for d in raw_columns
 		if not d.get("hidden") and d.get("fieldname") in fields
 	]
@@ -1639,7 +1694,7 @@ def repost_required_for_queue(doc: StockController) -> bool:
 
 
 @frappe.whitelist()
-def check_item_quality_inspection(doctype, items):
+def check_item_quality_inspection(doctype: str, docstatus: str | int, items: str | list[dict]):
 	if isinstance(items, str):
 		items = json.loads(items)
 
@@ -1651,17 +1706,34 @@ def check_item_quality_inspection(doctype, items):
 		"Delivery Note": "inspection_required_before_delivery",
 	}
 
-	items_to_remove = []
-	for item in items:
-		if not frappe.db.get_value("Item", item.get("item_code"), inspection_fieldname_map.get(doctype)):
-			items_to_remove.append(item)
-	items = [item for item in items if item not in items_to_remove]
+	inspection_fieldname = inspection_fieldname_map.get(doctype)
+	if inspection_fieldname is None:
+		return items if doctype == "Stock Entry" else []
 
-	return items
+	allow_after_transaction = cint(docstatus) == 1 and frappe.get_single_value(
+		"Stock Settings", "allow_to_make_quality_inspection_after_purchase_or_delivery"
+	)
+
+	if allow_after_transaction:
+		return items
+
+	item_codes = list({item.get("item_code") for item in items})
+
+	Item = frappe.qb.DocType("Item")
+	results = (
+		frappe.qb.from_(Item)
+		.select(Item.name)
+		.where((Item.name.isin(item_codes)) & (Item[inspection_fieldname] == 1))
+		.run(as_dict=True)
+	)
+
+	inspection_required_items = {row.name for row in results}
+
+	return [item for item in items if item.get("item_code") in inspection_required_items]
 
 
 @frappe.whitelist()
-def make_quality_inspections(doctype, docname, items):
+def make_quality_inspections(company, doctype, docname, items):
 	if isinstance(items, str):
 		items = json.loads(items)
 
@@ -1680,6 +1752,7 @@ def make_quality_inspections(doctype, docname, items):
 
 		quality_inspection = frappe.get_doc(
 			{
+				"company": company,
 				"doctype": "Quality Inspection",
 				"inspection_type": "Incoming",
 				"inspected_by": frappe.session.user,

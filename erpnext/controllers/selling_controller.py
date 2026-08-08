@@ -12,7 +12,7 @@ from erpnext.controllers.sales_and_purchase_return import get_rate_for_return, i
 from erpnext.controllers.stock_controller import StockController
 from erpnext.stock.doctype.item.item import set_item_default
 from erpnext.stock.get_item_details import get_bin_details, get_conversion_factor
-from erpnext.stock.utils import get_incoming_rate, get_valuation_method
+from erpnext.stock.utils import get_combine_datetime, get_incoming_rate, get_valuation_method
 
 
 class SellingController(StockController):
@@ -53,6 +53,7 @@ class SellingController(StockController):
 		self.validate_for_duplicate_items()
 		self.validate_target_warehouse()
 		self.validate_auto_repeat_subscription_dates()
+		self.validate_sample_retention_warehouse()
 		for table_field in ["items", "packed_items"]:
 			if self.get(table_field):
 				self.set_serial_and_batch_bundle(table_field)
@@ -318,9 +319,10 @@ class SellingController(StockController):
 			if is_internal_customer or not is_stock_item:
 				continue
 
-			if item.get("incoming_rate") and item.base_net_rate < (
+			rate_field = "valuation_rate" if self.doctype in ["Sales Order", "Quotation"] else "incoming_rate"
+			if item.get(rate_field) and item.base_net_rate < (
 				valuation_rate := flt(
-					item.incoming_rate * (item.conversion_factor or 1), item.precision("base_net_rate")
+					item.get(rate_field) * (item.conversion_factor or 1), item.precision("base_net_rate")
 				)
 			):
 				throw_message(
@@ -483,10 +485,37 @@ class SellingController(StockController):
 				sales_order.update_reserved_qty(so_item_rows)
 
 	def set_incoming_rate(self):
+		def reset_incoming_rate():
+			old_item = next(
+				(
+					item
+					for item in (old_doc.get("items") + (old_doc.get("packed_items") or []))
+					if item.name == d.name
+				),
+				None,
+			)
+			if old_item:
+				old_qty = flt(old_item.get("stock_qty") or old_item.get("actual_qty") or old_item.get("qty"))
+				if (
+					old_item.item_code != d.item_code
+					or old_item.warehouse != d.warehouse
+					or old_qty != qty
+					or old_item.serial_no != d.serial_no
+					or get_serial_nos(old_item.serial_and_batch_bundle)
+					!= get_serial_nos(d.serial_and_batch_bundle)
+					or old_item.batch_no != d.batch_no
+					or get_batch_nos(old_item.serial_and_batch_bundle)
+					!= get_batch_nos(d.serial_and_batch_bundle)
+				):
+					d.incoming_rate = 0
+
 		if self.doctype not in ("Delivery Note", "Sales Invoice"):
 			return
 
-		from erpnext.stock.serial_batch_bundle import get_batch_nos
+		if self.doctype == "Sales Invoice" and not self.update_stock and not self.is_internal_transfer():
+			return
+
+		from erpnext.stock.serial_batch_bundle import get_batch_nos, get_serial_nos
 
 		allow_at_arms_length_price = frappe.get_cached_value(
 			"Stock Settings", None, "allow_internal_transfer_at_arms_length_price"
@@ -494,6 +523,8 @@ class SellingController(StockController):
 		set_zero_rate_for_expired_batch = frappe.db.get_single_value(
 			"Selling Settings", "set_zero_rate_for_expired_batch"
 		)
+
+		is_standalone = self.is_return and not self.return_against
 
 		old_doc = self.get_doc_before_save()
 		items = self.get("items") + (self.get("packed_items") or [])
@@ -526,27 +557,7 @@ class SellingController(StockController):
 				qty = flt(d.get("stock_qty") or d.get("actual_qty") or d.get("qty"))
 
 				if old_doc:
-					old_item = next(
-						(
-							item
-							for item in (old_doc.get("items") + (old_doc.get("packed_items") or []))
-							if item.name == d.name
-						),
-						None,
-					)
-					if old_item:
-						old_qty = flt(
-							old_item.get("stock_qty") or old_item.get("actual_qty") or old_item.get("qty")
-						)
-						if (
-							old_item.item_code != d.item_code
-							or old_item.warehouse != d.warehouse
-							or old_qty != qty
-							or old_item.batch_no != d.batch_no
-							or get_batch_nos(old_item.serial_and_batch_bundle)
-							!= get_batch_nos(d.serial_and_batch_bundle)
-						):
-							d.incoming_rate = 0
+					reset_incoming_rate()
 
 				if (
 					not d.incoming_rate
@@ -565,11 +576,12 @@ class SellingController(StockController):
 							"voucher_type": self.doctype,
 							"voucher_no": self.name,
 							"voucher_detail_no": d.name,
-							"allow_zero_valuation": d.get("allow_zero_valuation"),
+							"allow_zero_valuation": d.get("allow_zero_valuation_rate"),
 							"batch_no": d.batch_no,
 							"serial_no": d.serial_no,
 						},
-						raise_error_if_no_rate=False,
+						raise_error_if_no_rate=is_standalone,
+						fallbacks=not is_standalone,
 					)
 
 				if (
@@ -605,11 +617,11 @@ class SellingController(StockController):
 							if allow_at_arms_length_price:
 								continue
 
-							rate = flt(
-								flt(d.incoming_rate, d.precision("incoming_rate")) * d.conversion_factor,
-								d.precision("rate"),
-							)
-							if d.rate != rate:
+							rate = flt(flt(d.incoming_rate) * flt(d.conversion_factor or 1.0))
+
+							if flt(d.rate, d.precision("incoming_rate")) != flt(
+								rate, d.precision("incoming_rate")
+							):
 								d.rate = rate
 								frappe.msgprint(
 									_(
@@ -863,6 +875,26 @@ class SellingController(StockController):
 
 		validate_item_type(self, "is_sales_item", "sales")
 
+	def validate_sample_retention_warehouse(self):
+		if self.get("is_return"):
+			return
+
+		sample_retention_warehouse = frappe.db.get_single_value(
+			"Stock Settings", "sample_retention_warehouse"
+		)
+		if not sample_retention_warehouse:
+			return
+
+		items = self.get("items") + (self.get("packed_items"))
+		for item in items:
+			if item.get("warehouse") == sample_retention_warehouse:
+				frappe.throw(
+					_("Row {0}: Cannot sell item {1} from Sample Retention Warehouse {2}").format(
+						item.idx, frappe.bold(item.item_code), frappe.bold(sample_retention_warehouse)
+					),
+					title=_("Not Allowed"),
+				)
+
 	def update_stock_reservation_entries(self) -> None:
 		"""Updates Delivered Qty in Stock Reservation Entries."""
 
@@ -1052,8 +1084,7 @@ def get_serial_and_batch_bundle(child, parent, delivery_note_child=None):
 			"voucher_type": parent.doctype,
 			"voucher_no": parent.name if parent.docstatus < 2 else None,
 			"voucher_detail_no": delivery_note_child.name if delivery_note_child else child.name,
-			"posting_date": parent.posting_date,
-			"posting_time": parent.posting_time,
+			"posting_datetime": get_combine_datetime(parent.posting_date, parent.posting_time),
 			"qty": child.qty,
 			"type_of_transaction": "Outward" if child.qty > 0 and parent.docstatus < 2 else "Inward",
 			"company": parent.company,

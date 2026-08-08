@@ -10,6 +10,7 @@ import frappe.utils
 from frappe import _, qb
 from frappe.contacts.doctype.address.address import get_company_address
 from frappe.desk.notifications import clear_doctype_notifications
+from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from frappe.model.utils import get_fetch_values
 from frappe.query_builder.functions import Sum
@@ -20,7 +21,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
 	update_linked_doc,
 	validate_inter_company_party,
 )
-from erpnext.accounts.party import get_party_account
+from erpnext.accounts.party import CROSS_PARTY_FIELD_NO_MAP, get_party_account
 from erpnext.controllers.selling_controller import SellingController
 from erpnext.manufacturing.doctype.blanket_order.blanket_order import (
 	validate_against_blanket_order,
@@ -66,7 +67,6 @@ class SalesOrder(SellingController):
 		additional_discount_percentage: DF.Float
 		address_display: DF.SmallText | None
 		advance_paid: DF.Currency
-		advance_payment_status: DF.Literal["Not Requested", "Requested", "Partially Paid", "Fully Paid"]
 		amended_from: DF.Link | None
 		amount_eligible_for_commission: DF.Currency
 		apply_discount_on: DF.Literal["", "Grand Total", "Net Total"]
@@ -111,6 +111,7 @@ class SalesOrder(SellingController):
 		grand_total: DF.Currency
 		group_same_items: DF.Check
 		has_unit_price_items: DF.Check
+		ignore_default_payment_terms_template: DF.Check
 		ignore_pricing_rule: DF.Check
 		in_words: DF.Data | None
 		incoterm: DF.Link | None
@@ -158,7 +159,6 @@ class SalesOrder(SellingController):
 			"",
 			"Draft",
 			"On Hold",
-			"To Pay",
 			"To Deliver and Bill",
 			"To Bill",
 			"To Deliver",
@@ -486,7 +486,7 @@ class SalesOrder(SellingController):
 				and not cint(d.delivered_by_supplier)
 			):
 				frappe.throw(
-					_("Delivery warehouse required for stock item {0}").format(d.item_code), WarehouseRequired
+					_("Source warehouse required for stock item {0}").format(d.item_code), WarehouseRequired
 				)
 
 	def validate_with_previous_doc(self):
@@ -560,7 +560,7 @@ class SalesOrder(SellingController):
 			"Unreconcile Payment Entries",
 		)
 		super().on_cancel()
-
+		super().update_prevdoc_status()
 		# Cannot cancel closed SO
 		if self.status == "Closed":
 			frappe.throw(_("Closed order cannot be cancelled. Unclose to cancel."))
@@ -634,6 +634,7 @@ class SalesOrder(SellingController):
 		self.update_reserved_qty()
 		self.notify_update()
 		clear_doctype_notifications(self)
+		self.update_blanket_order()
 
 	def update_reserved_qty(self, so_item_rows=None):
 		"""update requested qty (before ordered_qty is updated)"""
@@ -1338,7 +1339,6 @@ def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False, a
 				"doctype": "Sales Invoice",
 				"field_map": {
 					"party_account_currency": "party_account_currency",
-					"payment_terms_template": "payment_terms_template",
 				},
 				"field_no_map": ["payment_terms_template"],
 				"validation": {"docstatus": ["=", 1]},
@@ -1468,7 +1468,9 @@ def get_events(start, end, filters=None):
 
 
 @frappe.whitelist()
-def make_purchase_order_for_default_supplier(source_name, selected_items=None, target_doc=None):
+def make_purchase_order_for_default_supplier(
+	source_name: str, selected_items: str | list | None = None, target_doc: str | Document | None = None
+):
 	"""Creates Purchase Order for each Supplier. Returns a list of doc objects."""
 
 	from erpnext.setup.utils import get_exchange_rate
@@ -1497,7 +1499,6 @@ def make_purchase_order_for_default_supplier(source_name, selected_items=None, t
 		target.shipping_rule = ""
 		target.tc_name = ""
 		target.terms = ""
-		target.payment_terms_template = ""
 		target.payment_schedule = []
 
 		default_price_list = frappe.get_value("Supplier", supplier, "default_price_list")
@@ -1554,16 +1555,7 @@ def make_purchase_order_for_default_supplier(source_name, selected_items=None, t
 			{
 				"Sales Order": {
 					"doctype": "Purchase Order",
-					"field_no_map": [
-						"address_display",
-						"contact_display",
-						"contact_mobile",
-						"contact_email",
-						"contact_person",
-						"taxes_and_charges",
-						"shipping_address",
-						"dispatch_address",
-					],
+					"field_no_map": [*CROSS_PARTY_FIELD_NO_MAP],
 					"validation": {"docstatus": ["=", 1]},
 				},
 				"Sales Order Item": {
@@ -1628,7 +1620,9 @@ def make_purchase_order_for_default_supplier(source_name, selected_items=None, t
 
 
 @frappe.whitelist()
-def make_purchase_order(source_name, selected_items=None, target_doc=None):
+def make_purchase_order(
+	source_name: str, selected_items: str | list | None = None, target_doc: str | Document | None = None
+):
 	if not selected_items:
 		return
 
@@ -1656,7 +1650,6 @@ def make_purchase_order(source_name, selected_items=None, target_doc=None):
 		target.shipping_rule = ""
 		target.tc_name = ""
 		target.terms = ""
-		target.payment_terms_template = ""
 		target.payment_schedule = []
 
 		if is_drop_ship_order(target):
@@ -1695,16 +1688,7 @@ def make_purchase_order(source_name, selected_items=None, target_doc=None):
 		{
 			"Sales Order": {
 				"doctype": "Purchase Order",
-				"field_no_map": [
-					"address_display",
-					"contact_display",
-					"contact_mobile",
-					"contact_email",
-					"contact_person",
-					"taxes_and_charges",
-					"shipping_address",
-					"dispatch_address",
-				],
+				"field_no_map": [*CROSS_PARTY_FIELD_NO_MAP],
 				"validation": {"docstatus": ["=", 1]},
 			},
 			"Sales Order Item": {
@@ -1818,6 +1802,8 @@ def make_work_orders(items, sales_order, company, project=None):
 
 @frappe.whitelist()
 def update_status(status, name):
+	frappe.has_permission("Sales Order", "submit", name, throw=True)
+
 	so = frappe.get_doc("Sales Order", name)
 	so.update_status(status)
 

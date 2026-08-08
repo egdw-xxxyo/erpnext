@@ -13,7 +13,7 @@ frappe.query_reports["Accounts Payable"] = {
 		},
 		{
 			fieldname: "report_date",
-			label: __("Posting Date"),
+			label: __("Report Date"),
 			fieldtype: "Date",
 			default: frappe.datetime.get_today(),
 		},
@@ -33,6 +33,17 @@ frappe.query_reports["Accounts Payable"] = {
 				});
 			},
 			options: "Cost Center",
+		},
+		{
+			fieldname: "project",
+			label: __("Project"),
+			fieldtype: "MultiSelectList",
+			options: "Project",
+			get_data: function (txt) {
+				return frappe.db.get_link_options("Project", txt, {
+					company: frappe.query_report.get_filter_value("company"),
+				});
+			},
 		},
 		{
 			fieldname: "party_account",
@@ -58,10 +69,10 @@ frappe.query_reports["Accounts Payable"] = {
 			default: "Due Date",
 		},
 		{
-			fieldname: "calculate_ageing_with",
-			label: __("Calculate Ageing With"),
+			fieldname: "age_as_on",
+			label: __("Age as on"),
 			fieldtype: "Select",
-			options: "Report Date\nToday Date",
+			options: "Report Date\nToday",
 			default: "Report Date",
 		},
 		{

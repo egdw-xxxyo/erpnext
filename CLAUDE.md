@@ -384,12 +384,50 @@ This means you can **edit any ERPNext or Frappe file directly** — no patch scr
 | Frappe patches (in `patches.txt`) | `./deploy build` then `./deploy migrate` |
 | Only running pending migrations | `./deploy migrate` |
 
-### Modifying stock ERPNext/Frappe files
+### Modifying stock ERPNext/Frappe files — MINIMISE UPSTREAM MERGE CONFLICTS
 
-You can edit any file directly. Common examples:
-- Add a field to a DocType → edit the `.json` file, add to `field_order` and `fields`
-- Add/modify Python logic → edit the `.py` file directly
-- Change client-side behavior → edit the `.js` file directly
+Technically you can edit any file directly. **Don't, unless there is no hook that does the job** — every edited stock line is a merge conflict waiting for the next upstream sync.
+
+Measured on the 15.96.1 → 15.119.0 merge (1385 upstream commits):
+
+| our change | files | conflicts |
+|---|---|---|
+| new files (our own modules) | 407 | **0** |
+| edited stock files | 85 | 12 (47 overlapped upstream) |
+
+**Deletions predict conflicts; additions barely do.** The 12 conflicting files deleted ~30 stock lines each (`job_card.js` 134, `serial_batch_bundle.py` 114, `bom.py` 49). The 35 files that overlapped upstream but merged clean deleted ≤ 13. `sales_order.js` added 524 lines with 0 deletions and its "conflict" was two blocks appended at the same EOF — resolved by keeping both.
+
+**The rule: append, never rewrite. Prefer a hook over an edit.**
+
+#### Order of preference
+
+| Need | Do this | Already wired in `hooks.py` |
+|---|---|---|
+| New field on a stock DocType | `erpnext/patches/setup_custom_fields.py` (Custom Field) | — |
+| Change `options` / `depends_on` / `default` / `field_order` | **Property Setter**, not a JSON edit | — |
+| React to save/submit/cancel | `doc_events` | line ~355 |
+| Replace controller logic | `override_doctype_class` | line ~47 (`Address`) |
+| Replace a whitelisted API method | `override_whitelisted_methods` | line ~49 |
+| Add form buttons / client behaviour | `doctype_js` → **separate** file under `erpnext/public/js/custom/` | line ~31 |
+| Genuinely new server logic | new module in our own package, called from a hook | — |
+| Last resort | append a new function at the **bottom** of the stock file | — |
+
+#### Hard rules
+
+- **Never re-export a stock DocType from the desk UI.** It reshuffles `field_order` and bumps `modified`, producing a guaranteed conflict with zero functional value. `supplier.json` conflicted for exactly this reason — its whole diff was drag-and-drop layout churn.
+- **Never edit a stock DocType `.json` to add a field.** Use a Custom Field. `sales_order_item.json` and `task.json` conflicted here; both were avoidable.
+- **Never hand-backport upstream code.** Cherry-pick the real upstream commit so git sees a shared ancestor. The hand-written `get_linked_docs` backport in `frappe/model/delete_doc.py` cost 3 conflict hunks *and* silently created a duplicate `def` (ruff `F811`) whose first definition became dead code.
+- **Never rewrite the body of a stock function.** Append a new one and route to it via a hook. If you must change stock logic, keep the diff to the smallest possible number of deleted lines and say why in the commit message.
+- Client-side additions in a `doctype_js` file **cannot conflict with upstream, ever**. `job_card.js`, `sales_order.js`, `purchase_receipt.js`, `item.js` and `quality_inspection.js` are all append-only additions that belong there.
+
+#### Sync cadence
+
+Merge `upstream/version-15` **monthly**, not once per 1000+ commits. Conflict cost grows superlinearly with drift, and long gaps hide bad edits: a broken query in `serial_batch_bundle.py` (querying `is_cancelled` / `type_of_transaction` / `item_code` on `Serial and Batch Entry`, which has none of those columns) survived months undetected because nothing ever forced a comparison against upstream.
+
+```
+git fetch upstream version-15
+git merge-tree --write-tree --name-only HEAD upstream/version-15   # dry run, lists conflicts
+```
 
 After editing, commit, push, and rebuild on the server.
 

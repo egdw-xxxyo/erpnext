@@ -578,6 +578,13 @@ def create_custom_fields_on_quotation_item():
 
 
 def create_custom_fields_on_whatsapp_message():
+	# The WhatsApp Message DocType ships with the frappe_whatsapp app, which is not
+	# installed on every site (see apps.json). Without this guard the Custom Field
+	# insert raises LinkValidationError and aborts the rest of execute().
+	if not frappe.db.exists("DocType", "WhatsApp Message"):
+		print("  Skipped WhatsApp Message fields: frappe_whatsapp not installed")
+		return
+
 	# Stores the failure reason from Meta's status webhook (e.g. error 131047
 	# "Re-engagement message") so the Chat Center can show why a send failed.
 	fields = [

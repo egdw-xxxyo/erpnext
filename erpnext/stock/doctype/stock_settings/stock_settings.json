@@ -47,6 +47,7 @@
   "disable_serial_no_and_batch_selector",
   "use_serial_batch_fields",
   "do_not_update_serial_batch_on_creation_of_auto_bundle",
+  "allow_negative_stock_for_batch",
   "serial_and_batch_bundle_section",
   "set_serial_and_batch_bundle_naming_based_on_naming_series",
   "section_break_gnhq",
@@ -72,10 +73,6 @@
   "auto_indent",
   "column_break_27",
   "reorder_email_notify",
-  "inter_warehouse_transfer_settings_section",
-  "allow_from_dn",
-  "column_break_31",
-  "allow_from_pr",
   "stock_closing_tab",
   "control_historical_stock_transactions_section",
   "stock_frozen_upto",
@@ -223,23 +220,6 @@
    "label": "Naming Series Prefix"
   },
   {
-   "fieldname": "inter_warehouse_transfer_settings_section",
-   "fieldtype": "Section Break",
-   "label": "Inter Warehouse Transfer Settings"
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_from_dn",
-   "fieldtype": "Check",
-   "label": "Allow Material Transfer from Delivery Note to Sales Invoice"
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_from_pr",
-   "fieldtype": "Check",
-   "label": "Allow Material Transfer from Purchase Receipt to Purchase Invoice"
-  },
-  {
    "description": "If mentioned, the system will allow only the users with this Role to create or modify any stock transaction earlier than the latest stock transaction for a specific item and warehouse. If set as blank, it allows all users to create/edit back-dated transactions.",
    "fieldname": "role_allowed_to_create_edit_back_dated_transactions",
    "fieldtype": "Link",
@@ -284,10 +264,6 @@
   },
   {
    "fieldname": "column_break_27",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_31",
    "fieldtype": "Column Break"
   },
   {
@@ -454,7 +430,7 @@
   },
   {
    "default": "0",
-   "description": "If enabled, the item rate won't adjust to the valuation rate during internal transfers, but accounting will still use the valuation rate.",
+   "description": "If enabled, the item rate won't adjust to the valuation rate during internal transfers, but accounting will still use the valuation rate. This will allow the user to specify a different rate for printing or taxation purposes.",
    "fieldname": "allow_internal_transfer_at_arms_length_price",
    "fieldtype": "Check",
    "label": "Allow Internal Transfers at Arm's Length Price"
@@ -538,6 +514,13 @@
    "fieldname": "validate_material_transfer_warehouses",
    "fieldtype": "Check",
    "label": "Validate Material Transfer Warehouses"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, the system will allow negative stock entries for the batch. But, this may lead to incorrect valuation rates, so it is recommended to avoid using this option. The system will permit negative stock only when it is caused by backdated entries and will validate and block negative stock in all other cases.",
+   "fieldname": "allow_negative_stock_for_batch",
+   "fieldtype": "Check",
+   "label": "Allow Negative Stock for Batch"
   }
  ],
  "icon": "icon-cog",
@@ -545,7 +528,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-11-11 11:35:39.864923",
+ "modified": "2026-03-27 22:39:16.812184",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "Stock Settings",

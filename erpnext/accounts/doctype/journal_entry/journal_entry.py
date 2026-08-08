@@ -21,6 +21,7 @@ from erpnext.accounts.doctype.repost_accounting_ledger.repost_accounting_ledger 
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
+from erpnext.accounts.general_ledger import validate_opening_entry_against_pcv
 from erpnext.accounts.party import get_party_account
 from erpnext.accounts.utils import (
 	cancel_exchange_gain_loss_journal,
@@ -123,6 +124,9 @@ class JournalEntry(AccountsController):
 		if not self.is_opening:
 			self.is_opening = "No"
 
+		if self.is_opening == "Yes":
+			validate_opening_entry_against_pcv(self.company)
+
 		self.clearance_date = None
 
 		self.validate_party()
@@ -214,6 +218,8 @@ class JournalEntry(AccountsController):
 	def on_cancel(self):
 		# References for this Journal are removed on the `on_cancel` event in accounts_controller
 		super().on_cancel()
+
+		from_doc_events = getattr(self, "ignore_linked_doctypes", ())
 		self.ignore_linked_doctypes = (
 			"GL Entry",
 			"Stock Ledger Entry",
@@ -226,6 +232,10 @@ class JournalEntry(AccountsController):
 			"Unreconcile Payment Entries",
 			"Advance Payment Ledger Entry",
 		)
+
+		if from_doc_events and from_doc_events != self.ignore_linked_doctypes:
+			self.ignore_linked_doctypes = self.ignore_linked_doctypes + from_doc_events
+
 		self.make_gl_entries(1)
 		self.unlink_advance_entry_reference()
 		self.unlink_asset_reference()
@@ -263,6 +273,9 @@ class JournalEntry(AccountsController):
 			frappe.throw(_("Journal Entry type should be set as Depreciation Entry for asset depreciation"))
 
 	def validate_stock_accounts(self):
+		if not erpnext.is_perpetual_inventory_enabled(self.company):
+			return
+
 		stock_accounts = get_stock_accounts(self.company, accounts=self.accounts)
 		for account in stock_accounts:
 			account_bal, stock_bal, warehouse_list = get_stock_and_account_balance(
@@ -1175,7 +1188,11 @@ class JournalEntry(AccountsController):
 		self.validate_total_debit_and_credit()
 
 	def get_values(self):
-		cond = f" and outstanding_amount <= {self.write_off_amount}" if flt(self.write_off_amount) > 0 else ""
+		cond = (
+			f" and outstanding_amount <= {flt(self.write_off_amount)}"
+			if flt(self.write_off_amount) > 0
+			else ""
+		)
 
 		if self.write_off_based_on == "Accounts Receivable":
 			return frappe.db.sql(

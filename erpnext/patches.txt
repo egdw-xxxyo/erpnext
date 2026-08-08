@@ -75,7 +75,6 @@ erpnext.patches.v12_0.make_item_manufacturer
 erpnext.patches.v12_0.move_item_tax_to_item_tax_template
 erpnext.patches.v11_1.set_variant_based_on
 erpnext.patches.v11_1.woocommerce_set_creation_user
-erpnext.patches.v11_1.rename_depends_on_lwp
 execute:frappe.delete_doc("Report", "Inactive Items")
 erpnext.patches.v11_1.delete_scheduling_tool
 erpnext.patches.v12_0.rename_tolerance_fields
@@ -409,6 +408,7 @@ erpnext.patches.v15_0.update_payment_schedule_fields_in_invoices
 erpnext.patches.v15_0.rename_group_by_to_categorize_by
 execute:frappe.db.set_single_value("Accounts Settings", "receivable_payable_fetch_method", "Buffered Cursor")
 erpnext.patches.v14_0.set_update_price_list_based_on
+erpnext.patches.v15_0.add_bank_transaction_as_journal_entry_reference
 erpnext.patches.v15_0.set_cancelled_status_to_cancelled_pos_invoice
 erpnext.patches.v15_0.rename_group_by_to_categorize_by_in_custom_reports
 erpnext.patches.v14_0.update_full_name_in_contract
@@ -425,6 +425,7 @@ execute:frappe.db.set_single_value("Accounts Settings", "fetch_valuation_rate_fo
 erpnext.patches.v15_0.add_company_payment_gateway_account
 erpnext.patches.v15_0.update_uae_zero_rated_fetch
 erpnext.patches.v15_0.update_fieldname_in_accounting_dimension_filter
+erpnext.patches.v16_0.create_company_custom_fields
 erpnext.patches.v15_0.set_asset_status_if_not_already_set
 erpnext.patches.v15_0.toggle_legacy_controller_for_period_closing
 execute:frappe.db.set_single_value("Accounts Settings", "show_party_balance", 1)
@@ -432,6 +433,24 @@ execute:frappe.db.set_single_value("Accounts Settings", "show_account_balance", 
 erpnext.patches.v16_0.update_currency_exchange_settings_for_frankfurter #2025-12-11
 erpnext.patches.v15_0.create_accounting_dimensions_in_advance_taxes_and_charges
 erpnext.patches.v16_0.set_ordered_qty_in_quotation_item
+erpnext.patches.v15_0.replace_http_with_https_in_sales_partner
+erpnext.patches.v16_0.add_portal_redirects
+erpnext.patches.v16_0.update_order_qty_and_requested_qty_based_on_mr_and_po
+erpnext.patches.v16_0.depends_on_inv_dimensions
+erpnext.patches.v16_0.clear_procedures_from_receivable_report
+erpnext.patches.v16_0.migrate_address_contact_custom_fields
+erpnext.patches.v15_0.set_main_item_code_in_material_request_plan_item
+erpnext.patches.v16_0.set_posting_datetime_for_sabb_and_drop_indexes
+execute:frappe.db.set_single_value("Accounts Settings", "pcv_job_timeout", 3600)
+erpnext.patches.v15_0.backfill_sla_link_filters_on_custom_field
+erpnext.patches.v15_0.backfill_sla_link_filters_on_docfield
+erpnext.patches.v16_0.crm_settings_handle_allowed_users_for_frappe_crm
+erpnext.patches.v16_0.backfill_pick_list_transferred_qty
+erpnext.patches.v16_0.access_control_for_project_users
+erpnext.patches.v16_0.rename_ar_ap_ageing_filter
+erpnext.patches.v15_0.fix_titles
+erpnext.patches.v16_0.backfill_repost_accounting_ledger_status
+erpnext.patches.v16_0.merge_seeded_item_group_root
 erpnext.patches.v15_0.rename_packing_box_to_package
 erpnext.patches.v15_0.rename_scanner_setup_to_scanner
 erpnext.patches.v15_0.add_script_versioning

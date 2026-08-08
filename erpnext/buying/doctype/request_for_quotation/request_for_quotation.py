@@ -6,6 +6,7 @@ import json
 
 import frappe
 from frappe import _
+from frappe.contacts.doctype.contact.contact import get_full_name
 from frappe.core.doctype.communication.email import make
 from frappe.desk.form.load import get_attachments
 from frappe.model.mapper import get_mapped_doc
@@ -47,7 +48,8 @@ class RequestforQuotation(BuyingController):
 		incoterm: DF.Link | None
 		items: DF.Table[RequestforQuotationItem]
 		letter_head: DF.Link | None
-		message_for_supplier: DF.TextEditor
+		message_for_supplier: DF.TextEditor | None
+		mfs_html: DF.Code | None
 		named_place: DF.Data | None
 		naming_series: DF.Literal["PUR-RFQ-.YYYY.-"]
 		opportunity: DF.Link | None
@@ -61,6 +63,7 @@ class RequestforQuotation(BuyingController):
 		tc_name: DF.Link | None
 		terms: DF.TextEditor | None
 		transaction_date: DF.Date
+		use_html: DF.Check
 		vendor: DF.Link | None
 	# end: auto-generated types
 
@@ -100,8 +103,16 @@ class RequestforQuotation(BuyingController):
 				["use_html", "response", "response_html", "subject"],
 				as_dict=True,
 			)
-			if not self.message_for_supplier:
-				self.message_for_supplier = data.response_html if data.use_html else data.response
+
+			self.use_html = data.use_html
+
+			if data.use_html:
+				if not self.mfs_html:
+					self.mfs_html = data.response_html
+			else:
+				if not self.message_for_supplier:
+					self.message_for_supplier = data.response
+
 			if not self.subject:
 				self.subject = data.subject
 
@@ -262,18 +273,26 @@ class RequestforQuotation(BuyingController):
 			supplier_doc.save()
 
 	def create_user(self, rfq_supplier, link):
+		contact_name = None
+		if rfq_supplier.contact:
+			name_fields = frappe.get_value(
+				"Contact", rfq_supplier.contact, ["first_name", "middle_name", "last_name"]
+			)
+			if name_fields:
+				contact_name = get_full_name(*name_fields)
+
 		user = frappe.get_doc(
 			{
 				"doctype": "User",
 				"send_welcome_email": 0,
 				"email": rfq_supplier.email_id,
-				"first_name": rfq_supplier.supplier_name or rfq_supplier.supplier,
+				"first_name": contact_name or rfq_supplier.supplier_name or rfq_supplier.supplier,
 				"user_type": "Website User",
 				"redirect_url": link,
 			}
 		)
 		user.save(ignore_permissions=True)
-		update_password_link = user.reset_password()
+		update_password_link = user._reset_password()
 
 		return user, update_password_link
 
@@ -304,7 +323,10 @@ class RequestforQuotation(BuyingController):
 		else:
 			sender = frappe.session.user not in STANDARD_USERS and frappe.session.user or None
 
-		rendered_message = frappe.render_template(self.message_for_supplier, doc_args)
+		message_template = self.mfs_html if self.use_html else self.message_for_supplier
+		# nosemgrep: frappe-semgrep-rules.rules.security.frappe-ssti
+		rendered_message = frappe.render_template(message_template, doc_args)
+
 		subject_source = (
 			self.subject
 			or frappe.get_value("Email Template", self.email_template, "subject")
@@ -460,6 +482,11 @@ def make_supplier_quotation_from_rfq(source_name, target_doc=None, for_supplier=
 def create_supplier_quotation(doc):
 	if isinstance(doc, str):
 		doc = json.loads(doc)
+
+	if frappe.session.user not in frappe.get_all(
+		"Portal User", {"parent": doc.get("supplier")}, pluck="user"
+	):
+		frappe.throw(_("Not Permitted"), frappe.PermissionError)
 
 	try:
 		sq_doc = frappe.get_doc(
