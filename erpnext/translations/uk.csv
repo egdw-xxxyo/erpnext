@@ -134,8 +134,9 @@ CRM module’s features are configurable as per your business needs. CRM Setting
 
 Функції модуля CRM налаштовуються відповідно до потреб вашого бізнесу. Налаштування CRM — це місце, де ви можете визначити свої вподобання для:
 - Кампанії
-- Лідів
-- Можливостей"
+- Звернення
+- Пропозиції
+- Угоди"
 "# Chart Of Accounts
 
 ERPNext sets up a simple chart of accounts for each Company you create, but you can modify it according to business and legal requirements.","# План рахунків
@@ -883,7 +884,7 @@ A - C,А - В
 A BOM with name {0} already exists for item {1}.,Специфікація матеріалів з назвою {0} вже існує для товару {1}.
 A Customer Group exists with same name please change the Customer name or rename the Customer Group,"Група клієнтів з таким ім'ям вже існує. Будь ласка, змініть Ім'я клієнта або перейменуйте Групу клієнтів"
 A Holiday List can be added to exclude counting these days for the Workstation.,"Можна додати список святкових днів, щоб виключити ці дні з підрахунку для робочої станції."
-A Lead requires either a person's name or an organization's name,"Керівник вимагає або імені людини, або імені організації"
+A Lead requires either a person's name or an organization's name,"Звернення потребує імені особи або назви організації"
 A Packing Slip can only be created for Draft Delivery Note.,Пакувальний лист може бути створений тільки для чернетки транспортної накладної.
 "A Price List is a collection of Item Prices either Selling, Buying, or both","Прайс-лист — це набір цін на товари для продажу, закупівлі або обох"
 "A Product or a Service that is bought, sold or kept in stock.","Продукт або послуга, що купується, продається або зберігається на складі."
@@ -1106,7 +1107,7 @@ Action on New Invoice,Дія для нового рахунку-фактури
 Actions,Дії
 Actions performed,Виконані дії
 Active,Активний
-Active Leads,Активні Запити
+Active Leads,Активні звернення
 Active Status,Активний статус
 Active Subcontracted Items,Активні субпідрядні позиції
 Activities,Діяльності
@@ -1159,8 +1160,8 @@ Add Employees,Додати співробітників
 Add Item,Додати елемент
 Add Items,Додати товари
 Add Items in the Purpose Table,Додати елементи до таблиці призначення
-Add Lead to Prospect,Додати Запит до потенційного клієнта
-Add Leads,Додати підписки
+Add Lead to Prospect,Додати Звернення до потенційного клієнта
+Add Leads,Додати звернення
 Add Local Holidays,Додати місцеві свята
 Add Manually,Додати вручну
 Add Multiple,Додати кілька
@@ -1203,7 +1204,7 @@ Added On,Додано
 Added Supplier Role to User {0}.,Додано роль постачальника для користувача {0}.
 Added {0} ({1}),Додано {0} ({1})
 Added {1} Role to User {0}.,Додано роль {1} для користувача {0}.
-Adding Lead to Prospect...,Додавання Запиту до потенційного клієнта...
+Adding Lead to Prospect...,Додавання Звернення до потенційного клієнта...
 Additional,Додатково
 Additional Asset Cost,Вартість додаткових активів
 Additional Cost,Додаткова вартість
@@ -1347,7 +1348,7 @@ All Departments,Всі кафедри
 All Employee (Active),Всі Співробітник (Активний)
 All Item Groups,Всі Групи товарів
 All Items,Усі позиції
-All Lead (Open),Усі Запити (відкриті)
+All Lead (Open),Усі звернення (відкриті)
 All Parties ,Усі сторони 
 All Sales Partner Contact,Усі контакти торгового партнеру
 All Sales Person,Всі Відповідальні з продажу
@@ -1365,7 +1366,7 @@ All items have already been transferred for this Work Order.,Всі предме
 All items in this document already have a linked Quality Inspection.,Всі товари в цьому документі вже мають пов'язану перевірку якості.
 All items must be linked to a Sales Order or Subcontracting Inward Order for this Sales Invoice.,Усі позиції повинні бути пов'язані із замовленням на продаж або замовленням на вхідну субпідрядну роботу для цього рахунку-фактури.
 All linked Sales Orders must be subcontracted.,Усі пов'язані замовлення на продаж повинні бути субпідрядними.
-All the Comments and Emails will be copied from one document to another newly created document(Lead -> Opportunity -> Quotation) throughout the CRM documents.,Всі коментарі та електронні листи будуть скопійовані з одного документа в інший новостворений документ (Запит -> Можливість -> Пропозиція) в усіх документах CRM.
+All the Comments and Emails will be copied from one document to another newly created document(Lead -> Opportunity -> Quotation) throughout the CRM documents.,Всі коментарі та електронні листи будуть скопійовані з одного документа в інший новостворений документ (Звернення -> Пропозиція -> Угода) в усіх документах CRM.
 All the items have been already returned.,Усі позиції вже повернуті.
 "All the required items (raw materials) will be fetched from BOM and populated in this table. Here you can also change the Source Warehouse for any item. And during the production, you can track transferred raw materials from this table.",Всі необхідні товари (сировина) будуть отримані зі специфікації та заповнені в цій таблиці. Тут ви також можете змінити склад-джерело для будь-якого товару. І під час виробництва ви можете відстежувати передану сировину з цієї таблиці.
 All these items have already been Invoiced/Returned,Всі ці товари вже виставлені рахунки / повернені
@@ -1398,7 +1399,7 @@ Allow Internal Transfers at Arm's Length Price,Дозволити внутріш
 Allow Item To Be Added Multiple Times in a Transaction,Дозволити додавати елемент у транзакції кілька разів
 Allow Item to Be Added Multiple Times in a Transaction,Дозволити додавання позиції кілька разів у транзакції
 Allow Item to be Added Multiple Times in a Transaction,Дозволити багаторазове додавання позиції в транзакцію
-Allow Lead Duplication based on Emails,Дозволити дублювання Запитів на основі електронних адрес
+Allow Lead Duplication based on Emails,Дозволити дублювання Звернень на основі електронних адрес
 Allow Material Transfer from Delivery Note to Sales Invoice,Дозволити передачу матеріалу з накладного на поставку на рахунок-фактуру
 Allow Material Transfer from Purchase Receipt to Purchase Invoice,Дозволити передачу матеріалу з квитанції про придбання на рахунок-фактуру
 Allow Multiple Material Consumption,Дозволити багато матеріалу споживання
@@ -1414,7 +1415,7 @@ Allow Purchase,Дозволити закупівлю
 Allow Purchase Invoice Creation Without Purchase Order,Дозволити створення рахунків-фактур на придбання без замовлення на придбання
 Allow Purchase Invoice Creation Without Purchase Receipt,Дозволити створення рахунків-фактур на придбання без квитанції про придбання
 Allow Purchase Order with Zero Quantity,Дозволити замовлення на закупівлю з нульовою кількістю
-Allow Quotation with Zero Quantity,Дозволити комерційну пропозицію з нульовою кількістю
+Allow Quotation with Zero Quantity,Дозволити Угоду з нульовою кількістю
 Allow Rename Attribute Value,Дозволити значення атрибуту &quot;Перейменувати&quot;
 Allow Request for Quotation with Zero Quantity,Дозволити запит комерційної пропозиції з нульовою кількістю
 Allow Resetting Service Level Agreement,Дозволити скидання угоди про рівень обслуговування
@@ -1422,7 +1423,7 @@ Allow Resetting Service Level Agreement from Support Settings.,Дозволит�
 Allow Sales,Дозволити продажі
 Allow Sales Invoice Creation Without Delivery Note,Дозволити створення рахунків-фактур без продажу накладного
 Allow Sales Invoice Creation Without Sales Order,Дозволити створення рахунків-фактур на продаж без замовлення на продаж
-Allow Sales Order Creation For Expired Quotation,Дозволити створення замовлення на продаж для прострочених котирувань
+Allow Sales Order Creation For Expired Quotation,Дозволити створення замовлення на продаж для прострочених Угод
 Allow Sales Order with Zero Quantity,Дозволити замовлення на продаж з нульовою кількістю
 Allow Stale Exchange Rates,Дозволити стабільний курс обміну
 Allow Supplier Quotation with Zero Quantity,Дозволити пропозицію постачальника з нульовою кількістю
@@ -1449,7 +1450,7 @@ Allowed To Transact With,Дозволено вести транзакцію з
 Allowed primary roles are 'Customer' and 'Supplier'. Please select one of these roles only.,"Дозволені основні ролі: «Клієнт» та «Постачальник». Будь ласка, виберіть лише одну з цих ролей."
 Allows to keep aside a specific quantity of inventory for a particular order.,Дозволяє відкласти певну кількість запасів для конкретного замовлення.
 Allows users to submit Purchase Orders with zero quantity. Useful when rates are fixed but the quantities are not. Eg. Rate Contracts.,"Дозволяє користувачам подавати замовлення на закупівлю з нульовою кількістю. Корисно, коли ціни фіксовані, а кількість — ні. Напр. контракти на тарифи."
-Allows users to submit Quotations with zero quantity. Useful when rates are fixed but the quantities are not. Eg. Rate Contracts.,"Дозволяє користувачам подавати комерційні пропозиції з нульовою кількістю. Корисно, коли ціни фіксовані, а кількість — ні. Напр. контракти на тарифи."
+Allows users to submit Quotations with zero quantity. Useful when rates are fixed but the quantities are not. Eg. Rate Contracts.,"Дозволяє користувачам подавати Угоди з нульовою кількістю. Корисно, коли ціни фіксовані, а кількість — ні. Напр. контракти на тарифи."
 Allows users to submit Request for Quotations with zero quantity. Useful when rates are fixed but the quantities are not. Eg. Rate Contracts.,"Дозволяє користувачам подавати запити на комерційні пропозиції з нульовою кількістю. Корисно, коли ціни фіксовані, а кількість — ні. Напр. контракти на тарифи."
 Allows users to submit Sales Orders with zero quantity. Useful when rates are fixed but the quantities are not. Eg. Rate Contracts.,"Дозволяє користувачам подавати замовлення на продаж з нульовою кількістю. Корисно, коли ціни фіксовані, а кількість — ні. Напр. контракти на тарифи."
 Allows users to submit Supplier Quotations with zero quantity. Useful when rates are fixed but the quantities are not. Eg. Rate Contracts.,"Дозволяє користувачам подавати пропозиції постачальників з нульовою кількістю. Корисно, коли ціни фіксовані, а кількість — ні. Напр. контракти на тарифи."
@@ -1793,7 +1794,7 @@ Auto Reserve Stock,Автоматичне резервування запасі�
 Auto Reserve Stock for Sales Order on Purchase,Автоматичне резервування запасів для замовлення на продаж при закупівлі
 Auto Tax Settings Error,Помилка автоматичних налаштувань податків
 Auto Variant BOM Creation Failed for {0},Автоматичне створення варіанту Норми не вдалося для {0}
-Auto close Opportunity Replied after the no. of days mentioned above,"Автоматичне закриття ""Перспективного клієнта"" після відповіді через вказану кількість днів"
+Auto close Opportunity Replied after the no. of days mentioned above,"Автоматичне закриття Пропозиції зі статусом «Відповіли» через вказану кількість днів"
 Auto match and set the Party in Bank Transactions,Автоматичне зіставлення та встановлення контрагента у банківських транзакціях
 Auto re-order,Авто-дозамовлення
 Auto repeat document updated,Автоматичний повторення документа оновлено
@@ -2317,7 +2318,7 @@ Cannot create a pick list for Sales Order {0} because it has reserved stock. Ple
 Cannot create accounting entries against disabled accounts: {0},Неможливо створити бухгалтерські проводки для відключених рахунків: {0}
 Cannot create return for consolidated invoice {0}.,Неможливо створити повернення для консолідованої накладної {0}.
 Cannot deactivate or cancel BOM as it is linked with other BOMs,"Не можете деактивувати або скасувати норми витрат, якщо вони пов'язані з іншими"
-"Cannot declare as lost, because Quotation has been made.","Не можете бути оголошений як втрачений, бо вже зроблена пропозиція."
+"Cannot declare as lost, because Quotation has been made.","Не можна оголосити втраченим, оскільки вже створено Угоду."
 Cannot deduct when category is for 'Valuation' or 'Valuation and Total',"Не можете відняти, коли категорія для &quot;Оцінка&quot; або &quot;Оцінка і Total &#39;"
 Cannot delete Exchange Gain/Loss row,Неможливо видалити рядок курсового прибутку/збитку
 "Cannot delete Serial No {0}, as it is used in stock transactions","Не вдається видалити Серійний номер {0}, оскільки він використовується у складських операціях"
@@ -2528,7 +2529,7 @@ Client Secret,Секретний ключ клієнта
 Close,Закрити
 Close Issue After Days,Закрити Issue Після днів
 Close Loan,Закрити позику
-Close Replied Opportunity After Days,Закрити опрацьовану можливість через вказану кількість днів
+Close Replied Opportunity After Days,Закрити опрацьовану Пропозицію через вказану кількість днів
 Close the POS,Закрити POS
 Closed,Закрито
 Closed Document,Закритий документ
@@ -2866,8 +2867,8 @@ Create Job Card,Створіть карту роботи
 Create Job Card based on Batch Size,Створити картку завдання на основі розміру партії
 Create Journal Entries,Створити журнальні проведення
 Create Journal Entry,Створіть запис у журналі
-Create Lead,Створити Запит
-Create Leads,Створення Запитів
+Create Lead,Створити Звернення
+Create Leads,Створення Звернень
 Create Ledger Entries for Change Amount,Створити записи в бухгалтерській книзі для зміни суми
 Create Link,Створити посилання
 Create MPS,Створити план основного виробництва
@@ -2875,8 +2876,8 @@ Create Missing Party,Створити пропущену партію
 Create Multi-level BOM,Створити багаторівневу специфікацію
 Create New Contact,Створіть новий контакт
 Create New Customer,Створити нового клієнта
-Create New Lead,Створіть новий потенційний клієнт
-Create Opportunity,Створити перспективу
+Create New Lead,Створити нове Звернення
+Create Opportunity,Створити Пропозицію
 Create POS Opening Entry,Створіть запис про відкриття POS
 Create Payment Entries,Створити записи платежів
 Create Payment Entry,Створіть запис про оплату
@@ -2887,7 +2888,7 @@ Create Print Jobs,Створити завдання друку
 Create Prospect,Створити потенційного клієнта
 Create Purchase Order,Створити замовлення на купівлю
 Create Purchase Orders,Створення замовлень на поставку
-Create Quotation,Створити цитати
+Create Quotation,Створити Угоду
 Create Raw Materials,Створити сировину
 Create Receiver List,Створити список отримувачів
 Create Reposting Entries,Створити коригувальні записи
@@ -2913,7 +2914,7 @@ Create a Finished Good,Створити готову продукцію
 Create a Fixed Asset Item,Створити номенклатуру основних засобів
 Create a Material Transfer Entry,Створити запис переміщення матеріалів
 Create a Product,Створити товар
-Create a Quotation,Створити комерційну пропозицію
+Create a Quotation,Створити Угоду
 Create a Sales Item,Створити номенклатуру для продажу
 Create a Sales Order,Створити замовлення на продаж
 Create a Supplier,Створити постачальника
@@ -2926,13 +2927,13 @@ Create an Asset Category,Створити категорію активу
 Create an Asset Item,Створити номенклатуру активу
 Create an Item,Створити номенклатуру
 Create an incoming stock transaction for the Item.,Створіть вхідну біржову операцію для Товару.
-Create and Send Quotation,Створити та надіслати комерційну пропозицію
+Create and Send Quotation,Створити та надіслати Угоду
 Create customer quotes,Створення котирування клієнтів
 Create first Purchase Order,Створити перше замовлення на закупівлю
 Create in Draft Status,Створити у статусі чернетки
 Create missing customer or supplier.,Створіть відсутніх клієнтів або постачальників.
 Create your first Bill of Materials,Створити вашу першу специфікацію матеріалів
-Create your first Quotation,Створити вашу першу комерційну пропозицію
+Create your first Quotation,Створити вашу першу Угоду
 Create your first Sales Order,Створити ваше перше замовлення на продаж
 Create your first Work Order,Створити ваше перше виробниче замовлення
 Create {0} {1} ?,Створити {0} {1}?
@@ -3070,7 +3071,7 @@ Custom?,Власний?
 Customer,Клієнт
 Customer ,Клієнт 
 Customer / Item / Item Group,Клієнт / Товар / Група товарів
-Customer / Lead Address,Адреса Клієнта / Запиту
+Customer / Lead Address,Адреса Клієнта / Звернення
 Customer > Customer Group > Territory,Клієнт > Група клієнтів > Територія
 Customer Acquisition and Loyalty,Придбання та лояльність клієнтів
 Customer Address,Адреса клієнта
@@ -3131,7 +3132,7 @@ Customer's Purchase Order Date,Дата оригінала замовлення 
 Customer's Purchase Order No,Номер оригінала замовлення клієнта
 Customer's Vendor,Постачальник клієнта
 Customer-wise Item Price,"Ціна предмета, орієнтована на клієнта"
-Customer/Lead Name,Клієнт / Ім&#39;я клієнта
+Customer/Lead Name,Клієнт / Назва Звернення
 Customer: ,Клієнт: 
 Customers,Клієнти
 Customers Without Any Sales Transactions,Клієнти без будь-яких продажних операцій
@@ -3290,7 +3291,7 @@ Default Priority,Пріоритет за замовчуванням
 Default Provisional Account,Тимчасовий рахунок за замовчуванням
 Default Provisional Account (Service),Тимчасовий рахунок за замовчуванням (Послуги)
 Default Purchase Unit of Measure,За замовчуванням одиниця виміру закупівлі
-Default Quotation Validity Days,Дня довіреності щодо котирувань
+Default Quotation Validity Days,Термін дії Угоди за замовчуванням (днів)
 Default Receivable Account,Рахунок дебеторської заборгованості за замовчуванням
 Default Round Off Account,Рахунок округлення за замовчуванням
 Default Sales Contact,Контактна особа з продажу за замовчуванням
@@ -3352,7 +3353,7 @@ Delete Accounting and Stock Ledger Entries on deletion of Transaction,Видал
 Delete Bins,Видалити комірки
 Delete Cancelled Ledger Entries,Видалити скасовані записи в бухгалтерській книзі
 Delete Dimension,Видалити вимір
-Delete Leads and Addresses,Видалити Запити та адреси
+Delete Leads and Addresses,Видалити Звернення та адреси
 Delete Transactions,Видалити операції
 Delete all the Transactions for this Company,Видалити всі транзакції цієї компанії
 Deleted Documents,Дистанційні документи
@@ -4137,7 +4138,7 @@ First Response Due,Термін першої відповіді
 First Response SLA Failed by {},SLA для першої відповіді було порушено {}
 First Response Time,Час першої реакції
 First Response Time for Issues,Перший час відповіді на питання
-First Response Time for Opportunity,Перший час відповіді на можливість
+First Response Time for Opportunity,Час першої відповіді на Пропозицію
 "Fiscal Regime is mandatory, kindly set the fiscal regime in the company {0}","Фіскальний режим є обов&#39;язковим, люб&#39;язно встановлюйте фіскальний режим в компанії {0}"
 Fiscal Year,Бюджетний період
 Fiscal Year Company,Компанія фінансовий року
@@ -4282,9 +4283,9 @@ From Fiscal Year,З фіскального року
 From Fiscal Year cannot be greater than To Fiscal Year,Початковий фіскальний рік не може бути більшим за кінцевий фіскальний рік
 From Folio No,Від Folio No
 From Invoice Date,Рахунки-фактури з датою від
-From Lead,Від ліду
+From Lead,Зі Звернення
 From No,Від №
-From Opportunity,Від можливості
+From Opportunity,З Пропозиції
 From Package No.,З пакета №
 From Payment Date,З дати платежу
 From Posting Date,З дати опублікування
@@ -5274,7 +5275,7 @@ Item {0} not found.,Товар {0} не знайдено.
 Item {0}: Ordered qty {1} cannot be less than minimum order qty {2} (defined in Item).,Позиція {0}: Замовлена к-сть {1} не може бути менше мінімальної к-сті замовлення {2} (визначеної у інвентарній картці).
 Item {0}: {1} qty produced. ,Елемент {0}: вироблено {1} кількість. 
 Item {} does not exist.,Товар {} не існує.
-"Item, Customer, Supplier and Quotation","Товар, клієнт, постачальник та пропозиція"
+"Item, Customer, Supplier and Quotation","Товар, клієнт, постачальник та Угода"
 Item-wise Price List Rate,Ціни прайс-листів по-товарно
 Item-wise Purchase History,Попозиційна історія закупівель
 Item-wise Purchase Register,Попозиційний реєстр закупівель
@@ -5348,7 +5349,7 @@ Journal entries have been created,Бухгалтерські проводки с
 Journals,Журнали
 Journals have been created,Журнали створено
 Kanban Board,Канбан-дошка
-"Keep Track of Sales Campaigns. Keep track of Leads, Quotations, Sales Order etc from Campaigns to gauge Return on Investment. ","Відстежуйте рекламні кампанії з продажу. Відстежуйте потенційних клієнтів, комерційні пропозиції, замовлення на продаж тощо з кампаній для оцінки рентабельності інвестицій. "
+"Keep Track of Sales Campaigns. Keep track of Leads, Quotations, Sales Order etc from Campaigns to gauge Return on Investment. ","Відстежуйте рекламні кампанії з продажу. Відстежуйте звернення, угоди, замовлення на продаж тощо з кампаній для оцінки рентабельності інвестицій. "
 Kelvin,Кельвін
 Key,Ключ
 Key Reports,Основні звіти
@@ -5423,15 +5424,15 @@ Last transacted,Остання транзакція
 Latest,Останній
 Latest Age,Останній вік
 Latitude,Широта
-Lead,Запит
-Lead -> Prospect,Запит -> Потенційний клієнт
-Lead Conversion Time,Час конвертації Запиту
-Lead Count,Кількість Запитів
-Lead Details,Деталі Запиту
-Lead Name,Назва Запиту
+Lead,Звернення
+Lead -> Prospect,Звернення -> Потенційний клієнт
+Lead Conversion Time,Час конвертації Звернення
+Lead Count,Кількість Звернень
+Lead Details,Деталі Звернення
+Lead Name,Назва Звернення
 Lead Owner,Відповідальний менеджер
 Lead Owner Efficiency,Ефективність відповідального менеджера
-Lead Owner cannot be same as the Lead Email Address,Відповідальний менеджер не може збігатися з адресою електронної пошти Запиту
+Lead Owner cannot be same as the Lead Email Address,Відповідальний менеджер не може збігатися з адресою електронної пошти Звернення
 Lead Source,Канал залучення
 Lead Time,Час виконання
 Lead Time (Days),Час виконання (дні)
@@ -5439,12 +5440,12 @@ Lead Time (in mins),Час виконання (у хвилинах)
 Lead Time Date,Дата з врахування часу на поставку
 Lead Time Days,Час на поставку в днях
 Lead Time in days,Час на поставку в днях
-Lead Type,Тип Запиту
-Lead {0} has been added to prospect {1}.,Запит {0} додано до потенційного клієнта {1}.
-"Lead, Opportunity, Customer, and more.","Запит, Можливість, Клієнт та інше."
+Lead Type,Тип Звернення
+Lead {0} has been added to prospect {1}.,Звернення {0} додано до потенційного клієнта {1}.
+"Lead, Opportunity, Customer, and more.","Звернення, Пропозиція, Клієнт та інше."
 Leaderboard,Таблиця лідерів
-Leads,Запити
-"Leads help you get business, add all your contacts and more as your leads","Запити допомагають отримувати замовлення — вносьте сюди всі свої контакти"
+Leads,Звернення
+"Leads help you get business, add all your contacts and more as your leads","Звернення допомагають отримувати замовлення — вносьте сюди всі свої контакти"
 Learn Accounting,Вивчити Бухгалтерію
 Learn Inventory Management,Вивчити Управління Запасами
 Learn Manufacturing,Вивчити Виробництво
@@ -5501,7 +5502,7 @@ Let's walk-through Chart of Accounts to review setup,Переглянемо пл
 Letter Head,Бланк листа
 Letter or Email Body Text,Текст основного листа або електронної пошти
 Letter or Email Closing Text,"Лист або електронний лист, що закриває текст"
-Let’s convert your first Sales Order against a Quotation,Давайте перетворимо ваше перше замовлення на продаж за комерційною пропозицією
+Let’s convert your first Sales Order against a Quotation,Давайте перетворимо ваше перше замовлення на продаж за Угодою
 Let’s create a Workstation,Давайте створимо робочу станцію
 Let’s create a stock opening entry,Давайте створимо початковий запис запасів
 Let’s create an Operation,Давайте створимо операцію
@@ -5510,7 +5511,7 @@ Let’s create your first Customer,Давайте створимо вашого 
 Let’s create your first Material Request,Давайте створимо ваш перший запит матеріалів
 Let’s create your first Purchase Invoice,Давайте створимо ваш перший рахунок на придбання
 Let’s create your first Purchase Order,Давайте створимо ваше перше замовлення на придбання
-Let’s create your first Quotation,Давайте створимо вашу першу комерційну пропозицію
+Let’s create your first Quotation,Давайте створимо вашу першу Угоду
 Let’s create your first Supplier,Давайте створимо вашого першого постачальника
 Let’s setup your first Letter Head,Давайте налаштуємо ваш перший фірмовий бланк
 Let’s walk-through Selling Settings,Давайте розглянемо налаштування продажів
@@ -5575,10 +5576,10 @@ Log the selling and buying rate of an Item,Записувати ціну про�
 Logo,Логотип
 Long-term Provisions,Довгострокові забезпечення
 Longitude,Довгота
-Lost Opportunity,Втрачена можливість
-Lost Quotation,програв цитати
-Lost Quotations,Програні пропозиції
-Lost Quotations %,Відсоток програних пропозицій
+Lost Opportunity,Втрачена Пропозиція
+Lost Quotation,Втрачена Угода
+Lost Quotations,Втрачені Угоди
+Lost Quotations %,Відсоток втрачених Угод
 Lost Reason,Забули Причина
 Lost Reason Detail,Деталі втраченої причини
 Lost Reasons,Втрачені причини
@@ -5675,7 +5676,7 @@ Make Lead Time,Час виконання
 Make Payment via Journal Entry,Платити згідно Проводки
 Make Purchase / Work Order,Створити замовлення на закупівлю / виробниче замовлення
 Make Purchase Invoice,Зробіть рахунок-фактуру за купівлю
-Make Quotation,Створити комерційну пропозицію
+Make Quotation,Створити Угоду
 Make Return Entry,Створити запис про повернення
 Make Sales Invoice,Зробити вихідний рахунок
 Make Serial No / Batch from Work Order,Створити серійний номер/партію з виробничого замовлення
@@ -5882,7 +5883,7 @@ Min Qty should be greater than Recurse Over Qty,Мінімальна кільк�
 "Min Value: {0}, Max Value: {1}, in Increments of: {2}","Мін. значення: {0}, Макс. значення: {1}, з кроком: {2}"
 Mine,Моє
 Minimum Invoice Amount,Мінімальна Сума рахунку
-Minimum Lead Age (Days),Мінімальний вік Запиту (днів)
+Minimum Lead Age (Days),Мінімальний вік Звернення (днів)
 Minimum Net Rate,Мінімальна чиста ставка
 Minimum Order Qty,Мінімальна к-сть замовлень
 Minimum Order Quantity,Мінімальна Кількість Замовлення
@@ -6046,14 +6047,14 @@ New Income,нові надходження
 New Invoice,Нова рахунок-фактура
 New Journal Entry will be posted for the difference amount. The Posting Date can be modified.,Новий журнальний запис буде створено на суму різниці. Дату проведення можна змінити.
 New Label Size,Новий розмір етикетки
-New Lead (Last 1 Month),Новий Запит (за останній 1 місяць)
+New Lead (Last 1 Month),Нове Звернення (за останній 1 місяць)
 New Location,Нове місцезнаходження
 New Note,Нова нотатка
-New Opportunity (Last 1 Month),Нова можливість (за останній 1 місяць)
+New Opportunity (Last 1 Month),Нова Пропозиція (за останній 1 місяць)
 New Purchase Invoice,Нова накладна за купівлю
 New Purchase Orders,Нові Замовлення на придбання
 New Quality Procedure,Нова процедура якості
-New Quotations,Нова пропозиція
+New Quotations,Нові Угоди
 New Sales Invoice,Новий вихідний рахунок
 New Sales Orders,Нові Замовлення клієнтів
 New Sales Person Name,Ім'я нового Відповідального з продажу
@@ -6272,7 +6273,7 @@ Offsetting Account,Рахунок для взаємозаліку
 Offsetting for Accounting Dimension,Взаємозалік за обліковим виміром
 Old Parent,Старий Батько
 Oldest Of Invoice Or Advance,Найстаріший з рахунку або авансу
-On Converting Opportunity,Під час конвертації можливості
+On Converting Opportunity,Під час конвертації Пропозиції
 On Hand,В наявності
 On Hold,Призупинено
 On Hold Since,На утриманні з
@@ -6335,7 +6336,7 @@ Open Notifications,Відкриті Повідомлення
 Open Orders,Відкриті замовлення
 Open Projects,Відкриті проекти
 Open Projects ,Відкриті проекти 
-Open Quotations,Відкриті котирування
+Open Quotations,Відкриті Угоди
 Open Sales Orders,Відкрити замовлення на продаж
 Open Task,Відкрити завдання
 Open Tasks,Відкриті завдання
@@ -6408,27 +6409,27 @@ Operations Routing,Маршрутизація операцій
 Operations cannot be left blank,"Операції, що не може бути залишено порожнім"
 Operator,Оператор
 Opp Count,Кількість Можливостей
-Opp/Lead %,Можливості/Запити %
-Opportunities,Нагоди
-Opportunities by Campaign,Можливості за кампанією
-Opportunities by Medium,Можливості за каналом
-Opportunities by Source,Можливості за джерелом
-Opportunities by lead source,Можливості за джерелом ліда
-Opportunity,Нагода
-Opportunity Amount,Сума можливостей
-Opportunity Amount (Company Currency),Сума можливості (валюта компанії)
-Opportunity Date,Дата Нагоди
-Opportunity From,Нагода від
-Opportunity Item,Позиція Нагоди
-Opportunity Lost Reason,Можливість втрачена причина
-Opportunity Lost Reason Detail,Детальна інформація про можливість втраченої причини
-Opportunity Owner,Власник можливості
-Opportunity Source,Джерело можливості
-Opportunity Summary by Sales Stage,Звіт про можливості за етапами продажу
-Opportunity Summary by Sales Stage ,Звіт про можливості за етапами продажу 
-Opportunity Type,Тип Нагоди
-Opportunity Value,Значення можливості
-Opportunity {0} created,Можливість {0} створена
+Opp/Lead %,Пропозиції/Звернення %
+Opportunities,Пропозиції
+Opportunities by Campaign,Пропозиції за кампанією
+Opportunities by Medium,Пропозиції за каналом
+Opportunities by Source,Пропозиції за джерелом
+Opportunities by lead source,Пропозиції за джерелом звернення
+Opportunity,Пропозиція
+Opportunity Amount,Сума Пропозиції
+Opportunity Amount (Company Currency),Сума Пропозиції (валюта компанії)
+Opportunity Date,Дата Пропозиції
+Opportunity From,Пропозиція від
+Opportunity Item,Позиція Пропозиції
+Opportunity Lost Reason,Причина втрати Пропозиції
+Opportunity Lost Reason Detail,Деталі причини втрати Пропозиції
+Opportunity Owner,Власник Пропозиції
+Opportunity Source,Джерело Пропозиції
+Opportunity Summary by Sales Stage,Звіт про Пропозиції за етапами продажу
+Opportunity Summary by Sales Stage ,Звіт про Пропозиції за етапами продажу 
+Opportunity Type,Тип Пропозиції
+Opportunity Value,Вартість Пропозиції
+Opportunity {0} created,Пропозицію {0} створено
 Optimize Route,Оптимізувати маршрут
 "Optional. Sets company's default currency, if not specified.","Необов&#39;язково. Встановлює за замовчуванням валюту компанії, якщо не вказано."
 Optional. This setting will be used to filter in various transactions.,Необов'язково. Цей параметр буде використовуватися для фільтрації в різних операціях.
@@ -6995,7 +6996,7 @@ Please contact any of the following users to extend the credit limits for {0}: {
 Please contact any of the following users to {} this transaction.,"Будь ласка, зв'яжіться з будь-яким із наступних користувачів, щоб {} здійснити цю транзакцію."
 Please contact your administrator to extend the credit limits for {0}.,"Будь ласка, зв'яжіться з вашим адміністратором, щоб продовжити кредитні ліміти для {0}."
 Please convert the parent account in corresponding child company to a group account.,"Будь ласка, перетворіть батьківський рахунок у відповідній дочірній компанії на груповий."
-Please create Customer from Lead {0}.,"Будь ласка, створіть Клієнта з потенційного клієнта {0}."
+Please create Customer from Lead {0}.,"Будь ласка, створіть Клієнта зі Звернення {0}."
 Please create Landed Cost Vouchers against Invoices that have 'Update Stock' enabled.,"Будь ласка, створіть документи витрат на доставку для рахунків-фактур, для яких увімкнено «Оновити запаси»."
 Please create a new Accounting Dimension if required.,За необхідності створіть новий обліковий вимір.
 Please create purchase from internal sale or delivery document itself,"Будь ласка, створіть закупівлю з внутрішнього документа продажу або поставки"
@@ -7199,7 +7200,7 @@ Please set account in Warehouse {0},"Будь ласка, встановіть �
 Please set actual demand or sales forecast to generate Material Requirements Planning Report.,"Будь ласка, встановіть фактичний попит або прогноз продажів для формування звіту з планування потреб у матеріалах."
 Please set an Address on the Company '%s',"Будь ласка, вкажіть адресу компанії '%s'"
 Please set an Expense Account in the Items table,"Будь ласка, встановіть рахунок витрат у таблиці товарів"
-Please set an email id for the Lead {0},Введіть ідентифікатор електронної пошти для ведучого {0}
+Please set an email id for the Lead {0},Вкажіть адресу електронної пошти для Звернення {0}
 Please set at least one row in the Taxes and Charges Table,"Будь ласка, встановіть принаймні один рядок у таблиці податків та зборів"
 Please set both the Tax ID and Fiscal Code on Company {0},"Будь ласка, встановіть і податковий номер, і фіскальний код для компанії {0}"
 Please set default Cash or Bank account in Mode of Payment {0},"Будь ласка, встановіть Cash замовчуванням або банківського рахунку в режимі з оплати {0}"
@@ -7515,7 +7516,7 @@ Project master.,Майстер проекту.
 Project will be accessible on the website to these users,Проект буде доступний на веб-сайті для цих користувачів
 Project wise Stock Tracking,Стеження за запасами у рамках проекту
 Project wise Stock Tracking ,Відстеження запасів за проєктами
-Project-wise data is not available for Quotation,Проектні дані не доступні для пропозиції
+Project-wise data is not available for Quotation,Дані в розрізі проєкту недоступні для Угоди
 Projected On Hand,Прогнозований залишок на руках
 Projected Qty,Прогнозована кількість
 Projected Quantity,Прогнозована кількість
@@ -7536,8 +7537,8 @@ Proposal/Price Quote,Пропозиція / Цитата ціни
 Proprietorship,Приватне підприємство
 Prorate,Прорат
 Prospect,Потенційний клієнт
-Prospect Lead,Запит потенційного клієнта
-Prospect Opportunity,Потенційна можливість
+Prospect Lead,Звернення потенційного клієнта
+Prospect Opportunity,Пропозиція потенційного клієнта
 Prospect Owner,Власник потенційного клієнта
 Prospect {0} already exists,Потенційний клієнт {0} вже існує
 Prospecting,Розвідка
@@ -7753,20 +7754,20 @@ QuickBooks Migrator,QuickBooks Migrator
 Quickbooks Company ID,Ідентифікатор компанії Quickbooks
 Quintal,Центнер
 Quot Count,Кількість Пропозицій
-Quot/Lead %,Пропозиції/Запити %
-Quotation,Пропозиція
-Quotation Amount,Сума котирування
-Quotation Item,Позиція у пропозиції
-Quotation Lost Reason,Причина втрати пропозиції
-Quotation Lost Reason Detail,Детальна інформація про втрату причини
-Quotation Number,Номер пропозиції
-Quotation To,Пропозиція для
-Quotation Trends,Тренд пропозицій
-Quotation {0} is cancelled,Пропозицію {0} скасовано
-Quotation {0} not of type {1},Пропозиція {0} НЕ типу {1}
-Quotations,Пропозиції
-"Quotations are proposals, bids you have sent to your customers","Котирування є пропозиціями, пропозиціями відправлених до своїх клієнтів"
-Quotations: ,Пропозиції: 
+Quot/Lead %,Угоди/Звернення %
+Quotation,Угода
+Quotation Amount,Сума Угоди
+Quotation Item,Позиція Угоди
+Quotation Lost Reason,Причина втрати Угоди
+Quotation Lost Reason Detail,Деталі причини втрати Угоди
+Quotation Number,Номер Угоди
+Quotation To,Угода для
+Quotation Trends,Тренди Угод
+Quotation {0} is cancelled,Угоду {0} скасовано
+Quotation {0} not of type {1},Угода {0} не типу {1}
+Quotations,Угоди
+"Quotations are proposals, bids you have sent to your customers","Угоди — це комерційні пропозиції, надіслані вашим клієнтам"
+Quotations: ,Угоди: 
 Quote Status,Статус цитати
 Quoted Amount,Котирувана сума
 RFQs are not allowed for {0} due to a scorecard standing of {1},Запити на RFQ не дозволені для {0} через показник показника показника {1}
@@ -8666,9 +8667,9 @@ Sales Invoice {0} must be deleted before cancelling this Sales Order,Рахун�
 Sales Manager,Менеджер з продажу
 Sales Master Manager,Головний менеджер з продажу
 Sales Monthly History,Щомісячна історія продажу
-Sales Opportunities by Campaign,Можливості продажів за кампаніями
-Sales Opportunities by Medium,Можливості продажів за каналами
-Sales Opportunities by Source,Можливості продажів за джерелами
+Sales Opportunities by Campaign,Пропозиції продажів за кампаніями
+Sales Opportunities by Medium,Пропозиції продажів за каналами
+Sales Opportunities by Source,Пропозиції продажів за джерелами
 Sales Order,Замовлення клієнта
 Sales Order Analysis,Аналіз замовлення на продаж
 Sales Order Date,Дата Замовлення клієнта
@@ -9558,7 +9559,7 @@ Submit ERR Journals?,Надіслати журнали помилок?
 Submit Generated Invoices,Надіслати згенеровані рахунки-фактури
 Submit Journal Entries,Надіслати записи до журналу
 Submit this Work Order for further processing.,Подайте цей робочий замовлення для подальшої обробки.
-Submit your Quotation,Подайте вашу комерційну пропозицію
+Submit your Quotation,Подайте вашу Угоду
 Submitted,Підтверджено
 Subscription,Підписка
 Subscription End Date,Дата завершення підписки
@@ -10542,7 +10543,7 @@ Update Type,Тип оновлення
 Update frequency of Project,Частота оновлення проєкту
 Update latest price in all BOMs,Оновити останню ціну у всіх БОМ
 Update stock must be enabled for the purchase invoice {0},Для рахунку-фактури на покупку необхідно увімкнути оновлення запасів {0}
-Update the modified timestamp on new communications received in Lead & Opportunity.,Оновлювати мітку часу зміни при отриманні нових повідомлень у Запиті та Можливості.
+Update the modified timestamp on new communications received in Lead & Opportunity.,Оновлювати мітку часу зміни при отриманні нових повідомлень у Зверненні та Пропозиції.
 Update timestamp on new communication,Оновлювати мітку часу при новому повідомленні
 Updated via 'Time Log' (In Minutes),Оновлено через 'Журнал часу' (у хвилинах)
 Updated {0} Financial Report Row(s) with new category name,Оновлено {0} рядок(ів) фінансового звіту з новою назвою категорії
@@ -10723,7 +10724,7 @@ View Cost Center Tree,Переглянути дерево центрів вит�
 View Data Based on,Переглянути дані на основі
 View Exchange Gain/Loss Journals,Переглянути журнали про прибуток/збиток від зміни курсу валют
 View General Ledger,Переглянути головну книгу
-View Leads,Переглянути Запити
+View Leads,Переглянути Звернення
 View Ledger,Подивитися Леджер
 View Ledgers,Переглянути бухгалтерські книги
 View MRP,Переглянути MRP
@@ -10890,8 +10891,8 @@ Withholding Date,Дата утримання
 Withholding Document,Документ утримання
 Withholding Document Name,Назва документа утримання
 Withholding Document Type,Тип документа утримання
-Won Opportunities,Виграні можливості
-Won Opportunity (Last 1 Month),Виграні можливості (останній 1 місяць)
+Won Opportunities,Виграні Пропозиції
+Won Opportunity (Last 1 Month),Виграна Пропозиція (за останній 1 місяць)
 Work Done,Зроблено
 Work In Progress,В роботі
 Work In Progress Warehouse,Склад незавершеного виробництва
@@ -12730,7 +12731,7 @@ Workplace Scripts,Скрипти робочого місця
 "Could not load context","Не вдалося завантажити контекст"
 "Create from Chat","Створити з чату"
 "Starts On","Починається"
-"Link a Customer or Lead to this chat first.","Спочатку прив'яжіть Клієнта або Лід до цього чату."
+"Link a Customer or Lead to this chat first.","Спочатку прив'яжіть Клієнта або Звернення до цього чату."
 "Chat not found","Чат не знайдено"
 "Cannot link {0}","Неможливо прив'язати {0}"
 "Created {0}","Створено {0}"
@@ -12750,7 +12751,7 @@ Workplace Scripts,Скрипти робочого місця
 "No documents yet","Ще немає документів"
 "Attach Document","Прикріпити документ"
 "Attach to Deal","Прикріпити до угоди"
-"Open Opportunity","Відкрити Можливість"
+"Open Opportunity","Відкрити Пропозицію"
 "Negotiation Status","Статус переговорів"
 "Supply Status","Статус забезпечення"
 "Version No","Номер версії"
@@ -12768,8 +12769,8 @@ Workplace Scripts,Скрипти робочого місця
 "Refusal Reason","Причина відмови"
 "Manager Comment","Коментар менеджера"
 "Client Comment","Коментар клієнта"
-"Quotation Version","Версія пропозиції"
-"Quotation Version Item","Позиція версії пропозиції"
+"Quotation Version","Версія Угоди"
+"Quotation Version Item","Позиція версії Угоди"
 "Internal Approval","Внутрішнє погодження"
 "Sent to Client","Надіслано клієнту"
 "Feedback Received","Отримано зворотний зв'язок"
@@ -12798,7 +12799,7 @@ Workplace Scripts,Скрипти робочого місця
 "Version History","Історія версій"
 "Negotiation","Переговори"
 "Negotiation step recorded","Етап переговорів записано"
-"Quotation Negotiation Funnel","Воронка переговорів пропозицій"
+"Quotation Negotiation Funnel","Воронка переговорів по Угодах"
 "Versions","Версії"
 "First Total","Початкова сума"
 "Final Total","Фінальна сума"
@@ -12993,7 +12994,7 @@ Workplace Scripts,Скрипти робочого місця
 Contacted,Первинний контакт
 Requirement Gathering,Потреба уточнюється
 Awaiting Response,Очікує відповідь
-Converted to Opportunity,Конвертований в Opportunity
+Converted to Opportunity,Конвертовано в Пропозицію
 Not Relevant,Нецільовий
 Purpose of Request,Мета звернення
 Product Purchase,Закупівля продукції
@@ -13008,7 +13009,7 @@ Customer Need,Потреба клієнта
 Product Category,Категорія продукції
 Estimated Quantity,Орієнтовна кількість
 Estimated Customer Budget,Орієнтовний бюджет клієнта
-Lead Assessment,Оцінка Запиту
+Lead Assessment,Оцінка Звернення
 Conversion Probability,Ймовірність переходу в Opportunity
 Next Action Control,Контроль наступних дій
 Next Action,Наступна дія
@@ -13029,19 +13030,19 @@ Military Units,Військові частини
 Military Unit Code,Код номеру ВЧ
 Organization Type,Тип організації
 Return from Final Status,Повернути з фінального статусу
-Return Lead to Postponed,Повернути Запит у «Відкладений / На паузі»
-Returning Lead...,Повернення Запиту...
+Return Lead to Postponed,Повернути Звернення у «Відкладений / На паузі»
+Returning Lead...,Повернення Звернення...
 Comment,Коментар
 Overdue Next Action,Прострочені наступні дії
-My Leads,Мої Запити
+My Leads,Мої Звернення
 Assigned to Me,Призначені на мене
-"A Lead can be linked to either a Prospect or a Customer, but not to both","Запит можна пов'язати або з Prospect, або з Customer, але не з обома одночасно"
+"A Lead can be linked to either a Prospect or a Customer, but not to both","Звернення можна пов'язати або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно"
 Conflicting Links,Конфлікт зв'язків
-Status {0} is set automatically when an Opportunity is created and cannot be selected manually,Статус {0} встановлюється автоматично під час створення Opportunity і не може бути обраний вручну
+Status {0} is set automatically when an Opportunity is created and cannot be selected manually,Статус {0} встановлюється автоматично під час створення Пропозиції і не може бути обраний вручну
 {0} is mandatory when the status is {1},"{0} обов'язково, коли статус — {1}"
 Missing Value,Відсутнє значення
-Only a Sales Manager can return a Lead from a final status,Лише керівник відділу продажів може повернути Запит із фінального статусу
-Lead {0} is not in a final status,Запит {0} не перебуває у фінальному статусі
+Only a Sales Manager can return a Lead from a final status,Лише керівник відділу продажів може повернути Звернення із фінального статусу
+Lead {0} is not in a final status,Звернення {0} не перебуває у фінальному статусі
 "Reason, comment and return date are mandatory","Причина, коментар і дата повернення обов'язкові"
 Returned from final status {0}. Reason: {1}. Comment: {2},Повернуто з фінального статусу {0}. Причина: {1}. Коментар: {2}
 Prospect {0} was converted to Customer {1},Prospect {0} конвертовано в Customer {1}
@@ -13056,3 +13057,6 @@ Low Probability,Низька
 Medium Probability,Середня
 High Probability,Висока
 Customer Requirement,Потреба
+"Fill in when the organization is already a customer. A Lead may link either a Prospect or a Customer, not both.","Заповніть, якщо організація вже є клієнтом. Звернення може бути пов'язане або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно."
+"Fill in when the organization is not a customer yet. A Lead may link either a Prospect or a Customer, not both.","Заповніть, якщо організація ще не є клієнтом. Звернення може бути пов'язане або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно."
+"Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.","Відображається з пов’язаного Потенційного клієнта або Клієнта. Ведеться на організації, а не у Зверненні."

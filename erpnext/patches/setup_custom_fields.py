@@ -864,6 +864,7 @@ def create_v16_ported_fields():
 		},
 		{
 			"dt": "Lead",
+			"description": "Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.",
 			"fieldname": "military_unit",
 			"fieldtype": "Link",
 			"in_list_view": 1,
