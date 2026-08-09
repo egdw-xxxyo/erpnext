@@ -6,6 +6,15 @@ cur_frm.email_field = "email_id";
 
 const LEAD_FINAL_STATUSES = ["Converted to Opportunity", "Not Relevant", "Lost"];
 
+// Fallback for documents loaded without __onload. The server copy in
+// erpnext/crm/doctype/lead/lead.py (STATUS_REQUIRED_FIELDS) is authoritative.
+const LEAD_STATUS_REQUIRED_FIELDS = {
+	"Awaiting Response": ["next_action", "next_action_date"],
+	Postponed: ["return_date", "hold_reason"],
+	"Not Relevant": ["close_reason"],
+	Lost: ["close_reason"],
+};
+
 erpnext.LeadController = class LeadController extends frappe.ui.form.Controller {
 	setup() {
 		this.frm.make_methods = {
@@ -22,12 +31,18 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 		this.frm.set_query("lead_owner", function (doc, cdt, cdn) {
 			return { query: "frappe.core.doctype.user.user.user_query" };
 		});
+
+		this.remember_status();
 	}
 
 	refresh() {
 		var me = this;
 		let doc = this.frm.doc;
 		erpnext.toggle_naming_series();
+
+		if (!this.frm.is_dirty()) {
+			this.remember_status();
+		}
 
 		const is_final = LEAD_FINAL_STATUSES.includes(doc.status);
 
@@ -266,6 +281,68 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 		if (!this.frm.doc.lead_name) {
 			this.frm.set_value("lead_name", this.frm.doc.company_name);
 		}
+	}
+
+	remember_status() {
+		this.previous_status = this.frm.doc.status;
+	}
+
+	status() {
+		// A status change is reverted when the user dismisses the dialog, and set_value
+		// re-enters this handler — ignore that second pass.
+		if (this.reverting_status) return;
+
+		const frm = this.frm;
+		const previous_status = this.previous_status;
+		this.remember_status();
+
+		const required_fields =
+			(frm.doc.__onload?.status_required_fields || LEAD_STATUS_REQUIRED_FIELDS)[frm.doc.status] || [];
+		const missing = required_fields.filter((fieldname) => !frm.doc[fieldname]);
+
+		if (!missing.length) return;
+
+		this.prompt_status_fields(missing, previous_status);
+	}
+
+	prompt_status_fields(fieldnames, previous_status) {
+		const frm = this.frm;
+		let confirmed = false;
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Additional Information for Status {0}", [__(frm.doc.status)]),
+			fields: fieldnames.map((fieldname) => {
+				const df = frm.get_docfield(fieldname);
+				return {
+					fieldname: fieldname,
+					fieldtype: df.fieldtype,
+					label: __(df.label),
+					options: df.options,
+					reqd: 1,
+				};
+			}),
+			primary_action_label: __("Confirm"),
+			primary_action: (values) => {
+				confirmed = true;
+				dialog.hide();
+				fieldnames.forEach((fieldname) => frm.set_value(fieldname, values[fieldname]));
+			},
+		});
+
+		dialog.onhide = () => {
+			if (confirmed) return;
+			this.restore_status(previous_status);
+		};
+
+		dialog.show();
+	}
+
+	restore_status(previous_status) {
+		this.reverting_status = true;
+		this.frm.set_value("status", previous_status || "New Request").then(() => {
+			this.reverting_status = false;
+			this.remember_status();
+		});
 	}
 
 	prospect() {

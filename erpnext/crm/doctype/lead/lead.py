@@ -135,6 +135,7 @@ class Lead(SellingController, CRMNote):
 		self.get("__onload").is_customer = customer
 		load_address_and_contact(self)
 		self.set_onload("linked_prospects", self.get_linked_prospects())
+		self.set_onload("status_required_fields", STATUS_REQUIRED_FIELDS)
 
 	def validate(self):
 		self.set_full_name()

@@ -27,10 +27,6 @@
   "prospect",
   "type",
   "request_type",
-  "customer_need_section",
-  "customer_need",
-  "requirement_section",
-  "requirement",
   "assessment_section",
   "conversion_probability",
   "next_action_section",
@@ -45,6 +41,11 @@
   "close_reason",
   "reversal_section",
   "status_reversals",
+  "requirement_tab",
+  "customer_need_section",
+  "customer_need",
+  "requirement_section",
+  "requirement",
   "contact_info_tab",
   "email_id",
   "website",
@@ -561,6 +562,11 @@
    "read_only": 1
   },
   {
+   "fieldname": "requirement_tab",
+   "fieldtype": "Tab Break",
+   "label": "Customer Requirement"
+  },
+  {
    "fieldname": "customer_need_section",
    "fieldtype": "Section Break",
    "label": "Customer Need"
@@ -738,5 +744,6 @@
  "sort_order": "DESC",
  "states": [],
  "subject_field": "title",
- "title_field": "title"
+ "title_field": "title",
+ "track_changes": 1
 }
