@@ -611,5 +611,6 @@
  "sort_order": "DESC",
  "states": [],
  "subject_field": "title",
- "title_field": "title"
+ "title_field": "title",
+ "track_changes": 1
 }

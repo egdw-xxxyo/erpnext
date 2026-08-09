@@ -13019,7 +13019,7 @@ On Hold Details,Деталі відкладення
 Return Date,Дата повернення
 Hold Reason,Причина відкладення
 Closing Details,Деталі закриття
-Close Reason,Причина закриття Запиту
+Close Reason,Причина закриття Звернення
 Status Reversal History,Історія повернень статусу
 Status Reversals,Повернення статусу
 Previous Status,Первинний статус
@@ -13060,3 +13060,4 @@ Customer Requirement,Потреба
 "Fill in when the organization is already a customer. A Lead may link either a Prospect or a Customer, not both.","Заповніть, якщо організація вже є клієнтом. Звернення може бути пов'язане або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно."
 "Fill in when the organization is not a customer yet. A Lead may link either a Prospect or a Customer, not both.","Заповніть, якщо організація ще не є клієнтом. Звернення може бути пов'язане або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно."
 "Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.","Відображається з пов’язаного Потенційного клієнта або Клієнта. Ведеться на організації, а не у Зверненні."
+Additional Information for Status {0},Додаткова інформація для статусу {0}
