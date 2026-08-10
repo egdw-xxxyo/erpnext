@@ -172,6 +172,11 @@ class EmployeeChat {
 		});
 
 		this.page.add_menu_item(__("Secret chats"), () => this.secret_settings_dialog());
+		// Archiving policy (when a document chat is archived, when an archive is packed) lives in
+		// the Chat Settings form; only the roles that may change it get the shortcut.
+		if (frappe.user.has_role(["Chat Manager", "System Manager"])) {
+			this.page.add_menu_item(__("Chat Settings"), () => frappe.set_route("Form", "Chat Settings"));
+		}
 		this.page.main.find(".ec-new-chat").on("click", () => this.new_chat_dialog());
 		this.page.main.find(".ec-send").on("click", () => this.send());
 		this.page.main.find(".ec-attach").on("click", (e) => this.attach_menu(e));

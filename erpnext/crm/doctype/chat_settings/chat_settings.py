@@ -11,6 +11,8 @@ class ChatSettings(Document):
 		# Every value here drives a background job; a zero would mean "immediately" or
 		# "never finish", so refuse the whole class of accidents at the form.
 		positive = {
+			"archive_entity_after_days": _("Archive After (Days Without Messages)"),
+			"archive_batch_size": _("Chats Archived Per Run"),
 			"deep_archive_after_days": _("Deep Archive After (Days)"),
 			"deep_archive_batch_size": _("Chats Per Run"),
 			"restore_ttl_hours": _("Keep Unpacked Content For (Hours)"),

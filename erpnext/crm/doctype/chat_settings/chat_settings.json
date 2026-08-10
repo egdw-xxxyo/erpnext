@@ -6,6 +6,11 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "archive_section",
+  "auto_archive_entity_chats",
+  "archive_entity_after_days",
+  "column_break_archive",
+  "archive_batch_size",
   "deep_archive_section",
   "auto_deep_archive",
   "deep_archive_after_days",
@@ -17,6 +22,36 @@
   "stale_job_minutes"
  ],
  "fields": [
+  {
+   "fieldname": "archive_section",
+   "fieldtype": "Section Break",
+   "label": "Archive"
+  },
+  {
+   "default": "0",
+   "description": "Archive a chat about a document once it has been quiet for long enough. Archived document chats become read-only.",
+   "fieldname": "auto_archive_entity_chats",
+   "fieldtype": "Check",
+   "label": "Archive Document Chats Automatically"
+  },
+  {
+   "default": "30",
+   "description": "Days without a new message before a document chat is archived",
+   "fieldname": "archive_entity_after_days",
+   "fieldtype": "Int",
+   "label": "Archive After (Days Without Messages)"
+  },
+  {
+   "fieldname": "column_break_archive",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "100",
+   "description": "How many chats the daily job archives per run",
+   "fieldname": "archive_batch_size",
+   "fieldtype": "Int",
+   "label": "Chats Archived Per Run"
+  },
   {
    "fieldname": "deep_archive_section",
    "fieldtype": "Section Break",
@@ -31,7 +66,7 @@
   },
   {
    "default": "180",
-   "description": "Days a chat must stay archived before it is packed automatically",
+   "description": "Days a chat must stay in the archive before it is packed automatically",
    "fieldname": "deep_archive_after_days",
    "fieldtype": "Int",
    "label": "Deep Archive After (Days)"
