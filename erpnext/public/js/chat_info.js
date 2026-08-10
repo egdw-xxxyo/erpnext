@@ -108,6 +108,7 @@ erpnext.chat_info = {
 		for (const a of data.actions || []) {
 			$(`<button class="btn btn-xs btn-default" style="margin:0 6px 8px 0;"></button>`)
 				.text(a.label)
+				.attr("title", a.hint || "")
 				.on("click", () => a.on_click())
 				.appendTo($actions);
 		}

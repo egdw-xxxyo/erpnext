@@ -396,8 +396,12 @@ def _delete_originals(thread, file_names):
 # ---------------------------------------------------------------------------
 
 
-def restore(thread, requested_by=None):
+def restore(thread, requested_by=None, promote=False):
 	"""Unpack an archive back into real (read-only) rows. Runs as a background job.
+
+	With `promote` the unpacked copy is kept for good — the zip is dropped and the chat goes back to
+	being an ordinary archived chat (see `leave_deep_archive`). That is the path a Chat Manager takes
+	on a thread that was never unpacked.
 
 	Rows go in with `frappe.db.bulk_insert`, not `doc.insert()`: only a raw insert can restore
 	`name`, `creation` and `owner` verbatim, and the document lifecycle is actively unwanted here —
@@ -455,7 +459,13 @@ def restore(thread, requested_by=None):
 		)
 		frappe.db.commit()
 
+		if promote:
+			_leave_deep_archive(thread)
+
 	doc.reload()
+	if promote:
+		_notify_left_deep_archive(thread, doc)
+		return
 	_fanout(doc, "chat_restore_done", {"thread": thread, "requested_by": requested_by})
 
 
@@ -524,6 +534,62 @@ def _flush_messages(batch):
 	frappe.db.bulk_insert("Chat Message", MESSAGE_COLUMNS, batch, ignore_duplicates=True)
 	frappe.db.commit()
 	return len(batch)
+
+
+def leave_deep_archive(thread):
+	"""Make an unpacked copy permanent: drop the zip and clear the deep-archive state, leaving an
+	ordinary archived chat behind (which can then be unarchived like any other).
+
+	Only valid on a `Restored` thread — the rows have to be back in the database before the zip,
+	which is the only other copy, is deleted."""
+	with filelock(f"chat_archive_{thread}", timeout=5):
+		doc = frappe.get_doc("Chat Thread", thread)
+		if doc.deep_archive_status != "Restored":
+			return False
+		_leave_deep_archive(thread)
+
+	doc.reload()
+	_notify_left_deep_archive(thread, doc)
+	return True
+
+
+def _leave_deep_archive(thread):
+	"""Body of `leave_deep_archive`, without the lock — `restore` calls it while it still holds one.
+
+	Deleting the zip is the last step: if the state update fails the archive is still there and the
+	thread is merely a restored copy that expires as usual."""
+	_set_state(
+		thread,
+		{
+			"is_deep_archived": 0,
+			"deep_archive_status": "",
+			"deep_archive_path": None,
+			"deep_archive_sha256": None,
+			"deep_archive_size": 0,
+			"deep_archived_on": None,
+			"deep_archived_by": None,
+			"restore_expires_on": None,
+			"restore_progress": 0,
+			"restore_error": None,
+		},
+	)
+	frappe.db.commit()
+	drop_zip(thread)
+
+
+def _notify_left_deep_archive(thread, doc):
+	from erpnext.crm.page.employee_chat.employee_chat import _fanout, _is_read_only
+
+	_fanout(
+		doc,
+		"chat_deep_archive_dropped",
+		{
+			"thread": thread,
+			"status": "",
+			"is_deep_archived": 0,
+			"read_only": _is_read_only(doc.thread_type, doc.is_archived, 0),
+		},
+	)
 
 
 def _publish_progress(thread, doc, phase, done, total):

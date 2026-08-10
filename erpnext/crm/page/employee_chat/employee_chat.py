@@ -807,7 +807,7 @@ def set_archived(thread, archived):
 	archived = 1 if int(archived or 0) else 0
 	if not archived and doc.is_deep_archived:
 		# Un-archiving would put a chat with no content back in the active list.
-		frappe.throw(_("Unpack the chat before returning it from the archive"))
+		frappe.throw(_("Return this chat from the deep archive first"))
 	# `is_archived` is read_only in the schema — write it the same way on_reference_deleted does.
 	# `archived_on` is what the age-based deep archive job measures from.
 	frappe.db.set_value(
@@ -926,6 +926,52 @@ def restore_deep_archive(thread):
 		deduplicate=True,
 		thread=thread,
 		requested_by=frappe.session.user,
+	)
+	return get_deep_archive_state(thread)
+
+
+@frappe.whitelist()
+def leave_deep_archive(thread):
+	"""Take a chat out of the deep archive for good: the content stays in the database and the zip
+	is deleted, leaving an ordinary archived chat that can be unarchived like any other.
+
+	Same trust level as packing it in the first place — the archive stops being the safety copy —
+	so it takes the `Chat Manager` role on top of access to the chat.
+
+	A chat that is not unpacked yet is unpacked first: the restore job finishes the job for us."""
+	from erpnext.crm import chat_archive
+
+	doc = _may_manage_archive(_get_thread(thread))
+	if not doc.is_deep_archived:
+		return get_deep_archive_state(thread)
+	if not _may_purge():
+		frappe.throw(_("You are not allowed to return chats from the deep archive"), frappe.PermissionError)
+	if doc.deep_archive_status == "Packing":
+		frappe.throw(_("The chat archive is busy — try again in a minute"))
+	if doc.deep_archive_status == "Restoring":
+		# A restore is already running; it was started without `promote`, so the caller has to ask
+		# again once it lands. The button stays disabled until then.
+		return get_deep_archive_state(thread)
+
+	if doc.deep_archive_status == "Restored":
+		chat_archive.leave_deep_archive(thread)
+		return get_deep_archive_state(thread)
+
+	if not chat_archive.claim(thread, "Archived", "Restoring") and not chat_archive.claim(
+		thread, "Failed", "Restoring"
+	):
+		return get_deep_archive_state(thread)
+
+	frappe.enqueue(
+		"erpnext.crm.chat_archive.restore",
+		queue="long",
+		timeout=3600,
+		enqueue_after_commit=True,
+		job_id=f"chat-restore::{thread}",
+		deduplicate=True,
+		thread=thread,
+		requested_by=frappe.session.user,
+		promote=True,
 	)
 	return get_deep_archive_state(thread)
 
@@ -1180,6 +1226,7 @@ def get_thread_info(thread, limit=200):
 		"reference_name": doc.reference_name,
 		"reference_label": doc.reference_label,
 		"is_archived": doc.is_archived,
+		"is_deep_archived": doc.is_deep_archived,
 		"read_only": _is_read_only(doc.thread_type, doc.is_archived, doc.is_deep_archived),
 		"can_purge": 1 if _may_purge() else 0,
 		"deep_archive": _deep_archive_payload(doc.as_dict()),

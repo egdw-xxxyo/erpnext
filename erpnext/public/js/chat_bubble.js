@@ -20,6 +20,30 @@ erpnext.chat_archive_prompt = function (archived, is_entity) {
 		: __("Archive this chat? It moves to the Archive section. You can still write in it.");
 };
 
+// Wording of the deep archive, shared the same way. The deep archive is a storage state, not a
+// permission one: anyone who opens such a chat unpacks it automatically, the copy is dropped again
+// after a couple of hours without readers, and only a Chat Manager can take the chat out for good.
+erpnext.chat_deep_archive = {
+	badge: () => __("Deep archive"),
+	badge_hint: () =>
+		__(
+			"This chat lives in an archive file — its messages are unpacked automatically when someone opens it and are dropped again a couple of hours later."
+		),
+	leave_label: () => __("Return from the deep archive"),
+	leave_hint: () =>
+		__(
+			"Keep the unpacked messages for good and delete the archive file. The chat becomes an ordinary archived chat that can be made active again."
+		),
+	leave_confirm: () =>
+		__(
+			"Return this chat from the deep archive? Its messages and files stay in the chat and the archive file is deleted. Afterwards the chat can be unarchived as usual."
+		),
+	busy_hint: () => __("The archive is busy — wait for the current operation to finish."),
+	unpacking: () => __("Unpacking the messages…"),
+	auto_hint: () => __("Nothing to do — the messages appear as soon as unpacking is done."),
+	failed_hint: () => __("Unpacking did not finish. Try again, or contact an administrator."),
+};
+
 // A user may use a chat only with both the doctype read permission and access to
 // the page itself (server side enforces the same, see _require_wa_access).
 function cb_page_allowed(page) {
@@ -325,6 +349,7 @@ class EmployeeChatSource {
 			"chat_deep_archived",
 			"chat_restore_done",
 			"chat_restore_expired",
+			"chat_deep_archive_dropped",
 		];
 		this.media_source = "chat"; // get_thumbnails source key
 		this.chats = [];
@@ -385,6 +410,10 @@ class EmployeeChatSource {
 
 	archive_state(id) {
 		return frappe.xcall(`${EC_API}.get_deep_archive_state`, { thread: id });
+	}
+
+	leave_deep_archive(id) {
+		return frappe.xcall(`${EC_API}.leave_deep_archive`, { thread: id });
 	}
 
 	is_secret(id) {
@@ -687,11 +716,55 @@ class ChatBubble {
 	// The per-conversation mute is only meaningful with a thread open.
 	render_mute_toggle() {
 		const chat = this.active ? (this.source.chats || []).find((c) => c.id === this.active) : null;
+		this.render_deep_state(chat);
 		if (!chat || !this.source.set_muted) return this.$mute.hide();
 		this.$mute
 			.show()
 			.html(`<i class="fa fa-bell${chat.muted ? "-slash-o" : "-o"}"></i>`)
-			.attr("title", chat.muted ? __("Unmute chat") : __("Mute chat"));
+			.attr(
+				"title",
+				chat.muted
+					? __("Play the notification sound for this chat again.")
+					: __("Silence the notification sound for this chat on all your devices.")
+			);
+	}
+
+	// Deep-archive badge in the header, plus the Chat Manager action that takes the chat out of
+	// the archive for good. Same wording as the full chat page (erpnext.chat_deep_archive).
+	render_deep_state(chat) {
+		const deep = erpnext.chat_deep_archive;
+		if (!chat || !chat.is_deep_archived || !this.source.leave_deep_archive) {
+			this.$deep_chip.hide();
+			this.$undeep.hide();
+			return;
+		}
+		this.$deep_chip
+			.attr("title", deep.badge_hint())
+			.html(`<i class="fa fa-archive"></i> ${frappe.utils.escape_html(deep.badge())}`)
+			.show();
+		if (!chat.can_purge) return this.$undeep.hide();
+		const status = (chat.deep_archive || {}).status;
+		const busy = status === "Packing" || status === "Restoring";
+		this.$undeep
+			.toggleClass("cb-disabled", busy)
+			.attr("title", busy ? deep.busy_hint() : deep.leave_hint())
+			.show();
+	}
+
+	leave_deep_archive() {
+		const id = this.active;
+		const chat = (this.source.chats || []).find((c) => c.id === id);
+		if (!chat || !this.source.leave_deep_archive || this.$undeep.hasClass("cb-disabled")) return;
+		frappe.confirm(erpnext.chat_deep_archive.leave_confirm(), async () => {
+			let state;
+			try {
+				state = await this.source.leave_deep_archive(id);
+			} catch (e) {
+				return;
+			}
+			this.apply_archive_state(state);
+			this.watch_archive(id);
+		});
 	}
 
 	async toggle_mute() {
@@ -722,7 +795,7 @@ class ChatBubble {
 			this.$readonly
 				.text(
 					ChatBubble.is_packed(chat)
-						? __("This chat is in the deep archive — unpack it to read the messages")
+						? __("This chat is in the deep archive — its messages are being unpacked")
 						: __("This chat is archived — new messages are not allowed")
 				)
 				.show();
@@ -754,6 +827,9 @@ class ChatBubble {
 		.cb-title{flex:1;font-weight:600;font-size:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 		.cb-head .cb-act{cursor:pointer;opacity:.85;font-size:15px;line-height:1;padding:2px 4px;}
 		.cb-head .cb-act:hover{opacity:1;}
+		.cb-head .cb-act.cb-disabled{opacity:.35;cursor:default;}
+		.cb-deep-chip{flex:none;display:inline-flex;align-items:center;gap:3px;padding:0 6px;border-radius:9px;
+			background:rgba(255,255,255,.18);font-size:10px;font-weight:600;line-height:16px;}
 		.cb-tabs{display:none;border-bottom:1px solid var(--border-color);background:var(--card-bg);}
 		.cb-panel .cb-tabs.show{display:flex;}
 		.cb-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;
@@ -843,7 +919,9 @@ class ChatBubble {
 						"Back"
 					)}" style="display:none;"><i class="fa fa-arrow-left"></i></span>
 					<span class="cb-title">${__("Chat")}</span>
-					<span class="cb-act cb-mute" title="${__("Mute chat")}" style="display:none;"></span>
+					<span class="cb-act cb-mute" style="display:none;"></span>
+					<span class="cb-deep-chip" style="display:none;"><i class="fa fa-archive"></i></span>
+					<span class="cb-act cb-undeep" style="display:none;"><i class="fa fa-level-up"></i></span>
 					<span class="cb-act cb-sound" title="${__("Notification sound")}"></span>
 					<span class="cb-act cb-open-page" title="${__("Open full page")}"><i class="fa fa-expand"></i></span>
 					<span class="cb-act cb-close" title="${__("Close")}"><i class="fa fa-times"></i></span>
@@ -870,6 +948,9 @@ class ChatBubble {
 		this.$title = this.$panel.find(".cb-title");
 		this.$back = this.$panel.find(".cb-back");
 		this.$mute = this.$panel.find(".cb-mute");
+		this.$deep_chip = this.$panel.find(".cb-deep-chip");
+		this.$undeep = this.$panel.find(".cb-undeep");
+		this.$undeep.on("click", () => this.leave_deep_archive());
 		this.$sound = this.$panel.find(".cb-sound");
 		this.render_sound_toggle();
 		this.$compose = this.$panel.find(".cb-compose");
@@ -1123,9 +1204,7 @@ class ChatBubble {
 		const name =
 			frappe.utils.escape_html(c.title) +
 			(c.is_deep_archived
-				? ` <i class="fa fa-archive" style="color:var(--text-muted);font-size:10px;" title="${__(
-						"Deep archive"
-				  )}"></i>`
+				? ` <i class="fa fa-archive" style="color:var(--text-muted);font-size:10px;" title="${erpnext.chat_deep_archive.badge_hint()}"></i>`
 				: "");
 		const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
 		const unread = c.unread
@@ -1171,6 +1250,7 @@ class ChatBubble {
 		this.render_mute_toggle();
 		this.$back.show();
 		this.render_composer(chat);
+		this.auto_unpacked = null; // one automatic unpack request per thread opening
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
 		this.load_thread(id);
 	}
@@ -1237,20 +1317,24 @@ class ChatBubble {
 
 	render_deep_archive(chat) {
 		const d = (chat && chat.deep_archive) || {};
+		const deep = erpnext.chat_deep_archive;
 		const busy = d.status === "Restoring" || d.status === "Packing";
 		let body;
 		if (d.status === "Failed") {
 			body = `<div style="color:var(--red-500,#e24c4c);">${__(
 				"Could not unpack this chat"
-			)}</div><button class="btn btn-default btn-xs cb-unpack">${__("Try again")}</button>`;
+			)}</div><button class="btn btn-default btn-xs cb-unpack" title="${deep.failed_hint()}">${__(
+				"Try again"
+			)}</button>`;
 		} else if (busy) {
 			const label = d.status === "Packing" ? __("Packing…") : __("Unpacking…");
-			body = `<div class="cb-progress"><div class="cb-progress-bar" style="width:${
+			body = `<div class="cb-progress" title="${deep.auto_hint()}"><div class="cb-progress-bar" style="width:${
 				d.percent || 0
 			}%;"></div></div>
 				<div class="cb-progress-label">${label} ${d.percent || 0}%</div>`;
 		} else {
-			body = `<button class="btn btn-primary btn-xs cb-unpack">${__("Unpack content")}</button>`;
+			// Opening the chat is the request to unpack it — see the auto-restore below.
+			body = `<div style="color:var(--text-muted);" title="${deep.auto_hint()}">${deep.unpacking()}</div>`;
 		}
 		const count = d.message_count
 			? frappe.utils.escape_html(__("{0} messages · {1} files", [d.message_count, d.file_count || 0]))
@@ -1262,7 +1346,15 @@ class ChatBubble {
 			<div style="margin-top:10px;">${body}</div>
 		</div>`);
 		this.$body.find(".cb-unpack").on("click", () => this.unpack(chat.id));
-		this.watch_archive(chat.id);
+		// Idle archive: opening the chat starts the unpacking by itself. A failed one stays a
+		// manual retry so a broken archive is not re-enqueued on every open. The guard keeps the
+		// re-render this triggers from asking a second time.
+		if ((d.status || "") === "Archived" && this.auto_unpacked !== chat.id) {
+			this.auto_unpacked = chat.id;
+			this.unpack(chat.id);
+		} else {
+			this.watch_archive(chat.id);
+		}
 	}
 
 	async unpack(id) {
@@ -1301,6 +1393,8 @@ class ChatBubble {
 		if (state.read_only !== undefined) chat.read_only = state.read_only;
 		if (state.is_deep_archived !== undefined) chat.is_deep_archived = state.is_deep_archived;
 		if (this.active !== state.thread) return;
+		// The header badge follows the archive state, not the messages.
+		this.render_mute_toggle();
 
 		if (was_packed && !ChatBubble.is_packed(chat)) {
 			clearInterval(this.archive_poll);
@@ -1323,7 +1417,10 @@ class ChatBubble {
 			return;
 		}
 		this.render_composer(chat);
-		this.render_deep_archive(chat);
+		// Leaving the deep archive from a restored copy never passes through "packed", so the
+		// archive card has to give way to the messages here too.
+		if (ChatBubble.is_packed(chat)) this.render_deep_archive(chat);
+		else this.load_thread(state.thread);
 	}
 
 	// Keep the composer one line tall while it fits, so the icons stay on the text baseline.
