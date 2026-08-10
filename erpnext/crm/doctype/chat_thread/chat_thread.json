@@ -23,6 +23,7 @@
   "reference_label",
   "column_break_reference",
   "is_archived",
+  "archived_on",
   "reference_removed",
   "participants_section",
   "participants"
@@ -126,6 +127,13 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Archived",
+   "read_only": 1
+  },
+  {
+   "description": "When the chat was archived — drives the age-based deep archive job",
+   "fieldname": "archived_on",
+   "fieldtype": "Datetime",
+   "label": "Archived On",
    "read_only": 1
   },
   {
