@@ -86,6 +86,7 @@ class EmployeeChat {
 			chat_restore_done: (d) => this.on_realtime_restore_done(d),
 			chat_restore_failed: (d) => this.on_realtime_restore_failed(d),
 			chat_restore_expired: (d) => this.on_realtime_restore_expired(d),
+			chat_deep_archive_dropped: (d) => this.on_realtime_deep_archive_dropped(d),
 		};
 		for (const [event, handler] of Object.entries(this.deep_events)) frappe.realtime.on(event, handler);
 		// slow poll of the thread list as a safety net if the socket drops
@@ -202,7 +203,7 @@ class EmployeeChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("ec-chat-styles-v7")) return;
+		if (document.getElementById("ec-chat-styles-v8")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.ec-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -230,6 +231,10 @@ class EmployeeChat {
 		.ec-progress-label{margin-top:6px;font-size:var(--text-sm);}
 		.ec-header-act{cursor:pointer;margin-left:8px;color:var(--text-muted);}
 		.ec-header-act:hover{color:var(--text-color);}
+		.ec-header-act.ec-disabled{opacity:.4;cursor:default;}
+		.ec-header-act.ec-disabled:hover{color:var(--text-muted);}
+		.ec-deep-chip{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border-radius:10px;
+			background:var(--bg-light-gray);color:var(--text-muted);font-size:11px;font-weight:600;vertical-align:middle;}
 		.ec-conv{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:8px;}
 		.ec-conv:hover{background:var(--bg-light-gray);}
 		.ec-conv.active{background:var(--bg-blue);}
@@ -309,7 +314,7 @@ class EmployeeChat {
 		.ec-attach-opt{padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;}
 		.ec-attach-opt:hover{background:var(--bg-light-gray);}
 		`;
-		$(`<style id="ec-chat-styles-v7">${css}</style>`).appendTo(document.head);
+		$(`<style id="ec-chat-styles-v8">${css}</style>`).appendTo(document.head);
 	}
 
 	// --- thread list -------------------------------------------------------
@@ -365,7 +370,7 @@ class EmployeeChat {
 		const preview = frappe.utils.escape_html(t.last_message_preview || "").slice(0, 40);
 		const lock = t.is_secret ? `<span class="ec-lock" title="${__("Secret chat")}">🔒</span> ` : "";
 		const packed = t.is_deep_archived
-			? ` <i class="fa fa-archive ec-deep-badge" title="${__("Deep archive")}"></i>`
+			? ` <i class="fa fa-archive ec-deep-badge" title="${erpnext.chat_deep_archive.badge_hint()}"></i>`
 			: "";
 		return `
 			<div class="ec-conv ${t.name === this.active ? "active" : ""}">
@@ -451,12 +456,15 @@ class EmployeeChat {
 		// decide whether to land on the first unread message or at the bottom.
 		this.read_cursor = (t && t.my_last_read) || null;
 
-		// A deep-archived chat holds nothing until it is unpacked: draw the archive card and,
-		// if a job is already running, follow it.
+		// A deep-archived chat holds nothing until it is unpacked. Opening it is the request:
+		// unpacking starts by itself and the card only reports progress. A failed archive is the
+		// exception — it stays a manual retry so a broken zip is not re-enqueued on every open.
 		if (t && this.is_packed(t)) {
 			this.messages = [];
 			this.render_thread(false);
-			this.watch_archive(name);
+			const status = (t.deep_archive && t.deep_archive.status) || "";
+			if (status === "Archived") this.restore_archive(name);
+			else this.watch_archive(name);
 			return;
 		}
 
@@ -496,7 +504,7 @@ class EmployeeChat {
 		const bind_info = () => {
 			this.$header
 				.find(".ec-header-title")
-				.attr("title", __("Chat info"))
+				.attr("title", __("Open chat info: participants, media, files and links."))
 				.on("click", () => this.show_info());
 		};
 		const mute_html = t ? erpnext.chat_sound.button_html(t.muted) : "";
@@ -504,25 +512,52 @@ class EmployeeChat {
 			this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
 		};
 		// Archiving is open to anyone who is in the chat (or, for a record thread, may read the
-		// record); removing is role-gated server-side and only offered on an archived chat.
+		// record); removing and the deep archive are role-gated server-side and only offered on an
+		// archived chat. While the chat is deep-archived the archive button is dropped — the server
+		// refuses it — and the badge plus its "return from the deep archive" action take its place.
+		const deep = erpnext.chat_deep_archive;
+		const busy = t && (t.deep_archive || {}).status;
+		const deep_html =
+			!t || !t.is_deep_archived
+				? ""
+				: `<span class="ec-deep-chip" title="${deep.badge_hint()}"><i class="fa fa-archive"></i> ${deep.badge()}</span>` +
+				  (t.can_purge
+						? `<span class="ec-header-act ec-undeep${
+								busy === "Packing" || busy === "Restoring" ? " ec-disabled" : ""
+						  }" title="${
+								busy === "Packing" || busy === "Restoring"
+									? deep.busy_hint()
+									: deep.leave_hint()
+						  }"><i class="fa fa-level-up"></i></span>`
+						: "");
 		const act_html = !t
 			? ""
-			: `<span class="ec-header-act ec-archive" title="${
-					t.is_archived ? __("Unarchive chat") : __("Archive chat")
-			  }"><i class="fa fa-${t.is_archived ? "inbox" : "archive"}"></i></span>` +
-			  (t.is_archived && t.can_purge && !this.is_packed(t)
+			: deep_html +
+			  (t.is_deep_archived
+					? ""
+					: `<span class="ec-header-act ec-archive" title="${
+							t.is_archived
+								? __(
+										"Return the chat to the active list — everyone in it sees it there again."
+								  )
+								: __(
+										"Move the chat to the Archive section for everyone. It keeps all its messages."
+								  )
+					  }"><i class="fa fa-${t.is_archived ? "inbox" : "archive"}"></i></span>`) +
+			  (t.is_archived && t.can_purge && !this.is_packed(t) && !t.is_deep_archived
 					? `<span class="ec-header-act ec-deep" title="${__(
-							"Move to deep archive"
+							"Pack the chat into an archive file and free the database. It is unpacked automatically the next time someone opens it."
 					  )}"><i class="fa fa-file-zip-o"></i></span>`
 					: "") +
 			  (t.is_archived && t.can_purge
 					? `<span class="ec-header-act ec-purge" title="${__(
-							"Remove chat"
+							"Delete the chat with all its messages and files. This cannot be undone."
 					  )}"><i class="fa fa-trash-o"></i></span>`
 					: "");
 		const bind_acts = () => {
 			this.$header.find(".ec-archive").on("click", () => this.toggle_archive());
 			this.$header.find(".ec-deep").on("click", () => this.deep_archive_chat());
+			this.$header.find(".ec-undeep:not(.ec-disabled)").on("click", () => this.leave_deep_archive());
 			this.$header.find(".ec-purge").on("click", () => this.purge_thread());
 		};
 		if (!t || !t.is_secret) {
@@ -583,20 +618,22 @@ class EmployeeChat {
 		const count = d.message_count
 			? __("{0} messages · {1} files", [d.message_count, d.file_count || 0])
 			: "";
+		const deep = erpnext.chat_deep_archive;
 		let body;
 		if (d.status === "Failed") {
 			body = `<div class="text-danger">${__("Could not unpack this chat")}</div>
-				<button class="btn btn-default btn-sm ec-unpack">${__("Try again")}</button>`;
+				<button class="btn btn-default btn-sm ec-unpack" title="${deep.failed_hint()}">${__("Try again")}</button>`;
 		} else if (busy) {
 			const label = d.status === "Packing" ? __("Packing…") : __("Unpacking…");
-			body = `<div class="ec-progress"><div class="ec-progress-bar" style="width:${
+			body = `<div class="ec-progress" title="${deep.auto_hint()}"><div class="ec-progress-bar" style="width:${
 				d.percent || 0
 			}%;"></div></div>
 				<div class="text-muted ec-progress-label">${label} ${d.percent || 0}%</div>`;
 		} else {
-			body = `<button class="btn btn-primary btn-sm ec-unpack">${__("Unpack content")}</button>`;
+			// Opening the chat already asked for it — this is only the moment before the job starts.
+			body = `<div class="text-muted" title="${deep.auto_hint()}">${deep.unpacking()}</div>`;
 		}
-		return `<div class="ec-deep-card">
+		return `<div class="ec-deep-card" title="${deep.badge_hint()}">
 			<div class="ec-deep-icon"><i class="fa fa-archive"></i></div>
 			<div class="ec-deep-title">${__("This conversation was archived long ago")}</div>
 			<div class="text-muted">${frappe.utils.escape_html([count, when].filter(Boolean).join(" · "))}</div>
@@ -676,7 +713,7 @@ class EmployeeChat {
 		if (!t) return;
 		frappe.confirm(
 			__(
-				"Pack this chat into the deep archive? Messages and files are moved into an archive file and removed from the chat; anyone can unpack them again later."
+				"Pack this chat into the deep archive? Messages and files are moved into an archive file and removed from the chat; they are unpacked again automatically the next time someone opens the chat."
 			),
 			async () => {
 				try {
@@ -693,6 +730,38 @@ class EmployeeChat {
 				this.watch_archive(name);
 			}
 		);
+	}
+
+	// Chat Manager only: keep the unpacked copy for good and delete the archive file. A chat that
+	// is still packed is unpacked first by the server, so the button works in both states.
+	leave_deep_archive() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		frappe.confirm(erpnext.chat_deep_archive.leave_confirm(), async () => {
+			let state;
+			try {
+				state = await frappe.xcall(API + "leave_deep_archive", { thread: name });
+			} catch (e) {
+				return;
+			}
+			this.apply_archive_state(state);
+			this.watch_archive(name);
+			if (!state.is_deep_archived) {
+				frappe.show_alert({
+					message: __("Chat returned from the deep archive"),
+					indicator: "blue",
+				});
+			}
+		});
+	}
+
+	on_realtime_deep_archive_dropped(d) {
+		if (!d || !this.threads[d.thread]) return;
+		clearInterval(this.archive_poll);
+		// `apply_archive_state` re-opens the thread itself when it stops being packed, which is
+		// what loads the messages that are now permanent.
+		this.apply_archive_state(d);
 	}
 
 	on_realtime_deep_archived(d) {
@@ -737,7 +806,7 @@ class EmployeeChat {
 			this.$readonly
 				.text(
 					this.is_packed(t)
-						? __("This chat is in the deep archive — unpack it to read the messages")
+						? __("This chat is in the deep archive — its messages are being unpacked")
 						: __("This chat is archived — new messages are not allowed")
 				)
 				.show();
@@ -1161,26 +1230,47 @@ class EmployeeChat {
 					: null,
 		}));
 
+		const deep = erpnext.chat_deep_archive;
 		const actions = [
 			{
 				label: info.muted ? __("Unmute chat") : __("Mute chat"),
+				hint: info.muted
+					? __("Play the notification sound for this chat again.")
+					: __("Silence the notification sound for this chat on all your devices."),
 				on_click: async () => {
 					await this.toggle_mute();
 					dialog.hide();
 				},
 			},
 		];
-		actions.push({
-			label: info.is_archived ? __("Unarchive chat") : __("Archive chat"),
-			on_click: async () => {
-				await this.toggle_archive();
-				dialog.hide();
-			},
-		});
 		const packed = (info.deep_archive || {}).status;
-		if (info.is_archived && info.can_purge && !packed) {
+		if (!info.is_deep_archived) {
+			actions.push({
+				label: info.is_archived ? __("Unarchive chat") : __("Archive chat"),
+				hint: info.is_archived
+					? __("Return the chat to the active list — everyone in it sees it there again.")
+					: __("Move the chat to the Archive section for everyone. It keeps all its messages."),
+				on_click: async () => {
+					await this.toggle_archive();
+					dialog.hide();
+				},
+			});
+		} else if (info.can_purge) {
+			actions.push({
+				label: deep.leave_label(),
+				hint: deep.leave_hint(),
+				on_click: () => {
+					dialog.hide();
+					this.leave_deep_archive();
+				},
+			});
+		}
+		if (info.is_archived && info.can_purge && !packed && !info.is_deep_archived) {
 			actions.push({
 				label: __("Move to deep archive"),
+				hint: __(
+					"Pack the chat into an archive file and free the database. It is unpacked automatically the next time someone opens it."
+				),
 				on_click: () => {
 					dialog.hide();
 					this.deep_archive_chat();
@@ -1190,6 +1280,7 @@ class EmployeeChat {
 		if (info.is_archived && info.can_purge) {
 			actions.push({
 				label: __("Remove chat"),
+				hint: __("Delete the chat with all its messages and files. This cannot be undone."),
 				on_click: () => {
 					dialog.hide();
 					this.purge_thread();
