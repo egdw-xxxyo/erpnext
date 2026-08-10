@@ -1,5 +1,6 @@
 // Floating chat bubble shown on every desk page (bottom right).
-// Two tabs: WhatsApp (customer threads) and Employee Chat (internal).
+// One launcher per category: WhatsApp (customer threads) and Employee Chat (internal,
+// itself split into Employees / Entities tabs).
 // Click opens a compact popup: conversation list -> thread with quick reply,
 // plus a button that jumps to the full chat page.
 
@@ -7,6 +8,41 @@ frappe.provide("erpnext.whatsapp");
 
 const WA_API = "erpnext.crm.page.whatsapp_chat.whatsapp_chat";
 const EC_API = "erpnext.crm.page.employee_chat.employee_chat";
+
+// Confirmation text for archiving, shared with the full chat page so both clients ask the
+// same question (and uk.csv needs one row per string, not two).
+erpnext.chat_archive_prompt = function (archived, is_entity) {
+	if (!archived) return __("Move this chat out of the archive?");
+	return is_entity
+		? __(
+				"Archive this chat? It moves to the Archive section and becomes read-only — nobody will be able to write in it until it is unarchived."
+		  )
+		: __("Archive this chat? It moves to the Archive section. You can still write in it.");
+};
+
+// Wording of the deep archive, shared the same way. The deep archive is a storage state, not a
+// permission one: anyone who opens such a chat unpacks it automatically, the copy is dropped again
+// after a couple of hours without readers, and only a Chat Manager can take the chat out for good.
+erpnext.chat_deep_archive = {
+	badge: () => __("Deep archive"),
+	badge_hint: () =>
+		__(
+			"This chat lives in an archive file — its messages are unpacked automatically when someone opens it and are dropped again a couple of hours later."
+		),
+	leave_label: () => __("Return from the deep archive"),
+	leave_hint: () =>
+		__(
+			"Keep the unpacked messages for good and delete the archive file. The chat becomes an ordinary archived chat that can be made active again."
+		),
+	leave_confirm: () =>
+		__(
+			"Return this chat from the deep archive? Its messages and files stay in the chat and the archive file is deleted. Afterwards the chat can be unarchived as usual."
+		),
+	busy_hint: () => __("The archive is busy — wait for the current operation to finish."),
+	unpacking: () => __("Unpacking the messages…"),
+	auto_hint: () => __("Nothing to do — the messages appear as soon as unpacking is done."),
+	failed_hint: () => __("Unpacking did not finish. Try again, or contact an administrator."),
+};
 
 // A user may use a chat only with both the doctype read permission and access to
 // the page itself (server side enforces the same, see _require_wa_access).
@@ -26,16 +62,29 @@ erpnext.whatsapp.can_use_employee_chat = function () {
 	return (frappe.boot?.user?.can_read || []).includes("Chat Thread") && cb_page_allowed("employee-chat");
 };
 
+// Placeholder for a message whose media cannot be rendered inline. Returns HTML —
+// the only caller drops it into the bubble body.
 function cb_media_label(content_type) {
-	return {
-		image: "📷 " + __("Photo"),
-		video: "🎬 " + __("Video"),
-		audio: "🎤 " + __("Audio"),
-		document: "📎 " + __("Document"),
-		file: "📎 " + __("File"),
-		sticker: "🩷 " + __("Sticker"),
-		link: "🔗 " + __("Link"),
+	const icon = {
+		image: "camera",
+		video: "film",
+		audio: "microphone",
+		document: "paperclip",
+		file: "paperclip",
+		sticker: "smile-o",
+		link: "link",
 	}[content_type];
+	if (!icon) return undefined;
+	const text = {
+		image: __("Photo"),
+		video: __("Video"),
+		audio: __("Audio"),
+		document: __("Document"),
+		file: __("File"),
+		sticker: __("Sticker"),
+		link: __("Link"),
+	}[content_type];
+	return `<i class="fa fa-${icon}"></i> ${text}`;
 }
 
 // Compact link card for a shared ERPNext object (mirrors the full chat page).
@@ -45,7 +94,9 @@ function cb_link_card(card) {
 		? `<img src="${frappe.utils.escape_html(
 				card.image
 		  )}" style="width:100%;height:100%;object-fit:cover;">`
-		: { document: "📄", report: "📊", list: "🗂️" }[card.kind] || "🔗";
+		: `<i class="fa fa-${
+				{ document: "file-text-o", report: "bar-chart", list: "list-ul" }[card.kind] || "link"
+		  }"></i>`;
 	const title = frappe.utils.escape_html(card.title || card.url);
 	const sub = frappe.utils.escape_html(card.subtitle || card.doctype || "");
 	const removed = !!card.removed;
@@ -98,7 +149,7 @@ function cb_reference_banner(chat) {
 	return `<div class="cb-ref-banner"${data} style="display:flex;gap:6px;align-items:center;padding:7px 9px;margin-bottom:6px;border:1px solid var(--border-color);border-radius:7px;background:var(--card-bg);${
 		removed ? "opacity:.6;" : "cursor:pointer;"
 	}">
-		<div style="flex:none;font-size:16px;">📄</div>
+		<div style="flex:none;font-size:16px;"><i class="fa fa-file-text-o"></i></div>
 		<div style="min-width:0;">
 			<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}${badge}${arch}</div>
 			${
@@ -121,7 +172,7 @@ function cb_fmt_time(dt) {
 // object built by the sources' load_messages.
 function cb_render_body(m) {
 	if (m.is_encrypted) {
-		if (!m.dec) return `🔒 ${__("Encrypted")}`;
+		if (!m.dec) return `<i class="fa fa-lock"></i> ${__("Encrypted")}`;
 		if (m.dec.link) return cb_link_card(m.dec.link);
 		const text = m.dec.text || "";
 		const cap = text ? `<div class="cb-caption">${frappe.utils.escape_html(text)}</div>` : "";
@@ -148,7 +199,7 @@ function cb_render_body(m) {
 			})}</div>${cap}`;
 		}
 		if (file) {
-			return `<span class="cb-doc">📎 ${frappe.utils.escape_html(
+			return `<span class="cb-doc"><i class="fa fa-paperclip"></i> ${frappe.utils.escape_html(
 				file.name || __("File")
 			)}</span>${cap}`;
 		}
@@ -169,7 +220,7 @@ function cb_render_body(m) {
 	if (m.attach) {
 		const url = frappe.utils.escape_html(m.attach);
 		const fname = frappe.utils.escape_html(decodeURIComponent(m.attach.split("/").pop() || __("File")));
-		return `<a class="cb-doc" href="${url}" target="_blank" download>📎 ${fname}</a>${cap}`;
+		return `<a class="cb-doc" href="${url}" target="_blank" download><i class="fa fa-paperclip"></i> ${fname}</a>${cap}`;
 	}
 	const label = cb_media_label(m.content_type);
 	if (label) return caption ? `${label}${cap}` : label;
@@ -286,11 +337,44 @@ class WhatsAppSource {
 class EmployeeChatSource {
 	constructor() {
 		this.key = "employee";
-		this.label = __("Employees");
+		this.label = __("Employee Chat");
 		this.page_route = "/app/employee-chat";
-		this.realtime_events = ["chat_message", "chat_seen"];
+		this.realtime_events = [
+			"chat_message",
+			"chat_seen",
+			"chat_thread_archived",
+			"chat_thread_purged",
+			// Deliberately without chat_restore_progress: the shared handler refreshes every list
+			// on each event, and progress arrives many times a second.
+			"chat_deep_archived",
+			"chat_restore_done",
+			"chat_restore_expired",
+			"chat_deep_archive_dropped",
+		];
 		this.media_source = "chat"; // get_thumbnails source key
 		this.chats = [];
+		// Two lists behind one launcher: person-to-person threads first, threads
+		// attached to a record (Document threads) second.
+		this.tabs = [
+			{ key: "employee", label: __("Employees") },
+			{ key: "entity", label: __("Entities") },
+		];
+	}
+
+	// A thread belongs to the entity tab when it is about a record.
+	static is_entity(chat) {
+		return !!chat.reference_doctype;
+	}
+
+	chats_for_tab(tab) {
+		return (this.chats || []).filter((c) =>
+			tab === "entity" ? EmployeeChatSource.is_entity(c) : !EmployeeChatSource.is_entity(c)
+		);
+	}
+
+	tab_of(id) {
+		const chat = (this.chats || []).find((c) => c.id === id);
+		return chat && EmployeeChatSource.is_entity(chat) ? "entity" : "employee";
 	}
 
 	static available() {
@@ -312,8 +396,26 @@ class EmployeeChatSource {
 			reference_label: t.reference_label,
 			reference_removed: t.reference_removed,
 			is_archived: t.is_archived,
+			is_deep_archived: t.is_deep_archived,
+			disable_archive: t.disable_archive,
+			disable_deep_archive: t.disable_deep_archive,
+			deep_archive: t.deep_archive || {},
+			read_only: t.read_only,
+			can_purge: t.can_purge,
 		}));
 		return this.chats;
+	}
+
+	restore(id) {
+		return frappe.xcall(`${EC_API}.restore_deep_archive`, { thread: id });
+	}
+
+	archive_state(id) {
+		return frappe.xcall(`${EC_API}.get_deep_archive_state`, { thread: id });
+	}
+
+	leave_deep_archive(id) {
+		return frappe.xcall(`${EC_API}.leave_deep_archive`, { thread: id });
 	}
 
 	is_secret(id) {
@@ -480,6 +582,9 @@ class EmployeeChatSource {
 				thread: id,
 				content_type,
 				attach: url,
+				// The encrypted preview's URL lives inside the ciphertext, so name it here too —
+				// otherwise the server can never link (or purge) that blob.
+				extra_files: payload.thumb ? JSON.stringify([payload.thumb.url]) : null,
 				message: ciphertext,
 				is_encrypted: 1,
 				enc_iv: iv,
@@ -549,6 +654,8 @@ class ChatBubble {
 		this.sources = sources;
 		this.source = sources[0];
 		this.active = null; // open conversation id
+		this.tab = "employee"; // active tab of a tabbed source (employee chat)
+		this.arch_open = localStorage.getItem("cb_arch_open") === "1";
 		this.open = false;
 		this.inject_styles();
 		this.make_dom();
@@ -561,6 +668,10 @@ class ChatBubble {
 			this.refresh();
 		};
 		this.sources.forEach((s) => s.realtime_events.forEach((ev) => frappe.realtime.on(ev, this.on_rt)));
+		// Progress is high-frequency: it only moves the bar, never triggers a refresh.
+		frappe.realtime.on("chat_restore_progress", (d) =>
+			this.apply_archive_state(d && { thread: d.thread, status: "Restoring", percent: d.percent })
+		);
 		this.poll = setInterval(() => this.refresh(), 60000);
 	}
 
@@ -600,18 +711,62 @@ class ChatBubble {
 	render_sound_toggle() {
 		const on = erpnext.chat_sound.enabled();
 		this.$sound
-			.text(on ? "🔊" : "🔇")
+			.html(`<i class="fa fa-volume-${on ? "up" : "off"}"></i>`)
 			.attr("title", on ? __("Notification sound is on") : __("Notification sound is off"));
 	}
 
 	// The per-conversation mute is only meaningful with a thread open.
 	render_mute_toggle() {
 		const chat = this.active ? (this.source.chats || []).find((c) => c.id === this.active) : null;
+		this.render_deep_state(chat);
 		if (!chat || !this.source.set_muted) return this.$mute.hide();
 		this.$mute
 			.show()
-			.text(chat.muted ? "🔕" : "🔔")
-			.attr("title", chat.muted ? __("Unmute chat") : __("Mute chat"));
+			.html(`<i class="fa fa-bell${chat.muted ? "-slash-o" : "-o"}"></i>`)
+			.attr(
+				"title",
+				chat.muted
+					? __("Play the notification sound for this chat again.")
+					: __("Silence the notification sound for this chat on all your devices.")
+			);
+	}
+
+	// Deep-archive badge in the header, plus the Chat Manager action that takes the chat out of
+	// the archive for good. Same wording as the full chat page (erpnext.chat_deep_archive).
+	render_deep_state(chat) {
+		const deep = erpnext.chat_deep_archive;
+		if (!chat || !chat.is_deep_archived || !this.source.leave_deep_archive) {
+			this.$deep_chip.hide();
+			this.$undeep.hide();
+			return;
+		}
+		this.$deep_chip
+			.attr("title", deep.badge_hint())
+			.html(`<i class="fa fa-archive"></i> ${frappe.utils.escape_html(deep.badge())}`)
+			.show();
+		if (!chat.can_purge) return this.$undeep.hide();
+		const status = (chat.deep_archive || {}).status;
+		const busy = status === "Packing" || status === "Restoring";
+		this.$undeep
+			.toggleClass("cb-disabled", busy)
+			.attr("title", busy ? deep.busy_hint() : deep.leave_hint())
+			.show();
+	}
+
+	leave_deep_archive() {
+		const id = this.active;
+		const chat = (this.source.chats || []).find((c) => c.id === id);
+		if (!chat || !this.source.leave_deep_archive || this.$undeep.hasClass("cb-disabled")) return;
+		frappe.confirm(erpnext.chat_deep_archive.leave_confirm(), async () => {
+			let state;
+			try {
+				state = await this.source.leave_deep_archive(id);
+			} catch (e) {
+				return;
+			}
+			this.apply_archive_state(state);
+			this.watch_archive(id);
+		});
 	}
 
 	async toggle_mute() {
@@ -625,6 +780,30 @@ class ChatBubble {
 		} catch (e) {
 			chat.muted = muted ? 0 : 1;
 			this.render_mute_toggle();
+		}
+	}
+
+	// True while a chat's content lives only in its zip.
+	static is_packed(chat) {
+		const st = (chat && chat.deep_archive && chat.deep_archive.status) || "";
+		return !!st && st !== "Restored";
+	}
+
+	// An archived chat about a record is read-only server-side — hide the composer instead of
+	// letting the user type into a message that will be rejected.
+	render_composer(chat) {
+		if (chat && chat.read_only) {
+			this.$compose.hide();
+			this.$readonly
+				.text(
+					ChatBubble.is_packed(chat)
+						? __("This chat is in the deep archive — its messages are being unpacked")
+						: __("This chat is archived — new messages are not allowed")
+				)
+				.show();
+		} else {
+			this.$readonly.hide();
+			this.$compose.show();
 		}
 	}
 
@@ -650,11 +829,24 @@ class ChatBubble {
 		.cb-title{flex:1;font-weight:600;font-size:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 		.cb-head .cb-act{cursor:pointer;opacity:.85;font-size:15px;line-height:1;padding:2px 4px;}
 		.cb-head .cb-act:hover{opacity:1;}
+		.cb-head .cb-act.cb-disabled{opacity:.35;cursor:default;}
+		.cb-deep-chip{flex:none;display:inline-flex;align-items:center;gap:3px;padding:0 6px;border-radius:9px;
+			background:rgba(255,255,255,.18);font-size:10px;font-weight:600;line-height:16px;}
+		.cb-tabs{display:none;border-bottom:1px solid var(--border-color);background:var(--card-bg);}
+		.cb-panel .cb-tabs.show{display:flex;}
+		.cb-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;
+			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;}
+		.cb-tab:hover{background:var(--bg-light-gray);}
+		.cb-tab.active{color:var(--text-color);border-bottom-color:var(--primary,#2490ef);}
+		.cb-count{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);
+			color:#fff;font-size:10px;line-height:17px;font-weight:600;text-align:center;display:none;}
+		.cb-count.show{display:inline-block;}
 		.cb-body{flex:1;overflow-y:auto;}
 		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;}
 		.cb-conv:hover{background:var(--bg-light-gray);}
 		.cb-conv .cb-name{font-weight:600;font-size:var(--text-sm);display:flex;justify-content:space-between;gap:6px;}
-		.cb-conv .cb-time{font-weight:400;color:var(--text-muted);font-size:10px;white-space:nowrap;}
+		.cb-conv .cb-time{font-weight:400;color:var(--text-muted);font-size:10px;white-space:nowrap;
+			display:flex;align-items:center;gap:5px;flex:none;}
 		.cb-conv .cb-prev{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.cb-conv.unread .cb-prev{color:var(--text-color);font-weight:600;}
 		.cb-thread{display:flex;flex-direction:column;gap:3px;padding:10px;background:var(--bg-gray);min-height:100%;}
@@ -670,9 +862,27 @@ class ChatBubble {
 		.cb-msg .chat-img img{max-width:180px;max-height:200px;}
 		.cb-msg .cb-caption{white-space:pre-wrap;margin-top:2px;}
 		.cb-msg .cb-doc{color:inherit;text-decoration:underline;word-break:break-all;display:inline-block;}
-		.cb-compose{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border-color);align-items:flex-end;}
-		.cb-compose textarea{resize:none;flex:1;font-size:12px;}
-		.cb-compose .cb-attach{flex:none;}
+		.cb-arch-head{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;
+			background:var(--bg-light-gray);border-top:1px solid var(--border-color);
+			border-bottom:1px solid var(--border-color);font-size:var(--text-sm);font-weight:600;
+			color:var(--text-muted);}
+		.cb-arch-head:hover{color:var(--text-color);}
+		.cb-arch-head .cb-count{margin-left:auto;}
+		.cb-readonly{padding:8px;border-top:1px solid var(--border-color);text-align:center;
+			color:var(--text-muted);font-size:var(--text-sm);}
+		.cb-deep-card{padding:26px 18px;text-align:center;}
+		.cb-progress{height:6px;border-radius:3px;background:var(--bg-light-gray);overflow:hidden;}
+		.cb-progress-bar{height:100%;background:var(--primary,#2490ef);width:0;transition:width .3s ease;}
+		.cb-progress-label{margin-top:6px;color:var(--text-muted);font-size:11px;}
+		.cb-compose{display:flex;gap:4px;padding:6px 8px;border-top:1px solid var(--border-color);
+			align-items:flex-end;}
+		.cb-compose textarea{resize:none;flex:1;min-width:0;font-size:12px;max-height:120px;
+			padding:6px 8px;border-radius:14px;}
+		.cb-ico{flex:none;width:28px;height:28px;padding:0;border:none;background:none;border-radius:50%;
+			color:var(--text-muted);font-size:14px;line-height:28px;text-align:center;cursor:pointer;}
+		.cb-ico:hover{background:var(--bg-light-gray);color:var(--text-color);}
+		.cb-send{color:var(--primary,#2490ef);}
+		.cb-send:hover{background:var(--bg-light-gray);color:var(--primary,#2490ef);}
 		.cb-foot{padding:6px 8px;border-top:1px solid var(--border-color);}
 		@media (max-width:600px){
 			.cb-panel{right:12px;left:12px;width:auto;bottom:84px;height:70vh;}
@@ -707,19 +917,27 @@ class ChatBubble {
 		this.$panel = $(`
 			<div class="cb-panel">
 				<div class="cb-head">
-					<span class="cb-act cb-back" title="${__("Back")}" style="display:none;">←</span>
+					<span class="cb-act cb-back" title="${__(
+						"Back"
+					)}" style="display:none;"><i class="fa fa-arrow-left"></i></span>
 					<span class="cb-title">${__("Chat")}</span>
-					<span class="cb-act cb-mute" title="${__("Mute chat")}" style="display:none;"></span>
+					<span class="cb-act cb-mute" style="display:none;"></span>
+					<span class="cb-deep-chip" style="display:none;"><i class="fa fa-archive"></i></span>
+					<span class="cb-act cb-undeep" style="display:none;"><i class="fa fa-level-up"></i></span>
 					<span class="cb-act cb-sound" title="${__("Notification sound")}"></span>
-					<span class="cb-act cb-open-page" title="${__("Open full page")}">⤢</span>
-					<span class="cb-act cb-close" title="${__("Close")}">&times;</span>
+					<span class="cb-act cb-open-page" title="${__("Open full page")}"><i class="fa fa-expand"></i></span>
+					<span class="cb-act cb-close" title="${__("Close")}"><i class="fa fa-times"></i></span>
 				</div>
+				<div class="cb-tabs"></div>
 				<div class="cb-body"></div>
+				<div class="cb-readonly" style="display:none;">${__(
+					"This chat is archived — new messages are not allowed"
+				)}</div>
 				<div class="cb-compose" style="display:none;">
-					<button class="btn btn-default btn-xs cb-attach" title="${__("Attach file")}">📎</button>
-					<button class="btn btn-default btn-xs cb-mic" title="${__("Record voice message")}">🎤</button>
+					<button class="cb-ico cb-attach" title="${__("Attach file")}"><i class="fa fa-paperclip"></i></button>
+					<button class="cb-ico cb-mic" title="${__("Record voice message")}"><i class="fa fa-microphone"></i></button>
 					<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
-					<button class="btn btn-primary btn-xs cb-send">${__("Send")}</button>
+					<button class="cb-ico cb-send" title="${__("Send")}"><i class="fa fa-paper-plane"></i></button>
 				</div>
 				<div class="cb-foot">
 					<button class="btn btn-default btn-xs cb-goto" style="width:100%;">${__("Open full page")}</button>
@@ -728,12 +946,17 @@ class ChatBubble {
 		`).appendTo(document.body);
 
 		this.$body = this.$panel.find(".cb-body");
+		this.$tabs = this.$panel.find(".cb-tabs");
 		this.$title = this.$panel.find(".cb-title");
 		this.$back = this.$panel.find(".cb-back");
 		this.$mute = this.$panel.find(".cb-mute");
+		this.$deep_chip = this.$panel.find(".cb-deep-chip");
+		this.$undeep = this.$panel.find(".cb-undeep");
+		this.$undeep.on("click", () => this.leave_deep_archive());
 		this.$sound = this.$panel.find(".cb-sound");
 		this.render_sound_toggle();
 		this.$compose = this.$panel.find(".cb-compose");
+		this.$readonly = this.$panel.find(".cb-readonly");
 		this.$input = this.$compose.find("textarea");
 		this.update_document_button();
 	}
@@ -784,6 +1007,11 @@ class ChatBubble {
 			this.render_sound_toggle();
 		});
 		this.$mute.on("click", () => this.toggle_mute());
+		this.$body.on("click", ".cb-arch-head", () => {
+			this.arch_open = !this.arch_open;
+			localStorage.setItem("cb_arch_open", this.arch_open ? "1" : "0");
+			this.render_list();
+		});
 		this.$panel.find(".cb-send").on("click", () => this.send());
 		this.$panel.find(".cb-attach").on("click", () => this.attach_media());
 		this.$panel.find(".cb-mic").on("click", () => this.record_voice());
@@ -792,6 +1020,14 @@ class ChatBubble {
 				e.preventDefault();
 				this.send();
 			}
+		});
+		// One row until the text needs more, then grow up to the CSS max-height.
+		this.$input.on("input", () => this.autosize());
+		this.$tabs.on("click", ".cb-tab", (e) => {
+			const tab = $(e.currentTarget).attr("data-tab");
+			if (tab === this.tab) return;
+			this.tab = tab;
+			this.show_list();
 		});
 		this.$body.on("click", ".cb-conv", (e) => {
 			this.open_thread($(e.currentTarget).attr("data-id"));
@@ -809,6 +1045,8 @@ class ChatBubble {
 		}
 		this.source = src;
 		this.active = null;
+		// Pressing the launcher always lands on the first tab (employee threads).
+		this.tab = "employee";
 		this.set_active_fab(key);
 		this.open = true;
 		this.$panel.addClass("open");
@@ -828,8 +1066,10 @@ class ChatBubble {
 		this.open = true;
 		this.$panel.addClass("open");
 		this.$title.text(__("Chat about this document"));
+		this.$tabs.removeClass("show").empty();
 		this.$back.hide();
 		this.$mute.hide();
+		this.$readonly.hide();
 		this.$compose.hide();
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
 		let name;
@@ -875,7 +1115,14 @@ class ChatBubble {
 		);
 		this.render_badges();
 		if (!this.open) return;
+		// The open thread can disappear under us — someone with the Chat Manager role purged it.
+		if (this.active && !(this.source.chats || []).some((c) => c.id === this.active)) {
+			this.show_list();
+			return;
+		}
 		if (this.active) {
+			const chat = (this.source.chats || []).find((c) => c.id === this.active);
+			this.render_composer(chat);
 			this.load_thread(this.active);
 		} else {
 			this.render_list();
@@ -903,52 +1150,120 @@ class ChatBubble {
 			const dt = this.doc_thread();
 			set("document", dt ? dt.unread || 0 : 0);
 		}
+		this.render_tab_counts();
 	}
 
 	show_list() {
 		this.active = null;
 		if (this.$mute) this.$mute.hide();
+		clearInterval(this.archive_poll);
 		this.$back.hide();
+		this.$readonly.hide();
 		this.$compose.hide();
 		this.$title.text(this.source.label);
+		this.render_tabs();
 		this.render_list();
 	}
 
+	// Tab strip, only for sources that declare tabs and only on the list view.
+	render_tabs() {
+		const tabs = this.source.tabs;
+		if (!tabs || this.active) {
+			this.$tabs.removeClass("show").empty();
+			return;
+		}
+		this.$tabs.addClass("show").html(
+			tabs
+				.map(
+					(t) => `<div class="cb-tab ${t.key === this.tab ? "active" : ""}" data-tab="${t.key}">
+					<span>${frappe.utils.escape_html(t.label)}</span><span class="cb-count"></span>
+				</div>`
+				)
+				.join("")
+		);
+		this.render_tab_counts();
+	}
+
+	render_tab_counts() {
+		if (!this.source.tabs || !this.$tabs.hasClass("show")) return;
+		this.source.tabs.forEach((t) => {
+			const count = this.visible_chats(t.key).reduce((n, c) => n + (c.unread || 0), 0);
+			this.$tabs
+				.find(`.cb-tab[data-tab="${t.key}"] .cb-count`)
+				.text(count > 99 ? "99+" : count)
+				.toggleClass("show", count > 0);
+		});
+	}
+
+	// Conversations to list: those of the requested tab, minus the ones that carry no
+	// message at all (an entity thread is created on first open, before anything is said).
+	visible_chats(tab) {
+		const chats = this.source.tabs ? this.source.chats_for_tab(tab || this.tab) : this.source.chats || [];
+		return chats.filter((c) => c.time || c.preview || c.unread);
+	}
+
+	conv_html(c) {
+		const name =
+			frappe.utils.escape_html(c.title) +
+			(c.is_deep_archived
+				? ` <i class="fa fa-archive" style="color:var(--text-muted);font-size:10px;" title="${erpnext.chat_deep_archive.badge_hint()}"></i>`
+				: "");
+		const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
+		const unread = c.unread
+			? `<span class="cb-count show">${c.unread > 99 ? "99+" : c.unread}</span>`
+			: "";
+		return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(c.id)}">
+			<div class="cb-name"><span>${name}</span><span class="cb-time">${unread}${cb_fmt_time(c.time)}</span></div>
+			<div class="cb-prev">${prev || __("(no text)")}</div>
+		</div>`;
+	}
+
 	render_list() {
-		const chats = this.source.chats || [];
-		if (!chats.length) {
+		const chats = this.visible_chats();
+		const active = chats.filter((c) => !c.is_archived);
+		const archived = chats.filter((c) => c.is_archived);
+		if (!active.length && !archived.length) {
 			this.$body.html(`<div class="cb-empty">${__("No conversations yet")}</div>`);
 			return;
 		}
-		const rows = chats
-			.map((c) => {
-				const name = frappe.utils.escape_html(c.title);
-				const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
-				return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(
-					c.id
-				)}">
-					<div class="cb-name"><span>${name}</span><span class="cb-time">${cb_fmt_time(c.time)}</span></div>
-					<div class="cb-prev">${prev || __("(no text)")}</div>
-				</div>`;
-			})
-			.join("");
-		this.$body.html(rows);
+		let html = active.map((c) => this.conv_html(c)).join("");
+		if (archived.length) {
+			// Archived chats keep receiving messages, so the collapsed header carries their
+			// unread count — otherwise it would look like nothing happened down there.
+			const unread = archived.reduce((n, c) => n + (c.unread || 0), 0);
+			html += `<div class="cb-arch-head">
+				<i class="fa fa-caret-${this.arch_open ? "down" : "right"}"></i>
+				<span>${__("Archived")}</span>
+				<span class="cb-count ${unread ? "show" : ""}">${unread > 99 ? "99+" : unread}</span>
+			</div>`;
+			if (this.arch_open) html += archived.map((c) => this.conv_html(c)).join("");
+		}
+		this.$body.html(html || `<div class="cb-empty">${__("No conversations yet")}</div>`);
 	}
 
 	open_thread(id) {
 		console.log("[chat] open_thread (conversation clicked)", { source: this.source.key, id });
 		this.active = id;
+		// Coming back from this thread should land on the tab it belongs to.
+		if (this.source.tab_of) this.tab = this.source.tab_of(id);
+		this.render_tabs();
 		const chat = (this.source.chats || []).find((c) => c.id === id);
 		this.$title.text(chat ? chat.title : id);
 		this.render_mute_toggle();
 		this.$back.show();
-		this.$compose.show();
+		this.render_composer(chat);
+		this.auto_unpacked = null; // one automatic unpack request per thread opening
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
 		this.load_thread(id);
 	}
 
 	async load_thread(id) {
 		const source = this.source;
+		const packed_chat = (source.chats || []).find((c) => c.id === id);
+		if (ChatBubble.is_packed(packed_chat)) {
+			this.render_deep_archive(packed_chat);
+			return;
+		}
 		let msgs = [];
 		try {
 			msgs = await source.load_messages(id);
@@ -1000,6 +1315,124 @@ class ChatBubble {
 		this.$body.scrollTop(this.$body[0].scrollHeight);
 	}
 
+	// --- deep archive -------------------------------------------------------
+
+	render_deep_archive(chat) {
+		const d = (chat && chat.deep_archive) || {};
+		const deep = erpnext.chat_deep_archive;
+		const busy = d.status === "Restoring" || d.status === "Packing";
+		let body;
+		if (d.status === "Failed") {
+			body = `<div style="color:var(--red-500,#e24c4c);">${__(
+				"Could not unpack this chat"
+			)}</div><button class="btn btn-default btn-xs cb-unpack" title="${deep.failed_hint()}">${__(
+				"Try again"
+			)}</button>`;
+		} else if (busy) {
+			const label = d.status === "Packing" ? __("Packing…") : __("Unpacking…");
+			body = `<div class="cb-progress" title="${deep.auto_hint()}"><div class="cb-progress-bar" style="width:${
+				d.percent || 0
+			}%;"></div></div>
+				<div class="cb-progress-label">${label} ${d.percent || 0}%</div>`;
+		} else {
+			// Opening the chat is the request to unpack it — see the auto-restore below.
+			body = `<div style="color:var(--text-muted);" title="${deep.auto_hint()}">${deep.unpacking()}</div>`;
+		}
+		const count = d.message_count
+			? frappe.utils.escape_html(__("{0} messages · {1} files", [d.message_count, d.file_count || 0]))
+			: "";
+		this.$body.html(`<div class="cb-deep-card">
+			<div style="font-size:24px;color:var(--text-muted);"><i class="fa fa-archive"></i></div>
+			<div style="font-weight:600;">${__("This conversation was archived long ago")}</div>
+			<div style="color:var(--text-muted);font-size:11px;">${count}</div>
+			<div style="margin-top:10px;">${body}</div>
+		</div>`);
+		this.$body.find(".cb-unpack").on("click", () => this.unpack(chat.id));
+		// Idle archive: opening the chat starts the unpacking by itself. A failed one stays a
+		// manual retry so a broken archive is not re-enqueued on every open. The guard keeps the
+		// re-render this triggers from asking a second time.
+		if ((d.status || "") === "Archived" && this.auto_unpacked !== chat.id) {
+			this.auto_unpacked = chat.id;
+			this.unpack(chat.id);
+		} else {
+			this.watch_archive(chat.id);
+		}
+	}
+
+	async unpack(id) {
+		let state;
+		try {
+			state = await this.source.restore(id);
+		} catch (e) {
+			return;
+		}
+		this.apply_archive_state(state);
+	}
+
+	// Progress reaches participants over realtime; a record-chat reader who never joined has no
+	// room of their own, so poll as well while a job runs.
+	watch_archive(id) {
+		clearInterval(this.archive_poll);
+		const chat = (this.source.chats || []).find((c) => c.id === id);
+		const st = (chat && chat.deep_archive && chat.deep_archive.status) || "";
+		if (st !== "Packing" && st !== "Restoring") return;
+		this.archive_poll = setInterval(async () => {
+			if (this.active !== id || !this.source.archive_state) return clearInterval(this.archive_poll);
+			try {
+				this.apply_archive_state(await this.source.archive_state(id));
+			} catch (e) {
+				clearInterval(this.archive_poll);
+			}
+		}, 2000);
+	}
+
+	apply_archive_state(state) {
+		if (!state || !state.thread) return;
+		const chat = (this.source.chats || []).find((c) => c.id === state.thread);
+		if (!chat) return;
+		const was_packed = ChatBubble.is_packed(chat);
+		chat.deep_archive = Object.assign({}, chat.deep_archive, state);
+		if (state.read_only !== undefined) chat.read_only = state.read_only;
+		if (state.is_deep_archived !== undefined) chat.is_deep_archived = state.is_deep_archived;
+		if (this.active !== state.thread) return;
+		// The header badge follows the archive state, not the messages.
+		this.render_mute_toggle();
+
+		if (was_packed && !ChatBubble.is_packed(chat)) {
+			clearInterval(this.archive_poll);
+			this.render_composer(chat);
+			this.load_thread(state.thread);
+			return;
+		}
+		const $bar = this.$body.find(".cb-progress-bar");
+		const d = chat.deep_archive || {};
+		if ($bar.length && (d.status === "Restoring" || d.status === "Packing")) {
+			$bar.css("width", (d.percent || 0) + "%");
+			this.$body
+				.find(".cb-progress-label")
+				.text(
+					(d.status === "Packing" ? __("Packing…") : __("Unpacking…")) +
+						" " +
+						(d.percent || 0) +
+						"%"
+				);
+			return;
+		}
+		this.render_composer(chat);
+		// Leaving the deep archive from a restored copy never passes through "packed", so the
+		// archive card has to give way to the messages here too.
+		if (ChatBubble.is_packed(chat)) this.render_deep_archive(chat);
+		else this.load_thread(state.thread);
+	}
+
+	// Keep the composer one line tall while it fits, so the icons stay on the text baseline.
+	autosize() {
+		const el = this.$input.get(0);
+		if (!el) return;
+		el.style.height = "auto";
+		el.style.height = el.scrollHeight + "px";
+	}
+
 	async record_voice() {
 		if (!this.active || !this.source.send_voice) return;
 		const rec = await erpnext.chat_media.record_audio();
@@ -1027,6 +1460,7 @@ class ChatBubble {
 			return;
 		}
 		this.$input.val("");
+		this.autosize();
 		this.load_thread(this.active);
 		this.refresh();
 	}
@@ -1035,6 +1469,7 @@ class ChatBubble {
 		const text = (this.$input.val() || "").trim();
 		if (!text || !this.active) return;
 		this.$input.val("");
+		this.autosize();
 		try {
 			await this.source.send(this.active, text);
 		} catch (e) {

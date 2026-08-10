@@ -62,7 +62,9 @@ erpnext.chat_sound = {
 	// Shared 🔔 / 🔕 toggle markup for a chat header.
 	button_html(muted, cls) {
 		return `<span class="chat-mute-btn ${cls || ""}" title="${
-			muted ? __("Unmute chat") : __("Mute chat")
+			muted
+				? __("Play the notification sound for this chat again.")
+				: __("Silence the notification sound for this chat on all your devices.")
 		}">${muted ? "🔕" : "🔔"}</span>`;
 	},
 

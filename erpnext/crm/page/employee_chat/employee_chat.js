@@ -59,6 +59,8 @@ class EmployeeChat {
 		this.other_last_read = null; // other participant's last_read_on (direct threads)
 		this.typing_timer = null; // hides the typing indicator
 		this.typing_sent_at = 0; // throttle outgoing typing pings
+		this.tab = "employee"; // sidebar tab: people threads or record threads
+		this.arch_open = localStorage.getItem("ec_arch_open") === "1";
 
 		this.make_layout();
 		// deep-link: /app/employee-chat?thread=<name>
@@ -70,10 +72,25 @@ class EmployeeChat {
 		this.on_typing = (d) => this.on_realtime_typing(d);
 		this.on_seen = (d) => this.on_realtime_seen(d);
 		this.on_reaction = (d) => this.on_realtime_reaction(d);
+		this.on_archived = (d) => this.on_realtime_archived(d);
+		this.on_policy = (d) => this.apply_archive_policy(d);
+		this.on_purged = (d) => this.on_realtime_purged(d);
 		frappe.realtime.on("chat_message", this.on_message);
 		frappe.realtime.on("chat_typing", this.on_typing);
 		frappe.realtime.on("chat_seen", this.on_seen);
 		frappe.realtime.on("chat_reaction", this.on_reaction);
+		frappe.realtime.on("chat_thread_archived", this.on_archived);
+		frappe.realtime.on("chat_archive_policy", this.on_policy);
+		frappe.realtime.on("chat_thread_purged", this.on_purged);
+		this.deep_events = {
+			chat_deep_archived: (d) => this.on_realtime_deep_archived(d),
+			chat_restore_progress: (d) => this.on_realtime_restore_progress(d),
+			chat_restore_done: (d) => this.on_realtime_restore_done(d),
+			chat_restore_failed: (d) => this.on_realtime_restore_failed(d),
+			chat_restore_expired: (d) => this.on_realtime_restore_expired(d),
+			chat_deep_archive_dropped: (d) => this.on_realtime_deep_archive_dropped(d),
+		};
+		for (const [event, handler] of Object.entries(this.deep_events)) frappe.realtime.on(event, handler);
 		// slow poll of the thread list as a safety net if the socket drops
 		this.poll = setInterval(() => this.load_threads(), 30000);
 
@@ -83,6 +100,13 @@ class EmployeeChat {
 			frappe.realtime.off("chat_typing", this.on_typing);
 			frappe.realtime.off("chat_seen", this.on_seen);
 			frappe.realtime.off("chat_reaction", this.on_reaction);
+			frappe.realtime.off("chat_thread_archived", this.on_archived);
+			frappe.realtime.off("chat_archive_policy", this.on_policy);
+			frappe.realtime.off("chat_thread_purged", this.on_purged);
+			for (const [event, handler] of Object.entries(this.deep_events)) {
+				frappe.realtime.off(event, handler);
+			}
+			clearInterval(this.archive_poll);
 		});
 	}
 
@@ -96,6 +120,7 @@ class EmployeeChat {
 						)}</button>
 						<input type="text" class="form-control input-xs ec-search-input" placeholder="${__("Search chats")}">
 					</div>
+					<div class="ec-tabs"></div>
 					<div class="ec-thread-list"></div>
 				</div>
 				<div class="ec-thread-wrap">
@@ -105,6 +130,9 @@ class EmployeeChat {
 						"Scroll to latest"
 					)}">⬇<span class="ec-fab-badge" style="display:none;"></span></div>
 					<div class="ec-typing text-muted" style="display:none;"></div>
+					<div class="ec-readonly text-muted" style="display:none;">${__(
+						"This chat is archived — new messages are not allowed"
+					)}</div>
 					<div class="ec-compose-wrap" style="display:none;">
 						<div class="ec-reply-bar" style="display:none;">
 							<div class="ec-reply-bar-text"></div>
@@ -133,8 +161,26 @@ class EmployeeChat {
 		this.$input = this.page.main.find(".ec-compose textarea");
 		this.$replyBar = this.page.main.find(".ec-reply-bar");
 		this.$search = this.page.main.find(".ec-search-input");
+		this.$tabs = this.page.main.find(".ec-tabs");
+		this.$readonly = this.page.main.find(".ec-readonly");
+		this.$tabs.on("click", ".ec-tab", (e) => {
+			const tab = $(e.currentTarget).attr("data-tab");
+			if (tab === this.tab) return;
+			this.tab = tab;
+			this.render_list();
+		});
+		this.$list.on("click", ".ec-arch-head", () => {
+			this.arch_open = !this.arch_open;
+			localStorage.setItem("ec_arch_open", this.arch_open ? "1" : "0");
+			this.render_list();
+		});
 
 		this.page.add_menu_item(__("Secret chats"), () => this.secret_settings_dialog());
+		// Archiving policy (when a document chat is archived, when an archive is packed) lives in
+		// the Chat Settings form; only the roles that may change it get the shortcut.
+		if (frappe.user.has_role(["Chat Manager", "System Manager"])) {
+			this.page.add_menu_item(__("Chat Settings"), () => frappe.set_route("Form", "Chat Settings"));
+		}
 		this.page.main.find(".ec-new-chat").on("click", () => this.new_chat_dialog());
 		this.page.main.find(".ec-send").on("click", () => this.send());
 		this.page.main.find(".ec-attach").on("click", (e) => this.attach_menu(e));
@@ -160,12 +206,38 @@ class EmployeeChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("ec-chat-styles-v5")) return;
+		if (document.getElementById("ec-chat-styles-v8")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.ec-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
 		.ec-search{padding:8px;border-bottom:1px solid var(--border-color);}
 		.ec-thread-list{overflow-y:auto;flex:1;}
+		.ec-tabs{display:flex;border-bottom:1px solid var(--border-color);}
+		.ec-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;
+			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;}
+		.ec-tab:hover{background:var(--bg-light-gray);}
+		.ec-tab.active{color:var(--text-color);border-bottom-color:var(--primary);}
+		.ec-arch-head{display:flex;align-items:center;gap:6px;padding:8px 12px;cursor:pointer;
+			background:var(--bg-light-gray);border-bottom:1px solid var(--border-color);
+			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);}
+		.ec-arch-head:hover{color:var(--text-color);}
+		.ec-arch-head .ec-badge{margin-left:auto;}
+		.ec-readonly{padding:10px 12px;border-top:1px solid var(--border-color);text-align:center;font-size:var(--text-sm);}
+		.ec-deep-badge{color:var(--text-muted);font-size:11px;}
+		.ec-deep-card{margin:auto;max-width:360px;text-align:center;padding:24px 20px;background:var(--card-bg);
+			border:1px solid var(--border-color);border-radius:var(--border-radius-md);}
+		.ec-deep-icon{font-size:28px;color:var(--text-muted);margin-bottom:8px;}
+		.ec-deep-title{font-weight:600;margin-bottom:4px;}
+		.ec-deep-body{margin-top:14px;}
+		.ec-progress{height:6px;border-radius:3px;background:var(--bg-light-gray);overflow:hidden;}
+		.ec-progress-bar{height:100%;background:var(--primary);width:0;transition:width .3s ease;}
+		.ec-progress-label{margin-top:6px;font-size:var(--text-sm);}
+		.ec-header-act{cursor:pointer;margin-left:8px;color:var(--text-muted);}
+		.ec-header-act:hover{color:var(--text-color);}
+		.ec-header-act.ec-disabled{opacity:.4;cursor:default;}
+		.ec-header-act.ec-disabled:hover{color:var(--text-muted);}
+		.ec-deep-chip{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border-radius:10px;
+			background:var(--bg-light-gray);color:var(--text-muted);font-size:11px;font-weight:600;vertical-align:middle;}
 		.ec-conv{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:8px;}
 		.ec-conv:hover{background:var(--bg-light-gray);}
 		.ec-conv.active{background:var(--bg-blue);}
@@ -245,7 +317,7 @@ class EmployeeChat {
 		.ec-attach-opt{padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;}
 		.ec-attach-opt:hover{background:var(--bg-light-gray);}
 		`;
-		$(`<style id="ec-chat-styles-v5">${css}</style>`).appendTo(document.head);
+		$(`<style id="ec-chat-styles-v8">${css}</style>`).appendTo(document.head);
 	}
 
 	// --- thread list -------------------------------------------------------
@@ -263,35 +335,89 @@ class EmployeeChat {
 		}
 	}
 
+	// A thread belongs to the entity tab when it is about a record (same rule as the bubble,
+	// see EmployeeChatSource.is_entity in chat_bubble.js).
+	is_entity(t) {
+		return !!t.reference_doctype;
+	}
+
+	threads_for_tab(tab) {
+		return Object.values(this.threads).filter((t) =>
+			(tab || this.tab) === "entity" ? this.is_entity(t) : !this.is_entity(t)
+		);
+	}
+
+	render_tabs() {
+		const tabs = [
+			{ key: "employee", label: __("Employees") },
+			{ key: "entity", label: __("Entities") },
+		];
+		this.$tabs.html(
+			tabs
+				.map((t) => {
+					const unread = this.threads_for_tab(t.key).reduce((n, x) => n + (x.unread || 0), 0);
+					const badge = unread
+						? `<span class="ec-badge">${unread > 99 ? "99+" : unread}</span>`
+						: "";
+					return `<div class="ec-tab ${t.key === this.tab ? "active" : ""}" data-tab="${t.key}">
+						<span>${frappe.utils.escape_html(t.label)}</span>${badge}
+					</div>`;
+				})
+				.join("")
+		);
+	}
+
+	conv_html(t) {
+		const badge = t.unread ? `<span class="ec-badge">${t.unread}</span>` : "";
+		// Secret threads keep no readable preview server-side — the lock is the preview.
+		const preview = frappe.utils.escape_html(t.last_message_preview || "").slice(0, 40);
+		const lock = t.is_secret ? `<span class="ec-lock" title="${__("Secret chat")}">🔒</span> ` : "";
+		const packed = t.is_deep_archived
+			? ` <i class="fa fa-archive ec-deep-badge" title="${erpnext.chat_deep_archive.badge_hint()}"></i>`
+			: "";
+		return `
+			<div class="ec-conv ${t.name === this.active ? "active" : ""}">
+				<div class="ec-avatar">${this.avatar_html(t)}</div>
+				<div class="ec-conv-main">
+					<div class="ec-name">${lock}${frappe.utils.escape_html(t.display_title || __("Chat"))}${packed}</div>
+					<div class="ec-last">${preview}</div>
+				</div>
+				${badge}
+			</div>
+		`;
+	}
+
 	render_list() {
+		this.render_tabs();
 		const q = (this.$search.val() || "").toLowerCase();
-		let list = Object.values(this.threads);
-		list = list
+		const list = this.threads_for_tab()
 			.filter((t) => !q || (t.display_title || "").toLowerCase().includes(q))
 			.sort((a, b) => (b.last_message_on || "").localeCompare(a.last_message_on || ""));
+		const active = list.filter((t) => !t.is_archived);
+		const archived = list.filter((t) => t.is_archived);
 
 		this.$list.empty();
-		if (!list.length) {
+		if (!active.length && !archived.length) {
 			this.$list.html(`<div class="text-muted" style="padding:12px;">${__("No chats yet")}</div>`);
 			return;
 		}
-		for (const t of list) {
-			const badge = t.unread ? `<span class="ec-badge">${t.unread}</span>` : "";
-			// Secret threads keep no readable preview server-side — the lock is the preview.
-			const preview = frappe.utils.escape_html(t.last_message_preview || "").slice(0, 40);
-			const lock = t.is_secret ? `<span class="ec-lock" title="${__("Secret chat")}">🔒</span> ` : "";
-			const $el = $(`
-				<div class="ec-conv ${t.name === this.active ? "active" : ""}">
-					<div class="ec-avatar">${this.avatar_html(t)}</div>
-					<div class="ec-conv-main">
-						<div class="ec-name">${lock}${frappe.utils.escape_html(t.display_title || __("Chat"))}</div>
-						<div class="ec-last">${preview}</div>
-					</div>
-					${badge}
-				</div>
-			`);
+		const append = (t) => {
+			const $el = $(this.conv_html(t));
 			$el.on("click", () => this.open(t.name));
 			this.$list.append($el);
+		};
+		active.forEach(append);
+		if (archived.length) {
+			// Archived chats keep receiving messages, so the collapsed header carries their unread.
+			const unread = archived.reduce((n, t) => n + (t.unread || 0), 0);
+			this.$list.append(`
+				<div class="ec-arch-head">
+					<i class="fa fa-caret-${this.arch_open ? "down" : "right"}"></i>
+					<span>${__("Archived")}</span>
+					${unread ? `<span class="ec-badge">${unread > 99 ? "99+" : unread}</span>` : ""}
+				</div>
+			`);
+			if (this.arch_open) archived.forEach(append);
 		}
 	}
 
@@ -309,8 +435,10 @@ class EmployeeChat {
 		this.messages = [];
 		this.hide_typing();
 		const t = this.threads[name];
+		// Follow the thread into its own tab (deep links land on entity threads too).
+		if (t) this.tab = this.is_entity(t) ? "entity" : "employee";
 		this.set_header(t);
-		this.$compose.show();
+		this.update_composer(t);
 		this.render_list();
 
 		// Ask for the key before loading: with it the bubbles render decrypted straight
@@ -330,6 +458,18 @@ class EmployeeChat {
 		// My read cursor at open time — used to place the "New messages" divider and to
 		// decide whether to land on the first unread message or at the bottom.
 		this.read_cursor = (t && t.my_last_read) || null;
+
+		// A deep-archived chat holds nothing until it is unpacked. Opening it is the request:
+		// unpacking starts by itself and the card only reports progress. A failed archive is the
+		// exception — it stays a manual retry so a broken zip is not re-enqueued on every open.
+		if (t && this.is_packed(t)) {
+			this.messages = [];
+			this.render_thread(false);
+			const status = (t.deep_archive && t.deep_archive.status) || "";
+			if (status === "Archived") this.restore_archive(name);
+			else this.watch_archive(name);
+			return;
+		}
 
 		this.messages = await frappe.xcall(API + "get_messages", { thread: name });
 		await this.decrypt_messages(this.messages);
@@ -367,29 +507,87 @@ class EmployeeChat {
 		const bind_info = () => {
 			this.$header
 				.find(".ec-header-title")
-				.attr("title", __("Chat info"))
+				.attr("title", __("Open chat info: participants, media, files and links."))
 				.on("click", () => this.show_info());
 		};
 		const mute_html = t ? erpnext.chat_sound.button_html(t.muted) : "";
 		const bind_mute = () => {
 			this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
 		};
+		// Archiving is open to anyone who is in the chat (or, for a record thread, may read the
+		// record); removing and the deep archive are role-gated server-side and only offered on an
+		// archived chat. While the chat is deep-archived the archive button is dropped — the server
+		// refuses it — and the badge plus its "return from the deep archive" action take its place.
+		const deep = erpnext.chat_deep_archive;
+		const busy = t && (t.deep_archive || {}).status;
+		const deep_html =
+			!t || !t.is_deep_archived
+				? ""
+				: `<span class="ec-deep-chip" title="${deep.badge_hint()}"><i class="fa fa-archive"></i> ${deep.badge()}</span>` +
+				  (t.can_purge
+						? `<span class="ec-header-act ec-undeep${
+								busy === "Packing" || busy === "Restoring" ? " ec-disabled" : ""
+						  }" title="${
+								busy === "Packing" || busy === "Restoring"
+									? deep.busy_hint()
+									: deep.leave_hint()
+						  }"><i class="fa fa-level-up"></i></span>`
+						: "");
+		// A chat pinned out of the lifecycle (see the Configuration tab of the info dialog) hides
+		// the buttons the server would refuse anyway; unarchiving one stays possible.
+		const no_archive = t && t.disable_archive && !t.is_archived;
+		const act_html = !t
+			? ""
+			: deep_html +
+			  (t.is_deep_archived || no_archive
+					? ""
+					: `<span class="ec-header-act ec-archive" title="${
+							t.is_archived
+								? __(
+										"Return the chat to the active list — everyone in it sees it there again."
+								  )
+								: __(
+										"Move the chat to the Archive section for everyone. It keeps all its messages."
+								  )
+					  }"><i class="fa fa-${t.is_archived ? "inbox" : "archive"}"></i></span>`) +
+			  (t.is_archived &&
+			  t.can_purge &&
+			  !this.is_packed(t) &&
+			  !t.is_deep_archived &&
+			  !t.disable_deep_archive
+					? `<span class="ec-header-act ec-deep" title="${__(
+							"Pack the chat into an archive file and free the database. It is unpacked automatically the next time someone opens it."
+					  )}"><i class="fa fa-file-zip-o"></i></span>`
+					: "") +
+			  (t.is_archived && t.can_purge
+					? `<span class="ec-header-act ec-purge" title="${__(
+							"Delete the chat with all its messages and files. This cannot be undone."
+					  )}"><i class="fa fa-trash-o"></i></span>`
+					: "");
+		const bind_acts = () => {
+			this.$header.find(".ec-archive").on("click", () => this.toggle_archive());
+			this.$header.find(".ec-deep").on("click", () => this.deep_archive_chat());
+			this.$header.find(".ec-undeep:not(.ec-disabled)").on("click", () => this.leave_deep_archive());
+			this.$header.find(".ec-purge").on("click", () => this.purge_thread());
+		};
 		if (!t || !t.is_secret) {
-			this.$header.html(`<span class="ec-header-title"></span>${mute_html}`);
+			this.$header.html(`<span class="ec-header-title"></span>${mute_html}${act_html}`);
 			this.$header.find(".ec-header-title").text(title);
 			bind_info();
 			bind_mute();
+			bind_acts();
 			return;
 		}
 		const locked = !erpnext.chat_crypto.is_unlocked();
 		this.$header.html(
-			`🔒 <span class="ec-header-title"></span>${mute_html}${
+			`🔒 <span class="ec-header-title"></span>${mute_html}${act_html}${
 				locked ? ` <button class="btn btn-xs btn-primary ec-unlock">${__("Unlock")}</button>` : ""
 			}`
 		);
 		this.$header.find(".ec-header-title").text(title);
 		bind_info();
 		bind_mute();
+		bind_acts();
 		this.$header.find(".ec-unlock").on("click", async () => {
 			await erpnext.chat_crypto.ensure_unlocked();
 			if (erpnext.chat_crypto.is_unlocked()) this.open(this.active);
@@ -413,6 +611,320 @@ class EmployeeChat {
 			message: muted ? __("Chat muted") : __("Chat unmuted"),
 			indicator: "blue",
 		});
+	}
+
+	// --- deep archive -------------------------------------------------------
+
+	// True while the zip is the source of truth: there is nothing in the database to show.
+	is_packed(t) {
+		const st = (t && t.deep_archive && t.deep_archive.status) || "";
+		return !!st && st !== "Restored";
+	}
+
+	deep_archive_html(t) {
+		const d = t.deep_archive || {};
+		const busy = d.status === "Restoring" || d.status === "Packing";
+		const when = d.archived_on ? frappe.datetime.str_to_user(d.archived_on) : "";
+		const count = d.message_count
+			? __("{0} messages · {1} files", [d.message_count, d.file_count || 0])
+			: "";
+		const deep = erpnext.chat_deep_archive;
+		let body;
+		if (d.status === "Failed") {
+			body = `<div class="text-danger">${__("Could not unpack this chat")}</div>
+				<button class="btn btn-default btn-sm ec-unpack" title="${deep.failed_hint()}">${__("Try again")}</button>`;
+		} else if (busy) {
+			const label = d.status === "Packing" ? __("Packing…") : __("Unpacking…");
+			body = `<div class="ec-progress" title="${deep.auto_hint()}"><div class="ec-progress-bar" style="width:${
+				d.percent || 0
+			}%;"></div></div>
+				<div class="text-muted ec-progress-label">${label} ${d.percent || 0}%</div>`;
+		} else {
+			// Opening the chat already asked for it — this is only the moment before the job starts.
+			body = `<div class="text-muted" title="${deep.auto_hint()}">${deep.unpacking()}</div>`;
+		}
+		return `<div class="ec-deep-card" title="${deep.badge_hint()}">
+			<div class="ec-deep-icon"><i class="fa fa-archive"></i></div>
+			<div class="ec-deep-title">${__("This conversation was archived long ago")}</div>
+			<div class="text-muted">${frappe.utils.escape_html([count, when].filter(Boolean).join(" · "))}</div>
+			<div class="ec-deep-body">${body}</div>
+		</div>`;
+	}
+
+	async restore_archive(name) {
+		let state;
+		try {
+			state = await frappe.xcall(API + "restore_deep_archive", { thread: name });
+		} catch (e) {
+			return;
+		}
+		this.apply_archive_state(state);
+		this.watch_archive(name);
+	}
+
+	// The realtime room only reaches participants; a reader who never joined a record chat has
+	// to poll, so both paths run and whichever arrives first wins.
+	watch_archive(name) {
+		clearInterval(this.archive_poll);
+		const t = this.threads[name];
+		const st = (t && t.deep_archive && t.deep_archive.status) || "";
+		if (st !== "Packing" && st !== "Restoring") return;
+		this.archive_poll = setInterval(async () => {
+			if (this.active !== name) return clearInterval(this.archive_poll);
+			const state = await frappe.xcall(API + "get_deep_archive_state", { thread: name });
+			this.apply_archive_state(state);
+		}, 2000);
+	}
+
+	// Fold a state payload into the cached thread and re-render whatever it changed.
+	apply_archive_state(state) {
+		if (!state || !state.thread) return;
+		const t = this.threads[state.thread];
+		if (!t) return;
+		const was_packed = this.is_packed(t);
+		t.deep_archive = Object.assign({}, t.deep_archive, state);
+		if (state.read_only !== undefined) t.read_only = state.read_only;
+		if (state.is_deep_archived !== undefined) t.is_deep_archived = state.is_deep_archived;
+		if (this.active !== state.thread) {
+			this.render_list();
+			return;
+		}
+		if (was_packed && !this.is_packed(t)) {
+			clearInterval(this.archive_poll);
+			this.open(state.thread);
+			return;
+		}
+		if (this.is_packed(t)) {
+			const d = t.deep_archive || {};
+			const $bar = this.$thread.find(".ec-progress-bar");
+			if ($bar.length && (d.status === "Restoring" || d.status === "Packing")) {
+				// Move the bar in place: a full re-render would fight the animation.
+				$bar.css("width", (d.percent || 0) + "%");
+				this.$thread
+					.find(".ec-progress-label")
+					.text(
+						(d.status === "Packing" ? __("Packing…") : __("Unpacking…")) +
+							" " +
+							(d.percent || 0) +
+							"%"
+					);
+			} else {
+				this.render_thread(false);
+			}
+		}
+		this.set_header(t);
+		this.update_composer(t);
+		this.render_list();
+	}
+
+	deep_archive_chat() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		frappe.confirm(
+			__(
+				"Pack this chat into the deep archive? Messages and files are moved into an archive file and removed from the chat; they are unpacked again automatically the next time someone opens the chat."
+			),
+			async () => {
+				try {
+					await frappe.xcall(API + "deep_archive_thread", { thread: name });
+				} catch (e) {
+					return;
+				}
+				t.deep_archive = Object.assign({}, t.deep_archive, { status: "Packing", percent: 0 });
+				t.read_only = 1;
+				this.messages = [];
+				this.render_thread(false);
+				this.set_header(t);
+				this.update_composer(t);
+				this.watch_archive(name);
+			}
+		);
+	}
+
+	// Chat Manager only: exempt a chat from the archive lifecycle. Rejections propagate so the
+	// switch in the info dialog can roll itself back.
+	async set_archive_policy(values) {
+		const name = this.active;
+		const res = await frappe.xcall(API + "set_archive_policy", Object.assign({ thread: name }, values));
+		this.apply_archive_policy(res);
+		frappe.show_alert({ message: __("Chat configuration saved"), indicator: "blue" });
+		return res;
+	}
+
+	apply_archive_policy(state) {
+		if (!state || !state.thread) return;
+		const t = this.threads[state.thread];
+		if (!t) return;
+		t.disable_archive = state.disable_archive;
+		t.disable_deep_archive = state.disable_deep_archive;
+		if (this.active === state.thread) this.set_header(t);
+	}
+
+	// Chat Manager only: keep the unpacked copy for good and delete the archive file. A chat that
+	// is still packed is unpacked first by the server, so the button works in both states.
+	leave_deep_archive() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		frappe.confirm(erpnext.chat_deep_archive.leave_confirm(), async () => {
+			let state;
+			try {
+				state = await frappe.xcall(API + "leave_deep_archive", { thread: name });
+			} catch (e) {
+				return;
+			}
+			this.apply_archive_state(state);
+			this.watch_archive(name);
+			if (!state.is_deep_archived) {
+				frappe.show_alert({
+					message: __("Chat returned from the deep archive"),
+					indicator: "blue",
+				});
+			}
+		});
+	}
+
+	on_realtime_deep_archive_dropped(d) {
+		if (!d || !this.threads[d.thread]) return;
+		clearInterval(this.archive_poll);
+		// `apply_archive_state` re-opens the thread itself when it stops being packed, which is
+		// what loads the messages that are now permanent.
+		this.apply_archive_state(d);
+	}
+
+	on_realtime_deep_archived(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({
+			thread: d.thread,
+			status: "Archived",
+			is_deep_archived: 1,
+			read_only: 1,
+			message_count: d.message_count,
+			file_count: d.file_count,
+		});
+	}
+
+	on_realtime_restore_progress(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({ thread: d.thread, status: "Restoring", percent: d.percent });
+	}
+
+	on_realtime_restore_done(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({ thread: d.thread, status: "Restored", percent: 100, read_only: 1 });
+	}
+
+	on_realtime_restore_failed(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({ thread: d.thread, status: "Failed" });
+	}
+
+	on_realtime_restore_expired(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.messages = this.active === d.thread ? [] : this.messages;
+		this.apply_archive_state({ thread: d.thread, status: "Archived" });
+		if (this.active === d.thread) this.render_thread(false);
+	}
+
+	// An archived chat about a record is frozen server-side — swap the composer for a note
+	// instead of letting the user type into a message that would be rejected.
+	update_composer(t) {
+		if (t && t.read_only) {
+			this.$compose.hide();
+			this.$readonly
+				.text(
+					this.is_packed(t)
+						? __("This chat is in the deep archive — its messages are being unpacked")
+						: __("This chat is archived — new messages are not allowed")
+				)
+				.show();
+		} else {
+			this.$readonly.hide();
+			this.$compose.show();
+		}
+	}
+
+	toggle_archive() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		const archived = t.is_archived ? 0 : 1;
+		// Archiving is global — it moves the chat for everyone in it, and for a record chat it
+		// also freezes the conversation, so both directions ask first.
+		return new Promise((resolve) => {
+			frappe.confirm(
+				erpnext.chat_archive_prompt(archived, this.is_entity(t)),
+				async () => {
+					let res;
+					try {
+						res = await frappe.xcall(API + "set_archived", { thread: name, archived });
+					} catch (e) {
+						resolve();
+						return;
+					}
+					t.is_archived = res.is_archived;
+					t.read_only = res.read_only;
+					this.set_header(t);
+					this.update_composer(t);
+					this.render_list();
+					frappe.show_alert({
+						message: t.is_archived ? __("Chat archived") : __("Chat unarchived"),
+						indicator: "blue",
+					});
+					resolve();
+				},
+				resolve
+			);
+		});
+	}
+
+	purge_thread() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		frappe.confirm(
+			__("Delete this chat with all its messages and files? This cannot be undone."),
+			async () => {
+				try {
+					await frappe.xcall(API + "purge_thread", { thread: name });
+				} catch (e) {
+					return;
+				}
+				this.forget_thread(name);
+				frappe.show_alert({ message: __("Chat removed"), indicator: "red" });
+			}
+		);
+	}
+
+	// Drop a thread that no longer exists (purged here or by someone else).
+	forget_thread(name) {
+		delete this.threads[name];
+		if (this.active === name) {
+			this.active = null;
+			this.messages = [];
+			this.$thread.empty();
+			this.$header.html(`<span class="text-muted">${__("Select a chat")}</span>`);
+			this.$compose.hide();
+			this.$readonly.hide();
+		}
+		this.render_list();
+	}
+
+	on_realtime_archived(d) {
+		const t = d && this.threads[d.thread];
+		if (!t) return;
+		t.is_archived = d.is_archived;
+		t.read_only = d.read_only;
+		if (this.active === d.thread) {
+			this.set_header(t);
+			this.update_composer(t);
+		}
+		this.render_list();
+	}
+
+	on_realtime_purged(d) {
+		if (d && this.threads[d.thread]) this.forget_thread(d.thread);
 	}
 
 	// Decrypt in place: every message carries `_dec` once opened, so rendering stays
@@ -468,6 +980,14 @@ class EmployeeChat {
 	// flash it — used when tapping a shared link in the chat overview.
 	async jump_to_message(name) {
 		if (!name) return;
+		// Nothing to page back to while the content is still in the zip.
+		if (this.is_packed(this.threads[this.active])) {
+			frappe.show_alert({
+				message: __("Unpack the chat to open this message"),
+				indicator: "orange",
+			});
+			return;
+		}
 		let el = document.getElementById("ec-msg-" + name);
 		let guard = 0;
 		while (!el && guard++ < 30) {
@@ -499,6 +1019,12 @@ class EmployeeChat {
 					$(e.currentTarget).attr("data-name")
 				);
 			});
+		}
+
+		if (this.is_packed(t)) {
+			this.$thread.append(this.deep_archive_html(t));
+			this.$thread.find(".ec-unpack").on("click", () => this.restore_archive(this.active));
+			return;
 		}
 
 		// index for reply lookups
@@ -733,15 +1259,69 @@ class EmployeeChat {
 					: null,
 		}));
 
+		const deep = erpnext.chat_deep_archive;
 		const actions = [
 			{
 				label: info.muted ? __("Unmute chat") : __("Mute chat"),
+				hint: info.muted
+					? __("Play the notification sound for this chat again.")
+					: __("Silence the notification sound for this chat on all your devices."),
 				on_click: async () => {
 					await this.toggle_mute();
 					dialog.hide();
 				},
 			},
 		];
+		const packed = (info.deep_archive || {}).status;
+		if (!info.is_deep_archived && !(info.disable_archive && !info.is_archived)) {
+			actions.push({
+				label: info.is_archived ? __("Unarchive chat") : __("Archive chat"),
+				hint: info.is_archived
+					? __("Return the chat to the active list — everyone in it sees it there again.")
+					: __("Move the chat to the Archive section for everyone. It keeps all its messages."),
+				on_click: async () => {
+					await this.toggle_archive();
+					dialog.hide();
+				},
+			});
+		} else if (info.can_purge) {
+			actions.push({
+				label: deep.leave_label(),
+				hint: deep.leave_hint(),
+				on_click: () => {
+					dialog.hide();
+					this.leave_deep_archive();
+				},
+			});
+		}
+		if (
+			info.is_archived &&
+			info.can_purge &&
+			!packed &&
+			!info.is_deep_archived &&
+			!info.disable_deep_archive
+		) {
+			actions.push({
+				label: __("Move to deep archive"),
+				hint: __(
+					"Pack the chat into an archive file and free the database. It is unpacked automatically the next time someone opens it."
+				),
+				on_click: () => {
+					dialog.hide();
+					this.deep_archive_chat();
+				},
+			});
+		}
+		if (info.is_archived && info.can_purge) {
+			actions.push({
+				label: __("Remove chat"),
+				hint: __("Delete the chat with all its messages and files. This cannot be undone."),
+				on_click: () => {
+					dialog.hide();
+					this.purge_thread();
+				},
+			});
+		}
 		if (can_admin) {
 			actions.push({
 				label: __("Rename chat"),
@@ -769,6 +1349,31 @@ class EmployeeChat {
 			});
 		}
 
+		// Archive policy: a chat manager's decision about the whole conversation, so it sits in its
+		// own tab rather than among the one-click actions above.
+		const settings = info.can_purge
+			? [
+					{
+						label: __("Do not archive this chat"),
+						description: __(
+							"Nobody can move the chat to the archive, and the scheduled auto-archive skips it."
+						),
+						checked: !!info.disable_archive,
+						on_change: (value) => this.set_archive_policy({ disable_archive: value }),
+					},
+					{
+						label: __("Do not move this chat to the deep archive"),
+						description: __(
+							"The chat is never packed into an archive file, neither by hand nor by the scheduled job."
+						),
+						checked: !!info.disable_deep_archive,
+						disabled: !!info.is_deep_archived,
+						disabled_reason: __("The chat is already in the deep archive — return it first."),
+						on_change: (value) => this.set_archive_policy({ disable_deep_archive: value }),
+					},
+			  ]
+			: null;
+
 		const dialog = erpnext.chat_info.show({
 			title: info.display_title,
 			subtitle: [
@@ -784,6 +1389,7 @@ class EmployeeChat {
 			files,
 			links,
 			actions,
+			settings,
 			on_add_person: can_admin
 				? () => {
 						dialog.hide();
@@ -1073,9 +1679,14 @@ class EmployeeChat {
 		return { message: ciphertext, is_encrypted: 1, enc_iv: iv };
 	}
 
+	is_read_only() {
+		const t = this.threads[this.active];
+		return !!(t && t.read_only);
+	}
+
 	async send() {
 		const text = (this.$input.val() || "").trim();
-		if (!text || !this.active) return;
+		if (!text || !this.active || this.is_read_only()) return;
 		const secret = this.is_secret_thread();
 		if (secret && !(await erpnext.chat_crypto.ensure_unlocked())) return;
 
@@ -1118,7 +1729,7 @@ class EmployeeChat {
 
 	// The paperclip offers two things: a file/photo upload (existing) or an ERPNext link.
 	attach_menu(e) {
-		if (!this.active) return;
+		if (!this.active || this.is_read_only()) return;
 		$(".ec-attach-pop").remove();
 		const $btn = $(e.currentTarget);
 		const off = $btn.offset();
@@ -1283,6 +1894,9 @@ class EmployeeChat {
 					content_type,
 					// The ciphertext URL is kept for housekeeping; it reveals nothing.
 					attach: url,
+					// The encrypted preview's URL lives inside the ciphertext, so name it here
+					// too — otherwise the server can never link (or purge) that blob.
+					extra_files: payload.thumb ? JSON.stringify([payload.thumb.url]) : null,
 					reply_to: this.reply_to ? this.reply_to.name : null,
 					...args,
 				});
@@ -1303,7 +1917,7 @@ class EmployeeChat {
 	// Record a voice message and send it as an audio message. Secret threads encrypt the
 	// blob in the browser, exactly like attach_media_secret.
 	async record_voice() {
-		if (!this.active) return;
+		if (!this.active || this.is_read_only()) return;
 		const rec = await erpnext.chat_media.record_audio();
 		if (!rec) return;
 		if (this.is_secret_thread()) return this.send_voice_secret(rec);

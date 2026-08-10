@@ -54,6 +54,8 @@ permission_query_conditions = {
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.get_permission_query_conditions",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.get_permission_query_conditions",
 	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.get_permission_query_conditions",
+	# Chat attachments never appear in a File list query (file library picker, File list view).
+	"File": "erpnext.crm.chat_files.get_permission_query_conditions",
 }
 
 has_permission = {
@@ -396,6 +398,10 @@ doc_events = {
 	"Chat Message": {
 		"after_insert": "erpnext.crm.chat_media.queue_thumbnail",
 	},
+	# A chat attachment stays inside its thread — it cannot be re-attached elsewhere.
+	"File": {
+		"before_insert": "erpnext.crm.chat_files.block_reuse",
+	},
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
@@ -488,6 +494,7 @@ scheduler_events = {
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
+			"erpnext.crm.chat_archive.reap_expired_restores",
 		],
 		"0/30 * * * *": [],
 		# Hourly but offset by 30 minutes
@@ -514,6 +521,8 @@ scheduler_events = {
 	"daily": [
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
+		"erpnext.crm.chat_archive.auto_archive_entity_chats",
+		"erpnext.crm.chat_archive.auto_deep_archive",
 	],
 	"daily_long": [],
 	"daily_maintenance": [
