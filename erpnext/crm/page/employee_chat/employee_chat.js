@@ -510,6 +510,11 @@ class EmployeeChat {
 			: `<span class="ec-header-act ec-archive" title="${
 					t.is_archived ? __("Unarchive chat") : __("Archive chat")
 			  }"><i class="fa fa-${t.is_archived ? "inbox" : "archive"}"></i></span>` +
+			  (t.is_archived && t.can_purge && !this.is_packed(t)
+					? `<span class="ec-header-act ec-deep" title="${__(
+							"Move to deep archive"
+					  )}"><i class="fa fa-file-zip-o"></i></span>`
+					: "") +
 			  (t.is_archived && t.can_purge
 					? `<span class="ec-header-act ec-purge" title="${__(
 							"Remove chat"
@@ -517,6 +522,7 @@ class EmployeeChat {
 					: "");
 		const bind_acts = () => {
 			this.$header.find(".ec-archive").on("click", () => this.toggle_archive());
+			this.$header.find(".ec-deep").on("click", () => this.deep_archive_chat());
 			this.$header.find(".ec-purge").on("click", () => this.purge_thread());
 		};
 		if (!t || !t.is_secret) {
@@ -682,6 +688,7 @@ class EmployeeChat {
 				t.read_only = 1;
 				this.messages = [];
 				this.render_thread(false);
+				this.set_header(t);
 				this.update_composer(t);
 				this.watch_archive(name);
 			}
@@ -740,26 +747,37 @@ class EmployeeChat {
 		}
 	}
 
-	async toggle_archive() {
-		const t = this.threads[this.active];
+	toggle_archive() {
+		const name = this.active;
+		const t = this.threads[name];
 		if (!t) return;
-		let res;
-		try {
-			res = await frappe.xcall(API + "set_archived", {
-				thread: this.active,
-				archived: t.is_archived ? 0 : 1,
-			});
-		} catch (e) {
-			return;
-		}
-		t.is_archived = res.is_archived;
-		t.read_only = res.read_only;
-		this.set_header(t);
-		this.update_composer(t);
-		this.render_list();
-		frappe.show_alert({
-			message: t.is_archived ? __("Chat archived") : __("Chat unarchived"),
-			indicator: "blue",
+		const archived = t.is_archived ? 0 : 1;
+		// Archiving is global — it moves the chat for everyone in it, and for a record chat it
+		// also freezes the conversation, so both directions ask first.
+		return new Promise((resolve) => {
+			frappe.confirm(
+				erpnext.chat_archive_prompt(archived, this.is_entity(t)),
+				async () => {
+					let res;
+					try {
+						res = await frappe.xcall(API + "set_archived", { thread: name, archived });
+					} catch (e) {
+						resolve();
+						return;
+					}
+					t.is_archived = res.is_archived;
+					t.read_only = res.read_only;
+					this.set_header(t);
+					this.update_composer(t);
+					this.render_list();
+					frappe.show_alert({
+						message: t.is_archived ? __("Chat archived") : __("Chat unarchived"),
+						indicator: "blue",
+					});
+					resolve();
+				},
+				resolve
+			);
 		});
 	}
 
