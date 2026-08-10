@@ -24,6 +24,16 @@ Layout of the archive (schema version 1):
     messages.jsonl      one Chat Message row per line, oldest first, all columns
     files.jsonl         one File row per line, plus its blob path and sha256
     blobs/<File.name>   the raw bytes, keyed by File name so nothing can collide
+
+Two semgrep rules are silenced throughout this module with a bare `# nosemgrep`:
+
+* `frappe-manual-commit` — packing and unpacking are long background jobs that destroy and
+  recreate rows in batches. They commit as they go on purpose: a worker killed halfway must
+  leave the work it already finished behind, and the state transitions (`claim`, `_set_state`)
+  must be visible to every other request immediately or two jobs would run on one thread.
+* `frappe-security-file-traversal` — every path here comes from `archive_abs_path`, which builds
+  it from the thread name plus a fixed layout, or from a `File` row's own `file_url`. No path is
+  ever taken from a request.
 """
 
 import datetime
@@ -121,7 +131,7 @@ def touch(thread):
 
 def _sha256(path):
 	digest = hashlib.sha256()
-	with open(path, "rb") as fh:
+	with open(path, "rb") as fh:  # nosemgrep
 		for chunk in iter(lambda: fh.read(1024 * 1024), b""):
 			digest.update(chunk)
 	return digest.hexdigest()
@@ -144,7 +154,7 @@ def claim(thread, from_status, to_status):
 	if not current or current[0][0] != (from_status or ""):
 		return False
 	_set_state(thread, {"deep_archive_status": to_status})
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep
 	return True
 
 
@@ -252,7 +262,7 @@ def pack(thread):
 				"restore_expires_on": None,
 			},
 		)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 	doc.reload()
 	_fanout(
@@ -306,7 +316,7 @@ def _write_archive(tmp_path, doc, file_names):
 				file_rows.append(row)
 				continue
 			member_name = f"blobs/{name}"
-			with open(blob, "rb") as src, zf.open(member_name, "w") as dst:
+			with open(blob, "rb") as src, zf.open(member_name, "w") as dst:  # nosemgrep
 				shutil.copyfileobj(src, dst, 1024 * 1024)
 			row = _row_to_json(row)
 			row["blob"] = member_name
@@ -388,7 +398,7 @@ def _delete_originals(thread, file_names):
 		if not batch:
 			break
 		frappe.db.delete("Chat Message", {"name": ("in", batch)})
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 
 # ---------------------------------------------------------------------------
@@ -457,7 +467,7 @@ def restore(thread, requested_by=None, promote=False):
 				"restore_expires_on": add_to_date(None, hours=int(setting("restore_ttl_hours"))),
 			},
 		)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		if promote:
 			_leave_deep_archive(thread)
@@ -500,7 +510,7 @@ def _restore_files(zf, thread, total, doc):
 				)
 				continue
 		else:
-			with zf.open(member) as src, open(target, "wb") as dst:
+			with zf.open(member) as src, open(target, "wb") as dst:  # nosemgrep
 				shutil.copyfileobj(src, dst, 1024 * 1024)
 		if frappe.db.exists("File", row["name"]):
 			continue
@@ -508,7 +518,7 @@ def _restore_files(zf, thread, total, doc):
 
 	if values:
 		frappe.db.bulk_insert("File", FILE_COLUMNS, values, ignore_duplicates=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 	return done
 
 
@@ -532,7 +542,7 @@ def _restore_messages(zf, thread, total, done, doc):
 
 def _flush_messages(batch):
 	frappe.db.bulk_insert("Chat Message", MESSAGE_COLUMNS, batch, ignore_duplicates=True)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep
 	return len(batch)
 
 
@@ -573,7 +583,7 @@ def _leave_deep_archive(thread):
 			"restore_error": None,
 		},
 	)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep
 	drop_zip(thread)
 
 
@@ -605,7 +615,7 @@ def _publish_progress(thread, doc, phase, done, total):
 	frappe.flags.chat_restore_percent = last
 
 	frappe.db.set_value("Chat Thread", thread, "restore_progress", percent, update_modified=False)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep
 	payload = {"thread": thread, "percent": percent, "phase": phase, "done": done, "total": total}
 	for user in {p.user for p in doc.participants if p.user}:
 		frappe.publish_realtime("chat_restore_progress", payload, user=user, after_commit=False)
@@ -673,7 +683,7 @@ def _drop_restored_rows(thread):
 		if not batch:
 			break
 		frappe.db.delete("Chat Message", {"name": ("in", batch)})
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 
 def _reset_stale_jobs():
@@ -691,7 +701,7 @@ def _reset_stale_jobs():
 		else:
 			_drop_restored_rows(row.name)
 			_set_state(row.name, {"deep_archive_status": "Archived", "restore_progress": 0})
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 		frappe.log_error(
 			title="Chat deep archive: stale job reset",
 			message=f"{row.name} was stuck in {row.deep_archive_status}",
@@ -721,7 +731,7 @@ def auto_archive_entity_chats():
 	)
 	for thread in threads:
 		_set_state(thread, {"is_archived": 1, "archived_on": now()})
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 		doc = frappe.get_doc("Chat Thread", thread)
 		_fanout(doc, "chat_thread_archived", {"thread": thread, "is_archived": 1, "read_only": 1})
 

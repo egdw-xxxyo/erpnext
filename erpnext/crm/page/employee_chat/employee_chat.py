@@ -306,7 +306,7 @@ def _reference_card(doc):
 
 
 @frappe.whitelist()
-def resolve_link(url):
+def resolve_link(url: str):
 	"""Turn a desk URL into a link-card payload the chat renders.
 
 	Understands `/app/<doctype>/<name>` (a record), `/app/<doctype>` (a list),
@@ -516,7 +516,13 @@ def get_threads():
 
 
 @frappe.whitelist()
-def create_thread(participant_users, thread_type="Direct", title=None, is_secret=0, thread_keys=None):
+def create_thread(
+	participant_users: str | list,
+	thread_type: str = "Direct",
+	title: str | None = None,
+	is_secret: int = 0,
+	thread_keys: str | dict | None = None,
+):
 	"""Create (or, for direct threads, reuse) a chat thread. `participant_users` is a JSON
 	list of user emails; the current user is always added.
 
@@ -574,7 +580,7 @@ def create_thread(participant_users, thread_type="Direct", title=None, is_secret
 
 
 @frappe.whitelist()
-def open_document_thread(reference_doctype, reference_name):
+def open_document_thread(reference_doctype: str, reference_name: str):
 	"""Open (or create) the single canonical chat about a specific record. There is one
 	thread per record — everyone who opens it from the form joins the same conversation.
 
@@ -631,7 +637,7 @@ def open_document_thread(reference_doctype, reference_name):
 
 
 @frappe.whitelist()
-def get_messages(thread, before=None, limit=50):
+def get_messages(thread: str, before: str | None = None, limit: int = 50):
 	"""Keyset-paginated message history (oldest-first in the returned batch). Pass the
 	`creation` of the oldest loaded message as `before` to page backwards."""
 	doc = _require_participant(thread)
@@ -675,15 +681,15 @@ def get_messages(thread, before=None, limit=50):
 
 @frappe.whitelist()
 def send_message(
-	thread,
-	message=None,
-	content_type="text",
-	attach=None,
-	link_data=None,
-	reply_to=None,
-	is_encrypted=0,
-	enc_iv=None,
-	extra_files=None,
+	thread: str,
+	message: str | None = None,
+	content_type: str = "text",
+	attach: str | None = None,
+	link_data: str | dict | None = None,
+	reply_to: str | None = None,
+	is_encrypted: int = 0,
+	enc_iv: str | None = None,
+	extra_files: str | list | None = None,
 ):
 	"""Insert a message, update the thread's last-message metadata, and push it to every
 	participant's private room.
@@ -757,7 +763,7 @@ def send_message(
 
 
 @frappe.whitelist()
-def mark_read(thread, upto=None):
+def mark_read(thread: str, upto: str | None = None):
 	"""Advance the current user's read cursor for a thread; notify others (seen ticks).
 
 	`upto` (a message creation timestamp) marks read only up to a specific message — used
@@ -782,7 +788,7 @@ def mark_read(thread, upto=None):
 
 
 @frappe.whitelist()
-def set_muted(thread, muted):
+def set_muted(thread: str, muted: int):
 	"""Mute/unmute a thread for the current user only — it silences the notification
 	sound, nothing else (the thread still updates and still counts as unread)."""
 	_require_participant(thread)
@@ -799,7 +805,7 @@ def set_muted(thread, muted):
 
 
 @frappe.whitelist()
-def set_archived(thread, archived):
+def set_archived(thread: str, archived: int):
 	"""Archive/unarchive a chat for everyone. Archived chats move to their own collapsed
 	section; a Document thread additionally becomes read-only (see `_require_writable`).
 
@@ -832,7 +838,9 @@ def set_archived(thread, archived):
 
 
 @frappe.whitelist()
-def set_archive_policy(thread, disable_archive=None, disable_deep_archive=None):
+def set_archive_policy(
+	thread: str, disable_archive: int | None = None, disable_deep_archive: int | None = None
+):
 	"""Pin a chat out of the archive lifecycle: `disable_archive` keeps it in the active list,
 	`disable_deep_archive` keeps its content in the database. Both stop the nightly jobs
 	(`auto_archive_entity_chats`, `auto_deep_archive`) as well as the buttons.
@@ -865,7 +873,7 @@ def set_archive_policy(thread, disable_archive=None, disable_deep_archive=None):
 
 
 @frappe.whitelist()
-def purge_thread(thread):
+def purge_thread(thread: str):
 	"""Delete an archived chat for good: every message, every attachment (including generated
 	thumbnails and encrypted blobs), the wrapped thread keys and the thread itself.
 
@@ -909,7 +917,7 @@ def purge_thread(thread):
 
 
 @frappe.whitelist()
-def deep_archive_thread(thread):
+def deep_archive_thread(thread: str):
 	"""Pack an archived chat into its zip and drop the originals (see erpnext.crm.chat_archive).
 
 	Same trust level as removing a chat — the content leaves the database either way — so it takes
@@ -939,7 +947,7 @@ def deep_archive_thread(thread):
 
 
 @frappe.whitelist()
-def restore_deep_archive(thread):
+def restore_deep_archive(thread: str):
 	"""Unpack a deep-archived chat for everyone, temporarily. Open to anyone who may read the
 	chat — the archive is a storage decision, not a permission boundary."""
 	from erpnext.crm import chat_archive
@@ -972,7 +980,7 @@ def restore_deep_archive(thread):
 
 
 @frappe.whitelist()
-def leave_deep_archive(thread):
+def leave_deep_archive(thread: str):
 	"""Take a chat out of the deep archive for good: the content stays in the database and the zip
 	is deleted, leaving an ordinary archived chat that can be unarchived like any other.
 
@@ -1018,7 +1026,7 @@ def leave_deep_archive(thread):
 
 
 @frappe.whitelist()
-def get_deep_archive_state(thread):
+def get_deep_archive_state(thread: str):
 	"""Archive state for the banner and the progress bar; also the client's polling endpoint
 	while a job runs (a Document-thread reader who never joined gets no realtime room)."""
 	from erpnext.crm import chat_archive
@@ -1059,13 +1067,13 @@ def _thread_file_names(thread):
 
 
 @frappe.whitelist()
-def set_reaction(message, emoji):
+def set_reaction(message: str, emoji: str):
 	"""Add the current user's reaction to a message and broadcast the new reaction map."""
 	return _mutate_reaction(message, emoji, add=True)
 
 
 @frappe.whitelist()
-def clear_reaction(message, emoji):
+def clear_reaction(message: str, emoji: str):
 	"""Remove the current user's reaction from a message."""
 	return _mutate_reaction(message, emoji, add=False)
 
@@ -1099,7 +1107,7 @@ def _mutate_reaction(message, emoji, add):
 
 
 @frappe.whitelist()
-def typing(thread):
+def typing(thread: str):
 	"""Ephemeral typing indicator — notify the other participants, no DB write."""
 	doc = _require_writable(_require_participant(thread))
 	me = frappe.session.user
@@ -1114,7 +1122,7 @@ def typing(thread):
 
 
 @frappe.whitelist()
-def get_thread_info(thread, limit=200):
+def get_thread_info(thread: str, limit: int = 200):
 	"""Everything the chat overview shows: title, participants and the thread's shared
 	content — attachments (images / files) and links.
 
@@ -1279,7 +1287,7 @@ def get_thread_info(thread, limit=200):
 
 
 @frappe.whitelist()
-def rename_thread(thread, title):
+def rename_thread(thread: str, title: str):
 	"""Rename a group chat (admins only). Direct chats are named after the other person."""
 	doc = _require_participant(thread)
 	if doc.thread_type != "Group":
@@ -1292,7 +1300,7 @@ def rename_thread(thread, title):
 
 
 @frappe.whitelist()
-def search_employees(txt=None):
+def search_employees(txt: str | None = None):
 	"""People to start a chat with, for the new-chat and add-people pickers.
 
 	The chat is keyed on `User`, not `Employee`, so the list is every enabled internal
@@ -1364,7 +1372,7 @@ def _require_admin(thread_doc):
 
 
 @frappe.whitelist()
-def add_participant(thread, user, thread_key=None):
+def add_participant(thread: str, user: str, thread_key: str | dict | None = None):
 	"""Add someone to a group. In a secret group the caller's browser must also pass
 	`thread_key` — the thread key re-wrapped for the newcomer. Without it they would join
 	a thread they cannot read."""
@@ -1402,7 +1410,7 @@ def add_participant(thread, user, thread_key=None):
 
 
 @frappe.whitelist()
-def remove_participant(thread, user):
+def remove_participant(thread: str, user: str):
 	doc = _require_participant(thread)
 	if doc.thread_type != "Group":
 		frappe.throw(_("Can only remove people from a group chat"))
