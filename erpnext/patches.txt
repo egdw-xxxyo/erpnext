@@ -466,3 +466,4 @@ erpnext.patches.v15_0.batt_pack_brand_attribute
 erpnext.patches.v15_0.codify_military_unit
 erpnext.patches.v15_0.rework_lead_status
 erpnext.patches.v15_0.drop_legacy_lead_military_unit_field
+erpnext.patches.v15_0.add_chat_manager_role

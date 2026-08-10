@@ -289,7 +289,7 @@ class EmployeeChatSource {
 		this.key = "employee";
 		this.label = __("Employee Chat");
 		this.page_route = "/app/employee-chat";
-		this.realtime_events = ["chat_message", "chat_seen"];
+		this.realtime_events = ["chat_message", "chat_seen", "chat_thread_archived", "chat_thread_purged"];
 		this.media_source = "chat"; // get_thumbnails source key
 		this.chats = [];
 		// Two lists behind one launcher: person-to-person threads first, threads
@@ -335,8 +335,18 @@ class EmployeeChatSource {
 			reference_label: t.reference_label,
 			reference_removed: t.reference_removed,
 			is_archived: t.is_archived,
+			read_only: t.read_only,
+			can_purge: t.can_purge,
 		}));
 		return this.chats;
+	}
+
+	set_archived(id, archived) {
+		return frappe.xcall(`${EC_API}.set_archived`, { thread: id, archived: archived ? 1 : 0 });
+	}
+
+	purge(id) {
+		return frappe.xcall(`${EC_API}.purge_thread`, { thread: id });
 	}
 
 	is_secret(id) {
@@ -503,6 +513,9 @@ class EmployeeChatSource {
 				thread: id,
 				content_type,
 				attach: url,
+				// The encrypted preview's URL lives inside the ciphertext, so name it here too —
+				// otherwise the server can never link (or purge) that blob.
+				extra_files: payload.thumb ? JSON.stringify([payload.thumb.url]) : null,
 				message: ciphertext,
 				is_encrypted: 1,
 				enc_iv: iv,
@@ -573,6 +586,7 @@ class ChatBubble {
 		this.source = sources[0];
 		this.active = null; // open conversation id
 		this.tab = "employee"; // active tab of a tabbed source (employee chat)
+		this.arch_open = localStorage.getItem("cb_arch_open") === "1";
 		this.open = false;
 		this.inject_styles();
 		this.make_dom();
@@ -652,6 +666,70 @@ class ChatBubble {
 		}
 	}
 
+	// Archive / remove, shown only for a source that supports them and only in a thread.
+	// Removing is destructive and role-gated (server: Chat Manager), so the button appears
+	// only where the server would actually allow it: on an archived thread.
+	render_thread_actions() {
+		const chat = this.active ? (this.source.chats || []).find((c) => c.id === this.active) : null;
+		if (!chat || !this.source.set_archived) {
+			this.$archive.hide();
+			this.$purge.hide();
+			return;
+		}
+		this.$archive
+			.show()
+			.attr("title", chat.is_archived ? __("Unarchive chat") : __("Archive chat"))
+			.html(`<i class="fa fa-${chat.is_archived ? "inbox" : "archive"}"></i>`);
+		this.$purge.toggle(!!(chat.is_archived && chat.can_purge));
+	}
+
+	async toggle_archive() {
+		const chat = (this.source.chats || []).find((c) => c.id === this.active);
+		if (!chat || !this.source.set_archived) return;
+		const archived = chat.is_archived ? 0 : 1;
+		try {
+			const res = await this.source.set_archived(this.active, archived);
+			chat.is_archived = res.is_archived;
+			chat.read_only = res.read_only;
+		} catch (e) {
+			return;
+		}
+		this.render_thread_actions();
+		this.render_composer(chat);
+		this.refresh();
+	}
+
+	async purge_thread() {
+		const chat = (this.source.chats || []).find((c) => c.id === this.active);
+		if (!chat || !this.source.purge) return;
+		const id = this.active;
+		frappe.confirm(
+			__("Delete this chat with all its messages and files? This cannot be undone."),
+			async () => {
+				try {
+					await this.source.purge(id);
+				} catch (e) {
+					return;
+				}
+				this.source.chats = (this.source.chats || []).filter((c) => c.id !== id);
+				this.show_list();
+				this.refresh();
+			}
+		);
+	}
+
+	// An archived chat about a record is read-only server-side — hide the composer instead of
+	// letting the user type into a message that will be rejected.
+	render_composer(chat) {
+		if (chat && chat.read_only) {
+			this.$compose.hide();
+			this.$readonly.show();
+		} else {
+			this.$readonly.hide();
+			this.$compose.show();
+		}
+	}
+
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		if (document.getElementById("cb-bubble-styles")) return;
@@ -704,6 +782,14 @@ class ChatBubble {
 		.cb-msg .chat-img img{max-width:180px;max-height:200px;}
 		.cb-msg .cb-caption{white-space:pre-wrap;margin-top:2px;}
 		.cb-msg .cb-doc{color:inherit;text-decoration:underline;word-break:break-all;display:inline-block;}
+		.cb-arch-head{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;
+			background:var(--bg-light-gray);border-top:1px solid var(--border-color);
+			border-bottom:1px solid var(--border-color);font-size:var(--text-sm);font-weight:600;
+			color:var(--text-muted);}
+		.cb-arch-head:hover{color:var(--text-color);}
+		.cb-arch-head .cb-count{margin-left:auto;}
+		.cb-readonly{padding:8px;border-top:1px solid var(--border-color);text-align:center;
+			color:var(--text-muted);font-size:var(--text-sm);}
 		.cb-compose{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border-color);align-items:flex-end;}
 		.cb-compose textarea{resize:none;flex:1;font-size:12px;}
 		.cb-compose .cb-attach{flex:none;}
@@ -744,12 +830,19 @@ class ChatBubble {
 					<span class="cb-act cb-back" title="${__("Back")}" style="display:none;">←</span>
 					<span class="cb-title">${__("Chat")}</span>
 					<span class="cb-act cb-mute" title="${__("Mute chat")}" style="display:none;"></span>
+					<span class="cb-act cb-archive" style="display:none;"></span>
+					<span class="cb-act cb-purge" title="${__(
+						"Remove chat"
+					)}" style="display:none;"><i class="fa fa-trash-o"></i></span>
 					<span class="cb-act cb-sound" title="${__("Notification sound")}"></span>
 					<span class="cb-act cb-open-page" title="${__("Open full page")}">⤢</span>
 					<span class="cb-act cb-close" title="${__("Close")}">&times;</span>
 				</div>
 				<div class="cb-tabs"></div>
 				<div class="cb-body"></div>
+				<div class="cb-readonly" style="display:none;">${__(
+					"This chat is archived — new messages are not allowed"
+				)}</div>
 				<div class="cb-compose" style="display:none;">
 					<button class="btn btn-default btn-xs cb-attach" title="${__("Attach file")}">📎</button>
 					<button class="btn btn-default btn-xs cb-mic" title="${__("Record voice message")}">🎤</button>
@@ -767,9 +860,12 @@ class ChatBubble {
 		this.$title = this.$panel.find(".cb-title");
 		this.$back = this.$panel.find(".cb-back");
 		this.$mute = this.$panel.find(".cb-mute");
+		this.$archive = this.$panel.find(".cb-archive");
+		this.$purge = this.$panel.find(".cb-purge");
 		this.$sound = this.$panel.find(".cb-sound");
 		this.render_sound_toggle();
 		this.$compose = this.$panel.find(".cb-compose");
+		this.$readonly = this.$panel.find(".cb-readonly");
 		this.$input = this.$compose.find("textarea");
 		this.update_document_button();
 	}
@@ -820,6 +916,13 @@ class ChatBubble {
 			this.render_sound_toggle();
 		});
 		this.$mute.on("click", () => this.toggle_mute());
+		this.$archive.on("click", () => this.toggle_archive());
+		this.$purge.on("click", () => this.purge_thread());
+		this.$body.on("click", ".cb-arch-head", () => {
+			this.arch_open = !this.arch_open;
+			localStorage.setItem("cb_arch_open", this.arch_open ? "1" : "0");
+			this.render_list();
+		});
 		this.$panel.find(".cb-send").on("click", () => this.send());
 		this.$panel.find(".cb-attach").on("click", () => this.attach_media());
 		this.$panel.find(".cb-mic").on("click", () => this.record_voice());
@@ -875,6 +978,9 @@ class ChatBubble {
 		this.$tabs.removeClass("show").empty();
 		this.$back.hide();
 		this.$mute.hide();
+		this.$archive.hide();
+		this.$purge.hide();
+		this.$readonly.hide();
 		this.$compose.hide();
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
 		let name;
@@ -920,7 +1026,15 @@ class ChatBubble {
 		);
 		this.render_badges();
 		if (!this.open) return;
+		// The open thread can disappear under us — someone with the Chat Manager role purged it.
+		if (this.active && !(this.source.chats || []).some((c) => c.id === this.active)) {
+			this.show_list();
+			return;
+		}
 		if (this.active) {
+			const chat = (this.source.chats || []).find((c) => c.id === this.active);
+			this.render_thread_actions();
+			this.render_composer(chat);
 			this.load_thread(this.active);
 		} else {
 			this.render_list();
@@ -954,7 +1068,10 @@ class ChatBubble {
 	show_list() {
 		this.active = null;
 		if (this.$mute) this.$mute.hide();
+		if (this.$archive) this.$archive.hide();
+		if (this.$purge) this.$purge.hide();
 		this.$back.hide();
+		this.$readonly.hide();
 		this.$compose.hide();
 		this.$title.text(this.source.label);
 		this.render_tabs();
@@ -998,28 +1115,39 @@ class ChatBubble {
 		return chats.filter((c) => c.time || c.preview || c.unread);
 	}
 
+	conv_html(c) {
+		const name = frappe.utils.escape_html(c.title);
+		const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
+		const unread = c.unread
+			? `<span class="cb-count show">${c.unread > 99 ? "99+" : c.unread}</span>`
+			: "";
+		return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(c.id)}">
+			<div class="cb-name"><span>${name}</span><span class="cb-time">${unread}${cb_fmt_time(c.time)}</span></div>
+			<div class="cb-prev">${prev || __("(no text)")}</div>
+		</div>`;
+	}
+
 	render_list() {
 		const chats = this.visible_chats();
-		if (!chats.length) {
+		const active = chats.filter((c) => !c.is_archived);
+		const archived = chats.filter((c) => c.is_archived);
+		if (!active.length && !archived.length) {
 			this.$body.html(`<div class="cb-empty">${__("No conversations yet")}</div>`);
 			return;
 		}
-		const rows = chats
-			.map((c) => {
-				const name = frappe.utils.escape_html(c.title);
-				const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
-				const unread = c.unread
-					? `<span class="cb-count show">${c.unread > 99 ? "99+" : c.unread}</span>`
-					: "";
-				return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(
-					c.id
-				)}">
-					<div class="cb-name"><span>${name}</span><span class="cb-time">${unread}${cb_fmt_time(c.time)}</span></div>
-					<div class="cb-prev">${prev || __("(no text)")}</div>
-				</div>`;
-			})
-			.join("");
-		this.$body.html(rows);
+		let html = active.map((c) => this.conv_html(c)).join("");
+		if (archived.length) {
+			// Archived chats keep receiving messages, so the collapsed header carries their
+			// unread count — otherwise it would look like nothing happened down there.
+			const unread = archived.reduce((n, c) => n + (c.unread || 0), 0);
+			html += `<div class="cb-arch-head">
+				<i class="fa fa-caret-${this.arch_open ? "down" : "right"}"></i>
+				<span>${__("Archived")}</span>
+				<span class="cb-count ${unread ? "show" : ""}">${unread > 99 ? "99+" : unread}</span>
+			</div>`;
+			if (this.arch_open) html += archived.map((c) => this.conv_html(c)).join("");
+		}
+		this.$body.html(html || `<div class="cb-empty">${__("No conversations yet")}</div>`);
 	}
 
 	open_thread(id) {
@@ -1031,8 +1159,9 @@ class ChatBubble {
 		const chat = (this.source.chats || []).find((c) => c.id === id);
 		this.$title.text(chat ? chat.title : id);
 		this.render_mute_toggle();
+		this.render_thread_actions();
 		this.$back.show();
-		this.$compose.show();
+		this.render_composer(chat);
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
 		this.load_thread(id);
 	}
