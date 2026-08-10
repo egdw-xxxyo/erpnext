@@ -897,6 +897,52 @@ def deep_archive_thread(thread):
 	return {"thread": thread, "status": "Packing"}
 
 
+@frappe.whitelist()
+def restore_deep_archive(thread):
+	"""Unpack a deep-archived chat for everyone, temporarily. Open to anyone who may read the
+	chat — the archive is a storage decision, not a permission boundary."""
+	from erpnext.crm import chat_archive
+
+	doc = _require_read_thread(thread)
+	if not doc.is_deep_archived:
+		return get_deep_archive_state(thread)
+	if doc.deep_archive_status == "Restored":
+		chat_archive.touch(thread)
+		return get_deep_archive_state(thread)
+	if not chat_archive.claim(thread, "Archived", "Restoring"):
+		# Someone else got there first — the client just follows the same progress events.
+		return get_deep_archive_state(thread)
+
+	frappe.enqueue(
+		"erpnext.crm.chat_archive.restore",
+		queue="long",
+		timeout=3600,
+		enqueue_after_commit=True,
+		job_id=f"chat-restore::{thread}",
+		deduplicate=True,
+		thread=thread,
+		requested_by=frappe.session.user,
+	)
+	return get_deep_archive_state(thread)
+
+
+@frappe.whitelist()
+def get_deep_archive_state(thread):
+	"""Archive state for the banner and the progress bar; also the client's polling endpoint
+	while a job runs (a Document-thread reader who never joined gets no realtime room)."""
+	from erpnext.crm import chat_archive
+
+	doc = _require_read_thread(thread)
+	if doc.deep_archive_status == "Restored":
+		chat_archive.touch(thread)
+		doc.reload()
+	payload = _deep_archive_payload(doc.as_dict())
+	payload["thread"] = thread
+	payload["is_deep_archived"] = doc.is_deep_archived
+	payload["read_only"] = _is_read_only(doc.thread_type, doc.is_archived, doc.is_deep_archived)
+	return payload
+
+
 def _thread_file_names(thread):
 	"""Every File belonging to a thread: the ones linked to it, the ones only referenced by a
 	message (older rows predate `link_attachment_to_thread`), and their thumbnails."""

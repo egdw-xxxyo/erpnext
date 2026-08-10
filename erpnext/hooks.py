@@ -512,6 +512,7 @@ scheduler_events = {
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
 			"erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.run_parallel_reposting",
+			"erpnext.crm.chat_archive.reap_expired_restores",
 		],
 		# Hourly but offset by 30 minutes
 		"30 * * * *": [
@@ -538,6 +539,7 @@ scheduler_events = {
 	"daily": [
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
+		"erpnext.crm.chat_archive.auto_deep_archive",
 	],
 	"daily_long": [],
 	"daily_maintenance": [
