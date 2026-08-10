@@ -25,6 +25,9 @@
   "is_archived",
   "archived_on",
   "reference_removed",
+  "archive_policy_section",
+  "disable_archive",
+  "disable_deep_archive",
   "deep_archive_section",
   "deep_archive_status",
   "is_deep_archived",
@@ -159,6 +162,25 @@
    "read_only": 1
   },
   {
+   "fieldname": "archive_policy_section",
+   "fieldtype": "Section Break",
+   "label": "Archive Policy"
+  },
+  {
+   "default": "0",
+   "description": "Nobody can archive this chat and the scheduled auto-archive job skips it.",
+   "fieldname": "disable_archive",
+   "fieldtype": "Check",
+   "label": "Do Not Archive"
+  },
+  {
+   "default": "0",
+   "description": "This chat is never packed into an archive file, by hand or by the scheduled job.",
+   "fieldname": "disable_deep_archive",
+   "fieldtype": "Check",
+   "label": "Do Not Deep Archive"
+  },
+  {
    "collapsible": 1,
    "fieldname": "deep_archive_section",
    "fieldtype": "Section Break",
@@ -264,7 +286,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-07-23 00:00:00.000000",
+ "modified": "2026-08-10 21:06:32.722215",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Chat Thread",
