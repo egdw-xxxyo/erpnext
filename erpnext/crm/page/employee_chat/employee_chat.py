@@ -909,7 +909,11 @@ def restore_deep_archive(thread):
 	if doc.deep_archive_status == "Restored":
 		chat_archive.touch(thread)
 		return get_deep_archive_state(thread)
-	if not chat_archive.claim(thread, "Archived", "Restoring"):
+	# "Failed" is a retryable state: the failing job rolls its transaction back, so a retry
+	# starts from the same untouched zip (this is the path the banner's Retry button takes).
+	if not chat_archive.claim(thread, "Archived", "Restoring") and not chat_archive.claim(
+		thread, "Failed", "Restoring"
+	):
 		# Someone else got there first — the client just follows the same progress events.
 		return get_deep_archive_state(thread)
 

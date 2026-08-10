@@ -60,10 +60,13 @@ _DEFAULTS = {
 
 
 def setting(key):
-	value = frappe.db.get_single_value("Chat Settings", key)
+	# Read `tabSingles` directly: `get_single_value` casts by fieldtype, so an Int the user has
+	# never saved comes back as 0, not None — which silently turned every limit here into zero
+	# ("this chat is too large to unpack" for a two-message chat).
+	value = frappe.db.get_value("Singles", {"doctype": "Chat Settings", "field": key}, "value")
 	if value in (None, ""):
 		return _DEFAULTS[key]
-	return value
+	return int(value)
 
 
 # ---------------------------------------------------------------------------
