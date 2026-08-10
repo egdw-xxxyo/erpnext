@@ -37,6 +37,7 @@ def execute():
 	setup_lead_next_action_notification()
 	create_v16_ported_fields()
 	set_v16_ported_properties()
+	setup_chat_manager_role()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -847,6 +848,7 @@ def setup_lead_next_action_notification():
 	print(f"  Created Notification: {name}")
 
 
+<<<<<<< HEAD
 def create_v16_ported_fields():
 	"""Fields that used to live in patched stock DocType JSONs on the v15 fork.
 
@@ -1126,6 +1128,43 @@ def set_v16_ported_properties():
 			}
 		).insert(ignore_permissions=True)
 		print("  Created Property Setter: Quotation.track_changes")
+=======
+def setup_chat_manager_role():
+	"""Role that may permanently remove an archived chat with all its messages and files
+	(see employee_chat.purge_thread — the check is a plain role-level delete permission on
+	Chat Thread, so it can be re-assigned in the Role Permission Manager)."""
+	role = "Chat Manager"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc(
+			{
+				"doctype": "Role",
+				"role_name": role,
+				"desk_access": 1,
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Role: {role}")
+
+	doctype = "Chat Thread"
+	if not frappe.db.exists("DocType", doctype):
+		print(f"  Skipped perms, DocType missing: {doctype}")
+		return
+	if frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+		print(f"  Custom DocPerm exists: {doctype} / {role}")
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Custom DocPerm",
+			"parent": doctype,
+			"parenttype": "DocType",
+			"parentfield": "permissions",
+			"role": role,
+			"permlevel": 0,
+			"read": 1,
+			"delete": 1,
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Custom DocPerm: {doctype} / {role}")
+>>>>>>> 0e0af16f38 (feat(chat): archive/purge chats, freeze archived entity chats, lock attachments)
 
 
 def _create_custom_fields(fields):

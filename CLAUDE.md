@@ -14,6 +14,25 @@ WhatsApp lives in the **`frappe_whatsapp`** app (Meta Cloud API). **Use our fork
 - Decide by layer: transport/protocol/message-model change → fork; desk UI / CRM linking / realtime page → erpnext repo.
 - Roadmap + gap analysis: `plans/whatsapp-crm-integration.md`.
 
+## Chat attachments are thread-private (RULE)
+
+A file uploaded into an Employee Chat belongs to that thread and **must never become a reusable
+system-wide asset**. It is not offered in the file-library picker and cannot be attached to another
+document. Enforced by `erpnext/crm/chat_files.py`, wired in `hooks.py` as
+`permission_query_conditions["File"]` (hides `attached_to_doctype = "Chat Thread"` from every
+`File` list query) plus a `File.before_insert` guard (`block_reuse`) that refuses a new File row
+reusing a chat file's `file_url` — this is the path `frappe.handler.attach_file` takes for
+"attach from library".
+
+If a future feature needs to share a chat attachment elsewhere: **copy the file** (new File row,
+new blob) and store a link back to the `Chat Message` on the copy, so users can navigate to the
+conversation the file came from. Never re-point or re-attach the original.
+
+Corollary for uploads: every chat file must end up with `attached_to_doctype = "Chat Thread"` —
+otherwise it is invisible to `purge_thread` and leaks past the guards. Client-side previews that
+are not the message's `attach` (the encrypted preview of a secret attachment) must be passed to
+`send_message(extra_files=[...])`.
+
 ## Multi-client parity (desktop + Android)
 
 Device-side functionality lives in two client apps:
