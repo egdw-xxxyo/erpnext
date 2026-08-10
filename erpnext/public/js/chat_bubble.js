@@ -1,5 +1,6 @@
 // Floating chat bubble shown on every desk page (bottom right).
-// Two tabs: WhatsApp (customer threads) and Employee Chat (internal).
+// One launcher per category: WhatsApp (customer threads) and Employee Chat (internal,
+// itself split into Employees / Entities tabs).
 // Click opens a compact popup: conversation list -> thread with quick reply,
 // plus a button that jumps to the full chat page.
 
@@ -286,11 +287,33 @@ class WhatsAppSource {
 class EmployeeChatSource {
 	constructor() {
 		this.key = "employee";
-		this.label = __("Employees");
+		this.label = __("Employee Chat");
 		this.page_route = "/app/employee-chat";
 		this.realtime_events = ["chat_message", "chat_seen"];
 		this.media_source = "chat"; // get_thumbnails source key
 		this.chats = [];
+		// Two lists behind one launcher: person-to-person threads first, threads
+		// attached to a record (Document threads) second.
+		this.tabs = [
+			{ key: "employee", label: __("Employees") },
+			{ key: "entity", label: __("Entities") },
+		];
+	}
+
+	// A thread belongs to the entity tab when it is about a record.
+	static is_entity(chat) {
+		return !!chat.reference_doctype;
+	}
+
+	chats_for_tab(tab) {
+		return (this.chats || []).filter((c) =>
+			tab === "entity" ? EmployeeChatSource.is_entity(c) : !EmployeeChatSource.is_entity(c)
+		);
+	}
+
+	tab_of(id) {
+		const chat = (this.chats || []).find((c) => c.id === id);
+		return chat && EmployeeChatSource.is_entity(chat) ? "entity" : "employee";
 	}
 
 	static available() {
@@ -549,6 +572,7 @@ class ChatBubble {
 		this.sources = sources;
 		this.source = sources[0];
 		this.active = null; // open conversation id
+		this.tab = "employee"; // active tab of a tabbed source (employee chat)
 		this.open = false;
 		this.inject_styles();
 		this.make_dom();
@@ -650,11 +674,21 @@ class ChatBubble {
 		.cb-title{flex:1;font-weight:600;font-size:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 		.cb-head .cb-act{cursor:pointer;opacity:.85;font-size:15px;line-height:1;padding:2px 4px;}
 		.cb-head .cb-act:hover{opacity:1;}
+		.cb-tabs{display:none;border-bottom:1px solid var(--border-color);background:var(--card-bg);}
+		.cb-panel .cb-tabs.show{display:flex;}
+		.cb-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;
+			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;}
+		.cb-tab:hover{background:var(--bg-light-gray);}
+		.cb-tab.active{color:var(--text-color);border-bottom-color:var(--primary,#2490ef);}
+		.cb-count{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);
+			color:#fff;font-size:10px;line-height:17px;font-weight:600;text-align:center;display:none;}
+		.cb-count.show{display:inline-block;}
 		.cb-body{flex:1;overflow-y:auto;}
 		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;}
 		.cb-conv:hover{background:var(--bg-light-gray);}
 		.cb-conv .cb-name{font-weight:600;font-size:var(--text-sm);display:flex;justify-content:space-between;gap:6px;}
-		.cb-conv .cb-time{font-weight:400;color:var(--text-muted);font-size:10px;white-space:nowrap;}
+		.cb-conv .cb-time{font-weight:400;color:var(--text-muted);font-size:10px;white-space:nowrap;
+			display:flex;align-items:center;gap:5px;flex:none;}
 		.cb-conv .cb-prev{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.cb-conv.unread .cb-prev{color:var(--text-color);font-weight:600;}
 		.cb-thread{display:flex;flex-direction:column;gap:3px;padding:10px;background:var(--bg-gray);min-height:100%;}
@@ -714,6 +748,7 @@ class ChatBubble {
 					<span class="cb-act cb-open-page" title="${__("Open full page")}">⤢</span>
 					<span class="cb-act cb-close" title="${__("Close")}">&times;</span>
 				</div>
+				<div class="cb-tabs"></div>
 				<div class="cb-body"></div>
 				<div class="cb-compose" style="display:none;">
 					<button class="btn btn-default btn-xs cb-attach" title="${__("Attach file")}">📎</button>
@@ -728,6 +763,7 @@ class ChatBubble {
 		`).appendTo(document.body);
 
 		this.$body = this.$panel.find(".cb-body");
+		this.$tabs = this.$panel.find(".cb-tabs");
 		this.$title = this.$panel.find(".cb-title");
 		this.$back = this.$panel.find(".cb-back");
 		this.$mute = this.$panel.find(".cb-mute");
@@ -793,6 +829,12 @@ class ChatBubble {
 				this.send();
 			}
 		});
+		this.$tabs.on("click", ".cb-tab", (e) => {
+			const tab = $(e.currentTarget).attr("data-tab");
+			if (tab === this.tab) return;
+			this.tab = tab;
+			this.show_list();
+		});
 		this.$body.on("click", ".cb-conv", (e) => {
 			this.open_thread($(e.currentTarget).attr("data-id"));
 		});
@@ -809,6 +851,8 @@ class ChatBubble {
 		}
 		this.source = src;
 		this.active = null;
+		// Pressing the launcher always lands on the first tab (employee threads).
+		this.tab = "employee";
 		this.set_active_fab(key);
 		this.open = true;
 		this.$panel.addClass("open");
@@ -828,6 +872,7 @@ class ChatBubble {
 		this.open = true;
 		this.$panel.addClass("open");
 		this.$title.text(__("Chat about this document"));
+		this.$tabs.removeClass("show").empty();
 		this.$back.hide();
 		this.$mute.hide();
 		this.$compose.hide();
@@ -903,6 +948,7 @@ class ChatBubble {
 			const dt = this.doc_thread();
 			set("document", dt ? dt.unread || 0 : 0);
 		}
+		this.render_tab_counts();
 	}
 
 	show_list() {
@@ -911,11 +957,49 @@ class ChatBubble {
 		this.$back.hide();
 		this.$compose.hide();
 		this.$title.text(this.source.label);
+		this.render_tabs();
 		this.render_list();
 	}
 
+	// Tab strip, only for sources that declare tabs and only on the list view.
+	render_tabs() {
+		const tabs = this.source.tabs;
+		if (!tabs || this.active) {
+			this.$tabs.removeClass("show").empty();
+			return;
+		}
+		this.$tabs.addClass("show").html(
+			tabs
+				.map(
+					(t) => `<div class="cb-tab ${t.key === this.tab ? "active" : ""}" data-tab="${t.key}">
+					<span>${frappe.utils.escape_html(t.label)}</span><span class="cb-count"></span>
+				</div>`
+				)
+				.join("")
+		);
+		this.render_tab_counts();
+	}
+
+	render_tab_counts() {
+		if (!this.source.tabs || !this.$tabs.hasClass("show")) return;
+		this.source.tabs.forEach((t) => {
+			const count = this.visible_chats(t.key).reduce((n, c) => n + (c.unread || 0), 0);
+			this.$tabs
+				.find(`.cb-tab[data-tab="${t.key}"] .cb-count`)
+				.text(count > 99 ? "99+" : count)
+				.toggleClass("show", count > 0);
+		});
+	}
+
+	// Conversations to list: those of the requested tab, minus the ones that carry no
+	// message at all (an entity thread is created on first open, before anything is said).
+	visible_chats(tab) {
+		const chats = this.source.tabs ? this.source.chats_for_tab(tab || this.tab) : this.source.chats || [];
+		return chats.filter((c) => c.time || c.preview || c.unread);
+	}
+
 	render_list() {
-		const chats = this.source.chats || [];
+		const chats = this.visible_chats();
 		if (!chats.length) {
 			this.$body.html(`<div class="cb-empty">${__("No conversations yet")}</div>`);
 			return;
@@ -924,10 +1008,13 @@ class ChatBubble {
 			.map((c) => {
 				const name = frappe.utils.escape_html(c.title);
 				const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
+				const unread = c.unread
+					? `<span class="cb-count show">${c.unread > 99 ? "99+" : c.unread}</span>`
+					: "";
 				return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(
 					c.id
 				)}">
-					<div class="cb-name"><span>${name}</span><span class="cb-time">${cb_fmt_time(c.time)}</span></div>
+					<div class="cb-name"><span>${name}</span><span class="cb-time">${unread}${cb_fmt_time(c.time)}</span></div>
 					<div class="cb-prev">${prev || __("(no text)")}</div>
 				</div>`;
 			})
@@ -938,6 +1025,9 @@ class ChatBubble {
 	open_thread(id) {
 		console.log("[chat] open_thread (conversation clicked)", { source: this.source.key, id });
 		this.active = id;
+		// Coming back from this thread should land on the tab it belongs to.
+		if (this.source.tab_of) this.tab = this.source.tab_of(id);
+		this.render_tabs();
 		const chat = (this.source.chats || []).find((c) => c.id === id);
 		this.$title.text(chat ? chat.title : id);
 		this.render_mute_toggle();
