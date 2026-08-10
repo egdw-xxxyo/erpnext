@@ -46,6 +46,43 @@ def _require_participant(thread):
 	return doc
 
 
+def _may_manage_archive(thread_doc):
+	"""Archiving is not a membership privilege: for a Document thread anyone who may read the
+	referenced record may archive/unarchive it (the same gate `open_document_thread` uses to let
+	them join). For Direct/Group threads any participant may."""
+	me = frappe.session.user
+	if me == "Administrator" or thread_doc.is_participant(me):
+		return thread_doc
+	if (
+		thread_doc.thread_type == "Document"
+		and thread_doc.reference_doctype
+		and thread_doc.reference_name
+		and not thread_doc.reference_removed
+		and frappe.has_permission(thread_doc.reference_doctype, "read", doc=thread_doc.reference_name)
+	):
+		return thread_doc
+	frappe.throw(_("You are not allowed to archive this chat"), frappe.PermissionError)
+
+
+def _require_writable(thread_doc):
+	"""An archived Document thread is frozen — the record it belongs to is done with. Direct and
+	group threads stay writable while archived; they just sit in the archived list."""
+	if thread_doc.thread_type == "Document" and thread_doc.is_archived:
+		frappe.throw(_("This chat is archived and read-only"), frappe.PermissionError)
+	return thread_doc
+
+
+def _may_purge():
+	"""Deleting a chat for everyone is a role-level right (see the `Chat Manager` role), not
+	something a participant gets by taking part in the conversation. Checked without a doc on
+	purpose — the doc-level hook would add a participation requirement."""
+	return bool(frappe.has_permission("Chat Thread", "delete"))
+
+
+def _is_read_only(thread_type, is_archived):
+	return 1 if (thread_type == "Document" and is_archived) else 0
+
+
 def _participant_users(thread_doc):
 	return [p.user for p in thread_doc.participants if p.user]
 
@@ -119,6 +156,20 @@ def link_attachment_to_thread(file_url, thread):
 		{"attached_to_doctype": "Chat Thread", "attached_to_name": thread},
 		update_modified=False,
 	)
+
+
+def _extra_file_urls(raw, limit=5):
+	"""Sanitise the `extra_files` argument of send_message: a short list of local file urls."""
+	if not raw:
+		return []
+	urls = frappe.parse_json(raw) if isinstance(raw, str) else raw
+	if not isinstance(urls, list | tuple):
+		return []
+	out = []
+	for url in urls:
+		if isinstance(url, str) and url.startswith(("/files/", "/private/files/")):
+			out.append(url)
+	return out[:limit]
 
 
 def _parse_link_data(raw):
@@ -379,6 +430,9 @@ def get_threads():
 		order_by="last_message_on desc",
 	)
 
+	# One role check for the whole list — the per-thread gate still runs inside purge_thread.
+	can_purge = 1 if _may_purge() else 0
+
 	for t in threads:
 		parts = frappe.get_all(
 			"Chat Participant",
@@ -414,6 +468,8 @@ def get_threads():
 		if last_read[t["name"]]:
 			unread_filters.append(["Chat Message", "creation", ">", last_read[t["name"]]])
 		t["unread"] = frappe.db.count("Chat Message", unread_filters)
+		t["read_only"] = _is_read_only(t["thread_type"], t["is_archived"])
+		t["can_purge"] = can_purge
 
 	return threads
 
@@ -578,6 +634,7 @@ def send_message(
 	reply_to=None,
 	is_encrypted=0,
 	enc_iv=None,
+	extra_files=None,
 ):
 	"""Insert a message, update the thread's last-message metadata, and push it to every
 	participant's private room.
@@ -586,7 +643,7 @@ def send_message(
 	browser. Plaintext is rejected outright rather than stored — a client-side bug must
 	not be able to leak a body into the database. A `link` card in a secret thread carries
 	its payload inside the encrypted `message`, so `link_data` stays empty there."""
-	doc = _require_participant(thread)
+	doc = _require_writable(_require_participant(thread))
 	is_encrypted = int(is_encrypted or 0)
 
 	link = _parse_link_data(link_data)
@@ -631,6 +688,11 @@ def send_message(
 	msg.insert(ignore_permissions=True)
 	if attach:
 		link_attachment_to_thread(attach, thread)
+	# Files the message references but does not carry in `attach` — in a secret thread the
+	# encrypted preview's url lives inside the ciphertext, so the server would never find it
+	# again (and could not delete it on purge) unless the sender names it here.
+	for url in _extra_file_urls(extra_files):
+		link_attachment_to_thread(url, thread)
 
 	preview = _preview_text(content_type, message, attach, is_encrypted=is_encrypted, link_title=link_title)
 	frappe.db.set_value(
@@ -688,6 +750,89 @@ def set_muted(thread, muted):
 
 
 @frappe.whitelist()
+def set_archived(thread, archived):
+	"""Archive/unarchive a chat for everyone. Archived chats move to their own collapsed
+	section; a Document thread additionally becomes read-only (see `_require_writable`).
+
+	`reference_removed` is left alone: a thread archived because its record was deleted keeps
+	its "Removed" badge even after someone unarchives it."""
+	doc = _may_manage_archive(_get_thread(thread))
+	archived = 1 if int(archived or 0) else 0
+	# `is_archived` is read_only in the schema — write it the same way on_reference_deleted does.
+	frappe.db.set_value("Chat Thread", thread, "is_archived", archived, update_modified=False)
+	payload = {
+		"thread": thread,
+		"is_archived": archived,
+		"read_only": _is_read_only(doc.thread_type, archived),
+	}
+	_fanout(doc, "chat_thread_archived", payload)
+	return payload
+
+
+@frappe.whitelist()
+def purge_thread(thread):
+	"""Delete an archived chat for good: every message, every attachment (including generated
+	thumbnails and encrypted blobs), the wrapped thread keys and the thread itself.
+
+	Two gates, deliberately different: `_may_manage_archive` says you have business with this
+	chat, `_may_purge` says you are trusted to destroy it (the `Chat Manager` role)."""
+	doc = _may_manage_archive(_get_thread(thread))
+	if not doc.is_archived:
+		frappe.throw(_("Only an archived chat can be removed"))
+	if not _may_purge():
+		frappe.throw(_("You are not allowed to remove chats"), frappe.PermissionError)
+
+	# The participant rows die with the parent, so capture the audience before deleting.
+	users = _participant_users(doc)
+
+	for name in _thread_file_names(thread):
+		try:
+			frappe.delete_doc("File", name, ignore_permissions=True, force=True, delete_permanently=True)
+		except Exception:
+			# One unreachable blob must not strand the rest of the purge.
+			frappe.log_error(title="Chat purge: could not delete file", message=frappe.get_traceback())
+
+	# Sweep anything that appeared (or was linked) while we were deleting.
+	from frappe.utils.file_manager import remove_all
+
+	remove_all("Chat Thread", thread, from_delete=True, delete_permanently=True)
+
+	frappe.db.delete("Chat Message", {"thread": thread})
+	frappe.db.delete("Chat Thread Key", {"thread": thread})
+	frappe.delete_doc("Chat Thread", thread, ignore_permissions=True, force=True, delete_permanently=True)
+
+	for user in users:
+		frappe.publish_realtime(
+			event="chat_thread_purged", message={"thread": thread}, user=user, after_commit=True
+		)
+	return {"ok": True, "thread": thread}
+
+
+def _thread_file_names(thread):
+	"""Every File belonging to a thread: the ones linked to it, the ones only referenced by a
+	message (older rows predate `link_attachment_to_thread`), and their thumbnails."""
+	names = list(
+		frappe.get_all(
+			"File",
+			filters={"attached_to_doctype": "Chat Thread", "attached_to_name": thread},
+			pluck="name",
+		)
+	)
+	urls = [u for u in frappe.get_all("Chat Message", filters={"thread": thread}, pluck="attach") if u]
+	for url in set(urls):
+		names += frappe.get_all("File", filters={"file_url": url}, pluck="name")
+
+	seen = list(dict.fromkeys(names))
+	# Thumbnails are separate File rows cached on the source (see chat_media.ensure_thumbnail);
+	# for small images the thumbnail url is the original, which is already in the list.
+	for name in list(seen):
+		thumb_url = frappe.db.get_value("File", name, "thumbnail_url")
+		if thumb_url:
+			seen += frappe.get_all("File", filters={"file_url": thumb_url}, pluck="name")
+	return list(dict.fromkeys(seen))
+
+
+@frappe.whitelist()
 def set_reaction(message, emoji):
 	"""Add the current user's reaction to a message and broadcast the new reaction map."""
 	return _mutate_reaction(message, emoji, add=True)
@@ -703,7 +848,7 @@ def _mutate_reaction(message, emoji, add):
 	thread = frappe.db.get_value("Chat Message", message, "thread")
 	if not thread:
 		frappe.throw(_("Message not found"))
-	doc = _require_participant(thread)
+	doc = _require_writable(_require_participant(thread))
 	me = frappe.session.user
 
 	raw = frappe.db.get_value("Chat Message", message, "reactions")
@@ -730,7 +875,7 @@ def _mutate_reaction(message, emoji, add):
 @frappe.whitelist()
 def typing(thread):
 	"""Ephemeral typing indicator — notify the other participants, no DB write."""
-	doc = _require_participant(thread)
+	doc = _require_writable(_require_participant(thread))
 	me = frappe.session.user
 	for user in _participant_users(doc):
 		if user != me:
@@ -892,6 +1037,8 @@ def get_thread_info(thread, limit=200):
 		"reference_name": doc.reference_name,
 		"reference_label": doc.reference_label,
 		"is_archived": doc.is_archived,
+		"read_only": _is_read_only(doc.thread_type, doc.is_archived),
+		"can_purge": 1 if _may_purge() else 0,
 		"reference_removed": doc.reference_removed,
 		"reference_card": _reference_card(doc),
 	}
