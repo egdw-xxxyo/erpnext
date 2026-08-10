@@ -59,6 +59,8 @@ class EmployeeChat {
 		this.other_last_read = null; // other participant's last_read_on (direct threads)
 		this.typing_timer = null; // hides the typing indicator
 		this.typing_sent_at = 0; // throttle outgoing typing pings
+		this.tab = "employee"; // sidebar tab: people threads or record threads
+		this.arch_open = localStorage.getItem("ec_arch_open") === "1";
 
 		this.make_layout();
 		// deep-link: /app/employee-chat?thread=<name>
@@ -70,10 +72,14 @@ class EmployeeChat {
 		this.on_typing = (d) => this.on_realtime_typing(d);
 		this.on_seen = (d) => this.on_realtime_seen(d);
 		this.on_reaction = (d) => this.on_realtime_reaction(d);
+		this.on_archived = (d) => this.on_realtime_archived(d);
+		this.on_purged = (d) => this.on_realtime_purged(d);
 		frappe.realtime.on("chat_message", this.on_message);
 		frappe.realtime.on("chat_typing", this.on_typing);
 		frappe.realtime.on("chat_seen", this.on_seen);
 		frappe.realtime.on("chat_reaction", this.on_reaction);
+		frappe.realtime.on("chat_thread_archived", this.on_archived);
+		frappe.realtime.on("chat_thread_purged", this.on_purged);
 		// slow poll of the thread list as a safety net if the socket drops
 		this.poll = setInterval(() => this.load_threads(), 30000);
 
@@ -83,6 +89,8 @@ class EmployeeChat {
 			frappe.realtime.off("chat_typing", this.on_typing);
 			frappe.realtime.off("chat_seen", this.on_seen);
 			frappe.realtime.off("chat_reaction", this.on_reaction);
+			frappe.realtime.off("chat_thread_archived", this.on_archived);
+			frappe.realtime.off("chat_thread_purged", this.on_purged);
 		});
 	}
 
@@ -96,6 +104,7 @@ class EmployeeChat {
 						)}</button>
 						<input type="text" class="form-control input-xs ec-search-input" placeholder="${__("Search chats")}">
 					</div>
+					<div class="ec-tabs"></div>
 					<div class="ec-thread-list"></div>
 				</div>
 				<div class="ec-thread-wrap">
@@ -105,6 +114,9 @@ class EmployeeChat {
 						"Scroll to latest"
 					)}">⬇<span class="ec-fab-badge" style="display:none;"></span></div>
 					<div class="ec-typing text-muted" style="display:none;"></div>
+					<div class="ec-readonly text-muted" style="display:none;">${__(
+						"This chat is archived — new messages are not allowed"
+					)}</div>
 					<div class="ec-compose-wrap" style="display:none;">
 						<div class="ec-reply-bar" style="display:none;">
 							<div class="ec-reply-bar-text"></div>
@@ -133,6 +145,19 @@ class EmployeeChat {
 		this.$input = this.page.main.find(".ec-compose textarea");
 		this.$replyBar = this.page.main.find(".ec-reply-bar");
 		this.$search = this.page.main.find(".ec-search-input");
+		this.$tabs = this.page.main.find(".ec-tabs");
+		this.$readonly = this.page.main.find(".ec-readonly");
+		this.$tabs.on("click", ".ec-tab", (e) => {
+			const tab = $(e.currentTarget).attr("data-tab");
+			if (tab === this.tab) return;
+			this.tab = tab;
+			this.render_list();
+		});
+		this.$list.on("click", ".ec-arch-head", () => {
+			this.arch_open = !this.arch_open;
+			localStorage.setItem("ec_arch_open", this.arch_open ? "1" : "0");
+			this.render_list();
+		});
 
 		this.page.add_menu_item(__("Secret chats"), () => this.secret_settings_dialog());
 		this.page.main.find(".ec-new-chat").on("click", () => this.new_chat_dialog());
@@ -160,12 +185,25 @@ class EmployeeChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("ec-chat-styles-v5")) return;
+		if (document.getElementById("ec-chat-styles-v6")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.ec-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
 		.ec-search{padding:8px;border-bottom:1px solid var(--border-color);}
 		.ec-thread-list{overflow-y:auto;flex:1;}
+		.ec-tabs{display:flex;border-bottom:1px solid var(--border-color);}
+		.ec-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;
+			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;}
+		.ec-tab:hover{background:var(--bg-light-gray);}
+		.ec-tab.active{color:var(--text-color);border-bottom-color:var(--primary);}
+		.ec-arch-head{display:flex;align-items:center;gap:6px;padding:8px 12px;cursor:pointer;
+			background:var(--bg-light-gray);border-bottom:1px solid var(--border-color);
+			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);}
+		.ec-arch-head:hover{color:var(--text-color);}
+		.ec-arch-head .ec-badge{margin-left:auto;}
+		.ec-readonly{padding:10px 12px;border-top:1px solid var(--border-color);text-align:center;font-size:var(--text-sm);}
+		.ec-header-act{cursor:pointer;margin-left:8px;color:var(--text-muted);}
+		.ec-header-act:hover{color:var(--text-color);}
 		.ec-conv{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:8px;}
 		.ec-conv:hover{background:var(--bg-light-gray);}
 		.ec-conv.active{background:var(--bg-blue);}
@@ -245,7 +283,7 @@ class EmployeeChat {
 		.ec-attach-opt{padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;}
 		.ec-attach-opt:hover{background:var(--bg-light-gray);}
 		`;
-		$(`<style id="ec-chat-styles-v5">${css}</style>`).appendTo(document.head);
+		$(`<style id="ec-chat-styles-v6">${css}</style>`).appendTo(document.head);
 	}
 
 	// --- thread list -------------------------------------------------------
@@ -263,35 +301,86 @@ class EmployeeChat {
 		}
 	}
 
+	// A thread belongs to the entity tab when it is about a record (same rule as the bubble,
+	// see EmployeeChatSource.is_entity in chat_bubble.js).
+	is_entity(t) {
+		return !!t.reference_doctype;
+	}
+
+	threads_for_tab(tab) {
+		return Object.values(this.threads).filter((t) =>
+			(tab || this.tab) === "entity" ? this.is_entity(t) : !this.is_entity(t)
+		);
+	}
+
+	render_tabs() {
+		const tabs = [
+			{ key: "employee", label: __("Employees") },
+			{ key: "entity", label: __("Entities") },
+		];
+		this.$tabs.html(
+			tabs
+				.map((t) => {
+					const unread = this.threads_for_tab(t.key).reduce((n, x) => n + (x.unread || 0), 0);
+					const badge = unread
+						? `<span class="ec-badge">${unread > 99 ? "99+" : unread}</span>`
+						: "";
+					return `<div class="ec-tab ${t.key === this.tab ? "active" : ""}" data-tab="${t.key}">
+						<span>${frappe.utils.escape_html(t.label)}</span>${badge}
+					</div>`;
+				})
+				.join("")
+		);
+	}
+
+	conv_html(t) {
+		const badge = t.unread ? `<span class="ec-badge">${t.unread}</span>` : "";
+		// Secret threads keep no readable preview server-side — the lock is the preview.
+		const preview = frappe.utils.escape_html(t.last_message_preview || "").slice(0, 40);
+		const lock = t.is_secret ? `<span class="ec-lock" title="${__("Secret chat")}">🔒</span> ` : "";
+		return `
+			<div class="ec-conv ${t.name === this.active ? "active" : ""}">
+				<div class="ec-avatar">${this.avatar_html(t)}</div>
+				<div class="ec-conv-main">
+					<div class="ec-name">${lock}${frappe.utils.escape_html(t.display_title || __("Chat"))}</div>
+					<div class="ec-last">${preview}</div>
+				</div>
+				${badge}
+			</div>
+		`;
+	}
+
 	render_list() {
+		this.render_tabs();
 		const q = (this.$search.val() || "").toLowerCase();
-		let list = Object.values(this.threads);
-		list = list
+		const list = this.threads_for_tab()
 			.filter((t) => !q || (t.display_title || "").toLowerCase().includes(q))
 			.sort((a, b) => (b.last_message_on || "").localeCompare(a.last_message_on || ""));
+		const active = list.filter((t) => !t.is_archived);
+		const archived = list.filter((t) => t.is_archived);
 
 		this.$list.empty();
-		if (!list.length) {
+		if (!active.length && !archived.length) {
 			this.$list.html(`<div class="text-muted" style="padding:12px;">${__("No chats yet")}</div>`);
 			return;
 		}
-		for (const t of list) {
-			const badge = t.unread ? `<span class="ec-badge">${t.unread}</span>` : "";
-			// Secret threads keep no readable preview server-side — the lock is the preview.
-			const preview = frappe.utils.escape_html(t.last_message_preview || "").slice(0, 40);
-			const lock = t.is_secret ? `<span class="ec-lock" title="${__("Secret chat")}">🔒</span> ` : "";
-			const $el = $(`
-				<div class="ec-conv ${t.name === this.active ? "active" : ""}">
-					<div class="ec-avatar">${this.avatar_html(t)}</div>
-					<div class="ec-conv-main">
-						<div class="ec-name">${lock}${frappe.utils.escape_html(t.display_title || __("Chat"))}</div>
-						<div class="ec-last">${preview}</div>
-					</div>
-					${badge}
-				</div>
-			`);
+		const append = (t) => {
+			const $el = $(this.conv_html(t));
 			$el.on("click", () => this.open(t.name));
 			this.$list.append($el);
+		};
+		active.forEach(append);
+		if (archived.length) {
+			// Archived chats keep receiving messages, so the collapsed header carries their unread.
+			const unread = archived.reduce((n, t) => n + (t.unread || 0), 0);
+			this.$list.append(`
+				<div class="ec-arch-head">
+					<i class="fa fa-caret-${this.arch_open ? "down" : "right"}"></i>
+					<span>${__("Archived")}</span>
+					${unread ? `<span class="ec-badge">${unread > 99 ? "99+" : unread}</span>` : ""}
+				</div>
+			`);
+			if (this.arch_open) archived.forEach(append);
 		}
 	}
 
@@ -309,8 +398,10 @@ class EmployeeChat {
 		this.messages = [];
 		this.hide_typing();
 		const t = this.threads[name];
+		// Follow the thread into its own tab (deep links land on entity threads too).
+		if (t) this.tab = this.is_entity(t) ? "entity" : "employee";
 		this.set_header(t);
-		this.$compose.show();
+		this.update_composer(t);
 		this.render_list();
 
 		// Ask for the key before loading: with it the bubbles render decrypted straight
@@ -374,22 +465,40 @@ class EmployeeChat {
 		const bind_mute = () => {
 			this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
 		};
+		// Archiving is open to anyone who is in the chat (or, for a record thread, may read the
+		// record); removing is role-gated server-side and only offered on an archived chat.
+		const act_html = !t
+			? ""
+			: `<span class="ec-header-act ec-archive" title="${
+					t.is_archived ? __("Unarchive chat") : __("Archive chat")
+			  }"><i class="fa fa-${t.is_archived ? "inbox" : "archive"}"></i></span>` +
+			  (t.is_archived && t.can_purge
+					? `<span class="ec-header-act ec-purge" title="${__(
+							"Remove chat"
+					  )}"><i class="fa fa-trash-o"></i></span>`
+					: "");
+		const bind_acts = () => {
+			this.$header.find(".ec-archive").on("click", () => this.toggle_archive());
+			this.$header.find(".ec-purge").on("click", () => this.purge_thread());
+		};
 		if (!t || !t.is_secret) {
-			this.$header.html(`<span class="ec-header-title"></span>${mute_html}`);
+			this.$header.html(`<span class="ec-header-title"></span>${mute_html}${act_html}`);
 			this.$header.find(".ec-header-title").text(title);
 			bind_info();
 			bind_mute();
+			bind_acts();
 			return;
 		}
 		const locked = !erpnext.chat_crypto.is_unlocked();
 		this.$header.html(
-			`🔒 <span class="ec-header-title"></span>${mute_html}${
+			`🔒 <span class="ec-header-title"></span>${mute_html}${act_html}${
 				locked ? ` <button class="btn btn-xs btn-primary ec-unlock">${__("Unlock")}</button>` : ""
 			}`
 		);
 		this.$header.find(".ec-header-title").text(title);
 		bind_info();
 		bind_mute();
+		bind_acts();
 		this.$header.find(".ec-unlock").on("click", async () => {
 			await erpnext.chat_crypto.ensure_unlocked();
 			if (erpnext.chat_crypto.is_unlocked()) this.open(this.active);
@@ -413,6 +522,89 @@ class EmployeeChat {
 			message: muted ? __("Chat muted") : __("Chat unmuted"),
 			indicator: "blue",
 		});
+	}
+
+	// An archived chat about a record is frozen server-side — swap the composer for a note
+	// instead of letting the user type into a message that would be rejected.
+	update_composer(t) {
+		if (t && t.read_only) {
+			this.$compose.hide();
+			this.$readonly.show();
+		} else {
+			this.$readonly.hide();
+			this.$compose.show();
+		}
+	}
+
+	async toggle_archive() {
+		const t = this.threads[this.active];
+		if (!t) return;
+		let res;
+		try {
+			res = await frappe.xcall(API + "set_archived", {
+				thread: this.active,
+				archived: t.is_archived ? 0 : 1,
+			});
+		} catch (e) {
+			return;
+		}
+		t.is_archived = res.is_archived;
+		t.read_only = res.read_only;
+		this.set_header(t);
+		this.update_composer(t);
+		this.render_list();
+		frappe.show_alert({
+			message: t.is_archived ? __("Chat archived") : __("Chat unarchived"),
+			indicator: "blue",
+		});
+	}
+
+	purge_thread() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		frappe.confirm(
+			__("Delete this chat with all its messages and files? This cannot be undone."),
+			async () => {
+				try {
+					await frappe.xcall(API + "purge_thread", { thread: name });
+				} catch (e) {
+					return;
+				}
+				this.forget_thread(name);
+				frappe.show_alert({ message: __("Chat removed"), indicator: "red" });
+			}
+		);
+	}
+
+	// Drop a thread that no longer exists (purged here or by someone else).
+	forget_thread(name) {
+		delete this.threads[name];
+		if (this.active === name) {
+			this.active = null;
+			this.messages = [];
+			this.$thread.empty();
+			this.$header.html(`<span class="text-muted">${__("Select a chat")}</span>`);
+			this.$compose.hide();
+			this.$readonly.hide();
+		}
+		this.render_list();
+	}
+
+	on_realtime_archived(d) {
+		const t = d && this.threads[d.thread];
+		if (!t) return;
+		t.is_archived = d.is_archived;
+		t.read_only = d.read_only;
+		if (this.active === d.thread) {
+			this.set_header(t);
+			this.update_composer(t);
+		}
+		this.render_list();
+	}
+
+	on_realtime_purged(d) {
+		if (d && this.threads[d.thread]) this.forget_thread(d.thread);
 	}
 
 	// Decrypt in place: every message carries `_dec` once opened, so rendering stays
@@ -742,6 +934,22 @@ class EmployeeChat {
 				},
 			},
 		];
+		actions.push({
+			label: info.is_archived ? __("Unarchive chat") : __("Archive chat"),
+			on_click: async () => {
+				await this.toggle_archive();
+				dialog.hide();
+			},
+		});
+		if (info.is_archived && info.can_purge) {
+			actions.push({
+				label: __("Remove chat"),
+				on_click: () => {
+					dialog.hide();
+					this.purge_thread();
+				},
+			});
+		}
 		if (can_admin) {
 			actions.push({
 				label: __("Rename chat"),
@@ -1073,9 +1281,14 @@ class EmployeeChat {
 		return { message: ciphertext, is_encrypted: 1, enc_iv: iv };
 	}
 
+	is_read_only() {
+		const t = this.threads[this.active];
+		return !!(t && t.read_only);
+	}
+
 	async send() {
 		const text = (this.$input.val() || "").trim();
-		if (!text || !this.active) return;
+		if (!text || !this.active || this.is_read_only()) return;
 		const secret = this.is_secret_thread();
 		if (secret && !(await erpnext.chat_crypto.ensure_unlocked())) return;
 
@@ -1118,7 +1331,7 @@ class EmployeeChat {
 
 	// The paperclip offers two things: a file/photo upload (existing) or an ERPNext link.
 	attach_menu(e) {
-		if (!this.active) return;
+		if (!this.active || this.is_read_only()) return;
 		$(".ec-attach-pop").remove();
 		const $btn = $(e.currentTarget);
 		const off = $btn.offset();
@@ -1283,6 +1496,9 @@ class EmployeeChat {
 					content_type,
 					// The ciphertext URL is kept for housekeeping; it reveals nothing.
 					attach: url,
+					// The encrypted preview's URL lives inside the ciphertext, so name it here
+					// too — otherwise the server can never link (or purge) that blob.
+					extra_files: payload.thumb ? JSON.stringify([payload.thumb.url]) : null,
 					reply_to: this.reply_to ? this.reply_to.name : null,
 					...args,
 				});
@@ -1303,7 +1519,7 @@ class EmployeeChat {
 	// Record a voice message and send it as an audio message. Secret threads encrypt the
 	// blob in the browser, exactly like attach_media_secret.
 	async record_voice() {
-		if (!this.active) return;
+		if (!this.active || this.is_read_only()) return;
 		const rec = await erpnext.chat_media.record_audio();
 		if (!rec) return;
 		if (this.is_secret_thread()) return this.send_voice_secret(rec);

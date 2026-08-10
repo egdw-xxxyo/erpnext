@@ -848,7 +848,6 @@ def setup_lead_next_action_notification():
 	print(f"  Created Notification: {name}")
 
 
-<<<<<<< HEAD
 def create_v16_ported_fields():
 	"""Fields that used to live in patched stock DocType JSONs on the v15 fork.
 
@@ -1128,7 +1127,8 @@ def set_v16_ported_properties():
 			}
 		).insert(ignore_permissions=True)
 		print("  Created Property Setter: Quotation.track_changes")
-=======
+
+
 def setup_chat_manager_role():
 	"""Role that may permanently remove an archived chat with all its messages and files
 	(see employee_chat.purge_thread — the check is a plain role-level delete permission on
@@ -1164,7 +1164,6 @@ def setup_chat_manager_role():
 		}
 	).insert(ignore_permissions=True)
 	print(f"  Created Custom DocPerm: {doctype} / {role}")
->>>>>>> 0e0af16f38 (feat(chat): archive/purge chats, freeze archived entity chats, lock attachments)
 
 
 def _create_custom_fields(fields):
