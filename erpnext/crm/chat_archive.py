@@ -63,7 +63,10 @@ def setting(key):
 	# Read `tabSingles` directly: `get_single_value` casts by fieldtype, so an Int the user has
 	# never saved comes back as 0, not None — which silently turned every limit here into zero
 	# ("this chat is too large to unpack" for a two-message chat).
-	value = frappe.db.get_value("Singles", {"doctype": "Chat Settings", "field": key}, "value")
+	# Raw SQL: `tabSingles` has no `modified` column, so the query builder's default ORDER BY
+	# fails on it.
+	rows = frappe.db.sql("select value from `tabSingles` where doctype = 'Chat Settings' and field = %s", key)
+	value = rows[0][0] if rows else None
 	if value in (None, ""):
 		return _DEFAULTS[key]
 	return int(value)
