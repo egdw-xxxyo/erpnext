@@ -6,7 +6,11 @@ import unittest
 import frappe
 from frappe.utils import add_days, getdate, nowdate
 
-from erpnext.projects.doctype.task.task import CircularReferenceError, ParentIsGroupError
+from erpnext.projects.doctype.task.task import (
+	CircularReferenceError,
+	ParentIsGroupError,
+	TaskOwnedByAnotherGroupError,
+)
 
 
 class TestTask(unittest.TestCase):
@@ -127,6 +131,125 @@ class TestTask(unittest.TestCase):
 		)
 
 		self.assertRaises(ParentIsGroupError, child_task.save)
+
+	def test_group_progress_excludes_cancelled_tasks(self):
+		group_task = create_task(subject="_Test Group Progress", is_group=1)
+
+		statuses = ["Completed"] + ["New"] * 9 + ["Cancelled"] * 5
+		for index, status in enumerate(statuses):
+			child = create_task(subject=f"_Test Group Progress Child {index}", parent_task=group_task.name)
+			child.status = status
+			child.save()
+
+		group_task.reload()
+		self.assertEqual(group_task.progress, 10)
+
+	def test_group_progress_without_countable_tasks(self):
+		group_task = create_task(subject="_Test Empty Group Progress", is_group=1)
+
+		group_task.reload()
+		self.assertEqual(group_task.progress, 0)
+
+		child = create_task(subject="_Test Empty Group Child", parent_task=group_task.name)
+		child.status = "Cancelled"
+		child.save()
+
+		group_task.reload()
+		self.assertEqual(group_task.progress, 0)
+
+	def test_group_progress_ignores_manual_input(self):
+		group_task = create_task(subject="_Test Manual Group Progress", is_group=1)
+		child = create_task(subject="_Test Manual Group Child", parent_task=group_task.name)
+		child.status = "Completed"
+		child.save()
+
+		group_task.reload()
+		group_task.progress = 42
+		group_task.save()
+
+		self.assertEqual(group_task.progress, 100)
+
+	def test_manual_progress_kept_for_regular_task(self):
+		task = create_task(subject="_Test Manual Progress")
+
+		task.progress = 42
+		task.save()
+
+		self.assertEqual(frappe.db.get_value("Task", task.name, "progress"), 42)
+
+	def test_depends_on_details_are_refreshed(self):
+		dependency = create_task(subject="_Test Dependency Details", end=add_days(nowdate(), 5), is_group=0)
+		task = create_task(subject="_Test Dependent Details", end=add_days(nowdate(), 5))
+		task.append("depends_on", {"task": dependency.name})
+		task.save()
+
+		dependency.status = "Completed"
+		dependency.save()
+
+		task.reload()
+		task.run_method("onload")
+		row = task.depends_on[0]
+		self.assertEqual(row.status, "Completed")
+		self.assertEqual(row.progress, 100)
+		self.assertEqual(row.exp_end_date, getdate(add_days(nowdate(), 5)))
+
+	def test_dependency_on_group_becomes_child(self):
+		group_task = create_task(subject="_Test Sync Group", is_group=1)
+		task = create_task(subject="_Test Sync Child")
+
+		group_task.append("depends_on", {"task": task.name})
+		group_task.save()
+
+		self.assertEqual(frappe.db.get_value("Task", task.name, "parent_task"), group_task.name)
+
+		task.reload()
+		task.status = "Completed"
+		task.save()
+
+		group_task.reload()
+		self.assertEqual(group_task.progress, 100)
+
+	def test_dependency_on_regular_task_stays_a_dependency(self):
+		task = create_task(subject="_Test Plain Dependant")
+		dependency = create_task(subject="_Test Plain Dependency")
+
+		task.append("depends_on", {"task": dependency.name})
+		task.save()
+
+		self.assertIsNone(frappe.db.get_value("Task", dependency.name, "parent_task"))
+
+	def test_removing_dependency_detaches_child(self):
+		group_task = create_task(subject="_Test Detach Group", is_group=1)
+		task = create_task(subject="_Test Detach Child", parent_task=group_task.name)
+
+		group_task.reload()
+		group_task.set("depends_on", [])
+		group_task.save()
+
+		self.assertFalse(frappe.db.get_value("Task", task.name, "parent_task"))
+
+	def test_changing_parent_cleans_up_previous_group(self):
+		first_group = create_task(subject="_Test Move Group 1", is_group=1)
+		second_group = create_task(subject="_Test Move Group 2", is_group=1)
+		task = create_task(subject="_Test Move Child", parent_task=first_group.name)
+
+		task.reload()
+		task.parent_task = second_group.name
+		task.save()
+
+		first_group.reload()
+		second_group.reload()
+		self.assertNotIn(task.name, [row.task for row in first_group.depends_on])
+		self.assertIn(task.name, [row.task for row in second_group.depends_on])
+
+	def test_task_cannot_belong_to_two_groups(self):
+		first_group = create_task(subject="_Test Owned Group 1", is_group=1)
+		second_group = create_task(subject="_Test Owned Group 2", is_group=1)
+		task = create_task(subject="_Test Owned Child", parent_task=first_group.name)
+
+		second_group.append("depends_on", {"task": task.name})
+
+		self.assertRaises(TaskOwnedByAnotherGroupError, second_group.save)
 
 
 def create_task(
