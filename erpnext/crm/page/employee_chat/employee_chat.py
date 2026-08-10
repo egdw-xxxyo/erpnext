@@ -46,27 +46,43 @@ def _require_participant(thread):
 	return doc
 
 
-def _may_manage_archive(thread_doc):
-	"""Archiving is not a membership privilege: for a Document thread anyone who may read the
-	referenced record may archive/unarchive it (the same gate `open_document_thread` uses to let
-	them join). For Direct/Group threads any participant may."""
+def _may_read_thread(thread_doc):
+	"""Who counts as "in" a chat: any participant, and for a Document thread anyone who may read
+	the referenced record (the same gate `open_document_thread` uses to let them join). Wider than
+	`_require_participant`, which is about membership, not access."""
 	me = frappe.session.user
 	if me == "Administrator" or thread_doc.is_participant(me):
-		return thread_doc
-	if (
+		return True
+	return bool(
 		thread_doc.thread_type == "Document"
 		and thread_doc.reference_doctype
 		and thread_doc.reference_name
 		and not thread_doc.reference_removed
 		and frappe.has_permission(thread_doc.reference_doctype, "read", doc=thread_doc.reference_name)
-	):
+	)
+
+
+def _require_read_thread(thread):
+	doc = _get_thread(thread)
+	if not _may_read_thread(doc):
+		frappe.throw(_("You are not a participant of this chat"), frappe.PermissionError)
+	return doc
+
+
+def _may_manage_archive(thread_doc):
+	"""Archiving is not a membership privilege — everyone with access to the chat may do it."""
+	if _may_read_thread(thread_doc):
 		return thread_doc
 	frappe.throw(_("You are not allowed to archive this chat"), frappe.PermissionError)
 
 
 def _require_writable(thread_doc):
 	"""An archived Document thread is frozen — the record it belongs to is done with. Direct and
-	group threads stay writable while archived; they just sit in the archived list."""
+	group threads stay writable while archived; they just sit in the archived list. A deep-archived
+	chat is frozen whatever its type: the zip is the source of truth and anything written to an
+	unpacked copy would be dropped when the copy expires."""
+	if thread_doc.is_deep_archived:
+		frappe.throw(_("This chat is in the deep archive"), frappe.PermissionError)
 	if thread_doc.thread_type == "Document" and thread_doc.is_archived:
 		frappe.throw(_("This chat is archived and read-only"), frappe.PermissionError)
 	return thread_doc
@@ -79,8 +95,23 @@ def _may_purge():
 	return bool(frappe.has_permission("Chat Thread", "delete"))
 
 
-def _is_read_only(thread_type, is_archived):
+def _is_read_only(thread_type, is_archived, is_deep_archived=0):
+	if is_deep_archived:
+		return 1
 	return 1 if (thread_type == "Document" and is_archived) else 0
+
+
+def _deep_archive_payload(row):
+	"""What the clients may know about the archive: enough to draw the banner and the progress
+	bar, never the path or the checksum."""
+	return {
+		"status": row.get("deep_archive_status") or "",
+		"message_count": row.get("archived_message_count") or 0,
+		"file_count": row.get("archived_file_count") or 0,
+		"percent": row.get("restore_progress") or 0,
+		"archived_on": str(row.get("deep_archived_on")) if row.get("deep_archived_on") else None,
+		"expires_on": str(row.get("restore_expires_on")) if row.get("restore_expires_on") else None,
+	}
 
 
 def _participant_users(thread_doc):
@@ -426,6 +457,13 @@ def get_threads():
 			"reference_label",
 			"is_archived",
 			"reference_removed",
+			"is_deep_archived",
+			"deep_archive_status",
+			"deep_archived_on",
+			"archived_message_count",
+			"archived_file_count",
+			"restore_progress",
+			"restore_expires_on",
 		],
 		order_by="last_message_on desc",
 	)
@@ -468,8 +506,9 @@ def get_threads():
 		if last_read[t["name"]]:
 			unread_filters.append(["Chat Message", "creation", ">", last_read[t["name"]]])
 		t["unread"] = frappe.db.count("Chat Message", unread_filters)
-		t["read_only"] = _is_read_only(t["thread_type"], t["is_archived"])
+		t["read_only"] = _is_read_only(t["thread_type"], t["is_archived"], t["is_deep_archived"])
 		t["can_purge"] = can_purge
+		t["deep_archive"] = _deep_archive_payload(t)
 
 	return threads
 
@@ -593,7 +632,15 @@ def open_document_thread(reference_doctype, reference_name):
 def get_messages(thread, before=None, limit=50):
 	"""Keyset-paginated message history (oldest-first in the returned batch). Pass the
 	`creation` of the oldest loaded message as `before` to page backwards."""
-	_require_participant(thread)
+	doc = _require_participant(thread)
+	# A deep-archived chat holds nothing until it is unpacked; hand back an empty history so the
+	# client draws the archive banner instead of an empty conversation.
+	if doc.is_deep_archived:
+		from erpnext.crm import chat_archive
+
+		if doc.deep_archive_status != "Restored":
+			return []
+		chat_archive.touch(thread)
 	filters = [["Chat Message", "thread", "=", thread]]
 	if before:
 		filters.append(["Chat Message", "creation", "<", before])
@@ -758,6 +805,9 @@ def set_archived(thread, archived):
 	its "Removed" badge even after someone unarchives it."""
 	doc = _may_manage_archive(_get_thread(thread))
 	archived = 1 if int(archived or 0) else 0
+	if not archived and doc.is_deep_archived:
+		# Un-archiving would put a chat with no content back in the active list.
+		frappe.throw(_("Unpack the chat before returning it from the archive"))
 	# `is_archived` is read_only in the schema — write it the same way on_reference_deleted does.
 	# `archived_on` is what the age-based deep archive job measures from.
 	frappe.db.set_value(
@@ -769,7 +819,7 @@ def set_archived(thread, archived):
 	payload = {
 		"thread": thread,
 		"is_archived": archived,
-		"read_only": _is_read_only(doc.thread_type, archived),
+		"read_only": _is_read_only(doc.thread_type, archived, doc.is_deep_archived),
 	}
 	_fanout(doc, "chat_thread_archived", payload)
 	return payload
@@ -782,11 +832,15 @@ def purge_thread(thread):
 
 	Two gates, deliberately different: `_may_manage_archive` says you have business with this
 	chat, `_may_purge` says you are trusted to destroy it (the `Chat Manager` role)."""
+	from erpnext.crm import chat_archive
+
 	doc = _may_manage_archive(_get_thread(thread))
 	if not doc.is_archived:
 		frappe.throw(_("Only an archived chat can be removed"))
 	if not _may_purge():
 		frappe.throw(_("You are not allowed to remove chats"), frappe.PermissionError)
+	if doc.deep_archive_status in ("Packing", "Restoring"):
+		frappe.throw(_("The chat archive is busy — try again in a minute"))
 
 	# The participant rows die with the parent, so capture the audience before deleting.
 	users = _participant_users(doc)
@@ -805,6 +859,7 @@ def purge_thread(thread):
 
 	frappe.db.delete("Chat Message", {"thread": thread})
 	frappe.db.delete("Chat Thread Key", {"thread": thread})
+	chat_archive.drop_zip(thread)
 	frappe.delete_doc("Chat Thread", thread, ignore_permissions=True, force=True, delete_permanently=True)
 
 	for user in users:
@@ -812,6 +867,34 @@ def purge_thread(thread):
 			event="chat_thread_purged", message={"thread": thread}, user=user, after_commit=True
 		)
 	return {"ok": True, "thread": thread}
+
+
+@frappe.whitelist()
+def deep_archive_thread(thread):
+	"""Pack an archived chat into its zip and drop the originals (see erpnext.crm.chat_archive).
+
+	Same trust level as removing a chat — the content leaves the database either way — so it takes
+	the `Chat Manager` role on top of access to the chat itself."""
+	from erpnext.crm import chat_archive
+
+	doc = _may_manage_archive(_get_thread(thread))
+	if not doc.is_archived:
+		frappe.throw(_("Only an archived chat can be moved to the deep archive"))
+	if not _may_purge():
+		frappe.throw(_("You are not allowed to move chats to the deep archive"), frappe.PermissionError)
+	if not chat_archive.claim(thread, "", "Packing"):
+		frappe.throw(_("The chat archive is busy — try again in a minute"))
+
+	frappe.enqueue(
+		"erpnext.crm.chat_archive.pack",
+		queue="long",
+		timeout=3600,
+		enqueue_after_commit=True,
+		job_id=f"chat-pack::{thread}",
+		deduplicate=True,
+		thread=thread,
+	)
+	return {"thread": thread, "status": "Packing"}
 
 
 def _thread_file_names(thread):
@@ -902,6 +985,10 @@ def get_thread_info(thread, limit=200):
 	the attachment rows and the recent text rows are shipped as-is and the browser
 	splits them once decrypted."""
 	doc = _require_participant(thread)
+	if doc.deep_archive_status == "Restored":
+		from erpnext.crm import chat_archive
+
+		chat_archive.touch(thread)
 	limit = int(limit)
 	me = frappe.session.user
 
@@ -1043,8 +1130,9 @@ def get_thread_info(thread, limit=200):
 		"reference_name": doc.reference_name,
 		"reference_label": doc.reference_label,
 		"is_archived": doc.is_archived,
-		"read_only": _is_read_only(doc.thread_type, doc.is_archived),
+		"read_only": _is_read_only(doc.thread_type, doc.is_archived, doc.is_deep_archived),
 		"can_purge": 1 if _may_purge() else 0,
+		"deep_archive": _deep_archive_payload(doc.as_dict()),
 		"reference_removed": doc.reference_removed,
 		"reference_card": _reference_card(doc),
 	}
