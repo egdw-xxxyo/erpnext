@@ -28,6 +28,7 @@ Layout of the archive (schema version 1):
 
 import datetime
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -379,3 +380,273 @@ def _delete_originals(thread, file_names):
 			break
 		frappe.db.delete("Chat Message", {"name": ("in", batch)})
 		frappe.db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Restore
+# ---------------------------------------------------------------------------
+
+
+def restore(thread, requested_by=None):
+	"""Unpack an archive back into real (read-only) rows. Runs as a background job.
+
+	Rows go in with `frappe.db.bulk_insert`, not `doc.insert()`: only a raw insert can restore
+	`name`, `creation` and `owner` verbatim, and the document lifecycle is actively unwanted here —
+	`Chat Message.after_insert` would queue a thumbnail job per image and overwrite the
+	`thumbnail_url` we just restored, and `File.after_insert` would post a comment per attachment.
+	These rows were valid when they were written; there is nothing left to validate."""
+	from erpnext.crm.page.employee_chat.employee_chat import _fanout
+
+	with filelock(f"chat_archive_{thread}", timeout=5):
+		doc = frappe.get_doc("Chat Thread", thread)
+		if doc.deep_archive_status != "Restoring":
+			return
+		path = archive_abs_path(thread)
+		try:
+			if not os.path.exists(path):
+				frappe.throw(_("The chat archive is missing"))
+			if doc.deep_archive_sha256 and _sha256(path) != doc.deep_archive_sha256:
+				frappe.throw(_("The chat archive is corrupt"))
+
+			with zipfile.ZipFile(path) as zf:
+				manifest = json.loads(zf.read("chat-archive.json"))
+				if manifest.get("schema_version") != SCHEMA_VERSION:
+					frappe.throw(_("Unexpected archive version"))
+				if manifest.get("message_count", 0) > int(setting("restore_max_messages")):
+					frappe.throw(_("This chat is too large to unpack"))
+				total = (manifest.get("message_count") or 0) + (manifest.get("file_count") or 0)
+				done = _restore_files(zf, thread, total, doc)
+				_restore_messages(zf, thread, total, done, doc)
+		except Exception:
+			frappe.db.rollback()
+			_set_state(
+				thread,
+				{
+					"deep_archive_status": "Failed",
+					"restore_error": frappe.get_traceback(),
+					"restore_progress": 0,
+				},
+			)
+			frappe.db.commit()
+			frappe.log_error(title=f"Chat deep archive: unpacking {thread} failed")
+			doc.reload()
+			_fanout(doc, "chat_restore_failed", {"thread": thread})
+			raise
+
+		# Only now does the chat become readable: until this flips, get_messages returns nothing,
+		# so nobody can catch a half-unpacked conversation.
+		_set_state(
+			thread,
+			{
+				"deep_archive_status": "Restored",
+				"restore_progress": 100,
+				"restore_error": None,
+				"restore_expires_on": add_to_date(None, hours=int(setting("restore_ttl_hours"))),
+			},
+		)
+		frappe.db.commit()
+
+	doc.reload()
+	_fanout(doc, "chat_restore_done", {"thread": thread, "requested_by": requested_by})
+
+
+def _restore_files(zf, thread, total, doc):
+	"""Write the blobs back to their original paths, then insert the File rows.
+
+	The url must come back byte-for-byte: in a secret chat the url of an encrypted preview lives
+	inside the ciphertext, so a re-derived url would leave the picture unreachable forever."""
+	rows = [json.loads(line) for line in zf.read("files.jsonl").decode().splitlines() if line.strip()]
+	values = []
+	done = 0
+	for row in rows:
+		done += 1
+		_publish_progress(thread, doc, "files", done, total)
+		member = row.get("blob")
+		if not member:
+			continue
+		target = _blob_path(row)
+		if not target:
+			continue
+		os.makedirs(os.path.dirname(target), exist_ok=True)
+		if os.path.exists(target):
+			if row.get("sha256") and _sha256(target) == row["sha256"]:
+				pass  # already there from a previous, interrupted run
+			elif frappe.db.exists("File", {"file_url": row["file_url"]}):
+				# Something else owns this url now — leave both alone.
+				continue
+			else:
+				frappe.log_error(
+					title="Chat deep archive: attachment path taken",
+					message=f"{thread}: {row['file_url']} exists with different content",
+				)
+				continue
+		else:
+			with zf.open(member) as src, open(target, "wb") as dst:
+				shutil.copyfileobj(src, dst, 1024 * 1024)
+		if frappe.db.exists("File", row["name"]):
+			continue
+		values.append(tuple(row.get(col) for col in FILE_COLUMNS))
+
+	if values:
+		frappe.db.bulk_insert("File", FILE_COLUMNS, values, ignore_duplicates=True)
+		frappe.db.commit()
+	return done
+
+
+def _restore_messages(zf, thread, total, done, doc):
+	batch = []
+	with zf.open("messages.jsonl") as member:
+		for line in io.TextIOWrapper(member, encoding="utf-8"):
+			if not line.strip():
+				continue
+			row = json.loads(line)
+			batch.append(tuple(row.get(col) for col in MESSAGE_COLUMNS))
+			if len(batch) >= 2000:
+				done += _flush_messages(batch)
+				_publish_progress(thread, doc, "messages", done, total)
+				batch = []
+	if batch:
+		done += _flush_messages(batch)
+		_publish_progress(thread, doc, "messages", done, total)
+	return done
+
+
+def _flush_messages(batch):
+	frappe.db.bulk_insert("Chat Message", MESSAGE_COLUMNS, batch, ignore_duplicates=True)
+	frappe.db.commit()
+	return len(batch)
+
+
+def _publish_progress(thread, doc, phase, done, total):
+	"""Progress must be visible while the job runs, so it is published directly rather than
+	through `_fanout` — that one forces `after_commit=True`, which would hold every update back
+	until the job ends. Persist it too: a Document-thread reader who never joined gets no realtime
+	room and can only poll."""
+	percent = int(done * 100 / total) if total else 100
+	last = frappe.flags.get("chat_restore_percent") or {}
+	if last.get(thread) == percent:
+		return
+	last[thread] = percent
+	frappe.flags.chat_restore_percent = last
+
+	frappe.db.set_value("Chat Thread", thread, "restore_progress", percent, update_modified=False)
+	frappe.db.commit()
+	payload = {"thread": thread, "percent": percent, "phase": phase, "done": done, "total": total}
+	for user in {p.user for p in doc.participants if p.user}:
+		frappe.publish_realtime("chat_restore_progress", payload, user=user, after_commit=False)
+
+
+# ---------------------------------------------------------------------------
+# Expiry + watchdog (scheduled)
+# ---------------------------------------------------------------------------
+
+
+def reap_expired_restores():
+	"""Drop unpacked copies nobody has looked at for a while, and reset jobs that died.
+
+	A reader is never reaped out from under: every read pushes the deadline out by a full TTL, and
+	a request that loses the race sees the status flip back and gets the archive banner rather than
+	half a conversation."""
+	from erpnext.crm.page.employee_chat.employee_chat import _fanout
+
+	expired = frappe.get_all(
+		"Chat Thread",
+		filters={
+			"deep_archive_status": "Restored",
+			"restore_expires_on": ("<", now()),
+		},
+		pluck="name",
+		limit=int(setting("reap_batch_size")),
+	)
+	for thread in expired:
+		try:
+			with filelock(f"chat_archive_{thread}", timeout=0):
+				# Re-read inside the lock: someone may have opened the chat since the query.
+				expires = frappe.db.get_value("Chat Thread", thread, "restore_expires_on")
+				if expires and get_datetime(expires) > get_datetime(now()):
+					continue
+				_drop_restored_rows(thread)
+				_set_state(
+					thread,
+					{
+						"deep_archive_status": "Archived",
+						"restore_expires_on": None,
+						"restore_progress": 0,
+					},
+				)
+				frappe.db.commit()
+			doc = frappe.get_doc("Chat Thread", thread)
+			_fanout(doc, "chat_restore_expired", {"thread": thread})
+		except Exception:
+			frappe.log_error(title=f"Chat deep archive: reaping {thread} failed")
+
+	_reset_stale_jobs()
+
+
+def _drop_restored_rows(thread):
+	"""Delete the unpacked copy. Safe by construction: a deep-archived chat cannot be written to,
+	so every row it holds came out of the zip, which still has them."""
+	for name in frappe.get_all(
+		"File", filters={"attached_to_doctype": "Chat Thread", "attached_to_name": thread}, pluck="name"
+	):
+		try:
+			frappe.delete_doc("File", name, ignore_permissions=True, force=True, delete_permanently=True)
+		except Exception:
+			frappe.log_error(title="Chat deep archive: could not drop restored file")
+	while True:
+		batch = frappe.get_all("Chat Message", filters={"thread": thread}, pluck="name", limit=2000)
+		if not batch:
+			break
+		frappe.db.delete("Chat Message", {"name": ("in", batch)})
+		frappe.db.commit()
+
+
+def _reset_stale_jobs():
+	"""A worker that died mid-job would otherwise leave a chat stuck forever."""
+	cutoff = add_to_date(None, minutes=-int(setting("stale_job_minutes")))
+	stuck = frappe.get_all(
+		"Chat Thread",
+		filters={"deep_archive_status": ("in", ["Packing", "Restoring"]), "modified": ("<", cutoff)},
+		fields=["name", "deep_archive_status", "is_deep_archived"],
+	)
+	for row in stuck:
+		if row.deep_archive_status == "Packing":
+			# Packing destroys nothing before the zip is verified, so there is nothing to undo.
+			_set_state(row.name, {"deep_archive_status": "" if not row.is_deep_archived else "Archived"})
+		else:
+			_drop_restored_rows(row.name)
+			_set_state(row.name, {"deep_archive_status": "Archived", "restore_progress": 0})
+		frappe.db.commit()
+		frappe.log_error(
+			title="Chat deep archive: stale job reset",
+			message=f"{row.name} was stuck in {row.deep_archive_status}",
+		)
+
+
+def auto_deep_archive():
+	"""Daily: pack chats that have been sitting in the archive long enough."""
+	if not int(setting("auto_deep_archive") or 0):
+		return
+	cutoff = add_to_date(None, days=-int(setting("deep_archive_after_days")))
+	threads = frappe.get_all(
+		"Chat Thread",
+		filters={
+			"is_archived": 1,
+			"is_deep_archived": 0,
+			"deep_archive_status": ("in", ["", None]),
+			"archived_on": ("<", cutoff),
+		},
+		pluck="name",
+		limit=int(setting("deep_archive_batch_size")),
+	)
+	for thread in threads:
+		if not claim(thread, "", "Packing"):
+			continue
+		frappe.enqueue(
+			"erpnext.crm.chat_archive.pack",
+			queue="long",
+			timeout=3600,
+			job_id=f"chat-pack::{thread}",
+			deduplicate=True,
+			thread=thread,
+		)
