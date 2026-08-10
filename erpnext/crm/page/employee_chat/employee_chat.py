@@ -759,7 +759,13 @@ def set_archived(thread, archived):
 	doc = _may_manage_archive(_get_thread(thread))
 	archived = 1 if int(archived or 0) else 0
 	# `is_archived` is read_only in the schema — write it the same way on_reference_deleted does.
-	frappe.db.set_value("Chat Thread", thread, "is_archived", archived, update_modified=False)
+	# `archived_on` is what the age-based deep archive job measures from.
+	frappe.db.set_value(
+		"Chat Thread",
+		thread,
+		{"is_archived": archived, "archived_on": now() if archived else None},
+		update_modified=False,
+	)
 	payload = {
 		"thread": thread,
 		"is_archived": archived,

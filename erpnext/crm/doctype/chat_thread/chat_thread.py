@@ -63,7 +63,7 @@ def on_reference_deleted(doc, method=None):
 		frappe.db.set_value(
 			"Chat Thread",
 			name,
-			{"is_archived": 1, "reference_removed": 1},
+			{"is_archived": 1, "archived_on": frappe.utils.now(), "reference_removed": 1},
 			update_modified=False,
 		)
 		frappe.publish_realtime(
