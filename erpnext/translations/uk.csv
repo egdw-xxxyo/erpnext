@@ -9771,6 +9771,7 @@ Task Name,Ім&#39;я завдання
 Task Progress,Завдання про хід роботи
 Task Type,Тип завдання
 Task Weight,завдання Вага
+Task {0} already belongs to Group Task {1}.,Завдання {0} вже належить груповому завданню {1}.
 Task {0} depends on Task {1}. Please add Task {1} to the Tasks list.,"Завдання {0} залежить від завдання {1}. Будь ласка, додайте завдання {1} до списку завдань."
 Tasks,Завдання
 Tasks Completed,Завдання виконані

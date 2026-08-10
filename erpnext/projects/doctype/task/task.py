@@ -8,7 +8,16 @@ import frappe
 from frappe import _, throw
 from frappe.desk.form.assign_to import clear, close_all_assignments
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import add_days, cstr, date_diff, flt, get_link_to_form, getdate, today
+from frappe.utils import (
+	add_days,
+	cstr,
+	date_diff,
+	flt,
+	get_fullname,
+	get_link_to_form,
+	getdate,
+	today,
+)
 from frappe.utils.data import format_date
 from frappe.utils.nestedset import NestedSet
 
@@ -18,6 +27,10 @@ class CircularReferenceError(frappe.ValidationError):
 
 
 class ParentIsGroupError(frappe.ValidationError):
+	pass
+
+
+class TaskOwnedByAnotherGroupError(frappe.ValidationError):
 	pass
 
 
@@ -74,6 +87,9 @@ class Task(NestedSet):
 
 	nsm_parent_field = "parent_task"
 
+	def onload(self):
+		self.refresh_depends_on_details()
+
 	def get_customer_details(self):
 		cust = frappe.db.sql("select customer_name from `tabCustomer` where name=%s", self.customer)
 		if cust:
@@ -85,9 +101,11 @@ class Task(NestedSet):
 		self.validate_progress()
 		self.validate_status()
 		self.update_depends_on()
+		self.refresh_depends_on_details()
 		self.validate_dependencies_for_template_task()
 		self.validate_completed_on()
 		self.validate_parent_is_group()
+		self.validate_depends_on_ownership()
 
 	def validate_dates(self):
 		self.validate_from_to_dates("exp_start_date", "exp_end_date")
@@ -142,6 +160,10 @@ class Task(NestedSet):
 			close_all_assignments(self.doctype, self.name)
 
 	def validate_progress(self):
+		if self.is_group:
+			self.progress = get_group_progress(self.name)
+			return
+
 		if flt(self.progress or 0) > 100:
 			frappe.throw(_("Progress % for a task cannot be more than 100."))
 
@@ -186,12 +208,31 @@ class Task(NestedSet):
 					ParentIsGroupError,
 				)
 
+	def validate_depends_on_ownership(self):
+		if not self.is_group:
+			return
+
+		for row in self.depends_on:
+			owner_task = frappe.db.get_value("Task", row.task, "parent_task")
+			if owner_task and owner_task != self.name:
+				frappe.throw(
+					_("Task {0} already belongs to Group Task {1}.").format(
+						get_link_to_form("Task", row.task), get_link_to_form("Task", owner_task)
+					),
+					TaskOwnedByAnotherGroupError,
+				)
+
 	def update_depends_on(self):
 		depends_on_tasks = ""
 		for d in self.depends_on:
 			if d.task and d.task not in depends_on_tasks:
 				depends_on_tasks += d.task + ","
 		self.depends_on_tasks = depends_on_tasks
+
+	def refresh_depends_on_details(self):
+		details = get_task_details([row.task for row in self.depends_on if row.task])
+		for row in self.depends_on:
+			row.update(details.get(row.task, {}))
 
 	def update_nsm_model(self):
 		frappe.utils.nestedset.update_nsm(self)
@@ -203,6 +244,41 @@ class Task(NestedSet):
 		self.update_project()
 		self.unassign_todo()
 		self.populate_depends_on()
+		self.detach_from_previous_parent()
+		self.sync_child_tasks()
+		self.update_parent_group_progress()
+
+	def get_previous_depends_on(self):
+		previous = self.get_doc_before_save()
+		return {row.task for row in previous.depends_on if row.task} if previous else set()
+
+	def sync_child_tasks(self):
+		"""Keep `depends_on` of a Group Task and `parent_task` of its children in sync."""
+		if self.flags.ignore_child_task_sync:
+			return
+
+		previous_tasks = self.get_previous_depends_on()
+		current_tasks = {row.task for row in self.depends_on if row.task}
+
+		if self.is_group:
+			for task_name in current_tasks - previous_tasks:
+				set_parent_task(task_name, self.name)
+
+		for task_name in previous_tasks - current_tasks:
+			if frappe.db.get_value("Task", task_name, "parent_task") == self.name:
+				set_parent_task(task_name, None)
+
+	def detach_from_previous_parent(self):
+		previous = self.get_doc_before_save()
+		previous_parent = previous.parent_task if previous else None
+		if previous_parent and previous_parent != self.parent_task:
+			remove_depends_on_row(previous_parent, self.name)
+
+	def update_parent_group_progress(self):
+		previous = self.get_doc_before_save()
+		parents = {self.parent_task, previous.parent_task if previous else None}
+		for parent_task in parents - {None, ""}:
+			update_group_progress(parent_task)
 
 	def unassign_todo(self):
 		if self.status == "Completed":
@@ -302,6 +378,7 @@ class Task(NestedSet):
 
 	def after_delete(self):
 		self.update_project()
+		update_group_progress(self.parent_task)
 
 	def is_overdue(self):
 		"""Overdue is derived from the expected end date, it is not a status."""
@@ -309,6 +386,74 @@ class Task(NestedSet):
 			return False
 
 		return getdate(self.exp_end_date) < getdate(today())
+
+
+def set_parent_task(task_name, parent_task):
+	task = frappe.get_doc("Task", task_name)
+	if task.parent_task == parent_task:
+		return
+
+	task.parent_task = parent_task
+	task.save()
+
+
+def remove_depends_on_row(parent_task, task_name):
+	parent = frappe.get_doc("Task", parent_task)
+	remaining = [row for row in parent.depends_on if row.task != task_name]
+	if len(remaining) == len(parent.depends_on):
+		return
+
+	parent.set("depends_on", remaining)
+	parent.flags.ignore_child_task_sync = True
+	parent.save()
+
+
+def get_group_progress(task_name):
+	"""Share of completed child tasks, cancelled ones excluded from the total."""
+	tally = {
+		row.status: row.count
+		for row in frappe.get_all(
+			"Task",
+			filters={"parent_task": task_name},
+			fields=["status", "count(name) as count"],
+			group_by="status",
+		)
+	}
+	considered = sum(count for status, count in tally.items() if status != "Cancelled")
+
+	return flt(tally.get("Completed", 0) / considered * 100, 2) if considered else 0.0
+
+
+def update_group_progress(task_name):
+	if not task_name or not frappe.db.get_value("Task", task_name, "is_group"):
+		return
+
+	frappe.db.set_value("Task", task_name, "progress", get_group_progress(task_name), update_modified=False)
+
+
+def get_task_details(task_names):
+	"""Fields mirrored into the `depends_on` grid of the tasks that reference these."""
+	if not task_names:
+		return {}
+
+	return {
+		task.name: {
+			"subject": task.subject,
+			"status": task.status,
+			"progress": task.progress,
+			"exp_end_date": task.exp_end_date,
+			"responsible": get_assignees(task._assign),
+		}
+		for task in frappe.get_all(
+			"Task",
+			filters={"name": ("in", task_names)},
+			fields=["name", "subject", "status", "progress", "exp_end_date", "_assign"],
+		)
+	}
+
+
+def get_assignees(assignments):
+	return ", ".join(get_fullname(user) for user in frappe.parse_json(assignments or "[]"))
 
 
 @frappe.whitelist()
