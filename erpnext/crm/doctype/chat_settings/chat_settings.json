@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "creation": "2026-08-10 00:00:00.000000",
+ "description": "Settings for the internal Employee Chat",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "deep_archive_section",
+  "auto_deep_archive",
+  "deep_archive_after_days",
+  "deep_archive_batch_size",
+  "column_break_deep_archive",
+  "restore_ttl_hours",
+  "restore_max_messages",
+  "reap_batch_size",
+  "stale_job_minutes"
+ ],
+ "fields": [
+  {
+   "fieldname": "deep_archive_section",
+   "fieldtype": "Section Break",
+   "label": "Deep Archive"
+  },
+  {
+   "default": "0",
+   "description": "Pack archived chats into a deep archive automatically once they are old enough",
+   "fieldname": "auto_deep_archive",
+   "fieldtype": "Check",
+   "label": "Deep Archive Automatically"
+  },
+  {
+   "default": "180",
+   "description": "Days a chat must stay archived before it is packed automatically",
+   "fieldname": "deep_archive_after_days",
+   "fieldtype": "Int",
+   "label": "Deep Archive After (Days)"
+  },
+  {
+   "default": "20",
+   "description": "How many chats the daily job packs per run",
+   "fieldname": "deep_archive_batch_size",
+   "fieldtype": "Int",
+   "label": "Chats Per Run"
+  },
+  {
+   "fieldname": "column_break_deep_archive",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "2",
+   "description": "How long unpacked content stays available after it was last opened",
+   "fieldname": "restore_ttl_hours",
+   "fieldtype": "Int",
+   "label": "Keep Unpacked Content For (Hours)"
+  },
+  {
+   "default": "100000",
+   "description": "Refuse to unpack a chat with more messages than this",
+   "fieldname": "restore_max_messages",
+   "fieldtype": "Int",
+   "label": "Maximum Messages To Unpack"
+  },
+  {
+   "default": "50",
+   "description": "How many expired chats are cleaned up per run",
+   "fieldname": "reap_batch_size",
+   "fieldtype": "Int",
+   "label": "Cleanup Batch Size"
+  },
+  {
+   "default": "60",
+   "description": "A packing or unpacking job stuck for longer than this is considered dead and reset",
+   "fieldname": "stale_job_minutes",
+   "fieldtype": "Int",
+   "label": "Stuck Job Timeout (Minutes)"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Chat Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "print": 1,
+   "read": 1,
+   "role": "Chat Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
