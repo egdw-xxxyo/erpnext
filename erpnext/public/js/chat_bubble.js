@@ -9,6 +9,17 @@ frappe.provide("erpnext.whatsapp");
 const WA_API = "erpnext.crm.page.whatsapp_chat.whatsapp_chat";
 const EC_API = "erpnext.crm.page.employee_chat.employee_chat";
 
+// Confirmation text for archiving, shared with the full chat page so both clients ask the
+// same question (and uk.csv needs one row per string, not two).
+erpnext.chat_archive_prompt = function (archived, is_entity) {
+	if (!archived) return __("Move this chat out of the archive?");
+	return is_entity
+		? __(
+				"Archive this chat? It moves to the Archive section and becomes read-only — nobody will be able to write in it until it is unarchived."
+		  )
+		: __("Archive this chat? It moves to the Archive section. You can still write in it.");
+};
+
 // A user may use a chat only with both the doctype read permission and access to
 // the page itself (server side enforces the same, see _require_wa_access).
 function cb_page_allowed(page) {
@@ -713,20 +724,28 @@ class ChatBubble {
 		this.$deep.toggle(!!(chat.is_archived && chat.can_purge && !(chat.deep_archive || {}).status));
 	}
 
-	async toggle_archive() {
+	toggle_archive() {
 		const chat = (this.source.chats || []).find((c) => c.id === this.active);
 		if (!chat || !this.source.set_archived) return;
 		const archived = chat.is_archived ? 0 : 1;
-		try {
-			const res = await this.source.set_archived(this.active, archived);
-			chat.is_archived = res.is_archived;
-			chat.read_only = res.read_only;
-		} catch (e) {
-			return;
-		}
-		this.render_thread_actions();
-		this.render_composer(chat);
-		this.refresh();
+		const id = this.active;
+		// Archiving is global — it moves the chat for everyone in it, and for a record chat it
+		// also freezes the conversation, so both directions ask first.
+		frappe.confirm(
+			erpnext.chat_archive_prompt(archived, EmployeeChatSource.is_entity(chat)),
+			async () => {
+				try {
+					const res = await this.source.set_archived(id, archived);
+					chat.is_archived = res.is_archived;
+					chat.read_only = res.read_only;
+				} catch (e) {
+					return;
+				}
+				this.render_thread_actions();
+				this.render_composer(chat);
+				this.refresh();
+			}
+		);
 	}
 
 	async purge_thread() {

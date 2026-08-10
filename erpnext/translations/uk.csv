@@ -13114,3 +13114,6 @@ Additional Information for Status {0},Додаткова інформація д
 "Archive Document Chats Automatically","Архівувати чати документів автоматично"
 "Archive After (Days Without Messages)","Архівувати через (днів без повідомлень)"
 "Chats Archived Per Run","Чатів архівується за один запуск"
+"Move this chat out of the archive?","Повернути цей чат з архіву?"
+"Archive this chat? It moves to the Archive section and becomes read-only — nobody will be able to write in it until it is unarchived.","Заархівувати цей чат? Він переїде в розділ «Архів» і стане лише для читання — писати в нього не зможе ніхто, доки його не повернуть з архіву."
+"Archive this chat? It moves to the Archive section. You can still write in it.","Заархівувати цей чат? Він переїде в розділ «Архів». Писати в нього можна й далі."
