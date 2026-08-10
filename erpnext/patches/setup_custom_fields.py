@@ -36,6 +36,7 @@ def execute():
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
 	setup_chat_manager_role()
+	restore_standard_navbar_items()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -877,6 +878,57 @@ def setup_chat_manager_role():
 		}
 	).insert(ignore_permissions=True)
 	print(f"  Created Custom DocPerm: {doctype} / {role}")
+
+
+def restore_standard_navbar_items():
+	"""Put back the standard entries of the navbar dropdowns.
+
+	On 2026-08-07 a migrate emptied `Navbar Settings.settings_dropdown` down to a single stale
+	"Delete Demo Data" row (its action calls `erpnext.demo`, a module that no longer exists), so
+	the avatar menu rendered as an empty white box — no My Settings, no Log out. The items are
+	seeded only by `frappe.utils.install.add_standard_navbar_items`, which returns early once both
+	dropdowns are non-empty, so nothing ever repaired it.
+
+	Matching is by `item_label`, the key frappe itself uses in its navbar patches. Rows that exist
+	are left alone (a hidden standard item stays hidden), so this is safe on every deploy.
+	"""
+	settings = frappe.get_single("Navbar Settings")
+	changed = False
+
+	dead = [row for row in settings.settings_dropdown if row.action and "erpnext.demo" in row.action]
+	for row in dead:
+		settings.settings_dropdown.remove(row)
+		changed = True
+		print(f"  Removed dead navbar item: {row.item_label}")
+
+	for fieldname, hook in (
+		("settings_dropdown", "standard_navbar_items"),
+		("help_dropdown", "standard_help_items"),
+	):
+		have = {(row.item_label or "").strip() for row in settings.get(fieldname)}
+		for item in frappe.get_hooks(hook):
+			label = (item.get("item_label") or "").strip()
+			# The separator has no label and no identity — only add one if the list is empty.
+			if not label and have:
+				continue
+			if label in have:
+				continue
+			settings.append(fieldname, item)
+			have.add(label)
+			changed = True
+			print(f"  Restored navbar item: {fieldname} / {label or 'Separator'}")
+
+	if not changed:
+		print("  Navbar items OK")
+		return
+
+	# Deleting a standard item is refused by NavbarSettings.validate outside of a patch run.
+	frappe.flags.in_patch = True
+	try:
+		settings.save(ignore_permissions=True)
+	finally:
+		frappe.flags.in_patch = False
+	frappe.clear_cache()
 
 
 def _create_custom_fields(fields):
