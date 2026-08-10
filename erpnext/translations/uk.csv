@@ -13110,3 +13110,7 @@ Additional Information for Status {0},Додаткова інформація д
 "Stuck Job Timeout (Minutes)","Таймаут зависань (хвилин)"
 "{0} must be greater than zero","{0} має бути більше нуля"
 "Archived On","Архівовано"
+"Archive","Архів"
+"Archive Document Chats Automatically","Архівувати чати документів автоматично"
+"Archive After (Days Without Messages)","Архівувати через (днів без повідомлень)"
+"Chats Archived Per Run","Чатів архівується за один запуск"

@@ -46,6 +46,9 @@ ARCHIVE_DIR = "chat-archive"
 # `get_single_value` returns None in that state — so these are the real defaults and the form is
 # only ever an override.
 _DEFAULTS = {
+	"auto_archive_entity_chats": 0,
+	"archive_entity_after_days": 30,
+	"archive_batch_size": 100,
 	"auto_deep_archive": 0,
 	"deep_archive_after_days": 180,
 	"deep_archive_batch_size": 20,
@@ -621,6 +624,33 @@ def _reset_stale_jobs():
 			title="Chat deep archive: stale job reset",
 			message=f"{row.name} was stuck in {row.deep_archive_status}",
 		)
+
+
+def auto_archive_entity_chats():
+	"""Daily: archive document chats that have gone quiet.
+
+	Only Document threads — a chat about a record is finished when the record is, whereas a direct
+	or group chat between people has no such end. Age is measured from the last message, falling
+	back to the thread's creation for a chat where nobody ever wrote anything."""
+	from erpnext.crm.page.employee_chat.employee_chat import _fanout
+
+	if not int(setting("auto_archive_entity_chats") or 0):
+		return
+	cutoff = add_to_date(None, days=-int(setting("archive_entity_after_days")))
+	threads = frappe.db.sql(
+		"""select name from `tabChat Thread`
+		where thread_type = 'Document' and ifnull(is_archived, 0) = 0
+			and ifnull(last_message_on, creation) < %s
+		order by ifnull(last_message_on, creation) asc
+		limit %s""",
+		(cutoff, int(setting("archive_batch_size"))),
+		pluck=True,
+	)
+	for thread in threads:
+		_set_state(thread, {"is_archived": 1, "archived_on": now()})
+		frappe.db.commit()
+		doc = frappe.get_doc("Chat Thread", thread)
+		_fanout(doc, "chat_thread_archived", {"thread": thread, "is_archived": 1, "read_only": 1})
 
 
 def auto_deep_archive():

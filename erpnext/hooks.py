@@ -521,6 +521,7 @@ scheduler_events = {
 	"daily": [
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
+		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
 	],
 	"daily_long": [],
