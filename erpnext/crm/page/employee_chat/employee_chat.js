@@ -80,6 +80,14 @@ class EmployeeChat {
 		frappe.realtime.on("chat_reaction", this.on_reaction);
 		frappe.realtime.on("chat_thread_archived", this.on_archived);
 		frappe.realtime.on("chat_thread_purged", this.on_purged);
+		this.deep_events = {
+			chat_deep_archived: (d) => this.on_realtime_deep_archived(d),
+			chat_restore_progress: (d) => this.on_realtime_restore_progress(d),
+			chat_restore_done: (d) => this.on_realtime_restore_done(d),
+			chat_restore_failed: (d) => this.on_realtime_restore_failed(d),
+			chat_restore_expired: (d) => this.on_realtime_restore_expired(d),
+		};
+		for (const [event, handler] of Object.entries(this.deep_events)) frappe.realtime.on(event, handler);
 		// slow poll of the thread list as a safety net if the socket drops
 		this.poll = setInterval(() => this.load_threads(), 30000);
 
@@ -91,6 +99,10 @@ class EmployeeChat {
 			frappe.realtime.off("chat_reaction", this.on_reaction);
 			frappe.realtime.off("chat_thread_archived", this.on_archived);
 			frappe.realtime.off("chat_thread_purged", this.on_purged);
+			for (const [event, handler] of Object.entries(this.deep_events)) {
+				frappe.realtime.off(event, handler);
+			}
+			clearInterval(this.archive_poll);
 		});
 	}
 
@@ -185,7 +197,7 @@ class EmployeeChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("ec-chat-styles-v6")) return;
+		if (document.getElementById("ec-chat-styles-v7")) return;
 		const css = `
 		.ec-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
 		.ec-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -202,6 +214,15 @@ class EmployeeChat {
 		.ec-arch-head:hover{color:var(--text-color);}
 		.ec-arch-head .ec-badge{margin-left:auto;}
 		.ec-readonly{padding:10px 12px;border-top:1px solid var(--border-color);text-align:center;font-size:var(--text-sm);}
+		.ec-deep-badge{color:var(--text-muted);font-size:11px;}
+		.ec-deep-card{margin:auto;max-width:360px;text-align:center;padding:24px 20px;background:var(--card-bg);
+			border:1px solid var(--border-color);border-radius:var(--border-radius-md);}
+		.ec-deep-icon{font-size:28px;color:var(--text-muted);margin-bottom:8px;}
+		.ec-deep-title{font-weight:600;margin-bottom:4px;}
+		.ec-deep-body{margin-top:14px;}
+		.ec-progress{height:6px;border-radius:3px;background:var(--bg-light-gray);overflow:hidden;}
+		.ec-progress-bar{height:100%;background:var(--primary);width:0;transition:width .3s ease;}
+		.ec-progress-label{margin-top:6px;font-size:var(--text-sm);}
 		.ec-header-act{cursor:pointer;margin-left:8px;color:var(--text-muted);}
 		.ec-header-act:hover{color:var(--text-color);}
 		.ec-conv{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:8px;}
@@ -283,7 +304,7 @@ class EmployeeChat {
 		.ec-attach-opt{padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;}
 		.ec-attach-opt:hover{background:var(--bg-light-gray);}
 		`;
-		$(`<style id="ec-chat-styles-v6">${css}</style>`).appendTo(document.head);
+		$(`<style id="ec-chat-styles-v7">${css}</style>`).appendTo(document.head);
 	}
 
 	// --- thread list -------------------------------------------------------
@@ -338,11 +359,14 @@ class EmployeeChat {
 		// Secret threads keep no readable preview server-side — the lock is the preview.
 		const preview = frappe.utils.escape_html(t.last_message_preview || "").slice(0, 40);
 		const lock = t.is_secret ? `<span class="ec-lock" title="${__("Secret chat")}">🔒</span> ` : "";
+		const packed = t.is_deep_archived
+			? ` <i class="fa fa-archive ec-deep-badge" title="${__("Deep archive")}"></i>`
+			: "";
 		return `
 			<div class="ec-conv ${t.name === this.active ? "active" : ""}">
 				<div class="ec-avatar">${this.avatar_html(t)}</div>
 				<div class="ec-conv-main">
-					<div class="ec-name">${lock}${frappe.utils.escape_html(t.display_title || __("Chat"))}</div>
+					<div class="ec-name">${lock}${frappe.utils.escape_html(t.display_title || __("Chat"))}${packed}</div>
 					<div class="ec-last">${preview}</div>
 				</div>
 				${badge}
@@ -421,6 +445,15 @@ class EmployeeChat {
 		// My read cursor at open time — used to place the "New messages" divider and to
 		// decide whether to land on the first unread message or at the bottom.
 		this.read_cursor = (t && t.my_last_read) || null;
+
+		// A deep-archived chat holds nothing until it is unpacked: draw the archive card and,
+		// if a job is already running, follow it.
+		if (t && this.is_packed(t)) {
+			this.messages = [];
+			this.render_thread(false);
+			this.watch_archive(name);
+			return;
+		}
 
 		this.messages = await frappe.xcall(API + "get_messages", { thread: name });
 		await this.decrypt_messages(this.messages);
@@ -524,12 +557,178 @@ class EmployeeChat {
 		});
 	}
 
+	// --- deep archive -------------------------------------------------------
+
+	// True while the zip is the source of truth: there is nothing in the database to show.
+	is_packed(t) {
+		const st = (t && t.deep_archive && t.deep_archive.status) || "";
+		return !!st && st !== "Restored";
+	}
+
+	deep_archive_html(t) {
+		const d = t.deep_archive || {};
+		const busy = d.status === "Restoring" || d.status === "Packing";
+		const when = d.archived_on ? frappe.datetime.str_to_user(d.archived_on) : "";
+		const count = d.message_count
+			? __("{0} messages · {1} files", [d.message_count, d.file_count || 0])
+			: "";
+		let body;
+		if (d.status === "Failed") {
+			body = `<div class="text-danger">${__("Could not unpack this chat")}</div>
+				<button class="btn btn-default btn-sm ec-unpack">${__("Try again")}</button>`;
+		} else if (busy) {
+			const label = d.status === "Packing" ? __("Packing…") : __("Unpacking…");
+			body = `<div class="ec-progress"><div class="ec-progress-bar" style="width:${
+				d.percent || 0
+			}%;"></div></div>
+				<div class="text-muted ec-progress-label">${label} ${d.percent || 0}%</div>`;
+		} else {
+			body = `<button class="btn btn-primary btn-sm ec-unpack">${__("Unpack content")}</button>`;
+		}
+		return `<div class="ec-deep-card">
+			<div class="ec-deep-icon"><i class="fa fa-archive"></i></div>
+			<div class="ec-deep-title">${__("This conversation was archived long ago")}</div>
+			<div class="text-muted">${frappe.utils.escape_html([count, when].filter(Boolean).join(" · "))}</div>
+			<div class="ec-deep-body">${body}</div>
+		</div>`;
+	}
+
+	async restore_archive(name) {
+		let state;
+		try {
+			state = await frappe.xcall(API + "restore_deep_archive", { thread: name });
+		} catch (e) {
+			return;
+		}
+		this.apply_archive_state(state);
+		this.watch_archive(name);
+	}
+
+	// The realtime room only reaches participants; a reader who never joined a record chat has
+	// to poll, so both paths run and whichever arrives first wins.
+	watch_archive(name) {
+		clearInterval(this.archive_poll);
+		const t = this.threads[name];
+		const st = (t && t.deep_archive && t.deep_archive.status) || "";
+		if (st !== "Packing" && st !== "Restoring") return;
+		this.archive_poll = setInterval(async () => {
+			if (this.active !== name) return clearInterval(this.archive_poll);
+			const state = await frappe.xcall(API + "get_deep_archive_state", { thread: name });
+			this.apply_archive_state(state);
+		}, 2000);
+	}
+
+	// Fold a state payload into the cached thread and re-render whatever it changed.
+	apply_archive_state(state) {
+		if (!state || !state.thread) return;
+		const t = this.threads[state.thread];
+		if (!t) return;
+		const was_packed = this.is_packed(t);
+		t.deep_archive = Object.assign({}, t.deep_archive, state);
+		if (state.read_only !== undefined) t.read_only = state.read_only;
+		if (state.is_deep_archived !== undefined) t.is_deep_archived = state.is_deep_archived;
+		if (this.active !== state.thread) {
+			this.render_list();
+			return;
+		}
+		if (was_packed && !this.is_packed(t)) {
+			clearInterval(this.archive_poll);
+			this.open(state.thread);
+			return;
+		}
+		if (this.is_packed(t)) {
+			const d = t.deep_archive || {};
+			const $bar = this.$thread.find(".ec-progress-bar");
+			if ($bar.length && (d.status === "Restoring" || d.status === "Packing")) {
+				// Move the bar in place: a full re-render would fight the animation.
+				$bar.css("width", (d.percent || 0) + "%");
+				this.$thread
+					.find(".ec-progress-label")
+					.text(
+						(d.status === "Packing" ? __("Packing…") : __("Unpacking…")) +
+							" " +
+							(d.percent || 0) +
+							"%"
+					);
+			} else {
+				this.render_thread(false);
+			}
+		}
+		this.set_header(t);
+		this.update_composer(t);
+		this.render_list();
+	}
+
+	deep_archive_chat() {
+		const name = this.active;
+		const t = this.threads[name];
+		if (!t) return;
+		frappe.confirm(
+			__(
+				"Pack this chat into the deep archive? Messages and files are moved into an archive file and removed from the chat; anyone can unpack them again later."
+			),
+			async () => {
+				try {
+					await frappe.xcall(API + "deep_archive_thread", { thread: name });
+				} catch (e) {
+					return;
+				}
+				t.deep_archive = Object.assign({}, t.deep_archive, { status: "Packing", percent: 0 });
+				t.read_only = 1;
+				this.messages = [];
+				this.render_thread(false);
+				this.update_composer(t);
+				this.watch_archive(name);
+			}
+		);
+	}
+
+	on_realtime_deep_archived(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({
+			thread: d.thread,
+			status: "Archived",
+			is_deep_archived: 1,
+			read_only: 1,
+			message_count: d.message_count,
+			file_count: d.file_count,
+		});
+	}
+
+	on_realtime_restore_progress(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({ thread: d.thread, status: "Restoring", percent: d.percent });
+	}
+
+	on_realtime_restore_done(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({ thread: d.thread, status: "Restored", percent: 100, read_only: 1 });
+	}
+
+	on_realtime_restore_failed(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.apply_archive_state({ thread: d.thread, status: "Failed" });
+	}
+
+	on_realtime_restore_expired(d) {
+		if (!d || !this.threads[d.thread]) return;
+		this.messages = this.active === d.thread ? [] : this.messages;
+		this.apply_archive_state({ thread: d.thread, status: "Archived" });
+		if (this.active === d.thread) this.render_thread(false);
+	}
+
 	// An archived chat about a record is frozen server-side — swap the composer for a note
 	// instead of letting the user type into a message that would be rejected.
 	update_composer(t) {
 		if (t && t.read_only) {
 			this.$compose.hide();
-			this.$readonly.show();
+			this.$readonly
+				.text(
+					this.is_packed(t)
+						? __("This chat is in the deep archive — unpack it to read the messages")
+						: __("This chat is archived — new messages are not allowed")
+				)
+				.show();
 		} else {
 			this.$readonly.hide();
 			this.$compose.show();
@@ -660,6 +859,14 @@ class EmployeeChat {
 	// flash it — used when tapping a shared link in the chat overview.
 	async jump_to_message(name) {
 		if (!name) return;
+		// Nothing to page back to while the content is still in the zip.
+		if (this.is_packed(this.threads[this.active])) {
+			frappe.show_alert({
+				message: __("Unpack the chat to open this message"),
+				indicator: "orange",
+			});
+			return;
+		}
 		let el = document.getElementById("ec-msg-" + name);
 		let guard = 0;
 		while (!el && guard++ < 30) {
@@ -691,6 +898,12 @@ class EmployeeChat {
 					$(e.currentTarget).attr("data-name")
 				);
 			});
+		}
+
+		if (this.is_packed(t)) {
+			this.$thread.append(this.deep_archive_html(t));
+			this.$thread.find(".ec-unpack").on("click", () => this.restore_archive(this.active));
+			return;
 		}
 
 		// index for reply lookups
@@ -941,6 +1154,16 @@ class EmployeeChat {
 				dialog.hide();
 			},
 		});
+		const packed = (info.deep_archive || {}).status;
+		if (info.is_archived && info.can_purge && !packed) {
+			actions.push({
+				label: __("Move to deep archive"),
+				on_click: () => {
+					dialog.hide();
+					this.deep_archive_chat();
+				},
+			});
+		}
 		if (info.is_archived && info.can_purge) {
 			actions.push({
 				label: __("Remove chat"),

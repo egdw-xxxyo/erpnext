@@ -289,7 +289,17 @@ class EmployeeChatSource {
 		this.key = "employee";
 		this.label = __("Employee Chat");
 		this.page_route = "/app/employee-chat";
-		this.realtime_events = ["chat_message", "chat_seen", "chat_thread_archived", "chat_thread_purged"];
+		this.realtime_events = [
+			"chat_message",
+			"chat_seen",
+			"chat_thread_archived",
+			"chat_thread_purged",
+			// Deliberately without chat_restore_progress: the shared handler refreshes every list
+			// on each event, and progress arrives many times a second.
+			"chat_deep_archived",
+			"chat_restore_done",
+			"chat_restore_expired",
+		];
 		this.media_source = "chat"; // get_thumbnails source key
 		this.chats = [];
 		// Two lists behind one launcher: person-to-person threads first, threads
@@ -335,10 +345,24 @@ class EmployeeChatSource {
 			reference_label: t.reference_label,
 			reference_removed: t.reference_removed,
 			is_archived: t.is_archived,
+			is_deep_archived: t.is_deep_archived,
+			deep_archive: t.deep_archive || {},
 			read_only: t.read_only,
 			can_purge: t.can_purge,
 		}));
 		return this.chats;
+	}
+
+	deep_archive(id) {
+		return frappe.xcall(`${EC_API}.deep_archive_thread`, { thread: id });
+	}
+
+	restore(id) {
+		return frappe.xcall(`${EC_API}.restore_deep_archive`, { thread: id });
+	}
+
+	archive_state(id) {
+		return frappe.xcall(`${EC_API}.get_deep_archive_state`, { thread: id });
 	}
 
 	set_archived(id, archived) {
@@ -599,6 +623,10 @@ class ChatBubble {
 			this.refresh();
 		};
 		this.sources.forEach((s) => s.realtime_events.forEach((ev) => frappe.realtime.on(ev, this.on_rt)));
+		// Progress is high-frequency: it only moves the bar, never triggers a refresh.
+		frappe.realtime.on("chat_restore_progress", (d) =>
+			this.apply_archive_state(d && { thread: d.thread, status: "Restoring", percent: d.percent })
+		);
 		this.poll = setInterval(() => this.refresh(), 60000);
 	}
 
@@ -674,6 +702,7 @@ class ChatBubble {
 		if (!chat || !this.source.set_archived) {
 			this.$archive.hide();
 			this.$purge.hide();
+			this.$deep.hide();
 			return;
 		}
 		this.$archive
@@ -681,6 +710,7 @@ class ChatBubble {
 			.attr("title", chat.is_archived ? __("Unarchive chat") : __("Archive chat"))
 			.html(`<i class="fa fa-${chat.is_archived ? "inbox" : "archive"}"></i>`);
 		this.$purge.toggle(!!(chat.is_archived && chat.can_purge));
+		this.$deep.toggle(!!(chat.is_archived && chat.can_purge && !(chat.deep_archive || {}).status));
 	}
 
 	async toggle_archive() {
@@ -718,12 +748,24 @@ class ChatBubble {
 		);
 	}
 
+	// True while a chat's content lives only in its zip.
+	static is_packed(chat) {
+		const st = (chat && chat.deep_archive && chat.deep_archive.status) || "";
+		return !!st && st !== "Restored";
+	}
+
 	// An archived chat about a record is read-only server-side — hide the composer instead of
 	// letting the user type into a message that will be rejected.
 	render_composer(chat) {
 		if (chat && chat.read_only) {
 			this.$compose.hide();
-			this.$readonly.show();
+			this.$readonly
+				.text(
+					ChatBubble.is_packed(chat)
+						? __("This chat is in the deep archive — unpack it to read the messages")
+						: __("This chat is archived — new messages are not allowed")
+				)
+				.show();
 		} else {
 			this.$readonly.hide();
 			this.$compose.show();
@@ -790,6 +832,10 @@ class ChatBubble {
 		.cb-arch-head .cb-count{margin-left:auto;}
 		.cb-readonly{padding:8px;border-top:1px solid var(--border-color);text-align:center;
 			color:var(--text-muted);font-size:var(--text-sm);}
+		.cb-deep-card{padding:26px 18px;text-align:center;}
+		.cb-progress{height:6px;border-radius:3px;background:var(--bg-light-gray);overflow:hidden;}
+		.cb-progress-bar{height:100%;background:var(--primary,#2490ef);width:0;transition:width .3s ease;}
+		.cb-progress-label{margin-top:6px;color:var(--text-muted);font-size:11px;}
 		.cb-compose{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border-color);align-items:flex-end;}
 		.cb-compose textarea{resize:none;flex:1;font-size:12px;}
 		.cb-compose .cb-attach{flex:none;}
@@ -831,6 +877,9 @@ class ChatBubble {
 					<span class="cb-title">${__("Chat")}</span>
 					<span class="cb-act cb-mute" title="${__("Mute chat")}" style="display:none;"></span>
 					<span class="cb-act cb-archive" style="display:none;"></span>
+					<span class="cb-act cb-deep" title="${__(
+						"Move to deep archive"
+					)}" style="display:none;"><i class="fa fa-archive"></i></span>
 					<span class="cb-act cb-purge" title="${__(
 						"Remove chat"
 					)}" style="display:none;"><i class="fa fa-trash-o"></i></span>
@@ -862,6 +911,7 @@ class ChatBubble {
 		this.$mute = this.$panel.find(".cb-mute");
 		this.$archive = this.$panel.find(".cb-archive");
 		this.$purge = this.$panel.find(".cb-purge");
+		this.$deep = this.$panel.find(".cb-deep");
 		this.$sound = this.$panel.find(".cb-sound");
 		this.render_sound_toggle();
 		this.$compose = this.$panel.find(".cb-compose");
@@ -918,6 +968,7 @@ class ChatBubble {
 		this.$mute.on("click", () => this.toggle_mute());
 		this.$archive.on("click", () => this.toggle_archive());
 		this.$purge.on("click", () => this.purge_thread());
+		this.$deep.on("click", () => this.deep_archive_chat());
 		this.$body.on("click", ".cb-arch-head", () => {
 			this.arch_open = !this.arch_open;
 			localStorage.setItem("cb_arch_open", this.arch_open ? "1" : "0");
@@ -1070,6 +1121,8 @@ class ChatBubble {
 		if (this.$mute) this.$mute.hide();
 		if (this.$archive) this.$archive.hide();
 		if (this.$purge) this.$purge.hide();
+		if (this.$deep) this.$deep.hide();
+		clearInterval(this.archive_poll);
 		this.$back.hide();
 		this.$readonly.hide();
 		this.$compose.hide();
@@ -1116,7 +1169,13 @@ class ChatBubble {
 	}
 
 	conv_html(c) {
-		const name = frappe.utils.escape_html(c.title);
+		const name =
+			frappe.utils.escape_html(c.title) +
+			(c.is_deep_archived
+				? ` <i class="fa fa-archive" style="color:var(--text-muted);font-size:10px;" title="${__(
+						"Deep archive"
+				  )}"></i>`
+				: "");
 		const prev = frappe.utils.escape_html((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
 		const unread = c.unread
 			? `<span class="cb-count show">${c.unread > 99 ? "99+" : c.unread}</span>`
@@ -1168,6 +1227,11 @@ class ChatBubble {
 
 	async load_thread(id) {
 		const source = this.source;
+		const packed_chat = (source.chats || []).find((c) => c.id === id);
+		if (ChatBubble.is_packed(packed_chat)) {
+			this.render_deep_archive(packed_chat);
+			return;
+		}
 		let msgs = [];
 		try {
 			msgs = await source.load_messages(id);
@@ -1217,6 +1281,124 @@ class ChatBubble {
 			erpnext.chat_media.bind(this.$body.find(".cb-thread"), source.media_source);
 		}
 		this.$body.scrollTop(this.$body[0].scrollHeight);
+	}
+
+	// --- deep archive -------------------------------------------------------
+
+	render_deep_archive(chat) {
+		const d = (chat && chat.deep_archive) || {};
+		const busy = d.status === "Restoring" || d.status === "Packing";
+		let body;
+		if (d.status === "Failed") {
+			body = `<div style="color:var(--red-500,#e24c4c);">${__(
+				"Could not unpack this chat"
+			)}</div><button class="btn btn-default btn-xs cb-unpack">${__("Try again")}</button>`;
+		} else if (busy) {
+			const label = d.status === "Packing" ? __("Packing…") : __("Unpacking…");
+			body = `<div class="cb-progress"><div class="cb-progress-bar" style="width:${
+				d.percent || 0
+			}%;"></div></div>
+				<div class="cb-progress-label">${label} ${d.percent || 0}%</div>`;
+		} else {
+			body = `<button class="btn btn-primary btn-xs cb-unpack">${__("Unpack content")}</button>`;
+		}
+		const count = d.message_count
+			? frappe.utils.escape_html(__("{0} messages · {1} files", [d.message_count, d.file_count || 0]))
+			: "";
+		this.$body.html(`<div class="cb-deep-card">
+			<div style="font-size:24px;color:var(--text-muted);"><i class="fa fa-archive"></i></div>
+			<div style="font-weight:600;">${__("This conversation was archived long ago")}</div>
+			<div style="color:var(--text-muted);font-size:11px;">${count}</div>
+			<div style="margin-top:10px;">${body}</div>
+		</div>`);
+		this.$body.find(".cb-unpack").on("click", () => this.unpack(chat.id));
+		this.watch_archive(chat.id);
+	}
+
+	async unpack(id) {
+		let state;
+		try {
+			state = await this.source.restore(id);
+		} catch (e) {
+			return;
+		}
+		this.apply_archive_state(state);
+	}
+
+	// Progress reaches participants over realtime; a record-chat reader who never joined has no
+	// room of their own, so poll as well while a job runs.
+	watch_archive(id) {
+		clearInterval(this.archive_poll);
+		const chat = (this.source.chats || []).find((c) => c.id === id);
+		const st = (chat && chat.deep_archive && chat.deep_archive.status) || "";
+		if (st !== "Packing" && st !== "Restoring") return;
+		this.archive_poll = setInterval(async () => {
+			if (this.active !== id || !this.source.archive_state) return clearInterval(this.archive_poll);
+			try {
+				this.apply_archive_state(await this.source.archive_state(id));
+			} catch (e) {
+				clearInterval(this.archive_poll);
+			}
+		}, 2000);
+	}
+
+	apply_archive_state(state) {
+		if (!state || !state.thread) return;
+		const chat = (this.source.chats || []).find((c) => c.id === state.thread);
+		if (!chat) return;
+		const was_packed = ChatBubble.is_packed(chat);
+		chat.deep_archive = Object.assign({}, chat.deep_archive, state);
+		if (state.read_only !== undefined) chat.read_only = state.read_only;
+		if (state.is_deep_archived !== undefined) chat.is_deep_archived = state.is_deep_archived;
+		if (this.active !== state.thread) return;
+
+		if (was_packed && !ChatBubble.is_packed(chat)) {
+			clearInterval(this.archive_poll);
+			this.render_composer(chat);
+			this.load_thread(state.thread);
+			return;
+		}
+		const $bar = this.$body.find(".cb-progress-bar");
+		const d = chat.deep_archive || {};
+		if ($bar.length && (d.status === "Restoring" || d.status === "Packing")) {
+			$bar.css("width", (d.percent || 0) + "%");
+			this.$body
+				.find(".cb-progress-label")
+				.text(
+					(d.status === "Packing" ? __("Packing…") : __("Unpacking…")) +
+						" " +
+						(d.percent || 0) +
+						"%"
+				);
+			return;
+		}
+		this.render_composer(chat);
+		this.render_thread_actions();
+		this.render_deep_archive(chat);
+	}
+
+	deep_archive_chat() {
+		const chat = (this.source.chats || []).find((c) => c.id === this.active);
+		if (!chat || !this.source.deep_archive) return;
+		const id = this.active;
+		frappe.confirm(
+			__(
+				"Pack this chat into the deep archive? Messages and files are moved into an archive file and removed from the chat; anyone can unpack them again later."
+			),
+			async () => {
+				try {
+					await this.source.deep_archive(id);
+				} catch (e) {
+					return;
+				}
+				chat.deep_archive = Object.assign({}, chat.deep_archive, { status: "Packing", percent: 0 });
+				chat.read_only = 1;
+				chat.is_deep_archived = 1;
+				this.render_composer(chat);
+				this.render_thread_actions();
+				this.render_deep_archive(chat);
+			}
+		);
 	}
 
 	async record_voice() {
