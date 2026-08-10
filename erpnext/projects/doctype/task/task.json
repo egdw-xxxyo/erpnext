@@ -195,7 +195,9 @@
    "fieldname": "progress",
    "fieldtype": "Percent",
    "label": "% Progress",
-   "no_copy": 1
+   "no_copy": 1,
+   "precision": "2",
+   "read_only_depends_on": "eval:doc.is_group"
   },
   {
    "default": "0",
@@ -424,7 +426,7 @@
  "is_tree": 1,
  "links": [],
  "max_attachments": 5,
- "modified": "2026-04-09 19:12:27.153143",
+ "modified": "2026-08-06 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Projects",
  "name": "Task",
@@ -463,7 +465,8 @@
  "search_fields": "subject",
  "show_name_in_global_search": 1,
  "show_preview_popup": 1,
- "sort_field": "creation",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
  "timeline_field": "project",

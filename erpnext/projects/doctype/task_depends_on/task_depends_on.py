@@ -14,10 +14,16 @@ class TaskDependsOn(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		exp_end_date: DF.Date | None
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
+		progress: DF.Percent
 		project: DF.Text | None
+		responsible: DF.SmallText | None
+		status: DF.Literal[
+			"", "New", "In Progress", "Awaiting Info", "Blocked", "In Review", "Completed", "Cancelled"
+		]
 		subject: DF.Text | None
 		task: DF.Link | None
 	# end: auto-generated types
