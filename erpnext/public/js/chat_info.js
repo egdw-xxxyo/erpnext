@@ -32,7 +32,7 @@ erpnext.chat_info = {
 	human_size,
 
 	inject_styles() {
-		if (document.getElementById("chat-info-styles-v1")) return;
+		if (document.getElementById("chat-info-styles-v2")) return;
 		const css = `
 		.ci-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
 		.ci-head-avatar{flex:none;width:52px;height:52px;border-radius:50%;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text-muted);overflow:hidden;font-size:18px;}
@@ -60,9 +60,14 @@ erpnext.chat_info = {
 		.ci-media-fallback{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;cursor:pointer;}
 		.ci-empty{color:var(--text-muted);font-size:var(--text-sm);padding:14px 4px;text-align:center;}
 		.ci-file-icon{flex:none;font-size:18px;}
+		.ci-setting{align-items:flex-start;padding:10px 4px;}
+		.ci-setting .ci-row-title{white-space:normal;font-weight:600;}
+		.ci-setting .ci-setting-desc{white-space:normal;}
+		.ci-switch{flex:none;margin:2px 0 0;}
+		.ci-switch input{width:16px;height:16px;cursor:pointer;}
 		.ci-section-label{font-size:var(--text-sm);text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em;margin:12px 0 4px;}
 		`;
-		$(`<style id="chat-info-styles-v1">${css}</style>`).appendTo(document.head);
+		$(`<style id="chat-info-styles-v2">${css}</style>`).appendTo(document.head);
 	},
 
 	// data: {title, subtitle, avatar, avatar_text, source, people:[], media:[], files:[],
@@ -122,6 +127,11 @@ erpnext.chat_info = {
 		if (data.sections && data.sections.length) {
 			tabs.push({ key: "linked", label: __("Linked"), count: null });
 		}
+		// Only shown to whoever the page decided may change these (chat managers) — the switches
+		// are global for the conversation, not personal preferences.
+		if (data.settings && data.settings.length) {
+			tabs.push({ key: "settings", label: __("Configuration"), count: null });
+		}
 
 		const $tabs = $body.find(".ci-tabs");
 		const $pane = $body.find(".ci-pane");
@@ -133,6 +143,7 @@ erpnext.chat_info = {
 			else if (key === "media") this.render_media($pane, media, data);
 			else if (key === "files") this.render_files($pane, files, data);
 			else if (key === "links") this.render_links($pane, links);
+			else if (key === "settings") this.render_settings($pane, data.settings || []);
 			else this.render_sections($pane, data.sections || []);
 		};
 
@@ -264,6 +275,43 @@ erpnext.chat_info = {
 					.text(l.title || l.url);
 			}
 			$row.find(".ci-row-sub").text([l.sender_name, when(l.creation)].filter(Boolean).join(" · "));
+			$pane.append($row);
+		}
+	},
+
+	// settings: [{label, description, checked, disabled, disabled_reason, on_change(checked)}]
+	// The switch flips straight away and rolls back if the call rejects it.
+	render_settings($pane, settings) {
+		for (const s of settings) {
+			const $row = $(`
+				<div class="ci-row ci-setting">
+					<div class="ci-row-main">
+						<div class="ci-row-title"></div>
+						<div class="ci-row-sub ci-setting-desc"></div>
+					</div>
+					<label class="ci-switch"><input type="checkbox"></label>
+				</div>
+			`);
+			$row.find(".ci-row-title").text(s.label);
+			$row.find(".ci-setting-desc").text(s.description || "");
+			const $input = $row.find("input");
+			$input.prop("checked", !!s.checked);
+			if (s.disabled) {
+				$input.prop("disabled", true);
+				$row.attr("title", s.disabled_reason || "");
+			} else if (s.on_change) {
+				$input.on("change", async () => {
+					const value = $input.is(":checked");
+					$input.prop("disabled", true);
+					try {
+						await s.on_change(value ? 1 : 0);
+					} catch (e) {
+						$input.prop("checked", !value);
+					} finally {
+						$input.prop("disabled", false);
+					}
+				});
+			}
 			$pane.append($row);
 		}
 	},

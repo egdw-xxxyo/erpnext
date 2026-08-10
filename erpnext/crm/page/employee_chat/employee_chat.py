@@ -457,6 +457,8 @@ def get_threads():
 			"reference_label",
 			"is_archived",
 			"reference_removed",
+			"disable_archive",
+			"disable_deep_archive",
 			"is_deep_archived",
 			"deep_archive_status",
 			"deep_archived_on",
@@ -805,6 +807,10 @@ def set_archived(thread, archived):
 	its "Removed" badge even after someone unarchives it."""
 	doc = _may_manage_archive(_get_thread(thread))
 	archived = 1 if int(archived or 0) else 0
+	if archived and doc.disable_archive:
+		# A chat a Chat Manager pinned to the active list (see `set_archive_policy`). Returning one
+		# from the archive stays possible — the policy may well be what someone just switched on.
+		frappe.throw(_("This chat is protected from archiving"))
 	if not archived and doc.is_deep_archived:
 		# Un-archiving would put a chat with no content back in the active list.
 		frappe.throw(_("Return this chat from the deep archive first"))
@@ -822,6 +828,39 @@ def set_archived(thread, archived):
 		"read_only": _is_read_only(doc.thread_type, archived, doc.is_deep_archived),
 	}
 	_fanout(doc, "chat_thread_archived", payload)
+	return payload
+
+
+@frappe.whitelist()
+def set_archive_policy(thread, disable_archive=None, disable_deep_archive=None):
+	"""Pin a chat out of the archive lifecycle: `disable_archive` keeps it in the active list,
+	`disable_deep_archive` keeps its content in the database. Both stop the nightly jobs
+	(`auto_archive_entity_chats`, `auto_deep_archive`) as well as the buttons.
+
+	A `Chat Manager` decision, not a participant one — the same right that lets someone pack or
+	destroy a chat decides which chats are exempt. Pass only the flags you want to change.
+
+	Switching a flag on never moves a chat that is already archived; it only stops it going
+	further."""
+	doc = _may_manage_archive(_get_thread(thread))
+	if not _may_purge():
+		frappe.throw(_("You are not allowed to change the archive policy"), frappe.PermissionError)
+
+	values = {}
+	if disable_archive is not None:
+		values["disable_archive"] = 1 if int(disable_archive) else 0
+	if disable_deep_archive is not None:
+		values["disable_deep_archive"] = 1 if int(disable_deep_archive) else 0
+	if values:
+		frappe.db.set_value("Chat Thread", thread, values, update_modified=False)
+		doc.reload()
+
+	payload = {
+		"thread": thread,
+		"disable_archive": doc.disable_archive,
+		"disable_deep_archive": doc.disable_deep_archive,
+	}
+	_fanout(doc, "chat_archive_policy", payload)
 	return payload
 
 
@@ -880,6 +919,8 @@ def deep_archive_thread(thread):
 	doc = _may_manage_archive(_get_thread(thread))
 	if not doc.is_archived:
 		frappe.throw(_("Only an archived chat can be moved to the deep archive"))
+	if doc.disable_deep_archive:
+		frappe.throw(_("This chat is protected from the deep archive"))
 	if not _may_purge():
 		frappe.throw(_("You are not allowed to move chats to the deep archive"), frappe.PermissionError)
 	if not chat_archive.claim(thread, "", "Packing"):
@@ -1227,6 +1268,8 @@ def get_thread_info(thread, limit=200):
 		"reference_label": doc.reference_label,
 		"is_archived": doc.is_archived,
 		"is_deep_archived": doc.is_deep_archived,
+		"disable_archive": doc.disable_archive,
+		"disable_deep_archive": doc.disable_deep_archive,
 		"read_only": _is_read_only(doc.thread_type, doc.is_archived, doc.is_deep_archived),
 		"can_purge": 1 if _may_purge() else 0,
 		"deep_archive": _deep_archive_payload(doc.as_dict()),

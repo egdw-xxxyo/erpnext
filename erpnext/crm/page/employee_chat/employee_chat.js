@@ -73,12 +73,14 @@ class EmployeeChat {
 		this.on_seen = (d) => this.on_realtime_seen(d);
 		this.on_reaction = (d) => this.on_realtime_reaction(d);
 		this.on_archived = (d) => this.on_realtime_archived(d);
+		this.on_policy = (d) => this.apply_archive_policy(d);
 		this.on_purged = (d) => this.on_realtime_purged(d);
 		frappe.realtime.on("chat_message", this.on_message);
 		frappe.realtime.on("chat_typing", this.on_typing);
 		frappe.realtime.on("chat_seen", this.on_seen);
 		frappe.realtime.on("chat_reaction", this.on_reaction);
 		frappe.realtime.on("chat_thread_archived", this.on_archived);
+		frappe.realtime.on("chat_archive_policy", this.on_policy);
 		frappe.realtime.on("chat_thread_purged", this.on_purged);
 		this.deep_events = {
 			chat_deep_archived: (d) => this.on_realtime_deep_archived(d),
@@ -99,6 +101,7 @@ class EmployeeChat {
 			frappe.realtime.off("chat_seen", this.on_seen);
 			frappe.realtime.off("chat_reaction", this.on_reaction);
 			frappe.realtime.off("chat_thread_archived", this.on_archived);
+			frappe.realtime.off("chat_archive_policy", this.on_policy);
 			frappe.realtime.off("chat_thread_purged", this.on_purged);
 			for (const [event, handler] of Object.entries(this.deep_events)) {
 				frappe.realtime.off(event, handler);
@@ -530,10 +533,13 @@ class EmployeeChat {
 									: deep.leave_hint()
 						  }"><i class="fa fa-level-up"></i></span>`
 						: "");
+		// A chat pinned out of the lifecycle (see the Configuration tab of the info dialog) hides
+		// the buttons the server would refuse anyway; unarchiving one stays possible.
+		const no_archive = t && t.disable_archive && !t.is_archived;
 		const act_html = !t
 			? ""
 			: deep_html +
-			  (t.is_deep_archived
+			  (t.is_deep_archived || no_archive
 					? ""
 					: `<span class="ec-header-act ec-archive" title="${
 							t.is_archived
@@ -544,7 +550,11 @@ class EmployeeChat {
 										"Move the chat to the Archive section for everyone. It keeps all its messages."
 								  )
 					  }"><i class="fa fa-${t.is_archived ? "inbox" : "archive"}"></i></span>`) +
-			  (t.is_archived && t.can_purge && !this.is_packed(t) && !t.is_deep_archived
+			  (t.is_archived &&
+			  t.can_purge &&
+			  !this.is_packed(t) &&
+			  !t.is_deep_archived &&
+			  !t.disable_deep_archive
 					? `<span class="ec-header-act ec-deep" title="${__(
 							"Pack the chat into an archive file and free the database. It is unpacked automatically the next time someone opens it."
 					  )}"><i class="fa fa-file-zip-o"></i></span>`
@@ -730,6 +740,25 @@ class EmployeeChat {
 				this.watch_archive(name);
 			}
 		);
+	}
+
+	// Chat Manager only: exempt a chat from the archive lifecycle. Rejections propagate so the
+	// switch in the info dialog can roll itself back.
+	async set_archive_policy(values) {
+		const name = this.active;
+		const res = await frappe.xcall(API + "set_archive_policy", Object.assign({ thread: name }, values));
+		this.apply_archive_policy(res);
+		frappe.show_alert({ message: __("Chat configuration saved"), indicator: "blue" });
+		return res;
+	}
+
+	apply_archive_policy(state) {
+		if (!state || !state.thread) return;
+		const t = this.threads[state.thread];
+		if (!t) return;
+		t.disable_archive = state.disable_archive;
+		t.disable_deep_archive = state.disable_deep_archive;
+		if (this.active === state.thread) this.set_header(t);
 	}
 
 	// Chat Manager only: keep the unpacked copy for good and delete the archive file. A chat that
@@ -1244,7 +1273,7 @@ class EmployeeChat {
 			},
 		];
 		const packed = (info.deep_archive || {}).status;
-		if (!info.is_deep_archived) {
+		if (!info.is_deep_archived && !(info.disable_archive && !info.is_archived)) {
 			actions.push({
 				label: info.is_archived ? __("Unarchive chat") : __("Archive chat"),
 				hint: info.is_archived
@@ -1265,7 +1294,13 @@ class EmployeeChat {
 				},
 			});
 		}
-		if (info.is_archived && info.can_purge && !packed && !info.is_deep_archived) {
+		if (
+			info.is_archived &&
+			info.can_purge &&
+			!packed &&
+			!info.is_deep_archived &&
+			!info.disable_deep_archive
+		) {
 			actions.push({
 				label: __("Move to deep archive"),
 				hint: __(
@@ -1314,6 +1349,31 @@ class EmployeeChat {
 			});
 		}
 
+		// Archive policy: a chat manager's decision about the whole conversation, so it sits in its
+		// own tab rather than among the one-click actions above.
+		const settings = info.can_purge
+			? [
+					{
+						label: __("Do not archive this chat"),
+						description: __(
+							"Nobody can move the chat to the archive, and the scheduled auto-archive skips it."
+						),
+						checked: !!info.disable_archive,
+						on_change: (value) => this.set_archive_policy({ disable_archive: value }),
+					},
+					{
+						label: __("Do not move this chat to the deep archive"),
+						description: __(
+							"The chat is never packed into an archive file, neither by hand nor by the scheduled job."
+						),
+						checked: !!info.disable_deep_archive,
+						disabled: !!info.is_deep_archived,
+						disabled_reason: __("The chat is already in the deep archive — return it first."),
+						on_change: (value) => this.set_archive_policy({ disable_deep_archive: value }),
+					},
+			  ]
+			: null;
+
 		const dialog = erpnext.chat_info.show({
 			title: info.display_title,
 			subtitle: [
@@ -1329,6 +1389,7 @@ class EmployeeChat {
 			files,
 			links,
 			actions,
+			settings,
 			on_add_person: can_admin
 				? () => {
 						dialog.hide();

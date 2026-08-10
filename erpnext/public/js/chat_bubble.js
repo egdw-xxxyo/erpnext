@@ -397,6 +397,8 @@ class EmployeeChatSource {
 			reference_removed: t.reference_removed,
 			is_archived: t.is_archived,
 			is_deep_archived: t.is_deep_archived,
+			disable_archive: t.disable_archive,
+			disable_deep_archive: t.disable_deep_archive,
 			deep_archive: t.deep_archive || {},
 			read_only: t.read_only,
 			can_purge: t.can_purge,

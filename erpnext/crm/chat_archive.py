@@ -712,6 +712,7 @@ def auto_archive_entity_chats():
 	threads = frappe.db.sql(
 		"""select name from `tabChat Thread`
 		where thread_type = 'Document' and ifnull(is_archived, 0) = 0
+			and ifnull(disable_archive, 0) = 0
 			and ifnull(last_message_on, creation) < %s
 		order by ifnull(last_message_on, creation) asc
 		limit %s""",
@@ -735,6 +736,7 @@ def auto_deep_archive():
 		filters={
 			"is_archived": 1,
 			"is_deep_archived": 0,
+			"disable_deep_archive": 0,
 			"deep_archive_status": ("in", ["", None]),
 			"archived_on": ("<", cutoff),
 		},
