@@ -26,6 +26,8 @@ Layout of the archive (schema version 1):
     blobs/<File.name>   the raw bytes, keyed by File name so nothing can collide
 """
 
+import datetime
+import hashlib
 import json
 import os
 import shutil
@@ -33,7 +35,8 @@ import zipfile
 
 import frappe
 from frappe import _
-from frappe.utils import now
+from frappe.utils import add_to_date, get_datetime, get_files_path, now
+from frappe.utils.synchronization import filelock
 
 SCHEMA_VERSION = 1
 ARCHIVE_DIR = "chat-archive"
@@ -93,3 +96,286 @@ def verify():
 		if not os.path.exists(archive_abs_path(name)):
 			missing.append(name)
 	return missing
+
+
+def touch(thread):
+	"""Push an unpacked copy's expiry out. Called on every read of a restored chat, but only
+	written when it actually moves the deadline — scrolling a thread must not be a write per page."""
+	ttl_hours = int(setting("restore_ttl_hours"))
+	current = frappe.db.get_value("Chat Thread", thread, "restore_expires_on")
+	new = add_to_date(None, hours=ttl_hours)
+	if current and get_datetime(current) > add_to_date(new, minutes=-5):
+		return
+	frappe.db.set_value("Chat Thread", thread, "restore_expires_on", new, update_modified=False)
+
+
+def _sha256(path):
+	digest = hashlib.sha256()
+	with open(path, "rb") as fh:
+		for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+			digest.update(chunk)
+	return digest.hexdigest()
+
+
+def _set_state(thread, values):
+	"""State fields are read_only in the schema and must never bump `modified` — the age-based
+	job and the archive banner both read it."""
+	frappe.db.set_value("Chat Thread", thread, values, update_modified=False)
+
+
+def claim(thread, from_status, to_status):
+	"""Race-free state transition: lock the row, check the state we expect, move it. Returns
+	True only for the caller that won — the loser subscribes to the winner's progress instead of
+	starting a second job."""
+	current = frappe.db.sql(
+		"select ifnull(deep_archive_status, '') from `tabChat Thread` where name = %s for update",
+		thread,
+	)
+	if not current or current[0][0] != (from_status or ""):
+		return False
+	_set_state(thread, {"deep_archive_status": to_status})
+	frappe.db.commit()
+	return True
+
+
+# ---------------------------------------------------------------------------
+# Pack
+# ---------------------------------------------------------------------------
+
+
+MESSAGE_COLUMNS = [
+	"name",
+	"creation",
+	"modified",
+	"modified_by",
+	"owner",
+	"docstatus",
+	"idx",
+	"thread",
+	"sender",
+	"content_type",
+	"message",
+	"attach",
+	"link_data",
+	"reply_to",
+	"reactions",
+	"is_encrypted",
+	"enc_iv",
+	"enc_version",
+]
+
+FILE_COLUMNS = [
+	"name",
+	"creation",
+	"modified",
+	"modified_by",
+	"owner",
+	"docstatus",
+	"idx",
+	"file_name",
+	"file_url",
+	"file_size",
+	"file_type",
+	"is_private",
+	"content_hash",
+	"folder",
+	"attached_to_doctype",
+	"attached_to_name",
+	"attached_to_field",
+	"thumbnail_url",
+]
+
+
+def _row_to_json(row):
+	"""Datetimes must survive the round trip with microseconds — message pagination is
+	keyset-on-creation and the client compares the cursors as strings."""
+	out = {}
+	for key, value in row.items():
+		out[key] = str(value) if isinstance(value, datetime.datetime | datetime.date) else value
+	return out
+
+
+def pack(thread):
+	"""Pack a thread into its archive and delete the originals. Runs as a background job.
+
+	Nothing is destroyed until the zip exists, is closed, reopens cleanly and contains every
+	blob it promises — a crash before that point leaves the chat untouched."""
+	# Imported lazily: employee_chat calls into this module, so a top-level import would cycle.
+	from erpnext.crm.page.employee_chat.employee_chat import _fanout, _thread_file_names
+
+	with filelock(f"chat_archive_{thread}", timeout=5):
+		doc = frappe.get_doc("Chat Thread", thread)
+		if doc.deep_archive_status != "Packing":
+			return
+
+		try:
+			path = archive_abs_path(thread)
+			os.makedirs(os.path.dirname(path), exist_ok=True)
+			tmp_path = path + ".part"
+			file_names = _thread_file_names(thread)
+			counts = _write_archive(tmp_path, doc, file_names)
+			_check_archive(tmp_path, counts)
+			os.replace(tmp_path, path)
+			os.chmod(path, 0o600)
+		except Exception:
+			frappe.db.rollback()
+			_set_state(thread, {"deep_archive_status": "Failed", "restore_error": frappe.get_traceback()})
+			frappe.db.commit()
+			frappe.log_error(title=f"Chat deep archive: packing {thread} failed")
+			raise
+
+		_delete_originals(thread, file_names)
+		_set_state(
+			thread,
+			{
+				"deep_archive_status": "Archived",
+				"is_deep_archived": 1,
+				"deep_archived_on": now(),
+				"deep_archived_by": frappe.session.user,
+				"archived_message_count": counts["messages"],
+				"archived_file_count": counts["files"],
+				"deep_archive_path": archive_rel_path(thread),
+				"deep_archive_sha256": _sha256(path),
+				"deep_archive_size": os.path.getsize(path),
+				"restore_error": None,
+				"restore_progress": 0,
+				"restore_expires_on": None,
+			},
+		)
+		frappe.db.commit()
+
+	doc.reload()
+	_fanout(
+		doc,
+		"chat_deep_archived",
+		{"thread": thread, "message_count": counts["messages"], "file_count": counts["files"]},
+	)
+
+
+def _write_archive(tmp_path, doc, file_names):
+	"""Stream the thread into a zip. Messages are paged, blobs are copied chunk by chunk —
+	a long thread must not be held in memory."""
+	counts = {"messages": 0, "files": 0, "blob_bytes": 0}
+	first_message_on = None
+	last_message_on = None
+
+	with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+		with zf.open("messages.jsonl", "w") as member:
+			after = None
+			while True:
+				filters = {"thread": doc.name}
+				if after:
+					filters["creation"] = (">", after)
+				rows = frappe.db.get_all(
+					"Chat Message",
+					filters=filters,
+					fields=MESSAGE_COLUMNS,
+					order_by="creation asc",
+					limit=5000,
+				)
+				if not rows:
+					break
+				for row in rows:
+					if first_message_on is None:
+						first_message_on = str(row["creation"])
+					last_message_on = str(row["creation"])
+					member.write((json.dumps(_row_to_json(row), ensure_ascii=False) + "\n").encode())
+					counts["messages"] += 1
+				after = rows[-1]["creation"]
+
+		file_rows = []
+		for name in file_names:
+			row = frappe.db.get_value("File", name, FILE_COLUMNS, as_dict=True)
+			if not row:
+				continue
+			blob = _blob_path(row)
+			if not blob or not os.path.exists(blob):
+				# The row outlived its bytes; keep the metadata so the loss is visible.
+				row = _row_to_json(row)
+				row["blob"] = None
+				file_rows.append(row)
+				continue
+			member_name = f"blobs/{name}"
+			with open(blob, "rb") as src, zf.open(member_name, "w") as dst:
+				shutil.copyfileobj(src, dst, 1024 * 1024)
+			row = _row_to_json(row)
+			row["blob"] = member_name
+			row["sha256"] = _sha256(blob)
+			file_rows.append(row)
+			counts["files"] += 1
+			counts["blob_bytes"] += os.path.getsize(blob)
+
+		zf.writestr(
+			"files.jsonl",
+			"".join(json.dumps(r, ensure_ascii=False) + "\n" for r in file_rows),
+		)
+		zf.writestr(
+			"thread.json",
+			json.dumps(
+				_row_to_json(doc.as_dict(no_nulls=False, convert_dates_to_str=True)), ensure_ascii=False
+			),
+		)
+		zf.writestr(
+			"chat-archive.json",
+			json.dumps(
+				{
+					"schema_version": SCHEMA_VERSION,
+					"thread": doc.name,
+					"thread_type": doc.thread_type,
+					"is_secret": doc.is_secret,
+					"packed_on": now(),
+					"packed_by": frappe.session.user,
+					"message_count": counts["messages"],
+					"file_count": counts["files"],
+					"total_blob_bytes": counts["blob_bytes"],
+					"first_message_on": first_message_on,
+					"last_message_on": last_message_on,
+					"last_message_preview": doc.last_message_preview,
+					"last_sender": doc.last_sender,
+				},
+				ensure_ascii=False,
+			),
+		)
+	return counts
+
+
+def _check_archive(path, counts):
+	"""Reopen the finished zip and prove it holds what the manifest claims."""
+	with zipfile.ZipFile(path) as zf:
+		if zf.testzip() is not None:
+			frappe.throw(_("The chat archive is corrupt"))
+		manifest = json.loads(zf.read("chat-archive.json"))
+		if manifest["schema_version"] != SCHEMA_VERSION:
+			frappe.throw(_("Unexpected archive version"))
+		names = set(zf.namelist())
+		for line in zf.read("files.jsonl").decode().splitlines():
+			row = json.loads(line)
+			if row.get("blob") and row["blob"] not in names:
+				frappe.throw(_("The chat archive is missing an attachment"))
+		if manifest["message_count"] != counts["messages"]:
+			frappe.throw(_("The chat archive is incomplete"))
+
+
+def _blob_path(file_row):
+	"""On-disk path of a File row, derived from its url so it also works for rows whose doc we
+	never load (and, on restore, before the row exists at all)."""
+	url = file_row.get("file_url")
+	if not url:
+		return None
+	return get_files_path(os.path.basename(url), is_private=int(file_row.get("is_private") or 0))
+
+
+def _delete_originals(thread, file_names):
+	"""Drop what the archive now holds. Files first: a stray File row without messages is
+	recoverable noise, an orphaned message pointing at nothing is not."""
+	for name in file_names:
+		try:
+			frappe.delete_doc("File", name, ignore_permissions=True, force=True, delete_permanently=True)
+		except Exception:
+			frappe.log_error(title="Chat deep archive: could not delete file", message=frappe.get_traceback())
+	while True:
+		batch = frappe.get_all("Chat Message", filters={"thread": thread}, pluck="name", limit=2000)
+		if not batch:
+			break
+		frappe.db.delete("Chat Message", {"name": ("in", batch)})
+		frappe.db.commit()
