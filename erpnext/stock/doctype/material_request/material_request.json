@@ -11,6 +11,7 @@
   "naming_series",
   "title",
   "material_request_type",
+  "custom_task",
   "customer",
   "company",
   "auto_created_via_reorder",
@@ -371,6 +372,13 @@
    "label": "Auto Created (Reorder)",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "custom_task",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Завдання",
+   "options": "Task"
   }
  ],
  "icon": "fa fa-ticket",
