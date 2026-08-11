@@ -46,10 +46,14 @@ doctype_list_js = {
 
 override_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAddress"}
 
-override_whitelisted_methods = {"frappe.www.contact.send_message": "erpnext.templates.utils.send_message"}
+override_whitelisted_methods = {
+	"frappe.www.contact.send_message": "erpnext.templates.utils.send_message",
+	"frappe.model.workflow.apply_workflow": "erpnext.accounts.payment_workflow_reason.apply_workflow",
+}
 
 # Internal Employee Chat — messages/threads are visible only to their participants.
 permission_query_conditions = {
+	"Payment Request": "erpnext.accounts.payment_request_permissions.get_permission_query_conditions",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.get_permission_query_conditions",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.get_permission_query_conditions",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.get_permission_query_conditions",
@@ -59,6 +63,7 @@ permission_query_conditions = {
 has_permission = {
 	# Leads in a final status are read-only until a Sales Manager returns them.
 	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
+	"Payment Request": "erpnext.accounts.payment_request_permissions.has_permission",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
@@ -77,10 +82,14 @@ before_install = [
 	"erpnext.setup.install.check_frappe_version",
 ]
 after_install = "erpnext.setup.install.after_install"
+before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
-after_migrate = ["erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes"]
+after_migrate = [
+	"erpnext.setup.payment_workflow_setup.after_migrate",
+	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
+]
 
 boot_session = "erpnext.startup.boot.boot_session"
 notification_config = "erpnext.startup.notifications.get_notification_config"
@@ -435,7 +444,25 @@ doc_events = {
 		"validate": [
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
-		]
+		],
+		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+	},
+	"Payment Request": {
+		"validate": [
+			"erpnext.accounts.payment_workflow_reason.validate_required_reason",
+			"erpnext.projects.task_payments.set_payment_request_task",
+			"erpnext.projects.task_payments.validate_payment_request_short_description",
+		],
+		"on_change": "erpnext.projects.task_payments.sync_payment_request_task_summary",
+		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"after_delete": "erpnext.projects.task_payments.sync_payment_request_task_summary",
+	},
+	"Material Request": {
+		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+	},
+	"Task": {
+		"on_update": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
+		"after_delete": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
 	},
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
@@ -446,10 +473,20 @@ doc_events = {
 		"on_cancel": "erpnext.stock.doctype.serial_no.inspection.clear_inspection_status_on_cancel",
 	},
 	"Payment Entry": {
+		"on_trash": "erpnext.regional.check_deletion_permission",
+		"validate": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+		"before_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+		"on_update": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 		"on_submit": [
 			"erpnext.regional.create_transaction_log",
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
 		],
-		"on_trash": "erpnext.regional.check_deletion_permission",
+		"on_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+		"on_cancel": [
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
+		],
 	},
 	"Address": {
 		"validate": [
