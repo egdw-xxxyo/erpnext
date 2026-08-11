@@ -18,6 +18,19 @@
   "column_break_4",
   "reference_doctype",
   "reference_name",
+  "custom_task",
+  "custom_short_description",
+  "custom_payments_approval_section",
+  "custom_department",
+  "custom_initiator_user",
+  "custom_initiator_employee",
+  "custom_payments_approval_column",
+  "custom_payment_purpose",
+  "custom_priority",
+  "custom_requested_payment_date",
+  "custom_planned_payment_date",
+  "custom_workflow_action_reason",
+  "custom_fiscal_receipt_status",
   "transaction_details",
   "grand_total",
   "currency",
@@ -442,6 +455,93 @@
    "fieldname": "phone_number",
    "fieldtype": "Data",
    "label": "Phone Number"
+  },
+  {
+   "fieldname": "custom_task",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Завдання",
+   "options": "Task",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_short_description",
+   "fieldtype": "Data",
+   "label": "Короткий опис",
+   "length": 255
+  },
+  {
+   "fieldname": "custom_payments_approval_section",
+   "fieldtype": "Section Break",
+   "label": "Деталі погодження платежу"
+  },
+  {
+   "fieldname": "custom_department",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Підрозділ",
+   "options": "Department"
+  },
+  {
+   "default": "__user",
+   "fieldname": "custom_initiator_user",
+   "fieldtype": "Link",
+   "label": "Користувач-ініціатор",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_initiator_employee",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Працівник-ініціатор",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payments_approval_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_payment_purpose",
+   "fieldtype": "Small Text",
+   "label": "Призначення платежу"
+  },
+  {
+   "default": "Звичайний",
+   "fieldname": "custom_priority",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Пріоритет",
+   "options": "Звичайний\nТерміновий"
+  },
+  {
+   "fieldname": "custom_requested_payment_date",
+   "fieldtype": "Date",
+   "label": "Бажана дата оплати"
+  },
+  {
+   "fieldname": "custom_planned_payment_date",
+   "fieldtype": "Date",
+   "label": "Планова дата оплати"
+  },
+  {
+   "fieldname": "custom_workflow_action_reason",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Причина дії погодження",
+   "no_copy": 1
+  },
+  {
+   "depends_on": "eval:doc.status == 'Paid'",
+   "fieldname": "custom_fiscal_receipt_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Фіскальний чек",
+   "no_copy": 1,
+   "options": "\nДодано\nВідсутній\nЧастково",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
