@@ -78,6 +78,9 @@
   "reference_no",
   "column_break_23",
   "reference_date",
+  "custom_fiscal_receipt_section",
+  "custom_fiscal_receipt",
+  "custom_fiscal_receipt_status",
   "clearance_date",
   "accounting_dimensions_section",
   "project",
@@ -786,6 +789,30 @@
    "options": "No\nYes",
    "print_hide": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "custom_fiscal_receipt_section",
+   "fieldtype": "Section Break",
+   "label": "Фіскальний чек"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "custom_fiscal_receipt",
+   "fieldtype": "Attach",
+   "label": "Фіскальний чек (файл)",
+   "no_copy": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Відсутній",
+   "fieldname": "custom_fiscal_receipt_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Наявність фіскального чека",
+   "no_copy": 1,
+   "options": "Відсутній\nДодано",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
