@@ -36,6 +36,7 @@
   "cost_center",
   "dimension_col_break",
   "project",
+  "custom_task",
   "currency_and_price_list",
   "currency",
   "conversion_rate",
@@ -1655,6 +1656,13 @@
    "fieldtype": "Data",
    "is_virtual": 1,
    "label": "Last Scanned Warehouse"
+  },
+  {
+   "fieldname": "custom_task",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Завдання",
+   "options": "Task"
   }
  ],
  "grid_page_length": 50,

@@ -12,6 +12,8 @@
   "progress",
   "column_break_2",
   "subject",
+  "custom_payment_request_total",
+  "custom_payment_status",
   "project"
  ],
  "fields": [
@@ -73,6 +75,24 @@
    "fieldname": "project",
    "fieldtype": "Text",
    "label": "Project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payment_request_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Витрати",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "Немає запитів на оплату",
+   "fieldname": "custom_payment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Стан оплати",
+   "no_copy": 1,
+   "options": "Немає запитів на оплату\nЄ неоплачені запити\nОплачено",
    "read_only": 1
   }
  ],

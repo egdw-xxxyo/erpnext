@@ -11,6 +11,7 @@
   "naming_series",
   "title",
   "material_request_type",
+  "custom_task",
   "customer",
   "company",
   "column_break_2",
@@ -361,6 +362,13 @@
    "fieldtype": "Data",
    "is_virtual": 1,
    "label": "Last Scanned Warehouse"
+  },
+  {
+   "fieldname": "custom_task",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Завдання",
+   "options": "Task"
   }
  ],
  "icon": "fa fa-ticket",

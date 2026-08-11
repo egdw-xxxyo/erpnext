@@ -44,6 +44,16 @@
   "total_costing_amount",
   "column_break_20",
   "total_billing_amount",
+  "custom_payments_section",
+  "custom_payment_request_count",
+  "custom_payment_request_total",
+  "custom_payment_summary_column",
+  "custom_payment_status",
+  "custom_payment_currency",
+  "custom_payment_requests_section",
+  "custom_payment_requests_html",
+  "custom_material_requests_section",
+  "custom_material_requests_html",
   "sb_more_info",
   "review_date",
   "closing_date",
@@ -400,6 +410,69 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Template Task"
+  },
+  {
+   "fieldname": "custom_payments_section",
+   "fieldtype": "Section Break",
+   "label": "Оплати за завданням"
+  },
+  {
+   "fieldname": "custom_payment_request_count",
+   "fieldtype": "Int",
+   "label": "Кількість запитів на оплату",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payment_request_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Витрати за запитами",
+   "no_copy": 1,
+   "options": "custom_payment_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payment_summary_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Немає запитів на оплату",
+   "fieldname": "custom_payment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Стан оплати",
+   "no_copy": 1,
+   "options": "Немає запитів на оплату\nЄ неоплачені запити\nОплачено",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payment_currency",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Валюта витрат",
+   "no_copy": 1,
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payment_requests_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_payment_requests_html",
+   "fieldtype": "HTML",
+   "label": "Запити на оплату"
+  },
+  {
+   "fieldname": "custom_material_requests_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_material_requests_html",
+   "fieldtype": "HTML",
+   "label": "Замовлення матеріалів"
   }
  ],
  "icon": "fa fa-check",
