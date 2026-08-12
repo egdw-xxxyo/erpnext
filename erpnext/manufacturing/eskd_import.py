@@ -300,6 +300,7 @@ def import_process_cards(wb, summary, dry_run):
 			dry_run,
 			product=product,
 			document_name=note or kind,
+			document_type="Технологічна карта",
 			category="Технологічні карти",
 			source_sheet=ws.title,
 			source_ref=f"{ws.title}!R{row_index}C3",
