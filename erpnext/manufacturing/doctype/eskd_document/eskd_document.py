@@ -24,7 +24,7 @@ class ESKDDocument(Document):
 	def set_document_type(self):
 		if self.document_type or not self.document_code:
 			return
-		self.document_type = guess_document_type(self.document_code)
+		self.document_type = guess_document_type(self.document_code, self.document_name)
 
 	def warn_on_duplicate(self):
 		"""The same designation may legitimately be listed under several products,
@@ -48,11 +48,16 @@ class ESKDDocument(Document):
 			)
 
 
-def guess_document_type(document_code: str) -> str | None:
-	"""Map a ЄСКД designation onto an ESKD Document Type by its trailing abbreviation.
+FALLBACK_DOCUMENT_TYPE = "Деталь"
 
-	`УКРП.463145.005 ІК` -> the type whose abbreviation is `ІК`.
-	Longer abbreviations are tried first so that `СК` never swallows `С`.
+
+def guess_document_type(document_code: str, document_name: str | None = None) -> str | None:
+	"""Map a ЄСКД row onto an ESKD Document Type.
+
+	First by the designation's trailing abbreviation (`УКРП.463145.005 ІК` -> `ІК`,
+	longer abbreviations tried first so `СК` never swallows `С`), then by the row title
+	(`Складальний кресленик "НСУ"` -> Складальний кресленик). Bare part designations
+	such as `УКРП.741348.002` carry no marker at all and fall back to Деталь.
 	"""
 	code = (document_code or "").strip()
 	if not code:
@@ -60,21 +65,20 @@ def guess_document_type(document_code: str) -> str | None:
 	if code.upper().startswith("ТУ"):
 		return frappe.db.get_value("ESKD Document Type", {"abbreviation": "ТУ"}, "name")
 
-	abbrs = frappe.get_all(
-		"ESKD Document Type",
-		filters={"abbreviation": ("!=", "")},
-		fields=["name", "abbreviation"],
-	)
-	for row in sorted(abbrs, key=lambda r: len(r.abbreviation or ""), reverse=True):
+	types = frappe.get_all("ESKD Document Type", fields=["name", "abbreviation"])
+	for row in sorted(types, key=lambda r: len(r.abbreviation or ""), reverse=True):
 		abbr = (row.abbreviation or "").strip()
 		if not abbr:
 			continue
-		tail = code[-len(abbr) :]
-		if tail.upper() != abbr.upper():
-			continue
-		# `.001` must not match a type abbreviated `1`; require a non-digit boundary
-		before = code[: -len(abbr)].rstrip()
-		if before and before[-1].isdigit() and abbr.isdigit():
-			continue
-		return row.name
+		if code[-len(abbr) :].upper() == abbr.upper():
+			return row.name
+
+	title = (document_name or "").strip().lower()
+	if title:
+		for row in sorted(types, key=lambda r: len(r.name), reverse=True):
+			if title.startswith(row.name.lower()):
+				return row.name
+
+	if frappe.db.exists("ESKD Document Type", FALLBACK_DOCUMENT_TYPE):
+		return FALLBACK_DOCUMENT_TYPE
 	return None
