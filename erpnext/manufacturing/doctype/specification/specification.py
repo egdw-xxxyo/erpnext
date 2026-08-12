@@ -11,13 +11,39 @@ from erpnext.manufacturing.specification_variant import (
 )
 
 
+def _component_map_of(specification):
+	rows = frappe.get_all(
+		"Specification Component",
+		filters={"parent": specification, "parenttype": "Specification"},
+		fields=["role", "specification"],
+	)
+	return {row.role: row.specification for row in rows}
+
+
 class Specification(Document):
 	def autoname(self):
 		if self.variant_of and not self.specification_name:
 			template = frappe.get_cached_doc("Specification", self.variant_of)
 			make_variant_code(template.name, template.specification_name, self)
+		if self.variant_of and not self.specification_code:
+			# A variant may be given a human name of its own ("Укропчик FO 30 GT") while
+			# its designation still has to come from the template's number components.
+			self.specification_code = self.resolve_code_from_template()
 		if self.specification_name and not self.specification_code:
 			self.specification_code = self.specification_name
+
+	def resolve_code_from_template(self):
+		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
+			resolve_specification_template,
+		)
+
+		if not self.specification_number_template and self.variant_of:
+			self.specification_number_template = frappe.db.get_value(
+				"Specification", self.variant_of, "specification_number_template"
+			)
+		if not self.specification_number_template:
+			return self.specification_name
+		return resolve_specification_template(self) or self.specification_name
 
 	def validate(self):
 		self.validate_attributes_table()
@@ -40,7 +66,7 @@ class Specification(Document):
 		self.attributes = [d for d in self.attributes if d.attribute_value]
 		args = {d.attribute: d.attribute_value for d in self.attributes}
 		duplicate = get_variant(self.variant_of, args, variant=self.name)
-		if duplicate:
+		if duplicate and self._same_composition(duplicate):
 			frappe.throw(
 				_("A variant with the same attributes already exists: {0}").format(duplicate),
 				title=_("Duplicate Variant"),
@@ -48,6 +74,21 @@ class Specification(Document):
 		validate_variant_attributes(self, args)
 		for d in self.attributes:
 			d.variant_of = self.variant_of
+
+	def _same_composition(self, other):
+		"""Two catalog variants can share every attribute and still be different specs.
+
+		A coil differs from its neighbour only by catalog position, and two drones can
+		share frame and camera yet be built from a different battery or coil — the
+		ordinal and the components are part of the designation, so they are part of the
+		identity too.
+		"""
+		if (self.ordinal or None) != (frappe.db.get_value("Specification", other, "ordinal") or None):
+			return False
+		return self._component_map() == _component_map_of(other)
+
+	def _component_map(self):
+		return {row.role: row.specification for row in self.get("components") or []}
 
 	def validate_has_variants(self):
 		if self.is_new() or self.has_variants:

@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-08-12 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "role",
+  "specification",
+  "specification_code",
+  "column_break_1",
+  "specification_kind",
+  "ordinal",
+  "notes"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Role",
+   "options": "Specification Component Role",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "specification",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Specification",
+   "options": "Specification",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fetch_from": "specification.specification_code",
+   "fieldname": "specification_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "specification.specification_kind",
+   "fieldname": "specification_kind",
+   "fieldtype": "Data",
+   "label": "Kind",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fetch_from": "specification.ordinal",
+   "fieldname": "ordinal",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Ordinal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Specification Component",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

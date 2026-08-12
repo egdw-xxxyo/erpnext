@@ -10,7 +10,7 @@ CARD_LINKS = [
 	("ESKD Document", "DocType"),
 	("ESKD Document Type", "DocType"),
 	("ESKD Product", "DocType"),
-	("ESKD BpAK Combination", "DocType"),
+	("Specification Component Role", "DocType"),
 	("Specification", "DocType"),
 	("Specification Number Template", "DocType"),
 	("Item Specification", "DocType"),

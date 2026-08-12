@@ -1,5 +1,9 @@
 """Import the ЄСКД workbook (`ЄСКД.xlsx`) into ESKD Product / ESKD Document / Specification.
 
+MANUAL TOOL — never wire this into a hook, a patch or the scheduler. The catalog is
+maintained by hand through the Specification templates; this module exists for the one-off
+bulk load of a workbook and defaults to a dry run.
+
 Run from the container console:
 
 	bench --site frontend execute erpnext.manufacturing.eskd_import.run \
@@ -174,6 +178,78 @@ def _free_specification_name(wanted, code):
 	return f"{wanted} ({code})"[:140]
 
 
+CYRILLIC_ES = "С"
+LATIN_ES = "C"
+
+
+def _same_designation(left, right):
+	"""The workbook mixes Cyrillic `С` and Latin `C` as the specification suffix."""
+	return (left or "").replace(LATIN_ES, CYRILLIC_ES) == (right or "").replace(LATIN_ES, CYRILLIC_ES)
+
+
+def upsert_variant(
+	code, name, kind, summary, dry_run, attributes=None, parameters=None, components=None, **values
+):
+	"""Create a catalog entry as a variant so its designation is generated, not typed.
+
+	`code` from the workbook is not written to the document — it is the expectation the
+	generated designation is checked against, so a drift between the workbook and the
+	template components shows up as a mismatch instead of being silently accepted.
+	"""
+	from erpnext.manufacturing.eskd_templates import TEMPLATE_BY_KIND
+
+	template = TEMPLATE_BY_KIND.get(kind)
+	if not template or not frappe.db.exists("Specification", template):
+		return upsert_specification(
+			code, name, summary, dry_run, specification_kind=kind, parameters=parameters, **values
+		)
+
+	existing = frappe.db.get_value("Specification", {"specification_code": code}, "name")
+	if existing:
+		summary.hit("variants already present")
+		return existing
+
+	summary.hit("variants created")
+	if dry_run:
+		return None
+
+	doc = frappe.new_doc("Specification")
+	doc.variant_of = template
+	doc.specification_kind = kind
+	doc.specification_name = _free_specification_name(name or code, code)
+	doc.update({k: v for k, v in values.items() if v not in (None, "")})
+	for attribute, value in attributes or []:
+		doc.append("attributes", {"attribute": attribute, "attribute_value": value})
+	for role, specification in components or []:
+		doc.append("components", {"role": role, "specification": specification})
+	for row in _parameter_rows(parameters, dry_run):
+		doc.append("parameters", row)
+	doc.insert(ignore_permissions=True)
+
+	if not _same_designation(doc.specification_code, code):
+		summary.hit("designation mismatches")
+		frappe.log_error(
+			title="ЄСКД designation mismatch",
+			message=f"workbook: {code}\ngenerated: {doc.specification_code}\nvariant: {doc.name}",
+		)
+	return doc.name
+
+
+def _parameter_rows(parameters, dry_run):
+	rows = []
+	for parameter, value, uom in parameters or []:
+		if value in (None, ""):
+			continue
+		if not _ensure_parameter(parameter, dry_run):
+			continue
+		row = {"parameter": parameter, "value": str(value), "uom": uom or ""}
+		numeric = _num(value)
+		if numeric is not None:
+			row["calculated_value"] = numeric
+		rows.append(row)
+	return rows
+
+
 def upsert_specification(code, name, summary, dry_run, parameters=None, **values):
 	code = _norm(code)
 	name = _norm(name) or code
@@ -317,16 +393,27 @@ def import_coils(wb, summary, dry_run):
 		if not code or not name:
 			# reserved-but-unassigned slot
 			continue
-		upsert_specification(
+		upsert_variant(
 			code,
 			name,
+			"Coil",
 			summary,
 			dry_run,
-			specification_kind="Coil",
+			attributes=_organisation_attribute(code),
 			ordinal=cint(ordinal),
 			description=purpose,
 			parameters=_coil_parameters(purpose),
 		)
+
+
+ORGANISATION_VALUES = {"УКРП": "Укропчик", "ВРНК": "VARNEX"}
+
+
+def _organisation_attribute(code):
+	from erpnext.manufacturing.eskd_templates import ORGANISATION
+
+	value = ORGANISATION_VALUES.get(_org_code(code))
+	return [(ORGANISATION, value)] if value else []
 
 
 def _coil_parameters(purpose):
@@ -353,12 +440,13 @@ def import_varnex(wb, summary, dry_run):
 		ordinal, code, name, length, spool, fibre = cells[:6]
 		if not code:
 			continue
-		upsert_specification(
+		upsert_variant(
 			code,
 			name,
+			"Coil",
 			summary,
 			dry_run,
-			specification_kind="Coil",
+			attributes=_organisation_attribute(code),
 			organization_code="ВРНК",
 			ordinal=cint(ordinal),
 			parameters=[
@@ -374,12 +462,13 @@ def import_varnex(wb, summary, dry_run):
 		ordinal, code, name, note = cells[:4]
 		if not code:
 			continue
-		upsert_specification(
+		upsert_variant(
 			code,
 			name,
+			"Ground Station",
 			summary,
 			dry_run,
-			specification_kind="Ground Station",
+			attributes=_organisation_attribute(code),
 			organization_code="ВРНК",
 			ordinal=cint(ordinal),
 			description=note,
@@ -398,12 +487,13 @@ def import_batteries(wb, summary, dry_run):
 			if not code or not purpose:
 				# unassigned slot in the reserved range
 				continue
-			upsert_specification(
+			upsert_variant(
 				code,
 				f"{org} {purpose}",
+				"Battery",
 				summary,
 				dry_run,
-				specification_kind="Battery",
+				attributes=_organisation_attribute(code),
 				organization_code=org,
 				ordinal=cint(ordinal),
 				description=purpose,
@@ -420,12 +510,13 @@ def import_ground_stations(wb, summary, dry_run):
 		ordinal, purpose, code = cells[0], cells[1], cells[4]
 		if not code or not purpose:
 			continue
-		upsert_specification(
+		upsert_variant(
 			code,
 			purpose,
+			"Ground Station",
 			summary,
 			dry_run,
-			specification_kind="Ground Station",
+			attributes=_organisation_attribute(code),
 			ordinal=cint(ordinal),
 			description=purpose,
 		)
@@ -441,6 +532,71 @@ FPV_BLOCKS = (
 	{"start": 14, "end": 45, "code": 2, "name": 4, "note": 3, "params": False},
 	{"start": 49, "end": 80, "code": 2, "name": None, "note": 3, "params": False},
 )
+
+
+# `УКРП.200121.` + frame(2) + camera(2) + battery ordinal(2) + coil ordinal(4) + `С`
+BOARD_CODE_RE = re.compile(
+	r"^(?P<org>[А-ЯІЇЄҐA-Z]{4})\.(?P<drone_class>\d{6})\."
+	r"(?P<frame>\d{2})(?P<camera>\d{2})(?P<battery>\d{2})(?P<coil>\d{4})[СC]$"
+)
+
+
+def _board_composition(code):
+	"""Split a board designation into the attributes and components that generate it."""
+	from erpnext.manufacturing.eskd_templates import (
+		CAMERA_TYPE,
+		DRONE_CLASS,
+		FRAME_SIZE,
+		ORGANISATION,
+		ROLE_BATTERY,
+		ROLE_COIL,
+	)
+
+	match = BOARD_CODE_RE.match(_norm(code))
+	if not match:
+		return None
+
+	organisation = ORGANISATION_VALUES.get(match.group("org"))
+	drone_class = _attribute_value_for_abbr(DRONE_CLASS, match.group("drone_class"))
+	frame = _attribute_value_for_abbr(FRAME_SIZE, match.group("frame"))
+	camera = _attribute_value_for_abbr(CAMERA_TYPE, match.group("camera"))
+	if not all((organisation, drone_class, frame, camera)):
+		return None
+
+	components = []
+	for role, kind, ordinal in (
+		(ROLE_BATTERY, "Battery", match.group("battery")),
+		(ROLE_COIL, "Coil", match.group("coil")),
+	):
+		entry = _catalog_entry(kind, match.group("org"), ordinal)
+		if entry:
+			components.append((role, entry))
+
+	return {
+		"attributes": [
+			(ORGANISATION, organisation),
+			(DRONE_CLASS, drone_class),
+			(FRAME_SIZE, frame),
+			(CAMERA_TYPE, camera),
+		],
+		"components": components,
+	}
+
+
+def _attribute_value_for_abbr(attribute, abbr):
+	return frappe.db.get_value("Item Attribute Value", {"parent": attribute, "abbr": abbr}, "attribute_value")
+
+
+def _catalog_entry(kind, organization_code, ordinal):
+	return frappe.db.get_value(
+		"Specification",
+		{
+			"specification_kind": kind,
+			"organization_code": organization_code,
+			"ordinal": cint(ordinal),
+		},
+		"name",
+	)
 
 
 def import_boards(wb, summary, dry_run):
@@ -465,12 +621,28 @@ def import_boards(wb, summary, dry_run):
 					(PARAM_CAMERA_CHANNEL, row[5], ""),
 					(PARAM_CAMERA_SIGNAL, row[6], ""),
 				]
-			upsert_specification(
+			composition = _board_composition(code)
+			if composition is None:
+				# Radio boards such as `УКРП.463145.106C/15` do not follow the assembled
+				# grammar — keep them as plain catalog entries.
+				upsert_specification(
+					code,
+					name or note,
+					summary,
+					dry_run,
+					specification_kind="Board",
+					description=note,
+					parameters=parameters,
+				)
+				continue
+			upsert_variant(
 				code,
 				name or note,
+				"Board",
 				summary,
 				dry_run,
-				specification_kind="Board",
+				attributes=composition["attributes"],
+				components=composition["components"],
 				description=note,
 				parameters=parameters,
 			)
@@ -479,36 +651,51 @@ def import_boards(wb, summary, dry_run):
 def import_modifications(wb, summary, dry_run):
 	"""`Відомість модифікацій ТУ14` — the numbered modification list of a БпАК.
 
-	The sheet carries the row axis (modification number -> board specification) and the
-	column axis (ground-station designations in the header), but the intersections
-	themselves are still blank in the workbook. Rows are imported with the ground station
-	left empty so it can be assigned on the ЄСКД БпАК matrix page.
+	The row axis is text (modification number -> board specification); the intersections
+	are **cell fills**, not values — a solid-filled cell under a ground-station column is
+	the pairing. Reading only values silently loses all of them.
 	"""
 	ws = wb["Відомість модифікацій ТУ14"]
 	grid = [[_norm(c) for c in row] for row in ws.iter_rows(values_only=True)]
 	if len(grid) < 5:
 		return
 
-	title = grid[2][0]
-	product = _modification_product(title)
+	product = _modification_product(grid[2][0])
 	if not product:
 		summary.hit("modification sheets skipped (no product)")
 		return
 	upsert_product(product, summary, dry_run)
 
-	for row in grid[4:]:
-		label, board_name, board_code = row[0], row[1], row[2]
-		number = _modification_number(label)
+	header_row = 4
+	columns = {
+		col: grid[header_row - 1][col - 1]
+		for col in range(1, len(grid[header_row - 1]) + 1)
+		if grid[header_row - 1][col - 1]
+	}
+
+	for row_index in range(header_row + 1, len(grid) + 1):
+		row = grid[row_index - 1]
+		number = _modification_number(row[0])
+		board_code = row[2] if len(row) > 2 else ""
 		if not number or not board_code:
 			continue
 		upsert_combination(
 			product,
 			number,
 			board_code,
-			board_name,
+			row[1],
+			_marked_ground_station(ws, row_index, columns),
 			summary,
 			dry_run,
 		)
+
+
+def _marked_ground_station(ws, row_index, columns):
+	"""Return the ground-station designation whose cell is filled on this row."""
+	for col, code in columns.items():
+		if ws.cell(row_index, col).fill.patternType == "solid":
+			return code
+	return ""
 
 
 def _modification_product(title):
@@ -526,35 +713,61 @@ def _modification_number(label):
 	return cint(match.group(1)) if match else 0
 
 
-def upsert_combination(product, number, board_code, board_name, summary, dry_run):
-	board = frappe.db.get_value("Specification", {"specification_code": board_code}, "name")
+def upsert_combination(product, number, board_code, board_name, gs_code, summary, dry_run):
+	board = _specification_by_code(board_code)
 	if not board:
 		summary.hit("combinations skipped (board specification not in catalog)")
 		return None
 
-	existing = frappe.db.exists("ESKD BpAK Combination", {"product": product, "modification_number": number})
+	ground_station = _specification_by_code(gs_code) if gs_code else None
+	if gs_code and not ground_station:
+		summary.hit("intersections whose ground station is not in the catalog")
+	elif ground_station:
+		summary.hit("intersections read from cell fills")
+
+	if not ground_station:
+		# without a marked intersection there is no pairing to record
+		return None
+
+	existing = frappe.db.exists(
+		"Specification", {"specification_kind": "BpAK", "product": product, "ordinal": number}
+	)
 	if existing:
-		summary.hit("combinations updated")
-		if not dry_run:
-			doc = frappe.get_doc("ESKD BpAK Combination", existing)
-			doc.board_specification = board
-			doc.save(ignore_permissions=True)
+		summary.hit("combinations already present")
 		return existing
 
 	summary.hit("combinations created")
 	if dry_run:
 		return None
-	doc = frappe.get_doc(
-		{
-			"doctype": "ESKD BpAK Combination",
-			"product": product,
-			"modification_number": number,
-			"board_specification": board,
-			"notes": board_name,
-		}
-	)
+
+	from erpnext.manufacturing.eskd_templates import ROLE_BOARD, ROLE_GROUND_STATION
+
+	doc = frappe.new_doc("Specification")
+	doc.variant_of = "Специфікація БпАК"
+	doc.specification_kind = "BpAK"
+	doc.product = product
+	doc.ordinal = number
+	doc.specification_name = f"{product} — модифікація {number}"
+	doc.specification_code = f"{board_code} / {gs_code}"
+	doc.description = board_name
+	doc.append("components", {"role": ROLE_BOARD, "specification": board})
+	doc.append("components", {"role": ROLE_GROUND_STATION, "specification": ground_station})
 	doc.insert(ignore_permissions=True)
 	return doc.name
+
+
+def _specification_by_code(code):
+	"""Look up a designation, tolerating the workbook's mixed Cyrillic `С` / Latin `C`."""
+	code = _norm(code)
+	if not code:
+		return None
+	found = frappe.db.get_value("Specification", {"specification_code": code}, "name")
+	if found:
+		return found
+	swapped = code.replace(LATIN_ES, CYRILLIC_ES)
+	if swapped != code:
+		found = frappe.db.get_value("Specification", {"specification_code": swapped}, "name")
+	return found
 
 
 SHEET_IMPORTERS = {
@@ -579,6 +792,10 @@ def run(path, dry_run=True, only=None):
 	summary = Summary()
 
 	ensure_document_types(summary, dry_run)
+	if not dry_run:
+		from erpnext.manufacturing.eskd_templates import setup
+
+		setup()
 
 	names = [only] if isinstance(only, str) else (only or list(SHEET_IMPORTERS))
 	for key in names:

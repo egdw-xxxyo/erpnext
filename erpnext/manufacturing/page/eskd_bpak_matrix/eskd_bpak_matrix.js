@@ -36,15 +36,6 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 		.bpak-matrix td.cell-toggle { cursor: pointer; }
 		.bpak-matrix td.cell-toggle:hover { background: var(--fg-hover-color); }
 		.bpak-matrix td.cell-taken { color: var(--text-on-green, #0f766e); font-weight: 600; }
-		.bpak-matrix .free-badge {
-			display: inline-block;
-			background: var(--bg-light-gray, #f4f5f6);
-			border-radius: 8px;
-			padding: 0 6px;
-			margin-left: 4px;
-			font-size: 11px;
-			color: var(--text-muted);
-		}
 	`
 		)
 		.appendTo("head");
@@ -56,12 +47,6 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 
 	function render() {
 		const product = product_field.get_value();
-		if (!product) {
-			$container.html(
-				`<div class="text-muted" style="margin: 15px 0;">${__("Select a product")}</div>`
-			);
-			return;
-		}
 		frappe.call({
 			method: "erpnext.manufacturing.page.eskd_bpak_matrix.eskd_bpak_matrix.get_matrix",
 			args: { product },
@@ -84,13 +69,8 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 		html += "</tr></thead><tbody>";
 
 		for (const row of rows) {
-			const free = row.free.length
-				? `<span class="free-badge" title="${__("Unassigned modifications")}">${
-						row.free.length
-				  }</span>`
-				: "";
 			html += "<tr>";
-			html += `<td>${spec_link(row.board, row.code)}${free}</td>`;
+			html += `<td>${spec_link(row.board, row.code)}</td>`;
 			html += `<td class="cell-name">${frappe.utils.escape_html(row.name || "")}</td>`;
 			for (const column of columns) {
 				const cell = row.cells[column.name];
@@ -98,13 +78,11 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 					row.board
 				)}" data-gs="${frappe.utils.escape_html(column.name)}"`;
 				if (cell) {
-					html += `<td class="cell-toggle cell-taken" ${attrs} data-combination="${frappe.utils.escape_html(
-						cell.combination
-					)}" title="${__("Click to release")}">${cell.modification_number}</td>`;
+					html += `<td class="cell-toggle cell-taken" ${attrs} data-bpak="${frappe.utils.escape_html(
+						cell.specification
+					)}" title="${__("Click to release")}">${cell.ordinal}</td>`;
 				} else {
-					html += `<td class="cell-toggle" ${attrs} title="${__(
-						"Click to assign a modification"
-					)}"></td>`;
+					html += `<td class="cell-toggle" ${attrs} title="${__("Click to create a БпАК")}"></td>`;
 				}
 			}
 			html += "</tr>";
@@ -112,7 +90,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 		html += "</tbody></table>";
 
 		if (!rows.length) {
-			html += `<div class="text-muted">${__("No modifications for this product")}</div>`;
+			html += `<div class="text-muted">${__("No drone specifications yet")}</div>`;
 		}
 
 		$container.html(html);
@@ -121,12 +99,12 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 
 	function on_cell_click() {
 		const $cell = $(this);
-		const combination = $cell.attr("data-combination");
-		const method = combination
+		const bpak = $cell.attr("data-bpak");
+		const method = bpak
 			? "erpnext.manufacturing.page.eskd_bpak_matrix.eskd_bpak_matrix.unassign"
 			: "erpnext.manufacturing.page.eskd_bpak_matrix.eskd_bpak_matrix.assign";
-		const args = combination
-			? { combination }
+		const args = bpak
+			? { specification: bpak }
 			: {
 					product: product_field.get_value(),
 					board: $cell.attr("data-board"),
@@ -135,15 +113,5 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 		frappe.call({ method, args, callback: () => render() });
 	}
 
-	frappe.call({
-		method: "erpnext.manufacturing.page.eskd_bpak_matrix.eskd_bpak_matrix.get_products",
-		callback: (r) => {
-			const products = r.message || [];
-			if (products.length && !product_field.get_value()) {
-				product_field.set_value(products[0]);
-			} else {
-				render();
-			}
-		},
-	});
+	render();
 };
