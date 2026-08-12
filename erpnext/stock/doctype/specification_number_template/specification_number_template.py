@@ -26,6 +26,8 @@ def _component_token(c):
 		return "{ATTR:" + (c.attribute_link or "") + ":short_name}"
 	if t == "Item Attribute Value":
 		return "{ATTR:" + (c.attribute_link or "") + ":value}"
+	if t == "Ordinal":
+		return "{ORDINAL:" + str(c.ordinal_digits or 2) + "}"
 	return ""
 
 
@@ -62,6 +64,12 @@ def resolve_specification_template(item_doc):
 		t = c.component_type
 		if t == "Literal":
 			parts.append(c.value or "")
+			continue
+		if t == "Ordinal":
+			ordinal = item_doc.get("ordinal")
+			if not ordinal:
+				return None
+			parts.append(str(int(ordinal)).zfill(int(c.ordinal_digits or 2)))
 			continue
 		attr = c.attribute_link
 		if not attr:
