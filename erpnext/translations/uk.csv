@@ -13062,3 +13062,25 @@ Customer Requirement,Потреба
 "Fill in when the organization is not a customer yet. A Lead may link either a Prospect or a Customer, not both.","Заповніть, якщо організація ще не є клієнтом. Звернення може бути пов'язане або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно."
 "Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.","Відображається з пов’язаного Потенційного клієнта або Клієнта. Ведеться на організації, а не у Зверненні."
 Additional Information for Status {0},Додаткова інформація для статусу {0}
+Material Request Initiator,Ініціатор замовлення матеріалів
+Decision Reason,Причина рішення
+Current Assignee,Поточний виконавець
+Approval Stage,Етап погодження
+Confirm,Підтвердити
+Enter the reason for the decision.,Вкажіть причину рішення.
+Reason is required,Причина обов'язкова
+Reason is too long,Причина занадто довга
+Only a buyer can create procurement documents from a Material Request.,Створювати закупівельні документи із замовлення матеріалів може лише закупівельник.
+Use a workflow action for this transition and provide a reason.,Виконайте перехід через дію робочого процесу та вкажіть причину.
+The reason cannot contain more than {0} characters.,Причина не може містити більше {0} символів.
+{0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів та передав його у закупівлю.
+{0} created {1} based on this Material Request and completed its processing by the buyer.,{0} створив {1} на підставі цього замовлення та завершив його опрацювання закупівельником.
+{0} created this Purchase Order from {1}.,{0} створив це замовлення на придбання із {1}.
+submitted the Purchase Order for department review,подав замовлення на перевірку підрозділу
+resubmitted the Purchase Order for department review,повторно подав замовлення на перевірку підрозділу
+approved the Purchase Order,погодив замовлення
+returned the Purchase Order for rework,повернув замовлення на доопрацювання
+rejected the Purchase Order,відхилив замовлення
+submitted the approved Purchase Order,провів погоджене замовлення
+performed action “{0}”,виконав дію «{0}»
+{0} {1} for the following reason:<br>{2},{0} {1} з причини:<br>{2}

@@ -49,6 +49,10 @@ override_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAdd
 override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "erpnext.templates.utils.send_message",
 	"frappe.model.workflow.apply_workflow": "erpnext.accounts.payment_workflow_reason.apply_workflow",
+	"erpnext.stock.doctype.material_request.material_request.make_purchase_order": "erpnext.buying.procurement_automation.make_purchase_order",
+	"erpnext.stock.doctype.material_request.material_request.make_purchase_order_based_on_supplier": "erpnext.buying.procurement_automation.make_purchase_order_based_on_supplier",
+	"erpnext.stock.doctype.material_request.material_request.make_request_for_quotation": "erpnext.buying.procurement_automation.make_request_for_quotation",
+	"erpnext.stock.doctype.material_request.material_request.make_supplier_quotation": "erpnext.buying.procurement_automation.make_supplier_quotation",
 }
 
 # Internal Employee Chat — messages/threads are visible only to their participants.
@@ -88,6 +92,7 @@ after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
 	"erpnext.setup.payment_workflow_setup.after_migrate",
+	"erpnext.setup.procurement_workflow_setup.after_migrate",
 	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
 ]
 
@@ -459,6 +464,16 @@ doc_events = {
 	},
 	"Material Request": {
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"on_submit": "erpnext.buying.procurement_automation.on_material_request_submit",
+	},
+	"Purchase Order": {
+		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
+		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
+	},
+	"ToDo": {
+		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_update": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_trash": "erpnext.buying.procurement_automation.sync_current_assignees",
 	},
 	"Task": {
 		"on_update": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
