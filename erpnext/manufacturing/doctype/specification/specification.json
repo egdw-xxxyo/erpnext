@@ -15,6 +15,14 @@
   "column_break_basic",
   "variant_of",
   "specification_number_template",
+  "section_catalog",
+  "specification_kind",
+  "organization_code",
+  "column_break_catalog",
+  "ordinal",
+  "product",
+  "section_parameters",
+  "parameters",
   "section_variants",
   "has_variants",
   "variant_name_pattern",
@@ -74,6 +82,56 @@
    "options": "Specification",
    "read_only": 1,
    "set_only_once": 1
+  },
+  {
+   "fieldname": "section_catalog",
+   "fieldtype": "Section Break",
+   "label": "Catalog"
+  },
+  {
+   "description": "Which ЄСКД catalog this specification belongs to.",
+   "fieldname": "specification_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Specification Kind",
+   "options": "\nBoard\nCoil\nBattery\nGround Station\nOther"
+  },
+  {
+   "default": "УКРП",
+   "description": "Organization code prefix of the ЄСКД designation (УКРП, ВРНК).",
+   "fieldname": "organization_code",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Organization Code"
+  },
+  {
+   "fieldname": "column_break_catalog",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Sequential number within the catalog, used by the Ordinal component of a Specification Number Template.",
+   "fieldname": "ordinal",
+   "fieldtype": "Int",
+   "label": "Ordinal"
+  },
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "ESKD Product"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_parameters",
+   "fieldtype": "Section Break",
+   "label": "Parameters"
+  },
+  {
+   "fieldname": "parameters",
+   "fieldtype": "Table",
+   "label": "Parameters",
+   "options": "Item Specification Parameter"
   },
   {
    "fieldname": "section_variants",

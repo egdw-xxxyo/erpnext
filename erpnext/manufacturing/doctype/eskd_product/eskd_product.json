@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "autoname": "field:product_name",
+ "creation": "2026-08-12 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "product_name",
+  "organization_code",
+  "column_break_1",
+  "item",
+  "disabled",
+  "section_tu",
+  "tu_number",
+  "column_break_2",
+  "tu_note",
+  "section_notes",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "product_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Product Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "УКРП",
+   "description": "Organization code prefix of the ЄСКД designation (УКРП, ВРНК)",
+   "fieldname": "organization_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Organization Code"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "section_tu",
+   "fieldtype": "Section Break",
+   "label": "Technical Specification (ТУ)"
+  },
+  {
+   "fieldname": "tu_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ТУ Number"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tu_note",
+   "fieldtype": "Data",
+   "label": "ТУ Note"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "links": [],
+ "modified": "2026-08-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "ESKD Product",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Manufacturing User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

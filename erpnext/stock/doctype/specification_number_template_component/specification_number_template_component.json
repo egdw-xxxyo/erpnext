@@ -8,6 +8,7 @@
   "component_type",
   "attribute_link",
   "value",
+  "ordinal_digits",
   "condition_attribute",
   "condition_value"
  ],
@@ -17,7 +18,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Literal\nItem Attribute Abbr\nItem Attribute Short Name\nItem Attribute Value",
+   "options": "Literal\nItem Attribute Abbr\nItem Attribute Short Name\nItem Attribute Value\nOrdinal",
    "reqd": 1
   },
   {
@@ -35,6 +36,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Value"
+  },
+  {
+   "default": "2",
+   "depends_on": "eval:doc.component_type=='Ordinal'",
+   "description": "For Ordinal: zero-pad the document's Ordinal to this many digits.",
+   "fieldname": "ordinal_digits",
+   "fieldtype": "Int",
+   "label": "Ordinal Digits"
   },
   {
    "fieldname": "condition_attribute",
