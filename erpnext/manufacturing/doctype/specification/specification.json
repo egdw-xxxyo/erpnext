@@ -21,6 +21,8 @@
   "column_break_catalog",
   "ordinal",
   "product",
+  "section_components",
+  "components",
   "section_parameters",
   "parameters",
   "section_variants",
@@ -95,7 +97,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Specification Kind",
-   "options": "\nBoard\nCoil\nBattery\nGround Station\nOther"
+   "options": "\nBoard\nCoil\nBattery\nGround Station\nBpAK\nOther"
   },
   {
    "default": "УКРП",
@@ -120,6 +122,18 @@
    "fieldtype": "Link",
    "label": "Product",
    "options": "ESKD Product"
+  },
+  {
+   "description": "Specifications this one is built from, each in a role: a drone takes a coil and a battery, a БпАК takes a drone and a ground station. The Specification Number Template reads the Ordinal of a component by its role.",
+   "fieldname": "section_components",
+   "fieldtype": "Section Break",
+   "label": "Component Specifications"
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Specification Component"
   },
   {
    "collapsible": 1,
