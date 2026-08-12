@@ -1,8 +1,6 @@
 import frappe
-
 from frappe import _
 from frappe.utils import escape_html
-
 
 PAYMENT_REQUEST_DOCTYPE = "Payment Request"
 REASON_FIELD = "custom_workflow_action_reason"
@@ -13,7 +11,7 @@ REQUIRED_ACTIONS = (RETURN_ACTION, REJECT_ACTION)
 REQUIRED_TARGET_STATES = ("Потребує доопрацювання", "Відхилено")
 MAX_REASON_LENGTH = 2000
 
-CLIENT_SCRIPT = r'''
+CLIENT_SCRIPT = r"""
 frappe.ui.form.on("Payment Request", {
 	before_workflow_action(frm) {
 		const action = frm.selected_workflow_action;
@@ -65,7 +63,7 @@ frappe.ui.form.on("Payment Request", {
 		});
 	},
 });
-'''.strip()
+""".strip()
 
 
 def sync_workflow_reason_configuration():
@@ -90,6 +88,10 @@ def apply_workflow(doc, action):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
 
 	payload = frappe.parse_json(doc)
+	if payload.get("doctype") == "Purchase Order":
+		from erpnext.buying.procurement_workflow_reason import apply_workflow as apply_procurement_workflow
+
+		return apply_procurement_workflow(doc, action)
 	if payload.get("doctype") != PAYMENT_REQUEST_DOCTYPE:
 		return core_apply_workflow(doc, action)
 
