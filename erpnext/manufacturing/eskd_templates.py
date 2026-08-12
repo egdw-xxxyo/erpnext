@@ -32,6 +32,9 @@ ATTRIBUTES = {
 		("13 дюймів", "13"),
 		("15 дюймів", "15"),
 		("23 дюйма", "23"),
+		# The workbook keeps a second Укропчик 10 block on a different frame ("іньша рама"),
+		# numbered 99 because the frame itself has no size code yet.
+		("Інша рама", "99"),
 	],
 	CAMERA_TYPE: [
 		("Денна (сутінкова) аналогова", "01"),
