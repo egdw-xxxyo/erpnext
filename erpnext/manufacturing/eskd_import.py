@@ -476,6 +476,87 @@ def import_boards(wb, summary, dry_run):
 			)
 
 
+def import_modifications(wb, summary, dry_run):
+	"""`Відомість модифікацій ТУ14` — the numbered modification list of a БпАК.
+
+	The sheet carries the row axis (modification number -> board specification) and the
+	column axis (ground-station designations in the header), but the intersections
+	themselves are still blank in the workbook. Rows are imported with the ground station
+	left empty so it can be assigned on the ЄСКД БпАК matrix page.
+	"""
+	ws = wb["Відомість модифікацій ТУ14"]
+	grid = [[_norm(c) for c in row] for row in ws.iter_rows(values_only=True)]
+	if len(grid) < 5:
+		return
+
+	title = grid[2][0]
+	product = _modification_product(title)
+	if not product:
+		summary.hit("modification sheets skipped (no product)")
+		return
+	upsert_product(product, summary, dry_run)
+
+	for row in grid[4:]:
+		label, board_name, board_code = row[0], row[1], row[2]
+		number = _modification_number(label)
+		if not number or not board_code:
+			continue
+		upsert_combination(
+			product,
+			number,
+			board_code,
+			board_name,
+			summary,
+			dry_run,
+		)
+
+
+def _modification_product(title):
+	"""`Відомість модифікацій БпАК Укропчик 15 FO УКРП.463145.006ВМ` -> `Укропчик 15 FO`."""
+	text = _norm(title)
+	marker = "БпАК "
+	if marker not in text:
+		return ""
+	tail = text.split(marker, 1)[1]
+	return re.sub(r"\s+[А-ЯІЇЄҐA-Z]{4}\.\S+$", "", tail).strip()
+
+
+def _modification_number(label):
+	match = re.search(r"(\d+)", _norm(label))
+	return cint(match.group(1)) if match else 0
+
+
+def upsert_combination(product, number, board_code, board_name, summary, dry_run):
+	board = frappe.db.get_value("Specification", {"specification_code": board_code}, "name")
+	if not board:
+		summary.hit("combinations skipped (board specification not in catalog)")
+		return None
+
+	existing = frappe.db.exists("ESKD BpAK Combination", {"product": product, "modification_number": number})
+	if existing:
+		summary.hit("combinations updated")
+		if not dry_run:
+			doc = frappe.get_doc("ESKD BpAK Combination", existing)
+			doc.board_specification = board
+			doc.save(ignore_permissions=True)
+		return existing
+
+	summary.hit("combinations created")
+	if dry_run:
+		return None
+	doc = frappe.get_doc(
+		{
+			"doctype": "ESKD BpAK Combination",
+			"product": product,
+			"modification_number": number,
+			"board_specification": board,
+			"notes": board_name,
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	return doc.name
+
+
 SHEET_IMPORTERS = {
 	"tu": import_tu_table,
 	"register": import_register,
@@ -485,6 +566,7 @@ SHEET_IMPORTERS = {
 	"batteries": import_batteries,
 	"ground_stations": import_ground_stations,
 	"boards": import_boards,
+	"modifications": import_modifications,
 }
 
 
