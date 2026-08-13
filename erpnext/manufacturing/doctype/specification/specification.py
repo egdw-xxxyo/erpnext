@@ -111,6 +111,30 @@ class Specification(Document):
 				if row.attribute in seen:
 					frappe.throw(_("Attribute {0} appears more than once").format(row.attribute))
 				seen.add(row.attribute)
+		if self.has_variants:
+			self.validate_fixed_attribute_values()
+
+	def validate_fixed_attribute_values(self):
+		"""A value on a template row fixes that attribute for the whole catalog.
+
+		`УКРП.563562.001-ХХ` covers Li-ion packs only, so the chemistry is pinned on the
+		template and every variant of it inherits the value instead of choosing one.
+		"""
+		for row in self.attributes or []:
+			if not row.attribute_value or row.numeric_values:
+				continue
+			allowed = frappe.get_all(
+				"Item Attribute Value",
+				filters={"parent": row.attribute, "parenttype": "Item Attribute"},
+				pluck="attribute_value",
+			)
+			if row.attribute_value not in allowed:
+				frappe.throw(
+					_("{0} is not a value of attribute {1}. Allowed: {2}").format(
+						frappe.bold(row.attribute_value), row.attribute, ", ".join(allowed)
+					),
+					title=_("Invalid Attribute Value"),
+				)
 
 	def validate_variant_attributes_on_save(self):
 		if not self.variant_of:

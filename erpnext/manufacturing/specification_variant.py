@@ -188,7 +188,11 @@ def create_variant(spec, args):
 	variant_attributes = []
 
 	for d in template.attributes:
-		variant_attributes.append({"attribute": d.attribute, "attribute_value": args.get(d.attribute)})
+		# A value already set on the template row is fixed for the whole catalog
+		# ("Хімія = Li-ion"), so the variant inherits it instead of being asked for it.
+		variant_attributes.append(
+			{"attribute": d.attribute, "attribute_value": args.get(d.attribute) or d.attribute_value}
+		)
 
 	variant.set("attributes", variant_attributes)
 	copy_attributes_to_variant(template, variant)

@@ -59,6 +59,23 @@ frappe.ui.form.on("Specification", {
 	item_template: function (frm) {
 		erpnext.specification.load_item_attributes(frm, true);
 	},
+
+	variant_of: function (frm) {
+		if (!frm.doc.variant_of || (frm.doc.attributes || []).length) return;
+		frappe.db.get_doc("Specification", frm.doc.variant_of).then((template) => {
+			(template.attributes || []).forEach((row) => {
+				frm.add_child("attributes", {
+					attribute: row.attribute,
+					attribute_value: row.attribute_value,
+					numeric_values: row.numeric_values,
+					from_range: row.from_range,
+					to_range: row.to_range,
+					increment: row.increment,
+				});
+			});
+			frm.refresh_field("attributes");
+		});
+	},
 });
 
 erpnext.specification.load_item_attributes = function (frm, add_rows) {
@@ -100,8 +117,10 @@ erpnext.specification.toggle_attributes = function (frm) {
 			grid.toggle_enable("attribute", false);
 			frm.toggle_enable("attributes", false);
 		} else {
+			// On a template a value means "fixed for every variant of this catalog".
 			frm.toggle_enable("attributes", true);
-			grid.set_column_disp("attribute_value", false);
+			grid.set_column_disp("attribute_value", true);
+			grid.toggle_enable("attribute_value", true);
 			grid.toggle_enable("attribute", true);
 		}
 	} else {
@@ -111,7 +130,8 @@ erpnext.specification.toggle_attributes = function (frm) {
 };
 
 erpnext.specification.show_single_variant_dialog = function (frm) {
-	let rows = frm.doc.attributes.filter((r) => !r.disabled);
+	// Attributes fixed on the template are not asked for — every variant carries them.
+	let rows = frm.doc.attributes.filter((r) => !r.disabled && !r.attribute_value);
 	let promises = rows.map((row) => {
 		if (row.numeric_values) {
 			return Promise.resolve({ row: row, options: null });
@@ -284,7 +304,7 @@ erpnext.specification.show_multiple_variants_dialog = function (frm) {
 	}
 
 	frm.doc.attributes.forEach(function (d) {
-		if (d.disabled) return;
+		if (d.disabled || d.attribute_value) return;
 		let p = new Promise((resolve) => {
 			if (!d.numeric_values) {
 				frappe

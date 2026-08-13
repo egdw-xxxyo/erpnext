@@ -13222,3 +13222,5 @@ Additional Information for Status {0},Додаткова інформація д
 "{0} is not an Item template — pick an Item that has variants","{0} не є шаблоном товару — оберіть товар, який має варіанти"
 "Attributes {0} are not on Item template {1}","Атрибутів {0} немає в шаблоні товару {1}"
 "Attribute Not On Item Template","Атрибут відсутній у шаблоні товару"
+"{0} is not a value of attribute {1}. Allowed: {2}","{0} не є значенням атрибута {1}. Дозволені: {2}"
+"Invalid Attribute Value","Некоректне значення атрибута"
