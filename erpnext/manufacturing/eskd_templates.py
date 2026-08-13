@@ -15,34 +15,67 @@ ORGANISATION = "Організація ЄСКД"
 DRONE_CLASS = "Клас дрона"
 FRAME_SIZE = "Типорозмір рами"
 CAMERA_TYPE = "Тип камери"
+# Battery cells are already described by two attributes maintained outside ЄСКД —
+# reuse them instead of introducing a combined "6S3P" attribute of our own.
+BATTERY_SERIES = "Конфігурація S"
+BATTERY_PARALLEL = "Конфігурація P"
+COIL_TYPE = "Тип котушки"
+GS_SIGNAL = "Тип сигналу НСУ"
+GS_FORM = "Виконання НСУ"
 
+# attribute -> [(value, abbr, short name used in generated specification names)]
 ATTRIBUTES = {
 	ORGANISATION: [
-		("Укропчик", "УКРП"),
-		("VARNEX", "ВРНК"),
+		("Укропчик", "УКРП", "УКРП"),
+		("VARNEX", "ВРНК", "ВРНК"),
 	],
 	DRONE_CLASS: [
-		("Оптичний", "200121"),
-		("Радіокерований", "463145"),
+		("Оптичний", "200121", "FO"),
+		("Радіокерований", "463145", "RC"),
 	],
 	FRAME_SIZE: [
-		("7 дюймів", "07"),
-		("8 дюймів", "08"),
-		("10 дюймів", "10"),
-		("13 дюймів", "13"),
-		("15 дюймів", "15"),
-		("23 дюйма", "23"),
+		("7 дюймів", "07", "7"),
+		("8 дюймів", "08", "8"),
+		("10 дюймів", "10", "10"),
+		("13 дюймів", "13", "13"),
+		("15 дюймів", "15", "15"),
+		("23 дюйма", "23", "23"),
 		# The workbook keeps a second Укропчик 10 block on a different frame ("іньша рама"),
 		# numbered 99 because the frame itself has no size code yet.
-		("Інша рама", "99"),
+		("Інша рама", "99", "X"),
 	],
 	CAMERA_TYPE: [
-		("Денна (сутінкова) аналогова", "01"),
-		("Термальна аналогова", "02"),
-		("Денна (сутінкова) + термальна аналогова", "03"),
-		("Денна (сутінкова) цифрова", "04"),
-		("Термальна цифрова", "05"),
-		("Денна (сутінкова) + термальна цифрова", "06"),
+		("Денна (сутінкова) аналогова", "01", "DA"),
+		("Термальна аналогова", "02", "TA"),
+		("Денна (сутінкова) + термальна аналогова", "03", "DTA"),
+		("Денна (сутінкова) цифрова", "04", "DD"),
+		("Термальна цифрова", "05", "TD"),
+		("Денна (сутінкова) + термальна цифрова", "06", "DTD"),
+	],
+	# The abbreviation of a catalog attribute is its position in the workbook table, so
+	# picking "125 0,25 5 км" already tells you the specification is number 11.
+	COIL_TYPE: [
+		("ДШВ 1 км", "01", "FO 1 ST"),
+		("ДШВ 1,5 км", "02", "FO 1.5 ST"),
+		("ДШВ 2 км", "03", "FO 2 ST"),
+		("125 0,25 5 км", "11", "FO 5 AF"),
+		("125 0,25 10 км", "12", "FO 10 AF"),
+		("125 0,25 15 км", "13", "FO 15 AF"),
+		("125 0,2 20 км", "21", "FO 20 AT"),
+		("125 0,2 25 км", "22", "FO 25 AT"),
+		("150 0,25 15 км", "31", "FO 15 GF"),
+		("150 0,25 20 км", "32", "FO 20 GF"),
+		("150 0,25 25 км", "33", "FO 25 GF"),
+		("150 0,2 30 км", "41", "FO 30 GT"),
+		("150 0,2 40 км", "42", "FO 40 GT"),
+	],
+	GS_SIGNAL: [
+		("Аналогова", "A", "аналог"),
+		("Цифрова", "D", "цифра"),
+	],
+	GS_FORM: [
+		("Компактна", "K", "компактна"),
+		("Розширена", "R", "розширена"),
 	],
 }
 
@@ -112,22 +145,47 @@ NUMBER_TEMPLATES = {
 	],
 }
 
-# Specification template -> (kind, number template, variant attributes, name pattern)
+# Specification template -> (kind, number template, variant attributes, variant name pattern)
+#
+# The name pattern is resolved on save from the short names of the picked attributes,
+# `{ORDINAL}` for the catalog position and `{Role}` for a child specification — so a
+# variant is described by what it is made of, never by hand-typed text.
 SPECIFICATION_TEMPLATES = {
 	"Специфікація БпЛА": (
 		"Board",
 		"ЄСКД БпЛА",
 		[ORGANISATION, DRONE_CLASS, FRAME_SIZE, CAMERA_TYPE],
+		f"{{{ORGANISATION}}} {{{FRAME_SIZE}}} {{{CAMERA_TYPE}}}: {{{ROLE_COIL}}} / {{{ROLE_BATTERY}}}",
 	),
-	"Специфікація котушки": ("Coil", "ЄСКД Котушка", [ORGANISATION]),
-	"Специфікація батареї": ("Battery", "ЄСКД Батарея", [ORGANISATION]),
-	"Специфікація НСУ": ("Ground Station", "ЄСКД НСУ", [ORGANISATION]),
+	"Специфікація котушки": (
+		"Coil",
+		"ЄСКД Котушка",
+		[ORGANISATION, COIL_TYPE],
+		f"{{{COIL_TYPE}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+	),
+	"Специфікація батареї": (
+		"Battery",
+		"ЄСКД Батарея",
+		[ORGANISATION, BATTERY_SERIES, BATTERY_PARALLEL],
+		f"{{{BATTERY_SERIES}}}{{{BATTERY_PARALLEL}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+	),
+	"Специфікація НСУ": (
+		"Ground Station",
+		"ЄСКД НСУ",
+		[ORGANISATION, GS_SIGNAL, GS_FORM],
+		f"НСУ {{{GS_SIGNAL}}} {{{GS_FORM}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+	),
 	# A БпАК has no designation of its own — it is a numbered modification pairing a
 	# drone with a ground station, so it carries components but no number template.
-	"Специфікація БпАК": ("BpAK", None, [ORGANISATION]),
+	"Специфікація БпАК": (
+		"BpAK",
+		None,
+		[ORGANISATION],
+		f"БпАК {{ORDINAL}}: {{{ROLE_BOARD}}} / {{{ROLE_GROUND_STATION}}}",
+	),
 }
 
-TEMPLATE_BY_KIND = {kind: name for name, (kind, _t, _a) in SPECIFICATION_TEMPLATES.items()}
+TEMPLATE_BY_KIND = {kind: name for name, (kind, _t, _a, _p) in SPECIFICATION_TEMPLATES.items()}
 
 
 def setup():
@@ -139,8 +197,8 @@ def setup():
 	for template, components in NUMBER_TEMPLATES.items():
 		_ensure_number_template(template, components)
 	frappe.clear_cache(doctype="Specification Number Template")
-	for template, (kind, number_template, attributes) in SPECIFICATION_TEMPLATES.items():
-		_ensure_specification_template(template, kind, number_template, attributes)
+	for template, (kind, number_template, attributes, name_pattern) in SPECIFICATION_TEMPLATES.items():
+		_ensure_specification_template(template, kind, number_template, attributes, name_pattern)
 
 
 def _ensure_role(role, kind):
@@ -162,11 +220,15 @@ def _ensure_attribute(attribute, values):
 		doc.attribute_name = attribute
 
 	existing = {row.attribute_value: row for row in doc.get("item_attribute_values") or []}
-	for value, abbr in values:
+	for value, abbr, short_name in values:
 		if value in existing:
 			existing[value].abbr = abbr
+			existing[value].short_name = short_name
 		else:
-			doc.append("item_attribute_values", {"attribute_value": value, "abbr": abbr})
+			doc.append(
+				"item_attribute_values",
+				{"attribute_value": value, "abbr": abbr, "short_name": short_name},
+			)
 	doc.save(ignore_permissions=True)
 	return doc.name
 
@@ -185,7 +247,7 @@ def _ensure_number_template(template, components):
 	return doc.name
 
 
-def _ensure_specification_template(template, kind, number_template, attributes):
+def _ensure_specification_template(template, kind, number_template, attributes, name_pattern=None):
 	if frappe.db.exists("Specification", template):
 		doc = frappe.get_doc("Specification", template)
 	else:
@@ -197,6 +259,8 @@ def _ensure_specification_template(template, kind, number_template, attributes):
 	doc.specification_kind = kind
 	if number_template:
 		doc.specification_number_template = number_template
+	if name_pattern:
+		doc.variant_name_pattern = name_pattern
 
 	present = {row.attribute for row in doc.get("attributes") or []}
 	for attribute in attributes:

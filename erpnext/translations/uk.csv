@@ -13215,3 +13215,4 @@ Additional Information for Status {0},Додаткова інформація д
 "Click to create a БпАК","Натисніть, щоб створити БпАК"
 "No drone specifications yet","Ще немає специфікацій бортів"
 "The БпАК specification template is missing — run the ЄСКД setup first.","Відсутній шаблон специфікації БпАК — спочатку виконайте налаштування ЄСКД."
+"Generated from the template Variant Name Pattern for variants.","Для варіантів формується за шаблоном назви варіанта."
