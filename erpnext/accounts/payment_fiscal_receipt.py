@@ -1,9 +1,7 @@
 from urllib.parse import urlsplit
 
 import frappe
-
 from frappe import _
-
 
 PAYMENT_ENTRY_DOCTYPE = "Payment Entry"
 PAYMENT_REQUEST_DOCTYPE = "Payment Request"
@@ -17,7 +15,7 @@ CLIENT_SCRIPT_NAME = "Payments: попередження про відсутні
 LIST_CLIENT_SCRIPT_NAME = "Payments: колір статусу фіскального чека"
 PAYMENT_REQUEST_LIST_CLIENT_SCRIPT_NAME = "Payments: статус фіскального чека у запитах"
 
-CLIENT_SCRIPT = r'''
+CLIENT_SCRIPT = r"""
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
 		if (frm.__payments_receipt_submit_warning_installed) {
@@ -38,8 +36,8 @@ frappe.ui.form.on("Payment Entry", {
 						<div class="flex align-start">
 							<div class="mr-2" style="font-size: 1.25rem; line-height: 1;">&#9888;</div>
 							<div>
-								<strong>Фіскальний чек не додано</strong><br>
-								<span class="text-muted">Оплату можна провести без чека та додати його пізніше.</span>
+								<strong>${__("Fiscal receipt has not been attached")}</strong><br>
+								<span class="text-muted">${__("The payment can be submitted without a receipt and the receipt can be attached later.")}</span>
 							</div>
 						</div>
 					</div>`;
@@ -55,9 +53,9 @@ frappe.ui.form.on("Payment Entry", {
 		frm.__payments_receipt_submit_warning_installed = true;
 	},
 });
-'''.strip()
+""".strip()
 
-LIST_CLIENT_SCRIPT = r'''
+LIST_CLIENT_SCRIPT = r"""
 const paymentEntryListSettings = frappe.listview_settings["Payment Entry"] || {};
 paymentEntryListSettings.formatters = paymentEntryListSettings.formatters || {};
 paymentEntryListSettings.formatters.custom_fiscal_receipt_status = function (value) {
@@ -71,9 +69,9 @@ paymentEntryListSettings.formatters.custom_fiscal_receipt_status = function (val
 		</span>`;
 };
 frappe.listview_settings["Payment Entry"] = paymentEntryListSettings;
-'''.strip()
+""".strip()
 
-PAYMENT_REQUEST_LIST_CLIENT_SCRIPT = r'''
+PAYMENT_REQUEST_LIST_CLIENT_SCRIPT = r"""
 const paymentRequestListSettings = frappe.listview_settings["Payment Request"] || {};
 paymentRequestListSettings.formatters = paymentRequestListSettings.formatters || {};
 paymentRequestListSettings.formatters.custom_fiscal_receipt_status = function (value) {
@@ -87,7 +85,7 @@ paymentRequestListSettings.formatters.custom_fiscal_receipt_status = function (v
 		</span>`;
 };
 frappe.listview_settings["Payment Request"] = paymentRequestListSettings;
-'''.strip()
+""".strip()
 
 
 def validate_payment_entry_receipt(doc, method=None):
@@ -206,8 +204,8 @@ def _validate_file_extension(file_url):
 		return
 
 	frappe.throw(
-		_("Фіскальний чек має бути файлом PDF, JPG, JPEG або PNG."),
-		title=_("Непідтримуваний формат файла"),
+		_("The fiscal receipt must be a PDF, JPG, JPEG or PNG file."),
+		title=_("Unsupported File Format"),
 	)
 
 
@@ -219,11 +217,11 @@ def _validate_private_file(file_url):
 		as_dict=True,
 	)
 	if not file_record:
-		frappe.throw(_("Не вдалося знайти завантажений фіскальний чек."))
+		frappe.throw(_("The uploaded fiscal receipt could not be found."))
 	if not file_record.is_private:
 		frappe.throw(
-			_("Фіскальний чек має бути завантажений як приватний файл."),
-			title=_("Потрібен приватний файл"),
+			_("The fiscal receipt must be uploaded as a private file."),
+			title=_("Private File Required"),
 		)
 
 

@@ -1,12 +1,11 @@
 import frappe
-
+from frappe import _
 from frappe.utils import escape_html, get_link_to_form
 
-
 CREATION_LABELS = {
-	"Purchase Invoice": "створив рахунок постачальника",
-	"Payment Request": "створив запит на оплату",
-	"Material Request": "створив замовлення матеріалів",
+	"Purchase Invoice": "created the Purchase Invoice",
+	"Payment Request": "created the Payment Request",
+	"Material Request": "created the Material Request",
 }
 
 
@@ -20,5 +19,5 @@ def log_linked_document_creation(doc, method=None):
 	user = frappe.session.user
 	actor = frappe.get_cached_value("User", user, "full_name") or user
 	document_link = get_link_to_form(doc.doctype, doc.name, escape_html(doc.name))
-	message = f"<b>{escape_html(actor)}</b> {verb} {document_link} для цього завдання."
+	message = _("{0} {1} {2} for this task.").format(f"<b>{escape_html(actor)}</b>", _(verb), document_link)
 	frappe.get_doc("Task", task).add_comment("Info", text=message)

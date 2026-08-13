@@ -415,12 +415,12 @@
   {
    "fieldname": "custom_payments_section",
    "fieldtype": "Section Break",
-   "label": "Оплати за завданням"
+   "label": "Task Payments"
   },
   {
    "fieldname": "custom_payment_request_count",
    "fieldtype": "Int",
-   "label": "Кількість запитів на оплату",
+   "label": "Payment Request Count",
    "no_copy": 1,
    "read_only": 1
   },
@@ -428,7 +428,7 @@
    "fieldname": "custom_payment_request_total",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Витрати за запитами",
+   "label": "Payment Request Expenses",
    "no_copy": 1,
    "options": "custom_payment_currency",
    "read_only": 1
@@ -443,7 +443,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Стан оплати",
+   "label": "Payment Status",
    "no_copy": 1,
    "options": "Немає запитів на оплату\nЄ неоплачені запити\nОплачено",
    "read_only": 1
@@ -452,7 +452,7 @@
    "fieldname": "custom_payment_currency",
    "fieldtype": "Link",
    "hidden": 1,
-   "label": "Валюта витрат",
+   "label": "Expense Currency",
    "no_copy": 1,
    "options": "Currency",
    "read_only": 1
@@ -464,7 +464,7 @@
   {
    "fieldname": "custom_payment_requests_html",
    "fieldtype": "HTML",
-   "label": "Запити на оплату"
+   "label": "Payment Requests"
   },
   {
    "fieldname": "custom_material_requests_section",
@@ -473,7 +473,7 @@
   {
    "fieldname": "custom_material_requests_html",
    "fieldtype": "HTML",
-   "label": "Замовлення матеріалів"
+   "label": "Material Requests"
   },
   {
    "fieldname": "dependencies_tab",

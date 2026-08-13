@@ -1,5 +1,5 @@
 import frappe
-
+from frappe import _
 
 PAYMENT_REQUEST_DOCTYPE = "Payment Request"
 ALL_ASSIGNMENT_DAYS = (
@@ -20,7 +20,7 @@ ASSIGNMENT_RULES = (
 		"unassign_condition": "workflow_state not in ('Чернетка', 'Потребує доопрацювання')",
 		"rule": "Based on Field",
 		"field": "custom_initiator_user",
-		"description": "Опрацювати запит на оплату {{ name }} на етапі «{{ workflow_state }}».",
+		"description": _("Process Payment Request {{ name }} at stage “{{ workflow_state }}”."),
 	},
 	{
 		"name": "Payments: завдання керівнику підрозділу",
@@ -28,7 +28,7 @@ ASSIGNMENT_RULES = (
 		"condition": "workflow_state == 'Перевірка підрозділу'",
 		"unassign_condition": "workflow_state != 'Перевірка підрозділу'",
 		"user": "payments.department.head@example.invalid",
-		"description": "Перевірити запит на оплату {{ name }} від підрозділу.",
+		"description": _("Review Payment Request {{ name }} from the department."),
 	},
 	{
 		"name": "Payments: завдання фінальному погоджувачу",
@@ -36,7 +36,7 @@ ASSIGNMENT_RULES = (
 		"condition": "workflow_state == 'Фінальне погодження'",
 		"unassign_condition": "workflow_state != 'Фінальне погодження'",
 		"user": "payments.final.approver@example.invalid",
-		"description": "Виконати фінальне погодження запиту на оплату {{ name }}.",
+		"description": _("Perform the final approval of Payment Request {{ name }}."),
 	},
 	{
 		"name": "Payments: завдання казначею",
@@ -44,15 +44,14 @@ ASSIGNMENT_RULES = (
 		"condition": "workflow_state == 'Перевірка казначейства'",
 		"unassign_condition": "workflow_state != 'Перевірка казначейства'",
 		"user": "payments.treasury@example.invalid",
-		"description": "Перевірити та запланувати оплату за запитом {{ name }}.",
+		"description": _("Review and schedule payment for Payment Request {{ name }}."),
 	},
 )
 
 NOTIFICATION_NAME = "Payments: сповіщення про етап погодження"
 DEMO_NOTIFICATION_USERS = tuple(
 	sorted(
-		{rule["user"] for rule in ASSIGNMENT_RULES if rule.get("user")}
-		| {"payments.auditor@example.invalid"}
+		{rule["user"] for rule in ASSIGNMENT_RULES if rule.get("user")} | {"payments.auditor@example.invalid"}
 	)
 )
 
@@ -126,11 +125,8 @@ def _ensure_notification():
 		"'Перевірка казначейства', 'Потребує доопрацювання')"
 	)
 	doc.send_to_all_assignees = 1
-	doc.subject = "Запит {{ doc.name }}: {{ doc.workflow_state }}"
-	doc.message = (
-		"Запит на оплату <b>{{ doc.name }}</b> перейшов на етап "
-		"<b>{{ doc.workflow_state }}</b>."
-	)
+	doc.subject = _("Request {{ doc.name }}: {{ doc.workflow_state }}")
+	doc.message = _("Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.")
 	doc.set("recipients", [])
 	_save(doc)
 
