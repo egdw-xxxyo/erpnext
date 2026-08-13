@@ -28,6 +28,8 @@
   "type",
   "request_type",
   "assessment_section",
+  "required_month",
+  "column_break_assessment",
   "conversion_probability",
   "next_action_section",
   "next_action",
@@ -591,6 +593,17 @@
    "fieldname": "assessment_section",
    "fieldtype": "Section Break",
    "label": "Lead Assessment"
+  },
+  {
+   "fieldname": "required_month",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Required Month"
+  },
+  {
+   "fieldname": "column_break_assessment",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "conversion_probability",

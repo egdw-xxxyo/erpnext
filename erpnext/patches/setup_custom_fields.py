@@ -35,6 +35,7 @@ def execute():
 	setup_lead_sources()
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
+	remove_duplicate_lead_custom_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
 	frappe.db.commit()
@@ -841,6 +842,33 @@ def setup_lead_next_action_notification():
 		}
 	).insert(ignore_permissions=True)
 	print(f"  Created Notification: {name}")
+
+
+def remove_duplicate_lead_custom_fields():
+	"""Drop Custom Fields on Lead that a standard field in lead.json now provides.
+
+	The «Запит» fields were first built in the desk UI and only later codified into
+	lead.json. Both copies survived, and the Custom Field copy wins the form layout —
+	every fork section was rendered at the end of the tab instead of its own place.
+	Deleting the Custom Field keeps the data: fieldname == column name, so the values
+	simply belong to the standard field from now on.
+	"""
+	standard = set(frappe.db.get_values("DocField", {"parent": "Lead"}, "fieldname", pluck=True) or [])
+	duplicates = [
+		cf
+		for cf in frappe.get_all("Custom Field", filters={"dt": "Lead"}, fields=["name", "fieldname"])
+		if cf.fieldname in standard
+	]
+
+	if not duplicates:
+		print("  No duplicate Lead custom fields")
+		return
+
+	for cf in duplicates:
+		frappe.delete_doc("Custom Field", cf.name, ignore_permissions=True, force=True)
+		print(f"  Removed duplicate Custom Field: Lead.{cf.fieldname}")
+
+	frappe.clear_cache(doctype="Lead")
 
 
 def setup_chat_manager_role():
