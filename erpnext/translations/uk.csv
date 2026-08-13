@@ -13084,3 +13084,49 @@ rejected the Purchase Order,відхилив замовлення
 submitted the approved Purchase Order,провів погоджене замовлення
 performed action “{0}”,виконав дію «{0}»
 {0} {1} for the following reason:<br>{2},{0} {1} з причини:<br>{2}
+Payment Approval Details,Деталі погодження платежу
+Initiator User,Користувач-ініціатор
+Initiator Employee,Працівник-ініціатор
+Payment Purpose,Призначення платежу
+Requested Payment Date,Бажана дата оплати
+Planned Payment Date,Планова дата оплати
+Workflow Action Reason,Причина дії погодження
+Fiscal Receipt,Фіскальний чек
+Fiscal Receipt (File),Фіскальний чек (файл)
+Fiscal Receipt Availability,Наявність фіскального чека
+Task Payments,Оплати за завданням
+Payment Request Count,Кількість запитів на оплату
+Payment Request Expenses,Витрати за запитами
+Expense Currency,Валюта витрат
+Payment Requests,Запити на оплату
+Fiscal receipt has not been attached,Фіскальний чек не додано
+The payment can be submitted without a receipt and the receipt can be attached later.,Оплату можна провести без чека та додати його пізніше.
+"The fiscal receipt must be a PDF, JPG, JPEG or PNG file.","Фіскальний чек має бути файлом PDF, JPG, JPEG або PNG."
+Unsupported File Format,Непідтримуваний формат файла
+The uploaded fiscal receipt could not be found.,Не вдалося знайти завантажений фіскальний чек.
+The fiscal receipt must be uploaded as a private file.,Фіскальний чек має бути завантажений як приватний файл.
+Private File Required,Потрібен приватний файл
+returned this request for rework,повернув цей запит на доопрацювання
+rejected this request,відхилив цей запит
+Process Payment Request {{ name }} at stage “{{ workflow_state }}”.,Опрацювати запит на оплату {{ name }} на етапі «{{ workflow_state }}».
+Review Payment Request {{ name }} from the department.,Перевірити запит на оплату {{ name }} від підрозділу.
+Perform the final approval of Payment Request {{ name }}.,Виконати фінальне погодження запиту на оплату {{ name }}.
+Review and schedule payment for Payment Request {{ name }}.,Перевірити та запланувати оплату за запитом {{ name }}.
+Request {{ doc.name }}: {{ doc.workflow_state }},Запит {{ doc.name }}: {{ doc.workflow_state }}
+Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.,Запит на оплату <b>{{ doc.name }}</b> перейшов на етап <b>{{ doc.workflow_state }}</b>.
+created the Purchase Invoice,створив рахунок постачальника
+created the Payment Request,створив запит на оплату
+created the Material Request,створив замовлення матеріалів
+{0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+No Available Invoices,Немає доступних рахунків
+Create and submit a Purchase Invoice for this task first.,Спочатку створіть і проведіть рахунок постачальника для цього завдання.
+Create Payment Request,Створити запит на оплату
+Material Requests for This Task,Замовлення матеріалів цього завдання
+There are no Material Requests yet.,Замовлень матеріалів ще немає.
+Material Cost,Вартість матеріалів
+Payment Requests for This Task,Запити на оплату цього завдання
+There are no Payment Requests yet.,Запитів на оплату ще немає.
+Child Task Payments,Оплати дочірніх завдань
+No Description,Немає опису
+The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
+Select a submitted Purchase Invoice linked to this task.,Оберіть проведений рахунок постачальника, пов'язаний із цим завданням.

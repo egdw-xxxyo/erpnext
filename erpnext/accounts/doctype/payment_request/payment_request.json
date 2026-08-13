@@ -460,33 +460,33 @@
    "fieldname": "custom_task",
    "fieldtype": "Link",
    "in_standard_filter": 1,
-   "label": "Завдання",
+   "label": "Task",
    "options": "Task",
    "read_only": 1
   },
   {
    "fieldname": "custom_short_description",
    "fieldtype": "Data",
-   "label": "Короткий опис",
+   "label": "Short Description",
    "length": 255
   },
   {
    "fieldname": "custom_payments_approval_section",
    "fieldtype": "Section Break",
-   "label": "Деталі погодження платежу"
+   "label": "Payment Approval Details"
   },
   {
    "fieldname": "custom_department",
    "fieldtype": "Link",
    "in_standard_filter": 1,
-   "label": "Підрозділ",
+   "label": "Department",
    "options": "Department"
   },
   {
    "default": "__user",
    "fieldname": "custom_initiator_user",
    "fieldtype": "Link",
-   "label": "Користувач-ініціатор",
+   "label": "Initiator User",
    "options": "User",
    "read_only": 1
   },
@@ -494,7 +494,7 @@
    "fieldname": "custom_initiator_employee",
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
-   "label": "Працівник-ініціатор",
+   "label": "Initiator Employee",
    "options": "Employee",
    "read_only": 1
   },
@@ -505,31 +505,31 @@
   {
    "fieldname": "custom_payment_purpose",
    "fieldtype": "Small Text",
-   "label": "Призначення платежу"
+   "label": "Payment Purpose"
   },
   {
    "default": "Звичайний",
    "fieldname": "custom_priority",
    "fieldtype": "Select",
    "in_standard_filter": 1,
-   "label": "Пріоритет",
+   "label": "Priority",
    "options": "Звичайний\nТерміновий"
   },
   {
    "fieldname": "custom_requested_payment_date",
    "fieldtype": "Date",
-   "label": "Бажана дата оплати"
+   "label": "Requested Payment Date"
   },
   {
    "fieldname": "custom_planned_payment_date",
    "fieldtype": "Date",
-   "label": "Планова дата оплати"
+   "label": "Planned Payment Date"
   },
   {
    "fieldname": "custom_workflow_action_reason",
    "fieldtype": "Small Text",
    "hidden": 1,
-   "label": "Причина дії погодження",
+   "label": "Workflow Action Reason",
    "no_copy": 1
   },
   {
@@ -538,7 +538,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Фіскальний чек",
+   "label": "Fiscal Receipt",
    "no_copy": 1,
    "options": "\nДодано\nВідсутній\nЧастково",
    "read_only": 1

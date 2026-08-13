@@ -793,13 +793,13 @@
   {
    "fieldname": "custom_fiscal_receipt_section",
    "fieldtype": "Section Break",
-   "label": "Фіскальний чек"
+   "label": "Fiscal Receipt"
   },
   {
    "allow_on_submit": 1,
    "fieldname": "custom_fiscal_receipt",
    "fieldtype": "Attach",
-   "label": "Фіскальний чек (файл)",
+   "label": "Fiscal Receipt (File)",
    "no_copy": 1
   },
   {
@@ -809,7 +809,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Наявність фіскального чека",
+   "label": "Fiscal Receipt Availability",
    "no_copy": 1,
    "options": "Відсутній\nДодано",
    "read_only": 1

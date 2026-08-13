@@ -1,6 +1,5 @@
 import frappe
 
-
 WORKFLOW_NAME = "Payments: погодження запиту на оплату"
 
 WORKFLOW_STATES = (
@@ -57,12 +56,8 @@ CREATOR_TRANSITION_CONDITION = "doc.owner == frappe.session.user"
 
 PAYMENT_REQUEST_PERMISSIONS = {
 	"Payments: Ініціатор": ("select", "read", "write", "create", "delete", "report", "print"),
-	"Payments: Керівник підрозділу": (
-		"select", "read", "write", "create", "report", "print"
-	),
-	"Payments: Фінальний погоджувач": (
-		"select", "read", "write", "create", "report", "print"
-	),
+	"Payments: Керівник підрозділу": ("select", "read", "write", "create", "report", "print"),
+	"Payments: Фінальний погоджувач": ("select", "read", "write", "create", "report", "print"),
 	"Payments: Казначей": (
 		"select",
 		"read",

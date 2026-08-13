@@ -27,20 +27,20 @@ frappe.ui.form.on("Payment Request", {
 		return new Promise((resolve, reject) => {
 			let confirmed = false;
 			const dialog = new frappe.ui.Dialog({
-				title: "Причина",
+				title: __("Reason"),
 				fields: [
 					{
 						fieldname: "reason",
 						fieldtype: "Small Text",
-						label: "Причина",
+						label: __("Reason"),
 						reqd: 1,
 					},
 				],
-				primary_action_label: "Підтвердити",
+				primary_action_label: __("Confirm"),
 				primary_action(values) {
 					const reason = (values.reason || "").trim();
 					if (!reason) {
-						frappe.msgprint("Вкажіть причину рішення.");
+						frappe.msgprint(__("Enter the reason for the decision."));
 						return;
 					}
 
@@ -129,28 +129,30 @@ def validate_required_reason(doc, method=None):
 	reason = getattr(frappe.flags, "payments_workflow_reason", None)
 	if action not in REQUIRED_ACTIONS:
 		frappe.throw(
-			_("Виконайте перехід через дію робочого процесу та вкажіть причину."),
-			title=_("Причина обов'язкова"),
+			_("Use a workflow action for this transition and provide a reason."),
+			title=_("Reason is required"),
 		)
 	_validate_reason(reason)
 
 
 def _validate_reason(reason):
 	if not reason:
-		frappe.throw(_("Вкажіть причину рішення."), title=_("Причина обов'язкова"))
+		frappe.throw(_("Enter the reason for the decision."), title=_("Reason is required"))
 	if len(reason) > MAX_REASON_LENGTH:
 		frappe.throw(
-			_("Причина не може містити більше {0} символів.").format(MAX_REASON_LENGTH),
-			title=_("Причина занадто довга"),
+			_("The reason cannot contain more than {0} characters.").format(MAX_REASON_LENGTH),
+			title=_("Reason is too long"),
 		)
 
 
 def _add_reason_comment(doc, action, reason):
 	user = frappe.session.user
 	actor = frappe.get_cached_value("User", user, "full_name") or user
-	verb = "повернув цей запит на доопрацювання" if action == RETURN_ACTION else "відхилив цей запит"
+	verb = _("returned this request for rework") if action == RETURN_ACTION else _("rejected this request")
 	safe_reason = escape_html(reason).replace("\n", "<br>")
-	message = f"<b>{escape_html(actor)}</b> {verb} з причини:<br>{safe_reason}"
+	message = _("{0} {1} for the following reason:<br>{2}").format(
+		f"<b>{escape_html(actor)}</b>", verb, safe_reason
+	)
 	doc.add_comment("Comment", text=message)
 
 

@@ -1,6 +1,5 @@
 import frappe
 
-
 PAYMENTS_INITIATOR_ROLE = "Payments: Ініціатор"
 PAYMENTS_DEPARTMENT_HEAD_ROLE = "Payments: Керівник підрозділу"
 PAYMENTS_FULL_VISIBILITY_ROLES = {

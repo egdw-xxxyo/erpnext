@@ -367,7 +367,7 @@
    "fieldname": "custom_task",
    "fieldtype": "Link",
    "in_standard_filter": 1,
-   "label": "Завдання",
+  "label": "Task",
    "options": "Task"
   }
  ],

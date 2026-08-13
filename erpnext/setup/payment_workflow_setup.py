@@ -1,14 +1,12 @@
 import frappe
-
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
-
 
 PAYMENTS_CUSTOM_FIELDS = {
 	"Payment Request": [
 		{
 			"fieldname": "custom_task",
 			"fieldtype": "Link",
-			"label": "Завдання",
+			"label": "Task",
 			"options": "Task",
 			"read_only": 1,
 			"in_standard_filter": 1,
@@ -17,20 +15,20 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_short_description",
 			"fieldtype": "Data",
-			"label": "Короткий опис",
+			"label": "Short Description",
 			"length": 255,
 			"insert_after": "custom_task",
 		},
 		{
 			"fieldname": "custom_payments_approval_section",
 			"fieldtype": "Section Break",
-			"label": "Деталі погодження платежу",
+			"label": "Payment Approval Details",
 			"insert_after": "custom_short_description",
 		},
 		{
 			"fieldname": "custom_department",
 			"fieldtype": "Link",
-			"label": "Підрозділ",
+			"label": "Department",
 			"options": "Department",
 			"insert_after": "custom_payments_approval_section",
 			"in_standard_filter": 1,
@@ -38,7 +36,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_initiator_user",
 			"fieldtype": "Link",
-			"label": "Користувач-ініціатор",
+			"label": "Initiator User",
 			"options": "User",
 			"default": "__user",
 			"read_only": 1,
@@ -47,7 +45,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_initiator_employee",
 			"fieldtype": "Link",
-			"label": "Працівник-ініціатор",
+			"label": "Initiator Employee",
 			"options": "Employee",
 			"read_only": 1,
 			"ignore_user_permissions": 1,
@@ -61,13 +59,13 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_purpose",
 			"fieldtype": "Small Text",
-			"label": "Призначення платежу",
+			"label": "Payment Purpose",
 			"insert_after": "custom_payments_approval_column",
 		},
 		{
 			"fieldname": "custom_priority",
 			"fieldtype": "Select",
-			"label": "Пріоритет",
+			"label": "Priority",
 			"options": "Звичайний\nТерміновий",
 			"default": "Звичайний",
 			"insert_after": "custom_payment_purpose",
@@ -76,19 +74,19 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_requested_payment_date",
 			"fieldtype": "Date",
-			"label": "Бажана дата оплати",
+			"label": "Requested Payment Date",
 			"insert_after": "custom_priority",
 		},
 		{
 			"fieldname": "custom_planned_payment_date",
 			"fieldtype": "Date",
-			"label": "Планова дата оплати",
+			"label": "Planned Payment Date",
 			"insert_after": "custom_requested_payment_date",
 		},
 		{
 			"fieldname": "custom_workflow_action_reason",
 			"fieldtype": "Small Text",
-			"label": "Причина дії погодження",
+			"label": "Workflow Action Reason",
 			"hidden": 1,
 			"no_copy": 1,
 			"insert_after": "custom_planned_payment_date",
@@ -96,7 +94,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_fiscal_receipt_status",
 			"fieldtype": "Select",
-			"label": "Фіскальний чек",
+			"label": "Fiscal Receipt",
 			"options": "\nДодано\nВідсутній\nЧастково",
 			"read_only": 1,
 			"no_copy": 1,
@@ -110,13 +108,13 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_fiscal_receipt_section",
 			"fieldtype": "Section Break",
-			"label": "Фіскальний чек",
+			"label": "Fiscal Receipt",
 			"insert_after": "reference_date",
 		},
 		{
 			"fieldname": "custom_fiscal_receipt",
 			"fieldtype": "Attach",
-			"label": "Фіскальний чек (файл)",
+			"label": "Fiscal Receipt (File)",
 			"allow_on_submit": 1,
 			"no_copy": 1,
 			"insert_after": "custom_fiscal_receipt_section",
@@ -124,7 +122,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_fiscal_receipt_status",
 			"fieldtype": "Select",
-			"label": "Наявність фіскального чека",
+			"label": "Fiscal Receipt Availability",
 			"options": "Відсутній\nДодано",
 			"default": "Відсутній",
 			"read_only": 1,
@@ -139,7 +137,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_task",
 			"fieldtype": "Link",
-			"label": "Завдання",
+			"label": "Task",
 			"options": "Task",
 			"in_standard_filter": 1,
 			"insert_after": "project",
@@ -149,7 +147,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_task",
 			"fieldtype": "Link",
-			"label": "Завдання",
+			"label": "Task",
 			"options": "Task",
 			"in_standard_filter": 1,
 			"insert_after": "material_request_type",
@@ -159,13 +157,13 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payments_section",
 			"fieldtype": "Section Break",
-			"label": "Оплати за завданням",
+			"label": "Task Payments",
 			"insert_after": "total_billing_amount",
 		},
 		{
 			"fieldname": "custom_payment_request_count",
 			"fieldtype": "Int",
-			"label": "Кількість запитів на оплату",
+			"label": "Payment Request Count",
 			"read_only": 1,
 			"no_copy": 1,
 			"insert_after": "custom_payments_section",
@@ -173,7 +171,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_request_total",
 			"fieldtype": "Currency",
-			"label": "Витрати за запитами",
+			"label": "Payment Request Expenses",
 			"options": "custom_payment_currency",
 			"read_only": 1,
 			"no_copy": 1,
@@ -188,7 +186,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_status",
 			"fieldtype": "Select",
-			"label": "Стан оплати",
+			"label": "Payment Status",
 			"options": "Немає запитів на оплату\nЄ неоплачені запити\nОплачено",
 			"default": "Немає запитів на оплату",
 			"read_only": 1,
@@ -200,7 +198,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_currency",
 			"fieldtype": "Link",
-			"label": "Валюта витрат",
+			"label": "Expense Currency",
 			"options": "Currency",
 			"read_only": 1,
 			"no_copy": 1,
@@ -215,7 +213,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_requests_html",
 			"fieldtype": "HTML",
-			"label": "Запити на оплату",
+			"label": "Payment Requests",
 			"insert_after": "custom_payment_requests_section",
 		},
 		{
@@ -226,7 +224,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_material_requests_html",
 			"fieldtype": "HTML",
-			"label": "Замовлення матеріалів",
+			"label": "Material Requests",
 			"insert_after": "custom_material_requests_section",
 		},
 	],
@@ -234,7 +232,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_request_total",
 			"fieldtype": "Currency",
-			"label": "Витрати",
+			"label": "Expenses",
 			"read_only": 1,
 			"no_copy": 1,
 			"in_list_view": 1,
@@ -243,7 +241,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_payment_status",
 			"fieldtype": "Select",
-			"label": "Стан оплати",
+			"label": "Payment Status",
 			"options": "Немає запитів на оплату\nЄ неоплачені запити\nОплачено",
 			"default": "Немає запитів на оплату",
 			"read_only": 1,
@@ -251,7 +249,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 			"in_list_view": 1,
 			"insert_after": "custom_payment_request_total",
 		},
-	]
+	],
 }
 
 PAYMENTS_ROLES = (
@@ -343,7 +341,7 @@ def sync_payment_request_list_fields():
 	_ensure_property_setter(
 		fieldname="workflow_state",
 		property_name="label",
-		value="Етап погодження",
+		value="Approval Stage",
 		property_type="Data",
 	)
 	_ensure_property_setter(
@@ -359,7 +357,7 @@ def sync_todo_list_fields():
 	_ensure_property_setter(
 		fieldname="reference_name",
 		property_name="label",
-		value="Документ",
+		value="Document",
 		property_type="Data",
 		doc_type="ToDo",
 	)

@@ -81,7 +81,7 @@
    "fieldname": "custom_payment_request_total",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Витрати",
+   "label": "Expenses",
    "no_copy": 1,
    "read_only": 1
   },
@@ -90,7 +90,7 @@
    "fieldname": "custom_payment_status",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Стан оплати",
+   "label": "Payment Status",
    "no_copy": 1,
    "options": "Немає запитів на оплату\nЄ неоплачені запити\nОплачено",
    "read_only": 1

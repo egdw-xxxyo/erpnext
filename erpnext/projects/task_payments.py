@@ -1,8 +1,6 @@
 import frappe
-
 from frappe import _
 from frappe.utils import flt
-
 
 NO_REQUESTS = "Немає запитів на оплату"
 UNPAID_REQUESTS = "Є неоплачені запити"
@@ -11,29 +9,29 @@ FORM_CLIENT_SCRIPT_NAME = "Payments: оплати за завданням"
 LIST_CLIENT_SCRIPT_NAME = "Payments: стан оплати завдань"
 
 
-FORM_CLIENT_SCRIPT = r'''
+FORM_CLIENT_SCRIPT = r"""
 frappe.ui.form.on("Task", {
 	refresh(frm) {
 		if (frm.is_new()) return;
 		payments_setup_dependency_grid(frm);
 
-		frm.add_custom_button(__("Рахунок постачальника"), () => {
+		frm.add_custom_button(__("Purchase Invoice"), () => {
 			frappe.new_doc("Purchase Invoice", {
 				custom_task: frm.doc.name,
 				project: frm.doc.project || undefined,
 			});
-		}, __("Створити"));
+		}, __("Create"));
 
-		frm.add_custom_button(__("Запит на оплату"), () => {
+		frm.add_custom_button(__("Payment Request"), () => {
 			payments_create_request(frm);
-		}, __("Створити"));
+		}, __("Create"));
 
-		frm.add_custom_button(__("Замовлення матеріалів"), () => {
+		frm.add_custom_button(__("Material Request"), () => {
 			frappe.new_doc("Material Request", {
 				material_request_type: "Material Transfer",
 				custom_task: frm.doc.name,
 			});
-		}, __("Створити"));
+		}, __("Create"));
 
 		payments_render_overview(frm);
 	},
@@ -47,27 +45,27 @@ function payments_create_request(frm) {
 		const invoices = response.message || [];
 		if (!invoices.length) {
 			frappe.msgprint({
-				title: __("Немає доступних рахунків"),
+				title: __("No Available Invoices"),
 				indicator: "orange",
-				message: __("Спочатку створіть і проведіть рахунок постачальника для цього завдання."),
+				message: __("Create and submit a Purchase Invoice for this task first."),
 			});
 			return;
 		}
 
 		const options = invoices.map((row) => row.name);
 		const dialog = new frappe.ui.Dialog({
-			title: __("Створити запит на оплату"),
+			title: __("Create Payment Request"),
 			fields: [{
 				fieldname: "purchase_invoice",
 				fieldtype: "Select",
-				label: __("Рахунок постачальника"),
+				label: __("Purchase Invoice"),
 				options,
 				reqd: 1,
 				description: invoices.map((row) =>
 					`${frappe.utils.escape_html(row.name)} — ${format_currency(row.outstanding_amount, row.currency)}`
 				).join("<br>"),
 			}],
-			primary_action_label: __("Створити"),
+			primary_action_label: __("Create"),
 			primary_action(values) {
 				dialog.disable_primary_action();
 				frappe.call({
@@ -103,13 +101,13 @@ function payments_render_overview(frm) {
 
 function payments_material_requests_html(data) {
 	const requests = data.material_requests || [];
-	let html = `<div><h5>${__("Замовлення матеріалів цього завдання")}</h5>`;
+	let html = `<div><h5>${__("Material Requests for This Task")}</h5>`;
 	if (!requests.length) {
-		return `${html}<div class="text-muted small">${__("Замовлень матеріалів ще немає.")}</div></div>`;
+		return `${html}<div class="text-muted small">${__("There are no Material Requests yet.")}</div></div>`;
 	}
 
 	html += `<div class="table-responsive"><table class="table table-bordered table-sm">
-		<thead><tr><th>${__("Замовлення")}</th><th>${__("Статус")}</th><th class="text-right">${__("Вартість матеріалів")}</th></tr></thead><tbody>`;
+		<thead><tr><th>${__("Request")}</th><th>${__("Status")}</th><th class="text-right">${__("Material Cost")}</th></tr></thead><tbody>`;
 	for (const row of requests) {
 		html += `<tr>
 			<td><a href="/app/material-request/${encodeURIComponent(row.name)}">${frappe.utils.escape_html(row.name)}</a></td>
@@ -141,13 +139,13 @@ function payments_material_request_status_badge(status) {
 function payments_overview_html(data) {
 	const requests = data.requests || [];
 	const children = data.children || [];
-	let html = `<div class="mb-4"><h5>${__("Запити на оплату цього завдання")}</h5>`;
+	let html = `<div class="mb-4"><h5>${__("Payment Requests for This Task")}</h5>`;
 
 	if (!requests.length) {
-		html += `<div class="text-muted small">${__("Запитів на оплату ще немає.")}</div>`;
+		html += `<div class="text-muted small">${__("There are no Payment Requests yet.")}</div>`;
 	} else {
 		html += `<div class="table-responsive"><table class="table table-bordered table-sm">
-			<thead><tr><th>${__("Запит")}</th><th>${__("Короткий опис")}</th><th>${__("Етап погодження")}</th><th class="text-right">${__("Сума")}</th></tr></thead><tbody>`;
+			<thead><tr><th>${__("Request")}</th><th>${__("Short Description")}</th><th>${__("Approval Stage")}</th><th class="text-right">${__("Amount")}</th></tr></thead><tbody>`;
 		for (const row of requests) {
 			html += `<tr>
 				<td><a href="/app/payment-request/${encodeURIComponent(row.name)}">${frappe.utils.escape_html(row.name)}</a></td>
@@ -161,9 +159,9 @@ function payments_overview_html(data) {
 	html += `</div>`;
 
 	if (children.length) {
-		html += `<div><h5>${__("Оплати дочірніх завдань")}</h5>
+		html += `<div><h5>${__("Child Task Payments")}</h5>
 			<div class="table-responsive"><table class="table table-bordered table-sm">
-			<thead><tr><th>${__("Завдання")}</th><th>${__("Стан оплати")}</th><th class="text-right">${__("Витрати")}</th></tr></thead><tbody>`;
+			<thead><tr><th>${__("Task")}</th><th>${__("Payment Status")}</th><th class="text-right">${__("Expenses")}</th></tr></thead><tbody>`;
 		for (const row of children) {
 			html += `<tr>
 				<td><a href="/app/task/${encodeURIComponent(row.name)}">${frappe.utils.escape_html(row.subject || row.name)}</a></td>
@@ -178,7 +176,7 @@ function payments_overview_html(data) {
 }
 
 function payments_short_description(description) {
-	const value = String(description || "").trim() || __("Немає опису");
+	const value = String(description || "").trim() || __("No Description");
 	const escaped = frappe.utils.escape_html(value);
 	return `<div class="ellipsis" style="max-width: 360px" title="${escaped}">${escaped}</div>`;
 }
@@ -232,10 +230,10 @@ function payments_setup_dependency_grid(frm) {
 		}
 	}, 0);
 }
-'''.strip()
+""".strip()
 
 
-LIST_CLIENT_SCRIPT = r'''
+LIST_CLIENT_SCRIPT = r"""
 const taskListSettings = frappe.listview_settings["Task"] || {};
 taskListSettings.total_fields = 6;
 taskListSettings.formatters = taskListSettings.formatters || {};
@@ -251,7 +249,7 @@ taskListSettings.formatters.custom_payment_status = function (value) {
 		data-filter="custom_payment_status,=,${escaped}"><span class="ellipsis">${__(status)}</span></span>`;
 };
 frappe.listview_settings["Task"] = taskListSettings;
-'''.strip()
+""".strip()
 
 
 def set_payment_request_task(doc, method=None):
@@ -267,7 +265,7 @@ def set_payment_request_task(doc, method=None):
 def validate_payment_request_short_description(doc, method=None):
 	description = doc.get("custom_short_description") or ""
 	if len(description) > 255:
-		frappe.throw(_("Короткий опис не може містити більше ніж 255 символів."))
+		frappe.throw(_("The short description cannot contain more than 255 characters."))
 
 
 def sync_payment_request_task_summary(doc, method=None):
@@ -285,11 +283,15 @@ def sync_payment_entry_task_summaries(doc, method=None):
 		filters={"parent": doc.name, "payment_request": ["is", "set"]},
 		pluck="payment_request",
 	)
-	tasks = frappe.get_all(
-		"Payment Request",
-		filters={"name": ["in", requests], "custom_task": ["is", "set"]},
-		pluck="custom_task",
-	) if requests else []
+	tasks = (
+		frappe.get_all(
+			"Payment Request",
+			filters={"name": ["in", requests], "custom_task": ["is", "set"]},
+			pluck="custom_task",
+		)
+		if requests
+		else []
+	)
 	for task in set(tasks):
 		sync_task_and_ancestors(task)
 
@@ -335,7 +337,11 @@ def _update_task_summary(task):
 		return
 	task_names = _task_with_descendants(task)
 	requests = _get_requests(task_names)
-	status = NO_REQUESTS if not requests else (PAID if all(row.status == "Paid" for row in requests) else UNPAID_REQUESTS)
+	status = (
+		NO_REQUESTS
+		if not requests
+		else (PAID if all(row.status == "Paid" for row in requests) else UNPAID_REQUESTS)
+	)
 	total = sum(_request_company_amount(row) for row in requests)
 	currency = _get_task_currency(task)
 	frappe.db.set_value(
@@ -408,8 +414,15 @@ def _get_requests(tasks):
 		"Payment Request",
 		filters={"custom_task": ["in", tasks], "docstatus": ["<", 2]},
 		fields=[
-			"name", "custom_task", "custom_short_description", "workflow_state", "status", "grand_total", "currency",
-			"reference_doctype", "reference_name",
+			"name",
+			"custom_task",
+			"custom_short_description",
+			"workflow_state",
+			"status",
+			"grand_total",
+			"currency",
+			"reference_doctype",
+			"reference_name",
 		],
 		order_by="creation desc",
 	)
@@ -468,15 +481,22 @@ def get_task_payment_overview(task):
 		pluck="task",
 	)
 	member_names = list(dict.fromkeys(child_names + dependency_names))
-	children = frappe.get_list(
-		"Task",
-		filters={"name": ["in", member_names]},
-		fields=[
-			"name", "subject", "custom_payment_status as payment_status",
-			"custom_payment_request_total as total", "custom_payment_currency as currency",
-		],
-		order_by="subject asc",
-	) if member_names else []
+	children = (
+		frappe.get_list(
+			"Task",
+			filters={"name": ["in", member_names]},
+			fields=[
+				"name",
+				"subject",
+				"custom_payment_status as payment_status",
+				"custom_payment_request_total as total",
+				"custom_payment_currency as currency",
+			],
+			order_by="subject asc",
+		)
+		if member_names
+		else []
+	)
 	return {
 		"requests": [
 			{
@@ -514,7 +534,7 @@ def create_payment_request(task, purchase_invoice):
 	invoice = frappe.get_doc("Purchase Invoice", purchase_invoice)
 	invoice.check_permission("read")
 	if invoice.docstatus != 1 or invoice.custom_task != task:
-		frappe.throw(_("Оберіть проведений рахунок постачальника, пов'язаний із цим завданням."))
+		frappe.throw(_("Select a submitted Purchase Invoice linked to this task."))
 
 	request = make_payment_request(
 		dt="Purchase Invoice",
@@ -554,11 +574,11 @@ def _ensure_task_list_view_settings():
 	doc.total_fields = "6"
 	doc.fields = frappe.as_json(
 		[
-			{"label": "Тема", "fieldname": "subject"},
-			{"type": "Status", "label": "Статус", "fieldname": "status_field"},
-			{"label": "Проект", "fieldname": "project"},
-			{"label": "Витрати за запитами", "fieldname": "custom_payment_request_total"},
-			{"label": "Стан оплати", "fieldname": "custom_payment_status"},
+			{"label": _("Subject"), "fieldname": "subject"},
+			{"type": "Status", "label": _("Status"), "fieldname": "status_field"},
+			{"label": _("Project"), "fieldname": "project"},
+			{"label": _("Payment Request Expenses"), "fieldname": "custom_payment_request_total"},
+			{"label": _("Payment Status"), "fieldname": "custom_payment_status"},
 		]
 	)
 	if doc.is_new():
