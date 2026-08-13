@@ -179,12 +179,52 @@ def _get_codes_by_attributes(attribute_filters, template_name):
 
 
 @frappe.whitelist()
-def create_variant(spec, args):
+def needs_ordinal(template):
+	"""Does this catalog number its entries by hand?"""
+	number_template = frappe.db.get_value(PARENT_DOCTYPE, template, "specification_number_template")
+	if not number_template:
+		pattern = frappe.db.get_value(PARENT_DOCTYPE, template, "variant_name_pattern")
+		return "{ORDINAL" in cstr(pattern)
+	return bool(
+		frappe.db.exists(
+			"Specification Number Template Component",
+			{"parent": number_template, "component_type": "Ordinal"},
+		)
+	)
+
+
+@frappe.whitelist()
+def get_next_ordinal(template):
+	"""First catalog position not taken by a variant of this template."""
+	last = frappe.get_all(
+		PARENT_DOCTYPE,
+		filters={"variant_of": template},
+		fields=["ordinal"],
+		order_by="ordinal desc",
+		limit=1,
+	)
+	return cint(last[0].ordinal if last else 0) + 1
+
+
+@frappe.whitelist()
+def get_used_ordinals(template):
+	rows = frappe.get_all(
+		PARENT_DOCTYPE,
+		filters={"variant_of": template, "ordinal": (">", 0)},
+		fields=["ordinal", "specification_code"],
+		order_by="ordinal",
+	)
+	return rows
+
+
+@frappe.whitelist()
+def create_variant(spec, args, ordinal=None):
 	if isinstance(args, str):
 		args = json.loads(args)
 
 	template = frappe.get_doc(PARENT_DOCTYPE, spec)
 	variant = frappe.new_doc(PARENT_DOCTYPE)
+	variant.ordinal = cint(ordinal) or None
 	variant_attributes = []
 
 	for d in template.attributes:

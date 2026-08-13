@@ -66,6 +66,24 @@ class Specification(Document):
 		self.validate_attributes_table()
 		self.validate_variant_attributes_on_save()
 		self.validate_has_variants()
+		self.validate_unique_code()
+
+	def validate_unique_code(self):
+		"""One designation, one specification — whatever produced it."""
+		if not self.specification_code:
+			return
+		clash = frappe.db.get_value(
+			"Specification",
+			{"specification_code": self.specification_code, "name": ("!=", self.name)},
+			"name",
+		)
+		if clash:
+			frappe.throw(
+				_("Designation {0} already belongs to {1}").format(
+					frappe.bold(self.specification_code), clash
+				),
+				title=_("Duplicate Designation"),
+			)
 
 	def inherit_kind_from_template(self):
 		"""A variant belongs to the same ЄСКД catalog as the template it comes from."""

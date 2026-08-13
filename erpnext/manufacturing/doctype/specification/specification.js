@@ -156,7 +156,27 @@ erpnext.specification.show_single_variant_dialog = function (frm) {
 			.then((r) => ({ row: row, options: (r.message || []).map((v) => v.attribute_value) }));
 	});
 
-	Promise.all(promises).then((attrs) => {
+	promises.push(
+		frappe
+			.call({
+				method: "erpnext.manufacturing.specification_variant.get_used_ordinals",
+				args: { template: frm.doc.name },
+			})
+			.then((r) => ({ ordinals: r.message || [] }))
+	);
+	promises.push(
+		frappe
+			.call({
+				method: "erpnext.manufacturing.specification_variant.needs_ordinal",
+				args: { template: frm.doc.name },
+			})
+			.then((r) => ({ needs_ordinal: !!r.message }))
+	);
+
+	Promise.all(promises).then((results) => {
+		let needs_ordinal = results.pop().needs_ordinal;
+		let taken = results.pop().ordinals;
+		let attrs = results;
 		let fields = attrs.map(({ row, options }) => {
 			if (row.numeric_values) {
 				return {
@@ -180,11 +200,41 @@ erpnext.specification.show_single_variant_dialog = function (frm) {
 			};
 		});
 
+		// A catalog numbered by position needs its number here: picked later, the
+		// designation would be issued without it and the entry could collide.
+		if (needs_ordinal) {
+			let used = taken.map((o) => `${o.ordinal} — ${o.specification_code}`).join("<br>");
+			fields.push({
+				label: __("Ordinal"),
+				fieldname: "__ordinal",
+				fieldtype: "Int",
+				reqd: 1,
+				default: taken.length ? Math.max(...taken.map((o) => o.ordinal)) + 1 : 1,
+				description: used ? __("Taken: {0}", [`<br>${used}`]) : __("First entry of this catalog"),
+			});
+		}
+
 		let d = new frappe.ui.Dialog({ title: __("Create Variant"), fields: fields });
 
 		d.set_primary_action(__("Create"), function () {
-			let args = d.get_values();
-			if (!args) return;
+			let values = d.get_values();
+			if (!values) return;
+			let ordinal = values.__ordinal;
+			let args = Object.assign({}, values);
+			delete args.__ordinal;
+
+			if (ordinal && taken.some((o) => o.ordinal === ordinal)) {
+				frappe.msgprint({
+					title: __("Ordinal Taken"),
+					message: __("Position {0} is already used by {1}", [
+						ordinal,
+						taken.find((o) => o.ordinal === ordinal).specification_code,
+					]),
+					indicator: "red",
+				});
+				return;
+			}
+
 			frappe.call({
 				method: "erpnext.manufacturing.specification_variant.get_variant",
 				btn: d.get_primary_btn(),
@@ -201,7 +251,7 @@ erpnext.specification.show_single_variant_dialog = function (frm) {
 						d.hide();
 						frappe.call({
 							method: "erpnext.manufacturing.specification_variant.create_variant",
-							args: { spec: frm.doc.name, args: args },
+							args: { spec: frm.doc.name, args: args, ordinal: ordinal },
 							callback: function (r) {
 								let doclist = frappe.model.sync(r.message);
 								frappe.set_route("Form", doclist[0].doctype, doclist[0].name);
