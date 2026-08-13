@@ -61,6 +61,7 @@ class Specification(Document):
 
 	def validate(self):
 		self.inherit_kind_from_template()
+		self.validate_ordinal()
 		self.validate_item_template()
 		self.validate_attributes_table()
 		self.validate_variant_attributes_on_save()
@@ -79,6 +80,25 @@ class Specification(Document):
 			self.specification_kind = template.specification_kind
 		self.item_template = template.item_template
 
+	def validate_ordinal(self):
+		"""A designation built from a catalog position cannot be issued without one."""
+		if self.has_variants or self.ordinal:
+			return
+		number_template = self.specification_number_template or (
+			self.variant_of
+			and frappe.db.get_value("Specification", self.variant_of, "specification_number_template")
+		)
+		if not number_template:
+			return
+		if frappe.db.exists(
+			"Specification Number Template Component",
+			{"parent": number_template, "component_type": "Ordinal"},
+		):
+			frappe.throw(
+				_("Ordinal is required — {0} numbers this catalog by its position").format(number_template),
+				title=_("Ordinal Missing"),
+			)
+
 	def validate_item_template(self):
 		"""Tie the catalog to one Item template and keep its attributes the only choice."""
 		if not self.item_template:
@@ -93,12 +113,20 @@ class Specification(Document):
 		allowed = get_item_template_attributes(self.item_template)
 		self.item_template_attributes = "\n".join(allowed)
 
-		extra = [d.attribute for d in self.attributes or [] if d.attribute not in allowed]
+		# Only the axes have to line up with the Item: a variant of this catalog must be
+		# describable as a variant of that Item. Attributes pinned on the template are
+		# catalog metadata (the ЄСКД organisation) and need no counterpart there.
+		if not self.has_variants:
+			return
+
+		extra = [
+			d.attribute for d in self.attributes or [] if not d.attribute_value and d.attribute not in allowed
+		]
 		if extra:
 			frappe.throw(
-				_("Attributes {0} are not on Item template {1}").format(
-					frappe.bold(", ".join(extra)), self.item_template
-				),
+				_(
+					"Attributes {0} are not on Item template {1}. Give them a fixed value to keep them, or remove them."
+				).format(frappe.bold(", ".join(extra)), self.item_template),
 				title=_("Attribute Not On Item Template"),
 			)
 

@@ -196,7 +196,11 @@ def create_variant(spec, args):
 
 	variant.set("attributes", variant_attributes)
 	copy_attributes_to_variant(template, variant)
-	make_variant_code(template.name, template.specification_name, variant)
+
+	# A catalog numbered by hand has no ordinal yet at this point — naming it now would
+	# freeze a gap into the name, so leave it to autoname once the ordinal is filled in.
+	if "{ORDINAL" not in cstr(template.get("variant_name_pattern")):
+		make_variant_code(template.name, template.specification_name, variant)
 
 	return variant
 

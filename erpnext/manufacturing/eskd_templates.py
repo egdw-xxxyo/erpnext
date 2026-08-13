@@ -145,47 +145,67 @@ NUMBER_TEMPLATES = {
 	],
 }
 
-# Specification template -> (kind, number template, variant attributes, variant name pattern)
+CHEMISTRY = "Хімія"
+
+# Each template says which ЄСКД catalog it feeds, how its designation is built, which
+# attributes describe a variant — `(attribute, fixed value)`, where a fixed value is
+# pinned for the whole catalog and never asked for — and which Item template the catalog
+# describes, so a specification always points at the group of Items it covers.
 #
 # The name pattern is resolved on save from the short names of the picked attributes,
 # `{ORDINAL}` for the catalog position and `{Role}` for a child specification — so a
 # variant is described by what it is made of, never by hand-typed text.
 SPECIFICATION_TEMPLATES = {
-	"Специфікація БпЛА": (
-		"Board",
-		"ЄСКД БпЛА",
-		[ORGANISATION, DRONE_CLASS, FRAME_SIZE, CAMERA_TYPE],
-		f"{{{ORGANISATION}}} {{{FRAME_SIZE}}} {{{CAMERA_TYPE}}}: {{{ROLE_COIL}}} / {{{ROLE_BATTERY}}}",
-	),
-	"Специфікація котушки": (
-		"Coil",
-		"ЄСКД Котушка",
-		[ORGANISATION, COIL_TYPE],
-		f"{{{COIL_TYPE}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
-	),
-	"Специфікація батареї": (
-		"Battery",
-		"ЄСКД Батарея",
-		[ORGANISATION, BATTERY_SERIES, BATTERY_PARALLEL],
-		f"{{{BATTERY_SERIES}}}{{{BATTERY_PARALLEL}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
-	),
-	"Специфікація НСУ": (
-		"Ground Station",
-		"ЄСКД НСУ",
-		[ORGANISATION, GS_SIGNAL, GS_FORM],
-		f"НСУ {{{GS_SIGNAL}}} {{{GS_FORM}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
-	),
+	"Специфікація БпЛА": {
+		"kind": "Board",
+		"number_template": "ЄСКД БпЛА",
+		"attributes": [
+			(ORGANISATION, "Укропчик"),
+			(DRONE_CLASS, None),
+			(FRAME_SIZE, None),
+			(CAMERA_TYPE, None),
+		],
+		"name_pattern": (
+			f"{{{ORGANISATION}}} {{{FRAME_SIZE}}} {{{CAMERA_TYPE}}}: {{{ROLE_COIL}}} / {{{ROLE_BATTERY}}}"
+		),
+	},
+	"Специфікація котушки": {
+		"kind": "Coil",
+		"number_template": "ЄСКД Котушка",
+		"attributes": [(ORGANISATION, "Укропчик"), (COIL_TYPE, None)],
+		"name_pattern": f"{{{COIL_TYPE}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+	},
+	# УКРП.563562.001-ХХ covers Li-ion packs up to 50 V, so the chemistry is pinned and
+	# only the cell layout varies.
+	"Специфікація батареї": {
+		"kind": "Battery",
+		"number_template": "ЄСКД Батарея",
+		"item_template": "BATT-PACK",
+		"attributes": [
+			(ORGANISATION, "Укропчик"),
+			(CHEMISTRY, "Li-ion"),
+			(BATTERY_SERIES, None),
+			(BATTERY_PARALLEL, None),
+		],
+		"name_pattern": f"{{{BATTERY_SERIES}}}{{{BATTERY_PARALLEL}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+	},
+	"Специфікація НСУ": {
+		"kind": "Ground Station",
+		"number_template": "ЄСКД НСУ",
+		"attributes": [(ORGANISATION, "Укропчик"), (GS_SIGNAL, None), (GS_FORM, None)],
+		"name_pattern": f"НСУ {{{GS_SIGNAL}}} {{{GS_FORM}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+	},
 	# A БпАК has no designation of its own — it is a numbered modification pairing a
 	# drone with a ground station, so it carries components but no number template.
-	"Специфікація БпАК": (
-		"BpAK",
-		None,
-		[ORGANISATION],
-		f"БпАК {{ORDINAL}}: {{{ROLE_BOARD}}} / {{{ROLE_GROUND_STATION}}}",
-	),
+	"Специфікація БпАК": {
+		"kind": "BpAK",
+		"number_template": None,
+		"attributes": [(ORGANISATION, "Укропчик")],
+		"name_pattern": f"БпАК {{ORDINAL}}: {{{ROLE_BOARD}}} / {{{ROLE_GROUND_STATION}}}",
+	},
 }
 
-TEMPLATE_BY_KIND = {kind: name for name, (kind, _t, _a, _p) in SPECIFICATION_TEMPLATES.items()}
+TEMPLATE_BY_KIND = {config["kind"]: name for name, config in SPECIFICATION_TEMPLATES.items()}
 
 
 def setup():
@@ -197,8 +217,8 @@ def setup():
 	for template, components in NUMBER_TEMPLATES.items():
 		_ensure_number_template(template, components)
 	frappe.clear_cache(doctype="Specification Number Template")
-	for template, (kind, number_template, attributes, name_pattern) in SPECIFICATION_TEMPLATES.items():
-		_ensure_specification_template(template, kind, number_template, attributes, name_pattern)
+	for template, config in SPECIFICATION_TEMPLATES.items():
+		_ensure_specification_template(template, config)
 
 
 def _ensure_role(role, kind):
@@ -247,7 +267,7 @@ def _ensure_number_template(template, components):
 	return doc.name
 
 
-def _ensure_specification_template(template, kind, number_template, attributes, name_pattern=None):
+def _ensure_specification_template(template, config):
 	if frappe.db.exists("Specification", template):
 		doc = frappe.get_doc("Specification", template)
 	else:
@@ -256,15 +276,21 @@ def _ensure_specification_template(template, kind, number_template, attributes, 
 		doc.specification_code = template
 
 	doc.has_variants = 1
-	doc.specification_kind = kind
-	if number_template:
-		doc.specification_number_template = number_template
-	if name_pattern:
-		doc.variant_name_pattern = name_pattern
+	doc.specification_kind = config["kind"]
+	if config.get("number_template"):
+		doc.specification_number_template = config["number_template"]
+	if config.get("name_pattern"):
+		doc.variant_name_pattern = config["name_pattern"]
+	# The Item template is site data — a bench without that Item keeps the catalog loose.
+	item_template = config.get("item_template")
+	if item_template and frappe.db.exists("Item", item_template):
+		doc.item_template = item_template
 
-	present = {row.attribute for row in doc.get("attributes") or []}
-	for attribute in attributes:
-		if attribute not in present:
-			doc.append("attributes", {"attribute": attribute})
+	rows = {row.attribute: row for row in doc.get("attributes") or []}
+	for attribute, fixed_value in config["attributes"]:
+		if attribute in rows:
+			rows[attribute].attribute_value = fixed_value
+		else:
+			doc.append("attributes", {"attribute": attribute, "attribute_value": fixed_value})
 	doc.save(ignore_permissions=True)
 	return doc.name

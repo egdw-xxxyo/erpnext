@@ -11,9 +11,14 @@ frappe.ui.form.on("Specification", {
 			let row = locals[cdt][cdn];
 			let used = (doc.attributes || []).filter((d) => d.name !== row.name).map((d) => d.attribute);
 			let filters = { name: ["not in", used] };
-			// With an Item template picked, the catalog may only use that Item's attributes.
+			// With an Item template picked, the axes of the catalog come from that Item —
+			// plus whatever is already pinned on the template as catalog metadata.
 			if (doc.item_template && frm.__item_attributes) {
-				filters.name = ["in", frm.__item_attributes.filter((a) => !used.includes(a))];
+				let pinned = (doc.attributes || []).filter((d) => d.attribute_value).map((d) => d.attribute);
+				let offered = frm.__item_attributes
+					.concat(pinned)
+					.filter((a) => !used.includes(a) || a === row.attribute);
+				filters.name = ["in", offered];
 			}
 			return { filters: filters };
 		};
