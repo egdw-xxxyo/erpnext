@@ -10,12 +10,22 @@ frappe.ui.form.on("Specification", {
 		frm.fields_dict["attributes"].grid.get_field("attribute").get_query = function (doc, cdt, cdn) {
 			let row = locals[cdt][cdn];
 			let used = (doc.attributes || []).filter((d) => d.name !== row.name).map((d) => d.attribute);
-			return { filters: { name: ["not in", used] } };
+			let filters = { name: ["not in", used] };
+			// With an Item template picked, the catalog may only use that Item's attributes.
+			if (doc.item_template && frm.__item_attributes) {
+				filters.name = ["in", frm.__item_attributes.filter((a) => !used.includes(a))];
+			}
+			return { filters: filters };
 		};
+
+		frm.set_query("item_template", function () {
+			return { filters: { has_variants: 1 } };
+		});
 	},
 
 	refresh: function (frm) {
 		erpnext.specification.toggle_attributes(frm);
+		erpnext.specification.load_item_attributes(frm);
 
 		if (frm.doc.has_variants) {
 			frm.add_custom_button(
@@ -45,7 +55,39 @@ frappe.ui.form.on("Specification", {
 	has_variants: function (frm) {
 		erpnext.specification.toggle_attributes(frm);
 	},
+
+	item_template: function (frm) {
+		erpnext.specification.load_item_attributes(frm, true);
+	},
 });
+
+erpnext.specification.load_item_attributes = function (frm, add_rows) {
+	if (!frm.doc.item_template) {
+		frm.__item_attributes = null;
+		frm.set_value("item_template_attributes", "");
+		return;
+	}
+
+	frappe
+		.call({
+			method: "erpnext.manufacturing.doctype.specification.specification.get_item_template_attributes",
+			args: { item_template: frm.doc.item_template },
+		})
+		.then((r) => {
+			frm.__item_attributes = r.message || [];
+			frm.set_value("item_template_attributes", frm.__item_attributes.join("\n"));
+
+			if (!add_rows || frm.doc.variant_of) return;
+
+			let present = (frm.doc.attributes || []).map((d) => d.attribute);
+			frm.__item_attributes
+				.filter((attribute) => !present.includes(attribute))
+				.forEach((attribute) => {
+					frm.add_child("attributes", { attribute: attribute });
+				});
+			frm.refresh_field("attributes");
+		});
+};
 
 erpnext.specification.toggle_attributes = function (frm) {
 	if (frm.doc.has_variants || frm.doc.variant_of) {
