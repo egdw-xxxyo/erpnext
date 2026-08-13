@@ -46,9 +46,17 @@ class Specification(Document):
 		return resolve_specification_template(self) or self.specification_name
 
 	def validate(self):
+		self.inherit_kind_from_template()
 		self.validate_attributes_table()
 		self.validate_variant_attributes_on_save()
 		self.validate_has_variants()
+
+	def inherit_kind_from_template(self):
+		"""A variant belongs to the same ЄСКД catalog as the template it comes from."""
+		if self.variant_of and not self.specification_kind:
+			self.specification_kind = frappe.db.get_value(
+				"Specification", self.variant_of, "specification_kind"
+			)
 
 	def validate_attributes_table(self):
 		if self.has_variants or self.variant_of:

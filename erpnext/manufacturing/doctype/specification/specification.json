@@ -44,17 +44,17 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Specification Code",
-   "read_only_depends_on": "eval:doc.specification_number_template && doc.variant_of",
+   "read_only_depends_on": "eval:!!doc.variant_of",
    "reqd": 1,
    "unique": 1
   },
   {
-   "description": "Name used as the document ID. For variants, auto-resolved from the template's Variant Name Pattern.",
+   "description": "Generated from the template Variant Name Pattern for variants.",
    "fieldname": "specification_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Specification Name",
-   "read_only_depends_on": "eval:doc.variant_of",
+   "read_only_depends_on": "eval:!!doc.variant_of",
    "reqd": 1,
    "unique": 1
   },

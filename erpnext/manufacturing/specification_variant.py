@@ -1,9 +1,10 @@
 import copy
 import json
+import re
 
 import frappe
 from frappe import _
-from frappe.utils import cstr, flt
+from frappe.utils import cint, cstr, flt
 
 PARENT_DOCTYPE = "Specification"
 ATTRIBUTE_DOCTYPE = "Item Attribute"
@@ -284,11 +285,18 @@ def copy_attributes_to_variant(template, variant):
 	variant.variant_of = template.name
 
 
-def make_code_from_pattern(pattern, attributes):
+def make_code_from_pattern(pattern, attributes, variant=None):
 	"""Resolve `{AttributeName}` placeholders against rows with attribute/attribute_value.
 	Prefers `short_name` from Specification Attribute Value, falls back to `abbr`, then raw value.
+
+	With a `variant` doc two more placeholder families resolve: `{ORDINAL}` (optionally
+	`{ORDINAL:4}`) for its catalog position, and `{RoleName}` for the name of the child
+	specification sitting in that Specification Component role.
 	"""
 	result = pattern
+	if variant is not None:
+		result = _resolve_ordinal_placeholder(result, variant)
+		result = _resolve_role_placeholders(result, variant)
 	for attr in attributes or []:
 		placeholder = "{" + attr.attribute + "}"
 		if placeholder not in result:
@@ -302,7 +310,27 @@ def make_code_from_pattern(pattern, attributes):
 		)
 		display = (row.display_name or row.short_name or row.abbr) if row else cstr(attr.attribute_value)
 		result = result.replace(placeholder, display)
-	return result
+	# An unresolved placeholder or an empty ordinal leaves gaps behind.
+	return " ".join(result.split())
+
+
+def _resolve_ordinal_placeholder(pattern, variant):
+	ordinal = variant.get("ordinal")
+	for match in set(re.findall(r"\{ORDINAL(?::(\d+))?\}", pattern)):
+		digits = int(match) if match else 2
+		placeholder = "{ORDINAL:" + match + "}" if match else "{ORDINAL}"
+		pattern = pattern.replace(placeholder, str(cint(ordinal)).zfill(digits) if ordinal else "")
+	return pattern
+
+
+def _resolve_role_placeholders(pattern, variant):
+	for row in variant.get("components") or []:
+		placeholder = "{" + cstr(row.get("role")) + "}"
+		if placeholder not in pattern:
+			continue
+		name = frappe.db.get_value(PARENT_DOCTYPE, row.get("specification"), "specification_name")
+		pattern = pattern.replace(placeholder, cstr(name or row.get("specification")))
+	return pattern
 
 
 def make_variant_code(template_code, template_name, variant):
@@ -311,7 +339,7 @@ def make_variant_code(template_code, template_name, variant):
 
 	template_doc = frappe.get_cached_doc(PARENT_DOCTYPE, template_code)
 	pattern = template_doc.get("variant_name_pattern")
-	pattern_result = make_code_from_pattern(pattern, variant.attributes) if pattern else None
+	pattern_result = make_code_from_pattern(pattern, variant.attributes, variant) if pattern else None
 
 	if template_doc.get("specification_number_template"):
 		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
