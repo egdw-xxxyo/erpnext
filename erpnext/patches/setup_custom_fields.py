@@ -924,11 +924,29 @@ def create_v16_ported_fields():
 		},
 		{
 			"dt": "Lead",
+			"description": "The month the party actually has budget for. Stays a plain Date"
+			" (sorting/filtering keep working); erpnext/public/js/utils/month_field.js renders"
+			" it as month/year only and snaps the value to the first of the month.",
+			"fieldname": "required_month",
+			"fieldtype": "Date",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"label": "Required Month",
+			"insert_after": "assessment_section",
+		},
+		{
+			"dt": "Lead",
+			"fieldname": "column_break_assessment",
+			"fieldtype": "Column Break",
+			"insert_after": "required_month",
+		},
+		{
+			"dt": "Lead",
 			"fieldname": "conversion_probability",
 			"fieldtype": "Select",
 			"label": "Conversion Probability",
 			"options": "\nLow Probability\nMedium Probability\nHigh Probability",
-			"insert_after": "assessment_section",
+			"insert_after": "column_break_assessment",
 		},
 		{
 			"dt": "Lead",

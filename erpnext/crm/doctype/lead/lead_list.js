@@ -12,7 +12,14 @@ const LEAD_STATUS_COLOURS = {
 };
 
 frappe.listview_settings["Lead"] = {
-	add_fields: ["status", "lead_owner", "military_unit", "next_action_date", "next_action_overdue"],
+	add_fields: [
+		"status",
+		"lead_owner",
+		"military_unit",
+		"next_action_date",
+		"next_action_overdue",
+		"required_month",
+	],
 	// Closed Leads stay out of the way until someone asks for them explicitly.
 	filters: [["status", "not in", LEAD_FINAL_STATUSES]],
 	// Plain ASC would float Leads without a date above the urgent ones, so park them last.
@@ -26,6 +33,22 @@ frappe.listview_settings["Lead"] = {
 			LEAD_STATUS_COLOURS[doc.status] || frappe.utils.guess_colour(doc.status),
 			"status,=," + doc.status,
 		];
+	},
+	formatters: {
+		required_month: function (value) {
+			if (!value) {
+				return `<span class="text-muted">${__("Unknown")}</span>`;
+			}
+			const label = erpnext.utils.month_field.format_month(value);
+			return `<span class="filterable ellipsis" data-filter="required_month,=,${value}">${label}</span>`;
+		},
+		lead_owner: function (value) {
+			if (!value) return "";
+			// Not frappe.user.full_name — that renders "You" for your own Leads, and the
+			// point of the column is to see whose Lead it is at a glance.
+			const full_name = frappe.user_info(value).fullname || value;
+			return `<span class="filterable ellipsis" data-filter="lead_owner,=,${value}">${full_name}</span>`;
+		},
 	},
 	onload: function (listview) {
 		const apply_preset = (filters) => {
