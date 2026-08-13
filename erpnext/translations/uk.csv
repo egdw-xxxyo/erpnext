@@ -13226,3 +13226,7 @@ Additional Information for Status {0},Додаткова інформація д
 "Ordinal is required — {0} numbers this catalog by its position","Потрібен порядковий номер — {0} нумерує цей каталог за позицією"
 "Ordinal Missing","Немає порядкового номера"
 "Attributes {0} are not on Item template {1}. Give them a fixed value to keep them, or remove them.","Атрибутів {0} немає в шаблоні товару {1}. Задайте їм фіксоване значення або приберіть їх."
+"Attribute Value Map","Відповідність значень атрибутів"
+"Designation Part","Частина позначення"
+"Used in the designation instead of the abbreviation or short name.","Використовується в позначенні замість абревіатури чи короткої назви."
+"Maps an attribute value to the text used in the designation, e.g. Торгова марка «Укропчик» → УКРП.","Задає, який текст підставляти в позначення для значення атрибута, напр. Торгова марка «Укропчик» → УКРП."
