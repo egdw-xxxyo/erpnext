@@ -328,7 +328,8 @@ def _ensure_specification_template(template, config):
 	doc.specification_kind = config["kind"]
 	if config.get("number_template"):
 		doc.specification_number_template = config["number_template"]
-	if config.get("name_pattern"):
+	# Seed the name pattern, then leave it alone — it is meant to be tuned in the desk.
+	if config.get("name_pattern") and not doc.variant_name_pattern:
 		doc.variant_name_pattern = config["name_pattern"]
 	# The Item template is site data — a bench without that Item keeps the catalog loose.
 	item_template = config.get("item_template")
