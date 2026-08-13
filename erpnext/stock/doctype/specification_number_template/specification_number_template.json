@@ -13,6 +13,8 @@
   "description",
   "section_components",
   "components",
+  "section_value_map",
+  "value_map",
   "section_overrides",
   "overrides",
   "section_preview",
@@ -70,6 +72,18 @@
    "label": "Token Preview",
    "read_only": 1,
    "description": "Component layout as tokens, e.g. УКРП.200121.{ATTR:Розмір рами:abbr}{ATTR:Шифр FPV код:abbr}С"
+  },
+  {
+   "fieldname": "section_value_map",
+   "fieldtype": "Section Break",
+   "label": "Attribute Value Map"
+  },
+  {
+   "description": "Maps an attribute value to the text used in the designation, e.g. Торгова марка «Укропчик» → УКРП.",
+   "fieldname": "value_map",
+   "fieldtype": "Table",
+   "label": "Attribute Value Map",
+   "options": "Specification Number Value Map"
   }
  ],
  "index_web_pages_for_search": 1,

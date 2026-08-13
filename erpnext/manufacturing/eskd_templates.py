@@ -11,7 +11,14 @@ Idempotent — safe to re-run; existing rows are updated in place.
 
 import frappe
 
-ORGANISATION = "Організація ЄСКД"
+# The brand an item carries is the ЄСКД organisation: Укропчик designations start with
+# УКРП, Варнекс ones with ВРНК. The attribute belongs to the Item catalog, so its
+# abbreviation (U / V, used in item codes) is left alone — the designation prefix comes
+# from the Attribute Value Map on the number template, the readable short name from the
+# attribute itself, and both are editable in the desk.
+TRADE_MARK = "Торгова марка"
+ORGANISATION_SHORT_NAMES = {"Укропчик": "УКРП", "Варнекс": "ВРНК"}
+
 DRONE_CLASS = "Клас дрона"
 FRAME_SIZE = "Типорозмір рами"
 CAMERA_TYPE = "Тип камери"
@@ -24,11 +31,8 @@ GS_SIGNAL = "Тип сигналу НСУ"
 GS_FORM = "Виконання НСУ"
 
 # attribute -> [(value, abbr, short name used in generated specification names)]
+# Торгова марка is not here: it belongs to the Item catalog and is only read from.
 ATTRIBUTES = {
-	ORGANISATION: [
-		("Укропчик", "УКРП", "УКРП"),
-		("VARNEX", "ВРНК", "ВРНК"),
-	],
 	DRONE_CLASS: [
 		("Оптичний", "200121", "FO"),
 		("Радіокерований", "463145", "RC"),
@@ -113,36 +117,60 @@ def _linked_ordinal(role, digits=2):
 	}
 
 
+def _short_name(attribute):
+	return {"component_type": "Item Attribute Short Name", "attribute_link": attribute}
+
+
+# Every ЄСКД designation opens with the organisation, and which organisation it is comes
+# from the brand on the item. The pairing is data on the template (Attribute Value Map),
+# not code — add a brand there and its designations start working.
+ORGANISATION_MAP = [
+	{"attribute": TRADE_MARK, "attribute_value": "Укропчик", "mapped_value": "УКРП"},
+	{"attribute": TRADE_MARK, "attribute_value": "Варнекс", "mapped_value": "ВРНК"},
+]
+
 NUMBER_TEMPLATES = {
-	"ЄСКД БпЛА": [
-		_abbr(ORGANISATION),
-		_literal("."),
-		_abbr(DRONE_CLASS),
-		_literal("."),
-		_abbr(FRAME_SIZE),
-		_abbr(CAMERA_TYPE),
-		_linked_ordinal(ROLE_BATTERY, 2),
-		_linked_ordinal(ROLE_COIL, 4),
-		_literal("С"),
-	],
-	"ЄСКД Котушка": [
-		_abbr(ORGANISATION),
-		_literal(".200121.002-"),
-		_ordinal(2),
-		_literal("С"),
-	],
-	"ЄСКД Батарея": [
-		_abbr(ORGANISATION),
-		_literal(".563562.001-"),
-		_ordinal(2),
-		_literal("С"),
-	],
-	"ЄСКД НСУ": [
-		_abbr(ORGANISATION),
-		_literal(".563562.003-"),
-		_ordinal(2),
-		_literal("С"),
-	],
+	"ЄСКД БпЛА": {
+		"components": [
+			_short_name(TRADE_MARK),
+			_literal("."),
+			_abbr(DRONE_CLASS),
+			_literal("."),
+			_abbr(FRAME_SIZE),
+			_abbr(CAMERA_TYPE),
+			_linked_ordinal(ROLE_BATTERY, 2),
+			_linked_ordinal(ROLE_COIL, 4),
+			_literal("С"),
+		],
+		"value_map": ORGANISATION_MAP,
+	},
+	"ЄСКД Котушка": {
+		"components": [
+			_short_name(TRADE_MARK),
+			_literal(".200121.002-"),
+			_ordinal(2),
+			_literal("С"),
+		],
+		"value_map": ORGANISATION_MAP,
+	},
+	"ЄСКД Батарея": {
+		"components": [
+			_short_name(TRADE_MARK),
+			_literal(".563562.001-"),
+			_ordinal(2),
+			_literal("С"),
+		],
+		"value_map": ORGANISATION_MAP,
+	},
+	"ЄСКД НСУ": {
+		"components": [
+			_short_name(TRADE_MARK),
+			_literal(".563562.003-"),
+			_ordinal(2),
+			_literal("С"),
+		],
+		"value_map": ORGANISATION_MAP,
+	},
 }
 
 CHEMISTRY = "Хімія"
@@ -160,20 +188,20 @@ SPECIFICATION_TEMPLATES = {
 		"kind": "Board",
 		"number_template": "ЄСКД БпЛА",
 		"attributes": [
-			(ORGANISATION, "Укропчик"),
+			(TRADE_MARK, None),
 			(DRONE_CLASS, None),
 			(FRAME_SIZE, None),
 			(CAMERA_TYPE, None),
 		],
 		"name_pattern": (
-			f"{{{ORGANISATION}}} {{{FRAME_SIZE}}} {{{CAMERA_TYPE}}}: {{{ROLE_COIL}}} / {{{ROLE_BATTERY}}}"
+			f"{{{TRADE_MARK}}} {{{FRAME_SIZE}}} {{{CAMERA_TYPE}}}: {{{ROLE_COIL}}} / {{{ROLE_BATTERY}}}"
 		),
 	},
 	"Специфікація котушки": {
 		"kind": "Coil",
 		"number_template": "ЄСКД Котушка",
-		"attributes": [(ORGANISATION, "Укропчик"), (COIL_TYPE, None)],
-		"name_pattern": f"{{{COIL_TYPE}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+		"attributes": [(TRADE_MARK, None), (COIL_TYPE, None)],
+		"name_pattern": f"{{{COIL_TYPE}}} ({{{TRADE_MARK}}}-{{ORDINAL}})",
 	},
 	# УКРП.563562.001-ХХ covers Li-ion packs up to 50 V, so the chemistry is pinned and
 	# only the cell layout varies.
@@ -182,25 +210,25 @@ SPECIFICATION_TEMPLATES = {
 		"number_template": "ЄСКД Батарея",
 		"item_template": "BATT-PACK",
 		"attributes": [
-			(ORGANISATION, "Укропчик"),
+			(TRADE_MARK, None),
 			(CHEMISTRY, "Li-ion"),
 			(BATTERY_SERIES, None),
 			(BATTERY_PARALLEL, None),
 		],
-		"name_pattern": f"{{{BATTERY_SERIES}}}{{{BATTERY_PARALLEL}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+		"name_pattern": f"{{{BATTERY_SERIES}}}{{{BATTERY_PARALLEL}}} ({{{TRADE_MARK}}}-{{ORDINAL}})",
 	},
 	"Специфікація НСУ": {
 		"kind": "Ground Station",
 		"number_template": "ЄСКД НСУ",
-		"attributes": [(ORGANISATION, "Укропчик"), (GS_SIGNAL, None), (GS_FORM, None)],
-		"name_pattern": f"НСУ {{{GS_SIGNAL}}} {{{GS_FORM}}} ({{{ORGANISATION}}}-{{ORDINAL}})",
+		"attributes": [(TRADE_MARK, None), (GS_SIGNAL, None), (GS_FORM, None)],
+		"name_pattern": f"НСУ {{{GS_SIGNAL}}} {{{GS_FORM}}} ({{{TRADE_MARK}}}-{{ORDINAL}})",
 	},
 	# A БпАК has no designation of its own — it is a numbered modification pairing a
 	# drone with a ground station, so it carries components but no number template.
 	"Специфікація БпАК": {
 		"kind": "BpAK",
 		"number_template": None,
-		"attributes": [(ORGANISATION, "Укропчик")],
+		"attributes": [(TRADE_MARK, None)],
 		"name_pattern": f"БпАК {{ORDINAL}}: {{{ROLE_BOARD}}} / {{{ROLE_GROUND_STATION}}}",
 	},
 }
@@ -214,8 +242,9 @@ def setup():
 		_ensure_role(role, kind)
 	for attribute, values in ATTRIBUTES.items():
 		_ensure_attribute(attribute, values)
-	for template, components in NUMBER_TEMPLATES.items():
-		_ensure_number_template(template, components)
+	_ensure_short_names(TRADE_MARK, ORGANISATION_SHORT_NAMES)
+	for template, config in NUMBER_TEMPLATES.items():
+		_ensure_number_template(template, config)
 	frappe.clear_cache(doctype="Specification Number Template")
 	for template, config in SPECIFICATION_TEMPLATES.items():
 		_ensure_specification_template(template, config)
@@ -253,7 +282,22 @@ def _ensure_attribute(attribute, values):
 	return doc.name
 
 
-def _ensure_number_template(template, components):
+def _ensure_short_names(attribute, short_names):
+	"""Fill in short names on an attribute owned by someone else, without overwriting."""
+	if not frappe.db.exists("Item Attribute", attribute):
+		return
+	doc = frappe.get_doc("Item Attribute", attribute)
+	changed = False
+	for row in doc.get("item_attribute_values") or []:
+		short_name = short_names.get(row.attribute_value)
+		if short_name and not row.short_name:
+			row.short_name = short_name
+			changed = True
+	if changed:
+		doc.save(ignore_permissions=True)
+
+
+def _ensure_number_template(template, config):
 	if frappe.db.exists("Specification Number Template", template):
 		doc = frappe.get_doc("Specification Number Template", template)
 	else:
@@ -261,8 +305,13 @@ def _ensure_number_template(template, components):
 		doc.template_name = template
 
 	doc.set("components", [])
-	for component in components:
+	for component in config["components"]:
 		doc.append("components", component)
+
+	existing = {(row.attribute, row.attribute_value) for row in doc.get("value_map") or []}
+	for row in config.get("value_map") or []:
+		if (row["attribute"], row["attribute_value"]) not in existing:
+			doc.append("value_map", row)
 	doc.save(ignore_permissions=True)
 	return doc.name
 
@@ -286,7 +335,9 @@ def _ensure_specification_template(template, config):
 	if item_template and frappe.db.exists("Item", item_template):
 		doc.item_template = item_template
 
-	rows = {row.attribute: row for row in doc.get("attributes") or []}
+	wanted = dict(config["attributes"])
+	doc.set("attributes", [row for row in doc.get("attributes") or [] if row.attribute in wanted])
+	rows = {row.attribute: row for row in doc.get("attributes")}
 	for attribute, fixed_value in config["attributes"]:
 		if attribute in rows:
 			rows[attribute].attribute_value = fixed_value

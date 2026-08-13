@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "creation": "2026-08-13 09:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attribute",
+  "attribute_value",
+  "mapped_value"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "attribute",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Attribute",
+   "options": "Item Attribute",
+   "reqd": 1
+  },
+  {
+   "columns": 4,
+   "fieldname": "attribute_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "columns": 4,
+   "description": "Used in the designation instead of the abbreviation or short name.",
+   "fieldname": "mapped_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Designation Part",
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-13 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Specification Number Value Map",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

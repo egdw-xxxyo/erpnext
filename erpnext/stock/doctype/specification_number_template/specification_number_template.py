@@ -34,6 +34,13 @@ def _component_token(c):
 	return ""
 
 
+def _mapped_value(tmpl, attribute, attribute_value):
+	for row in tmpl.get("value_map") or []:
+		if row.attribute == attribute and row.attribute_value == attribute_value:
+			return row.mapped_value
+	return None
+
+
 def _component_in_role(item_doc, role):
 	for row in item_doc.get("components") or []:
 		if row.get("role") == role:
@@ -99,6 +106,12 @@ def resolve_specification_template(item_doc):
 		attr_value = attr_map.get(attr)
 		if attr_value is None:
 			return None
+		# A value can be mapped to its designation text on the template itself, which is
+		# how Торгова марка «Укропчик» becomes УКРП without touching the Item attribute.
+		mapped = _mapped_value(tmpl, attr, attr_value)
+		if mapped:
+			parts.append(mapped)
+			continue
 		if t == "Item Attribute Value":
 			parts.append(str(attr_value))
 			continue
