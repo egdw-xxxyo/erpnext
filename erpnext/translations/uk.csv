@@ -5751,7 +5751,7 @@ Master,Головний
 Master Data,Головні дані
 Master Production Schedule,Основний виробничий графік
 Master Production Schedule Item,Елемент основного виробничого графіка
-Masters,Masters
+Masters,Довідники
 Material,Матеріал
 Material Consumption,Матеріальне споживання
 Material Consumption for Manufacture,Матеріальний потік для виробництва
@@ -13249,3 +13249,5 @@ Additional Information for Status {0},Додаткова інформація д
 "October","Жовтень"
 "November","Листопад"
 "December","Грудень"
+"{} Active","{} активних"
+"{} Assigned","{} призначено"
