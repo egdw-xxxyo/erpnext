@@ -12,6 +12,7 @@
   "specification_code",
   "specification_name",
   "disabled",
+  "has_variants",
   "column_break_basic",
   "variant_of",
   "specification_number_template",
@@ -26,7 +27,6 @@
   "section_parameters",
   "parameters",
   "section_variants",
-  "has_variants",
   "variant_name_pattern",
   "section_attributes",
   "attributes",
@@ -115,7 +115,8 @@
    "description": "Sequential number within the catalog, used by the Ordinal component of a Specification Number Template.",
    "fieldname": "ordinal",
    "fieldtype": "Int",
-   "label": "Ordinal"
+   "label": "Ordinal",
+   "depends_on": "eval:!doc.has_variants"
   },
   {
    "fieldname": "product",
@@ -150,7 +151,8 @@
   {
    "fieldname": "section_variants",
    "fieldtype": "Section Break",
-   "label": "Variants"
+   "label": "Variants",
+   "depends_on": "has_variants"
   },
   {
    "default": "0",
