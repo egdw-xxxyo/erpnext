@@ -18,6 +18,8 @@
   "specification_number_template",
   "section_catalog",
   "specification_kind",
+  "item_template",
+  "item_template_attributes",
   "organization_code",
   "column_break_catalog",
   "ordinal",
@@ -191,6 +193,22 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
+  },
+  {
+   "depends_on": "eval:doc.has_variants || doc.item_template",
+   "description": "The Item template this catalog describes. Only its attributes can be used below.",
+   "fieldname": "item_template",
+   "fieldtype": "Link",
+   "label": "Item Template",
+   "options": "Item",
+   "read_only_depends_on": "eval:!!doc.variant_of"
+  },
+  {
+   "depends_on": "item_template",
+   "fieldname": "item_template_attributes",
+   "fieldtype": "Small Text",
+   "label": "Item Attributes",
+   "read_only": 1
   }
  ],
  "icon": "fa fa-file-text-o",

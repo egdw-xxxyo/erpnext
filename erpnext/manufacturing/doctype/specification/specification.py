@@ -11,6 +11,20 @@ from erpnext.manufacturing.specification_variant import (
 )
 
 
+@frappe.whitelist()
+def get_item_template_attributes(item_template):
+	"""Attributes of the Item template a specification catalog is tied to."""
+	if not item_template:
+		return []
+	return frappe.get_all(
+		"Item Variant Attribute",
+		filters={"parent": item_template, "parenttype": "Item"},
+		fields=["attribute"],
+		order_by="idx",
+		pluck="attribute",
+	)
+
+
 def _component_map_of(specification):
 	rows = frappe.get_all(
 		"Specification Component",
@@ -47,15 +61,45 @@ class Specification(Document):
 
 	def validate(self):
 		self.inherit_kind_from_template()
+		self.validate_item_template()
 		self.validate_attributes_table()
 		self.validate_variant_attributes_on_save()
 		self.validate_has_variants()
 
 	def inherit_kind_from_template(self):
 		"""A variant belongs to the same ЄСКД catalog as the template it comes from."""
-		if self.variant_of and not self.specification_kind:
-			self.specification_kind = frappe.db.get_value(
-				"Specification", self.variant_of, "specification_kind"
+		if not self.variant_of:
+			return
+		template = frappe.db.get_value(
+			"Specification", self.variant_of, ["specification_kind", "item_template"], as_dict=True
+		)
+		if not template:
+			return
+		if not self.specification_kind:
+			self.specification_kind = template.specification_kind
+		self.item_template = template.item_template
+
+	def validate_item_template(self):
+		"""Tie the catalog to one Item template and keep its attributes the only choice."""
+		if not self.item_template:
+			self.item_template_attributes = None
+			return
+
+		if not frappe.db.get_value("Item", self.item_template, "has_variants"):
+			frappe.throw(
+				_("{0} is not an Item template — pick an Item that has variants").format(self.item_template)
+			)
+
+		allowed = get_item_template_attributes(self.item_template)
+		self.item_template_attributes = "\n".join(allowed)
+
+		extra = [d.attribute for d in self.attributes or [] if d.attribute not in allowed]
+		if extra:
+			frappe.throw(
+				_("Attributes {0} are not on Item template {1}").format(
+					frappe.bold(", ".join(extra)), self.item_template
+				),
+				title=_("Attribute Not On Item Template"),
 			)
 
 	def validate_attributes_table(self):
