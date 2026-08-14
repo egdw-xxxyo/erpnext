@@ -23,8 +23,12 @@ from frappe.utils import date_diff, flt, get_last_day, getdate
 ADVANCE_COMPONENT = "Аванс"
 
 
-def create_advance(company, year, month, cutoff_day=15, dry_run=True):
-	"""Створює відрахування «Аванс» за першу половину місяця для всіх активних працівників."""
+def create_advance(company, year, month, cutoff_day=15, dry_run=True, require_attendance=True):
+	"""Створює відрахування «Аванс» за першу половину місяця.
+
+	`require_attendance` пропускає тих, у кого за першу половину місяця немає жодного дня табеля —
+	інакше аванс отримали б і ті, хто в цьому місяці не працював.
+	"""
 	period_start = getdate(f"{year}-{month:02d}-01")
 	period_end = get_last_day(period_start)
 	cutoff = min(getdate(f"{year}-{month:02d}-{cutoff_day:02d}"), period_end)
@@ -45,6 +49,9 @@ def create_advance(company, year, month, cutoff_day=15, dry_run=True):
 		official, cash = _salary_parts(employee.name, period_end)
 
 		if not (official + cash):
+			continue
+
+		if require_attendance and not _has_attendance(employee.name, period_start, cutoff):
 			continue
 
 		holidays = _holiday_list(employee, company)
@@ -105,6 +112,18 @@ def _salary_parts(employee, on_date):
 		return 0.0, 0.0
 
 	return flt(assignment.variable), flt(assignment.base) - flt(assignment.variable)
+
+
+def _has_attendance(employee, start, end):
+	return frappe.db.count(
+		"Attendance",
+		{
+			"employee": employee,
+			"docstatus": 1,
+			"attendance_date": ["between", [start, end]],
+			"status": ["!=", "Absent"],
+		},
+	)
 
 
 def _holiday_list(employee, company):
