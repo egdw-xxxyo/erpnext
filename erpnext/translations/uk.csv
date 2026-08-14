@@ -13251,3 +13251,8 @@ Additional Information for Status {0},Додаткова інформація д
 "December","Грудень"
 "{} Active","{} активних"
 "{} Assigned","{} призначено"
+"Unresolved Specification Formula","Не обчислена формула специфікації"
+"Specification formulas could not be calculated:","Не вдалося обчислити формули специфікації:"
+"A token like {0} reads a specification parameter of the item linked to that attribute value. Fill in the missing parameter on the linked item, then save again.","Токен виду {0} читає параметр специфікації товару, привʼязаного до цього значення атрибута. Заповніть відсутній параметр у привʼязаному товарі та збережіть знову."
+"Available tokens:","Доступні токени:"
+"none","немає"
