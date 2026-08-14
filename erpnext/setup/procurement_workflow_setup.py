@@ -14,32 +14,96 @@ CUSTOM_FIELDS = {
 			"no_copy": 1,
 			"insert_after": "custom_task",
 		},
+		{
+			"fieldname": "custom_items_already_purchased",
+			"fieldtype": "Check",
+			"label": "Items Already Purchased",
+			"insert_after": "custom_procurement_initiator_user",
+		},
+		{
+			"fieldname": "custom_prepaid_purchase_note",
+			"fieldtype": "Small Text",
+			"label": "Prepaid Purchase Note",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "eval:doc.custom_items_already_purchased",
+			"insert_after": "custom_items_already_purchased",
+		},
+		{
+			"fieldname": "custom_purchase_receipts_section",
+			"fieldtype": "Section Break",
+			"label": "Purchase Receipt Files",
+			"depends_on": "eval:doc.custom_items_already_purchased",
+			"insert_after": "set_warehouse",
+		},
+		{
+			"fieldname": "custom_purchase_receipts",
+			"fieldtype": "Table",
+			"label": "Purchase Receipt Files",
+			"options": "Consolidated Purchase Supplier Invoice",
+			"depends_on": "eval:doc.custom_items_already_purchased",
+			"mandatory_depends_on": "eval:doc.custom_items_already_purchased",
+			"insert_after": "custom_purchase_receipts_section",
+		},
 	],
 	"Purchase Order": [
 		{
-			"fieldname": "custom_procurement_workflow_reason",
-			"fieldtype": "Small Text",
-			"label": "Decision Reason",
-			"hidden": 1,
-			"no_copy": 1,
-			"insert_after": "status",
-		},
-		{
-			"fieldname": "custom_current_assignees",
-			"fieldtype": "Data",
-			"label": "Current Assignee",
+			"fieldname": "custom_consolidated_purchase_order",
+			"fieldtype": "Link",
+			"label": "Consolidated Purchase Order",
+			"options": "Consolidated Purchase Order",
 			"read_only": 1,
 			"no_copy": 1,
-			"in_list_view": 1,
 			"in_standard_filter": 1,
-			"insert_after": "custom_procurement_workflow_reason",
+			"insert_after": "supplier_name",
+		},
+		{
+			"fieldname": "custom_items_already_purchased",
+			"fieldtype": "Check",
+			"label": "Items Already Purchased",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_consolidated_purchase_order",
+		},
+		{
+			"fieldname": "custom_prepaid_purchase_note",
+			"fieldtype": "Small Text",
+			"label": "Prepaid Purchase Note",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "eval:doc.custom_items_already_purchased",
+			"insert_after": "custom_items_already_purchased",
+		},
+	],
+	"Purchase Order Item": [
+		{
+			"fieldname": "custom_consolidated_purchase_order_item",
+			"fieldtype": "Data",
+			"label": "Consolidated Purchase Order Item",
+			"read_only": 1,
+			"no_copy": 1,
+			"hidden": 1,
+			"insert_after": "material_request_item",
+		},
+	],
+	"Purchase Invoice": [
+		{
+			"fieldname": "custom_consolidated_purchase_order",
+			"fieldtype": "Link",
+			"label": "Consolidated Purchase Order",
+			"options": "Consolidated Purchase Order",
+			"read_only": 1,
+			"no_copy": 1,
+			"in_standard_filter": 1,
+			"insert_after": "supplier_name",
 		},
 	],
 }
 
-CLIENT_SCRIPT_NAME = "Закупівлі: погодження замовлення на придбання"
+LEGACY_CLIENT_SCRIPT_NAME = "Закупівлі: погодження замовлення на придбання"
+CLIENT_SCRIPT_NAME = "Закупівлі: погодження зведеного замовлення на придбання"
 CLIENT_SCRIPT = r"""
-frappe.ui.form.on("Purchase Order", {
+frappe.ui.form.on("Consolidated Purchase Order", {
 	before_workflow_action(frm) {
 		const action = frm.selected_workflow_action;
 		const actionsRequiringReason = [
@@ -72,7 +136,7 @@ frappe.ui.form.on("Purchase Order", {
 					}
 
 					confirmed = true;
-					frm.doc.custom_procurement_workflow_reason = reason;
+					frm.doc.workflow_action_reason = reason;
 					frappe.dom.freeze();
 					dialog.hide();
 					resolve();
@@ -95,7 +159,24 @@ frappe.ui.form.on("Purchase Order", {
 MATERIAL_REQUEST_CLIENT_SCRIPT_NAME = "Закупівлі: дії замовлення матеріалів лише для закупівельника"
 MATERIAL_REQUEST_CLIENT_SCRIPT = r"""
 frappe.ui.form.on("Material Request", {
+	setup(frm) {
+		const fileField = frappe.meta.get_docfield(
+			"Consolidated Purchase Supplier Invoice",
+			"invoice_document",
+			frm.doc.name
+		);
+		fileField.formatter = (value, df, options, doc) => {
+			const fileName = value || get_purchase_receipt_file_name(doc.invoice_pdf);
+			if (!fileName || !doc.invoice_pdf) return "";
+			return `<a href="${frappe.utils.escape_html(doc.invoice_pdf)}" target="_blank">${frappe.utils.escape_html(
+				fileName
+			)}</a>`;
+		};
+	},
+
 	refresh(frm) {
+		configure_purchase_receipts_grid(frm);
+		setTimeout(() => configure_purchase_receipts_grid(frm), 100);
 		if (frappe.user_roles.includes("Закупівельник")) {
 			return;
 		}
@@ -111,24 +192,106 @@ frappe.ui.form.on("Material Request", {
 			}
 		}, 0);
 	},
+
+	custom_items_already_purchased(frm) {
+		frm.set_value(
+			"custom_prepaid_purchase_note",
+			frm.doc.custom_items_already_purchased
+				? __(
+					"The materials have already been purchased. Review the attached receipts and verify suppliers and prices."
+				)
+				: null
+		);
+	},
 });
+
+frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
+	invoice_pdf(frm, cdt, cdn) {
+		if (frm.doctype !== "Material Request") return;
+		const row = locals[cdt][cdn];
+		frappe.model.set_value(cdt, cdn, "invoice_document", get_purchase_receipt_file_name(row.invoice_pdf));
+		if (!row.invoice_pdf || row.invoice_pdf.split("?")[0].toLowerCase().endsWith(".pdf")) return;
+
+		frappe.model.set_value(cdt, cdn, "invoice_pdf", null);
+		frappe.msgprint({
+			title: __("Unsupported File Format"),
+			message: __("The purchase receipt must be a PDF file."),
+			indicator: "red",
+		});
+	},
+});
+
+function configure_purchase_receipts_grid(frm) {
+	const field = frm.get_field("custom_purchase_receipts");
+	if (!field || !field.grid) return;
+	field.grid.update_docfield_property("invoice_pdf", "options", {
+		restrictions: { allowed_file_types: [".pdf"] },
+		allow_web_link: false,
+	});
+	field.grid.update_docfield_property("supplier", "hidden", 1);
+	field.grid.update_docfield_property("supplier", "in_list_view", 0);
+	field.grid.set_column_disp("supplier", false);
+	field.grid.wrapper.find(".grid-heading-row .row-index span").text("\u2116");
+}
+
+function get_purchase_receipt_file_name(fileUrl) {
+	if (!fileUrl) return null;
+	const path = fileUrl.split("?")[0];
+	return decodeURIComponent(path.substring(path.lastIndexOf("/") + 1));
+}
 """.strip()
 
 
 def after_migrate():
-	create_custom_fields(CUSTOM_FIELDS, update=True)
+	sync_procurement_custom_fields()
 
 	from erpnext.buying.procurement_workflow import sync_procurement_workflow
 
 	sync_procurement_workflow()
 	_sync_client_scripts()
 	_sync_list_fields()
+	_sync_consolidated_material_requests()
 	frappe.clear_cache(doctype="Material Request")
 	frappe.clear_cache(doctype="Purchase Order")
+	frappe.clear_cache(doctype="Purchase Order Item")
+	frappe.clear_cache(doctype="Purchase Invoice")
+	frappe.clear_cache(doctype="Consolidated Purchase Order")
+	frappe.clear_cache(doctype="Workspace")
+
+
+def sync_procurement_custom_fields():
+	create_custom_fields(CUSTOM_FIELDS, update=True)
+
+
+def _sync_consolidated_material_requests():
+	if not frappe.db.table_exists("Consolidated Purchase Order"):
+		return
+
+	parents = frappe.get_all("Consolidated Purchase Order", pluck="name")
+	for parent in parents:
+		material_requests = frappe.get_all(
+			"Consolidated Purchase Order Item",
+			filters={"parent": parent, "material_request": ["is", "set"]},
+			pluck="material_request",
+			distinct=True,
+		)
+		material_request = material_requests[0] if len(material_requests) == 1 else None
+		frappe.db.set_value(
+			"Consolidated Purchase Order",
+			parent,
+			"material_request",
+			material_request,
+			update_modified=False,
+		)
 
 
 def _sync_client_scripts():
-	_ensure_client_script(CLIENT_SCRIPT_NAME, "Purchase Order", CLIENT_SCRIPT)
+	if frappe.db.exists("Client Script", LEGACY_CLIENT_SCRIPT_NAME):
+		legacy_script = frappe.get_doc("Client Script", LEGACY_CLIENT_SCRIPT_NAME)
+		legacy_script.enabled = 0
+		legacy_script.save(ignore_permissions=True)
+
+	_ensure_client_script(CLIENT_SCRIPT_NAME, "Consolidated Purchase Order", CLIENT_SCRIPT)
 	_ensure_client_script(
 		MATERIAL_REQUEST_CLIENT_SCRIPT_NAME,
 		"Material Request",
@@ -152,12 +315,11 @@ def _ensure_client_script(name, doctype, script):
 def _sync_list_fields():
 	_ensure_property_setter("workflow_state", "label", "Approval Stage", "Data")
 	_ensure_property_setter("workflow_state", "in_list_view", "1", "Check")
-	_ensure_property_setter("status", "in_list_view", "1", "Check")
 
 
 def _ensure_property_setter(fieldname, property_name, value, property_type):
 	filters = {
-		"doc_type": "Purchase Order",
+		"doc_type": "Consolidated Purchase Order",
 		"field_name": fieldname,
 		"property": property_name,
 	}
@@ -169,7 +331,7 @@ def _ensure_property_setter(fieldname, property_name, value, property_type):
 		doc.is_system_generated = 1
 		doc.save(ignore_permissions=True)
 		return
-	make_property_setter("Purchase Order", fieldname, property_name, value, property_type)
+	make_property_setter("Consolidated Purchase Order", fieldname, property_name, value, property_type)
 
 
 def _save(doc):

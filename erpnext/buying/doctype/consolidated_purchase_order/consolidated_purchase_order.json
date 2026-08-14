@@ -1,0 +1,260 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "CON-PO-.YYYY.-.#####",
+ "creation": "2026-08-13 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "transaction_date",
+  "column_break_main",
+  "currency",
+  "initiator_user",
+  "material_request",
+  "items_already_purchased",
+  "prepaid_purchase_note",
+  "set_supplier",
+  "items_section",
+  "items",
+  "supplier_invoices_section",
+  "supplier_invoices",
+  "totals_section",
+  "total_qty",
+  "column_break_totals",
+  "grand_total",
+  "workflow_details_section",
+  "workflow_action_reason",
+  "current_assignees",
+  "generated_documents_section",
+  "purchase_orders_html",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "transaction_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "__user",
+   "fieldname": "initiator_user",
+   "fieldtype": "Link",
+   "label": "Initiator User",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "material_request",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Material Request",
+   "no_copy": 1,
+   "options": "Material Request",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_already_purchased",
+   "fieldtype": "Check",
+   "label": "Items Already Purchased",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.items_already_purchased",
+   "fieldname": "prepaid_purchase_note",
+   "fieldtype": "Small Text",
+   "label": "Prepaid Purchase Note",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "set_supplier",
+   "fieldtype": "Link",
+   "label": "Set Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items by Supplier"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Consolidated Purchase Order Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "supplier_invoices_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Invoices"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "supplier_invoices",
+   "fieldtype": "Table",
+   "label": "Supplier Invoices",
+   "options": "Consolidated Purchase Supplier Invoice"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Grand Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "workflow_details_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Details"
+  },
+  {
+   "fieldname": "workflow_action_reason",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Decision Reason",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "current_assignees",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Current Assignee",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "generated_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Generated Documents"
+  },
+  {
+   "fieldname": "purchase_orders_html",
+   "fieldtype": "HTML",
+   "label": "Purchase Orders"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Consolidated Purchase Order",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "custom_consolidated_purchase_order"
+  },
+  {
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "custom_consolidated_purchase_order"
+  }
+ ],
+ "modified": "2026-08-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Buying",
+ "name": "Consolidated Purchase Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Закупівельник",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Payments: Керівник підрозділу",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Payments: Фінальний погоджувач",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "company,workflow_state",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

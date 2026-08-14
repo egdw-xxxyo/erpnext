@@ -20,6 +20,7 @@
   "reference_name",
   "custom_task",
   "custom_short_description",
+  "custom_procurement_approved",
   "custom_payments_approval_section",
   "custom_department",
   "custom_initiator_user",
@@ -469,6 +470,14 @@
    "fieldtype": "Data",
    "label": "Short Description",
    "length": 255
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_procurement_approved",
+   "fieldtype": "Check",
+   "label": "Procurement Approval Confirmed",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "custom_payments_approval_section",

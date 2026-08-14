@@ -88,7 +88,7 @@ def apply_workflow(doc, action):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
 
 	payload = frappe.parse_json(doc)
-	if payload.get("doctype") == "Purchase Order":
+	if payload.get("doctype") == "Consolidated Purchase Order":
 		from erpnext.buying.procurement_workflow_reason import apply_workflow as apply_procurement_workflow
 
 		return apply_procurement_workflow(doc, action)

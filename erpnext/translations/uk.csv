@@ -13130,3 +13130,42 @@ Child Task Payments,Оплати дочірніх завдань
 No Description,Немає опису
 The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
 Select a submitted Purchase Invoice linked to this task.,Оберіть проведений рахунок постачальника, пов'язаний із цим завданням.
+Consolidated Purchase Order,Зведене замовлення на придбання
+Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
+Items by Supplier,Позиції за постачальниками
+Approval Details,Деталі погодження
+Generated Documents,Створені документи
+Purchase Orders have not been created yet.,Замовлення на придбання ще не створено.
+Select Supplier for Purchase Invoice,Оберіть постачальника для рахунку постачальника
+There are no suppliers with unbilled Purchase Orders.,Немає постачальників із невиставленими замовленнями на придбання.
+Billed,Виставлено рахунків
+Cancel the linked Purchase Orders before cancelling this consolidated order: {0},Перед скасуванням зведеного замовлення скасуйте пов'язані замовлення на придбання: {0}
+Add at least one item.,Додайте щонайменше одну позицію.
+Row {0}: Supplier is required.,Рядок {0}: постачальник є обов'язковим.
+Row {0}: Quantity must be greater than zero.,Рядок {0}: кількість має бути більшою за нуль.
+Row {0}: Rate cannot be negative.,Рядок {0}: ціна не може бути від'ємною.
+Row {0}: Required By date is required.,Рядок {0}: дата потреби є обов'язковою.
+Created and submitted Purchase Order {0} for supplier {1}.,Створено та проведено замовлення на придбання {0} для постачальника {1}.
+Submit the consolidated order before creating a Purchase Invoice.,Проведіть зведене замовлення перед створенням рахунку постачальника.
+No billable Purchase Order was found for supplier {0}.,Для постачальника {0} не знайдено замовлення на придбання для виставлення рахунку.
+submitted the consolidated order for department review,подав зведене замовлення на перевірку підрозділу
+resubmitted the consolidated order for department review,повторно подав зведене замовлення на перевірку підрозділу
+approved the consolidated order,погодив зведене замовлення
+returned the consolidated order for rework,повернув зведене замовлення на доопрацювання
+rejected the consolidated order,відхилив зведене замовлення
+submitted the approved consolidated order,провів погоджене зведене замовлення
+Consolidated Purchase Supplier Invoice,Рахунок постачальника зведеного замовлення
+Supplier Invoices,Рахунки постачальників
+Supplier Invoice PDF,Рахунок постачальника (PDF)
+Invoice Document,Назва документу
+Procurement Approval Confirmed,Погодження закупівлі підтверджено
+Row {0}: Select a supplier used in the order items.,Рядок {0}: оберіть постачальника, використаного в позиціях замовлення.
+The supplier invoice must be a PDF file.,Рахунок постачальника має бути файлом PDF.
+Items Already Purchased,Товари вже придбано
+Prepaid Purchase Note,Примітка щодо вже придбаних товарів
+Purchase Receipt Files,Файли чеків про придбання
+The materials have already been purchased. Review the attached receipts and verify suppliers and prices.,Матеріали вже придбано. Перегляньте прикріплені чеки та перевірте постачальників і ціни.
+Attach at least one PDF receipt when the materials are already purchased.,Якщо матеріали вже придбано, прикріпіть щонайменше один чек у форматі PDF.
+Row {0}: Attach a PDF receipt.,Рядок {0}: прикріпіть чек у форматі PDF.
+The purchase receipt must be a PDF file.,Чек про придбання має бути файлом PDF.
+Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.

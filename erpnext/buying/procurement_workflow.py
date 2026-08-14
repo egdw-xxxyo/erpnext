@@ -1,7 +1,8 @@
 import frappe
 
-PURCHASE_ORDER_DOCTYPE = "Purchase Order"
-WORKFLOW_NAME = "Закупівлі: погодження замовлення на придбання"
+CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
+LEGACY_WORKFLOW_NAME = "Закупівлі: погодження замовлення на придбання"
+WORKFLOW_NAME = "Закупівлі: погодження зведеного замовлення на придбання"
 
 MATERIAL_REQUEST_INITIATOR_ROLE = "Закупівлі: Ініціатор замовлень матеріалів"
 BUYER_ROLE = "Закупівельник"
@@ -150,7 +151,7 @@ DOCTYPE_PERMISSIONS = {
 		),
 		BUYER_ROLE: ("select", "read", "report", "print"),
 	},
-	PURCHASE_ORDER_DOCTYPE: {
+	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE: {
 		BUYER_ROLE: (
 			"select",
 			"read",
@@ -166,6 +167,9 @@ DOCTYPE_PERMISSIONS = {
 		DEPARTMENT_HEAD_ROLE: ("select", "read", "write", "report", "print"),
 		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
 	},
+	"Purchase Invoice": {
+		BUYER_ROLE: ("select", "read", "write", "create", "report", "print"),
+	},
 }
 
 
@@ -176,8 +180,12 @@ def sync_procurement_workflow():
 	_ensure_workflow_states()
 	_ensure_workflow_actions()
 	_ensure_workflow()
+	# Role and Custom DocPerm changes also affect user-level permission caches.
+	# Clearing only DocType metadata can leave approvers without access until the
+	# next process/cache restart.
+	frappe.clear_cache()
 	frappe.clear_cache(doctype="Material Request")
-	frappe.clear_cache(doctype=PURCHASE_ORDER_DOCTYPE)
+	frappe.clear_cache(doctype=CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
 
 
 def _ensure_roles():
@@ -244,13 +252,18 @@ def _ensure_workflow_actions():
 
 
 def _ensure_workflow():
+	if frappe.db.exists("Workflow", LEGACY_WORKFLOW_NAME):
+		legacy_workflow = frappe.get_doc("Workflow", LEGACY_WORKFLOW_NAME)
+		legacy_workflow.is_active = 0
+		_save(legacy_workflow)
+
 	if frappe.db.exists("Workflow", WORKFLOW_NAME):
 		doc = frappe.get_doc("Workflow", WORKFLOW_NAME)
 	else:
 		doc = frappe.new_doc("Workflow")
 		doc.workflow_name = WORKFLOW_NAME
 
-	doc.document_type = PURCHASE_ORDER_DOCTYPE
+	doc.document_type = CONSOLIDATED_PURCHASE_ORDER_DOCTYPE
 	doc.is_active = 1
 	doc.override_status = 0
 	doc.send_email_alert = 0

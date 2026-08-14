@@ -4,6 +4,9 @@ from frappe import _
 def get_data():
 	return {
 		"fieldname": "material_request",
+		"non_standard_fieldnames": {
+			"Consolidated Purchase Order": "material_request",
+		},
 		"internal_links": {
 			"Sales Order": ["items", "sales_order"],
 			"Project": ["items", "project"],
@@ -12,7 +15,13 @@ def get_data():
 		"transactions": [
 			{
 				"label": _("Reference"),
-				"items": ["Sales Order", "Request for Quotation", "Supplier Quotation", "Purchase Order"],
+				"items": [
+					"Sales Order",
+					"Request for Quotation",
+					"Supplier Quotation",
+					"Purchase Order",
+					"Consolidated Purchase Order",
+				],
 			},
 			{"label": _("Stock"), "items": ["Stock Entry", "Purchase Receipt", "Pick List"]},
 			{"label": _("Manufacturing"), "items": ["Work Order"]},

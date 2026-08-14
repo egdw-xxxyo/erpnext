@@ -35,10 +35,17 @@ def execute():
 	setup_lead_sources()
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
+	setup_procurement_custom_fields()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_procurement_custom_fields():
+	from erpnext.setup.procurement_workflow_setup import sync_procurement_custom_fields
+
+	sync_procurement_custom_fields()
 
 
 def create_workflow_states():

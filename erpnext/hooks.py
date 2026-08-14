@@ -454,6 +454,7 @@ doc_events = {
 	},
 	"Payment Request": {
 		"validate": [
+			"erpnext.accounts.payment_procurement_route.set_procurement_approval_route",
 			"erpnext.accounts.payment_workflow_reason.validate_required_reason",
 			"erpnext.projects.task_payments.set_payment_request_task",
 			"erpnext.projects.task_payments.validate_payment_request_short_description",
@@ -464,11 +465,14 @@ doc_events = {
 	},
 	"Material Request": {
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"validate": "erpnext.buying.procurement_automation.validate_material_request_purchase_receipts",
 		"on_submit": "erpnext.buying.procurement_automation.on_material_request_submit",
 	},
 	"Purchase Order": {
-		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
 		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
+	},
+	"Consolidated Purchase Order": {
+		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
 	},
 	"ToDo": {
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
