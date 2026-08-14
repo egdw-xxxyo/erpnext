@@ -2,8 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import escape_html
 
-PURCHASE_ORDER_DOCTYPE = "Purchase Order"
-REASON_FIELD = "custom_procurement_workflow_reason"
+CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
+REASON_FIELD = "workflow_action_reason"
 RETURN_ACTION = "Повернути на доопрацювання"
 REJECT_ACTION = "Відхилити"
 REQUIRED_ACTIONS = (RETURN_ACTION, REJECT_ACTION)
@@ -67,12 +67,12 @@ def _add_action_comment(doc, action, reason=None):
 	user = frappe.session.user
 	actor = frappe.get_cached_value("User", user, "full_name") or user
 	action_labels = {
-		"Подати на перевірку підрозділу": _("submitted the Purchase Order for department review"),
-		"Подати повторно": _("resubmitted the Purchase Order for department review"),
-		"Погодити": _("approved the Purchase Order"),
-		RETURN_ACTION: _("returned the Purchase Order for rework"),
-		REJECT_ACTION: _("rejected the Purchase Order"),
-		"Провести": _("submitted the approved Purchase Order"),
+		"Подати на перевірку підрозділу": _("submitted the consolidated order for department review"),
+		"Подати повторно": _("resubmitted the consolidated order for department review"),
+		"Погодити": _("approved the consolidated order"),
+		RETURN_ACTION: _("returned the consolidated order for rework"),
+		REJECT_ACTION: _("rejected the consolidated order"),
+		"Провести": _("submitted the approved consolidated order"),
 	}
 	verb = action_labels.get(action, _("performed action “{0}”").format(escape_html(action)))
 	message = f"<b>{escape_html(actor)}</b> {verb}."

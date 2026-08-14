@@ -14,6 +14,7 @@ WORKFLOW_STATES = (
 
 WORKFLOW_ACTIONS = (
 	"Подати на перевірку підрозділу",
+	"Подати на перевірку казначейству",
 	"Погодити",
 	"Повернути на доопрацювання",
 	"Відхилити",
@@ -52,6 +53,14 @@ ROLE_PROFILES = {
 }
 
 CREATOR_TRANSITION_CONDITION = "doc.owner == frappe.session.user"
+STANDARD_ROUTE_CONDITION = "not doc.custom_procurement_approved"
+APPROVED_ROUTE_CONDITION = "doc.custom_procurement_approved == 1"
+CREATOR_STANDARD_ROUTE_CONDITION = (
+	f"({CREATOR_TRANSITION_CONDITION}) and ({STANDARD_ROUTE_CONDITION})"
+)
+CREATOR_APPROVED_ROUTE_CONDITION = (
+	f"({CREATOR_TRANSITION_CONDITION}) and ({APPROVED_ROUTE_CONDITION})"
+)
 
 
 PAYMENT_REQUEST_PERMISSIONS = {
@@ -108,6 +117,7 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Перевірка підрозділу",
 		"allowed": "Payments: Ініціатор",
 		"allow_self_approval": 1,
+		"condition": STANDARD_ROUTE_CONDITION,
 	},
 	{
 		"state": "Чернетка",
@@ -115,7 +125,7 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Перевірка підрозділу",
 		"allowed": "Payments: Керівник підрозділу",
 		"allow_self_approval": 1,
-		"condition": CREATOR_TRANSITION_CONDITION,
+		"condition": CREATOR_STANDARD_ROUTE_CONDITION,
 	},
 	{
 		"state": "Чернетка",
@@ -123,7 +133,31 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Перевірка підрозділу",
 		"allowed": "Payments: Фінальний погоджувач",
 		"allow_self_approval": 1,
-		"condition": CREATOR_TRANSITION_CONDITION,
+		"condition": CREATOR_STANDARD_ROUTE_CONDITION,
+	},
+	{
+		"state": "Чернетка",
+		"action": "Подати на перевірку казначейству",
+		"next_state": "Перевірка казначейства",
+		"allowed": "Payments: Ініціатор",
+		"allow_self_approval": 1,
+		"condition": APPROVED_ROUTE_CONDITION,
+	},
+	{
+		"state": "Чернетка",
+		"action": "Подати на перевірку казначейству",
+		"next_state": "Перевірка казначейства",
+		"allowed": "Payments: Керівник підрозділу",
+		"allow_self_approval": 1,
+		"condition": CREATOR_APPROVED_ROUTE_CONDITION,
+	},
+	{
+		"state": "Чернетка",
+		"action": "Подати на перевірку казначейству",
+		"next_state": "Перевірка казначейства",
+		"allowed": "Payments: Фінальний погоджувач",
+		"allow_self_approval": 1,
+		"condition": CREATOR_APPROVED_ROUTE_CONDITION,
 	},
 	{
 		"state": "Потребує доопрацювання",
@@ -131,6 +165,7 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Перевірка підрозділу",
 		"allowed": "Payments: Ініціатор",
 		"allow_self_approval": 1,
+		"condition": STANDARD_ROUTE_CONDITION,
 	},
 	{
 		"state": "Потребує доопрацювання",
@@ -138,7 +173,7 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Перевірка підрозділу",
 		"allowed": "Payments: Керівник підрозділу",
 		"allow_self_approval": 1,
-		"condition": CREATOR_TRANSITION_CONDITION,
+		"condition": CREATOR_STANDARD_ROUTE_CONDITION,
 	},
 	{
 		"state": "Потребує доопрацювання",
@@ -146,7 +181,31 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Перевірка підрозділу",
 		"allowed": "Payments: Фінальний погоджувач",
 		"allow_self_approval": 1,
-		"condition": CREATOR_TRANSITION_CONDITION,
+		"condition": CREATOR_STANDARD_ROUTE_CONDITION,
+	},
+	{
+		"state": "Потребує доопрацювання",
+		"action": "Подати повторно",
+		"next_state": "Перевірка казначейства",
+		"allowed": "Payments: Ініціатор",
+		"allow_self_approval": 1,
+		"condition": APPROVED_ROUTE_CONDITION,
+	},
+	{
+		"state": "Потребує доопрацювання",
+		"action": "Подати повторно",
+		"next_state": "Перевірка казначейства",
+		"allowed": "Payments: Керівник підрозділу",
+		"allow_self_approval": 1,
+		"condition": CREATOR_APPROVED_ROUTE_CONDITION,
+	},
+	{
+		"state": "Потребує доопрацювання",
+		"action": "Подати повторно",
+		"next_state": "Перевірка казначейства",
+		"allowed": "Payments: Фінальний погоджувач",
+		"allow_self_approval": 1,
+		"condition": CREATOR_APPROVED_ROUTE_CONDITION,
 	},
 	{
 		"state": "Перевірка підрозділу",

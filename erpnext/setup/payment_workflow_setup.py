@@ -20,10 +20,19 @@ PAYMENTS_CUSTOM_FIELDS = {
 			"insert_after": "custom_task",
 		},
 		{
+			"fieldname": "custom_procurement_approved",
+			"fieldtype": "Check",
+			"label": "Procurement Approval Confirmed",
+			"default": "0",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_short_description",
+		},
+		{
 			"fieldname": "custom_payments_approval_section",
 			"fieldtype": "Section Break",
 			"label": "Payment Approval Details",
-			"insert_after": "custom_short_description",
+			"insert_after": "custom_procurement_approved",
 		},
 		{
 			"fieldname": "custom_department",

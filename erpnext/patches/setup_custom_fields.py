@@ -64,10 +64,17 @@ def execute():
 	setup_callmebot_default_settings()
 	setup_payroll_ua_workspace_card()
 	setup_payroll_tax_accounts()
+	setup_procurement_custom_fields()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_procurement_custom_fields():
+	from erpnext.setup.procurement_workflow_setup import sync_procurement_custom_fields
+
+	sync_procurement_custom_fields()
 
 
 def create_workflow_states():
