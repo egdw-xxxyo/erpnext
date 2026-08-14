@@ -505,6 +505,8 @@ def _spec_param_to_key(param_name):
 def _format_spec_for_label(p):
 	"""Format a spec parameter dict into a display string for label use.
 	Returns the raw value WITHOUT UOM — templates handle units themselves."""
+	from erpnext.stock.doctype.item_specification_parameter.formula_utils import parse_number
+
 	raw = str(p.get("value") or "")
 	is_formula = raw.startswith("=")
 	cv = p.get("calculated_value")
@@ -513,10 +515,8 @@ def _format_spec_for_label(p):
 	if is_formula:
 		return "—"
 	if raw:
-		try:
-			return f"{float(raw):g}"
-		except (ValueError, TypeError):
-			return raw
+		num = parse_number(raw)
+		return f"{num:g}" if num is not None else raw
 	return "—"
 
 

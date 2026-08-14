@@ -199,6 +199,22 @@ def _extract_numeric_from_abbr(abbr):
 	return None
 
 
+def parse_number(raw):
+	"""Parse a spec value typed by a user. Accepts the decimal comma ("71,5") that a
+	Ukrainian keyboard produces, and stray spaces. Returns None if it is not a number."""
+	if raw is None:
+		return None
+	text = str(raw).strip().replace(" ", "").replace(" ", "")
+	if not text:
+		return None
+	if "," in text and "." not in text:
+		text = text.replace(",", ".")
+	try:
+		return float(text)
+	except (ValueError, TypeError):
+		return None
+
+
 def _get_linked_item_specs(item_code):
 	rows = frappe.get_all(
 		"Item Specification Parameter",
@@ -209,11 +225,10 @@ def _get_linked_item_specs(item_code):
 	for r in rows:
 		if r.calculated_value:
 			result[r.parameter] = float(r.calculated_value)
-		elif r.value:
-			try:
-				result[r.parameter] = float(r.value)
-			except (ValueError, TypeError):
-				pass
+			continue
+		num = parse_number(r.value)
+		if num is not None:
+			result[r.parameter] = num
 	return result
 
 
