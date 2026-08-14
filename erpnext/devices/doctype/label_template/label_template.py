@@ -535,11 +535,14 @@ def resolve_field_mapping(template_doc, doc_dict):
 
 	For each spec param, a key is created from the param name (lowercase, spaces→_).
 	E.g. "Струм заряду" → doc_dict["струм_заряду"] = "8.4А"
-	Fields already set in doc_dict are NOT overwritten (preview_data wins).
+	Values passed in by the caller (a real doc field, or preview_data) are never overwritten.
+	An explicit field_mapping entry does override an auto-injected spec key, so a template can
+	point e.g. "напруга_комірки" at a different parameter than the one that owns that key.
 	"""
 	item_code = doc_dict.get("item_code")
 	spec = None
 	attributes = None
+	injected = set()
 
 	if item_code:
 		from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
@@ -550,6 +553,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 			key = _spec_param_to_key(param_name)
 			if not doc_dict.get(key):
 				doc_dict[key] = _format_spec_for_label(p)
+				injected.add(key)
 
 	field_mapping = getattr(template_doc, "field_mapping", None)
 	if not field_mapping:
@@ -557,7 +561,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 	try:
 		mapping = json.loads(field_mapping)
 		for field, cfg in mapping.items():
-			if doc_dict.get(field):
+			if doc_dict.get(field) and field not in injected:
 				continue
 			source = cfg.get("source")
 			if source == "doc":
