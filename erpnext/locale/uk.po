@@ -33667,7 +33667,7 @@ msgstr "Платежі оновлено."
 #. Account'
 #: erpnext/accounts/doctype/journal_entry_account/journal_entry_account.json
 msgid "Payroll Entry"
-msgstr "Заробітна плата за вхід"
+msgstr "Нарахування зарплати"
 
 #: erpnext/accounts/doctype/account/chart_of_accounts/verified/standard_chart_of_accounts.py:156
 #: erpnext/accounts/doctype/account/chart_of_accounts/verified/standard_chart_of_accounts_with_account_number.py:262

@@ -9,8 +9,8 @@
 	аванс_офіційний = офіційна   × робочі_дні(1..15) / робочі_дні(місяць)
 	аванс_готівкою  = готівкова  × робочі_дні(1..15) / робочі_дні(місяць)
 
-Готівкова частина отримує прапорець `custom_pay_in_cash`, офіційна — ні; далі
-`erpnext.hr.salary_split.apply_cash_split` сам розкладе їх по правильних частинах листка.
+Кожна половина — окремий компонент («Аванс на картку» / «Аванс готівкою»), щоб у листку було
+видно з назви, звідки платили. Обидва списуються на той самий рахунок, що й «Аванс».
 
 	bench --site frontend execute erpnext.hr.salary_advance.create_advance \
 	    --kwargs "{'company': 'КАЛЬХЕОН', 'year': 2026, 'month': 4, 'dry_run': False}"
@@ -21,6 +21,8 @@ from frappe import _
 from frappe.utils import date_diff, flt, get_last_day, getdate
 
 ADVANCE_COMPONENT = "Аванс"
+ADVANCE_CARD = "Аванс на картку"
+ADVANCE_CASH = "Аванс готівкою"
 
 
 def create_advance(company, year, month, cutoff_day=15, dry_run=True, require_attendance=True):
@@ -35,6 +37,8 @@ def create_advance(company, year, month, cutoff_day=15, dry_run=True, require_at
 
 	if not frappe.db.exists("Salary Component", ADVANCE_COMPONENT):
 		frappe.throw(_("Salary Component {0} does not exist.").format(ADVANCE_COMPONENT))
+
+	_ensure_components()
 
 	employees = frappe.get_all(
 		"Employee",
@@ -80,11 +84,11 @@ def create_advance(company, year, month, cutoff_day=15, dry_run=True, require_at
 		return rows
 
 	for row in rows:
-		for amount, in_cash in ((row.official, 0), (row.cash, 1)):
+		for amount, component in ((row.official, ADVANCE_CARD), (row.cash, ADVANCE_CASH)):
 			if not amount:
 				continue
 
-			_make_additional_salary(row.employee, company, period_end, amount, in_cash)
+			_make_additional_salary(row.employee, company, period_end, amount, component)
 
 	frappe.db.commit()
 
@@ -150,14 +154,35 @@ def _working_days(start, end, holiday_list):
 	return days - holidays
 
 
-def _make_additional_salary(employee, company, payroll_date, amount, in_cash):
+def _ensure_components():
+	"""Створює компоненти авансу, копіюючи рахунки з наявного «Аванс»."""
+	source = frappe.get_doc("Salary Component", ADVANCE_COMPONENT)
+
+	for component, in_cash in ((ADVANCE_CARD, 0), (ADVANCE_CASH, 1)):
+		if frappe.db.exists("Salary Component", component):
+			continue
+
+		doc = frappe.get_doc(
+			{
+				"doctype": "Salary Component",
+				"salary_component": component,
+				"salary_component_abbr": "AVCARD" if not in_cash else "AVCASH",
+				"type": "Deduction",
+				"depends_on_payment_days": 0,
+				"amount_based_on_formula": 0,
+				"accounts": [{"company": row.company, "account": row.account} for row in source.accounts],
+			}
+		)
+		doc.insert(ignore_permissions=True)
+
+
+def _make_additional_salary(employee, company, payroll_date, amount, component):
 	existing = frappe.db.exists(
 		"Additional Salary",
 		{
 			"employee": employee,
-			"salary_component": ADVANCE_COMPONENT,
+			"salary_component": component,
 			"payroll_date": payroll_date,
-			"custom_pay_in_cash": in_cash,
 			"docstatus": ["<", 2],
 		},
 	)
@@ -170,11 +195,11 @@ def _make_additional_salary(employee, company, payroll_date, amount, in_cash):
 			"doctype": "Additional Salary",
 			"employee": employee,
 			"company": company,
-			"salary_component": ADVANCE_COMPONENT,
+			"salary_component": component,
 			"amount": amount,
 			"payroll_date": payroll_date,
 			"overwrite_salary_structure_amount": 0,
-			"custom_pay_in_cash": in_cash,
+			"custom_pay_in_cash": 1 if component == ADVANCE_CASH else 0,
 		}
 	)
 	doc.insert(ignore_permissions=True)
@@ -208,13 +233,13 @@ def unlink_advance(company, year, month, dry_run=True):
 		"Additional Salary",
 		filters={
 			"company": company,
-			"salary_component": ADVANCE_COMPONENT,
+			"salary_component": ["in", [ADVANCE_CARD, ADVANCE_CASH]],
 			"payroll_date": payroll_date,
 			"docstatus": 1,
 		},
 		pluck="name",
 	)
-	print(f"Скасувати {len(names)} відрахувань «{ADVANCE_COMPONENT}» за {payroll_date}")
+	print(f"Скасувати {len(names)} відрахувань авансу за {payroll_date}")
 
 	if dry_run:
 		return names

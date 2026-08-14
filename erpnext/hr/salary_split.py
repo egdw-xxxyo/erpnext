@@ -21,6 +21,7 @@ from frappe import _
 from frappe.utils import flt, get_first_day, getdate, money_in_words, nowdate, rounded
 
 CASH_COMPONENT = "До виплати готівкою"
+CASH_ADVANCE_COMPONENT = "Аванс готівкою"
 STRUCTURE_BY_COMPANY = "Структура ЗП офіц+готівка - {company}"
 
 
@@ -165,14 +166,16 @@ def _official_bonuses(doc):
 
 def _cash_deductions(doc):
 	"""Відрахування, видані готівкою: аванс з каси, задаток тощо."""
-	rows = [row for row in doc.get("deductions") or [] if row.salary_component != CASH_COMPONENT]
-	return _sum_flagged_rows(rows)
-
-
-def _sum_flagged_rows(rows):
 	total = 0.0
 
-	for row in rows or []:
+	for row in doc.get("deductions") or []:
+		if row.salary_component == CASH_COMPONENT:
+			continue
+
+		if row.salary_component == CASH_ADVANCE_COMPONENT:
+			total += flt(row.amount)
+			continue
+
 		if not row.get("additional_salary"):
 			continue
 
