@@ -5,8 +5,12 @@
 
 * при збереженні Employee створюється поданий Salary Structure Assignment, де
   `base` = сума обох частин, а `variable` = офіційна частина;
-* при перерахунку Salary Slip відрахування «До виплати готівкою» отримує готівкову частину окладу
-  плюс ті премії (`Additional Salary`), у яких стоїть `custom_pay_in_cash`.
+* при перерахунку Salary Slip відрахування «До виплати готівкою» забирає все нарахування понад
+  офіційну суму — тобто пропорцію відпрацьованих днів і премії з `custom_pay_in_cash`.
+
+Офіційна сума за місяць фіксована: скільки б днів людина не відпрацювала, на картку йде рівно
+вона (аванс на картку + решта на картку). Виняток один — якщо нарахування менше за офіційну суму,
+готівки просто немає, і на картку йде все нарахування.
 
 У підсумку `net_pay` листка = те, що йде на картку, а залишок рахунку «ЗП готівкою до виплати» =
 те, що видається з каси.
@@ -133,30 +137,30 @@ def apply_cash_split(doc, method=None):
 	if not assignment:
 		return
 
+	# Офіційна сума не ділиться на відпрацьовані дні: за домовленістю на картку за місяць має піти
+	# рівно вона (аванс на картку + решта на картку). Пропорцію відпрацьованих днів і всі премії
+	# поглинає готівкова частина — вона ж лишок нарахування понад офіційну суму.
+	official = flt(assignment.variable) + _official_bonuses(doc)
+
 	# Готівкову виплату зменшують лише ті відрахування, які й видані готівкою (аванс з каси,
 	# задаток). Відрахування без прапорця пішли з рахунку, тож вони зменшують офіційну частину.
-	cash_amount = _cash_part_of_base(doc, assignment) + _cash_bonuses(doc) - _cash_deductions(doc)
+	cash_amount = flt(doc.gross_pay) - official - _cash_deductions(doc)
 	_set_cash_row(doc, flt(max(cash_amount, 0), doc.precision("amount", "deductions")))
 	_recalculate_totals(doc)
 
 
-def _cash_part_of_base(doc, assignment):
-	base_cash = flt(assignment.base) - flt(assignment.variable)
+def _official_bonuses(doc):
+	"""Премії та надбавки без прапорця «Виплата готівкою» — вони збільшують виплату на картку."""
+	total = 0.0
 
-	if base_cash <= 0:
-		return 0.0
+	for row in doc.get("earnings") or []:
+		if not row.get("additional_salary"):
+			continue
 
-	working_days = flt(doc.total_working_days)
+		if not frappe.db.get_value("Additional Salary", row.additional_salary, "custom_pay_in_cash"):
+			total += flt(row.amount)
 
-	if not working_days:
-		return 0.0
-
-	return base_cash * flt(doc.payment_days) / working_days
-
-
-def _cash_bonuses(doc):
-	"""Сума премій і надбавок, позначених «Виплата готівкою»."""
-	return _sum_flagged_rows(doc.get("earnings"))
+	return total
 
 
 def _cash_deductions(doc):
