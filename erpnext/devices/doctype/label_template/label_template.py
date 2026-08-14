@@ -520,6 +520,16 @@ def _format_spec_for_label(p):
 	return "—"
 
 
+def _get_item_attributes(item_code):
+	"""Return {attribute name: attribute value} for a variant Item, values stripped."""
+	rows = frappe.get_all(
+		"Item Variant Attribute",
+		filters={"parent": item_code, "parenttype": "Item"},
+		fields=["attribute", "attribute_value"],
+	)
+	return {r.attribute: (r.attribute_value or "").strip() for r in rows}
+
+
 def resolve_field_mapping(template_doc, doc_dict):
 	"""Inject all spec params as flat keys into doc_dict, then apply field_mapping overrides.
 
@@ -529,6 +539,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 	"""
 	item_code = doc_dict.get("item_code")
 	spec = None
+	attributes = None
 
 	if item_code:
 		from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
@@ -558,6 +569,10 @@ def resolve_field_mapping(template_doc, doc_dict):
 				if cfg.get("transform") == "chemistry":
 					val = "Po" if str(p.get("value") or "").startswith("2") else "ion"
 				doc_dict[field] = val
+			elif source == "attribute" and item_code:
+				if attributes is None:
+					attributes = _get_item_attributes(item_code)
+				doc_dict[field] = attributes.get(cfg["param"], "")
 	except Exception:
 		pass
 	return doc_dict
