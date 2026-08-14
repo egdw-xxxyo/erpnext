@@ -133,9 +133,9 @@ def apply_cash_split(doc, method=None):
 	if not assignment:
 		return
 
-	# Аванс і задаток уже видані готівкою, тому вони зменшують саме готівкову виплату,
-	# а не офіційну частину — інакше «на картку» лишається менше за домовлену суму.
-	cash_amount = _cash_part_of_base(doc, assignment) + _cash_bonuses(doc) - _other_deductions(doc)
+	# Готівкову виплату зменшують лише ті відрахування, які й видані готівкою (аванс з каси,
+	# задаток). Відрахування без прапорця пішли з рахунку, тож вони зменшують офіційну частину.
+	cash_amount = _cash_part_of_base(doc, assignment) + _cash_bonuses(doc) - _cash_deductions(doc)
 	_set_cash_row(doc, flt(max(cash_amount, 0), doc.precision("amount", "deductions")))
 	_recalculate_totals(doc)
 
@@ -156,9 +156,19 @@ def _cash_part_of_base(doc, assignment):
 
 def _cash_bonuses(doc):
 	"""Сума премій і надбавок, позначених «Виплата готівкою»."""
+	return _sum_flagged_rows(doc.get("earnings"))
+
+
+def _cash_deductions(doc):
+	"""Відрахування, видані готівкою: аванс з каси, задаток тощо."""
+	rows = [row for row in doc.get("deductions") or [] if row.salary_component != CASH_COMPONENT]
+	return _sum_flagged_rows(rows)
+
+
+def _sum_flagged_rows(rows):
 	total = 0.0
 
-	for row in doc.get("earnings") or []:
+	for row in rows or []:
 		if not row.get("additional_salary"):
 			continue
 
@@ -166,13 +176,6 @@ def _cash_bonuses(doc):
 			total += flt(row.amount)
 
 	return total
-
-
-def _other_deductions(doc):
-	"""Решта відрахувань листка — аванс, задаток тощо."""
-	return sum(
-		flt(row.amount) for row in doc.get("deductions") or [] if row.salary_component != CASH_COMPONENT
-	)
 
 
 def _set_cash_row(doc, amount):
