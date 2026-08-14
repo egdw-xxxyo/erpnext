@@ -6819,7 +6819,7 @@ Payment term {0} not used in {1},Умови оплати {0} не викорис
 Payments,Платежі
 Payments could not be updated.,Платежі не вдалося оновити.
 Payments updated.,Платежі оновлено.
-Payroll Entry,Заробітна плата за вхід
+Payroll Entry,Нарахування зарплати
 Payroll Payable,Розрахунок заробітної плати оплачується
 Payslip,листка
 Peck (UK),Пек (Великобританія)
@@ -11768,9 +11768,9 @@ Template Reference,Довідка по шаблону
 "Grievance Details","Деталі скарги"
 "Grievance Type","Тип скарги"
 "Gross Earnings","Валовий заробіток"
-"Gross Pay (Company Currency)","Валова оплата (валюта компанії)"
-"Gross Year To Date","Валова сума з початку року"
-"Gross Year To Date(Company Currency)","Валова сума з початку року (валюта компанії)"
+"Gross Pay (Company Currency)","Нараховано (валюта компанії)"
+"Gross Year To Date","Нараховано з початку року"
+"Gross Year To Date(Company Currency)","Нараховано з початку року (валюта компанії)"
 "Group goal's progress is auto-calculated based on the child goals.","Прогрес групової цілі автоматично розраховується на основі дочірніх цілей."
 "HR & Payroll","HR та розрахунок зарплати"
 "HR & Payroll Settings","Налаштування HR та розрахунку зарплати"
@@ -12257,7 +12257,7 @@ Template Reference,Довідка по шаблону
 "Total Expense Claim (via Expense Claim)","Загальна витратна заявка (через витратну заявку)"
 "Total Expense Claim (via Expense Claims)","Загальна витратна заявка (через витратні заявки)"
 "Total Goal Score","Загальна оцінка цілей"
-"Total Gross Pay","Загальна валова оплата"
+"Total Gross Pay","Разом нараховано"
 "Total Hours (T)","Загальні години (T)"
 "Total Income Tax","Загальний прибутковий податок"
 "Total Interest Amount","Загальна сума відсотків"
