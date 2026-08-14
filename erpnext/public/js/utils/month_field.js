@@ -23,6 +23,27 @@ function month_names() {
 	return MONTH_KEYS.map((key) => __(key));
 }
 
+function month_options() {
+	// Select keeps the numeric value (autoname and sorting rely on it), only the label is readable.
+	return MONTH_KEYS.map((key, index) => ({ value: String(index + 1), label: __(key) }));
+}
+
+function apply_period(frm, year_field = "year", month_field = "month") {
+	frm.set_df_property(month_field, "options", month_options());
+
+	if (!frm.is_new()) return;
+
+	const today = frappe.datetime.str_to_obj(frappe.datetime.get_today());
+
+	if (!frm.doc[year_field]) {
+		frm.set_value(year_field, today.getFullYear());
+	}
+
+	if (!frm.doc[month_field]) {
+		frm.set_value(month_field, String(today.getMonth() + 1));
+	}
+}
+
 function format_month(value) {
 	if (!value) return "";
 	const date = frappe.datetime.str_to_obj(value);
@@ -97,4 +118,10 @@ function apply(frm, fieldname) {
 	control.refresh();
 }
 
-Object.assign(erpnext.utils.month_field, { format_month, parse_month, apply });
+Object.assign(erpnext.utils.month_field, {
+	format_month,
+	parse_month,
+	apply,
+	month_options,
+	apply_period,
+});

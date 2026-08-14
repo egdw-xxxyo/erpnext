@@ -1,5 +1,11 @@
 frappe.ui.form.on("Payroll Sheet", {
+	onload(frm) {
+		erpnext.utils.month_field.apply_period(frm);
+	},
+
 	refresh(frm) {
+		erpnext.utils.month_field.apply_period(frm);
+
 		if (frm.is_new()) {
 			return;
 		}
