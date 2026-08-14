@@ -42,9 +42,6 @@ def _sync_assignment(doc):
 	if not total:
 		return
 
-	if flt(doc.ctc) != total:
-		doc.db_set("ctc", total, update_modified=False)
-
 	effective = getdate(doc.get("custom_salary_effective_from") or get_first_day(nowdate()))
 
 	if doc.date_of_joining and effective < getdate(doc.date_of_joining):
@@ -99,6 +96,11 @@ def _sync_assignment(doc):
 	assignment.insert(ignore_permissions=True)
 	assignment.submit()
 
+	# CTC оновлюємо лише разом із призначенням, щоб картка не показувала суму,
+	# за якою насправді ніхто не рахує зарплату.
+	if flt(doc.ctc) != total:
+		doc.db_set("ctc", total, update_modified=False)
+
 
 def _has_submitted_slip(employee, date):
 	return frappe.db.exists(
@@ -118,9 +120,11 @@ def apply_cash_split(doc, method=None):
 	if not frappe.db.exists("Salary Component", CASH_COMPONENT):
 		return
 
+	# Призначення шукаємо по кінцю періоду, а не по початку: у працівника, прийнятого всередині
+	# місяця, воно діє з дати прийняття, і по `start_date` ми б його не знайшли.
 	assignment = frappe.db.get_value(
 		"Salary Structure Assignment",
-		{"employee": doc.employee, "docstatus": 1, "from_date": ["<=", doc.start_date]},
+		{"employee": doc.employee, "docstatus": 1, "from_date": ["<=", doc.end_date]},
 		["base", "variable"],
 		order_by="from_date desc",
 		as_dict=True,
