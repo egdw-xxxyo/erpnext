@@ -19,6 +19,7 @@ def execute():
 	remove_flight_test_status_from_serial_no()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
+	create_salary_split_fields()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -361,6 +362,69 @@ def create_custom_fields_on_employee():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+def create_salary_split_fields():
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_official_salary",
+			"fieldtype": "Currency",
+			"label": "Official Salary",
+			"options": "salary_currency",
+			"insert_after": "ctc",
+			"description": "Paid to the bank card. Together with the cash part it makes up the full salary.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_cash_salary",
+			"fieldtype": "Currency",
+			"label": "Cash Salary",
+			"options": "salary_currency",
+			"insert_after": "custom_official_salary",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_salary_effective_from",
+			"fieldtype": "Date",
+			"label": "Salary Effective From",
+			"insert_after": "custom_cash_salary",
+			"description": "The Salary Structure Assignment is created from this date. Defaults to the first day of the current month.",
+		},
+		{
+			"dt": "Additional Salary",
+			"fieldname": "custom_pay_in_cash",
+			"fieldtype": "Check",
+			"label": "Pay in Cash",
+			"insert_after": "amount",
+			"description": "The amount is moved into the cash payout instead of the official net pay.",
+		},
+	]
+	_create_custom_fields(fields)
+	_make_ctc_read_only()
+
+
+def _make_ctc_read_only():
+	"""CTC becomes the sum of the official and cash parts, so nobody may type it in by hand."""
+	existing = frappe.db.exists(
+		"Property Setter", {"doc_type": "Employee", "field_name": "ctc", "property": "read_only"}
+	)
+	if existing:
+		print("  Property Setter exists: Employee.ctc.read_only")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Property Setter",
+			"doctype_or_field": "DocField",
+			"doc_type": "Employee",
+			"field_name": "ctc",
+			"property": "read_only",
+			"property_type": "Check",
+			"value": "1",
+		}
+	).insert(ignore_permissions=True)
+	print("  Created Property Setter: Employee.ctc.read_only")
 
 
 def remove_label_templates_from_employee():
