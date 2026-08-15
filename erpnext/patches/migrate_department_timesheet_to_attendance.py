@@ -44,7 +44,7 @@ READY_STATUS = "Передано в бухгалтерію"
 
 
 def execute(month=None, year=None, dry_run=True):
-	if not frappe.db.table_exists("Department Timesheet"):
+	if not timesheet_exists():
 		print("Department Timesheet не існує — нічого мігрувати")
 		return
 
@@ -142,9 +142,16 @@ def _leave_exists(application):
 	)
 
 
+def timesheet_exists():
+	"""Табель був desk-DocType: таблиця може пережити видалення схеми, тож питаємо обидва."""
+	return bool(frappe.db.exists("DocType", "Department Timesheet")) and frappe.db.table_exists(
+		"Department Timesheet"
+	)
+
+
 def periods():
 	"""Місяці, за якими є готові табелі — (month, year) без повторів."""
-	if not frappe.db.table_exists("Department Timesheet"):
+	if not timesheet_exists():
 		return []
 
 	rows = frappe.get_all(
