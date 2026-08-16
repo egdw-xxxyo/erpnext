@@ -18,6 +18,7 @@ warehouses. Bins and the per-warehouse SLE running totals are rebuilt afterwards
 import frappe
 from frappe.model.rename_doc import rename_doc
 
+from erpnext.patches.setup_custom_fields import create_responsible_employee_dimension
 from erpnext.stock.responsible_employee import RD_WAREHOUSE_NAME, RESPONSIBLE_EMPLOYEE_FIELD
 
 #: Warehouse name (without company abbreviation) -> employee full name. Resolved to the
@@ -53,8 +54,12 @@ BACKFILL_TARGETS = (
 
 
 def execute():
+	# deploy runs `bench migrate` before setup_custom_fields, so the dimension this patch
+	# writes into does not exist yet on the first deploy — create it here.
+	create_responsible_employee_dimension()
+
 	if not frappe.db.has_column("Stock Ledger Entry", RESPONSIBLE_EMPLOYEE_FIELD):
-		print("Responsible Employee dimension is missing — run setup_custom_fields first, skipping")
+		print("Responsible Employee dimension is missing, skipping")
 		return
 
 	for company, abbr in frappe.get_all("Company", fields=["name", "abbr"], as_list=True):
