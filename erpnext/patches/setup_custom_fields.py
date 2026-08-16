@@ -5,6 +5,8 @@ Or via bench console and calling execute() manually.
 """
 import frappe
 
+from erpnext.stock.responsible_employee import RESPONSIBLE_EMPLOYEE_DIMENSION
+
 
 def execute():
 	create_workflow_states()
@@ -38,6 +40,7 @@ def execute():
 	remove_duplicate_lead_custom_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
+	create_responsible_employee_dimension()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -957,6 +960,31 @@ def restore_standard_navbar_items():
 	finally:
 		frappe.flags.in_patch = False
 	frappe.clear_cache()
+
+
+def create_responsible_employee_dimension():
+	"""Track the person a stock item belongs to as an Inventory Dimension.
+
+	Replaces the per-person warehouses under "МО": one R&D warehouse plus a
+	Responsible Employee dimension that keeps a per-person balance inside it.
+	The doctype creates the Link fields on every stock document and the
+	`responsible_employee` column on Stock Ledger Entry by itself.
+	"""
+	if frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION}):
+		print(f"  Inventory Dimension exists: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Inventory Dimension",
+			"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION,
+			"reference_document": "Employee",
+			"apply_to_all_doctypes": 1,
+			"reqd": 0,
+			"validate_negative_stock": 0,
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
 
 def _create_custom_fields(fields):

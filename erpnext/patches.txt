@@ -472,3 +472,4 @@ erpnext.patches.v15_0.seed_eskd_document_types
 erpnext.patches.v15_0.add_eskd_workspace_card
 erpnext.patches.v15_0.setup_eskd_templates
 erpnext.patches.v15_0.drop_eskd_bpak_combination
+erpnext.patches.v15_0.merge_mo_warehouses_into_rd
