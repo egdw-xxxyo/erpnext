@@ -365,6 +365,16 @@ doc_events = {
 	tuple(period_closing_doctypes): {
 		"validate": "erpnext.accounts.doctype.accounting_period.accounting_period.validate_accounting_period_on_doc_save",
 	},
+	(
+		"Stock Entry",
+		"Purchase Receipt",
+		"Purchase Invoice",
+		"Delivery Note",
+		"Sales Invoice",
+		"Stock Reconciliation",
+	): {
+		"validate": "erpnext.stock.responsible_employee.validate_responsible_employee",
+	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
 		"validate": "erpnext.crm.utils.set_military_unit_from_party",
