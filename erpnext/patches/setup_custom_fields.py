@@ -874,6 +874,34 @@ def remove_duplicate_lead_custom_fields():
 	frappe.clear_cache(doctype="Lead")
 
 
+def _restore_standard_perms(doctype):
+	"""Make sure every standard DocPerm row of `doctype` also exists as a Custom DocPerm.
+
+	Custom DocPerm is all-or-nothing: one row shadows the whole standard permission set. The
+	standard rows themselves survive in `tabDocPerm` (migrate re-syncs them from the DocType
+	JSON), so they can be copied back verbatim.
+	"""
+	standard = frappe.get_all("DocPerm", fields="*", filters={"parent": doctype})
+	if not standard:
+		return
+
+	existing = {
+		(p.role, p.permlevel, p.if_owner)
+		for p in frappe.get_all(
+			"Custom DocPerm",
+			fields=["role", "permlevel", "if_owner"],
+			filters={"parent": doctype},
+		)
+	}
+	for row in standard:
+		if (row.role, row.permlevel, row.if_owner) in existing:
+			continue
+		custom = frappe.new_doc("Custom DocPerm")
+		custom.update(row)
+		custom.insert(ignore_permissions=True)
+		print(f"  Restored Custom DocPerm: {doctype} / {row.role} (permlevel {row.permlevel})")
+
+
 def setup_chat_manager_role():
 	"""Role that may permanently remove an archived chat with all its messages and files
 	(see employee_chat.purge_thread — the check is a plain role-level delete permission on
@@ -893,6 +921,14 @@ def setup_chat_manager_role():
 	if not frappe.db.exists("DocType", doctype):
 		print(f"  Skipped perms, DocType missing: {doctype}")
 		return
+
+	# The moment one Custom DocPerm row exists for a DocType, frappe's meta REPLACES the
+	# standard permissions with the custom ones (Meta.set_custom_permissions). Inserting the
+	# Chat Manager row on its own therefore deleted read for System Manager and Employee, and
+	# the chat launcher disappeared for everyone (it gates on `can_read` for Chat Thread).
+	# Copy the standard rows into Custom DocPerm first, and repair installs that lost them.
+	_restore_standard_perms(doctype)
+
 	if frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
 		print(f"  Custom DocPerm exists: {doctype} / {role}")
 		return
