@@ -10,6 +10,7 @@ numbers.
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Count
 from frappe.utils import cint
 
 ROW_DOCTYPE = "Additional Attribute Row"
@@ -49,45 +50,29 @@ def get_serials(
 	limit = min(cint(limit) or 500, MAX_ROWS)
 
 	sn = frappe.qb.DocType("Serial No")
-	query = (
-		frappe.qb.from_(sn)
+	filters = {
+		"item_code": item_code,
+		"item_group": item_group,
+		"warehouse": warehouse,
+		"status": status,
+		"attribute": attribute,
+		"value": value,
+		"missing_only": missing_only,
+		"in_stock_only": in_stock_only,
+	}
+
+	total = _filtered_query(sn, filters).select(Count(sn.name)).run()[0][0]
+
+	serials = (
+		_filtered_query(sn, filters)
 		.select(sn.name, sn.item_code, sn.item_name, sn.warehouse, sn.status)
 		.orderby(sn.item_code)
 		.orderby(sn.name)
 		.limit(limit)
+		.run(as_dict=True)
 	)
-
-	if item_code:
-		query = query.where(sn.item_code == item_code)
-	if warehouse:
-		query = query.where(sn.warehouse == warehouse)
-	if status:
-		query = query.where(sn.status == status)
-	elif in_stock_only:
-		query = query.where(sn.warehouse.notnull() & (sn.warehouse != ""))
-
-	if item_group:
-		item = frappe.qb.DocType("Item")
-		query = query.join(item).on(item.name == sn.item_code).where(item.item_group == item_group)
-
-	if attribute:
-		row = frappe.qb.DocType(ROW_DOCTYPE)
-		matching = (
-			frappe.qb.from_(row)
-			.select(row.parent)
-			.where((row.parenttype == "Serial No") & (row.attribute == attribute))
-		)
-		if value:
-			matching = matching.where(row.value == value)
-
-		if missing_only:
-			query = query.where(sn.name.notin(matching))
-		else:
-			query = query.where(sn.name.isin(matching))
-
-	serials = query.run(as_dict=True)
 	if not serials:
-		return {"serials": [], "attributes": _column_attributes(attribute)}
+		return {"serials": [], "attributes": _column_attributes(attribute), "total": total, "limit": limit}
 
 	names = [d.name for d in serials]
 	rows = frappe.get_all(
@@ -109,7 +94,51 @@ def get_serials(
 	for serial in serials:
 		serial["attributes"] = by_serial.get(serial.name, {})
 
-	return {"serials": serials, "attributes": _column_attributes(attribute)}
+	return {
+		"serials": serials,
+		"attributes": _column_attributes(attribute),
+		"total": total,
+		"limit": limit,
+	}
+
+
+def _filtered_query(sn, filters):
+	"""Serial No query carrying the page filters — no select, no limit.
+
+	Built twice per request: once for the count, once for the page of rows, so the toolbar can
+	say "showing 500 of 2000".
+	"""
+	query = frappe.qb.from_(sn)
+
+	if filters.get("item_code"):
+		query = query.where(sn.item_code == filters["item_code"])
+	if filters.get("warehouse"):
+		query = query.where(sn.warehouse == filters["warehouse"])
+	if filters.get("status"):
+		query = query.where(sn.status == filters["status"])
+	elif filters.get("in_stock_only"):
+		query = query.where(sn.warehouse.notnull() & (sn.warehouse != ""))
+
+	if filters.get("item_group"):
+		item = frappe.qb.DocType("Item")
+		query = query.join(item).on(item.name == sn.item_code).where(item.item_group == filters["item_group"])
+
+	if filters.get("attribute"):
+		row = frappe.qb.DocType(ROW_DOCTYPE)
+		matching = (
+			frappe.qb.from_(row)
+			.select(row.parent)
+			.where((row.parenttype == "Serial No") & (row.attribute == filters["attribute"]))
+		)
+		if filters.get("value"):
+			matching = matching.where(row.value == filters["value"])
+
+		if filters.get("missing_only"):
+			query = query.where(sn.name.notin(matching))
+		else:
+			query = query.where(sn.name.isin(matching))
+
+	return query
 
 
 def _column_attributes(attribute=None):
