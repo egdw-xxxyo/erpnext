@@ -13326,3 +13326,5 @@ Additional Information for Status {0},Додаткова інформація д
 "Additional Attribute Value {0} does not exist","Значення додаткового атрибута {0} не існує"
 "Value {0} belongs to attribute {1}, not {2}","Значення {0} належить атрибуту {1}, а не {2}"
 "Serial No has no Additional Attributes table","У серійного номера немає таблиці додаткових атрибутів"
+"Shown: {0} of {1}","Показано: {0} з {1}"
+"{0} more not shown — narrow the filters","Ще {0} не показано — звузьте фільтри"

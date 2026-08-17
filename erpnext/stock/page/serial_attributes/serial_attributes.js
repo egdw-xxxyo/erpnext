@@ -9,6 +9,7 @@ frappe.pages["serial-attributes"].on_page_load = function (wrapper) {
 
 	let rows = [];
 	let columns = [];
+	let total = 0;
 	const selected = new Set();
 
 	const item_field = page.add_field({
@@ -112,6 +113,7 @@ frappe.pages["serial-attributes"].on_page_load = function (wrapper) {
 				const data = r.message || {};
 				rows = data.serials || [];
 				columns = data.attributes || [];
+				total = data.total || 0;
 				selected.clear();
 				render();
 			},
@@ -198,9 +200,21 @@ frappe.pages["serial-attributes"].on_page_load = function (wrapper) {
 	}
 
 	function update_toolbar() {
-		$body
-			.find(".sa-toolbar")
-			.html(`${__("Shown: {0}", [rows.length])} &nbsp;·&nbsp; ${__("Selected: {0}", [selected.size])}`);
+		const shown =
+			total > rows.length
+				? __("Shown: {0} of {1}", [rows.length, total])
+				: __("Shown: {0}", [rows.length]);
+		const parts = [shown, __("Selected: {0}", [selected.size])];
+
+		if (total > rows.length) {
+			parts.push(
+				`<span class="text-warning">${__("{0} more not shown — narrow the filters", [
+					total - rows.length,
+				])}</span>`
+			);
+		}
+
+		$body.find(".sa-toolbar").html(parts.join(" &nbsp;·&nbsp; "));
 	}
 
 	function set_dialog(serials, attribute) {
