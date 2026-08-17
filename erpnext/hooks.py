@@ -34,6 +34,13 @@ doctype_js = {
 	"Event": "public/js/event.js",
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
+	# prefill the Responsible Employee dimension with the Employee of the current user
+	"Stock Entry": "public/js/responsible_employee.js",
+	"Purchase Receipt": "public/js/responsible_employee.js",
+	"Purchase Invoice": "public/js/responsible_employee.js",
+	"Delivery Note": "public/js/responsible_employee.js",
+	"Sales Invoice": "public/js/responsible_employee.js",
+	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
 	"Code List": [
