@@ -159,7 +159,33 @@ def _resolve_serial_no(value: str) -> dict | None:
 		"package": pkg_info,
 		"bpak": bpak_info,
 		"quality_inspections": qi_rows,
+		"additional_attributes": _serial_additional_attributes(sn["name"]),
 	}
+
+
+def _serial_additional_attributes(serial_no: str) -> list[dict]:
+	"""Per-unit metadata rows (firmware build and whatever else was added later)."""
+	rows = frappe.get_all(
+		"Additional Attribute Row",
+		filters={"parenttype": "Serial No", "parent": serial_no},
+		fields=["attribute", "value", "notes"],
+		order_by="idx",
+	)
+	if not rows:
+		return []
+
+	labels = {
+		d.name: d.value
+		for d in frappe.get_all(
+			"Additional Attribute Value",
+			filters={"name": ("in", [d.value for d in rows if d.value])},
+			fields=["name", "value"],
+		)
+	}
+	for row in rows:
+		row["label"] = labels.get(row.value, row.value)
+
+	return rows
 
 
 def _resolve_bpak_for_serial(serial_no: str, bpak_from_package: str | None) -> dict | None:
