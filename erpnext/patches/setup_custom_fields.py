@@ -1149,24 +1149,42 @@ def setup_project_access_permissions():
 
 	`if_owner` rather than dropping `read`: with no read at all db_query takes the
 	`only_if_shared` path, which throws "No permission to read" instead of showing an empty
-	list to someone who has nothing shared yet."""
+	list to someone who has nothing shared yet.
+
+	`_restore_standard_perms` only runs on the first pass. It de-duplicates on
+	`(role, permlevel, if_owner)`, so once `if_owner` is flipped to 1 the standard row looks
+	missing and gets re-inserted with `if_owner = 0` — every later deploy would add another
+	duplicate, and an unrestricted row silently restores blanket read."""
+	role = "Projects User"
+
 	for doctype in ("Project", "Task"):
 		if not frappe.db.exists("DocType", doctype):
 			continue
 
-		_restore_standard_perms(doctype)
+		if not frappe.db.exists("Custom DocPerm", {"parent": doctype}):
+			_restore_standard_perms(doctype)
 
-		row = frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": "Projects User", "permlevel": 0})
-		if not row:
+		rows = frappe.get_all(
+			"Custom DocPerm",
+			filters={"parent": doctype, "role": role, "permlevel": 0},
+			pluck="name",
+			order_by="creation asc",
+		)
+		if not rows:
 			continue
 
-		if frappe.db.get_value("Custom DocPerm", row, "if_owner"):
-			print(f"  {doctype}: Projects User already restricted to own documents")
+		# collapse duplicates left behind by earlier runs of this function
+		for extra in rows[1:]:
+			frappe.delete_doc("Custom DocPerm", extra, force=True, ignore_permissions=True)
+			print(f"  {doctype}: removed duplicate Custom DocPerm for {role}")
+
+		if frappe.db.get_value("Custom DocPerm", rows[0], "if_owner"):
+			print(f"  {doctype}: {role} already restricted to own documents")
 			continue
 
-		frappe.db.set_value("Custom DocPerm", row, "if_owner", 1)
+		frappe.db.set_value("Custom DocPerm", rows[0], "if_owner", 1)
 		frappe.clear_cache(doctype=doctype)
-		print(f"  {doctype}: Projects User restricted to own documents")
+		print(f"  {doctype}: {role} restricted to own documents")
 
 
 def create_additional_attributes_on_serial_no():

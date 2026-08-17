@@ -30,3 +30,5 @@ apps.json
 graphify-out/
 raw/
 .tunnel.env*
+.envrc
+bin/
