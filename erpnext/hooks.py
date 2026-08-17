@@ -375,6 +375,8 @@ doc_events = {
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",
 			"erpnext.setup.doctype.transaction_deletion_record.transaction_deletion_record.check_for_running_deletion_job",
+			# keep reusable Additional Attribute Row tables consistent on any DocType that carries one
+			"erpnext.stock.additional_attributes.validate_additional_attributes",
 		],
 		"on_trash": "erpnext.crm.doctype.chat_thread.chat_thread.on_reference_deleted",
 		# share what a group member creates with the whole group

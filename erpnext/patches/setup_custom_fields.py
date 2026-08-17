@@ -3,6 +3,8 @@
 Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 Or via bench console and calling execute() manually.
 """
+import json
+
 import frappe
 
 from erpnext.stock.responsible_employee import RESPONSIBLE_EMPLOYEE_DIMENSION
@@ -19,6 +21,9 @@ def execute():
 	create_custom_field_on_qi()
 	create_custom_field_on_serial_no()
 	remove_flight_test_status_from_serial_no()
+	create_additional_attributes_on_serial_no()
+	seed_firmware_additional_attribute()
+	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
 	remove_label_templates_from_employee()
@@ -1162,3 +1167,86 @@ def setup_project_access_permissions():
 		frappe.db.set_value("Custom DocPerm", row, "if_owner", 1)
 		frappe.clear_cache(doctype=doctype)
 		print(f"  {doctype}: Projects User restricted to own documents")
+
+
+def create_additional_attributes_on_serial_no():
+	"""Attach the reusable `Additional Attribute Row` table to Serial No.
+
+	The same dict with a different `dt` attaches per-record key/value metadata to any other
+	DocType — no new fields, no new code."""
+	fields = [
+		{
+			"dt": "Serial No",
+			"fieldname": "additional_attributes",
+			"fieldtype": "Table",
+			"label": "Additional Attributes",
+			"options": "Additional Attribute Row",
+			"insert_after": "inspection_status",
+			"description": "Per-unit metadata (firmware build, and anything added later)",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def seed_firmware_additional_attribute():
+	"""Seed the «Прошивка» attribute and its known builds.
+
+	Data records, not code: Ukrainian on purpose, and users add further builds from the desk
+	without a deploy."""
+	if not frappe.db.exists("DocType", "Additional Attribute"):
+		return
+
+	attribute = "Прошивка"
+	if not frappe.db.exists("Additional Attribute", attribute):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute",
+				"attribute_name": attribute,
+				"description": "Версія прошивки, встановлена на конкретному екземплярі",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute: {attribute}")
+
+	values = [
+		("32 біт стара", "32O"),
+		("32 біт нова", "32N"),
+		("16 біт стара", "16O"),
+		("16 біт нова", "16N"),
+	]
+	for value, abbr in values:
+		if frappe.db.exists("Additional Attribute Value", {"attribute": attribute, "value": value}):
+			continue
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute Value",
+				"attribute": attribute,
+				"value": value,
+				"abbr": abbr,
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute Value: {attribute} / {value}")
+
+
+def add_serial_attributes_shortcut():
+	"""Put the «Serial Attributes» page on the Stock workspace.
+
+	Added at runtime instead of editing the stock workspace JSON — that file is upstream's and
+	every edit to it is a merge conflict."""
+	if not frappe.db.exists("Workspace", "Stock") or not frappe.db.exists("Page", "serial-attributes"):
+		return
+
+	label = "Атрибути серійних номерів"
+	workspace = frappe.get_doc("Workspace", "Stock")
+	if any(s.link_to == "serial-attributes" for s in workspace.shortcuts):
+		return
+
+	workspace.append(
+		"shortcuts", {"label": label, "type": "Page", "link_to": "serial-attributes", "color": "Blue"}
+	)
+
+	content = json.loads(workspace.content or "[]")
+	content.append({"id": "serialAttributes", "type": "shortcut", "data": {"shortcut_name": label, "col": 3}})
+	workspace.content = json.dumps(content)
+
+	workspace.save(ignore_permissions=True)
+	print("  Added Stock workspace shortcut: Serial Attributes")
