@@ -10,12 +10,27 @@ frappe.ui.form.on("Specification", {
 		frm.fields_dict["attributes"].grid.get_field("attribute").get_query = function (doc, cdt, cdn) {
 			let row = locals[cdt][cdn];
 			let used = (doc.attributes || []).filter((d) => d.name !== row.name).map((d) => d.attribute);
-			return { filters: { name: ["not in", used] } };
+			let filters = { name: ["not in", used] };
+			// With an Item template picked, the axes of the catalog come from that Item —
+			// plus whatever is already pinned on the template as catalog metadata.
+			if (doc.item_template && frm.__item_attributes) {
+				let pinned = (doc.attributes || []).filter((d) => d.attribute_value).map((d) => d.attribute);
+				let offered = frm.__item_attributes
+					.concat(pinned)
+					.filter((a) => !used.includes(a) || a === row.attribute);
+				filters.name = ["in", offered];
+			}
+			return { filters: filters };
 		};
+
+		frm.set_query("item_template", function () {
+			return { filters: { has_variants: 1 } };
+		});
 	},
 
 	refresh: function (frm) {
 		erpnext.specification.toggle_attributes(frm);
+		erpnext.specification.load_item_attributes(frm);
 
 		if (frm.doc.has_variants) {
 			frm.add_custom_button(
@@ -45,7 +60,56 @@ frappe.ui.form.on("Specification", {
 	has_variants: function (frm) {
 		erpnext.specification.toggle_attributes(frm);
 	},
+
+	item_template: function (frm) {
+		erpnext.specification.load_item_attributes(frm, true);
+	},
+
+	variant_of: function (frm) {
+		if (!frm.doc.variant_of || (frm.doc.attributes || []).length) return;
+		frappe.db.get_doc("Specification", frm.doc.variant_of).then((template) => {
+			(template.attributes || []).forEach((row) => {
+				frm.add_child("attributes", {
+					attribute: row.attribute,
+					attribute_value: row.attribute_value,
+					numeric_values: row.numeric_values,
+					from_range: row.from_range,
+					to_range: row.to_range,
+					increment: row.increment,
+				});
+			});
+			frm.refresh_field("attributes");
+		});
+	},
 });
+
+erpnext.specification.load_item_attributes = function (frm, add_rows) {
+	if (!frm.doc.item_template) {
+		frm.__item_attributes = null;
+		frm.set_value("item_template_attributes", "");
+		return;
+	}
+
+	frappe
+		.call({
+			method: "erpnext.manufacturing.doctype.specification.specification.get_item_template_attributes",
+			args: { item_template: frm.doc.item_template },
+		})
+		.then((r) => {
+			frm.__item_attributes = r.message || [];
+			frm.set_value("item_template_attributes", frm.__item_attributes.join("\n"));
+
+			if (!add_rows || frm.doc.variant_of) return;
+
+			let present = (frm.doc.attributes || []).map((d) => d.attribute);
+			frm.__item_attributes
+				.filter((attribute) => !present.includes(attribute))
+				.forEach((attribute) => {
+					frm.add_child("attributes", { attribute: attribute });
+				});
+			frm.refresh_field("attributes");
+		});
+};
 
 erpnext.specification.toggle_attributes = function (frm) {
 	if (frm.doc.has_variants || frm.doc.variant_of) {
@@ -58,8 +122,10 @@ erpnext.specification.toggle_attributes = function (frm) {
 			grid.toggle_enable("attribute", false);
 			frm.toggle_enable("attributes", false);
 		} else {
+			// On a template a value means "fixed for every variant of this catalog".
 			frm.toggle_enable("attributes", true);
-			grid.set_column_disp("attribute_value", false);
+			grid.set_column_disp("attribute_value", true);
+			grid.toggle_enable("attribute_value", true);
 			grid.toggle_enable("attribute", true);
 		}
 	} else {
@@ -69,7 +135,8 @@ erpnext.specification.toggle_attributes = function (frm) {
 };
 
 erpnext.specification.show_single_variant_dialog = function (frm) {
-	let rows = frm.doc.attributes.filter((r) => !r.disabled);
+	// Attributes fixed on the template are not asked for — every variant carries them.
+	let rows = frm.doc.attributes.filter((r) => !r.disabled && !r.attribute_value);
 	let promises = rows.map((row) => {
 		if (row.numeric_values) {
 			return Promise.resolve({ row: row, options: null });
@@ -89,7 +156,27 @@ erpnext.specification.show_single_variant_dialog = function (frm) {
 			.then((r) => ({ row: row, options: (r.message || []).map((v) => v.attribute_value) }));
 	});
 
-	Promise.all(promises).then((attrs) => {
+	promises.push(
+		frappe
+			.call({
+				method: "erpnext.manufacturing.specification_variant.get_used_ordinals",
+				args: { template: frm.doc.name },
+			})
+			.then((r) => ({ ordinals: r.message || [] }))
+	);
+	promises.push(
+		frappe
+			.call({
+				method: "erpnext.manufacturing.specification_variant.needs_ordinal",
+				args: { template: frm.doc.name },
+			})
+			.then((r) => ({ needs_ordinal: !!r.message }))
+	);
+
+	Promise.all(promises).then((results) => {
+		let needs_ordinal = results.pop().needs_ordinal;
+		let taken = results.pop().ordinals;
+		let attrs = results;
 		let fields = attrs.map(({ row, options }) => {
 			if (row.numeric_values) {
 				return {
@@ -113,11 +200,41 @@ erpnext.specification.show_single_variant_dialog = function (frm) {
 			};
 		});
 
+		// A catalog numbered by position needs its number here: picked later, the
+		// designation would be issued without it and the entry could collide.
+		if (needs_ordinal) {
+			let used = taken.map((o) => `${o.ordinal} — ${o.specification_code}`).join("<br>");
+			fields.push({
+				label: __("Ordinal"),
+				fieldname: "__ordinal",
+				fieldtype: "Int",
+				reqd: 1,
+				default: taken.length ? Math.max(...taken.map((o) => o.ordinal)) + 1 : 1,
+				description: used ? __("Taken: {0}", [`<br>${used}`]) : __("First entry of this catalog"),
+			});
+		}
+
 		let d = new frappe.ui.Dialog({ title: __("Create Variant"), fields: fields });
 
 		d.set_primary_action(__("Create"), function () {
-			let args = d.get_values();
-			if (!args) return;
+			let values = d.get_values();
+			if (!values) return;
+			let ordinal = values.__ordinal;
+			let args = Object.assign({}, values);
+			delete args.__ordinal;
+
+			if (ordinal && taken.some((o) => o.ordinal === ordinal)) {
+				frappe.msgprint({
+					title: __("Ordinal Taken"),
+					message: __("Position {0} is already used by {1}", [
+						ordinal,
+						taken.find((o) => o.ordinal === ordinal).specification_code,
+					]),
+					indicator: "red",
+				});
+				return;
+			}
+
 			frappe.call({
 				method: "erpnext.manufacturing.specification_variant.get_variant",
 				btn: d.get_primary_btn(),
@@ -134,7 +251,7 @@ erpnext.specification.show_single_variant_dialog = function (frm) {
 						d.hide();
 						frappe.call({
 							method: "erpnext.manufacturing.specification_variant.create_variant",
-							args: { spec: frm.doc.name, args: args },
+							args: { spec: frm.doc.name, args: args, ordinal: ordinal },
 							callback: function (r) {
 								let doclist = frappe.model.sync(r.message);
 								frappe.set_route("Form", doclist[0].doctype, doclist[0].name);
@@ -242,7 +359,7 @@ erpnext.specification.show_multiple_variants_dialog = function (frm) {
 	}
 
 	frm.doc.attributes.forEach(function (d) {
-		if (d.disabled) return;
+		if (d.disabled || d.attribute_value) return;
 		let p = new Promise((resolve) => {
 			if (!d.numeric_values) {
 				frappe

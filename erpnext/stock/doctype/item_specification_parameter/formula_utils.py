@@ -3,6 +3,7 @@ import operator
 import re
 
 import frappe
+from frappe import _
 
 _OPS = {
 	ast.Add: operator.add,
@@ -31,6 +32,8 @@ def evaluate_spec_formulas(variant_doc):
 	attr_text = _build_text_context(variant_doc)
 	jinja_ctx = _build_jinja_context(variant_doc)
 
+	failures = []
+
 	for row in variant_doc.get("item_spec_parameters") or []:
 		if is_formula(row.get("value")):
 			expr = extract_formula(row.value)
@@ -44,8 +47,6 @@ def evaluate_spec_formulas(variant_doc):
 						message=f"Formula: {row.value}\nError: {e}",
 					)
 				continue
-			if not context:
-				continue
 			try:
 				nominal = _evaluate_formula(expr, context)
 				row.calculated_value = round(nominal, 4)
@@ -54,8 +55,31 @@ def evaluate_spec_formulas(variant_doc):
 					title=f"Spec Formula Error: {row.get('parameter')}",
 					message=f"Formula: {row.value}\nContext: {context}\nError: {e}",
 				)
+				failures.append((row.get("parameter"), row.value, str(e)))
 		elif not row.get("value") and row.parameter in attr_text:
 			row.value = attr_text[row.parameter]
+
+	if failures:
+		_throw_unresolved(failures, context)
+
+
+def _throw_unresolved(failures, context):
+	lines = [f"<b>{parameter}</b>: <code>{value}</code><br>{error}" for parameter, value, error in failures]
+	hint = _(
+		"A token like {0} reads a specification parameter of the item linked to that attribute value."
+		" Fill in the missing parameter on the linked item, then save again."
+	).format("<code>{Елемент.Ємність}</code>")
+	available = ", ".join(f"<code>{{{key}}}</code>" for key in sorted(context)) or _("none")
+	frappe.throw(
+		"{}<br><br>{}<br><br>{}<br><br>{} {}".format(
+			_("Specification formulas could not be calculated:"),
+			"<br>".join(lines),
+			hint,
+			_("Available tokens:"),
+			available,
+		),
+		title=_("Unresolved Specification Formula"),
+	)
 
 
 def _build_jinja_context(variant_doc):
@@ -175,6 +199,22 @@ def _extract_numeric_from_abbr(abbr):
 	return None
 
 
+def parse_number(raw):
+	"""Parse a spec value typed by a user. Accepts the decimal comma ("71,5") that a
+	Ukrainian keyboard produces, and stray spaces. Returns None if it is not a number."""
+	if raw is None:
+		return None
+	text = str(raw).strip().replace(" ", "").replace(" ", "")
+	if not text:
+		return None
+	if "," in text and "." not in text:
+		text = text.replace(",", ".")
+	try:
+		return float(text)
+	except (ValueError, TypeError):
+		return None
+
+
 def _get_linked_item_specs(item_code):
 	rows = frappe.get_all(
 		"Item Specification Parameter",
@@ -185,11 +225,10 @@ def _get_linked_item_specs(item_code):
 	for r in rows:
 		if r.calculated_value:
 			result[r.parameter] = float(r.calculated_value)
-		elif r.value:
-			try:
-				result[r.parameter] = float(r.value)
-			except (ValueError, TypeError):
-				pass
+			continue
+		num = parse_number(r.value)
+		if num is not None:
+			result[r.parameter] = num
 	return result
 
 

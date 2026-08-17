@@ -1,12 +1,12 @@
 "
 			The Batch {0} of an item {1} has negative stock in the warehouse {2}. Please add a stock quantity of {3} to proceed with this entry.","
 			Партія {0} товару {1} має від'ємний залишок на складі {2}. Будь ласка, додайте кількість запасів {3}, щоб продовжити цей запис."
- , 
-  , 
+ ,
+  ,
  Address, Адреса
  Amount, Сума
  BOM, Специфікація
- Default Work In Progress Warehouse , Склад незавершеного виробництва за замовчуванням 
+ Default Work In Progress Warehouse , Склад незавершеного виробництва за замовчуванням
  Is Child Table, Є дочірньою таблицею
  Is Subcontracted, Є субпідрядним
  Item, Товар
@@ -43,7 +43,7 @@ This is a crucial piece of configuration. There are various account settings in 
 
 The following settings are avaialble for you to configure
 
-1. Account Freezing 
+1. Account Freezing
 2. Credit and Overbilling
 3. Invoicing and Tax Automations
 4. Balance Sheet configurations
@@ -54,7 +54,7 @@ There's much more, you can check it all out in this step","# Налаштува�
 
 Для налаштування доступні наступні параметри
 
-1. Заморожування рахунків 
+1. Заморожування рахунків
 2. Кредит та овербілінг
 3. Виставлення рахунків та автоматизація податків
 4. Конфігурації балансу
@@ -427,7 +427,7 @@ In this step we will view the [**Warehouse Tree**](https://docs.erpnext.com/docs
 На цьому кроці ми переглянемо [**Дерево складів**](https://docs.erpnext.com/docs/user/manual/en/stock/warehouse#21-tree-view), щоб побачити [**Склади**](https://docs.erpnext.com/docs/user/manual/en/stock/warehouse), які встановлені за замовчуванням."
 "## Products and Services
 
-Depending on the nature of your business, you might be selling products or services to your clients or even both. 
+Depending on the nature of your business, you might be selling products or services to your clients or even both.
 ERPNext is optimized for itemized management of your sales and purchase.
 
 The **Item Master**  is where you can add all your sales items. If you are in services, you can create an Item for each service that you offer. If you run a manufacturing business, the same master is used for keeping a record of raw materials, sub-assemblies etc.
@@ -455,7 +455,7 @@ Just like the supplier, let's quickly create a customer.","## Хто такий 
 Так само, як і постачальника, давайте швидко створимо клієнта."
 "## Who is a Supplier?
 
-Suppliers are companies or individuals who provide you with products or services. ERPNext has comprehensive features for purchase cycles. 
+Suppliers are companies or individuals who provide you with products or services. ERPNext has comprehensive features for purchase cycles.
 
 Let's quickly create a supplier with the minimal details required. You need the name of the supplier, assign the supplier to a group, and select the type of the supplier, viz. Company or Individual.","## Хто такий постачальник?
 
@@ -638,7 +638,7 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 
 <pre>Contract for Customer {{ party_name }}
 
--Valid From : {{ start_date }} 
+-Valid From : {{ start_date }}
 -Valid To : {{ end_date }}
 </pre>
 
@@ -652,7 +652,7 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 
 <pre>Договір для клієнта {{ party_name }}
 
-- Дійсний з : {{ start_date }} 
+- Дійсний з : {{ start_date }}
 - Дійсний до : {{ end_date }}
 </pre>
 
@@ -667,7 +667,7 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 
 <pre>Delivery Terms for Order number {{ name }}
 
--Order Date : {{ transaction_date }} 
+-Order Date : {{ transaction_date }}
 -Expected Delivery Date : {{ delivery_date }}
 </pre>
 
@@ -681,7 +681,7 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 
 <pre>Умови доставки для замовлення номер {{ name }}
 
-- Дата замовлення : {{ transaction_date }} 
+- Дата замовлення : {{ transaction_date }}
 - Очікувана дата доставки : {{ delivery_date }}
 </pre>
 
@@ -793,17 +793,17 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 "<span class=""h4""><b>Reports &amp; Masters</b></span>","<span class=""h4""><b>Звіти та довідники</b></span>"
 "<span class=""h4""><b>Subcontracting Inward and Outward</b></span>","<span class=""h4""><b>Субпідрядне надходження та відвантаження</b></span>"
 "<span class=""h4""><b>Your Shortcuts
-			
-		
-			
-		
-			
+
+
+
+
+
 		</b></span>","<span class=""h4""><b>Ваші ярлики
-			
-		
-			
-		
-			
+
+
+
+
+
 		</b></span>"
 "<span class=""h4""><b>Your Shortcuts</b></span>","<span class=""h4""><b>Ваші ярлики</b></span>"
 <strong>Grand Total:</strong> {0},<strong>Загальна сума:</strong> {0}
@@ -831,7 +831,7 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 
         </td>
          <td>
-                   <p><b>Example: </b> doc.doctype == ""Stock Entry"" and doc.purpose == ""Manufacture""</p>    
+                   <p><b>Example: </b> doc.doctype == ""Stock Entry"" and doc.purpose == ""Manufacture""</p>
           </td>
 </tr>
 
@@ -866,7 +866,7 @@ You can use <a href=""https://jinja.palletsprojects.com/en/2.11.x/"" target=""_b
 
         </td>
          <td>
-                   <p><b>Приклад: </b> doc.doctype == ""Stock Entry"" and doc.purpose == ""Manufacture""</p>    
+                   <p><b>Приклад: </b> doc.doctype == ""Stock Entry"" and doc.purpose == ""Manufacture""</p>
           </td>
 </tr>
 
@@ -1033,7 +1033,7 @@ Accounting Dimension <b>{0}</b> is required for 'Profit and Loss' account {1}.,�
 Accounting Dimension Detail,Детальніше про розмір обліку
 Accounting Dimension Filter,Фільтр облікових вимірів
 Accounting Dimensions,Розмір обліку
-Accounting Dimensions ,Облікові виміри 
+Accounting Dimensions ,Облікові виміри
 Accounting Dimensions Filter,Фільтр бухгалтерських аналітик
 Accounting Entries,Бухгалтерські проводки
 Accounting Entries are reposted,Бухгалтерські проводки переоформлено
@@ -1320,7 +1320,7 @@ Ageing Range 1,Діапазон старіння 1
 Ageing Range 2,Діапазон старіння 2
 Ageing Range 3,Діапазон старіння 3
 Ageing Range 4,Діапазон старіння 4
-Ageing Report based on ,Звіт про старіння на основі 
+Ageing Report based on ,Звіт про старіння на основі
 Ageing Report based on {0} up to {1},Звіт про старіння на основі {0} до {1}
 Agenda,Порядок денний
 Agent,Агент
@@ -1349,7 +1349,7 @@ All Employee (Active),Всі Співробітник (Активний)
 All Item Groups,Всі Групи товарів
 All Items,Усі позиції
 All Lead (Open),Усі звернення (відкриті)
-All Parties ,Усі сторони 
+All Parties ,Усі сторони
 All Sales Partner Contact,Усі контакти торгового партнеру
 All Sales Person,Всі Відповідальні з продажу
 All Sales Transactions can be tagged against multiple Sales Persons so that you can set and monitor targets.,"Усі торговельні операції можуть бути прив'язані до кількох менеджерів з продажу, щоб ви могли встановлювати та контролювати цілі."
@@ -1437,7 +1437,7 @@ Allow Zero Rate,Дозволити нульову ставку
 Allow Zero Valuation Rate,Дозволити нульову Незалежну оцінку Оцінити
 Allow existing Serial No to be Manufactured/Received again,Дозволити повторне виробництво/отримання існуючого серійного номера
 Allow material consumptions without immediately manufacturing finished goods against a Work Order,Дозволити споживання матеріалів без негайного виробництва готової продукції за робочим замовленням
-Allow multi-currency invoices against single party account ,Дозволити мультивалютні рахунки для облікового запису однієї сторони 
+Allow multi-currency invoices against single party account ,Дозволити мультивалютні рахунки для облікового запису однієї сторони
 Allow to Edit Stock UOM Qty for Purchase Documents,Дозволити редагування кількості одиниць виміру запасів для документів закупівлі
 Allow to Edit Stock UOM Qty for Sales Documents,Дозволити редагування кількості одиниць виміру запасів для документів продажу
 Allow to Make Quality Inspection after Purchase / Delivery,Дозволити перевірку якості після закупівлі / доставки
@@ -1557,7 +1557,7 @@ Apply Rule On Other,Застосувати правило щодо інших
 Apply SLA for Resolution Time,Застосувати SLA для часу вирішення
 Apply TDS,Застосувати TDS
 Apply Tax Withholding Amount,Застосувати суму податкового утримання
-Apply Tax Withholding Amount ,Застосувати суму податкового утримання 
+Apply Tax Withholding Amount ,Застосувати суму податкового утримання
 Apply discounts and margins on products,Застосовувати знижки та маржу на товари
 Apply restriction on dimension values,Застосувати обмеження на значення вимірів
 Apply to All Inventory Documents,Застосувати до всіх документів інвентаризації
@@ -2550,7 +2550,7 @@ Closing Date,Дата закриття
 Closing Fiscal Year,Закриття фіскального року
 Closing Stock Balance,Залишок товарів на закриття
 Closing Text,Заключний текст
-Closing [Opening + Total] ,Закриття [Відкриття + Разом] 
+Closing [Opening + Total] ,Закриття [Відкриття + Разом]
 Code,Код
 Code List,Список кодів
 "Code to reference this line in formulas (e.g., REV100, EXP200, ASSET100)","Код для посилання на цей рядок у формулах (напр., REV100, EXP200, ASSET100)"
@@ -2665,7 +2665,7 @@ Computer,Комп&#39;ютер
 Condition,Умова
 Conditional Rule,Правило з умовою
 Conditional Rule Examples,Приклади правил з умовою
-Conditions will be applied on all the selected items combined. ,Умови будуть застосовані до всіх вибраних товарів разом. 
+Conditions will be applied on all the selected items combined. ,Умови будуть застосовані до всіх вибраних товарів разом.
 Configuration,Конфігурація
 Configure Account Settings,Налаштувати параметри облікового запису
 Configure Buying Settings.,Налаштувати параметри закупівель.
@@ -2689,7 +2689,7 @@ Consider Projected Qty in Calculation (RM),Враховувати прогноз
 Consider Rejected Warehouses,Враховувати склади бракованої продукції
 Consider Tax or Charge for,Розглянемо податку або збору для
 Consider for Tax Withholding,Враховувати для утримання податку
-Consider for Tax Withholding ,Враховувати для утримання податку 
+Consider for Tax Withholding ,Враховувати для утримання податку
 Considered In Paid Amount,Враховано в оплаченій сумі
 Consolidate Sales Order Items,Об'єднати позиції замовлень на продаж
 Consolidate Sub Assembly Items,Об'єднати позиції підвузлів
@@ -2738,7 +2738,7 @@ Contact Person,Контактна особа
 Contact Person does not belong to the {0},Контактна особа не належить до {0}
 Contact Us Settings,Налаштування зворотного зв'язку
 Contact:,Контакт:
-Contact: ,Контакт: 
+Contact: ,Контакт:
 Contacts,Контакти
 Content,Вміст
 Content Type,Тип вмісту
@@ -2836,7 +2836,7 @@ Could not auto update shifts. Shift with shift factor {0} needed.,Не вдал�
 "Could not create Credit Note automatically, please uncheck 'Issue Credit Note' and submit again","Не вдається автоматично створити кредитну заяву, зніміть прапорець &quot;Видавати кредитну заяву&quot; та повторно надіслати"
 Could not detect the Company for updating Bank Accounts,Не вдалося виявити компанію для оновлення банківських рахунків
 Could not find a suitable shift to match the difference: {0},Не вдалося знайти відповідну зміну для узгодження різниці: {0}
-Could not find path for ,Не вдалося знайти шлях для 
+Could not find path for ,Не вдалося знайти шлях для
 Could not retrieve information for {0}.,Не вдалося отримати інформацію для {0}.
 Could not solve criteria score function for {0}. Make sure the formula is valid.,"Не вдалося вирішити функції оцінки критеріїв для {0}. Переконайтеся, що формула дійсна."
 Could not solve weighted score function. Make sure the formula is valid.,"Не вдалося вирішити вагова функцію. Переконайтеся, що формула дійсна."
@@ -2907,8 +2907,8 @@ Create Users,створення користувачів
 Create Variant,Створити варіант
 Create Variants,Створюйте варіанти
 Create Workstation,Створити робоче місце
-Create Your First Purchase Invoice ,Створіть свій перший рахунок на оплату 
-Create Your First Sales Invoice ,Створіть свій перший рахунок-фактуру 
+Create Your First Purchase Invoice ,Створіть свій перший рахунок на оплату
+Create Your First Sales Invoice ,Створіть свій перший рахунок-фактуру
 Create a Customer,Створити клієнта
 Create a Finished Good,Створити готову продукцію
 Create a Fixed Asset Item,Створити номенклатуру основних засобів
@@ -3069,7 +3069,7 @@ Custom Remarks,Спеціальні зауваження
 Custom delimiters,Власні роздільники
 Custom?,Власний?
 Customer,Клієнт
-Customer ,Клієнт 
+Customer ,Клієнт
 Customer / Item / Item Group,Клієнт / Товар / Група товарів
 Customer / Lead Address,Адреса Клієнта / Звернення
 Customer > Customer Group > Territory,Клієнт > Група клієнтів > Територія
@@ -3098,7 +3098,7 @@ Customer LPO No.,Замовник LPO №
 Customer Ledger Summary,Резюме клієнта
 Customer Mobile No,Замовник Мобільна Немає
 Customer Name,Ім&#39;я клієнта
-Customer Name: ,Ім'я клієнта: 
+Customer Name: ,Ім'я клієнта:
 Customer Naming By,Називати клієнтів по
 Customer Number,Номер клієнта
 Customer Number At Supplier,Номер клієнта у постачальника
@@ -3133,7 +3133,7 @@ Customer's Purchase Order No,Номер оригінала замовлення 
 Customer's Vendor,Постачальник клієнта
 Customer-wise Item Price,"Ціна предмета, орієнтована на клієнта"
 Customer/Lead Name,Клієнт / Назва Звернення
-Customer: ,Клієнт: 
+Customer: ,Клієнт:
 Customers,Клієнти
 Customers Without Any Sales Transactions,Клієнти без будь-яких продажних операцій
 Customers not selected.,Клієнти не вибрані.
@@ -3163,7 +3163,7 @@ Data Import and Settings,Імпорт даних та налаштування
 Data Source,Джерело даних
 "Data exported from Tally that consists of the Chart of Accounts, Customers, Suppliers, Addresses, Items and UOMs","Дані експортовані з Tally, що містять План рахунків, Клієнтів, Постачальників, Адреси, Товари та Одиниці виміру"
 Date,Дата
-Date ,Дата 
+Date ,Дата
 Date Based On,Дата заснована на
 Date Of Retirement,Дата вибуття
 Date Settings,Налаштування дати
@@ -3177,7 +3177,7 @@ Date of Incorporation,Дата реєстрації
 Date of Issue,Дата випуску
 Date of Joining,Дата влаштування
 Date of Transaction,Дата здійснення операції
-Date: ,Дата: 
+Date: ,Дата:
 Date: {0} to {1},Дата: {0} до {1}
 Dates,Дати
 Dates to Process,Дати для обробки
@@ -3556,7 +3556,7 @@ Distance from left edge,Відстань від лівого краю
 Distance from top edge,Відстань від верхнього краю
 Distinct Item and Warehouse,Окремий товар та склад
 Distinct unit of an Item,Окрема одиниця позиції
-Distribute Additional Costs Based On ,Розподілити додаткові витрати на основі 
+Distribute Additional Costs Based On ,Розподілити додаткові витрати на основі
 Distribute Charges Based On,Розподілити плату на основі
 Distribute Equally,Розподілити рівномірно
 Distribute Manually,Розподілити вручну
@@ -3594,7 +3594,7 @@ Document,Документ
 Document Count,Кількість документів
 Document Name,Назва документа
 Document Type,Тип документа
-Document Type ,Тип документа 
+Document Type ,Тип документа
 Document Type already used as a dimension,Тип документа вже використовується як вимір
 Document {0} successfully uncleared,Документ {0} успішно розчищено
 Documentation,Документація
@@ -3737,7 +3737,7 @@ Email Address,Адреса електронної пошти
 Email Address (required),Адреса електронної пошти (обов'язково)
 "Email Address must be unique, it is already used in {0}","Адреса електронної пошти має бути унікальною, вона вже використовується в {0}"
 Email Campaign,Кампанія електронної пошти
-Email Campaign For ,Email-кампанія для 
+Email Campaign For ,Email-кампанія для
 Email Details,Деталі електронної пошти
 Email Digest,E-mail Дайджест
 Email Digest Recipient,Отримувач дайджесту електронної пошти
@@ -3763,7 +3763,7 @@ Emergency Contact,Для екстреного зв&#39;язку
 Emergency Contact Name,Ім’я контактної служби для надзвичайних ситуацій
 Emergency Phone,Аварійний телефон
 Employee,Працівник
-Employee ,Працівник 
+Employee ,Працівник
 Employee Advance,Працівник Аванс
 Employee Advances,Аванси працівників
 Employee Benefits Obligation,Зобов'язання з виплат працівникам
@@ -3948,7 +3948,7 @@ Exempted Role,Звільнена роль
 Exhibition,Виставка
 Existing Asset,Наявний актив
 Existing Company,існуючі компанії
-Existing Company ,Існуюча компанія 
+Existing Company ,Існуюча компанія
 Existing Customer,Наявний клієнт
 Exit,Звільнення
 Exit Interview Held On,Вихідне інтерв’ю проведено
@@ -4111,7 +4111,7 @@ Finished Good Item is not specified for service item {0},Готову проду
 Finished Good Item {0} Qty can not be zero,Кількість готової продукції {0} не може дорівнювати нулю
 Finished Good Item {0} must be a sub-contracted item,Готова продукція {0} повинна бути виготовлена за субпідрядом
 Finished Good Qty,Кількість готової продукції
-Finished Good Quantity ,Кількість готової продукції 
+Finished Good Quantity ,Кількість готової продукції
 Finished Good Serial / Batch,Серійний номер / Партія готової продукції
 Finished Good UOM,Одиниця виміру готової продукції
 Finished Good {0} does not have a default BOM.,Готова продукція {0} не має специфікації за замовчуванням.
@@ -4295,7 +4295,7 @@ From Reference Date,З дати відліку
 From Shareholder,Від акціонера
 From Template,З шаблону
 From Time,Від часу
-From Time ,З часу 
+From Time ,З часу
 From Time Should Be Less Than To Time,"З часу має бути менше, ніж до часу"
 From Value,Від вартості
 From Voucher Detail No,З деталі документа номер
@@ -4513,7 +4513,7 @@ Handle Employee Advances,Обробка авансів працівників
 Hardware,Апаратний
 Has Alternative Item,Має альтернативний елемент
 Has Batch No,Має номер партії
-Has Certificate ,Має сертифікат 
+Has Certificate ,Має сертифікат
 Has Corrective Cost,Має коригувальну вартість
 Has Expiry Date,Дата закінчення терміну дії
 Has Item Scanned,Товар відсканований
@@ -4643,7 +4643,7 @@ If enabled then system won't override the picked qty / batches / serial numbers 
 "If enabled, a print of this document will be attached to each email","Якщо увімкнено, друкована форма цього документа буде прикріплена до кожного електронного листа"
 "If enabled, additional ledger entries will be made for discounts in a separate Discount Account","Якщо увімкнено, для знижок будуть зроблені додаткові записи у бухгалтерській книзі на окремому рахунку знижок"
 "If enabled, all files attached to this document will be attached to each email","Якщо увімкнено, всі файли, прикріплені до цього документа, будуть прикріплені до кожного електронного листа"
-"If enabled, do not update serial / batch values in the stock transactions on creation of auto Serial 
+"If enabled, do not update serial / batch values in the stock transactions on creation of auto Serial
  / Batch Bundle. ","Якщо увімкнено, не оновлювати значення серійних номерів / партій у складських операціях при створенні автоматичного серійного / партійного комплекту. "
 "If enabled, formula for <b>Qty to Order</b>: <br>
 Required Qty (BOM) - <a href=""https://docs.frappe.io/erpnext/user/manual/en/projected-quantity"">Projected Qty</a>. <br> This helps avoid over-ordering.","Якщо увімкнено, формула для <b>Кількості для замовлення</b>: <br>
@@ -5227,7 +5227,7 @@ Item Warehouse based reposting has been enabled.,Увімкнено перепр
 Item Website Specification,Пункт Сайт Специфікація
 Item Weight Details,Деталі ваги Деталі
 Item Wise Tax Detail,Пункт Мудрий Податковий Подробиці
-Item Wise Tax Detail ,Деталі податку за товаром 
+Item Wise Tax Detail ,Деталі податку за товаром
 Item Wise Tax Details,Деталі податку за товарами
 Item Wise Tax Details do not match with Taxes and Charges at the following rows:,Деталі податку за товарами не збігаються з податками та зборами у наступних рядках:
 Item and Warehouse,Товар і склад
@@ -5273,7 +5273,7 @@ Item {0} must be a non-stock item,Номенклатурна позиція {0} 
 Item {0} not found in 'Raw Materials Supplied' table in {1} {2},"Товар {0} не знайдено в таблиці «Сировина, що постачається» в {1} {2}"
 Item {0} not found.,Товар {0} не знайдено.
 Item {0}: Ordered qty {1} cannot be less than minimum order qty {2} (defined in Item).,Позиція {0}: Замовлена к-сть {1} не може бути менше мінімальної к-сті замовлення {2} (визначеної у інвентарній картці).
-Item {0}: {1} qty produced. ,Елемент {0}: вироблено {1} кількість. 
+Item {0}: {1} qty produced. ,Елемент {0}: вироблено {1} кількість.
 Item {} does not exist.,Товар {} не існує.
 "Item, Customer, Supplier and Quotation","Товар, клієнт, постачальник та Угода"
 Item-wise Price List Rate,Ціни прайс-листів по-товарно
@@ -5668,7 +5668,7 @@ Maintenance Visit Purpose,Мета візиту Технічного обслу�
 Maintenance start date can not be before delivery date for Serial No {0},Дата початку обслуговування не може бути до дати доставки для серійного номеру {0}
 Major/Optional Subjects,Основні / Додаткові Суб&#39;єкти
 Make,Зробити
-Make ,Створити 
+Make ,Створити
 Make Asset Movement,Створити переміщення активів
 Make Depreciation Entry,Створити операцію амортизації
 Make Difference Entry,Зробити запис Difference
@@ -5751,7 +5751,7 @@ Master,Головний
 Master Data,Головні дані
 Master Production Schedule,Основний виробничий графік
 Master Production Schedule Item,Елемент основного виробничого графіка
-Masters,Masters
+Masters,Довідники
 Material,Матеріал
 Material Consumption,Матеріальне споживання
 Material Consumption for Manufacture,Матеріальний потік для виробництва
@@ -5919,7 +5919,7 @@ Mixed Conditions,Змішані умови
 Mobile,Мобільний
 Mobile No,Мобільний телефон
 Mobile Number,Номер мобільного телефону
-Mobile: ,Мобільний: 
+Mobile: ,Мобільний:
 Mock Printing,Тестовий друк
 Mode Of Payment,Спосіб платежу
 Mode of Payment,Спосіб оплати
@@ -6064,7 +6064,7 @@ New Version,Нова версія
 New Warehouse Name,Новий склад Ім&#39;я
 New Workplace,Нове робоче місце
 New credit limit is less than current outstanding amount for the customer. Credit limit has to be atleast {0},Новий кредитний ліміт менше поточної суми заборгованості для клієнта. Кредитний ліміт повинен бути зареєстровано не менше {0}
-New fiscal year created :- ,Новий фінансовий рік створено :- 
+New fiscal year created :- ,Новий фінансовий рік створено :-
 New invoices will be generated as per schedule even if current invoices are unpaid or past due date,"Нові рахунки-фактури будуть сформовані відповідно до розкладу, навіть якщо поточні рахунки-фактури не оплачені або прострочені"
 New release date should be in the future,Нова дата випуску повинна бути в майбутньому
 New revised budget created successfully,Новий переглянутий бюджет успішно створено
@@ -6223,7 +6223,7 @@ Note: This Cost Center is a Group. Cannot make accounting entries against groups
 Note: {0},Примітка: {0}
 Notes,Примітки
 Notes HTML,HTML-примітки
-Notes: ,Примітки: 
+Notes: ,Примітки:
 Nothing is included in gross,Нічого не включається до валового
 Nothing more to show.,Нічого більше не показувати.
 Notice (days),Попередження (днів)
@@ -6302,7 +6302,7 @@ Online Auctions,Онлайн-аукціони
 Only 'Payment Entries' made against this advance account are supported.,"Підтримуються лише «Платіжні записи», створені для цього авансового рахунку."
 Only CSV and Excel files can be used to for importing data. Please check the file format you are trying to upload,"Для імпорту даних можна використовувати лише файли CSV та Excel. Перевірте формат файлу, який ви намагаєтеся завантажити"
 Only CSV files are allowed,Дозволені лише файли CSV
-Only Deduct Tax On Excess Amount ,Вираховувати податок лише з суми перевищення 
+Only Deduct Tax On Excess Amount ,Вираховувати податок лише з суми перевищення
 Only Include Allocated Payments,Включати лише розподілені платежі
 Only Parent can be of type {0},Лише батьківський елемент може бути типу {0}
 Only Value available for Payment Entry,Для платіжного запису доступна лише сума
@@ -6330,18 +6330,18 @@ Open Event,Відкрити подію
 Open Events,Відкриті події
 Open Form View,Відкрийте подання форми
 Open Issues,Відкриті випуски
-Open Issues ,Відкриті питання 
+Open Issues ,Відкриті питання
 Open Item {0},Відкрити номенклатуру {0}
 Open Notifications,Відкриті Повідомлення
 Open Orders,Відкриті замовлення
 Open Projects,Відкриті проекти
-Open Projects ,Відкриті проекти 
+Open Projects ,Відкриті проекти
 Open Quotations,Відкриті Угоди
 Open Sales Orders,Відкрити замовлення на продаж
 Open Task,Відкрити завдання
 Open Tasks,Відкриті завдання
 Open To Do,Відкритий для виконання
-Open To Do ,Відкрити список завдань 
+Open To Do ,Відкрити список завдань
 Open Work Order {0},Відкрити робоче замовлення {0}
 Open Work Orders,Відкрити робочі замовлення
 Open a new ticket,Відкрий новий квиток
@@ -6397,7 +6397,7 @@ Operation Row ID,ID рядка операції
 Operation Row Id,Id рядка операції
 Operation Row Number,Номер рядка операції
 Operation Time,Час роботи
-Operation Time ,Час операції 
+Operation Time ,Час операції
 Operation Time must be greater than 0 for Operation {0},"Час роботи повинно бути більше, ніж 0 для операції {0}"
 Operation completed for how many finished goods?,Операція виконана для якої кількості готових виробів?
 Operation time does not depend on quantity to produce,"Час операції не залежить від кількості продукції, що виробляється"
@@ -6426,7 +6426,7 @@ Opportunity Lost Reason Detail,Деталі причини втрати Проп
 Opportunity Owner,Власник Пропозиції
 Opportunity Source,Джерело Пропозиції
 Opportunity Summary by Sales Stage,Звіт про Пропозиції за етапами продажу
-Opportunity Summary by Sales Stage ,Звіт про Пропозиції за етапами продажу 
+Opportunity Summary by Sales Stage ,Звіт про Пропозиції за етапами продажу
 Opportunity Type,Тип Пропозиції
 Opportunity Value,Вартість Пропозиції
 Opportunity {0} created,Пропозицію {0} створено
@@ -7381,7 +7381,7 @@ Print settings updated in respective print format,Налаштування др�
 Print taxes with zero amount,Надрукувати податки з нульовою сумою
 Printed,Надруковано
 Printed At,Надруковано о
-Printed On ,Роздруковано 
+Printed On ,Роздруковано
 Printed on {0},Надруковано {0}
 Printer,Принтер
 Printer Info,Інформація про принтер
@@ -7641,7 +7641,7 @@ Purposes Required,Необхідні цілі
 Putaway Rule,Правило розміщення
 Putaway Rule already exists for Item {0} in Warehouse {1}.,Правило розміщення вже існує для товару {0} на складі {1}.
 Qty,К-сть
-Qty ,К-сть 
+Qty ,К-сть
 Qty (Company),Кількість (Компанія)
 Qty (Warehouse),Кількість (Склад)
 Qty (in Stock UOM),Кількість (в одиниці зберігання)
@@ -7767,7 +7767,7 @@ Quotation {0} is cancelled,Угоду {0} скасовано
 Quotation {0} not of type {1},Угода {0} не типу {1}
 Quotations,Угоди
 "Quotations are proposals, bids you have sent to your customers","Угоди — це комерційні пропозиції, надіслані вашим клієнтам"
-Quotations: ,Угоди: 
+Quotations: ,Угоди:
 Quote Status,Статус цитати
 Quoted Amount,Котирувана сума
 RFQs are not allowed for {0} due to a scorecard standing of {1},Запити на RFQ не дозволені для {0} через показник показника показника {1}
@@ -7975,7 +7975,7 @@ Regional,регіональний
 Registration Details,Реєстраційні дані
 Regular,регулярне
 Rejected,Відхилено
-Rejected ,Відхилено 
+Rejected ,Відхилено
 Rejected Qty,Відхилена к-сть
 Rejected Quantity,Відхилено Кількість
 Rejected Serial No,Відхилено Серійний номер
@@ -8216,7 +8216,7 @@ Returned,Повернено
 Returned Against,Повернено проти
 Returned Amount,Повернута сума
 Returned Qty,Повернута к-сть
-Returned Qty ,Повернена кількість 
+Returned Qty ,Повернена кількість
 Returned Qty in Stock UOM,Повернена кількість у одиницях виміру запасів
 Returned exchange rate is neither integer not float.,"Повернений обмінний курс не є ні цілим числом, ні числом з плаваючою комою."
 Returns,Повернення
@@ -8689,7 +8689,7 @@ Sales Orders Required,Потрібні замовлення на продаж
 Sales Orders to Bill,Замовлення на продаж до Білла
 Sales Orders to Deliver,Замовлення на поставку для доставки
 Sales Partner,Торговий партнер
-Sales Partner ,Партнер з продажу 
+Sales Partner ,Партнер з продажу
 Sales Partner Commission Summary,Підсумок комісії з продажу партнерів
 Sales Partner Item,Товар партнера з продажу
 Sales Partner Name,Назва торгового партнеру
@@ -8848,7 +8848,7 @@ Select Date of Birth. This will validate Employees age and prevent hiring of und
 Select Default Supplier,Виберіть постачальника за замовчуванням
 Select Difference Account,Виберіть Рахунок різниці
 Select Dimension,Виберіть вимір
-Select Dispatch Address ,Вибрати адресу відправлення 
+Select Dispatch Address ,Вибрати адресу відправлення
 Select DocType,Виберіть DocType
 Select Document,Обрати документ
 Select Employees,Виберіть Співробітники
@@ -9695,7 +9695,7 @@ Ex: Instead of AED -&gt; INR, system will do AED -&gt; USD -&gt; INR using the p
 Напр.: Замість AED -&gt; INR, система виконає AED -&gt; USD -&gt; INR, використовуючи прив'язаний обмінний курс AED до USD."
 System will fetch all the entries if limit value is zero.,"Система отримає всі записи, якщо граничне значення дорівнює нулю."
 System will not check over billing since amount for Item {0} in {1} is zero,"Система не перевірятиме переплату, оскільки сума для товару {0} в {1} дорівнює нулю"
-System will notify to increase or decrease quantity or amount ,Система повідомить про збільшення або зменшення кількості або суми 
+System will notify to increase or decrease quantity or amount ,Система повідомить про збільшення або зменшення кількості або суми
 TCS Rate %,Ставка TCS %
 TDS Computation Summary,Підсумок обчислень TDS
 TDS Deducted,Утримано ТДС
@@ -9789,7 +9789,7 @@ Tax Category,Податкова категорія
 Tax Expense,Податкові витрати
 Tax ID,ІПН
 Tax Id,ІПН
-Tax Id: ,Ідентифікатор податку: 
+Tax Id: ,Ідентифікатор податку:
 Tax Id: {0},Податковий ідентифікатор: {0}
 Tax Masters,Довідники податків
 Tax Rate,Ставка податку
@@ -10266,7 +10266,7 @@ Total Liability,Загальна сума зобов'язань
 Total Message(s),Загалом повідомлень
 Total Monthly Sales,Загальні щомісячні продажі
 Total Net Weight,Загальна вага нетто
-Total Number of Booked Depreciations ,Загальна кількість проведених амортизацій 
+Total Number of Booked Depreciations ,Загальна кількість проведених амортизацій
 Total Number of Depreciations,Загальна кількість амортизацій
 Total Only,Лише підсумок
 Total Operating Cost,Загальна експлуатаційна вартість
@@ -10510,7 +10510,7 @@ Unverified,Неперевірений
 Unverified Webhook Data,Неперевірені дані Webhook
 Up,Вгору
 Upcoming Calendar Events,Найближчі події календаря
-Upcoming Calendar Events ,Майбутні події календаря 
+Upcoming Calendar Events ,Майбутні події календаря
 Update,Оновити
 Update Account Name / Number,Оновити ім&#39;я / номер облікового запису
 Update Account Number / Name,Оновити номер рахунку / ім&#39;я
@@ -11103,7 +11103,7 @@ title,заголовок
 to,Для
 to unallocate the amount of this Return Invoice before cancelling it.,скасувати розподіл суми за цим поверненим рахунком перед його анулюванням.
 unique e.g. SAVE20  To be used to get discount,"унікальний, наприклад, SAVE20 Для використання для отримання знижки"
-up to ,до 
+up to ,до
 variance,відхилення
 via Asset Repair,через Ремонт активу
 via BOM Update Tool,через інструмент оновлення специфікації
@@ -13169,3 +13169,211 @@ Attach at least one PDF receipt when the materials are already purchased.,Якщ
 Row {0}: Attach a PDF receipt.,Рядок {0}: прикріпіть чек у форматі PDF.
 The purchase receipt must be a PDF file.,Чек про придбання має бути файлом PDF.
 Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.
+"Entities","Об'єкти"
+"Archive chat","Архівувати чат"
+"Unarchive chat","Повернути з архіву"
+"Remove chat","Видалити чат"
+"Chat archived","Чат архівовано"
+"Chat unarchived","Чат повернуто з архіву"
+"Chat removed","Чат видалено"
+"Chat Manager","Менеджер чатів"
+"This chat is archived — new messages are not allowed","Чат в архіві — нові повідомлення заборонені"
+"This chat is archived and read-only","Чат в архіві, лише для читання"
+"Delete this chat with all its messages and files? This cannot be undone.","Видалити цей чат разом з усіма повідомленнями та файлами? Дію неможливо скасувати."
+"You are not allowed to archive this chat","Ви не можете архівувати цей чат"
+"You are not allowed to remove chats","Ви не можете видаляти чати"
+"Only an archived chat can be removed","Видалити можна лише чат з архіву"
+"Chat attachments cannot be attached elsewhere. Download the file and upload a copy.","Вкладення з чату не можна прикріпити деінде. Завантажте файл і додайте копію."
+"Move to deep archive","Помістити в глибокий архів"
+"Deep archive","Глибокий архів"
+"Unpack content","Розпакувати вміст"
+"This conversation was archived long ago","Цю розмову давно заархівовано"
+"Unpacking…","Розпаковуємо…"
+"Packing…","Пакуємо…"
+"Could not unpack this chat","Не вдалося розпакувати чат"
+"Try again","Спробувати ще раз"
+"Unpack the chat to open this message","Розпакуйте чат, щоб відкрити це повідомлення"
+"This chat is in the deep archive — its messages are being unpacked","Чат у глибокому архіві — його повідомлення зараз розпаковуються"
+"This chat is in the deep archive","Чат у глибокому архіві"
+"{0} messages · {1} files","{0} повідомлень · {1} файлів"
+"Pack this chat into the deep archive? Messages and files are moved into an archive file and removed from the chat; they are unpacked again automatically the next time someone opens the chat.","Помістити чат у глибокий архів? Повідомлення та файли буде перенесено в архівний файл і видалено з чату; вони розпакуються автоматично, щойно хтось відкриє чат."
+"Only an archived chat can be moved to the deep archive","У глибокий архів можна помістити лише чат з архіву"
+"You are not allowed to move chats to the deep archive","Ви не можете переміщувати чати в глибокий архів"
+"The chat archive is busy — try again in a minute","Архів чату зараз зайнятий — спробуйте за хвилину"
+"Return this chat from the deep archive first","Спершу поверніть цей чат із глибокого архіву"
+"Configuration","Налаштування"
+"Chat configuration saved","Налаштування чату збережено"
+"Do not archive this chat","Не архівувати цей чат"
+"Nobody can move the chat to the archive, and the scheduled auto-archive skips it.","Ніхто не зможе перемістити чат в архів, і автоматичне архівування його пропускає."
+"Do not move this chat to the deep archive","Не переміщувати цей чат у глибокий архів"
+"The chat is never packed into an archive file, neither by hand nor by the scheduled job.","Чат ніколи не пакується в архівний файл — ані вручну, ані автоматичним завданням."
+"The chat is already in the deep archive — return it first.","Чат уже в глибокому архіві — спершу поверніть його звідти."
+"This chat is protected from archiving","Цей чат захищено від архівування"
+"This chat is protected from the deep archive","Цей чат захищено від глибокого архіву"
+"You are not allowed to change the archive policy","Ви не можете змінювати правила архівування"
+"Archive Policy","Правила архівування"
+"Do Not Archive","Не архівувати"
+"Do Not Deep Archive","Не переміщувати в глибокий архів"
+"Return from the deep archive","Повернути з глибокого архіву"
+"Chat returned from the deep archive","Чат повернуто з глибокого архіву"
+"You are not allowed to return chats from the deep archive","Ви не можете повертати чати з глибокого архіву"
+"This chat lives in an archive file — its messages are unpacked automatically when someone opens it and are dropped again a couple of hours later.","Цей чат зберігається в архівному файлі — його повідомлення розпаковуються автоматично, щойно хтось його відкриє, і за кілька годин видаляються знову."
+"Keep the unpacked messages for good and delete the archive file. The chat becomes an ordinary archived chat that can be made active again.","Залишити розпаковані повідомлення назавжди й видалити архівний файл. Чат стане звичайним архівним чатом, який можна повернути в роботу."
+"Return this chat from the deep archive? Its messages and files stay in the chat and the archive file is deleted. Afterwards the chat can be unarchived as usual.","Повернути цей чат із глибокого архіву? Повідомлення та файли залишаться в чаті, а архівний файл буде видалено. Після цього чат можна буде повернути з архіву як звичайно."
+"The archive is busy — wait for the current operation to finish.","Архів зараз зайнятий — зачекайте, доки завершиться поточна операція."
+"Unpacking the messages…","Розпаковуємо повідомлення…"
+"Nothing to do — the messages appear as soon as unpacking is done.","Нічого робити не треба — повідомлення з’являться, щойно розпакування завершиться."
+"Unpacking did not finish. Try again, or contact an administrator.","Розпакування не завершилося. Спробуйте ще раз або зверніться до адміністратора."
+"Open chat info: participants, media, files and links.","Відкрити інформацію про чат: учасники, медіа, файли та посилання."
+"Play the notification sound for this chat again.","Знову відтворювати звук сповіщень для цього чату."
+"Silence the notification sound for this chat on all your devices.","Вимкнути звук сповіщень для цього чату на всіх ваших пристроях."
+"Return the chat to the active list — everyone in it sees it there again.","Повернути чат до активного списку — усі учасники знову побачать його там."
+"Move the chat to the Archive section for everyone. It keeps all its messages.","Перемістити чат у розділ «Архів» для всіх. Усі повідомлення зберігаються."
+"Pack the chat into an archive file and free the database. It is unpacked automatically the next time someone opens it.","Запакувати чат в архівний файл і звільнити базу даних. Він розпакується автоматично, щойно хтось його відкриє."
+"Delete the chat with all its messages and files. This cannot be undone.","Видалити чат разом з усіма повідомленнями та файлами. Дію неможливо скасувати."
+"The chat archive is missing","Архівний файл чату відсутній"
+"The chat archive is corrupt","Архівний файл чату пошкоджено"
+"The chat archive is incomplete","Архівний файл чату неповний"
+"The chat archive is missing an attachment","В архіві чату бракує вкладення"
+"Unexpected archive version","Непідтримувана версія архіву"
+"This chat is too large to unpack","Цей чат завеликий для розпакування"
+"Chat Settings","Налаштування чату"
+"Archive a chat about a document once it has been quiet for long enough. Archived document chats become read-only.","Архівувати чат про документ, коли в ньому достатньо довго немає активності. Архівовані чати про документи стають лише для читання."
+"Days without a new message before a document chat is archived","Скільки днів без нових повідомлень має пройти, перш ніж чат про документ буде заархівовано"
+"How many chats the daily job archives per run","Скільки чатів щоденне завдання архівує за один запуск"
+"Pack archived chats into a deep archive automatically once they are old enough","Автоматично пакувати архівовані чати в глибокий архів, коли вони пролежать в архіві достатньо довго"
+"Days a chat must stay in the archive before it is packed automatically","Скільки днів чат має пробути в архіві, перш ніж його буде запаковано автоматично"
+"How many chats the daily job packs per run","Скільки чатів щоденне завдання пакує за один запуск"
+"How long unpacked content stays available after it was last opened","Скільки часу розпакований вміст залишається доступним після останнього перегляду"
+"Refuse to unpack a chat with more messages than this","Не розпаковувати чат, якщо повідомлень у ньому більше за це значення"
+"How many expired chats are cleaned up per run","Скільки чатів з простроченим розпакованим вмістом очищується за один запуск"
+"A packing or unpacking job stuck for longer than this is considered dead and reset","Завдання пакування або розпакування, яке зависло довше за цей час, вважається мертвим і скидається"
+"Deep Archive","Глибокий архів"
+"Deep Archive Automatically","Архівувати глибоко автоматично"
+"Deep Archive After (Days)","Глибокий архів через (днів)"
+"Chats Per Run","Чатів за один запуск"
+"Keep Unpacked Content For (Hours)","Зберігати розпакований вміст (годин)"
+"Maximum Messages To Unpack","Максимум повідомлень для розпакування"
+"Cleanup Batch Size","Розмір пакета очищення"
+"Stuck Job Timeout (Minutes)","Таймаут зависань (хвилин)"
+"{0} must be greater than zero","{0} має бути більше нуля"
+"Archived On","Архівовано"
+"Archive","Архів"
+"Archive Document Chats Automatically","Архівувати чати документів автоматично"
+"Archive After (Days Without Messages)","Архівувати через (днів без повідомлень)"
+"Chats Archived Per Run","Чатів архівується за один запуск"
+"Move this chat out of the archive?","Повернути цей чат з архіву?"
+"Archive this chat? It moves to the Archive section and becomes read-only — nobody will be able to write in it until it is unarchived.","Заархівувати цей чат? Він переїде в розділ «Архів» і стане лише для читання — писати в нього не зможе ніхто, доки його не повернуть з архіву."
+"Archive this chat? It moves to the Archive section. You can still write in it.","Заархівувати цей чат? Він переїде в розділ «Архів». Писати в нього можна й далі."
+"ESKD Document","Документ ЄСКД"
+"ESKD Document Type","Тип документа ЄСКД"
+"ESKD Product","Виріб ЄСКД"
+"Document Code","Позначення документа"
+"Document Name","Назва документа"
+"Organization Code","Код організації"
+"Product Name","Назва виробу"
+"Type Name","Назва типу"
+"Specification Kind","Вид специфікації"
+"Ordinal","Порядковий номер"
+"Coil","Котушка"
+"Battery","Батарея"
+"Board","Борт"
+"Ground Station","Наземна станція"
+"Catalog","Каталог"
+"Classification","Класифікація"
+"Import Source","Джерело імпорту"
+"Source Sheet","Аркуш джерела"
+"Source Cell","Комірка джерела"
+"Superseded","Замінено"
+"Revision","Ревізія"
+"Links","Зв'язки"
+"Ordinal Digits","Розрядність порядкового номера"
+"Technical Specification (ТУ)","Технічні умови (ТУ)"
+"ТУ Number","Номер ТУ"
+"ТУ Note","Примітка до ТУ"
+"Duplicate ЄСКД Document","Дубльований документ ЄСКД"
+"{0} is already registered for product {1} as {2}","{0} вже зареєстровано для виробу {1} як {2}"
+"ESKD Documentation","Документація ЄСКД"
+"Specification Component Role","Роль компонента специфікації"
+"ESKD BpAK Matrix","Матриця БпАК"
+"Board Specification","Специфікація борту"
+"Ground Station Specification","Специфікація НСУ"
+"Board Code","Шифр борту"
+"Ground Station Code","Шифр НСУ"
+"Modification Number","Номер модифікації"
+"BpAK Code","Шифр БпАК"
+"Intersection","Перетин"
+"Select a product","Оберіть виріб"
+"No modifications for this product","Немає модифікацій для цього виробу"
+"Unassigned modifications","Непризначені модифікації"
+"Click to assign a modification","Натисніть, щоб призначити модифікацію"
+"Click to release","Натисніть, щоб звільнити"
+"Modification List Exhausted","Список модифікацій вичерпано"
+"No unassigned modification is left for this board — add one first.","Для цього борту не залишилось непризначених модифікацій — спочатку додайте нову."
+"Modification {0} already exists for {1}","Модифікація {0} вже існує для {1}"
+"Duplicate Intersection","Дубльований перетин"
+"{0} is already paired with {1} in modification {2}","{0} вже поєднано з {1} у модифікації {2}"
+"Component Specifications","Складові специфікації"
+"Components","Складові"
+"Role","Роль"
+"Role Name","Назва ролі"
+"Component Role","Роль компонента"
+"BpAK","БпАК"
+"Click to create a БпАК","Натисніть, щоб створити БпАК"
+"No drone specifications yet","Ще немає специфікацій бортів"
+"The БпАК specification template is missing — run the ЄСКД setup first.","Відсутній шаблон специфікації БпАК — спочатку виконайте налаштування ЄСКД."
+"Generated from the template Variant Name Pattern for variants.","Для варіантів формується за шаблоном назви варіанта."
+"Item Template","Шаблон товару"
+"Item Attributes","Атрибути товару"
+"The Item template this catalog describes. Only its attributes can be used below.","Шаблон товару, який описує цей каталог. Нижче можна використовувати лише його атрибути."
+"{0} is not an Item template — pick an Item that has variants","{0} не є шаблоном товару — оберіть товар, який має варіанти"
+"Attribute Not On Item Template","Атрибут відсутній у шаблоні товару"
+"{0} is not a value of attribute {1}. Allowed: {2}","{0} не є значенням атрибута {1}. Дозволені: {2}"
+"Invalid Attribute Value","Некоректне значення атрибута"
+"Ordinal is required — {0} numbers this catalog by its position","Потрібен порядковий номер — {0} нумерує цей каталог за позицією"
+"Ordinal Missing","Немає порядкового номера"
+"Attributes {0} are not on Item template {1}. Give them a fixed value to keep them, or remove them.","Атрибутів {0} немає в шаблоні товару {1}. Задайте їм фіксоване значення або приберіть їх."
+"Attribute Value Map","Відповідність значень атрибутів"
+"Designation Part","Частина позначення"
+"Used in the designation instead of the abbreviation or short name.","Використовується в позначенні замість абревіатури чи короткої назви."
+"Maps an attribute value to the text used in the designation, e.g. Торгова марка «Укропчик» → УКРП.","Задає, який текст підставляти в позначення для значення атрибута, напр. Торгова марка «Укропчик» → УКРП."
+"Taken: {0}","Зайняті: {0}"
+"First entry of this catalog","Перший запис цього каталогу"
+"Ordinal Taken","Порядковий номер зайнято"
+"Position {0} is already used by {1}","Позицію {0} вже займає {1}"
+"Designation {0} already belongs to {1}","Позначення {0} вже належить {1}"
+"Duplicate Designation","Дубль позначення"
+"Required Month","Місяць на коли треба"
+"January","Січень"
+"February","Лютий"
+"March","Березень"
+"April","Квітень"
+"May","Травень"
+"June","Червень"
+"July","Липень"
+"August","Серпень"
+"September","Вересень"
+"October","Жовтень"
+"November","Листопад"
+"December","Грудень"
+"{} Active","{} активних"
+"{} Assigned","{} призначено"
+"Unresolved Specification Formula","Не обчислена формула специфікації"
+"Specification formulas could not be calculated:","Не вдалося обчислити формули специфікації:"
+"A token like {0} reads a specification parameter of the item linked to that attribute value. Fill in the missing parameter on the linked item, then save again.","Токен виду {0} читає параметр специфікації товару, привʼязаного до цього значення атрибута. Заповніть відсутній параметр у привʼязаному товарі та збережіть знову."
+"Available tokens:","Доступні токени:"
+"none","немає"
+"Re-sync Variants","Оновити варіанти"
+"Re-save every variant of {0} so it picks up this template's specification parameters?","Перезберегти всі варіанти {0}, щоб вони підхопили параметри специфікації цього шаблону?"
+"Re-syncing variants...","Оновлення варіантів..."
+"Variant Specification Re-sync","Оновлення специфікації варіантів"
+"Updated: {0}","Оновлено: {0}"
+"Already up to date: {0}","Вже актуальні: {0}"
+"Failed: {0}","Не вдалося: {0}"
+"Unknown error","Невідома помилка"
+"Responsible Employee","Відповідальний за товар"
+"Source Responsible Employee","Відповідальний за товар (відправник)"
+"Target Responsible Employee","Відповідальний за товар (отримувач)"
+"Rejected Responsible Employee","Відповідальний за товар (брак)"
+"Responsible Employee Required","Потрібен відповідальний за товар"
+"Row {0}: {1} is mandatory for warehouse {2}","Рядок {0}: {1} обов'язковий для складу {2}"

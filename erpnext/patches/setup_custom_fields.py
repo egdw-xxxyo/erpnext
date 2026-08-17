@@ -5,6 +5,8 @@ Or via bench console and calling execute() manually.
 """
 import frappe
 
+from erpnext.stock.responsible_employee import RESPONSIBLE_EMPLOYEE_DIMENSION
+
 
 def execute():
 	create_workflow_states()
@@ -36,6 +38,10 @@ def execute():
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
 	setup_procurement_custom_fields()
+	remove_duplicate_lead_custom_fields()
+	setup_chat_manager_role()
+	restore_standard_navbar_items()
+	create_responsible_employee_dimension()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -846,6 +852,182 @@ def setup_lead_next_action_notification():
 		}
 	).insert(ignore_permissions=True)
 	print(f"  Created Notification: {name}")
+
+
+def remove_duplicate_lead_custom_fields():
+	"""Drop Custom Fields on Lead that a standard field in lead.json now provides.
+
+	The «Запит» fields were first built in the desk UI and only later codified into
+	lead.json. Both copies survived, and the Custom Field copy wins the form layout —
+	every fork section was rendered at the end of the tab instead of its own place.
+	Deleting the Custom Field keeps the data: fieldname == column name, so the values
+	simply belong to the standard field from now on.
+	"""
+	standard = set(frappe.db.get_values("DocField", {"parent": "Lead"}, "fieldname", pluck=True) or [])
+	duplicates = [
+		cf
+		for cf in frappe.get_all("Custom Field", filters={"dt": "Lead"}, fields=["name", "fieldname"])
+		if cf.fieldname in standard
+	]
+
+	if not duplicates:
+		print("  No duplicate Lead custom fields")
+		return
+
+	for cf in duplicates:
+		frappe.delete_doc("Custom Field", cf.name, ignore_permissions=True, force=True)
+		print(f"  Removed duplicate Custom Field: Lead.{cf.fieldname}")
+
+	frappe.clear_cache(doctype="Lead")
+
+
+def _restore_standard_perms(doctype):
+	"""Make sure every standard DocPerm row of `doctype` also exists as a Custom DocPerm.
+
+	Custom DocPerm is all-or-nothing: one row shadows the whole standard permission set. The
+	standard rows themselves survive in `tabDocPerm` (migrate re-syncs them from the DocType
+	JSON), so they can be copied back verbatim.
+	"""
+	standard = frappe.get_all("DocPerm", fields="*", filters={"parent": doctype})
+	if not standard:
+		return
+
+	existing = {
+		(p.role, p.permlevel, p.if_owner)
+		for p in frappe.get_all(
+			"Custom DocPerm",
+			fields=["role", "permlevel", "if_owner"],
+			filters={"parent": doctype},
+		)
+	}
+	for row in standard:
+		if (row.role, row.permlevel, row.if_owner) in existing:
+			continue
+		custom = frappe.new_doc("Custom DocPerm")
+		custom.update(row)
+		custom.insert(ignore_permissions=True)
+		print(f"  Restored Custom DocPerm: {doctype} / {row.role} (permlevel {row.permlevel})")
+
+
+def setup_chat_manager_role():
+	"""Role that may permanently remove an archived chat with all its messages and files
+	(see employee_chat.purge_thread — the check is a plain role-level delete permission on
+	Chat Thread, so it can be re-assigned in the Role Permission Manager)."""
+	role = "Chat Manager"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc(
+			{
+				"doctype": "Role",
+				"role_name": role,
+				"desk_access": 1,
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Role: {role}")
+
+	doctype = "Chat Thread"
+	if not frappe.db.exists("DocType", doctype):
+		print(f"  Skipped perms, DocType missing: {doctype}")
+		return
+
+	# The moment one Custom DocPerm row exists for a DocType, frappe's meta REPLACES the
+	# standard permissions with the custom ones (Meta.set_custom_permissions). Inserting the
+	# Chat Manager row on its own therefore deleted read for System Manager and Employee, and
+	# the chat launcher disappeared for everyone (it gates on `can_read` for Chat Thread).
+	# Copy the standard rows into Custom DocPerm first, and repair installs that lost them.
+	_restore_standard_perms(doctype)
+
+	if frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+		print(f"  Custom DocPerm exists: {doctype} / {role}")
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Custom DocPerm",
+			"parent": doctype,
+			"parenttype": "DocType",
+			"parentfield": "permissions",
+			"role": role,
+			"permlevel": 0,
+			"read": 1,
+			"delete": 1,
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Custom DocPerm: {doctype} / {role}")
+
+
+def restore_standard_navbar_items():
+	"""Put back the standard entries of the navbar dropdowns.
+
+	On 2026-08-07 a migrate emptied `Navbar Settings.settings_dropdown` down to a single stale
+	"Delete Demo Data" row (its action calls `erpnext.demo`, a module that no longer exists), so
+	the avatar menu rendered as an empty white box — no My Settings, no Log out. The items are
+	seeded only by `frappe.utils.install.add_standard_navbar_items`, which returns early once both
+	dropdowns are non-empty, so nothing ever repaired it.
+
+	Matching is by `item_label`, the key frappe itself uses in its navbar patches. Rows that exist
+	are left alone (a hidden standard item stays hidden), so this is safe on every deploy.
+	"""
+	settings = frappe.get_single("Navbar Settings")
+	changed = False
+
+	dead = [row for row in settings.settings_dropdown if row.action and "erpnext.demo" in row.action]
+	for row in dead:
+		settings.settings_dropdown.remove(row)
+		changed = True
+		print(f"  Removed dead navbar item: {row.item_label}")
+
+	for fieldname, hook in (
+		("settings_dropdown", "standard_navbar_items"),
+		("help_dropdown", "standard_help_items"),
+	):
+		have = {(row.item_label or "").strip() for row in settings.get(fieldname)}
+		for item in frappe.get_hooks(hook):
+			label = (item.get("item_label") or "").strip()
+			# The separator has no label and no identity — only add one if the list is empty.
+			if not label and have:
+				continue
+			if label in have:
+				continue
+			settings.append(fieldname, item)
+			have.add(label)
+			changed = True
+			print(f"  Restored navbar item: {fieldname} / {label or 'Separator'}")
+
+	if not changed:
+		print("  Navbar items OK")
+		return
+
+	# Deleting a standard item is refused by NavbarSettings.validate outside of a patch run.
+	frappe.flags.in_patch = True
+	try:
+		settings.save(ignore_permissions=True)
+	finally:
+		frappe.flags.in_patch = False
+	frappe.clear_cache()
+
+
+def create_responsible_employee_dimension():
+	"""Track the person a stock item belongs to as an Inventory Dimension.
+
+	Replaces the per-person warehouses under "МО": one R&D warehouse plus a
+	Responsible Employee dimension that keeps a per-person balance inside it.
+	The doctype creates the Link fields on every stock document and the
+	`responsible_employee` column on Stock Ledger Entry by itself.
+	"""
+	if frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION}):
+		print(f"  Inventory Dimension exists: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Inventory Dimension",
+			"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION,
+			"reference_document": "Employee",
+			"apply_to_all_doctypes": 1,
+			"reqd": 0,
+			"validate_negative_stock": 0,
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
 
 def _create_custom_fields(fields):

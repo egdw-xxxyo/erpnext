@@ -73,11 +73,14 @@ def execute(filters=None):
 		inv_dimension_wise_dict, filters, inv_dimension_key=inv_dimension_key, opening_row=opening_row
 	)
 
+	voucher_remarks = get_voucher_remarks(sl_entries)
+
 	item_wh_wise_prev_sle = {}
 	for sle in sl_entries:
 		item_detail = item_details[sle.item_code]
 
 		sle.update(item_detail)
+		sle.voucher_remarks = voucher_remarks.get((sle.voucher_type, sle.voucher_no))
 		if bundle_info := bundle_details.get(sle.serial_and_batch_bundle):
 			data.extend(get_segregated_bundle_entries(sle, bundle_info, batch_balance_dict, filters))
 			continue
@@ -336,6 +339,12 @@ def get_columns(filters):
 				"convertible": "qty",
 			},
 			{
+				"label": _("Notes"),
+				"fieldname": "voucher_remarks",
+				"fieldtype": "Small Text",
+				"width": 200,
+			},
+			{
 				"label": _("Warehouse"),
 				"fieldname": "warehouse",
 				"fieldtype": "Link",
@@ -355,6 +364,7 @@ def get_columns(filters):
 				"fieldtype": "Link",
 				"options": "Brand",
 				"width": 100,
+				"hidden": 1,
 			},
 			{"label": _("Description"), "fieldname": "description", "width": 200},
 			{
@@ -847,3 +857,32 @@ def get_inv_dimension_wise_value(filters) -> list:
 		inv_dimension_key["project"] = filters.get("project")
 
 	return inv_dimension_key
+
+
+REMARKS_FIELD = "custom_примітки"
+REMARKS_VOUCHER_TYPES = ("Stock Entry", "Purchase Receipt", "Delivery Note")
+
+
+def get_voucher_remarks(sl_entries) -> dict:
+	vouchers = {}
+	for sle in sl_entries:
+		if sle.get("voucher_type") in REMARKS_VOUCHER_TYPES and sle.get("voucher_no"):
+			vouchers.setdefault(sle.voucher_type, set()).add(sle.voucher_no)
+
+	remarks = {}
+	for voucher_type, voucher_nos in vouchers.items():
+		if not frappe.db.has_column(voucher_type, REMARKS_FIELD):
+			continue
+
+		table = frappe.qb.DocType(voucher_type)
+		rows = (
+			frappe.qb.from_(table)
+			.select(table.name, table[REMARKS_FIELD].as_("remarks"))
+			.where(table.name.isin(list(voucher_nos)))
+		).run(as_dict=True)
+
+		for row in rows:
+			if row.remarks:
+				remarks[(voucher_type, row.name)] = row.remarks
+
+	return remarks

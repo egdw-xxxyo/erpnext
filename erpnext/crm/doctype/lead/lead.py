@@ -107,6 +107,7 @@ class Lead(SellingController, CRMNote):
 			"Other",
 		]
 		requirement: DF.Table[LeadRequirement]
+		required_month: DF.Date | None
 		return_date: DF.Date | None
 		salutation: DF.Link | None
 		source: DF.Link | None
@@ -148,6 +149,7 @@ class Lead(SellingController, CRMNote):
 		self.validate_conversion_status()
 		self.validate_status_requirements()
 		self.set_next_action_overdue()
+		self.set_required_month()
 
 	def before_insert(self):
 		self.contact_doc = None
@@ -324,6 +326,11 @@ class Lead(SellingController, CRMNote):
 			and self.status not in FINAL_STATUSES
 		)
 		self.next_action_overdue = 1 if overdue else 0
+
+	def set_required_month(self):
+		"""Only the month matters, so snap any incoming date to the 1st for unambiguous grouping."""
+		if self.required_month:
+			self.required_month = getdate(self.required_month).replace(day=1)
 
 	def share_with_lead_owner(self):
 		"""Give the responsible manager individual access, since Sales Users only see their own Leads."""

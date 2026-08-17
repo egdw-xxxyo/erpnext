@@ -27790,7 +27790,7 @@ msgstr "Елемент основного виробничого графіка"
 #. Label of a Card Break in the CRM Workspace
 #: erpnext/crm/workspace/crm/crm.json
 msgid "Masters"
-msgstr "Masters"
+msgstr "Довідники"
 
 #: erpnext/projects/doctype/project/project_dashboard.py:14
 msgid "Material"

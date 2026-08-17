@@ -23,7 +23,25 @@
   "reference_label",
   "column_break_reference",
   "is_archived",
+  "archived_on",
   "reference_removed",
+  "archive_policy_section",
+  "disable_archive",
+  "disable_deep_archive",
+  "deep_archive_section",
+  "deep_archive_status",
+  "is_deep_archived",
+  "deep_archived_on",
+  "deep_archived_by",
+  "archived_message_count",
+  "archived_file_count",
+  "column_break_deep_archive",
+  "restore_expires_on",
+  "restore_progress",
+  "restore_error",
+  "deep_archive_path",
+  "deep_archive_sha256",
+  "deep_archive_size",
   "participants_section",
   "participants"
  ],
@@ -129,11 +147,129 @@
    "read_only": 1
   },
   {
+   "description": "When the chat was archived — drives the age-based deep archive job",
+   "fieldname": "archived_on",
+   "fieldtype": "Datetime",
+   "label": "Archived On",
+   "read_only": 1
+  },
+  {
    "default": "0",
    "description": "The linked record was deleted; the ghost reference is kept for context",
    "fieldname": "reference_removed",
    "fieldtype": "Check",
    "label": "Reference Removed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "archive_policy_section",
+   "fieldtype": "Section Break",
+   "label": "Archive Policy"
+  },
+  {
+   "default": "0",
+   "description": "Nobody can archive this chat and the scheduled auto-archive job skips it.",
+   "fieldname": "disable_archive",
+   "fieldtype": "Check",
+   "label": "Do Not Archive"
+  },
+  {
+   "default": "0",
+   "description": "This chat is never packed into an archive file, by hand or by the scheduled job.",
+   "fieldname": "disable_deep_archive",
+   "fieldtype": "Check",
+   "label": "Do Not Deep Archive"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "deep_archive_section",
+   "fieldtype": "Section Break",
+   "label": "Deep Archive"
+  },
+  {
+   "description": "Lifecycle of the zipped archive",
+   "fieldname": "deep_archive_status",
+   "fieldtype": "Select",
+   "label": "Deep Archive Status",
+   "options": "\nPacking\nArchived\nRestoring\nRestored\nFailed",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "The zip is the source of truth: any messages in the database are a temporary unpacked copy",
+   "fieldname": "is_deep_archived",
+   "fieldtype": "Check",
+   "label": "Deep Archived",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deep_archived_on",
+   "fieldtype": "Datetime",
+   "label": "Deep Archived On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deep_archived_by",
+   "fieldtype": "Link",
+   "label": "Deep Archived By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "archived_message_count",
+   "fieldtype": "Int",
+   "label": "Archived Messages",
+   "read_only": 1
+  },
+  {
+   "fieldname": "archived_file_count",
+   "fieldtype": "Int",
+   "label": "Archived Files",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_deep_archive",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "When the unpacked copy is dropped again",
+   "fieldname": "restore_expires_on",
+   "fieldtype": "Datetime",
+   "label": "Unpacked Until",
+   "read_only": 1
+  },
+  {
+   "fieldname": "restore_progress",
+   "fieldtype": "Int",
+   "label": "Unpack Progress",
+   "read_only": 1
+  },
+  {
+   "fieldname": "restore_error",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Unpack Error",
+   "read_only": 1
+  },
+  {
+   "description": "Site-relative path of the archive. Never returned by an API.",
+   "fieldname": "deep_archive_path",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Archive Path",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deep_archive_sha256",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Archive Checksum",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deep_archive_size",
+   "fieldtype": "Int",
+   "label": "Archive Size (bytes)",
    "read_only": 1
   },
   {
@@ -150,7 +286,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-07-23 00:00:00.000000",
+ "modified": "2026-08-10 21:06:32.722215",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Chat Thread",

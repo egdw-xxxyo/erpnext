@@ -13,7 +13,8 @@ class SpecificationNumberTemplate(Document):
 			if c.condition_attribute and c.condition_value:
 				token = f"[if {c.condition_attribute}={c.condition_value}]{token}"
 			parts.append(token)
-		return "".join(parts)
+		# `preview` is a Data field: a template with several attribute tokens overflows it
+		return "".join(parts)[:140]
 
 
 def _component_token(c):
@@ -26,7 +27,25 @@ def _component_token(c):
 		return "{ATTR:" + (c.attribute_link or "") + ":short_name}"
 	if t == "Item Attribute Value":
 		return "{ATTR:" + (c.attribute_link or "") + ":value}"
+	if t == "Ordinal":
+		return "{ORDINAL:" + str(c.ordinal_digits or 2) + "}"
+	if t == "Specification Ordinal":
+		return "{" + (c.component_role or "?") + ":" + str(c.ordinal_digits or 2) + "}"
 	return ""
+
+
+def _mapped_value(tmpl, attribute, attribute_value):
+	for row in tmpl.get("value_map") or []:
+		if row.attribute == attribute and row.attribute_value == attribute_value:
+			return row.mapped_value
+	return None
+
+
+def _component_in_role(item_doc, role):
+	for row in item_doc.get("components") or []:
+		if row.get("role") == role:
+			return row.get("specification")
+	return None
 
 
 def _condition_matches(component, attr_map):
@@ -63,12 +82,36 @@ def resolve_specification_template(item_doc):
 		if t == "Literal":
 			parts.append(c.value or "")
 			continue
+		if t == "Ordinal":
+			ordinal = item_doc.get("ordinal")
+			if not ordinal:
+				return None
+			parts.append(str(int(ordinal)).zfill(int(c.ordinal_digits or 2)))
+			continue
+		if t == "Specification Ordinal":
+			# The board designation carries the catalog position of the coil and the
+			# battery it is built from, so this component reads the ordinal off the
+			# child specification sitting in that role rather than off this document.
+			linked = _component_in_role(item_doc, c.component_role)
+			if not linked:
+				return None
+			ordinal = frappe.db.get_value("Specification", linked, "ordinal")
+			if not ordinal:
+				return None
+			parts.append(str(int(ordinal)).zfill(int(c.ordinal_digits or 2)))
+			continue
 		attr = c.attribute_link
 		if not attr:
 			continue
 		attr_value = attr_map.get(attr)
 		if attr_value is None:
 			return None
+		# A value can be mapped to its designation text on the template itself, which is
+		# how Торгова марка «Укропчик» becomes УКРП without touching the Item attribute.
+		mapped = _mapped_value(tmpl, attr, attr_value)
+		if mapped:
+			parts.append(mapped)
+			continue
 		if t == "Item Attribute Value":
 			parts.append(str(attr_value))
 			continue

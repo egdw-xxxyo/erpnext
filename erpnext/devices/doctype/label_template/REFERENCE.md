@@ -34,6 +34,33 @@ Children with `position:absolute; top:0; left:0; width:100%; height:100%` fill t
 | `{{ frappe.format(value, df) }}` | Frappe value formatter. |
 | `{{ _("text") }}` | Translation function. |
 
+## Field mapping
+
+`field_mapping` is JSON that fills extra `doc.*` keys before rendering. Spec parameters of the
+item are always injected as flat keys (`Струм заряду` → `doc.струм_заряду`); the mapping is for
+renames, other sources and transforms.
+
+Precedence: a value supplied by the caller — a real field of the document, or `preview_data` —
+always wins. A mapping entry **does** override an auto-injected spec key, so a template can aim
+`напруга_комірки` at the parameter `Напруга повна комірки` instead of `Напруга комірки`.
+
+```json
+{
+  "name":          {"source": "doc",       "param": "name"},
+  "ємність":       {"source": "spec",      "param": "Ємність"},
+  "хімія":         {"source": "spec",      "param": "Конфігурація", "transform": "chemistry"},
+  "торгова_марка": {"source": "attribute", "param": "Торгова марка"}
+}
+```
+
+| `source` | Reads from |
+|---|---|
+| `doc` | A field of the source document. |
+| `spec` | `Item Specification Parameter` of `doc.item_code` (`calculated_value` first, then `value`). |
+| `attribute` | `Item Variant Attribute` of `doc.item_code` — `param` is the attribute name, value is stripped. |
+
+`transform: "chemistry"` maps a `Конфігурація` starting with `2` to `Po`, otherwise `ion`.
+
 ## Custom tags
 
 ### `<barcode>` — inline barcode/QR image

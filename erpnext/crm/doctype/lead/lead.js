@@ -72,6 +72,8 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 			frappe.contacts.clear_address_and_contact(this.frm);
 		}
 
+		erpnext.utils.month_field.apply(this.frm, "required_month");
+
 		this.show_notes();
 		this.show_activities();
 	}

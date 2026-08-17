@@ -12,11 +12,23 @@
   "specification_code",
   "specification_name",
   "disabled",
+  "has_variants",
   "column_break_basic",
   "variant_of",
   "specification_number_template",
+  "section_catalog",
+  "specification_kind",
+  "item_template",
+  "item_template_attributes",
+  "organization_code",
+  "column_break_catalog",
+  "ordinal",
+  "product",
+  "section_components",
+  "components",
+  "section_parameters",
+  "parameters",
   "section_variants",
-  "has_variants",
   "variant_name_pattern",
   "section_attributes",
   "attributes",
@@ -34,17 +46,17 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Specification Code",
-   "read_only_depends_on": "eval:doc.specification_number_template && doc.variant_of",
+   "read_only_depends_on": "eval:!!doc.variant_of",
    "reqd": 1,
    "unique": 1
   },
   {
-   "description": "Name used as the document ID. For variants, auto-resolved from the template's Variant Name Pattern.",
+   "description": "Generated from the template Variant Name Pattern for variants.",
    "fieldname": "specification_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Specification Name",
-   "read_only_depends_on": "eval:doc.variant_of",
+   "read_only_depends_on": "eval:!!doc.variant_of",
    "reqd": 1,
    "unique": 1
   },
@@ -76,9 +88,73 @@
    "set_only_once": 1
   },
   {
+   "fieldname": "section_catalog",
+   "fieldtype": "Section Break",
+   "label": "Catalog"
+  },
+  {
+   "description": "Which ЄСКД catalog this specification belongs to.",
+   "fieldname": "specification_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Specification Kind",
+   "options": "\nBoard\nCoil\nBattery\nGround Station\nBpAK\nOther"
+  },
+  {
+   "default": "УКРП",
+   "description": "Organization code prefix of the ЄСКД designation (УКРП, ВРНК).",
+   "fieldname": "organization_code",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Organization Code"
+  },
+  {
+   "fieldname": "column_break_catalog",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Sequential number within the catalog, used by the Ordinal component of a Specification Number Template.",
+   "fieldname": "ordinal",
+   "fieldtype": "Int",
+   "label": "Ordinal",
+   "depends_on": "eval:!doc.has_variants"
+  },
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "ESKD Product"
+  },
+  {
+   "description": "Specifications this one is built from, each in a role: a drone takes a coil and a battery, a БпАК takes a drone and a ground station. The Specification Number Template reads the Ordinal of a component by its role.",
+   "fieldname": "section_components",
+   "fieldtype": "Section Break",
+   "label": "Component Specifications"
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Specification Component"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_parameters",
+   "fieldtype": "Section Break",
+   "label": "Parameters"
+  },
+  {
+   "fieldname": "parameters",
+   "fieldtype": "Table",
+   "label": "Parameters",
+   "options": "Item Specification Parameter"
+  },
+  {
    "fieldname": "section_variants",
    "fieldtype": "Section Break",
-   "label": "Variants"
+   "label": "Variants",
+   "depends_on": "has_variants"
   },
   {
    "default": "0",
@@ -117,6 +193,22 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
+  },
+  {
+   "depends_on": "eval:doc.has_variants || doc.item_template",
+   "description": "The Item template this catalog describes. Only its attributes can be used below.",
+   "fieldname": "item_template",
+   "fieldtype": "Link",
+   "label": "Item Template",
+   "options": "Item",
+   "read_only_depends_on": "eval:!!doc.variant_of"
+  },
+  {
+   "depends_on": "item_template",
+   "fieldname": "item_template_attributes",
+   "fieldtype": "Small Text",
+   "label": "Item Attributes",
+   "read_only": 1
   }
  ],
  "icon": "fa fa-file-text-o",

@@ -297,6 +297,16 @@ frappe.ui.form.on("Item", {
 
 			// frm.page.set_inner_btn_group_as_primary(__('Create'));
 		}
+		if (frm.doc.has_variants && (frm.doc.item_spec_parameters || []).length) {
+			frm.add_custom_button(
+				__("Re-sync Variants"),
+				function () {
+					erpnext.item.resync_variant_specs(frm);
+				},
+				__("Specification")
+			);
+		}
+
 		if (frm.doc.variant_of) {
 			frm.set_intro(
 				__("This Item is a Variant of {0} (Template).", [
@@ -1193,3 +1203,42 @@ function open_form(frm, doctype, child_doctype, parentfield) {
 		]);
 	});
 }
+
+erpnext.item.resync_variant_specs = function (frm) {
+	frappe.confirm(
+		__("Re-save every variant of {0} so it picks up this template's specification parameters?", [
+			frm.doc.name,
+		]),
+		function () {
+			frappe.call({
+				method: "erpnext.stock.doctype.item_specification_parameter.variant_sync.resync_template_variants",
+				args: { template: frm.doc.name },
+				freeze: true,
+				freeze_message: __("Re-syncing variants..."),
+				callback: function (r) {
+					if (!r.message) return;
+					let { updated, unchanged, failed } = r.message;
+					let lines = [
+						__("Updated: {0}", [updated.length]),
+						__("Already up to date: {0}", [unchanged.length]),
+					];
+					if (failed.length) {
+						lines.push(__("Failed: {0}", [failed.length]));
+						for (let f of failed) {
+							lines.push(
+								`<b>${frappe.utils.escape_html(f.item)}</b>: ${frappe.utils.escape_html(
+									f.error
+								)}`
+							);
+						}
+					}
+					frappe.msgprint({
+						title: __("Variant Specification Re-sync"),
+						message: lines.join("<br>"),
+						indicator: failed.length ? "orange" : "green",
+					});
+				},
+			});
+		}
+	);
+};

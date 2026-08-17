@@ -505,6 +505,8 @@ def _spec_param_to_key(param_name):
 def _format_spec_for_label(p):
 	"""Format a spec parameter dict into a display string for label use.
 	Returns the raw value WITHOUT UOM — templates handle units themselves."""
+	from erpnext.stock.doctype.item_specification_parameter.formula_utils import parse_number
+
 	raw = str(p.get("value") or "")
 	is_formula = raw.startswith("=")
 	cv = p.get("calculated_value")
@@ -513,11 +515,19 @@ def _format_spec_for_label(p):
 	if is_formula:
 		return "—"
 	if raw:
-		try:
-			return f"{float(raw):g}"
-		except (ValueError, TypeError):
-			return raw
+		num = parse_number(raw)
+		return f"{num:g}" if num is not None else raw
 	return "—"
+
+
+def _get_item_attributes(item_code):
+	"""Return {attribute name: attribute value} for a variant Item, values stripped."""
+	rows = frappe.get_all(
+		"Item Variant Attribute",
+		filters={"parent": item_code, "parenttype": "Item"},
+		fields=["attribute", "attribute_value"],
+	)
+	return {r.attribute: (r.attribute_value or "").strip() for r in rows}
 
 
 def resolve_field_mapping(template_doc, doc_dict):
@@ -525,10 +535,14 @@ def resolve_field_mapping(template_doc, doc_dict):
 
 	For each spec param, a key is created from the param name (lowercase, spaces→_).
 	E.g. "Струм заряду" → doc_dict["струм_заряду"] = "8.4А"
-	Fields already set in doc_dict are NOT overwritten (preview_data wins).
+	Values passed in by the caller (a real doc field, or preview_data) are never overwritten.
+	An explicit field_mapping entry does override an auto-injected spec key, so a template can
+	point e.g. "напруга_комірки" at a different parameter than the one that owns that key.
 	"""
 	item_code = doc_dict.get("item_code")
 	spec = None
+	attributes = None
+	injected = set()
 
 	if item_code:
 		from erpnext.stock.doctype.item_specification.item_specification import get_spec_for_item
@@ -539,6 +553,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 			key = _spec_param_to_key(param_name)
 			if not doc_dict.get(key):
 				doc_dict[key] = _format_spec_for_label(p)
+				injected.add(key)
 
 	field_mapping = getattr(template_doc, "field_mapping", None)
 	if not field_mapping:
@@ -546,7 +561,7 @@ def resolve_field_mapping(template_doc, doc_dict):
 	try:
 		mapping = json.loads(field_mapping)
 		for field, cfg in mapping.items():
-			if doc_dict.get(field):
+			if doc_dict.get(field) and field not in injected:
 				continue
 			source = cfg.get("source")
 			if source == "doc":
@@ -558,6 +573,10 @@ def resolve_field_mapping(template_doc, doc_dict):
 				if cfg.get("transform") == "chemistry":
 					val = "Po" if str(p.get("value") or "").startswith("2") else "ion"
 				doc_dict[field] = val
+			elif source == "attribute" and item_code:
+				if attributes is None:
+					attributes = _get_item_attributes(item_code)
+				doc_dict[field] = attributes.get(cfg["param"], "")
 	except Exception:
 		pass
 	return doc_dict

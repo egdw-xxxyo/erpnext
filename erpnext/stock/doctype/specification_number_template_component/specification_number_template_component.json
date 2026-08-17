@@ -8,6 +8,8 @@
   "component_type",
   "attribute_link",
   "value",
+  "component_role",
+  "ordinal_digits",
   "condition_attribute",
   "condition_value"
  ],
@@ -17,8 +19,17 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Literal\nItem Attribute Abbr\nItem Attribute Short Name\nItem Attribute Value",
+   "options": "Literal\nItem Attribute Abbr\nItem Attribute Short Name\nItem Attribute Value\nOrdinal\nSpecification Ordinal",
    "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.component_type=='Specification Ordinal'",
+   "description": "For Specification Ordinal: whose Ordinal to emit — the component sitting in this role.",
+   "fieldname": "component_role",
+   "fieldtype": "Link",
+   "label": "Component Role",
+   "mandatory_depends_on": "eval:doc.component_type=='Specification Ordinal'",
+   "options": "Specification Component Role"
   },
   {
    "depends_on": "eval:['Item Attribute Abbr','Item Attribute Short Name','Item Attribute Value'].indexOf(doc.component_type)>=0",
@@ -35,6 +46,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Value"
+  },
+  {
+   "default": "2",
+   "depends_on": "eval:doc.component_type=='Ordinal'",
+   "description": "For Ordinal: zero-pad the document's Ordinal to this many digits.",
+   "fieldname": "ordinal_digits",
+   "fieldtype": "Int",
+   "label": "Ordinal Digits"
   },
   {
    "fieldname": "condition_attribute",

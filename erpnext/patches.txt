@@ -466,3 +466,10 @@ erpnext.patches.v15_0.batt_pack_brand_attribute
 erpnext.patches.v15_0.codify_military_unit
 erpnext.patches.v15_0.rework_lead_status
 erpnext.patches.v15_0.drop_legacy_lead_military_unit_field
+erpnext.patches.v15_0.add_chat_manager_role
+erpnext.patches.v15_0.backfill_chat_archived_on
+erpnext.patches.v15_0.seed_eskd_document_types
+erpnext.patches.v15_0.add_eskd_workspace_card
+erpnext.patches.v15_0.setup_eskd_templates
+erpnext.patches.v15_0.drop_eskd_bpak_combination
+erpnext.patches.v15_0.merge_mo_warehouses_into_rd
