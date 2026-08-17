@@ -41,6 +41,9 @@ def execute():
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
 	create_responsible_employee_dimension()
+	setup_group_access_fields()
+	setup_group_access_role()
+	setup_project_access_permissions()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -1038,3 +1041,124 @@ def _create_custom_fields(fields):
 		)
 		doc.insert(ignore_permissions=True)
 		print(f"  Created Custom Field: {f['dt']}.{f['fieldname']}")
+
+
+def setup_group_access_fields():
+	"""Auto-sharing settings on Employee Group.
+
+	A DocShare row can name an Employee Group instead of a user, so one row grants the whole
+	group access. These fields let a group lead decide that whatever the group creates is
+	shared with the group automatically."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee Group",
+				"fieldname": "group_access_section",
+				"fieldtype": "Section Break",
+				"label": "Group Access",
+				"insert_after": "employee_list",
+			},
+			{
+				"dt": "Employee Group",
+				"fieldname": "auto_share_enabled",
+				"fieldtype": "Check",
+				"label": "Share Created Documents With Group",
+				"description": (
+					"Documents created by a member are shared with the whole group automatically."
+				),
+				"insert_after": "group_access_section",
+			},
+			{
+				"dt": "Employee Group",
+				"fieldname": "auto_share_write",
+				"fieldtype": "Check",
+				"label": "Group Can Edit",
+				"description": "Without this the group only gets read access.",
+				"depends_on": "auto_share_enabled",
+				"insert_after": "auto_share_enabled",
+			},
+			{
+				"dt": "Employee Group",
+				"fieldname": "auto_share_doctypes",
+				"fieldtype": "Table",
+				"label": "Auto-Shared Document Types",
+				"options": "Access Group Doctype",
+				"depends_on": "auto_share_enabled",
+				"insert_after": "auto_share_write",
+			},
+		]
+	)
+
+
+def setup_group_access_role():
+	"""Let a department lead run their own group instead of filing a ticket with the ERP team.
+
+	Employee Group ships with a System Manager-only permission block, which is exactly the
+	bottleneck this feature exists to remove."""
+	role = "Group Access Manager"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Role: {role}")
+
+	doctype = "Employee Group"
+	if not frappe.db.exists("DocType", doctype):
+		print(f"  Skipped perms, DocType missing: {doctype}")
+		return
+
+	# One Custom DocPerm row shadows the whole standard permission block, so copy the
+	# standard rows across before adding ours (same trap as setup_chat_manager_role).
+	_restore_standard_perms(doctype)
+
+	if frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+		print(f"  Custom DocPerm exists: {doctype} / {role}")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Custom DocPerm",
+			"parent": doctype,
+			"parenttype": "DocType",
+			"parentfield": "permissions",
+			"role": role,
+			"permlevel": 0,
+			"read": 1,
+			"write": 1,
+			"create": 1,
+			"report": 1,
+		}
+	).insert(ignore_permissions=True)
+	frappe.clear_cache(doctype=doctype)
+	print(f"  Created Custom DocPerm: {doctype} / {role}")
+
+
+def setup_project_access_permissions():
+	"""Restrict Projects User to its own documents so group sharing decides the rest.
+
+	Stock `project.json` / `task.json` give Projects User a blanket `read`, which is why a
+	user today either sees every project or none. With `if_owner` the role sees only what it
+	created, and `frappe.share` adds back what is shared with the user or their group —
+	db_query's `requires_owner_constraint` branch fetches shared documents specifically for
+	this combination.
+
+	`if_owner` rather than dropping `read`: with no read at all db_query takes the
+	`only_if_shared` path, which throws "No permission to read" instead of showing an empty
+	list to someone who has nothing shared yet."""
+	for doctype in ("Project", "Task"):
+		if not frappe.db.exists("DocType", doctype):
+			continue
+
+		_restore_standard_perms(doctype)
+
+		row = frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": "Projects User", "permlevel": 0})
+		if not row:
+			continue
+
+		if frappe.db.get_value("Custom DocPerm", row, "if_owner"):
+			print(f"  {doctype}: Projects User already restricted to own documents")
+			continue
+
+		frappe.db.set_value("Custom DocPerm", row, "if_owner", 1)
+		frappe.clear_cache(doctype=doctype)
+		print(f"  {doctype}: Projects User restricted to own documents")

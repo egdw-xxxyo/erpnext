@@ -58,6 +58,15 @@ permission_query_conditions = {
 	"File": "erpnext.crm.chat_files.get_permission_query_conditions",
 }
 
+# Access to a parent document reaches its children: whoever can see a Project can see that
+# Project's Tasks and Timesheets. Resolved in `frappe.share.get_inherited_shared`, so it
+# holds for list views, reports and single-document permission checks alike.
+share_access_inheritance = [
+	{"doctype": "Task", "fieldname": "project", "parent_doctype": "Project"},
+	{"doctype": "Task", "fieldname": "parent_task", "parent_doctype": "Task"},
+	{"doctype": "Timesheet", "fieldname": "parent_project", "parent_doctype": "Project"},
+]
+
 has_permission = {
 	# Leads in a final status are read-only until a Sales Manager returns them.
 	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
@@ -361,6 +370,8 @@ doc_events = {
 			"erpnext.setup.doctype.transaction_deletion_record.transaction_deletion_record.check_for_running_deletion_job",
 		],
 		"on_trash": "erpnext.crm.doctype.chat_thread.chat_thread.on_reference_deleted",
+		# share what a group member creates with the whole group
+		"after_insert": "erpnext.setup.doctype.employee_group.group_access.auto_share_on_insert",
 	},
 	tuple(period_closing_doctypes): {
 		"validate": "erpnext.accounts.doctype.accounting_period.accounting_period.validate_accounting_period_on_doc_save",
@@ -411,6 +422,11 @@ doc_events = {
 	# A chat attachment stays inside its thread — it cannot be re-attached elsewhere.
 	"File": {
 		"before_insert": "erpnext.crm.chat_files.block_reuse",
+	},
+	# group membership and auto-share config are cached, drop the cache when they change
+	"Employee Group": {
+		"on_update": "erpnext.setup.doctype.employee_group.group_access.on_group_update",
+		"on_trash": "erpnext.setup.doctype.employee_group.group_access.clear_group_cache",
 	},
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
