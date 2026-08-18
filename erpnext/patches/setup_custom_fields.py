@@ -49,6 +49,7 @@ def execute():
 	setup_group_access_fields()
 	setup_group_access_role()
 	setup_project_access_permissions()
+	setup_serial_no_write_for_stock_user()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -1268,3 +1269,25 @@ def add_serial_attributes_shortcut():
 
 	workspace.save(ignore_permissions=True)
 	print("  Added Stock workspace shortcut: Serial Attributes")
+
+
+def setup_serial_no_write_for_stock_user():
+	"""Let plain stock users fill in serial attributes.
+
+	The «Атрибути серійних номерів» page writes `Additional Attribute Row` children onto the
+	Serial No document, so it needs write on Serial No — stock upstream grants Stock User
+	read only. Granted as a Custom DocPerm (`setup_custom_perms` copies the standard rules
+	first, so Item Manager / Stock Manager keep theirs)."""
+	from frappe.permissions import add_permission, update_permission_property
+
+	doctype = "Serial No"
+	role = "Stock User"
+
+	if not frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+		add_permission(doctype, role, 0)
+
+	for ptype in ("read", "write"):
+		update_permission_property(doctype, role, 0, ptype, 1, validate=False)
+
+	print(f"  Granted write on {doctype} to {role}")
+	frappe.clear_cache()
