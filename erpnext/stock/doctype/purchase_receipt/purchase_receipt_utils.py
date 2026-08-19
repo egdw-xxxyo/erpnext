@@ -1,6 +1,13 @@
 import frappe
 from frappe import _
 
+from erpnext.stock.additional_attributes import (
+	ROW_FIELDNAME,
+	apply_attributes_to_serials,
+	copy_attribute_rows_to,
+	validate_mandatory_attributes,
+)
+
 
 @frappe.whitelist()
 def generate_serial_numbers_for_pr(purchase_receipt_name):
@@ -23,6 +30,8 @@ def generate_serial_numbers_for_pr(purchase_receipt_name):
 		)
 		if not item_details or not item_details.has_serial_no:
 			continue
+
+		validate_mandatory_attributes(pr.get(ROW_FIELDNAME))
 
 		serial_no_series = item_details.serial_no_series
 		if not serial_no_series:
@@ -61,6 +70,7 @@ def generate_serial_numbers_for_pr(purchase_receipt_name):
 		bundle = sbc.make_serial_and_batch_bundle()
 		if bundle and bundle.name:
 			frappe.db.set_value("Serial and Batch Bundle", bundle.name, "voucher_no", pr.name)
+			_carry_additional_attributes(pr, bundle)
 			item.db_set("serial_and_batch_bundle", bundle.name, update_modified=False)
 			item.db_set("use_serial_batch_fields", 0, update_modified=False)
 			created_bundles.append(
@@ -75,6 +85,22 @@ def generate_serial_numbers_for_pr(purchase_receipt_name):
 		frappe.db.commit()
 
 	return created_bundles
+
+
+def _carry_additional_attributes(pr, bundle):
+	"""Copy the receipt's additional attributes onto the bundle and onto the serials it created.
+
+	The children are inserted directly instead of through `bundle.save()`: the bundle was built
+	with `ignore_sabb_validation` and re-saving it would put those validations back in the way.
+	The serials themselves come from `frappe.db.bulk_insert`, so there is no document event to
+	hang the children on either.
+	"""
+	rows = pr.get(ROW_FIELDNAME) or []
+	if not rows:
+		return
+
+	copy_attribute_rows_to(bundle.doctype, bundle.name, rows)
+	apply_attributes_to_serials([entry.serial_no for entry in bundle.entries], rows)
 
 
 @frappe.whitelist()
@@ -348,6 +374,17 @@ def _move_serials_to_rejected_bundle(item, failed_serials, pr_name, posting_date
 				"incoming_rate": entry.incoming_rate or 0,
 				"qty": 1,
 			},
+		)
+
+	# rejected serials keep the attributes they were received with
+	for row in frappe.get_all(
+		"Additional Attribute Row",
+		filters={"parenttype": "Serial and Batch Bundle", "parent": main_bundle},
+		fields=["attribute", "value", "notes"],
+		order_by="idx",
+	):
+		rejected_bundle.append(
+			ROW_FIELDNAME, {"attribute": row.attribute, "value": row.value, "notes": row.notes}
 		)
 
 	rejected_bundle.flags.ignore_validate = True
