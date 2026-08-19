@@ -74,6 +74,7 @@ def execute(filters=None):
 	)
 
 	voucher_remarks = get_voucher_remarks(sl_entries)
+	voucher_warehouses = get_voucher_warehouses(sl_entries)
 
 	item_wh_wise_prev_sle = {}
 	for sle in sl_entries:
@@ -81,6 +82,7 @@ def execute(filters=None):
 
 		sle.update(item_detail)
 		sle.voucher_remarks = voucher_remarks.get((sle.voucher_type, sle.voucher_no))
+		sle.source_warehouse, sle.target_warehouse = resolve_sle_warehouses(sle, voucher_warehouses)
 		if bundle_info := bundle_details.get(sle.serial_and_batch_bundle):
 			data.extend(get_segregated_bundle_entries(sle, bundle_info, batch_balance_dict, filters))
 			continue
@@ -352,6 +354,20 @@ def get_columns(filters):
 				"width": 150,
 			},
 			{
+				"label": _("Source Warehouse"),
+				"fieldname": "source_warehouse",
+				"fieldtype": "Link",
+				"options": "Warehouse",
+				"width": 150,
+			},
+			{
+				"label": _("Target Warehouse"),
+				"fieldname": "target_warehouse",
+				"fieldtype": "Link",
+				"options": "Warehouse",
+				"width": 150,
+			},
+			{
 				"label": _("Item Group"),
 				"fieldname": "item_group",
 				"fieldtype": "Link",
@@ -480,6 +496,7 @@ def get_stock_ledger_entries(filters, items):
 			sle.stock_value_difference,
 			sle.serial_and_batch_bundle,
 			sle.voucher_no,
+			sle.voucher_detail_no,
 			sle.stock_value,
 			sle.batch_no,
 			sle.serial_no,
@@ -886,3 +903,77 @@ def get_voucher_remarks(sl_entries) -> dict:
 				remarks[(voucher_type, row.name)] = row.remarks
 
 	return remarks
+
+
+# voucher_type -> (child doctype, source warehouse field, target warehouse field)
+VOUCHER_WAREHOUSE_FIELDS = {
+	"Stock Entry": ("Stock Entry Detail", "s_warehouse", "t_warehouse"),
+	"Delivery Note": ("Delivery Note Item", "warehouse", None),
+	"Sales Invoice": ("Sales Invoice Item", "warehouse", None),
+	"Purchase Receipt": ("Purchase Receipt Item", "from_warehouse", "warehouse"),
+	"Purchase Invoice": ("Purchase Invoice Item", "from_warehouse", "warehouse"),
+}
+
+
+def get_voucher_warehouses(sl_entries) -> dict:
+	"""Map (voucher_type, voucher_detail_no) -> (source_warehouse, target_warehouse).
+
+	The Stock Ledger Entry only stores a single warehouse, so the direction of a
+	transfer can only be recovered from the voucher row that created the entry.
+	"""
+	detail_nos = {}
+	for sle in sl_entries:
+		voucher_type = sle.get("voucher_type")
+		if voucher_type in VOUCHER_WAREHOUSE_FIELDS and sle.get("voucher_detail_no"):
+			detail_nos.setdefault(voucher_type, set()).add(sle.voucher_detail_no)
+
+	warehouses = {}
+	for voucher_type, names in detail_nos.items():
+		child_doctype, source_field, target_field = VOUCHER_WAREHOUSE_FIELDS[voucher_type]
+
+		if source_field and not frappe.db.has_column(child_doctype, source_field):
+			source_field = None
+
+		if target_field and not frappe.db.has_column(child_doctype, target_field):
+			target_field = None
+
+		if not source_field and not target_field:
+			continue
+
+		table = frappe.qb.DocType(child_doctype)
+		query = frappe.qb.from_(table).select(table.name).where(table.name.isin(list(names)))
+
+		if source_field:
+			query = query.select(table[source_field].as_("source_warehouse"))
+
+		if target_field:
+			query = query.select(table[target_field].as_("target_warehouse"))
+
+		for row in query.run(as_dict=True):
+			warehouses[(voucher_type, row.name)] = (
+				row.get("source_warehouse"),
+				row.get("target_warehouse"),
+			)
+
+	return warehouses
+
+
+def resolve_sle_warehouses(sle, voucher_warehouses):
+	"""Return (source_warehouse, target_warehouse) for a Stock Ledger Entry row."""
+	source, target = voucher_warehouses.get(
+		(sle.get("voucher_type"), sle.get("voucher_detail_no")), (None, None)
+	)
+
+	# ignore the voucher row when it does not mention this entry's warehouse at all
+	# (e.g. a Purchase Receipt row rejected into `rejected_warehouse`)
+	if (source or target) and sle.get("warehouse") in (source, target):
+		return source, target
+
+	actual_qty = flt(sle.get("actual_qty"))
+	if actual_qty > 0:
+		return None, sle.get("warehouse")
+
+	if actual_qty < 0:
+		return sle.get("warehouse"), None
+
+	return sle.get("warehouse"), sle.get("warehouse")
