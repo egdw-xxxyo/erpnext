@@ -34,6 +34,7 @@ doctype_js = {
 	"Event": "public/js/event.js",
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
+	"Notification Settings": "public/js/custom/notification_settings.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
@@ -440,6 +441,10 @@ doc_events = {
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+	},
+	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot
+	"Notification Log": {
+		"after_insert": "erpnext.erpnext_integrations.callmebot.on_notification_log",
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",

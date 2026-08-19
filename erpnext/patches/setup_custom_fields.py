@@ -50,6 +50,8 @@ def execute():
 	setup_group_access_role()
 	setup_project_access_permissions()
 	setup_serial_no_write_for_stock_user()
+	create_callmebot_fields()
+	setup_callmebot_default_settings()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -1291,3 +1293,98 @@ def setup_serial_no_write_for_stock_user():
 
 	print(f"  Granted write on {doctype} to {role}")
 	frappe.clear_cache()
+
+
+def create_callmebot_fields():
+	"""Per-user CallMeBot credentials on Notification Settings.
+
+	Notification Settings is already the per-user notification preferences document (its name is
+	the user id), and every user may read/write their own via its `has_permission`. WhatsApp is
+	just one more delivery channel, so the fields belong next to the existing system/email
+	toggles rather than on User."""
+	fields = [
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_section",
+			"fieldtype": "Section Break",
+			"label": "WhatsApp Notifications (CallMeBot)",
+			"insert_after": "energy_points_system_notifications",
+			"description": "Mirror desk notifications to WhatsApp through the free CallMeBot relay",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_enabled",
+			"fieldtype": "Check",
+			"label": "Send notifications to WhatsApp",
+			"insert_after": "callmebot_section",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_phone",
+			"fieldtype": "Data",
+			"label": "CallMeBot Phone",
+			"insert_after": "callmebot_enabled",
+			"depends_on": "eval:doc.callmebot_enabled",
+			"mandatory_depends_on": "eval:doc.callmebot_enabled",
+			"description": "Phone number with country code, digits only (for example 380636400706)",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_column",
+			"fieldtype": "Column Break",
+			"insert_after": "callmebot_phone",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_api_key",
+			"fieldtype": "Data",
+			"label": "CallMeBot API Key",
+			"insert_after": "callmebot_column",
+			"depends_on": "eval:doc.callmebot_enabled",
+			"mandatory_depends_on": "eval:doc.callmebot_enabled",
+			"no_copy": 1,
+			"description": "Key sent back by the bot after you activate it from your phone",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def setup_callmebot_default_settings():
+	"""Initialize CallMeBot Settings Single DocType with standard privacy templates."""
+	if not frappe.db.exists("DocType", "CallMeBot Settings"):
+		return
+
+	try:
+		settings = frappe.get_doc("CallMeBot Settings")
+		modified = False
+
+		if not settings.default_message:
+			settings.default_message = "У вас нове сповіщення у ERPnext"
+			settings.privacy_mode = 1
+			settings.include_link = 1
+			modified = True
+
+		if not settings.templates:
+			settings.append("templates", {
+				"notification_type": "Assignment",
+				"template": "На вас призначено нове завдання",
+				"include_link": 1,
+			})
+			settings.append("templates", {
+				"notification_type": "Mention",
+				"template": "Вас згадали у коментарі",
+				"include_link": 1,
+			})
+			settings.append("templates", {
+				"notification_type": "Share",
+				"template": "Вам надано доступ до документу",
+				"include_link": 1,
+			})
+			modified = True
+
+		if modified:
+			settings.save(ignore_permissions=True)
+			print("  Initialized CallMeBot Settings default privacy templates")
+	except Exception as e:
+		print(f"  Warning: could not initialize CallMeBot Settings: {e}")
+
