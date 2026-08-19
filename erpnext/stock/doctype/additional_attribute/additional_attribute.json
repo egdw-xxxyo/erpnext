@@ -11,6 +11,7 @@
   "attribute_name",
   "column_break_amtr",
   "disabled",
+  "mandatory",
   "section_break_desc",
   "description"
  ],
@@ -32,6 +33,13 @@
    "fieldname": "disabled",
    "fieldtype": "Check",
    "label": "Disabled"
+  },
+  {
+   "default": "0",
+   "description": "Documents that create serial numbers cannot be saved until this attribute has a value",
+   "fieldname": "mandatory",
+   "fieldtype": "Check",
+   "label": "Mandatory on Receipt"
   },
   {
    "fieldname": "section_break_desc",

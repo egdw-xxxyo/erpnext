@@ -22,6 +22,7 @@ def execute():
 	create_custom_field_on_serial_no()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
+	create_additional_attributes_on_intake()
 	seed_firmware_additional_attribute()
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
@@ -1268,6 +1269,48 @@ def create_additional_attributes_on_serial_no():
 			"options": "Additional Attribute Row",
 			"insert_after": "inspection_status",
 			"description": "Per-unit metadata (firmware build, and anything added later)",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_additional_attributes_on_intake():
+	"""Attach the same reusable table to the documents that bring serial numbers into stock.
+
+	The receiving clerk types the values on the `Purchase Receipt`; they are copied onto every
+	`Serial and Batch Bundle` the receipt generates and from there onto every serial. The table
+	sits on the receipt, not on its item rows, because a child table inside a child table is not
+	something Frappe renders.
+
+	The bundle carries the same table, which doubles as the per-item override (open the bundle
+	from the row) and covers the paths that never see a Purchase Receipt at all — the selector
+	dialog, the CSV import and the scanner."""
+	fields = [
+		{
+			"dt": "Purchase Receipt",
+			"fieldname": "additional_attributes_section",
+			"fieldtype": "Section Break",
+			"label": "Additional Attributes",
+			"insert_after": "items",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Purchase Receipt",
+			"fieldname": "additional_attributes",
+			"fieldtype": "Table",
+			"label": "Additional Attributes",
+			"options": "Additional Attribute Row",
+			"insert_after": "additional_attributes_section",
+			"description": "Applied to every serial number this receipt brings in",
+		},
+		{
+			"dt": "Serial and Batch Bundle",
+			"fieldname": "additional_attributes",
+			"fieldtype": "Table",
+			"label": "Additional Attributes",
+			"options": "Additional Attribute Row",
+			"insert_after": "entries",
+			"description": "Applied to every serial number in this bundle on submit",
 		},
 	]
 	_create_custom_fields(fields)

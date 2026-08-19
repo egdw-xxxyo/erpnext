@@ -486,6 +486,12 @@ doc_events = {
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
 		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		# demand mandatory additional attributes before the serials are generated after save
+		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
+	},
+	"Serial and Batch Bundle": {
+		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner
+		"on_submit": "erpnext.stock.additional_attributes.apply_bundle_attributes_to_serials",
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
