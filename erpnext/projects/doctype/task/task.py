@@ -273,6 +273,7 @@ class Task(NestedSet):
 		self.unassign_todo()
 		self.populate_depends_on()
 		self.detach_from_previous_parent()
+		self.prune_stale_group_membership()
 		self.sync_child_tasks()
 		self.update_parent_group_progress()
 
@@ -301,6 +302,26 @@ class Task(NestedSet):
 		previous_parent = previous.parent_task if previous else None
 		if previous_parent and previous_parent != self.parent_task:
 			remove_depends_on_row(previous_parent, self.name)
+
+	def prune_stale_group_membership(self):
+		"""Drop rows in other Group Tasks that still claim this task as their child.
+
+		The child is the source of truth for `parent_task`, so any Group Task holding a
+		`depends_on` row for a task that no longer belongs to it keeps a stale link, which
+		in turn blocks deleting or cancelling that task.
+		"""
+		if self.flags.ignore_child_task_sync:
+			return
+
+		holders = frappe.get_all(
+			"Task Depends On",
+			filters={"task": self.name, "parenttype": "Task"},
+			pluck="parent",
+		)
+
+		for group in set(holders) - {self.parent_task, self.name}:
+			if frappe.db.get_value("Task", group, "is_group"):
+				remove_depends_on_row(group, self.name)
 
 	def update_parent_group_progress(self):
 		previous = self.get_doc_before_save()
@@ -414,7 +435,7 @@ class Task(NestedSet):
 		)
 
 	def populate_depends_on(self):
-		if self.parent_task:
+		if self.parent_task and frappe.db.exists("Task", self.parent_task):
 			parent = frappe.get_doc("Task", self.parent_task)
 			if self.name not in [row.task for row in parent.depends_on]:
 				parent.append(
@@ -441,6 +462,9 @@ class Task(NestedSet):
 
 
 def set_parent_task(task_name, parent_task):
+	if not frappe.db.exists("Task", task_name):
+		return
+
 	task = frappe.get_doc("Task", task_name)
 	if task.parent_task == parent_task:
 		return
@@ -450,6 +474,9 @@ def set_parent_task(task_name, parent_task):
 
 
 def remove_depends_on_row(parent_task, task_name):
+	if not frappe.db.exists("Task", parent_task):
+		return
+
 	parent = frappe.get_doc("Task", parent_task)
 	remaining = [row for row in parent.depends_on if row.task != task_name]
 	if len(remaining) == len(parent.depends_on):
