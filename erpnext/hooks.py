@@ -513,6 +513,12 @@ doc_events = {
 	"Integration Request": {
 		"validate": "erpnext.accounts.doctype.payment_request.payment_request.validate_payment"
 	},
+	"Employee": {
+		"on_update": "erpnext.hr.salary_split.sync_salary_structure_assignment",
+	},
+	"Salary Slip": {
+		"validate": "erpnext.hr.salary_split.apply_cash_split",
+	},
 }
 
 # function should expect the variable and doc as arguments
