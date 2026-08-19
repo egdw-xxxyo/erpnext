@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "creation": "2026-08-18 21:20:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "privacy_mode",
+  "default_message",
+  "include_link",
+  "section_templates",
+  "templates"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "privacy_mode",
+   "fieldtype": "Check",
+   "label": "Privacy Mode (Mask Messages)",
+   "description": "Send masked templates or generic messages instead of raw notification text to WhatsApp to prevent exposing internal data."
+  },
+  {
+   "default": "У вас нове сповіщення у ERPnext",
+   "fieldname": "default_message",
+   "fieldtype": "Data",
+   "label": "Default Fallback Message",
+   "description": "Default generic message used when no specific template matches the notification."
+  },
+  {
+   "default": "1",
+   "fieldname": "include_link",
+   "fieldtype": "Check",
+   "label": "Include Document Link by Default",
+   "description": "Append the direct URL of the ERPNext document to the WhatsApp notification."
+  },
+  {
+   "fieldname": "section_templates",
+   "fieldtype": "Section Break",
+   "label": "Notification Templates",
+   "description": "Configure custom message texts per notification type or document type."
+  },
+  {
+   "fieldname": "templates",
+   "fieldtype": "Table",
+   "label": "Templates",
+   "options": "CallMeBot Notification Template"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-18 21:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERPNext Integrations",
+ "name": "CallMeBot Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
