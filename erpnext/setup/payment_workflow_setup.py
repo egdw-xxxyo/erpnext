@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
@@ -283,6 +285,7 @@ def before_migrate():
 def after_migrate():
 	_ensure_roles()
 	sync_payment_request_list_fields()
+	sync_payment_entry_list_fields()
 	sync_todo_list_fields()
 
 	from erpnext.accounts.payment_workflow import sync_workflow_configuration
@@ -359,6 +362,35 @@ def sync_payment_request_list_fields():
 		value="1",
 		property_type="Check",
 	)
+
+
+def sync_payment_entry_list_fields():
+	"""Keep the fiscal receipt status visible in the standard Payment Entry list."""
+	fields = [
+		{"fieldname": "title", "label": "Title"},
+		{"fieldname": "status_field", "label": "Status", "type": "Status"},
+		{"fieldname": "payment_type", "label": "Payment Type"},
+		{"fieldname": "posting_date", "label": "Posting Date"},
+		{"fieldname": "mode_of_payment", "label": "Mode of Payment"},
+		{"fieldname": "name", "label": "ID"},
+		{
+			"fieldname": "custom_fiscal_receipt_status",
+			"label": "Fiscal Receipt Availability",
+		},
+	]
+
+	if frappe.db.exists("List View Settings", "Payment Entry"):
+		doc = frappe.get_doc("List View Settings", "Payment Entry")
+	else:
+		doc = frappe.new_doc("List View Settings")
+		doc.name = "Payment Entry"
+
+	doc.fields = json.dumps(fields)
+	doc.total_fields = "8"
+	if doc.is_new():
+		doc.insert(ignore_permissions=True)
+	else:
+		doc.save(ignore_permissions=True)
 
 
 def sync_todo_list_fields():

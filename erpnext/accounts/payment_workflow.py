@@ -79,6 +79,24 @@ PAYMENT_REQUEST_PERMISSIONS = {
 	"Payments: Аудитор": ("select", "read", "report", "export", "print"),
 }
 
+PAYMENT_ENTRY_PERMISSIONS = {
+	"Payments: Казначей": (
+		"select",
+		"read",
+		"write",
+		"create",
+		"submit",
+		"report",
+		"export",
+		"print",
+	),
+}
+
+DOCTYPE_PERMISSIONS = {
+	"Payment Request": PAYMENT_REQUEST_PERMISSIONS,
+	"Payment Entry": PAYMENT_ENTRY_PERMISSIONS,
+}
+
 PERMISSION_FIELDS = (
 	"select",
 	"read",
@@ -283,11 +301,12 @@ WORKFLOW_TRANSITIONS = (
 
 def sync_workflow_configuration():
 	_ensure_role_profiles()
-	_ensure_payment_request_permissions()
+	_ensure_payment_permissions()
 	_ensure_workflow_states()
 	_ensure_workflow_actions()
 	_ensure_workflow()
 	frappe.clear_cache(doctype="Payment Request")
+	frappe.clear_cache(doctype="Payment Entry")
 
 
 def _ensure_role_profiles():
@@ -302,26 +321,27 @@ def _ensure_role_profiles():
 		_save(doc)
 
 
-def _ensure_payment_request_permissions():
-	for role, enabled_permissions in PAYMENT_REQUEST_PERMISSIONS.items():
-		filters = {
-			"parent": "Payment Request",
-			"role": role,
-			"permlevel": 0,
-		}
-		name = frappe.db.get_value("Custom DocPerm", filters, "name")
-		if name:
-			doc = frappe.get_doc("Custom DocPerm", name)
-		else:
-			doc = frappe.new_doc("Custom DocPerm")
-			doc.parent = "Payment Request"
-			doc.role = role
-			doc.permlevel = 0
+def _ensure_payment_permissions():
+	for doctype, role_permissions in DOCTYPE_PERMISSIONS.items():
+		for role, enabled_permissions in role_permissions.items():
+			filters = {
+				"parent": doctype,
+				"role": role,
+				"permlevel": 0,
+			}
+			name = frappe.db.get_value("Custom DocPerm", filters, "name")
+			if name:
+				doc = frappe.get_doc("Custom DocPerm", name)
+			else:
+				doc = frappe.new_doc("Custom DocPerm")
+				doc.parent = doctype
+				doc.role = role
+				doc.permlevel = 0
 
-		doc.if_owner = 0
-		for permission in PERMISSION_FIELDS:
-			doc.set(permission, int(permission in enabled_permissions))
-		_save(doc)
+			doc.if_owner = 0
+			for permission in PERMISSION_FIELDS:
+				doc.set(permission, int(permission in enabled_permissions))
+			_save(doc)
 
 
 def _ensure_workflow_states():

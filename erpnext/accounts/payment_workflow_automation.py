@@ -57,7 +57,9 @@ DEMO_NOTIFICATION_USERS = tuple(
 
 
 def sync_automation_configuration():
-	"""Synchronize production-safe automation without demo assignees."""
+	"""Synchronize production-safe automation with an Administrator fallback."""
+	for rule in ASSIGNMENT_RULES:
+		_ensure_assignment_rule(rule, default_user="Administrator")
 	_ensure_notification()
 	frappe.clear_cache(doctype=PAYMENT_REQUEST_DOCTYPE)
 
@@ -65,7 +67,7 @@ def sync_automation_configuration():
 def sync_demo_automation_configuration():
 	"""Create local demo assignments after the demo users have been seeded."""
 	for rule in ASSIGNMENT_RULES:
-		_ensure_assignment_rule(rule)
+		_ensure_assignment_rule(rule, default_user=rule.get("user") or "Administrator")
 	_ensure_notification()
 	_ensure_demo_notification_settings()
 	frappe.clear_cache(doctype=PAYMENT_REQUEST_DOCTYPE)
@@ -86,8 +88,9 @@ def apply_rules_to_existing_requests():
 	return requests
 
 
-def _ensure_assignment_rule(spec):
-	if frappe.db.exists("Assignment Rule", spec["name"]):
+def _ensure_assignment_rule(spec, default_user="Administrator"):
+	is_new = not frappe.db.exists("Assignment Rule", spec["name"])
+	if not is_new:
 		doc = frappe.get_doc("Assignment Rule", spec["name"])
 	else:
 		doc = frappe.new_doc("Assignment Rule")
@@ -103,7 +106,10 @@ def _ensure_assignment_rule(spec):
 	doc.rule = spec.get("rule", "Round Robin")
 	doc.field = spec.get("field")
 	doc.due_date_based_on = "custom_requested_payment_date"
-	doc.set("users", [{"user": spec["user"]}] if spec.get("user") else [])
+	# Users configured in Desk are production data. Seed a valid fallback only on
+	# first creation and never replace administrators' later choices on deploy.
+	if is_new:
+		doc.set("users", [{"user": default_user}] if spec.get("user") else [])
 	doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
 	_save(doc)
 
