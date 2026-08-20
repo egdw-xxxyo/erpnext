@@ -13,11 +13,37 @@ MAX_REASON_LENGTH = 2000
 
 def apply_workflow(doc, action):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
+	from erpnext.buying.procurement_final_approval import (
+		FINAL_APPROVAL_STATE,
+		close_final_approval_assignments,
+		record_final_approval,
+		reset_final_approvals,
+	)
 
 	payload = frappe.parse_json(doc)
+	current_doc = frappe.get_doc(payload.get("doctype"), payload.get("name"))
 	reason = (payload.get(REASON_FIELD) or "").strip()
 	if action in REQUIRED_ACTIONS:
 		_validate_reason(reason)
+
+	if current_doc.workflow_state == FINAL_APPROVAL_STATE and action == "Погодити":
+		approval_count = record_final_approval(current_doc)
+		if approval_count < 2:
+			frappe.msgprint(
+				_("CEO approval {0}/2 recorded. The document is waiting for the second CEO.").format(
+					approval_count
+				),
+				alert=True,
+				indicator="orange",
+			)
+			return frappe.get_doc(current_doc.doctype, current_doc.name)
+
+		result = core_apply_workflow(
+			frappe.get_doc(current_doc.doctype, current_doc.name),
+			action,
+		)
+		close_final_approval_assignments(current_doc.name)
+		return result
 
 	previous_reason = getattr(frappe.flags, "procurement_workflow_reason", None)
 	previous_action = getattr(frappe.flags, "procurement_workflow_action", None)
@@ -26,6 +52,8 @@ def apply_workflow(doc, action):
 
 	try:
 		result = core_apply_workflow(doc, action)
+		if current_doc.workflow_state == FINAL_APPROVAL_STATE and action in REQUIRED_ACTIONS:
+			reset_final_approvals(current_doc.name)
 		_add_action_comment(result, action, reason)
 		return result
 	finally:

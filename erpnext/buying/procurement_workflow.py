@@ -9,6 +9,7 @@ BUYER_ROLE = "Закупівельник"
 PAYMENT_INITIATOR_ROLE = "Payments: Ініціатор"
 DEPARTMENT_HEAD_ROLE = "Payments: Керівник підрозділу"
 FINAL_APPROVER_ROLE = "Payments: Фінальний погоджувач"
+TREASURER_ROLE = "Payments: Казначей"
 
 ROLE_PROFILES = {
 	"Закупівлі: профіль ініціатора замовлень матеріалів": (
@@ -46,10 +47,10 @@ WORKFLOW_ACTIONS = (
 
 WORKFLOW_DOCUMENT_STATES = (
 	{"state": "Чернетка", "doc_status": "0", "allow_edit": BUYER_ROLE},
-	{"state": "Перевірка підрозділу", "doc_status": "0", "allow_edit": DEPARTMENT_HEAD_ROLE},
-	{"state": "Фінальне погодження", "doc_status": "0", "allow_edit": FINAL_APPROVER_ROLE},
+	{"state": "Перевірка підрозділу", "doc_status": "0", "allow_edit": "System Manager"},
+	{"state": "Фінальне погодження", "doc_status": "0", "allow_edit": "System Manager"},
 	{"state": "Потребує доопрацювання", "doc_status": "0", "allow_edit": BUYER_ROLE},
-	{"state": "Погоджено", "doc_status": "0", "allow_edit": BUYER_ROLE},
+	{"state": "Погоджено", "doc_status": "0", "allow_edit": "System Manager"},
 	{"state": "Проведено", "doc_status": "1", "allow_edit": BUYER_ROLE},
 	{"state": "Відхилено", "doc_status": "0", "allow_edit": "System Manager"},
 )
@@ -75,6 +76,15 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Фінальне погодження",
 		"allowed": DEPARTMENT_HEAD_ROLE,
 		"allow_self_approval": 0,
+		"condition": "(doc.grand_total or 0) >= (doc.ceo_approval_threshold or 15000)",
+	},
+	{
+		"state": "Перевірка підрозділу",
+		"action": "Погодити",
+		"next_state": "Погоджено",
+		"allowed": DEPARTMENT_HEAD_ROLE,
+		"allow_self_approval": 0,
+		"condition": "(doc.grand_total or 0) < (doc.ceo_approval_threshold or 15000)",
 	},
 	{
 		"state": "Перевірка підрозділу",
@@ -168,7 +178,8 @@ DOCTYPE_PERMISSIONS = {
 		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
 	},
 	"Purchase Invoice": {
-		BUYER_ROLE: ("select", "read", "write", "create", "report", "print"),
+		BUYER_ROLE: ("select", "read", "write", "create", "submit", "report", "print"),
+		TREASURER_ROLE: ("select", "read", "report", "print"),
 	},
 }
 
