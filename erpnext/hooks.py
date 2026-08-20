@@ -465,8 +465,11 @@ doc_events = {
 		"validate": [
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
+			"erpnext.buying.procurement_automation.set_purchase_invoice_external_payment_details",
 		],
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Payment Request": {
 		"validate": [
@@ -480,15 +483,29 @@ doc_events = {
 		"after_delete": "erpnext.projects.task_payments.sync_payment_request_task_summary",
 	},
 	"Material Request": {
-		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"after_insert": [
+			"erpnext.projects.task_activity.log_linked_document_creation",
+			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
+		],
 		"validate": "erpnext.buying.procurement_automation.validate_material_request_purchase_receipts",
 		"on_submit": "erpnext.buying.procurement_automation.on_material_request_submit",
+		"on_cancel": "erpnext.buying.procurement_automation.sync_procurement_document_completion",
 	},
 	"Purchase Order": {
 		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
+		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Consolidated Purchase Order": {
+		"after_insert": "erpnext.buying.procurement_automation.sync_procurement_document_participants",
 		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
+		# Run after Frappe's wildcard on_update Assignment Rule handler. A standard
+		# Assignment Rule intentionally picks one user; the final approval stage
+		# needs both configured CEO approvers to have an open ToDo.
+		"on_change": [
+			"erpnext.buying.procurement_final_approval.sync_final_approval_assignments",
+			"erpnext.buying.procurement_automation.sync_procurement_document_completion",
+		],
+		"on_cancel": "erpnext.buying.procurement_final_approval.close_final_approval_assignments",
 	},
 	"ToDo": {
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
@@ -516,11 +533,16 @@ doc_events = {
 			"erpnext.regional.create_transaction_log",
 			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		],
-		"on_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+		"on_update_after_submit": [
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
 		"on_cancel": [
 			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		],
 	},
 	"Address": {
