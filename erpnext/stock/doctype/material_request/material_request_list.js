@@ -1,5 +1,11 @@
 frappe.listview_settings["Material Request"] = {
 	add_fields: ["material_request_type", "status", "per_ordered", "per_received", "transfer_status"],
+	onload(listview) {
+		erpnext.buying.apply_procurement_work_queue_filters(listview, {
+			participants_field: "custom_procurement_participants",
+			completion_field: "custom_procurement_completion_status",
+		});
+	},
 	get_indicator: function (doc) {
 		var precision = frappe.defaults.get_default("float_precision");
 		if (doc.status == "Stopped") {
