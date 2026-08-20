@@ -39,6 +39,7 @@ import "./controllers/accounts.js";
 import "./utils/landed_taxes_and_charges_common.js";
 import "./utils/sales_common.js";
 import "./controllers/buying.js";
+import "./utils/procurement_work_queue";
 import "./utils/demo.js";
 import "./financial_statements.js";
 import "./sales_trends_filters.js";

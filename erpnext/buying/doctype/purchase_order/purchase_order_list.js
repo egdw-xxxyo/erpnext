@@ -46,6 +46,11 @@ frappe.listview_settings["Purchase Order"] = {
 		}
 	},
 	onload: function (listview) {
+		erpnext.buying.apply_procurement_work_queue_filters(listview, {
+			participants_field: "custom_procurement_participants",
+			completion_field: "custom_procurement_completion_status",
+		});
+
 		var method = "erpnext.buying.doctype.purchase_order.purchase_order.close_or_unclose_purchase_orders";
 
 		listview.page.add_menu_item(__("Close"), function () {
