@@ -16,17 +16,30 @@
   "items_already_purchased",
   "prepaid_purchase_note",
   "set_supplier",
+  "approval_route_section",
+  "approval_route_html",
   "items_section",
   "items",
   "supplier_invoices_section",
   "supplier_invoices",
   "totals_section",
   "total_qty",
+  "per_billed",
   "column_break_totals",
   "grand_total",
+  "payment_receipts_progress",
+  "payment_receipt_count",
+  "payment_invoice_count",
+  "per_paid",
   "workflow_details_section",
   "workflow_action_reason",
   "current_assignees",
+  "procurement_participants",
+  "procurement_completion_status",
+  "final_approval_count",
+  "ceo_approval_threshold",
+  "final_approved_by_1",
+  "final_approved_by_2",
   "generated_documents_section",
   "purchase_orders_html",
   "amended_from"
@@ -102,6 +115,15 @@
    "options": "Supplier"
   },
   {
+   "fieldname": "approval_route_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approval_route_html",
+   "fieldtype": "HTML",
+   "label": "Approval Route"
+  },
+  {
    "fieldname": "items_section",
    "fieldtype": "Section Break",
    "label": "Items by Supplier"
@@ -137,6 +159,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "per_billed",
+   "fieldtype": "Percent",
+   "label": "Billed",
+   "no_copy": 1,
+   "precision": "2",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_totals",
    "fieldtype": "Column Break"
   },
@@ -146,6 +176,40 @@
    "in_list_view": 1,
    "label": "Grand Total",
    "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_receipts_progress",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_receipt_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Fully Paid Suppliers",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_invoice_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Suppliers in Payment Progress",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "per_paid",
+   "fieldtype": "Percent",
+   "hidden": 1,
+   "label": "Paid Amount Percentage",
+   "no_copy": 1,
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -168,6 +232,58 @@
    "in_standard_filter": 1,
    "label": "Current Assignee",
    "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "procurement_participants",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Procurement Participants",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "In Progress",
+   "fieldname": "procurement_completion_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Procurement Completion",
+   "no_copy": 1,
+   "options": "In Progress\nCompleted",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_approval_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Final Approval Count",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "ceo_approval_threshold",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "CEO Approval Threshold",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_approved_by_1",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Final Approved By 1",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_approved_by_2",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Final Approved By 2",
+   "no_copy": 1,
+   "options": "User",
    "read_only": 1
   },
   {

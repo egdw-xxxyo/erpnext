@@ -1,3 +1,4 @@
+import json
 from urllib.parse import unquote, urlsplit
 
 import frappe
@@ -13,6 +14,24 @@ MATERIAL_REQUEST_DOCTYPE = "Material Request"
 PREPAID_PURCHASE_NOTE = (
 	"The materials have already been purchased. Review the attached receipts and verify suppliers and prices."
 )
+EXTERNAL_PAYMENT_NOTE = "Цей рахунок оплачено не компанією, а ініціатором замовлення матеріалів."
+PROCUREMENT_DOCTYPES = (
+	MATERIAL_REQUEST_DOCTYPE,
+	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+	PURCHASE_ORDER_DOCTYPE,
+)
+PARTICIPANT_FIELDS = {
+	MATERIAL_REQUEST_DOCTYPE: "custom_procurement_participants",
+	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE: "procurement_participants",
+	PURCHASE_ORDER_DOCTYPE: "custom_procurement_participants",
+}
+COMPLETION_FIELDS = {
+	MATERIAL_REQUEST_DOCTYPE: "custom_procurement_completion_status",
+	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE: "procurement_completion_status",
+	PURCHASE_ORDER_DOCTYPE: "custom_procurement_completion_status",
+}
+PROCUREMENT_IN_PROGRESS = "In Progress"
+PROCUREMENT_COMPLETED = "Completed"
 
 
 def require_buyer_role():
@@ -27,6 +46,7 @@ def require_buyer_role():
 @frappe.whitelist()
 def make_purchase_order(source_name, target_doc=None, args=None):
 	require_buyer_role()
+	validate_material_requests_available([source_name])
 	from erpnext.stock.doctype.material_request.material_request import make_purchase_order as core_make
 
 	mapped_order = core_make(source_name, None, args)
@@ -36,6 +56,7 @@ def make_purchase_order(source_name, target_doc=None, args=None):
 @frappe.whitelist()
 def make_purchase_order_based_on_supplier(source_name, target_doc=None, args=None):
 	require_buyer_role()
+	validate_material_requests_available([source_name])
 	from erpnext.stock.doctype.material_request.material_request import (
 		make_purchase_order_based_on_supplier as core_make,
 	)
@@ -95,6 +116,134 @@ def validate_material_request_purchase_receipts(doc, method=None):
 			)
 
 
+def validate_material_requests_available(material_requests, exclude=None):
+	for material_request in set(material_requests or []):
+		if not material_request:
+			continue
+		existing = get_active_consolidated_purchase_order(material_request, exclude=exclude)
+		if existing:
+			frappe.throw(
+				_(
+					"Material Request {0} is already linked to active consolidated order {1}. "
+					"A new consolidated order can be created only after the existing one is rejected."
+				).format(
+					get_link_to_form(MATERIAL_REQUEST_DOCTYPE, material_request),
+					get_link_to_form(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, existing),
+				),
+				title=_("Consolidated order already exists"),
+			)
+
+
+def get_active_consolidated_purchase_order(material_request, exclude=None):
+	parents = set(
+		frappe.get_all(
+			"Consolidated Purchase Order Item",
+			filters={"material_request": material_request},
+			pluck="parent",
+		)
+	)
+	parents.update(
+		frappe.get_all(
+			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			filters={"material_request": material_request},
+			pluck="name",
+		)
+	)
+	if exclude:
+		parents.discard(exclude)
+	if not parents:
+		return None
+
+	return frappe.db.get_value(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		{
+			"name": ["in", list(parents)],
+			"workflow_state": ["!=", "Відхилено"],
+			"docstatus": ["!=", 2],
+		},
+		"name",
+		order_by="creation desc",
+	)
+
+
+@frappe.whitelist()
+def get_existing_consolidated_purchase_order(source_name):
+	doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
+	doc.check_permission("read")
+	return get_active_consolidated_purchase_order(source_name)
+
+
+def set_purchase_invoice_external_payment_details(doc, method=None):
+	consolidated_name = doc.get("custom_consolidated_purchase_order")
+	if not consolidated_name:
+		purchase_orders = {row.purchase_order for row in doc.get("items") or [] if row.purchase_order}
+		if purchase_orders:
+			consolidated_name = frappe.db.get_value(
+				"Purchase Order",
+				{"name": ["in", list(purchase_orders)]},
+				"custom_consolidated_purchase_order",
+			)
+	if not consolidated_name or not frappe.db.exists(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, consolidated_name
+	):
+		_clear_external_payment_details(doc)
+		return
+
+	consolidated = frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, consolidated_name)
+	if not consolidated.items_already_purchased:
+		_clear_external_payment_details(doc)
+		return
+	set_external_payment_details(doc, consolidated)
+
+
+def set_external_payment_details(invoice, consolidated):
+	material_requests = sorted(
+		{row.material_request for row in consolidated.items if row.material_request}
+		or ({consolidated.material_request} if consolidated.material_request else set())
+	)
+	payer = (
+		frappe.db.get_value(
+			MATERIAL_REQUEST_DOCTYPE,
+			{"name": ["in", material_requests]},
+			"owner",
+			order_by="creation asc",
+		)
+		if material_requests
+		else None
+	)
+	invoice.custom_paid_outside_company = 1
+	invoice.custom_external_payer = payer
+	invoice.custom_external_payment_note = EXTERNAL_PAYMENT_NOTE
+
+
+def _clear_external_payment_details(invoice):
+	invoice.custom_paid_outside_company = 0
+	invoice.custom_external_payer = None
+	invoice.custom_external_payment_note = None
+
+
+def sync_existing_purchase_invoice_external_payment_details():
+	if not frappe.db.has_column("Purchase Invoice", "custom_paid_outside_company"):
+		return
+	for name in frappe.get_all(
+		"Purchase Invoice",
+		filters={"custom_consolidated_purchase_order": ["is", "set"]},
+		pluck="name",
+	):
+		invoice = frappe.get_doc("Purchase Invoice", name)
+		set_purchase_invoice_external_payment_details(invoice)
+		frappe.db.set_value(
+			"Purchase Invoice",
+			name,
+			{
+				"custom_paid_outside_company": invoice.custom_paid_outside_company,
+				"custom_external_payer": invoice.custom_external_payer,
+				"custom_external_payment_note": invoice.custom_external_payment_note,
+			},
+			update_modified=False,
+		)
+
+
 def on_purchase_order_insert(doc, method=None):
 	material_requests = sorted({row.material_request for row in doc.items if row.material_request})
 	if not material_requests:
@@ -121,9 +270,12 @@ def on_purchase_order_insert(doc, method=None):
 			f"<b>{escape_html(actor)}</b>", request_links
 		),
 	)
+	sync_procurement_participants_for_reference(PURCHASE_ORDER_DOCTYPE, doc.name)
 
 
 def sync_current_assignees(todo, method=None):
+	sync_procurement_participants(todo, method)
+
 	if todo.reference_type != CONSOLIDATED_PURCHASE_ORDER_DOCTYPE or not todo.reference_name:
 		return
 
@@ -151,6 +303,310 @@ def sync_current_assignees(todo, method=None):
 			", ".join(full_names),
 			update_modified=False,
 		)
+
+
+def sync_procurement_participants(todo, method=None):
+	"""Keep an immutable, filterable history of everyone assigned in a procurement chain."""
+	if todo.reference_type not in PROCUREMENT_DOCTYPES or not todo.reference_name:
+		return
+	sync_procurement_participants_for_reference(
+		todo.reference_type,
+		todo.reference_name,
+		additional_user=todo.allocated_to,
+	)
+
+
+def sync_procurement_participants_for_reference(
+	reference_type, reference_name, additional_user=None
+):
+	if reference_type not in PROCUREMENT_DOCTYPES or not reference_name:
+		return
+
+	chain = _get_procurement_chain(reference_type, reference_name)
+	users = set()
+	for doctype, names in chain.items():
+		if not names:
+			continue
+		identity_fields = ["owner"]
+		if doctype == MATERIAL_REQUEST_DOCTYPE:
+			identity_fields.append("custom_procurement_initiator_user")
+		elif doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
+			identity_fields.append("initiator_user")
+		for row in frappe.get_all(
+			doctype,
+			filters={"name": ["in", list(names)]},
+			fields=identity_fields,
+		):
+			users.update(row.get(field) for field in identity_fields if row.get(field))
+		users.update(
+			frappe.get_all(
+				"ToDo",
+				filters={
+					"reference_type": doctype,
+					"reference_name": ["in", list(names)],
+					"allocated_to": ["is", "set"],
+				},
+				pluck="allocated_to",
+			)
+		)
+
+	# Preserve users from ToDos that may already have been deleted.
+	for doctype, names in chain.items():
+		fieldname = PARTICIPANT_FIELDS[doctype]
+		if not frappe.db.has_column(doctype, fieldname):
+			continue
+		for value in frappe.get_all(
+			doctype,
+			filters={"name": ["in", list(names)]},
+			pluck=fieldname,
+		):
+			users.update(_parse_participants(value))
+
+	if additional_user:
+		users.add(additional_user)
+	_serialized_users = json.dumps(sorted(users), ensure_ascii=False)
+	for doctype, names in chain.items():
+		fieldname = PARTICIPANT_FIELDS[doctype]
+		if not names or not frappe.db.has_column(doctype, fieldname):
+			continue
+		for name in names:
+			frappe.db.set_value(doctype, name, fieldname, _serialized_users, update_modified=False)
+
+
+def sync_all_procurement_participants():
+	"""Backfill assignment history into the three procurement list filter fields."""
+	if not all(frappe.db.has_column(dt, field) for dt, field in PARTICIPANT_FIELDS.items()):
+		return
+
+	for row in frappe.get_all(
+		"ToDo",
+		filters={"reference_type": ["in", list(PROCUREMENT_DOCTYPES)]},
+		fields=["reference_type", "reference_name", "allocated_to"],
+		order_by="creation asc",
+	):
+		sync_procurement_participants(row)
+
+	# Drafts may not have a ToDo yet, but their creator already participates.
+	for doctype, fieldname in PARTICIPANT_FIELDS.items():
+		identity_fields = ["name", "owner", fieldname]
+		if doctype == MATERIAL_REQUEST_DOCTYPE:
+			identity_fields.append("custom_procurement_initiator_user")
+		elif doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
+			identity_fields.append("initiator_user")
+		for row in frappe.get_all(doctype, fields=identity_fields):
+			users = set(_parse_participants(row.get(fieldname)))
+			users.add(row.owner)
+			users.update(
+				row.get(field)
+				for field in identity_fields
+				if field not in ("name", "owner", fieldname) and row.get(field)
+			)
+			frappe.db.set_value(
+				doctype,
+				row.name,
+				fieldname,
+				json.dumps(sorted(users), ensure_ascii=False),
+				update_modified=False,
+			)
+
+
+def sync_procurement_document_participants(doc, method=None):
+	sync_procurement_participants_for_reference(doc.doctype, doc.name, additional_user=doc.owner)
+
+
+def sync_procurement_completion_status(source_name, receipt_summary=None):
+	"""Propagate the logical end of a consolidated purchase to its PO and MR chain."""
+	if not source_name or not frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name):
+		return
+
+	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
+		_get_invoice_receipt_summary,
+	)
+
+	receipt_summary = receipt_summary or _get_invoice_receipt_summary(source_name)
+	consolidated = frappe.db.get_value(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		source_name,
+		["docstatus", "workflow_state", "items_already_purchased"],
+		as_dict=True,
+	)
+	terminal = consolidated.docstatus == 2 or consolidated.workflow_state == "Відхилено"
+	externally_paid = bool(consolidated.items_already_purchased and consolidated.docstatus == 1)
+	all_receipts_added = bool(
+		receipt_summary["payment_invoice_count"]
+		and receipt_summary["payment_receipt_count"] >= receipt_summary["payment_invoice_count"]
+	)
+	consolidated_completed = terminal or externally_paid or all_receipts_added
+	_set_completion_status(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		source_name,
+		consolidated_completed,
+	)
+
+	orders = frappe.get_all(
+		PURCHASE_ORDER_DOCTYPE,
+		filters={"custom_consolidated_purchase_order": source_name},
+		fields=["name", "docstatus"],
+	)
+	for order in orders:
+		order_summary = receipt_summary.get("by_order", {}).get(order.name, {})
+		order_completed = (
+			order.docstatus == 2
+			or terminal
+			or externally_paid
+			or bool(order_summary.get("fully_completed"))
+		)
+		_set_completion_status(PURCHASE_ORDER_DOCTYPE, order.name, order_completed)
+
+	material_requests = set(
+		frappe.get_all(
+			"Consolidated Purchase Order Item",
+			filters={"parent": source_name, "material_request": ["is", "set"]},
+			pluck="material_request",
+		)
+	)
+	direct_request = frappe.db.get_value(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "material_request"
+	)
+	if direct_request:
+		material_requests.add(direct_request)
+	for material_request in material_requests:
+		_sync_material_request_completion(material_request)
+
+
+def sync_procurement_document_completion(doc, method=None):
+	if doc.doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
+		from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
+			sync_consolidated_purchase_order_progress,
+		)
+
+		sync_consolidated_purchase_order_progress(doc.name)
+	elif doc.doctype == MATERIAL_REQUEST_DOCTYPE:
+		_sync_material_request_completion(doc.name)
+
+
+def _sync_material_request_completion(material_request):
+	if not frappe.db.exists(MATERIAL_REQUEST_DOCTYPE, material_request):
+		return
+	request = frappe.db.get_value(
+		MATERIAL_REQUEST_DOCTYPE, material_request, ["docstatus", "status"], as_dict=True
+	)
+	if request.docstatus == 2 or request.status == "Stopped":
+		_set_completion_status(MATERIAL_REQUEST_DOCTYPE, material_request, True)
+		return
+
+	consolidated_names = set(
+		frappe.get_all(
+			"Consolidated Purchase Order Item",
+			filters={"material_request": material_request},
+			pluck="parent",
+		)
+	)
+	consolidated_names.update(
+		frappe.get_all(
+			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			filters={"material_request": material_request},
+			pluck="name",
+		)
+	)
+	active = frappe.get_all(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		filters={
+			"name": ["in", list(consolidated_names)],
+			"docstatus": ["!=", 2],
+			"workflow_state": ["!=", "Відхилено"],
+		},
+		pluck=COMPLETION_FIELDS[CONSOLIDATED_PURCHASE_ORDER_DOCTYPE],
+	) if consolidated_names else []
+	_set_completion_status(
+		MATERIAL_REQUEST_DOCTYPE,
+		material_request,
+		bool(active) and all(status == PROCUREMENT_COMPLETED for status in active),
+	)
+
+
+def _set_completion_status(doctype, name, completed):
+	fieldname = COMPLETION_FIELDS[doctype]
+	if frappe.db.has_column(doctype, fieldname):
+		frappe.db.set_value(
+			doctype,
+			name,
+			fieldname,
+			PROCUREMENT_COMPLETED if completed else PROCUREMENT_IN_PROGRESS,
+			update_modified=False,
+		)
+
+
+def _get_procurement_chain(reference_type, reference_name):
+	chain = {doctype: set() for doctype in PROCUREMENT_DOCTYPES}
+	chain[reference_type].add(reference_name)
+	consolidated_names = set()
+
+	if reference_type == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
+		consolidated_names.add(reference_name)
+	elif reference_type == PURCHASE_ORDER_DOCTYPE:
+		consolidated = frappe.db.get_value(
+			PURCHASE_ORDER_DOCTYPE, reference_name, "custom_consolidated_purchase_order"
+		)
+		if consolidated:
+			consolidated_names.add(consolidated)
+		chain[MATERIAL_REQUEST_DOCTYPE].update(
+			frappe.get_all(
+				"Purchase Order Item",
+				filters={"parent": reference_name, "material_request": ["is", "set"]},
+				pluck="material_request",
+			)
+		)
+	else:
+		consolidated_names.update(
+			frappe.get_all(
+				"Consolidated Purchase Order Item",
+				filters={"material_request": reference_name},
+				pluck="parent",
+			)
+		)
+		consolidated_names.update(
+			frappe.get_all(
+				CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+				filters={"material_request": reference_name},
+				pluck="name",
+			)
+		)
+
+	chain[CONSOLIDATED_PURCHASE_ORDER_DOCTYPE].update(consolidated_names)
+	if consolidated_names:
+		chain[PURCHASE_ORDER_DOCTYPE].update(
+			frappe.get_all(
+				PURCHASE_ORDER_DOCTYPE,
+				filters={"custom_consolidated_purchase_order": ["in", list(consolidated_names)]},
+				pluck="name",
+			)
+		)
+		chain[MATERIAL_REQUEST_DOCTYPE].update(
+			frappe.get_all(
+				"Consolidated Purchase Order Item",
+				filters={"parent": ["in", list(consolidated_names)], "material_request": ["is", "set"]},
+				pluck="material_request",
+			)
+		)
+		chain[MATERIAL_REQUEST_DOCTYPE].update(
+			frappe.get_all(
+				CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+				filters={"name": ["in", list(consolidated_names)], "material_request": ["is", "set"]},
+				pluck="material_request",
+			)
+		)
+	return chain
+
+
+def _parse_participants(value):
+	if not value:
+		return []
+	try:
+		parsed = json.loads(value)
+		return parsed if isinstance(parsed, list) else []
+	except (TypeError, ValueError):
+		return []
 
 
 def _current_actor():
