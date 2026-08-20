@@ -1,9 +1,66 @@
+import json
+
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 CUSTOM_FIELDS = {
+	"Buying Settings": [
+		{
+			"fieldname": "custom_procurement_approval_section",
+			"fieldtype": "Section Break",
+			"label": "Procurement Approval",
+			"insert_after": "fixed_email",
+		},
+		{
+			"fieldname": "custom_ceo_approval_threshold",
+			"fieldtype": "Currency",
+			"label": "CEO Approval Threshold",
+			"default": "15000",
+			"reqd": 1,
+			"insert_after": "custom_procurement_approval_section",
+		},
+		{
+			"fieldname": "custom_final_approver_1",
+			"fieldtype": "Link",
+			"label": "CEO Approver 1",
+			"options": "User",
+			"insert_after": "custom_ceo_approval_threshold",
+		},
+		{
+			"fieldname": "custom_procurement_approval_column",
+			"fieldtype": "Column Break",
+			"insert_after": "custom_final_approver_1",
+		},
+		{
+			"fieldname": "custom_final_approver_2",
+			"fieldtype": "Link",
+			"label": "CEO Approver 2",
+			"options": "User",
+			"insert_after": "custom_procurement_approval_column",
+		},
+	],
 	"Material Request": [
+		{
+			"fieldname": "custom_procurement_participants",
+			"fieldtype": "Small Text",
+			"label": "Procurement Participants",
+			"read_only": 1,
+			"no_copy": 1,
+			"hidden": 1,
+			"insert_after": "per_received",
+		},
+		{
+			"fieldname": "custom_procurement_completion_status",
+			"fieldtype": "Select",
+			"label": "Procurement Completion",
+			"options": "In Progress\nCompleted",
+			"default": "In Progress",
+			"read_only": 1,
+			"no_copy": 1,
+			"in_standard_filter": 1,
+			"insert_after": "custom_procurement_participants",
+		},
 		{
 			"fieldname": "custom_procurement_initiator_user",
 			"fieldtype": "Link",
@@ -47,6 +104,26 @@ CUSTOM_FIELDS = {
 		},
 	],
 	"Purchase Order": [
+		{
+			"fieldname": "custom_procurement_participants",
+			"fieldtype": "Small Text",
+			"label": "Procurement Participants",
+			"read_only": 1,
+			"no_copy": 1,
+			"hidden": 1,
+			"insert_after": "per_received",
+		},
+		{
+			"fieldname": "custom_procurement_completion_status",
+			"fieldtype": "Select",
+			"label": "Procurement Completion",
+			"options": "In Progress\nCompleted",
+			"default": "In Progress",
+			"read_only": 1,
+			"no_copy": 1,
+			"in_standard_filter": 1,
+			"insert_after": "custom_procurement_participants",
+		},
 		{
 			"fieldname": "custom_consolidated_purchase_order",
 			"fieldtype": "Link",
@@ -96,6 +173,35 @@ CUSTOM_FIELDS = {
 			"no_copy": 1,
 			"in_standard_filter": 1,
 			"insert_after": "supplier_name",
+		},
+		{
+			"fieldname": "custom_paid_outside_company",
+			"fieldtype": "Check",
+			"label": "Payer",
+			"read_only": 1,
+			"no_copy": 1,
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"insert_after": "custom_consolidated_purchase_order",
+		},
+		{
+			"fieldname": "custom_external_payer",
+			"fieldtype": "Link",
+			"label": "Paid by Initiator",
+			"options": "User",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "eval:doc.custom_paid_outside_company",
+			"insert_after": "custom_paid_outside_company",
+		},
+		{
+			"fieldname": "custom_external_payment_note",
+			"fieldtype": "Small Text",
+			"label": "External Payment Note",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "eval:doc.custom_paid_outside_company",
+			"insert_after": "custom_external_payer",
 		},
 	],
 }
@@ -178,6 +284,7 @@ frappe.ui.form.on("Material Request", {
 		configure_purchase_receipts_grid(frm);
 		setTimeout(() => configure_purchase_receipts_grid(frm), 100);
 		if (frappe.user_roles.includes("Закупівельник")) {
+			restrict_duplicate_consolidated_order(frm);
 			return;
 		}
 
@@ -239,6 +346,19 @@ function get_purchase_receipt_file_name(fileUrl) {
 	const path = fileUrl.split("?")[0];
 	return decodeURIComponent(path.substring(path.lastIndexOf("/") + 1));
 }
+
+function restrict_duplicate_consolidated_order(frm) {
+	if (frm.doc.docstatus !== 1 || frm.doc.material_request_type !== "Purchase") return;
+	frappe
+		.call({
+			method: "erpnext.buying.procurement_automation.get_existing_consolidated_purchase_order",
+			args: { source_name: frm.doc.name },
+		})
+		.then((response) => {
+			if (!response.message) return;
+			frm.remove_custom_button(__("Purchase Order"), __("Create"));
+		});
+}
 """.strip()
 
 
@@ -246,12 +366,29 @@ def after_migrate():
 	sync_procurement_custom_fields()
 
 	from erpnext.buying.procurement_workflow import sync_procurement_workflow
+	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
+		sync_all_consolidated_purchase_order_progress,
+	)
+	from erpnext.buying.procurement_final_approval import (
+		sync_existing_approval_thresholds,
+		sync_existing_final_approval_documents,
+	)
+	from erpnext.buying.procurement_automation import (
+		sync_all_procurement_participants,
+		sync_existing_purchase_invoice_external_payment_details,
+	)
 
 	sync_procurement_workflow()
+	sync_existing_approval_thresholds()
+	sync_existing_final_approval_documents()
+	sync_existing_purchase_invoice_external_payment_details()
+	sync_all_consolidated_purchase_order_progress()
+	sync_all_procurement_participants()
 	_sync_client_scripts()
 	_sync_list_fields()
 	_sync_consolidated_material_requests()
 	frappe.clear_cache(doctype="Material Request")
+	frappe.clear_cache(doctype="Buying Settings")
 	frappe.clear_cache(doctype="Purchase Order")
 	frappe.clear_cache(doctype="Purchase Order Item")
 	frappe.clear_cache(doctype="Purchase Invoice")
@@ -315,6 +452,28 @@ def _ensure_client_script(name, doctype, script):
 def _sync_list_fields():
 	_ensure_property_setter("workflow_state", "label", "Approval Stage", "Data")
 	_ensure_property_setter("workflow_state", "in_list_view", "1", "Check")
+	_sync_consolidated_purchase_order_list_view()
+
+
+def _sync_consolidated_purchase_order_list_view():
+	fields = [
+		{"fieldname": "name", "label": "ID"},
+		{"fieldname": "status_field", "label": "Status", "type": "Status"},
+		{"fieldname": "workflow_state", "label": "Approval Stage"},
+		{"fieldname": "company", "label": "Company"},
+		{"fieldname": "transaction_date", "label": "Date"},
+		{"fieldname": "payment_receipts_progress", "label": "Payment"},
+	]
+
+	if frappe.db.exists("List View Settings", "Consolidated Purchase Order"):
+		doc = frappe.get_doc("List View Settings", "Consolidated Purchase Order")
+	else:
+		doc = frappe.new_doc("List View Settings")
+		doc.name = "Consolidated Purchase Order"
+
+	doc.fields = json.dumps(fields)
+	doc.total_fields = "7"
+	_save(doc)
 
 
 def _ensure_property_setter(fieldname, property_name, value, property_type):
