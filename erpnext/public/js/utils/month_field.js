@@ -28,19 +28,18 @@ function month_options() {
 	return MONTH_KEYS.map((key, index) => ({ value: String(index + 1), label: __(key) }));
 }
 
-function apply_period(frm, year_field = "year", month_field = "month") {
-	frm.set_df_property(month_field, "options", month_options());
+function month_start(value) {
+	const date = value ? frappe.datetime.str_to_obj(value) : new Date();
+	return frappe.datetime.obj_to_str(new Date(date.getFullYear(), date.getMonth(), 1)).slice(0, 10);
+}
 
-	if (!frm.is_new()) return;
+function apply_period(frm, date_field = "effective_from") {
+	// The period is one Date field shown as a month; `year` and `month` stay in the doc
+	// (autoname and sorting read them) and are filled by the server on validate.
+	apply(frm, date_field);
 
-	const today = frappe.datetime.str_to_obj(frappe.datetime.get_today());
-
-	if (!frm.doc[year_field]) {
-		frm.set_value(year_field, today.getFullYear());
-	}
-
-	if (!frm.doc[month_field]) {
-		frm.set_value(month_field, String(today.getMonth() + 1));
+	if (frm.is_new() && !frm.doc[date_field]) {
+		frm.set_value(date_field, month_start());
 	}
 }
 
@@ -89,7 +88,11 @@ function picker_language() {
 }
 
 function apply(frm, fieldname) {
-	const control = frm.get_field(fieldname);
+	apply_control(frm.get_field(fieldname));
+}
+
+// Works on a form field and on a page filter alike — both are Control instances.
+function apply_control(control) {
 	if (!control || !control.$input || control.month_field_applied) return;
 
 	control.month_field_applied = true;
@@ -122,6 +125,8 @@ Object.assign(erpnext.utils.month_field, {
 	format_month,
 	parse_month,
 	apply,
+	apply_control,
 	month_options,
+	month_start,
 	apply_period,
 });
