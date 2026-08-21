@@ -4,14 +4,15 @@ frappe.ui.form.on("Salary Approval", {
 	},
 
 	refresh(frm) {
+		// buttons first: a throw in any of the helpers below must not cost the toolbar
+		if (!frm.doc.status || frm.doc.status === "Draft") {
+			frm.add_custom_button(__("Fill Amounts for Everyone"), () => open_bulk_dialog(frm));
+		}
+
 		erpnext.utils.month_field.apply_period(frm, "effective_from");
 		erpnext.utils.grid_editor.compact_row_actions(frm);
 		calculate_totals(frm);
 		mark_attendance(frm);
-
-		if (!frm.doc.status || frm.doc.status === "Draft") {
-			frm.add_custom_button(__("Fill Amounts for Everyone"), () => open_bulk_dialog(frm));
-		}
 
 		if (frm.is_new()) {
 			fetch_employees(frm);

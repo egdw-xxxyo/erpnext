@@ -11,9 +11,23 @@ function compact_row_actions(frm) {
 
 	if (frm.__grid_editor_observer) return;
 
-	const target = (frm.wrapper && frm.wrapper.get(0)) || document.body;
+	// frm.wrapper is a plain node on a form and a jQuery object in a few other layouts
+	const wrapper = frm.wrapper;
+	const target = (wrapper && (wrapper.get ? wrapper.get(0) : wrapper)) || document.body;
 
-	frm.__grid_editor_observer = new MutationObserver(() => paint_open_rows());
+	// the observer watches the whole form, and the grid rewrites rows in bursts:
+	// repaint once per frame instead of once per mutation
+	let queued = false;
+
+	frm.__grid_editor_observer = new MutationObserver(() => {
+		if (queued) return;
+
+		queued = true;
+		window.requestAnimationFrame(() => {
+			queued = false;
+			paint_open_rows();
+		});
+	});
 	frm.__grid_editor_observer.observe(target, { childList: true, subtree: true });
 }
 
