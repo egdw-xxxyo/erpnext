@@ -29,6 +29,7 @@ import "./utils/global_scanner";
 import "./utils/label_print_dialog";
 import "./utils/month_field";
 import "./utils/grid_editor";
+import "./utils/employee_preview";
 import "./utils/package_list_table";
 import "./telephony";
 import "./templates/call_link.html";

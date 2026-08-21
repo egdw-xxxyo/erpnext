@@ -13,6 +13,7 @@ frappe.ui.form.on("Salary Approval", {
 		erpnext.utils.grid_editor.compact_row_actions(frm);
 		calculate_totals(frm);
 		mark_attendance(frm);
+		render_preview(frm);
 
 		if (frm.is_new()) {
 			fetch_employees(frm);
@@ -38,8 +39,14 @@ frappe.ui.form.on("Salary Approval", {
 	company: (frm) => fetch_employees(frm, true),
 	effective_from: (frm) => fetch_employees(frm, true),
 
-	employees_add: (frm) => calculate_totals(frm),
-	employees_remove: (frm) => calculate_totals(frm),
+	employees_add: (frm) => {
+		calculate_totals(frm);
+		render_preview(frm);
+	},
+	employees_remove: (frm) => {
+		calculate_totals(frm);
+		render_preview(frm);
+	},
 	validate: (frm) => calculate_totals(frm),
 });
 
@@ -63,6 +70,32 @@ function update_row(frm, cdt, cdn) {
 	calculate_row(locals[cdt][cdn]);
 	frm.refresh_field("employees");
 	calculate_totals(frm);
+	render_preview(frm);
+}
+
+const money = (value) => erpnext.utils.employee_preview.money(value);
+
+function render_preview(frm) {
+	erpnext.utils.employee_preview.render(frm, {
+		field: "employees_preview",
+		table: "employees",
+		group_by: (row) => row.department || __("No Department"),
+		warn: (row) => !row.attendance_approved,
+		status_column: __("Attendance"),
+		warn_label: __("No attendance sheet"),
+		ok_label: __("Approved"),
+		columns: [
+			{ label: __("Official Salary"), value: (row) => money(row.official_salary) },
+			{ label: __("Cash Salary"), value: (row) => money(row.cash_salary) },
+			{
+				label: __("Bonus %"),
+				value: (row) => erpnext.utils.employee_preview.number(row.bonus_percent),
+			},
+			{ label: __("Bonus Amount"), value: (row) => money(row.bonus_amount) },
+			{ label: __("Allowance"), value: (row) => money(row.allowance) },
+			{ label: __("Total Salary"), value: (row) => money(row.total_salary), bold: true },
+		],
+	});
 }
 
 function calculate_totals(frm) {
@@ -122,6 +155,7 @@ function open_bulk_dialog(frm) {
 
 			frm.refresh_field("employees");
 			calculate_totals(frm);
+			render_preview(frm);
 			dialog.hide();
 		},
 	});
@@ -180,6 +214,7 @@ function fetch_employees(frm, replace = false) {
 			(response.message || []).forEach((row) => frm.add_child("employees", row));
 			frm.refresh_field("employees");
 			mark_attendance(frm);
+			render_preview(frm);
 		})
 		.always(() => {
 			frm.fetching_employees = false;

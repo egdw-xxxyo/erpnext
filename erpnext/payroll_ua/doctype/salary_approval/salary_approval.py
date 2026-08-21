@@ -163,7 +163,7 @@ class SalaryApproval(Document):
 
 		frappe.throw(
 			_("The attendance sheet for {0} is not approved for {1} employees: {2}").format(
-				formatdate(self.effective_from, "MMMM yyyy"),
+				formatdate(self.effective_from, "MM.yyyy"),
 				len(missing),
 				", ".join(missing[:20]) + ("…" if len(missing) > 20 else ""),
 			),

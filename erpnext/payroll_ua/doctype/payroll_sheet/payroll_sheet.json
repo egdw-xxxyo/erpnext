@@ -31,6 +31,7 @@
   "total_salary_cash",
   "total_outstanding",
   "section_break_employees",
+  "employees_preview",
   "employees"
  ],
  "fields": [
@@ -41,6 +42,14 @@
    "in_standard_filter": 1,
    "label": "Company",
    "options": "Company",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Month",
    "reqd": 1,
    "set_only_once": 1
   },
@@ -62,14 +71,6 @@
   {
    "fieldname": "column_break_period",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "period_start",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Month",
-   "reqd": 1,
-   "set_only_once": 1
   },
   {
    "fieldname": "period_end",
@@ -176,6 +177,11 @@
   {
    "fieldname": "section_break_employees",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employees_preview",
+   "fieldtype": "HTML",
+   "label": "Employees by Department"
   },
   {
    "fieldname": "employees",
