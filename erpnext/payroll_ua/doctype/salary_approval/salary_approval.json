@@ -84,6 +84,7 @@
    "label": "Totals"
   },
   {
+   "default": "0",
    "fieldname": "total_employees",
    "fieldtype": "Int",
    "label": "Employees",
@@ -94,6 +95,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "total_official",
    "fieldtype": "Currency",
    "label": "Official Salary",
@@ -104,6 +106,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "total_cash",
    "fieldtype": "Currency",
    "label": "Cash Salary",
@@ -114,6 +117,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "total_bonus",
    "fieldtype": "Currency",
    "label": "Bonus Amount",
@@ -124,6 +128,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "total_allowance",
    "fieldtype": "Currency",
    "label": "Allowance",
@@ -134,6 +139,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "total_salary",
    "fieldtype": "Currency",
    "label": "Total Salary",
