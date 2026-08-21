@@ -10,7 +10,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, formatdate, get_last_day, getdate
 
-from erpnext.hr.salary_advance import ADVANCE_CARD, ADVANCE_CASH, create_advance
+from erpnext.hr import payroll_accounts
+from erpnext.hr.salary_advance import ADVANCE_CARD, ADVANCE_CASH
 from erpnext.hr.salary_split import CASH_COMPONENT
 
 DEPOSIT_COMPONENT = "Задаток"
@@ -46,6 +47,9 @@ class PayrollSheet(Document):
 
 	def collect(self):
 		"""Перебудовує таблицю працівників з даних HRMS."""
+		self.advance_sheet = frappe.db.get_value(
+			"Salary Advance", {"company": self.company, "period_start": self.period_start}
+		)
 		slips = self._slips()
 		advances = self._additional_salary()
 		attendance = self._attendance_days()
@@ -218,14 +222,6 @@ class PayrollSheet(Document):
 	# --- дії ------------------------------------------------------------------
 
 	@frappe.whitelist()
-	def calculate_advance(self, cutoff_day=15):
-		self.validate_salary_approved()
-		rows = create_advance(self.company, int(self.year), int(self.month), int(cutoff_day), dry_run=False)
-		self.refresh_data()
-
-		return len(rows)
-
-	@frappe.whitelist()
 	def create_payroll(self):
 		"""Створює і подає Payroll Entry за місяць — по працівниках з повним табелем."""
 		self.validate_salary_approved()
@@ -284,123 +280,53 @@ class PayrollSheet(Document):
 		)
 
 	@frappe.whitelist()
-	def pay(self, kind, posting_date=None):
-		"""Проводить виплату: `advance` — аванс, `final` — розрахунок за місяць."""
-		posting_date = getdate(
-			posting_date or (self.period_end if kind == "final" else None) or self.period_start
-		)
+	def pay(self, posting_date=None):
+		"""Проводить остаточний розрахунок за місяць. Аванс платиться окремим документом."""
+		posting_date = getdate(posting_date or self.period_end)
 		vouchers = []
+		payouts = (
+			(
+				payroll_accounts.bank_account(self.company),
+				payroll_accounts.payable_account(self.company),
+				flt(self.total_salary_card),
+				_("Salary to cards"),
+				# Офіційну частину закриваємо по кожному працівнику окремо — саме так її нарахував
+				# HRMS, інакше рахунок не зійдеться по контрагентах.
+				[(row.employee, flt(row.salary_card)) for row in self.employees if flt(row.salary_card, 2)],
+			),
+			(
+				payroll_accounts.cash_account(self.company),
+				payroll_accounts.cash_payable_account(self.company),
+				flt(self.total_salary_cash),
+				_("Salary in cash"),
+				None,
+			),
+		)
 
-		if kind == "advance":
-			payouts = (
-				(
-					self.bank_account(),
-					self.advance_account(),
-					flt(self.total_advance_card),
-					_("Advance to cards"),
-				),
-				(
-					self.cash_account(),
-					self.advance_account(),
-					flt(self.total_advance_cash),
-					_("Advance in cash"),
-				),
-			)
-		else:
-			payouts = (
-				(
-					self.bank_account(),
-					self.payable_account(),
-					flt(self.total_salary_card),
-					_("Salary to cards"),
-				),
-				(
-					self.cash_account(),
-					self.cash_payable_account(),
-					flt(self.total_salary_cash),
-					_("Salary in cash"),
-				),
-			)
-
-		for paid_from, paid_to, amount, remark in payouts:
+		for paid_from, paid_to, amount, remark, parties in payouts:
 			if not flt(amount, 2):
 				continue
 
-			vouchers.append(self._make_journal_entry(paid_from, paid_to, amount, posting_date, remark, kind))
+			vouchers.append(
+				payroll_accounts.make_journal_entry(
+					self.company,
+					paid_from,
+					paid_to,
+					amount,
+					posting_date,
+					f"{remark} {self.month}.{self.year}",
+					parties=parties,
+				)
+			)
 
 		self.refresh_data()
 
 		return vouchers
 
-	def _make_journal_entry(self, paid_from, paid_to, amount, posting_date, remark, kind):
-		if not paid_from or not paid_to:
-			frappe.throw(_("Set the payroll accounts for company {0} first.").format(self.company))
-
-		is_bank = paid_from == self.bank_account()
-		title = f"{remark} {self.month}.{self.year}"
-		entry = frappe.new_doc("Journal Entry")
-		entry.voucher_type = "Bank Entry" if is_bank else "Cash Entry"
-		entry.company = self.company
-		entry.posting_date = posting_date
-		entry.cheque_no = title
-		entry.cheque_date = posting_date
-		entry.user_remark = title
-
-		# Офіційну частину закриваємо по кожному працівнику окремо — саме так її нарахував HRMS,
-		# інакше рахунок не зійдеться по контрагентах.
-		if is_bank and kind == "final":
-			for row in self.employees:
-				if flt(row.salary_card, 2):
-					entry.append(
-						"accounts",
-						{
-							"account": paid_to,
-							"party_type": "Employee",
-							"party": row.employee,
-							"debit_in_account_currency": flt(row.salary_card, 2),
-						},
-					)
-			amount = sum(flt(row.salary_card, 2) for row in self.employees)
-		else:
-			entry.append("accounts", {"account": paid_to, "debit_in_account_currency": flt(amount, 2)})
-
-		entry.append("accounts", {"account": paid_from, "credit_in_account_currency": flt(amount, 2)})
-		entry.insert()
-		entry.submit()
-
-		return entry.name
-
 	# --- рахунки --------------------------------------------------------------
 
 	def payable_account(self):
-		return frappe.get_cached_value("Company", self.company, "default_payroll_payable_account")
+		return payroll_accounts.payable_account(self.company)
 
 	def bank_account(self):
-		account = frappe.get_cached_value("Company", self.company, "default_bank_account")
-
-		if account:
-			return account
-
-		# У компанії може не бути рахунку за замовчуванням — беремо єдиний банківський,
-		# і мовчимо лише тоді, коли вибір неоднозначний.
-		accounts = frappe.get_all(
-			"Account",
-			filters={"company": self.company, "account_type": "Bank", "is_group": 0},
-			pluck="name",
-		)
-
-		return accounts[0] if len(accounts) == 1 else None
-
-	def cash_account(self):
-		return frappe.get_cached_value("Company", self.company, "default_cash_account")
-
-	def cash_payable_account(self):
-		return self._component_account(CASH_COMPONENT)
-
-	def advance_account(self):
-		return self._component_account(ADVANCE_CARD)
-
-	def _component_account(self, component):
-		return frappe.db.get_value(
-			"Salary Component Account", {"parent": component, "company": self.company}, "account"
-		)
+		return payroll_accounts.bank_account(self.company)

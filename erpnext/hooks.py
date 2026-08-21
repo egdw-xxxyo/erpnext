@@ -575,6 +575,7 @@ scheduler_events = {
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
 		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
+		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
 	],
 	"daily_long": [],
 	"daily_maintenance": [

@@ -13,20 +13,15 @@ frappe.ui.form.on("Payroll Sheet", {
 
 		frm.add_custom_button(__("Refresh from HRMS"), () => run(frm, "refresh_data"));
 
-		if (!frm.doc.total_advance_card && !frm.doc.total_advance_cash) {
-			frm.add_custom_button(__("Calculate Advance"), () => ask_cutoff(frm), __("Payroll"));
-		}
-
 		if (!frm.doc.payroll_entry) {
 			frm.add_custom_button(__("Accrue Salary"), () => run(frm, "create_payroll"), __("Payroll"));
 		}
 
-		if (frm.doc.total_advance_card || frm.doc.total_advance_cash) {
-			frm.add_custom_button(__("Pay Advance"), () => pay(frm, "advance"), __("Pay"));
-		}
+		// Аванс живе окремим документом — платиться 15-го, задовго до розрахунку місяця.
+		frm.add_custom_button(__("Advance"), () => open_advance(frm), __("Payroll"));
 
 		if (frm.doc.total_outstanding) {
-			frm.add_custom_button(__("Pay Salary"), () => pay(frm, "final"), __("Pay"));
+			frm.add_custom_button(__("Pay Salary"), () => pay(frm), __("Pay"));
 		}
 
 		frm.trigger("show_status");
@@ -83,33 +78,29 @@ function run(frm, method, args) {
 		.then(() => frm.reload_doc());
 }
 
-function ask_cutoff(frm) {
-	frappe.prompt(
-		{
-			fieldname: "cutoff_day",
-			fieldtype: "Int",
-			label: __("Advance is calculated up to this day"),
-			default: 15,
-			reqd: 1,
-		},
-		(values) => run(frm, "calculate_advance", values),
-		__("Calculate Advance"),
-		__("Calculate")
-	);
+function open_advance(frm) {
+	if (frm.doc.advance_sheet) {
+		frappe.set_route("Form", "Salary Advance", frm.doc.advance_sheet);
+		return;
+	}
+
+	frappe.new_doc("Salary Advance", {
+		company: frm.doc.company,
+		period_start: frm.doc.period_start,
+	});
 }
 
-function pay(frm, kind) {
-	const is_advance = kind === "advance";
+function pay(frm) {
 	frappe.prompt(
 		{
 			fieldname: "posting_date",
 			fieldtype: "Date",
 			label: __("Payment Date"),
-			default: is_advance ? frappe.datetime.add_days(frm.doc.period_start, 14) : frm.doc.period_end,
+			default: frm.doc.period_end,
 			reqd: 1,
 		},
-		(values) => run(frm, "pay", { kind: kind, posting_date: values.posting_date }),
-		is_advance ? __("Pay Advance") : __("Pay Salary"),
+		(values) => run(frm, "pay", { posting_date: values.posting_date }),
+		__("Pay Salary"),
 		__("Post")
 	);
 }
