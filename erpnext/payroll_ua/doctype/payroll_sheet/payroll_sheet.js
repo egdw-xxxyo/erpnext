@@ -5,6 +5,7 @@ frappe.ui.form.on("Payroll Sheet", {
 
 	refresh(frm) {
 		erpnext.utils.month_field.apply_period(frm, "period_start");
+		render_preview(frm);
 
 		if (frm.is_new()) {
 			return;
@@ -46,6 +47,29 @@ frappe.ui.form.on("Payroll Sheet", {
 		}
 	},
 });
+
+const money = (value) => erpnext.utils.employee_preview.money(value);
+
+function render_preview(frm) {
+	erpnext.utils.employee_preview.render(frm, {
+		field: "employees_preview",
+		table: "employees",
+		group_by: (row) => row.department || __("No Department"),
+		warn: (row) => !row.credited_days,
+		status_column: __("Attendance"),
+		warn_label: __("No attendance sheet"),
+		ok_label: __("Present"),
+		columns: [
+			{ label: __("Days"), value: (row) => erpnext.utils.employee_preview.number(row.credited_days) },
+			{ label: __("Gross Pay"), value: (row) => money(row.gross_pay) },
+			{ label: __("Advance"), value: (row) => money(flt(row.advance_card) + flt(row.advance_cash)) },
+			{ label: __("To Card"), value: (row) => money(row.salary_card) },
+			{ label: __("Deposit"), value: (row) => money(row.deposit) },
+			{ label: __("Outstanding"), value: (row) => money(row.outstanding), bold: true },
+			{ label: __("Paid"), value: (row) => (row.paid ? __("Yes") : "") },
+		],
+	});
+}
 
 function run(frm, method, args) {
 	return frm

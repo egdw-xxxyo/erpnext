@@ -8,7 +8,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, get_last_day, getdate
+from frappe.utils import flt, formatdate, get_last_day, getdate
 
 from erpnext.hr.salary_advance import ADVANCE_CARD, ADVANCE_CASH, create_advance
 from erpnext.hr.salary_split import CASH_COMPONENT
@@ -219,6 +219,7 @@ class PayrollSheet(Document):
 
 	@frappe.whitelist()
 	def calculate_advance(self, cutoff_day=15):
+		self.validate_salary_approved()
 		rows = create_advance(self.company, int(self.year), int(self.month), int(cutoff_day), dry_run=False)
 		self.refresh_data()
 
@@ -227,6 +228,8 @@ class PayrollSheet(Document):
 	@frappe.whitelist()
 	def create_payroll(self):
 		"""Створює і подає Payroll Entry за місяць — по працівниках з повним табелем."""
+		self.validate_salary_approved()
+
 		if self.payroll_entry and frappe.db.get_value("Payroll Entry", self.payroll_entry, "docstatus") == 1:
 			frappe.throw(
 				_("Payroll Entry {0} is already submitted for this sheet.").format(self.payroll_entry)
@@ -261,6 +264,24 @@ class PayrollSheet(Document):
 		self.refresh_data()
 
 		return entry.name
+
+	def validate_salary_approved(self):
+		"""Гроші рахуємо тільки після «Затвердження ЗП» за цей місяць: саме воно кладе
+		оклади в картки працівників, з яких HRMS будує нарахування."""
+		approval = frappe.db.exists(
+			"Salary Approval",
+			{"company": self.company, "effective_from": self.period_start, "status": "Approved"},
+		)
+
+		if approval:
+			return
+
+		frappe.throw(
+			_("Approve the salary for {0} first — there is no approved Salary Approval for {1}.").format(
+				formatdate(self.period_start, "MM.yyyy"), self.company
+			),
+			title=_("Salary Not Approved"),
+		)
 
 	@frappe.whitelist()
 	def pay(self, kind, posting_date=None):
