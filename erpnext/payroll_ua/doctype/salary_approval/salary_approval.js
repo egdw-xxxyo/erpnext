@@ -85,8 +85,10 @@ function calculate_totals(frm) {
 		totals.total_salary += flt(row.total_salary);
 	});
 
+	// a read-only field with no value at all is hidden by the desk, so an untouched
+	// document must still be given its zeroes
 	Object.entries(totals).forEach(([fieldname, value]) => {
-		if (flt(frm.doc[fieldname]) !== flt(value)) {
+		if (frm.doc[fieldname] === undefined || flt(frm.doc[fieldname]) !== flt(value)) {
 			frm.set_value(fieldname, value);
 		}
 	});
