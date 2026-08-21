@@ -9,18 +9,22 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "effective_from",
   "year",
   "month",
   "column_break_period",
-  "effective_from",
   "status",
   "section_break_totals",
   "total_employees",
+  "column_break_total_1",
   "total_official",
+  "column_break_total_2",
   "total_cash",
-  "column_break_totals",
+  "column_break_total_3",
   "total_bonus",
+  "column_break_total_4",
   "total_allowance",
+  "column_break_total_5",
   "total_salary",
   "section_break_employees",
   "employees"
@@ -37,32 +41,32 @@
    "set_only_once": 1
   },
   {
-   "fieldname": "year",
-   "fieldtype": "Int",
+   "description": "The salary is applied to the employee card from this date.",
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Year",
+   "label": "Month",
    "reqd": 1,
    "set_only_once": 1
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Year",
+   "read_only": 1
   },
   {
    "fieldname": "month",
    "fieldtype": "Select",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Month",
    "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
-   "reqd": 1,
-   "set_only_once": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_period",
    "fieldtype": "Column Break"
-  },
-  {
-   "description": "The salary is applied to the employee card from this date.",
-   "fieldname": "effective_from",
-   "fieldtype": "Date",
-   "label": "Effective From",
-   "read_only": 1
   },
   {
    "default": "Draft",
@@ -86,10 +90,18 @@
    "read_only": 1
   },
   {
+   "fieldname": "column_break_total_1",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_official",
    "fieldtype": "Currency",
    "label": "Official Salary",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_2",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "total_cash",
@@ -98,7 +110,7 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_totals",
+   "fieldname": "column_break_total_3",
    "fieldtype": "Column Break"
   },
   {
@@ -108,10 +120,18 @@
    "read_only": 1
   },
   {
+   "fieldname": "column_break_total_4",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_allowance",
    "fieldtype": "Currency",
    "label": "Allowance",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_5",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "total_salary",

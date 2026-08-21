@@ -9,10 +9,10 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "period_start",
   "year",
   "month",
   "column_break_period",
-  "period_start",
   "period_end",
   "status",
   "section_break_counts",
@@ -47,19 +47,17 @@
   {
    "fieldname": "year",
    "fieldtype": "Int",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Year",
-   "reqd": 1,
-   "set_only_once": 1
+   "read_only": 1
   },
   {
    "fieldname": "month",
    "fieldtype": "Select",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Month",
    "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
-   "reqd": 1,
-   "set_only_once": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_period",
@@ -68,8 +66,10 @@
   {
    "fieldname": "period_start",
    "fieldtype": "Date",
-   "label": "Period Start",
-   "read_only": 1
+   "in_list_view": 1,
+   "label": "Month",
+   "reqd": 1,
+   "set_only_once": 1
   },
   {
    "fieldname": "period_end",

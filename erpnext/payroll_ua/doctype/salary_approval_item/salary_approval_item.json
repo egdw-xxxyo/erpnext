@@ -10,6 +10,8 @@
   "employee_name",
   "department",
   "manager",
+  "attendance_approved",
+  "attendance_note",
   "column_break_salary",
   "official_salary",
   "cash_salary",
@@ -58,6 +60,20 @@
    "read_only": 1
   },
   {
+   "fieldname": "attendance_approved",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Attendance Approved",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_note",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Attendance Note",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_salary",
    "fieldtype": "Column Break"
   },
@@ -76,8 +92,10 @@
    "label": "Cash Salary"
   },
   {
+   "columns": 1,
    "fieldname": "total_salary",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Total Salary",
    "read_only": 1
   },
@@ -101,8 +119,10 @@
    "read_only": 1
   },
   {
+   "columns": 1,
    "fieldname": "allowance",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Allowance"
   },
   {

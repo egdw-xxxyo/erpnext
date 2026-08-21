@@ -17,13 +17,24 @@ DEPOSIT_COMPONENT = "Задаток"
 
 
 class PayrollSheet(Document):
+	def before_naming(self):
+		# `autoname` reads year and month, and it runs before validate.
+		self.set_period()
+
 	def validate(self):
 		self.set_period()
 		self.collect()
 
 	def set_period(self):
-		self.period_start = getdate(f"{self.year}-{int(self.month):02d}-01")
+		# Період вибирається одним полем-місяцем; `year` і `month` лишаються заради
+		# іменування та сортування, тож заповнюємо їх з дати.
+		if not self.period_start:
+			frappe.throw(_("Month is required"))
+
+		self.period_start = getdate(self.period_start).replace(day=1)
 		self.period_end = get_last_day(self.period_start)
+		self.year = self.period_start.year
+		self.month = str(self.period_start.month)
 
 	@frappe.whitelist()
 	def refresh_data(self):
