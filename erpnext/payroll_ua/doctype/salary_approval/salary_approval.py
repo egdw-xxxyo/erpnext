@@ -178,15 +178,23 @@ def month_range(effective_from) -> tuple:
 
 
 def get_attendance_coverage(employees: list[str], effective_from) -> dict:
-	"""Кожен день місяця має входити в поданий «Затвердження табеля» цього працівника.
+	"""Кожен день місяця має входити в поданий «Затвердження табеля» цього працівника."""
+	start, end = month_range(effective_from)
 
-	Місяць можна закрити кількома документами (керівник здає його частинами), тож рахуємо
-	об'єднання днів, а не окремі документи.
+	return get_coverage(employees, start, end)
+
+
+def get_coverage(employees: list[str], start, end) -> dict:
+	"""Чи закритий поданими «Затвердженнями табеля» кожен день періоду.
+
+	Період можна закрити кількома документами (керівник здає його частинами), тож рахуємо
+	об'єднання днів, а не окремі документи. Аванс питає про першу половину місяця, а
+	затвердження ЗП — про місяць цілком.
 	"""
 	if not employees:
 		return {}
 
-	start, end = month_range(effective_from)
+	start, end = getdate(start), getdate(end)
 
 	Approval = frappe.qb.DocType("Attendance Sheet Approval")
 	Row = frappe.qb.DocType("Attendance Sheet Approval Employee")
@@ -204,7 +212,7 @@ def get_attendance_coverage(employees: list[str], effective_from) -> dict:
 		)
 	).run(as_dict=True)
 
-	days_in_month = {add_days(start, offset) for offset in range(date_diff(end, start) + 1)}
+	days_in_period = {add_days(start, offset) for offset in range(date_diff(end, start) + 1)}
 	covered = {}
 
 	for period in periods:
@@ -213,7 +221,7 @@ def get_attendance_coverage(employees: list[str], effective_from) -> dict:
 		days = covered.setdefault(period.employee, set())
 		days.update(add_days(first, offset) for offset in range(date_diff(last, first) + 1))
 
-	return {employee: covered.get(employee, set()) >= days_in_month for employee in employees}
+	return {employee: covered.get(employee, set()) >= days_in_period for employee in employees}
 
 
 def missing_attendance_note() -> str:
