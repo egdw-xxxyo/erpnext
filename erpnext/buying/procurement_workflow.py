@@ -10,6 +10,18 @@ PAYMENT_INITIATOR_ROLE = "Payments: Ініціатор"
 DEPARTMENT_HEAD_ROLE = "Payments: Керівник підрозділу"
 FINAL_APPROVER_ROLE = "Payments: Фінальний погоджувач"
 TREASURER_ROLE = "Payments: Казначей"
+WAREHOUSE_MANAGER_ROLE = "Stock Manager"
+WAREHOUSE_MANAGER_ROLE_PROFILE = "Закупівлі: профіль начальника складу"
+WAREHOUSE_ASSIGNMENT_RULE_NAME = "Закупівлі: надходження замовлення на придбання"
+ALL_ASSIGNMENT_DAYS = (
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+	"Sunday",
+)
 
 ROLE_PROFILES = {
 	"Закупівлі: профіль ініціатора замовлень матеріалів": (
@@ -22,6 +34,13 @@ ROLE_PROFILES = {
 		PAYMENT_INITIATOR_ROLE,
 		"Purchase User",
 		"Stock User",
+		"Employee",
+	),
+	WAREHOUSE_MANAGER_ROLE_PROFILE: (
+		WAREHOUSE_MANAGER_ROLE,
+		"Stock User",
+		"Purchase User",
+		"Quality Manager",
 		"Employee",
 	),
 }
@@ -176,6 +195,7 @@ DOCTYPE_PERMISSIONS = {
 		),
 		DEPARTMENT_HEAD_ROLE: ("select", "read", "write", "report", "print"),
 		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
+		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
 	},
 	"Purchase Invoice": {
 		BUYER_ROLE: ("select", "read", "write", "create", "submit", "report", "print"),
@@ -188,6 +208,7 @@ def sync_procurement_workflow():
 	_ensure_roles()
 	_ensure_role_profiles()
 	_ensure_permissions()
+	_ensure_warehouse_assignment_rule()
 	_ensure_workflow_states()
 	_ensure_workflow_actions()
 	_ensure_workflow()
@@ -220,7 +241,10 @@ def _ensure_role_profiles():
 		else:
 			doc = frappe.new_doc("Role Profile")
 			doc.role_profile = profile_name
-		doc.set("roles", [{"role": role} for role in roles])
+		existing_roles = {row.role for row in doc.get("roles") or []}
+		for role in roles:
+			if role not in existing_roles:
+				doc.append("roles", {"role": role})
 		_save(doc)
 
 
@@ -240,6 +264,52 @@ def _ensure_permissions():
 			for permission in PERMISSION_FIELDS:
 				doc.set(permission, int(permission in enabled_permissions))
 			_save(doc)
+
+
+def _ensure_warehouse_assignment_rule():
+	is_new = not frappe.db.exists("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME)
+	if is_new:
+		doc = frappe.new_doc("Assignment Rule")
+		doc.name = WAREHOUSE_ASSIGNMENT_RULE_NAME
+	else:
+		doc = frappe.get_doc("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME)
+
+	doc.document_type = "Purchase Order"
+	doc.priority = 10
+	doc.disabled = 0
+	doc.description = "Прийняти товари за замовленням на придбання {{ name }}."
+	doc.assign_condition = "custom_procurement_completion_status == 'Очікує надходження'"
+	doc.unassign_condition = "custom_procurement_completion_status != 'Очікує надходження'"
+	doc.close_condition = "custom_procurement_completion_status == 'Завершено' or docstatus == 2"
+	doc.rule = "Round Robin"
+	# The assignee is operational data. Pick a configured warehouse manager only
+	# on first creation and never overwrite later Desk changes during deployment.
+	if is_new:
+		doc.set("users", [{"user": _get_default_warehouse_manager_user()}])
+	doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
+	_save(doc)
+
+
+def _get_default_warehouse_manager_user():
+	profile_user = frappe.db.get_value(
+		"User",
+		{"enabled": 1, "role_profile_name": WAREHOUSE_MANAGER_ROLE_PROFILE},
+		"name",
+		order_by="name asc",
+	)
+	if profile_user:
+		return profile_user
+
+	users = frappe.get_all(
+		"Has Role",
+		filters={"role": WAREHOUSE_MANAGER_ROLE, "parenttype": "User"},
+		pluck="parent",
+		order_by="parent asc",
+	)
+	for user in users:
+		if user not in {"Administrator", "Guest"} and frappe.db.get_value("User", user, "enabled"):
+			return user
+	return "Administrator"
 
 
 def _ensure_workflow_states():

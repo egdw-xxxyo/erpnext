@@ -53,9 +53,9 @@ CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_procurement_completion_status",
 			"fieldtype": "Select",
-			"label": "Procurement Completion",
-			"options": "In Progress\nCompleted",
-			"default": "In Progress",
+			"label": "Procurement Status",
+			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+			"default": "Підготовка",
 			"read_only": 1,
 			"no_copy": 1,
 			"in_standard_filter": 1,
@@ -116,9 +116,9 @@ CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_procurement_completion_status",
 			"fieldtype": "Select",
-			"label": "Procurement Completion",
-			"options": "In Progress\nCompleted",
-			"default": "In Progress",
+			"label": "Procurement Status",
+			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+			"default": "Підготовка",
 			"read_only": 1,
 			"no_copy": 1,
 			"in_standard_filter": 1,
@@ -452,17 +452,20 @@ def _ensure_client_script(name, doctype, script):
 def _sync_list_fields():
 	_ensure_property_setter("workflow_state", "label", "Approval Stage", "Data")
 	_ensure_property_setter("workflow_state", "in_list_view", "1", "Check")
+	_ensure_property_setter("company", "in_list_view", "0", "Check")
+	_ensure_property_setter("procurement_completion_status", "label", "Status", "Data")
+	_ensure_property_setter("procurement_completion_status", "in_list_view", "1", "Check")
 	_sync_consolidated_purchase_order_list_view()
 
 
 def _sync_consolidated_purchase_order_list_view():
 	fields = [
 		{"fieldname": "name", "label": "ID"},
-		{"fieldname": "status_field", "label": "Status", "type": "Status"},
 		{"fieldname": "workflow_state", "label": "Approval Stage"},
-		{"fieldname": "company", "label": "Company"},
+		{"fieldname": "procurement_completion_status", "label": "Status"},
 		{"fieldname": "transaction_date", "label": "Date"},
 		{"fieldname": "payment_receipts_progress", "label": "Payment"},
+		{"fieldname": "grand_total", "label": "Grand Total"},
 	]
 
 	if frappe.db.exists("List View Settings", "Consolidated Purchase Order"):
