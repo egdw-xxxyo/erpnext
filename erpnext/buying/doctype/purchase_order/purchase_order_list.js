@@ -8,7 +8,16 @@ frappe.listview_settings["Purchase Order"] = {
 		"per_received",
 		"per_billed",
 		"status",
+		"custom_procurement_completion_status",
 	],
+	formatters: {
+		custom_procurement_completion_status(value) {
+			return erpnext.buying.format_procurement_status(
+				value,
+				"custom_procurement_completion_status"
+			);
+		},
+	},
 	get_indicator: function (doc) {
 		// Please do not add precision in the flt function
 		if (doc.status === "Closed") {
