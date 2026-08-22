@@ -11,7 +11,7 @@ from frappe.model.document import Document
 from frappe.utils import flt, formatdate, get_last_day, getdate
 
 from erpnext.hr import payroll_accounts
-from erpnext.hr.salary_advance import ADVANCE_CARD, ADVANCE_CASH
+from erpnext.hr.salary_advance import ADVANCE_CARD, ADVANCE_CASH, attendance_summary
 from erpnext.hr.salary_split import CASH_COMPONENT
 
 DEPOSIT_COMPONENT = "Задаток"
@@ -54,10 +54,17 @@ class PayrollSheet(Document):
 		advances = self._additional_salary()
 		attendance = self._attendance_days()
 		outstanding = self._outstanding_by_party()
+		employees = self._employees()
+		stats = attendance_summary([row.name for row in employees], self.period_start, self.period_end)
+		# Таблиця будується наново з HRMS, а сліди виплати живуть лише тут — переносимо їх.
+		paid_marks = {
+			row.employee: (row.journal_entry_card, row.journal_entry_cash, row.paid_date)
+			for row in self.employees
+		}
 
 		self.set("employees", [])
 
-		for employee in self._employees():
+		for employee in employees:
 			slip = slips.get(employee.name)
 			extra = advances.get(employee.name, {})
 			card = flt(slip and slip.net_pay)
@@ -85,6 +92,15 @@ class PayrollSheet(Document):
 				},
 			)
 
+			row.journal_entry_card, row.journal_entry_cash, row.paid_date = paid_marks.get(
+				employee.name, (None, None, None)
+			)
+			# Готівкова частина лежить на рахунку без контрагента, тож борг по працівнику її не
+			# бачить: рядок з готівкою вважається закритим лише після проведення виплати.
+			if cash and not row.paid_date:
+				row.paid = 0
+			self._set_attendance(row, stats.get(employee.name))
+
 			if row.credited_days and row.total_working_days:
 				row.daily_rate = flt(row.gross_pay) / flt(row.credited_days)
 
@@ -96,6 +112,15 @@ class PayrollSheet(Document):
 				)
 
 		self.set_totals()
+
+	def _set_attendance(self, row, summary):
+		"""Розклад табеля за місяць — те саме, що бачить «Аванс», лише за повний період.
+
+		`credited_days` тут лишається від листка: платить HRMS, а не наш підрахунок.
+		"""
+		for field, value in (summary or {}).items():
+			if field != "credited_days":
+				row.set(field, value)
 
 	def _employees(self):
 		return frappe.get_all(
@@ -188,8 +213,12 @@ class PayrollSheet(Document):
 		return {row.party: flt(row.due) for row in rows}
 
 	def set_totals(self):
+		self.bonus_approved = 1 if self.bonus_approval() else 0
 		self.total_employees = len(self.employees)
-		self.employees_without_attendance = len([row for row in self.employees if not row.salary_slip])
+		self.employees_without_attendance = len([row for row in self.employees if not row.credited_days])
+		self.employees_not_accrued = len(
+			[row for row in self.employees if row.credited_days and not row.salary_slip]
+		)
 		self.paid_employees = len([row for row in self.employees if row.paid and row.salary_card])
 
 		for field, source in (
@@ -261,64 +290,96 @@ class PayrollSheet(Document):
 
 		return entry.name
 
-	def validate_salary_approved(self):
-		"""Гроші рахуємо тільки після «Затвердження ЗП» за цей місяць: саме воно кладе
-		оклади в картки працівників, з яких HRMS будує нарахування."""
-		approval = frappe.db.exists(
+	def bonus_approval(self):
+		"""Затверджені премії за цей місяць — без них місяць не рахується і не платиться."""
+		return frappe.db.exists(
 			"Salary Approval",
 			{"company": self.company, "effective_from": self.period_start, "status": "Approved"},
 		)
 
-		if approval:
+	def validate_salary_approved(self):
+		"""Премія — частина нарахування місяця: якщо її ще не затвердили, порахований і
+		виплачений місяць довелося б скасовувати й рахувати наново."""
+		if self.bonus_approval():
 			return
 
 		frappe.throw(
-			_("Approve the salary for {0} first — there is no approved Salary Approval for {1}.").format(
+			_("Approve the bonuses for {0} first — there is no approved bonus sheet for {1}.").format(
 				formatdate(self.period_start, "MM.yyyy"), self.company
 			),
-			title=_("Salary Not Approved"),
+			title=_("Bonuses Not Approved"),
 		)
 
 	@frappe.whitelist()
-	def pay(self, posting_date=None):
-		"""Проводить остаточний розрахунок за місяць. Аванс платиться окремим документом."""
+	def pay(self, posting_date=None, employees=None):
+		"""Проводить остаточний розрахунок за місяць. Аванс платиться окремим документом.
+
+		`employees` — кого саме платимо; без нього платяться всі, кому ще винні. Бухгалтерія
+		закриває людей поштучно, тож рядок проводиться окремо від решти.
+		"""
+		self.validate_salary_approved()
+
+		selected = frappe.parse_json(employees) if isinstance(employees, str) else employees
+		targets = [
+			row
+			for row in self.employees
+			if row.salary_slip
+			and (flt(row.salary_card, 2) or flt(row.salary_cash, 2))
+			and not row.paid
+			and (not selected or row.employee in selected)
+		]
+
+		if not targets:
+			frappe.throw(_("There is nothing left to pay here."))
+
 		posting_date = getdate(posting_date or self.period_end)
 		vouchers = []
 		payouts = (
 			(
 				payroll_accounts.bank_account(self.company),
 				payroll_accounts.payable_account(self.company),
-				flt(self.total_salary_card),
 				_("Salary to cards"),
+				"salary_card",
 				# Офіційну частину закриваємо по кожному працівнику окремо — саме так її нарахував
 				# HRMS, інакше рахунок не зійдеться по контрагентах.
-				[(row.employee, flt(row.salary_card)) for row in self.employees if flt(row.salary_card, 2)],
+				True,
 			),
 			(
 				payroll_accounts.cash_account(self.company),
 				payroll_accounts.cash_payable_account(self.company),
-				flt(self.total_salary_cash),
 				_("Salary in cash"),
-				None,
+				"salary_cash",
+				False,
 			),
 		)
 
-		for paid_from, paid_to, amount, remark, parties in payouts:
+		for paid_from, paid_to, remark, source, by_party in payouts:
+			parties = [(row.employee, flt(row.get(source), 2)) for row in targets if flt(row.get(source), 2)]
+			amount = sum(party_amount for _employee, party_amount in parties)
+
 			if not flt(amount, 2):
 				continue
 
-			vouchers.append(
-				payroll_accounts.make_journal_entry(
-					self.company,
-					paid_from,
-					paid_to,
-					amount,
-					posting_date,
-					f"{remark} {self.month}.{self.year}",
-					parties=parties,
-				)
+			voucher = payroll_accounts.make_journal_entry(
+				self.company,
+				paid_from,
+				paid_to,
+				amount,
+				posting_date,
+				f"{remark} {self.month}.{self.year}",
+				parties=parties if by_party else None,
 			)
+			vouchers.append(voucher)
 
+			# Проведення лишається в рядку: з нього видно, чим саме закрита ця людина.
+			for row in targets:
+				if flt(row.get(source), 2):
+					row.set(f"journal_entry_{source.replace('salary_', '')}", voucher)
+
+		for row in targets:
+			row.paid_date = posting_date
+
+		self.save()
 		self.refresh_data()
 
 		return vouchers

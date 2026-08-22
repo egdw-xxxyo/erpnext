@@ -107,6 +107,60 @@ def _sync_assignment(doc):
 		doc.db_set("ctc", total, update_modified=False)
 
 
+def salary_parts_on(employee, on_date) -> tuple:
+	"""Дві частини окладу, чинні на дату: (офіційна, готівкова).
+
+	Читаємо чинне призначення структури, а не картку працівника: картка тримає лише останній
+	затверджений оклад, і після «Зміни окладу» на майбутній місяць вона вже показує майбутню
+	суму. Картка лишається запасним джерелом — для тих, кому призначення ще не створили.
+	"""
+	assignment = frappe.db.get_value(
+		"Salary Structure Assignment",
+		{"employee": employee, "docstatus": 1, "from_date": ["<=", getdate(on_date)]},
+		["base", "variable"],
+		order_by="from_date desc",
+		as_dict=True,
+	)
+
+	if assignment:
+		return flt(assignment.variable), flt(assignment.base) - flt(assignment.variable)
+
+	official, cash = frappe.db.get_value(
+		"Employee", employee, ["custom_official_salary", "custom_cash_salary"]
+	) or (0, 0)
+
+	return flt(official), flt(cash)
+
+
+def apply_salary_to_employee(employee, official, cash, effective_from) -> bool:
+	"""Кладе оклад у картку працівника; звідти хук `on_update` створює призначення структури.
+
+	Повертає False, якщо в картці вже стоїть рівно те саме — щоб повторне затвердження не
+	перестворювало призначення.
+	"""
+	doc = frappe.get_doc("Employee", employee)
+	official, cash = flt(official), flt(cash)
+	effective_from = getdate(effective_from)
+
+	if (
+		flt(doc.get("custom_official_salary")) == official
+		and flt(doc.get("custom_cash_salary")) == cash
+		and getdate(doc.get("custom_salary_effective_from") or "1900-01-01") == effective_from
+	):
+		return False
+
+	doc.custom_official_salary = official
+	doc.custom_cash_salary = cash
+	doc.custom_salary_effective_from = effective_from
+	doc.save()
+
+	return True
+
+
+def has_submitted_slip(employee, date) -> bool:
+	return bool(_has_submitted_slip(employee, date))
+
+
 def _has_submitted_slip(employee, date):
 	return frappe.db.exists(
 		"Salary Slip",

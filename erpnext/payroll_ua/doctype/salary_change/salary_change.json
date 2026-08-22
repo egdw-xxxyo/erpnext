@@ -1,8 +1,8 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:SA-{company}-{year}-{month}",
- "creation": "2026-08-14 00:00:00.000000",
+ "autoname": "format:SC-{company}-{year}-{month}",
+ "creation": "2026-08-22 00:00:00.000000",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -17,15 +17,13 @@
   "section_break_totals",
   "total_employees",
   "column_break_total_1",
-  "total_official",
+  "employees_changed",
   "column_break_total_2",
-  "total_cash",
+  "total_current",
   "column_break_total_3",
-  "total_bonus",
+  "total_new",
   "column_break_total_4",
-  "total_allowance",
-  "column_break_total_5",
-  "total_salary",
+  "total_change",
   "section_break_employees",
   "employees_preview",
   "employees"
@@ -42,7 +40,7 @@
    "set_only_once": 1
   },
   {
-   "description": "The month the bonuses are accrued for.",
+   "description": "The new salary applies from the first day of this month. Only a future month is allowed.",
    "fieldname": "effective_from",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -76,7 +74,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nApproved\nCancelled",
+   "options": "Draft\nApproved",
    "read_only": 1
   },
   {
@@ -97,9 +95,9 @@
   },
   {
    "default": "0",
-   "fieldname": "total_official",
-   "fieldtype": "Currency",
-   "label": "Official Salary",
+   "fieldname": "employees_changed",
+   "fieldtype": "Int",
+   "label": "Salaries Changed",
    "read_only": 1
   },
   {
@@ -107,10 +105,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "total_cash",
+   "fieldname": "total_current",
    "fieldtype": "Currency",
-   "label": "Cash Salary",
+   "label": "Current Salary",
    "read_only": 1
   },
   {
@@ -118,10 +115,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "total_bonus",
+   "fieldname": "total_new",
    "fieldtype": "Currency",
-   "label": "Bonus Amount",
+   "label": "New Salary",
    "read_only": 1
   },
   {
@@ -129,21 +125,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "total_allowance",
+   "fieldname": "total_change",
    "fieldtype": "Currency",
-   "label": "Allowance",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_total_5",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "total_salary",
-   "fieldtype": "Currency",
-   "label": "Total Salary",
+   "label": "Change",
    "read_only": 1
   },
   {
@@ -159,15 +143,15 @@
    "fieldname": "employees",
    "fieldtype": "Table",
    "label": "Employees",
-   "options": "Salary Approval Item"
+   "options": "Salary Change Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-14 00:00:00.000000",
+ "modified": "2026-08-22 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
- "name": "Salary Approval",
+ "name": "Salary Change",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [

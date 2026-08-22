@@ -19,7 +19,10 @@
   "total_employees",
   "employees_without_attendance",
   "column_break_counts",
+  "period_working_days",
+  "period_working_hours",
   "total_credited_days",
+  "total_working_hours",
   "section_break_totals",
   "total_advance_card",
   "column_break_total_1",
@@ -113,9 +116,34 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "period_working_days",
+   "fieldtype": "Float",
+   "label": "Working Days in Half",
+   "read_only": 1,
+   "default": "0",
+   "precision": "2",
+   "description": "Норма за календарем компанії з 1-го по день відсікання."
+  },
+  {
+   "fieldname": "period_working_hours",
+   "fieldtype": "Float",
+   "label": "Working Hours in Half",
+   "read_only": 1,
+   "default": "0",
+   "precision": "2"
+  },
+  {
    "fieldname": "total_credited_days",
    "fieldtype": "Float",
    "label": "Credited Days",
+   "read_only": 1,
+   "default": "0",
+   "precision": "2"
+  },
+  {
+   "fieldname": "total_working_hours",
+   "fieldtype": "Float",
+   "label": "Working Hours",
    "read_only": 1,
    "default": "0",
    "precision": "2"

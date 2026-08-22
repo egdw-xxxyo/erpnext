@@ -1,8 +1,12 @@
-"""Затвердження ЗП на місяць — умови оплати одним документом, як звикла бухгалтерія.
+"""Затвердження премій за місяць — премія й надбавка одним документом.
 
-Документ нічого не рахує «в собі»: при затвердженні дві частини окладу лягають у картку
-працівника (а звідти хук `erpnext.hr.salary_split` створює призначення структури), а премія й
-надбавка — окремими `Additional Salary` на кінець місяця. Далі все рахує штатний HRMS.
+Оклад тут не змінюється: він приходить із чинного призначення структури і показується лише
+як база, з якої рахується відсоток премії. Змінити оклад можна окремим документом
+«Зміна окладу» (`Salary Change`), і завжди з майбутнього місяця.
+
+Документ нічого не рахує «в собі»: при затвердженні премія й надбавка стають окремими
+`Additional Salary` на кінець місяця, далі все рахує штатний HRMS. Поки премії за місяць не
+затверджені, «Зарплатна відомість» не дасть ані нарахувати, ані виплатити.
 """
 
 import frappe
@@ -10,11 +14,19 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, get_last_day, getdate
 
+from erpnext.hr.salary_advance import attendance_summary
+from erpnext.hr.salary_split import salary_parts_on
+
 ALLOWANCE_COMPONENT = "Надбавка"
 BONUS_COMPONENT = "Премія"
 
 
 class SalaryApproval(Document):
+	def onload(self):
+		# Табель живе поза документом і міняється після збереження: рахуємо його при кожному
+		# відкритті, інакше вже затверджений документ показував би нулі.
+		self.set_attendance_state()
+
 	def before_naming(self):
 		# `autoname` reads year and month, and it runs before validate.
 		self.set_period()
@@ -52,16 +64,27 @@ class SalaryApproval(Document):
 
 	def set_attendance_state(self):
 		"""Позначає, у кого табель за місяць уже затверджений — рядок без затвердження
-		видно в таблиці попередженням, а `approve` на такому документі не спрацює."""
-		covered = get_attendance_coverage([row.employee for row in self.employees], self.effective_from)
+		видно в таблиці попередженням, а `approve` на такому документі не спрацює.
+
+		Заразом кладе в рядок сам табель: дні по статусах, зараховані дні й години — щоб
+		умови оплати читалися поруч з тим, за що платять.
+		"""
+		employees = [row.employee for row in self.employees]
+		covered = get_attendance_coverage(employees, self.effective_from)
+		start, end = month_range(self.effective_from)
+		summary = attendance_summary(employees, start, end)
 
 		for row in self.employees:
 			row.attendance_approved = 1 if covered.get(row.employee) else 0
 			row.attendance_note = "" if row.attendance_approved else missing_attendance_note()
+			row.update(summary.get(row.employee) or {})
+			# Оклад — не введення, а база премії: беремо той, що діяв у цьому місяці, тож
+			# затверджена наперед зміна окладу не зачіпає премію за вже закритий місяць.
+			row.official_salary, row.cash_salary = salary_parts_on(row.employee, end)
 
 	@frappe.whitelist()
 	def load_employees(self):
-		"""Тягне активних працівників компанії з поточними сумами з їхніх карток."""
+		"""Тягне активних працівників компанії з окладом, чинним у цьому місяці."""
 		known = {row.employee for row in self.employees}
 
 		for employee in get_month_employees(self.company, self.effective_from):
@@ -76,19 +99,16 @@ class SalaryApproval(Document):
 
 	@frappe.whitelist()
 	def approve(self):
-		"""Розкладає затверджені умови по штатних документах HRMS."""
+		"""Розкладає затверджені премії й надбавки по штатних документах HRMS."""
 		if self.status == "Approved":
 			frappe.throw(_("This approval has already been applied."))
 
 		self.validate_attendance_approved()
 
 		payroll_date = get_last_day(self.effective_from)
-		applied = {"salary": 0, "bonus": 0, "allowance": 0}
+		applied = {"bonus": 0, "allowance": 0}
 
 		for row in self.employees:
-			if self._apply_salary(row):
-				applied["salary"] += 1
-
 			if flt(row.bonus_amount) and self._make_additional_salary(
 				row, BONUS_COMPONENT, row.bonus_amount, payroll_date
 			):
@@ -103,24 +123,6 @@ class SalaryApproval(Document):
 		self.save()
 
 		return applied
-
-	def _apply_salary(self, row):
-		employee = frappe.get_doc("Employee", row.employee)
-		official, cash = flt(row.official_salary), flt(row.cash_salary)
-
-		if (
-			flt(employee.get("custom_official_salary")) == official
-			and flt(employee.get("custom_cash_salary")) == cash
-			and getdate(employee.get("custom_salary_effective_from") or "1900-01-01") == self.effective_from
-		):
-			return False
-
-		employee.custom_official_salary = official
-		employee.custom_cash_salary = cash
-		employee.custom_salary_effective_from = self.effective_from
-		employee.save()
-
-		return True
 
 	def _make_additional_salary(self, row, component, amount, payroll_date):
 		existing = frappe.db.exists(
@@ -240,29 +242,31 @@ def get_month_employees(company: str, effective_from) -> list[dict]:
 	employees = frappe.get_all(
 		"Employee",
 		filters={"company": company, "status": "Active"},
-		fields=[
-			"name",
-			"employee_name",
-			"department",
-			"reports_to",
-			"custom_official_salary",
-			"custom_cash_salary",
-		],
+		fields=["name", "employee_name", "department", "reports_to"],
 		order_by="department asc, employee_name asc",
 	)
 
-	covered = get_attendance_coverage([employee.name for employee in employees], effective_from)
+	names = [employee.name for employee in employees]
+	covered = get_attendance_coverage(names, effective_from)
+	start, end = month_range(effective_from)
+	summary = attendance_summary(names, start, end)
 
-	return [
-		{
-			"employee": employee.name,
-			"employee_name": employee.employee_name,
-			"department": employee.department,
-			"manager": employee.reports_to,
-			"official_salary": flt(employee.custom_official_salary),
-			"cash_salary": flt(employee.custom_cash_salary),
-			"attendance_approved": 1 if covered.get(employee.name) else 0,
-			"attendance_note": "" if covered.get(employee.name) else missing_attendance_note(),
-		}
-		for employee in employees
-	]
+	rows = []
+
+	for employee in employees:
+		official, cash = salary_parts_on(employee.name, end)
+		rows.append(
+			{
+				**(summary.get(employee.name) or {}),
+				"employee": employee.name,
+				"employee_name": employee.employee_name,
+				"department": employee.department,
+				"manager": employee.reports_to,
+				"official_salary": official,
+				"cash_salary": cash,
+				"attendance_approved": 1 if covered.get(employee.name) else 0,
+				"attendance_note": "" if covered.get(employee.name) else missing_attendance_note(),
+			}
+		)
+
+	return rows

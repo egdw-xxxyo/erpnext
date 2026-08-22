@@ -19,6 +19,7 @@ from erpnext.hr.salary_advance import (
 	DEFAULT_CUTOFF_DAY,
 	apply_advance,
 	period,
+	period_norm,
 	plan_advance,
 )
 from erpnext.payroll_ua.doctype.salary_approval.salary_approval import get_coverage
@@ -67,6 +68,9 @@ class SalaryAdvance(Document):
 		for row in self.employees:
 			row.advance_total = flt(row.advance_card) + flt(row.advance_cash)
 
+		self.period_working_days, self.period_working_hours = period_norm(
+			self.company, self.year, self.month, self.cutoff_day
+		)
 		self.total_employees = len(self.employees)
 		self.employees_without_attendance = len(
 			[row for row in self.employees if not row.attendance_approved]
@@ -74,6 +78,7 @@ class SalaryAdvance(Document):
 
 		for field, source in (
 			("total_credited_days", "credited_days"),
+			("total_working_hours", "working_hours"),
 			("total_advance_card", "advance_card"),
 			("total_advance_cash", "advance_cash"),
 			("total_advance", "advance_total"),
@@ -83,7 +88,13 @@ class SalaryAdvance(Document):
 		self.status = self.derive_status()
 
 	def derive_status(self):
-		if self.employees and all(row.paid for row in self.employees):
+		payable = [
+			row
+			for row in self.employees
+			if flt(row.advance_total, 2) and (row.additional_salary_card or row.additional_salary_cash)
+		]
+
+		if payable and all(row.paid for row in payable):
 			return "Paid"
 
 		if any(row.additional_salary_card or row.additional_salary_cash for row in self.employees):
@@ -96,49 +107,43 @@ class SalaryAdvance(Document):
 	@frappe.whitelist()
 	def calculate(self):
 		"""Перебудовує таблицю з табеля: суми рахуються за зарахованими днями."""
-		if self.status != "Draft":
+		if any(row.additional_salary_card or row.additional_salary_cash for row in self.employees):
 			frappe.throw(_("The advance has already been created — cancel it before recalculating."))
 
 		rows = plan_advance(self.company, self.year, self.month, self.cutoff_day)
 		self.set("employees", [])
 
 		for row in rows:
-			self.append(
-				"employees",
-				{
-					"employee": row.employee,
-					"employee_name": row.employee_name,
-					"department": row.department,
-					"manager": row.manager,
-					"official_salary": row.official_salary,
-					"cash_salary": row.cash_salary,
-					"month_working_days": row.month_working_days,
-					"planned_days": row.planned_days,
-					"credited_days": row.credited_days,
-					"daily_rate": row.daily_rate,
-					"advance_card": row.official,
-					"advance_cash": row.cash,
-				},
-			)
+			self.append("employees", row_values(row))
 
 		self.save()
 
 		return len(self.employees)
 
 	@frappe.whitelist()
-	def create_advance(self):
-		"""Створює відрахування «Аванс» — після цього суми в таблиці вже не редагуються."""
-		self.validate_attendance_approved()
-		self.validate_structure_assigned()
+	def create_advance(self, employees=None):
+		"""Створює відрахування «Аванс» — після цього суми в таблиці вже не редагуються.
+
+		`employees` — кого саме оформляємо; без нього оформляються всі. Рядок можна провести
+		окремо: бухгалтерія закриває людину за людиною, а не весь місяць одним рухом.
+		"""
+		selected = frappe.parse_json(employees) if isinstance(employees, str) else employees
+		targets = [
+			row
+			for row in self.employees
+			if flt(row.advance_total) and (not selected or row.employee in selected)
+		]
+
+		if not targets:
+			frappe.throw(_("There is nothing to pay: every advance is zero."))
+
+		self.validate_attendance_approved(targets)
+		self.validate_structure_assigned(targets)
 
 		rows = [
 			{"employee": row.employee, "official": flt(row.advance_card), "cash": flt(row.advance_cash)}
-			for row in self.employees
-			if flt(row.advance_total)
+			for row in targets
 		]
-
-		if not rows:
-			frappe.throw(_("There is nothing to pay: every advance is zero."))
 
 		apply_advance(self.company, self.year, self.month, rows)
 		self.link_additional_salary()
@@ -178,10 +183,27 @@ class SalaryAdvance(Document):
 				row.advance_cash = flt(cash.amount)
 
 	@frappe.whitelist()
-	def pay(self, posting_date=None):
-		"""Проводить виплату авансу: банк — на картки, каса — готівкою."""
+	def pay(self, posting_date=None, employees=None):
+		"""Проводить виплату авансу: банк — на картки, каса — готівкою.
+
+		`employees` — кого саме платимо; без нього платяться всі ще не оплачені. Бухгалтерія
+		проводить людей і поштучно, тож рядок закривається окремо від решти.
+		"""
 		if self.status == "Draft":
 			frappe.throw(_("Create the advance first."))
+
+		selected = frappe.parse_json(employees) if isinstance(employees, str) else employees
+		targets = [
+			row
+			for row in self.employees
+			if flt(row.advance_total, 2)
+			and not row.paid
+			and (row.additional_salary_card or row.additional_salary_cash)
+			and (not selected or row.employee in selected)
+		]
+
+		if not targets:
+			frappe.throw(_("There is nothing left to pay here."))
 
 		posting_date = getdate(posting_date or self.payment_date or self.cutoff_date())
 		vouchers = []
@@ -191,51 +213,65 @@ class SalaryAdvance(Document):
 		# борг по контрагентах — без цього проведення на такий рахунок не збережеться.
 		by_party = paid_to and payroll_accounts.requires_party(paid_to)
 		payouts = (
-			(
-				payroll_accounts.bank_account(self.company),
-				flt(self.total_advance_card),
-				_("Advance to cards"),
-				"advance_card",
-			),
-			(
-				payroll_accounts.cash_account(self.company),
-				flt(self.total_advance_cash),
-				_("Advance in cash"),
-				"advance_cash",
-			),
+			(payroll_accounts.bank_account(self.company), _("Advance to cards"), "advance_card"),
+			(payroll_accounts.cash_account(self.company), _("Advance in cash"), "advance_cash"),
 		)
 
-		for paid_from, amount, remark, source in payouts:
-			if not flt(amount, 2):
+		for paid_from, remark, source in payouts:
+			parties = [(row.employee, flt(row.get(source), 2)) for row in targets if flt(row.get(source), 2)]
+			amount = sum(party_amount for _employee, party_amount in parties)
+
+			if not amount:
 				continue
 
-			parties = (
-				[(row.employee, flt(row.get(source))) for row in self.employees if flt(row.get(source), 2)]
-				if by_party
-				else None
+			voucher = payroll_accounts.make_journal_entry(
+				self.company,
+				paid_from,
+				paid_to,
+				amount,
+				posting_date,
+				f"{remark} {self.month}.{self.year}",
+				parties=parties if by_party else None,
 			)
+			vouchers.append(voucher)
 
-			vouchers.append(
-				payroll_accounts.make_journal_entry(
-					self.company,
-					paid_from,
-					paid_to,
-					amount,
-					posting_date,
-					f"{remark} {self.month}.{self.year}",
-					parties=parties,
-				)
-			)
+			# проведення лишається в рядку: з нього видно, чим саме закрита ця людина
+			for row in targets:
+				if flt(row.get(source), 2):
+					row.set(f"journal_entry_{source.replace('advance_', '')}", voucher)
 
-		for row in self.employees:
-			row.paid = 1 if flt(row.advance_total) else 0
+		for row in targets:
+			row.paid = 1
+			row.paid_on = posting_date
 
 		self.payment_date = posting_date
 		self.save()
 
 		return vouchers
 
-	def validate_structure_assigned(self):
+	@frappe.whitelist()
+	def settle(self, posting_date=None, employees=None):
+		"""Оформити й виплатити одним рухом — те, що бухгалтер робить у житті одним рішенням.
+
+		Рядок, у якого відрахування ще немає, спершу оформлюється; далі все як у `pay`.
+		"""
+		selected = frappe.parse_json(employees) if isinstance(employees, str) else employees
+		pending = [
+			row
+			for row in self.employees
+			if flt(row.advance_total, 2)
+			and not row.paid
+			and not (row.additional_salary_card or row.additional_salary_cash)
+			and (not selected or row.employee in selected)
+		]
+
+		if pending:
+			self.create_advance(employees=[row.employee for row in pending])
+			self.reload()
+
+		return self.pay(posting_date=posting_date, employees=selected)
+
+	def validate_structure_assigned(self, rows=None):
 		"""Без чинного призначення структури HRMS не приймає жодного `Additional Salary`,
 		а помилка звідти називає лише перший id — тож перевіряємо самі й одразу списком."""
 		assigned = set(
@@ -243,7 +279,7 @@ class SalaryAdvance(Document):
 				"Salary Structure Assignment",
 				filters={
 					"docstatus": 1,
-					"employee": ("in", [row.employee for row in self.employees]),
+					"employee": ("in", [row.employee for row in rows or self.employees]),
 					"from_date": ("<=", period(self.year, self.month, self.cutoff_day)[1]),
 				},
 				pluck="employee",
@@ -251,7 +287,7 @@ class SalaryAdvance(Document):
 		)
 		missing = [
 			row.employee_name or row.employee
-			for row in self.employees
+			for row in rows or self.employees
 			if flt(row.advance_total) and row.employee not in assigned
 		]
 
@@ -265,10 +301,12 @@ class SalaryAdvance(Document):
 			title=_("No Salary Structure"),
 		)
 
-	def validate_attendance_approved(self):
+	def validate_attendance_approved(self, rows=None):
 		"""Аванс платимо за затверджені дні: поки керівник не здав першу половину місяця,
 		дні ще можуть змінитися, а гроші вже пішли б."""
-		missing = [row.employee_name or row.employee for row in self.employees if not row.attendance_approved]
+		missing = [
+			row.employee_name or row.employee for row in rows or self.employees if not row.attendance_approved
+		]
 
 		if not missing:
 			return
@@ -283,12 +321,45 @@ class SalaryAdvance(Document):
 		)
 
 
+def row_values(row) -> dict:
+	"""Рядок таблиці з порахованого — однаково для перерахунку і для нового документа."""
+	values = {
+		field: row.get(field)
+		for field in (
+			"employee",
+			"employee_name",
+			"department",
+			"manager",
+			"official_salary",
+			"cash_salary",
+			"month_working_days",
+			"planned_days",
+			"planned_hours",
+			"credited_days",
+			"present_days",
+			"leave_days",
+			"unpaid_leave_days",
+			"sick_days",
+			"absent_days",
+			"half_days",
+			"overtime_hours",
+			"shortfall_hours",
+			"working_hours",
+			"daily_rate",
+		)
+	}
+	values["advance_card"] = row.official
+	values["advance_cash"] = row.cash
+
+	return values
+
+
 def missing_attendance_note() -> str:
 	return _("The attendance sheet of this employee is not approved for the first half of the month")
 
 
 @frappe.whitelist()
-def get_employees(company: str, period_start: str, cutoff_day: int = DEFAULT_CUTOFF_DAY) -> list[dict]:
+def get_employees(company: str, period_start: str, cutoff_day: int = DEFAULT_CUTOFF_DAY) -> dict:
 	"""Попередній розрахунок для нового документа — форма тягне його сама, без кнопки."""
 	frappe.has_permission("Salary Advance", throw=True)
 
@@ -298,26 +369,18 @@ def get_employees(company: str, period_start: str, cutoff_day: int = DEFAULT_CUT
 		[row.employee for row in rows], start.replace(day=1), period(start.year, start.month, cutoff_day)[2]
 	)
 
-	return [
+	days, hours = period_norm(company, start.year, start.month, int(cutoff_day or DEFAULT_CUTOFF_DAY))
+	employees = [
 		{
-			"employee": row.employee,
-			"employee_name": row.employee_name,
-			"department": row.department,
-			"manager": row.manager,
-			"official_salary": row.official_salary,
-			"cash_salary": row.cash_salary,
-			"month_working_days": row.month_working_days,
-			"planned_days": row.planned_days,
-			"credited_days": row.credited_days,
-			"daily_rate": row.daily_rate,
-			"advance_card": row.official,
-			"advance_cash": row.cash,
+			**row_values(row),
 			"advance_total": row.advance_total,
 			"attendance_approved": 1 if covered.get(row.employee) else 0,
 			"attendance_note": "" if covered.get(row.employee) else missing_attendance_note(),
 		}
 		for row in rows
 	]
+
+	return {"employees": employees, "period_working_days": days, "period_working_hours": hours}
 
 
 def create_monthly_advance():
