@@ -15,9 +15,11 @@
   "column_break_period",
   "period_end",
   "status",
+  "bonus_approved",
   "section_break_counts",
   "total_employees",
   "employees_without_attendance",
+  "employees_not_accrued",
   "total_credited_days",
   "column_break_counts",
   "paid_employees",
@@ -90,6 +92,14 @@
    "read_only": 1
   },
   {
+   "default": "0",
+   "fieldname": "bonus_approved",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Bonuses Approved",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_break_counts",
    "fieldtype": "Section Break",
    "label": "Headcount"
@@ -105,6 +115,13 @@
    "fieldname": "employees_without_attendance",
    "fieldtype": "Int",
    "label": "Without Attendance",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "employees_not_accrued",
+   "fieldtype": "Int",
+   "label": "Not Accrued Yet",
    "read_only": 1
   },
   {

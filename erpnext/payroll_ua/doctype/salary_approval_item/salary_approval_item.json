@@ -12,6 +12,18 @@
   "manager",
   "attendance_approved",
   "attendance_note",
+  "section_break_attendance",
+  "credited_days",
+  "working_hours",
+  "present_days",
+  "half_days",
+  "sick_days",
+  "column_break_attendance",
+  "leave_days",
+  "unpaid_leave_days",
+  "absent_days",
+  "overtime_hours",
+  "shortfall_hours",
   "column_break_salary",
   "official_salary",
   "cash_salary",
@@ -74,22 +86,103 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_break_attendance",
+   "fieldtype": "Section Break",
+   "label": "Attendance"
+  },
+  {
+   "fieldname": "credited_days",
+   "fieldtype": "Float",
+   "label": "Credited Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "working_hours",
+   "fieldtype": "Float",
+   "label": "Working Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "present_days",
+   "fieldtype": "Float",
+   "label": "Present Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "half_days",
+   "fieldtype": "Float",
+   "label": "Half Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sick_days",
+   "fieldtype": "Float",
+   "label": "Sick Leave Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "leave_days",
+   "fieldtype": "Float",
+   "label": "Paid Leave Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unpaid_leave_days",
+   "fieldtype": "Float",
+   "label": "Unpaid Leave Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "absent_days",
+   "fieldtype": "Float",
+   "label": "Absent Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overtime_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shortfall_hours",
+   "fieldtype": "Float",
+   "label": "Shortfall Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_salary",
    "fieldtype": "Column Break"
   },
   {
    "columns": 1,
+   "description": "Оклад, чинний у цьому місяці. Змінюється документом «Зміна окладу».",
    "fieldname": "official_salary",
    "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Official Salary"
+   "label": "Official Salary",
+   "read_only": 1
   },
   {
    "columns": 1,
+   "description": "Оклад, чинний у цьому місяці. Змінюється документом «Зміна окладу».",
    "fieldname": "cash_salary",
    "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Cash Salary"
+   "label": "Cash Salary",
+   "read_only": 1
   },
   {
    "columns": 1,
@@ -141,6 +234,7 @@
    "label": "Comment"
   }
  ],
+ "grid_page_length": 200,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],

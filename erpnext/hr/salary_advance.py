@@ -21,6 +21,8 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, get_last_day, getdate
 
+from erpnext.hr.salary_split import salary_parts_on
+
 ADVANCE_COMPONENT = "Аванс"
 ADVANCE_CARD = "Аванс на картку"
 ADVANCE_CASH = "Аванс готівкою"
@@ -34,6 +36,21 @@ DAY_WEIGHT = {
 	"On Leave": 1.0,
 	"Half Day": 0.5,
 	"Absent": 0.0,
+}
+
+# Скільки годин має повний робочий день, коли зміна не задана.
+DEFAULT_DAY_HOURS = 8.0
+
+EMPTY_STATS = {
+	"credited_days": 0.0,
+	"present_days": 0.0,
+	"leave_days": 0.0,
+	"unpaid_leave_days": 0.0,
+	"sick_days": 0.0,
+	"absent_days": 0.0,
+	"half_days": 0.0,
+	"overtime_hours": 0.0,
+	"shortfall_hours": 0.0,
 }
 
 
@@ -56,11 +73,12 @@ def plan_advance(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> list:
 		order_by="department asc, employee_name asc",
 	)
 
-	credited = _credited_days([employee.name for employee in employees], period_start, cutoff)
+	stats = attendance_stats([employee.name for employee in employees], period_start, cutoff)
+	day_hours = standard_day_hours()
 	rows = []
 
 	for employee in employees:
-		official, cash = _salary_parts(employee.name, period_end)
+		official, cash = salary_parts_on(employee.name, period_end)
 
 		if not (official + cash):
 			continue
@@ -78,7 +96,8 @@ def plan_advance(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> list:
 		first, last = _employee_period(employee, period_start, cutoff)
 		month_days = _working_days(period_start, period_end, holidays)
 		planned_days = _working_days(first, last, holidays)
-		credited_days = flt(credited.get(employee.name), 2)
+		attendance = stats.get(employee.name) or frappe._dict(EMPTY_STATS)
+		credited_days = flt(attendance.credited_days, 2)
 
 		if not month_days or credited_days <= 0:
 			continue
@@ -96,7 +115,22 @@ def plan_advance(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> list:
 				cash_salary=flt(cash),
 				month_working_days=month_days,
 				planned_days=planned_days,
+				planned_hours=flt(planned_days * day_hours, 2),
 				credited_days=credited_days,
+				present_days=flt(attendance.present_days, 2),
+				leave_days=flt(attendance.leave_days, 2),
+				unpaid_leave_days=flt(attendance.unpaid_leave_days, 2),
+				sick_days=flt(attendance.sick_days, 2),
+				absent_days=flt(attendance.absent_days, 2),
+				half_days=flt(attendance.half_days, 2),
+				overtime_hours=flt(attendance.overtime_hours, 2),
+				shortfall_hours=flt(attendance.shortfall_hours, 2),
+				working_hours=flt(
+					credited_days * day_hours
+					+ flt(attendance.overtime_hours)
+					- flt(attendance.shortfall_hours),
+					2,
+				),
 				daily_rate=flt(rate_official + rate_cash, 2),
 				official=flt(rate_official * credited_days, 2),
 				cash=flt(rate_cash * credited_days, 2),
@@ -150,6 +184,19 @@ def create_advance(
 	return rows
 
 
+def period_norm(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> tuple:
+	"""Норма першої половини місяця за календарем компанії: робочі дні й години.
+
+	Довідкове число для шапки документа — на відміну від рядків, воно нічиє і рахується
+	за списком вихідних компанії, а не працівника.
+	"""
+	period_start, _period_end, cutoff = period(year, month, cutoff_day)
+	holidays = frappe.get_cached_value("Company", company, "default_holiday_list")
+	days = _working_days(period_start, cutoff, holidays)
+
+	return days, flt(days * standard_day_hours(), 2)
+
+
 def period(year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> tuple:
 	period_start = getdate(f"{int(year)}-{int(month):02d}-01")
 	period_end = get_last_day(period_start)
@@ -169,11 +216,48 @@ def _employee_period(employee, period_start, cutoff) -> tuple:
 	return first, last
 
 
-def _credited_days(employees: list, start, end) -> dict:
-	"""Зараховані дні табеля по кожному працівнику за період.
+def standard_day_hours() -> float:
+	"""Годин у повному робочому дні — з налаштувань HR, інакше вісім."""
+	return flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or DEFAULT_DAY_HOURS
 
-	Неоплачувана відпустка не зараховується: у табелі це «On Leave» із заявкою на тип
-	з ознакою `is_lwp`, і платити за такі дні аванс не можна.
+
+ATTENDANCE_FIELDS = (
+	"present_days",
+	"leave_days",
+	"unpaid_leave_days",
+	"sick_days",
+	"absent_days",
+	"half_days",
+	"overtime_hours",
+	"shortfall_hours",
+)
+
+
+def attendance_summary(employees: list, start, end) -> dict:
+	"""Готові значення полів табеля по кожному працівнику — те, що показують усі три
+	зарплатні документи однаково: розклад днів, зараховані дні й години."""
+	stats = attendance_stats(employees, start, end)
+	day_hours = standard_day_hours()
+	summary = {}
+
+	for employee in employees:
+		entry = stats.get(employee) or frappe._dict(EMPTY_STATS)
+		values = {field: flt(entry.get(field), 2) for field in ATTENDANCE_FIELDS}
+		values["credited_days"] = flt(entry.get("credited_days"), 2)
+		values["working_hours"] = flt(
+			values["credited_days"] * day_hours + values["overtime_hours"] - values["shortfall_hours"], 2
+		)
+		summary[employee] = values
+
+	return summary
+
+
+def attendance_stats(employees: list, start, end) -> dict:
+	"""Розклад табеля по кожному працівнику за період: дні по статусах і години.
+
+	`credited_days` — те, за що платиться аванс. Неоплачувана відпустка не зараховується:
+	у табелі це «On Leave» із заявкою на тип з ознакою `is_lwp`. Решта чисел нічого не
+	рахує, вони лише пояснюють суму керівникові.
 	"""
 	if not employees:
 		return {}
@@ -185,22 +269,43 @@ def _credited_days(employees: list, start, end) -> dict:
 			"employee": ("in", employees),
 			"attendance_date": ("between", [start, end]),
 		},
-		fields=["employee", "status", "leave_application"],
+		fields=[
+			"employee",
+			"status",
+			"half_day_status",
+			"leave_application",
+			"overtime_hours",
+			"shortfall_hours",
+		],
 	)
 
 	unpaid = _unpaid_leaves({row.leave_application for row in rows if row.leave_application})
-	days = {}
+	stats = {}
 
 	for row in rows:
-		if row.leave_application in unpaid:
-			continue
+		entry = stats.setdefault(row.employee, frappe._dict(EMPTY_STATS.copy()))
+		lwp = row.leave_application in unpaid
 
-		weight = DAY_WEIGHT.get(row.status, 0.0)
+		if row.status in ("Present", "Work From Home"):
+			entry.present_days += 1
+		elif row.status == "Half Day":
+			entry.half_days += 1
+			entry.present_days += 0.5
+			entry.absent_days += 0 if row.half_day_status == "Present" else 0.5
+		elif row.status == "Sick Leave":
+			entry.sick_days += 1
+		elif row.status == "Absent":
+			entry.absent_days += 1
+		elif row.status == "On Leave":
+			entry["unpaid_leave_days" if lwp else "leave_days"] += 1
 
-		if weight:
-			days[row.employee] = flt(days.get(row.employee)) + weight
+		entry.overtime_hours += flt(row.overtime_hours)
+		entry.shortfall_hours += flt(row.shortfall_hours)
 
-	return days
+		if not lwp:
+			entry.credited_days += DAY_WEIGHT.get(row.status, 0.0)
+
+	return stats
 
 
 def _unpaid_leaves(applications: set) -> set:
@@ -219,29 +324,6 @@ def _unpaid_leaves(applications: set) -> set:
 	}
 
 	return {row.name for row in rows if row.leave_type in lwp}
-
-
-def _salary_parts(employee, on_date):
-	"""Дві частини окладу з картки працівника; якщо їх немає — з чинного призначення структури."""
-	official, cash = frappe.db.get_value(
-		"Employee", employee, ["custom_official_salary", "custom_cash_salary"]
-	) or (0, 0)
-
-	if flt(official) + flt(cash):
-		return flt(official), flt(cash)
-
-	assignment = frappe.db.get_value(
-		"Salary Structure Assignment",
-		{"employee": employee, "docstatus": 1, "from_date": ["<=", on_date]},
-		["base", "variable"],
-		order_by="from_date desc",
-		as_dict=True,
-	)
-
-	if not assignment:
-		return 0.0, 0.0
-
-	return flt(assignment.variable), flt(assignment.base) - flt(assignment.variable)
 
 
 def _holiday_list(employee, company):

@@ -5,6 +5,7 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
+ "grid_page_length": 200,
  "field_order": [
   "employee",
   "employee_name",
@@ -14,6 +15,17 @@
   "credited_days",
   "total_working_days",
   "daily_rate",
+  "section_break_attendance",
+  "working_hours",
+  "present_days",
+  "half_days",
+  "sick_days",
+  "column_break_attendance",
+  "leave_days",
+  "unpaid_leave_days",
+  "absent_days",
+  "overtime_hours",
+  "shortfall_hours",
   "section_break_accrual",
   "gross_pay",
   "advance_card",
@@ -28,6 +40,8 @@
   "paid_date",
   "column_break_links",
   "salary_slip",
+  "journal_entry_card",
+  "journal_entry_cash",
   "note"
  ],
  "fields": [
@@ -87,6 +101,78 @@
    "fieldtype": "Currency",
    "label": "Daily Rate",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_attendance",
+   "fieldtype": "Section Break",
+   "label": "Attendance"
+  },
+  {
+   "fieldname": "working_hours",
+   "fieldtype": "Float",
+   "label": "Working Hours",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "present_days",
+   "fieldtype": "Float",
+   "label": "Present Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "half_days",
+   "fieldtype": "Float",
+   "label": "Half Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "sick_days",
+   "fieldtype": "Float",
+   "label": "Sick Leave Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "leave_days",
+   "fieldtype": "Float",
+   "label": "Paid Leave Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "unpaid_leave_days",
+   "fieldtype": "Float",
+   "label": "Unpaid Leave Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "absent_days",
+   "fieldtype": "Float",
+   "label": "Absent Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "overtime_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Hours",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "shortfall_hours",
+   "fieldtype": "Float",
+   "label": "Shortfall Hours",
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "section_break_accrual",
@@ -173,6 +259,20 @@
    "fieldname": "salary_slip",
    "fieldtype": "Data",
    "label": "Salary Slip",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry_card",
+   "fieldtype": "Link",
+   "label": "Payment Entry (Card)",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry_cash",
+   "fieldtype": "Link",
+   "label": "Payment Entry (Cash)",
+   "options": "Journal Entry",
    "read_only": 1
   },
   {

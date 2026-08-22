@@ -5,13 +5,17 @@ frappe.ui.form.on("Salary Advance", {
 
 	refresh(frm) {
 		// buttons first: a throw in any of the helpers below must not cost the toolbar
-		if (!frm.is_new() && frm.doc.status === "Draft") {
-			frm.add_custom_button(__("Recalculate"), () => run(frm, "calculate"));
-			frm.add_custom_button(__("Create Advance"), () => confirm_create(frm)).addClass("btn-primary");
-		}
+		if (!frm.is_new() && frm.doc.status !== "Paid") {
+			const rows = frm.doc.employees || [];
 
-		if (!frm.is_new() && frm.doc.status === "To Pay") {
-			frm.add_custom_button(__("Pay Advance"), () => ask_payment_date(frm)).addClass("btn-primary");
+			if (rows.every((row) => !row.additional_salary_card && !row.additional_salary_cash)) {
+				frm.add_custom_button(__("Recalculate"), () => run(frm, "calculate"));
+			}
+
+			if (rows.some((row) => !row.paid && flt(row.advance_total))) {
+				frm.add_custom_button(__("Create Advance"), () => confirm_create(frm));
+				frm.add_custom_button(__("Pay Advance"), () => ask_payment_date(frm)).addClass("btn-primary");
+			}
 		}
 
 		erpnext.utils.month_field.apply_period(frm, "period_start");
@@ -63,6 +67,7 @@ function calculate_totals(frm) {
 	const totals = {
 		total_employees: rows.length,
 		total_credited_days: 0,
+		total_working_hours: 0,
 		total_advance_card: 0,
 		total_advance_cash: 0,
 		total_advance: 0,
@@ -73,6 +78,7 @@ function calculate_totals(frm) {
 		row.advance_total = flt(row.advance_card) + flt(row.advance_cash);
 
 		totals.total_credited_days += flt(row.credited_days);
+		totals.total_working_hours += flt(row.working_hours);
 		totals.total_advance_card += flt(row.advance_card);
 		totals.total_advance_cash += flt(row.advance_cash);
 		totals.total_advance += flt(row.advance_total);
@@ -92,24 +98,141 @@ function calculate_totals(frm) {
 const money = (value) => erpnext.utils.employee_preview.money(value);
 const number = (value) => erpnext.utils.employee_preview.number(value);
 
+function hours(value) {
+	return __("{0} h", [number(value)]);
+}
+
+function days(value) {
+	return __("{0} d", [number(value)]);
+}
+
+// one column for the worked time: days and the hours they add up to
+function worked(row) {
+	return `${days(row.credited_days)} / ${hours(row.working_hours)}`;
+}
+
 function render_preview(frm) {
 	erpnext.utils.employee_preview.render(frm, {
 		field: "employees_preview",
 		table: "employees",
 		group_by: (row) => row.department || __("No Department"),
 		warn: (row) => !row.attendance_approved,
-		status_column: __("Attendance"),
-		warn_label: __("No attendance sheet"),
-		ok_label: __("Approved"),
+		filter: { label: __("Unpaid only"), test: (row) => !row.paid },
+		// attendance is not a column of its own: the name carries the warning, and the hours
+		// next to it open the whole month of that employee
+		name_suffix: (row) =>
+			row.attendance_approved
+				? ""
+				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
 		columns: [
-			{ label: __("Credited Days"), value: (row) => number(row.credited_days) },
-			{ label: __("Working Days in Half"), value: (row) => number(row.planned_days) },
+			{
+				label: __("Worked"),
+				value: (row) => worked(row),
+				click: (row) => show_attendance(row),
+			},
 			{ label: __("Daily Rate"), value: (row) => money(row.daily_rate) },
 			{ label: __("Advance to Card"), value: (row) => money(row.advance_card) },
 			{ label: __("Advance in Cash"), value: (row) => money(row.advance_cash) },
 			{ label: __("Total Advance"), value: (row) => money(row.advance_total), bold: true },
-			{ label: __("Paid"), value: (row) => (row.paid ? __("Yes") : "") },
+			{
+				label: __("Payment"),
+				value: (row) => row_action_label(row),
+				clickable: (row) => Boolean(row_action(row)),
+				click: (row) => (row.paid ? show_receipt(frm, row) : ask_payment_date(frm, row)),
+			},
 		],
+	});
+}
+
+// A row walks the same two steps as the whole document: file the deduction, then pay it.
+// One click per employee: filing the deduction and posting the money is a single decision,
+// so the row asks once and the server does both steps.
+function row_action(row) {
+	if (!flt(row.advance_total)) return null;
+
+	return row.paid ? "receipt" : "pay";
+}
+
+function row_action_label(row) {
+	return row.paid ? __("Paid") : __("Pay");
+}
+
+// What the hours are made of, and what is being paid for them — the same block serves the
+// info popup and both confirmations, so a click never asks for money without showing the basis.
+function details_html(row) {
+	const lines = [
+		[__("Present Days"), number(row.present_days)],
+		[__("Half Days"), number(row.half_days)],
+		[__("Sick Leave Days"), number(row.sick_days)],
+		[__("Paid Leave Days"), number(row.leave_days)],
+		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
+		[__("Absent Days"), number(row.absent_days)],
+		[__("Overtime Hours"), hours(row.overtime_hours)],
+		[__("Shortfall Hours"), hours(row.shortfall_hours)],
+		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
+		[__("Monthly Salary"), money(flt(row.official_salary) + flt(row.cash_salary))],
+		[__("Working Days in Month"), number(row.month_working_days)],
+		[__("Daily Rate"), money(row.daily_rate)],
+		[__("Advance to Card"), money(row.advance_card)],
+		[__("Advance in Cash"), money(row.advance_cash)],
+		[__("Total Advance"), `<b>${money(row.advance_total)}</b>`],
+	];
+
+	return `
+		<table class="table table-bordered" style="margin: 0;">
+			<tbody>
+				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
+			</tbody>
+		</table>
+		${
+			row.attendance_approved
+				? ""
+				: `<p class="text-muted" style="margin-top: 8px;">${__(
+						"The attendance sheet of this employee is not approved for the first half of the month"
+				  )}</p>`
+		}
+	`;
+}
+
+function show_attendance(row) {
+	frappe.msgprint({
+		title: row.employee_name || row.employee,
+		indicator: row.attendance_approved ? "green" : "orange",
+		message: details_html(row),
+	});
+}
+
+// What was paid, how much and by which documents — the row keeps its own receipt.
+function show_receipt(frm, row) {
+	const links = [
+		[__("Additional Salary (Card)"), row.additional_salary_card, "Additional Salary"],
+		[__("Additional Salary (Cash)"), row.additional_salary_cash, "Additional Salary"],
+		[__("Payment Entry (Card)"), row.journal_entry_card, "Journal Entry"],
+		[__("Payment Entry (Cash)"), row.journal_entry_cash, "Journal Entry"],
+	].filter(([, name]) => name);
+
+	frappe.msgprint({
+		title: __("Paid {0}", [money(row.advance_total)]),
+		indicator: "green",
+		message: `
+			<p>${__("Advance for {0}, paid on {1}.", [
+				frappe.format(frm.doc.period_start, { fieldtype: "Date" }),
+				frappe.format(row.paid_on || frm.doc.payment_date, { fieldtype: "Date" }),
+			])}</p>
+			${details_html(row)}
+			${
+				links.length
+					? `<p style="margin-top: 10px;">${links
+							.map(
+								([label, name, doctype]) =>
+									`${label}: <a href="/app/${frappe.router.slug(
+										doctype
+									)}/${encodeURIComponent(name)}">${frappe.utils.escape_html(name)}</a>`
+							)
+							.join("<br>")}</p>`
+					: ""
+			}
+		`,
 	});
 }
 
@@ -153,8 +276,13 @@ function fetch_employees(frm, replace = false) {
 			},
 		})
 		.then((response) => {
+			const data = response.message || {};
+
+			frm.set_value("period_working_days", data.period_working_days || 0);
+			frm.set_value("period_working_hours", data.period_working_hours || 0);
+
 			frm.clear_table("employees");
-			(response.message || []).forEach((row) => frm.add_child("employees", row));
+			(data.employees || []).forEach((row) => frm.add_child("employees", row));
 			frm.refresh_field("employees");
 			refresh_view(frm);
 		})
@@ -175,17 +303,18 @@ function run(frm, method, args) {
 		.then(() => frm.reload_doc());
 }
 
+// The whole list at once; a single employee goes through the row button, which also pays.
 function confirm_create(frm) {
 	frappe.confirm(
 		__("The advance of {0} employees will be filed as a deduction on their payslips. Continue?", [
 			frm.doc.total_employees,
 		]),
-		() => run(frm, "create_advance")
+		() => run(frm, "create_advance", { employees: null })
 	);
 }
 
-function ask_payment_date(frm) {
-	frappe.prompt(
+function ask_payment_date(frm, row) {
+	const fields = [
 		{
 			fieldname: "posting_date",
 			fieldtype: "Date",
@@ -193,8 +322,14 @@ function ask_payment_date(frm) {
 			default: frm.doc.payment_date,
 			reqd: 1,
 		},
-		(values) => run(frm, "pay", values),
-		__("Pay Advance"),
+	];
+
+	if (row) fields.unshift({ fieldtype: "HTML", fieldname: "details", options: details_html(row) });
+
+	frappe.prompt(
+		fields,
+		(values) => run(frm, row ? "settle" : "pay", { ...values, employees: row ? [row.employee] : null }),
+		row ? __("Pay {0}", [row.employee_name || row.employee]) : __("Pay Advance"),
 		__("Post")
 	);
 }

@@ -51,8 +51,6 @@ frappe.ui.form.on("Salary Approval", {
 });
 
 frappe.ui.form.on("Salary Approval Item", {
-	official_salary: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
-	cash_salary: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
 	bonus_percent: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
 	allowance: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
 });
@@ -74,6 +72,58 @@ function update_row(frm, cdt, cdn) {
 }
 
 const money = (value) => erpnext.utils.employee_preview.money(value);
+const number = (value) => erpnext.utils.employee_preview.number(value);
+
+function hours(value) {
+	return __("{0} h", [number(value)]);
+}
+
+function days(value) {
+	return __("{0} d", [number(value)]);
+}
+
+// The month behind the conditions — the same block the advance and the payroll sheet show.
+function details_html(row) {
+	const lines = [
+		[__("Present Days"), number(row.present_days)],
+		[__("Half Days"), number(row.half_days)],
+		[__("Sick Leave Days"), number(row.sick_days)],
+		[__("Paid Leave Days"), number(row.leave_days)],
+		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
+		[__("Absent Days"), number(row.absent_days)],
+		[__("Overtime Hours"), hours(row.overtime_hours)],
+		[__("Shortfall Hours"), hours(row.shortfall_hours)],
+		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
+		[__("Official Salary"), money(row.official_salary)],
+		[__("Cash Salary"), money(row.cash_salary)],
+		[__("Bonus Amount"), money(row.bonus_amount)],
+		[__("Allowance"), money(row.allowance)],
+		[__("Total Salary"), `<b>${money(row.total_salary)}</b>`],
+	];
+
+	return `
+		<table class="table table-bordered" style="margin: 0;">
+			<tbody>
+				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
+			</tbody>
+		</table>
+		${
+			row.attendance_approved
+				? ""
+				: `<p class="text-muted" style="margin-top: 8px;">${__(
+						"The attendance sheet of this employee is not approved for the whole month"
+				  )}</p>`
+		}
+	`;
+}
+
+function show_details(row) {
+	frappe.msgprint({
+		title: row.employee_name || row.employee,
+		indicator: row.attendance_approved ? "green" : "orange",
+		message: details_html(row),
+	});
+}
 
 function render_preview(frm) {
 	erpnext.utils.employee_preview.render(frm, {
@@ -81,16 +131,21 @@ function render_preview(frm) {
 		table: "employees",
 		group_by: (row) => row.department || __("No Department"),
 		warn: (row) => !row.attendance_approved,
-		status_column: __("Attendance"),
-		warn_label: __("No attendance sheet"),
-		ok_label: __("Approved"),
+		// attendance is not a column of its own: the name carries the warning, and the worked
+		// time next to it opens the whole month of that employee
+		name_suffix: (row) =>
+			row.attendance_approved
+				? ""
+				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
 		columns: [
+			{
+				label: __("Worked"),
+				value: (row) => `${days(row.credited_days)} / ${hours(row.working_hours)}`,
+				click: (row) => show_details(row),
+			},
 			{ label: __("Official Salary"), value: (row) => money(row.official_salary) },
 			{ label: __("Cash Salary"), value: (row) => money(row.cash_salary) },
-			{
-				label: __("Bonus %"),
-				value: (row) => erpnext.utils.employee_preview.number(row.bonus_percent),
-			},
+			{ label: __("Bonus %"), value: (row) => number(row.bonus_percent) },
 			{ label: __("Bonus Amount"), value: (row) => money(row.bonus_amount) },
 			{ label: __("Allowance"), value: (row) => money(row.allowance) },
 			{ label: __("Total Salary"), value: (row) => money(row.total_salary), bold: true },
@@ -136,8 +191,6 @@ function open_bulk_dialog(frm) {
 	const dialog = new frappe.ui.Dialog({
 		title: __("Fill Amounts"),
 		fields: [
-			{ fieldname: "official_salary", fieldtype: "Currency", label: __("Official Salary") },
-			{ fieldname: "cash_salary", fieldtype: "Currency", label: __("Cash Salary") },
 			{ fieldname: "bonus_percent", fieldtype: "Percent", label: __("Bonus %") },
 			{ fieldname: "allowance", fieldtype: "Currency", label: __("Allowance") },
 		],
@@ -266,7 +319,7 @@ function show_missing_count(frm) {
 
 	frm.dashboard.add_comment(
 		__(
-			"{0} employees have no approved attendance sheet for this month — the salary cannot be approved.",
+			"{0} employees have no approved attendance sheet for this month — the bonuses cannot be approved.",
 			[missing]
 		),
 		"orange",

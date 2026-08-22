@@ -5,6 +5,7 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
+ "grid_page_length": 200,
  "field_order": [
   "employee",
   "employee_name",
@@ -13,8 +14,20 @@
   "column_break_days",
   "credited_days",
   "planned_days",
+  "planned_hours",
   "month_working_days",
   "daily_rate",
+  "section_break_attendance",
+  "working_hours",
+  "present_days",
+  "half_days",
+  "sick_days",
+  "column_break_attendance",
+  "leave_days",
+  "unpaid_leave_days",
+  "absent_days",
+  "overtime_hours",
+  "shortfall_hours",
   "section_break_amounts",
   "official_salary",
   "cash_salary",
@@ -28,6 +41,9 @@
   "additional_salary_card",
   "column_break_links",
   "additional_salary_cash",
+  "journal_entry_card",
+  "journal_entry_cash",
+  "paid_on",
   "paid",
   "note"
  ],
@@ -81,6 +97,13 @@
    "precision": "2"
   },
   {
+   "fieldname": "planned_hours",
+   "fieldtype": "Float",
+   "label": "Expected Hours in Half",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
    "fieldname": "month_working_days",
    "fieldtype": "Float",
    "label": "Working Days in Month",
@@ -92,6 +115,78 @@
    "fieldtype": "Currency",
    "label": "Daily Rate",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_attendance",
+   "fieldtype": "Section Break",
+   "label": "Attendance"
+  },
+  {
+   "fieldname": "working_hours",
+   "fieldtype": "Float",
+   "label": "Working Hours",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "present_days",
+   "fieldtype": "Float",
+   "label": "Present Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "half_days",
+   "fieldtype": "Float",
+   "label": "Half Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "sick_days",
+   "fieldtype": "Float",
+   "label": "Sick Leave Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "leave_days",
+   "fieldtype": "Float",
+   "label": "Paid Leave Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "unpaid_leave_days",
+   "fieldtype": "Float",
+   "label": "Unpaid Leave Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "absent_days",
+   "fieldtype": "Float",
+   "label": "Absent Days",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "overtime_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Hours",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "shortfall_hours",
+   "fieldtype": "Float",
+   "label": "Shortfall Hours",
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "section_break_amounts",
@@ -167,6 +262,26 @@
    "fieldtype": "Link",
    "label": "Additional Salary (Cash)",
    "options": "Additional Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry_card",
+   "fieldtype": "Link",
+   "label": "Payment Entry (Card)",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry_cash",
+   "fieldtype": "Link",
+   "label": "Payment Entry (Cash)",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "paid_on",
+   "fieldtype": "Date",
+   "label": "Paid On",
    "read_only": 1
   },
   {

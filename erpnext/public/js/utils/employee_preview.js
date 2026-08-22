@@ -19,11 +19,14 @@ function render(frm, options) {
 	}
 
 	const search = (frm[`__preview_search_${options.field}`] || "").trim().toLowerCase();
-	const visible = search ? rows.filter((row) => search_text(row).includes(search)) : rows;
+	const filtered = frm[`__preview_filter_${options.field}`] && options.filter;
+	let visible = search ? rows.filter((row) => search_text(row).includes(search)) : rows;
+
+	if (filtered) visible = visible.filter(options.filter.test);
 
 	field.$wrapper.html(`
 		${styles()}
-		${search_html(search)}
+		${search_html(search, options, filtered)}
 		${visible.length ? groups_html(visible, options) : empty_html()}
 	`);
 
@@ -34,11 +37,19 @@ function search_text(row) {
 	return [row.employee_name, row.employee, row.department].filter(Boolean).join(" ").toLowerCase();
 }
 
-function search_html(search) {
+function search_html(search, options, filtered) {
 	return `
 		<div class="employee-preview-toolbar">
 			<input type="search" class="form-control input-sm employee-preview-search"
 				placeholder="${__("Search by name")}" value="${frappe.utils.escape_html(search)}">
+			${
+				options.filter
+					? `<label class="employee-preview-filter">
+							<input type="checkbox" class="employee-preview-filter-input"
+								${filtered ? "checked" : ""}> ${options.filter.label}
+						</label>`
+					: ""
+			}
 		</div>
 	`;
 }
@@ -96,6 +107,7 @@ function row_html(row, options) {
 					data-idx="${frappe.utils.escape_html(String(row.idx || ""))}">
 					${frappe.utils.escape_html(row.employee_name || row.employee || "")}
 				</button>
+				${options.name_suffix ? options.name_suffix(row) : ""}
 			</td>
 			${
 				options.status_column
@@ -106,16 +118,24 @@ function row_html(row, options) {
 					  }</td>`
 					: ""
 			}
-			${options.columns
-				.map(
-					(column) =>
-						`<td class="text-right">${
-							column.bold ? `<b>${column.value(row)}</b>` : column.value(row)
-						}</td>`
-				)
-				.join("")}
+			${options.columns.map((column, index) => cell_html(row, column, index)).join("")}
 		</tr>
 	`;
+}
+
+function cell_html(row, column, index) {
+	const value = column.bold ? `<b>${column.value(row)}</b>` : column.value(row);
+	const clickable = column.click && (!column.clickable || column.clickable(row));
+
+	// a column may explain itself in a dialog instead of squeezing everything into the cell
+	const content = clickable
+		? `<button type="button" class="btn btn-link btn-xs employee-preview-cell"
+				data-column="${index}" data-idx="${frappe.utils.escape_html(String(row.idx || ""))}">
+				${value}
+			</button>`
+		: value;
+
+	return `<td class="text-right">${content}</td>`;
 }
 
 function bind(frm, $wrapper, options) {
@@ -135,6 +155,20 @@ function bind(frm, $wrapper, options) {
 		}
 	});
 
+	$wrapper.find(".employee-preview-filter-input").on("change", function () {
+		frm[`__preview_filter_${options.field}`] = this.checked;
+		render(frm, options);
+	});
+
+	$wrapper.find(".employee-preview-cell").on("click", function () {
+		const column = options.columns[cint($(this).attr("data-column"))];
+		const row = (frm.doc[options.table] || []).find(
+			(item) => cint(item.idx) === cint($(this).attr("data-idx"))
+		);
+
+		if (column && column.click && row) column.click(row);
+	});
+
 	$wrapper.find(".employee-preview-open").on("click", function () {
 		open_row(frm, options.table, $(this).attr("data-row"), $(this).attr("data-idx"));
 	});
@@ -143,6 +177,18 @@ function bind(frm, $wrapper, options) {
 function open_row(frm, table, name, idx) {
 	const grid = frm.fields_dict[table] && frm.fields_dict[table].grid;
 	if (!grid) return;
+
+	// the preview lists everybody, the grid shows 50 rows a page: land on the right page first,
+	// otherwise the row a click asks for simply is not rendered
+	const pagination = grid.grid_pagination;
+
+	if (pagination && cint(idx) && cint(pagination.page_length)) {
+		const page = Math.ceil(cint(idx) / cint(pagination.page_length));
+
+		if (page && page !== cint(pagination.page_index)) {
+			pagination.go_to_page(page);
+		}
+	}
 
 	const row =
 		(grid.grid_rows_by_docname && grid.grid_rows_by_docname[name]) ||
@@ -171,7 +217,14 @@ function styles() {
 	return `
 		<style>
 			.employee-preview { display: grid; gap: 14px; }
-			.employee-preview-toolbar { margin-bottom: 10px; max-width: 360px; }
+			.employee-preview-toolbar {
+				margin-bottom: 10px;
+				display: flex;
+				gap: 12px;
+				align-items: center;
+			}
+			.employee-preview-toolbar .employee-preview-search { max-width: 360px; }
+			.employee-preview-filter { margin: 0; font-weight: normal; white-space: nowrap; }
 			.employee-preview-title {
 				padding: 8px 10px;
 				background: var(--fg-color, #f8f9fa);
@@ -183,6 +236,7 @@ function styles() {
 			.employee-preview-table th,
 			.employee-preview-table td { padding: 6px 7px; font-size: 12px; vertical-align: middle; }
 			.employee-preview-open { padding: 0; border: 0; text-align: left; white-space: normal; }
+			.employee-preview-cell { padding: 0; border: 0; }
 			.employee-preview-warn td { background: var(--yellow-50, #fff7e6); }
 			.employee-preview-badge {
 				display: inline-block;
