@@ -358,6 +358,18 @@ def sync_linked_consolidated_purchase_order_progress(doc, method=None):
 	if doc.doctype in ("Purchase Order", "Purchase Invoice"):
 		if doc.get("custom_consolidated_purchase_order"):
 			source_names.add(doc.custom_consolidated_purchase_order)
+	elif doc.doctype == "Purchase Receipt":
+		purchase_orders = {
+			row.purchase_order for row in (doc.get("items") or []) if row.purchase_order
+		}
+		if purchase_orders:
+			source_names.update(
+				frappe.get_all(
+					"Purchase Order",
+					filters={"name": ["in", list(purchase_orders)]},
+					pluck="custom_consolidated_purchase_order",
+				)
+			)
 	elif doc.doctype == "Payment Entry":
 		for reference in doc.get("references") or []:
 			if reference.reference_doctype not in ("Purchase Order", "Purchase Invoice"):
@@ -370,7 +382,7 @@ def sync_linked_consolidated_purchase_order_progress(doc, method=None):
 			if source_name:
 				source_names.add(source_name)
 
-	for source_name in source_names:
+	for source_name in filter(None, source_names):
 		sync_consolidated_purchase_order_progress(source_name)
 
 
@@ -395,6 +407,7 @@ def _get_purchase_order_summary(source_name):
 			"grand_total",
 			"currency",
 			"per_billed",
+			"per_received",
 			"advance_paid",
 		],
 		order_by="supplier_name asc, name asc",
@@ -410,6 +423,8 @@ def _get_purchase_order_summary(source_name):
 		order_summary = receipt_summary["by_order"].get(order.name, {})
 		order.payment_complete = order_summary.get("payment_complete", False)
 		order.fiscal_receipt_added = order_summary.get("fiscal_receipt_added", False)
+		order.purchase_receipts = order_summary.get("purchase_receipts", [])
+		order.purchase_receipt_complete = order_summary.get("purchase_receipt_complete", False)
 	return orders
 
 
@@ -455,7 +470,10 @@ def _get_paid_amounts_by_purchase_order(source_name, orders):
 
 
 def _get_invoice_receipt_summary(source_name, orders=None):
-	"""Count suppliers completed only after full invoicing, full payment and a fiscal receipt."""
+	"""Summarize verified payments and submitted Purchase Receipts for every order."""
+	external_payment = bool(
+		frappe.db.get_value("Consolidated Purchase Order", source_name, "items_already_purchased")
+	)
 	invoices = frappe.get_all(
 		"Purchase Invoice",
 		filters={"custom_consolidated_purchase_order": source_name, "docstatus": 1},
@@ -495,8 +513,9 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 	orders = orders or frappe.get_all(
 		"Purchase Order",
 		filters={"custom_consolidated_purchase_order": source_name, "docstatus": 1},
-		fields=["name", "supplier", "per_billed"],
+		fields=["name", "supplier", "per_billed", "per_received"],
 	)
+	purchase_receipts_by_order, receipt_actors = _get_purchase_receipts_by_order(orders)
 	invoice_orders = _get_invoice_purchase_orders(invoices, orders)
 	invoices_by_order = defaultdict(list)
 	for invoice in invoices:
@@ -508,19 +527,26 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 		payment_entries_by_invoice[reference.reference_name].add(reference.parent)
 
 	by_order = {}
+	payment_complete_count = 0
 	completed_supplier_count = 0
 	for order in orders:
 		order_invoices = invoices_by_order.get(order.name, [])
-		payment_complete = bool(order_invoices) and flt(order.per_billed) >= 99.99 and all(
-			abs(flt(invoice.outstanding_amount)) <= 0.01 for invoice in order_invoices
+		payment_complete = external_payment or (
+			bool(order_invoices)
+			and flt(order.per_billed) >= 99.99
+			and all(abs(flt(invoice.outstanding_amount)) <= 0.01 for invoice in order_invoices)
 		)
 		order_payment_entries = {
 			payment_entry
 			for invoice in order_invoices
 			for payment_entry in payment_entries_by_invoice.get(invoice.name, set())
 		}
-		fiscal_receipt_added = bool(order_payment_entries & receipt_entry_names)
+		fiscal_receipt_added = external_payment or bool(order_payment_entries & receipt_entry_names)
 		fully_completed = payment_complete and fiscal_receipt_added
+		purchase_receipts = purchase_receipts_by_order.get(order.name, [])
+		purchase_receipt_complete = bool(purchase_receipts) and flt(order.per_received) >= 99.99
+		if payment_complete:
+			payment_complete_count += 1
 		if fully_completed:
 			completed_supplier_count += 1
 		by_order[order.name] = {
@@ -528,6 +554,8 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 			"payment_complete": payment_complete,
 			"fiscal_receipt_added": fiscal_receipt_added,
 			"fully_completed": fully_completed,
+			"purchase_receipts": purchase_receipts,
+			"purchase_receipt_complete": purchase_receipt_complete,
 		}
 
 	supplier_count = len(orders)
@@ -535,13 +563,51 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 	return {
 		"submitted_invoice_count": len(invoices),
 		"payment_invoice_count": supplier_count,
+		"payment_complete_count": payment_complete_count,
 		"payment_receipt_count": completed_supplier_count,
 		"payment_receipts_progress": _format_receipt_progress(
 			completed_supplier_count, supplier_count
 		),
 		"payment_actors": [_get_user_summary(user) for user in users],
+		"purchase_receipt_complete": bool(orders)
+		and all(row["purchase_receipt_complete"] for row in by_order.values()),
+		"receipt_actors": [_get_user_summary(user) for user in receipt_actors],
 		"by_order": by_order,
 	}
+
+
+def _get_purchase_receipts_by_order(orders):
+	order_names = [order.name for order in orders]
+	if not order_names:
+		return {}, []
+
+	items = frappe.get_all(
+		"Purchase Receipt Item",
+		filters={"purchase_order": ["in", order_names], "docstatus": 1},
+		fields=["parent", "purchase_order"],
+	)
+	receipt_names = list(dict.fromkeys(row.parent for row in items))
+	if not receipt_names:
+		return {}, []
+
+	receipts = frappe.get_all(
+		"Purchase Receipt",
+		filters={"name": ["in", receipt_names], "docstatus": 1},
+		fields=["name", "status", "modified_by", "modified"],
+		order_by="posting_date asc, creation asc",
+	)
+	receipts_by_name = {receipt.name: receipt for receipt in receipts}
+	by_order = defaultdict(list)
+	for item in items:
+		receipt = receipts_by_name.get(item.parent)
+		if not receipt:
+			continue
+		if not any(row["name"] == receipt.name for row in by_order[item.purchase_order]):
+			by_order[item.purchase_order].append(
+				{"name": receipt.name, "status": receipt.status}
+			)
+	actors = list(dict.fromkeys(receipt.modified_by for receipt in receipts if receipt.modified_by))
+	return dict(by_order), actors
 
 
 def _get_invoice_purchase_orders(invoices, orders):

@@ -30,8 +30,18 @@ COMPLETION_FIELDS = {
 	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE: "procurement_completion_status",
 	PURCHASE_ORDER_DOCTYPE: "custom_procurement_completion_status",
 }
-PROCUREMENT_IN_PROGRESS = "In Progress"
-PROCUREMENT_COMPLETED = "Completed"
+PROCUREMENT_PREPARATION = "Підготовка"
+PROCUREMENT_APPROVAL = "Погодження"
+PROCUREMENT_AWAITING_PAYMENT = "Очікує оплату"
+PROCUREMENT_AWAITING_RECEIPT = "Очікує надходження"
+PROCUREMENT_COMPLETED = "Завершено"
+PROCUREMENT_STATUS_PRIORITY = {
+	PROCUREMENT_PREPARATION: 0,
+	PROCUREMENT_APPROVAL: 1,
+	PROCUREMENT_AWAITING_PAYMENT: 2,
+	PROCUREMENT_AWAITING_RECEIPT: 3,
+	PROCUREMENT_COMPLETED: 4,
+}
 
 
 def require_buyer_role():
@@ -415,7 +425,7 @@ def sync_procurement_document_participants(doc, method=None):
 
 
 def sync_procurement_completion_status(source_name, receipt_summary=None):
-	"""Propagate the logical end of a consolidated purchase to its PO and MR chain."""
+	"""Propagate the current procurement stage to its PO and MR chain."""
 	if not source_name or not frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name):
 		return
 
@@ -432,15 +442,27 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 	)
 	terminal = consolidated.docstatus == 2 or consolidated.workflow_state == "Відхилено"
 	externally_paid = bool(consolidated.items_already_purchased and consolidated.docstatus == 1)
-	all_receipts_added = bool(
+	all_payments_verified = bool(
 		receipt_summary["payment_invoice_count"]
 		and receipt_summary["payment_receipt_count"] >= receipt_summary["payment_invoice_count"]
 	)
-	consolidated_completed = terminal or externally_paid or all_receipts_added
-	_set_completion_status(
+	all_payments_submitted = bool(
+		receipt_summary["payment_invoice_count"]
+		and receipt_summary.get("payment_complete_count", 0)
+		>= receipt_summary["payment_invoice_count"]
+	)
+	purchase_receipt_complete = bool(receipt_summary.get("purchase_receipt_complete"))
+	consolidated_status = _get_consolidated_procurement_status(
+		consolidated,
+		terminal=terminal,
+		payment_complete=externally_paid or all_payments_submitted,
+		fiscal_receipt_complete=externally_paid or all_payments_verified,
+		purchase_receipt_complete=purchase_receipt_complete,
+	)
+	_set_procurement_status(
 		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 		source_name,
-		consolidated_completed,
+		consolidated_status,
 	)
 
 	orders = frappe.get_all(
@@ -450,13 +472,20 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 	)
 	for order in orders:
 		order_summary = receipt_summary.get("by_order", {}).get(order.name, {})
-		order_completed = (
-			order.docstatus == 2
-			or terminal
-			or externally_paid
-			or bool(order_summary.get("fully_completed"))
-		)
-		_set_completion_status(PURCHASE_ORDER_DOCTYPE, order.name, order_completed)
+		if order.docstatus == 2 or terminal:
+			order_status = PROCUREMENT_COMPLETED
+		elif consolidated.docstatus != 1:
+			order_status = consolidated_status
+		elif order_summary.get("purchase_receipt_complete") and (
+			externally_paid or order_summary.get("fully_completed")
+		):
+			order_status = PROCUREMENT_COMPLETED
+		elif externally_paid or order_summary.get("payment_complete"):
+			order_status = PROCUREMENT_AWAITING_RECEIPT
+		else:
+			order_status = PROCUREMENT_AWAITING_PAYMENT
+		_set_procurement_status(PURCHASE_ORDER_DOCTYPE, order.name, order_status)
+		_apply_purchase_order_assignment_rule(order.name)
 
 	material_requests = set(
 		frappe.get_all(
@@ -492,7 +521,7 @@ def _sync_material_request_completion(material_request):
 		MATERIAL_REQUEST_DOCTYPE, material_request, ["docstatus", "status"], as_dict=True
 	)
 	if request.docstatus == 2 or request.status == "Stopped":
-		_set_completion_status(MATERIAL_REQUEST_DOCTYPE, material_request, True)
+		_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, PROCUREMENT_COMPLETED)
 		return
 
 	consolidated_names = set(
@@ -509,30 +538,61 @@ def _sync_material_request_completion(material_request):
 			pluck="name",
 		)
 	)
-	active = frappe.get_all(
+	if not consolidated_names:
+		_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, PROCUREMENT_PREPARATION)
+		return
+
+	consolidated_rows = frappe.get_all(
 		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		filters={
-			"name": ["in", list(consolidated_names)],
-			"docstatus": ["!=", 2],
-			"workflow_state": ["!=", "Відхилено"],
-		},
-		pluck=COMPLETION_FIELDS[CONSOLIDATED_PURCHASE_ORDER_DOCTYPE],
-	) if consolidated_names else []
-	_set_completion_status(
-		MATERIAL_REQUEST_DOCTYPE,
-		material_request,
-		bool(active) and all(status == PROCUREMENT_COMPLETED for status in active),
+		filters={"name": ["in", list(consolidated_names)]},
+		fields=["docstatus", "workflow_state", COMPLETION_FIELDS[CONSOLIDATED_PURCHASE_ORDER_DOCTYPE]],
 	)
+	statuses = []
+	for row in consolidated_rows:
+		if row.docstatus == 2 or row.workflow_state == "Відхилено":
+			statuses.append(PROCUREMENT_COMPLETED)
+		else:
+			statuses.append(row.get(COMPLETION_FIELDS[CONSOLIDATED_PURCHASE_ORDER_DOCTYPE]))
+	status = min(
+		(status for status in statuses if status in PROCUREMENT_STATUS_PRIORITY),
+		key=PROCUREMENT_STATUS_PRIORITY.get,
+		default=PROCUREMENT_PREPARATION,
+	)
+	_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, status)
 
 
-def _set_completion_status(doctype, name, completed):
+def _get_consolidated_procurement_status(
+	consolidated, *, terminal, payment_complete, fiscal_receipt_complete, purchase_receipt_complete
+):
+	if terminal or (fiscal_receipt_complete and purchase_receipt_complete):
+		return PROCUREMENT_COMPLETED
+	if consolidated.docstatus != 1:
+		if consolidated.workflow_state in {"Чернетка", "Потребує доопрацювання"}:
+			return PROCUREMENT_PREPARATION
+		return PROCUREMENT_APPROVAL
+	if payment_complete:
+		return PROCUREMENT_AWAITING_RECEIPT
+	return PROCUREMENT_AWAITING_PAYMENT
+
+
+def _apply_purchase_order_assignment_rule(purchase_order):
+	from erpnext.buying.procurement_workflow import WAREHOUSE_ASSIGNMENT_RULE_NAME
+
+	if not frappe.db.exists("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME):
+		return
+	from frappe.automation.doctype.assignment_rule.assignment_rule import apply
+
+	apply(doctype=PURCHASE_ORDER_DOCTYPE, name=purchase_order)
+
+
+def _set_procurement_status(doctype, name, status):
 	fieldname = COMPLETION_FIELDS[doctype]
 	if frappe.db.has_column(doctype, fieldname):
 		frappe.db.set_value(
 			doctype,
 			name,
 			fieldname,
-			PROCUREMENT_COMPLETED if completed else PROCUREMENT_IN_PROGRESS,
+			status,
 			update_modified=False,
 		)
 

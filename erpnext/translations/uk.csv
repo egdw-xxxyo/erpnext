@@ -9436,7 +9436,7 @@ Stock Ledger report contains every submitted stock transaction. You can use filt
 Stock Ledgers won't be reposted.,Складські книги не будуть повторно проведені.
 Stock Levels,Сток Рівні
 Stock Liabilities,Зобов'язання по запасах
-Stock Manager,Товарознавець
+Stock Manager,Начальник складу
 Stock Movement,Рух товарів на складі
 Stock Partially Reserved,Запаси частково зарезервовано
 Stock Planning,Планування запасів
@@ -13442,3 +13442,10 @@ Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для �
 "Material Request {0} is already linked to active consolidated order {1}. A new consolidated order can be created only after the existing one is rejected.","Замовлення матеріалів {0} вже пов’язане з активним зведеним замовленням {1}. Нове зведене замовлення можна створити лише після відхилення наявного."
 "Procurement Participants","Учасники закупівлі"
 "Procurement Completion","Стан закупівлі"
+"Procurement Status","Стан закупівлі"
+"Goods Receipt","Надходження"
+"Storekeeper","Комірник"
+"Warehouse Manager","Начальник складу"
+"Awaiting Purchase Receipt","Очікує прихідну накладну"
+"Payment was made at the expense of:","Оплату здійснено за рахунок:"
+"Not created","Не створено"

@@ -518,7 +518,11 @@ doc_events = {
 	},
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
-		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		"on_cancel": [
+			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
