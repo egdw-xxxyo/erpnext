@@ -19,6 +19,8 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 	},
 
 	refresh(frm) {
+		set_procurement_status_indicator(frm);
+		setTimeout(() => set_procurement_status_indicator(frm), 0);
 		frm.fields_dict.supplier_invoices.grid.update_docfield_property("invoice_pdf", "options", {
 			restrictions: { allowed_file_types: [".pdf"] },
 			allow_web_link: false,
@@ -89,6 +91,10 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		frm.trigger("render_approval_route");
 	},
 
+	procurement_completion_status(frm) {
+		set_procurement_status_indicator(frm);
+	},
+
 	render_approval_route(frm) {
 		const field = frm.get_field("approval_route_html");
 		if (!field) return;
@@ -152,6 +158,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 							row.fiscal_receipt_added ? __("Added") : __("Fiscal receipt missing"),
 							row.fiscal_receipt_added ? "green" : "gray"
 						)}</td>
+						<td>${render_purchase_receipts(row.purchase_receipts || [])}</td>
 					</tr>`
 					)
 					.join("");
@@ -161,7 +168,9 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 					"Grand Total"
 				)}</th><th class="text-right">${__("Billed")}</th><th>${__(
 					"Payment Completed"
-				)}</th><th>${__("Fiscal Receipt")}</th></tr></thead><tbody>${body}</tbody></table></div>`);
+				)}</th><th>${__("Fiscal Receipt")}</th><th>${__(
+					"Purchase Receipt"
+				)}</th></tr></thead><tbody>${body}</tbody></table></div>`);
 			});
 	},
 });
@@ -173,6 +182,7 @@ function render_approval_route(frm, field, route_data) {
 	const external_payment = Boolean(route_data.external_payment);
 	const payment_complete =
 		external_payment || (has_submitted_invoice && receipt_count >= invoice_count);
+	const purchase_receipt_complete = Boolean(route_data.purchase_receipt_complete);
 	const final_approval_count = cint(route_data.final_approval_count);
 	const final_approval_required = cint(route_data.final_approval_required) || 2;
 	const final_approval_automatic = Boolean(route_data.final_approval_automatic);
@@ -197,6 +207,12 @@ function render_approval_route(frm, field, route_data) {
 			role: __("Treasurer"),
 			icon: "es-line-payments",
 		},
+		{
+			key: "receipt",
+			title: __("Goods Receipt"),
+			role: __("Warehouse Manager"),
+			icon: "clipboard",
+		},
 	];
 	const state = frm.doc.workflow_state || "Чернетка";
 	const state_indexes = {
@@ -215,19 +231,26 @@ function render_approval_route(frm, field, route_data) {
 	const steps = stages
 		.map((stage, index) => {
 			const is_payment = stage.key === "payment";
+			const is_receipt = stage.key === "receipt";
 			const is_posting = stage.key === "posting";
 			const is_final_approval = stage.key === "final_approval";
-			const completed = is_payment
+			const completed = is_receipt
+				? purchase_receipt_complete
+				: is_payment
 				? payment_complete
 				: !is_rejected &&
 				  (index < current_index || (is_posting && frm.doc.docstatus === 1 && has_submitted_invoice));
-			const current = is_payment
+			const current = is_receipt
+				? payment_complete && !purchase_receipt_complete
+				: is_payment
 				? frm.doc.docstatus === 1 && has_submitted_invoice && !payment_complete
 				: !is_rejected &&
 				  ((frm.doc.docstatus !== 1 && index === current_index) ||
 					(is_posting && frm.doc.docstatus === 1 && !has_submitted_invoice));
 			const status_class = completed ? "is-complete" : current ? "is-current" : "is-pending";
-			const actors = is_payment
+			const actors = is_receipt
+				? route_data.receipt_actors || []
+				: is_payment
 				? external_payment && route_data.external_payer
 					? [route_data.external_payer]
 					: route_data.payment_actors || []
@@ -248,9 +271,11 @@ function render_approval_route(frm, field, route_data) {
 			} else if (is_posting && frm.doc.docstatus === 1 && !has_submitted_invoice) {
 				role_text = __("Submitted, invoice not created");
 			} else if (is_payment && external_payment) {
-				role_text = __("Paid outside the company");
+				role_text = __("Payment was made at the expense of:");
 			} else if (is_payment && has_submitted_invoice) {
 				role_text = `${stage.role} · ${receipt_count}/${invoice_count} ${__("paid")}`;
+			} else if (is_receipt && current) {
+				role_text = `${stage.role} · ${__("Awaiting Purchase Receipt")}`;
 			}
 			const actor_html =
 				is_payment && external_payment && route_data.external_payer
@@ -280,7 +305,7 @@ function render_approval_route(frm, field, route_data) {
 		.cpo-route-origin{margin-bottom:14px;font-size:var(--text-sm);color:var(--text-muted)}
 		.cpo-route-origin a{font-weight:500}
 		.cpo-route-scroll{overflow:visible;padding:2px 0 4px}
-		.cpo-route{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:start;gap:18px;width:100%;min-width:0}
+		.cpo-route{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:start;gap:14px;width:100%;min-width:0}
 		.cpo-route-segment{min-width:0}
 		.cpo-route-step{display:flex;align-items:flex-start;gap:9px;width:100%;min-width:0}
 		.cpo-route-icon{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 34px;border:1px solid var(--border-color);border-radius:50%;color:var(--text-muted);background:var(--control-bg)}
@@ -291,6 +316,7 @@ function render_approval_route(frm, field, route_data) {
 		.cpo-route-actor a{font-weight:500}
 		.cpo-route-step.is-complete .cpo-route-icon{border-color:var(--green-500);background:var(--green-100);color:var(--green-700)}
 		.cpo-route-step.is-current .cpo-route-icon{border-color:var(--blue-500);background:var(--blue-100);color:var(--blue-700);box-shadow:0 0 0 3px var(--blue-50)}
+		.cpo-route-step.is-pending{opacity:.5}
 		.cpo-route-card.is-rework .cpo-route-step.is-current .cpo-route-icon{border-color:var(--orange-500);background:var(--orange-100);color:var(--orange-700);box-shadow:0 0 0 3px var(--orange-50)}
 		.cpo-route-card.is-rejected .cpo-route-icon{border-color:var(--red-300);color:var(--red-500)}
 		@media(max-width:767px){.cpo-route-card{padding:12px}.cpo-route{grid-template-columns:1fr;gap:14px}}
@@ -305,6 +331,13 @@ function render_approval_route(frm, field, route_data) {
 		${origin}
 		<div class="cpo-route-scroll"><div class="cpo-route">${steps}</div></div>
 	</div>`);
+}
+
+function set_procurement_status_indicator(frm) {
+	const status = frm.doc.procurement_completion_status;
+	if (!status) return;
+	const color = erpnext.buying.get_procurement_status_color(status);
+	frm.page.set_indicator(__(status), color);
 }
 
 frappe.ui.form.on("Consolidated Purchase Order Item", {
@@ -372,6 +405,24 @@ function render_status_badge(label, colour) {
 	return `<span class="indicator-pill no-indicator-dot ${colour}">${frappe.utils.escape_html(
 		label
 	)}</span>`;
+}
+
+function render_purchase_receipts(receipts) {
+	if (!receipts.length) {
+		return render_status_badge(__("Not created"), "gray");
+	}
+	return receipts
+		.map((receipt) => {
+			const link = `<a href="/app/purchase-receipt/${encodeURIComponent(
+				receipt.name
+			)}">${frappe.utils.escape_html(receipt.name)}</a>`;
+			const status = render_status_badge(
+				__(receipt.status || "Submitted"),
+				receipt.status === "Completed" ? "green" : "blue"
+			);
+			return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${link}${status}</div>`;
+		})
+		.join("");
 }
 
 function get_route_indicator_color(state) {

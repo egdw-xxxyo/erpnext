@@ -243,13 +243,13 @@
    "read_only": 1
   },
   {
-   "default": "In Progress",
+   "default": "Підготовка",
    "fieldname": "procurement_completion_status",
    "fieldtype": "Select",
    "in_standard_filter": 1,
-   "label": "Procurement Completion",
+   "label": "Procurement Status",
    "no_copy": 1,
-   "options": "In Progress\nCompleted",
+   "options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
    "read_only": 1
   },
   {
