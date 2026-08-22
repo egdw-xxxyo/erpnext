@@ -1,5 +1,12 @@
 frappe.listview_settings["Consolidated Purchase Order"] = {
-	add_fields: ["payment_receipts_progress", "payment_receipt_count", "payment_invoice_count"],
+	add_fields: [
+		"payment_receipts_progress",
+		"payment_receipt_count",
+		"payment_invoice_count",
+		"procurement_completion_status",
+		"grand_total",
+		"currency",
+	],
 	onload(listview) {
 		erpnext.buying.apply_procurement_work_queue_filters(listview, {
 			participants_field: "procurement_participants",
@@ -7,6 +14,9 @@ frappe.listview_settings["Consolidated Purchase Order"] = {
 		});
 	},
 	formatters: {
+		procurement_completion_status(value) {
+			return erpnext.buying.format_procurement_status(value);
+		},
 		payment_receipts_progress(value, df, doc) {
 			const paid = Math.max(0, cint(doc.payment_receipt_count));
 			const total = Math.max(0, cint(doc.payment_invoice_count));
