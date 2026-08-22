@@ -100,12 +100,7 @@ def create_workflow_actions():
 
 def create_workflow():
 	workflow_name = "Purchase Receipt QC Workflow"
-	if frappe.db.exists("Workflow", workflow_name):
-		print(f"  Workflow exists: {workflow_name}")
-		return
-
-	doc = frappe.get_doc(
-		{
+	workflow_config = {
 			"doctype": "Workflow",
 			"workflow_name": workflow_name,
 			"document_type": "Purchase Receipt",
@@ -128,13 +123,13 @@ def create_workflow():
 				{
 					"state": "На затвердженні",
 					"doc_status": "0",
-					"allow_edit": "Accounts User",
+					"allow_edit": "Stock Manager",
 					"is_optional_state": 0,
 				},
 				{
 					"state": "Проведено",
 					"doc_status": "1",
-					"allow_edit": "Accounts User",
+					"allow_edit": "Stock Manager",
 					"is_optional_state": 0,
 				},
 			],
@@ -164,19 +159,34 @@ def create_workflow():
 					"state": "На затвердженні",
 					"action": "Провести",
 					"next_state": "Проведено",
-					"allowed": "Accounts User",
+					"allowed": "Stock Manager",
 					"allow_self_approval": 1,
 				},
 				{
 					"state": "На затвердженні",
 					"action": "Повернути на перевірку",
 					"next_state": "На перевірці",
-					"allowed": "Accounts User",
+					"allowed": "Stock Manager",
 					"allow_self_approval": 1,
 				},
 			],
 		}
-	)
+
+	if frappe.db.exists("Workflow", workflow_name):
+		doc = frappe.get_doc("Workflow", workflow_name)
+		for fieldname in ("document_type", "is_active", "override_status", "send_email_alert"):
+			doc.set(fieldname, workflow_config[fieldname])
+		doc.set("states", [])
+		doc.set("transitions", [])
+		for state in workflow_config["states"]:
+			doc.append("states", state)
+		for transition in workflow_config["transitions"]:
+			doc.append("transitions", transition)
+		doc.save(ignore_permissions=True)
+		print(f"  Updated Workflow: {workflow_name}")
+		return
+
+	doc = frappe.get_doc(workflow_config)
 	doc.insert(ignore_permissions=True)
 	print(f"  Created Workflow: {workflow_name}")
 
