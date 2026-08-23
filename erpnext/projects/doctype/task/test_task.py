@@ -169,13 +169,28 @@ class TestTask(unittest.TestCase):
 
 		self.assertEqual(group_task.progress, 100)
 
-	def test_manual_progress_kept_for_regular_task(self):
+	def test_manual_progress_ignored_for_regular_task(self):
 		task = create_task(subject="_Test Manual Progress")
 
 		task.progress = 42
 		task.save()
 
-		self.assertEqual(frappe.db.get_value("Task", task.name, "progress"), 42)
+		self.assertEqual(frappe.db.get_value("Task", task.name, "progress"), 0)
+
+	def test_progress_follows_status_of_regular_task(self):
+		task = create_task(subject="_Test Status Driven Progress")
+
+		task.status = "Completed"
+		task.save()
+		self.assertEqual(task.progress, 100)
+
+		task.status = "In Progress"
+		task.save()
+		self.assertEqual(task.progress, 0)
+
+		task.status = "Cancelled"
+		task.save()
+		self.assertEqual(task.progress, 0)
 
 	def test_depends_on_details_are_refreshed(self):
 		dependency = create_task(subject="_Test Dependency Details", end=add_days(nowdate(), 5), is_group=0)
