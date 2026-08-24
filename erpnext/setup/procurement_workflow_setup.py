@@ -42,6 +42,12 @@ CUSTOM_FIELDS = {
 	],
 	"Material Request": [
 		{
+			"fieldname": "custom_procurement_comment",
+			"fieldtype": "Text Editor",
+			"label": "Коментар",
+			"insert_after": "items",
+		},
+		{
 			"fieldname": "custom_procurement_participants",
 			"fieldtype": "Small Text",
 			"label": "Procurement Participants",
