@@ -526,20 +526,30 @@ doc_events = {
 			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
 		],
 		"validate": "erpnext.buying.procurement_automation.validate_material_request_purchase_receipts",
-		"on_submit": "erpnext.buying.procurement_automation.on_material_request_submit",
-		"on_cancel": "erpnext.buying.procurement_automation.sync_procurement_document_completion",
+		"on_submit": [
+			"erpnext.buying.procurement_automation.on_material_request_submit",
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+		],
+		"on_cancel": [
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+			"erpnext.buying.procurement_automation.sync_procurement_document_completion",
+		],
 	},
 	"Purchase Order": {
 		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Consolidated Purchase Order": {
-		"after_insert": "erpnext.buying.procurement_automation.sync_procurement_document_participants",
+		"after_insert": [
+			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+		],
 		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
 		# Run after Frappe's wildcard on_update Assignment Rule handler. A standard
 		# Assignment Rule intentionally picks one user; the final approval stage
 		# needs both configured CEO approvers to have an open ToDo.
 		"on_change": [
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
 			"erpnext.buying.procurement_final_approval.sync_final_approval_assignments",
 			"erpnext.buying.procurement_automation.sync_procurement_document_completion",
 		],
@@ -556,18 +566,17 @@ doc_events = {
 	},
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
-		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
-		# demand mandatory additional attributes before the serials are generated after save
-		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
-	},
-	"Serial and Batch Bundle": {
-		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner
-		"on_submit": "erpnext.stock.additional_attributes.apply_bundle_attributes_to_serials",
-		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		"on_cancel": [
 			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
 			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		],
+		# demand mandatory additional attributes before the serials are generated after save
+		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
+		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+	},
+	"Serial and Batch Bundle": {
+		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner
+		"on_submit": "erpnext.stock.additional_attributes.apply_bundle_attributes_to_serials",
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",

@@ -6,6 +6,7 @@ WORKFLOW_NAME = "Закупівлі: погодження зведеного з�
 
 MATERIAL_REQUEST_INITIATOR_ROLE = "Закупівлі: Ініціатор замовлень матеріалів"
 BUYER_ROLE = "Закупівельник"
+BUYER_ROLE_PROFILE = "Закупівлі: профіль закупівельника"
 PAYMENT_INITIATOR_ROLE = "Payments: Ініціатор"
 DEPARTMENT_HEAD_ROLE = "Payments: Керівник підрозділу"
 FINAL_APPROVER_ROLE = "Payments: Фінальний погоджувач"
@@ -13,6 +14,10 @@ TREASURER_ROLE = "Payments: Казначей"
 WAREHOUSE_MANAGER_ROLE = "Stock Manager"
 WAREHOUSE_MANAGER_ROLE_PROFILE = "Закупівлі: профіль начальника складу"
 WAREHOUSE_ASSIGNMENT_RULE_NAME = "Закупівлі: надходження замовлення на придбання"
+MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: опрацювання замовлення матеріалів"
+CONSOLIDATED_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання закупівельнику"
+CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання керівнику підрозділу"
+CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання фінальному погоджувачу"
 ALL_ASSIGNMENT_DAYS = (
 	"Monday",
 	"Tuesday",
@@ -23,13 +28,64 @@ ALL_ASSIGNMENT_DAYS = (
 	"Sunday",
 )
 
+PROCUREMENT_ASSIGNMENT_RULES = (
+	{
+		"name": MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
+		"document_type": "Material Request",
+		"priority": 40,
+		"condition": "docstatus == 1 and material_request_type == 'Purchase'",
+		"unassign_condition": "docstatus != 1 or material_request_type != 'Purchase'",
+		"close_condition": "docstatus == 2",
+		"role": BUYER_ROLE,
+		"role_profile": BUYER_ROLE_PROFILE,
+		"description": "Опрацювати замовлення матеріалів {{ name }}.",
+	},
+	{
+		"name": CONSOLIDATED_BUYER_ASSIGNMENT_RULE_NAME,
+		"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		"priority": 30,
+		"condition": (
+			"docstatus == 0 and workflow_state in "
+			"('Чернетка', 'Потребує доопрацювання', 'Погоджено')"
+		),
+		"unassign_condition": (
+			"docstatus != 0 or workflow_state not in "
+			"('Чернетка', 'Потребує доопрацювання', 'Погоджено')"
+		),
+		"close_condition": "docstatus == 1 or docstatus == 2 or workflow_state == 'Відхилено'",
+		"rule": "Based on Field",
+		"field": "initiator_user",
+		"description": "Опрацювати зведене замовлення на придбання {{ name }}.",
+	},
+	{
+		"name": CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME,
+		"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		"priority": 20,
+		"condition": "docstatus == 0 and workflow_state == 'Перевірка підрозділу'",
+		"unassign_condition": "docstatus != 0 or workflow_state != 'Перевірка підрозділу'",
+		"close_condition": "docstatus == 2 or workflow_state == 'Відхилено'",
+		"role": DEPARTMENT_HEAD_ROLE,
+		"description": "Перевірити зведене замовлення на придбання {{ name }} від підрозділу.",
+	},
+	{
+		"name": CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
+		"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		"priority": 10,
+		"condition": "docstatus == 0 and workflow_state == 'Фінальне погодження'",
+		"unassign_condition": "docstatus != 0 or workflow_state != 'Фінальне погодження'",
+		"close_condition": "docstatus == 2 or workflow_state == 'Відхилено'",
+		"role": FINAL_APPROVER_ROLE,
+		"description": "Виконати фінальне погодження зведеного замовлення {{ name }}.",
+	},
+)
+
 ROLE_PROFILES = {
 	"Закупівлі: профіль ініціатора замовлень матеріалів": (
 		MATERIAL_REQUEST_INITIATOR_ROLE,
 		"Stock User",
 		"Employee",
 	),
-	"Закупівлі: профіль закупівельника": (
+	BUYER_ROLE_PROFILE: (
 		BUYER_ROLE,
 		PAYMENT_INITIATOR_ROLE,
 		"Purchase User",
@@ -208,6 +264,7 @@ def sync_procurement_workflow():
 	_ensure_roles()
 	_ensure_role_profiles()
 	_ensure_permissions()
+	_ensure_procurement_assignment_rules()
 	_ensure_warehouse_assignment_rule()
 	_ensure_workflow_states()
 	_ensure_workflow_actions()
@@ -291,6 +348,67 @@ def _ensure_warehouse_assignment_rule():
 		doc.set("users", [{"user": _get_default_warehouse_manager_user()}])
 	doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
 	_save(doc)
+
+
+def _ensure_procurement_assignment_rules():
+	for spec in PROCUREMENT_ASSIGNMENT_RULES:
+		is_new = not frappe.db.exists("Assignment Rule", spec["name"])
+		if is_new:
+			doc = frappe.new_doc("Assignment Rule")
+			doc.name = spec["name"]
+		else:
+			doc = frappe.get_doc("Assignment Rule", spec["name"])
+
+		doc.document_type = spec["document_type"]
+		doc.priority = spec["priority"]
+		# Assignment lifecycle is handled explicitly so completed stages can close
+		# their ToDos without sending a misleading assignment-removal notification.
+		doc.disabled = 1
+		doc.description = spec["description"]
+		doc.assign_condition = spec["condition"]
+		doc.unassign_condition = spec["unassign_condition"]
+		doc.close_condition = spec["close_condition"]
+		doc.rule = spec.get("rule", "Round Robin")
+		doc.field = spec.get("field")
+		# Assignees configured in Desk are operational data. Seed one valid user only
+		# when a rule is first created and never overwrite later administrator changes.
+		if is_new and doc.rule == "Round Robin":
+			doc.set(
+				"users",
+				[
+					{"user": user}
+					for user in _get_default_role_users(
+						spec["role"], role_profile=spec.get("role_profile")
+					)
+				],
+			)
+		doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
+		_save(doc)
+
+
+def _get_default_role_users(role, role_profile=None):
+	if role_profile:
+		profile_users = frappe.get_all(
+			"User",
+			filters={"enabled": 1, "role_profile_name": role_profile},
+			pluck="name",
+			order_by="name asc",
+		)
+		if profile_users:
+			return profile_users
+
+	users = frappe.get_all(
+		"Has Role",
+		filters={"role": role, "parenttype": "User"},
+		pluck="parent",
+		order_by="parent asc",
+	)
+	users = [
+		user
+		for user in users
+		if user not in {"Administrator", "Guest"} and frappe.db.get_value("User", user, "enabled")
+	]
+	return users or ["Administrator"]
 
 
 def _get_default_warehouse_manager_user():

@@ -13600,3 +13600,92 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Not created","Не створено"
 Received by initiator:,Отримано ініціатором:
 Received automatically on behalf of initiator {0} for prepaid invoice {1}.,Отримано автоматично від імені ініціатора {0} за попередньо оплаченим рахунком {1}.
+Add at least one item.,Додайте хоча б одну позицію.
+Approval Details,Деталі погодження
+Approval Stage,Етап погодження
+Attach at least one PDF receipt when the materials are already purchased.,Прикріпіть хоча б один PDF-чек для вже придбаних матеріалів.
+Cancel the linked Purchase Orders before cancelling this consolidated order: {0},Скасуйте пов’язані замовлення на придбання перед скасуванням цього зведеного замовлення: {0}
+Child Task Payments,Оплати дочірніх завдань
+Confirm,Підтвердити
+Consolidated Purchase Order,Зведене замовлення на придбання
+Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
+Consolidated Purchase Supplier Invoice,Рахунок постачальника зведеного замовлення
+Create Payment Request,Створити запит на оплату
+Create and submit a Purchase Invoice for this task first.,Спочатку створіть і проведіть вхідний рахунок-фактуру для цього завдання.
+Created and submitted Purchase Order {0} for supplier {1}.,Створено та проведено замовлення на придбання {0} для постачальника {1}.
+Current Assignee,Поточний виконавець
+Decision Reason,Причина рішення
+Enter the reason for the decision.,Вкажіть причину рішення.
+Expense Currency,Валюта витрат
+Fiscal Receipt,Фіскальний чек
+Fiscal Receipt (File),Фіскальний чек (файл)
+Fiscal Receipt Availability,Наявність фіскального чека
+Fiscal receipt has not been attached,Фіскальний чек не прикріплено
+Generated Documents,Створені документи
+Initiator Employee,Працівник-ініціатор
+Initiator User,Користувач-ініціатор
+Invoice Document,Документ рахунку
+Items Already Purchased,Матеріали вже придбані
+Items by Supplier,Позиції за постачальниками
+Material Cost,Вартість матеріалів
+Material Request Initiator,Ініціатор замовлення матеріалів
+Material Requests for This Task,Замовлення матеріалів цього завдання
+No Available Invoices,Немає доступних рахунків
+No Description,Немає опису
+No billable Purchase Order was found for supplier {0}.,Для постачальника {0} не знайдено замовлення на придбання для виставлення рахунку.
+Only a buyer can create procurement documents from a Material Request.,Тільки закупівельник може створювати закупівельні документи із замовлення матеріалів.
+Payment Approval Details,Деталі погодження оплати
+Payment Purpose,Призначення платежу
+Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.,Запит на оплату <b>{{ doc.name }}</b> перейшов на етап <b>{{ doc.workflow_state }}</b>.
+Payment Request Count,Кількість запитів на оплату
+Payment Request Expenses,Витрати за запитами на оплату
+Payment Requests,Запити на оплату
+Payment Requests for This Task,Запити на оплату цього завдання
+Perform the final approval of Payment Request {{ name }}.,Виконайте фінальне погодження запиту на оплату {{ name }}.
+Planned Payment Date,Запланована дата оплати
+Prepaid Purchase Note,Примітка про попередню оплату
+Private File Required,Потрібен приватний файл
+Process Payment Request {{ name }} at stage “{{ workflow_state }}”.,Опрацюйте запит на оплату {{ name }} на етапі «{{ workflow_state }}».
+Procurement Approval Confirmed,Погодження закупівлі підтверджено
+Purchase Orders have not been created yet.,Замовлення на придбання ще не створено.
+Purchase Receipt Files,Файли чеків про придбання
+Reason is required,Причина обов’язкова
+Reason is too long,Причина надто довга
+Request,Запит
+Request {{ doc.name }}: {{ doc.workflow_state }},Запит {{ doc.name }}: {{ doc.workflow_state }}
+Requested Payment Date,Бажана дата оплати
+Review Payment Request {{ name }} from the department.,Перевірте запит на оплату {{ name }} від підрозділу.
+Review and schedule payment for Payment Request {{ name }}.,Перевірте та заплануйте оплату запиту {{ name }}.
+Row {0}: Attach a PDF receipt.,Рядок {0}: прикріпіть PDF-чек.
+Row {0}: Quantity must be greater than zero.,Рядок {0}: кількість має бути більшою за нуль.
+Row {0}: Rate cannot be negative.,Рядок {0}: ціна не може бути від’ємною.
+Row {0}: Required By date is required.,Рядок {0}: вкажіть дату «Потрібно до».
+Row {0}: Select a supplier used in the order items.,Рядок {0}: виберіть постачальника з позицій замовлення.
+Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.
+Row {0}: Supplier is required.,Рядок {0}: постачальник обов’язковий.
+Select Supplier for Purchase Invoice,Виберіть постачальника для вхідного рахунку-фактури
+Select a submitted Purchase Invoice linked to this task.,Виберіть проведений вхідний рахунок-фактуру цього завдання.
+Short Description,Короткий опис
+Submit the consolidated order before creating a Purchase Invoice.,Проведіть зведене замовлення перед створенням вхідного рахунку-фактури.
+Supplier Invoice PDF,PDF рахунку постачальника
+Supplier Invoices,Рахунки постачальників
+Task Payments,Оплати за завданням
+"The fiscal receipt must be a PDF, JPG, JPEG or PNG file.","Фіскальний чек має бути файлом PDF, JPG, JPEG або PNG."
+The fiscal receipt must be uploaded as a private file.,Фіскальний чек потрібно завантажити як приватний файл.
+The payment can be submitted without a receipt and the receipt can be attached later.,Оплату можна провести без чека та прикріпити чек пізніше.
+The purchase receipt must be a PDF file.,Чек про придбання має бути PDF-файлом.
+The reason cannot contain more than {0} characters.,Причина не може містити більше ніж {0} символів.
+The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
+The supplier invoice must be a PDF file.,Рахунок постачальника має бути PDF-файлом.
+The uploaded fiscal receipt could not be found.,Завантажений фіскальний чек не знайдено.
+There are no Material Requests yet.,Замовлень матеріалів ще немає.
+There are no Payment Requests yet.,Запитів на оплату ще немає.
+There are no suppliers with unbilled Purchase Orders.,Немає постачальників із замовленнями на придбання без рахунків.
+Unsupported File Format,Непідтримуваний формат файлу
+Use a workflow action for this transition and provide a reason.,Виконайте цей перехід через дію workflow та вкажіть причину.
+Workflow Action Reason,Причина дії workflow
+performed action “{0}”,виконав дію «{0}»
+{0} created this Purchase Order from {1}.,{0} створив це замовлення на придбання з {1}.
+{0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів і передав його до закупівель.
+{0} {1} for the following reason:<br>{2},{0} {1} з такої причини:<br>{2}
+{0} {1} {2} for this task.,{0} {1} {2} для цього завдання.

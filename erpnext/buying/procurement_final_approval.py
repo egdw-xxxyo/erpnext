@@ -3,6 +3,8 @@ from frappe import _
 from frappe.desk.form.assign_to import _add as add_assignment
 from frappe.utils import escape_html, flt
 
+from erpnext.buying.procurement_workflow import CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME
+
 CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
 FINAL_APPROVAL_STATE = "Фінальне погодження"
 FINAL_APPROVER_ROLE = "Payments: Фінальний погоджувач"
@@ -112,15 +114,25 @@ def sync_final_approval_assignments(doc, method=None):
 	users_to_assign = [user for user in approvers if user not in approved_users]
 	if not users_to_assign:
 		return
+	rule = (
+		frappe.get_doc("Assignment Rule", CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME)
+		if frappe.db.exists("Assignment Rule", CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME)
+		else None
+	)
 
 	add_assignment(
 		{
 			"assign_to": users_to_assign,
 			"doctype": doc.doctype,
 			"name": doc.name,
-			"description": _("Review and provide CEO approval for consolidated purchase {0}.").format(
-				doc.name
+			"description": (
+				frappe.render_template(rule.description, doc.as_dict())
+				if rule
+				else _("Review and provide CEO approval for consolidated purchase {0}.").format(
+					doc.name
+				)
 			),
+			"assignment_rule": rule.name if rule else None,
 		},
 		ignore_permissions=True,
 	)
