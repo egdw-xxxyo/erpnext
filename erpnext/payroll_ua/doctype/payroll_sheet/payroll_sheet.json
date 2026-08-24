@@ -20,6 +20,7 @@
   "total_employees",
   "employees_without_attendance",
   "employees_not_accrued",
+  "employees_without_salary",
   "total_credited_days",
   "column_break_counts",
   "paid_employees",
@@ -123,6 +124,13 @@
    "fieldtype": "Int",
    "label": "Not Accrued Yet",
    "read_only": 1
+  },
+  {
+   "fieldname": "employees_without_salary",
+   "fieldtype": "Int",
+   "label": "Without Salary Set",
+   "read_only": 1,
+   "default": "0"
   },
   {
    "fieldname": "total_credited_days",

@@ -9,7 +9,9 @@ function render(frm, options) {
 	const field = frm.get_field(options.field);
 	if (!field) return;
 
-	const rows = frm.doc[options.table] || [];
+	// a manager only ever sees their own people: the rest of the rows stay in the document
+	// but never reach the screen
+	const rows = scoped_rows(frm, options);
 
 	if (!rows.length) {
 		field.$wrapper.html(
@@ -35,6 +37,14 @@ function render(frm, options) {
 	`);
 
 	bind(frm, field.$wrapper, options);
+}
+
+// `visible` is a list of employee ids from the server, or null when nothing is restricted
+function scoped_rows(frm, options) {
+	const rows = frm.doc[options.table] || [];
+	const visible = options.visible && options.visible(frm);
+
+	return visible ? rows.filter((row) => visible.includes(row.employee)) : rows;
 }
 
 function search_text(row) {
@@ -292,4 +302,30 @@ function styles() {
 	`;
 }
 
-Object.assign(erpnext.utils.employee_preview, { render, money, number });
+// the grid shows the same rows as the preview: display only, `frm.doc` keeps every row so a
+// save never drops the people this user is not allowed to see
+function scope_grid(frm, table, visible) {
+	const grid = frm.fields_dict[table] && frm.fields_dict[table].grid;
+	if (!grid) return;
+
+	if (!visible) {
+		if (grid.__scoped_get_data) {
+			grid.get_data = grid.__scoped_get_data;
+			delete grid.__scoped_get_data;
+			grid.refresh();
+		}
+		return;
+	}
+
+	if (!grid.__scoped_get_data) grid.__scoped_get_data = grid.get_data.bind(grid);
+
+	const original = grid.__scoped_get_data;
+
+	grid.get_data = function (...args) {
+		return (original(...args) || []).filter((row) => visible.includes(row.employee));
+	};
+
+	grid.refresh();
+}
+
+Object.assign(erpnext.utils.employee_preview, { render, money, number, scope_grid });
