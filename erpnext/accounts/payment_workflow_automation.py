@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.desk.form.assign_to import _add as add_assignment
 
 PAYMENT_REQUEST_DOCTYPE = "Payment Request"
 ALL_ASSIGNMENT_DAYS = (
@@ -74,16 +75,14 @@ def sync_demo_automation_configuration():
 
 
 def apply_rules_to_existing_requests():
-	"""Apply the standard Assignment Rules to active requests created before setup."""
-	from frappe.automation.doctype.assignment_rule.assignment_rule import apply
-
+	"""Synchronize quiet stage assignments on requests created before setup."""
 	requests = frappe.get_all(
 		PAYMENT_REQUEST_DOCTYPE,
 		filters={"docstatus": ["<", 2]},
 		pluck="name",
 	)
 	for name in requests:
-		apply(doctype=PAYMENT_REQUEST_DOCTYPE, name=name)
+		sync_payment_request_assignment(frappe.get_doc(PAYMENT_REQUEST_DOCTYPE, name))
 	frappe.db.commit()
 	return requests
 
@@ -98,7 +97,9 @@ def _ensure_assignment_rule(spec, default_user="Administrator"):
 
 	doc.document_type = PAYMENT_REQUEST_DOCTYPE
 	doc.priority = spec["priority"]
-	doc.disabled = 0
+	# We keep Assignment Rules as Desk-managed routing configuration, but apply them
+	# ourselves so leaving a stage closes its ToDo without a misleading cancellation alert.
+	doc.disabled = 1
 	doc.description = spec["description"]
 	doc.assign_condition = spec["condition"]
 	doc.unassign_condition = spec["unassign_condition"]
@@ -121,7 +122,9 @@ def _ensure_notification():
 		doc = frappe.new_doc("Notification")
 		doc.name = NOTIFICATION_NAME
 
-	doc.enabled = 1
+	# A newly created assignment already produces the useful System Notification.
+	# The former stage-change notification duplicated it for every assignee.
+	doc.enabled = 0
 	doc.channel = "System Notification"
 	doc.document_type = PAYMENT_REQUEST_DOCTYPE
 	doc.event = "Value Change"
@@ -135,6 +138,69 @@ def _ensure_notification():
 	doc.message = _("Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.")
 	doc.set("recipients", [])
 	_save(doc)
+
+
+def sync_payment_request_assignment(doc, method=None):
+	"""Assign the active payment stage and quietly close the previous stage's ToDo."""
+	if doc.doctype != PAYMENT_REQUEST_DOCTYPE:
+		return
+
+	matching = next((spec for spec in ASSIGNMENT_RULES if _matches_stage(spec, doc)), None)
+	managed_rules = [spec["name"] for spec in ASSIGNMENT_RULES]
+	open_todos = frappe.get_all(
+		"ToDo",
+		filters={
+			"reference_type": PAYMENT_REQUEST_DOCTYPE,
+			"reference_name": doc.name,
+			"assignment_rule": ["in", managed_rules],
+			"status": "Open",
+		},
+		fields=["name", "assignment_rule", "allocated_to"],
+	)
+
+	target_user = _get_stage_user(matching, doc) if matching else None
+	for todo in open_todos:
+		if matching and todo.assignment_rule == matching["name"] and todo.allocated_to == target_user:
+			continue
+		todo_doc = frappe.get_doc("ToDo", todo.name)
+		todo_doc.status = "Closed"
+		todo_doc.save(ignore_permissions=True)
+
+	if not matching or not target_user or not frappe.db.get_value("User", target_user, "enabled"):
+		return
+	if any(
+		todo.assignment_rule == matching["name"] and todo.allocated_to == target_user
+		for todo in open_todos
+	):
+		return
+
+	rule = frappe.get_doc("Assignment Rule", matching["name"])
+	add_assignment(
+		{
+			"assign_to": [target_user],
+			"doctype": PAYMENT_REQUEST_DOCTYPE,
+			"name": doc.name,
+			"description": frappe.render_template(rule.description, doc.as_dict()),
+			"assignment_rule": rule.name,
+			"date": doc.get(rule.due_date_based_on) if rule.due_date_based_on else None,
+		},
+		ignore_permissions=True,
+	)
+	if rule.rule == "Round Robin":
+		rule.db_set("last_user", target_user)
+
+
+def _matches_stage(spec, doc):
+	return bool(frappe.safe_eval(spec["condition"], None, doc.as_dict()))
+
+
+def _get_stage_user(spec, doc):
+	if not spec:
+		return None
+	if spec.get("field"):
+		return doc.get(spec["field"])
+	rule = frappe.get_doc("Assignment Rule", spec["name"])
+	return rule.get_user(doc.as_dict())
 
 
 def _ensure_demo_notification_settings():

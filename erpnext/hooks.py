@@ -468,7 +468,10 @@ doc_events = {
 			"erpnext.buying.procurement_automation.set_purchase_invoice_external_payment_details",
 		],
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
-		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		"on_submit": [
+			"erpnext.buying.procurement_automation.create_external_payment_purchase_receipt",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Payment Request": {
@@ -478,7 +481,10 @@ doc_events = {
 			"erpnext.projects.task_payments.set_payment_request_task",
 			"erpnext.projects.task_payments.validate_payment_request_short_description",
 		],
-		"on_change": "erpnext.projects.task_payments.sync_payment_request_task_summary",
+		"on_change": [
+			"erpnext.accounts.payment_workflow_automation.sync_payment_request_assignment",
+			"erpnext.projects.task_payments.sync_payment_request_task_summary",
+		],
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
 		"after_delete": "erpnext.projects.task_payments.sync_payment_request_task_summary",
 	},

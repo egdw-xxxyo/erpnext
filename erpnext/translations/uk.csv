@@ -13449,3 +13449,5 @@ Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для �
 "Awaiting Purchase Receipt","Очікує прихідну накладну"
 "Payment was made at the expense of:","Оплату здійснено за рахунок:"
 "Not created","Не створено"
+Received by initiator:,Отримано ініціатором:
+Received automatically on behalf of initiator {0} for prepaid invoice {1}.,Отримано автоматично від імені ініціатора {0} за попередньо оплаченим рахунком {1}.

@@ -276,7 +276,10 @@ def _ensure_warehouse_assignment_rule():
 
 	doc.document_type = "Purchase Order"
 	doc.priority = 10
-	doc.disabled = 0
+	# Assignment lifecycle is handled by procurement_automation so completed stages can
+	# close their ToDos silently instead of producing a misleading "assignment removed"
+	# notification. The rule remains the Desk-managed source of assignees and copy.
+	doc.disabled = 1
 	doc.description = "Прийняти товари за замовленням на придбання {{ name }}."
 	doc.assign_condition = "custom_procurement_completion_status == 'Очікує надходження'"
 	doc.unassign_condition = "custom_procurement_completion_status != 'Очікує надходження'"

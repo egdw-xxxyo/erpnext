@@ -274,6 +274,8 @@ function render_approval_route(frm, field, route_data) {
 				role_text = __("Payment was made at the expense of:");
 			} else if (is_payment && has_submitted_invoice) {
 				role_text = `${stage.role} · ${receipt_count}/${invoice_count} ${__("paid")}`;
+			} else if (is_receipt && external_payment && completed) {
+				role_text = __("Received by initiator:");
 			} else if (is_receipt && current) {
 				role_text = `${stage.role} · ${__("Awaiting Purchase Receipt")}`;
 			}
