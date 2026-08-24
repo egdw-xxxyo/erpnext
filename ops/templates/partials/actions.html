@@ -1,0 +1,52 @@
+{% set git = data.git or {} %}
+{% set ver = data.version or {} %}
+{% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
+<h2>Actions</h2>
+
+{% if running %}
+<div class="alert warn small">
+	A job is running ({{ running[0].label }}). Only one runs at a time —
+	<a href="#" hx-get="/jobs/{{ running[0].id }}" hx-target="#console-slot"
+	   hx-on::after-request="document.getElementById('console-host').hidden = false">open its console</a>.
+</div>
+{% endif %}
+
+<div class="actions">
+	{% for key in ['update-repo', 'backup', 'build', 'switch-branch', 'ops-rebuild'] %}
+	{% set cmd = commands[key] %}
+	<form class="action"
+	      hx-post="/actions/{{ key }}"
+	      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	      hx-target="#console-slot"
+	      hx-swap="innerHTML"
+	      hx-on::after-request="document.getElementById('console-host').hidden = false">
+		<div class="action-head">
+			<b>{{ cmd.label }}</b>
+			{% if cmd.destructive %}<span class="pill danger-pill">changes the system</span>{% endif %}
+		</div>
+		<p class="muted small">{{ cmd.description }}</p>
+
+		{% if key == 'backup' %}
+		<label class="inline-label">
+			<input type="checkbox" name="mode" value="no-files"> database only (skip the ~2.5 GB of label PNGs)
+		</label>
+		{% endif %}
+
+		{% if key == 'switch-branch' %}
+		<input name="branch" placeholder="branch name" value="{{ git.branch or '' }}" required>
+		{% endif %}
+
+		{% set blocked_prod = key == 'build' and ver.site_env == 'prod' and not git.tag and not git.merge %}
+		{% set blocked_dirty = cmd.needs_clean_tree and git.dirty %}
+		<button type="submit" class="{{ 'danger' if cmd.destructive else 'primary' }}"
+		        {% if running or blocked_prod or blocked_dirty %}disabled{% endif %}>
+			Run
+		</button>
+		{% if blocked_prod %}
+		<p class="muted small">Blocked: HEAD ({{ git.head }}) has no release tag.</p>
+		{% elif blocked_dirty %}
+		<p class="muted small">Blocked: the host working tree has uncommitted changes.</p>
+		{% endif %}
+	</form>
+	{% endfor %}
+</div>

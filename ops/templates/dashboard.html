@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+{% if data._error %}
+<div class="alert error">Could not read the host: {{ data._error }}</div>
+{% endif %}
+
+<div class="grid">
+	<section class="card" id="panel-health"
+	         hx-get="/panels/health" hx-trigger="load, every 10s" hx-swap="innerHTML">
+		<h2>Health</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card" id="panel-version"
+	         hx-get="/panels/version" hx-trigger="load, every 30s" hx-swap="innerHTML">
+		<h2>Version</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-disk"
+	         hx-get="/panels/disk" hx-trigger="load, every 60s" hx-swap="innerHTML">
+		<h2>Disk</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-containers"
+	         hx-get="/panels/containers" hx-trigger="load, every 10s" hx-swap="innerHTML">
+		<h2>Containers</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-backups"
+	         hx-get="/panels/backups" hx-trigger="load, every 60s" hx-swap="innerHTML">
+		<h2>Backups</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-actions"
+	         hx-get="/panels/actions" hx-trigger="load, every 60s" hx-swap="innerHTML">
+		<h2>Actions</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-jobs"
+	         hx-get="/panels/jobs" hx-trigger="load, every 15s" hx-swap="innerHTML">
+		<h2>Jobs</h2><p class="muted">loading…</p>
+	</section>
+</div>
+
+<section class="card wide" id="console-host" hidden>
+	<h2>Console</h2>
+	<div id="console-slot"></div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/console.js" defer></script>
+{% endblock %}

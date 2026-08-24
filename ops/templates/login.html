@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="login-wrap">
+	<form method="post" action="/login" class="card login">
+		<h1>ERPNext Ops</h1>
+		<p class="muted">
+			Sign in with your <strong>SSH account on {{ settings.ssh_host }}</strong>.
+			Everything this dashboard does on the host, it does as you.
+		</p>
+		{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+		<input type="hidden" name="next" value="{{ next }}">
+		<label>Username
+			<input name="username" autocomplete="username" autofocus required>
+		</label>
+		<label>Password
+			<input name="password" type="password" autocomplete="current-password" required>
+		</label>
+		<button type="submit" class="primary">Log in</button>
+		{% if settings.is_prod %}
+		<p class="muted small">
+			This is <strong>production</strong>. Actions here affect the live system.
+		</p>
+		{% endif %}
+	</form>
+</div>
+{% endblock %}

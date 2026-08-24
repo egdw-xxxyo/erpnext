@@ -1,0 +1,41 @@
+# Ops dashboard — deliberately a SEPARATE compose project from the ERPNext
+# stack (project name "ops", the stack is "docker"). ./deploy build runs
+# `docker compose -p docker up -d`, which recreates every container in that
+# project. If the dashboard lived there, a deploy launched from the dashboard
+# would kill the process streaming its own console output.
+#
+# Brought up by `ops_up()` in ./deploy, or manually with `./deploy ops up`.
+name: ops
+
+services:
+  ops:
+    build:
+      context: ./ops
+    image: erpnext-ops:latest
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    # The container talks to the host's sshd; host-gateway resolves to the
+    # docker bridge address (172.17.0.1 on our servers). Override OPS_SSH_HOST
+    # in .ops.env if sshd is not listening there.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OPS_SSH_HOST: ${OPS_SSH_HOST:-host.docker.internal}
+      OPS_SSH_PORT: ${OPS_SSH_PORT:-22}
+      OPS_REPO_PATH: ${OPS_REPO_PATH:-/home/mpa/git/erpnext}
+      OPS_SITE: ${OPS_SITE:-frontend}
+      OPS_COMPOSE_PROJECT: ${OPS_COMPOSE_PROJECT:-docker}
+      OPS_ALLOWED_USERS: ${OPS_ALLOWED_USERS:-}
+      OPS_SESSION_SECRET: ${OPS_SESSION_SECRET:?set OPS_SESSION_SECRET in .ops.env}
+      OPS_SESSION_TTL: ${OPS_SESSION_TTL:-3600}
+      OPS_SESSION_IDLE: ${OPS_SESSION_IDLE:-1800}
+      OPS_BACKUP_KEEP: ${OPS_BACKUP_KEEP:-5}
+      OPS_ENV_LABEL: ${OPS_ENV_LABEL:-dev}
+      OPS_ERP_URL: ${OPS_ERP_URL:-http://127.0.0.1:8080}
+    volumes:
+      # known_hosts (TOFU) and lockout counters. Never removed by nuke/destroy.
+      - ops-data:/data
+
+volumes:
+  ops-data:

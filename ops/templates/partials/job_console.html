@@ -1,0 +1,9 @@
+<div class="console-wrap" data-job-id="{{ job_id }}">
+	<div class="console-head">
+		<b>{{ label or (state.state if state else 'Job') }}</b>
+		<span class="pill" data-console-state>{{ (state.state if state else 'starting') }}</span>
+		<span class="spacer"></span>
+		<label class="inline-label"><input type="checkbox" data-console-follow checked> follow</label>
+	</div>
+	<pre class="console" data-console-out></pre>
+</div>

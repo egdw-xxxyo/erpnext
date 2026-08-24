@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Audit{% endblock %}
+{% block content %}
+<section class="card wide">
+	<h2>Audit log <span class="muted small">last 200 entries, newest first</span></h2>
+	<table class="rows">
+		<tr><th>When</th><th>User</th><th>From</th><th>Action</th><th>Result</th><th>Job</th></tr>
+		{% for r in records %}
+		<tr>
+			<td class="mono">{{ r.ts }}</td>
+			<td class="mono">{{ r.user or '—' }}</td>
+			<td class="mono muted">{{ r.client_ip or '—' }}</td>
+			<td>{{ r.action }}{% if r.args %} <em class="muted">{{ r.args }}</em>{% endif %}</td>
+			<td>{{ r.result or '—' }}</td>
+			<td class="mono muted">{{ r.job_id or '' }}</td>
+		</tr>
+		{% else %}
+		<tr><td colspan="6" class="muted">Nothing recorded yet.</td></tr>
+		{% endfor %}
+	</table>
+</section>
+{% endblock %}

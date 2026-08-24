@@ -1,0 +1,32 @@
+<h2>Backups <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
+{% set rows = data.backups or [] %}
+{% if rows %}
+<div class="kv">
+	<div><span>Latest</span><b>{{ rows[0].epoch|human_time }}</b><em>{{ rows[0].epoch|ago }}</em></div>
+	<div><span>Retained</span><b>{{ rows|length }} / {{ settings.backup_keep }}</b></div>
+	<div><span>Free space</span><b>{{ data.backup_avail|human_bytes }}</b></div>
+</div>
+<table class="rows">
+	<tr><th>Name</th><th>Taken</th><th>Size</th><th>Files</th><th></th></tr>
+	{% for b in rows %}
+	<tr>
+		<td class="mono">{{ b.name }}</td>
+		<td>{{ b.epoch|human_time }}</td>
+		<td class="mono">{{ b.bytes|human_bytes }}</td>
+		<td>{% if b.with_files %}<span class="pill">with files</span>{% else %}<span class="pill muted-pill">db only</span>{% endif %}</td>
+		<td>
+			<button class="danger small"
+			        hx-post="/actions/restore/{{ b.name }}/confirm"
+			        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+			        hx-target="#console-slot"
+			        hx-swap="innerHTML"
+			        hx-on::after-request="document.getElementById('console-host').hidden = false">
+				Restore…
+			</button>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+<p class="muted">No backups yet. Take one from the Actions panel.</p>
+{% endif %}
