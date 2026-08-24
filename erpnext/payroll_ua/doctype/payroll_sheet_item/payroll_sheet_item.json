@@ -27,6 +27,12 @@
   "overtime_hours",
   "shortfall_hours",
   "section_break_accrual",
+  "official_salary",
+  "cash_salary",
+  "bonus_amount",
+  "allowance",
+  "earned_card",
+  "earned_cash",
   "gross_pay",
   "advance_card",
   "advance_cash",
@@ -177,6 +183,42 @@
   {
    "fieldname": "section_break_accrual",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "official_salary",
+   "fieldtype": "Currency",
+   "label": "Official Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cash_salary",
+   "fieldtype": "Currency",
+   "label": "Cash Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bonus_amount",
+   "fieldtype": "Currency",
+   "label": "Bonus",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allowance",
+   "fieldtype": "Currency",
+   "label": "Allowance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "earned_card",
+   "fieldtype": "Currency",
+   "label": "Accrued to Card",
+   "read_only": 1
+  },
+  {
+   "fieldname": "earned_cash",
+   "fieldtype": "Currency",
+   "label": "Accrued in Cash",
+   "read_only": 1
   },
   {
    "fieldname": "gross_pay",

@@ -1,8 +1,9 @@
 """Зарплатна відомість за місяць — один документ замість походів по п'яти списках HRMS.
 
-Відомість нічого не зберігає окремо: кожне число в ній читається зі штатних документів
-(Attendance, Additional Salary, Salary Slip, GL Entry), а кнопки лише запускають штатні дії.
-Тому перерахунок HRMS одразу видно у відомості, а не розходиться з нею.
+Відомість нічого не зберігає окремо: суми рахуються з картки працівника (офіційна й готівкова
+частини) за табелем — тією самою арифметикою, що й «Аванс», — плюс затверджені премія й надбавка,
+мінус уже виданий аванс і задаток. Нарахування в HRMS (Payroll Entry) лишається окремою дією і
+виплату не блокує: гроші йдуть за відпрацьованими днями, а не за наявністю Salary Slip.
 """
 
 import frappe
@@ -11,8 +12,12 @@ from frappe.model.document import Document
 from frappe.utils import flt, formatdate, get_last_day, getdate
 
 from erpnext.hr import payroll_accounts
-from erpnext.hr.salary_advance import ADVANCE_CARD, ADVANCE_CASH, attendance_summary
-from erpnext.hr.salary_split import CASH_COMPONENT
+from erpnext.hr.salary_advance import (
+	ADVANCE_CARD,
+	ADVANCE_CASH,
+	ATTENDANCE_FIELDS,
+	plan_month,
+)
 
 DEPOSIT_COMPONENT = "Задаток"
 
@@ -46,17 +51,22 @@ class PayrollSheet(Document):
 		return self.name
 
 	def collect(self):
-		"""Перебудовує таблицю працівників з даних HRMS."""
+		"""Перебудовує таблицю: суми рахуються так само, як в авансі — зі структури й табеля.
+
+		Раніше кожне число читалося з Salary Slip, тож до нарахування відомість показувала нулі
+		й платити не давала. Нарахування — окрема дія бухгалтерії (Payroll Entry), а виплата за
+		місяць від нього не залежить: гроші йдуть за відпрацьованими днями і затвердженою
+		премією, точно як аванс усередині місяця.
+		"""
 		self.advance_sheet = frappe.db.get_value(
 			"Salary Advance", {"company": self.company, "period_start": self.period_start}
 		)
+		plan = {row.employee: row for row in plan_month(self.company, self.year, self.month)}
 		slips = self._slips()
-		advances = self._additional_salary()
-		attendance = self._attendance_days()
-		outstanding = self._outstanding_by_party()
-		employees = self._employees()
-		stats = attendance_summary([row.name for row in employees], self.period_start, self.period_end)
-		# Таблиця будується наново з HRMS, а сліди виплати живуть лише тут — переносимо їх.
+		extras = self._additional_salary()
+		advances = self._paid_advance(extras)
+		bonuses = self._approved_bonuses()
+		# Таблиця будується наново, а сліди виплати живуть лише тут — переносимо їх.
 		paid_marks = {
 			row.employee: (row.journal_entry_card, row.journal_entry_cash, row.paid_date)
 			for row in self.employees
@@ -64,77 +74,124 @@ class PayrollSheet(Document):
 
 		self.set("employees", [])
 
-		for employee in employees:
-			slip = slips.get(employee.name)
-			extra = advances.get(employee.name, {})
-			card = flt(slip and slip.net_pay)
-			cash = flt(slip and slip.cash)
-			due = flt(outstanding.get(employee.name))
+		for employee, entry in plan.items():
+			slip = slips.get(employee)
+			extra = extras.get(employee, {})
+			advance = advances.get(employee, {})
+			bonus = bonuses.get(employee) or {}
+			# Премія й надбавка — частина місяця, а не окрема виплата: премію могли призначити
+			# готівкою, тож вона додається до тієї частини, якою її платять.
+			bonus_cash = flt(bonus.get("bonus")) if bonus.get("in_cash") else 0
+			bonus_card = flt(bonus.get("bonus")) - bonus_cash + flt(bonus.get("allowance"))
+			earned_card = flt(entry.official, 2) + bonus_card
+			earned_cash = flt(entry.cash, 2) + bonus_cash
+			advance_card = flt(advance.get(ADVANCE_CARD))
+			advance_cash = flt(advance.get(ADVANCE_CASH))
+			deposit = flt(extra.get(DEPOSIT_COMPONENT))
 
 			row = self.append(
 				"employees",
 				{
-					"employee": employee.name,
-					"employee_name": employee.employee_name,
-					"department": employee.department,
-					"manager": employee.reports_to,
-					"credited_days": flt(slip and slip.payment_days) or flt(attendance.get(employee.name)),
-					"total_working_days": flt(slip and slip.total_working_days),
-					"gross_pay": flt(slip and slip.gross_pay),
-					"advance_card": flt(extra.get(ADVANCE_CARD)),
-					"advance_cash": flt(extra.get(ADVANCE_CASH)),
-					"salary_card": card,
-					"salary_cash": cash,
-					"deposit": flt(extra.get(DEPOSIT_COMPONENT)),
+					"employee": employee,
+					"employee_name": entry.employee_name,
+					"department": entry.department,
+					"manager": entry.manager,
+					"credited_days": flt(entry.credited_days, 2),
+					"total_working_days": flt(entry.month_working_days, 2),
+					"daily_rate": flt(entry.daily_rate, 2),
+					"official_salary": flt(entry.official_salary, 2),
+					"cash_salary": flt(entry.cash_salary, 2),
+					"earned_card": earned_card,
+					"earned_cash": earned_cash,
+					"bonus_amount": flt(bonus.get("bonus")),
+					"allowance": flt(bonus.get("allowance")),
+					"gross_pay": flt(earned_card + earned_cash, 2),
+					"advance_card": advance_card,
+					"advance_cash": advance_cash,
+					"deposit": deposit,
+					# Аванс і задаток уже в кишені працівника, тож із залишку вони вираховуються
+					# з тієї частини, якою були видані.
+					"salary_card": max(flt(earned_card - advance_card - deposit, 2), 0),
+					"salary_cash": max(flt(earned_cash - advance_cash, 2), 0),
 					"salary_slip": slip and slip.name,
-					"outstanding": due,
-					"paid": 1 if slip and not due else 0,
 				},
 			)
 
 			row.journal_entry_card, row.journal_entry_cash, row.paid_date = paid_marks.get(
-				employee.name, (None, None, None)
+				employee, (None, None, None)
 			)
-			# Готівкова частина лежить на рахунку без контрагента, тож борг по працівнику її не
-			# бачить: рядок з готівкою вважається закритим лише після проведення виплати.
-			if cash and not row.paid_date:
-				row.paid = 0
-			self._set_attendance(row, stats.get(employee.name))
+			row.paid = 1 if row.paid_date else 0
+			row.outstanding = 0 if row.paid else flt(row.salary_card + row.salary_cash, 2)
+			self._set_attendance(row, entry)
 
-			if row.credited_days and row.total_working_days:
-				row.daily_rate = flt(row.gross_pay) / flt(row.credited_days)
-
-			if not slip:
-				row.note = (
-					_("No attendance for the period")
-					if not attendance.get(employee.name)
-					else _("Not accrued yet")
-				)
+			# Людина без заданого окладу лишається у відомості окремим рядком: інакше вона
+			# просто зникає й ніхто не помічає, що картку не заповнили.
+			if not flt(row.official_salary) and not flt(row.cash_salary):
+				row.note = _("The salary is not set on the employee card")
+			elif not flt(entry.credited_days):
+				row.note = _("No attendance for the period")
+			elif not slip:
+				row.note = _("Not accrued in HRMS yet — the payout does not wait for it")
 
 		self.set_totals()
 
-	def _set_attendance(self, row, summary):
-		"""Розклад табеля за місяць — те саме, що бачить «Аванс», лише за повний період.
+	def _paid_advance(self, extras):
+		"""Скільки авансу працівник уже отримав на руки.
 
-		`credited_days` тут лишається від листка: платить HRMS, а не наш підрахунок.
+		З «Авансу» беруться лише проведені рядки: нарахований, але не виплачений аванс із
+		залишку вираховувати не можна — людина його ще не бачила. Якщо документа авансу за
+		місяць немає, лишається сума відрахувань `Additional Salary`.
 		"""
-		for field, value in (summary or {}).items():
-			if field != "credited_days":
-				row.set(field, value)
+		if not self.advance_sheet:
+			return extras
 
-	def _employees(self):
-		return frappe.get_all(
-			"Employee",
-			filters={
-				"company": self.company,
-				"status": "Active",
-				"date_of_joining": ["<=", self.period_end],
-			},
-			fields=["name", "employee_name", "department", "reports_to"],
-			order_by="department asc, employee_name asc",
+		rows = frappe.get_all(
+			"Salary Advance Item",
+			filters={"parent": self.advance_sheet, "parenttype": "Salary Advance", "paid": 1},
+			fields=["employee", "advance_card", "advance_cash"],
 		)
 
+		return {
+			row.employee: {
+				ADVANCE_CARD: flt(row.advance_card),
+				ADVANCE_CASH: flt(row.advance_cash),
+			}
+			for row in rows
+		}
+
+	def _approved_bonuses(self):
+		"""Премія й надбавка з затвердженого «Затвердження премій» за цей місяць."""
+		approval = frappe.db.get_value(
+			"Salary Approval",
+			{"company": self.company, "effective_from": self.period_start, "status": "Approved"},
+		)
+
+		if not approval:
+			return {}
+
+		rows = frappe.get_all(
+			"Salary Approval Item",
+			filters={"parent": approval, "parenttype": "Salary Approval"},
+			fields=["employee", "bonus_amount", "allowance", "pay_bonus_in_cash"],
+		)
+
+		return {
+			row.employee: {
+				"bonus": flt(row.bonus_amount),
+				"allowance": flt(row.allowance),
+				"in_cash": bool(row.pay_bonus_in_cash),
+			}
+			for row in rows
+		}
+
+	def _set_attendance(self, row, entry):
+		"""Розклад табеля за місяць — те саме, що бачить «Аванс», лише за повний період."""
+		for field in (*ATTENDANCE_FIELDS, "working_hours"):
+			row.set(field, flt(entry.get(field), 2))
+
 	def _slips(self):
+		"""Нарахування HRMS — тільки посилання: суми відомість рахує сама, а листок лишається
+		в рядку, щоб було видно, чи місяць уже проведений у HRMS."""
 		slips = frappe.get_all(
 			"Salary Slip",
 			filters={
@@ -143,21 +200,10 @@ class PayrollSheet(Document):
 				"start_date": [">=", self.period_start],
 				"end_date": ["<=", self.period_end],
 			},
-			fields=["name", "employee", "gross_pay", "net_pay", "payment_days", "total_working_days"],
+			fields=["name", "employee"],
 		)
-		by_employee = {}
 
-		for slip in slips:
-			slip.cash = flt(
-				frappe.db.get_value(
-					"Salary Detail",
-					{"parent": slip.name, "parenttype": "Salary Slip", "salary_component": CASH_COMPONENT},
-					"amount",
-				)
-			)
-			by_employee[slip.employee] = slip
-
-		return by_employee
+		return {slip.employee: slip for slip in slips}
 
 	def _additional_salary(self):
 		rows = frappe.get_all(
@@ -180,38 +226,6 @@ class PayrollSheet(Document):
 
 		return by_employee
 
-	def _attendance_days(self):
-		rows = frappe.db.sql(
-			"""select employee, count(*) as days from `tabAttendance`
-			where docstatus = 1 and company = %(company)s and status != 'Absent'
-			and attendance_date between %(start)s and %(end)s group by employee""",
-			{"company": self.company, "start": self.period_start, "end": self.period_end},
-			as_dict=True,
-		)
-
-		return {row.employee: row.days for row in rows}
-
-	def _outstanding_by_party(self):
-		"""Скільки ще винні працівнику по рахунку зарплати до виплати.
-
-		Готівкова частина живе одним рядком без контрагента, тож по працівниках видно лише
-		офіційну — саме її й закриває банківський платіж.
-		"""
-		account = self.payable_account()
-
-		if not account:
-			return {}
-
-		rows = frappe.db.sql(
-			"""select party, sum(credit) - sum(debit) as due from `tabGL Entry`
-			where is_cancelled = 0 and account = %(account)s and party_type = 'Employee'
-			and posting_date between %(start)s and %(end)s group by party""",
-			{"account": account, "start": self.period_start, "end": self.period_end},
-			as_dict=True,
-		)
-
-		return {row.party: flt(row.due) for row in rows}
-
 	def set_totals(self):
 		self.bonus_approved = 1 if self.bonus_approval() else 0
 		self.total_employees = len(self.employees)
@@ -219,7 +233,8 @@ class PayrollSheet(Document):
 		self.employees_not_accrued = len(
 			[row for row in self.employees if row.credited_days and not row.salary_slip]
 		)
-		self.paid_employees = len([row for row in self.employees if row.paid and row.salary_card])
+		self.employees_without_salary = len([row for row in self.employees if not has_salary(row)])
+		self.paid_employees = len([row for row in self.employees if row.paid])
 
 		for field, source in (
 			("total_credited_days", "credited_days"),
@@ -240,9 +255,7 @@ class PayrollSheet(Document):
 		Нульовий залишок ще не означає закритий місяць: рядок без нарахування дає нуль так само,
 		як і виплачений, тож автоматичне «Виплачено» ховало людей, яким ще винні.
 		"""
-		accrued = [row for row in self.employees if row.salary_slip]
-
-		if not accrued:
+		if not self.employees:
 			return "Draft"
 
 		if self.status == "Paid" and not self.unpaid_rows():
@@ -254,11 +267,11 @@ class PayrollSheet(Document):
 		return "To Pay"
 
 	def unpaid_rows(self):
-		"""Кому ще винні: нарахований рядок із сумою, який не проведений."""
+		"""Кому ще винні: рядок із сумою до виплати, який не проведений."""
 		return [
 			row
 			for row in self.employees
-			if row.salary_slip and (flt(row.salary_card, 2) or flt(row.salary_cash, 2)) and not row.paid
+			if (flt(row.salary_card, 2) or flt(row.salary_cash, 2)) and not row.paid
 		]
 
 	# --- дії ------------------------------------------------------------------
@@ -338,8 +351,8 @@ class PayrollSheet(Document):
 				title=_("The Salary Is Not Paid in Full"),
 			)
 
-		if not [row for row in self.employees if row.salary_slip]:
-			frappe.throw(_("There is nothing to close: the salary is not accrued yet."))
+		if not self.employees:
+			frappe.throw(_("There is nothing to close: the sheet has no employees."))
 
 		self.status = "Paid"
 		self.save()
@@ -362,8 +375,7 @@ class PayrollSheet(Document):
 		targets = [
 			row
 			for row in self.employees
-			if row.salary_slip
-			and (flt(row.salary_card, 2) or flt(row.salary_cash, 2))
+			if (flt(row.salary_card, 2) or flt(row.salary_cash, 2))
 			and not row.paid
 			and (not selected or row.employee in selected)
 		]
@@ -430,3 +442,8 @@ class PayrollSheet(Document):
 
 	def bank_account(self):
 		return payroll_accounts.bank_account(self.company)
+
+
+def has_salary(row) -> bool:
+	"""Чи заданий у картці працівника оклад — хоч одна з двох частин."""
+	return bool(flt(row.official_salary) or flt(row.cash_salary))

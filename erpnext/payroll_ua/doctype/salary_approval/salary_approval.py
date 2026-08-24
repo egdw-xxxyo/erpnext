@@ -16,6 +16,7 @@ from frappe.utils import add_days, date_diff, flt, formatdate, get_last_day, get
 
 from erpnext.hr.salary_advance import attendance_summary
 from erpnext.hr.salary_split import salary_parts_on
+from erpnext.hr.team import visible_employees
 
 ALLOWANCE_COMPONENT = "Надбавка"
 BONUS_COMPONENT = "Премія"
@@ -26,6 +27,10 @@ class SalaryApproval(Document):
 		# Табель живе поза документом і міняється після збереження: рахуємо його при кожному
 		# відкритті, інакше вже затверджений документ показував би нулі.
 		self.set_attendance_state()
+
+		# Керівник веде премії тих самих людей, чий табель він здає: решта рядків лишається
+		# в документі, але форма їх не показує (див. `visible_employees`).
+		self.set_onload("visible_employees", visible_employees(self.company))
 
 	def before_naming(self):
 		# `autoname` reads year and month, and it runs before validate.
@@ -84,10 +89,12 @@ class SalaryApproval(Document):
 
 	@frappe.whitelist()
 	def load_employees(self):
-		"""Тягне активних працівників компанії з окладом, чинним у цьому місяці."""
+		"""Тягне підлеглих поточного користувача з окладом, чинним у цьому місяці."""
 		known = {row.employee for row in self.employees}
 
-		for employee in get_month_employees(self.company, self.effective_from):
+		for employee in get_month_employees(
+			self.company, self.effective_from, employees=visible_employees(self.company)
+		):
 			if employee["employee"] in known:
 				continue
 
@@ -232,16 +239,25 @@ def missing_attendance_note() -> str:
 
 @frappe.whitelist()
 def get_employees(company: str, effective_from: str) -> list[dict]:
-	"""Список працівників для нового документа — форма тягне його сама, без кнопки."""
+	"""Список підлеглих для нового документа — форма тягне його сама, без кнопки."""
 	frappe.has_permission("Salary Approval", throw=True)
 
-	return get_month_employees(company, effective_from)
+	return get_month_employees(company, effective_from, employees=visible_employees(company))
 
 
-def get_month_employees(company: str, effective_from) -> list[dict]:
+def get_month_employees(company: str, effective_from, employees: list[str] | None = None) -> list[dict]:
+	"""`employees` — кого саме тягнути; `None` означає всю компанію (адміністратор)."""
+	scope = {"company": company, "status": "Active"}
+
+	if employees is not None:
+		if not employees:
+			return []
+
+		scope["name"] = ["in", employees]
+
 	employees = frappe.get_all(
 		"Employee",
-		filters={"company": company, "status": "Active"},
+		filters=scope,
 		fields=["name", "employee_name", "department", "reports_to"],
 		order_by="department asc, employee_name asc",
 	)

@@ -11,6 +11,7 @@ frappe.ui.form.on("Salary Approval", {
 
 		erpnext.utils.month_field.apply_period(frm, "effective_from");
 		erpnext.utils.grid_editor.compact_row_actions(frm);
+		erpnext.utils.employee_preview.scope_grid(frm, "employees", visible_employees(frm));
 		calculate_totals(frm);
 		mark_attendance(frm);
 		render_preview(frm);
@@ -137,6 +138,7 @@ function render_preview(frm) {
 			row.attendance_approved
 				? ""
 				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
+		visible: visible_employees,
 		columns: [
 			{
 				label: __("Worked"),
@@ -187,6 +189,21 @@ function calculate_totals(frm) {
 
 // One dialog writes the same conditions into every row — the usual case is a whole
 // department on the same terms, and only the exceptions get edited afterwards.
+// Whom this user is allowed to see: the server sends the list on load (null — no limit).
+// The rows of other managers stay in the document untouched, they simply never show up.
+function visible_employees(frm) {
+	const onload = frm.doc.__onload;
+
+	return (onload && onload.visible_employees) || null;
+}
+
+function scoped_employees(frm) {
+	const visible = visible_employees(frm);
+	const rows = frm.doc.employees || [];
+
+	return visible ? rows.filter((row) => visible.includes(row.employee)) : rows;
+}
+
 function open_bulk_dialog(frm) {
 	const dialog = new frappe.ui.Dialog({
 		title: __("Fill Amounts"),
@@ -196,7 +213,7 @@ function open_bulk_dialog(frm) {
 		],
 		primary_action_label: __("Fill"),
 		primary_action(values) {
-			(frm.doc.employees || []).forEach((row) => {
+			scoped_employees(frm).forEach((row) => {
 				Object.entries(values).forEach(([fieldname, value]) => {
 					if (value !== undefined && value !== null && value !== "") {
 						row[fieldname] = flt(value);

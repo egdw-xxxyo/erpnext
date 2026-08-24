@@ -57,10 +57,21 @@ frappe.ui.form.on("Payroll Sheet", {
 			);
 		}
 
-		// Без нарахування платити нічого: спершу «Затвердження ЗП», далі «Нарахувати ЗП».
+		// Оклад задається в картці працівника — без нього відомість не має що рахувати.
+		if (frm.doc.employees_without_salary) {
+			frm.dashboard.add_comment(
+				__("{0} employees have no salary set on their card — fill it in to pay them.", [
+					frm.doc.employees_without_salary,
+				]),
+				"orange",
+				true
+			);
+		}
+
+		// Нарахування в HRMS виплату не блокує — це підказка бухгалтерії, а не перепона.
 		if (frm.doc.employees_not_accrued) {
 			frm.dashboard.add_comment(
-				__("{0} employees have no salary slip yet — accrue the salary before paying.", [
+				__("{0} employees have no salary slip yet — the payout does not wait for it.", [
 					frm.doc.employees_not_accrued,
 				]),
 				"blue",
@@ -69,6 +80,13 @@ frappe.ui.form.on("Payroll Sheet", {
 		}
 	},
 });
+
+const NO_SALARY_GROUP = __("Salary not set");
+
+// The card carries the two halves of the pay; without either one there is nothing to compute.
+function has_salary(row) {
+	return Boolean(flt(row.official_salary) || flt(row.cash_salary));
+}
 
 const money = (value) => erpnext.utils.employee_preview.money(value);
 const number = (value) => erpnext.utils.employee_preview.number(value);
@@ -85,14 +103,21 @@ function render_preview(frm) {
 	erpnext.utils.employee_preview.render(frm, {
 		field: "employees_preview",
 		table: "employees",
-		group_by: (row) => row.department || __("No Department"),
-		warn: (row) => !row.credited_days,
+		// employees whose card has no salary at all cannot be paid from here — they get their
+		// own block instead of sitting in a department with zeroes nobody explains
+		group_by: (row) => (has_salary(row) ? row.department || __("No Department") : NO_SALARY_GROUP),
+		warn: (row) => !has_salary(row) || !row.credited_days,
 		// attendance is not a column of its own: the name carries the warning, and the worked
 		// time next to it opens the whole month of that employee
-		name_suffix: (row) =>
-			row.credited_days
+		name_suffix: (row) => {
+			if (!has_salary(row)) {
+				return `<span class="employee-preview-badge warn">${__("No salary set")}</span>`;
+			}
+
+			return row.credited_days
 				? ""
-				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
+				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`;
+		},
 		filter: { label: __("Unpaid only"), test: (row) => !row.paid },
 		columns: [
 			{
@@ -100,14 +125,13 @@ function render_preview(frm) {
 				value: (row) => `${days(row.credited_days)} / ${hours(row.working_hours)}`,
 				click: (row) => show_details(frm, row),
 			},
+			{ label: __("Official Salary"), value: (row) => money(row.official_salary), secret: true },
+			{ label: __("Cash Salary"), value: (row) => money(row.cash_salary), secret: true },
 			{ label: __("Gross Pay"), value: (row) => money(row.gross_pay), secret: true },
-			{
-				label: __("Advance"),
-				value: (row) => money(flt(row.advance_card) + flt(row.advance_cash)),
-				secret: true,
-			},
+			{ label: __("Advance to Card"), value: (row) => money(row.advance_card), secret: true },
+			{ label: __("Advance in Cash"), value: (row) => money(row.advance_cash), secret: true },
 			{ label: __("To Card"), value: (row) => money(row.salary_card), secret: true },
-			{ label: __("Deposit"), value: (row) => money(row.deposit), secret: true },
+			{ label: __("In Cash"), value: (row) => money(row.salary_cash), secret: true },
 			{ label: __("Outstanding"), value: (row) => money(row.outstanding), bold: true, secret: true },
 			{
 				label: __("Payment"),
@@ -119,14 +143,10 @@ function render_preview(frm) {
 	});
 }
 
-// Nothing is paid before HRMS has accrued it and the month's bonuses are approved:
-// the slip is what the money closes, and the bonus is part of that slip.
+// The bonus is part of the month, so it has to be approved first; the HRMS accrual is not a
+// gate — the payout is computed from the structure and the attendance sheet, like the advance.
 function payable(frm, row) {
-	return (
-		Boolean(frm.doc.bonus_approved) &&
-		Boolean(row.salary_slip) &&
-		(flt(row.salary_card) > 0 || flt(row.salary_cash) > 0)
-	);
+	return Boolean(frm.doc.bonus_approved) && (flt(row.salary_card) > 0 || flt(row.salary_cash) > 0);
 }
 
 // What the month is made of, and what is being paid for it — the same block serves the info
@@ -143,6 +163,10 @@ function details_html(row) {
 		[__("Shortfall Hours"), hours(row.shortfall_hours)],
 		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
 		[__("Working Days in Month"), number(row.total_working_days)],
+		[__("Official Salary"), money(row.official_salary)],
+		[__("Cash Salary"), money(row.cash_salary)],
+		[__("Bonus"), money(row.bonus_amount)],
+		[__("Allowance"), money(row.allowance)],
 		[__("Gross Pay"), money(row.gross_pay)],
 		[__("Advance to Card"), money(row.advance_card)],
 		[__("Advance in Cash"), money(row.advance_cash)],
@@ -165,7 +189,7 @@ function details_html(row) {
 function show_details(frm, row) {
 	frappe.msgprint({
 		title: row.employee_name || row.employee,
-		indicator: row.salary_slip ? "green" : "orange",
+		indicator: row.paid ? "green" : "blue",
 		message: details_html(row),
 	});
 }
