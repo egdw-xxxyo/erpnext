@@ -560,6 +560,15 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 
 	supplier_count = len(orders)
 	users = list(dict.fromkeys(entry.modified_by for entry in receipt_entries if entry.modified_by))
+	purchase_receipt_complete = bool(orders) and all(
+		row["purchase_receipt_complete"] for row in by_order.values()
+	)
+	if external_payment and purchase_receipt_complete:
+		from erpnext.buying.procurement_automation import _get_primary_procurement_initiator
+
+		initiator = _get_primary_procurement_initiator(source_name)
+		if initiator:
+			receipt_actors = [initiator]
 	return {
 		"submitted_invoice_count": len(invoices),
 		"payment_invoice_count": supplier_count,
@@ -569,8 +578,7 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 			completed_supplier_count, supplier_count
 		),
 		"payment_actors": [_get_user_summary(user) for user in users],
-		"purchase_receipt_complete": bool(orders)
-		and all(row["purchase_receipt_complete"] for row in by_order.values()),
+		"purchase_receipt_complete": purchase_receipt_complete,
 		"receipt_actors": [_get_user_summary(user) for user in receipt_actors],
 		"by_order": by_order,
 	}

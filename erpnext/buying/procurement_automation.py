@@ -3,7 +3,8 @@ from urllib.parse import unquote, urlsplit
 
 import frappe
 from frappe import _
-from frappe.desk.form.assign_to import close_all_assignments
+from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+from frappe.desk.form.assign_to import _add as add_assignment
 from frappe.utils import escape_html, get_link_to_form, nowdate
 
 from erpnext.buying.procurement_workflow import BUYER_ROLE
@@ -198,12 +199,65 @@ def set_purchase_invoice_external_payment_details(doc, method=None):
 	):
 		_clear_external_payment_details(doc)
 		return
+	doc.custom_consolidated_purchase_order = consolidated_name
 
 	consolidated = frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, consolidated_name)
 	if not consolidated.items_already_purchased:
 		_clear_external_payment_details(doc)
 		return
 	set_external_payment_details(doc, consolidated)
+
+
+def create_external_payment_purchase_receipt(doc, method=None):
+	"""Receive prepaid goods automatically once the buyer submits their Purchase Invoice."""
+	if (
+		doc.docstatus != 1
+		or not doc.get("custom_paid_outside_company")
+		or doc.get("update_stock")
+		or doc.get("is_return")
+	):
+		return
+
+	consolidated_name = doc.get("custom_consolidated_purchase_order")
+	if not consolidated_name or not frappe.db.get_value(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		consolidated_name,
+		"items_already_purchased",
+	):
+		return
+
+	if frappe.db.exists(
+		"Purchase Receipt Item",
+		{
+			"purchase_invoice": doc.name,
+			"docstatus": ["<", 2],
+		},
+	):
+		return
+
+	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import make_purchase_receipt
+
+	receipt = make_purchase_receipt(doc.name)
+	if not receipt.get("items"):
+		return
+
+	receipt.flags.ignore_permissions = True
+	receipt.insert(ignore_permissions=True)
+	receipt.submit()
+
+	initiator = _get_primary_procurement_initiator(consolidated_name)
+	initiator_name = (
+		frappe.get_cached_value("User", initiator, "full_name") or initiator
+		if initiator
+		else _("the initiator")
+	)
+	receipt.add_comment(
+		"Info",
+		text=_("Received automatically on behalf of initiator {0} for prepaid invoice {1}.").format(
+			f"<b>{escape_html(initiator_name)}</b>",
+			get_link_to_form("Purchase Invoice", doc.name, escape_html(doc.name)),
+		),
+	)
 
 
 def set_external_payment_details(invoice, consolidated):
@@ -262,7 +316,7 @@ def on_purchase_order_insert(doc, method=None):
 	actor = _current_actor()
 	order_link = get_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
 	for material_request in material_requests:
-		close_all_assignments(MATERIAL_REQUEST_DOCTYPE, material_request, ignore_permissions=True)
+		_close_assignments_silently(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc.add_comment(
 			"Comment",
@@ -464,6 +518,10 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 		source_name,
 		consolidated_status,
 	)
+	if terminal:
+		_notify_procurement_initiators(source_name, "cancelled")
+	elif consolidated_status == PROCUREMENT_COMPLETED:
+		_notify_procurement_initiators(source_name, "completed")
 
 	orders = frappe.get_all(
 		PURCHASE_ORDER_DOCTYPE,
@@ -580,9 +638,98 @@ def _apply_purchase_order_assignment_rule(purchase_order):
 
 	if not frappe.db.exists("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME):
 		return
-	from frappe.automation.doctype.assignment_rule.assignment_rule import apply
+	rule = frappe.get_doc("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME)
+	status = frappe.db.get_value(
+		PURCHASE_ORDER_DOCTYPE, purchase_order, COMPLETION_FIELDS[PURCHASE_ORDER_DOCTYPE]
+	)
+	filters = {
+		"reference_type": PURCHASE_ORDER_DOCTYPE,
+		"reference_name": purchase_order,
+		"assignment_rule": WAREHOUSE_ASSIGNMENT_RULE_NAME,
+		"status": "Open",
+	}
+	if status != PROCUREMENT_AWAITING_RECEIPT:
+		_close_assignments_silently(PURCHASE_ORDER_DOCTYPE, purchase_order, filters=filters)
+		return
+	if frappe.db.exists("ToDo", filters):
+		return
 
-	apply(doctype=PURCHASE_ORDER_DOCTYPE, name=purchase_order)
+	order = frappe.get_doc(PURCHASE_ORDER_DOCTYPE, purchase_order)
+	user = rule.get_user(order.as_dict())
+	if not user or not frappe.db.get_value("User", user, "enabled"):
+		return
+	add_assignment(
+		{
+			"assign_to": [user],
+			"doctype": PURCHASE_ORDER_DOCTYPE,
+			"name": purchase_order,
+			"description": frappe.render_template(rule.description, order.as_dict()),
+			"assignment_rule": rule.name,
+			"date": order.get(rule.due_date_based_on) if rule.due_date_based_on else None,
+		},
+		ignore_permissions=True,
+	)
+	rule.db_set("last_user", user)
+
+
+def _close_assignments_silently(doctype, name, filters=None):
+	filters = filters or {
+		"reference_type": doctype,
+		"reference_name": name,
+		"status": "Open",
+	}
+	for todo_name in frappe.get_all("ToDo", filters=filters, pluck="name"):
+		todo = frappe.get_doc("ToDo", todo_name)
+		todo.status = "Closed"
+		todo.save(ignore_permissions=True)
+
+
+def _notify_procurement_initiators(source_name, outcome):
+	users = _get_procurement_initiators(source_name)
+	if not users:
+		return
+
+	if outcome == "cancelled":
+		subject = f"Замовлення {source_name} скасовано"
+		description = "Ваше замовлення на закупівлю було скасовано."
+	else:
+		subject = f"Замовлення {source_name} завершено"
+		description = "Ваше замовлення на закупівлю виконано та завершено."
+	enqueue_create_notification(
+		users,
+		{
+			"type": "Alert",
+			"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			"document_name": source_name,
+			"from_user": frappe.session.user,
+			"subject": subject,
+			"email_content": description,
+		},
+		dedupe_on=["document_type", "document_name", "subject"],
+	)
+
+
+def _get_procurement_initiators(source_name):
+	chain = _get_procurement_chain(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name)
+	users = set()
+	request_names = chain[MATERIAL_REQUEST_DOCTYPE]
+	if request_names:
+		for row in frappe.get_all(
+			MATERIAL_REQUEST_DOCTYPE,
+			filters={"name": ["in", list(request_names)]},
+			fields=["owner", "custom_procurement_initiator_user"],
+		):
+			users.add(row.custom_procurement_initiator_user or row.owner)
+	if not users:
+		users.add(
+			frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "initiator_user")
+		)
+	return sorted(user for user in users if user and user not in {"Administrator", "Guest"})
+
+
+def _get_primary_procurement_initiator(source_name):
+	users = _get_procurement_initiators(source_name)
+	return users[0] if users else None
 
 
 def _set_procurement_status(doctype, name, status):
