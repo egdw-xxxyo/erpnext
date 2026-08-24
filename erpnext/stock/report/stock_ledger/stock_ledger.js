@@ -138,6 +138,8 @@ frappe.query_reports["Stock Ledger"] = {
 	after_datatable_render: function () {
 		const report = frappe.query_report;
 		report.$summary && report.$summary.empty().hide();
+		report.stock_ledger_totals_shown = false;
+		erpnext.stock_ledger_watch_datatable(report);
 	},
 
 	onload: function (report) {
@@ -147,16 +149,36 @@ frappe.query_reports["Stock Ledger"] = {
 		});
 
 		report.page.add_inner_button(__("Calculate Totals"), function () {
+			erpnext.stock_ledger_watch_datatable(report);
 			erpnext.stock_ledger_totals(report);
 		});
 	},
 };
 
-erpnext.stock_ledger_totals = function (report) {
-	const rows = (report.data || []).filter((row) => row && row.voucher_no);
+erpnext.stock_ledger_visible_rows = function (report) {
+	const data = report.data || [];
+	const datatable = report.datatable;
+
+	if (!datatable || !datatable.datamanager || !datatable.datamanager.rowViewOrder) {
+		return data.filter((row) => row && row.voucher_no);
+	}
+
+	const visible_indices = (datatable.bodyRenderer || {}).visibleRowIndices;
+
+	return datatable.datamanager.rowViewOrder
+		.filter((index) => !visible_indices || visible_indices.includes(index))
+		.map((index) => data[index])
+		.filter((row) => row && row.voucher_no);
+};
+
+erpnext.stock_ledger_totals = function (report, silent) {
+	const rows = erpnext.stock_ledger_visible_rows(report);
+	const total_rows = (report.data || []).filter((row) => row && row.voucher_no).length;
 
 	if (!rows.length) {
-		frappe.msgprint(__("No rows to calculate."));
+		if (!silent) {
+			frappe.msgprint(__("No rows to calculate."));
+		}
 		return;
 	}
 
@@ -171,18 +193,46 @@ erpnext.stock_ledger_totals = function (report) {
 	});
 
 	const currency = erpnext.get_currency(report.get_filter_value("company"));
+	const rows_label = rows.length < total_rows ? __("Rows (filtered)") : __("Rows");
 
 	const summary = [
 		{ label: __("In Qty"), value: in_qty, datatype: "Float", indicator: "Green" },
 		{ label: __("Out Qty"), value: out_qty, datatype: "Float", indicator: "Red" },
 		{ label: __("Qty Change"), value: in_qty + out_qty, datatype: "Float" },
 		{ label: __("Value Change"), value: value_change, datatype: "Currency", currency: currency },
-		{ label: __("Rows"), value: rows.length, datatype: "Int" },
+		{ label: rows_label, value: rows.length, datatype: "Int" },
 	];
 
 	report.$summary.empty();
 	summary.forEach((item) => frappe.utils.build_summary_item(item).appendTo(report.$summary));
 	report.$summary.show();
+	report.stock_ledger_totals_shown = true;
+};
+
+erpnext.stock_ledger_watch_datatable = function (report) {
+	const datamanager = report.datatable && report.datatable.datamanager;
+	if (!datamanager || datamanager._stock_ledger_totals_patched) {
+		return;
+	}
+	datamanager._stock_ledger_totals_patched = true;
+
+	const recalculate = frappe.utils.debounce(() => {
+		if (report.stock_ledger_totals_shown) {
+			erpnext.stock_ledger_totals(report, true);
+		}
+	}, 200);
+
+	["filterRows", "sortRows", "sortColumn"].forEach((method) => {
+		const original = datamanager[method];
+		if (typeof original !== "function") {
+			return;
+		}
+		datamanager[method] = function (...args) {
+			const out = original.apply(this, args);
+			Promise.resolve(out).then(recalculate, recalculate);
+			return out;
+		};
+	});
 };
 
 erpnext.utils.add_inventory_dimensions("Stock Ledger", 10);

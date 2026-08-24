@@ -179,26 +179,20 @@
    "fieldtype": "Section Break"
   },
   {
-   "columns": 1,
    "fieldname": "gross_pay",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Accrued",
    "read_only": 1
   },
   {
-   "columns": 1,
    "fieldname": "advance_card",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Advance to Card",
    "read_only": 1
   },
   {
-   "columns": 1,
    "fieldname": "advance_cash",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Advance in Cash",
    "read_only": 1
   },
@@ -207,18 +201,14 @@
    "fieldtype": "Column Break"
   },
   {
-   "columns": 1,
    "fieldname": "salary_card",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Salary to Card",
    "read_only": 1
   },
   {
-   "columns": 1,
    "fieldname": "salary_cash",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Salary in Cash",
    "read_only": 1
   },

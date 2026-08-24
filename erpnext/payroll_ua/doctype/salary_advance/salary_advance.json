@@ -20,15 +20,6 @@
   "employees_without_attendance",
   "column_break_counts",
   "period_working_days",
-  "period_working_hours",
-  "total_credited_days",
-  "total_working_hours",
-  "section_break_totals",
-  "total_advance_card",
-  "column_break_total_1",
-  "total_advance_cash",
-  "column_break_total_2",
-  "total_advance",
   "section_break_employees",
   "employees_preview",
   "employees"
@@ -87,7 +78,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Draft\nTo Pay\nPaid",
+   "options": "Draft\nTo Pay\nPartly Paid\nPaid",
    "default": "Draft",
    "read_only": 1,
    "in_list_view": 1
@@ -123,65 +114,6 @@
    "default": "0",
    "precision": "2",
    "description": "Норма за календарем компанії з 1-го по день відсікання."
-  },
-  {
-   "fieldname": "period_working_hours",
-   "fieldtype": "Float",
-   "label": "Working Hours in Half",
-   "read_only": 1,
-   "default": "0",
-   "precision": "2"
-  },
-  {
-   "fieldname": "total_credited_days",
-   "fieldtype": "Float",
-   "label": "Credited Days",
-   "read_only": 1,
-   "default": "0",
-   "precision": "2"
-  },
-  {
-   "fieldname": "total_working_hours",
-   "fieldtype": "Float",
-   "label": "Working Hours",
-   "read_only": 1,
-   "default": "0",
-   "precision": "2"
-  },
-  {
-   "fieldname": "section_break_totals",
-   "fieldtype": "Section Break",
-   "label": "Totals"
-  },
-  {
-   "fieldname": "total_advance_card",
-   "fieldtype": "Currency",
-   "label": "Advance to Cards",
-   "read_only": 1,
-   "default": "0"
-  },
-  {
-   "fieldname": "column_break_total_1",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "total_advance_cash",
-   "fieldtype": "Currency",
-   "label": "Advance in Cash",
-   "read_only": 1,
-   "default": "0"
-  },
-  {
-   "fieldname": "column_break_total_2",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "total_advance",
-   "fieldtype": "Currency",
-   "label": "Total Advance",
-   "read_only": 1,
-   "default": "0",
-   "bold": 1
   },
   {
    "fieldname": "section_break_employees",

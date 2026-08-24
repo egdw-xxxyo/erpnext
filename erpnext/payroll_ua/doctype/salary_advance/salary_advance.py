@@ -10,7 +10,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, formatdate, getdate
+from frappe.utils import flt, getdate
 
 from erpnext.hr import payroll_accounts
 from erpnext.hr.salary_advance import (
@@ -68,39 +68,32 @@ class SalaryAdvance(Document):
 		for row in self.employees:
 			row.advance_total = flt(row.advance_card) + flt(row.advance_cash)
 
-		self.period_working_days, self.period_working_hours = period_norm(
-			self.company, self.year, self.month, self.cutoff_day
-		)
+		self.period_working_days = period_norm(self.company, self.year, self.month, self.cutoff_day)[0]
 		self.total_employees = len(self.employees)
 		self.employees_without_attendance = len(
 			[row for row in self.employees if not row.attendance_approved]
 		)
 
-		for field, source in (
-			("total_credited_days", "credited_days"),
-			("total_working_hours", "working_hours"),
-			("total_advance_card", "advance_card"),
-			("total_advance_cash", "advance_cash"),
-			("total_advance", "advance_total"),
-		):
-			self.set(field, sum(flt(row.get(source)) for row in self.employees))
-
 		self.status = self.derive_status()
 
 	def derive_status(self):
-		payable = [
-			row
-			for row in self.employees
-			if flt(row.advance_total, 2) and (row.additional_salary_card or row.additional_salary_cash)
-		]
+		"""«Виплачено» — рішення бухгалтера, а не наслідок першого проведення.
 
-		if payable and all(row.paid for row in payable):
-			return "Paid"
-
+		Раніше документ ставав виплаченим, щойно закривався перший працівник, у якого вже було
+		відрахування: решта людей ще чекала грошей, а місяць у списку виглядав закритим. Тепер
+		статус сам доходить лише до «Частково виплачено», а «Виплачено» ставить `mark_paid`.
+		"""
 		if any(row.additional_salary_card or row.additional_salary_cash for row in self.employees):
-			return "To Pay"
+			if self.status == "Paid" and not self.unpaid_rows():
+				return "Paid"
+
+			return "Partly Paid" if any(row.paid for row in self.employees) else "To Pay"
 
 		return "Draft"
+
+	def unpaid_rows(self):
+		"""Кого ще не закрили — рядок з сумою, який не оплачений."""
+		return [row for row in self.employees if flt(row.advance_total, 2) and not row.paid]
 
 	# --- дії ------------------------------------------------------------------
 
@@ -137,7 +130,8 @@ class SalaryAdvance(Document):
 		if not targets:
 			frappe.throw(_("There is nothing to pay: every advance is zero."))
 
-		self.validate_attendance_approved(targets)
+		# Незатверджений табель авансу не блокує: аванс — строкова виплата за КЗпП, і платимо
+		# ми його однаково. Стан табеля лишається в рядку (позначка й підказка) як попередження.
 		self.validate_structure_assigned(targets)
 
 		rows = [
@@ -186,13 +180,16 @@ class SalaryAdvance(Document):
 	def pay(self, posting_date=None, employees=None):
 		"""Проводить виплату авансу: банк — на картки, каса — готівкою.
 
-		`employees` — кого саме платимо; без нього платяться всі ще не оплачені. Бухгалтерія
-		проводить людей і поштучно, тож рядок закривається окремо від решти.
+		`employees` — кого саме платимо. Виплата завжди адресна: гроші йдуть людині, а не
+		документу, тож списком «усі одразу» аванс не закривається.
 		"""
 		if self.status == "Draft":
 			frappe.throw(_("Create the advance first."))
 
 		selected = frappe.parse_json(employees) if isinstance(employees, str) else employees
+
+		if not selected:
+			frappe.throw(_("Choose the employee to pay — the advance is paid row by row."))
 		targets = [
 			row
 			for row in self.employees
@@ -250,6 +247,29 @@ class SalaryAdvance(Document):
 		return vouchers
 
 	@frappe.whitelist()
+	def mark_paid(self):
+		"""Закриває документ вручну — і тільки коли по кожному рядку гроші вже пішли."""
+		unpaid = self.unpaid_rows()
+
+		if unpaid:
+			frappe.throw(
+				_("{0} employees are not paid yet: {1}").format(
+					len(unpaid),
+					", ".join([row.employee_name or row.employee for row in unpaid][:20])
+					+ ("…" if len(unpaid) > 20 else ""),
+				),
+				title=_("The Advance Is Not Paid in Full"),
+			)
+
+		if not self.employees:
+			frappe.throw(_("There is nothing to close: the advance has no employees."))
+
+		self.status = "Paid"
+		self.save()
+
+		return self.status
+
+	@frappe.whitelist()
 	def settle(self, posting_date=None, employees=None):
 		"""Оформити й виплатити одним рухом — те, що бухгалтер робить у житті одним рішенням.
 
@@ -301,25 +321,6 @@ class SalaryAdvance(Document):
 			title=_("No Salary Structure"),
 		)
 
-	def validate_attendance_approved(self, rows=None):
-		"""Аванс платимо за затверджені дні: поки керівник не здав першу половину місяця,
-		дні ще можуть змінитися, а гроші вже пішли б."""
-		missing = [
-			row.employee_name or row.employee for row in rows or self.employees if not row.attendance_approved
-		]
-
-		if not missing:
-			return
-
-		frappe.throw(
-			_("The attendance sheet up to {0} is not approved for {1} employees: {2}").format(
-				formatdate(self.cutoff_date(), "dd.MM.yyyy"),
-				len(missing),
-				", ".join(missing[:20]) + ("…" if len(missing) > 20 else ""),
-			),
-			title=_("Attendance Sheet Not Approved"),
-		)
-
 
 def row_values(row) -> dict:
 	"""Рядок таблиці з порахованого — однаково для перерахунку і для нового документа."""
@@ -349,7 +350,9 @@ def row_values(row) -> dict:
 		)
 	}
 	values["advance_card"] = row.official
-	values["advance_cash"] = row.cash
+	# Готівкову частину за замовчуванням не платимо: у розрахунку вона лише довідкова
+	# (`cash_salary`), а суму бухгалтерія вписує руками, коли аванс дійсно дають готівкою.
+	values["advance_cash"] = 0
 
 	return values
 
@@ -373,7 +376,7 @@ def get_employees(company: str, period_start: str, cutoff_day: int = DEFAULT_CUT
 	employees = [
 		{
 			**row_values(row),
-			"advance_total": row.advance_total,
+			"advance_total": row.official,
 			"attendance_approved": 1 if covered.get(row.employee) else 0,
 			"attendance_note": "" if covered.get(row.employee) else missing_attendance_note(),
 		}
