@@ -1,0 +1,59 @@
+{% set d = data.disk or {} %}
+{% set pct = (d.pct|int) if d.pct else 0 %}
+<h2>Disk <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
+<div class="bar {{ 'bad' if pct >= 90 else ('warn' if pct >= 80 else 'good') }}">
+	<i style="width: {{ pct }}%"></i>
+	<span>{{ d.used|human_bytes }} / {{ d.size|human_bytes }} — {{ pct }}%</span>
+</div>
+<div class="kv">
+	<div><span>Free</span><b>{{ d.avail|human_bytes }}</b></div>
+	<div><span>systemd journal</span><b>{{ d.journal or '—' }}</b></div>
+</div>
+
+{% if d.avail and (d.avail|int) < 10737418240 %}
+<div class="alert warn small">
+	Under 10 GB free. A full <code>./deploy build</code> needs 8–10 GB, and a disk-full on this
+	host stops redis-queue from saving, which blocks every write.
+</div>
+{% endif %}
+
+{% if data.docker_df %}
+<table class="rows">
+	<tr><th>Docker</th><th>Size</th><th>Reclaimable</th></tr>
+	{% for row in data.docker_df %}
+	<tr>
+		<td>{{ row.type }} <em class="muted">{{ row.active }}/{{ row.total }} active</em></td>
+		<td class="mono">{{ row.size }}</td>
+		<td class="mono {{ 'warn' if row.reclaimable and not row.reclaimable.startswith('0B') else 'muted' }}">
+			{{ row.reclaimable }}</td>
+	</tr>
+	{% endfor %}
+</table>
+<p class="muted small">
+	Reclaim safely on the host with <code>docker builder prune -f</code> and
+	<code>sudo journalctl --vacuum-size=100M</code>. Never <code>docker volume prune</code> —
+	that deletes the site database.
+</p>
+{% endif %}
+
+{% if detail %}
+	{% if detail.error %}
+		<div class="alert error small">{{ detail.error }}</div>
+	{% else %}
+	<div class="kv">
+		<div><span>sites volume</span><b>{{ detail.sites_bytes|human_bytes }}</b></div>
+		<div><span>Print Job PNGs</span>
+			<b>{{ detail.pj_bytes|human_bytes }}</b>
+			<em>{{ detail.pj_count }} files</em></div>
+	</div>
+	<p class="muted small">
+		<code>PJ-*.png</code> are regenerable label renders. Purge old ones on the host:
+		<code>find sites/{{ settings.site }}/private/files -maxdepth 1 -name 'PJ-*.png' -mtime +30 -delete</code>
+	</p>
+	{% endif %}
+{% else %}
+<button class="link" hx-get="/panels/disk?detail=1" hx-target="#panel-disk" hx-swap="innerHTML">
+	Measure sites volume + label PNGs
+</button>
+<span class="muted small">(walks thousands of files, takes a few seconds)</span>
+{% endif %}

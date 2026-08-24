@@ -1,0 +1,25 @@
+<h2>Recent jobs</h2>
+{% set rows = data.jobs or [] %}
+{% if rows %}
+<table class="rows">
+	<tr><th>Action</th><th>By</th><th>Started</th><th>State</th><th></th></tr>
+	{% for j in rows %}
+	<tr>
+		<td>{{ j.label or j.action }}</td>
+		<td class="mono">{{ j.user }}</td>
+		<td>{{ j.started|human_time }} <em class="muted">{{ j.started|ago }}</em></td>
+		<td>
+			<span class="pill {{ {'success':'good','running':'ok','failed':'bad','crashed':'bad','rejected':'muted-pill'}.get(j.state,'muted-pill') }}">
+				{{ j.state }}{% if j.exit not in (None, '', '0') %} ({{ j.exit }}){% endif %}
+			</span>
+		</td>
+		<td>
+			<button class="link small" hx-get="/jobs/{{ j.id }}" hx-target="#console-slot" hx-swap="innerHTML"
+			        hx-on::after-request="document.getElementById('console-host').hidden = false">log</button>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+<p class="muted">No jobs have run yet.</p>
+{% endif %}

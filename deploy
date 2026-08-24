@@ -116,6 +116,44 @@ dc() {
   fi
 }
 
+# --- Ops dashboard -----------------------------------------------------------
+# The ops dashboard is a SEPARATE compose project on purpose. `run_deploy` runs
+# `dc up -d`, which recreates every container in the "docker" project — if ops
+# lived there, a deploy launched from the dashboard would kill the very process
+# streaming its own console output. Keeping it under -p ops makes it invisible
+# to dc() (and to `dc down -v` in nuke/destroy).
+OPS_COMPOSE_FILE="$DIR/docker-compose.ops.yml"
+
+ops_dc() {
+  [ -f "$OPS_COMPOSE_FILE" ] || return 0
+  if docker compose version &>/dev/null; then
+    docker compose -p ops -f "$OPS_COMPOSE_FILE" "$@"
+  else
+    docker-compose -p ops -f "$OPS_COMPOSE_FILE" "$@"
+  fi
+}
+
+# Opt-in per host: no .ops.env means this machine does not run the dashboard.
+ops_enabled() {
+  [ -f "$DIR/.ops.env" ] && [ -f "$OPS_COMPOSE_FILE" ]
+}
+
+# Never allowed to abort an ERPNext deploy: the subshell keeps .ops.env out of
+# the deploy environment, and the `|| echo` keeps `set -e` from propagating an
+# ops-side failure into the caller.
+ops_up() {
+  ops_enabled || return 0
+  say "==> Starting ops dashboard (project: ops)..."
+  (
+    set -a
+    . "$DIR/.ops.env"
+    set +a
+    : "${OPS_SSH_HOST:=$(detect_host_lan_ip)}"
+    export OPS_SSH_HOST
+    ops_dc up -d --build
+  ) || echo "WARNING: ops dashboard failed to start (ERPNext deploy unaffected)."
+}
+
 wait_for_db() {
   say "==> Waiting for MariaDB..."
   for i in $(seq 1 30); do
@@ -298,6 +336,63 @@ apply_site_config() {
   done
 }
 
+# --- Backups -----------------------------------------------------------------
+# Backups live inside the sites volume, i.e. on the same disk as everything
+# else. A --with-files set is ~2.7GB (2.5GB of that is regenerable PJ-*.png
+# label renders), so retention and the free-space guard are not optional.
+SITE="frontend"
+BACKUP_DIR="/home/frappe/frappe-bench/sites/$SITE/private/backups"
+OPS_BACKUP_KEEP="${OPS_BACKUP_KEEP:-5}"
+
+# One line per backup *set*: "<name> <epoch> <total-bytes>", oldest first.
+# A set is every file sharing the "<timestamp>-<site>" prefix.
+backup_list() {
+  dc exec -T backend bash -c '
+    d="$1"
+    [ -d "$d" ] || exit 0
+    for f in "$d"/*-database.sql.gz; do
+      [ -e "$f" ] || continue
+      b=$(basename "$f"); n=${b%-database.sql.gz}
+      sz=$(du -cb "$d/$n"-* 2>/dev/null | tail -1 | cut -f1)
+      ts=$(stat -c %Y "$f")
+      echo "$n $ts $sz"
+    done | sort -k2 -n
+  ' _ "$BACKUP_DIR" </dev/null 2>/dev/null
+}
+
+backup_list_human() {
+  backup_list | awk '{printf "  %-26s %s  %.1f MB\n", $1, strftime("%Y-%m-%d %H:%M", $2), $3/1048576}'
+}
+
+backup_prune() {
+  local keep="${1:-$OPS_BACKUP_KEEP}"
+  local names
+  if [ "$keep" -le 0 ]; then
+    names=$(backup_list | awk '{print $1}')
+  else
+    names=$(backup_list | awk '{print $1}' | head -n "-$keep")
+  fi
+  [ -n "$names" ] || return 0
+  for n in $names; do
+    say "==> Pruning old backup $n"
+    dc exec -T backend bash -c 'rm -f "$1/$2"-*' _ "$BACKUP_DIR" "$n" </dev/null
+  done
+}
+
+# Refuse to start a backup that would not fit: needs 2x the largest existing
+# set, with a 4GB floor when there is nothing to measure against.
+backup_space_guard() {
+  local free need
+  free=$(dc exec -T backend df -B1 --output=avail "$BACKUP_DIR" </dev/null 2>/dev/null | tail -1 | tr -d '[:space:]')
+  case "$free" in ''|*[!0-9]*) return 0 ;; esac
+  need=$(backup_list | awk '{if($3>m)m=$3}END{print (m?m*2:4294967296)}')
+  if [ "$free" -lt "$need" ]; then
+    echo "ERROR: only $((free/1024/1024))MB free at $BACKUP_DIR, need ~$((need/1024/1024))MB."
+    echo "Free space first:  ./deploy backup --prune-only --keep=1"
+    exit 1
+  fi
+}
+
 strip_extra_apps() {
   say "==> Removing extra apps before migrate..."
   dc exec -T backend bash -c "sed -i '/^insights$/d' /home/frappe/frappe-bench/sites/apps.txt" 2>/dev/null || true
@@ -405,6 +500,8 @@ case "${1:-}" in
     require_non_production "nuke"
     say "==> Stopping containers and removing all data..."
     dc down -v
+    # No -v: nuke resets ERPNext data, not the dashboard's known_hosts/lockout state.
+    ops_dc down 2>/dev/null || true
     echo "All data has been removed."
     ;;
 
@@ -439,6 +536,7 @@ PY
 
     "$DIR/insights" auto || true
     fix_assets
+    ops_up
 
     echo ""
     echo "Ready at http://localhost:8080  (Administrator / admin)"
@@ -454,6 +552,7 @@ PY
     apply_site_config
     wait_for_db
     install_extra_apps
+    ops_up
     echo "Started at http://localhost:8080"
     if [ "${2:-}" = "--logs" ]; then
       dc logs -f --since 0s
@@ -462,6 +561,7 @@ PY
 
   stop)
     dc stop
+    ops_dc stop 2>/dev/null || true
     ;;
 
   build)
@@ -483,6 +583,9 @@ PY
       build_image
     fi
     run_deploy "$SILENT"
+    # Outside run_deploy on purpose: inside, --silent routes stdout to /dev/null
+    # and an ops failure would be invisible.
+    ops_up
 
     if [ "${2:-}" = "--logs" ] || [ "${3:-}" = "--logs" ]; then
       dc logs -f --since 0s
@@ -508,11 +611,13 @@ PY
       build_image
     fi
     run_deploy "$SILENT"
+    ops_up
     ;;
 
   destroy)
     require_non_production "destroy"
     dc down -v
+    ops_dc down 2>/dev/null || true
     echo "Stopped and removed all data."
     ;;
 
@@ -530,9 +635,118 @@ PY
     fix_assets
     ;;
 
+  ops)
+    case "${2:-}" in
+      up|"")   ops_up ;;
+      down)    ops_dc down ;;
+      rebuild) ops_dc build --no-cache && ops_up ;;
+      logs)    ops_dc logs -f --since 0s ;;
+      status)  ops_dc ps ;;
+      *)
+        echo "Usage: ./deploy ops {up|down|rebuild|logs|status}"
+        exit 1
+        ;;
+    esac
+    ;;
+
+  backup)
+    WITH_FILES=1
+    PRUNE_ONLY=0
+    KEEP="$OPS_BACKUP_KEEP"
+    for arg in "$@"; do
+      case "$arg" in
+        --with-files) WITH_FILES=1 ;;
+        --no-files)   WITH_FILES=0 ;;
+        --prune-only) PRUNE_ONLY=1 ;;
+        --keep=*)     KEEP="${arg#--keep=}" ;;
+      esac
+    done
+
+    if [ "$PRUNE_ONLY" = "1" ]; then
+      backup_prune "$KEEP"
+      echo "Pruned to last $KEEP. Remaining:"
+      backup_list_human
+      exit 0
+    fi
+
+    # Prune BEFORE taking the new one. On a disk this full, writing a ~2.7GB
+    # backup and only then deleting the oldest is exactly backwards.
+    backup_prune "$((KEEP - 1))"
+    backup_space_guard
+
+    say "==> Backing up site $SITE..."
+    if [ "$WITH_FILES" = "1" ]; then
+      dc exec -T backend bench --site "$SITE" backup --with-files
+    else
+      dc exec -T backend bench --site "$SITE" backup
+    fi
+    echo "Backups (keeping last $KEEP):"
+    backup_list_human
+    ;;
+
+  restore)
+    NAME="${2:-}"
+    CONFIRM=0
+    for arg in "$@"; do [ "$arg" = "--yes" ] && CONFIRM=1; done
+
+    if [ -z "$NAME" ] || [ "$NAME" = "--list" ]; then
+      echo "Available backups:"
+      backup_list_human
+      echo ""
+      echo "Usage: ./deploy restore <name> [--yes]"
+      exit 0
+    fi
+
+    if ! dc exec -T backend test -f "$BACKUP_DIR/$NAME-database.sql.gz" </dev/null; then
+      echo "ERROR: no backup named '$NAME'. Try: ./deploy restore --list"
+      exit 1
+    fi
+
+    echo "!! RESTORE DESTROYS THE CURRENT DATABASE AND FILES OF SITE '$SITE' ON '$DEPLOY_ENV'."
+    echo "!! Backup: $NAME"
+    if [ "$CONFIRM" != "1" ]; then
+      # Fails without a tty by design: the ops dashboard must pass --yes and do
+      # its own typed confirmation server-side.
+      printf "Type the site name (%s) to proceed: " "$SITE"
+      read -r ANSWER </dev/tty
+      [ "$ANSWER" = "$SITE" ] || { echo "Aborted."; exit 1; }
+    fi
+
+    say "==> Taking a pre-restore safety backup..."
+    dc exec -T backend bench --site "$SITE" backup || true
+
+    RESTORE_ARGS="$BACKUP_DIR/$NAME-database.sql.gz"
+    # --with-public-files/--with-private-files take a path argument in v15;
+    # passing them bare fails, so only append when the tarball exists.
+    if dc exec -T backend test -f "$BACKUP_DIR/$NAME-files.tar" </dev/null; then
+      RESTORE_ARGS="$RESTORE_ARGS --with-public-files $BACKUP_DIR/$NAME-files.tar"
+    fi
+    if dc exec -T backend test -f "$BACKUP_DIR/$NAME-private-files.tar" </dev/null; then
+      RESTORE_ARGS="$RESTORE_ARGS --with-private-files $BACKUP_DIR/$NAME-private-files.tar"
+    fi
+
+    say "==> Restoring $NAME..."
+    # Root creds match docker-compose.yml; without them restore prompts and
+    # hangs under `exec -T`.
+    dc exec -T backend bench --site "$SITE" --force restore $RESTORE_ARGS \
+      --db-root-username root --db-root-password admin
+
+    # Mandatory: a restored DB carries the old assets.json state, which is the
+    # "MIME type ('text/html')" breakage ensure_assets_manifest exists to fix.
+    say "==> Migrating and rebuilding assets after restore..."
+    dc exec -T backend bench --site "$SITE" migrate
+    dc exec -T backend bench --site "$SITE" clear-cache
+    ensure_assets_manifest
+    fix_assets
+    echo "Restore complete."
+    ;;
+
   *)
     echo "Environment: $DEPLOY_ENV"
     echo "Usage: ./deploy {init|start|stop|build|fix-assets|setup-prod|setup-dev}"
+    echo "       ./deploy ops {up|down|rebuild|logs|status}"
+    echo "       ./deploy backup [--no-files] [--keep=N] [--prune-only]"
+    echo "       ./deploy restore {--list|<name> [--yes]}"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi

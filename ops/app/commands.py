@@ -1,0 +1,114 @@
+"""The complete set of things the dashboard is allowed to run on the host.
+
+The HTTP layer never accepts a shell string. Every action is an entry here with
+a fixed argv template and a validator per parameter; anything that does not
+match is a 400. This is the single control that stops the dashboard from being
+a remote shell wearing a login form.
+"""
+
+from __future__ import annotations
+
+import re
+import shlex
+from collections.abc import Callable
+from dataclasses import dataclass, field
+
+BRANCH_RE = re.compile(r"^[A-Za-z0-9._/-]{1,100}$")
+BACKUP_RE = re.compile(r"^[0-9]{8}_[0-9]{6}-[A-Za-z0-9_.-]{1,64}$")
+
+
+class InvalidArgument(ValueError):
+	pass
+
+
+def _branch(value: str) -> str:
+	value = (value or "").strip()
+	if not BRANCH_RE.match(value) or ".." in value:
+		raise InvalidArgument(f"invalid branch name: {value!r}")
+	return value
+
+
+def _backup_name(value: str) -> str:
+	value = (value or "").strip()
+	if not BACKUP_RE.match(value):
+		raise InvalidArgument(f"invalid backup name: {value!r}")
+	return value
+
+
+@dataclass(frozen=True)
+class Command:
+	key: str
+	label: str
+	description: str
+	# Builds the shell line. Receives already-validated, already-quoted params.
+	build: Callable[[dict], str]
+	params: dict[str, Callable[[str], str]] = field(default_factory=dict)
+	destructive: bool = False
+	# Refuse to start when the working tree has uncommitted changes.
+	needs_clean_tree: bool = False
+	confirm_phrase: str | None = None
+
+	def render(self, raw: dict) -> tuple[str, dict]:
+		values = {}
+		for name, validator in self.params.items():
+			values[name] = validator(raw.get(name, ""))
+		return self.build({k: shlex.quote(v) for k, v in values.items()}), values
+
+
+COMMANDS: dict[str, Command] = {
+	"update-repo": Command(
+		key="update-repo",
+		label="Update repo",
+		description="git pull + fetch tags + submodule sync (./updateRepo). Does not rebuild.",
+		build=lambda _: "./updateRepo",
+	),
+	"build": Command(
+		key="build",
+		label="Deploy (build)",
+		description="Rebuild the image and run the full deploy (./deploy build --silent).",
+		build=lambda _: "./deploy build --silent",
+		destructive=True,
+	),
+	"backup": Command(
+		key="backup",
+		label="Backup",
+		description="bench backup with files, pruning to the retention limit.",
+		build=lambda p: f"./deploy backup {p['mode']}",
+		params={"mode": lambda v: "--no-files" if v == "no-files" else "--with-files"},
+	),
+	"restore": Command(
+		key="restore",
+		label="Restore",
+		description="Destroys the current database and files, replacing them with a backup.",
+		build=lambda p: f"./deploy restore {p['name']} --yes",
+		params={"name": _backup_name},
+		destructive=True,
+		confirm_phrase="site",
+	),
+	"switch-branch": Command(
+		key="switch-branch",
+		label="Switch branch",
+		description="Checkout another branch and pull. Does not rebuild — run a deploy after.",
+		build=lambda p: f"git fetch --all --tags --prune && git checkout {p['branch']} && ./updateRepo",
+		params={"branch": _branch},
+		destructive=True,
+		needs_clean_tree=True,
+	),
+	"ops-rebuild": Command(
+		key="ops-rebuild",
+		label="Rebuild dashboard",
+		description="Rebuild and restart this dashboard (./deploy ops rebuild).",
+		build=lambda _: "./deploy ops rebuild",
+	),
+}
+
+
+def validate_backup_name(value: str) -> str:
+	return _backup_name(value)
+
+
+def get(key: str) -> Command:
+	command = COMMANDS.get(key)
+	if command is None:
+		raise InvalidArgument(f"unknown action: {key!r}")
+	return command

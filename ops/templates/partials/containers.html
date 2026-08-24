@@ -1,0 +1,19 @@
+<h2>Containers <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
+{% if data.containers %}
+<table class="rows">
+	<tr><th>Service</th><th>State</th><th>Status</th></tr>
+	{% for c in data.containers %}
+	<tr>
+		<td class="mono">{{ c.name }}</td>
+		<td><span class="pill {{ 'good' if c.state == 'running' else 'muted-pill' }}">{{ c.state }}</span></td>
+		<td class="muted">{{ c.status }}{% if c.health %} · {{ c.health }}{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+<p class="muted small">
+	One-shot services (<code>configurator</code>, <code>create-site</code>) are expected to sit at
+	<em>exited</em> — they run once per <code>up</code> and stop.
+</p>
+{% else %}
+<p class="muted">No container data.</p>
+{% endif %}

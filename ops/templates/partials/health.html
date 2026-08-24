@@ -1,0 +1,15 @@
+<h2>Health <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
+{% set http = data.http or {} %}
+{% set ok = http.code == "200" %}
+<div class="kv">
+	<div><span>ERPNext HTTP</span>
+		<b class="{{ 'good' if ok else 'bad' }}">{{ http.code or '—' }}</b>
+		<em>{{ '%.0f ms'|format((http.seconds|float) * 1000) if http.seconds else '' }}</em>
+	</div>
+	<div><span>MariaDB</span>
+		<b class="{{ 'good' if data.db == 'alive' else 'bad' }}">{{ data.db or 'down' }}</b></div>
+	<div><span>Redis cache</span>
+		<b class="{{ 'good' if data.redis_cache == 'PONG' else 'bad' }}">{{ data.redis_cache or 'down' }}</b></div>
+	<div><span>Redis queue</span>
+		<b class="{{ 'good' if data.redis_queue == 'PONG' else 'bad' }}">{{ data.redis_queue or 'down' }}</b></div>
+</div>

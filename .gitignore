@@ -33,3 +33,5 @@ raw/
 .tunnel.env*
 .envrc
 bin/
+.ops.env
+.ops-jobs/
