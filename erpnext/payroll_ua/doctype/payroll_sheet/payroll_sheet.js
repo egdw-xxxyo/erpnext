@@ -22,8 +22,14 @@ frappe.ui.form.on("Payroll Sheet", {
 		// Аванс живе окремим документом — платиться 15-го, задовго до розрахунку місяця.
 		frm.add_custom_button(__("Advance"), () => open_advance(frm), __("Payroll"));
 
-		if (frm.doc.total_outstanding && frm.doc.bonus_approved) {
-			frm.add_custom_button(__("Pay Salary"), () => ask_payment_date(frm), __("Pay"));
+		// the money leaves through the row button, one employee at a time; the toolbar only
+		// closes the month once nobody is left unpaid
+		if (
+			!["Draft", "Paid"].includes(frm.doc.status) &&
+			frm.doc.bonus_approved &&
+			!unpaid_rows(frm).length
+		) {
+			frm.add_custom_button(__("Mark as Paid"), () => confirm_mark_paid(frm), __("Pay"));
 		}
 
 		frm.trigger("show_status");
@@ -94,11 +100,15 @@ function render_preview(frm) {
 				value: (row) => `${days(row.credited_days)} / ${hours(row.working_hours)}`,
 				click: (row) => show_details(frm, row),
 			},
-			{ label: __("Gross Pay"), value: (row) => money(row.gross_pay) },
-			{ label: __("Advance"), value: (row) => money(flt(row.advance_card) + flt(row.advance_cash)) },
-			{ label: __("To Card"), value: (row) => money(row.salary_card) },
-			{ label: __("Deposit"), value: (row) => money(row.deposit) },
-			{ label: __("Outstanding"), value: (row) => money(row.outstanding), bold: true },
+			{ label: __("Gross Pay"), value: (row) => money(row.gross_pay), secret: true },
+			{
+				label: __("Advance"),
+				value: (row) => money(flt(row.advance_card) + flt(row.advance_cash)),
+				secret: true,
+			},
+			{ label: __("To Card"), value: (row) => money(row.salary_card), secret: true },
+			{ label: __("Deposit"), value: (row) => money(row.deposit), secret: true },
+			{ label: __("Outstanding"), value: (row) => money(row.outstanding), bold: true, secret: true },
 			{
 				label: __("Payment"),
 				value: (row) => (row.paid ? __("Paid") : payable(frm, row) ? __("Pay") : ""),
@@ -217,6 +227,19 @@ function open_advance(frm) {
 	});
 }
 
+function unpaid_rows(frm) {
+	return (frm.doc.employees || []).filter(
+		(row) => row.salary_slip && !row.paid && (flt(row.salary_card) || flt(row.salary_cash))
+	);
+}
+
+function confirm_mark_paid(frm) {
+	frappe.confirm(__("Every employee of this sheet is paid. Close the document as paid?"), () =>
+		run(frm, "mark_paid")
+	);
+}
+
+// always one employee: the row is the only way money leaves this document
 function ask_payment_date(frm, row) {
 	const fields = [
 		{
@@ -228,16 +251,12 @@ function ask_payment_date(frm, row) {
 		},
 	];
 
-	if (row) fields.unshift({ fieldtype: "HTML", fieldname: "details", options: details_html(row) });
+	fields.unshift({ fieldtype: "HTML", fieldname: "details", options: details_html(row) });
 
 	frappe.prompt(
 		fields,
-		(values) =>
-			run(frm, "pay", {
-				posting_date: values.posting_date,
-				employees: row ? [row.employee] : null,
-			}),
-		row ? __("Pay {0}", [row.employee_name || row.employee]) : __("Pay Salary"),
+		(values) => run(frm, "pay", { posting_date: values.posting_date, employees: [row.employee] }),
+		__("Pay {0}", [row.employee_name || row.employee]),
 		__("Post")
 	);
 }

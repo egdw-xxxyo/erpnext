@@ -235,18 +235,31 @@ class PayrollSheet(Document):
 		self.status = self.derive_status()
 
 	def derive_status(self):
+		"""«Виплачено» ставить бухгалтер кнопкою — сам документ доходить лише до «Частково».
+
+		Нульовий залишок ще не означає закритий місяць: рядок без нарахування дає нуль так само,
+		як і виплачений, тож автоматичне «Виплачено» ховало людей, яким ще винні.
+		"""
 		accrued = [row for row in self.employees if row.salary_slip]
 
 		if not accrued:
 			return "Draft"
 
-		if not flt(self.total_outstanding):
+		if self.status == "Paid" and not self.unpaid_rows():
 			return "Paid"
 
 		if self.paid_employees:
 			return "Partly Paid"
 
 		return "To Pay"
+
+	def unpaid_rows(self):
+		"""Кому ще винні: нарахований рядок із сумою, який не проведений."""
+		return [
+			row
+			for row in self.employees
+			if row.salary_slip and (flt(row.salary_card, 2) or flt(row.salary_cash, 2)) and not row.paid
+		]
 
 	# --- дії ------------------------------------------------------------------
 
@@ -311,15 +324,41 @@ class PayrollSheet(Document):
 		)
 
 	@frappe.whitelist()
+	def mark_paid(self):
+		"""Закриває відомість вручну — і тільки коли по кожному рядку гроші вже пішли."""
+		unpaid = self.unpaid_rows()
+
+		if unpaid:
+			frappe.throw(
+				_("{0} employees are not paid yet: {1}").format(
+					len(unpaid),
+					", ".join([row.employee_name or row.employee for row in unpaid][:20])
+					+ ("…" if len(unpaid) > 20 else ""),
+				),
+				title=_("The Salary Is Not Paid in Full"),
+			)
+
+		if not [row for row in self.employees if row.salary_slip]:
+			frappe.throw(_("There is nothing to close: the salary is not accrued yet."))
+
+		self.status = "Paid"
+		self.save()
+
+		return self.status
+
+	@frappe.whitelist()
 	def pay(self, posting_date=None, employees=None):
 		"""Проводить остаточний розрахунок за місяць. Аванс платиться окремим документом.
 
-		`employees` — кого саме платимо; без нього платяться всі, кому ще винні. Бухгалтерія
-		закриває людей поштучно, тож рядок проводиться окремо від решти.
+		`employees` — кого саме платимо. Виплата адресна: гроші йдуть людині, а не документу,
+		тож усю відомість одним рухом не закрити.
 		"""
 		self.validate_salary_approved()
 
 		selected = frappe.parse_json(employees) if isinstance(employees, str) else employees
+
+		if not selected:
+			frappe.throw(_("Choose the employee to pay — the salary is paid row by row."))
 		targets = [
 			row
 			for row in self.employees

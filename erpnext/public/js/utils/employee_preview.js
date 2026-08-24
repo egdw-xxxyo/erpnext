@@ -24,10 +24,14 @@ function render(frm, options) {
 
 	if (filtered) visible = visible.filter(options.filter.test);
 
+	// money is hidden until somebody asks for a single employee: the sheet is read over
+	// somebody's shoulder, and the whole department's pay does not belong on that screen
+	const revealed = frm[`__preview_revealed_${options.field}`] || {};
+
 	field.$wrapper.html(`
 		${styles()}
 		${search_html(search, options, filtered)}
-		${visible.length ? groups_html(visible, options) : empty_html()}
+		${visible.length ? groups_html(visible, options, revealed) : empty_html()}
 	`);
 
 	bind(frm, field.$wrapper, options);
@@ -58,7 +62,7 @@ function empty_html() {
 	return `<div class="text-muted" style="padding: 12px;">${__("No employee matches this search.")}</div>`;
 }
 
-function groups_html(rows, options) {
+function groups_html(rows, options, revealed) {
 	const groups = {};
 
 	rows.forEach((row) => {
@@ -70,13 +74,13 @@ function groups_html(rows, options) {
 		<div class="employee-preview">
 			${Object.keys(groups)
 				.sort()
-				.map((group) => group_html(group, groups[group], options))
+				.map((group) => group_html(group, groups[group], options, revealed))
 				.join("")}
 		</div>
 	`;
 }
 
-function group_html(group, rows, options) {
+function group_html(group, rows, options, revealed) {
 	return `
 		<div class="employee-preview-group">
 			<div class="employee-preview-title">${frappe.utils.escape_html(group)}</div>
@@ -86,18 +90,20 @@ function group_html(group, rows, options) {
 						<th>${__("Employee")}</th>
 						${options.status_column ? `<th>${options.status_column}</th>` : ""}
 						${options.columns.map((column) => `<th class="text-right">${column.label}</th>`).join("")}
+						${has_secret(options) ? "<th></th>" : ""}
 					</tr>
 				</thead>
 				<tbody>
-					${rows.map((row) => row_html(row, options)).join("")}
+					${rows.map((row) => row_html(row, options, revealed)).join("")}
 				</tbody>
 			</table>
 		</div>
 	`;
 }
 
-function row_html(row, options) {
+function row_html(row, options, revealed) {
 	const warn = options.warn && options.warn(row);
+	const shown = Boolean(revealed && revealed[cint(row.idx)]);
 
 	return `
 		<tr class="${warn ? "employee-preview-warn" : ""}">
@@ -118,12 +124,34 @@ function row_html(row, options) {
 					  }</td>`
 					: ""
 			}
-			${options.columns.map((column, index) => cell_html(row, column, index)).join("")}
+			${options.columns.map((column, index) => cell_html(row, column, index, shown)).join("")}
+			${has_secret(options) ? reveal_cell_html(row, shown) : ""}
 		</tr>
 	`;
 }
 
-function cell_html(row, column, index) {
+function has_secret(options) {
+	return options.columns.some((column) => column.secret);
+}
+
+// the eye of the row: one employee at a time, and the same button puts the money back
+function reveal_cell_html(row, shown) {
+	return `
+		<td class="text-right">
+			<button type="button" class="btn btn-link btn-xs employee-preview-reveal"
+				data-idx="${frappe.utils.escape_html(String(row.idx || ""))}"
+				title="${shown ? __("Hide salary") : __("Show salary")}">
+				<i class="fa ${shown ? "fa-eye-slash" : "fa-eye"}"></i>
+			</button>
+		</td>
+	`;
+}
+
+function cell_html(row, column, index, shown) {
+	if (column.secret && !shown) {
+		return `<td class="text-right employee-preview-hidden">•••</td>`;
+	}
+
 	const value = column.bold ? `<b>${column.value(row)}</b>` : column.value(row);
 	const clickable = column.click && (!column.clickable || column.clickable(row));
 
@@ -141,6 +169,8 @@ function cell_html(row, column, index) {
 function bind(frm, $wrapper, options) {
 	$wrapper.find(".employee-preview-search").on("input", function () {
 		frm[`__preview_search_${options.field}`] = $(this).val() || "";
+		// every new search — and clearing it — puts the money back out of sight
+		frm[`__preview_revealed_${options.field}`] = {};
 
 		const cursor = this.selectionStart;
 
@@ -167,6 +197,15 @@ function bind(frm, $wrapper, options) {
 		);
 
 		if (column && column.click && row) column.click(row);
+	});
+
+	$wrapper.find(".employee-preview-reveal").on("click", function () {
+		const idx = cint($(this).attr("data-idx"));
+		const revealed = frm[`__preview_revealed_${options.field}`] || {};
+
+		// only the asked-for employee is open at a time
+		frm[`__preview_revealed_${options.field}`] = revealed[idx] ? {} : { [idx]: true };
+		render(frm, options);
 	});
 
 	$wrapper.find(".employee-preview-open").on("click", function () {
@@ -237,6 +276,8 @@ function styles() {
 			.employee-preview-table td { padding: 6px 7px; font-size: 12px; vertical-align: middle; }
 			.employee-preview-open { padding: 0; border: 0; text-align: left; white-space: normal; }
 			.employee-preview-cell { padding: 0; border: 0; }
+			.employee-preview-reveal { padding: 0; border: 0; color: var(--text-muted, #8d99a6); }
+			.employee-preview-hidden { color: var(--text-muted, #8d99a6); letter-spacing: 2px; }
 			.employee-preview-warn td { background: var(--yellow-50, #fff7e6); }
 			.employee-preview-badge {
 				display: inline-block;

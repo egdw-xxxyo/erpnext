@@ -211,21 +211,18 @@
   {
    "fieldname": "advance_card",
    "fieldtype": "Currency",
-   "label": "Advance to Card",
-   "in_list_view": 1
+   "label": "Advance to Card"
   },
   {
    "fieldname": "advance_cash",
    "fieldtype": "Currency",
-   "label": "Advance in Cash",
-   "in_list_view": 1
+   "label": "Advance in Cash"
   },
   {
    "fieldname": "advance_total",
    "fieldtype": "Currency",
    "label": "Total Advance",
-   "read_only": 1,
-   "in_list_view": 1
+   "read_only": 1
   },
   {
    "fieldname": "section_break_links",
