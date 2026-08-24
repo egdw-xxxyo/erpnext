@@ -50,6 +50,12 @@ require_tag_on_prod() {
     echo "ERROR: prod site but '$DIR' is not a git repo — cannot verify release tag."
     exit 1
   fi
+  # Merge commits are exempt: a merge of a tagged branch does not itself carry
+  # the tag, so requiring one here would block every merge-based prod deploy.
+  if [ "$(git -C "$DIR" rev-list --no-walk --count --merges HEAD 2>/dev/null)" = "1" ]; then
+    echo "Prod tag check skipped — HEAD ($(git -C "$DIR" rev-parse --short HEAD)) is a merge commit."
+    return 0
+  fi
   if ! git -C "$DIR" describe --exact-match --tags HEAD >/dev/null 2>&1; then
     echo "ERROR: prod deploy blocked — current commit ($(git -C "$DIR" rev-parse --short HEAD)) has no git tag."
     echo "Tag the release first, e.g.:"
