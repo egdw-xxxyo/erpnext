@@ -6819,7 +6819,7 @@ Payment term {0} not used in {1},Умови оплати {0} не викорис
 Payments,Платежі
 Payments could not be updated.,Платежі не вдалося оновити.
 Payments updated.,Платежі оновлено.
-Payroll Entry,Заробітна плата за вхід
+Payroll Entry,Нарахування зарплати
 Payroll Payable,Розрахунок заробітної плати оплачується
 Payslip,листка
 Peck (UK),Пек (Великобританія)
@@ -9436,7 +9436,7 @@ Stock Ledger report contains every submitted stock transaction. You can use filt
 Stock Ledgers won't be reposted.,Складські книги не будуть повторно проведені.
 Stock Levels,Сток Рівні
 Stock Liabilities,Зобов'язання по запасах
-Stock Manager,Начальник складу
+Stock Manager,Товарознавець
 Stock Movement,Рух товарів на складі
 Stock Partially Reserved,Запаси частково зарезервовано
 Stock Planning,Планування запасів
@@ -11768,9 +11768,9 @@ Template Reference,Довідка по шаблону
 "Grievance Details","Деталі скарги"
 "Grievance Type","Тип скарги"
 "Gross Earnings","Валовий заробіток"
-"Gross Pay (Company Currency)","Валова оплата (валюта компанії)"
-"Gross Year To Date","Валова сума з початку року"
-"Gross Year To Date(Company Currency)","Валова сума з початку року (валюта компанії)"
+"Gross Pay (Company Currency)","Нараховано (валюта компанії)"
+"Gross Year To Date","Нараховано з початку року"
+"Gross Year To Date(Company Currency)","Нараховано з початку року (валюта компанії)"
 "Group goal's progress is auto-calculated based on the child goals.","Прогрес групової цілі автоматично розраховується на основі дочірніх цілей."
 "HR & Payroll","HR та розрахунок зарплати"
 "HR & Payroll Settings","Налаштування HR та розрахунку зарплати"
@@ -12257,7 +12257,7 @@ Template Reference,Довідка по шаблону
 "Total Expense Claim (via Expense Claim)","Загальна витратна заявка (через витратну заявку)"
 "Total Expense Claim (via Expense Claims)","Загальна витратна заявка (через витратні заявки)"
 "Total Goal Score","Загальна оцінка цілей"
-"Total Gross Pay","Загальна валова оплата"
+"Total Gross Pay","Разом нараховано"
 "Total Hours (T)","Загальні години (T)"
 "Total Income Tax","Загальний прибутковий податок"
 "Total Interest Amount","Загальна сума відсотків"
@@ -13062,113 +13062,6 @@ Customer Requirement,Потреба
 "Fill in when the organization is not a customer yet. A Lead may link either a Prospect or a Customer, not both.","Заповніть, якщо організація ще не є клієнтом. Звернення може бути пов'язане або з Потенційним клієнтом, або з Клієнтом, але не з обома одночасно."
 "Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.","Відображається з пов’язаного Потенційного клієнта або Клієнта. Ведеться на організації, а не у Зверненні."
 Additional Information for Status {0},Додаткова інформація для статусу {0}
-Material Request Initiator,Ініціатор замовлення матеріалів
-Decision Reason,Причина рішення
-Current Assignee,Поточний виконавець
-Approval Stage,Етап погодження
-Confirm,Підтвердити
-Enter the reason for the decision.,Вкажіть причину рішення.
-Reason is required,Причина обов'язкова
-Reason is too long,Причина занадто довга
-Only a buyer can create procurement documents from a Material Request.,Створювати закупівельні документи із замовлення матеріалів може лише закупівельник.
-Use a workflow action for this transition and provide a reason.,Виконайте перехід через дію робочого процесу та вкажіть причину.
-The reason cannot contain more than {0} characters.,Причина не може містити більше {0} символів.
-{0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів та передав його у закупівлю.
-{0} created {1} based on this Material Request and completed its processing by the buyer.,{0} створив {1} на підставі цього замовлення та завершив його опрацювання закупівельником.
-{0} created this Purchase Order from {1}.,{0} створив це замовлення на придбання із {1}.
-submitted the Purchase Order for department review,подав замовлення на перевірку підрозділу
-resubmitted the Purchase Order for department review,повторно подав замовлення на перевірку підрозділу
-approved the Purchase Order,погодив замовлення
-returned the Purchase Order for rework,повернув замовлення на доопрацювання
-rejected the Purchase Order,відхилив замовлення
-submitted the approved Purchase Order,провів погоджене замовлення
-performed action “{0}”,виконав дію «{0}»
-{0} {1} for the following reason:<br>{2},{0} {1} з причини:<br>{2}
-Payment Approval Details,Деталі погодження платежу
-Initiator User,Користувач-ініціатор
-Initiator Employee,Працівник-ініціатор
-Payment Purpose,Призначення платежу
-Requested Payment Date,Бажана дата оплати
-Planned Payment Date,Планова дата оплати
-Workflow Action Reason,Причина дії погодження
-Fiscal Receipt,Фіскальний чек
-Fiscal Receipt (File),Фіскальний чек (файл)
-Fiscal Receipt Availability,Наявність фіскального чека
-Task Payments,Оплати за завданням
-Payment Request Count,Кількість запитів на оплату
-Payment Request Expenses,Витрати за запитами
-Expense Currency,Валюта витрат
-Payment Requests,Запити на оплату
-Fiscal receipt has not been attached,Фіскальний чек не додано
-The payment can be submitted without a receipt and the receipt can be attached later.,Оплату можна провести без чека та додати його пізніше.
-"The fiscal receipt must be a PDF, JPG, JPEG or PNG file.","Фіскальний чек має бути файлом PDF, JPG, JPEG або PNG."
-Unsupported File Format,Непідтримуваний формат файла
-The uploaded fiscal receipt could not be found.,Не вдалося знайти завантажений фіскальний чек.
-The fiscal receipt must be uploaded as a private file.,Фіскальний чек має бути завантажений як приватний файл.
-Private File Required,Потрібен приватний файл
-returned this request for rework,повернув цей запит на доопрацювання
-rejected this request,відхилив цей запит
-Process Payment Request {{ name }} at stage “{{ workflow_state }}”.,Опрацювати запит на оплату {{ name }} на етапі «{{ workflow_state }}».
-Review Payment Request {{ name }} from the department.,Перевірити запит на оплату {{ name }} від підрозділу.
-Perform the final approval of Payment Request {{ name }}.,Виконати фінальне погодження запиту на оплату {{ name }}.
-Review and schedule payment for Payment Request {{ name }}.,Перевірити та запланувати оплату за запитом {{ name }}.
-Request {{ doc.name }}: {{ doc.workflow_state }},Запит {{ doc.name }}: {{ doc.workflow_state }}
-Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.,Запит на оплату <b>{{ doc.name }}</b> перейшов на етап <b>{{ doc.workflow_state }}</b>.
-created the Purchase Invoice,створив рахунок постачальника
-created the Payment Request,створив запит на оплату
-created the Material Request,створив замовлення матеріалів
-{0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
-No Available Invoices,Немає доступних рахунків
-Create and submit a Purchase Invoice for this task first.,Спочатку створіть і проведіть рахунок постачальника для цього завдання.
-Create Payment Request,Створити запит на оплату
-Material Requests for This Task,Замовлення матеріалів цього завдання
-There are no Material Requests yet.,Замовлень матеріалів ще немає.
-Material Cost,Вартість матеріалів
-Payment Requests for This Task,Запити на оплату цього завдання
-There are no Payment Requests yet.,Запитів на оплату ще немає.
-Child Task Payments,Оплати дочірніх завдань
-No Description,Немає опису
-The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
-Select a submitted Purchase Invoice linked to this task.,Оберіть проведений рахунок постачальника, пов'язаний із цим завданням.
-Consolidated Purchase Order,Зведене замовлення на придбання
-Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
-Items by Supplier,Позиції за постачальниками
-Approval Details,Деталі погодження
-Generated Documents,Створені документи
-Purchase Orders have not been created yet.,Замовлення на придбання ще не створено.
-Select Supplier for Purchase Invoice,Оберіть постачальника для рахунку постачальника
-There are no suppliers with unbilled Purchase Orders.,Немає постачальників із невиставленими замовленнями на придбання.
-Billed,Виставлено рахунків
-Cancel the linked Purchase Orders before cancelling this consolidated order: {0},Перед скасуванням зведеного замовлення скасуйте пов'язані замовлення на придбання: {0}
-Add at least one item.,Додайте щонайменше одну позицію.
-Row {0}: Supplier is required.,Рядок {0}: постачальник є обов'язковим.
-Row {0}: Quantity must be greater than zero.,Рядок {0}: кількість має бути більшою за нуль.
-Row {0}: Rate cannot be negative.,Рядок {0}: ціна не може бути від'ємною.
-Row {0}: Required By date is required.,Рядок {0}: дата потреби є обов'язковою.
-Created and submitted Purchase Order {0} for supplier {1}.,Створено та проведено замовлення на придбання {0} для постачальника {1}.
-Submit the consolidated order before creating a Purchase Invoice.,Проведіть зведене замовлення перед створенням рахунку постачальника.
-No billable Purchase Order was found for supplier {0}.,Для постачальника {0} не знайдено замовлення на придбання для виставлення рахунку.
-submitted the consolidated order for department review,подав зведене замовлення на перевірку підрозділу
-resubmitted the consolidated order for department review,повторно подав зведене замовлення на перевірку підрозділу
-approved the consolidated order,погодив зведене замовлення
-returned the consolidated order for rework,повернув зведене замовлення на доопрацювання
-rejected the consolidated order,відхилив зведене замовлення
-submitted the approved consolidated order,провів погоджене зведене замовлення
-Consolidated Purchase Supplier Invoice,Рахунок постачальника зведеного замовлення
-Supplier Invoices,Рахунки постачальників
-Supplier Invoice PDF,Рахунок постачальника (PDF)
-Invoice Document,Назва документу
-Procurement Approval Confirmed,Погодження закупівлі підтверджено
-Row {0}: Select a supplier used in the order items.,Рядок {0}: оберіть постачальника, використаного в позиціях замовлення.
-The supplier invoice must be a PDF file.,Рахунок постачальника має бути файлом PDF.
-Items Already Purchased,Товари вже придбано
-Prepaid Purchase Note,Примітка щодо вже придбаних товарів
-Purchase Receipt Files,Файли чеків про придбання
-The materials have already been purchased. Review the attached receipts and verify suppliers and prices.,Матеріали вже придбано. Перегляньте прикріплені чеки та перевірте постачальників і ціни.
-Attach at least one PDF receipt when the materials are already purchased.,Якщо матеріали вже придбано, прикріпіть щонайменше один чек у форматі PDF.
-Row {0}: Attach a PDF receipt.,Рядок {0}: прикріпіть чек у форматі PDF.
-The purchase receipt must be a PDF file.,Чек про придбання має бути файлом PDF.
-Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.
 "Entities","Об'єкти"
 "Archive chat","Архівувати чат"
 "Unarchive chat","Повернути з архіву"
@@ -13377,6 +13270,262 @@ Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для �
 "Rejected Responsible Employee","Відповідальний за товар (брак)"
 "Responsible Employee Required","Потрібен відповідальний за товар"
 "Row {0}: {1} is mandatory for warehouse {2}","Рядок {0}: {1} обов'язковий для складу {2}"
+"Employee Group","Група співробітників"
+"Access Group Doctype","Тип документа групового доступу"
+"Group Access","Груповий доступ"
+"Share Created Documents With Group","Поширювати створені документи на групу"
+"Documents created by a member are shared with the whole group automatically.","Документи, створені учасником, автоматично стають доступними всій групі."
+"Group Can Edit","Група може редагувати"
+"Without this the group only gets read access.","Без цього група отримує лише доступ на читання."
+"Auto-Shared Document Types","Типи документів для автоматичного поширення"
+"Group Access Manager","Керівник групового доступу"
+"Additional Attribute","Додатковий атрибут"
+"Additional Attributes","Додаткові атрибути"
+"Additional Attribute Value","Значення додаткового атрибута"
+"Additional Attribute Row","Рядок додаткового атрибута"
+"Attribute","Атрибут"
+"Value","Значення"
+"Description","Опис"
+"Disabled","Вимкнено"
+"Duplicate Value","Дублікат значення"
+"Per-unit metadata (firmware build, and anything added later)","Дані конкретного екземпляра (версія прошивки та інше, додане згодом)"
+"Optional short code, useful on labels and reports","Необов'язковий короткий код для етикеток і звітів"
+"Value {0} already exists for attribute {1}","Значення {0} вже існує для атрибута {1}"
+"Row {0}: Additional Attribute Value {1} does not exist","Рядок {0}: значення додаткового атрибута {1} не існує"
+"Row {0}: Value {1} belongs to attribute {2}, not {3}","Рядок {0}: значення {1} належить атрибуту {2}, а не {3}"
+"Row {0}: Value {1} is disabled","Рядок {0}: значення {1} вимкнено"
+"Row {0}: Attribute {1} is disabled","Рядок {0}: атрибут {1} вимкнено"
+"Serial Attributes","Атрибути серійних номерів"
+"Only Missing This Attribute","Лише без цього атрибута"
+"Set Attribute","Задати атрибут"
+"Set By Pasted Serial Numbers","Задати за списком серійних номерів"
+"Set Attribute for {0} Serial No(s)","Задати атрибут для {0} серійних номерів"
+"Overwrite Existing Value","Перезаписати наявне значення"
+"Uncheck to fill only serials that have no value yet","Зніміть позначку, щоб заповнити лише ті, де значення ще немає"
+"Clear Attribute","Очистити атрибут"
+"Remove this attribute from the selected serial numbers","Видалити цей атрибут з вибраних серійних номерів"
+"Not set","Не задано"
+"No serial numbers match these filters","Немає серійних номерів за цими фільтрами"
+"Select at least one serial number","Виберіть щонайменше один серійний номер"
+"Shown: {0}","Показано: {0}"
+"Selected: {0}","Вибрано: {0}"
+"Updated: {0}","Оновлено: {0}"
+"Skipped (already set): {0}","Пропущено (вже задано): {0}"
+"Failed: {0}","Помилок: {0}"
+"Bulk Update","Масове оновлення"
+"Updating serial numbers...","Оновлення серійних номерів..."
+"Serial Numbers","Серійні номери"
+"Separate by new line, comma, semicolon, tab or space","Розділяйте новим рядком, комою, крапкою з комою або табуляцією"
+"Check List","Перевірити список"
+"Unknown serial numbers: {0}","Невідомі серійні номери: {0}"
+"Belong to another Item: {0}","Належать іншому товару: {0}"
+"Some Serial Numbers Were Skipped","Деякі серійні номери пропущено"
+"No serial numbers selected","Не вибрано жодного серійного номера"
+"Attribute is required","Потрібно вказати атрибут"
+"Value is required","Потрібно вказати значення"
+"Additional Attribute Value {0} does not exist","Значення додаткового атрибута {0} не існує"
+"Value {0} belongs to attribute {1}, not {2}","Значення {0} належить атрибуту {1}, а не {2}"
+"Serial No has no Additional Attributes table","У серійного номера немає таблиці додаткових атрибутів"
+"Shown: {0} of {1}","Показано: {0} з {1}"
+"{0} more not shown — narrow the filters","Ще {0} не показано — звузьте фільтри"
+"CallMeBot","CallMeBot"
+"WhatsApp Notifications (CallMeBot)","Сповіщення у WhatsApp (CallMeBot)"
+"Mirror desk notifications to WhatsApp through the free CallMeBot relay","Дублювати сповіщення робочого столу у WhatsApp через безкоштовний сервіс CallMeBot"
+"Send notifications to WhatsApp","Надсилати сповіщення у WhatsApp"
+"CallMeBot Phone","Номер телефону CallMeBot"
+"Phone number with country code, digits only (for example 380636400706)","Номер телефону з кодом країни, лише цифри (наприклад 380636400706)"
+"CallMeBot API Key","API-ключ CallMeBot"
+"Key sent back by the bot after you activate it from your phone","Ключ, який бот надсилає у відповідь після активації з вашого телефону"
+"Send test message","Надіслати тестове повідомлення"
+"Sending test message...","Надсилання тестового повідомлення..."
+"Test message sent","Тестове повідомлення надіслано"
+"Test message from ERPNext","Тестове повідомлення з ERPNext"
+"CallMeBot is not configured for this user","CallMeBot не налаштовано для цього користувача"
+"You can only send a test message to yourself.","Ви можете надіслати тестове повідомлення лише самому собі."
+"CallMeBot could not deliver the message: {0}","CallMeBot не зміг доставити повідомлення: {0}"
+"CallMeBot Settings","Налаштування CallMeBot"
+"Privacy Mode (Mask Messages)","Режим конфіденційності (маскування сповіщень)"
+"Send masked templates or generic messages instead of raw notification text to WhatsApp to prevent exposing internal data.","Надсилати масковані шаблони або загальні повідомлення замість повного тексту сповіщень у WhatsApp, щоб уникнути витоку внутрішніх даних."
+"Default Fallback Message","Загальне резервне повідомлення"
+"Default generic message used when no specific template matches the notification.","Загальне повідомлення за замовчуванням, якщо для сповіщення не налаштовано окремий шаблон."
+"Include Document Link by Default","Додавати посилання на документ за замовчуванням"
+"Append the direct URL of the ERPNext document to the WhatsApp notification.","Додавати пряме посилання на документ ERPNext до сповіщення у WhatsApp."
+"Notification Templates","Шаблони сповіщень"
+"Configure custom message texts per notification type or document type.","Налаштуйте власні тексти повідомлень для типів сповіщень або типів документів."
+"Notification Type","Тип сповіщення"
+"Document Type","Тип документа"
+"Message Template","Шаблон повідомлення"
+"Include Link","Додавати посилання"
+"CallMeBot Notification Template","Шаблон сповіщення CallMeBot"
+"У вас нове сповіщення у ERPnext","У вас нове сповіщення у ERPnext"
+"На вас призначено нове завдання","На вас призначено нове завдання"
+"Вас згадали у коментарі","Вас згадали у коментарі"
+"Вам надано доступ до документу","Вам надано доступ до документу"
+"Only System Managers can configure CallMeBot Settings.","Лише системні адміністратори (System Manager) можуть налаштовувати CallMeBot."
+Calculate Totals,Підрахувати суми
+Rows,Рядків
+No rows to calculate.,Немає рядків для підрахунку.
+"Official Salary","Офіційна ЗП (на картку)"
+"Cash Salary","ЗП готівкою"
+"Salary Effective From","ЗП діє з"
+"Pay in Cash","Виплата готівкою"
+"Paid to the bank card. Together with the cash part it makes up the full salary.","Виплачується на картку. Разом із готівковою частиною складає повний оклад."
+"The Salary Structure Assignment is created from this date. Defaults to the first day of the current month.","Призначення структури ЗП створюється з цієї дати. За замовчуванням — перше число поточного місяця."
+"The amount is moved into the cash payout instead of the official net pay.","Сума переноситься у готівкову виплату замість офіційної суми до виплати."
+"Active Salary Structure {0} not found, the assignment was not created.","Активну структуру ЗП {0} не знайдено, призначення не створено."
+"Salary is already processed for the period starting {0}, the assignment was left untouched.","Зарплату за період, що починається {0}, вже нараховано — призначення не змінювалось."
+"Salary Component {0} does not exist.","Компонент зарплати {0} не існує."
+"Payroll Sheet","Зарплатна відомість"
+"Payroll Sheet Item","Рядок зарплатної відомості"
+"Payroll UA","Зарплата"
+"Credited Days","Зараховано днів"
+"Working Days","Робочих днів"
+"Daily Rate","Денна ставка"
+"Accrued","Нараховано"
+"Advance to Card","Аванс на картку"
+"Advance in Cash","Аванс готівкою"
+"Salary to Card","ЗП на картку"
+"Salary in Cash","ЗП готівкою"
+"Deposit","Задаток"
+"Outstanding","Залишок до виплати"
+"Paid On","Дата виплати"
+"Period Start","Початок періоду"
+"Period End","Кінець періоду"
+"Headcount","Працівники"
+"Without Attendance","Без табеля"
+"Paid Employees","Виплачено працівникам"
+"To Pay","До виплати"
+"Partly Paid","Частково виплачено"
+"Refresh from HRMS","Оновити з HRMS"
+"Calculate Advance","Порахувати аванс"
+"Accrue Salary","Нарахувати ЗП"
+"Pay Advance","Виплатити аванс"
+"Pay Salary","Виплатити ЗП"
+"Advance is calculated up to this day","Аванс рахується по це число включно"
+"Working...","Виконую..."
+"No attendance for the period","Немає табеля за період"
+"Not accrued yet","Ще не нараховано"
+"Advance to cards","Аванс на картки"
+"Advance in cash","Аванс готівкою"
+"Salary to cards","Зарплата на картки"
+"Salary in cash","Зарплата готівкою"
+"Nobody has a complete timesheet for this period.","За цей період немає жодного працівника з повним табелем."
+"Payroll Entry {0} is already submitted for this sheet.","Нарахування {0} для цієї відомості вже подане."
+"Set the payroll accounts for company {0} first.","Спершу задайте зарплатні рахунки для компанії {0}."
+"{0} employees have no attendance for the period — they get no salary slip.","{0} працівників не мають табеля за період — на них не буде розрахункового листка."
+"Salary Approval","Затвердження премій"
+"Salary Approval Item","Рядок затвердження ЗП"
+"Total Salary","Разом ЗП"
+"Bonus %","Премія %"
+"Bonus Amount","Сума премії"
+"Allowance","Надбавка"
+"Pay Bonus in Cash","Премію платимо готівкою"
+"The salary is applied to the employee card from this date.","З цієї дати зарплата застосовується в картці працівника."
+"Load Employees","Завантажити працівників"
+"Approved","Затверджено"
+"This approval has already been applied.","Це затвердження вже застосоване."
+"The salary of {0} employees will be written to their cards and the bonuses will be created. Continue?","Зарплата {0} працівників запишеться в їхні картки, а премії будуть створені. Продовжити?"
+"Salary updated for {0}, bonuses created: {1}, allowances: {2}","Оновлено зарплату: {0}, створено премій: {1}, надбавок: {2}"
+"Payroll by Department","Зарплата підрозділу"
+"Select the company, the year and the month.","Оберіть компанію, рік і місяць."
+"Mandatory on Receipt","Обов’язковий при прийманні"
+"Documents that create serial numbers cannot be saved until this attribute has a value","Документи, які створюють серійні номери, не збережуться, поки цей атрибут не заповнено"
+"A disabled attribute cannot be mandatory","Вимкнений атрибут не може бути обов’язковим"
+"{0}: additional attribute {1} is mandatory","{0}: додатковий атрибут {1} обов’язковий"
+"Additional attribute {0} is mandatory","Додатковий атрибут {0} обов’язковий"
+"Applied to every serial number this receipt brings in","Застосовується до кожного серійного номера, який приймає цей документ"
+"Applied to every serial number in this bundle on submit","Застосовується до кожного серійного номера цього пакета під час проведення"
+"Reload Employees","Оновити список працівників"
+"Month is required","Вкажіть місяць"
+"Attendance Sheet Not Approved","Табель не затверджено"
+"The attendance sheet for {0} is not approved for {1} employees: {2}","Табель за {0} не затверджено для {1} працівників: {2}"
+"The attendance sheet of this employee is not approved for the whole month","Табель цього працівника затверджений не на весь місяць"
+"The attendance sheet is not approved","Табель не затверджено"
+"{0} employees have no approved attendance sheet for this month — the salary cannot be approved.","{0} працівників без затвердженого табеля за цей місяць — зарплату затвердити не можна."
+"Attendance Approved","Табель затверджено"
+"Attendance Note","Примітка по табелю"
+"Fill Amounts for Everyone","Заповнити суми всім"
+"Fill Amounts","Заповнити суми"
+"Fill","Заповнити"
+"Employees by Department","Працівники за підрозділами"
+"No employees loaded yet.","Працівників ще не завантажено."
+"No employee matches this search.","За цим пошуком працівників не знайдено."
+"Search by name","Пошук по ПІБ"
+"No Department","Без підрозділу"
+"No attendance sheet","Немає табеля"
+"Attendance","Табель"
+"The row of this employee is not on the current page of the table.","Рядок цього працівника не на поточній сторінці таблиці."
+"Salary Not Approved","ЗП не затверджена"
+"Approve the salary for {0} first — there is no approved Salary Approval for {1}.","Спочатку затвердіть ЗП за {0} — для {1} немає затвердженого «Затвердження ЗП»."
+"Gross Pay","Нараховано"
+"To Card","На картку"
+"Deposit","Задаток"
+"Days","Днів"
+"Paid","Виплачено"
+"Salary Advance","Аванс"
+"Salary Advance Item","Рядок авансу"
+"Advance","Аванс"
+"Post","Провести"
+"Recalculate","Перерахувати"
+"Create Advance","Створити аванс"
+"Paid For Days Up To","Аванс за дні до"
+"Without Approved Attendance","Без затвердженого табеля"
+"Advance to Cards","Аванс на картки"
+"Working Days in Half","Робочих днів у половині"
+"Working Days in Month","Робочих днів у місяці"
+"Additional Salary (Card)","Відрахування (картка)"
+"Additional Salary (Cash)","Відрахування (готівка)"
+"The cut-off day must be between 1 and 28.","День відсікання має бути від 1 до 28."
+"The advance has already been created — cancel it before recalculating.","Аванс уже створений — скасуйте його, перш ніж перераховувати."
+"There is nothing to pay: every advance is zero.","Немає чого платити: усі суми авансу нульові."
+"Create the advance first.","Спочатку створіть аванс."
+"The attendance sheet up to {0} is not approved for {1} employees: {2}","Табель по {0} не затверджений для {1} працівників: {2}"
+"The attendance sheet of this employee is not approved for the first half of the month","Табель цього працівника не затверджений за першу половину місяця"
+"Set the holiday list for {0} — without it every day counts as a working day.","Заповніть список вихідних для {0} — без нього кожен день рахується робочим."
+"No Holiday List","Немає списку вихідних"
+"The advance of {0} employees will be filed as a deduction on their payslips. Continue?","Аванс {0} працівникам буде оформлений відрахуванням у їхніх листках. Продовжити?"
+"{0} employees have no approved attendance for the first half — the advance cannot be created.","У {0} працівників немає затвердженого табеля за першу половину — аванс створити не можна."
+"Advance {0}","Аванс {0}"
+"{0} employees have no salary structure assigned: {1}","{0} працівникам не призначена структура ЗП: {1}"
+"No Salary Structure","Немає структури ЗП"
+"Salary Change","Зміна окладу"
+"Salary History","Історія окладів"
+"Salaries Changed","Змінено окладів"
+"Current Salary","Чинний оклад"
+"New Salary","Новий оклад"
+"Current Official Salary","Чинний офіційний оклад"
+"Current Cash Salary","Чинний оклад готівкою"
+"Current Total Salary","Чинний оклад разом"
+"New Official Salary","Новий офіційний оклад"
+"New Cash Salary","Новий оклад готівкою"
+"New Total Salary","Новий оклад разом"
+"Change %","Зміна, %"
+"Changed","Змінено"
+"Changed only","Лише змінені"
+"Only the rows already changed","Лише рядки, які вже змінені"
+"Set Amount","Задати суму"
+"Raise by %","Підняти на %"
+"Past","Минулий"
+"Current","Чинний"
+"Future","Майбутній"
+"Nothing to Change","Нічого міняти"
+"Month Already Started","Місяць уже почався"
+"Salary Already Processed","Зарплату вже нараховано"
+"Bonuses Not Approved","Премії не затверджені"
+"Salary Structure Assignment","Призначення структури ЗП"
+"This change has already been applied.","Цю зміну вже застосовано."
+"No salary is changed here — the new amounts equal the current ones.","Тут нічого не змінюється — нові суми дорівнюють чинним."
+"The salary may only be changed from a future month, {0} has already started.","Оклад можна змінити лише з майбутнього місяця, {0} уже почався."
+"The salary for {0} is already processed for {1} employees: {2}","Зарплату за {0} уже нараховано {1} працівникам: {2}"
+"The salary of {0} employees will change from {1}. Continue?","Оклад {0} працівників зміниться з {1}. Продовжити?"
+"Salary updated for {0} employees","Оклад оновлено для {0} працівників"
+"Bonuses and allowances will be created for {0} employees. Continue?","Буде створено премії та надбавки для {0} працівників. Продовжити?"
+"Bonuses created: {0}, allowances: {1}","Створено премій: {0}, надбавок: {1}"
+"{0} employees have no approved attendance sheet for this month — the bonuses cannot be approved.","{0} працівників не мають затвердженого табеля за цей місяць — премії затвердити не можна."
+"Approve the bonuses for {0} first — there is no approved bonus sheet for {1}.","Спершу затвердьте премії за {0} — для {1} немає затвердженого документа премій."
+"The bonuses for this month are not approved yet — the salary cannot be accrued or paid.","Премії за цей місяць ще не затверджені — зарплату не можна ані нарахувати, ані виплатити."
+"The month the bonuses are accrued for.","Місяць, за який нараховуються премії."
+"The new salary applies from the first day of this month. Only a future month is allowed.","Новий оклад діє з першого числа цього місяця. Дозволений лише майбутній місяць."
 "Please fill the following mandatory fields before saving:","Будь ласка, заповніть такі обов’язкові поля перед збереженням:"
 "In {0}, {1} is required in every row.","У таблиці {0} поле {1} є обов’язковим у кожному рядку."
 "Approval Route","Маршрут погодження"

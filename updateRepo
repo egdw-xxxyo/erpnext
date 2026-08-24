@@ -10,6 +10,18 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "==> Pulling erpnext (branch: $BRANCH)..."
 git pull origin "$BRANCH"
 
+# `git pull origin <branch>` passes an explicit refspec, which turns tag auto-following off —
+# so release tags never arrive and `./deploy` refuses to deploy an "untagged" commit on prod.
+echo "==> Fetching tags..."
+git fetch --tags --force origin
+
+CURRENT_TAG=$(git tag --points-at HEAD | tail -1)
+if [ -n "$CURRENT_TAG" ]; then
+    echo "    HEAD is tagged: $CURRENT_TAG"
+else
+    echo "    WARNING: HEAD ($(git rev-parse --short HEAD)) has no tag — prod deploy will be blocked."
+fi
+
 echo "==> Syncing submodule URLs from .gitmodules..."
 git submodule sync
 

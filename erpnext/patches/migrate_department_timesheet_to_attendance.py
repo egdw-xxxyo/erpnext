@@ -1,8 +1,9 @@
 """Перенесення табелів (Department Timesheet) у штатний облік HRMS.
 
-Разовий скрипт міграції: рядки табеля стають записами Attendance, а дні відпусток
-і лікарняних — заявками Leave Application. Свідомо НЕ реєструється в patches.txt —
-запускається вручну для конкретного місяця:
+Рядки табеля стають записами Attendance, а дні відпусток і лікарняних — заявками
+Leave Application. Усі місяці разом переносить патч
+`erpnext.patches.v15_0.migrate_department_timesheet` (на кожній міграції, один раз).
+Окремий місяць можна прогнати руками:
 
     bench --site frontend execute \
         erpnext.patches.migrate_department_timesheet_to_attendance.execute \
@@ -43,7 +44,7 @@ READY_STATUS = "Передано в бухгалтерію"
 
 
 def execute(month=None, year=None, dry_run=True):
-	if not frappe.db.table_exists("Department Timesheet"):
+	if not timesheet_exists():
 		print("Department Timesheet не існує — нічого мігрувати")
 		return
 
@@ -95,6 +96,10 @@ def execute(month=None, year=None, dry_run=True):
 			problems.append((row["employee"], row["date"], row["attendance_status"], str(exc)))
 
 	for application in leave_applications:
+		if _leave_exists(application):
+			created["skipped"] += 1
+			continue
+
 		try:
 			doc = frappe.get_doc(
 				{
@@ -121,6 +126,43 @@ def execute(month=None, year=None, dry_run=True):
 	print(f"Помилок: {len(problems)}")
 	for problem in problems:
 		print(f"  {problem}")
+
+
+def _leave_exists(application):
+	"""Заявка на ці дні вже є — повторний прогін не має плодити дублі."""
+	return frappe.db.exists(
+		"Leave Application",
+		{
+			"employee": application["employee"],
+			"leave_type": application["leave_type"],
+			"from_date": ("<=", application["to_date"]),
+			"to_date": (">=", application["from_date"]),
+			"docstatus": ("<", 2),
+		},
+	)
+
+
+def timesheet_exists():
+	"""Табель був desk-DocType: таблиця може пережити видалення схеми, тож питаємо обидва."""
+	return bool(frappe.db.exists("DocType", "Department Timesheet")) and frappe.db.table_exists(
+		"Department Timesheet"
+	)
+
+
+def periods():
+	"""Місяці, за якими є готові табелі — (month, year) без повторів."""
+	if not timesheet_exists():
+		return []
+
+	rows = frappe.get_all(
+		"Department Timesheet",
+		filters={"status_tabel": READY_STATUS},
+		fields=["month", "year"],
+		group_by="month, year",
+		order_by="year asc, month asc",
+	)
+
+	return [(row.month, row.year) for row in rows if row.month and row.year]
 
 
 def _collect(month, year):

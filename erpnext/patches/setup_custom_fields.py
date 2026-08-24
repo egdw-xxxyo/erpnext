@@ -3,6 +3,8 @@
 Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 Or via bench console and calling execute() manually.
 """
+import json
+
 import frappe
 
 from erpnext.stock.responsible_employee import RESPONSIBLE_EMPLOYEE_DIMENSION
@@ -19,8 +21,13 @@ def execute():
 	create_custom_field_on_qi()
 	create_custom_field_on_serial_no()
 	remove_flight_test_status_from_serial_no()
+	create_additional_attributes_on_serial_no()
+	create_additional_attributes_on_intake()
+	seed_firmware_additional_attribute()
+	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
+	create_salary_split_fields()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -42,6 +49,12 @@ def execute():
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
 	create_responsible_employee_dimension()
+	setup_group_access_fields()
+	setup_group_access_role()
+	setup_project_access_permissions()
+	setup_serial_no_write_for_stock_user()
+	create_callmebot_fields()
+	setup_callmebot_default_settings()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -381,6 +394,69 @@ def create_custom_fields_on_employee():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+def create_salary_split_fields():
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_official_salary",
+			"fieldtype": "Currency",
+			"label": "Official Salary",
+			"options": "salary_currency",
+			"insert_after": "ctc",
+			"description": "Paid to the bank card. Together with the cash part it makes up the full salary.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_cash_salary",
+			"fieldtype": "Currency",
+			"label": "Cash Salary",
+			"options": "salary_currency",
+			"insert_after": "custom_official_salary",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_salary_effective_from",
+			"fieldtype": "Date",
+			"label": "Salary Effective From",
+			"insert_after": "custom_cash_salary",
+			"description": "The Salary Structure Assignment is created from this date. Defaults to the first day of the current month.",
+		},
+		{
+			"dt": "Additional Salary",
+			"fieldname": "custom_pay_in_cash",
+			"fieldtype": "Check",
+			"label": "Pay in Cash",
+			"insert_after": "amount",
+			"description": "The amount is moved into the cash payout instead of the official net pay.",
+		},
+	]
+	_create_custom_fields(fields)
+	_make_ctc_read_only()
+
+
+def _make_ctc_read_only():
+	"""CTC becomes the sum of the official and cash parts, so nobody may type it in by hand."""
+	existing = frappe.db.exists(
+		"Property Setter", {"doc_type": "Employee", "field_name": "ctc", "property": "read_only"}
+	)
+	if existing:
+		print("  Property Setter exists: Employee.ctc.read_only")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Property Setter",
+			"doctype_or_field": "DocField",
+			"doc_type": "Employee",
+			"field_name": "ctc",
+			"property": "read_only",
+			"property_type": "Check",
+			"value": "1",
+		}
+	).insert(ignore_permissions=True)
+	print("  Created Property Setter: Employee.ctc.read_only")
 
 
 def remove_label_templates_from_employee():
@@ -1055,3 +1131,392 @@ def _create_custom_fields(fields):
 		)
 		doc.insert(ignore_permissions=True)
 		print(f"  Created Custom Field: {f['dt']}.{f['fieldname']}")
+
+
+def setup_group_access_fields():
+	"""Auto-sharing settings on Employee Group.
+
+	A DocShare row can name an Employee Group instead of a user, so one row grants the whole
+	group access. These fields let a group lead decide that whatever the group creates is
+	shared with the group automatically."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee Group",
+				"fieldname": "group_access_section",
+				"fieldtype": "Section Break",
+				"label": "Group Access",
+				"insert_after": "employee_list",
+			},
+			{
+				"dt": "Employee Group",
+				"fieldname": "auto_share_enabled",
+				"fieldtype": "Check",
+				"label": "Share Created Documents With Group",
+				"description": (
+					"Documents created by a member are shared with the whole group automatically."
+				),
+				"insert_after": "group_access_section",
+			},
+			{
+				"dt": "Employee Group",
+				"fieldname": "auto_share_write",
+				"fieldtype": "Check",
+				"label": "Group Can Edit",
+				"description": "Without this the group only gets read access.",
+				"depends_on": "auto_share_enabled",
+				"insert_after": "auto_share_enabled",
+			},
+			{
+				"dt": "Employee Group",
+				"fieldname": "auto_share_doctypes",
+				"fieldtype": "Table",
+				"label": "Auto-Shared Document Types",
+				"options": "Access Group Doctype",
+				"depends_on": "auto_share_enabled",
+				"insert_after": "auto_share_write",
+			},
+		]
+	)
+
+
+def setup_group_access_role():
+	"""Let a department lead run their own group instead of filing a ticket with the ERP team.
+
+	Employee Group ships with a System Manager-only permission block, which is exactly the
+	bottleneck this feature exists to remove."""
+	role = "Group Access Manager"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Role: {role}")
+
+	doctype = "Employee Group"
+	if not frappe.db.exists("DocType", doctype):
+		print(f"  Skipped perms, DocType missing: {doctype}")
+		return
+
+	# One Custom DocPerm row shadows the whole standard permission block, so copy the
+	# standard rows across before adding ours (same trap as setup_chat_manager_role).
+	_restore_standard_perms(doctype)
+
+	if frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+		print(f"  Custom DocPerm exists: {doctype} / {role}")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Custom DocPerm",
+			"parent": doctype,
+			"parenttype": "DocType",
+			"parentfield": "permissions",
+			"role": role,
+			"permlevel": 0,
+			"read": 1,
+			"write": 1,
+			"create": 1,
+			"report": 1,
+		}
+	).insert(ignore_permissions=True)
+	frappe.clear_cache(doctype=doctype)
+	print(f"  Created Custom DocPerm: {doctype} / {role}")
+
+
+def setup_project_access_permissions():
+	"""Restrict Projects User to its own documents so group sharing decides the rest.
+
+	Stock `project.json` / `task.json` give Projects User a blanket `read`, which is why a
+	user today either sees every project or none. With `if_owner` the role sees only what it
+	created, and `frappe.share` adds back what is shared with the user or their group —
+	db_query's `requires_owner_constraint` branch fetches shared documents specifically for
+	this combination.
+
+	`if_owner` rather than dropping `read`: with no read at all db_query takes the
+	`only_if_shared` path, which throws "No permission to read" instead of showing an empty
+	list to someone who has nothing shared yet.
+
+	`_restore_standard_perms` only runs on the first pass. It de-duplicates on
+	`(role, permlevel, if_owner)`, so once `if_owner` is flipped to 1 the standard row looks
+	missing and gets re-inserted with `if_owner = 0` — every later deploy would add another
+	duplicate, and an unrestricted row silently restores blanket read."""
+	role = "Projects User"
+
+	for doctype in ("Project", "Task"):
+		if not frappe.db.exists("DocType", doctype):
+			continue
+
+		if not frappe.db.exists("Custom DocPerm", {"parent": doctype}):
+			_restore_standard_perms(doctype)
+
+		rows = frappe.get_all(
+			"Custom DocPerm",
+			filters={"parent": doctype, "role": role, "permlevel": 0},
+			pluck="name",
+			order_by="creation asc",
+		)
+		if not rows:
+			continue
+
+		# collapse duplicates left behind by earlier runs of this function
+		for extra in rows[1:]:
+			frappe.delete_doc("Custom DocPerm", extra, force=True, ignore_permissions=True)
+			print(f"  {doctype}: removed duplicate Custom DocPerm for {role}")
+
+		if frappe.db.get_value("Custom DocPerm", rows[0], "if_owner"):
+			print(f"  {doctype}: {role} already restricted to own documents")
+			continue
+
+		frappe.db.set_value("Custom DocPerm", rows[0], "if_owner", 1)
+		frappe.clear_cache(doctype=doctype)
+		print(f"  {doctype}: {role} restricted to own documents")
+
+
+def create_additional_attributes_on_serial_no():
+	"""Attach the reusable `Additional Attribute Row` table to Serial No.
+
+	The same dict with a different `dt` attaches per-record key/value metadata to any other
+	DocType — no new fields, no new code."""
+	fields = [
+		{
+			"dt": "Serial No",
+			"fieldname": "additional_attributes",
+			"fieldtype": "Table",
+			"label": "Additional Attributes",
+			"options": "Additional Attribute Row",
+			"insert_after": "inspection_status",
+			"description": "Per-unit metadata (firmware build, and anything added later)",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_additional_attributes_on_intake():
+	"""Attach the same reusable table to the documents that bring serial numbers into stock.
+
+	The receiving clerk types the values on the `Purchase Receipt`; they are copied onto every
+	`Serial and Batch Bundle` the receipt generates and from there onto every serial. The table
+	sits on the receipt, not on its item rows, because a child table inside a child table is not
+	something Frappe renders.
+
+	The bundle carries the same table, which doubles as the per-item override (open the bundle
+	from the row) and covers the paths that never see a Purchase Receipt at all — the selector
+	dialog, the CSV import and the scanner."""
+	fields = [
+		{
+			"dt": "Purchase Receipt",
+			"fieldname": "additional_attributes_section",
+			"fieldtype": "Section Break",
+			"label": "Additional Attributes",
+			"insert_after": "items",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Purchase Receipt",
+			"fieldname": "additional_attributes",
+			"fieldtype": "Table",
+			"label": "Additional Attributes",
+			"options": "Additional Attribute Row",
+			"insert_after": "additional_attributes_section",
+			"description": "Applied to every serial number this receipt brings in",
+		},
+		{
+			"dt": "Serial and Batch Bundle",
+			"fieldname": "additional_attributes",
+			"fieldtype": "Table",
+			"label": "Additional Attributes",
+			"options": "Additional Attribute Row",
+			"insert_after": "entries",
+			"description": "Applied to every serial number in this bundle on submit",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def seed_firmware_additional_attribute():
+	"""Seed the «Прошивка» attribute and its known builds.
+
+	Data records, not code: Ukrainian on purpose, and users add further builds from the desk
+	without a deploy."""
+	if not frappe.db.exists("DocType", "Additional Attribute"):
+		return
+
+	attribute = "Прошивка"
+	if not frappe.db.exists("Additional Attribute", attribute):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute",
+				"attribute_name": attribute,
+				"description": "Версія прошивки, встановлена на конкретному екземплярі",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute: {attribute}")
+
+	values = [
+		("32 біт стара", "32O"),
+		("32 біт нова", "32N"),
+		("16 біт стара", "16O"),
+		("16 біт нова", "16N"),
+	]
+	for value, abbr in values:
+		if frappe.db.exists("Additional Attribute Value", {"attribute": attribute, "value": value}):
+			continue
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute Value",
+				"attribute": attribute,
+				"value": value,
+				"abbr": abbr,
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute Value: {attribute} / {value}")
+
+
+def add_serial_attributes_shortcut():
+	"""Put the «Serial Attributes» page on the Stock workspace.
+
+	Added at runtime instead of editing the stock workspace JSON — that file is upstream's and
+	every edit to it is a merge conflict."""
+	if not frappe.db.exists("Workspace", "Stock") or not frappe.db.exists("Page", "serial-attributes"):
+		return
+
+	label = "Атрибути серійних номерів"
+	workspace = frappe.get_doc("Workspace", "Stock")
+	if any(s.link_to == "serial-attributes" for s in workspace.shortcuts):
+		return
+
+	workspace.append(
+		"shortcuts", {"label": label, "type": "Page", "link_to": "serial-attributes", "color": "Blue"}
+	)
+
+	content = json.loads(workspace.content or "[]")
+	content.append({"id": "serialAttributes", "type": "shortcut", "data": {"shortcut_name": label, "col": 3}})
+	workspace.content = json.dumps(content)
+
+	workspace.save(ignore_permissions=True)
+	print("  Added Stock workspace shortcut: Serial Attributes")
+
+
+def setup_serial_no_write_for_stock_user():
+	"""Let plain stock users fill in serial attributes.
+
+	The «Атрибути серійних номерів» page writes `Additional Attribute Row` children onto the
+	Serial No document, so it needs write on Serial No — stock upstream grants Stock User
+	read only. Granted as a Custom DocPerm (`setup_custom_perms` copies the standard rules
+	first, so Item Manager / Stock Manager keep theirs)."""
+	from frappe.permissions import add_permission, update_permission_property
+
+	doctype = "Serial No"
+	role = "Stock User"
+
+	if not frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+		add_permission(doctype, role, 0)
+
+	for ptype in ("read", "write"):
+		update_permission_property(doctype, role, 0, ptype, 1, validate=False)
+
+	print(f"  Granted write on {doctype} to {role}")
+	frappe.clear_cache()
+
+
+def create_callmebot_fields():
+	"""Per-user CallMeBot credentials on Notification Settings.
+
+	Notification Settings is already the per-user notification preferences document (its name is
+	the user id), and every user may read/write their own via its `has_permission`. WhatsApp is
+	just one more delivery channel, so the fields belong next to the existing system/email
+	toggles rather than on User."""
+	fields = [
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_section",
+			"fieldtype": "Section Break",
+			"label": "WhatsApp Notifications (CallMeBot)",
+			"insert_after": "energy_points_system_notifications",
+			"description": "Mirror desk notifications to WhatsApp through the free CallMeBot relay",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_enabled",
+			"fieldtype": "Check",
+			"label": "Send notifications to WhatsApp",
+			"insert_after": "callmebot_section",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_phone",
+			"fieldtype": "Data",
+			"label": "CallMeBot Phone",
+			"insert_after": "callmebot_enabled",
+			"depends_on": "eval:doc.callmebot_enabled",
+			"mandatory_depends_on": "eval:doc.callmebot_enabled",
+			"description": "Phone number with country code, digits only (for example 380636400706)",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_column",
+			"fieldtype": "Column Break",
+			"insert_after": "callmebot_phone",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_api_key",
+			"fieldtype": "Data",
+			"label": "CallMeBot API Key",
+			"insert_after": "callmebot_column",
+			"depends_on": "eval:doc.callmebot_enabled",
+			"mandatory_depends_on": "eval:doc.callmebot_enabled",
+			"no_copy": 1,
+			"description": "Key sent back by the bot after you activate it from your phone",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def setup_callmebot_default_settings():
+	"""Initialize CallMeBot Settings Single DocType with standard privacy templates."""
+	if not frappe.db.exists("DocType", "CallMeBot Settings"):
+		return
+
+	try:
+		settings = frappe.get_doc("CallMeBot Settings")
+		modified = False
+
+		if not settings.default_message:
+			settings.default_message = "У вас нове сповіщення у ERPnext"
+			settings.privacy_mode = 1
+			settings.include_link = 1
+			modified = True
+
+		if not settings.templates:
+			settings.append(
+				"templates",
+				{
+					"notification_type": "Assignment",
+					"template": "На вас призначено нове завдання",
+					"include_link": 1,
+				},
+			)
+			settings.append(
+				"templates",
+				{
+					"notification_type": "Mention",
+					"template": "Вас згадали у коментарі",
+					"include_link": 1,
+				},
+			)
+			settings.append(
+				"templates",
+				{
+					"notification_type": "Share",
+					"template": "Вам надано доступ до документу",
+					"include_link": 1,
+				},
+			)
+			modified = True
+
+		if modified:
+			settings.save(ignore_permissions=True)
+			print("  Initialized CallMeBot Settings default privacy templates")
+	except Exception as e:
+		print(f"  Warning: could not initialize CallMeBot Settings: {e}")

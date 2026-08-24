@@ -50,6 +50,12 @@ require_tag_on_prod() {
     echo "ERROR: prod site but '$DIR' is not a git repo — cannot verify release tag."
     exit 1
   fi
+  # Merge commits are exempt: a merge of a tagged branch does not itself carry
+  # the tag, so requiring one here would block every merge-based prod deploy.
+  if [ "$(git -C "$DIR" rev-list --no-walk --count --merges HEAD 2>/dev/null)" = "1" ]; then
+    echo "Prod tag check skipped — HEAD ($(git -C "$DIR" rev-parse --short HEAD)) is a merge commit."
+    return 0
+  fi
   if ! git -C "$DIR" describe --exact-match --tags HEAD >/dev/null 2>&1; then
     echo "ERROR: prod deploy blocked — current commit ($(git -C "$DIR" rev-parse --short HEAD)) has no git tag."
     echo "Tag the release first, e.g.:"
@@ -156,15 +162,73 @@ build_image() {
 }
 
 sync_built_assets() {
+  # The image only carries sites/assets when the Dockerfile happened to leave it
+  # there; normally the directory is created at runtime and the built bundles
+  # live under apps/*/public/dist. Without this guard tar reads an empty stream,
+  # fails, and `set -e` kills the whole deploy before migrate and fix_assets ever
+  # run — silently, because --silent routes the error to /dev/null.
+  if ! docker run --rm --entrypoint test "$IMAGE_NAME" \
+       -d /home/frappe/frappe-bench/sites/assets 2>/dev/null; then
+    say "==> Image carries no sites/assets — skipping (bundles come from apps/*/public/dist)."
+    return 0
+  fi
+
   say "==> Syncing built assets from image to sites volume..."
   # --entrypoint tar: the image entrypoint prints "Linking fresh assets to volume..."
   # on stdout, which corrupts the tar stream piped into the backend container.
   docker run --rm --entrypoint tar "$IMAGE_NAME" -cf - --ignore-failed-read \
     -C /home/frappe/frappe-bench/sites/assets \
     frappe erpnext $(extra_apps_enabled) locale assets.json assets-rtl.json 2>/dev/null | \
-    dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/
+    dc exec -T -u root backend tar -xf - -C /home/frappe/frappe-bench/sites/assets/ || {
+      echo "WARNING: asset sync from image failed — manifest check will rebuild if needed"
+      return 0
+    }
   dc exec -T -u root backend chown -R frappe:frappe /home/frappe/frappe-bench/sites/assets/
   say "==> Assets synced."
+}
+
+# sites/assets/assets.json maps bundle -> hashed filename and is what every page
+# renders its <link>/<script> tags from. It lives in the *sites volume*, which
+# survives image rebuilds, while the hashed bundles themselves ship inside the
+# image under apps/*/public/dist. The image has no sites/assets directory at all
+# (it is created at runtime), so sync_built_assets cannot refresh the manifest —
+# a rebuild leaves the old manifest pointing at hashes that no longer exist and
+# nginx answers every asset request with its 404 HTML page ("Refused to apply
+# style ... MIME type ('text/html')"). Detect that and regenerate with a full
+# `bench build`; a partial --app build rewrites hashes for every app while
+# rebuilding only one, which is worse than doing nothing.
+ensure_assets_manifest() {
+  say "==> Verifying asset manifest..."
+  if dc exec -T backend bash -c 'cd /home/frappe/frappe-bench/sites && python3 -c "
+import json, os, sys
+
+try:
+    with open(\"assets/assets.json\") as f:
+        manifest = json.load(f)
+except Exception as exc:
+    print(f\"unreadable: {exc}\")
+    sys.exit(1)
+
+missing = [
+    path
+    for path in manifest.values()
+    if path.startswith(\"/assets/\") and not os.path.exists(path.lstrip(\"/\"))
+]
+if missing:
+    print(f\"{len(missing)} of {len(manifest)} bundles missing, e.g. {missing[0]}\")
+    sys.exit(1)
+print(f\"{len(manifest)} bundles OK\")
+"' 2>/dev/null; then
+    return 0
+  fi
+
+  say "==> Manifest is stale — running bench build (this takes a few minutes)..."
+  if [ "$DEPLOY_SILENT" = "1" ]; then
+    dc exec -T backend bench build >/dev/null 2>&1
+  else
+    dc exec -T backend bench build
+  fi
+  say "==> Assets rebuilt."
 }
 
 fix_assets() {
@@ -325,6 +389,11 @@ run_deploy() {
   # (created through the desk UI, custom=1) and never reach git or the image.
   # Graduate one with ./codify. Never fails the deploy.
   dc exec -T backend bench --site frontend execute erpnext.utilities.doctype_drift.report || true
+
+  # Must run before install_extra_apps: that is what copies assets to the
+  # frontend (nginx) container and flushes assets_json from Redis, so the
+  # manifest has to be correct by then.
+  ensure_assets_manifest
 
   install_extra_apps > "$out" 2>&1
 

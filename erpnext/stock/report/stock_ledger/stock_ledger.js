@@ -135,12 +135,54 @@ frappe.query_reports["Stock Ledger"] = {
 		return value;
 	},
 
+	after_datatable_render: function () {
+		const report = frappe.query_report;
+		report.$summary && report.$summary.empty().hide();
+	},
+
 	onload: function (report) {
 		report.page.add_inner_button(__("View Stock Balance"), function () {
 			var filters = report.get_values();
 			frappe.set_route("query-report", "Stock Balance", filters);
 		});
+
+		report.page.add_inner_button(__("Calculate Totals"), function () {
+			erpnext.stock_ledger_totals(report);
+		});
 	},
+};
+
+erpnext.stock_ledger_totals = function (report) {
+	const rows = (report.data || []).filter((row) => row && row.voucher_no);
+
+	if (!rows.length) {
+		frappe.msgprint(__("No rows to calculate."));
+		return;
+	}
+
+	let in_qty = 0;
+	let out_qty = 0;
+	let value_change = 0;
+
+	rows.forEach((row) => {
+		in_qty += flt(row.in_qty);
+		out_qty += flt(row.out_qty);
+		value_change += flt(row.stock_value_difference);
+	});
+
+	const currency = erpnext.get_currency(report.get_filter_value("company"));
+
+	const summary = [
+		{ label: __("In Qty"), value: in_qty, datatype: "Float", indicator: "Green" },
+		{ label: __("Out Qty"), value: out_qty, datatype: "Float", indicator: "Red" },
+		{ label: __("Qty Change"), value: in_qty + out_qty, datatype: "Float" },
+		{ label: __("Value Change"), value: value_change, datatype: "Currency", currency: currency },
+		{ label: __("Rows"), value: rows.length, datatype: "Int" },
+	];
+
+	report.$summary.empty();
+	summary.forEach((item) => frappe.utils.build_summary_item(item).appendTo(report.$summary));
+	report.$summary.show();
 };
 
 erpnext.utils.add_inventory_dimensions("Stock Ledger", 10);

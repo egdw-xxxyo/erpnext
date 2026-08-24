@@ -22,6 +22,7 @@ node_modules/
 .docker/
 .deploy-env
 .mcp.json
+.agents/
 snapshots/
 .db-snapshots/
 site-config.json
@@ -30,3 +31,5 @@ apps.json
 graphify-out/
 raw/
 .tunnel.env*
+.envrc
+bin/

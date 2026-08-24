@@ -251,6 +251,55 @@ class TestTask(unittest.TestCase):
 
 		self.assertRaises(TaskOwnedByAnotherGroupError, second_group.save)
 
+	def test_clearing_parent_removes_depends_on_row(self):
+		group_task = create_task(subject="_Test Clear Parent Group", is_group=1)
+		task = create_task(subject="_Test Clear Parent Child", parent_task=group_task.name)
+
+		task.reload()
+		task.status = "Completed"
+		task.completed_on = nowdate()
+		task.parent_task = None
+		task.save()
+
+		group_task.reload()
+		self.assertNotIn(task.name, [row.task for row in group_task.depends_on])
+		self.assertNotIn(task.name, group_task.depends_on_tasks or "")
+
+	def test_stale_depends_on_row_is_pruned_on_child_save(self):
+		group_task = create_task(subject="_Test Stale Group", is_group=1)
+		task = create_task(subject="_Test Stale Child")
+
+		# a row that bypasses the sync logic, like the ones left behind by older versions
+		row = frappe.get_doc(
+			{
+				"doctype": "Task Depends On",
+				"parent": group_task.name,
+				"parenttype": "Task",
+				"parentfield": "depends_on",
+				"task": task.name,
+				"idx": 99,
+			}
+		)
+		row.db_insert()
+
+		task.reload()
+		task.save()
+
+		self.assertFalse(frappe.db.exists("Task Depends On", row.name))
+
+	def test_detached_task_can_be_deleted(self):
+		group_task = create_task(subject="_Test Deletable Group", is_group=1)
+		task = create_task(subject="_Test Deletable Child", parent_task=group_task.name)
+
+		task.reload()
+		task.status = "Completed"
+		task.completed_on = nowdate()
+		task.parent_task = None
+		task.save()
+
+		frappe.delete_doc("Task", task.name)
+		self.assertFalse(frappe.db.exists("Task", task.name))
+
 
 def create_task(
 	subject,

@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:SC-{company}-{year}-{month}",
+ "creation": "2026-08-22 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "effective_from",
+  "year",
+  "month",
+  "column_break_period",
+  "status",
+  "section_break_totals",
+  "total_employees",
+  "column_break_total_1",
+  "employees_changed",
+  "column_break_total_2",
+  "total_current",
+  "column_break_total_3",
+  "total_new",
+  "column_break_total_4",
+  "total_change",
+  "section_break_employees",
+  "employees_preview",
+  "employees"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "description": "The new salary applies from the first day of this month. Only a future month is allowed.",
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Month",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Month",
+   "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nApproved",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_employees",
+   "fieldtype": "Int",
+   "label": "Employees",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "employees_changed",
+   "fieldtype": "Int",
+   "label": "Salaries Changed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_current",
+   "fieldtype": "Currency",
+   "label": "Current Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_new",
+   "fieldtype": "Currency",
+   "label": "New Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_change",
+   "fieldtype": "Currency",
+   "label": "Change",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_employees",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employees_preview",
+   "fieldtype": "HTML",
+   "label": "Employees by Department"
+  },
+  {
+   "fieldname": "employees",
+   "fieldtype": "Table",
+   "label": "Employees",
+   "options": "Salary Change Item"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Salary Change",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -266,6 +266,7 @@ erpnext.patches.v16_0.create_company_custom_fields
 erpnext.patches.merge_formula_into_value
 erpnext.patches.v15_0.rename_scanner_script_to_device_script
 erpnext.patches.v15_0.convert_device_script_log_to_runs
+erpnext.patches.v15_0.migrate_department_timesheet
 
 [post_model_sync]
 erpnext.patches.v15_0.create_asset_depreciation_schedules_from_assets
@@ -473,3 +474,4 @@ erpnext.patches.v15_0.add_eskd_workspace_card
 erpnext.patches.v15_0.setup_eskd_templates
 erpnext.patches.v15_0.drop_eskd_bpak_combination
 erpnext.patches.v15_0.merge_mo_warehouses_into_rd
+erpnext.patches.v15_0.cleanup_stale_task_depends_on

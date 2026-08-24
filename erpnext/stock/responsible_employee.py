@@ -67,11 +67,40 @@ def get_responsible_warehouse(company: str | None) -> str | None:
 	return frappe.cache().hget("responsible_employee_warehouse", company, _resolve) or None
 
 
+def get_session_employee(user: str | None = None) -> str | None:
+	"""Active Employee linked to `user` (defaults to the session user), or None."""
+	user = user or frappe.session.user
+	if user in ("Administrator", "Guest"):
+		return None
+
+	# not cached: `user_id` is indexed and this runs once per save, while a cached miss
+	# would keep a freshly linked Employee invisible until the next cache clear
+	return frappe.db.get_value(
+		"Employee", {"user_id": user, "status": "Active"}, "name"
+	) or frappe.db.get_value("Employee", {"user_id": user}, "name")
+
+
+@frappe.whitelist()
+def get_responsible_defaults(company: str | None = None) -> dict:
+	"""What the client needs to prefill the dimension: the R&D warehouse and my Employee."""
+	return {
+		"warehouse": get_responsible_warehouse(company),
+		"employee": get_session_employee(),
+	}
+
+
 def validate_responsible_employee(doc, method=None):
-	"""Require the Responsible Employee dimension on rows touching the R&D warehouse."""
+	"""Default the Responsible Employee dimension to the current user, then require it.
+
+	Rows touching the R&D warehouse must name a responsible employee. Whoever enters the
+	row is the responsible person in the common case, so an empty field is filled with the
+	Employee linked to the session user; an explicitly set value is never overwritten.
+	"""
 	warehouse = get_responsible_warehouse(doc.get("company"))
 	if not warehouse:
 		return
+
+	session_employee = get_session_employee()
 
 	for row in doc.get("items") or []:
 		field_pairs = WAREHOUSE_DIMENSION_FIELDS.get(row.doctype)
@@ -84,6 +113,10 @@ def validate_responsible_employee(doc, method=None):
 			if row.get(dimension_field):
 				continue
 			if not row.meta.has_field(dimension_field):
+				continue
+
+			if session_employee:
+				row.set(dimension_field, session_employee)
 				continue
 
 			frappe.throw(

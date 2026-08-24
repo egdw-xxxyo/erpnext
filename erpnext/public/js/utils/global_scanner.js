@@ -184,6 +184,23 @@ erpnext.GlobalScanner = class GlobalScanner {
 		].join("");
 		const $card = this.card(title, body);
 
+		if (r.additional_attributes && r.additional_attributes.length) {
+			const attr_body = r.additional_attributes
+				.map((a) => {
+					const label = frappe.utils.escape_html(a.label || a.value || "");
+					const notes = a.notes
+						? ` <span class="text-muted">— ${frappe.utils.escape_html(a.notes)}</span>`
+						: "";
+					return this.row(a.attribute, label + notes);
+				})
+				.join("");
+			$card.append(
+				`<div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);"><div style="font-weight:600; margin-bottom:6px;">${__(
+					"Additional Attributes"
+				)}</div>${attr_body}</div>`
+			);
+		}
+
 		if (r.purchase_receipt) {
 			const pr = r.purchase_receipt;
 			const pr_body = [

@@ -1,0 +1,250 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-08-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "manager",
+  "attendance_approved",
+  "attendance_note",
+  "section_break_attendance",
+  "credited_days",
+  "working_hours",
+  "present_days",
+  "half_days",
+  "sick_days",
+  "column_break_attendance",
+  "leave_days",
+  "unpaid_leave_days",
+  "absent_days",
+  "overtime_hours",
+  "shortfall_hours",
+  "column_break_salary",
+  "official_salary",
+  "cash_salary",
+  "total_salary",
+  "section_break_bonus",
+  "bonus_percent",
+  "bonus_amount",
+  "allowance",
+  "column_break_bonus",
+  "pay_bonus_in_cash",
+  "comment"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "manager",
+   "fieldtype": "Link",
+   "label": "Manager",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_approved",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Attendance Approved",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_note",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Attendance Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_attendance",
+   "fieldtype": "Section Break",
+   "label": "Attendance"
+  },
+  {
+   "fieldname": "credited_days",
+   "fieldtype": "Float",
+   "label": "Credited Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "working_hours",
+   "fieldtype": "Float",
+   "label": "Working Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "present_days",
+   "fieldtype": "Float",
+   "label": "Present Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "half_days",
+   "fieldtype": "Float",
+   "label": "Half Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sick_days",
+   "fieldtype": "Float",
+   "label": "Sick Leave Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "leave_days",
+   "fieldtype": "Float",
+   "label": "Paid Leave Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unpaid_leave_days",
+   "fieldtype": "Float",
+   "label": "Unpaid Leave Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "absent_days",
+   "fieldtype": "Float",
+   "label": "Absent Days",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overtime_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shortfall_hours",
+   "fieldtype": "Float",
+   "label": "Shortfall Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_salary",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "description": "Оклад, чинний у цьому місяці. Змінюється документом «Зміна окладу».",
+   "fieldname": "official_salary",
+   "fieldtype": "Currency",
+   "label": "Official Salary",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "description": "Оклад, чинний у цьому місяці. Змінюється документом «Зміна окладу».",
+   "fieldname": "cash_salary",
+   "fieldtype": "Currency",
+   "label": "Cash Salary",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "total_salary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_bonus",
+   "fieldtype": "Section Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "bonus_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Bonus %"
+  },
+  {
+   "columns": 1,
+   "fieldname": "bonus_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Bonus Amount",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "allowance",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Allowance"
+  },
+  {
+   "fieldname": "column_break_bonus",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "pay_bonus_in_cash",
+   "fieldtype": "Check",
+   "label": "Pay Bonus in Cash"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Comment"
+  }
+ ],
+ "grid_page_length": 200,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Salary Approval Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

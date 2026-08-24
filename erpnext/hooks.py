@@ -34,6 +34,16 @@ doctype_js = {
 	"Event": "public/js/event.js",
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
+	"Notification Settings": "public/js/custom/notification_settings.js",
+	# оклади працівника по періодах — секція на картці
+	"Employee": "public/js/custom/employee_salary_history.js",
+	# prefill the Responsible Employee dimension with the Employee of the current user
+	"Stock Entry": "public/js/responsible_employee.js",
+	"Purchase Receipt": "public/js/responsible_employee.js",
+	"Purchase Invoice": "public/js/responsible_employee.js",
+	"Delivery Note": "public/js/responsible_employee.js",
+	"Sales Invoice": "public/js/responsible_employee.js",
+	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
 	"Code List": [
@@ -65,6 +75,15 @@ permission_query_conditions = {
 	# Chat attachments never appear in a File list query (file library picker, File list view).
 	"File": "erpnext.crm.chat_files.get_permission_query_conditions",
 }
+
+# Access to a parent document reaches its children: whoever can see a Project can see that
+# Project's Tasks and Timesheets. Resolved in `frappe.share.get_inherited_shared`, so it
+# holds for list views, reports and single-document permission checks alike.
+share_access_inheritance = [
+	{"doctype": "Task", "fieldname": "project", "parent_doctype": "Project"},
+	{"doctype": "Task", "fieldname": "parent_task", "parent_doctype": "Task"},
+	{"doctype": "Timesheet", "fieldname": "parent_project", "parent_doctype": "Project"},
+]
 
 has_permission = {
 	# Leads in a final status are read-only until a Sales Manager returns them.
@@ -373,8 +392,12 @@ doc_events = {
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",
 			"erpnext.setup.doctype.transaction_deletion_record.transaction_deletion_record.check_for_running_deletion_job",
+			# keep reusable Additional Attribute Row tables consistent on any DocType that carries one
+			"erpnext.stock.additional_attributes.validate_additional_attributes",
 		],
 		"on_trash": "erpnext.crm.doctype.chat_thread.chat_thread.on_reference_deleted",
+		# share what a group member creates with the whole group
+		"after_insert": "erpnext.setup.doctype.employee_group.group_access.auto_share_on_insert",
 	},
 	tuple(period_closing_doctypes): {
 		"validate": "erpnext.accounts.doctype.accounting_period.accounting_period.validate_accounting_period_on_doc_save",
@@ -426,9 +449,18 @@ doc_events = {
 	"File": {
 		"before_insert": "erpnext.crm.chat_files.block_reuse",
 	},
+	# group membership and auto-share config are cached, drop the cache when they change
+	"Employee Group": {
+		"on_update": "erpnext.setup.doctype.employee_group.group_access.on_group_update",
+		"on_trash": "erpnext.setup.doctype.employee_group.group_access.clear_group_cache",
+	},
 	"Stock Entry": {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+	},
+	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot
+	"Notification Log": {
+		"after_insert": "erpnext.erpnext_integrations.callmebot.on_notification_log",
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
@@ -524,6 +556,13 @@ doc_events = {
 	},
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		# demand mandatory additional attributes before the serials are generated after save
+		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
+	},
+	"Serial and Batch Bundle": {
+		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner
+		"on_submit": "erpnext.stock.additional_attributes.apply_bundle_attributes_to_serials",
 		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		"on_cancel": [
 			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
@@ -570,6 +609,12 @@ doc_events = {
 	},
 	"Integration Request": {
 		"validate": "erpnext.accounts.doctype.payment_request.payment_request.validate_payment"
+	},
+	"Employee": {
+		"on_update": "erpnext.hr.salary_split.sync_salary_structure_assignment",
+	},
+	"Salary Slip": {
+		"validate": "erpnext.hr.salary_split.apply_cash_split",
 	},
 }
 
@@ -621,6 +666,7 @@ scheduler_events = {
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
 		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
+		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
 	],
 	"daily_long": [],
 	"daily_maintenance": [

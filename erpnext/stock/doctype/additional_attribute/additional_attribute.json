@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:attribute_name",
+ "creation": "2026-08-17 10:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "attribute_name",
+  "column_break_amtr",
+  "disabled",
+  "mandatory",
+  "section_break_desc",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "attribute_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Attribute Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_amtr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "default": "0",
+   "description": "Documents that create serial numbers cannot be saved until this attribute has a value",
+   "fieldname": "mandatory",
+   "fieldtype": "Check",
+   "label": "Mandatory on Receipt"
+  },
+  {
+   "fieldname": "section_break_desc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "icon": "fa fa-tags",
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Additional Attribute Value",
+   "link_fieldname": "attribute"
+  }
+ ],
+ "modified": "2026-08-17 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "Additional Attribute",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Item Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Stock User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
