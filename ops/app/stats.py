@@ -67,11 +67,15 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 HEAD=$(git rev-parse --short HEAD 2>/dev/null)
 TAG=$(git tag --points-at HEAD 2>/dev/null | tail -1)
 DESCRIBE=$(git describe --tags --always --dirty 2>/dev/null)
-DIRTY=$([ -z "$(git status --porcelain 2>/dev/null)" ] && echo false || echo true)
+# -uno: untracked files do not block anything. Prod permanently carries
+# untracked hrms_app/ and site-config.json.bak, and counting those as
+# "dirty" would disable switch-branch forever.
+DIRTY=$([ -z "$(git status --porcelain -uno 2>/dev/null)" ] && echo false || echo true)
+UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l)
 BEHIND=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo "")
 MERGE=$([ "$(git rev-list --no-walk --count --merges HEAD 2>/dev/null)" = "1" ] && echo true || echo false)
-printf '"git": {"branch":"%s","head":"%s","tag":"%s","describe":"%s","dirty":%s,"behind":"%s","merge":%s},\n' \
-  "$BRANCH" "$HEAD" "$TAG" "$DESCRIBE" "$DIRTY" "$BEHIND" "$MERGE"
+printf '"git": {"branch":"%s","head":"%s","tag":"%s","describe":"%s","dirty":%s,"behind":"%s","merge":%s,"untracked":%s},\n' \
+  "$BRANCH" "$HEAD" "$TAG" "$DESCRIBE" "$DIRTY" "$BEHIND" "$MERGE" "${UNTRACKED:-0}"
 
 # ---- containers ------------------------------------------------------------
 printf '"containers": '

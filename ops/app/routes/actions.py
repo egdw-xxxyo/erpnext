@@ -53,7 +53,7 @@ async def launch(key: str, request: Request, session: SessionDep):
 			request,
 			session,
 			error=(
-				"The working tree on the host has uncommitted changes. "
+				"The working tree on the host has uncommitted changes to tracked files. "
 				"Someone edited files in place — resolve that on the host first."
 			),
 		)

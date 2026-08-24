@@ -5,7 +5,8 @@
 	<div><span>Release</span><b>{{ ver.release or '—' }}</b></div>
 	<div><span>Branch</span><b>{{ git.branch or '—' }}</b></div>
 	<div><span>HEAD</span><b class="mono">{{ git.head or '—' }}</b>
-		{% if git.dirty %}<em class="warn">dirty tree</em>{% endif %}</div>
+		{% if git.dirty %}<em class="warn">uncommitted changes</em>{% endif %}
+		{% if git.untracked %}<em class="muted">{{ git.untracked }} untracked</em>{% endif %}</div>
 	<div><span>Tag</span>
 		{% if git.tag %}<b class="good">{{ git.tag }}</b>
 		{% elif git.merge %}<b class="ok">merge commit</b>
