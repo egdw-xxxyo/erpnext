@@ -5,12 +5,50 @@ from frappe.tests.utils import FrappeTestCase
 
 from erpnext.buying.procurement_automation import (
 	_close_assignments_silently,
+	_get_consolidated_item_rate,
 	_notify_procurement_initiators,
 	create_external_payment_purchase_receipt,
 )
 
 
 class TestProcurementAutomation(FrappeTestCase):
+	@patch("erpnext.stock.get_item_details.get_price_list_rate_for")
+	@patch("erpnext.buying.procurement_automation.frappe.get_cached_value")
+	def test_consolidated_item_rate_falls_back_to_buying_price_list(
+		self, get_cached_value, get_price_list_rate_for
+	):
+		get_cached_value.return_value = 0
+		get_price_list_rate_for.return_value = 425
+
+		rate = _get_consolidated_item_rate(
+			frappe._dict(
+				item_code="ITEM-1",
+				base_rate=0,
+				rate=0,
+				uom="Nos",
+				stock_uom="Nos",
+				qty=2,
+				conversion_factor=1,
+			),
+			frappe._dict(rate=0, price_list_rate=0, stock_uom="Nos", conversion_factor=1),
+			frappe._dict(buying_price_list="Standard Buying", transaction_date="2026-08-24"),
+			"SUPPLIER-1",
+		)
+
+		self.assertEqual(rate, 425)
+		self.assertEqual(get_price_list_rate_for.call_args.args[0].supplier, "SUPPLIER-1")
+
+	@patch("erpnext.stock.get_item_details.get_price_list_rate_for")
+	def test_consolidated_item_rate_keeps_material_request_rate(self, get_price_list_rate_for):
+		rate = _get_consolidated_item_rate(
+			frappe._dict(item_code="ITEM-1", base_rate=0, rate=0),
+			frappe._dict(rate=300, price_list_rate=300),
+			frappe._dict(buying_price_list="Standard Buying"),
+		)
+
+		self.assertEqual(rate, 300)
+		get_price_list_rate_for.assert_not_called()
+
 	@patch("erpnext.buying.procurement_automation._get_primary_procurement_initiator")
 	@patch("erpnext.buying.procurement_automation.frappe.db.exists")
 	@patch("erpnext.buying.procurement_automation.frappe.db.get_value")

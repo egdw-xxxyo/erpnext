@@ -18,7 +18,8 @@ frappe.listview_settings["Material Request"] = {
 	onload(listview) {
 		erpnext.buying.apply_procurement_work_queue_filters(listview, {
 			participants_field: "custom_procurement_participants",
-			completion_field: "custom_procurement_completion_status",
+			completion_field: "status",
+			completion_value: "Received",
 		});
 	},
 	get_indicator: function (doc) {

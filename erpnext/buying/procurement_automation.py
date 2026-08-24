@@ -5,9 +5,14 @@ import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 from frappe.desk.form.assign_to import _add as add_assignment
-from frappe.utils import escape_html, get_link_to_form, nowdate
+from frappe.utils import escape_html, flt, get_link_to_form, nowdate
 
-from erpnext.buying.procurement_workflow import BUYER_ROLE
+from erpnext.buying.procurement_workflow import (
+	BUYER_ROLE,
+	CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
+	MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
+	PROCUREMENT_ASSIGNMENT_RULES,
+)
 
 PURCHASE_ORDER_DOCTYPE = "Purchase Order"
 CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
@@ -478,6 +483,120 @@ def sync_procurement_document_participants(doc, method=None):
 	sync_procurement_participants_for_reference(doc.doctype, doc.name, additional_user=doc.owner)
 
 
+def sync_procurement_stage_assignment(doc, method=None):
+	"""Assign the active procurement stage and quietly close the previous stage's ToDo."""
+	if doc.doctype not in {MATERIAL_REQUEST_DOCTYPE, CONSOLIDATED_PURCHASE_ORDER_DOCTYPE}:
+		return
+
+	if doc.doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
+		_close_linked_material_request_assignments(doc)
+
+	specs = [spec for spec in PROCUREMENT_ASSIGNMENT_RULES if spec["document_type"] == doc.doctype]
+	matching = next((spec for spec in specs if _matches_assignment_rule(spec, doc)), None)
+	managed_rules = [spec["name"] for spec in specs]
+	open_todos = frappe.get_all(
+		"ToDo",
+		filters={
+			"reference_type": doc.doctype,
+			"reference_name": doc.name,
+			"assignment_rule": ["in", managed_rules],
+			"status": "Open",
+		},
+		fields=["name", "assignment_rule", "allocated_to"],
+	)
+
+	for todo in open_todos:
+		if matching and todo.assignment_rule == matching["name"]:
+			continue
+		_close_todo_silently(todo.name)
+
+	# The final stage intentionally assigns both configured CEO approvers. Its
+	# dedicated synchronizer owns those ToDos while this function closes other stages.
+	if not matching or matching["name"] == CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME:
+		return
+	if not frappe.db.exists("Assignment Rule", matching["name"]):
+		return
+
+	rule = frappe.get_doc("Assignment Rule", matching["name"])
+	matching_todos = [todo for todo in open_todos if todo.assignment_rule == matching["name"]]
+	configured_users = {row.user for row in rule.users}
+	if rule.rule == "Round Robin" and any(
+		todo.allocated_to in configured_users
+		and frappe.db.get_value("User", todo.allocated_to, "enabled")
+		for todo in matching_todos
+	):
+		return
+	target_user = _get_procurement_assignment_user(rule, matching, doc)
+	if not target_user:
+		return
+	if any(todo.allocated_to == target_user for todo in matching_todos):
+		return
+	for todo in matching_todos:
+		_close_todo_silently(todo.name)
+
+	add_assignment(
+		{
+			"assign_to": [target_user],
+			"doctype": doc.doctype,
+			"name": doc.name,
+			"description": frappe.render_template(rule.description, doc.as_dict()),
+			"assignment_rule": rule.name,
+			"date": doc.get(rule.due_date_based_on) if rule.due_date_based_on else None,
+		},
+		ignore_permissions=True,
+	)
+	if rule.rule == "Round Robin":
+		rule.db_set("last_user", target_user)
+
+
+def apply_rules_to_existing_procurement_documents():
+	"""Create missing stage assignments for documents that predate the configuration."""
+	for name in frappe.get_all(
+		MATERIAL_REQUEST_DOCTYPE,
+		filters={"docstatus": 1, "material_request_type": "Purchase"},
+		pluck="name",
+	):
+		sync_procurement_stage_assignment(frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, name))
+
+	for name in frappe.get_all(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		filters={"docstatus": ["<", 2]},
+		pluck="name",
+	):
+		sync_procurement_stage_assignment(frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, name))
+
+
+def _matches_assignment_rule(spec, doc):
+	return bool(frappe.safe_eval(spec["condition"], None, doc.as_dict()))
+
+
+def _get_procurement_assignment_user(rule, spec, doc):
+	if spec.get("field"):
+		user = doc.get(spec["field"]) or doc.owner
+	else:
+		user = rule.get_user(doc.as_dict())
+	if user and frappe.db.get_value("User", user, "enabled"):
+		return user
+	return "Administrator" if frappe.db.get_value("User", "Administrator", "enabled") else None
+
+
+def _close_linked_material_request_assignments(doc):
+	material_requests = {row.material_request for row in doc.items if row.material_request}
+	if doc.get("material_request"):
+		material_requests.add(doc.material_request)
+	for material_request in material_requests:
+		_close_assignments_silently(
+			MATERIAL_REQUEST_DOCTYPE,
+			material_request,
+			filters={
+				"reference_type": MATERIAL_REQUEST_DOCTYPE,
+				"reference_name": material_request,
+				"assignment_rule": MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
+				"status": "Open",
+			},
+		)
+
+
 def sync_procurement_completion_status(source_name, receipt_summary=None):
 	"""Propagate the current procurement stage to its PO and MR chain."""
 	if not source_name or not frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name):
@@ -679,9 +798,13 @@ def _close_assignments_silently(doctype, name, filters=None):
 		"status": "Open",
 	}
 	for todo_name in frappe.get_all("ToDo", filters=filters, pluck="name"):
-		todo = frappe.get_doc("ToDo", todo_name)
-		todo.status = "Closed"
-		todo.save(ignore_permissions=True)
+		_close_todo_silently(todo_name)
+
+
+def _close_todo_silently(todo_name):
+	todo = frappe.get_doc("ToDo", todo_name)
+	todo.status = "Closed"
+	todo.save(ignore_permissions=True)
 
 
 def _notify_procurement_initiators(source_name, outcome):
@@ -822,6 +945,7 @@ def _current_actor():
 
 def _make_consolidated_order(mapped_order, source_name):
 	source_request = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
+	source_items = {row.name: row for row in source_request.items}
 	consolidated = frappe.new_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
 	consolidated.company = mapped_order.company
 	consolidated.transaction_date = mapped_order.transaction_date or nowdate()
@@ -843,6 +967,12 @@ def _make_consolidated_order(mapped_order, source_name):
 			{"parent": row.item_code, "company": mapped_order.company},
 			"default_supplier",
 		)
+		rate = _get_consolidated_item_rate(
+			row,
+			source_items.get(row.material_request_item),
+			source_request,
+			mapped_order.supplier or default_supplier,
+		)
 		consolidated.append(
 			"items",
 			{
@@ -852,8 +982,8 @@ def _make_consolidated_order(mapped_order, source_name):
 				"description": row.description,
 				"qty": row.qty,
 				"uom": row.uom,
-				"rate": row.base_rate or row.rate,
-				"amount": (row.base_rate or row.rate) * row.qty,
+				"rate": rate,
+				"amount": rate * row.qty,
 				"schedule_date": row.schedule_date or mapped_order.schedule_date or nowdate(),
 				"warehouse": row.warehouse,
 				"project": row.project,
@@ -873,6 +1003,45 @@ def _make_consolidated_order(mapped_order, source_name):
 			)
 
 	return consolidated
+
+
+def _get_consolidated_item_rate(mapped_item, source_item, source_request, supplier=None):
+	for value in (
+		mapped_item.get("base_rate"),
+		mapped_item.get("rate"),
+		source_item.get("rate") if source_item else None,
+		source_item.get("price_list_rate") if source_item else None,
+	):
+		if flt(value):
+			return flt(value)
+
+	price_list = mapped_item.get("buying_price_list") or source_request.get("buying_price_list")
+	if not price_list:
+		return 0
+
+	from erpnext.stock.get_item_details import get_price_list_rate_for
+
+	price_not_uom_dependent = frappe.get_cached_value(
+		"Price List", price_list, "price_not_uom_dependent"
+	)
+	rate = get_price_list_rate_for(
+		frappe._dict(
+			{
+				"price_list": price_list,
+				"supplier": supplier,
+				"uom": mapped_item.get("uom"),
+				"transaction_date": source_request.get("transaction_date"),
+				"qty": mapped_item.get("qty"),
+				"stock_uom": mapped_item.get("stock_uom")
+				or (source_item.get("stock_uom") if source_item else None),
+				"conversion_factor": mapped_item.get("conversion_factor")
+				or (source_item.get("conversion_factor") if source_item else 1),
+				"price_list_uom_dependant": price_not_uom_dependent,
+			}
+		),
+		mapped_item.item_code,
+	)
+	return flt(rate)
 
 
 def _get_file_name(file_url):

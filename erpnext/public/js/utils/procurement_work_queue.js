@@ -28,7 +28,12 @@ erpnext.buying.apply_procurement_work_queue_filters = (listview, options) => {
 	const participant = frappe.session.user;
 	const filters = [
 		[listview.doctype, options.participants_field, "like", `%\"${participant}\"%`],
-		[listview.doctype, options.completion_field, "!=", "Завершено"],
+		[
+			listview.doctype,
+			options.completion_field,
+			"!=",
+			options.completion_value || "Завершено",
+		],
 	];
 
 	// These are working-list defaults, not permission restrictions. Clearing them
