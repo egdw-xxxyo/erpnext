@@ -7,7 +7,10 @@ import json
 
 import frappe
 
-from erpnext.stock.responsible_employee import RESPONSIBLE_EMPLOYEE_DIMENSION
+from erpnext.stock.responsible_employee import (
+	RESPONSIBLE_EMPLOYEE_DIMENSION,
+	RESPONSIBLE_EMPLOYEE_FIELD,
+)
 
 
 def execute():
@@ -1101,19 +1104,50 @@ def create_responsible_employee_dimension():
 	"""
 	if frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION}):
 		print(f"  Inventory Dimension exists: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
-		return
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Inventory Dimension",
+				"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION,
+				"reference_document": "Employee",
+				"apply_to_all_doctypes": 1,
+				"reqd": 0,
+				"validate_negative_stock": 0,
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
-	frappe.get_doc(
-		{
-			"doctype": "Inventory Dimension",
-			"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION,
-			"reference_document": "Employee",
-			"apply_to_all_doctypes": 1,
-			"reqd": 0,
-			"validate_negative_stock": 0,
-		}
-	).insert(ignore_permissions=True)
-	print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
+	relax_rejected_responsible_employee()
+
+
+def relax_rejected_responsible_employee():
+	"""Drop the stock "mandatory when something was rejected" rule from the dimension.
+
+	`InventoryDimension.get_dimension_fields()` hardcodes
+	`mandatory_depends_on = "eval:doc.rejected_qty > 0"` on the `rejected_<dimension>` field of
+	Purchase Receipt / Purchase Invoice Item, no matter whether the dimension itself is `reqd`.
+	Ours is not: custody only has to be recorded inside the R&D warehouse, and that is enforced
+	server-side by `erpnext.stock.responsible_employee.validate_responsible_employee`, which also
+	fills the field with the Employee of the current user. The client-side rule fired on every
+	rejected row of every warehouse and blocked the save before the server ever ran.
+	"""
+	fields = frappe.get_all(
+		"Custom Field",
+		filters={
+			"fieldname": f"rejected_{RESPONSIBLE_EMPLOYEE_FIELD}",
+			"mandatory_depends_on": ("!=", ""),
+		},
+		pluck="name",
+	)
+
+	for name in fields:
+		frappe.db.set_value(
+			"Custom Field", name, {"mandatory_depends_on": "", "reqd": 0}, update_modified=False
+		)
+		print(f"  Cleared mandatory_depends_on: {name}")
+
+	if fields:
+		frappe.clear_cache()
 
 
 def _create_custom_fields(fields):

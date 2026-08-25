@@ -1,0 +1,22 @@
+<form class="card danger-card"
+      hx-post="/actions/restore"
+      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#console-slot"
+      hx-swap="innerHTML">
+	<h3>Restore {{ backup.name }}</h3>
+	<div class="alert error">
+		This <strong>destroys the current database and files</strong> of site
+		<code>{{ settings.site }}</code> on <strong>{{ settings.env_label|upper }}</strong> and replaces
+		them with this backup. A safety backup of the current state is taken first.
+	</div>
+	<div class="kv">
+		<div><span>Taken</span><b>{{ backup.epoch|human_time }}</b><em>{{ backup.epoch|ago }}</em></div>
+		<div><span>Size</span><b>{{ backup.bytes|human_bytes }}</b></div>
+		<div><span>Includes files</span><b>{{ 'yes' if backup.with_files else 'no — database only' }}</b></div>
+	</div>
+	<input type="hidden" name="name" value="{{ backup.name }}">
+	<label>Type <code>{{ settings.site }}</code> to confirm
+		<input name="confirm" autocomplete="off" required>
+	</label>
+	<button type="submit" class="danger">Restore now</button>
+</form>

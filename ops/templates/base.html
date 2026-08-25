@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{% block title %}Ops{% endblock %} — {{ settings.env_label|upper }}</title>
+	<link rel="stylesheet" href="/static/app.css">
+	<script src="/static/vendor/htmx.min.js" defer></script>
+</head>
+<body class="env-{{ settings.env_label|lower }}">
+<header class="topbar">
+	<span class="brand">ERPNext Ops</span>
+	<span class="env-badge">{{ settings.env_label|upper }}</span>
+	<span class="host">{{ settings.ssh_host }}</span>
+	<span class="spacer"></span>
+	{% if session %}
+		<a href="/">Dashboard</a>
+		<a href="/audit">Audit</a>
+		<span class="user"><i class="user-dot"></i>{{ session.username }}</span>
+		<form method="post" action="/logout" class="inline">
+			<button type="submit" class="link">Log out</button>
+		</form>
+	{% endif %}
+</header>
+
+<main>
+	{% block content %}{% endblock %}
+</main>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

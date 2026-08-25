@@ -54,9 +54,40 @@ EMPTY_STATS = {
 }
 
 
-def plan_advance(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> list:
-	"""Рахує аванс по кожному працівнику компанії, нічого не записуючи."""
-	period_start, period_end, cutoff = period(year, month, cutoff_day)
+def plan_month(company, year, month) -> list:
+	"""Той самий розрахунок, але за повний місяць — база «Зарплатної відомості».
+
+	Відомість платить залишок місяця, тож рахувати його мусить та сама арифметика, що й аванс:
+	інакше дві виплати того самого місяця розходяться в днях і ставці. Рядки з нульовим табелем
+	лишаються — у відомості мусить бути видно кожного, навіть без відпрацьованих днів.
+	"""
+	return plan_advance(
+		company,
+		year,
+		month,
+		cutoff=get_last_day(getdate(f"{int(year)}-{int(month):02d}-01")),
+		skip_empty=False,
+		skip_without_salary=False,
+	)
+
+
+def plan_advance(
+	company,
+	year,
+	month,
+	cutoff_day=DEFAULT_CUTOFF_DAY,
+	cutoff=None,
+	skip_empty=True,
+	skip_without_salary=True,
+) -> list:
+	"""Рахує аванс по кожному працівнику компанії, нічого не записуючи.
+
+	`cutoff` — по який день рахувати (за замовчуванням день відсікання авансу);
+	`skip_empty` — чи відкидати тих, у кого нема зарахованих днів;
+	`skip_without_salary` — чи відкидати тих, у кого оклад не заданий (обидві частини нульові).
+	"""
+	period_start, period_end, computed_cutoff = period(year, month, cutoff_day)
+	cutoff = getdate(cutoff) if cutoff else computed_cutoff
 
 	employees = frappe.get_all(
 		"Employee",
@@ -80,7 +111,7 @@ def plan_advance(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> list:
 	for employee in employees:
 		official, cash = salary_parts_on(employee.name, period_end)
 
-		if not (official + cash):
+		if skip_without_salary and not (official + cash):
 			continue
 
 		holidays = _holiday_list(employee, company)
@@ -99,11 +130,11 @@ def plan_advance(company, year, month, cutoff_day=DEFAULT_CUTOFF_DAY) -> list:
 		attendance = stats.get(employee.name) or frappe._dict(EMPTY_STATS)
 		credited_days = flt(attendance.credited_days, 2)
 
-		if not month_days or credited_days <= 0:
+		if not month_days or (skip_empty and credited_days <= 0):
 			continue
 
-		rate_official = flt(official) / month_days
-		rate_cash = flt(cash) / month_days
+		rate_official = flt(official) / month_days if month_days else 0
+		rate_cash = flt(cash) / month_days if month_days else 0
 
 		rows.append(
 			frappe._dict(

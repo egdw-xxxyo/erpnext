@@ -1,0 +1,48 @@
+"""HTML fragments polled by htmx.
+
+Every panel reads the same cached snapshot, so ten open panels across five
+browsers still cost one SSH round-trip per TTL.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
+
+from .. import stats
+from ..commands import COMMANDS
+from ..config import settings
+from ..deps import SessionDep
+from ..sessions import Session
+from ..templating import templates
+
+router = APIRouter(prefix="/panels")
+
+PANELS = {
+	"health": "partials/health.html",
+	"containers": "partials/containers.html",
+	"version": "partials/version.html",
+	"disk": "partials/disk.html",
+	"backups": "partials/backups.html",
+	"jobs": "partials/jobs.html",
+	"actions": "partials/actions.html",
+}
+
+
+@router.get("/{name}", response_class=HTMLResponse)
+async def panel(name: str, request: Request, session: SessionDep):
+	template = PANELS.get(name)
+	if template is None:
+		raise HTTPException(status_code=404, detail="no such panel")
+
+	force = request.query_params.get("force") == "1"
+	data = await stats.cache.get(session.conn, force=force)
+
+	context = {"settings": settings, "session": session, "data": data, "commands": COMMANDS}
+	if name == "disk":
+		# Only measured when explicitly asked for: it walks thousands of files.
+		if request.query_params.get("detail") == "1":
+			context["detail"] = await stats.disk_detail.get(session.conn, force=force)
+		else:
+			context["detail"] = None
+	return templates.TemplateResponse(request, template, context)

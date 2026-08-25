@@ -12,9 +12,14 @@ frappe.ui.form.on("Salary Advance", {
 				frm.add_custom_button(__("Recalculate"), () => run(frm, "calculate"));
 			}
 
+			// the money is paid row by row — the toolbar only files the deduction and closes
+			// the month once every employee has been paid
 			if (rows.some((row) => !row.paid && flt(row.advance_total))) {
 				frm.add_custom_button(__("Create Advance"), () => confirm_create(frm));
-				frm.add_custom_button(__("Pay Advance"), () => ask_payment_date(frm)).addClass("btn-primary");
+			} else if (rows.length && frm.doc.status !== "Draft") {
+				frm.add_custom_button(__("Mark as Paid"), () => confirm_mark_paid(frm)).addClass(
+					"btn-primary"
+				);
 			}
 		}
 
@@ -30,7 +35,8 @@ frappe.ui.form.on("Salary Advance", {
 
 		frm.page.set_indicator(
 			__(frm.doc.status),
-			{ Draft: "orange", "To Pay": "blue", Paid: "green" }[frm.doc.status] || "gray"
+			{ Draft: "orange", "To Pay": "blue", "Partly Paid": "yellow", Paid: "green" }[frm.doc.status] ||
+				"gray"
 		);
 
 		show_missing_count(frm);
@@ -66,22 +72,11 @@ function calculate_totals(frm) {
 	const rows = frm.doc.employees || [];
 	const totals = {
 		total_employees: rows.length,
-		total_credited_days: 0,
-		total_working_hours: 0,
-		total_advance_card: 0,
-		total_advance_cash: 0,
-		total_advance: 0,
 		employees_without_attendance: rows.filter((row) => !row.attendance_approved).length,
 	};
 
 	rows.forEach((row) => {
 		row.advance_total = flt(row.advance_card) + flt(row.advance_cash);
-
-		totals.total_credited_days += flt(row.credited_days);
-		totals.total_working_hours += flt(row.working_hours);
-		totals.total_advance_card += flt(row.advance_card);
-		totals.total_advance_cash += flt(row.advance_cash);
-		totals.total_advance += flt(row.advance_total);
 	});
 
 	// a read-only field with no value at all is hidden by the desk, so an untouched
@@ -130,10 +125,15 @@ function render_preview(frm) {
 				value: (row) => worked(row),
 				click: (row) => show_attendance(row),
 			},
-			{ label: __("Daily Rate"), value: (row) => money(row.daily_rate) },
-			{ label: __("Advance to Card"), value: (row) => money(row.advance_card) },
-			{ label: __("Advance in Cash"), value: (row) => money(row.advance_cash) },
-			{ label: __("Total Advance"), value: (row) => money(row.advance_total), bold: true },
+			{ label: __("Daily Rate"), value: (row) => money(row.daily_rate), secret: true },
+			{ label: __("Advance to Card"), value: (row) => money(row.advance_card), secret: true },
+			{ label: __("Advance in Cash"), value: (row) => money(row.advance_cash), secret: true },
+			{
+				label: __("Total Advance"),
+				value: (row) => money(row.advance_total),
+				bold: true,
+				secret: true,
+			},
 			{
 				label: __("Payment"),
 				value: (row) => row_action_label(row),
@@ -279,7 +279,6 @@ function fetch_employees(frm, replace = false) {
 			const data = response.message || {};
 
 			frm.set_value("period_working_days", data.period_working_days || 0);
-			frm.set_value("period_working_hours", data.period_working_hours || 0);
 
 			frm.clear_table("employees");
 			(data.employees || []).forEach((row) => frm.add_child("employees", row));
@@ -313,23 +312,27 @@ function confirm_create(frm) {
 	);
 }
 
+function confirm_mark_paid(frm) {
+	frappe.confirm(__("Every employee of this advance is paid. Close the document as paid?"), () =>
+		run(frm, "mark_paid")
+	);
+}
+
+// always one employee: the row is the only way money leaves this document
 function ask_payment_date(frm, row) {
-	const fields = [
-		{
-			fieldname: "posting_date",
-			fieldtype: "Date",
-			label: __("Payment Date"),
-			default: frm.doc.payment_date,
-			reqd: 1,
-		},
-	];
-
-	if (row) fields.unshift({ fieldtype: "HTML", fieldname: "details", options: details_html(row) });
-
 	frappe.prompt(
-		fields,
-		(values) => run(frm, row ? "settle" : "pay", { ...values, employees: row ? [row.employee] : null }),
-		row ? __("Pay {0}", [row.employee_name || row.employee]) : __("Pay Advance"),
+		[
+			{ fieldtype: "HTML", fieldname: "details", options: details_html(row) },
+			{
+				fieldname: "posting_date",
+				fieldtype: "Date",
+				label: __("Payment Date"),
+				default: frm.doc.payment_date,
+				reqd: 1,
+			},
+		],
+		(values) => run(frm, "settle", { ...values, employees: [row.employee] }),
+		__("Pay {0}", [row.employee_name || row.employee]),
 		__("Post")
 	);
 }
