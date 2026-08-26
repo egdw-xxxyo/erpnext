@@ -525,6 +525,7 @@ doc_events = {
 		"validate": [
 			"erpnext.hr.payroll_tax.warn_missing_certificate",
 			"erpnext.hr.employee_identity.validate_tax_id",
+			"erpnext.hr.salary_split.set_card_amount",
 		],
 		"on_update": "erpnext.hr.salary_split.sync_salary_structure_assignment",
 	},

@@ -125,11 +125,10 @@ function render_preview(frm) {
 				value: (row) => worked(row),
 				click: (row) => show_attendance(row),
 			},
-			{ label: __("Daily Rate"), value: (row) => money(row.daily_rate), secret: true },
-			{ label: __("Advance to Card"), value: (row) => money(row.advance_card), secret: true },
-			{ label: __("Advance in Cash"), value: (row) => money(row.advance_cash), secret: true },
+			{ label: __("Official Salary"), value: (row) => money(row.official_salary), secret: true },
+			{ label: __("Advance Accrued"), value: (row) => money(row.advance_accrued), secret: true },
 			{
-				label: __("Total Advance"),
+				label: __("Advance to Pay"),
 				value: (row) => money(row.advance_total),
 				bold: true,
 				secret: true,
@@ -174,10 +173,15 @@ function details_html(row) {
 		[__("Monthly Salary"), money(flt(row.official_salary) + flt(row.cash_salary))],
 		[__("Working Days in Month"), number(row.month_working_days)],
 		[__("Daily Rate"), money(row.daily_rate)],
+		[__("Advance Accrued"), money(row.advance_accrued)],
 		[__("Advance to Card"), money(row.advance_card)],
-		[__("Advance in Cash"), money(row.advance_cash)],
-		[__("Total Advance"), `<b>${money(row.advance_total)}</b>`],
+		[__("Advance to Pay"), `<b>${money(row.advance_total)}</b>`],
 	];
+
+	// Готівкою аванс не платиться — рядок з'являється лише тоді, коли суму вписали руками.
+	if (flt(row.advance_cash)) {
+		lines.splice(lines.length - 1, 0, [__("Advance in Cash"), money(row.advance_cash)]);
+	}
 
 	return `
 		<table class="table table-bordered" style="margin: 0;">

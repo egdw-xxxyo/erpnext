@@ -157,6 +157,12 @@ class PayrollSheetBase(Document):
 			# просто зникає й ніхто не помічає, що картку не заповнили.
 			if not flt(row.official_salary) and not flt(row.cash_salary):
 				row.note = _("The salary is not set on the employee card")
+			elif entry.relieving_date and getdate(entry.relieving_date) <= self.period_end:
+				# Звільненого видно у відомості останній раз — з датою, щоб було ясно, чому
+				# днів менше, ніж у решти.
+				row.note = _("Dismissed on {0} — the days are counted up to that date").format(
+					formatdate(entry.relieving_date)
+				)
 			elif not flt(entry.credited_days):
 				row.note = _("No attendance for the period")
 			elif self.pays_officially and not slip:

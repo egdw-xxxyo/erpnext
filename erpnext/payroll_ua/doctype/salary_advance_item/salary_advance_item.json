@@ -33,6 +33,7 @@
   "official_salary",
   "cash_salary",
   "column_break_advance",
+  "advance_accrued",
   "advance_card",
   "advance_cash",
   "advance_total",
@@ -216,6 +217,13 @@
   {
    "fieldname": "column_break_advance",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "The official part for the paid days of the advance, before taxes.",
+   "fieldname": "advance_accrued",
+   "fieldtype": "Currency",
+   "label": "Advance Accrued",
+   "read_only": 1
   },
   {
    "description": "The amount that actually lands on the card: the official part for the worked days less PIT 18% and military levy 5%.",
