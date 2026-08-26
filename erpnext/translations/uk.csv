@@ -13560,3 +13560,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Without Salary Set","Без заданого окладу"
 "The salary is not set on the employee card","У картці працівника не заданий оклад"
 "{0} employees have no salary set on their card — fill it in to pay them.","{0} працівників без заданого окладу в картці — заповніть його, щоб виплатити."
+"Unpaid Leave","Неоплачувана відпустка"
+"Loading the month...","Завантаження місяця..."
+"Not permitted to read attendance","Немає доступу до табеля"
+"Employee {0} not found","Працівника {0} не знайдено"

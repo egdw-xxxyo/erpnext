@@ -123,7 +123,7 @@ function render_preview(frm) {
 			{
 				label: __("Worked"),
 				value: (row) => worked(row),
-				click: (row) => show_attendance(row),
+				click: (row) => show_attendance(frm, row),
 			},
 			{ label: __("Daily Rate"), value: (row) => money(row.daily_rate), secret: true },
 			{ label: __("Advance to Card"), value: (row) => money(row.advance_card), secret: true },
@@ -157,19 +157,8 @@ function row_action_label(row) {
 	return row.paid ? __("Paid") : __("Pay");
 }
 
-// What the hours are made of, and what is being paid for them — the same block serves the
-// info popup and both confirmations, so a click never asks for money without showing the basis.
-function details_html(row) {
-	const lines = [
-		[__("Present Days"), number(row.present_days)],
-		[__("Half Days"), number(row.half_days)],
-		[__("Sick Leave Days"), number(row.sick_days)],
-		[__("Paid Leave Days"), number(row.leave_days)],
-		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
-		[__("Absent Days"), number(row.absent_days)],
-		[__("Overtime Hours"), hours(row.overtime_hours)],
-		[__("Shortfall Hours"), hours(row.shortfall_hours)],
-		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
+function salary_lines(row) {
+	return [
 		[__("Monthly Salary"), money(flt(row.official_salary) + flt(row.cash_salary))],
 		[__("Working Days in Month"), number(row.month_working_days)],
 		[__("Daily Rate"), money(row.daily_rate)],
@@ -177,28 +166,39 @@ function details_html(row) {
 		[__("Advance in Cash"), money(row.advance_cash)],
 		[__("Total Advance"), `<b>${money(row.advance_total)}</b>`],
 	];
-
-	return `
-		<table class="table table-bordered" style="margin: 0;">
-			<tbody>
-				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
-			</tbody>
-		</table>
-		${
-			row.attendance_approved
-				? ""
-				: `<p class="text-muted" style="margin-top: 8px;">${__(
-						"The attendance sheet of this employee is not approved for the first half of the month"
-				  )}</p>`
-		}
-	`;
 }
 
-function show_attendance(row) {
-	frappe.msgprint({
+function attendance_note(row) {
+	return row.attendance_approved
+		? ""
+		: __("The attendance sheet of this employee is not approved for the first half of the month");
+}
+
+function cutoff_date(frm) {
+	if (!frm.doc.period_start) return null;
+
+	const start = frappe.datetime.str_to_obj(frm.doc.period_start);
+	const last = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+	const day = Math.min(cint(frm.doc.cutoff_day) || 15, last);
+
+	return frappe.datetime.obj_to_str(new Date(start.getFullYear(), start.getMonth(), day));
+}
+
+function details_html(row) {
+	return erpnext.utils.attendance_details.html(row, {
+		salary: salary_lines(row),
+		note: attendance_note(row),
+	});
+}
+
+function show_attendance(frm, row) {
+	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
 		indicator: row.attendance_approved ? "green" : "orange",
-		message: details_html(row),
+		salary: salary_lines(row),
+		note: attendance_note(row),
+		start: frm.doc.period_start,
+		end: cutoff_date(frm),
 	});
 }
 

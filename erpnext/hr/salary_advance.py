@@ -477,3 +477,141 @@ def unlink_advance(company, year, month, dry_run=True):
 	frappe.db.commit()
 
 	return names
+
+
+UNPAID_LEAVE = "__unpaid_leave"
+
+HALF_DAY_OTHER = ("Present", "Absent")
+
+
+def _day_mark(get_abbr, status, half_day_status) -> str:
+	if status == "Half Day" and half_day_status in HALF_DAY_OTHER:
+		return f"{get_abbr('Half Day')}/{get_abbr(half_day_status)}"
+
+	return get_abbr(status)
+
+
+def _day_note(row, leave_abbrs) -> dict | None:
+	if row.overtime_hours:
+		return {"text": f"+{flt(row.overtime_hours):g}", "kind": "over"}
+
+	if row.shortfall_hours:
+		return {"text": f"-{flt(row.shortfall_hours):g}", "kind": "under"}
+
+	abbr = leave_abbrs.get(row.leave_type)
+
+	return {"text": abbr, "kind": "leave"} if abbr else None
+
+
+@frappe.whitelist()
+def attendance_calendar(employee: str, start, end) -> dict:
+	from hrms.hr.attendance_marks import (
+		DAY_ABBR,
+		DAY_CONTEXT,
+		get_abbr,
+		get_color,
+		get_leave_abbreviations,
+	)
+
+	if not frappe.has_permission("Attendance", "read"):
+		frappe.throw(_("Not permitted to read attendance"), frappe.PermissionError)
+
+	start, end = getdate(start), getdate(end)
+	card = frappe.db.get_value("Employee", employee, ["company", "holiday_list"], as_dict=True)
+
+	if not card:
+		frappe.throw(_("Employee {0} not found").format(employee))
+
+	holiday_list = card.holiday_list or frappe.get_cached_value(
+		"Company", card.company, "default_holiday_list"
+	)
+	holidays = {}
+
+	if holiday_list:
+		holidays = {
+			str(row.holiday_date): {
+				"description": row.description,
+				"status": "Weekly Off" if row.weekly_off else "Holiday",
+			}
+			for row in frappe.get_all(
+				"Holiday",
+				filters={"parent": holiday_list, "holiday_date": ("between", [start, end])},
+				fields=["holiday_date", "description", "weekly_off"],
+			)
+		}
+
+	rows = frappe.get_all(
+		"Attendance",
+		filters={
+			"docstatus": 1,
+			"employee": employee,
+			"attendance_date": ("between", [start, end]),
+		},
+		fields=[
+			"attendance_date",
+			"status",
+			"half_day_status",
+			"leave_type",
+			"leave_application",
+			"overtime_hours",
+			"shortfall_hours",
+		],
+	)
+
+	leave_abbrs = get_leave_abbreviations()
+	unpaid_applications = _unpaid_leaves({row.leave_application for row in rows if row.leave_application})
+	days = {}
+	used = []
+
+	for row in rows:
+		unpaid = row.status == "On Leave" and row.leave_application in unpaid_applications
+		key = UNPAID_LEAVE if unpaid else row.status
+
+		days[str(row.attendance_date)] = {
+			"status": row.status,
+			"label": _("Unpaid Leave") if unpaid else _(row.status),
+			"mark": _day_mark(get_abbr, row.status, row.half_day_status),
+			"color": get_color("Absent") if unpaid else get_color(row.status),
+			"note": _day_note(row, leave_abbrs),
+			"leave_type": row.leave_type,
+			"unpaid": unpaid,
+			"weight": 0.0 if unpaid else DAY_WEIGHT.get(row.status, 0.0),
+		}
+
+		if key not in used:
+			used.append(key)
+
+	for key, holiday in holidays.items():
+		if key in days:
+			continue
+
+		days[key] = {
+			"status": holiday["status"],
+			"label": holiday["description"] or _(holiday["status"]),
+			"mark": get_abbr(holiday["status"]),
+			"color": get_color(holiday["status"]),
+			"note": None,
+			"leave_type": None,
+			"unpaid": False,
+			"weight": 0.0,
+		}
+
+		if holiday["status"] not in used:
+			used.append(holiday["status"])
+
+	return {
+		"start": str(start),
+		"end": str(end),
+		"days": days,
+		"weekdays": [_(name, context=DAY_CONTEXT) for name in DAY_ABBR],
+		"legend": [
+			{
+				"status": status,
+				"label": _("Unpaid Leave") if status == UNPAID_LEAVE else _(status),
+				"mark": get_abbr("On Leave" if status == UNPAID_LEAVE else status),
+				"color": get_color("Absent" if status == UNPAID_LEAVE else status),
+			}
+			for status in used
+		],
+		"holiday_list": holiday_list,
+	}

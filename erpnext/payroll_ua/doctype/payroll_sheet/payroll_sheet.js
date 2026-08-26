@@ -149,20 +149,8 @@ function payable(frm, row) {
 	return Boolean(frm.doc.bonus_approved) && (flt(row.salary_card) > 0 || flt(row.salary_cash) > 0);
 }
 
-// What the month is made of, and what is being paid for it — the same block serves the info
-// popup, the payment confirmation and the receipt.
-function details_html(row) {
-	const lines = [
-		[__("Present Days"), number(row.present_days)],
-		[__("Half Days"), number(row.half_days)],
-		[__("Sick Leave Days"), number(row.sick_days)],
-		[__("Paid Leave Days"), number(row.leave_days)],
-		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
-		[__("Absent Days"), number(row.absent_days)],
-		[__("Overtime Hours"), hours(row.overtime_hours)],
-		[__("Shortfall Hours"), hours(row.shortfall_hours)],
-		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
-		[__("Working Days in Month"), number(row.total_working_days)],
+function salary_lines(row) {
+	return [
 		[__("Official Salary"), money(row.official_salary)],
 		[__("Cash Salary"), money(row.cash_salary)],
 		[__("Bonus"), money(row.bonus_amount)],
@@ -175,22 +163,29 @@ function details_html(row) {
 		[__("In Cash"), money(row.salary_cash)],
 		[__("Outstanding"), `<b>${money(row.outstanding)}</b>`],
 	];
+}
 
-	return `
-		<table class="table table-bordered" style="margin: 0;">
-			<tbody>
-				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
-			</tbody>
-		</table>
-		${row.note ? `<p class="text-muted" style="margin-top: 8px;">${frappe.utils.escape_html(row.note)}</p>` : ""}
-	`;
+function attendance_extra(row) {
+	return [[__("Working Days in Month"), number(row.total_working_days)]];
+}
+
+function details_html(row) {
+	return erpnext.utils.attendance_details.html(row, {
+		attendance: attendance_extra(row),
+		salary: salary_lines(row),
+		note: row.note,
+	});
 }
 
 function show_details(frm, row) {
-	frappe.msgprint({
+	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
 		indicator: row.paid ? "green" : "blue",
-		message: details_html(row),
+		attendance: attendance_extra(row),
+		salary: salary_lines(row),
+		note: row.note,
+		start: frm.doc.period_start,
+		end: frm.doc.period_end,
 	});
 }
 
