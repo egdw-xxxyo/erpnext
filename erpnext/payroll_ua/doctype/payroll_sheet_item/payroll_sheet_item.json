@@ -31,9 +31,12 @@
   "cash_salary",
   "bonus_amount",
   "allowance",
+  "taxes_withheld",
+  "earned_official",
   "earned_card",
   "earned_cash",
   "gross_pay",
+  "employer_ssc",
   "advance_card",
   "advance_cash",
   "column_break_payout",
@@ -206,6 +209,26 @@
    "fieldname": "allowance",
    "fieldtype": "Currency",
    "label": "Allowance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "earned_official",
+   "fieldtype": "Currency",
+   "label": "Accrued Officially",
+   "read_only": 1
+  },
+  {
+   "fieldname": "taxes_withheld",
+   "fieldtype": "Currency",
+   "label": "Taxes Withheld",
+   "description": "PIT 18% and military levy 5% withheld from the official part.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_ssc",
+   "fieldtype": "Currency",
+   "label": "Employer SSC",
+   "description": "SSC 22% paid by the employer on top of the official part. It is not withheld from the employee.",
    "read_only": 1
   },
   {

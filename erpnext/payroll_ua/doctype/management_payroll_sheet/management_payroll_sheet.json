@@ -1,8 +1,8 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:PS-{company}-{year}-{month}",
- "creation": "2026-08-14 00:00:00.000000",
+ "autoname": "format:MPS-{company}-{year}-{month}",
+ "creation": "2026-08-25 00:00:00.000000",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -19,20 +19,16 @@
   "section_break_counts",
   "total_employees",
   "employees_without_attendance",
-  "employees_not_accrued",
   "employees_without_salary",
   "total_credited_days",
   "column_break_counts",
   "paid_employees",
-  "payroll_entry",
   "advance_sheet",
   "section_break_totals",
   "total_gross",
-  "total_employer_ssc",
-  "total_taxes",
-  "total_advance_card",
+  "total_advance_cash",
   "column_break_totals",
-  "total_salary_card",
+  "total_salary_cash",
   "total_outstanding",
   "section_break_employees",
   "employees_preview",
@@ -120,13 +116,6 @@
   },
   {
    "default": "0",
-   "fieldname": "employees_not_accrued",
-   "fieldtype": "Int",
-   "label": "Not Accrued Yet",
-   "read_only": 1
-  },
-  {
-   "default": "0",
    "fieldname": "employees_without_salary",
    "fieldtype": "Int",
    "label": "Without Salary Set",
@@ -150,12 +139,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "payroll_entry",
-   "fieldtype": "Data",
-   "label": "Payroll Entry",
-   "read_only": 1
-  },
-  {
    "fieldname": "advance_sheet",
    "fieldtype": "Link",
    "label": "Advance",
@@ -174,21 +157,9 @@
    "read_only": 1
   },
   {
-   "fieldname": "total_taxes",
+   "fieldname": "total_advance_cash",
    "fieldtype": "Currency",
-   "label": "Taxes Withheld",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_employer_ssc",
-   "fieldtype": "Currency",
-   "label": "Employer SSC",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_advance_card",
-   "fieldtype": "Currency",
-   "label": "Advance to Card",
+   "label": "Advance in Cash",
    "read_only": 1
   },
   {
@@ -196,9 +167,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "total_salary_card",
+   "fieldname": "total_salary_cash",
    "fieldtype": "Currency",
-   "label": "Salary to Card",
+   "label": "Salary in Cash",
    "read_only": 1
   },
   {
@@ -226,10 +197,10 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-14 00:00:00.000000",
+ "modified": "2026-08-25 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
- "name": "Payroll Sheet",
+ "name": "Management Payroll Sheet",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
