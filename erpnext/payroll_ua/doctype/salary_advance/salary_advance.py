@@ -151,13 +151,15 @@ class SalaryAdvance(Document):
 	def link_additional_salary(self):
 		"""Підтягує створені відрахування в рядки, щоб з документа було видно, чим саме
 		аванс оформлений."""
-		payroll_date = period(self.year, self.month, self.cutoff_day)[1]
+		# У звільненого відрахування стоїть на день звільнення, а не на кінець місяця, тож
+		# шукаємо по всьому періоду.
+		period_start, period_end, _cutoff = period(self.year, self.month, self.cutoff_day)
 		existing = frappe.get_all(
 			"Additional Salary",
 			filters={
 				"company": self.company,
 				"docstatus": 1,
-				"payroll_date": payroll_date,
+				"payroll_date": ["between", [period_start, period_end]],
 				"salary_component": ["in", [ADVANCE_CARD, ADVANCE_CASH]],
 			},
 			fields=["name", "employee", "salary_component", "amount"],
@@ -332,6 +334,7 @@ def row_values(row) -> dict:
 		for field in (
 			"employee",
 			"employee_name",
+			"tax_id",
 			"department",
 			"manager",
 			"official_salary",

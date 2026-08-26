@@ -112,6 +112,7 @@ def plan_advance(
 			"holiday_list",
 			"date_of_joining",
 			"relieving_date",
+			"custom_tax_id",
 		],
 		order_by="department asc, employee_name asc",
 	)
@@ -146,6 +147,14 @@ def plan_advance(
 		month_days = _working_days(period_start, period_end, holidays)
 		planned_days = _working_days(first, last, holidays)
 		attendance = stats.get(employee.name) or frappe._dict(EMPTY_STATS)
+
+		# Табель за межами роботи в компанії не рахується: людині, звільненій 20-го, хтось
+		# міг проставити дні до кінця місяця, і вона отримала б за них зарплату.
+		if first > period_start or last < cutoff:
+			attendance = (attendance_stats([employee.name], first, last) or {}).get(
+				employee.name
+			) or frappe._dict(EMPTY_STATS)
+
 		credited_days = flt(attendance.credited_days, 2)
 		# Аванс платиться за календарем: із запланованих днів вилітають лише відпустка й
 		# лікарняний, за які зарплата не нараховується.
@@ -185,6 +194,7 @@ def plan_advance(
 					- flt(attendance.shortfall_hours),
 					2,
 				),
+				tax_id=employee.custom_tax_id,
 				relieving_date=employee.relieving_date,
 				daily_rate=flt(rate_official + rate_cash, 2),
 				official=flt(rate_official * credited_days, 2),
@@ -216,10 +226,14 @@ def apply_advance(company, year, month, rows) -> list:
 	більше, ніж туди дійшло.
 	"""
 	_ensure_components()
-	payroll_date = get_last_day(getdate(f"{int(year)}-{int(month):02d}-01"))
+	month_end = get_last_day(getdate(f"{int(year)}-{int(month):02d}-01"))
 	created = []
 
 	for row in rows:
+		# Звільненому все належне платиться в день звільнення (ст. 116 КЗпП), і HRMS тримає те
+		# саме правило: відрахування з датою пізнішою за звільнення він не приймає.
+		payroll_date = _payroll_date(row["employee"], month_end)
+
 		for amount, component in (
 			(flt(row.get("official_net", row.get("official"))), ADVANCE_CARD),
 			(flt(row.get("cash")), ADVANCE_CASH),
@@ -230,6 +244,70 @@ def apply_advance(company, year, month, rows) -> list:
 			created.append(_make_additional_salary(row["employee"], company, payroll_date, amount, component))
 
 	return created
+
+
+def reschedule_deductions_on_relieving(doc, method=None):
+	"""Employee.on_update: переносить відрахування, які лишилися за датою звільнення.
+
+	Аванс міг бути вже оформлений на кінець місяця, а людину звільнили серед місяця — тоді
+	відрахування не потрапляє в її останній листок (він закінчується днем звільнення), і аванс
+	просто лишається невирахуваним. Переставляємо його на день звільнення — туди, де за ст. 116
+	КЗпП і має бути розрахунок.
+	"""
+	if not doc.get("relieving_date"):
+		return
+
+	relieving = getdate(doc.relieving_date)
+	rows = frappe.get_all(
+		"Additional Salary",
+		filters={"employee": doc.name, "docstatus": 1, "payroll_date": (">", relieving)},
+		fields=["name", "salary_component", "amount", "company", "payroll_date", "type"],
+	)
+	moved = []
+
+	for row in rows:
+		try:
+			old = frappe.get_doc("Additional Salary", row.name)
+			old.flags.ignore_permissions = True
+			old.cancel()
+			new = frappe.get_doc(
+				{
+					"doctype": "Additional Salary",
+					"employee": doc.name,
+					"company": row.company,
+					"salary_component": row.salary_component,
+					"amount": row.amount,
+					"payroll_date": relieving,
+					"overwrite_salary_structure_amount": 0,
+				}
+			)
+			new.insert(ignore_permissions=True)
+			new.submit()
+			moved.append(
+				f"{row.salary_component}: {frappe.format(row.payroll_date, {'fieldtype': 'Date'})} → {frappe.format(relieving, {'fieldtype': 'Date'})}"
+			)
+		except Exception:
+			frappe.log_error(
+				title=f"Не вдалося перенести відрахування на дату звільнення: {row.name}",
+				message=frappe.get_traceback(),
+			)
+
+	if moved:
+		frappe.msgprint(
+			_("The deductions were moved to the dismissal date: {0}").format(", ".join(moved)),
+			indicator="orange",
+			alert=True,
+		)
+
+
+def _payroll_date(employee, month_end):
+	"""Дата відрахування: кінець місяця, а для звільненого — день звільнення."""
+	relieving = frappe.db.get_value("Employee", employee, "relieving_date")
+
+	if relieving and getdate(relieving) < getdate(month_end):
+		return getdate(relieving)
+
+	return getdate(month_end)
 
 
 def create_advance(

@@ -9,6 +9,7 @@
  "field_order": [
   "employee",
   "employee_name",
+  "tax_id",
   "department",
   "manager",
   "column_break_days",
@@ -64,6 +65,12 @@
    "label": "Employee Name",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax Number (RNOKPP)",
+   "read_only": 1
   },
   {
    "fieldname": "department",
