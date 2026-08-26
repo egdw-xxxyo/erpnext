@@ -6819,7 +6819,7 @@ Payment term {0} not used in {1},Умови оплати {0} не викорис
 Payments,Платежі
 Payments could not be updated.,Платежі не вдалося оновити.
 Payments updated.,Платежі оновлено.
-Payroll Entry,Нарахування зарплати
+Payroll Entry,Нарахування зарплати (HRMS)
 Payroll Payable,Розрахунок заробітної плати оплачується
 Payslip,листка
 Peck (UK),Пек (Великобританія)
@@ -13395,6 +13395,9 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Advance to Card","Аванс на картку"
 "Advance Accrued","Аванс"
 "Advance to Pay","Аванс до виплати"
+"PIT {0}%","ПДФО {0}%"
+"Military Levy {0}%","Військовий збір {0}%"
+"The advance is paid for {0} paid days of {1} working days in the month.","Аванс платиться за {0} оплачуваних днів із {1} робочих днів місяця."
 "The official part for the paid days of the advance, before taxes.","Офіційна частина за оплачувані дні авансу, до податків."
 "Paid Days of the Advance","Оплачувані дні авансу"
 "Calendar working days from the joining date up to the cut-off, less vacation and sick leave. Attendance does not reduce the advance.","Робочі дні за календарем від дати прийняття по день відсікання, мінус відпустка й лікарняний. Явка аванс не зменшує."
@@ -13604,4 +13607,9 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Without Salary Set","Без заданого окладу"
 "The salary is not set on the employee card","У картці працівника не заданий оклад"
 "Dismissed on {0} — the days are counted up to that date","Звільнено {0} — дні рахуються по цю дату"
+"The deductions were moved to the dismissal date: {0}","Відрахування перенесено на дату звільнення: {0}"
+"{0} was hired on {1} — there is no attendance before that date.","{0} прийнято на роботу {1} — табеля до цієї дати не буває."
+"{0} was dismissed on {1} — there is no attendance after that date.","{0} звільнено {1} — табеля після цієї дати не буває."
+"Outside the Employment","Поза періодом роботи"
+"The attendance after the dismissal was removed: {0}","Табель після звільнення прибрано: {0}"
 "{0} employees have no salary set on their card — fill it in to pay them.","{0} працівників без заданого окладу в картці — заповніть його, щоб виплатити."

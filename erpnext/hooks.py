@@ -527,10 +527,17 @@ doc_events = {
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
 		],
-		"on_update": "erpnext.hr.salary_split.sync_salary_structure_assignment",
+		"on_update": [
+			"erpnext.hr.employee_period.clear_attendance_after_relieving",
+			"erpnext.hr.salary_split.sync_salary_structure_assignment",
+			"erpnext.hr.salary_advance.reschedule_deductions_on_relieving",
+		],
 	},
 	"Salary Slip": {
 		"validate": "erpnext.hr.salary_split.apply_cash_split",
+	},
+	"Attendance": {
+		"validate": "erpnext.hr.employee_period.validate_attendance_period",
 	},
 }
 

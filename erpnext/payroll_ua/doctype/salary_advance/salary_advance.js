@@ -120,6 +120,7 @@ function render_preview(frm) {
 				? ""
 				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
 		columns: [
+			{ label: __("Tax Number (RNOKPP)"), value: (row) => row.tax_id || "—" },
 			{
 				label: __("Worked"),
 				value: (row) => worked(row),
@@ -132,6 +133,7 @@ function render_preview(frm) {
 				value: (row) => money(row.advance_total),
 				bold: true,
 				secret: true,
+				click: (row) => show_advance(row),
 			},
 			{
 				label: __("Payment"),
@@ -197,6 +199,56 @@ function details_html(row) {
 				  )}</p>`
 		}
 	`;
+}
+
+// Скільки нарахували, скільки з того утримали і що лишається на руки — той самий розклад,
+// що й у листку, тільки за оплачувані дні авансу.
+function show_advance(row) {
+	withheld_rates().then(([pit_rate, levy_rate]) => {
+		const accrued = flt(row.advance_accrued);
+		const pit = flt(accrued * pit_rate, 2);
+		const levy = flt(accrued * levy_rate, 2);
+		const lines = [
+			[__("Advance Accrued"), money(accrued)],
+			[__("PIT {0}%", [number(pit_rate * 100)]), `− ${money(pit)}`],
+			[__("Military Levy {0}%", [number(levy_rate * 100)]), `− ${money(levy)}`],
+			[__("Advance to Card"), money(row.advance_card)],
+		];
+
+		if (flt(row.advance_cash)) {
+			lines.push([__("Advance in Cash"), money(row.advance_cash)]);
+		}
+
+		lines.push([__("Advance to Pay"), `<b>${money(row.advance_total)}</b>`]);
+
+		frappe.msgprint({
+			title: row.employee_name || row.employee,
+			indicator: "blue",
+			message: `
+				<table class="table table-bordered" style="margin: 0;">
+					<tbody>
+						${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
+					</tbody>
+				</table>
+				<p class="text-muted" style="margin-top: 8px;">${__(
+					"The advance is paid for {0} paid days of {1} working days in the month.",
+					[number(row.advance_days), number(row.month_working_days)]
+				)}</p>
+			`,
+		});
+	});
+}
+
+// Ставки живуть у «Налаштуваннях зарплатних податків» — тягнемо їх звідти, і лише раз.
+function withheld_rates() {
+	if (!withheld_rates.promise) {
+		withheld_rates.promise = Promise.all([
+			frappe.db.get_single_value("Payroll Tax Settings", "pit_rate"),
+			frappe.db.get_single_value("Payroll Tax Settings", "military_levy_rate"),
+		]).then(([pit, levy]) => [flt(pit || 18) / 100, flt(levy || 5) / 100]);
+	}
+
+	return withheld_rates.promise;
 }
 
 function show_attendance(row) {
