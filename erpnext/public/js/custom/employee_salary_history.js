@@ -2,7 +2,15 @@
 // Джерело те саме, що й у звіті «Історія окладів»: подані Salary Structure Assignment.
 
 frappe.ui.form.on("Employee", {
+	// «Нараховано на картку» рахує сервер при збереженні, але правлять оклад тут і зараз —
+	// тож поки поле в руках, показуємо результат одразу.
+	custom_official_salary(frm) {
+		show_card_amount(frm);
+	},
+
 	refresh(frm) {
+		show_card_amount(frm);
+
 		if (frm.is_new()) return;
 
 		frappe
@@ -59,4 +67,31 @@ function render(frm, history) {
 		</table>`;
 
 	frm.dashboard.add_section(html, __("Salary History"));
+}
+
+// Ставки живуть у «Налаштуваннях зарплатних податків» — беремо їх звідти, а не з коду,
+// інакше картка почне розходитися з листком наступного ж дня після зміни закону.
+function show_card_amount(frm) {
+	const gross = flt(frm.doc.custom_official_salary);
+
+	if (!gross) {
+		frm.set_value("custom_official_salary_net", 0);
+		return;
+	}
+
+	withheld_rates().then(([pit, levy]) => {
+		const net = flt(gross - flt(gross * pit, 2) - flt(gross * levy, 2), 2);
+		frm.set_value("custom_official_salary_net", net);
+	});
+}
+
+function withheld_rates() {
+	if (!withheld_rates.promise) {
+		withheld_rates.promise = Promise.all([
+			frappe.db.get_single_value("Payroll Tax Settings", "pit_rate"),
+			frappe.db.get_single_value("Payroll Tax Settings", "military_levy_rate"),
+		]).then(([pit, levy]) => [flt(pit || 18) / 100, flt(levy || 5) / 100]);
+	}
+
+	return withheld_rates.promise;
 }

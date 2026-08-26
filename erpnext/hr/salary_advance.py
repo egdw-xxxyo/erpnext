@@ -94,9 +94,16 @@ def plan_advance(
 	period_start, period_end, computed_cutoff = period(year, month, cutoff_day)
 	cutoff = getdate(cutoff) if cutoff else computed_cutoff
 
+	# Звільнений серед місяця працівник лишається в розрахунку: зароблене за відпрацьовану
+	# частину місяця йому винні так само, і саме тут його востаннє видно. Дні йому рахуються
+	# лише по дату звільнення — за неї він уже не працював (див. `_employee_period`).
 	employees = frappe.get_all(
 		"Employee",
-		filters={"status": "Active", "company": company},
+		filters=[
+			["company", "=", company],
+			["status", "in", ["Active", "Left"]],
+			["date_of_joining", "<=", period_end],
+		],
 		fields=[
 			"name",
 			"employee_name",
@@ -116,6 +123,10 @@ def plan_advance(
 	rows = []
 
 	for employee in employees:
+		# Звільнені до початку періоду в ньому вже нічого не заробили.
+		if employee.relieving_date and getdate(employee.relieving_date) < period_start:
+			continue
+
 		official, cash = salary_parts_on(employee.name, period_end)
 
 		if skip_without_salary and not (official + cash):
@@ -174,6 +185,7 @@ def plan_advance(
 					- flt(attendance.shortfall_hours),
 					2,
 				),
+				relieving_date=employee.relieving_date,
 				daily_rate=flt(rate_official + rate_cash, 2),
 				official=flt(rate_official * credited_days, 2),
 				official_net=payroll_tax.net(rate_official * credited_days),

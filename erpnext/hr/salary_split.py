@@ -111,6 +111,15 @@ def _sync_assignment(doc):
 		doc.db_set("ctc", total, update_modified=False)
 
 
+def set_card_amount(doc, method=None):
+	"""Employee.validate: скільки з офіційної суми дійде до картки.
+
+	Поле довідкове й тільки для читання: рахувати 77% в голові — зайвий привід помилитися,
+	а зберігати ще одну суму, яку хтось може поправити руками, ми не хочемо.
+	"""
+	doc.custom_official_salary_net = payroll_tax.net(doc.get("custom_official_salary"))
+
+
 def salary_parts_on(employee, on_date) -> tuple:
 	"""Дві частини окладу, чинні на дату: (офіційна, готівкова).
 
