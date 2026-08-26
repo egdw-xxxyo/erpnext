@@ -83,47 +83,35 @@ function days(value) {
 	return __("{0} d", [number(value)]);
 }
 
-// The month behind the conditions — the same block the advance and the payroll sheet show.
-function details_html(row) {
-	const lines = [
-		[__("Present Days"), number(row.present_days)],
-		[__("Half Days"), number(row.half_days)],
-		[__("Sick Leave Days"), number(row.sick_days)],
-		[__("Paid Leave Days"), number(row.leave_days)],
-		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
-		[__("Absent Days"), number(row.absent_days)],
-		[__("Overtime Hours"), hours(row.overtime_hours)],
-		[__("Shortfall Hours"), hours(row.shortfall_hours)],
-		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
+function salary_lines(row) {
+	return [
 		[__("Official Salary"), money(row.official_salary)],
 		[__("Cash Salary"), money(row.cash_salary)],
 		[__("Bonus Amount"), money(row.bonus_amount)],
 		[__("Allowance"), money(row.allowance)],
 		[__("Total Salary"), `<b>${money(row.total_salary)}</b>`],
 	];
-
-	return `
-		<table class="table table-bordered" style="margin: 0;">
-			<tbody>
-				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
-			</tbody>
-		</table>
-		${
-			row.attendance_approved
-				? ""
-				: `<p class="text-muted" style="margin-top: 8px;">${__(
-						"The attendance sheet of this employee is not approved for the whole month"
-				  )}</p>`
-		}
-	`;
 }
 
-function show_details(row) {
-	frappe.msgprint({
+function show_details(frm, row) {
+	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
 		indicator: row.attendance_approved ? "green" : "orange",
-		message: details_html(row),
+		salary: salary_lines(row),
+		note: row.attendance_approved
+			? ""
+			: __("The attendance sheet of this employee is not approved for the whole month"),
+		start: frm.doc.effective_from,
+		end: month_end(frm.doc.effective_from),
 	});
+}
+
+function month_end(start) {
+	if (!start) return null;
+
+	const date = frappe.datetime.str_to_obj(start);
+
+	return frappe.datetime.obj_to_str(new Date(date.getFullYear(), date.getMonth() + 1, 0));
 }
 
 function render_preview(frm) {
@@ -143,7 +131,7 @@ function render_preview(frm) {
 			{
 				label: __("Worked"),
 				value: (row) => `${days(row.credited_days)} / ${hours(row.working_hours)}`,
-				click: (row) => show_details(row),
+				click: (row) => show_details(frm, row),
 			},
 			{ label: __("Official Salary"), value: (row) => money(row.official_salary) },
 			{ label: __("Cash Salary"), value: (row) => money(row.cash_salary) },
