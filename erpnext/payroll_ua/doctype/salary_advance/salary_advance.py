@@ -342,7 +342,6 @@ def row_values(row) -> dict:
 			"unpaid_leave_days",
 			"sick_days",
 			"absent_days",
-			"half_days",
 			"overtime_hours",
 			"shortfall_hours",
 			"working_hours",
