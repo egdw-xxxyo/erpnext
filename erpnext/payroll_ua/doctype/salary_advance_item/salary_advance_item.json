@@ -9,9 +9,11 @@
  "field_order": [
   "employee",
   "employee_name",
+  "tax_id",
   "department",
   "manager",
   "column_break_days",
+  "advance_days",
   "credited_days",
   "planned_days",
   "planned_hours",
@@ -31,6 +33,7 @@
   "official_salary",
   "cash_salary",
   "column_break_advance",
+  "advance_accrued",
   "advance_card",
   "advance_cash",
   "advance_total",
@@ -63,6 +66,12 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax Number (RNOKPP)",
+   "read_only": 1
+  },
+  {
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
@@ -79,6 +88,14 @@
   {
    "fieldname": "column_break_days",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "Calendar working days from the joining date up to the cut-off, less vacation and sick leave. Attendance does not reduce the advance.",
+   "fieldname": "advance_days",
+   "fieldtype": "Float",
+   "label": "Paid Days of the Advance",
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "credited_days",
@@ -201,6 +218,14 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "The official part for the paid days of the advance, before taxes.",
+   "fieldname": "advance_accrued",
+   "fieldtype": "Currency",
+   "label": "Advance Accrued",
+   "read_only": 1
+  },
+  {
+   "description": "The amount that actually lands on the card: the official part for the worked days less PIT 18% and military levy 5%.",
    "fieldname": "advance_card",
    "fieldtype": "Currency",
    "label": "Advance to Card"

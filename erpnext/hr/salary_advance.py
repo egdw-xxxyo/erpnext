@@ -7,11 +7,15 @@
 Обидві частини зарплати діляться однаково:
 
 	денна_ставка   = частина_окладу / робочі_дні(місяць)
-	аванс_частини  = денна_ставка × зараховані_дні(1..відсікання)
+	аванс_частини  = денна_ставка × оплачувані_дні(1..відсікання)
 
-Зараховані дні беруться з табеля, а не з календаря: прогул чи неоплачувана відпустка першої
-половини зменшують аванс. Кожна половина — окремий компонент («Аванс на картку» /
-«Аванс готівкою»), щоб у листку було видно з назви, звідки платили.
+Оплачувані дні авансу рахуються **за календарем**, а не за табелем: робочі дні від прийняття
+на роботу по день відсікання мінус відпустка (зокрема без збереження) і лікарняний. Явка на
+аванс не впливає — незакритий табель чи прогул його не зменшують, бо аванс платиться в строк
+за КЗпП, а прогул відніметься в остаточному розрахунку, який рахується вже за табелем.
+
+Кожна половина — окремий компонент («Аванс на картку» / «Аванс готівкою»), щоб у листку було
+видно з назви, звідки платили.
 
 	bench --site frontend execute erpnext.hr.salary_advance.create_advance \
 	    --kwargs "{'company': 'КАЛЬХЕОН', 'year': 2026, 'month': 4, 'dry_run': False}"
@@ -19,8 +23,9 @@
 
 import frappe
 from frappe import _
-from frappe.utils import date_diff, flt, get_last_day, getdate
+from frappe.utils import add_days, date_diff, flt, get_last_day, getdate
 
+from erpnext.hr import payroll_tax
 from erpnext.hr.salary_split import salary_parts_on
 
 ADVANCE_COMPONENT = "Аванс"
@@ -87,9 +92,16 @@ def plan_advance(
 	period_start, period_end, computed_cutoff = period(year, month, cutoff_day)
 	cutoff = getdate(cutoff) if cutoff else computed_cutoff
 
+	# Звільнений серед місяця працівник лишається в розрахунку: зароблене за відпрацьовану
+	# частину місяця йому винні так само, і саме тут його востаннє видно. Дні йому рахуються
+	# лише по дату звільнення — за неї він уже не працював (див. `_employee_period`).
 	employees = frappe.get_all(
 		"Employee",
-		filters={"status": "Active", "company": company},
+		filters=[
+			["company", "=", company],
+			["status", "in", ["Active", "Left"]],
+			["date_of_joining", "<=", period_end],
+		],
 		fields=[
 			"name",
 			"employee_name",
@@ -98,15 +110,22 @@ def plan_advance(
 			"holiday_list",
 			"date_of_joining",
 			"relieving_date",
+			"custom_tax_id",
 		],
 		order_by="department asc, employee_name asc",
 	)
 
 	stats = attendance_stats([employee.name for employee in employees], period_start, cutoff)
+	absences = absence_days([employee.name for employee in employees], period_start, cutoff)
 	day_hours = standard_day_hours()
+	holiday_dates = {}
 	rows = []
 
 	for employee in employees:
+		# Звільнені до початку періоду в ньому вже нічого не заробили.
+		if employee.relieving_date and getdate(employee.relieving_date) < period_start:
+			continue
+
 		official, cash = salary_parts_on(employee.name, period_end)
 
 		if skip_without_salary and not (official + cash):
@@ -126,9 +145,22 @@ def plan_advance(
 		month_days = _working_days(period_start, period_end, holidays)
 		planned_days = _working_days(first, last, holidays)
 		attendance = stats.get(employee.name) or frappe._dict(EMPTY_STATS)
-		credited_days = flt(attendance.credited_days, 2)
 
-		if not month_days or (skip_empty and credited_days <= 0):
+		# Табель за межами роботи в компанії не рахується: людині, звільненій 20-го, хтось
+		# міг проставити дні до кінця місяця, і вона отримала б за них зарплату.
+		if first > period_start or last < cutoff:
+			attendance = (attendance_stats([employee.name], first, last) or {}).get(
+				employee.name
+			) or frappe._dict(EMPTY_STATS)
+
+		credited_days = flt(attendance.credited_days, 2)
+		# Аванс платиться за календарем: із запланованих днів вилітають лише відпустка й
+		# лікарняний, за які зарплата не нараховується.
+		advance_days = _paid_days(
+			first, last, holidays, absences.get(employee.name) or {}, planned_days, holiday_dates
+		)
+
+		if not month_days or (skip_empty and advance_days <= 0):
 			continue
 
 		rate_official = flt(official) / month_days if month_days else 0
@@ -159,29 +191,48 @@ def plan_advance(
 					- flt(attendance.shortfall_hours),
 					2,
 				),
+				tax_id=employee.custom_tax_id,
+				relieving_date=employee.relieving_date,
 				daily_rate=flt(rate_official + rate_cash, 2),
 				official=flt(rate_official * credited_days, 2),
+				official_net=payroll_tax.net(rate_official * credited_days),
 				cash=flt(rate_cash * credited_days, 2),
+				# Аванс має власну базу днів, тож і власні суми: остаточний розрахунок далі
+				# рахується за табелем і сам зніме те, що людина не відпрацювала.
+				advance_days=advance_days,
+				advance_official=flt(rate_official * advance_days, 2),
+				advance_official_net=payroll_tax.net(rate_official * advance_days),
+				advance_cash=flt(rate_cash * advance_days, 2),
 			)
 		)
 
 	for row in rows:
 		# сумісність зі старим друком і викликами з відомості
 		row.days = f"{row.credited_days:g}/{row.month_working_days:g}"
-		row.advance_total = flt(row.official + row.cash, 2)
+		# На руки йде вже без податків: офіційна частина оподаткована, готівкова — ні.
+		row.advance_total = flt(row.advance_official_net + row.advance_cash, 2)
 
 	return rows
 
 
 def apply_advance(company, year, month, rows) -> list:
-	"""Створює відрахування «Аванс» на кінець місяця по вже порахованих рядках."""
+	"""Створює відрахування «Аванс» на кінець місяця по вже порахованих рядках.
+
+	У відрахування йде сума, яку працівник справді отримав на руки: на картку — офіційна
+	частина за вирахуванням ПДФО і військового збору. Інакше листок вирахував би з картки
+	більше, ніж туди дійшло.
+	"""
 	_ensure_components()
-	payroll_date = get_last_day(getdate(f"{int(year)}-{int(month):02d}-01"))
+	month_end = get_last_day(getdate(f"{int(year)}-{int(month):02d}-01"))
 	created = []
 
 	for row in rows:
+		# Звільненому все належне платиться в день звільнення (ст. 116 КЗпП), і HRMS тримає те
+		# саме правило: відрахування з датою пізнішою за звільнення він не приймає.
+		payroll_date = _payroll_date(row["employee"], month_end)
+
 		for amount, component in (
-			(flt(row.get("official")), ADVANCE_CARD),
+			(flt(row.get("official_net", row.get("official"))), ADVANCE_CARD),
 			(flt(row.get("cash")), ADVANCE_CASH),
 		):
 			if not flt(amount, 2):
@@ -190,6 +241,70 @@ def apply_advance(company, year, month, rows) -> list:
 			created.append(_make_additional_salary(row["employee"], company, payroll_date, amount, component))
 
 	return created
+
+
+def reschedule_deductions_on_relieving(doc, method=None):
+	"""Employee.on_update: переносить відрахування, які лишилися за датою звільнення.
+
+	Аванс міг бути вже оформлений на кінець місяця, а людину звільнили серед місяця — тоді
+	відрахування не потрапляє в її останній листок (він закінчується днем звільнення), і аванс
+	просто лишається невирахуваним. Переставляємо його на день звільнення — туди, де за ст. 116
+	КЗпП і має бути розрахунок.
+	"""
+	if not doc.get("relieving_date"):
+		return
+
+	relieving = getdate(doc.relieving_date)
+	rows = frappe.get_all(
+		"Additional Salary",
+		filters={"employee": doc.name, "docstatus": 1, "payroll_date": (">", relieving)},
+		fields=["name", "salary_component", "amount", "company", "payroll_date", "type"],
+	)
+	moved = []
+
+	for row in rows:
+		try:
+			old = frappe.get_doc("Additional Salary", row.name)
+			old.flags.ignore_permissions = True
+			old.cancel()
+			new = frappe.get_doc(
+				{
+					"doctype": "Additional Salary",
+					"employee": doc.name,
+					"company": row.company,
+					"salary_component": row.salary_component,
+					"amount": row.amount,
+					"payroll_date": relieving,
+					"overwrite_salary_structure_amount": 0,
+				}
+			)
+			new.insert(ignore_permissions=True)
+			new.submit()
+			moved.append(
+				f"{row.salary_component}: {frappe.format(row.payroll_date, {'fieldtype': 'Date'})} → {frappe.format(relieving, {'fieldtype': 'Date'})}"
+			)
+		except Exception:
+			frappe.log_error(
+				title=f"Не вдалося перенести відрахування на дату звільнення: {row.name}",
+				message=frappe.get_traceback(),
+			)
+
+	if moved:
+		frappe.msgprint(
+			_("The deductions were moved to the dismissal date: {0}").format(", ".join(moved)),
+			indicator="orange",
+			alert=True,
+		)
+
+
+def _payroll_date(employee, month_end):
+	"""Дата відрахування: кінець місяця, а для звільненого — день звільнення."""
+	relieving = frappe.db.get_value("Employee", employee, "relieving_date")
+
+	if relieving and getdate(relieving) < getdate(month_end):
+		return getdate(relieving)
+
+	return getdate(month_end)
 
 
 def create_advance(
@@ -328,6 +443,106 @@ def attendance_stats(employees: list, start, end) -> dict:
 			entry.credited_days += DAY_WEIGHT.get(row.status, 0.0)
 
 	return stats
+
+
+def absence_days(employees: list, start, end) -> dict:
+	"""Відпустки й лікарняні по кожному працівнику: `{працівник: {дата: вага}}`.
+
+	Аванс не дивиться на явку, тож і рахувати треба не її, а лише ті відсутності, за які
+	зарплата не платиться. Джерел два, бо на день відсікання табель ще може бути незакритий:
+	затверджені заяви на відпустку (є заздалегідь) і сам табель — на випадок, коли лікарняний
+	чи відпустку позначили в ньому без заяви. Вага дня — 1, для півдня — 0.5.
+	"""
+	if not employees:
+		return {}
+
+	start, end = getdate(start), getdate(end)
+	absences = {}
+
+	def mark(employee, day, weight):
+		day = getdate(day)
+
+		if day < start or day > end:
+			return
+
+		days = absences.setdefault(employee, {})
+		days[day] = max(days.get(day, 0), weight)
+
+	applications = frappe.get_all(
+		"Leave Application",
+		filters={
+			"docstatus": 1,
+			"status": ("!=", "Rejected"),
+			"employee": ("in", employees),
+			"from_date": ("<=", end),
+			"to_date": (">=", start),
+		},
+		fields=["employee", "from_date", "to_date", "half_day", "half_day_date"],
+	)
+
+	for row in applications:
+		day = max(getdate(row.from_date), start)
+		last = min(getdate(row.to_date), end)
+
+		while day <= last:
+			half = row.half_day and (not row.half_day_date or getdate(row.half_day_date) == day)
+			mark(row.employee, day, 0.5 if half else 1)
+			day = add_days(day, 1)
+
+	marked = frappe.get_all(
+		"Attendance",
+		filters={
+			"docstatus": 1,
+			"employee": ("in", employees),
+			"attendance_date": ("between", [start, end]),
+			"status": ("in", ["On Leave", "Sick Leave", "Half Day"]),
+		},
+		fields=["employee", "attendance_date", "status", "leave_application"],
+	)
+
+	for row in marked:
+		if row.status == "Half Day":
+			# Півдня рахується відсутністю лише тоді, коли друга половина — відпустка.
+			if row.leave_application:
+				mark(row.employee, row.attendance_date, 0.5)
+			continue
+
+		mark(row.employee, row.attendance_date, 1)
+
+	return absences
+
+
+def _paid_days(first, last, holiday_list, absences, planned_days, holiday_dates) -> float:
+	"""Оплачувані дні авансу: заплановані робочі мінус відпустка й лікарняний у ті самі дні."""
+	if not absences or planned_days <= 0:
+		return flt(planned_days, 2)
+
+	holidays = _holiday_dates(holiday_list, first, last, holiday_dates)
+	first, last = getdate(first), getdate(last)
+	lost = sum(weight for day, weight in absences.items() if first <= day <= last and day not in holidays)
+
+	return flt(max(planned_days - lost, 0), 2)
+
+
+def _holiday_dates(holiday_list, start, end, cache) -> set:
+	"""Свята й вихідні зі списку — щоб відпустка не «з'їдала» день, який і так не робочий."""
+	key = (holiday_list, getdate(start), getdate(end))
+
+	if key not in cache:
+		cache[key] = (
+			{
+				getdate(row.holiday_date)
+				for row in frappe.get_all(
+					"Holiday",
+					filters={"parent": holiday_list, "holiday_date": ["between", [start, end]]},
+					fields=["holiday_date"],
+				)
+			}
+			if holiday_list
+			else set()
+		)
+
+	return cache[key]
 
 
 def _unpaid_leaves(applications: set) -> set:

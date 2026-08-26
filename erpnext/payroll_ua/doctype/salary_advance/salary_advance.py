@@ -1,8 +1,9 @@
 """Аванс за першу половину місяця — окремий документ, бо платиться в інший строк.
 
 Виплата двічі на місяць — вимога КЗпП, тож аванс не чекає на закриття місяця: він рахується
-за відпрацьовані дні з 1-го по день відсікання (за замовчуванням 15-те) і того ж дня
-виплачується. Документ нічого не тримає в собі: суми стають `Additional Salary`
+за календарем з 1-го (або з дати прийняття) по день відсікання (за замовчуванням 15-те) і
+того ж дня виплачується. Явка на аванс не впливає — з розрахунку випадають лише відпустка й
+лікарняний; прогул чи незакритий табель зніме вже остаточний розрахунок за місяць. Документ нічого не тримає в собі: суми стають `Additional Salary`
 («Аванс на картку» / «Аванс готівкою»), а виплата — `Journal Entry`. У «Зарплатній відомості»
 той самий аванс потім видно окремими колонками і він же зменшує остаточний розрахунок.
 """
@@ -134,8 +135,10 @@ class SalaryAdvance(Document):
 		# ми його однаково. Стан табеля лишається в рядку (позначка й підказка) як попередження.
 		self.validate_structure_assigned(targets)
 
+		# `advance_card` у рядку — вже сума на руки (офіційна частина за вирахуванням ПДФО і
+		# військового збору), тож у відрахування вона йде як є.
 		rows = [
-			{"employee": row.employee, "official": flt(row.advance_card), "cash": flt(row.advance_cash)}
+			{"employee": row.employee, "official_net": flt(row.advance_card), "cash": flt(row.advance_cash)}
 			for row in targets
 		]
 
@@ -148,13 +151,15 @@ class SalaryAdvance(Document):
 	def link_additional_salary(self):
 		"""Підтягує створені відрахування в рядки, щоб з документа було видно, чим саме
 		аванс оформлений."""
-		payroll_date = period(self.year, self.month, self.cutoff_day)[1]
+		# У звільненого відрахування стоїть на день звільнення, а не на кінець місяця, тож
+		# шукаємо по всьому періоду.
+		period_start, period_end, _cutoff = period(self.year, self.month, self.cutoff_day)
 		existing = frappe.get_all(
 			"Additional Salary",
 			filters={
 				"company": self.company,
 				"docstatus": 1,
-				"payroll_date": payroll_date,
+				"payroll_date": ["between", [period_start, period_end]],
 				"salary_component": ["in", [ADVANCE_CARD, ADVANCE_CASH]],
 			},
 			fields=["name", "employee", "salary_component", "amount"],
@@ -329,12 +334,14 @@ def row_values(row) -> dict:
 		for field in (
 			"employee",
 			"employee_name",
+			"tax_id",
 			"department",
 			"manager",
 			"official_salary",
 			"cash_salary",
 			"month_working_days",
 			"planned_days",
+			"advance_days",
 			"planned_hours",
 			"credited_days",
 			"present_days",
@@ -348,7 +355,9 @@ def row_values(row) -> dict:
 			"daily_rate",
 		)
 	}
-	values["advance_card"] = row.official
+	# Нарахований аванс і той, що йде на картку: різниця між ними — ПДФО і військовий збір.
+	values["advance_accrued"] = row.advance_official
+	values["advance_card"] = row.advance_official_net
 	# Готівкову частину за замовчуванням не платимо: у розрахунку вона лише довідкова
 	# (`cash_salary`), а суму бухгалтерія вписує руками, коли аванс дійсно дають готівкою.
 	values["advance_cash"] = 0
@@ -375,7 +384,7 @@ def get_employees(company: str, period_start: str, cutoff_day: int = DEFAULT_CUT
 	employees = [
 		{
 			**row_values(row),
-			"advance_total": row.official,
+			"advance_total": row.advance_official_net,
 			"attendance_approved": 1 if covered.get(row.employee) else 0,
 			"attendance_note": "" if covered.get(row.employee) else missing_attendance_note(),
 		}
