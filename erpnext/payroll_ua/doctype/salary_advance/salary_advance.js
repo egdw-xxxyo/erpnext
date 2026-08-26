@@ -158,12 +158,9 @@ function row_action_label(row) {
 	return row.paid ? __("Paid") : __("Pay");
 }
 
-function attendance_extra(row) {
-	return [[__("Paid Days of the Advance"), `<b>${days(row.advance_days)}</b>`]];
-}
-
 function salary_lines(row) {
 	const lines = [
+		[__("Paid Days of the Advance"), `<b>${days(row.advance_days)}</b>`],
 		[__("Monthly Salary"), money(flt(row.official_salary) + flt(row.cash_salary))],
 		[__("Working Days in Month"), number(row.month_working_days)],
 		[__("Daily Rate"), money(row.daily_rate)],
@@ -200,7 +197,6 @@ function cutoff_date(frm) {
 // info popup and both confirmations, so a click never asks for money without showing the basis.
 function details_html(row) {
 	return erpnext.utils.attendance_details.html(row, {
-		attendance: attendance_extra(row),
 		salary: salary_lines(row),
 		note: attendance_note(row),
 	});
@@ -260,7 +256,6 @@ function show_attendance(frm, row) {
 	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
 		indicator: row.attendance_approved ? "green" : "orange",
-		attendance: attendance_extra(row),
 		salary: salary_lines(row),
 		note: attendance_note(row),
 		start: frm.doc.period_start,
