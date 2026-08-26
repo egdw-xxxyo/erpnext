@@ -12,6 +12,7 @@
   "department",
   "manager",
   "column_break_days",
+  "advance_days",
   "credited_days",
   "planned_days",
   "planned_hours",
@@ -80,6 +81,14 @@
   {
    "fieldname": "column_break_days",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "Calendar working days from the joining date up to the cut-off, less vacation and sick leave. Attendance does not reduce the advance.",
+   "fieldname": "advance_days",
+   "fieldtype": "Float",
+   "label": "Paid Days of the Advance",
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "credited_days",
@@ -209,6 +218,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "The amount that actually lands on the card: the official part for the worked days less PIT 18% and military levy 5%.",
    "fieldname": "advance_card",
    "fieldtype": "Currency",
    "label": "Advance to Card"

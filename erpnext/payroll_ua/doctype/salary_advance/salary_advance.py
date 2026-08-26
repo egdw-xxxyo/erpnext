@@ -1,8 +1,9 @@
 """Аванс за першу половину місяця — окремий документ, бо платиться в інший строк.
 
 Виплата двічі на місяць — вимога КЗпП, тож аванс не чекає на закриття місяця: він рахується
-за відпрацьовані дні з 1-го по день відсікання (за замовчуванням 15-те) і того ж дня
-виплачується. Документ нічого не тримає в собі: суми стають `Additional Salary`
+за календарем з 1-го (або з дати прийняття) по день відсікання (за замовчуванням 15-те) і
+того ж дня виплачується. Явка на аванс не впливає — з розрахунку випадають лише відпустка й
+лікарняний; прогул чи незакритий табель зніме вже остаточний розрахунок за місяць. Документ нічого не тримає в собі: суми стають `Additional Salary`
 («Аванс на картку» / «Аванс готівкою»), а виплата — `Journal Entry`. У «Зарплатній відомості»
 той самий аванс потім видно окремими колонками і він же зменшує остаточний розрахунок.
 """
@@ -134,8 +135,10 @@ class SalaryAdvance(Document):
 		# ми його однаково. Стан табеля лишається в рядку (позначка й підказка) як попередження.
 		self.validate_structure_assigned(targets)
 
+		# `advance_card` у рядку — вже сума на руки (офіційна частина за вирахуванням ПДФО і
+		# військового збору), тож у відрахування вона йде як є.
 		rows = [
-			{"employee": row.employee, "official": flt(row.advance_card), "cash": flt(row.advance_cash)}
+			{"employee": row.employee, "official_net": flt(row.advance_card), "cash": flt(row.advance_cash)}
 			for row in targets
 		]
 
@@ -335,6 +338,7 @@ def row_values(row) -> dict:
 			"cash_salary",
 			"month_working_days",
 			"planned_days",
+			"advance_days",
 			"planned_hours",
 			"credited_days",
 			"present_days",
@@ -349,7 +353,8 @@ def row_values(row) -> dict:
 			"daily_rate",
 		)
 	}
-	values["advance_card"] = row.official
+	# На картку йде вже без податків — саме цю суму бухгалтерія й відправляє в банк.
+	values["advance_card"] = row.advance_official_net
 	# Готівкову частину за замовчуванням не платимо: у розрахунку вона лише довідкова
 	# (`cash_salary`), а суму бухгалтерія вписує руками, коли аванс дійсно дають готівкою.
 	values["advance_cash"] = 0
@@ -376,7 +381,7 @@ def get_employees(company: str, period_start: str, cutoff_day: int = DEFAULT_CUT
 	employees = [
 		{
 			**row_values(row),
-			"advance_total": row.official,
+			"advance_total": row.advance_official_net,
 			"attendance_approved": 1 if covered.get(row.employee) else 0,
 			"attendance_note": "" if covered.get(row.employee) else missing_attendance_note(),
 		}

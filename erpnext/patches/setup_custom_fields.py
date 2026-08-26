@@ -31,6 +31,9 @@ def execute():
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
 	create_salary_split_fields()
+	create_salary_tax_components()
+	create_disability_fields()
+	create_identity_fields()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -388,10 +391,10 @@ def create_salary_split_fields():
 			"dt": "Employee",
 			"fieldname": "custom_official_salary",
 			"fieldtype": "Currency",
-			"label": "Official Salary",
+			"label": "Official Salary (Gross)",
 			"options": "salary_currency",
 			"insert_after": "ctc",
-			"description": "Paid to the bank card. Together with the cash part it makes up the full salary.",
+			"description": "Accrued officially, before taxes. 23% is withheld from it (PIT 18% + military levy 5%), so 77% lands on the bank card; the employer pays 22% SSC on top.",
 		},
 		{
 			"dt": "Employee",
@@ -400,6 +403,7 @@ def create_salary_split_fields():
 			"label": "Cash Salary",
 			"options": "salary_currency",
 			"insert_after": "custom_official_salary",
+			"description": "Paid from the cash desk and not taxed. Together with the official part it makes up the full salary.",
 		},
 		{
 			"dt": "Employee",
@@ -419,7 +423,85 @@ def create_salary_split_fields():
 		},
 	]
 	_create_custom_fields(fields)
+	_update_field_texts(fields)
 	_make_ctc_read_only()
+
+
+def create_identity_fields():
+	"""РНОКПП (ІПН) — у паспортному блоці картки працівника, поряд із номером паспорта."""
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_tax_id",
+			"fieldtype": "Data",
+			"label": "Tax Number (RNOKPP)",
+			"insert_after": "passport_details_section",
+			"description": "Ten digits of the taxpayer registration number. It must be unique across employees.",
+		},
+	]
+	_create_custom_fields(fields)
+	_update_field_texts(fields)
+
+
+def create_disability_fields():
+	"""Група інвалідності в картці працівника — від неї залежить ставка ЄСВ (8,41% замість 22%)."""
+	from erpnext.hr.payroll_tax import DISABILITY_GROUPS
+
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_disability_group",
+			"fieldtype": "Select",
+			"label": "Disability Group",
+			"options": "\n" + "\n".join(DISABILITY_GROUPS),
+			"insert_after": "health_details",
+			"description": "Any group gives the reduced SSC rate of 8.41% instead of 22%. Keep the MSEC certificate on file.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_disability_certificate",
+			"fieldtype": "Data",
+			"label": "MSEC Certificate",
+			"insert_after": "custom_disability_group",
+			"depends_on": "eval:doc.custom_disability_group",
+			"description": "Number of the MSEC certificate or of the expert team decision — the ground for the reduced rate.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_disability_valid_till",
+			"fieldtype": "Date",
+			"label": "Disability Valid Till",
+			"insert_after": "custom_disability_certificate",
+			"depends_on": "eval:doc.custom_disability_group",
+			"description": "Leave it empty if the group is set for good.",
+		},
+	]
+	_create_custom_fields(fields)
+	_update_field_texts(fields)
+
+
+def create_salary_tax_components():
+	"""ПДФО / військовий збір / ЄСВ — без них листок не знає, що утримати з офіційної частини."""
+	from erpnext.hr import payroll_tax
+
+	payroll_tax.ensure_components()
+
+
+def _update_field_texts(fields):
+	"""Підписи й підказки міняються частіше за самі поля, а `_create_custom_fields` наявне поле
+	лише пропускає — тож текст оновлюємо окремо."""
+	for f in fields:
+		name = frappe.db.exists("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]})
+
+		if not name:
+			continue
+
+		values = {key: f[key] for key in ("label", "description", "options") if key in f}
+		current = frappe.db.get_value("Custom Field", name, list(values), as_dict=True)
+
+		if values and (not current or any(current.get(key) != value for key, value in values.items())):
+			frappe.db.set_value("Custom Field", name, values)
+			print(f"  Updated Custom Field text: {f['dt']}.{f['fieldname']}")
 
 
 def _make_ctc_read_only():

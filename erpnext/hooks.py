@@ -522,6 +522,10 @@ doc_events = {
 		"validate": "erpnext.accounts.doctype.payment_request.payment_request.validate_payment"
 	},
 	"Employee": {
+		"validate": [
+			"erpnext.hr.payroll_tax.warn_missing_certificate",
+			"erpnext.hr.employee_identity.validate_tax_id",
+		],
 		"on_update": "erpnext.hr.salary_split.sync_salary_structure_assignment",
 	},
 	"Salary Slip": {
