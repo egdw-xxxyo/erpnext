@@ -701,7 +701,7 @@ def _day_note(row, leave_abbrs) -> dict | None:
 
 
 @frappe.whitelist()
-def attendance_calendar(employee: str, start, end) -> dict:
+def attendance_calendar(employee: str, start: str, end: str) -> dict:
 	from hrms.hr.attendance_marks import (
 		DAY_ABBR,
 		DAY_CONTEXT,
