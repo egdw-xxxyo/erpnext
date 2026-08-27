@@ -475,3 +475,4 @@ erpnext.patches.v15_0.setup_eskd_templates
 erpnext.patches.v15_0.drop_eskd_bpak_combination
 erpnext.patches.v15_0.merge_mo_warehouses_into_rd
 erpnext.patches.v15_0.cleanup_stale_task_depends_on
+erpnext.patches.v15_0.backfill_serial_no_responsible

@@ -1177,8 +1177,10 @@ def create_responsible_employee_dimension():
 	The doctype creates the Link fields on every stock document and the
 	`responsible_employee` column on Stock Ledger Entry by itself.
 	"""
-	if frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION}):
+	existing = frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION})
+	if existing:
 		print(f"  Inventory Dimension exists: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
+		enforce_responsible_employee_stock(existing)
 	else:
 		frappe.get_doc(
 			{
@@ -1187,12 +1189,59 @@ def create_responsible_employee_dimension():
 				"reference_document": "Employee",
 				"apply_to_all_doctypes": 1,
 				"reqd": 0,
-				"validate_negative_stock": 0,
+				"validate_negative_stock": 1,
 			}
 		).insert(ignore_permissions=True)
 		print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
 	relax_rejected_responsible_employee()
+	create_serial_no_responsible_field()
+
+
+def enforce_responsible_employee_stock(name):
+	"""Turn on the per-person negative stock check on an already created dimension.
+
+	Without it the dimension is only a label: a person could hand over more than they
+	hold as long as the warehouse as a whole covered it, and their balance silently went
+	negative. `StockLedgerEntry.validate_inventory_dimension_negative_stock` does the
+	check, but only for dimensions that ask for it.
+
+	`validate_negative_stock` is one of the few fields `InventoryDimension.do_not_update_document`
+	still allows to change once stock transactions exist, so this is safe to flip late.
+	"""
+	if frappe.db.get_value("Inventory Dimension", name, "validate_negative_stock"):
+		print("  Responsible Employee already validates negative stock")
+		return
+
+	frappe.db.set_value("Inventory Dimension", name, "validate_negative_stock", 1)
+	frappe.clear_cache()
+	print("  Responsible Employee now validates negative stock")
+
+
+def create_serial_no_responsible_field():
+	"""Store the responsible employee on the Serial No itself.
+
+	The dimension lives on Stock Ledger Entry, and `get_inventory_documents()` excludes
+	Serial No from the doctypes it generates fields on, so custody of a single serial was
+	only reachable through a three table join. A serial is one unit, so the holder is a
+	property of the serial — kept in step with `warehouse` by
+	`erpnext.stock.responsible_employee.set_serial_no_responsible`.
+	"""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Serial No",
+				"fieldname": RESPONSIBLE_EMPLOYEE_FIELD,
+				"fieldtype": "Link",
+				"options": "Employee",
+				"label": "Responsible Employee",
+				"insert_after": "warehouse",
+				"read_only": 1,
+				"search_index": 1,
+				"in_standard_filter": 1,
+			}
+		]
+	)
 
 
 def relax_rejected_responsible_employee():

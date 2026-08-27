@@ -13613,3 +13613,6 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Outside the Employment","Поза періодом роботи"
 "The attendance after the dismissal was removed: {0}","Табель після звільнення прибрано: {0}"
 "{0} employees have no salary set on their card — fill it in to pay them.","{0} працівників без заданого окладу в картці — заповніть його, щоб виплатити."
+"Show Responsible Employee","Показати відповідального за товар"
+"Total In Stock Qty","Разом на складі"
+"Inventory Dimension Negative Stock","Від’ємний залишок за виміром запасів"
