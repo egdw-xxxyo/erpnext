@@ -12,6 +12,7 @@ apart, so it must not be left empty there.
 
 import frappe
 from frappe import _
+from frappe.utils import flt
 
 RESPONSIBLE_EMPLOYEE_DIMENSION = "Responsible Employee"
 RESPONSIBLE_EMPLOYEE_FIELD = "responsible_employee"
@@ -125,3 +126,52 @@ def validate_responsible_employee(doc, method=None):
 				),
 				title=_("Responsible Employee Required"),
 			)
+
+
+def set_serial_no_responsible(doc, method=None):
+	"""Mirror the responsible employee of a ledger entry onto the serial numbers it moved.
+
+	The dimension is stored per ledger row, so custody of one serial number was only
+	reachable by joining Serial No → Serial and Batch Entry → Stock Ledger Entry. A serial
+	is a single unit, so the holder belongs on the serial: this keeps the Serial No field in
+	step with `warehouse`, which stock updates from the same ledger row.
+
+	Wired as a `Stock Ledger Entry` `on_submit` doc_event rather than an edit inside
+	`SerialBatchBundle`, because that class reaches the serials through three different
+	paths (bundle, auto created bundle, stock reconciliation) and every one of them ends in
+	a submitted ledger entry.
+	"""
+	if doc.get("is_cancelled"):
+		return
+
+	if not frappe.db.has_column("Serial No", RESPONSIBLE_EMPLOYEE_FIELD):
+		return
+
+	serial_nos = get_moved_serial_nos(doc)
+	if not serial_nos:
+		return
+
+	# an outward entry takes the serial out of the warehouse — stock clears `warehouse` on
+	# it for the same reason, and a serial nobody holds must not keep naming a holder
+	employee = doc.get(RESPONSIBLE_EMPLOYEE_FIELD) if flt(doc.get("actual_qty")) > 0 else None
+
+	serial_no = frappe.qb.DocType("Serial No")
+	(
+		frappe.qb.update(serial_no)
+		.set(serial_no[RESPONSIBLE_EMPLOYEE_FIELD], employee)
+		.where(serial_no.name.isin(serial_nos))
+	).run()
+
+
+def get_moved_serial_nos(doc) -> list[str]:
+	"""Serial numbers of a ledger entry, from its bundle or from the legacy text field."""
+	from erpnext.stock.doctype.serial_no.serial_no import get_serial_nos as parse_serial_nos
+	from erpnext.stock.serial_batch_bundle import get_serial_nos as get_bundle_serial_nos
+
+	if doc.get("serial_and_batch_bundle"):
+		return get_bundle_serial_nos(doc.serial_and_batch_bundle)
+
+	if doc.get("serial_no"):
+		return parse_serial_nos(doc.serial_no)
+
+	return []
