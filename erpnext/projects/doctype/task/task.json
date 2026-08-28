@@ -194,7 +194,7 @@
    "label": "% Progress",
    "no_copy": 1,
    "precision": "2",
-   "read_only_depends_on": "eval:doc.is_group"
+   "read_only": 1
   },
   {
    "default": "0",
