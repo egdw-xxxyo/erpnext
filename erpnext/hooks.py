@@ -398,6 +398,10 @@ doc_events = {
 	): {
 		"validate": "erpnext.stock.responsible_employee.validate_responsible_employee",
 	},
+	# a serial number is one unit, so its holder belongs on the Serial No itself
+	"Stock Ledger Entry": {
+		"on_submit": "erpnext.stock.responsible_employee.set_serial_no_responsible",
+	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
 		"validate": "erpnext.crm.utils.set_military_unit_from_party",
