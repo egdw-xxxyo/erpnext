@@ -13616,3 +13616,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Show Responsible Employee","Показати відповідального за товар"
 "Total In Stock Qty","Разом на складі"
 "Inventory Dimension Negative Stock","Від’ємний залишок за виміром запасів"
+"Unpaid Leave","Неоплачувана відпустка"
+"Loading the month...","Завантаження місяця..."
+"Not permitted to read attendance","Немає доступу до табеля"
+"Employee {0} not found","Працівника {0} не знайдено"

@@ -211,20 +211,14 @@ function payable(frm, row) {
 	return Boolean(frm.doc.bonus_approved) && amount(frm, row) > 0;
 }
 
-// What the month is made of, and what is being paid for it — the same block serves the info
-// popup, the payment confirmation and the receipt.
-function details_html(frm, row) {
+function attendance_extra(row) {
+	return [[__("Working Days in Month"), number(row.total_working_days)]];
+}
+
+// What the month is being paid for — the days above it come from the shared attendance block,
+// so this list and the calendar over it can never tell two different stories.
+function salary_lines(frm, row) {
 	const lines = [
-		[__("Present Days"), number(row.present_days)],
-		[__("Half Days"), number(row.half_days)],
-		[__("Sick Leave Days"), number(row.sick_days)],
-		[__("Paid Leave Days"), number(row.leave_days)],
-		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
-		[__("Absent Days"), number(row.absent_days)],
-		[__("Overtime Hours"), hours(row.overtime_hours)],
-		[__("Shortfall Hours"), hours(row.shortfall_hours)],
-		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
-		[__("Working Days in Month"), number(row.total_working_days)],
 		[__("Official Salary"), money(row.official_salary)],
 		[__("Cash Salary"), money(row.cash_salary)],
 		[__("Bonus"), money(row.bonus_amount)],
@@ -251,21 +245,25 @@ function details_html(frm, row) {
 
 	lines.push([__("Outstanding"), `<b>${money(row.outstanding)}</b>`]);
 
-	return `
-		<table class="table table-bordered" style="margin: 0;">
-			<tbody>
-				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
-			</tbody>
-		</table>
-		${row.note ? `<p class="text-muted" style="margin-top: 8px;">${frappe.utils.escape_html(row.note)}</p>` : ""}
-	`;
+	return lines;
+}
+
+// The same block serves the info popup, the payment confirmation and the receipt.
+function details_html(frm, row) {
+	return erpnext.utils.attendance_details.html(row, {
+		attendance: attendance_extra(row),
+		salary: salary_lines(frm, row),
+		note: row.note,
+	});
 }
 
 function show_details(frm, row) {
-	frappe.msgprint({
+	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
 		indicator: row.paid ? "green" : "blue",
-		message: details_html(frm, row),
+		attendance: attendance_extra(row),
+		salary: salary_lines(frm, row),
+		note: row.note,
 	});
 }
 

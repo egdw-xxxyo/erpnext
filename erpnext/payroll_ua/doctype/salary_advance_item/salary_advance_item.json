@@ -22,7 +22,6 @@
   "section_break_attendance",
   "working_hours",
   "present_days",
-  "half_days",
   "sick_days",
   "column_break_attendance",
   "leave_days",
@@ -149,13 +148,6 @@
    "fieldname": "present_days",
    "fieldtype": "Float",
    "label": "Present Days",
-   "read_only": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "half_days",
-   "fieldtype": "Float",
-   "label": "Half Days",
    "read_only": 1,
    "precision": "2"
   },
