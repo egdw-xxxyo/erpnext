@@ -30,6 +30,7 @@ frappe.ui.form.on("Salary Change", {
 
 		show_reservation_warning(frm);
 		load_reservation_minimum(frm).then(() => show_reservation_mismatch(frm));
+		lock_when_approved(frm);
 
 		frm.page.set_indicator(
 			__(frm.doc.status),
@@ -85,6 +86,20 @@ function update_row(frm, cdt, cdn) {
 	calculate_row(locals[cdt][cdn]);
 	frm.refresh_field("employees");
 	refresh_view(frm);
+}
+
+// Затверджений документ уже в картках працівників: правити його нема куди, тож форма
+// закривається на замок — сервер це саме й перевіряє при збереженні.
+function lock_when_approved(frm) {
+	if (frm.doc.status !== "Approved") return;
+
+	frm.disable_save();
+	frm.set_read_only();
+	frm.dashboard.add_comment(
+		__("This change is approved — create a new document to change the salary again."),
+		"blue",
+		true
+	);
 }
 
 function refresh_view(frm) {
