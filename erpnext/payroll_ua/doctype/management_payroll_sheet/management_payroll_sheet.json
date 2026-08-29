@@ -19,17 +19,9 @@
   "section_break_counts",
   "total_employees",
   "employees_without_attendance",
-  "employees_without_salary",
-  "total_credited_days",
   "column_break_counts",
   "paid_employees",
   "advance_sheet",
-  "section_break_totals",
-  "total_gross",
-  "total_advance_cash",
-  "column_break_totals",
-  "total_salary_cash",
-  "total_outstanding",
   "section_break_employees",
   "employees_preview",
   "employees"
@@ -115,20 +107,6 @@
    "read_only": 1
   },
   {
-   "default": "0",
-   "fieldname": "employees_without_salary",
-   "fieldtype": "Int",
-   "label": "Without Salary Set",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_credited_days",
-   "fieldtype": "Float",
-   "label": "Credited Days",
-   "precision": "1",
-   "read_only": 1
-  },
-  {
    "fieldname": "column_break_counts",
    "fieldtype": "Column Break"
   },
@@ -143,39 +121,6 @@
    "fieldtype": "Link",
    "label": "Advance",
    "options": "Salary Advance",
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_break_totals",
-   "fieldtype": "Section Break",
-   "label": "Totals"
-  },
-  {
-   "fieldname": "total_gross",
-   "fieldtype": "Currency",
-   "label": "Accrued",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_advance_cash",
-   "fieldtype": "Currency",
-   "label": "Advance in Cash",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_totals",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "total_salary_cash",
-   "fieldtype": "Currency",
-   "label": "Salary in Cash",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_outstanding",
-   "fieldtype": "Currency",
-   "label": "Outstanding",
    "read_only": 1
   },
   {
@@ -197,7 +142,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-25 00:00:00.000000",
+ "modified": "2026-08-28 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Management Payroll Sheet",

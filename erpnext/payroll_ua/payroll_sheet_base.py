@@ -1,9 +1,10 @@
 """Спільна механіка двох нарахувань зарплати за місяць — офіційного й управлінського.
 
 Документ нічого не зберігає окремо: суми рахуються з картки працівника (офіційна й готівкова
-частини) за табелем — тією самою арифметикою, що й «Аванс», — плюс затверджені премія й надбавка,
-мінус уже виданий аванс і задаток. Нарахування в HRMS (Payroll Entry) лишається окремою дією і
-виплату не блокує: гроші йдуть за відпрацьованими днями, а не за наявністю Salary Slip.
+частини) за оплачуваними днями — тією самою арифметикою, що й «Аванс», — плюс затверджені премія
+й надбавка, мінус уже виданий аванс і задаток. Оплачувані дні рахуються за календарем: робочі дні
+місяця мінус відпустка й лікарняний. Нарахування в HRMS (Payroll Entry) лишається окремою дією і
+виплату не блокує: гроші йдуть за оплачуваними днями, а не за наявністю Salary Slip.
 
 Платіжні дати двох частин різні (офіційна — 1-го, готівкова — 5-6-го), тож і документи різні:
 «Нарахування зарплати» платить лише на картку, «Нарахування управлінської зарплати» — лише з
@@ -76,8 +77,11 @@ class PayrollSheetBase(Document):
 
 		Раніше кожне число читалося з Salary Slip, тож до нарахування відомість показувала нулі
 		й платити не давала. Нарахування — окрема дія бухгалтерії (Payroll Entry), а виплата за
-		місяць від нього не залежить: гроші йдуть за відпрацьованими днями і затвердженою
-		премією, точно як аванс усередині місяця.
+		місяць від нього не залежить: гроші йдуть за оплачуваними днями і затвердженою премією,
+		точно як аванс усередині місяця.
+
+		Оплачувані дні рахуються за календарем — робочі дні мінус відпустка й лікарняний, —
+		а не за табелем: обидві виплати того самого місяця мусять іти за одним правилом.
 		"""
 		self.advance_sheet = frappe.db.get_value(
 			"Salary Advance", {"company": self.company, "period_start": self.period_start}
@@ -105,10 +109,11 @@ class PayrollSheetBase(Document):
 			bonus_cash = flt(bonus.get("bonus")) if bonus.get("in_cash") else 0
 			bonus_card = flt(bonus.get("bonus")) - bonus_cash + flt(bonus.get("allowance"))
 			# Офіційна частина (разом із премією на картку) — нарахована сума: з неї утримуються
-			# ПДФО і військовий збір, тож на картку йде вже залишок.
-			taxes = payroll_tax.split(flt(entry.official, 2) + bonus_card, employee)
+			# ПДФО і військовий збір, тож на картку йде вже залишок. Дні беруться ті самі, що
+			# й в авансі — за календарем, а не за табелем (див. `plan_month`).
+			taxes = payroll_tax.split(flt(entry.paid_official, 2) + bonus_card, employee)
 			earned_card = taxes.net
-			earned_cash = flt(entry.cash, 2) + bonus_cash
+			earned_cash = flt(entry.paid_cash, 2) + bonus_cash
 			advance_card = flt(advance.get(ADVANCE_CARD))
 			advance_cash = flt(advance.get(ADVANCE_CASH))
 			deposit = flt(extra.get(DEPOSIT_COMPONENT))
@@ -118,8 +123,10 @@ class PayrollSheetBase(Document):
 				{
 					"employee": employee,
 					"employee_name": entry.employee_name,
+					"tax_id": entry.tax_id,
 					"department": entry.department,
 					"manager": entry.manager,
+					"paid_days": flt(entry.paid_days, 2),
 					"credited_days": flt(entry.credited_days, 2),
 					"total_working_days": flt(entry.month_working_days, 2),
 					"daily_rate": flt(entry.daily_rate, 2),
@@ -194,6 +201,41 @@ class PayrollSheetBase(Document):
 			for row in rows
 		}
 
+	@frappe.whitelist()
+	def advance_details(self, employee):
+		"""Рядок авансу цього працівника — з чого склалася сума, яку відомість вирахувала.
+
+		Аванс живе окремим документом, а у відомості від нього лишається одне число. Щоб
+		бухгалтерія не відкривала другий документ заради перевірки, рядок віддається сюди
+		цілком: нарахування, оплачувані дні й те, що пішло на картку.
+		"""
+		if not self.advance_sheet:
+			return None
+
+		row = frappe.db.get_value(
+			"Salary Advance Item",
+			{"parent": self.advance_sheet, "parenttype": "Salary Advance", "employee": employee},
+			[
+				"advance_days",
+				"month_working_days",
+				"official_salary",
+				"advance_accrued",
+				"advance_card",
+				"advance_cash",
+				"advance_total",
+				"paid",
+				"paid_on",
+			],
+			as_dict=True,
+		)
+
+		if not row:
+			return None
+
+		row.advance = self.advance_sheet
+
+		return row
+
 	def _approved_bonuses(self):
 		"""Премія й надбавка з затвердженого «Затвердження премій» за цей місяць."""
 		approval = frappe.db.get_value(
@@ -265,16 +307,25 @@ class PayrollSheetBase(Document):
 		self.bonus_approved = 1 if self.bonus_approval() else 0
 		self.total_employees = len(self.employees)
 		self.employees_without_attendance = len([row for row in self.employees if not row.credited_days])
-		self.employees_not_accrued = len(
-			[row for row in self.employees if row.credited_days and not row.salary_slip]
-		)
-		self.employees_without_salary = len([row for row in self.employees if not has_salary(row)])
 		self.paid_employees = len([row for row in self.employees if row.paid])
+		# Лічильники й підсумки шапки — необов'язкові: документ може їх не показувати, і тоді
+		# писати їх нікуди (див. «Нарахування зарплати», де підсумки прибрані з форми).
+		self._set_counter(
+			"employees_not_accrued",
+			len([row for row in self.employees if row.credited_days and not row.salary_slip]),
+		)
+		self._set_counter(
+			"employees_without_salary", len([row for row in self.employees if not has_salary(row)])
+		)
 
 		for field, source in self.total_fields():
-			self.set(field, sum(flt(row.get(source)) for row in self.employees))
+			self._set_counter(field, sum(flt(row.get(source)) for row in self.employees))
 
 		self.status = self.derive_status()
+
+	def _set_counter(self, field, value):
+		if self.meta.has_field(field):
+			self.set(field, value)
 
 	def total_fields(self) -> tuple:
 		"""Підсумки шапки — спільні числа місяця плюс ті, що стосуються власної половини."""
