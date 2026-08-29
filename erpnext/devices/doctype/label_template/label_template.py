@@ -384,6 +384,24 @@ def _padding_from_template(template_doc):
 	)
 
 
+def _to_monochrome(png_bytes):
+	"""Threshold a rendered PNG to the 1-bit raster the printer actually gets.
+
+	Returns (PIL image in mode "1", 1-bit PNG bytes). wkhtmltoimage emits 32-bit
+	RGBA with zlib compression disabled (--quality 100), so its raw output is
+	~5.6 MB for a 100x100 mm label at 300 dpi; the same pixels as 1-bit deflate
+	are ~20 KB.
+	"""
+	from PIL import Image
+
+	img = Image.open(io.BytesIO(png_bytes))
+	img_bw = img.convert("L").point(lambda x: 0 if x < 128 else 255, "1")
+
+	buf = io.BytesIO()
+	img_bw.save(buf, format="PNG", optimize=True, compress_level=9)
+	return img_bw, buf.getvalue()
+
+
 def _html_to_png_base64(html, width_px, height_px, padding_mm=None):
 	full_html = _wrap_html_for_render(html, width_px, height_px, padding_mm=padding_mm)
 	result = subprocess.run(
@@ -413,7 +431,8 @@ def _html_to_png_base64(html, width_px, height_px, padding_mm=None):
 			message=result.stderr.decode("utf-8", errors="replace"),
 		)
 		frappe.throw(_("Failed to render HTML to image"))
-	return base64.b64encode(result.stdout).decode("ascii")
+	_img_bw, png_1bit = _to_monochrome(result.stdout)
+	return base64.b64encode(png_1bit).decode("ascii")
 
 
 def html_to_pcx_bytes(html, width_px, height_px, padding_mm=None):
@@ -422,10 +441,8 @@ def html_to_pcx_bytes(html, width_px, height_px, padding_mm=None):
 
 
 def html_to_image(html, width_px, height_px, padding_mm=None):
-	"""Return (pcx_bytes, png_bytes) for an HTML label."""
+	"""Return (pcx_bytes, 1-bit png_bytes) for an HTML label."""
 	import time
-
-	from PIL import Image
 
 	log = frappe.logger("label_printer")
 
@@ -466,16 +483,16 @@ def html_to_image(html, width_px, height_px, padding_mm=None):
 	png_bytes = result.stdout
 
 	t0 = time.monotonic()
-	img = Image.open(io.BytesIO(png_bytes))
-	img_bw = img.convert("L").point(lambda x: 0 if x < 128 else 255, "1")
+	img_bw, png_1bit = _to_monochrome(png_bytes)
 
 	pcx_buf = io.BytesIO()
 	img_bw.save(pcx_buf, format="PCX")
 	pil_ms = (time.monotonic() - t0) * 1000
 	log.error(
-		f"[TIMING] html_to_image: PIL png->pcx conversion: {pil_ms:.0f}ms " f"(pcx={pcx_buf.tell()}bytes)"
+		f"[TIMING] html_to_image: PIL png->pcx conversion: {pil_ms:.0f}ms "
+		f"(pcx={pcx_buf.tell()}bytes png={len(png_bytes)}->{len(png_1bit)}bytes)"
 	)
-	return pcx_buf.getvalue(), png_bytes
+	return pcx_buf.getvalue(), png_1bit
 
 
 def _format_spec_value(p):
