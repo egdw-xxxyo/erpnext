@@ -15,6 +15,7 @@ from frappe.utils import flt, formatdate, get_first_day, get_last_day, getdate, 
 
 from erpnext.hr.payroll_tax import reservation_minimum
 from erpnext.hr.salary_split import apply_salary_to_employee, has_submitted_slip, salary_parts_on
+from erpnext.hr.team import visible_employees
 
 
 class SalaryChange(Document):
@@ -123,12 +124,21 @@ class SalaryChange(Document):
 
 		return self.reservation_minimum
 
+	def visible_employees(self):
+		"""Підлеглі поточного користувача — та сама вибірка, що й у табелі та в затвердженні
+		премій: оклад міняє той, хто веде людину."""
+		period_start = getdate(self.effective_from).replace(day=1)
+
+		return visible_employees(self.company, period_start, get_last_day(period_start))
+
 	@frappe.whitelist()
 	def load_employees(self):
 		"""Тягне активних працівників компанії з окладом, чинним на дату зміни."""
 		known = {row.employee for row in self.employees}
 
-		for employee in get_month_employees(self.company, self.effective_from):
+		for employee in get_month_employees(
+			self.company, self.effective_from, employees=self.visible_employees()
+		):
 			if employee["employee"] in known:
 				continue
 
@@ -172,10 +182,16 @@ def get_employees(company: str, effective_from: str) -> list[dict]:
 	"""Список працівників для нового документа — форма тягне його сама, без кнопки."""
 	frappe.has_permission("Salary Change", throw=True)
 
-	return get_month_employees(company, effective_from)
+	period_start = getdate(effective_from).replace(day=1)
+
+	return get_month_employees(
+		company,
+		effective_from,
+		employees=visible_employees(company, period_start, get_last_day(period_start)),
+	)
 
 
-def get_month_employees(company: str, effective_from) -> list[dict]:
+def get_month_employees(company: str, effective_from, employees: list[str] | None = None) -> list[dict]:
 	"""Ті самі люди, що й в авансі та відомості за цей місяць.
 
 	Правило одне на всі зарплатні документи: компанія, працював хоч день у місяці —
@@ -185,13 +201,22 @@ def get_month_employees(company: str, effective_from) -> list[dict]:
 	"""
 	period_start = getdate(effective_from).replace(day=1)
 	period_end = get_last_day(period_start)
+	# `employees` — кого саме тягнути; `None` означає всю компанію (виклик без керівника).
+	if employees is not None and not employees:
+		return []
+
+	scope = [
+		["company", "=", company],
+		["status", "in", ["Active", "Left"]],
+		["date_of_joining", "<=", period_end],
+	]
+
+	if employees is not None:
+		scope.append(["name", "in", employees])
+
 	employees = frappe.get_all(
 		"Employee",
-		filters=[
-			["company", "=", company],
-			["status", "in", ["Active", "Left"]],
-			["date_of_joining", "<=", period_end],
-		],
+		filters=scope,
 		or_filters=[
 			["relieving_date", "is", "not set"],
 			["relieving_date", ">=", period_start],
