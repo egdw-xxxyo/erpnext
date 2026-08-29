@@ -12,7 +12,9 @@
   "section_break_employer",
   "ssc_rate",
   "column_break_employer",
-  "ssc_disability_rate"
+  "ssc_disability_rate",
+  "section_break_reservation",
+  "minimum_reservation_salary"
  ],
  "fields": [
   {
@@ -64,12 +66,24 @@
    "fieldtype": "Percent",
    "label": "SSC Rate for Disability",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_break_reservation",
+   "fieldtype": "Section Break",
+   "label": "Reservation (Бронювання)"
+  },
+  {
+   "default": "26000",
+   "description": "The minimum official salary an employee must be paid to qualify for military service reservation. The salary documents warn about anybody below it.",
+   "fieldname": "minimum_reservation_salary",
+   "fieldtype": "Currency",
+   "label": "Minimum Salary for Reservation"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-25 00:00:00.000000",
+ "modified": "2026-08-29 13:30:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Tax Settings",

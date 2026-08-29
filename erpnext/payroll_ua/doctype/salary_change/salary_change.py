@@ -11,18 +11,25 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, formatdate, get_first_day, getdate, nowdate
+from frappe.utils import flt, formatdate, get_first_day, get_last_day, getdate, nowdate
 
+from erpnext.hr.payroll_tax import reservation_minimum
 from erpnext.hr.salary_split import apply_salary_to_employee, has_submitted_slip, salary_parts_on
 
 
 class SalaryChange(Document):
+	def onload(self):
+		# Мінімум бронювання живе в налаштуваннях і міняється постановою — форма читає
+		# його звідси, щоб не питати сервер на кожен рядок.
+		self.set_onload("reservation_minimum", flt(self.reservation_minimum) or reservation_minimum())
+
 	def before_naming(self):
 		# `autoname` reads year and month, and it runs before validate.
 		self.set_period()
 
 	def validate(self):
 		self.set_period()
+		self.set_reservation_minimum()
 		self.validate_future_month()
 		self.set_current_salary()
 		self.set_totals()
@@ -34,6 +41,12 @@ class SalaryChange(Document):
 		self.effective_from = getdate(self.effective_from).replace(day=1)
 		self.year = self.effective_from.year
 		self.month = str(self.effective_from.month)
+
+	def set_reservation_minimum(self):
+		"""Мінімум бронювання фіксується документом: постанова його міняє, а затверджена
+		зміна має лишитися з тим числом, за яким її погоджували."""
+		if not flt(self.reservation_minimum):
+			self.reservation_minimum = reservation_minimum()
 
 	def validate_future_month(self):
 		"""Поточний місяць уже рахується — оклад можна міняти лише з наступного."""
@@ -99,6 +112,18 @@ class SalaryChange(Document):
 		)
 
 	@frappe.whitelist()
+	def refresh_reservation_minimum(self):
+		"""Підтягує чинний мінімум бронювання в чернетку — постанова могла змінити його
+		після створення документа."""
+		if self.status == "Approved":
+			frappe.throw(_("This change has already been applied."))
+
+		self.reservation_minimum = reservation_minimum()
+		self.save()
+
+		return self.reservation_minimum
+
+	@frappe.whitelist()
 	def load_employees(self):
 		"""Тягне активних працівників компанії з окладом, чинним на дату зміни."""
 		known = {row.employee for row in self.employees}
@@ -151,9 +176,26 @@ def get_employees(company: str, effective_from: str) -> list[dict]:
 
 
 def get_month_employees(company: str, effective_from) -> list[dict]:
+	"""Ті самі люди, що й в авансі та відомості за цей місяць.
+
+	Правило одне на всі зарплатні документи: компанія, працював хоч день у місяці —
+	зокрема прийнятий усередині місяця й звільнений усередині місяця. Раніше список брав
+	лише `Active` без дат, тож у зміну окладу потрапляв той, хто ще не вийшов на роботу,
+	і не потрапляв той, кого звільняють наприкінці місяця.
+	"""
+	period_start = getdate(effective_from).replace(day=1)
+	period_end = get_last_day(period_start)
 	employees = frappe.get_all(
 		"Employee",
-		filters={"company": company, "status": "Active"},
+		filters=[
+			["company", "=", company],
+			["status", "in", ["Active", "Left"]],
+			["date_of_joining", "<=", period_end],
+		],
+		or_filters=[
+			["relieving_date", "is", "not set"],
+			["relieving_date", ">=", period_start],
+		],
 		fields=["name", "employee_name", "department", "reports_to"],
 		order_by="department asc, employee_name asc",
 	)

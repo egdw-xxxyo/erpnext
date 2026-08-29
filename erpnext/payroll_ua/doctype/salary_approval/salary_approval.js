@@ -180,9 +180,10 @@ function calculate_totals(frm) {
 // Whom this user is allowed to see: the server sends the list on load (null — no limit).
 // The rows of other managers stay in the document untouched, they simply never show up.
 function visible_employees(frm) {
-	const onload = frm.doc.__onload;
+	const list = frm.doc.__onload && frm.doc.__onload.visible_employees;
 
-	return (onload && onload.visible_employees) || null;
+	// Порожній список — теж список: керівник без підлеглих не бачить нікого, а не всіх.
+	return Array.isArray(list) ? list : null;
 }
 
 function scoped_employees(frm) {

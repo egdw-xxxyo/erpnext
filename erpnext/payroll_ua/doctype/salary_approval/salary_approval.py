@@ -14,7 +14,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, get_last_day, getdate
 
-from erpnext.hr.salary_advance import attendance_summary
+from erpnext.hr.salary_advance import attendance_summary, payroll_date_for
 from erpnext.hr.salary_split import salary_parts_on
 from erpnext.hr.team import visible_employees
 
@@ -30,7 +30,7 @@ class SalaryApproval(Document):
 
 		# Керівник веде премії тих самих людей, чий табель він здає: решта рядків лишається
 		# в документі, але форма їх не показує (див. `visible_employees`).
-		self.set_onload("visible_employees", visible_employees(self.company))
+		self.set_onload("visible_employees", self.visible_employees())
 
 	def before_naming(self):
 		# `autoname` reads year and month, and it runs before validate.
@@ -87,13 +87,18 @@ class SalaryApproval(Document):
 			# затверджена наперед зміна окладу не зачіпає премію за вже закритий місяць.
 			row.official_salary, row.cash_salary = salary_parts_on(row.employee, end)
 
+	def visible_employees(self):
+		"""Рядки табеля цього керівника за цей місяць — та сама вибірка, що й на сторінці
+		«Табель»: премію ставить той, хто веде табель."""
+		return visible_employees(self.company, *month_range(self.effective_from))
+
 	@frappe.whitelist()
 	def load_employees(self):
 		"""Тягне підлеглих поточного користувача з окладом, чинним у цьому місяці."""
 		known = {row.employee for row in self.employees}
 
 		for employee in get_month_employees(
-			self.company, self.effective_from, employees=visible_employees(self.company)
+			self.company, self.effective_from, employees=self.visible_employees()
 		):
 			if employee["employee"] in known:
 				continue
@@ -112,10 +117,11 @@ class SalaryApproval(Document):
 
 		self.validate_attendance_approved()
 
-		payroll_date = get_last_day(self.effective_from)
 		applied = {"bonus": 0, "allowance": 0}
 
 		for row in self.employees:
+			payroll_date = self.payout_date(row.employee)
+
 			if flt(row.bonus_amount) and self._make_additional_salary(
 				row, BONUS_COMPONENT, row.bonus_amount, payroll_date
 			):
@@ -130,6 +136,15 @@ class SalaryApproval(Document):
 		self.save()
 
 		return applied
+
+	def payout_date(self, employee):
+		"""На яку дату вішається премія — кінець місяця, а звільненому день звільнення.
+
+		`Additional Salary` не приймає дату після звільнення, тож премія за місяць, у якому
+		людину звільнили, інакше не проводиться взагалі. Правило те саме, що й для авансу
+		(ст. 116 КЗпП: розрахунок у день звільнення), тож і функція спільна.
+		"""
+		return payroll_date_for(employee, get_last_day(self.effective_from))
 
 	def _make_additional_salary(self, row, component, amount, payroll_date):
 		existing = frappe.db.exists(
@@ -242,12 +257,16 @@ def get_employees(company: str, effective_from: str) -> list[dict]:
 	"""Список підлеглих для нового документа — форма тягне його сама, без кнопки."""
 	frappe.has_permission("Salary Approval", throw=True)
 
-	return get_month_employees(company, effective_from, employees=visible_employees(company))
+	return get_month_employees(
+		company, effective_from, employees=visible_employees(company, *month_range(effective_from))
+	)
 
 
 def get_month_employees(company: str, effective_from, employees: list[str] | None = None) -> list[dict]:
 	"""`employees` — кого саме тягнути; `None` означає всю компанію (адміністратор)."""
-	scope = {"company": company, "status": "Active"}
+	# Звільнений серед місяця свої дні відпрацював, тож із табеля він не зникає — і тут теж:
+	# вибірка вже обмежена періодом (див. `visible_employees`).
+	scope = {"company": company, "status": ["in", ["Active", "Left"]]}
 
 	if employees is not None:
 		if not employees:

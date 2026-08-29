@@ -47,14 +47,26 @@ function html(row, options) {
 		? `<div class="attendance-details-calendar" data-calendar="1">${loading_html()}</div>`
 		: "";
 
+	// Числа табеля живуть у рядку документа: там, де їх немає (зміна окладу), лишається
+	// сам календар — його сервер віддає по працівнику, а не по рядку.
+	const details = settings.skip_attendance_table
+		? ""
+		: `<details class="attendance-details-accordion">
+				<summary>${__("Attendance Details")}</summary>
+				${table_html(attendance_lines(row).concat(settings.attendance || []))}
+			</details>`;
+
+	// Діалог виплати питає про гроші — табель там лише відсуває кнопку вниз (`skip_attendance`).
+	const attendance = settings.skip_attendance
+		? ""
+		: section_html(__("Attendance"), `${calendar}${details}`);
+
 	return `
 		${styles()}
 		<div class="attendance-details">
-			${section_html(
-				__("Attendance"),
-				`${calendar}${table_html(attendance_lines(row).concat(settings.attendance || []))}`
-			)}
+			${attendance}
 			${section_html(__("Salary"), table_html(settings.salary || []))}
+			${settings.payout ? section_html(__("Taxes and Payout"), table_html(settings.payout)) : ""}
 			${note_html(settings.note)}
 		</div>
 	`;
@@ -85,10 +97,20 @@ function load_calendar(dialog, row, settings) {
 		return;
 	}
 
+	show_month(dialog, row, settings, settings.start, settings.end);
+}
+
+// Місяць гортається на місці: попап відкривається на періоді документа, а стрілки просто
+// перезапитують інший місяць — так видно, що було в людини раніше, не виходячи з форми.
+function show_month(dialog, row, settings, start, end) {
+	const slot = () => $(dialog.$wrapper).find("[data-calendar]");
+
+	slot().html(loading_html());
+
 	frappe
 		.call({
 			method: "erpnext.hr.salary_advance.attendance_calendar",
-			args: { employee: row.employee, start: settings.start, end: settings.end },
+			args: { employee: row.employee, start, end },
 		})
 		.then((response) => {
 			const data = response && response.message;
@@ -98,9 +120,68 @@ function load_calendar(dialog, row, settings) {
 				return;
 			}
 
-			slot().html(calendar_html(data));
+			slot().html(`${nav_html(start, settings)}${calendar_html(data)}`);
+			bind_nav(dialog, row, settings, start);
 		})
 		.catch(() => slot().remove());
+}
+
+// Період документа лишається якорем: до нього завжди можна повернутися одним кліком.
+function nav_html(start, settings) {
+	const home =
+		settings.start &&
+		frappe.datetime.obj_to_str(month_start(settings.start)) !==
+			frappe.datetime.obj_to_str(month_start(start));
+
+	return `
+		<div class="attendance-calendar-nav">
+			<button class="btn btn-xs btn-default" data-month="prev">
+				<i class="fa fa-chevron-left"></i>
+			</button>
+			<span class="attendance-calendar-nav-label">${month_label(month_start(start))}</span>
+			<button class="btn btn-xs btn-default" data-month="next">
+				<i class="fa fa-chevron-right"></i>
+			</button>
+			${
+				home
+					? `<button class="btn btn-xs btn-default" data-month="home">${__(
+							"Period of the Document"
+					  )}</button>`
+					: ""
+			}
+		</div>
+	`;
+}
+
+function bind_nav(dialog, row, settings, start) {
+	$(dialog.$wrapper)
+		.find("[data-month]")
+		.on("click", function () {
+			const step = { prev: -1, next: 1 }[$(this).attr("data-month")];
+
+			if (step === undefined) {
+				show_month(dialog, row, settings, settings.start, settings.end);
+				return;
+			}
+
+			const first = month_start(start);
+			const moved = new Date(first.getFullYear(), first.getMonth() + step, 1);
+			const last = new Date(moved.getFullYear(), moved.getMonth() + 1, 0);
+
+			show_month(
+				dialog,
+				row,
+				settings,
+				frappe.datetime.obj_to_str(moved),
+				frappe.datetime.obj_to_str(last)
+			);
+		});
+}
+
+function month_start(date) {
+	const parsed = frappe.datetime.str_to_obj(date);
+
+	return new Date(parsed.getFullYear(), parsed.getMonth(), 1);
 }
 
 function calendar_html(data) {
@@ -165,19 +246,47 @@ function weekday_html(data) {
 
 function day_html(date, data, start, end) {
 	const key = frappe.datetime.obj_to_str(date);
-	const outside = date < start || date > end;
 	const entry = data.days[key];
 	const note = entry && entry.note;
+	const classes = ["attendance-calendar-cell"].concat(day_classes(date, entry, start, end));
 
 	return `
-		<div class="attendance-calendar-cell${outside ? " outside" : ""}"
-			style="${entry ? `border-left: 2px solid ${entry.color};` : ""}"
+		<div class="${classes.join(" ")}"
+			style="${entry && entry.color ? `border-left: 2px solid ${entry.color};` : ""}"
 			title="${frappe.utils.escape_html(day_title(date, entry))}">
 			<span class="attendance-calendar-day">${date.getDate()}</span>
-			${entry ? `<span class="attendance-calendar-mark" style="color: ${entry.color};">${entry.mark}</span>` : ""}
+			${
+				entry && entry.mark
+					? `<span class="attendance-calendar-mark" style="color: ${entry.color};">${entry.mark}</span>`
+					: ""
+			}
+			${
+				entry && entry.boundary
+					? `<i class="fa fa-sign-${
+							entry.boundary === "joined" ? "in" : "out"
+					  } attendance-calendar-boundary"></i>`
+					: ""
+			}
 			${note ? `<span class="attendance-calendar-note ${note.kind}">${note.text}</span>` : ""}
 		</div>
 	`;
+}
+
+// Фон дня — це його ціна: зелений оплачується, червоний ні, свята й дні поза періодом
+// роботи лишаються без фону, бо їх ніхто й не мав платити.
+function day_classes(date, entry, start, end) {
+	const classes = [];
+
+	if (date < start || date > end) classes.push("outside");
+	if (!entry) return classes;
+
+	if (entry.outside_employment) classes.push("unemployed");
+	if (entry.paid !== undefined && entry.paid !== null) {
+		classes.push(entry.paid >= 1 ? "paid" : entry.paid > 0 ? "part-paid" : "unpaid");
+	}
+	if (entry.boundary) classes.push(entry.boundary);
+
+	return classes;
 }
 
 function day_title(date, entry) {
@@ -188,22 +297,44 @@ function day_title(date, entry) {
 
 		if (entry.leave_type) parts.push(entry.leave_type);
 		if (entry.unpaid) parts.push(__("Unpaid Leave"));
+		if (entry.boundary === "joined") parts.push(__("Joined the company"));
+		if (entry.boundary === "relieved") parts.push(__("Left the company"));
+
+		if (entry.outside_employment) parts.push(__("Outside the employment period"));
+		else if (entry.paid === 0) parts.push(__("Unpaid Day"));
+		else if (entry.paid > 0) parts.push(__("Paid Day"));
 	}
 
 	return parts.join(" · ");
 }
 
 function legend_html(data) {
-	return `
-		<div class="attendance-calendar-legend">
-			${(data.legend || [])
-				.map(
-					(item) =>
-						`<span class="attendance-calendar-legend-item" style="border-left: 2px solid ${item.color};">${item.label} — ${item.mark}</span>`
-				)
-				.join("")}
-		</div>
-	`;
+	const statuses = (data.legend || []).map(
+		(item) =>
+			`<span class="attendance-calendar-legend-item" style="border-left: 2px solid ${item.color};">${item.label} — ${item.mark}</span>`
+	);
+	const extra = [
+		`<span class="attendance-calendar-legend-item paid">${__("Paid Day")}</span>`,
+		`<span class="attendance-calendar-legend-item unpaid">${__("Unpaid Day")}</span>`,
+	];
+
+	if (data.joined_on) {
+		extra.push(
+			`<span class="attendance-calendar-legend-item"><i class="fa fa-sign-in"></i> ${__(
+				"Joined the company"
+			)}</span>`
+		);
+	}
+
+	if (data.relieved_on) {
+		extra.push(
+			`<span class="attendance-calendar-legend-item"><i class="fa fa-sign-out"></i> ${__(
+				"Left the company"
+			)}</span>`
+		);
+	}
+
+	return `<div class="attendance-calendar-legend">${statuses.concat(extra).join("")}</div>`;
 }
 
 function styles() {
@@ -247,6 +378,19 @@ function styles() {
 			}
 			.attendance-calendar-cell.blank { border: 0; }
 			.attendance-calendar-cell.outside { opacity: 0.35; }
+			.attendance-calendar-cell.unemployed { opacity: 0.45; }
+			.attendance-calendar-cell.paid { background-color: rgba(46, 160, 67, 0.14); }
+			.attendance-calendar-cell.part-paid { background-color: rgba(46, 160, 67, 0.07); }
+			.attendance-calendar-cell.unpaid { background-color: rgba(200, 55, 45, 0.14); }
+			.attendance-calendar-cell.joined,
+			.attendance-calendar-cell.relieved { box-shadow: inset 0 0 0 1px var(--blue-500, #2490ef); }
+			.attendance-calendar-boundary {
+				position: absolute;
+				left: 3px;
+				bottom: 2px;
+				font-size: 9px;
+				color: var(--blue-500, #2490ef);
+			}
 			.attendance-calendar-day { color: var(--text-muted, #8d99a6); }
 			.attendance-calendar-mark {
 				position: absolute;
@@ -272,8 +416,26 @@ function styles() {
 				color: var(--text-muted, #8d99a6);
 			}
 			.attendance-calendar-legend-item { padding-left: 5px; margin-right: 3px; }
+			.attendance-calendar-legend-item.paid,
+			.attendance-calendar-legend-item.unpaid { padding-right: 5px; border-radius: 3px; }
+			.attendance-calendar-legend-item.paid { background-color: rgba(46, 160, 67, 0.14); }
+			.attendance-calendar-legend-item.unpaid { background-color: rgba(200, 55, 45, 0.14); }
+			.attendance-details-accordion > summary {
+				cursor: pointer;
+				font-size: 12px;
+				color: var(--text-muted, #8d99a6);
+				padding: 4px 0;
+			}
+			.attendance-details-accordion[open] > summary { margin-bottom: 4px; }
 		</style>
 	`;
 }
 
-Object.assign(erpnext.utils.attendance_details, { html, show, attendance_lines });
+// `load_calendar` віддається назовні: форма може зібрати власний діалог (із полями, а не
+// самим текстом) і повісити той самий календар у його розмітку.
+Object.assign(erpnext.utils.attendance_details, {
+	html,
+	show,
+	attendance_lines,
+	mount_calendar: load_calendar,
+});
