@@ -19,21 +19,10 @@
   "section_break_counts",
   "total_employees",
   "employees_without_attendance",
-  "employees_not_accrued",
-  "employees_without_salary",
-  "total_credited_days",
   "column_break_counts",
   "paid_employees",
   "payroll_entry",
   "advance_sheet",
-  "section_break_totals",
-  "total_gross",
-  "total_employer_ssc",
-  "total_taxes",
-  "total_advance_card",
-  "column_break_totals",
-  "total_salary_card",
-  "total_outstanding",
   "section_break_employees",
   "employees_preview",
   "employees"
@@ -119,27 +108,6 @@
    "read_only": 1
   },
   {
-   "default": "0",
-   "fieldname": "employees_not_accrued",
-   "fieldtype": "Int",
-   "label": "Not Accrued Yet",
-   "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "employees_without_salary",
-   "fieldtype": "Int",
-   "label": "Without Salary Set",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_credited_days",
-   "fieldtype": "Float",
-   "label": "Credited Days",
-   "precision": "1",
-   "read_only": 1
-  },
-  {
    "fieldname": "column_break_counts",
    "fieldtype": "Column Break"
   },
@@ -163,51 +131,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_break_totals",
-   "fieldtype": "Section Break",
-   "label": "Totals"
-  },
-  {
-   "fieldname": "total_gross",
-   "fieldtype": "Currency",
-   "label": "Accrued",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_taxes",
-   "fieldtype": "Currency",
-   "label": "Taxes Withheld",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_employer_ssc",
-   "fieldtype": "Currency",
-   "label": "Employer SSC",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_advance_card",
-   "fieldtype": "Currency",
-   "label": "Advance to Card",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_totals",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "total_salary_card",
-   "fieldtype": "Currency",
-   "label": "Salary to Card",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_outstanding",
-   "fieldtype": "Currency",
-   "label": "Outstanding",
-   "read_only": 1
-  },
-  {
    "fieldname": "section_break_employees",
    "fieldtype": "Section Break"
   },
@@ -226,7 +149,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-14 00:00:00.000000",
+ "modified": "2026-08-28 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Sheet",

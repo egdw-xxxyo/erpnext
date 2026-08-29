@@ -63,6 +63,10 @@ def plan_month(company, year, month) -> list:
 	Відомість платить залишок місяця, тож рахувати його мусить та сама арифметика, що й аванс:
 	інакше дві виплати того самого місяця розходяться в днях і ставці. Рядки з нульовим табелем
 	лишаються — у відомості мусить бути видно кожного, навіть без відпрацьованих днів.
+
+	Оплачувані дні місяця — `paid_days`: робочі дні за календарем мінус відпустка й лікарняний,
+	точно як в авансі. Табель (`credited_days`) лишається довідкою: він пояснює місяць, але
+	суму більше не задає.
 	"""
 	return plan_advance(
 		company,
@@ -211,6 +215,13 @@ def plan_advance(
 		row.days = f"{row.credited_days:g}/{row.month_working_days:g}"
 		# На руки йде вже без податків: офіційна частина оподаткована, готівкова — ні.
 		row.advance_total = flt(row.advance_official_net + row.advance_cash, 2)
+		# Ті самі числа під нейтральними іменами: у авансі це дні до відсікання, у відомості
+		# (`plan_month`) — увесь місяць. Обидва документи платять за одним правилом, тож і
+		# читають одні поля — «advance_*» там читалося б як помилка.
+		row.paid_days = row.advance_days
+		row.paid_official = row.advance_official
+		row.paid_official_net = row.advance_official_net
+		row.paid_cash = row.advance_cash
 
 	return rows
 

@@ -77,10 +77,17 @@ erpnext.payroll.sheet_view = function (doctype, options) {
 				);
 			}
 
-			if (is_official(frm) && frm.doc.employees_without_attendance) {
+			// Підказки рахуються по рядках, а не по полях шапки: підсумки з форми прибрані,
+			// а попередити бухгалтерію все одно треба.
+			const rows = frm.doc.employees || [];
+			const without_attendance = rows.filter((row) => !row.credited_days).length;
+			const without_salary = rows.filter((row) => !has_salary(row)).length;
+			const not_accrued = rows.filter((row) => row.credited_days && !row.salary_slip).length;
+
+			if (is_official(frm) && without_attendance) {
 				frm.dashboard.add_comment(
 					__("{0} employees have no attendance for the period — they get no salary slip.", [
-						frm.doc.employees_without_attendance,
+						without_attendance,
 					]),
 					"orange",
 					true
@@ -88,10 +95,10 @@ erpnext.payroll.sheet_view = function (doctype, options) {
 			}
 
 			// Оклад задається в картці працівника — без нього відомість не має що рахувати.
-			if (frm.doc.employees_without_salary) {
+			if (without_salary) {
 				frm.dashboard.add_comment(
 					__("{0} employees have no salary set on their card — fill it in to pay them.", [
-						frm.doc.employees_without_salary,
+						without_salary,
 					]),
 					"orange",
 					true
@@ -99,10 +106,10 @@ erpnext.payroll.sheet_view = function (doctype, options) {
 			}
 
 			// Нарахування в HRMS виплату не блокує — це підказка бухгалтерії, а не перепона.
-			if (is_official(frm) && frm.doc.employees_not_accrued) {
+			if (is_official(frm) && not_accrued) {
 				frm.dashboard.add_comment(
 					__("{0} employees have no salary slip yet — the payout does not wait for it.", [
-						frm.doc.employees_not_accrued,
+						not_accrued,
 					]),
 					"blue",
 					true
@@ -110,6 +117,19 @@ erpnext.payroll.sheet_view = function (doctype, options) {
 			}
 		},
 	});
+};
+
+// Ставки живуть у «Налаштуваннях зарплатних податків» — тягнемо їх звідти, і лише раз.
+// Аванс читає їх звідси ж, щоб розклад утримань в обох документах був один.
+erpnext.payroll.withheld_rates = function () {
+	if (!erpnext.payroll.withheld_rates.promise) {
+		erpnext.payroll.withheld_rates.promise = Promise.all([
+			frappe.db.get_single_value("Payroll Tax Settings", "pit_rate"),
+			frappe.db.get_single_value("Payroll Tax Settings", "military_levy_rate"),
+		]).then(([pit, levy]) => [flt(pit || 18) / 100, flt(levy || 5) / 100]);
+	}
+
+	return erpnext.payroll.withheld_rates.promise;
 };
 
 const NO_SALARY_GROUP = __("Salary not set");
@@ -151,6 +171,7 @@ function render_preview(frm) {
 		},
 		filter: { label: __("Unpaid only"), test: (row) => !row.paid },
 		columns: [
+			{ label: __("Tax Number (RNOKPP)"), value: (row) => row.tax_id || "—" },
 			{
 				label: __("Worked"),
 				value: (row) => `${days(row.credited_days)} / ${hours(row.working_hours)}`,
@@ -158,6 +179,9 @@ function render_preview(frm) {
 			},
 			...(is_official(frm)
 				? [
+						// Оклад місячний, а нараховують за табелем — обидва числа стоять поруч, щоб
+						// різниця між ними не виглядала помилкою. Розклад податків відкривається
+						// кліком по нарахованому або по сумі до виплати.
 						{
 							label: __("Official Salary"),
 							value: (row) => money(row.official_salary),
@@ -167,34 +191,44 @@ function render_preview(frm) {
 							label: __("Accrued Officially"),
 							value: (row) => money(row.earned_official),
 							secret: true,
+							click: (row) => show_payout(frm, row),
 						},
 						{
-							label: __("Taxes Withheld"),
-							value: (row) => money(row.taxes_withheld),
-							secret: true,
-						},
-						{
-							label: __("Advance to Card"),
+							label: __("Advance Paid Out"),
 							value: (row) => money(row.advance_card),
 							secret: true,
+							click: (row) => show_advance_paid(frm, row),
 						},
-						{ label: __("To Card"), value: (row) => money(row.salary_card), secret: true },
+						{
+							label: __("To Pay"),
+							value: (row) => money(row.salary_card),
+							bold: true,
+							secret: true,
+							click: (row) => show_payout(frm, row),
+						},
 				  ]
 				: [
+						// Готівкою платиться лише друга половина окладу, але читається вона поруч
+						// з офіційною: разом вони і є те, що людина отримує за місяць.
+						{
+							label: __("Official Salary"),
+							value: (row) => money(row.official_salary),
+							secret: true,
+						},
 						{ label: __("Cash Salary"), value: (row) => money(row.cash_salary), secret: true },
 						{
-							label: __("Accrued in Cash"),
-							value: (row) => money(row.earned_cash),
+							label: __("Paid Out"),
+							value: (row) => money(paid_out(row)),
 							secret: true,
 						},
 						{
-							label: __("Advance in Cash"),
-							value: (row) => money(row.advance_cash),
+							label: __("To Pay"),
+							value: (row) => money(row.outstanding),
+							bold: true,
 							secret: true,
+							click: (row) => show_cash_payout(frm, row),
 						},
-						{ label: __("In Cash"), value: (row) => money(row.salary_cash), secret: true },
 				  ]),
-			{ label: __("Outstanding"), value: (row) => money(row.outstanding), bold: true, secret: true },
 			{
 				label: __("Payment"),
 				value: (row) => (row.paid ? __("Paid") : payable(frm, row) ? __("Pay") : ""),
@@ -212,7 +246,11 @@ function payable(frm, row) {
 }
 
 function attendance_extra(row) {
-	return [[__("Working Days in Month"), number(row.total_working_days)]];
+	// Платить місяць не табель, а календар: робочі дні мінус відпустка й лікарняний.
+	return [
+		[__("Working Days in Month"), number(row.total_working_days)],
+		[__("Paid Days"), `<b>${days(row.paid_days)}</b>`],
+	];
 }
 
 // What the month is being paid for — the days above it come from the shared attendance block,
@@ -254,6 +292,165 @@ function details_html(frm, row) {
 		attendance: attendance_extra(row),
 		salary: salary_lines(frm, row),
 		note: row.note,
+	});
+}
+
+function lines_html(lines) {
+	return `
+		<table class="table table-bordered" style="margin: 0;">
+			<tbody>
+				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
+			</tbody>
+		</table>
+	`;
+}
+
+// Оклад місячний, а нараховують за оплачувані дні: без цього рядка розклад починався з готового
+// числа, і зв'язок із окладом у колонці доводилося рахувати в голові.
+function prorated(row, field) {
+	return flt(row.total_working_days)
+		? flt((flt(row[field]) * flt(row.paid_days)) / flt(row.total_working_days), 2)
+		: 0;
+}
+
+// Від окладу до суми на руки: скільки нарахували за відпрацьовані дні, скільки з того утримали,
+// що вже видали авансом і що лишається виплатити.
+function show_payout(frm, row) {
+	erpnext.payroll.withheld_rates().then(([pit_rate, levy_rate]) => {
+		const accrued = flt(row.earned_official);
+		const pit = flt(accrued * pit_rate, 2);
+		const levy = flt(accrued * levy_rate, 2);
+		const base = prorated(row, "official_salary");
+		const lines = [
+			[__("Official Salary"), money(row.official_salary)],
+			[__("Paid Days"), `${days(row.paid_days)} / ${days(row.total_working_days)}`],
+		];
+
+		// Премію й надбавку нараховують понад оклад — без них розклад не сходився б із
+		// «Нараховано офіційно», тож вони з'являються лише коли справді є.
+		if (Math.abs(base - accrued) >= 0.01) {
+			lines.push([__("Accrued for the Paid Days"), money(base)]);
+
+			if (flt(row.bonus_amount)) {
+				lines.push([__("Bonus"), money(row.bonus_amount)]);
+			}
+
+			if (flt(row.allowance)) {
+				lines.push([__("Allowance"), money(row.allowance)]);
+			}
+		}
+
+		lines.push(
+			[__("Accrued Officially"), money(accrued)],
+			[__("PIT {0}%", [number(pit_rate * 100)]), `− ${money(pit)}`],
+			[__("Military Levy {0}%", [number(levy_rate * 100)]), `− ${money(levy)}`],
+			[__("Accrued to Card"), money(row.earned_card)],
+			[__("Advance Paid Out"), `− ${money(row.advance_card)}`]
+		);
+
+		// Задаток видають не всім — рядок з'являється лише тоді, коли він був.
+		if (flt(row.deposit)) {
+			lines.push([__("Deposit"), `− ${money(row.deposit)}`]);
+		}
+
+		lines.push([__("To Pay"), `<b>${money(row.salary_card)}</b>`]);
+
+		frappe.msgprint({
+			title: row.employee_name || row.employee,
+			indicator: "blue",
+			message: `
+				${lines_html(lines)}
+				<p class="text-muted" style="margin-top: 8px;">${__(
+					"The salary is paid for {0} paid days of {1} working days in the month — working days minus leave and sick leave.",
+					[number(row.paid_days), number(row.total_working_days)]
+				)}</p>
+			`,
+		});
+	});
+}
+
+// Аванс лишає у відомості одне число — тут видно, з чого воно склалося: за скільки днів його
+// нарахували, що з нього утримали і скільки людина отримала на руки.
+function show_advance_paid(frm, row) {
+	Promise.all([
+		erpnext.payroll.withheld_rates(),
+		frm.call("advance_details", { employee: row.employee }),
+	]).then(([[pit_rate, levy_rate], response]) => {
+		const paid = response && response.message;
+
+		if (!paid) {
+			frappe.msgprint({
+				title: row.employee_name || row.employee,
+				indicator: "orange",
+				message: __("No advance was paid to this employee for this month."),
+			});
+			return;
+		}
+
+		const accrued = flt(paid.advance_accrued);
+		const lines = [
+			[__("Official Salary"), money(paid.official_salary)],
+			[__("Paid Days of the Advance"), `${days(paid.advance_days)} / ${days(paid.month_working_days)}`],
+			[__("Advance Accrued"), money(accrued)],
+			[__("PIT {0}%", [number(pit_rate * 100)]), `− ${money(flt(accrued * pit_rate, 2))}`],
+			[__("Military Levy {0}%", [number(levy_rate * 100)]), `− ${money(flt(accrued * levy_rate, 2))}`],
+			[__("Advance to Card"), money(paid.advance_card)],
+		];
+
+		if (flt(paid.advance_cash)) {
+			lines.push([__("Advance in Cash"), money(paid.advance_cash)]);
+		}
+
+		lines.push([__("Advance Paid Out"), `<b>${money(paid.advance_total)}</b>`]);
+
+		frappe.msgprint({
+			title: row.employee_name || row.employee,
+			indicator: paid.paid ? "green" : "orange",
+			message: `
+				${lines_html(lines)}
+				<p style="margin-top: 8px;">${__("Advance for {0}, paid on {1}.", [
+					frappe.format(frm.doc.period_start, { fieldtype: "Date" }),
+					frappe.format(paid.paid_on, { fieldtype: "Date" }),
+				])} <a href="/app/salary-advance/${encodeURIComponent(
+				paid.advance
+			)}">${frappe.utils.escape_html(paid.advance)}</a></p>
+			`,
+		});
+	});
+}
+
+// Скільки з готівкової половини людина вже отримала: аванс завжди, зарплата — коли рядок
+// проведений. Разом це «Виплачено», а решта лишається в «До виплати».
+function paid_out(row) {
+	return flt(row.advance_cash) + (row.paid ? flt(row.salary_cash) : 0);
+}
+
+// Готівкова половина податків не знає: нарахування, виданий аванс, уже виплачена зарплата —
+// і те, що лишається на руки.
+function show_cash_payout(frm, row) {
+	const lines = [
+		[__("Cash Salary"), money(row.cash_salary)],
+		[__("Paid Days"), `${days(row.paid_days)} / ${days(row.total_working_days)}`],
+		[__("Accrued in Cash"), money(row.earned_cash)],
+		[__("Advance in Cash"), `− ${money(row.advance_cash)}`],
+	];
+
+	if (row.paid) {
+		lines.push([__("Salary in Cash"), `− ${money(row.salary_cash)}`]);
+	}
+
+	lines.push([__("Paid Out"), money(paid_out(row))], [__("To Pay"), `<b>${money(row.outstanding)}</b>`]);
+
+	frappe.msgprint({
+		title: row.employee_name || row.employee,
+		indicator: row.paid ? "green" : "blue",
+		message: `
+			${lines_html(lines)}
+			<p class="text-muted" style="margin-top: 8px;">${__(
+				"The salary is paid for {0} paid days of {1} working days in the month — working days minus leave and sick leave.",
+				[number(row.paid_days), number(row.total_working_days)]
+			)}</p>
+		`,
 	});
 }
 

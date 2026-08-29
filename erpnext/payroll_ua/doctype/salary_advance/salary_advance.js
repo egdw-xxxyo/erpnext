@@ -205,7 +205,8 @@ function details_html(row) {
 // Скільки нарахували, скільки з того утримали і що лишається на руки — той самий розклад,
 // що й у листку, тільки за оплачувані дні авансу.
 function show_advance(row) {
-	withheld_rates().then(([pit_rate, levy_rate]) => {
+	// Ставки спільні з відомістю — див. `public/js/payroll/payroll_sheet_view.js`.
+	erpnext.payroll.withheld_rates().then(([pit_rate, levy_rate]) => {
 		const accrued = flt(row.advance_accrued);
 		const pit = flt(accrued * pit_rate, 2);
 		const levy = flt(accrued * levy_rate, 2);
@@ -238,18 +239,6 @@ function show_advance(row) {
 			`,
 		});
 	});
-}
-
-// Ставки живуть у «Налаштуваннях зарплатних податків» — тягнемо їх звідти, і лише раз.
-function withheld_rates() {
-	if (!withheld_rates.promise) {
-		withheld_rates.promise = Promise.all([
-			frappe.db.get_single_value("Payroll Tax Settings", "pit_rate"),
-			frappe.db.get_single_value("Payroll Tax Settings", "military_levy_rate"),
-		]).then(([pit, levy]) => [flt(pit || 18) / 100, flt(levy || 5) / 100]);
-	}
-
-	return withheld_rates.promise;
 }
 
 function show_attendance(frm, row) {
