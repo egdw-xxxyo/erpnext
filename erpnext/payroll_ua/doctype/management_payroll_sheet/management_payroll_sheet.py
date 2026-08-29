@@ -11,3 +11,5 @@ from erpnext.payroll_ua.payroll_sheet_base import CASH, PayrollSheetBase
 
 class ManagementPayrollSheet(PayrollSheetBase):
 	part = CASH
+	# Премії й доплати платяться саме звідси, тож затвердження тримає цю половину.
+	requires_bonus_approval = True

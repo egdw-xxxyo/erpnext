@@ -15,6 +15,7 @@
   "column_break_days",
   "paid_days",
   "credited_days",
+  "advance_days",
   "total_working_days",
   "daily_rate",
   "section_break_attendance",
@@ -27,23 +28,33 @@
   "absent_days",
   "overtime_hours",
   "shortfall_hours",
+  "attendance_approved",
+  "attendance_note",
+  "bonus_approved",
   "section_break_accrual",
   "official_salary",
   "cash_salary",
   "bonus_amount",
   "allowance",
+  "bonus_cash",
   "taxes_withheld",
   "earned_official",
   "earned_card",
   "earned_cash",
   "gross_pay",
   "employer_ssc",
+  "advance_official",
   "advance_card",
   "advance_cash",
   "column_break_payout",
   "salary_card",
   "salary_cash",
   "deposit",
+  "official_paid",
+  "official_overpaid",
+  "cash_deduction",
+  "debt_carried",
+  "debt_forward",
   "section_break_status",
   "outstanding",
   "paid",
@@ -102,7 +113,7 @@
    "label": "Paid Days",
    "precision": "2",
    "read_only": 1,
-   "description": "Робочі дні за календарем мінус відпустка й лікарняний — за них платиться місяць."
+   "description": "Working days by the calendar, less sick leave over 5 days a month."
   },
   {
    "columns": 1,
@@ -111,6 +122,14 @@
    "in_list_view": 1,
    "label": "Credited Days",
    "precision": "1",
+   "read_only": 1
+  },
+  {
+   "description": "Paid days of the advance — what the advance already paid for.",
+   "fieldname": "advance_days",
+   "fieldtype": "Float",
+   "label": "Advance Paid Days",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -192,6 +211,29 @@
    "precision": "2"
   },
   {
+   "fieldname": "attendance_approved",
+   "fieldtype": "Check",
+   "label": "Attendance Approved",
+   "read_only": 1,
+   "hidden": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "attendance_note",
+   "fieldtype": "Small Text",
+   "label": "Attendance Note",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "bonus_approved",
+   "fieldtype": "Check",
+   "label": "Bonuses Approved",
+   "read_only": 1,
+   "hidden": 1,
+   "default": "0"
+  },
+  {
    "fieldname": "section_break_accrual",
    "fieldtype": "Section Break"
   },
@@ -218,6 +260,14 @@
    "fieldtype": "Currency",
    "label": "Allowance",
    "read_only": 1
+  },
+  {
+   "fieldname": "bonus_cash",
+   "fieldtype": "Currency",
+   "label": "Bonus in Cash",
+   "description": "The part of the bonus that is paid from the cash half — the rest of the bonus and the allowance go to the card.",
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "earned_official",
@@ -258,6 +308,13 @@
    "read_only": 1
   },
   {
+   "description": "Advance accrued officially, before taxes — the month is taxed on what is left after it.",
+   "fieldname": "advance_official",
+   "fieldtype": "Currency",
+   "label": "Off. Advance",
+   "read_only": 1
+  },
+  {
    "fieldname": "advance_card",
    "fieldtype": "Currency",
    "label": "Advance to Card",
@@ -290,6 +347,46 @@
    "fieldtype": "Currency",
    "label": "Deposit",
    "read_only": 1
+  },
+  {
+   "fieldname": "official_paid",
+   "fieldtype": "Currency",
+   "label": "Off. Paid",
+   "description": "How much was actually paid officially this month, gross: the advance, plus the salary once the official sheet pays it.",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "official_overpaid",
+   "fieldtype": "Currency",
+   "label": "Off. Overpaid",
+   "description": "Paid officially over what the paid days earn — an advance issued before the unpaid leave was entered.",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "cash_deduction",
+   "fieldtype": "Currency",
+   "label": "Deducted from Cash",
+   "description": "The net overpayment plus the debt carried from the previous month, both taken off this month's cash.",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "debt_carried",
+   "fieldtype": "Currency",
+   "label": "Debt from the Previous Month",
+   "description": "What the employee still owed the company after the previous month's cash sheet.",
+   "read_only": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "debt_forward",
+   "fieldtype": "Currency",
+   "label": "Debt to the Next Month",
+   "description": "What is left owing when the cash of this month does not cover the deduction.",
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "section_break_status",
@@ -348,7 +445,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-29 00:00:00.000000",
+ "modified": "2026-08-29 14:30:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Sheet Item",

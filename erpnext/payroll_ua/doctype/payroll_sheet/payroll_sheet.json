@@ -101,7 +101,7 @@
    "read_only": 1
   },
   {
-   "description": "Employees with no attendance for the period — they get no salary slip.",
+   "description": "Employees whose attendance sheet is not approved for the month — they cannot be paid.",
    "fieldname": "employees_without_attendance",
    "fieldtype": "Int",
    "label": "Without Attendance",
@@ -149,7 +149,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-28 00:00:00.000000",
+ "modified": "2026-08-29 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Sheet",

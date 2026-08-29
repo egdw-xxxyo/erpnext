@@ -60,6 +60,7 @@ def execute():
 	setup_serial_no_write_for_stock_user()
 	create_callmebot_fields()
 	setup_callmebot_default_settings()
+	setup_payroll_ua_workspace_card()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -1619,7 +1620,7 @@ def create_callmebot_fields():
 		{
 			"dt": "Notification Settings",
 			"fieldname": "callmebot_api_key",
-			"fieldtype": "Data",
+			"fieldtype": "Password",
 			"label": "CallMeBot API Key",
 			"insert_after": "callmebot_column",
 			"depends_on": "eval:doc.callmebot_enabled",
@@ -1629,6 +1630,35 @@ def create_callmebot_fields():
 		},
 	]
 	_create_custom_fields(fields)
+	_migrate_callmebot_keys_to_auth()
+
+
+def _migrate_callmebot_keys_to_auth():
+	"""Move keys stored while `callmebot_api_key` was a plain Data field into `__Auth`.
+
+	A Password field keeps only a `*****` dummy in its own column, so any row still holding a
+	real key is one written before the fieldtype change. Encrypt it and blank out the column."""
+	if not frappe.db.has_column("Notification Settings", "callmebot_api_key"):
+		return
+
+	from frappe.utils.password import set_encrypted_password
+
+	rows = frappe.db.sql(
+		"""select name, callmebot_api_key from `tabNotification Settings`
+		where ifnull(callmebot_api_key, '') != '' and callmebot_api_key not rlike '^[*]+$'""",
+		as_dict=True,
+	)
+	for row in rows:
+		key = (row.callmebot_api_key or "").strip()
+		if not key:
+			continue
+		set_encrypted_password("Notification Settings", row.name, key, "callmebot_api_key")
+		frappe.db.set_value(
+			"Notification Settings", row.name, "callmebot_api_key", "*" * len(key), update_modified=False
+		)
+
+	if rows:
+		print(f"  Encrypted {len(rows)} CallMeBot API key(s) into __Auth")
 
 
 def setup_callmebot_default_settings():
@@ -1678,3 +1708,106 @@ def setup_callmebot_default_settings():
 			print("  Initialized CallMeBot Settings default privacy templates")
 	except Exception as e:
 		print(f"  Warning: could not initialize CallMeBot Settings: {e}")
+
+
+PAYROLL_UA_CARD_LABELS = ("Payroll UA", "Payrol UA")
+PAYROLL_UA_CARD = "Payrol UA"
+PAYROLL_UA_BLOCK_ID = "payrollUaCard"
+# (заголовок, тип, куди) — табель відкривається сторінкою, решта доктайпами.
+PAYROLL_UA_LINKS = (
+	("Salary Advance", "DocType", "Salary Advance"),
+	("Payroll Sheet", "DocType", "Payroll Sheet"),
+	("Management Payroll Sheet", "DocType", "Management Payroll Sheet"),
+	("Salary Change", "DocType", "Salary Change"),
+	("Attendance Sheet", "Page", "attendance-sheet"),
+	("Salary Approval", "DocType", "Salary Approval"),
+	("Payroll Tax Settings", "DocType", "Payroll Tax Settings"),
+)
+
+# Помилково додані посилання прибираються з картки, інакше вони лишаються на робочих сайтах.
+PAYROLL_UA_DROP = ("Attendance Sheet Approval",)
+
+
+def setup_payroll_ua_workspace_card():
+	"""Тримає картку «Зарплата» на робочому просторі HR повною.
+
+	Простір редагується в десктопі, тож його копія в базі з репозиторієм уже не синхронізується —
+	картка доповнюється тут, ідемпотентно: наявні посилання лишаються, бракуючі дописуються
+	в кінець картки."""
+	if not frappe.db.exists("Workspace", "HR"):
+		return
+
+	workspace = frappe.get_doc("Workspace", "HR")
+	links = list(workspace.links)
+	start = next(
+		(
+			index
+			for index, link in enumerate(links)
+			if link.type == "Card Break" and link.label in PAYROLL_UA_CARD_LABELS
+		),
+		None,
+	)
+
+	if start is None:
+		start = len(links)
+		links.append(frappe._dict(type="Card Break", label=PAYROLL_UA_CARD, link_count=0, hidden=0))
+
+	# Кінець картки — наступний розділювач: посилання дописуються всередину неї, а не в хвіст
+	# усього простору, інакше вони опиняться в чужій картці.
+	end = next(
+		(index for index in range(start + 1, len(links)) if links[index].type == "Card Break"),
+		len(links),
+	)
+	dropped = [
+		link for link in links[start + 1 : end] if link.type == "Link" and link.link_to in PAYROLL_UA_DROP
+	]
+	for link in dropped:
+		links.remove(link)
+
+	end -= len(dropped)
+	present = {link.link_to for link in links[start + 1 : end] if link.type == "Link"}
+	missing = [
+		(label, link_type, link_to)
+		for label, link_type, link_to in PAYROLL_UA_LINKS
+		if link_to not in present
+		and (link_type != "DocType" or frappe.db.exists("DocType", link_to))
+		and (link_type != "Page" or frappe.db.exists("Page", link_to))
+	]
+
+	if not (missing or dropped):
+		return
+
+	links[end:end] = [
+		frappe._dict(
+			type="Link",
+			label=label,
+			link_type=link_type,
+			link_to=link_to,
+			link_count=0,
+			hidden=0,
+			onboard=0,
+		)
+		for label, link_type, link_to in missing
+	]
+
+	workspace.set("links", [])
+	for index, link in enumerate(links, start=1):
+		# Порядок задається наново: перенесені рядки несуть старий `idx`, і з ним картка
+		# розсипається на два однакові номери.
+		row = workspace.append("links", link)
+		row.idx = index
+
+	content = json.loads(workspace.content or "[]")
+	if not any(block.get("data", {}).get("card_name") in PAYROLL_UA_CARD_LABELS for block in content):
+		content.append(
+			{"id": PAYROLL_UA_BLOCK_ID, "type": "card", "data": {"card_name": PAYROLL_UA_CARD, "col": 4}}
+		)
+		workspace.content = json.dumps(content, separators=(",", ":"), ensure_ascii=False)
+
+	workspace.save(ignore_permissions=True)
+
+	if missing:
+		print(f"  Added HR workspace links: {', '.join(label for label, _type, _to in missing)}")
+
+	if dropped:
+		print(f"  Removed HR workspace links: {', '.join(link.link_to for link in dropped)}")

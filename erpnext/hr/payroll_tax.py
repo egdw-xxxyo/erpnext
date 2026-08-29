@@ -43,6 +43,10 @@ SSC_ABBR = "ESV"
 
 DISABILITY_GROUPS = ("I", "I А", "I Б", "II", "III")
 
+# Мінімальна офіційна зарплата для бронювання від мобілізації. Суму задає постанова
+# Кабміну, тож у коді вона лише запасна — жива лежить у налаштуваннях.
+RESERVATION_MINIMUM = 26000.0
+
 
 def rate(fieldname, fallback) -> float:
 	"""Ставка з налаштувань у частках одиниці; поки налаштувань немає — законна за замовчуванням."""
@@ -53,6 +57,17 @@ def rate(fieldname, fallback) -> float:
 		value = None
 
 	return flt(value) / 100 if value else fallback
+
+
+def reservation_minimum() -> float:
+	"""Мінімальна офіційна зарплата, з якою працівника можна забронювати."""
+	try:
+		value = frappe.db.get_single_value(SETTINGS, "minimum_reservation_salary")
+	except Exception:
+		# Міграція, на якій DocType ще не створений, не має валити нарахування.
+		value = None
+
+	return flt(value) or RESERVATION_MINIMUM
 
 
 def ssc_rate(employee=None) -> float:

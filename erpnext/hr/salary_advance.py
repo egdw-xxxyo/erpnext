@@ -1,18 +1,19 @@
 """Аванс — перший платіж місяця, по день відсікання включно (за домовленістю — 15-те).
 
 Місячний Salary Slip лишається єдиним документом нарахування. Аванс — це виплата всередині
-місяця: сума рахується за **фактично відпрацьованими** днями першої половини, а в листку вона
-повертається відрахуваннями «Аванс», тож другий платіж = залишок.
+місяця: сума рахується за оплачуваними днями першої половини, а в листку вона повертається
+відрахуваннями «Аванс», тож другий платіж = залишок.
 
 Обидві частини зарплати діляться однаково:
 
 	денна_ставка   = частина_окладу / робочі_дні(місяць)
 	аванс_частини  = денна_ставка × оплачувані_дні(1..відсікання)
 
-Оплачувані дні авансу рахуються **за календарем**, а не за табелем: робочі дні від прийняття
-на роботу по день відсікання мінус відпустка (зокрема без збереження) і лікарняний. Явка на
-аванс не впливає — незакритий табель чи прогул його не зменшують, бо аванс платиться в строк
-за КЗпП, а прогул відніметься в остаточному розрахунку, який рахується вже за табелем.
+Оплачувані дні рахуються **за календарем**, а не за табелем: робочі дні від прийняття на
+роботу по день відсікання мінус єдина неоплачувана відсутність — лікарняний понад
+`SICK_DAYS_PAID` днів. Усе інше (присутність, відпустка, зокрема без збереження, прогул і
+лікарняний у межах норми) платиться як робочий день, а незакритий табель аванс не зменшує:
+день без жодної відмітки вважається відпрацьованим.
 
 Кожна половина — окремий компонент («Аванс на картку» / «Аванс готівкою»), щоб у листку було
 видно з назви, звідки платили.
@@ -41,6 +42,9 @@ DAY_WEIGHT = {
 	"On Leave": 1.0,
 	"Absent": 0.0,
 }
+
+# Скільки днів офіційного лікарняного оплачується на місяць — понад норму день не платиться.
+SICK_DAYS_PAID = 5
 
 # Скільки годин має повний робочий день, коли зміна не задана.
 DEFAULT_DAY_HOURS = 8.0
@@ -158,8 +162,8 @@ def plan_advance(
 			) or frappe._dict(EMPTY_STATS)
 
 		credited_days = flt(attendance.credited_days, 2)
-		# Аванс платиться за календарем: із запланованих днів вилітають лише відпустка й
-		# лікарняний, за які зарплата не нараховується.
+		# Аванс платиться за календарем: із запланованих днів вилітає лише лікарняний понад
+		# норму — за нього платить не компанія.
 		advance_days = _paid_days(
 			first, last, holidays, absences.get(employee.name) or {}, planned_days, holiday_dates
 		)
@@ -240,7 +244,7 @@ def apply_advance(company, year, month, rows) -> list:
 	for row in rows:
 		# Звільненому все належне платиться в день звільнення (ст. 116 КЗпП), і HRMS тримає те
 		# саме правило: відрахування з датою пізнішою за звільнення він не приймає.
-		payroll_date = _payroll_date(row["employee"], month_end)
+		payroll_date = payroll_date_for(row["employee"], month_end)
 
 		for amount, component in (
 			(flt(row.get("official_net", row.get("official"))), ADVANCE_CARD),
@@ -308,7 +312,7 @@ def reschedule_deductions_on_relieving(doc, method=None):
 		)
 
 
-def _payroll_date(employee, month_end):
+def payroll_date_for(employee, month_end):
 	"""Дата відрахування: кінець місяця, а для звільненого — день звільнення."""
 	relieving = frappe.db.get_value("Employee", employee, "relieving_date")
 
@@ -457,12 +461,11 @@ def attendance_stats(employees: list, start, end) -> dict:
 
 
 def absence_days(employees: list, start, end) -> dict:
-	"""Відпустки й лікарняні по кожному працівнику: `{працівник: {дата: вага}}`.
+	"""Неоплачувані дні по кожному працівнику: `{працівник: {дата: вага}}`.
 
-	Аванс не дивиться на явку, тож і рахувати треба не її, а лише ті відсутності, за які
-	зарплата не платиться. Джерел два, бо на день відсікання табель ще може бути незакритий:
-	затверджені заяви на відпустку (є заздалегідь) і сам табель — на випадок, коли лікарняний
-	чи відпустку позначили в ньому без заяви. Вага дня — 1, для півдня — 0.5.
+	Платяться всі планові робочі дні — присутність, відпустка (зокрема без збереження),
+	прогул і офіційний лікарняний у межах `SICK_DAYS_PAID` днів періоду. Знімається лише
+	лікарняний понад норму: за нього платить не компанія. Вага дня — 1, для півдня — 0.5.
 	"""
 	if not employees:
 		return {}
@@ -470,61 +473,31 @@ def absence_days(employees: list, start, end) -> dict:
 	start, end = getdate(start), getdate(end)
 	absences = {}
 
-	def mark(employee, day, weight):
-		day = getdate(day)
-
-		if day < start or day > end:
-			return
-
-		days = absences.setdefault(employee, {})
-		days[day] = max(days.get(day, 0), weight)
-
-	applications = frappe.get_all(
-		"Leave Application",
-		filters={
-			"docstatus": 1,
-			"status": ("!=", "Rejected"),
-			"employee": ("in", employees),
-			"from_date": ("<=", end),
-			"to_date": (">=", start),
-		},
-		fields=["employee", "from_date", "to_date", "half_day", "half_day_date"],
-	)
-
-	for row in applications:
-		day = max(getdate(row.from_date), start)
-		last = min(getdate(row.to_date), end)
-
-		while day <= last:
-			half = row.half_day and (not row.half_day_date or getdate(row.half_day_date) == day)
-			mark(row.employee, day, 0.5 if half else 1)
-			day = add_days(day, 1)
-
 	marked = frappe.get_all(
 		"Attendance",
 		filters={
 			"docstatus": 1,
 			"employee": ("in", employees),
 			"attendance_date": ("between", [start, end]),
-			"status": ("in", ["On Leave", "Sick Leave", "Half Day"]),
+			"status": "Sick Leave",
 		},
-		fields=["employee", "attendance_date", "status", "leave_application"],
+		fields=["employee", "attendance_date"],
+		order_by="attendance_date asc",
 	)
+	sick_seen = {}
 
 	for row in marked:
-		if row.status == "Half Day":
-			# Півдня рахується відсутністю лише тоді, коли друга половина — відпустка.
-			if row.leave_application:
-				mark(row.employee, row.attendance_date, 0.5)
-			continue
+		# Офіційний лікарняний оплачується, але не більше ніж `SICK_DAYS_PAID` дні періоду.
+		sick_seen[row.employee] = seen = sick_seen.get(row.employee, 0) + 1
 
-		mark(row.employee, row.attendance_date, 1)
+		if seen > SICK_DAYS_PAID:
+			absences.setdefault(row.employee, {})[getdate(row.attendance_date)] = 1
 
 	return absences
 
 
 def _paid_days(first, last, holiday_list, absences, planned_days, holiday_dates) -> float:
-	"""Оплачувані дні авансу: заплановані робочі мінус відпустка й лікарняний у ті самі дні."""
+	"""Оплачувані дні: заплановані робочі мінус неоплачувані відсутності (див. `absence_days`)."""
 	if not absences or planned_days <= 0:
 		return flt(planned_days, 2)
 
@@ -725,7 +698,12 @@ def attendance_calendar(employee: str, start: str, end: str) -> dict:
 		frappe.throw(_("Not permitted to read attendance"), frappe.PermissionError)
 
 	start, end = getdate(start), getdate(end)
-	card = frappe.db.get_value("Employee", employee, ["company", "holiday_list"], as_dict=True)
+	card = frappe.db.get_value(
+		"Employee",
+		employee,
+		["company", "holiday_list", "date_of_joining", "relieving_date"],
+		as_dict=True,
+	)
 
 	if not card:
 		frappe.throw(_("Employee {0} not found").format(employee))
@@ -806,10 +784,49 @@ def attendance_calendar(employee: str, start: str, end: str) -> dict:
 		if holiday["status"] not in used:
 			used.append(holiday["status"])
 
+	first = max(start, getdate(card.date_of_joining)) if card.date_of_joining else start
+	last = min(end, getdate(card.relieving_date)) if card.relieving_date else end
+	unpaid_days = (absence_days([employee], start, end) or {}).get(employee) or {}
+	day = start
+
+	# Чим саме день оплачується, видно тільки поруч із календарем: свято й вихідний не
+	# оплачуються ніколи, дні поза періодом роботи — теж, а робочий день коштує стільки,
+	# скільки лишилося після неоплачуваних відсутностей.
+	while day <= end:
+		key = str(day)
+		entry = days.get(key)
+
+		if key not in holidays:
+			if not entry:
+				entry = days[key] = {
+					"status": None,
+					"label": _("Working Day"),
+					"mark": None,
+					"color": None,
+					"note": None,
+					"leave_type": None,
+					"unpaid": False,
+					"weight": 0.0,
+				}
+
+			if first <= day <= last:
+				entry["paid"] = flt(max(1 - flt(unpaid_days.get(day, 0)), 0), 2)
+			else:
+				entry["outside_employment"] = True
+
+		if card.date_of_joining and getdate(card.date_of_joining) == day:
+			days[key]["boundary"] = "joined"
+		elif card.relieving_date and getdate(card.relieving_date) == day:
+			days[key]["boundary"] = "relieved"
+
+		day = add_days(day, 1)
+
 	return {
 		"start": str(start),
 		"end": str(end),
 		"days": days,
+		"joined_on": str(card.date_of_joining) if card.date_of_joining else None,
+		"relieved_on": str(card.relieving_date) if card.relieving_date else None,
 		"weekdays": [_(name, context=DAY_CONTEXT) for name in DAY_ABBR],
 		"legend": [
 			{
