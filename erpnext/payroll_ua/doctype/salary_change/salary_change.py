@@ -1,7 +1,12 @@
-"""Зміна окладу з майбутнього місяця.
+"""Зміна окладу з майбутнього місяця (або з поточного, поки не платили аванс).
 
-Оклад ніколи не міняється «заднім числом»: документ приймає лише перше число майбутнього
-місяця, тож закритий або поточний місяць рахується за тими сумами, за якими його й починали.
+Оклад не міняється «заднім числом»: документ приймає перше число майбутнього місяця, а
+поточний — лише до `CURRENT_MONTH_LAST_DAY` числа і лише поки за цей місяць не виплатили
+аванс. Виплачений аванс уже порахований за старим окладом, тож міняти базу після нього
+означало б платити місяць двома різними ставками.
+
+Документ живе у два кроки: «Зберегти» лишає чернетку, «Затвердити» кладе оклади в картки
+й закриває документ від правок.
 
 Сам документ нічого не рахує: при затвердженні нові суми лягають у картку працівника, а звідти
 хук `erpnext.hr.salary_split` створює призначення структури з потрібною датою. Історію окладів
@@ -17,6 +22,9 @@ from erpnext.hr.payroll_tax import reservation_minimum
 from erpnext.hr.salary_split import apply_salary_to_employee, has_submitted_slip, salary_parts_on
 from erpnext.hr.team import visible_employees
 
+# До якого числа поточного місяця ще можна змінити оклад із цього ж місяця.
+CURRENT_MONTH_LAST_DAY = 14
+
 
 class SalaryChange(Document):
 	def onload(self):
@@ -29,9 +37,10 @@ class SalaryChange(Document):
 		self.set_period()
 
 	def validate(self):
+		self.validate_not_approved()
 		self.set_period()
 		self.set_reservation_minimum()
-		self.validate_future_month()
+		self.validate_month()
 		self.set_current_salary()
 		self.set_totals()
 
@@ -49,19 +58,71 @@ class SalaryChange(Document):
 		if not flt(self.reservation_minimum):
 			self.reservation_minimum = reservation_minimum()
 
-	def validate_future_month(self):
-		"""Поточний місяць уже рахується — оклад можна міняти лише з наступного."""
+	def validate_not_approved(self):
+		"""Затверджений документ уже в картках працівників — правити його нема куди."""
+		if self.is_new() or self.flags.approving:
+			return
+
+		if frappe.db.get_value("Salary Change", self.name, "status") == "Approved":
+			frappe.throw(
+				_("This change is approved — create a new document to change the salary again."),
+				title=_("Change Already Approved"),
+			)
+
+	def validate_month(self):
+		"""Майбутній місяць — завжди; поточний — до 14 числа і поки не платили аванс."""
 		if self.status == "Approved":
 			return
 
-		if self.effective_from > getdate(get_first_day(nowdate())):
+		month_start = getdate(get_first_day(nowdate()))
+
+		if self.effective_from > month_start:
+			return
+
+		if self.effective_from < month_start:
+			frappe.throw(
+				_("The salary may only be changed from a future month, {0} has already started.").format(
+					formatdate(self.effective_from, "MM.yyyy")
+				),
+				title=_("Month Already Started"),
+			)
+
+		if getdate(nowdate()).day > CURRENT_MONTH_LAST_DAY:
+			frappe.throw(
+				_(
+					"The current month may be changed only up to the {0}th — after that the salary changes from the next month."
+				).format(CURRENT_MONTH_LAST_DAY),
+				title=_("Month Already Started"),
+			)
+
+		self.validate_no_paid_advance()
+
+	def validate_no_paid_advance(self):
+		"""Аванс за цей місяць уже на руках — він порахований за старим окладом, тож і
+		решта місяця має піти за ним."""
+		advances = frappe.get_all(
+			"Salary Advance",
+			filters={"company": self.company, "period_start": self.effective_from, "docstatus": ["<", 2]},
+			pluck="name",
+		)
+
+		if not advances:
+			return
+
+		paid = frappe.get_all(
+			"Salary Advance Item",
+			filters={"parent": ["in", advances], "parenttype": "Salary Advance", "paid": 1},
+			limit=1,
+		)
+
+		if not paid:
 			return
 
 		frappe.throw(
-			_("The salary may only be changed from a future month, {0} has already started.").format(
-				formatdate(self.effective_from, "MM.yyyy")
-			),
-			title=_("Month Already Started"),
+			_(
+				"The advance for {0} is already paid — the salary of this month can no longer be changed."
+			).format(formatdate(self.effective_from, "MM.yyyy")),
+			title=_("Advance Already Paid"),
 		)
 
 	def set_current_salary(self):
@@ -168,6 +229,7 @@ class SalaryChange(Document):
 				applied += 1
 
 		self.status = "Approved"
+		self.flags.approving = True
 		self.save()
 
 		return applied

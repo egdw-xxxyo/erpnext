@@ -530,6 +530,7 @@ doc_events = {
 			"erpnext.hr.payroll_tax.warn_missing_certificate",
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
+			"erpnext.hr.salary_split.restrict_salary_editing",
 		],
 		"on_update": [
 			"erpnext.hr.employee_period.clear_attendance_after_relieving",

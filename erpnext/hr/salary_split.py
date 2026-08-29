@@ -120,6 +120,54 @@ def set_card_amount(doc, method=None):
 	doc.custom_official_salary_net = payroll_tax.net(doc.get("custom_official_salary"))
 
 
+# Поля картки, які тримають оклад: їх міняє лише керівник працівника (або «Зміна окладу»,
+# яка від його імені й затверджується).
+SALARY_FIELDS = ("custom_official_salary", "custom_cash_salary", "custom_salary_effective_from")
+
+
+def restrict_salary_editing(doc, method=None):
+	"""Employee.validate: оклад у картці міняє лише керівник цього працівника.
+
+	Вибірка та сама, що й у табелі та зарплатних документах (`erpnext.hr.team`), тож право
+	на оклад іде за правом вести людину, а не за роллю. Адміністратор лишається винятком:
+	без нього нікому було б виправити картку керівника, який пішов.
+	"""
+	from erpnext.hr.team import visible_employees
+
+	if doc.is_new() or frappe.flags.in_migrate or frappe.flags.in_patch or frappe.flags.in_install:
+		return
+
+	if frappe.session.user == "Administrator":
+		return
+
+	before = frappe.db.get_value("Employee", doc.name, SALARY_FIELDS, as_dict=True) or {}
+	changed = [
+		field for field in SALARY_FIELDS if _salary_value(doc.get(field)) != _salary_value(before.get(field))
+	]
+
+	if not changed:
+		return
+
+	if doc.name in visible_employees(doc.company):
+		return
+
+	frappe.throw(
+		_("Only the manager of {0} may change the salary.").format(doc.employee_name or doc.name),
+		title=_("Salary Is Not Yours to Change"),
+	)
+
+
+def _salary_value(value):
+	"""Дати й суми з бази й з форми приходять різними типами — порівнюємо їх однаково."""
+	if value in (None, ""):
+		return None
+
+	if isinstance(value, str) and not value.replace(".", "", 1).replace("-", "", 1).isdigit():
+		return str(getdate(value))
+
+	return flt(value)
+
+
 def salary_parts_on(employee, on_date) -> tuple:
 	"""Дві частини окладу, чинні на дату: (офіційна, готівкова).
 
