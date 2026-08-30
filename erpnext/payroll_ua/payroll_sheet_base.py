@@ -133,7 +133,18 @@ class PayrollSheetBase(Document):
 			# а не за табелем (див. `plan_month`).
 			taxes = payroll_tax.split(flt(entry.paid_official, 2), employee)
 			earned_card = taxes.net
-			earned_cash = flt(entry.paid_cash, 2) + bonus_cash
+			# Прогул оплачує лише офіційна половина — оклад за місяць фіксований. Готівкова за
+			# ці дні не платить і забирає назад те, що за них уже пішло на картку: людина може
+			# лишитися з меншою готівкою, а то й винною компанії (`debt_forward`).
+			absent_days = flt(entry.absent_days, 2)
+			month_days = flt(entry.month_working_days)
+			absent_cash = flt(flt(entry.cash_salary) / month_days * absent_days, 2) if month_days else 0
+			absent_official = (
+				flt(payroll_tax.net(flt(entry.official_salary) / month_days * absent_days, employee), 2)
+				if month_days
+				else 0
+			)
+			earned_cash = flt(flt(entry.paid_cash, 2) - absent_cash + bonus_cash, 2)
 			advance_days = flt(advance.get(ADVANCE_DAYS))
 			advance_official = flt(advance.get(ADVANCE_OFFICIAL))
 			advance_card = flt(advance.get(ADVANCE_CARD))
@@ -147,7 +158,7 @@ class PayrollSheetBase(Document):
 			# Утримуємо те, що людина справді отримала на руки — переплата на картку прийшла
 			# вже без ПДФО і збору.
 			debt_carried = flt(debts.get(employee), 2)
-			deduction = flt(payroll_tax.net(overpaid, employee) + debt_carried, 2)
+			deduction = flt(payroll_tax.net(overpaid, employee) + debt_carried + absent_official, 2)
 			cash_due = flt(earned_cash - advance_cash - deduction, 2)
 
 			row = self.append(
@@ -185,6 +196,7 @@ class PayrollSheetBase(Document):
 					"salary_card": max(flt(payroll_tax.net(taxes.gross - advance_official) - deposit, 2), 0),
 					"official_paid": paid_officially,
 					"official_overpaid": overpaid,
+					"absent_deduction": absent_official,
 					"cash_deduction": deduction,
 					"debt_carried": debt_carried,
 					# Готівки може не вистачити на утримання — тоді працівник лишається винним

@@ -110,7 +110,8 @@ function show_month(dialog, row, settings, start, end) {
 	frappe
 		.call({
 			method: "erpnext.hr.salary_advance.attendance_calendar",
-			args: { employee: row.employee, start, end },
+			// `part` вирішує, як пофарбувати прогул: офіційна половина його платить, готівкова — ні.
+			args: { employee: row.employee, start, end, part: settings.part || "official" },
 		})
 		.then((response) => {
 			const data = response && response.message;

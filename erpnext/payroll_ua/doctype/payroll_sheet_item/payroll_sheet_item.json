@@ -52,6 +52,7 @@
   "deposit",
   "official_paid",
   "official_overpaid",
+  "absent_deduction",
   "cash_deduction",
   "debt_carried",
   "debt_forward",
@@ -364,6 +365,13 @@
    "description": "Paid officially over what the paid days earn — an advance issued before the unpaid leave was entered.",
    "read_only": 1,
    "precision": "2"
+  },
+  {
+   "description": "The official salary already paid for the days of unexcused absence — the cash half withholds it back.",
+   "fieldname": "absent_deduction",
+   "fieldtype": "Currency",
+   "label": "Withheld for Absence",
+   "read_only": 1
   },
   {
    "fieldname": "cash_deduction",
