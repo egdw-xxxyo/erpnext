@@ -13,7 +13,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate
 
-from erpnext.hr import payroll_accounts
+from erpnext.hr import payroll_accounts, payroll_tax
 from erpnext.hr.salary_advance import (
 	ADVANCE_CARD,
 	ADVANCE_CASH,
@@ -242,14 +242,44 @@ class SalaryAdvance(Document):
 				if flt(row.get(source), 2):
 					row.set(f"journal_entry_{source.replace('advance_', '')}", voucher)
 
+		# Податки з виплаченого авансу: утримане з людини й ЄСВ зверху — окремим проведенням,
+		# інакше борг перед бюджетом ніде не видно (див. `payroll_accounts.make_tax_entry`).
+		tax_voucher = self._post_taxes(targets, posting_date)
+
+		if tax_voucher:
+			vouchers.append(tax_voucher)
+
 		for row in targets:
 			row.paid = 1
 			row.paid_on = posting_date
+
+			if tax_voucher and flt(row.advance_accrued, 2):
+				row.journal_entry_tax = tax_voucher
 
 		self.payment_date = posting_date
 		self.save()
 
 		return vouchers
+
+	def _post_taxes(self, targets, posting_date):
+		"""Податки рахуються з нарахованого авансу кожного рядка — за ставками того працівника
+		(у людини з інвалідністю ЄСВ пільговий)."""
+		pit = military = ssc = 0.0
+
+		for row in targets:
+			taxes = payroll_tax.split(flt(row.advance_accrued, 2), row.employee)
+			pit += taxes.pit
+			military += taxes.military
+			ssc += taxes.ssc
+
+		return payroll_accounts.make_tax_entry(
+			self.company,
+			posting_date,
+			_("Taxes on the advance {0}.{1}").format(self.month, self.year),
+			pit=pit,
+			military=military,
+			ssc=ssc,
+		)
 
 	@frappe.whitelist()
 	def mark_paid(self):

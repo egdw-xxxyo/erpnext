@@ -45,6 +45,7 @@
   "additional_salary_cash",
   "journal_entry_card",
   "journal_entry_cash",
+  "journal_entry_tax",
   "paid_on",
   "paid",
   "note"
@@ -289,6 +290,13 @@
    "fieldname": "journal_entry_cash",
    "fieldtype": "Link",
    "label": "Payment Entry (Cash)",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry_tax",
+   "fieldtype": "Link",
+   "label": "Tax Entry",
    "options": "Journal Entry",
    "read_only": 1
   },

@@ -61,6 +61,7 @@ def execute():
 	create_callmebot_fields()
 	setup_callmebot_default_settings()
 	setup_payroll_ua_workspace_card()
+	setup_payroll_tax_accounts()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -1811,3 +1812,91 @@ def setup_payroll_ua_workspace_card():
 
 	if dropped:
 		print(f"  Removed HR workspace links: {', '.join(link.link_to for link in dropped)}")
+
+
+# Податок → (назва рахунку, під яким його видно в плані рахунків, рахунок-батько за типом).
+PAYROLL_TAX_ACCOUNTS = {
+	"ПДФО": "ПДФО до сплати",
+	"Військовий збір": "Військовий збір до сплати",
+	"ЄСВ (роботодавець)": "ЄСВ до сплати",
+}
+
+
+def setup_payroll_tax_accounts():
+	"""Окремий рахунок «до сплати» на кожен зарплатний податок.
+
+	Раніше ПДФО і військовий збір вели на зарплатний пасив разом із самою зарплатою, тож
+	борг перед бюджетом ніде не було видно. Рахунки створюються під групою податків компанії
+	й прописуються в самі компоненти — далі бухгалтер міняє їх у довіднику."""
+	for company in frappe.get_all("Company", pluck="name"):
+		parent = _tax_parent_account(company)
+
+		if not parent:
+			continue
+
+		payable = frappe.get_cached_value("Company", company, "default_payroll_payable_account")
+
+		for component, account_name in PAYROLL_TAX_ACCOUNTS.items():
+			if not frappe.db.exists("Salary Component", component):
+				continue
+
+			account = _ensure_tax_account(company, parent, account_name)
+
+			if not account:
+				continue
+
+			existing = frappe.db.get_value(
+				"Salary Component Account", {"parent": component, "company": company}, ["name", "account"]
+			)
+
+			# Свій рахунок бухгалтера не чіпаємо — міняємо лише те, що вело на спільний пасив.
+			if existing and existing[1] not in (None, "", payable):
+				continue
+
+			if existing:
+				frappe.db.set_value("Salary Component Account", existing[0], "account", account)
+				print(f"  {component}: account -> {account}")
+				continue
+
+			doc = frappe.get_doc("Salary Component", component)
+			doc.append("accounts", {"company": company, "account": account})
+			doc.save(ignore_permissions=True)
+			print(f"  {component}: account set to {account}")
+
+
+def _tax_parent_account(company):
+	"""Група, під якою живуть податкові зобов'язання компанії."""
+	return frappe.db.get_value(
+		"Account",
+		{"company": company, "is_group": 1, "root_type": "Liability", "account_type": "Tax"},
+		"name",
+	) or frappe.db.get_value(
+		"Account",
+		{"company": company, "is_group": 1, "root_type": "Liability", "account_name": ["like", "%Поточні%"]},
+		"name",
+	)
+
+
+def _ensure_tax_account(company, parent, account_name):
+	existing = frappe.db.get_value(
+		"Account", {"company": company, "account_name": account_name, "is_group": 0}, "name"
+	)
+
+	if existing:
+		return existing
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Account",
+			"account_name": account_name,
+			"company": company,
+			"parent_account": parent,
+			"root_type": "Liability",
+			"account_type": "Tax",
+			"is_group": 0,
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	print(f"  Created account: {doc.name}")
+
+	return doc.name

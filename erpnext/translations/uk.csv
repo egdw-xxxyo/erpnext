@@ -13710,3 +13710,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Advance Already Paid","Аванс уже виплачено"
 "Only the manager of {0} may change the salary.","Оклад працівника {0} може змінити лише його керівник."
 "Salary Is Not Yours to Change","Це не ваш працівник"
+"Tax Entry","Проведення податків"
+"Taxes on the advance {0}.{1}","Податки з авансу {0}.{1}"
+"Taxes on the salary {0}.{1}","Податки із зарплати {0}.{1}"
+"Set the tax accounts for company {0} — the taxes of this payment are not posted.","Задайте податкові рахунки компанії {0} — податки цієї виплати не проведені."

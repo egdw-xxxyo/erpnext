@@ -689,6 +689,8 @@ function show_receipt(frm, row) {
 			? [
 					[__("Salary Slip"), row.salary_slip, "Salary Slip"],
 					[__("Payment Entry (Card)"), row.journal_entry_card, "Journal Entry"],
+					// Податки цієї виплати проводяться окремо — з розписки видно, куди вони пішли.
+					[__("Tax Entry"), row.journal_entry_tax, "Journal Entry"],
 			  ]
 			: [[__("Payment Entry (Cash)"), row.journal_entry_cash, "Journal Entry"]]
 	).filter(([, name]) => name);

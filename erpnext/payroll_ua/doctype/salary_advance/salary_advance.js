@@ -352,6 +352,8 @@ function show_receipt(frm, row) {
 		[__("Additional Salary (Cash)"), row.additional_salary_cash, "Additional Salary"],
 		[__("Payment Entry (Card)"), row.journal_entry_card, "Journal Entry"],
 		[__("Payment Entry (Cash)"), row.journal_entry_cash, "Journal Entry"],
+		// Податки авансу проводяться окремо — з розписки видно, куди вони пішли.
+		[__("Tax Entry"), row.journal_entry_tax, "Journal Entry"],
 	].filter(([, name]) => name);
 
 	frappe.msgprint({
