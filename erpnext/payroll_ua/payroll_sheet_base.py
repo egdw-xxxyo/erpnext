@@ -109,7 +109,12 @@ class PayrollSheetBase(Document):
 		debts = self._debt_carried()
 		# Таблиця будується наново, а сліди виплати живуть лише тут — переносимо їх.
 		paid_marks = {
-			row.employee: (row.journal_entry_card, row.journal_entry_cash, row.paid_date)
+			row.employee: (
+				row.journal_entry_card,
+				row.journal_entry_cash,
+				row.journal_entry_tax,
+				row.paid_date,
+			)
 			for row in self.employees
 		}
 
@@ -190,9 +195,12 @@ class PayrollSheetBase(Document):
 				},
 			)
 
-			row.journal_entry_card, row.journal_entry_cash, row.paid_date = paid_marks.get(
-				employee, (None, None, None)
-			)
+			(
+				row.journal_entry_card,
+				row.journal_entry_cash,
+				row.journal_entry_tax,
+				row.paid_date,
+			) = paid_marks.get(employee, (None, None, None, None))
 			row.paid = 1 if row.paid_date else 0
 			# Премії затверджуються документом на весь місяць, але платяться по рядках:
 			# людина без рядка в затвердженні лишається незакритою — премію їй могли
@@ -623,8 +631,18 @@ class PayrollSheetBase(Document):
 				if flt(row.get(source), 2):
 					row.set(f"journal_entry_{source.replace('salary_', '')}", voucher)
 
+		# Податки цієї виплати — окремим проведенням: половина, яка платить готівкою, податків
+		# не знає, тож проводить їх лише офіційна (див. `_post_taxes`).
+		tax_voucher = self._post_taxes(targets, posting_date)
+
+		if tax_voucher:
+			vouchers.append(tax_voucher)
+
 		for row in targets:
 			row.paid_date = posting_date
+
+			if tax_voucher:
+				row.journal_entry_tax = tax_voucher
 
 		# Нарахування в HRMS — після проведення грошей: половина, яка через HRMS не проходить,
 		# нічого тут не робить (див. `after_payment`).
@@ -633,6 +651,34 @@ class PayrollSheetBase(Document):
 		self.refresh_data()
 
 		return vouchers
+
+	def _post_taxes(self, targets, posting_date):
+		"""Податки з тієї суми, яку саме зараз платимо: нараховане за місяць мінус аванс,
+		за ставками кожного працівника."""
+		if not self.pays_officially:
+			return None
+
+		pit = military = ssc = 0.0
+
+		for row in targets:
+			base = flt(flt(row.earned_official) - flt(row.advance_official), 2)
+
+			if base <= 0:
+				continue
+
+			taxes = payroll_tax.split(base, row.employee)
+			pit += taxes.pit
+			military += taxes.military
+			ssc += taxes.ssc
+
+		return payroll_accounts.make_tax_entry(
+			self.company,
+			posting_date,
+			_("Taxes on the salary {0}.{1}").format(self.month, self.year),
+			pit=pit,
+			military=military,
+			ssc=ssc,
+		)
 
 	def after_payment(self, employees):
 		"""Що документ робить у HRMS після виплати. Готівкова половина — нічого."""
