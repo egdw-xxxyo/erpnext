@@ -13372,6 +13372,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "The amount accrued officially, before taxes.","Сума, яка нараховується офіційно, до податків."
 "Calculated: the official salary less PIT 18% and military levy 5%, so 77% of it. The employer pays SSC 22% on top of the official salary — that is not withheld from the employee.","Рахується автоматично: офіційна ЗП мінус ПДФО 18% і військовий збір 5%, тобто 77% від неї. ЄСВ 22% роботодавець платить зверху на офіційну ЗП — з працівника він не утримується."
 "Cash Salary","ЗП готівкою"
+"Mgmt. Salary","Упр. ЗП"
 "Salary Effective From","ЗП діє з"
 "Pay in Cash","Виплата готівкою"
 "Accrued officially, before taxes. 23% is withheld from it (PIT 18% + military levy 5%), so 77% lands on the bank card; the employer pays 22% SSC on top.","Нараховується офіційно, до податків. З неї утримується 23% (ПДФО 18% + військовий збір 5%), тож на картку йде 77%; ЄСВ 22% роботодавець платить зверху."
@@ -13714,3 +13715,5 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Taxes on the advance {0}.{1}","Податки з авансу {0}.{1}"
 "Taxes on the salary {0}.{1}","Податки із зарплати {0}.{1}"
 "Set the tax accounts for company {0} — the taxes of this payment are not posted.","Задайте податкові рахунки компанії {0} — податки цієї виплати не проведені."
+"Withheld for Absence","Утримано за прогул"
+"The official salary already paid for the days of unexcused absence — the cash half withholds it back.","Офіційна зарплата, уже виплачена за дні прогулу — готівкова половина утримує її назад."

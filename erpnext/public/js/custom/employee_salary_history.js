@@ -57,7 +57,7 @@ function render(frm, history) {
 				<tr>
 					<th>${__("Period")}</th>
 					<th class="text-right">${__("Official Salary")}</th>
-					<th class="text-right">${__("Cash Salary")}</th>
+					<th class="text-right">${__("Mgmt. Salary")}</th>
 					<th class="text-right">${__("Total Salary")}</th>
 					<th class="text-right">${__("Change")}</th>
 					<th>${__("Status")}</th>

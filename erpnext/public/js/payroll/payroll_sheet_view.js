@@ -227,23 +227,11 @@ function render_preview(frm) {
 						},
 				  ]
 				: [
-						// Готівкою платиться лише друга половина окладу, але читається вона поруч
-						// з офіційною: разом вони і є те, що людина отримує за місяць.
-						{
-							label: __("Official Salary"),
-							value: (row) => money(row.official_salary),
-							secret: true,
-						},
-						{
-							// Скільки офіційна половина вже видала за цей місяць — з нею
-							// зводиться переплата, яку утримує готівка.
-							label: __("Off. Paid"),
-							value: (row) => money(row.official_paid),
-							clickable: (row) => flt(row.official_paid) > 0,
-							secret: true,
-							click: (row) => show_official_paid(frm, row),
-						},
-						{ label: __("Cash Salary"), value: (row) => money(row.cash_salary), secret: true },
+						// Управлінська відомість говорить лише про свою половину: офіційні числа
+						// живуть у своїй відомості, а тут вони лише розсували таблицю.
+						// «Упр. ЗП» — та сама готівкова половина окладу, тільки назва колонки
+						// коротша: у вузькій таблиці «ЗП готівкою» переносилося на два рядки.
+						{ label: __("Mgmt. Salary"), value: (row) => money(row.cash_salary), secret: true },
 						{
 							label: __("Paid Out"),
 							value: (row) => money(paid_out(row)),
@@ -319,8 +307,18 @@ function salary_lines(frm, row) {
 	if (!is_official(frm)) {
 		const lines = [
 			[__("Cash Salary"), money(row.cash_salary)],
-			[__("Accrued in Cash"), `${money(accrued_cash(row))} (${worked})`],
+			[__("Accrued in Cash"), `${money(accrued_cash(row))} (${cash_worked(row)})`],
 		];
+
+		// Прогул готівкова половина не платить, а ще й забирає назад те, що за ці дні
+		// пішло на картку офіційно.
+		if (flt(row.absent_days)) {
+			lines.push([__("Absent Days"), `− ${days(row.absent_days)}`]);
+		}
+
+		if (flt(row.absent_deduction)) {
+			lines.push([__("Withheld for Absence"), `− ${money(row.absent_deduction)}`]);
+		}
 
 		// Премію могли призначити готівкою — тоді вона більша за оклад половини, і без
 		// окремого рядка це читається як помилка.
@@ -350,6 +348,21 @@ function salary_lines(frm, row) {
 }
 
 // Нараховане за дні, без премії: саме воно й рахується з окладу денною ставкою.
+// Утримане саме за переплату: борг минулого місяця й утримання за прогул стоять
+// власними рядками, тож із загального утримання вони віднімаються.
+function overpay_withheld(row) {
+	return flt(flt(row.cash_deduction) - flt(row.debt_carried) - flt(row.absent_deduction), 2);
+}
+
+// Готівкою платяться лише відпрацьовані дні: прогул із них вилітає.
+function cash_paid_days(row) {
+	return flt(flt(row.paid_days) - flt(row.absent_days), 2);
+}
+
+function cash_worked(row) {
+	return `${days(cash_paid_days(row))} / ${days(row.total_working_days)}`;
+}
+
 function accrued_cash(row) {
 	return flt(flt(row.earned_cash) - flt(row.bonus_cash), 2);
 }
@@ -580,9 +593,15 @@ function paid_out(row) {
 function show_cash_payout(frm, row) {
 	const lines = [
 		[__("Cash Salary"), money(row.cash_salary)],
-		[__("Paid Days"), `${days(row.paid_days)} / ${days(row.total_working_days)}`],
+		[__("Paid Days"), cash_worked(row)],
 		[__("Accrued in Cash"), money(accrued_cash(row))],
 	];
+
+	// Прогул оплачує лише офіційна половина — готівкова за ці дні не платить і забирає
+	// назад те, що за них уже пішло на картку.
+	if (flt(row.absent_days)) {
+		lines.push([__("Absent Days"), `− ${days(row.absent_days)}`]);
+	}
 
 	// Премію могли призначити готівкою — без окремого рядка нарахована сума виглядає
 	// більшою за оклад половини.
@@ -600,11 +619,12 @@ function show_cash_payout(frm, row) {
 	if (flt(row.official_overpaid)) {
 		lines.push(
 			[__("Off. Overpaid"), money(row.official_overpaid)],
-			[
-				__("Withheld for the Overpayment"),
-				`− ${money(flt(row.cash_deduction) - flt(row.debt_carried))}`,
-			]
+			[__("Withheld for the Overpayment"), `− ${money(overpay_withheld(row))}`]
 		);
+	}
+
+	if (flt(row.absent_deduction)) {
+		lines.push([__("Withheld for Absence"), `− ${money(row.absent_deduction)}`]);
 	}
 
 	if (flt(row.debt_carried)) {
@@ -635,38 +655,6 @@ function show_cash_payout(frm, row) {
 	});
 }
 
-// Що офіційна половина видала цій людині за місяць — і чи не більше, ніж вона заробила.
-function show_official_paid(frm, row) {
-	const lines = [
-		[__("Off. Salary"), money(row.official_salary)],
-		[__("Off. Accrued"), money(row.earned_official)],
-		[__("Off. Advance"), money(row.advance_official)],
-		[__("Off. Paid"), `<b>${money(row.official_paid)}</b>`],
-	];
-
-	if (flt(row.official_overpaid)) {
-		lines.push(
-			[__("Off. Overpaid"), `<b>${money(row.official_overpaid)}</b>`],
-			[__("Withheld for the Overpayment"), money(flt(row.cash_deduction) - flt(row.debt_carried))]
-		);
-	}
-
-	frappe.msgprint({
-		title: row.employee_name || row.employee,
-		indicator: flt(row.official_overpaid) ? "orange" : "blue",
-		message: `
-			${lines_html(lines)}
-			${
-				flt(row.official_overpaid)
-					? `<p class="text-muted" style="margin-top: 8px;">${__(
-							"The official half paid more than the paid days earn — the advance was issued before the unpaid days were entered. What the employee actually received is withheld from the cash half."
-					  )}</p>`
-					: ""
-			}
-		`,
-	});
-}
-
 function show_details(frm, row) {
 	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
@@ -679,6 +667,7 @@ function show_details(frm, row) {
 		// на відміну від авансу, який обрізає його днем відсікання.
 		start: frm.doc.period_start,
 		end: frm.doc.period_end,
+		part: is_official(frm) ? "official" : "cash",
 	});
 }
 

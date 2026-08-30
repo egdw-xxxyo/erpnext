@@ -685,7 +685,8 @@ def _day_note(row, leave_abbrs) -> dict | None:
 
 
 @frappe.whitelist()
-def attendance_calendar(employee: str, start: str, end: str) -> dict:
+def attendance_calendar(employee: str, start: str, end: str, part: str = "official") -> dict:
+	"""`part` — чия це половина: офіційна платить прогул, готівкова — ні (див. `absence_days`)."""
 	from hrms.hr.attendance_marks import (
 		DAY_ABBR,
 		DAY_CONTEXT,
@@ -787,6 +788,15 @@ def attendance_calendar(employee: str, start: str, end: str) -> dict:
 	first = max(start, getdate(card.date_of_joining)) if card.date_of_joining else start
 	last = min(end, getdate(card.relieving_date)) if card.relieving_date else end
 	unpaid_days = (absence_days([employee], start, end) or {}).get(employee) or {}
+
+	# Готівкова половина за прогул не платить — у її календарі ці дні стоять неоплачуваними.
+	if part == "cash":
+		unpaid_days = dict(unpaid_days)
+
+		for row in rows:
+			if row.status == "Absent":
+				unpaid_days[getdate(row.attendance_date)] = 1
+
 	day = start
 
 	# Чим саме день оплачується, видно тільки поруч із календарем: свято й вихідний не

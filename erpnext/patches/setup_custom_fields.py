@@ -412,7 +412,7 @@ def create_salary_split_fields():
 			"dt": "Employee",
 			"fieldname": "custom_cash_salary",
 			"fieldtype": "Currency",
-			"label": "Cash Salary",
+			"label": "Mgmt. Salary",
 			"options": "salary_currency",
 			"insert_after": "custom_official_salary_net",
 			"description": "Paid from the cash desk and not taxed. Together with the official part it makes up the full salary.",
