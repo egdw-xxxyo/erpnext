@@ -154,6 +154,83 @@ def set_military_unit_from_party(doc, method=None):
 	doc.military_unit = get_party_military_unit(party_type, party_name)
 
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def military_unit_contact_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Link query for a contact person, narrowed to one Military Unit.
+
+	Sales looks people up by whatever they have at hand: a name, a call sign or the number
+	that just rang. All three are searched at once. With `military_unit` in `filters` only
+	contacts linked to that unit — directly, or through its Customers / Prospects — are
+	offered; without it the same search runs across every contact."""
+	filters = filters or {}
+	military_unit = filters.get("military_unit")
+	like = f"%{txt or ''}%"
+
+	contact_filters = {}
+	if military_unit:
+		linked = get_military_unit_contacts(military_unit)
+		if not linked:
+			return []
+		contact_filters["name"] = ["in", linked]
+
+	or_filters = [
+		["full_name", "like", like],
+		["mobile_no", "like", like],
+		["phone", "like", like],
+	]
+	if frappe.db.has_column("Contact", "call_sign"):
+		or_filters.append(["call_sign", "like", like])
+
+	# Numbers usually live in the child table, not on the Contact itself.
+	by_phone = frappe.get_all("Contact Phone", filters={"phone": ["like", like]}, pluck="parent")
+	if by_phone:
+		or_filters.append(["name", "in", list(set(by_phone))])
+
+	fields = ["name", "full_name"]
+	if frappe.db.has_column("Contact", "call_sign"):
+		fields.append("call_sign")
+	fields.append("mobile_no")
+
+	return frappe.get_all(
+		"Contact",
+		filters=contact_filters,
+		or_filters=or_filters,
+		fields=fields,
+		order_by="full_name asc",
+		limit_start=start,
+		limit_page_length=page_len,
+		as_list=True,
+	)
+
+
+def get_military_unit_contacts(military_unit: str) -> list[str]:
+	"""Contacts of a unit: linked to it directly, or to one of its Customers / Prospects."""
+	parties = {
+		"Military Unit": [military_unit],
+		"Customer": frappe.get_all("Customer", filters={"military_unit": military_unit}, pluck="name"),
+		"Prospect": frappe.get_all("Prospect", filters={"military_unit": military_unit}, pluck="name"),
+	}
+
+	contacts = set()
+	for link_doctype, link_names in parties.items():
+		if not link_names:
+			continue
+		contacts.update(
+			frappe.get_all(
+				"Dynamic Link",
+				filters={
+					"parenttype": "Contact",
+					"link_doctype": link_doctype,
+					"link_name": ["in", link_names],
+				},
+				pluck="parent",
+			)
+		)
+
+	return list(contacts)
+
+
 def link_events_with_prospect(event, method):
 	if event.event_participants:
 		ref_doctype = event.event_participants[0].reference_doctype

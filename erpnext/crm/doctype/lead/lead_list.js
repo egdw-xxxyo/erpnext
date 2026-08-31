@@ -5,6 +5,7 @@ const LEAD_STATUS_COLOURS = {
 	Contacted: "orange",
 	"Requirement Gathering": "purple",
 	"Awaiting Response": "yellow",
+	"Result of Processing": "cyan",
 	Postponed: "gray",
 	"Converted to Opportunity": "green",
 	"Not Relevant": "gray",
@@ -12,10 +13,15 @@ const LEAD_STATUS_COLOURS = {
 };
 
 frappe.listview_settings["Lead"] = {
+	// The ID carries no meaning for sales — the unit, the organization and the contact do.
+	hide_name_column: true,
 	add_fields: [
 		"status",
 		"lead_owner",
 		"military_unit",
+		"company_name",
+		"contact_person",
+		"contact_display",
 		"next_action_date",
 		"next_action_overdue",
 		"required_month",

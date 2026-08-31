@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 
+from frappe.contacts.address_and_contact import load_address_and_contact
 from frappe.model.document import Document
 
 
@@ -20,7 +21,9 @@ class MilitaryUnit(Document):
 		organization_type: DF.Literal[
 			"Військова частина", "Бригада", "Батальйон", "Полк", "Центр", "Підрозділ", "Інше"
 		]
-		status: DF.Literal["Потенційна", "Активна", "Неактивна", "Архів"]
+		status: DF.Literal["Потенційна", "Активна", "Клієнт", "Неактивна", "Архів"]
 	# end: auto-generated types
 
-	pass
+	def onload(self):
+		"""Contacts and Addresses point at the unit through Dynamic Links, like any party."""
+		load_address_and_contact(self)

@@ -46,6 +46,7 @@ def execute():
 	create_custom_fields_on_whatsapp_message()
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
+	create_call_sign_fields()
 	create_customer_prospect_link()
 	setup_lead_sources()
 	setup_lead_permissions()
@@ -924,6 +925,34 @@ def create_military_unit_fields():
 	_create_custom_fields(fields)
 
 
+def create_call_sign_fields():
+	"""«Позивний» of the people sales deals with — most of them are known by it, not by a surname.
+
+	It lives on the Contact, which is where a person is described, and on the Prospect, whose
+	own contact person is often the only thing known about a unit that early on."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Contact",
+				"fieldname": "call_sign",
+				"fieldtype": "Data",
+				"label": "Call Sign",
+				"insert_after": "last_name",
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+			},
+			{
+				"dt": "Prospect",
+				"fieldname": "call_sign",
+				"fieldtype": "Data",
+				"label": "Call Sign",
+				"insert_after": "military_unit",
+				"in_standard_filter": 1,
+			},
+		]
+	)
+
+
 def create_customer_prospect_link():
 	"""Persisted trace of the Prospect a Customer was converted from.
 
@@ -1042,16 +1071,34 @@ def create_v16_ported_fields():
 		},
 		{
 			"dt": "Lead",
-			"description": "Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.",
+			"description": "The unit this request belongs to. Drives the contact person search.",
 			"fieldname": "military_unit",
 			"fieldtype": "Link",
 			"in_list_view": 1,
 			"in_standard_filter": 1,
 			"label": "Military Unit",
-			"no_copy": 1,
 			"options": "Military Unit",
+			"insert_after": "status",
+		},
+		{
+			"dt": "Lead",
+			"fieldname": "contact_person",
+			"fieldtype": "Link",
+			"in_standard_filter": 1,
+			"label": "Contact Person",
+			"options": "Contact",
+			"insert_after": "military_unit",
+		},
+		{
+			"dt": "Lead",
+			"description": "Full name of the contact person, or their call sign.",
+			"fetch_from": "contact_person.full_name",
+			"fieldname": "contact_display",
+			"fieldtype": "Data",
+			"in_list_view": 1,
+			"label": "Contact",
 			"read_only": 1,
-			"insert_after": "dashboard_tab",
+			"insert_after": "contact_person",
 		},
 		{
 			"dt": "Lead",
@@ -1166,11 +1213,27 @@ def create_v16_ported_fields():
 		},
 		{
 			"dt": "Lead",
+			"depends_on": 'eval:doc.status=="Result of Processing"',
+			"fieldname": "result_section",
+			"fieldtype": "Section Break",
+			"label": "Processing Result",
+			"insert_after": "next_action_overdue",
+		},
+		{
+			"dt": "Lead",
+			"depends_on": 'eval:doc.status=="Result of Processing"',
+			"fieldname": "processing_result",
+			"fieldtype": "Small Text",
+			"label": "Processing Result",
+			"insert_after": "result_section",
+		},
+		{
+			"dt": "Lead",
 			"depends_on": "eval:doc.status == 'Postponed' || doc.return_date || doc.hold_reason",
 			"fieldname": "hold_section",
 			"fieldtype": "Section Break",
 			"label": "On Hold Details",
-			"insert_after": "next_action_overdue",
+			"insert_after": "processing_result",
 		},
 		{
 			"dt": "Lead",
