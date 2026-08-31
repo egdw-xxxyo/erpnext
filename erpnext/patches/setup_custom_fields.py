@@ -46,6 +46,7 @@ def execute():
 	create_custom_fields_on_whatsapp_message()
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
+	create_call_sign_fields()
 	create_customer_prospect_link()
 	setup_lead_sources()
 	setup_lead_permissions()
@@ -921,6 +922,34 @@ def create_military_unit_fields():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+def create_call_sign_fields():
+	"""«Позивний» of the people sales deals with — most of them are known by it, not by a surname.
+
+	It lives on the Contact, which is where a person is described, and on the Prospect, whose
+	own contact person is often the only thing known about a unit that early on."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Contact",
+				"fieldname": "call_sign",
+				"fieldtype": "Data",
+				"label": "Call Sign",
+				"insert_after": "last_name",
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+			},
+			{
+				"dt": "Prospect",
+				"fieldname": "call_sign",
+				"fieldtype": "Data",
+				"label": "Call Sign",
+				"insert_after": "military_unit",
+				"in_standard_filter": 1,
+			},
+		]
+	)
 
 
 def create_customer_prospect_link():

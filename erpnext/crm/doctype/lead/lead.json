@@ -23,6 +23,9 @@
   "col_break123",
   "lead_owner",
   "status",
+  "military_unit",
+  "contact_person",
+  "contact_display",
   "customer",
   "prospect",
   "type",
@@ -36,6 +39,8 @@
   "next_action_date",
   "column_break_next_action",
   "next_action_overdue",
+  "result_section",
+  "processing_result",
   "hold_section",
   "return_date",
   "hold_reason",
@@ -59,7 +64,6 @@
   "phone_ext",
   "organization_section",
   "company_name",
-  "military_unit",
   "no_of_employees",
   "column_break_28",
   "annual_revenue",
@@ -127,10 +131,10 @@
    "fieldname": "company_name",
    "fieldtype": "Data",
    "in_standard_filter": 1,
-   "label": "Organization Name",
-   "mandatory_depends_on": "eval: !(doc.first_name)",
+   "label": "Unit Name",
    "oldfieldname": "company_name",
-   "oldfieldtype": "Data"
+   "oldfieldtype": "Data",
+   "in_list_view": 1
   },
   {
    "fieldname": "email_id",
@@ -150,7 +154,6 @@
    "default": "__user",
    "fieldname": "lead_owner",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Responsible Manager",
    "oldfieldname": "lead_owner",
@@ -168,7 +171,7 @@
    "no_copy": 1,
    "oldfieldname": "status",
    "oldfieldtype": "Select",
-   "options": "New Request\nContacted\nRequirement Gathering\nAwaiting Response\nPostponed\nConverted to Opportunity\nNot Relevant\nLost",
+   "options": "New Request\nContacted\nRequirement Gathering\nAwaiting Response\nResult of Processing\nPostponed\nConverted to Opportunity\nNot Relevant\nLost",
    "reqd": 1,
    "search_index": 1
   },
@@ -361,17 +364,19 @@
    "fieldname": "first_name",
    "fieldtype": "Data",
    "label": "First Name",
-   "mandatory_depends_on": "eval: !(doc.company_name)"
+   "hidden": 1
   },
   {
    "fieldname": "middle_name",
    "fieldtype": "Data",
-   "label": "Middle Name"
+   "label": "Middle Name",
+   "hidden": 1
   },
   {
    "fieldname": "last_name",
    "fieldtype": "Data",
-   "label": "Last Name"
+   "label": "Last Name",
+   "hidden": 1
   },
   {
    "fieldname": "no_of_employees",
@@ -553,14 +558,28 @@
    "show_dashboard": 1
   },
   {
-   "description": "Shown from the linked Prospect or Customer. Maintained on the organization, not on the Lead.",
+   "description": "The unit this request belongs to. Drives the contact person search.",
    "fieldname": "military_unit",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Military Unit",
-   "no_copy": 1,
-   "options": "Military Unit",
+   "options": "Military Unit"
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Contact Person",
+   "options": "Contact"
+  },
+  {
+   "description": "Full name of the contact person, or their call sign.",
+   "fetch_from": "contact_person.full_name",
+   "fieldname": "contact_display",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact",
    "read_only": 1
   },
   {
@@ -597,7 +616,6 @@
   {
    "fieldname": "required_month",
    "fieldtype": "Date",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Required Month"
   },
@@ -624,7 +642,6 @@
   {
    "fieldname": "next_action_date",
    "fieldtype": "Date",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Next Action Date"
   },
@@ -682,6 +699,18 @@
    "no_copy": 1,
    "options": "Lead Status Reversal",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.status==\"Result of Processing\"",
+   "fieldname": "result_section",
+   "fieldtype": "Section Break",
+   "label": "Processing Result"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Result of Processing\"",
+   "fieldname": "processing_result",
+   "fieldtype": "Small Text",
+   "label": "Processing Result"
   }
  ],
  "grid_page_length": 50,
@@ -749,7 +778,7 @@
   }
  ],
  "row_format": "Dynamic",
- "search_fields": "lead_name,lead_owner,status",
+ "search_fields": "lead_name,military_unit,company_name,status",
  "sender_field": "email_id",
  "sender_name_field": "lead_name",
  "show_name_in_global_search": 1,
