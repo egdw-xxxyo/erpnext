@@ -10,6 +10,7 @@ const LEAD_FINAL_STATUSES = ["Converted to Opportunity", "Not Relevant", "Lost"]
 // erpnext/crm/doctype/lead/lead.py (STATUS_REQUIRED_FIELDS) is authoritative.
 const LEAD_STATUS_REQUIRED_FIELDS = {
 	"Awaiting Response": ["next_action", "next_action_date"],
+	"Result of Processing": ["processing_result"],
 	Postponed: ["return_date", "hold_reason"],
 	"Not Relevant": ["close_reason"],
 	Lost: ["close_reason"],
@@ -22,14 +23,19 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 			Quotation: this.make_quotation.bind(this),
 			Opportunity: this.make_opportunity.bind(this),
 		};
-
-		// For avoiding integration issues.
-		this.frm.set_df_property("first_name", "reqd", true);
 	}
 
 	onload() {
 		this.frm.set_query("lead_owner", function (doc, cdt, cdn) {
 			return { query: "frappe.core.doctype.user.user.user_query" };
+		});
+
+		// Sales looks a person up by name, call sign or phone number, within one unit.
+		this.frm.set_query("contact_person", () => {
+			return {
+				query: "erpnext.crm.utils.military_unit_contact_query",
+				filters: { military_unit: this.frm.doc.military_unit },
+			};
 		});
 
 		this.remember_status();
@@ -54,6 +60,9 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 			this.frm.add_custom_button(__("Customer"), this.make_customer.bind(this), __("Create"));
 			this.frm.add_custom_button(__("Opportunity"), this.make_opportunity.bind(this), __("Create"));
 			this.frm.add_custom_button(__("Quotation"), this.make_quotation.bind(this), __("Create"));
+			if (!doc.contact_person) {
+				this.frm.add_custom_button(__("Contact"), this.make_contact.bind(this), __("Create"));
+			}
 			if (!doc.__onload.linked_prospects.length) {
 				this.frm.add_custom_button(__("Prospect"), this.make_prospect.bind(this), __("Create"));
 				this.frm.add_custom_button(
@@ -258,6 +267,21 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 		}
 	}
 
+	make_contact() {
+		const doc = this.frm.doc;
+		const contact = frappe.model.get_new_doc("Contact");
+		contact.mobile_no = doc.mobile_no;
+		contact.email_id = doc.email_id;
+
+		if (doc.military_unit) {
+			const link = frappe.model.add_child(contact, "links");
+			link.link_doctype = "Military Unit";
+			link.link_name = doc.military_unit;
+		}
+
+		frappe.set_route("Form", "Contact", contact.name);
+	}
+
 	make_prospect() {
 		const me = this;
 		frappe.model.with_doctype("Prospect", function () {
@@ -355,7 +379,29 @@ erpnext.LeadController = class LeadController extends frappe.ui.form.Controller 
 		this.mirror_military_unit();
 	}
 
+	military_unit() {
+		// The contact person is searched within the unit, so a unit change invalidates it.
+		if (this.frm.doc.contact_person) {
+			this.frm.set_value("contact_person", null);
+		}
+		this.fill_unit_name();
+	}
+
+	fill_unit_name() {
+		const { military_unit, company_name } = this.frm.doc;
+		if (!military_unit || company_name) return;
+
+		frappe.db.get_value("Military Unit", military_unit, "name_of_military_unit").then((r) => {
+			if (r.message && r.message.name_of_military_unit) {
+				this.frm.set_value("company_name", r.message.name_of_military_unit);
+			}
+		});
+	}
+
 	mirror_military_unit() {
+		// The Unit is chosen on the Lead; the organization only fills it in when empty.
+		if (this.frm.doc.military_unit) return;
+
 		const doc = this.frm.doc;
 		const party_type = doc.prospect ? "Prospect" : doc.customer ? "Customer" : null;
 		const party_name = doc.prospect || doc.customer;

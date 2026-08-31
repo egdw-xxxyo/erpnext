@@ -35,6 +35,7 @@ FINAL_STATUSES = (CONVERTED_STATUS, "Not Relevant", "Lost")
 #: Fields that become mandatory for a given status.
 STATUS_REQUIRED_FIELDS = {
 	"Awaiting Response": ("next_action", "next_action_date"),
+	"Result of Processing": ("processing_result",),
 	"Postponed": ("return_date", "hold_reason"),
 	"Not Relevant": ("close_reason",),
 	"Lost": ("close_reason",),
@@ -61,6 +62,8 @@ class Lead(SellingController, CRMNote):
 		close_reason: DF.SmallText | None
 		company: DF.Link | None
 		company_name: DF.Data | None
+		contact_display: DF.Data | None
+		contact_person: DF.Link | None
 		conversion_probability: DF.Literal["", "Low Probability", "Medium Probability", "High Probability"]
 		country: DF.Link | None
 		customer: DF.Link | None
@@ -90,6 +93,7 @@ class Lead(SellingController, CRMNote):
 		notes: DF.Table[CRMNote]
 		phone: DF.Data | None
 		phone_ext: DF.Data | None
+		processing_result: DF.SmallText | None
 		prospect: DF.Link | None
 		qualification_status: DF.Literal["Unqualified", "In Process", "Qualified"]
 		qualified_by: DF.Link | None
@@ -117,6 +121,7 @@ class Lead(SellingController, CRMNote):
 			"Contacted",
 			"Requirement Gathering",
 			"Awaiting Response",
+			"Result of Processing",
 			"Postponed",
 			"Converted to Opportunity",
 			"Not Relevant",
@@ -140,12 +145,13 @@ class Lead(SellingController, CRMNote):
 
 	def validate(self):
 		self.set_full_name()
+		self.set_military_unit()
+		self.set_contact_details()
 		self.set_lead_name()
 		self.set_title()
 		self.check_email_id_is_unique()
 		self.validate_email_id()
 		self.validate_party_link()
-		self.set_military_unit()
 		self.validate_conversion_status()
 		self.validate_status_requirements()
 		self.set_next_action_overdue()
@@ -153,7 +159,10 @@ class Lead(SellingController, CRMNote):
 
 	def before_insert(self):
 		self.contact_doc = None
-		if frappe.db.get_single_value("CRM Settings", "auto_creation_of_contact"):
+		if self.contact_person:
+			# The contact person was picked by hand; do not spawn a second Contact for it.
+			self.contact_doc = frappe.get_doc("Contact", self.contact_person)
+		elif frappe.db.get_single_value("CRM Settings", "auto_creation_of_contact"):
 			if self.source == "Existing Customer" and self.customer:
 				contact = frappe.db.get_value(
 					"Dynamic Link",
@@ -191,7 +200,7 @@ class Lead(SellingController, CRMNote):
 		if not self.lead_name:
 			# Check for leads being created through data import
 			if not self.company_name and not self.email_id and not self.flags.ignore_mandatory:
-				frappe.throw(_("A Lead requires either a person's name or an organization's name"))
+				frappe.throw(_("A Lead requires either a Military Unit or a contact person"))
 			elif self.company_name:
 				self.lead_name = self.company_name
 			else:
@@ -230,6 +239,13 @@ class Lead(SellingController, CRMNote):
 	def link_to_contact(self):
 		# update contact links
 		if self.contact_doc:
+			already_linked = any(
+				link.link_doctype == "Lead" and link.link_name == self.name
+				for link in self.contact_doc.get("links", [])
+			)
+			if already_linked:
+				return
+
 			self.contact_doc.append(
 				"links", {"link_doctype": "Lead", "link_name": self.name, "link_title": self.lead_name}
 			)
@@ -283,14 +299,45 @@ class Lead(SellingController, CRMNote):
 			)
 
 	def set_military_unit(self):
-		"""Mirror the Military Unit of the linked organization. Never edited on the Lead itself."""
-		military_unit = None
-		if self.prospect:
-			military_unit = frappe.db.get_value("Prospect", self.prospect, "military_unit")
-		elif self.customer:
-			military_unit = frappe.db.get_value("Customer", self.customer, "military_unit")
+		"""Fall back to the Military Unit of the linked organization.
 
-		self.military_unit = military_unit or None
+		The Unit is chosen on the Lead itself — it is what the contact person is searched
+		by — so a value already there always wins. Prospect / Customer only fill the gap."""
+		if self.military_unit:
+			return
+
+		if self.prospect:
+			self.military_unit = frappe.db.get_value("Prospect", self.prospect, "military_unit")
+		elif self.customer:
+			self.military_unit = frappe.db.get_value("Customer", self.customer, "military_unit")
+
+	def set_contact_details(self):
+		"""Name the Lead after its Unit and contact person, now that the name fields are gone."""
+		if self.military_unit and not self.company_name:
+			self.company_name = frappe.db.get_value(
+				"Military Unit", self.military_unit, "name_of_military_unit"
+			)
+
+		if not self.contact_person:
+			self.contact_display = None
+			return
+
+		fields = ["full_name", "mobile_no", "phone", "email_id"]
+		if frappe.db.has_column("Contact", "call_sign"):
+			fields.append("call_sign")
+
+		contact = frappe.db.get_value("Contact", self.contact_person, fields, as_dict=True)
+		if not contact:
+			return
+
+		self.contact_display = contact.full_name or contact.get("call_sign")
+		self.lead_name = self.contact_display or self.lead_name
+		if not self.mobile_no:
+			self.mobile_no = contact.mobile_no
+		if not self.phone:
+			self.phone = contact.phone
+		if not self.email_id:
+			self.email_id = contact.email_id
 
 	def validate_conversion_status(self):
 		"""`Converted to Opportunity` is set by the system only, when an Opportunity is created."""
