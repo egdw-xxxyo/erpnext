@@ -25,7 +25,11 @@ cp ../.ops.env.example ../.ops.env   # set OPS_SESSION_SECRET, OPS_ENV_LABEL, OP
 | `app/jobs.py` | detached `setsid` job runner, offset-resumable logs |
 | `app/commands.py` | the complete set of runnable commands |
 | `app/audit.py` | append-only audit written as the operator |
-| `app/routes/` | dashboard, panels, actions, jobs (SSE) |
+| `app/sftp_config.py` | encrypted-at-rest config for the off-host SFTP backup target |
+| `app/sftp.py` | push/pull/list against that target (netrc-file staged on host, never in argv/logs) |
+| `app/schedule.py` | scheduled backup as a marked line in the host's own crontab (no in-app scheduler) |
+| `app/prefs.py` | tiny plaintext KV store (currently: the pre-deploy safety-backup toggle) |
+| `app/routes/` | dashboard, panels, actions, jobs (SSE), settings (SFTP target), schedule, remote_backups |
 
 ## Non-negotiables
 

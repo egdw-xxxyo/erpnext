@@ -17,8 +17,10 @@ from fastapi.staticfiles import StaticFiles
 from . import auth, jobs, lockout, sessions
 from .config import settings
 from .deps import LoginRequired
-from .routes import actions, dashboard, panels
+from .routes import actions, dashboard, panels, remote_backups
 from .routes import jobs as jobs_routes
+from .routes import schedule as schedule_routes
+from .routes import settings as settings_routes
 
 REAP_INTERVAL = 300
 SWEEP_INTERVAL = 3600
@@ -68,6 +70,9 @@ app.include_router(dashboard.router)
 app.include_router(panels.router)
 app.include_router(jobs_routes.router)
 app.include_router(actions.router)
+app.include_router(remote_backups.router)
+app.include_router(settings_routes.router)
+app.include_router(schedule_routes.router)
 
 
 @app.exception_handler(LoginRequired)
