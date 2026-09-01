@@ -80,6 +80,39 @@ def pull(conn: HostConnection, name: str, username: str) -> str:
 	return jobs.launch(conn, "backup-pull", command, f"Pull backup {name}", username, {"name": name})
 
 
+def test_connection(conn: HostConnection, cfg: SftpConfig) -> list[str]:
+	"""Synchronous — used by the "Test connection" button, which waits on it.
+	Lists the target's root/remote_dir so success is visibly provable, not
+	just a green checkmark."""
+	netrc = _write_netrc(conn, cfg)
+	script = (
+		f"cd {shlex.quote(settings.repo_path)} && "
+		f"./deploy backup-remote-test {shlex.quote(cfg.host)} {shlex.quote(str(cfg.port))} "
+		f"{shlex.quote(cfg.remote_dir)} {shlex.quote(netrc)}"
+	)
+	result = conn.run(script, timeout=20)
+	if not result.ok:
+		raise RuntimeError(result.err.strip() or result.out.strip() or "connection test failed")
+	return _parse_listing(result.out)
+
+
+def _parse_listing(text: str) -> list[str]:
+	"""curl's SFTP directory listing is `ls -l`-style lines; the name is
+	whatever comes after the 8th field. Names containing spaces are not
+	representable this way — good enough for a connectivity check, not a
+	general-purpose listing."""
+	names = []
+	for line in text.splitlines():
+		parts = line.split(maxsplit=8)
+		if len(parts) < 9:
+			continue
+		name = parts[8]
+		if name in (".", ".."):
+			continue
+		names.append(name)
+	return names
+
+
 def _list_remote_sync(conn: HostConnection) -> list[dict]:
 	cfg = require()
 	netrc = _write_netrc(conn, cfg)

@@ -825,6 +825,16 @@ PY
     dc exec -T backend curl -sS --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null || echo "[]"
     ;;
 
+  backup-remote-test)
+    # A trailing slash on the sftp:// URL makes curl LIST the directory
+    # instead of fetching a file — used by the ops "Test connection" button
+    # to prove the target is reachable, and to surface what's already there.
+    RHOST="${2:?usage: ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>}"
+    RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    dc exec -T backend curl -sS -f --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/"
+    ;;
+
   backup-pull)
     NAME="${2:?usage: ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>}"
     RHOST="${3:?}"; RPORT="${4:?}"; RDIR="${5:?}"; NETRC="${6:?}"
@@ -937,6 +947,7 @@ print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
     echo "       ./deploy restore {--list|<name> [--yes]}"
     echo "       ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-scheduled  (cron entry point, installed via the ops dashboard)"
     if [ "$DEPLOY_ENV" != "production" ]; then
