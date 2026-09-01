@@ -54,7 +54,22 @@ body.env-prod .env-badge { background: #3b1418; color: #fca5a5; }
 body.env-prod .topbar { border-bottom: 2px solid var(--danger); }
 
 /* ---- layout ---------------------------------------------------------- */
-main { padding: 18px; max-width: 1200px; margin: 0 auto; }
+.shell { display: flex; align-items: flex-start; }
+.sidenav {
+	position: sticky; top: 49px;
+	display: flex; flex-direction: column; gap: 2px;
+	width: 180px; flex: 0 0 180px;
+	padding: 18px 10px;
+	height: calc(100vh - 49px);
+	border-right: 1px solid var(--line);
+}
+.sidenav a {
+	color: var(--text); text-decoration: none; opacity: .75;
+	padding: 8px 10px; border-radius: 6px; font-size: 13px;
+}
+.sidenav a:hover { opacity: 1; background: var(--card); }
+.sidenav a.active { opacity: 1; background: var(--card); color: var(--accent); font-weight: 600; }
+main { flex: 1; min-width: 0; padding: 18px; max-width: 1200px; margin: 0 auto; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .card {
 	background: var(--card); border: 1px solid var(--line);

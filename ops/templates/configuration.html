@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Configuration{% endblock %}
+{% block content %}
+
+<div class="grid">
+	<section class="card wide" id="panel-sftp-settings"
+	         hx-get="/settings/sftp" hx-trigger="load" hx-swap="innerHTML">
+		<h2>SFTP backup target</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-schedule-settings"
+	         hx-get="/settings/schedule" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Backup schedule</h2><p class="muted">loading…</p>
+	</section>
+</div>
+
+{% endblock %}

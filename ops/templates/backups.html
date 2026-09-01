@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+
+<div class="grid">
+	<section class="card wide" id="panel-backups"
+	         hx-get="/panels/backups" hx-trigger="load, every 60s" hx-swap="innerHTML">
+		<h2>Backups</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-remote-backups"
+	         hx-get="/remote/backups" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Remote backups</h2><p class="muted">loading…</p>
+	</section>
+</div>
+
+{% endblock %}
