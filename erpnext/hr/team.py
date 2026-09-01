@@ -12,7 +12,7 @@
 
 def sheet_employees(company: str | None = None) -> dict:
 	"""Рядки табеля поточного користувача: `{employee: {дати прийому й звільнення}}`."""
-	from hrms.hr.page.attendance_sheet.attendance_sheet import get_editable_employees
+	from erpnext.payroll_ua.page.attendance_sheet.attendance_sheet import get_editable_employees
 
 	return get_editable_employees(company)
 
@@ -23,7 +23,7 @@ def managed_employees(company: str | None = None, start=None, end=None) -> list[
 	`start`/`end` — період документа: з ним у вибірці лишаються тільки ті, хто в цьому
 	періоді працював (звільнений минулого місяця в поточну відомість не потрапляє).
 	"""
-	from hrms.hr.page.attendance_sheet.attendance_sheet import employed_within
+	from erpnext.payroll_ua.page.attendance_sheet.attendance_sheet import employed_within
 
 	employees = sheet_employees(company)
 
