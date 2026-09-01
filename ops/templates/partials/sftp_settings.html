@@ -22,4 +22,22 @@
 		<input name="password" type="password" autocomplete="new-password"></label>
 	<label>Remote folder<input name="remote_dir" placeholder="/backups/prod" value="{{ config.remote_dir if config else '' }}" required></label>
 	<button type="submit" class="primary">Save</button>
+	<button type="button" class="small"
+	        hx-post="/settings/sftp/test" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	        hx-include="closest form" hx-target="#panel-sftp-settings" hx-swap="innerHTML">
+		Test connection
+	</button>
 </form>
+
+{% if test_error %}
+<div class="alert error small">Test failed: {{ test_error }}</div>
+{% elif test_entries is defined %}
+<div class="alert small">
+	Connected. {{ config.remote_dir if config else '/' }} contains {{ test_entries|length }} entr{{ 'y' if test_entries|length == 1 else 'ies' }}{% if test_entries %}:{% endif %}
+	{% if test_entries %}
+	<ul class="mono small">
+		{% for name in test_entries %}<li>{{ name }}</li>{% endfor %}
+	</ul>
+	{% endif %}
+</div>
+{% endif %}
