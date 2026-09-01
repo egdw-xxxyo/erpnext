@@ -1,0 +1,11 @@
+# Overlay applied on top of docker-compose.ops.yml only when OPS_LOCAL_MODE=1
+# is set in .ops.env (see ops_dc() in ./deploy). Turns the ops container from
+# "talks to a real host over SSH" into "runs commands on itself" — needs the
+# repo and the docker socket, which is a real drop in isolation vs. the SSH
+# path, so this file is opt-in and never applied on a shared host.
+services:
+  ops:
+    user: root
+    volumes:
+      - ${OPS_REPO_PATH}:${OPS_REPO_PATH}
+      - /var/run/docker.sock:/var/run/docker.sock

@@ -13,7 +13,7 @@ import time
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from . import audit, lockout, sessions, ssh
+from . import audit, local_conn, lockout, sessions, ssh
 from .config import settings
 from .deps import client_ip
 from .sessions import COOKIE_NAME
@@ -74,15 +74,22 @@ async def login(
 		lockout.record_failure(username, ip)
 		return await reject("Invalid username or password.")
 
-	try:
-		conn = await asyncio.to_thread(ssh.connect, username, password)
-	except ssh.AuthFailed:
-		lockout.record_failure(username, ip)
-		return await reject("Invalid username or password.")
-	except ssh.HostUnreachable as exc:
-		# Not a credential problem — say so, otherwise every outage looks like
-		# a forgotten password.
-		return await reject(f"Cannot reach the host: {exc}", 503)
+	if settings.local_mode:
+		# No sshd to authenticate against — allowed_users IS the auth check.
+		# Never leave this unset in local mode, or any username logs in.
+		if not settings.allowed_users:
+			return await reject("OPS_LOCAL_MODE requires OPS_ALLOWED_USERS to be set.", 503)
+		conn = local_conn.connect(username)
+	else:
+		try:
+			conn = await asyncio.to_thread(ssh.connect, username, password)
+		except ssh.AuthFailed:
+			lockout.record_failure(username, ip)
+			return await reject("Invalid username or password.")
+		except ssh.HostUnreachable as exc:
+			# Not a credential problem — say so, otherwise every outage looks
+			# like a forgotten password.
+			return await reject(f"Cannot reach the host: {exc}", 503)
 
 	lockout.record_success(username, ip)
 	cookie, session = sessions.create(username, conn)
