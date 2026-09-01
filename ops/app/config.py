@@ -46,6 +46,13 @@ class Settings:
 	# host to SSH into. Never set this on a server.
 	fake_host: bool = field(default_factory=lambda: os.environ.get("OPS_FAKE_HOST", "") == "1")
 
+	# Developer setup: no sshd required. Login just checks the username against
+	# allowed_users (no password), and every command runs directly inside this
+	# container instead of over SSH — see local_conn.py and
+	# docker-compose.ops.local.yml, which bind-mounts the docker socket + repo
+	# to make that useful. Never set this on a shared host.
+	local_mode: bool = field(default_factory=lambda: os.environ.get("OPS_LOCAL_MODE", "") == "1")
+
 	@property
 	def jobs_dir(self) -> str:
 		return f"{self.repo_path}/.ops-jobs"

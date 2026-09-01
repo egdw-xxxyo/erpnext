@@ -90,13 +90,20 @@ dc() {
 # streaming its own console output. Keeping it under -p ops makes it invisible
 # to dc() (and to `dc down -v` in nuke/destroy).
 OPS_COMPOSE_FILE="$DIR/docker-compose.ops.yml"
+OPS_LOCAL_COMPOSE_FILE="$DIR/docker-compose.ops.local.yml"
 
 ops_dc() {
   [ -f "$OPS_COMPOSE_FILE" ] || return 0
+  local files=(-f "$OPS_COMPOSE_FILE")
+  # Developer setup: no sshd needed, ops runs commands on itself instead —
+  # see docker-compose.ops.local.yml.
+  if [ "${OPS_LOCAL_MODE:-}" = "1" ]; then
+    files+=(-f "$OPS_LOCAL_COMPOSE_FILE")
+  fi
   if docker compose version &>/dev/null; then
-    docker compose -p ops -f "$OPS_COMPOSE_FILE" "$@"
+    docker compose -p ops "${files[@]}" "$@"
   else
-    docker-compose -p ops -f "$OPS_COMPOSE_FILE" "$@"
+    docker-compose -p ops "${files[@]}" "$@"
   fi
 }
 
@@ -115,8 +122,10 @@ ops_up() {
     set -a
     . "$DIR/.ops.env"
     set +a
-    : "${OPS_SSH_HOST:=$(detect_host_lan_ip)}"
-    export OPS_SSH_HOST
+    if [ "${OPS_LOCAL_MODE:-}" != "1" ]; then
+      : "${OPS_SSH_HOST:=$(detect_host_lan_ip)}"
+      export OPS_SSH_HOST
+    fi
     ops_dc up -d --build
   ) || echo "WARNING: ops dashboard failed to start (ERPNext deploy unaffected)."
 }
