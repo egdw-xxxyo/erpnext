@@ -10,11 +10,14 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# docker/docker-compose/git are dead weight unless OPS_LOCAL_MODE=1 also
+# docker/docker-compose/git/curl are dead weight unless OPS_LOCAL_MODE=1 also
 # bind-mounts the host's docker socket + repo in (docker-compose.ops.local.yml)
 # — harmless to have them present otherwise, since there's nothing to reach.
+# curl specifically: local mode runs ./deploy backup-remote-test (the SFTP
+# "Test connection" button) inside THIS container instead of on a real host,
+# so it needs its own curl rather than borrowing the host's.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends docker-cli docker-compose git \
+    && apt-get install -y --no-install-recommends docker-cli docker-compose git curl \
     && rm -rf /var/lib/apt/lists/* \
     # The bind-mounted repo is owned by the host user, not this container's
     # user, which git's dubious-ownership check refuses to touch by default.

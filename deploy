@@ -829,10 +829,18 @@ PY
     # A trailing slash on the sftp:// URL makes curl LIST the directory
     # instead of fetching a file — used by the ops "Test connection" button
     # to prove the target is reachable, and to surface what's already there.
+    # Unlike push/pull/list, this touches no backup files, so it runs curl on
+    # the host directly rather than through the backend container — the test
+    # then works even with the ERPNext stack stopped. NETRC lives on the host
+    # only for the few seconds of this call (ops writes it, we delete it).
     RHOST="${2:?usage: ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>}"
     RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
-    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
-    dc exec -T backend curl -sS -f --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/"
+    trap 'rm -f "$NETRC"' EXIT
+    # -k: no known_hosts file exists to pin against here, same as push/pull
+    # already run without one in the backend container — curl >=8.x errors
+    # out instead of silently skipping the check like older curl does, so
+    # this makes the behavior explicit rather than version-dependent.
+    curl -sS -f -k --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/"
     ;;
 
   backup-pull)
