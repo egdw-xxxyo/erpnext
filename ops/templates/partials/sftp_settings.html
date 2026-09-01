@@ -1,0 +1,25 @@
+<h2>SFTP backup target</h2>
+
+{% if saved %}
+<div class="alert small">Saved.</div>
+{% endif %}
+{% if error %}
+<div class="alert error small">{{ error }}</div>
+{% endif %}
+
+{% if config %}
+<p class="muted small">Configured since {{ config.updated_at|human_time }} — {{ config.username }}@{{ config.host }}:{{ config.port }}{{ config.remote_dir }}</p>
+{% else %}
+<p class="muted small">Not configured yet. Backups can be taken and restored locally, but not pushed off-host.</p>
+{% endif %}
+
+<form hx-post="/settings/sftp" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#panel-sftp-settings" hx-swap="innerHTML" class="action">
+	<label>Host<input name="host" value="{{ config.host if config else '' }}" required></label>
+	<label>Port<input name="port" type="number" value="{{ config.port if config else 22 }}" required></label>
+	<label>Username<input name="username" value="{{ config.username if config else '' }}" required></label>
+	<label>Password{% if config %} <span class="muted small">(leave blank to keep the current one)</span>{% endif %}
+		<input name="password" type="password" autocomplete="new-password"></label>
+	<label>Remote folder<input name="remote_dir" placeholder="/backups/prod" value="{{ config.remote_dir if config else '' }}" required></label>
+	<button type="submit" class="primary">Save</button>
+</form>

@@ -13,6 +13,8 @@ import shlex
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from . import prefs
+
 BRANCH_RE = re.compile(r"^[A-Za-z0-9._/-]{1,100}$")
 BACKUP_RE = re.compile(r"^[0-9]{8}_[0-9]{6}-[A-Za-z0-9_.-]{1,64}$")
 
@@ -66,7 +68,16 @@ COMMANDS: dict[str, Command] = {
 		key="build",
 		label="Deploy (build)",
 		description="Rebuild the image and run the full deploy (./deploy build --silent).",
-		build=lambda _: "./deploy build --silent",
+		# One job, one shell line: when the "safety backup" preference is on,
+		# a failed backup (disk full, etc.) short-circuits via && and the
+		# build never runs — a hard gate, in the same spirit as
+		# backup_space_guard already blocking backup itself. --no-files keeps
+		# it fast enough to run before every deploy, not just occasionally.
+		build=lambda _: (
+			"./deploy backup --no-files && ./deploy build --silent"
+			if prefs.get("pre_deploy_backup", True)
+			else "./deploy build --silent"
+		),
 		destructive=True,
 	),
 	"backup": Command(

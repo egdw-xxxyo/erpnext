@@ -32,6 +32,12 @@ class Settings:
 	session_ttl: int = field(default_factory=lambda: _int("OPS_SESSION_TTL", 3600))
 	session_idle: int = field(default_factory=lambda: _int("OPS_SESSION_IDLE", 1800))
 
+	# Encrypts secrets-at-rest (currently: the off-host SFTP backup target
+	# password) written to OPS_DATA_DIR. Deliberately separate from
+	# session_secret — a leaked cookie-signing key should not also decrypt
+	# stored credentials.
+	secret_key: str = field(default_factory=lambda: os.environ.get("OPS_SECRET_KEY", ""))
+
 	backup_keep: int = field(default_factory=lambda: _int("OPS_BACKUP_KEEP", 5))
 	env_label: str = field(default_factory=lambda: os.environ.get("OPS_ENV_LABEL", "dev"))
 

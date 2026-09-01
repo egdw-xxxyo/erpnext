@@ -331,6 +331,84 @@ backup_list_human() {
   backup_list | awk '{printf "  %-26s %s  %.1f MB\n", $1, strftime("%Y-%m-%d %H:%M", $2), $3/1048576}'
 }
 
+# Sidecar written next to a freshly created backup set so a later push/pull can
+# tell which ERPNext version produced it and whether it was prod or dev.
+backup_meta_json() {
+  local name="$1" branch head tag describe env_label with_files created_at
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  head=$(git rev-parse --short HEAD 2>/dev/null)
+  tag=$(git tag --points-at HEAD 2>/dev/null | tail -1)
+  describe=$(git describe --tags --always --dirty 2>/dev/null)
+  env_label=$([ "$DEPLOY_ENV" = "production" ] && echo prod || echo dev)
+  with_files=$(dc exec -T backend test -f "$BACKUP_DIR/$name-files.tar" </dev/null 2>/dev/null && echo true || echo false)
+  created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  printf '{"name":"%s","created_at":"%s","site":"%s","env_label":"%s","erpnext":{"branch":"%s","tag":"%s","head":"%s","describe":"%s"},"with_files":%s}\n' \
+    "$name" "$created_at" "$SITE" "$env_label" "$branch" "$tag" "$head" "$describe" "$with_files"
+}
+
+backup_write_meta() {
+  local name="$1"
+  backup_meta_json "$name" | dc exec -T backend tee "$BACKUP_DIR/$name-meta.json" >/dev/null
+}
+
+# Unconditional delete of one named local backup set, independent of
+# backup_prune's keep-count logic — used once a set is confirmed pushed
+# off-host (backup-scheduled) so it does not also eat a local retention slot.
+backup_delete_local() {
+  local name="$1"
+  dc exec -T backend bash -c 'rm -f "$1/$2"-*' _ "$BACKUP_DIR" "$name" </dev/null
+}
+
+# Uploads one backup set's files (+ its meta.json) to the SFTP target and
+# refreshes manifest.json there. The db dump and meta.json are required — a
+# failed upload of either aborts with non-zero; file tarballs are uploaded
+# when present locally but their absence is not an error.
+backup_push_files() {
+  local name="$1" rhost="$2" rport="$3" rdir="$4" netrc="$5"
+  local suffix f required
+  for suffix in database.sql.gz meta.json files.tar private-files.tar; do
+    f="$BACKUP_DIR/$name-$suffix"
+    dc exec -T backend test -f "$f" </dev/null || continue
+    case "$suffix" in
+      database.sql.gz | meta.json) required=1 ;;
+      *) required=0 ;;
+    esac
+    if ! dc exec -T backend curl -sS -f --netrc-file "$netrc" -T "$f" \
+      "sftp://$rhost:$rport$rdir/$name-$suffix" </dev/null; then
+      if [ "$required" = "1" ]; then
+        echo "ERROR: upload of $name-$suffix failed."
+        return 1
+      fi
+      echo "WARNING: upload of $name-$suffix failed (optional, continuing)."
+    fi
+  done
+
+  dc exec -T backend bash -c '
+    RHOST="$1"; RPORT="$2"; RDIR="$3"; NETRC="$4"; NAME="$5"; BACKUP_DIR="$6"
+    TMP=$(mktemp)
+    curl -sS --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/manifest.json" -o "$TMP" 2>/dev/null || echo "[]" > "$TMP"
+    python3 -c "
+import json, sys
+path, name, meta_path = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    entries = json.load(open(path))
+    if not isinstance(entries, list):
+        entries = []
+except Exception:
+    entries = []
+entries = [e for e in entries if e.get(\"name\") != name]
+meta = json.load(open(meta_path))
+entries.append(meta)
+entries.sort(key=lambda e: e.get(\"created_at\", \"\"))
+json.dump(entries, open(path, \"w\"))
+" "$TMP" "$NAME" "$BACKUP_DIR/$NAME-meta.json"
+    curl -sS -f --netrc-file "$NETRC" -T "$TMP" "sftp://$RHOST:$RPORT$RDIR/manifest.json"
+    RC=$?
+    rm -f "$TMP"
+    exit $RC
+  ' _ "$rhost" "$rport" "$rdir" "$netrc" "$name" "$BACKUP_DIR" </dev/null
+}
+
 backup_prune() {
   local keep="${1:-$OPS_BACKUP_KEEP}"
   local names
@@ -645,6 +723,8 @@ PY
     else
       dc exec -T backend bench --site "$SITE" backup
     fi
+    NEW_NAME=$(backup_list | tail -1 | awk '{print $1}')
+    [ -n "$NEW_NAME" ] && backup_write_meta "$NEW_NAME"
     echo "Backups (keeping last $KEEP):"
     backup_list_human
     ;;
@@ -706,12 +786,150 @@ PY
     echo "Restore complete."
     ;;
 
+  backup-push)
+    # Push one existing local backup set (+ its meta.json) to an off-host SFTP
+    # target, then refresh that target's manifest.json. Credentials never
+    # appear here — they live only in the caller-supplied netrc file, read by
+    # curl, never by this script.
+    NAME="${2:?usage: ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>}"
+    RHOST="${3:?}"; RPORT="${4:?}"; RDIR="${5:?}"; NETRC="${6:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    for f in "$BACKUP_DIR/$NAME-database.sql.gz" "$BACKUP_DIR/$NAME-meta.json"; do
+      if ! dc exec -T backend test -f "$f" </dev/null; then
+        echo "ERROR: missing $f locally, cannot push."
+        exit 1
+      fi
+    done
+    say "==> Pushing $NAME to sftp://$RHOST:$RPORT$RDIR/ ..."
+    if backup_push_files "$NAME" "$RHOST" "$RPORT" "$RDIR" "$NETRC"; then
+      echo "Push complete: $NAME"
+    else
+      echo "ERROR: push failed for $NAME."
+      exit 1
+    fi
+    ;;
+
+  backup-remote-list)
+    RHOST="${2:?usage: ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>}"
+    RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    dc exec -T backend curl -sS --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null || echo "[]"
+    ;;
+
+  backup-pull)
+    NAME="${2:?usage: ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>}"
+    RHOST="${3:?}"; RPORT="${4:?}"; RDIR="${5:?}"; NETRC="${6:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    say "==> Pulling $NAME from sftp://$RHOST:$RPORT$RDIR/ ..."
+    for suffix in database.sql.gz meta.json files.tar private-files.tar; do
+      dc exec -T backend bash -c '
+        RHOST="$1"; RPORT="$2"; RDIR="$3"; NETRC="$4"; NAME="$5"; SUFFIX="$6"; BACKUP_DIR="$7"
+        OUT="$BACKUP_DIR/$NAME-$SUFFIX"
+        TMP=$(mktemp)
+        if curl -sS -f --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/$NAME-$SUFFIX" -o "$TMP" 2>/dev/null; then
+          mv "$TMP" "$OUT"
+        else
+          rm -f "$TMP"
+        fi
+      ' _ "$RHOST" "$RPORT" "$RDIR" "$NETRC" "$NAME" "$suffix" "$BACKUP_DIR" </dev/null
+    done
+    if ! dc exec -T backend test -f "$BACKUP_DIR/$NAME-database.sql.gz" </dev/null; then
+      echo "ERROR: pull failed, no database dump landed for $NAME."
+      exit 1
+    fi
+    echo "Pull complete: $NAME. Restore with: ./deploy restore $NAME"
+    ;;
+
+  backup-scheduled)
+    # Cron's entry point (installed/removed by the ops dashboard's Settings
+    # page over the operator's own SSH session — nothing runs unattended that
+    # a human did not configure interactively). Takes a full local backup,
+    # then — if an SFTP target is configured — pushes it, confirms it landed
+    # in the remote manifest, and only then deletes the local copy: a
+    # scheduled backup is not meant to also eat a local retention slot.
+    #
+    # The SFTP password is fetched from the already-running ops container
+    # (which holds it encrypted) via `docker compose exec`, never written to
+    # a host-side file: this script's own argv never carries it, only a
+    # captured-in-memory JSON blob and a netrc file scoped to this run.
+    say "==> Scheduled backup for site $SITE..."
+    backup_prune "$((OPS_BACKUP_KEEP - 1))"
+    backup_space_guard
+    dc exec -T backend bench --site "$SITE" backup --with-files
+    NEW_NAME=$(backup_list | tail -1 | awk '{print $1}')
+    if [ -z "$NEW_NAME" ]; then
+      echo "ERROR: scheduled backup produced no new set."
+      exit 1
+    fi
+    backup_write_meta "$NEW_NAME"
+
+    if ! ops_enabled; then
+      echo "Ops dashboard not enabled on this host; backup stays local: $NEW_NAME"
+      exit 0
+    fi
+
+    CREDS_JSON=$(ops_dc exec -T ops python3 -c '
+import json
+from app.sftp_config import load
+c = load()
+print(json.dumps({"host": c.host, "port": c.port, "username": c.username, "password": c.password, "remote_dir": c.remote_dir}) if c else "")
+' 2>/dev/null)
+    if [ -z "$CREDS_JSON" ]; then
+      echo "No SFTP target configured; backup stays local: $NEW_NAME"
+      exit 0
+    fi
+
+    RHOST=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['host'])")
+    RPORT=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['port'])")
+    RDIR=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['remote_dir'])")
+
+    NETRC="/tmp/ops-sftp-$$-scheduled.netrc"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    printf '%s' "$CREDS_JSON" | python3 -c "
+import json, sys
+d = json.loads(sys.stdin.read())
+print('machine %s' % d['host'])
+print('login %s' % d['username'])
+print('password %s' % d['password'])
+" | dc exec -T backend bash -c 'umask 077; cat > "$1"' _ "$NETRC"
+    unset CREDS_JSON
+
+    say "==> Pushing $NEW_NAME to sftp://$RHOST:$RPORT$RDIR/ ..."
+    if ! backup_push_files "$NEW_NAME" "$RHOST" "$RPORT" "$RDIR" "$NETRC"; then
+      echo "ERROR: push failed. Keeping local copy of $NEW_NAME."
+      exit 1
+    fi
+
+    say "==> Verifying $NEW_NAME landed remotely..."
+    LANDED=$(dc exec -T backend curl -sS --netrc-file "$NETRC" "sftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null \
+      | python3 -c "
+import json, sys
+try:
+    entries = json.load(sys.stdin)
+except Exception:
+    entries = []
+print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
+")
+    if [ "$LANDED" != "1" ]; then
+      echo "ERROR: push reported success but $NEW_NAME is not in the remote manifest. Keeping local copy."
+      exit 1
+    fi
+
+    say "==> Confirmed remote, deleting local copy of $NEW_NAME..."
+    backup_delete_local "$NEW_NAME"
+    echo "Scheduled backup complete: $NEW_NAME pushed off-host, removed locally."
+    ;;
+
   *)
     echo "Environment: $DEPLOY_ENV"
     echo "Usage: ./deploy {init|start|stop|build|fix-assets|setup-prod|setup-dev}"
     echo "       ./deploy ops {up|down|rebuild|logs|status}"
     echo "       ./deploy backup [--no-files] [--keep=N] [--prune-only]"
     echo "       ./deploy restore {--list|<name> [--yes]}"
+    echo "       ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-scheduled  (cron entry point, installed via the ops dashboard)"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi

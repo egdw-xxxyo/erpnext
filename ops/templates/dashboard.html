@@ -32,6 +32,21 @@
 		<h2>Backups</h2><p class="muted">loading…</p>
 	</section>
 
+	<section class="card wide" id="panel-remote-backups"
+	         hx-get="/remote/backups" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Remote backups</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-sftp-settings"
+	         hx-get="/settings/sftp" hx-trigger="load" hx-swap="innerHTML">
+		<h2>SFTP backup target</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-schedule-settings"
+	         hx-get="/settings/schedule" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Backup schedule</h2><p class="muted">loading…</p>
+	</section>
+
 	<section class="card wide" id="panel-actions"
 	         hx-get="/panels/actions" hx-trigger="load, every 60s" hx-swap="innerHTML">
 		<h2>Actions</h2><p class="muted">loading…</p>
