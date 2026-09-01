@@ -8,6 +8,11 @@ stdin-only path `HostConnection.run()` already uses for every host script,
 never as a `bash -c` argv. That script relays the netrc content straight into
 the backend container (which owns the backup files; the host has no bind
 mount to them), where it is read by `curl --netrc-file` and then removed.
+
+test_connection() is the one exception: it touches no backup files, so it
+stages its netrc on the host's own /tmp instead (_write_netrc_host) and runs
+curl there directly — no dependency on the backend container being up just
+to check whether a set of SFTP credentials works.
 """
 
 from __future__ import annotations
@@ -80,12 +85,49 @@ def pull(conn: HostConnection, name: str, username: str) -> str:
 	return jobs.launch(conn, "backup-pull", command, f"Pull backup {name}", username, {"name": name})
 
 
+_WRITE_NETRC_HOST_SCRIPT = """set -e
+NETRC="/tmp/ops-sftp-{token}.netrc"
+umask 077
+cat > "$NETRC" <<'{delim}'
+machine {host}
+login {username}
+password {password}
+{delim}
+printf '%s' "$NETRC"
+"""
+
+
+def _write_netrc_host(conn: HostConnection, cfg: SftpConfig) -> str:
+	"""Same idea as _write_netrc, but on the host's own /tmp instead of inside
+	the backend container. Used only by test_connection: a connection test
+	touches no backup files, so it has no reason to depend on the backend
+	container being up at all — unlike push/pull/list, which stage the netrc
+	inside backend because that's where the backup files (and the only curl
+	binary) already live."""
+	token = uuid.uuid4().hex
+	delim = f"OPS_NETRC_{uuid.uuid4().hex}"
+	script = _WRITE_NETRC_HOST_SCRIPT.format(
+		token=token,
+		delim=delim,
+		host=cfg.host,
+		username=cfg.username,
+		password=cfg.password,
+	)
+	result = conn.run(script, timeout=20)
+	if not result.ok or not result.text:
+		raise RuntimeError(
+			f"could not stage SFTP credentials on host: {result.err.strip() or result.out.strip()}"
+		)
+	return result.text.strip()
+
+
 def test_connection(conn: HostConnection, cfg: SftpConfig) -> list[str]:
 	"""Synchronous — used by the "Test connection" button, which waits on it.
 	Lists the target's root/remote_dir so success is visibly provable, not
 	just a green checkmark."""
-	netrc = _write_netrc(conn, cfg)
+	netrc = _write_netrc_host(conn, cfg)
 	script = (
+		f"trap 'rm -f {shlex.quote(netrc)}' EXIT\n"
 		f"cd {shlex.quote(settings.repo_path)} && "
 		f"./deploy backup-remote-test {shlex.quote(cfg.host)} {shlex.quote(str(cfg.port))} "
 		f"{shlex.quote(cfg.remote_dir)} {shlex.quote(netrc)}"
