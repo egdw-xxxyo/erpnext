@@ -52,6 +52,7 @@ def apply_workflow(doc, action):
 
 	try:
 		result = core_apply_workflow(doc, action)
+		result = _apply_creator_department_approval(result, core_apply_workflow)
 		if current_doc.workflow_state == FINAL_APPROVAL_STATE and action in REQUIRED_ACTIONS:
 			reset_final_approvals(current_doc.name)
 		_add_action_comment(result, action, reason)
@@ -59,6 +60,63 @@ def apply_workflow(doc, action):
 	finally:
 		frappe.flags.procurement_workflow_reason = previous_reason
 		frappe.flags.procurement_workflow_action = previous_action
+
+
+def _apply_creator_department_approval(doc, core_apply_workflow):
+	"""Advance the department stage when the document creator is a department head."""
+	from erpnext.buying.procurement_final_approval import get_configured_final_approvers
+	from erpnext.buying.procurement_workflow import DEPARTMENT_HEAD_ROLE
+
+	if doc.workflow_state != "Перевірка підрозділу":
+		return doc
+
+	creator = doc.owner
+	if not frappe.db.exists("Has Role", {"parent": creator, "role": DEPARTMENT_HEAD_ROLE}):
+		return doc
+	# A configured CEO must not approve the department stage on their own order.
+	# Their creator vote is recorded only after the department head moves the
+	# document into the final approval state.
+	if creator in get_configured_final_approvers(throw=False):
+		return doc
+
+	workflow_action = frappe.db.get_value(
+		"Workflow Action",
+		{
+			"reference_doctype": doc.doctype,
+			"reference_name": doc.name,
+			"workflow_state": doc.workflow_state,
+			"status": "Open",
+		},
+		"name",
+	)
+	original_user = frappe.session.user
+	try:
+		# Administrator performs the technical transition because the workflow keeps
+		# self-approval disabled. The Workflow Action and comment are attributed to
+		# the actual creator below.
+		frappe.set_user("Administrator")
+		result = core_apply_workflow(doc, "Погодити")
+	finally:
+		frappe.set_user(original_user)
+
+	if workflow_action:
+		frappe.db.set_value(
+			"Workflow Action",
+			workflow_action,
+			{"completed_by": creator, "completed_by_role": DEPARTMENT_HEAD_ROLE},
+			update_modified=False,
+		)
+
+	actor = frappe.get_cached_value("User", creator, "full_name") or creator
+	result.add_comment(
+		"Comment",
+		text=_("{0} approved the department review as the document creator.").format(
+			f"<b>{escape_html(actor)}</b>"
+		),
+		comment_email=creator,
+		comment_by=actor,
+	)
+	return result
 
 
 def validate_required_reason(doc, method=None):

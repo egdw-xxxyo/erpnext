@@ -13,7 +13,9 @@ FINAL_APPROVER_ROLE = "Payments: Фінальний погоджувач"
 TREASURER_ROLE = "Payments: Казначей"
 WAREHOUSE_MANAGER_ROLE = "Stock Manager"
 WAREHOUSE_MANAGER_ROLE_PROFILE = "Закупівлі: профіль начальника складу"
-WAREHOUSE_ASSIGNMENT_RULE_NAME = "Закупівлі: надходження замовлення на придбання"
+LEGACY_WAREHOUSE_ASSIGNMENT_RULE_NAME = "Закупівлі: надходження замовлення на придбання"
+PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: створення прихідної накладної"
+PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME = "Закупівлі: приймання прихідної накладної"
 MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: опрацювання замовлення матеріалів"
 CONSOLIDATED_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання закупівельнику"
 CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання керівнику підрозділу"
@@ -265,7 +267,7 @@ def sync_procurement_workflow():
 	_ensure_role_profiles()
 	_ensure_permissions()
 	_ensure_procurement_assignment_rules()
-	_ensure_warehouse_assignment_rule()
+	_ensure_receipt_assignment_rules()
 	_ensure_workflow_states()
 	_ensure_workflow_actions()
 	_ensure_workflow()
@@ -323,31 +325,67 @@ def _ensure_permissions():
 			_save(doc)
 
 
-def _ensure_warehouse_assignment_rule():
-	is_new = not frappe.db.exists("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME)
-	if is_new:
-		doc = frappe.new_doc("Assignment Rule")
-		doc.name = WAREHOUSE_ASSIGNMENT_RULE_NAME
-	else:
-		doc = frappe.get_doc("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME)
+def _ensure_receipt_assignment_rules():
+	_specs = (
+		{
+			"name": PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
+			"document_type": "Purchase Order",
+			"role": BUYER_ROLE,
+			"description": "Створити прихідну накладну для замовлення на придбання {{ name }}.",
+			"assign_condition": "custom_procurement_completion_status == 'Очікує надходження'",
+			"unassign_condition": "custom_procurement_completion_status != 'Очікує надходження'",
+			"close_condition": "custom_procurement_completion_status == 'Завершено' or docstatus == 2",
+		},
+		{
+			"name": PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME,
+			"document_type": "Purchase Receipt",
+			"role": WAREHOUSE_MANAGER_ROLE,
+			"description": "Прийняти товари за прихідною накладною {{ name }}.",
+			"assign_condition": "docstatus == 0",
+			"unassign_condition": "docstatus != 0",
+			"close_condition": "docstatus != 0",
+		},
+	)
+	for spec in _specs:
+		is_new = not frappe.db.exists("Assignment Rule", spec["name"])
+		if is_new:
+			doc = frappe.new_doc("Assignment Rule")
+			doc.name = spec["name"]
+		else:
+			doc = frappe.get_doc("Assignment Rule", spec["name"])
 
-	doc.document_type = "Purchase Order"
-	doc.priority = 10
-	# Assignment lifecycle is handled by procurement_automation so completed stages can
-	# close their ToDos silently instead of producing a misleading "assignment removed"
-	# notification. The rule remains the Desk-managed source of assignees and copy.
-	doc.disabled = 1
-	doc.description = "Прийняти товари за замовленням на придбання {{ name }}."
-	doc.assign_condition = "custom_procurement_completion_status == 'Очікує надходження'"
-	doc.unassign_condition = "custom_procurement_completion_status != 'Очікує надходження'"
-	doc.close_condition = "custom_procurement_completion_status == 'Завершено' or docstatus == 2"
-	doc.rule = "Round Robin"
-	# The assignee is operational data. Pick a configured warehouse manager only
-	# on first creation and never overwrite later Desk changes during deployment.
-	if is_new:
-		doc.set("users", [{"user": _get_default_warehouse_manager_user()}])
-	doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
-	_save(doc)
+		doc.document_type = spec["document_type"]
+		doc.priority = 10
+		# The lifecycle is handled explicitly in procurement_automation. The rule is
+		# retained as the Desk-managed source of assignees and assignment copy.
+		doc.disabled = 1
+		doc.description = spec["description"]
+		doc.assign_condition = spec["assign_condition"]
+		doc.unassign_condition = spec["unassign_condition"]
+		doc.close_condition = spec["close_condition"]
+		doc.rule = "Round Robin"
+		# Operational assignees are seeded only once. Existing Desk configuration is
+		# never overwritten by migrate/deploy.
+		if is_new or not doc.get("users"):
+			doc.set("users", [{"user": "Administrator"}])
+		doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
+		_save(doc)
+
+	if frappe.db.exists("Assignment Rule", LEGACY_WAREHOUSE_ASSIGNMENT_RULE_NAME):
+		from erpnext.buying.procurement_automation import _close_todo_silently
+
+		legacy_rule = frappe.get_doc("Assignment Rule", LEGACY_WAREHOUSE_ASSIGNMENT_RULE_NAME)
+		legacy_rule.disabled = 1
+		_save(legacy_rule)
+		for todo_name in frappe.get_all(
+			"ToDo",
+			filters={
+				"assignment_rule": LEGACY_WAREHOUSE_ASSIGNMENT_RULE_NAME,
+				"status": "Open",
+			},
+			pluck="name",
+		):
+			_close_todo_silently(todo_name)
 
 
 def _ensure_procurement_assignment_rules():
@@ -409,28 +447,6 @@ def _get_default_role_users(role, role_profile=None):
 		if user not in {"Administrator", "Guest"} and frappe.db.get_value("User", user, "enabled")
 	]
 	return users or ["Administrator"]
-
-
-def _get_default_warehouse_manager_user():
-	profile_user = frappe.db.get_value(
-		"User",
-		{"enabled": 1, "role_profile_name": WAREHOUSE_MANAGER_ROLE_PROFILE},
-		"name",
-		order_by="name asc",
-	)
-	if profile_user:
-		return profile_user
-
-	users = frappe.get_all(
-		"Has Role",
-		filters={"role": WAREHOUSE_MANAGER_ROLE, "parenttype": "User"},
-		pluck="parent",
-		order_by="parent asc",
-	)
-	for user in users:
-		if user not in {"Administrator", "Guest"} and frappe.db.get_value("User", user, "enabled"):
-			return user
-	return "Administrator"
 
 
 def _ensure_workflow_states():

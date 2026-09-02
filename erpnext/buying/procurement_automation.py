@@ -11,6 +11,8 @@ from erpnext.buying.procurement_workflow import (
 	BUYER_ROLE,
 	CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
 	MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
+	PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
+	PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME,
 	PROCUREMENT_ASSIGNMENT_RULES,
 )
 
@@ -130,6 +132,51 @@ def validate_material_request_purchase_receipts(doc, method=None):
 				_("The purchase receipt must be a PDF file."),
 				title=_("Unsupported File Format"),
 			)
+
+
+def prepare_purchase_receipt_ttn(doc, method=None):
+	"""Normalize the reusable attachment rows before mandatory-field validation."""
+	for row in doc.get("custom_ttn_files") or []:
+		row.invoice_document = _get_file_name(row.invoice_pdf)
+		row.supplier = doc.supplier
+
+
+def validate_purchase_receipt_ttn(doc, method=None):
+	"""Require PDF TTNs when a receipt leaves the buyer's draft stage."""
+	if doc.get("is_return") or _is_automatic_prepaid_purchase_receipt(doc):
+		return
+
+	rows = doc.get("custom_ttn_files") or []
+	workflow_state = doc.get("workflow_state")
+	requires_ttn = doc.docstatus == 1 or workflow_state not in (None, "", "Чернетка")
+	if requires_ttn and not rows:
+		frappe.throw(_("Attach at least one PDF TTN before submitting the Purchase Receipt for review."))
+
+	for row in rows:
+		if not row.invoice_pdf:
+			frappe.throw(_("Row {0}: Attach a PDF TTN.").format(row.idx))
+		if not urlsplit(row.invoice_pdf).path.lower().endswith(".pdf"):
+			frappe.throw(
+				_("The TTN document must be a PDF file."),
+				title=_("Unsupported File Format"),
+			)
+
+
+def _is_automatic_prepaid_purchase_receipt(doc):
+	purchase_invoices = {
+		row.purchase_invoice for row in (doc.get("items") or []) if row.purchase_invoice
+	}
+	return bool(
+		purchase_invoices
+		and frappe.db.exists(
+			"Purchase Invoice",
+			{
+				"name": ["in", list(purchase_invoices)],
+				"docstatus": 1,
+				"custom_paid_outside_company": 1,
+			},
+		)
+	)
 
 
 def validate_material_requests_available(material_requests, exclude=None):
@@ -565,6 +612,9 @@ def apply_rules_to_existing_procurement_documents():
 	):
 		sync_procurement_stage_assignment(frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, name))
 
+	for name in frappe.get_all("Purchase Receipt", filters={"docstatus": 0}, pluck="name"):
+		sync_purchase_receipt_assignment(frappe.get_doc("Purchase Receipt", name))
+
 
 def _matches_assignment_rule(spec, doc):
 	return bool(frappe.safe_eval(spec["condition"], None, doc.as_dict()))
@@ -753,18 +803,16 @@ def _get_consolidated_procurement_status(
 
 
 def _apply_purchase_order_assignment_rule(purchase_order):
-	from erpnext.buying.procurement_workflow import WAREHOUSE_ASSIGNMENT_RULE_NAME
-
-	if not frappe.db.exists("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME):
+	if not frappe.db.exists("Assignment Rule", PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME):
 		return
-	rule = frappe.get_doc("Assignment Rule", WAREHOUSE_ASSIGNMENT_RULE_NAME)
+	rule = frappe.get_doc("Assignment Rule", PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME)
 	status = frappe.db.get_value(
 		PURCHASE_ORDER_DOCTYPE, purchase_order, COMPLETION_FIELDS[PURCHASE_ORDER_DOCTYPE]
 	)
 	filters = {
 		"reference_type": PURCHASE_ORDER_DOCTYPE,
 		"reference_name": purchase_order,
-		"assignment_rule": WAREHOUSE_ASSIGNMENT_RULE_NAME,
+		"assignment_rule": PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
 		"status": "Open",
 	}
 	if status != PROCUREMENT_AWAITING_RECEIPT:
@@ -785,6 +833,65 @@ def _apply_purchase_order_assignment_rule(purchase_order):
 			"description": frappe.render_template(rule.description, order.as_dict()),
 			"assignment_rule": rule.name,
 			"date": order.get(rule.due_date_based_on) if rule.due_date_based_on else None,
+		},
+		ignore_permissions=True,
+	)
+	rule.db_set("last_user", user)
+
+
+def sync_purchase_receipt_assignment(doc, method=None):
+	"""Move the receiving task from the buyer's Purchase Order to the warehouse receipt."""
+	purchase_orders = {
+		row.purchase_order for row in (doc.get("items") or []) if row.purchase_order
+	}
+	procurement_orders = {
+		name
+		for name in purchase_orders
+		if frappe.db.get_value(PURCHASE_ORDER_DOCTYPE, name, "custom_consolidated_purchase_order")
+	}
+	if not procurement_orders:
+		return
+
+	receipt_filters = {
+		"reference_type": "Purchase Receipt",
+		"reference_name": doc.name,
+		"assignment_rule": PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME,
+		"status": "Open",
+	}
+	if doc.docstatus != 0 or method == "on_trash":
+		_close_assignments_silently("Purchase Receipt", doc.name, filters=receipt_filters)
+		for purchase_order in procurement_orders:
+			_apply_purchase_order_assignment_rule(purchase_order)
+		return
+
+	for purchase_order in procurement_orders:
+		_close_assignments_silently(
+			PURCHASE_ORDER_DOCTYPE,
+			purchase_order,
+			filters={
+				"reference_type": PURCHASE_ORDER_DOCTYPE,
+				"reference_name": purchase_order,
+				"assignment_rule": PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
+				"status": "Open",
+			},
+		)
+
+	if frappe.db.exists("ToDo", receipt_filters) or not frappe.db.exists(
+		"Assignment Rule", PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME
+	):
+		return
+	rule = frappe.get_doc("Assignment Rule", PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME)
+	user = rule.get_user(doc.as_dict())
+	if not user or not frappe.db.get_value("User", user, "enabled"):
+		return
+	add_assignment(
+		{
+			"assign_to": [user],
+			"doctype": doc.doctype,
+			"name": doc.name,
+			"description": frappe.render_template(rule.description, doc.as_dict()),
+			"assignment_rule": rule.name,
+			"date": doc.get(rule.due_date_based_on) if rule.due_date_based_on else None,
 		},
 		ignore_permissions=True,
 	)
@@ -851,8 +958,21 @@ def _get_procurement_initiators(source_name):
 
 
 def _get_primary_procurement_initiator(source_name):
-	users = _get_procurement_initiators(source_name)
-	return users[0] if users else None
+	chain = _get_procurement_chain(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name)
+	request_names = chain[MATERIAL_REQUEST_DOCTYPE]
+	if request_names:
+		requests = frappe.get_all(
+			MATERIAL_REQUEST_DOCTYPE,
+			filters={"name": ["in", list(request_names)]},
+			fields=["owner", "custom_procurement_initiator_user"],
+			order_by="creation asc",
+		)
+		for request in requests:
+			initiator = request.custom_procurement_initiator_user or request.owner
+			if initiator and initiator != "Guest":
+				return initiator
+
+	return frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "initiator_user")
 
 
 def _set_procurement_status(doctype, name, status):
@@ -1016,32 +1136,39 @@ def _get_consolidated_item_rate(mapped_item, source_item, source_request, suppli
 			return flt(value)
 
 	price_list = mapped_item.get("buying_price_list") or source_request.get("buying_price_list")
-	if not price_list:
-		return 0
+	if price_list:
+		from erpnext.stock.get_item_details import get_price_list_rate_for
 
-	from erpnext.stock.get_item_details import get_price_list_rate_for
+		price_not_uom_dependent = frappe.get_cached_value(
+			"Price List", price_list, "price_not_uom_dependent"
+		)
+		rate = get_price_list_rate_for(
+			frappe._dict(
+				{
+					"price_list": price_list,
+					"supplier": supplier,
+					"uom": mapped_item.get("uom"),
+					"transaction_date": source_request.get("transaction_date"),
+					"qty": mapped_item.get("qty"),
+					"stock_uom": mapped_item.get("stock_uom")
+					or (source_item.get("stock_uom") if source_item else None),
+					"conversion_factor": mapped_item.get("conversion_factor")
+					or (source_item.get("conversion_factor") if source_item else 1),
+					"price_list_uom_dependant": price_not_uom_dependent,
+				}
+			),
+			mapped_item.item_code,
+		)
+		if flt(rate):
+			return flt(rate)
 
-	price_not_uom_dependent = frappe.get_cached_value(
-		"Price List", price_list, "price_not_uom_dependent"
+	valuation_rate, last_purchase_rate = frappe.get_cached_value(
+		"Item", mapped_item.item_code, ["valuation_rate", "last_purchase_rate"]
+	) or (0, 0)
+	conversion_factor = mapped_item.get("conversion_factor") or (
+		source_item.get("conversion_factor") if source_item else 1
 	)
-	rate = get_price_list_rate_for(
-		frappe._dict(
-			{
-				"price_list": price_list,
-				"supplier": supplier,
-				"uom": mapped_item.get("uom"),
-				"transaction_date": source_request.get("transaction_date"),
-				"qty": mapped_item.get("qty"),
-				"stock_uom": mapped_item.get("stock_uom")
-				or (source_item.get("stock_uom") if source_item else None),
-				"conversion_factor": mapped_item.get("conversion_factor")
-				or (source_item.get("conversion_factor") if source_item else 1),
-				"price_list_uom_dependant": price_not_uom_dependent,
-			}
-		),
-		mapped_item.item_code,
-	)
-	return flt(rate)
+	return (flt(valuation_rate) or flt(last_purchase_rate)) * flt(conversion_factor or 1)
 
 
 def _get_file_name(file_url):
