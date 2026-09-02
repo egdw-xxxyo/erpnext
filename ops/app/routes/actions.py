@@ -149,6 +149,29 @@ async def backup_clean_confirm(request: Request, session: SessionDep):
 	)
 
 
+@router.get("/space-hard-clean/confirm", response_class=HTMLResponse)
+async def space_hard_clean_confirm(request: Request, session: SessionDep):
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": "Hard clean",
+			"warning": (
+				"Removes every unused Docker image, including the previous release's tagged image — "
+				"you will not be able to roll back to it afterwards. Also fully clears the build "
+				"cache, so the next build starts uncached and is slower. This cannot be undone."
+			),
+			"post_url": "/actions/space-hard-clean",
+			"hidden": {},
+			"require_typed": True,
+			"danger": True,
+			"button_label": "Remove images and cache",
+		},
+	)
+
+
 @router.post("/restore/{name}/confirm", response_class=HTMLResponse)
 async def restore_confirm(name: str, request: Request, session: SessionDep):
 	"""Step one of a restore: show what is about to be destroyed."""
