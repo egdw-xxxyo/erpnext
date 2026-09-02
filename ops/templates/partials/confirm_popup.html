@@ -1,0 +1,17 @@
+<form class="card {{ 'danger-card' if danger else '' }}"
+      hx-post="{{ post_url }}"
+      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#console-slot"
+      hx-swap="innerHTML">
+	<h3>{{ title }}</h3>
+	<div class="alert {{ 'error' if danger else 'warn' }}">{{ warning }}</div>
+	{% for k, v in (hidden or {}).items() %}
+	<input type="hidden" name="{{ k }}" value="{{ v }}">
+	{% endfor %}
+	{% if require_typed %}
+	<label>Type <code>{{ settings.site }}</code> to confirm
+		<input name="confirm" autocomplete="off" required>
+	</label>
+	{% endif %}
+	<button type="submit" class="{{ 'danger' if danger else 'primary' }}">{{ button_label }}</button>
+</form>

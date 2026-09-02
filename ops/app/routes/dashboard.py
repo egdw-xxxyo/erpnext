@@ -38,24 +38,23 @@ async def dashboard(request: Request, session: SessionDep):
 
 @router.get("/backups", response_class=HTMLResponse)
 async def backups_page(request: Request, session: SessionDep):
-	data = await stats.cache.get(session.conn)
-	return _page(request, session, "backups", "backups.html", data)
+	# No stats.cache.get() here on purpose: the page must render instantly.
+	# The local/remote backup tables are their own hx-get panels with their
+	# own "loading…" state, same as everywhere else in the dashboard.
+	return _page(request, session, "backups", "backups.html", {})
 
 
 @router.get("/deploy", response_class=HTMLResponse)
 async def deploy_page(request: Request, session: SessionDep):
-	data = await stats.cache.get(session.conn)
-	return _page(request, session, "deploy", "deploy.html", data)
+	return _page(request, session, "deploy", "deploy.html", {})
 
 
 @router.get("/configuration", response_class=HTMLResponse)
 async def configuration_page(request: Request, session: SessionDep):
-	data = await stats.cache.get(session.conn)
-	return _page(request, session, "configuration", "configuration.html", data)
+	return _page(request, session, "configuration", "configuration.html", {})
 
 
 @router.get("/information", response_class=HTMLResponse)
 async def information_page(request: Request, session: SessionDep):
 	records = await asyncio.to_thread(audit.tail, session.conn, 200)
-	data = await stats.cache.get(session.conn)
-	return _page(request, session, "information", "information.html", data, {"records": records})
+	return _page(request, session, "information", "information.html", {}, {"records": records})

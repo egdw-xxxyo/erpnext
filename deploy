@@ -873,6 +873,19 @@ PY
     echo "Pull complete: $NAME. Restore with: ./deploy restore $NAME"
     ;;
 
+  backup-remove)
+    # Unconditional single-set delete — the "Remove" row action in the ops
+    # dashboard's 3-dot menu. Independent of retention (backup_prune); the
+    # operator picked this exact set.
+    NAME="${2:?usage: ./deploy backup-remove <name>}"
+    if ! dc exec -T backend test -f "$BACKUP_DIR/$NAME-database.sql.gz" </dev/null; then
+      echo "ERROR: no backup named '$NAME'."
+      exit 1
+    fi
+    backup_delete_local "$NAME"
+    echo "Removed: $NAME"
+    ;;
+
   backup-scheduled)
     # Cron's entry point (installed/removed by the ops dashboard's Settings
     # page over the operator's own SSH session — nothing runs unattended that
@@ -959,6 +972,7 @@ print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
     echo "       ./deploy ops {up|down|rebuild|logs|status}"
     echo "       ./deploy backup [--no-files] [--keep=N] [--prune-only]"
     echo "       ./deploy restore {--list|<name> [--yes]}"
+    echo "       ./deploy backup-remove <name>"
     echo "       ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>"

@@ -100,6 +100,48 @@ async def launch(key: str, request: Request, session: SessionDep):
 	return _fragment(request, session, job_id=job_id, label=command.label)
 
 
+@router.get("/backup-remove/{name}/confirm", response_class=HTMLResponse)
+async def backup_remove_confirm(name: str, request: Request, session: SessionDep):
+	try:
+		name = commands.validate_backup_name(name)
+	except commands.InvalidArgument as exc:
+		raise HTTPException(status_code=400, detail=str(exc)) from exc
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": f"Remove {name}",
+			"warning": f"Permanently deletes local backup set {name}. This cannot be undone.",
+			"post_url": "/actions/backup-remove",
+			"hidden": {"name": name},
+			"require_typed": True,
+			"danger": True,
+			"button_label": "Remove permanently",
+		},
+	)
+
+
+@router.get("/backup-clean/confirm", response_class=HTMLResponse)
+async def backup_clean_confirm(request: Request, session: SessionDep):
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": "Clean old backups",
+			"warning": "Deletes every local backup except the most recent one. This cannot be undone.",
+			"post_url": "/actions/backup-clean",
+			"hidden": {},
+			"require_typed": True,
+			"danger": True,
+			"button_label": "Clean old backups",
+		},
+	)
+
+
 @router.post("/restore/{name}/confirm", response_class=HTMLResponse)
 async def restore_confirm(name: str, request: Request, session: SessionDep):
 	"""Step one of a restore: show what is about to be destroyed."""

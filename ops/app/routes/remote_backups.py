@@ -16,6 +16,7 @@ from .. import audit, commands, ftp, jobs, stats
 from ..config import settings
 from ..deps import SessionDep, client_ip
 from ..ftp_config import NotConfigured
+from ..ftp_config import load as load_ftp_config
 from ..sessions import Session
 from ..templating import templates
 
@@ -40,6 +41,7 @@ async def remote_backups_panel(request: Request, session: SessionDep):
 	force = request.query_params.get("force") == "1"
 	remote = await ftp.remote_cache.get(session.conn, force=force)
 	local = await stats.cache.get(session.conn)
+	target = await asyncio.to_thread(load_ftp_config)
 	return templates.TemplateResponse(
 		request,
 		"partials/remote_backups.html",
@@ -48,6 +50,30 @@ async def remote_backups_panel(request: Request, session: SessionDep):
 			"session": session,
 			"remote": remote,
 			"git": local.get("git") or {},
+			"target": target,
+		},
+	)
+
+
+@router.get("/push/{name}/confirm", response_class=HTMLResponse)
+async def push_confirm(name: str, request: Request, session: SessionDep):
+	try:
+		name = commands.validate_backup_name(name)
+	except commands.InvalidArgument as exc:
+		raise HTTPException(status_code=400, detail=str(exc)) from exc
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": f"Push {name}",
+			"warning": f"Uploads backup set {name} to the configured off-host FTP target.",
+			"post_url": f"/remote/push/{name}",
+			"hidden": {},
+			"require_typed": False,
+			"danger": False,
+			"button_label": "Push",
 		},
 	)
 

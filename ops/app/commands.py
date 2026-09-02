@@ -96,6 +96,23 @@ COMMANDS: dict[str, Command] = {
 		destructive=True,
 		confirm_phrase="site",
 	),
+	"backup-remove": Command(
+		key="backup-remove",
+		label="Remove backup",
+		description="Permanently deletes one local backup set. Does not touch any off-host copy.",
+		build=lambda p: f"./deploy backup-remove {p['name']}",
+		params={"name": _backup_name},
+		destructive=True,
+		confirm_phrase="site",
+	),
+	"backup-clean": Command(
+		key="backup-clean",
+		label="Clean old backups",
+		description="Deletes every local backup except the most recent one.",
+		build=lambda _: "./deploy backup --prune-only --keep=1",
+		destructive=True,
+		confirm_phrase="site",
+	),
 	"switch-branch": Command(
 		key="switch-branch",
 		label="Switch branch",

@@ -1,6 +1,12 @@
 {% set entries = remote.entries or [] %}
 <h2>Remote backups <span class="stamp">{{ remote._fetched_at|ago }}</span></h2>
 
+{% if target %}
+<p class="muted small mono">{{ target.host }}:{{ target.port }}{{ target.remote_dir }}</p>
+{% else %}
+<p class="muted small">No FTP backup target configured — see Configuration.</p>
+{% endif %}
+
 <button class="small" hx-get="/remote/backups?force=1" hx-target="#panel-remote-backups"
         hx-swap="innerHTML">
 	Refresh remote list
