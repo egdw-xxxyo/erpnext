@@ -720,6 +720,21 @@ PY
     echo "Safe clean complete."
     ;;
 
+  space-hard-clean)
+    # Unlike space-clean, this removes every image not referenced by a
+    # running/stopped container — including old tagged erpnext-uk rollback
+    # images — and the full build cache, not just the unused slice. Matches
+    # exactly what `docker system df`'s "Reclaimable" column promises. Still
+    # no volume prune, still never touches backups or sites/.
+    say "==> Removing ALL unused Docker images (including tagged rollback images)..."
+    docker image prune -a -f
+    say "==> Pruning ALL Docker build cache (next build will be uncached, slower)..."
+    docker builder prune -a -f
+    say "==> Vacuuming systemd journal to 100M..."
+    journalctl --vacuum-size=100M 2>&1 || echo "Skipped: no permission to vacuum the journal as this user."
+    echo "Hard clean complete. Rollback to the previous image is no longer possible."
+    ;;
+
   ops)
     case "${2:-}" in
       up|"")   ops_up ;;

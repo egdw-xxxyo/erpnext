@@ -122,6 +122,20 @@ COMMANDS: dict[str, Command] = {
 		),
 		build=lambda _: "./deploy space-clean",
 	),
+	"space-hard-clean": Command(
+		key="space-hard-clean",
+		label="Hard clean",
+		description=(
+			"Removes every Docker image and build cache layer not in active use, including the "
+			'previous release\'s tagged image — matches the full "Reclaimable" number shown per '
+			"row. Rollback to the previous image is no longer possible after this runs, and the "
+			"next build starts uncached (slower). Never touches backups, the site database, or "
+			"files inside sites/."
+		),
+		build=lambda _: "./deploy space-hard-clean",
+		destructive=True,
+		confirm_phrase="site",
+	),
 	"switch-branch": Command(
 		key="switch-branch",
 		label="Switch branch",
