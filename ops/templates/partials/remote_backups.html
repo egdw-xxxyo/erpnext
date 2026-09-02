@@ -1,50 +1,14 @@
-{% set entries = remote.entries or [] %}
-<h2>Remote backups <span class="stamp">{{ remote._fetched_at|ago }}</span></h2>
+<h2>Remote backups</h2>
 
-{% if target %}
-<p class="muted small mono">{{ target.host }}:{{ target.port }}{{ target.remote_dir }}</p>
-{% else %}
-<p class="muted small">No FTP backup target configured — see Configuration.</p>
-{% endif %}
-
-<button class="small" hx-get="/remote/backups?force=1" hx-target="#panel-remote-backups"
-        hx-swap="innerHTML">
-	Refresh remote list
-</button>
-
-{% if remote._error %}
-<div class="alert error small">{{ remote._error }}</div>
-{% elif entries %}
-<table class="rows">
-	<tr><th>Name</th><th>Created</th><th>Env</th><th>ERPNext version</th><th>Files</th><th></th></tr>
-	{% for b in entries|sort(attribute='created_at', reverse=True) %}
-	{% set erp = b.erpnext or {} %}
-	{% set mismatch = erp.describe and git.describe and erp.describe != git.describe %}
-	<tr>
-		<td class="mono">{{ b.name }}</td>
-		<td>{{ b.created_at or '—' }}</td>
-		<td>
-			{% if b.env_label == 'prod' %}<span class="pill danger-pill">prod</span>
-			{% else %}<span class="pill">dev</span>{% endif %}
-		</td>
-		<td class="mono">
-			{{ erp.describe or erp.tag or erp.head or '—' }}
-			{% if mismatch %}<span class="pill danger-pill" title="Host is currently at {{ git.describe }}">version differs</span>{% endif %}
-		</td>
-		<td>{% if b.with_files %}<span class="pill">with files</span>{% else %}<span class="pill muted-pill">db only</span>{% endif %}</td>
-		<td>
-			<button class="small"
-			        hx-post="/remote/pull/{{ b.name }}"
-			        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
-			        hx-target="#console-slot"
-			        hx-swap="innerHTML"
-			        hx-on::after-request="document.getElementById('console-host').hidden = false">
-				Pull…
-			</button>
-		</td>
-	</tr>
+{% if blocks %}
+<div class="stack">
+	{% for b in blocks %}
+		{% with target = b.target, remote = b.remote %}
+		{% include "partials/remote_backup_target.html" %}
+		{% endwith %}
 	{% endfor %}
-</table>
+</div>
 {% else %}
-<p class="muted">No off-host backups yet, or the target is not configured — see the FTP backup target panel below.</p>
+<p class="muted">No FTP backup targets configured yet — see Configuration to add one (e.g. a dev
+instance can hold prod's target to pull a prod backup down for testing).</p>
 {% endif %}

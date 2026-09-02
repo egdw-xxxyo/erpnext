@@ -36,11 +36,20 @@ def read(conn: HostConnection) -> dict | None:
 	if len(parts) < 5:
 		return None
 	minute, hour, _, _, dow = parts[0:5]
+	# backup-scheduled's own arg, if one was configured — see write().
+	target_id = None
+	marker = "./deploy backup-scheduled"
+	idx = line.find(marker)
+	if idx != -1:
+		rest = line[idx + len(marker) :].split(">>", 1)[0].strip()
+		if rest and not rest.startswith("#"):
+			target_id = rest.split()[0]
 	try:
 		return {
 			"time": f"{int(hour):02d}:{int(minute):02d}",
 			"frequency": "daily" if dow == "*" else "weekly",
 			"weekday": None if dow == "*" else int(dow),
+			"target_id": target_id,
 		}
 	except ValueError:
 		return None
@@ -80,13 +89,16 @@ rm -f "$f"
 		raise ScheduleError(result.err.strip() or "crontab update failed")
 
 
-def write(conn: HostConnection, *, frequency: str, weekday: int, time_str: str, repo_path: str) -> None:
+def write(
+	conn: HostConnection, *, frequency: str, weekday: int, time_str: str, repo_path: str, target_id: str = ""
+) -> None:
 	hour_str, minute_str = time_str.split(":")
 	hour, minute = int(hour_str), int(minute_str)
 	dow = "*" if frequency == "daily" else str(int(weekday))
+	target_arg = f" {shlex.quote(target_id)}" if target_id else ""
 	line = (
 		f"{minute} {hour} * * {dow} cd {shlex.quote(repo_path)} && mkdir -p .ops-jobs && "
-		f"./deploy backup-scheduled >> .ops-jobs/cron-backup.log 2>&1 # {MARKER}"
+		f"./deploy backup-scheduled{target_arg} >> .ops-jobs/cron-backup.log 2>&1 # {MARKER}"
 	)
 	_apply(conn, line)
 
