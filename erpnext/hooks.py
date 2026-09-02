@@ -36,7 +36,10 @@ doctype_js = {
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
 	# оклади працівника по періодах — секція на картці
-	"Employee": "public/js/custom/employee_salary_history.js",
+	"Employee": [
+		"public/js/custom/employee_salary_history.js",
+		"public/js/custom/employee_attendance_sheet.js",
+	],
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
@@ -54,7 +57,11 @@ doctype_list_js = {
 	],
 }
 
-override_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAddress"}
+override_doctype_class = {
+	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
+	"Attendance": "erpnext.payroll_ua.overrides.attendance.Attendance",
+	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
+}
 
 override_whitelisted_methods = {"frappe.www.contact.send_message": "erpnext.templates.utils.send_message"}
 
@@ -101,7 +108,10 @@ after_install = "erpnext.setup.install.after_install"
 
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
-after_migrate = ["erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes"]
+after_migrate = [
+	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
+	"erpnext.payroll_ua.setup.setup_attendance_sheet",
+]
 
 boot_session = "erpnext.startup.boot.boot_session"
 notification_config = "erpnext.startup.notifications.get_notification_config"

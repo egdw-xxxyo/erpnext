@@ -687,7 +687,7 @@ def _day_note(row, leave_abbrs) -> dict | None:
 @frappe.whitelist()
 def attendance_calendar(employee: str, start: str, end: str, part: str = "official") -> dict:
 	"""`part` — чия це половина: офіційна платить прогул, готівкова — ні (див. `absence_days`)."""
-	from hrms.hr.attendance_marks import (
+	from erpnext.payroll_ua.attendance_marks import (
 		DAY_ABBR,
 		DAY_CONTEXT,
 		get_abbr,
