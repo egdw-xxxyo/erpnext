@@ -54,7 +54,11 @@ doctype_list_js = {
 	],
 }
 
-override_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAddress"}
+override_doctype_class = {
+	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
+	"Attendance": "erpnext.payroll_ua.overrides.attendance.Attendance",
+	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
+}
 
 override_whitelisted_methods = {"frappe.www.contact.send_message": "erpnext.templates.utils.send_message"}
 
