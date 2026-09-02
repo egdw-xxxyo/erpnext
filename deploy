@@ -100,11 +100,19 @@ ops_dc() {
   if [ "${OPS_LOCAL_MODE:-}" = "1" ]; then
     files+=(-f "$OPS_LOCAL_COMPOSE_FILE")
   fi
-  if docker compose version &>/dev/null; then
-    docker compose -p ops "${files[@]}" "$@"
-  else
-    docker-compose -p ops "${files[@]}" "$@"
-  fi
+  # Every subcommand (build included, not just up) needs OPS_SESSION_SECRET
+  # etc. for compose's variable interpolation — source in a subshell so
+  # .ops.env never leaks into the ERPNext deploy environment above this.
+  (
+    set -a
+    [ -f "$DIR/.ops.env" ] && . "$DIR/.ops.env"
+    set +a
+    if docker compose version &>/dev/null; then
+      docker compose -p ops "${files[@]}" "$@"
+    else
+      docker-compose -p ops "${files[@]}" "$@"
+    fi
+  )
 }
 
 # Opt-in per host: no .ops.env means this machine does not run the dashboard.
