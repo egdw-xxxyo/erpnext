@@ -172,7 +172,7 @@ def get_grid_of_report(filters: dict) -> dict:
 	that is where the report itself gets them — an export that counted its own would be a
 	second opinion nobody asked for.
 	"""
-	from hrms.hr.report.monthly_attendance_sheet.monthly_attendance_sheet import (
+	from erpnext.payroll_ua.report.monthly_attendance_sheet.monthly_attendance_sheet import (
 		execute,
 		get_dates_in_period,
 	)
@@ -229,7 +229,7 @@ def get_cell_of_report(row: dict, day: date) -> dict:
 
 def get_totals_of_report(filters: dict) -> dict[str, dict]:
 	"""The summarized view of the same period, keyed by employee."""
-	from hrms.hr.report.monthly_attendance_sheet.monthly_attendance_sheet import execute
+	from erpnext.payroll_ua.report.monthly_attendance_sheet.monthly_attendance_sheet import execute
 
 	summarized = frappe._dict(filters)
 	summarized.summarized_view = 1
