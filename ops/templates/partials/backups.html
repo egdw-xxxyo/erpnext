@@ -1,11 +1,48 @@
-<h2>Backups <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
 {% set rows = data.backups or [] %}
-{% if rows %}
+{% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
+<h2>Backups <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
+
+{% if running %}
+<div class="alert warn small">
+	A job is running ({{ running[0].label }}). Only one runs at a time —
+	<a href="#" hx-get="/jobs/{{ running[0].id }}" hx-target="#console-slot"
+	   hx-on::after-request="document.getElementById('console-host').hidden = false">open its console</a>.
+</div>
+{% endif %}
+
 <div class="kv">
-	<div><span>Latest</span><b>{{ rows[0].epoch|human_time }}</b><em>{{ rows[0].epoch|ago }}</em></div>
+	<div><span>Last local backup</span>
+		{% if rows %}<b>{{ rows[0].epoch|human_time }}</b><em>{{ rows[0].epoch|ago }}</em>
+		{% else %}<b class="muted">none yet</b>{% endif %}</div>
+	<div><span>Next scheduled backup</span>
+		{% if current_schedule %}
+		<b>{{ current_schedule.frequency }}{% if current_schedule.frequency == 'weekly' %} (weekday {{ current_schedule.weekday }}){% endif %} at {{ current_schedule.time }}</b>
+		<em>host time</em>
+		{% else %}<b class="muted">not scheduled — see Configuration</b>{% endif %}</div>
 	<div><span>Retained</span><b>{{ rows|length }} / {{ settings.backup_keep }}</b></div>
 	<div><span>Free space</span><b>{{ data.backup_avail|human_bytes }}</b></div>
 </div>
+
+<div class="action-row">
+	<form class="inline"
+	      hx-post="/actions/backup"
+	      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	      hx-target="#console-slot"
+	      hx-swap="innerHTML"
+	      hx-on::after-request="document.getElementById('console-host').hidden = false">
+		<button type="submit" class="primary" {% if running %}disabled{% endif %}>Create local backup</button>
+	</form>
+	<button class="danger small"
+	        hx-get="/actions/backup-clean/confirm"
+	        hx-target="#console-slot"
+	        hx-swap="innerHTML"
+	        hx-on::after-request="document.getElementById('console-host').hidden = false"
+	        {% if rows|length < 2 %}disabled{% endif %}>
+		Clean old backups
+	</button>
+</div>
+
+{% if rows %}
 <table class="rows">
 	<tr><th>Name</th><th>Taken</th><th>Env</th><th>Version</th><th>Size</th><th>Files</th><th></th></tr>
 	{% for b in rows %}
@@ -20,27 +57,38 @@
 		<td class="mono">{{ b.version or '—' }}</td>
 		<td class="mono">{{ b.bytes|human_bytes }}</td>
 		<td>{% if b.with_files %}<span class="pill">with files</span>{% else %}<span class="pill muted-pill">db only</span>{% endif %}</td>
-		<td>
-			<button class="small"
-			        hx-post="/remote/push/{{ b.name }}"
-			        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
-			        hx-target="#console-slot"
-			        hx-swap="innerHTML"
-			        hx-on::after-request="document.getElementById('console-host').hidden = false">
-				Push…
-			</button>
-			<button class="danger small"
-			        hx-post="/actions/restore/{{ b.name }}/confirm"
-			        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
-			        hx-target="#console-slot"
-			        hx-swap="innerHTML"
-			        hx-on::after-request="document.getElementById('console-host').hidden = false">
-				Restore…
-			</button>
+		<td class="menu-cell">
+			<details class="menu">
+				<summary title="Actions">&#8942;</summary>
+				<div class="menu-list">
+					<button type="button"
+					        hx-get="/remote/push/{{ b.name }}/confirm"
+					        hx-target="#console-slot"
+					        hx-swap="innerHTML"
+					        hx-on::after-request="document.getElementById('console-host').hidden = false">
+						Push…
+					</button>
+					<button type="button"
+					        hx-post="/actions/restore/{{ b.name }}/confirm"
+					        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+					        hx-target="#console-slot"
+					        hx-swap="innerHTML"
+					        hx-on::after-request="document.getElementById('console-host').hidden = false">
+						Restore…
+					</button>
+					<button type="button" class="danger-text"
+					        hx-get="/actions/backup-remove/{{ b.name }}/confirm"
+					        hx-target="#console-slot"
+					        hx-swap="innerHTML"
+					        hx-on::after-request="document.getElementById('console-host').hidden = false">
+						Remove…
+					</button>
+				</div>
+			</details>
 		</td>
 	</tr>
 	{% endfor %}
 </table>
 {% else %}
-<p class="muted">No backups yet. Take one from the Actions panel.</p>
+<p class="muted">No backups yet — use "Create local backup" above.</p>
 {% endif %}

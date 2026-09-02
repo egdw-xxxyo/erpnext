@@ -12,6 +12,9 @@
 	<span class="brand">ERPNext Ops</span>
 	<span class="env-badge">{{ settings.env_label|upper }}</span>
 	<span class="host">{{ settings.ssh_host }}</span>
+	{% if session %}
+	<span id="panel-version-badge" hx-get="/panels/version-badge" hx-trigger="load" hx-swap="innerHTML"></span>
+	{% endif %}
 	<span class="spacer"></span>
 	{% if session %}
 		<span class="user"><i class="user-dot"></i>{{ session.username }}</span>
