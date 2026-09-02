@@ -96,6 +96,16 @@
 	document.addEventListener("DOMContentLoaded", scan);
 	document.body.addEventListener("htmx:afterSwap", scan);
 
+	// Native <details> menus (.menu) don't close on outside click or on their
+	// own item click — do both here instead of hand-rolling a dropdown widget.
+	document.addEventListener("click", function (event) {
+		document.querySelectorAll(".menu[open]").forEach(function (menu) {
+			if (!menu.contains(event.target) || event.target.closest(".menu-list")) {
+				menu.removeAttribute("open");
+			}
+		});
+	});
+
 	// Six forgotten tabs polling every 10s is ~50k SSH execs a day. Stop
 	// polling while the tab is hidden; htmx resumes on the next tick when it
 	// comes back.
