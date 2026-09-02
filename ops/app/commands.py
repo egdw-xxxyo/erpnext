@@ -113,6 +113,15 @@ COMMANDS: dict[str, Command] = {
 		destructive=True,
 		confirm_phrase="site",
 	),
+	"space-clean": Command(
+		key="space-clean",
+		label="Safe clean",
+		description=(
+			"Prunes dangling Docker images and unused build cache, vacuums the systemd journal to "
+			"100 MB. Never touches backups, the site database, or files inside sites/."
+		),
+		build=lambda _: "./deploy space-clean",
+	),
 	"switch-branch": Command(
 		key="switch-branch",
 		label="Switch branch",
