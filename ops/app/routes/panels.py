@@ -27,6 +27,7 @@ PANELS = {
 	"version": "partials/version.html",
 	"version-badge": "partials/version_badge.html",
 	"disk": "partials/disk.html",
+	"space-backups": "partials/space_backups.html",
 	"backups": "partials/backups.html",
 	"jobs": "partials/jobs.html",
 	"actions": "partials/actions.html",

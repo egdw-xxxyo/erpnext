@@ -1,0 +1,19 @@
+{% set rows = data.backups or [] %}
+{% set total_bytes = rows|sum(attribute='bytes') %}
+<h2>Backups <span class="stamp">{{ data._fetched_at|ago }}</span></h2>
+<div class="kv">
+	<div><span>Local backups</span><b>{{ rows|length }} / {{ settings.backup_keep }}</b></div>
+	<div><span>Space used</span><b>{{ total_bytes|human_bytes }}</b></div>
+	<div><span>Free space</span><b>{{ data.backup_avail|human_bytes }}</b></div>
+</div>
+
+<button class="danger small"
+        hx-get="/actions/backup-clean/confirm"
+        hx-target="#console-slot"
+        hx-swap="innerHTML"
+        hx-on::after-request="document.getElementById('console-host').hidden = false"
+        {% if rows|length < 2 %}disabled{% endif %}>
+	Clean old backups (keep only latest)
+</button>
+
+<p class="muted small">Push, pull and remove individual backups on the <a href="/backups">Backups page</a>.</p>

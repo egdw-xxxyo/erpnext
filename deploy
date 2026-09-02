@@ -705,6 +705,21 @@ PY
     fix_assets
     ;;
 
+  space-clean)
+    # Everything here is safe by construction: no -a (never touches an image
+    # or cache layer still referenced by something), no volume prune (never
+    # touches the site database), no backup files. journalctl vacuum runs
+    # unprivileged first and just reports if that's not enough — never sudo,
+    # which would hang forever waiting for a password in a non-interactive job.
+    say "==> Pruning dangling Docker images..."
+    docker image prune -f --filter "dangling=true"
+    say "==> Pruning unused Docker build cache..."
+    docker builder prune -f
+    say "==> Vacuuming systemd journal to 100M..."
+    journalctl --vacuum-size=100M 2>&1 || echo "Skipped: no permission to vacuum the journal as this user."
+    echo "Safe clean complete."
+    ;;
+
   ops)
     case "${2:-}" in
       up|"")   ops_up ;;
@@ -987,6 +1002,7 @@ print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
     echo "       ./deploy ops {up|down|rebuild|logs|status}"
     echo "       ./deploy backup [--no-files] [--keep=N] [--prune-only]"
     echo "       ./deploy restore {--list|<name> [--yes]}"
+    echo "       ./deploy space-clean"
     echo "       ./deploy backup-remove <name>"
     echo "       ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>"

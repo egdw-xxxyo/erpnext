@@ -62,7 +62,7 @@
 				source.close();
 				state.source = null;
 				if (window.htmx) {
-					["jobs", "version", "backups", "actions"].forEach(function (name) {
+					["jobs", "version", "backups", "actions", "disk", "space-backups"].forEach(function (name) {
 						var el = document.getElementById("panel-" + name);
 						if (el) window.htmx.trigger(el, "load");
 					});

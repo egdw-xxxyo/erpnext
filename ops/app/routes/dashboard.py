@@ -44,6 +44,11 @@ async def backups_page(request: Request, session: SessionDep):
 	return _page(request, session, "backups", "backups.html", {})
 
 
+@router.get("/space", response_class=HTMLResponse)
+async def space_page(request: Request, session: SessionDep):
+	return _page(request, session, "space", "space.html", {})
+
+
 @router.get("/deploy", response_class=HTMLResponse)
 async def deploy_page(request: Request, session: SessionDep):
 	return _page(request, session, "deploy", "deploy.html", {})
