@@ -1,11 +1,11 @@
-"""Encrypted-at-rest config for the off-host SFTP backup target.
+"""Encrypted-at-rest config for the off-host FTP backup target.
 
 One shared target per ops instance (matches the rest of ops' config: a single
 host, a single environment). The password never leaves this file in plaintext
 and is never echoed back to a browser after it is saved — only a "configured
 since" marker is. It reaches the monitored host only inside a short-lived
 netrc file written over the SSH connection's stdin-piped script path (see
-sftp.py), never as part of a job's command line.
+ftp.py), never as part of a job's command line.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ class MisconfiguredSecretKey(Exception):
 
 
 @dataclass(frozen=True)
-class SftpConfig:
+class FtpConfig:
 	host: str
 	port: int
 	username: str
@@ -40,13 +40,13 @@ class SftpConfig:
 
 
 def _path() -> str:
-	return os.path.join(settings.data_dir, "sftp_config.enc")
+	return os.path.join(settings.data_dir, "ftp_config.enc")
 
 
 def _fernet() -> Fernet:
 	if not settings.secret_key:
 		raise MisconfiguredSecretKey(
-			"OPS_SECRET_KEY is required to store the SFTP target. Generate one with: openssl rand -hex 32"
+			"OPS_SECRET_KEY is required to store the FTP target. Generate one with: openssl rand -hex 32"
 		)
 	# Fernet wants 32 url-safe-base64 bytes; derive them from whatever length
 	# key the operator generated the same way OPS_SESSION_SECRET is generated.
@@ -54,7 +54,7 @@ def _fernet() -> Fernet:
 	return Fernet(key)
 
 
-def load() -> SftpConfig | None:
+def load() -> FtpConfig | None:
 	try:
 		with open(_path(), "rb") as fh:
 			blob = fh.read()
@@ -63,13 +63,13 @@ def load() -> SftpConfig | None:
 	try:
 		raw = _fernet().decrypt(blob)
 	except InvalidToken:
-		print("[ops] WARNING: stored SFTP config could not be decrypted (key changed?)", flush=True)
+		print("[ops] WARNING: stored FTP config could not be decrypted (key changed?)", flush=True)
 		return None
-	return SftpConfig(**json.loads(raw))
+	return FtpConfig(**json.loads(raw))
 
 
 def save(*, host: str, port: int, username: str, password: str, remote_dir: str) -> None:
-	config = SftpConfig(
+	config = FtpConfig(
 		host=host.strip(),
 		port=port,
 		username=username.strip(),
@@ -86,8 +86,8 @@ def save(*, host: str, port: int, username: str, password: str, remote_dir: str)
 	os.replace(tmp, _path())
 
 
-def require() -> SftpConfig:
+def require() -> FtpConfig:
 	config = load()
 	if config is None:
-		raise NotConfigured("no SFTP backup target configured yet — set one under Settings")
+		raise NotConfigured("no FTP backup target configured yet — set one under Settings")
 	return config

@@ -11,7 +11,7 @@ module just edits crontab over that session's existing SSH connection, the
 same way every other action here touches the host.
 
 `./deploy backup-scheduled` (the cron target) is what actually fetches the
-SFTP credentials, from the running ops container, at trigger time.
+FTP credentials, from the running ops container, at trigger time.
 """
 
 from __future__ import annotations

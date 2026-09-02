@@ -1,8 +1,8 @@
-"""Off-host SFTP backup target configuration.
+"""Off-host FTP backup target configuration.
 
 Any allowed ops user can view/edit it — one shared target per instance, same
 tier as the rest of ops' config (OPS_SSH_HOST, OPS_ENV_LABEL, ...). The
-password is write-only: it is stored encrypted (see sftp_config.py) and never
+password is write-only: it is stored encrypted (see ftp_config.py) and never
 included in any response after save, only a "configured since" marker is.
 """
 
@@ -13,11 +13,11 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from .. import audit, sftp
+from .. import audit, ftp
 from ..config import settings
 from ..deps import SessionDep, client_ip
+from ..ftp_config import FtpConfig, MisconfiguredSecretKey, load, save
 from ..sessions import Session
-from ..sftp_config import MisconfiguredSecretKey, SftpConfig, load, save
 from ..templating import templates
 
 router = APIRouter(prefix="/settings")
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/settings")
 def _parse_form(form) -> tuple[str, int, str, str, str] | str:
 	"""Returns (host, port, username, password, remote_dir) or an error string."""
 	host = (form.get("host") or "").strip()
-	port_raw = (form.get("port") or "22").strip()
+	port_raw = (form.get("port") or "21").strip()
 	username = (form.get("username") or "").strip()
 	password = form.get("password") or ""
 	remote_dir = (form.get("remote_dir") or "/").strip()
@@ -46,18 +46,18 @@ def _render(request: Request, session: Session, **ctx) -> HTMLResponse:
 	config = load()
 	return templates.TemplateResponse(
 		request,
-		"partials/sftp_settings.html",
+		"partials/ftp_settings.html",
 		{"settings": settings, "session": session, "config": config, **ctx},
 	)
 
 
-@router.get("/sftp", response_class=HTMLResponse)
-async def sftp_settings(request: Request, session: SessionDep):
+@router.get("/ftp", response_class=HTMLResponse)
+async def ftp_settings(request: Request, session: SessionDep):
 	return _render(request, session)
 
 
-@router.post("/sftp", response_class=HTMLResponse)
-async def sftp_settings_save(request: Request, session: SessionDep):
+@router.post("/ftp", response_class=HTMLResponse)
+async def ftp_settings_save(request: Request, session: SessionDep):
 	form = await request.form()
 	token = request.headers.get("x-csrf-token") or form.get("csrf") or ""
 	if token != session.csrf:
@@ -79,12 +79,12 @@ async def sftp_settings_save(request: Request, session: SessionDep):
 	except MisconfiguredSecretKey as exc:
 		return _render(request, session, error=str(exc))
 
-	await _audit(session, request, "sftp-config-save", host, port, username, remote_dir, "saved")
+	await _audit(session, request, "ftp-config-save", host, port, username, remote_dir, "saved")
 	return _render(request, session, saved=True)
 
 
-@router.post("/sftp/test", response_class=HTMLResponse)
-async def sftp_settings_test(request: Request, session: SessionDep):
+@router.post("/ftp/test", response_class=HTMLResponse)
+async def ftp_settings_test(request: Request, session: SessionDep):
 	form = await request.form()
 	token = request.headers.get("x-csrf-token") or form.get("csrf") or ""
 	if token != session.csrf:
@@ -105,7 +105,7 @@ async def sftp_settings_test(request: Request, session: SessionDep):
 
 	# Not persisted — a throwaway config just for this one connection check,
 	# so "Test" never has to be preceded by "Save" to try new credentials.
-	cfg = SftpConfig(
+	cfg = FtpConfig(
 		host=host,
 		port=port,
 		username=username,
@@ -114,14 +114,14 @@ async def sftp_settings_test(request: Request, session: SessionDep):
 		updated_at=0.0,
 	)
 	try:
-		names = await asyncio.to_thread(sftp.test_connection, session.conn, cfg)
+		names = await asyncio.to_thread(ftp.test_connection, session.conn, cfg)
 	except MisconfiguredSecretKey as exc:
 		return _render(request, session, test_error=str(exc))
 	except Exception as exc:
-		await _audit(session, request, "sftp-config-test", host, port, username, remote_dir, f"failed: {exc}")
+		await _audit(session, request, "ftp-config-test", host, port, username, remote_dir, f"failed: {exc}")
 		return _render(request, session, test_error=str(exc))
 
-	await _audit(session, request, "sftp-config-test", host, port, username, remote_dir, "ok")
+	await _audit(session, request, "ftp-config-test", host, port, username, remote_dir, "ok")
 	return _render(request, session, test_entries=names)
 
 

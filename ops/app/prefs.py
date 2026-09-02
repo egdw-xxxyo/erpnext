@@ -1,6 +1,6 @@
 """Small flat key-value store for non-secret dashboard preferences.
 
-Unlike sftp_config.py this is plaintext — nothing stored here is sensitive
+Unlike ftp_config.py this is plaintext — nothing stored here is sensitive
 (currently: whether "Deploy (build)" takes a safety backup first).
 """
 
