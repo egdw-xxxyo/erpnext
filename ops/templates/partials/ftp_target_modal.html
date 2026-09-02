@@ -1,0 +1,29 @@
+<h3>{{ 'Edit target' if edit else 'Add target' }}</h3>
+
+{% if error %}
+<div class="alert error small">{{ error }}</div>
+{% endif %}
+
+<form hx-post="/settings/ftp" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#modal-body" hx-swap="innerHTML" class="action">
+	<input type="hidden" name="target_id" value="{{ edit.id if edit else '' }}">
+
+	<label>Name
+		<input name="name" placeholder="e.g. Prod Tucha" value="{{ edit.name if edit else '' }}" required>
+	</label>
+
+	<label>Target
+		<select name="env_label">
+			{% for value in env_labels %}
+			<option value="{{ value }}" {% if edit and edit.env_label == value %}selected{% endif %}>{{ value }}</option>
+			{% endfor %}
+		</select>
+	</label>
+
+	<label>Remote path
+		<input name="remote_dir" placeholder="/" value="{{ edit.remote_dir if edit else '/' }}" required>
+	</label>
+
+	<button type="submit" class="primary">{{ 'Save changes' if edit else 'Add target' }}</button>
+	<button type="button" class="link small" onclick="document.getElementById('modal').close()">Cancel</button>
+</form>

@@ -1,0 +1,62 @@
+<h2>FTP backup targets</h2>
+
+{% if saved %}
+<div class="alert small">Saved.</div>
+{% endif %}
+{% if error %}
+<div class="alert error small">{{ error }}</div>
+{% endif %}
+
+<p class="small muted">
+	Server:
+	{% if server %}
+		<span class="mono">{{ server.username }}@{{ server.host }}:{{ server.port }}</span>
+		<button type="button" class="link small" hx-get="/settings/ftp/server/edit" hx-target="#modal-body" hx-swap="innerHTML">Edit…</button>
+	{% else %}
+		not configured.
+		<button type="button" class="link small" hx-get="/settings/ftp/server/edit" hx-target="#modal-body" hx-swap="innerHTML">Configure…</button>
+	{% endif %}
+</p>
+
+{% if targets %}
+<table class="rows">
+	<tr><th>Name</th><th>Target</th><th>Path</th><th>Configured</th><th></th></tr>
+	{% for t in targets %}
+	<tr>
+		<td class="mono">{{ t.name }}</td>
+		<td>
+			{% if t.env_label == 'prod' %}<span class="pill danger-pill">prod</span>
+			{% else %}<span class="pill">{{ t.env_label }}</span>{% endif %}
+		</td>
+		<td class="mono">{{ t.remote_dir }}</td>
+		<td class="small muted">{{ t.updated_at|human_time }}</td>
+		<td class="menu-cell">
+			<details class="menu">
+				<summary title="Actions">&#8942;</summary>
+				<div class="menu-list">
+					<button type="button"
+					        hx-get="/settings/ftp/{{ t.id }}/edit"
+					        hx-target="#modal-body"
+					        hx-swap="innerHTML">
+						Edit…
+					</button>
+					<button type="button" class="danger-text"
+					        hx-get="/settings/ftp/{{ t.id }}/remove-confirm"
+					        hx-target="#modal-body"
+					        hx-swap="innerHTML">
+						Remove…
+					</button>
+				</div>
+			</details>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+<p class="muted small">No FTP targets configured yet.</p>
+{% endif %}
+
+<button type="button" class="primary" {% if not server %}disabled title="Configure the server first"{% endif %}
+        hx-get="/settings/ftp/new" hx-target="#modal-body" hx-swap="innerHTML">
+	Add target
+</button>
