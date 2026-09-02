@@ -101,7 +101,10 @@ after_install = "erpnext.setup.install.after_install"
 
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
-after_migrate = ["erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes"]
+after_migrate = [
+	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
+	"erpnext.payroll_ua.setup.setup_attendance_sheet",
+]
 
 boot_session = "erpnext.startup.boot.boot_session"
 notification_config = "erpnext.startup.notifications.get_notification_config"
