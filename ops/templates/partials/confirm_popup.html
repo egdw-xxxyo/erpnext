@@ -1,7 +1,7 @@
 <form class="card {{ 'danger-card' if danger else '' }}"
       hx-post="{{ post_url }}"
       hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
-      hx-target="#console-slot"
+      hx-target="{{ target_el or '#console-slot' }}"
       hx-swap="innerHTML">
 	<h3>{{ title }}</h3>
 	<div class="alert {{ 'error' if danger else 'warn' }}">{{ warning }}</div>

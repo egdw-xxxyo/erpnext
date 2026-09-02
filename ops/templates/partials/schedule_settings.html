@@ -42,8 +42,19 @@
 		<input name="time" type="time" value="{{ current.time if current else '03:00' }}" required>
 	</label>
 
+	<label>Push to
+		<select name="target_id">
+			<option value="">Local only — no off-host push</option>
+			{% for t in targets %}
+			<option value="{{ t.id }}" {% if current and current.target_id == t.id %}selected{% endif %}>
+				{{ t.name }} ({{ t.env_label }})
+			</option>
+			{% endfor %}
+		</select>
+	</label>
+
 	<p class="muted small">
-		Requires an FTP backup target — see the panel above. With no target configured, the scheduled
+		With "Local only" (or no targets configured under FTP backup targets above), the scheduled
 		backup still runs and stays local.
 	</p>
 

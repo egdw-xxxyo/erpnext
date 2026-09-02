@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse
 from .. import audit, prefs, schedule
 from ..config import settings
 from ..deps import SessionDep, client_ip
+from ..ftp_config import list_targets
 from ..sessions import Session
 from ..templating import templates
 
@@ -34,6 +35,7 @@ def _render(request: Request, session: Session, **ctx) -> HTMLResponse:
 			"current": current,
 			"weekdays": list(enumerate(WEEKDAYS)),
 			"pre_deploy_backup": prefs.get("pre_deploy_backup", True),
+			"targets": list_targets(),
 			**ctx,
 		},
 	)
@@ -55,6 +57,7 @@ async def schedule_settings_save(request: Request, session: SessionDep):
 	frequency = (form.get("frequency") or "daily").strip()
 	time_str = (form.get("time") or "").strip()
 	weekday_raw = (form.get("weekday") or "0").strip()
+	target_id = (form.get("target_id") or "").strip()
 
 	if frequency not in ("daily", "weekly"):
 		return await asyncio.to_thread(_render, request, session, error="Invalid frequency.")
@@ -83,6 +86,7 @@ async def schedule_settings_save(request: Request, session: SessionDep):
 				weekday=weekday,
 				time_str=f"{hour:02d}:{minute:02d}",
 				repo_path=settings.repo_path,
+				target_id=target_id,
 			)
 		else:
 			await asyncio.to_thread(schedule.remove, session.conn)

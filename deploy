@@ -906,6 +906,8 @@ PY
     # (which holds it encrypted) via `docker compose exec`, never written to
     # a host-side file: this script's own argv never carries it, only a
     # captured-in-memory JSON blob and a netrc file scoped to this run.
+    TARGET_ID="${2:-}"
+
     say "==> Scheduled backup for site $SITE..."
     backup_prune "$((OPS_BACKUP_KEEP - 1))"
     backup_space_guard
@@ -917,20 +919,25 @@ PY
     fi
     backup_write_meta "$NEW_NAME"
 
+    if [ -z "$TARGET_ID" ]; then
+      echo "Scheduled as local-only (no push target selected); backup stays local: $NEW_NAME"
+      exit 0
+    fi
+
     if ! ops_enabled; then
       echo "Ops dashboard not enabled on this host; backup stays local: $NEW_NAME"
       exit 0
     fi
 
     CREDS_JSON=$(ops_dc exec -T ops python3 -c '
-import json
-from app.ftp_config import load
-c = load()
+import json, sys
+from app.ftp_config import get_target
+c = get_target(sys.argv[1])
 print(json.dumps({"host": c.host, "port": c.port, "username": c.username, "password": c.password, "remote_dir": c.remote_dir}) if c else "")
-' 2>/dev/null)
+' "$TARGET_ID" 2>/dev/null)
     if [ -z "$CREDS_JSON" ]; then
-      echo "No FTP target configured; backup stays local: $NEW_NAME"
-      exit 0
+      echo "ERROR: configured push target '$TARGET_ID' no longer exists; backup stays local: $NEW_NAME"
+      exit 1
     fi
 
     RHOST=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['host'])")
@@ -985,7 +992,7 @@ print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
     echo "       ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>"
     echo "       ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>"
-    echo "       ./deploy backup-scheduled  (cron entry point, installed via the ops dashboard)"
+    echo "       ./deploy backup-scheduled [target-id]  (cron entry point, installed via the ops dashboard)"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi
