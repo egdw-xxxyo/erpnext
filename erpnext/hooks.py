@@ -550,6 +550,7 @@ doc_events = {
 		# needs both configured CEO approvers to have an open ToDo.
 		"on_change": [
 			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+			"erpnext.buying.procurement_final_approval.record_creator_final_approval",
 			"erpnext.buying.procurement_final_approval.sync_final_approval_assignments",
 			"erpnext.buying.procurement_automation.sync_procurement_document_completion",
 		],
@@ -565,14 +566,25 @@ doc_events = {
 		"after_delete": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
 	},
 	"Purchase Receipt": {
-		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"before_validate": "erpnext.buying.procurement_automation.prepare_purchase_receipt_ttn",
+		"after_insert": "erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
+		"on_trash": [
+			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
+		],
 		"on_cancel": [
 			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
 			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
 		],
-		# demand mandatory additional attributes before the serials are generated after save
-		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
-		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		"validate": [
+			"erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
+			"erpnext.buying.procurement_automation.validate_purchase_receipt_ttn",
+		],
+		"on_submit": [
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
+		],
 	},
 	"Serial and Batch Bundle": {
 		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner

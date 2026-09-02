@@ -527,10 +527,13 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 		payment_entries_by_invoice[reference.reference_name].add(reference.parent)
 
 	by_order = {}
+	created_invoice_count = 0
 	payment_complete_count = 0
 	completed_supplier_count = 0
 	for order in orders:
 		order_invoices = invoices_by_order.get(order.name, [])
+		if order_invoices:
+			created_invoice_count += 1
 		payment_complete = external_payment or (
 			bool(order_invoices)
 			and flt(order.per_billed) >= 99.99
@@ -560,10 +563,10 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 
 	supplier_count = len(orders)
 	users = list(dict.fromkeys(entry.modified_by for entry in receipt_entries if entry.modified_by))
-	purchase_receipt_complete = bool(orders) and all(
-		row["purchase_receipt_complete"] for row in by_order.values()
+	purchase_receipt_complete = _is_purchase_receipt_stage_complete(
+		external_payment, orders, by_order
 	)
-	if external_payment and purchase_receipt_complete:
+	if external_payment:
 		from erpnext.buying.procurement_automation import _get_primary_procurement_initiator
 
 		initiator = _get_primary_procurement_initiator(source_name)
@@ -571,6 +574,7 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 			receipt_actors = [initiator]
 	return {
 		"submitted_invoice_count": len(invoices),
+		"created_invoice_count": created_invoice_count,
 		"payment_invoice_count": supplier_count,
 		"payment_complete_count": payment_complete_count,
 		"payment_receipt_count": completed_supplier_count,
@@ -584,6 +588,13 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 	}
 
 
+def _is_purchase_receipt_stage_complete(external_payment, orders, by_order):
+	"""Prepaid materials are already physically held by their initiator."""
+	return bool(external_payment) or (
+		bool(orders) and all(row["purchase_receipt_complete"] for row in by_order.values())
+	)
+
+
 def _get_purchase_receipts_by_order(orders):
 	order_names = [order.name for order in orders]
 	if not order_names:
@@ -591,8 +602,8 @@ def _get_purchase_receipts_by_order(orders):
 
 	items = frappe.get_all(
 		"Purchase Receipt Item",
-		filters={"purchase_order": ["in", order_names], "docstatus": 1},
-		fields=["parent", "purchase_order"],
+		filters={"purchase_order": ["in", order_names], "docstatus": ["<", 2]},
+		fields=["parent", "purchase_order", "warehouse"],
 	)
 	receipt_names = list(dict.fromkeys(row.parent for row in items))
 	if not receipt_names:
@@ -600,8 +611,8 @@ def _get_purchase_receipts_by_order(orders):
 
 	receipts = frappe.get_all(
 		"Purchase Receipt",
-		filters={"name": ["in", receipt_names], "docstatus": 1},
-		fields=["name", "status", "modified_by", "modified"],
+		filters={"name": ["in", receipt_names], "docstatus": ["<", 2]},
+		fields=["name", "status", "docstatus", "modified_by", "modified"],
 		order_by="posting_date asc, creation asc",
 	)
 	receipts_by_name = {receipt.name: receipt for receipt in receipts}
@@ -610,11 +621,26 @@ def _get_purchase_receipts_by_order(orders):
 		receipt = receipts_by_name.get(item.parent)
 		if not receipt:
 			continue
-		if not any(row["name"] == receipt.name for row in by_order[item.purchase_order]):
+		if not any(
+			row["name"] == receipt.name and row["warehouse"] == item.warehouse
+			for row in by_order[item.purchase_order]
+		):
 			by_order[item.purchase_order].append(
-				{"name": receipt.name, "status": receipt.status}
+				{
+					"name": receipt.name,
+					"status": receipt.status,
+					"docstatus": receipt.docstatus,
+					"warehouse": item.warehouse,
+					"purchase_order": item.purchase_order,
+				}
 			)
-	actors = list(dict.fromkeys(receipt.modified_by for receipt in receipts if receipt.modified_by))
+	actors = list(
+		dict.fromkeys(
+			receipt.modified_by
+			for receipt in receipts
+			if receipt.docstatus == 1 and receipt.modified_by
+		)
+	)
 	return dict(by_order), actors
 
 

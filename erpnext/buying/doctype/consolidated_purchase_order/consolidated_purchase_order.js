@@ -158,10 +158,11 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 							row.fiscal_receipt_added ? __("Added") : __("Fiscal receipt missing"),
 							row.fiscal_receipt_added ? "green" : "gray"
 						)}</td>
-						<td>${render_purchase_receipts(row.purchase_receipts || [])}</td>
+						<td>${render_percentage_progress(row.per_received)}</td>
 					</tr>`
 					)
 					.join("");
+				const receipt_rows = rows.flatMap((row) => row.purchase_receipts || []);
 				field.$wrapper
 					.html(`<div class="table-responsive"><table class="table table-bordered table-sm">
 				<thead><tr><th>${__("Purchase Order")}</th><th>${__("Supplier")}</th><th class="text-right">${__(
@@ -169,8 +170,10 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 				)}</th><th class="text-right">${__("Billed")}</th><th>${__(
 					"Payment Completed"
 				)}</th><th>${__("Fiscal Receipt")}</th><th>${__(
-					"Purchase Receipt"
-				)}</th></tr></thead><tbody>${body}</tbody></table></div>`);
+					"Received"
+				)}</th></tr></thead><tbody>${body}</tbody></table></div>
+				<h5 class="mt-4 mb-3">${__("Purchase Receipts")}</h5>
+				${render_purchase_receipt_table(receipt_rows)}`);
 			});
 	},
 });
@@ -178,7 +181,11 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 function render_approval_route(frm, field, route_data) {
 	const invoice_count = cint(route_data.payment_invoice_count ?? frm.doc.payment_invoice_count);
 	const receipt_count = cint(route_data.payment_receipt_count ?? frm.doc.payment_receipt_count);
-	const has_submitted_invoice = cint(route_data.submitted_invoice_count) > 0;
+	const created_invoice_count = cint(
+		route_data.created_invoice_count ?? route_data.submitted_invoice_count
+	);
+	const has_submitted_invoice = created_invoice_count > 0;
+	const all_invoices_created = invoice_count > 0 && created_invoice_count >= invoice_count;
 	const external_payment = Boolean(route_data.external_payment);
 	const payment_complete =
 		external_payment || (has_submitted_invoice && receipt_count >= invoice_count);
@@ -239,14 +246,14 @@ function render_approval_route(frm, field, route_data) {
 				: is_payment
 				? payment_complete
 				: !is_rejected &&
-				  (index < current_index || (is_posting && frm.doc.docstatus === 1 && has_submitted_invoice));
+				  (index < current_index || (is_posting && frm.doc.docstatus === 1 && all_invoices_created));
 			const current = is_receipt
 				? payment_complete && !purchase_receipt_complete
 				: is_payment
 				? frm.doc.docstatus === 1 && has_submitted_invoice && !payment_complete
 				: !is_rejected &&
 				  ((frm.doc.docstatus !== 1 && index === current_index) ||
-					(is_posting && frm.doc.docstatus === 1 && !has_submitted_invoice));
+					(is_posting && frm.doc.docstatus === 1 && !all_invoices_created));
 			const status_class = completed ? "is-complete" : current ? "is-current" : "is-pending";
 			const actors = is_receipt
 				? route_data.receipt_actors || []
@@ -268,8 +275,10 @@ function render_approval_route(frm, field, route_data) {
 				actor_text = "";
 			} else if (is_final_approval && (current || completed)) {
 				role_text = `${stage.role} · ${final_approval_count}/${final_approval_required}`;
-			} else if (is_posting && frm.doc.docstatus === 1 && !has_submitted_invoice) {
-				role_text = __("Submitted, invoice not created");
+			} else if (is_posting && frm.doc.docstatus === 1 && !all_invoices_created) {
+				role_text = `${stage.role} · ${created_invoice_count}/${invoice_count} ${__(
+					"invoices created"
+				)}`;
 			} else if (is_payment && external_payment) {
 				role_text = __("Payment was made at the expense of:");
 			} else if (is_payment && has_submitted_invoice) {
@@ -409,22 +418,44 @@ function render_status_badge(label, colour) {
 	)}</span>`;
 }
 
-function render_purchase_receipts(receipts) {
+function render_percentage_progress(value) {
+	const percentage = Math.max(0, Math.min(100, flt(value)));
+	const colour = percentage >= 99.99 ? "var(--green-500)" : "var(--green-400)";
+	return `<div class="progress" title="${percentage.toFixed(2)}%" style="height:8px;min-width:90px">
+		<div class="progress-bar" role="progressbar" style="width:${percentage}%;background:${colour}"></div>
+	</div>`;
+}
+
+function render_purchase_receipt_table(receipts) {
 	if (!receipts.length) {
-		return render_status_badge(__("Not created"), "gray");
+		return `<div class="text-muted">${__("Purchase Receipts have not been created yet.")}</div>`;
 	}
-	return receipts
+	const unique_receipts = [
+		...new Map(
+			receipts.map((receipt) => [
+				`${receipt.name}::${receipt.purchase_order}::${receipt.warehouse || ""}`,
+				receipt,
+			])
+		).values(),
+	];
+	const body = unique_receipts
 		.map((receipt) => {
-			const link = `<a href="/app/purchase-receipt/${encodeURIComponent(
+			const receipt_link = `<a href="/app/purchase-receipt/${encodeURIComponent(
 				receipt.name
 			)}">${frappe.utils.escape_html(receipt.name)}</a>`;
-			const status = render_status_badge(
-				__(receipt.status || "Submitted"),
-				receipt.status === "Completed" ? "green" : "blue"
-			);
-			return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${link}${status}</div>`;
+			const order_link = `<a href="/app/purchase-order/${encodeURIComponent(
+				receipt.purchase_order
+			)}">${frappe.utils.escape_html(receipt.purchase_order)}</a>`;
+			const colour = cint(receipt.docstatus) === 1 ? "green" : "orange";
+			return `<tr><td>${receipt_link}</td><td>${order_link}</td><td>${frappe.utils.escape_html(
+				receipt.warehouse || ""
+			)}</td><td>${render_status_badge(__(receipt.status || "Draft"), colour)}</td></tr>`;
 		})
 		.join("");
+	return `<div class="table-responsive"><table class="table table-bordered table-sm">
+		<thead><tr><th>${__("Name")}</th><th>${__("Purchase Order")}</th><th>${__(
+		"Target Warehouse"
+	)}</th><th>${__("Status")}</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function get_route_indicator_color(state) {

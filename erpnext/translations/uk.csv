@@ -7615,7 +7615,7 @@ Purchase Receipt Trends,Тренд прихідних накладних
 Purchase Receipt doesn't have any Item for which Retain Sample is enabled.,"У квитанції про придбання немає жодного предмета, для якого увімкнено Затримати зразок."
 Purchase Receipt {0} created.,Створено прибуткову накладну {0}.
 Purchase Receipt {0} is not submitted,Прихідна накладна {0} не проведена
-Purchase Receipts,Прибуткові накладні
+Purchase Receipts,Прихідні накладні
 Purchase Register,Реєстр закупівель
 Purchase Return,Купівля Повернення
 Purchase Tax Template,Шаблон податку на закупку
@@ -13607,6 +13607,12 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Only a configured CEO approver can approve this purchase.","Цю закупівлю може погодити лише налаштований CEO-погоджувач."
 "You have already approved this purchase.","Ви вже погодили цю закупівлю."
 "{0} recorded CEO approval {1}/{2}.","{0} зафіксував погодження CEO {1}/{2}."
+"{0} recorded CEO approval {1}/{2} as the document creator.","{0} погодив як автор документа; зафіксовано погодження CEO {1}/{2}."
+"{0} approved the department review as the document creator.","{0} погодив перевірку підрозділу як автор документа."
+"Select Destination Warehouse","Оберіть склад призначення"
+"Set a destination warehouse in at least one outstanding item.","Вкажіть склад призначення хоча б в одній неотриманій позиції."
+"Select a destination warehouse used by an outstanding Purchase Order item.","Оберіть склад призначення, вказаний у неотриманій позиції замовлення на придбання."
+"Purchase Receipts have not been created yet.","Прихідні накладні ще не створено."
 "Review and provide CEO approval for consolidated purchase {0}.","Перевірте та надайте погодження CEO для зведеної закупівлі {0}."
 "CEO approval {0}/2 recorded. The document is waiting for the second CEO.","Погодження CEO {0}/2 зафіксовано. Документ очікує на другого CEO."
 "CEO approval was completed automatically by threshold.","Погодження CEO виконано автоматично за порогом."
@@ -13715,6 +13721,12 @@ There are no Material Requests yet.,Замовлень матеріалів ще
 There are no Payment Requests yet.,Запитів на оплату ще немає.
 There are no suppliers with unbilled Purchase Orders.,Немає постачальників із замовленнями на придбання без рахунків.
 Unsupported File Format,Непідтримуваний формат файлу
+invoices created,рахунків створено
+TTN Documents,ТТН
+TTN,ТТН
+Attach at least one PDF TTN before submitting the Purchase Receipt for review.,Додайте принаймні один PDF-файл ТТН перед поданням прихідної накладної на перевірку.
+Row {0}: Attach a PDF TTN.,Рядок {0}: додайте PDF-файл ТТН.
+The TTN document must be a PDF file.,Документ ТТН має бути у форматі PDF.
 Use a workflow action for this transition and provide a reason.,Виконайте цей перехід через дію workflow та вкажіть причину.
 Workflow Action Reason,Причина дії workflow
 performed action “{0}”,виконав дію «{0}»

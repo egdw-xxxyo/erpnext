@@ -86,6 +86,45 @@ def record_final_approval(doc):
 	return len(approved_users)
 
 
+def record_creator_final_approval(doc, method=None):
+	"""Count a configured CEO creator as having approved when the final stage starts."""
+	if doc.workflow_state != FINAL_APPROVAL_STATE or is_automatic_final_approval(doc):
+		return
+
+	creator = doc.owner
+	if creator not in get_configured_final_approvers(throw=False):
+		return
+
+	approved_users = [doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)]
+	if creator in approved_users or len(approved_users) >= REQUIRED_FINAL_APPROVALS:
+		return
+
+	fieldname = APPROVAL_USER_FIELDS[len(approved_users)]
+	approved_users.append(creator)
+	doc.set(fieldname, creator)
+	doc.final_approval_count = len(approved_users)
+	frappe.db.set_value(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		doc.name,
+		{
+			fieldname: creator,
+			"final_approval_count": len(approved_users),
+		},
+		update_modified=False,
+	)
+	_close_user_assignment(doc.name, creator)
+
+	actor = frappe.get_cached_value("User", creator, "full_name") or creator
+	doc.add_comment(
+		"Comment",
+		text=_("{0} recorded CEO approval {1}/{2} as the document creator.").format(
+			f"<b>{escape_html(actor)}</b>", len(approved_users), REQUIRED_FINAL_APPROVALS
+		),
+		comment_email=creator,
+		comment_by=actor,
+	)
+
+
 def reset_final_approvals(docname):
 	if not frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, docname):
 		return

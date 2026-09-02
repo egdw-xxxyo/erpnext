@@ -67,6 +67,30 @@ class TestPurchaseOrder(FrappeTestCase):
 		pr = create_pr_against_po(po.name)
 		self.assertEqual(len(pr.get("items")), 1)
 
+	def test_make_purchase_receipt_filters_items_from_mapper_args(self):
+		po = create_purchase_order(do_not_submit=True)
+		po.append(
+			"items",
+			{
+				"item_code": "_Test Item",
+				"qty": 2,
+				"rate": 10,
+				"warehouse": "_Test Warehouse 1 - _TC",
+				"schedule_date": today(),
+			},
+		)
+		po.submit()
+
+		previous_args = getattr(frappe.flags, "args", None)
+		try:
+			frappe.flags.args = frappe._dict(target_warehouse="_Test Warehouse 1 - _TC")
+			pr = make_purchase_receipt(po.name)
+		finally:
+			frappe.flags.args = previous_args
+
+		self.assertEqual(len(pr.items), 1)
+		self.assertEqual(pr.items[0].warehouse, "_Test Warehouse 1 - _TC")
+
 	def test_ordered_qty(self):
 		existing_ordered_qty = get_ordered_qty()
 

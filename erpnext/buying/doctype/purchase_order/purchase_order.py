@@ -726,11 +726,36 @@ def set_missing_values(source, target):
 
 
 @frappe.whitelist()
+def get_purchase_receipt_warehouses(source_name):
+	doc = frappe.get_doc("Purchase Order", source_name)
+	doc.check_permission("read")
+	return list(
+		dict.fromkeys(
+			row.warehouse
+			for row in doc.items
+			if row.warehouse
+			and row.delivered_by_supplier != 1
+			and (
+				(doc.has_unit_price_items and row.qty == 0)
+				or abs(flt(row.received_qty)) < abs(flt(row.qty))
+			)
+		)
+	)
+
+
+@frappe.whitelist()
 def make_purchase_receipt(source_name, target_doc=None, args=None):
+	# ``open_mapped_doc`` passes its JS ``args`` through ``frappe.flags.args``.
+	# Keep the explicit argument for bulk mapping and direct Python callers.
 	if args is None:
-		args = {}
+		args = frappe.flags.args or {}
 	if isinstance(args, str):
 		args = json.loads(args)
+	target_warehouse = args.get("target_warehouse")
+	if target_warehouse:
+		available_warehouses = get_purchase_receipt_warehouses(source_name)
+		if target_warehouse not in available_warehouses:
+			frappe.throw(_("Select a destination warehouse used by an outstanding Purchase Order item."))
 
 	has_unit_price_items = frappe.db.get_value("Purchase Order", source_name, "has_unit_price_items")
 
@@ -748,7 +773,8 @@ def make_purchase_receipt(source_name, target_doc=None, args=None):
 	def select_item(d):
 		filtered_items = args.get("filtered_children", [])
 		child_filter = d.name in filtered_items if filtered_items else True
-		return child_filter
+		warehouse_filter = d.warehouse == target_warehouse if target_warehouse else True
+		return child_filter and warehouse_filter
 
 	doc = get_mapped_doc(
 		"Purchase Order",

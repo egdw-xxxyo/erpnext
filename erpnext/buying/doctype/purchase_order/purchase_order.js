@@ -540,11 +540,43 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends (
 	}
 
 	make_purchase_receipt() {
-		frappe.model.open_mapped_doc({
-			method: "erpnext.buying.doctype.purchase_order.purchase_order.make_purchase_receipt",
-			frm: cur_frm,
-			freeze_message: __("Creating Purchase Receipt ..."),
-		});
+		const frm = cur_frm;
+		frappe
+			.call({
+				method: "erpnext.buying.doctype.purchase_order.purchase_order.get_purchase_receipt_warehouses",
+				args: { source_name: frm.doc.name },
+			})
+			.then((response) => {
+				const warehouses = response.message || [];
+				if (!warehouses.length) {
+					frappe.msgprint(__("Set a destination warehouse in at least one outstanding item."));
+					return;
+				}
+				const dialog = new frappe.ui.Dialog({
+					title: __("Select Destination Warehouse"),
+					fields: [
+						{
+							fieldname: "warehouse",
+							fieldtype: "Link",
+							label: __("Target Warehouse"),
+							options: "Warehouse",
+							reqd: 1,
+							get_query: () => ({ filters: { name: ["in", warehouses] } }),
+						},
+					],
+					primary_action_label: __("Create"),
+					primary_action: (values) => {
+						dialog.hide();
+						frappe.model.open_mapped_doc({
+							method: "erpnext.buying.doctype.purchase_order.purchase_order.make_purchase_receipt",
+							frm,
+							args: { target_warehouse: values.warehouse },
+							freeze_message: __("Creating Purchase Receipt ..."),
+						});
+					},
+				});
+				dialog.show();
+			});
 	}
 
 	make_purchase_invoice() {

@@ -199,12 +199,18 @@ def apply_attributes_to_serials(serial_nos, rows):
 
 
 def validate_purchase_receipt_attributes(doc, method=None):
-	"""Block saving a Purchase Receipt that brings in serials without the mandatory attributes.
+	"""Require serial attributes only when quality control approves the receipt.
 
-	Serials are generated right after the save (`purchase_receipt.js` calls
-	`generate_serial_numbers_for_pr` on `after_save`), so this is the last point at which the
-	value can still be demanded from the user.
+	A buyer owns the draft and may only send it for quality review. Mandatory quality
+	attributes therefore must not block the buyer's initial save or workflow action.
 	"""
+	workflow_state = doc.get("workflow_state")
+	if getattr(doc, "_action", None) != "submit" and workflow_state not in {
+		"На затвердженні",
+		"Проведено",
+	}:
+		return
+
 	if not get_mandatory_attributes():
 		return
 

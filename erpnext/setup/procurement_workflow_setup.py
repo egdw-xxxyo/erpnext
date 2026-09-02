@@ -169,6 +169,25 @@ CUSTOM_FIELDS = {
 			"insert_after": "material_request_item",
 		},
 	],
+	"Purchase Receipt": [
+		{
+			"fieldname": "custom_ttn_section",
+			"fieldtype": "Section Break",
+			"label": "TTN Documents",
+			"depends_on": "eval:!doc.is_return",
+			"insert_after": "supplier_warehouse",
+		},
+		{
+			"fieldname": "custom_ttn_files",
+			"fieldtype": "Table",
+			"label": "TTN",
+			"options": "Consolidated Purchase Supplier Invoice",
+			"description": "Attach at least one PDF TTN before submitting the Purchase Receipt for review.",
+			"depends_on": "eval:!doc.is_return",
+			"no_copy": 1,
+			"insert_after": "custom_ttn_section",
+		},
+	],
 	"Purchase Invoice": [
 		{
 			"fieldname": "custom_consolidated_purchase_order",
@@ -399,6 +418,7 @@ def after_migrate():
 	frappe.clear_cache(doctype="Buying Settings")
 	frappe.clear_cache(doctype="Purchase Order")
 	frappe.clear_cache(doctype="Purchase Order Item")
+	frappe.clear_cache(doctype="Purchase Receipt")
 	frappe.clear_cache(doctype="Purchase Invoice")
 	frappe.clear_cache(doctype="Consolidated Purchase Order")
 	frappe.clear_cache(doctype="Workspace")

@@ -117,7 +117,7 @@
  "fields": [
   {
    "bold": 1,
-   "columns": 2,
+   "columns": 1,
    "fieldname": "item_code",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -152,7 +152,7 @@
   {
    "allow_on_submit": 1,
    "bold": 1,
-   "columns": 2,
+   "columns": 1,
    "fieldname": "schedule_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -314,7 +314,7 @@
   },
   {
    "bold": 1,
-   "columns": 2,
+   "columns": 1,
    "fieldname": "rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -453,6 +453,7 @@
    "label": "Warehouse Settings"
   },
   {
+   "columns": 2,
    "fieldname": "warehouse",
    "fieldtype": "Link",
    "in_list_view": 1,
