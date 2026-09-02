@@ -1,0 +1,43 @@
+<h2>Git SSH key (yours: {{ session.username }})</h2>
+
+{% if saved %}
+<div class="alert small">Saved.</div>
+{% endif %}
+{% if error %}
+<div class="alert error small">{{ error }}</div>
+{% endif %}
+
+<p class="muted small">
+	Only used for git operations against <code>origin</code> on the host — "Update repo" and
+	"Switch branch". Only takes effect if <code>origin</code> is an SSH remote
+	(<code>git@github.com:...</code>); it does nothing for an <code>https://</code> remote.
+</p>
+
+{% if current %}
+<p class="muted small">Configured since {{ current.updated_at|human_time }}.</p>
+<form hx-post="/settings/git-key/delete" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#panel-git-key-settings" hx-swap="innerHTML" class="inline">
+	<button type="submit" class="danger small">Remove key</button>
+</form>
+<button class="small"
+        hx-post="/settings/git-key/test" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+        hx-target="#panel-git-key-settings" hx-swap="innerHTML">
+	Test
+</button>
+{% else %}
+<p class="muted small">No key saved yet.</p>
+{% endif %}
+
+<form hx-post="/settings/git-key" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#panel-git-key-settings" hx-swap="innerHTML" class="action">
+	<label>Private key (PEM, e.g. an ed25519 deploy key added to your GitHub account)
+		<textarea name="private_key" rows="6" class="mono" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" required></textarea>
+	</label>
+	<button type="submit" class="primary">{{ 'Replace key' if current else 'Save key' }}</button>
+</form>
+
+{% if test_error %}
+<div class="alert error small">Test failed: {{ test_error }}</div>
+{% elif test_ok is defined %}
+<div class="alert small">{{ test_ok }}</div>
+{% endif %}

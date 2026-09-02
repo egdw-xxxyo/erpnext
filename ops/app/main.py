@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from . import auth, jobs, lockout, sessions
 from .config import settings
 from .deps import LoginRequired
-from .routes import actions, dashboard, panels, remote_backups
+from .routes import actions, dashboard, git_key_settings, panels, remote_backups
 from .routes import jobs as jobs_routes
 from .routes import schedule as schedule_routes
 from .routes import settings as settings_routes
@@ -73,6 +73,7 @@ app.include_router(actions.router)
 app.include_router(remote_backups.router)
 app.include_router(settings_routes.router)
 app.include_router(schedule_routes.router)
+app.include_router(git_key_settings.router)
 
 
 @app.exception_handler(LoginRequired)

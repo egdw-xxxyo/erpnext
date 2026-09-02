@@ -11,13 +11,17 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from .. import audit, commands, jobs, stats
+from .. import audit, commands, git_ssh, jobs, stats
 from ..config import settings
 from ..deps import SessionDep, client_ip
 from ..sessions import Session
 from ..templating import templates
 
 router = APIRouter(prefix="/actions")
+
+# These are the only commands that touch origin (git pull/fetch) — the rest
+# never need a deploy key staged.
+_GIT_COMMANDS = {"update-repo", "switch-branch"}
 
 
 async def _csrf(request: Request, session: Session) -> None:
@@ -77,6 +81,9 @@ async def launch(key: str, request: Request, session: SessionDep):
 			return _fragment(
 				request, session, error=f"Confirmation did not match. Type '{expected}' exactly."
 			)
+
+	if key in _GIT_COMMANDS:
+		line = await asyncio.to_thread(git_ssh.wrap, session.conn, session.username, line)
 
 	try:
 		job_id = await asyncio.to_thread(

@@ -137,14 +137,15 @@ table.rows tr:last-child td { border-bottom: none; }
 .alert.warn { background: #2a2410; border-color: #5b4c1c; color: #fcd34d; }
 
 /* ---- forms / buttons ------------------------------------------------- */
-button, input {
+button, input, textarea, select {
 	font: inherit; color: inherit;
 }
-input {
+input, textarea, select {
 	background: #0f131a; border: 1px solid var(--line); border-radius: 5px;
 	padding: 7px 9px; width: 100%;
 }
-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+textarea { resize: vertical; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 label { display: block; margin: 8px 0; color: var(--muted); font-size: 12px; }
 label input { margin-top: 4px; color: var(--text); }
 .inline-label { display: flex; align-items: center; gap: 6px; }
