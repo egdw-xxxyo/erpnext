@@ -32,7 +32,7 @@ class Settings:
 	session_ttl: int = field(default_factory=lambda: _int("OPS_SESSION_TTL", 3600))
 	session_idle: int = field(default_factory=lambda: _int("OPS_SESSION_IDLE", 1800))
 
-	# Encrypts secrets-at-rest (currently: the off-host SFTP backup target
+	# Encrypts secrets-at-rest (currently: the off-host FTP backup target
 	# password) written to OPS_DATA_DIR. Deliberately separate from
 	# session_secret — a leaked cookie-signing key should not also decrypt
 	# stored credentials.

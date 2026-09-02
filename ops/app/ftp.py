@@ -1,4 +1,4 @@
-"""Off-host SFTP backup target: push, list, pull.
+"""Off-host FTP backup target: push, list, pull.
 
 The configured password never becomes part of any command line (visible via
 `ps` on the host for the lifetime of that process) or any log (job log, audit
@@ -12,7 +12,7 @@ mount to them), where it is read by `curl --netrc-file` and then removed.
 test_connection() is the one exception: it touches no backup files, so it
 stages its netrc on the host's own /tmp instead (_write_netrc_host) and runs
 curl there directly — no dependency on the backend container being up just
-to check whether a set of SFTP credentials works.
+to check whether a set of FTP credentials works.
 """
 
 from __future__ import annotations
@@ -25,13 +25,13 @@ import uuid
 
 from . import jobs
 from .config import settings
-from .sftp_config import SftpConfig, require
+from .ftp_config import FtpConfig, require
 from .ssh import HostConnection
 
 _WRITE_NETRC_SCRIPT = """set -e
 cd {repo} || exit 90
 DC="docker compose -p {project} -f {repo}/docker-compose.yml"
-NETRC="/tmp/ops-sftp-{token}.netrc"
+NETRC="/tmp/ops-ftp-{token}.netrc"
 $DC exec -T backend bash -c 'umask 077; cat > "$1"' _ "$NETRC" <<'{delim}'
 machine {host}
 login {username}
@@ -41,7 +41,7 @@ printf '%s' "$NETRC"
 """
 
 
-def _write_netrc(conn: HostConnection, cfg: SftpConfig) -> str:
+def _write_netrc(conn: HostConnection, cfg: FtpConfig) -> str:
 	"""Write a one-shot netrc file inside the backend container. Returns its
 	container-local path. The caller is responsible for having the launched
 	job (or this function's caller, on early failure) remove it."""
@@ -59,7 +59,7 @@ def _write_netrc(conn: HostConnection, cfg: SftpConfig) -> str:
 	result = conn.run(script, timeout=20)
 	if not result.ok or not result.text:
 		raise RuntimeError(
-			f"could not stage SFTP credentials on host: {result.err.strip() or result.out.strip()}"
+			f"could not stage FTP credentials on host: {result.err.strip() or result.out.strip()}"
 		)
 	return result.text.strip()
 
@@ -86,7 +86,7 @@ def pull(conn: HostConnection, name: str, username: str) -> str:
 
 
 _WRITE_NETRC_HOST_SCRIPT = """set -e
-NETRC="/tmp/ops-sftp-{token}.netrc"
+NETRC="/tmp/ops-ftp-{token}.netrc"
 umask 077
 cat > "$NETRC" <<'{delim}'
 machine {host}
@@ -97,7 +97,7 @@ printf '%s' "$NETRC"
 """
 
 
-def _write_netrc_host(conn: HostConnection, cfg: SftpConfig) -> str:
+def _write_netrc_host(conn: HostConnection, cfg: FtpConfig) -> str:
 	"""Same idea as _write_netrc, but on the host's own /tmp instead of inside
 	the backend container. Used only by test_connection: a connection test
 	touches no backup files, so it has no reason to depend on the backend
@@ -116,12 +116,12 @@ def _write_netrc_host(conn: HostConnection, cfg: SftpConfig) -> str:
 	result = conn.run(script, timeout=20)
 	if not result.ok or not result.text:
 		raise RuntimeError(
-			f"could not stage SFTP credentials on host: {result.err.strip() or result.out.strip()}"
+			f"could not stage FTP credentials on host: {result.err.strip() or result.out.strip()}"
 		)
 	return result.text.strip()
 
 
-def test_connection(conn: HostConnection, cfg: SftpConfig) -> list[str]:
+def test_connection(conn: HostConnection, cfg: FtpConfig) -> list[str]:
 	"""Synchronous — used by the "Test connection" button, which waits on it.
 	Lists the target's root/remote_dir so success is visibly provable, not
 	just a green checkmark."""
@@ -139,7 +139,7 @@ def test_connection(conn: HostConnection, cfg: SftpConfig) -> list[str]:
 
 
 def _parse_listing(text: str) -> list[str]:
-	"""curl's SFTP directory listing is `ls -l`-style lines; the name is
+	"""curl's FTP directory listing is `ls -l`-style lines; the name is
 	whatever comes after the 8th field. Names containing spaces are not
 	representable this way — good enough for a connectivity check, not a
 	general-purpose listing."""
@@ -176,7 +176,7 @@ REMOTE_TTL = 60.0
 
 class RemoteBackupsCache:
 	"""TTL'd, on-demand only — never part of the polled stats snapshot, since
-	that would hit the third-party SFTP host every 10s for every open tab."""
+	that would hit the third-party FTP host every 10s for every open tab."""
 
 	def __init__(self) -> None:
 		self._lock = asyncio.Lock()

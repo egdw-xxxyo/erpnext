@@ -1,8 +1,8 @@
-"""Off-host SFTP backup target: browse the remote manifest, push, pull.
+"""Off-host FTP backup target: browse the remote manifest, push, pull.
 
 Mirrors routes/actions.py (CSRF, audit-before-return) but does not go through
 the generic commands.py dispatch — push/pull need a netrc file staged on the
-host before the job command line can even be built (see sftp.py).
+host before the job command line can even be built (see ftp.py).
 """
 
 from __future__ import annotations
@@ -12,11 +12,11 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from .. import audit, commands, jobs, sftp, stats
+from .. import audit, commands, ftp, jobs, stats
 from ..config import settings
 from ..deps import SessionDep, client_ip
+from ..ftp_config import NotConfigured
 from ..sessions import Session
-from ..sftp_config import NotConfigured
 from ..templating import templates
 
 router = APIRouter(prefix="/remote")
@@ -38,7 +38,7 @@ def _fragment(request: Request, session: Session, **ctx) -> HTMLResponse:
 @router.get("/backups", response_class=HTMLResponse)
 async def remote_backups_panel(request: Request, session: SessionDep):
 	force = request.query_params.get("force") == "1"
-	remote = await sftp.remote_cache.get(session.conn, force=force)
+	remote = await ftp.remote_cache.get(session.conn, force=force)
 	local = await stats.cache.get(session.conn)
 	return templates.TemplateResponse(
 		request,
@@ -61,7 +61,7 @@ async def push(name: str, request: Request, session: SessionDep):
 		raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 	try:
-		job_id = await asyncio.to_thread(sftp.push, session.conn, name, session.username)
+		job_id = await asyncio.to_thread(ftp.push, session.conn, name, session.username)
 	except NotConfigured as exc:
 		return _fragment(request, session, error=str(exc))
 	except jobs.JobBusy:
@@ -91,7 +91,7 @@ async def pull(name: str, request: Request, session: SessionDep):
 		raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 	try:
-		job_id = await asyncio.to_thread(sftp.pull, session.conn, name, session.username)
+		job_id = await asyncio.to_thread(ftp.pull, session.conn, name, session.username)
 	except NotConfigured as exc:
 		return _fragment(request, session, error=str(exc))
 	except jobs.JobBusy:
