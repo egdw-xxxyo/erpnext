@@ -373,7 +373,10 @@ backup_delete_local() {
 # SSH involved. Every curl call here uses --ssl (curl's "use TLS if the
 # server offers it" flag), matching the client config that was verified to
 # actually work; --ssl-reqd would be stricter but risks breaking on a target
-# that doesn't support TLS on every command channel.
+# that doesn't support TLS on every command channel. Also -k: Tucha's TLS
+# cert doesn't chain to a CA curl trusts (curl 60), and there's no pinned
+# fingerprint to check against instead — same trust-on-first-use gap as the
+# rest of this feature, just for TLS instead of SSH host keys.
 #
 # Uploads one backup set's files (+ its meta.json) to the FTP target and
 # refreshes manifest.json there. The db dump and meta.json are required — a
@@ -389,7 +392,7 @@ backup_push_files() {
       database.sql.gz | meta.json) required=1 ;;
       *) required=0 ;;
     esac
-    if ! dc exec -T backend curl -sS -f --ssl --netrc-file "$netrc" -T "$f" \
+    if ! dc exec -T backend curl -sS -f -k --ssl --netrc-file "$netrc" -T "$f" \
       "ftp://$rhost:$rport$rdir/$name-$suffix" </dev/null; then
       if [ "$required" = "1" ]; then
         echo "ERROR: upload of $name-$suffix failed."
@@ -402,7 +405,7 @@ backup_push_files() {
   dc exec -T backend bash -c '
     RHOST="$1"; RPORT="$2"; RDIR="$3"; NETRC="$4"; NAME="$5"; BACKUP_DIR="$6"
     TMP=$(mktemp)
-    curl -sS --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" -o "$TMP" 2>/dev/null || echo "[]" > "$TMP"
+    curl -sS -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" -o "$TMP" 2>/dev/null || echo "[]" > "$TMP"
     python3 -c "
 import json, sys
 path, name, meta_path = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -418,7 +421,7 @@ entries.append(meta)
 entries.sort(key=lambda e: e.get(\"created_at\", \"\"))
 json.dump(entries, open(path, \"w\"))
 " "$TMP" "$NAME" "$BACKUP_DIR/$NAME-meta.json"
-    curl -sS -f --ssl --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
+    curl -sS -f -k --ssl --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
     RC=$?
     rm -f "$TMP"
     exit $RC
@@ -829,7 +832,7 @@ PY
     RHOST="${2:?usage: ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>}"
     RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
     trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
-    dc exec -T backend curl -sS --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null || echo "[]"
+    dc exec -T backend curl -sS -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null || echo "[]"
     ;;
 
   backup-remote-test)
@@ -843,7 +846,7 @@ PY
     RHOST="${2:?usage: ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>}"
     RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
     trap 'rm -f "$NETRC"' EXIT
-    curl -sS -f --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/"
+    curl -sS -f -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/"
     ;;
 
   backup-pull)
@@ -856,7 +859,7 @@ PY
         RHOST="$1"; RPORT="$2"; RDIR="$3"; NETRC="$4"; NAME="$5"; SUFFIX="$6"; BACKUP_DIR="$7"
         OUT="$BACKUP_DIR/$NAME-$SUFFIX"
         TMP=$(mktemp)
-        if curl -sS -f --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/$NAME-$SUFFIX" -o "$TMP" 2>/dev/null; then
+        if curl -sS -f -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/$NAME-$SUFFIX" -o "$TMP" 2>/dev/null; then
           mv "$TMP" "$OUT"
         else
           rm -f "$TMP"
@@ -931,7 +934,7 @@ print('password %s' % d['password'])
     fi
 
     say "==> Verifying $NEW_NAME landed remotely..."
-    LANDED=$(dc exec -T backend curl -sS --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null \
+    LANDED=$(dc exec -T backend curl -sS -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null \
       | python3 -c "
 import json, sys
 try:
