@@ -4572,7 +4572,7 @@ History In Company,Історія У Компанії
 Hold,Тримати
 Hold Invoice,Утримувати рахунок-фактуру
 Hold Type,Тримайте тип
-Holiday,Вихідний
+"Holiday","Свято"
 Holiday Date {0} added multiple times,Дата свята {0} додана кілька разів
 Holiday List,Список вихідних
 Holiday List Name,Ім'я списку вихідних
@@ -5694,7 +5694,7 @@ Manage cost of operations,Управління вартість операцій
 Manage sales partner's and sales team's commissions,Керування комісійними партнерів з продажу та відділу продажів
 Manage your orders,Керуйте свої замовлення
 Management,Управління
-Manager,Менеджер
+"Manager","Керівник"
 Managing Director,Керуючий директор
 Mandatory,Обов'язковий
 Mandatory Accounting Dimension,Обов'язковий вимір бухгалтерського обліку
@@ -9603,7 +9603,7 @@ Successfully updated {0} record.,Запис {0} успішно оновлено.
 Successfully updated {0} records.,{0} записів успішно оновлено.
 Suggestions,Пропозиції
 Sum of Repair Cost and Value of Consumed Stock Items.,Сума вартості ремонту та вартості використаних товарно-матеріальних цінностей.
-Summary,Підсумок
+"Summary","Підсумок"
 Summary for this month and pending activities,Результати для цього місяця та незакінчена діяльність
 Summary for this week and pending activities,Результати для цього тижня та незакінчена діяльність
 Sunday,Неділя
@@ -10851,7 +10851,7 @@ Week,Тиждень
 Week {0} {1},Тиждень {0} {1}
 Weekday,Будній день
 Weekly,Щотижнево
-Weekly Off,Щотижневий вихідний
+"Weekly Off","Вихідний"
 Weekly Time to send,Щотижневий час для відправки
 Weight,вага
 Weight (kg),Вага (кг)
@@ -11467,7 +11467,7 @@ Template Reference,Довідка по шаблону
 "Appraisee","Оцінюваний"
 "Appraisees: {0}","Оцінювані: {0}"
 "Approval","Затвердження"
-"Approve","Затвердити"
+"Approve","Погодити"
 "Approvers","Затверджувачі"
 "Are you sure you want to delete the attachment","Ви впевнені, що хочете видалити вкладення"
 "Are you sure you want to email the selected salary slips?","Ви впевнені, що хочете надіслати електронною поштою вибрані розрахункові листки?"
@@ -12209,7 +12209,7 @@ Template Reference,Довідка по шаблону
 "Start date cannot be greater than end date.","Дата початку не може бути пізніше дати закінчення."
 "Start date: {0}","Дата початку: {0}"
 "Start time and end time cannot be same.","Час початку та закінчення не можуть співпадати."
-"Status for Other Half","Статус для іншої половини"
+"Status for Other Half","Статус другої половини дня"
 "Submission Failed","Подача не вдалася"
 "Submission of {0} before {1} is not allowed","Подача {0} до {1} не дозволена"
 "Submit Feedback","Подати відгук"
@@ -13389,7 +13389,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "The Other Half","Друга половина"
 "Accrued in Cash","Нараховано готівкою"
 "Payroll UA","Зарплата"
-"Attendance Sheet Approval","Затвердження табеля"
+"Attendance Sheet Approval","Погодження табеля"
 "Payrol UA","Зарплата"
 "Credited Days","Зараховано днів"
 "Working Days","Робочих днів"
@@ -13579,13 +13579,13 @@ No rows to calculate.,Немає рядків для підрахунку.
 "The month the bonuses are accrued for.","Місяць, за який нараховуються премії."
 "The new salary applies from the first day of this month. Only a future month is allowed.","Новий оклад діє з першого числа цього місяця. Дозволений лише майбутній місяць."
 "Absent Days","Днів відсутності"
-"Present Days","Днів присутності"
+"Present Days","Присутність (днів)"
 "Half Days","Неповних днів"
 "Sick Leave Days","Днів лікарняного"
 "Paid Leave Days","Днів оплачуваної відпустки"
 "Unpaid Leave Days","Днів відпустки за свій рахунок"
-"Overtime Hours","Годин переробки"
-"Shortfall Hours","Годин недопрацювання"
+"Overtime Hours","Переробіток годин"
+"Shortfall Hours","Недоробіток годин"
 "Worked","Відпрацьовано"
 "Unpaid only","Тільки невиплачені"
 "Show salary","Показати ЗП"
@@ -13724,3 +13724,88 @@ No rows to calculate.,Немає рядків для підрахунку.
 "A Lead requires either a Military Unit or a contact person","Звернення потребує або військової частини, або контактної особи"
 "The unit this request belongs to. Drives the contact person search.","Військова частина, до якої належить звернення. За нею шукається контактна особа."
 "Full name of the contact person, or their call sign.","Повне імʼя контактної особи або її позивний."
+"P","П","Attendance Sheet Abbreviation"
+"A","Н","Attendance Sheet Abbreviation"
+"WFH","ВД","Attendance Sheet Abbreviation"
+"SL","ЛК","Attendance Sheet Abbreviation"
+"L","ВП","Attendance Sheet Abbreviation"
+"H","С","Attendance Sheet Abbreviation"
+"WO","ВХ","Attendance Sheet Abbreviation"
+"Mon","Пн","Day of Week Abbreviation"
+"Tue","Вт","Day of Week Abbreviation"
+"Wed","Ср","Day of Week Abbreviation"
+"Thu","Чт","Day of Week Abbreviation"
+"Fri","Пт","Day of Week Abbreviation"
+"Sat","Сб","Day of Week Abbreviation"
+"Sun","Нд","Day of Week Abbreviation"
+"No employees found for this criteria.","Не знайдено працівників за цими критеріями."
+"New Leave Application","Нова заявка на відпустку"
+"Reject this leave application?","Відхилити цю заявку на відпустку?"
+"Edit Attendance","Редагувати відвідування"
+"Attendance deleted","Відвідування видалено"
+"Days that were skipped","Пропущені дні"
+"HD","ПД","Attendance Sheet Abbreviation"
+"Attendance Sheet","Табель відвідуваності"
+"You have no direct reports to fill the timesheet for","У вас немає прямих підлеглих для заповнення табеля"
+"Reopen Period","Відкрити період"
+"Reopen this period for changes?","Відкрити цей період для змін?"
+"Period reopened","Період відкрито"
+"Approve the timesheet for this period? The days it covers can no longer be changed.","Погодити табель за цей період? Дні що він охоплює більше не можна буде змінити."
+"Timesheet approved","Табель погоджено"
+"This period was already approved","Цей період уже погоджено"
+"Period Already Approved","Період уже погоджено"
+"Mark","Відмітити"
+"More Options","Більше варіантів"
+"Applied to every day of the period","Застосується до кожного дня періоду"
+"{0} employees","Працівників: {0}"
+"{0} day(s) marked","Відмічено днів: {0}"
+"Deleted","Видалено"
+"You are not permitted to fill the timesheet for {0}","У вас немає прав заповнювати табель для {0}"
+"{0} is not a status the timesheet can set","Табель не може виставити статус {0}"
+"A day is either worked over or under, not both","День може бути або переробленим, або недопрацьованим, але не одночасно"
+"Only an employee can approve a timesheet","Погодити табель може лише працівник"
+"There is nothing to approve","Немає чого погоджувати"
+"Only {0} can reopen this period","Відкрити цей період може лише {0}"
+"{0} was already approved for {1}: {2}","{0} для {1} уже погоджено: {2}"
+"{0} already covers a part of this period for {1}","{0} уже охоплює частину цього періоду для {1}"
+"From Date cannot be after To Date","Дата початку не може бути пізніше за дату завершення"
+"Manager Name","Керівник"
+"Totals of the period as they were when the sheet was approved","Підсумки періоду на момент погодження табеля"
+"Leave Days","Відпустка (днів)"
+"Sick Days","Лікарняний (днів)"
+"at their own expense","за свій рахунок"
+"Open Attendance","Відкрити відвідуваність"
+"Leave","Відпустка","Attendance Sheet"
+"New Leave","Нова відпустка"
+"Edit Leave","Редагувати відпустку"
+"Delete this leave?","Видалити цю відпустку?"
+"Leave created","Відпустку створено"
+"Leave updated","Відпустку оновлено"
+"Open Leave","Відкрити відпустку"
+"Delete everything marked for {0} on {1}?","Видалити все відмічене для {0} за {1}?"
+"Delete everything marked for {0} employees on {1}?","Видалити все відмічене для {0} працівників за {1}?"
+"{0} record(s) deleted","Видалено записів: {0}"
+"There was nothing to delete","Нічого видаляти"
+"Days that were kept","Дні, які залишились"
+"The leave reaches outside the selected period","Відпустка виходить за межі вибраного періоду"
+"Delete Leave","Видалити відпустку"
+"Additional Employees in Attendance Sheet","Додаткові працівники в табелі"
+"Employees this one fills the attendance sheet for on top of their direct reports. They are listed first in the sheet.","Працівники, яких цей керівник веде в табелі додатково до своїх прямих підлеглих. У табелі вони йдуть першими."
+"Attendance Sheet Abbreviation","Позначка в табелі"
+"Shown in the attendance sheet on the days of this leave. Days of a leave without an abbreviation are marked as leave in general.","Показується в табелі у дні цієї відпустки. Дні відпустки без позначки відмічаються як відпустка загалом."
+"Paid","Офіц","Leave Type Abbreviation"
+"Unpaid","ЗаВл","Leave Type Abbreviation"
+"Half Day/Other Half Present","Півдня / друга половина присутній"
+"Half Day/Other Half Absent","Півдня / друга половина відсутній"
+"Show Chart","Показати графік"
+"No approved attendance sheet found for this period.","За цей період немає погодженого табеля."
+"Unsubmitted Sheets","Неподані табелі"
+"Every employee of this period sits in a submitted sheet.","За цей період табелі подано на всіх працівників."
+"until {0}","по {0}"
+"Dismissed","Звільнено"
+"from {0}","з {0}"
+"Hired","Прийнято"
+"Export to Excel","Експорт в Excel"
+"Attendance Sheet: {0}, {1} — {2}","Табель відвідуваності: {0}, {1} — {2}"
+"Nothing to export for this period.","За цей період нема чого експортувати."
+"Not permitted to read this report","Немає доступу до цього звіту"

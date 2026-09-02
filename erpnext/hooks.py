@@ -36,7 +36,10 @@ doctype_js = {
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
 	# оклади працівника по періодах — секція на картці
-	"Employee": "public/js/custom/employee_salary_history.js",
+	"Employee": [
+		"public/js/custom/employee_salary_history.js",
+		"public/js/custom/employee_attendance_sheet.js",
+	],
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
