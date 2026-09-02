@@ -1,0 +1,67 @@
+<h2>Backup schedule</h2>
+
+{% if saved %}
+<div class="alert small">Saved.</div>
+{% endif %}
+{% if error %}
+<div class="alert error small">{{ error }}</div>
+{% endif %}
+
+{% if current %}
+<p class="muted small">
+	Scheduled {{ current.frequency }}
+	{% if current.frequency == 'weekly' %}on {{ weekdays[current.weekday][1] }}{% endif %}
+	at {{ current.time }} (host time) — pushed off-host and removed locally once confirmed.
+</p>
+{% else %}
+<p class="muted small">No schedule installed.</p>
+{% endif %}
+
+<form hx-post="/settings/schedule" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#panel-schedule-settings" hx-swap="innerHTML" class="action">
+	<label class="inline-label">
+		<input type="checkbox" name="enabled" {% if current %}checked{% endif %}> Run a scheduled backup
+	</label>
+
+	<label>Frequency
+		<select name="frequency">
+			<option value="daily" {% if not current or current.frequency == 'daily' %}selected{% endif %}>Daily</option>
+			<option value="weekly" {% if current and current.frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+		</select>
+	</label>
+
+	<label>Weekday (if weekly)
+		<select name="weekday">
+			{% for value, label in weekdays %}
+			<option value="{{ value }}" {% if current and current.weekday == value %}selected{% endif %}>{{ label }}</option>
+			{% endfor %}
+		</select>
+	</label>
+
+	<label>Time (host clock, HH:MM)
+		<input name="time" type="time" value="{{ current.time if current else '03:00' }}" required>
+	</label>
+
+	<label>Push to
+		<select name="target_id">
+			<option value="">Local only — no off-host push</option>
+			{% for t in targets %}
+			<option value="{{ t.id }}" {% if current and current.target_id == t.id %}selected{% endif %}>
+				{{ t.name }} ({{ t.env_label }})
+			</option>
+			{% endfor %}
+		</select>
+	</label>
+
+	<p class="muted small">
+		With "Local only" (or no targets configured under FTP backup targets above), the scheduled
+		backup still runs and stays local.
+	</p>
+
+	<label class="inline-label">
+		<input type="checkbox" name="pre_deploy_backup" {% if pre_deploy_backup %}checked{% endif %}>
+		Take a quick (DB only) safety backup before every deploy — blocks the deploy if it fails
+	</label>
+
+	<button type="submit" class="primary">Save</button>
+</form>

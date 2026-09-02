@@ -39,6 +39,7 @@ body {
 .topbar a { color: var(--text); text-decoration: none; opacity: .8; }
 .topbar a:hover { opacity: 1; }
 .host { color: var(--muted); font-size: 12px; }
+.version { color: var(--muted); font-size: 11px; background: #1c222c; padding: 2px 6px; border-radius: 4px; }
 .user { color: var(--muted); }
 .user-dot {
 	display: inline-block; width: 7px; height: 7px; border-radius: 50%;
@@ -54,7 +55,22 @@ body.env-prod .env-badge { background: #3b1418; color: #fca5a5; }
 body.env-prod .topbar { border-bottom: 2px solid var(--danger); }
 
 /* ---- layout ---------------------------------------------------------- */
-main { padding: 18px; max-width: 1200px; margin: 0 auto; }
+.shell { display: flex; align-items: flex-start; }
+.sidenav {
+	position: sticky; top: 49px;
+	display: flex; flex-direction: column; gap: 2px;
+	width: 180px; flex: 0 0 180px;
+	padding: 18px 10px;
+	height: calc(100vh - 49px);
+	border-right: 1px solid var(--line);
+}
+.sidenav a {
+	color: var(--text); text-decoration: none; opacity: .75;
+	padding: 8px 10px; border-radius: 6px; font-size: 13px;
+}
+.sidenav a:hover { opacity: 1; background: var(--card); }
+.sidenav a.active { opacity: 1; background: var(--card); color: var(--accent); font-weight: 600; }
+main { flex: 1; min-width: 0; padding: 18px; max-width: 1200px; margin: 0 auto; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .card {
 	background: var(--card); border: 1px solid var(--line);
@@ -121,14 +137,15 @@ table.rows tr:last-child td { border-bottom: none; }
 .alert.warn { background: #2a2410; border-color: #5b4c1c; color: #fcd34d; }
 
 /* ---- forms / buttons ------------------------------------------------- */
-button, input {
+button, input, textarea, select {
 	font: inherit; color: inherit;
 }
-input {
+input, textarea, select {
 	background: #0f131a; border: 1px solid var(--line); border-radius: 5px;
 	padding: 7px 9px; width: 100%;
 }
-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+textarea { resize: vertical; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 label { display: block; margin: 8px 0; color: var(--muted); font-size: 12px; }
 label input { margin-top: 4px; color: var(--text); }
 .inline-label { display: flex; align-items: center; gap: 6px; }
@@ -145,6 +162,44 @@ button.primary { background: #1d3a5c; border-color: #2b5687; }
 button.danger { background: #3a1a1d; border-color: #6b2a2f; color: #fca5a5; }
 button.link { background: none; border: none; padding: 0; color: var(--accent); cursor: pointer; }
 button.small { padding: 2px 8px; font-size: 12px; }
+
+/* ---- modal ------------------------------------------------------------- */
+dialog.modal {
+	background: var(--card); color: var(--text); border: 1px solid var(--line);
+	border-radius: 8px; padding: 16px 18px; min-width: 340px; max-width: 520px;
+	width: calc(100% - 40px);
+}
+dialog.modal::backdrop { background: rgba(0, 0, 0, .55); }
+dialog.modal h3 { margin-top: 0; }
+
+/* ---- row menu (3-dot) -------------------------------------------------- */
+.menu-cell { text-align: right; position: relative; }
+.menu { position: relative; display: inline-block; }
+.menu > summary {
+	list-style: none; cursor: pointer; padding: 2px 9px; border-radius: 4px;
+	font-size: 16px; line-height: 1.4; color: var(--muted);
+}
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary:hover { background: #1c222c; color: var(--text); }
+.menu[open] > summary { background: #1c222c; color: var(--text); }
+.menu-list {
+	position: absolute; right: 0; top: 100%; z-index: 20; margin-top: 4px;
+	background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+	padding: 4px; display: flex; flex-direction: column; min-width: 130px;
+	box-shadow: 0 6px 16px rgba(0, 0, 0, .45);
+}
+.menu-list button {
+	text-align: left; background: none; border: none; padding: 6px 10px;
+	border-radius: 4px; font-size: 12.5px; color: var(--text);
+}
+.menu-list button:hover { background: #232a36; }
+.menu-list button.danger-text { color: var(--bad); }
+
+/* ---- action row (buttons above a table) -------------------------------- */
+.action-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+
+/* ---- vertical stack of cards ------------------------------------------- */
+.stack { display: flex; flex-direction: column; gap: 14px; }
 
 /* ---- actions --------------------------------------------------------- */
 .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }

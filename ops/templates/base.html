@@ -12,10 +12,11 @@
 	<span class="brand">ERPNext Ops</span>
 	<span class="env-badge">{{ settings.env_label|upper }}</span>
 	<span class="host">{{ settings.ssh_host }}</span>
+	{% if session %}
+	<span id="panel-version-badge" hx-get="/panels/version-badge" hx-trigger="load" hx-swap="innerHTML"></span>
+	{% endif %}
 	<span class="spacer"></span>
 	{% if session %}
-		<a href="/">Dashboard</a>
-		<a href="/audit">Audit</a>
 		<span class="user"><i class="user-dot"></i>{{ session.username }}</span>
 		<form method="post" action="/logout" class="inline">
 			<button type="submit" class="link">Log out</button>
@@ -23,10 +24,32 @@
 	{% endif %}
 </header>
 
-<main>
-	{% block content %}{% endblock %}
-</main>
+<div class="shell">
+	{% if session %}
+	<nav class="sidenav">
+		<a href="/" class="{{ 'active' if nav == 'dashboard' else '' }}">Dashboard</a>
+		<a href="/backups" class="{{ 'active' if nav == 'backups' else '' }}">Backups</a>
+		<a href="/space" class="{{ 'active' if nav == 'space' else '' }}">Space management</a>
+		<a href="/deploy" class="{{ 'active' if nav == 'deploy' else '' }}">Deploy</a>
+		<a href="/configuration" class="{{ 'active' if nav == 'configuration' else '' }}">Configuration</a>
+		<a href="/information" class="{{ 'active' if nav == 'information' else '' }}">Information</a>
+	</nav>
+	{% endif %}
+
+	<main>
+		{% block content %}{% endblock %}
+
+		<section class="card wide" id="console-host" hidden>
+			<h2>Console</h2>
+			<div id="console-slot"></div>
+		</section>
+	</main>
+</div>
+
+<dialog id="modal" class="modal"><div id="modal-body"></div></dialog>
 
 {% block scripts %}{% endblock %}
+<script src="/static/console.js" defer></script>
+<script src="/static/modal.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+<h2>Remote backups</h2>
+
+{% if blocks %}
+<div class="stack">
+	{% for b in blocks %}
+		{% with target = b.target, remote = b.remote %}
+		{% include "partials/remote_backup_target.html" %}
+		{% endwith %}
+	{% endfor %}
+</div>
+{% else %}
+<p class="muted">No FTP backup targets configured yet — see Configuration to add one (e.g. a dev
+instance can hold prod's target to pull a prod backup down for testing).</p>
+{% endif %}

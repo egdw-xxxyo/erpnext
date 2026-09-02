@@ -28,14 +28,18 @@ BACKUPS_TTL = 60.0
 DISK_DETAIL_TTL = 600.0
 
 
-# Shared by the stats script and ./deploy: parse `<name> <epoch> <bytes> <files>`
-# lines into JSON.
+# Shared by the stats script and ./deploy: parse
+# `<name> <epoch> <bytes> <files> <env_label> <describe>` lines into JSON.
+# env_label/describe come from the backup's -meta.json sidecar (written by
+# ./deploy's backup_write_meta) and are "-" when it is missing (backups made
+# before this existed).
 _BACKUP_PARSER = """python3 -c 'import sys,json
 out=[]
 for line in sys.stdin:
     p=line.split()
-    if len(p)==4:
-        out.append({"name":p[0],"epoch":int(p[1]),"bytes":int(p[2]),"with_files":p[3]=="yes"})
+    if len(p)==6:
+        out.append({"name":p[0],"epoch":int(p[1]),"bytes":int(p[2]),"with_files":p[3]=="yes",
+                    "env_label":None if p[4]=="-" else p[4],"version":None if p[5]=="-" else p[5]})
 print(json.dumps(out))'"""
 
 
@@ -123,7 +127,10 @@ $DC exec -T backend bash -c '
     ts=$(stat -c %Y "$f")
     files=no
     [ -e "$d/$n-files.tar" ] && files=yes
-    echo "$n $ts $sz $files"
+    meta="$d/$n-meta.json"
+    env_label=$(sed -n "s/.*\"env_label\":\"\([^\"]*\)\".*/\1/p" "$meta" 2>/dev/null)
+    version=$(sed -n "s/.*\"describe\":\"\([^\"]*\)\".*/\1/p" "$meta" 2>/dev/null)
+    echo "$n $ts $sz $files ${env_label:--} ${version:--}"
   done | sort -k2 -nr
 ' _ "$BACKUP_DIR" </dev/null 2>/dev/null | @BACKUP_PARSER@ 2>/dev/null || echo '[]'
 printf ',\n'

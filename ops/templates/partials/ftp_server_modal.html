@@ -1,0 +1,47 @@
+<h3>FTP server</h3>
+
+{% if error %}
+<div class="alert error small">{{ error }}</div>
+{% endif %}
+
+<form hx-post="/settings/ftp/server" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#modal-body" hx-swap="innerHTML" class="action">
+	<label>Host
+		<input name="host" placeholder="ftp.example.com" value="{{ server.host if server else '' }}" required>
+	</label>
+
+	<label>Port
+		<input name="port" type="number" min="1" max="65535" value="{{ server.port if server else 21 }}" required>
+	</label>
+
+	<label>Username
+		<input name="username" autocomplete="off" value="{{ server.username if server else '' }}" required>
+	</label>
+
+	<label>Password
+		{% if server %}
+		<input name="password" type="password" autocomplete="new-password" placeholder="unchanged — leave blank to keep">
+		{% else %}
+		<input name="password" type="password" autocomplete="new-password" required>
+		{% endif %}
+	</label>
+
+	<button type="submit" class="primary">Save server</button>
+	<button type="button" class="small"
+	        hx-post="/settings/ftp/server/test" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	        hx-include="closest form" hx-target="#modal-body" hx-swap="innerHTML">
+		Test connection
+	</button>
+	<button type="button" class="link small" onclick="document.getElementById('modal').close()">Cancel</button>
+</form>
+
+{% if test_error %}
+<div class="alert error small">Test failed: {{ test_error }}</div>
+{% elif test_entries is defined %}
+<div class="alert small">
+	Connected. Contents of the remote folder:
+	{% if test_entries %}
+	<ul class="mono small">{% for n in test_entries %}<li>{{ n }}</li>{% endfor %}</ul>
+	{% else %}(empty){% endif %}
+</div>
+{% endif %}
