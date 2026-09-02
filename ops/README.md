@@ -36,7 +36,9 @@ in for that). Never set it on a shared host.
 | `app/ftp.py` | push/pull/list against that target (netrc-file staged on host, never in argv/logs) |
 | `app/schedule.py` | scheduled backup as a marked line in the host's own crontab (no in-app scheduler) |
 | `app/prefs.py` | tiny plaintext KV store (currently: the pre-deploy safety-backup toggle) |
-| `app/routes/` | dashboard, panels, actions, jobs (SSE), settings (FTP target), schedule, remote_backups |
+| `app/git_keys.py` | encrypted-at-rest per-ops-user git SSH deploy key |
+| `app/git_ssh.py` | stages that key on the host and wraps `update-repo`/`switch-branch` with `GIT_SSH_COMMAND` |
+| `app/routes/` | dashboard, panels, actions, jobs (SSE), settings (FTP targets), git_key_settings, schedule, remote_backups |
 
 ## Non-negotiables
 
