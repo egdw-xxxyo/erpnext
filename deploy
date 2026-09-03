@@ -5,6 +5,20 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 ERPNEXT_VERSION="v15.119.0"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
+# Some host IPs get a 401 from GitHub on anonymous git-upload-pack even for
+# public repos (confirmed via GIT_TRACE — GET info/refs is fine, the actual
+# POST pack fetch isn't). Never let that hang the script waiting on a
+# username/password prompt that has nowhere to go in a non-interactive run.
+export GIT_TERMINAL_PROMPT=0
+
+# Optional PAT to route around the block above (read-only "public_repo" scope
+# is enough). One file per host/user, never committed, never logged.
+GITHUB_TOKEN_FILE="${GITHUB_TOKEN_FILE:-$HOME/.github_token}"
+GITHUB_TOKEN=""
+if [ -f "$GITHUB_TOKEN_FILE" ]; then
+  GITHUB_TOKEN=$(tr -d '[:space:]' < "$GITHUB_TOKEN_FILE")
+fi
+
 # Set by the build/migrate handlers when --silent is passed. When 1, the say()
 # helper suppresses '==>' progress labels; per-step stdout is also routed to
 # /dev/null inside run_deploy. Errors still surface because set -e fires on
@@ -170,14 +184,25 @@ build_image() {
   local apps_bust="0"
   if [ -f "$DIR/apps.json" ]; then
     apps_bust=$(python3 -c "import json;[print(a['repo'],a['branch']) for a in json.load(open('$DIR/apps.json'))]" \
-      | while read -r repo branch; do git ls-remote "$repo" "$branch" 2>/dev/null | awk '{print $1}'; done \
+      | while read -r repo branch; do
+          if [ -n "$GITHUB_TOKEN" ]; then
+            git -c "http.extraheader=Authorization: Bearer ${GITHUB_TOKEN}" ls-remote "$repo" "$branch" 2>/dev/null | awk '{print $1}'
+          else
+            git ls-remote "$repo" "$branch" 2>/dev/null | awk '{print $1}'
+          fi
+        done \
       | cksum | awk '{print $1}')
     [ -n "$apps_bust" ] || apps_bust="0"
   fi
   say "==> Extra-apps cache key: $apps_bust"
   say "==> Building full image (all source baked in)..."
-  docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
+  local secret_args=()
+  if [ -n "$GITHUB_TOKEN" ]; then
+    secret_args=(--secret "id=github_token,src=$GITHUB_TOKEN_FILE")
+  fi
+  DOCKER_BUILDKIT=1 docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
     --build-arg "APPS_CACHE_BUST=$apps_bust" \
+    "${secret_args[@]}" \
     -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || return 1
   say "==> Pruning dangling images..."
   docker image prune -f --filter "dangling=true" >/dev/null
