@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG ERPNEXT_VERSION=v15.119.0
 FROM frappe/erpnext:${ERPNEXT_VERSION}
 
@@ -37,11 +38,22 @@ RUN cd /home/frappe/frappe-bench \
 # (Docker otherwise caches this RUN layer forever and never re-pulls fork changes).
 ARG APPS_CACHE_BUST=0
 COPY apps.json /tmp/apps.json
-RUN echo "apps-cache-bust: $APPS_CACHE_BUST" \
+# --mount=type=secret keeps the PAT out of the image layer entirely (tmpfs,
+# only readable during this RUN) — it's for hosts where GitHub 401s on
+# anonymous git-upload-pack even for public repos (see deploy's
+# GITHUB_TOKEN_FILE). required=false: absent on hosts that don't need it,
+# clone falls back to plain anonymous.
+RUN --mount=type=secret,id=github_token,required=false \
+    echo "apps-cache-bust: $APPS_CACHE_BUST" \
     && python3 -c "import json; [print(a['name'], a['repo'], a['branch']) for a in json.load(open('/tmp/apps.json'))]" > /tmp/extra_apps.txt \
     && sed -i -e '$a\' /home/frappe/frappe-bench/sites/apps.txt \
+    && GITHUB_TOKEN="$(cat /run/secrets/github_token 2>/dev/null || true)" \
     && while read name repo branch; do \
-         git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name" \
+         if [ -n "$GITHUB_TOKEN" ]; then \
+           git -c "http.extraheader=Authorization: Bearer ${GITHUB_TOKEN}" clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name"; \
+         else \
+           git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name"; \
+         fi \
          && chown -R frappe:frappe "/home/frappe/frappe-bench/apps/$name" \
          && /home/frappe/frappe-bench/env/bin/pip install -e "/home/frappe/frappe-bench/apps/$name" \
          && { [ ! -f "/home/frappe/frappe-bench/apps/$name/package.json" ] || (cd "/home/frappe/frappe-bench/apps/$name" && yarn install); } \
