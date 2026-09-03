@@ -32,6 +32,12 @@ class Settings:
 	session_ttl: int = field(default_factory=lambda: _int("OPS_SESSION_TTL", 3600))
 	session_idle: int = field(default_factory=lambda: _int("OPS_SESSION_IDLE", 1800))
 
+	# Encrypts secrets-at-rest (currently: the off-host FTP backup target
+	# password) written to OPS_DATA_DIR. Deliberately separate from
+	# session_secret — a leaked cookie-signing key should not also decrypt
+	# stored credentials.
+	secret_key: str = field(default_factory=lambda: os.environ.get("OPS_SECRET_KEY", ""))
+
 	backup_keep: int = field(default_factory=lambda: _int("OPS_BACKUP_KEEP", 5))
 	env_label: str = field(default_factory=lambda: os.environ.get("OPS_ENV_LABEL", "dev"))
 
@@ -39,6 +45,13 @@ class Settings:
 	# Renders every panel from fixtures so templates can be worked on with no
 	# host to SSH into. Never set this on a server.
 	fake_host: bool = field(default_factory=lambda: os.environ.get("OPS_FAKE_HOST", "") == "1")
+
+	# Developer setup: no sshd required. Login just checks the username against
+	# allowed_users (no password), and every command runs directly inside this
+	# container instead of over SSH — see local_conn.py and
+	# docker-compose.ops.local.yml, which bind-mounts the docker socket + repo
+	# to make that useful. Never set this on a shared host.
+	local_mode: bool = field(default_factory=lambda: os.environ.get("OPS_LOCAL_MODE", "") == "1")
 
 	@property
 	def jobs_dir(self) -> str:

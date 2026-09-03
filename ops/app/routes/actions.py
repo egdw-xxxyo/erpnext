@@ -11,13 +11,17 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from .. import audit, commands, jobs, stats
+from .. import audit, commands, git_ssh, jobs, stats
 from ..config import settings
 from ..deps import SessionDep, client_ip
 from ..sessions import Session
 from ..templating import templates
 
 router = APIRouter(prefix="/actions")
+
+# These are the only commands that touch origin (git pull/fetch) — the rest
+# never need a deploy key staged.
+_GIT_COMMANDS = {"update-repo", "switch-branch"}
 
 
 async def _csrf(request: Request, session: Session) -> None:
@@ -78,6 +82,9 @@ async def launch(key: str, request: Request, session: SessionDep):
 				request, session, error=f"Confirmation did not match. Type '{expected}' exactly."
 			)
 
+	if key in _GIT_COMMANDS:
+		line = await asyncio.to_thread(git_ssh.wrap, session.conn, session.username, line)
+
 	try:
 		job_id = await asyncio.to_thread(
 			jobs.launch, session.conn, key, line, command.label, session.username, values
@@ -98,6 +105,71 @@ async def launch(key: str, request: Request, session: SessionDep):
 		result="launched",
 	)
 	return _fragment(request, session, job_id=job_id, label=command.label)
+
+
+@router.get("/backup-remove/{name}/confirm", response_class=HTMLResponse)
+async def backup_remove_confirm(name: str, request: Request, session: SessionDep):
+	try:
+		name = commands.validate_backup_name(name)
+	except commands.InvalidArgument as exc:
+		raise HTTPException(status_code=400, detail=str(exc)) from exc
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": f"Remove {name}",
+			"warning": f"Permanently deletes local backup set {name}. This cannot be undone.",
+			"post_url": "/actions/backup-remove",
+			"hidden": {"name": name},
+			"require_typed": True,
+			"danger": True,
+			"button_label": "Remove permanently",
+		},
+	)
+
+
+@router.get("/backup-clean/confirm", response_class=HTMLResponse)
+async def backup_clean_confirm(request: Request, session: SessionDep):
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": "Clean old backups",
+			"warning": "Deletes every local backup except the most recent one. This cannot be undone.",
+			"post_url": "/actions/backup-clean",
+			"hidden": {},
+			"require_typed": True,
+			"danger": True,
+			"button_label": "Clean old backups",
+		},
+	)
+
+
+@router.get("/space-hard-clean/confirm", response_class=HTMLResponse)
+async def space_hard_clean_confirm(request: Request, session: SessionDep):
+	return templates.TemplateResponse(
+		request,
+		"partials/confirm_popup.html",
+		{
+			"settings": settings,
+			"session": session,
+			"title": "Hard clean",
+			"warning": (
+				"Removes every unused Docker image, including the previous release's tagged image — "
+				"you will not be able to roll back to it afterwards. Also fully clears the build "
+				"cache, so the next build starts uncached and is slower. This cannot be undone."
+			),
+			"post_url": "/actions/space-hard-clean",
+			"hidden": {},
+			"require_typed": True,
+			"danger": True,
+			"button_label": "Remove images and cache",
+		},
+	)
 
 
 @router.post("/restore/{name}/confirm", response_class=HTMLResponse)

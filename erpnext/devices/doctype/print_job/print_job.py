@@ -48,7 +48,7 @@ class PrintJob(Document):
 			)
 
 
-def cleanup_old_print_jobs(days=7, batch_size=500):
+def cleanup_old_print_jobs(days=7, batch_size=5000):
 	"""Daily scheduler job: delete finished Print Jobs older than `days`
 	along with their attached preview/PCX files."""
 	cutoff = frappe.utils.add_days(frappe.utils.now_datetime(), -days)

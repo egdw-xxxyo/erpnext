@@ -13,6 +13,8 @@ import shlex
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from . import prefs
+
 BRANCH_RE = re.compile(r"^[A-Za-z0-9._/-]{1,100}$")
 BACKUP_RE = re.compile(r"^[0-9]{8}_[0-9]{6}-[A-Za-z0-9_.-]{1,64}$")
 
@@ -66,7 +68,16 @@ COMMANDS: dict[str, Command] = {
 		key="build",
 		label="Deploy (build)",
 		description="Rebuild the image and run the full deploy (./deploy build --silent).",
-		build=lambda _: "./deploy build --silent",
+		# One job, one shell line: when the "safety backup" preference is on,
+		# a failed backup (disk full, etc.) short-circuits via && and the
+		# build never runs — a hard gate, in the same spirit as
+		# backup_space_guard already blocking backup itself. --no-files keeps
+		# it fast enough to run before every deploy, not just occasionally.
+		build=lambda _: (
+			"./deploy backup --no-files && ./deploy build --silent"
+			if prefs.get("pre_deploy_backup", True)
+			else "./deploy build --silent"
+		),
 		destructive=True,
 	),
 	"backup": Command(
@@ -82,6 +93,46 @@ COMMANDS: dict[str, Command] = {
 		description="Destroys the current database and files, replacing them with a backup.",
 		build=lambda p: f"./deploy restore {p['name']} --yes",
 		params={"name": _backup_name},
+		destructive=True,
+		confirm_phrase="site",
+	),
+	"backup-remove": Command(
+		key="backup-remove",
+		label="Remove backup",
+		description="Permanently deletes one local backup set. Does not touch any off-host copy.",
+		build=lambda p: f"./deploy backup-remove {p['name']}",
+		params={"name": _backup_name},
+		destructive=True,
+		confirm_phrase="site",
+	),
+	"backup-clean": Command(
+		key="backup-clean",
+		label="Clean old backups",
+		description="Deletes every local backup except the most recent one.",
+		build=lambda _: "./deploy backup --prune-only --keep=1",
+		destructive=True,
+		confirm_phrase="site",
+	),
+	"space-clean": Command(
+		key="space-clean",
+		label="Safe clean",
+		description=(
+			"Prunes dangling Docker images and unused build cache, vacuums the systemd journal to "
+			"100 MB. Never touches backups, the site database, or files inside sites/."
+		),
+		build=lambda _: "./deploy space-clean",
+	),
+	"space-hard-clean": Command(
+		key="space-hard-clean",
+		label="Hard clean",
+		description=(
+			"Removes every Docker image and build cache layer not in active use, including the "
+			'previous release\'s tagged image — matches the full "Reclaimable" number shown per '
+			"row. Rollback to the previous image is no longer possible after this runs, and the "
+			"next build starts uncached (slower). Never touches backups, the site database, or "
+			"files inside sites/."
+		),
+		build=lambda _: "./deploy space-hard-clean",
 		destructive=True,
 		confirm_phrase="site",
 	),

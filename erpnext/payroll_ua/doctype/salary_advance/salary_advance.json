@@ -28,11 +28,12 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Company",
    "options": "Company",
    "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "set_only_once": 1
   },
   {
    "fieldname": "period_start",
@@ -62,11 +63,12 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "15",
+   "description": "Аванс рахується за відпрацьовані дні з 1-го по цей день включно.",
    "fieldname": "cutoff_day",
    "fieldtype": "Int",
    "label": "Paid For Days Up To",
-   "default": "15",
-   "description": "Аванс рахується за відпрацьовані дні з 1-го по цей день включно."
+   "set_only_once": 1
   },
   {
    "fieldname": "payment_date",
@@ -134,7 +136,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-21 14:00:00.000000",
+ "modified": "2026-08-29 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Salary Advance",

@@ -1,7 +1,12 @@
-"""Зміна окладу з майбутнього місяця.
+"""Зміна окладу з майбутнього місяця (або з поточного, поки не платили аванс).
 
-Оклад ніколи не міняється «заднім числом»: документ приймає лише перше число майбутнього
-місяця, тож закритий або поточний місяць рахується за тими сумами, за якими його й починали.
+Оклад не міняється «заднім числом»: документ приймає перше число майбутнього місяця, а
+поточний — лише до `CURRENT_MONTH_LAST_DAY` числа і лише поки за цей місяць не виплатили
+аванс. Виплачений аванс уже порахований за старим окладом, тож міняти базу після нього
+означало б платити місяць двома різними ставками.
+
+Документ живе у два кроки: «Зберегти» лишає чернетку, «Затвердити» кладе оклади в картки
+й закриває документ від правок.
 
 Сам документ нічого не рахує: при затвердженні нові суми лягають у картку працівника, а звідти
 хук `erpnext.hr.salary_split` створює призначення структури з потрібною датою. Історію окладів
@@ -11,19 +16,31 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, formatdate, get_first_day, getdate, nowdate
+from frappe.utils import flt, formatdate, get_first_day, get_last_day, getdate, nowdate
 
+from erpnext.hr.payroll_tax import reservation_minimum
 from erpnext.hr.salary_split import apply_salary_to_employee, has_submitted_slip, salary_parts_on
+from erpnext.hr.team import visible_employees
+
+# До якого числа поточного місяця ще можна змінити оклад із цього ж місяця.
+CURRENT_MONTH_LAST_DAY = 14
 
 
 class SalaryChange(Document):
+	def onload(self):
+		# Мінімум бронювання живе в налаштуваннях і міняється постановою — форма читає
+		# його звідси, щоб не питати сервер на кожен рядок.
+		self.set_onload("reservation_minimum", flt(self.reservation_minimum) or reservation_minimum())
+
 	def before_naming(self):
 		# `autoname` reads year and month, and it runs before validate.
 		self.set_period()
 
 	def validate(self):
+		self.validate_not_approved()
 		self.set_period()
-		self.validate_future_month()
+		self.set_reservation_minimum()
+		self.validate_month()
 		self.set_current_salary()
 		self.set_totals()
 
@@ -35,19 +52,77 @@ class SalaryChange(Document):
 		self.year = self.effective_from.year
 		self.month = str(self.effective_from.month)
 
-	def validate_future_month(self):
-		"""Поточний місяць уже рахується — оклад можна міняти лише з наступного."""
+	def set_reservation_minimum(self):
+		"""Мінімум бронювання фіксується документом: постанова його міняє, а затверджена
+		зміна має лишитися з тим числом, за яким її погоджували."""
+		if not flt(self.reservation_minimum):
+			self.reservation_minimum = reservation_minimum()
+
+	def validate_not_approved(self):
+		"""Затверджений документ уже в картках працівників — правити його нема куди."""
+		if self.is_new() or self.flags.approving:
+			return
+
+		if frappe.db.get_value("Salary Change", self.name, "status") == "Approved":
+			frappe.throw(
+				_("This change is approved — create a new document to change the salary again."),
+				title=_("Change Already Approved"),
+			)
+
+	def validate_month(self):
+		"""Майбутній місяць — завжди; поточний — до 14 числа і поки не платили аванс."""
 		if self.status == "Approved":
 			return
 
-		if self.effective_from > getdate(get_first_day(nowdate())):
+		month_start = getdate(get_first_day(nowdate()))
+
+		if self.effective_from > month_start:
+			return
+
+		if self.effective_from < month_start:
+			frappe.throw(
+				_("The salary may only be changed from a future month, {0} has already started.").format(
+					formatdate(self.effective_from, "MM.yyyy")
+				),
+				title=_("Month Already Started"),
+			)
+
+		if getdate(nowdate()).day > CURRENT_MONTH_LAST_DAY:
+			frappe.throw(
+				_(
+					"The current month may be changed only up to the {0}th — after that the salary changes from the next month."
+				).format(CURRENT_MONTH_LAST_DAY),
+				title=_("Month Already Started"),
+			)
+
+		self.validate_no_paid_advance()
+
+	def validate_no_paid_advance(self):
+		"""Аванс за цей місяць уже на руках — він порахований за старим окладом, тож і
+		решта місяця має піти за ним."""
+		advances = frappe.get_all(
+			"Salary Advance",
+			filters={"company": self.company, "period_start": self.effective_from, "docstatus": ["<", 2]},
+			pluck="name",
+		)
+
+		if not advances:
+			return
+
+		paid = frappe.get_all(
+			"Salary Advance Item",
+			filters={"parent": ["in", advances], "parenttype": "Salary Advance", "paid": 1},
+			limit=1,
+		)
+
+		if not paid:
 			return
 
 		frappe.throw(
-			_("The salary may only be changed from a future month, {0} has already started.").format(
-				formatdate(self.effective_from, "MM.yyyy")
-			),
-			title=_("Month Already Started"),
+			_(
+				"The advance for {0} is already paid — the salary of this month can no longer be changed."
+			).format(formatdate(self.effective_from, "MM.yyyy")),
+			title=_("Advance Already Paid"),
 		)
 
 	def set_current_salary(self):
@@ -99,11 +174,32 @@ class SalaryChange(Document):
 		)
 
 	@frappe.whitelist()
+	def refresh_reservation_minimum(self):
+		"""Підтягує чинний мінімум бронювання в чернетку — постанова могла змінити його
+		після створення документа."""
+		if self.status == "Approved":
+			frappe.throw(_("This change has already been applied."))
+
+		self.reservation_minimum = reservation_minimum()
+		self.save()
+
+		return self.reservation_minimum
+
+	def visible_employees(self):
+		"""Підлеглі поточного користувача — та сама вибірка, що й у табелі та в затвердженні
+		премій: оклад міняє той, хто веде людину."""
+		period_start = getdate(self.effective_from).replace(day=1)
+
+		return visible_employees(self.company, period_start, get_last_day(period_start))
+
+	@frappe.whitelist()
 	def load_employees(self):
 		"""Тягне активних працівників компанії з окладом, чинним на дату зміни."""
 		known = {row.employee for row in self.employees}
 
-		for employee in get_month_employees(self.company, self.effective_from):
+		for employee in get_month_employees(
+			self.company, self.effective_from, employees=self.visible_employees()
+		):
 			if employee["employee"] in known:
 				continue
 
@@ -133,6 +229,7 @@ class SalaryChange(Document):
 				applied += 1
 
 		self.status = "Approved"
+		self.flags.approving = True
 		self.save()
 
 		return applied
@@ -147,13 +244,45 @@ def get_employees(company: str, effective_from: str) -> list[dict]:
 	"""Список працівників для нового документа — форма тягне його сама, без кнопки."""
 	frappe.has_permission("Salary Change", throw=True)
 
-	return get_month_employees(company, effective_from)
+	period_start = getdate(effective_from).replace(day=1)
+
+	return get_month_employees(
+		company,
+		effective_from,
+		employees=visible_employees(company, period_start, get_last_day(period_start)),
+	)
 
 
-def get_month_employees(company: str, effective_from) -> list[dict]:
+def get_month_employees(company: str, effective_from, employees: list[str] | None = None) -> list[dict]:
+	"""Ті самі люди, що й в авансі та відомості за цей місяць.
+
+	Правило одне на всі зарплатні документи: компанія, працював хоч день у місяці —
+	зокрема прийнятий усередині місяця й звільнений усередині місяця. Раніше список брав
+	лише `Active` без дат, тож у зміну окладу потрапляв той, хто ще не вийшов на роботу,
+	і не потрапляв той, кого звільняють наприкінці місяця.
+	"""
+	period_start = getdate(effective_from).replace(day=1)
+	period_end = get_last_day(period_start)
+	# `employees` — кого саме тягнути; `None` означає всю компанію (виклик без керівника).
+	if employees is not None and not employees:
+		return []
+
+	scope = [
+		["company", "=", company],
+		["status", "in", ["Active", "Left"]],
+		["date_of_joining", "<=", period_end],
+	]
+
+	if employees is not None:
+		scope.append(["name", "in", employees])
+
 	employees = frappe.get_all(
 		"Employee",
-		filters={"company": company, "status": "Active"},
+		filters=scope,
+		or_filters=[
+			["relieving_date", "is", "not set"],
+			["relieving_date", ">=", period_start],
+		],
 		fields=["name", "employee_name", "department", "reports_to"],
 		order_by="department asc, employee_name asc",
 	)

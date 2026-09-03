@@ -68,6 +68,20 @@ frappe.query_reports["Component Stock Balance"] = {
 			options: "Warehouse",
 		},
 		{
+			fieldname: "show_responsible_employee",
+			label: __("Show Responsible Employee"),
+			fieldtype: "Check",
+			default: 0,
+		},
+		{
+			fieldname: "responsible_employee",
+			label: __("Responsible Employee"),
+			fieldtype: "MultiSelectList",
+			get_data: function (txt) {
+				return frappe.db.get_link_options("Employee", txt);
+			},
+		},
+		{
 			fieldname: "show_value",
 			label: __("Show Value"),
 			fieldtype: "Check",
@@ -83,8 +97,10 @@ frappe.query_reports["Component Stock Balance"] = {
 	formatter: function (value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);
 
-		if (data && column.id === "item_code" && data.required_qty !== undefined) {
-			if (data.actual_qty >= data.required_qty) {
+		if (data && column.id === "item_code" && data._required_qty != null) {
+			// availability is judged on the item total, not on one employee's share of it
+			let available = data._total_qty != null ? data._total_qty : data.actual_qty;
+			if (available >= data._required_qty) {
 				value = `<a style='color:green' href="/app/item/${data.item_code}" data-doctype="Item">${data.item_code}</a>`;
 			} else {
 				value = `<a style='color:red' href="/app/item/${data.item_code}" data-doctype="Item">${data.item_code}</a>`;

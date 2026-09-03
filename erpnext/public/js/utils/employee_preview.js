@@ -219,6 +219,16 @@ function bind(frm, $wrapper, options) {
 	});
 
 	$wrapper.find(".employee-preview-open").on("click", function () {
+		const idx = cint($(this).attr("data-idx"));
+		const row = (frm.doc[options.table] || []).find((item) => cint(item.idx) === idx);
+
+		// Стрибок до рядка таблиці забирає з-перед очей увесь список, а повертатися нікуди:
+		// коли документ уміє показати працівника попапом, лишаємося на місці.
+		if (options.open && row) {
+			options.open(row);
+			return;
+		}
+
 		open_row(frm, options.table, $(this).attr("data-row"), $(this).attr("data-idx"));
 	});
 }
@@ -252,8 +262,9 @@ function open_row(frm, table, name, idx) {
 	frappe.utils.scroll_to(row.wrapper);
 }
 
+// Дві копійки замість трьох: третій знак у зарплаті нічого не означає, а колонку розсуває.
 function money(value) {
-	return format_currency(flt(value), frappe.defaults.get_default("currency"));
+	return format_currency(flt(value), frappe.defaults.get_default("currency"), 2);
 }
 
 function number(value) {
@@ -284,8 +295,19 @@ function styles() {
 			.employee-preview-table { margin: 0; }
 			.employee-preview-table th,
 			.employee-preview-table td { padding: 6px 7px; font-size: 12px; vertical-align: middle; }
+			/* Число з валютою в один рядок: перенесення розривало «₴» і суму на два рядки. */
+			.employee-preview-table th.text-right,
+			.employee-preview-table td.text-right { white-space: nowrap; }
 			.employee-preview-open { padding: 0; border: 0; text-align: left; white-space: normal; }
-			.employee-preview-cell { padding: 0; border: 0; }
+			/* Клікабельну комірку видно з підкреслення — значок поруч із числом лише додавав рядок. */
+			.employee-preview-cell {
+				padding: 0;
+				white-space: nowrap;
+				border: 0;
+				text-decoration: underline;
+				text-decoration-style: dotted;
+				text-underline-offset: 3px;
+			}
 			.employee-preview-reveal { padding: 0; border: 0; color: var(--text-muted, #8d99a6); }
 			.employee-preview-hidden { color: var(--text-muted, #8d99a6); letter-spacing: 2px; }
 			.employee-preview-warn td { background: var(--yellow-50, #fff7e6); }

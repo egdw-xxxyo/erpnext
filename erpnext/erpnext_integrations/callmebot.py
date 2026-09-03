@@ -22,6 +22,7 @@ import frappe
 import requests
 from frappe import _
 from frappe.utils import get_url, strip_html_tags
+from frappe.utils.password import get_decrypted_password
 
 API_URL = "https://api.callmebot.com/whatsapp.php"
 REQUEST_TIMEOUT = 15
@@ -38,7 +39,7 @@ def get_user_config(user: str) -> dict | None:
 	config = frappe.db.get_value(
 		"Notification Settings",
 		user,
-		["callmebot_enabled", "callmebot_phone", "callmebot_api_key"],
+		["callmebot_enabled", "callmebot_phone"],
 		as_dict=True,
 	)
 	if not config or not config.callmebot_enabled:
@@ -46,7 +47,12 @@ def get_user_config(user: str) -> dict | None:
 
 	# Users paste numbers as "+380 63 640 07 06"; the API wants bare digits.
 	phone = re.sub(r"\D", "", config.callmebot_phone or "")
-	apikey = (config.callmebot_api_key or "").strip()
+	# `callmebot_api_key` is a Password field: its own column holds only a `*****` dummy, the
+	# real key lives encrypted in `__Auth`.
+	apikey = (
+		get_decrypted_password("Notification Settings", user, "callmebot_api_key", raise_exception=False)
+		or ""
+	).strip()
 	if not phone or not apikey:
 		return None
 

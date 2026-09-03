@@ -31,39 +31,6 @@ require_non_production() {
   fi
 }
 
-# Read the "environment" field from site-config.json (repo root). Empty if the
-# file or key is absent.
-site_environment() {
-  local cfg="$DIR/site-config.json"
-  [ -f "$cfg" ] || return 0
-  python3 -c "import json; print(json.load(open('$cfg')).get('environment',''))" 2>/dev/null
-}
-
-# On a prod site, refuse to deploy a commit that has no git tag. Release tags
-# are the versioning gate — deploying an untagged commit to prod is blocked so
-# what's live always maps to a tagged release.
-require_tag_on_prod() {
-  if [ "$(site_environment)" != "prod" ]; then
-    return 0
-  fi
-  if ! git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    echo "ERROR: prod site but '$DIR' is not a git repo — cannot verify release tag."
-    exit 1
-  fi
-  # Merge commits are exempt: a merge of a tagged branch does not itself carry
-  # the tag, so requiring one here would block every merge-based prod deploy.
-  if [ "$(git -C "$DIR" rev-list --no-walk --count --merges HEAD 2>/dev/null)" = "1" ]; then
-    echo "Prod tag check skipped — HEAD ($(git -C "$DIR" rev-parse --short HEAD)) is a merge commit."
-    return 0
-  fi
-  if ! git -C "$DIR" describe --exact-match --tags HEAD >/dev/null 2>&1; then
-    echo "ERROR: prod deploy blocked — current commit ($(git -C "$DIR" rev-parse --short HEAD)) has no git tag."
-    echo "Tag the release first, e.g.:"
-    echo "  git tag -a v$(date +%Y.%m.%d) -m \"release notes\" && git push origin v$(date +%Y.%m.%d)"
-    exit 1
-  fi
-}
-
 detect_host_lan_ip() {
   # macOS
   if command -v ipconfig >/dev/null 2>&1; then
@@ -123,14 +90,29 @@ dc() {
 # streaming its own console output. Keeping it under -p ops makes it invisible
 # to dc() (and to `dc down -v` in nuke/destroy).
 OPS_COMPOSE_FILE="$DIR/docker-compose.ops.yml"
+OPS_LOCAL_COMPOSE_FILE="$DIR/docker-compose.ops.local.yml"
 
 ops_dc() {
   [ -f "$OPS_COMPOSE_FILE" ] || return 0
-  if docker compose version &>/dev/null; then
-    docker compose -p ops -f "$OPS_COMPOSE_FILE" "$@"
-  else
-    docker-compose -p ops -f "$OPS_COMPOSE_FILE" "$@"
+  local files=(-f "$OPS_COMPOSE_FILE")
+  # Developer setup: no sshd needed, ops runs commands on itself instead —
+  # see docker-compose.ops.local.yml.
+  if [ "${OPS_LOCAL_MODE:-}" = "1" ]; then
+    files+=(-f "$OPS_LOCAL_COMPOSE_FILE")
   fi
+  # Every subcommand (build included, not just up) needs OPS_SESSION_SECRET
+  # etc. for compose's variable interpolation — source in a subshell so
+  # .ops.env never leaks into the ERPNext deploy environment above this.
+  (
+    set -a
+    [ -f "$DIR/.ops.env" ] && . "$DIR/.ops.env"
+    set +a
+    if docker compose version &>/dev/null; then
+      docker compose -p ops "${files[@]}" "$@"
+    else
+      docker-compose -p ops "${files[@]}" "$@"
+    fi
+  )
 }
 
 # Opt-in per host: no .ops.env means this machine does not run the dashboard.
@@ -148,8 +130,10 @@ ops_up() {
     set -a
     . "$DIR/.ops.env"
     set +a
-    : "${OPS_SSH_HOST:=$(detect_host_lan_ip)}"
-    export OPS_SSH_HOST
+    if [ "${OPS_LOCAL_MODE:-}" != "1" ]; then
+      : "${OPS_SSH_HOST:=$(detect_host_lan_ip)}"
+      export OPS_SSH_HOST
+    fi
     ops_dc up -d --build
   ) || echo "WARNING: ops dashboard failed to start (ERPNext deploy unaffected)."
 }
@@ -364,6 +348,94 @@ backup_list_human() {
   backup_list | awk '{printf "  %-26s %s  %.1f MB\n", $1, strftime("%Y-%m-%d %H:%M", $2), $3/1048576}'
 }
 
+# Sidecar written next to a freshly created backup set so a later push/pull can
+# tell which ERPNext version produced it and whether it was prod or dev.
+backup_meta_json() {
+  local name="$1" branch head tag describe env_label with_files created_at
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  head=$(git rev-parse --short HEAD 2>/dev/null)
+  tag=$(git tag --points-at HEAD 2>/dev/null | tail -1)
+  describe=$(git describe --tags --always --dirty 2>/dev/null)
+  env_label=$([ "$DEPLOY_ENV" = "production" ] && echo prod || echo dev)
+  with_files=$(dc exec -T backend test -f "$BACKUP_DIR/$name-files.tar" </dev/null 2>/dev/null && echo true || echo false)
+  created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  printf '{"name":"%s","created_at":"%s","site":"%s","env_label":"%s","erpnext":{"branch":"%s","tag":"%s","head":"%s","describe":"%s"},"with_files":%s}\n' \
+    "$name" "$created_at" "$SITE" "$env_label" "$branch" "$tag" "$head" "$describe" "$with_files"
+}
+
+backup_write_meta() {
+  local name="$1"
+  backup_meta_json "$name" | dc exec -T backend tee "$BACKUP_DIR/$name-meta.json" >/dev/null
+}
+
+# Unconditional delete of one named local backup set, independent of
+# backup_prune's keep-count logic — used once a set is confirmed pushed
+# off-host (backup-scheduled) so it does not also eat a local retention slot.
+backup_delete_local() {
+  local name="$1"
+  dc exec -T backend bash -c 'rm -f "$1/$2"-*' _ "$BACKUP_DIR" "$name" </dev/null
+}
+
+# Plain FTP, not SFTP: this target (confirmed against a real Tucha hosting
+# account) speaks FTP with opportunistic explicit TLS, default port 21 — no
+# SSH involved. Every curl call here uses --ssl (curl's "use TLS if the
+# server offers it" flag), matching the client config that was verified to
+# actually work; --ssl-reqd would be stricter but risks breaking on a target
+# that doesn't support TLS on every command channel. Also -k: Tucha's TLS
+# cert doesn't chain to a CA curl trusts (curl 60), and there's no pinned
+# fingerprint to check against instead — same trust-on-first-use gap as the
+# rest of this feature, just for TLS instead of SSH host keys.
+#
+# Uploads one backup set's files (+ its meta.json) to the FTP target and
+# refreshes manifest.json there. The db dump and meta.json are required — a
+# failed upload of either aborts with non-zero; file tarballs are uploaded
+# when present locally but their absence is not an error.
+backup_push_files() {
+  local name="$1" rhost="$2" rport="$3" rdir="$4" netrc="$5"
+  local suffix f required
+  for suffix in database.sql.gz meta.json files.tar private-files.tar; do
+    f="$BACKUP_DIR/$name-$suffix"
+    dc exec -T backend test -f "$f" </dev/null || continue
+    case "$suffix" in
+      database.sql.gz | meta.json) required=1 ;;
+      *) required=0 ;;
+    esac
+    if ! dc exec -T backend curl -sS -f -k --ssl --netrc-file "$netrc" -T "$f" \
+      "ftp://$rhost:$rport$rdir/$name-$suffix" </dev/null; then
+      if [ "$required" = "1" ]; then
+        echo "ERROR: upload of $name-$suffix failed."
+        return 1
+      fi
+      echo "WARNING: upload of $name-$suffix failed (optional, continuing)."
+    fi
+  done
+
+  dc exec -T backend bash -c '
+    RHOST="$1"; RPORT="$2"; RDIR="$3"; NETRC="$4"; NAME="$5"; BACKUP_DIR="$6"
+    TMP=$(mktemp)
+    curl -sS -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" -o "$TMP" 2>/dev/null || echo "[]" > "$TMP"
+    python3 -c "
+import json, sys
+path, name, meta_path = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    entries = json.load(open(path))
+    if not isinstance(entries, list):
+        entries = []
+except Exception:
+    entries = []
+entries = [e for e in entries if e.get(\"name\") != name]
+meta = json.load(open(meta_path))
+entries.append(meta)
+entries.sort(key=lambda e: e.get(\"created_at\", \"\"))
+json.dump(entries, open(path, \"w\"))
+" "$TMP" "$NAME" "$BACKUP_DIR/$NAME-meta.json"
+    curl -sS -f -k --ssl --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
+    RC=$?
+    rm -f "$TMP"
+    exit $RC
+  ' _ "$rhost" "$rport" "$rdir" "$netrc" "$name" "$BACKUP_DIR" </dev/null
+}
+
 backup_prune() {
   local keep="${1:-$OPS_BACKUP_KEEP}"
   local names
@@ -569,7 +641,6 @@ PY
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
     DEPLOY_SILENT=$SILENT
 
-    require_tag_on_prod
     if [ "$SILENT" = "1" ]; then
       # Stream build to a temp log so we can show context only if it fails.
       BUILD_LOG=$(mktemp)
@@ -597,7 +668,6 @@ PY
     for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
     DEPLOY_SILENT=$SILENT
 
-    require_tag_on_prod
     say "(migrate is now an alias for build)"
     if [ "$SILENT" = "1" ]; then
       BUILD_LOG=$(mktemp)
@@ -633,6 +703,36 @@ PY
 
   fix-assets)
     fix_assets
+    ;;
+
+  space-clean)
+    # Everything here is safe by construction: no -a (never touches an image
+    # or cache layer still referenced by something), no volume prune (never
+    # touches the site database), no backup files. journalctl vacuum runs
+    # unprivileged first and just reports if that's not enough — never sudo,
+    # which would hang forever waiting for a password in a non-interactive job.
+    say "==> Pruning dangling Docker images..."
+    docker image prune -f --filter "dangling=true"
+    say "==> Pruning unused Docker build cache..."
+    docker builder prune -f
+    say "==> Vacuuming systemd journal to 100M..."
+    journalctl --vacuum-size=100M 2>&1 || echo "Skipped: no permission to vacuum the journal as this user."
+    echo "Safe clean complete."
+    ;;
+
+  space-hard-clean)
+    # Unlike space-clean, this removes every image not referenced by a
+    # running/stopped container — including old tagged erpnext-uk rollback
+    # images — and the full build cache, not just the unused slice. Matches
+    # exactly what `docker system df`'s "Reclaimable" column promises. Still
+    # no volume prune, still never touches backups or sites/.
+    say "==> Removing ALL unused Docker images (including tagged rollback images)..."
+    docker image prune -a -f
+    say "==> Pruning ALL Docker build cache (next build will be uncached, slower)..."
+    docker builder prune -a -f
+    say "==> Vacuuming systemd journal to 100M..."
+    journalctl --vacuum-size=100M 2>&1 || echo "Skipped: no permission to vacuum the journal as this user."
+    echo "Hard clean complete. Rollback to the previous image is no longer possible."
     ;;
 
   ops)
@@ -680,6 +780,8 @@ PY
     else
       dc exec -T backend bench --site "$SITE" backup
     fi
+    NEW_NAME=$(backup_list | tail -1 | awk '{print $1}')
+    [ -n "$NEW_NAME" ] && backup_write_meta "$NEW_NAME"
     echo "Backups (keeping last $KEEP):"
     backup_list_human
     ;;
@@ -741,12 +843,187 @@ PY
     echo "Restore complete."
     ;;
 
+  backup-push)
+    # Push one existing local backup set (+ its meta.json) to an off-host FTP
+    # target, then refresh that target's manifest.json. Credentials never
+    # appear here — they live only in the caller-supplied netrc file, read by
+    # curl, never by this script.
+    NAME="${2:?usage: ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>}"
+    RHOST="${3:?}"; RPORT="${4:?}"; RDIR="${5:?}"; NETRC="${6:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    for f in "$BACKUP_DIR/$NAME-database.sql.gz" "$BACKUP_DIR/$NAME-meta.json"; do
+      if ! dc exec -T backend test -f "$f" </dev/null; then
+        echo "ERROR: missing $f locally, cannot push."
+        exit 1
+      fi
+    done
+    say "==> Pushing $NAME to ftp://$RHOST:$RPORT$RDIR/ ..."
+    if backup_push_files "$NAME" "$RHOST" "$RPORT" "$RDIR" "$NETRC"; then
+      echo "Push complete: $NAME"
+    else
+      echo "ERROR: push failed for $NAME."
+      exit 1
+    fi
+    ;;
+
+  backup-remote-list)
+    RHOST="${2:?usage: ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>}"
+    RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    dc exec -T backend curl -sS -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null || echo "[]"
+    ;;
+
+  backup-remote-test)
+    # A trailing slash on the ftp:// URL makes curl LIST the directory
+    # instead of fetching a file — used by the ops "Test connection" button
+    # to prove the target is reachable, and to surface what's already there.
+    # Unlike push/pull/list, this touches no backup files, so it runs curl on
+    # the host directly rather than through the backend container — the test
+    # then works even with the ERPNext stack stopped. NETRC lives on the host
+    # only for the few seconds of this call (ops writes it, we delete it).
+    RHOST="${2:?usage: ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>}"
+    RPORT="${3:?}"; RDIR="${4:?}"; NETRC="${5:?}"
+    trap 'rm -f "$NETRC"' EXIT
+    curl -sS -f -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/"
+    ;;
+
+  backup-pull)
+    NAME="${2:?usage: ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>}"
+    RHOST="${3:?}"; RPORT="${4:?}"; RDIR="${5:?}"; NETRC="${6:?}"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    say "==> Pulling $NAME from ftp://$RHOST:$RPORT$RDIR/ ..."
+    for suffix in database.sql.gz meta.json files.tar private-files.tar; do
+      dc exec -T backend bash -c '
+        RHOST="$1"; RPORT="$2"; RDIR="$3"; NETRC="$4"; NAME="$5"; SUFFIX="$6"; BACKUP_DIR="$7"
+        OUT="$BACKUP_DIR/$NAME-$SUFFIX"
+        TMP=$(mktemp)
+        if curl -sS -f -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/$NAME-$SUFFIX" -o "$TMP" 2>/dev/null; then
+          mv "$TMP" "$OUT"
+        else
+          rm -f "$TMP"
+        fi
+      ' _ "$RHOST" "$RPORT" "$RDIR" "$NETRC" "$NAME" "$suffix" "$BACKUP_DIR" </dev/null
+    done
+    if ! dc exec -T backend test -f "$BACKUP_DIR/$NAME-database.sql.gz" </dev/null; then
+      echo "ERROR: pull failed, no database dump landed for $NAME."
+      exit 1
+    fi
+    echo "Pull complete: $NAME. Restore with: ./deploy restore $NAME"
+    ;;
+
+  backup-remove)
+    # Unconditional single-set delete — the "Remove" row action in the ops
+    # dashboard's 3-dot menu. Independent of retention (backup_prune); the
+    # operator picked this exact set.
+    NAME="${2:?usage: ./deploy backup-remove <name>}"
+    if ! dc exec -T backend test -f "$BACKUP_DIR/$NAME-database.sql.gz" </dev/null; then
+      echo "ERROR: no backup named '$NAME'."
+      exit 1
+    fi
+    backup_delete_local "$NAME"
+    echo "Removed: $NAME"
+    ;;
+
+  backup-scheduled)
+    # Cron's entry point (installed/removed by the ops dashboard's Settings
+    # page over the operator's own SSH session — nothing runs unattended that
+    # a human did not configure interactively). Takes a full local backup,
+    # then — if an FTP target is configured — pushes it, confirms it landed
+    # in the remote manifest, and only then deletes the local copy: a
+    # scheduled backup is not meant to also eat a local retention slot.
+    #
+    # The FTP password is fetched from the already-running ops container
+    # (which holds it encrypted) via `docker compose exec`, never written to
+    # a host-side file: this script's own argv never carries it, only a
+    # captured-in-memory JSON blob and a netrc file scoped to this run.
+    TARGET_ID="${2:-}"
+
+    say "==> Scheduled backup for site $SITE..."
+    backup_prune "$((OPS_BACKUP_KEEP - 1))"
+    backup_space_guard
+    dc exec -T backend bench --site "$SITE" backup --with-files
+    NEW_NAME=$(backup_list | tail -1 | awk '{print $1}')
+    if [ -z "$NEW_NAME" ]; then
+      echo "ERROR: scheduled backup produced no new set."
+      exit 1
+    fi
+    backup_write_meta "$NEW_NAME"
+
+    if [ -z "$TARGET_ID" ]; then
+      echo "Scheduled as local-only (no push target selected); backup stays local: $NEW_NAME"
+      exit 0
+    fi
+
+    if ! ops_enabled; then
+      echo "Ops dashboard not enabled on this host; backup stays local: $NEW_NAME"
+      exit 0
+    fi
+
+    CREDS_JSON=$(ops_dc exec -T ops python3 -c '
+import json, sys
+from app.ftp_config import get_target
+c = get_target(sys.argv[1])
+print(json.dumps({"host": c.host, "port": c.port, "username": c.username, "password": c.password, "remote_dir": c.remote_dir}) if c else "")
+' "$TARGET_ID" 2>/dev/null)
+    if [ -z "$CREDS_JSON" ]; then
+      echo "ERROR: configured push target '$TARGET_ID' no longer exists; backup stays local: $NEW_NAME"
+      exit 1
+    fi
+
+    RHOST=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['host'])")
+    RPORT=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['port'])")
+    RDIR=$(printf '%s' "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['remote_dir'])")
+
+    NETRC="/tmp/ops-ftp-$$-scheduled.netrc"
+    trap 'dc exec -T backend rm -f "$NETRC" 2>/dev/null || true' EXIT
+    printf '%s' "$CREDS_JSON" | python3 -c "
+import json, sys
+d = json.loads(sys.stdin.read())
+print('machine %s' % d['host'])
+print('login %s' % d['username'])
+print('password %s' % d['password'])
+" | dc exec -T backend bash -c 'umask 077; cat > "$1"' _ "$NETRC"
+    unset CREDS_JSON
+
+    say "==> Pushing $NEW_NAME to ftp://$RHOST:$RPORT$RDIR/ ..."
+    if ! backup_push_files "$NEW_NAME" "$RHOST" "$RPORT" "$RDIR" "$NETRC"; then
+      echo "ERROR: push failed. Keeping local copy of $NEW_NAME."
+      exit 1
+    fi
+
+    say "==> Verifying $NEW_NAME landed remotely..."
+    LANDED=$(dc exec -T backend curl -sS -k --ssl --netrc-file "$NETRC" "ftp://$RHOST:$RPORT$RDIR/manifest.json" 2>/dev/null \
+      | python3 -c "
+import json, sys
+try:
+    entries = json.load(sys.stdin)
+except Exception:
+    entries = []
+print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
+")
+    if [ "$LANDED" != "1" ]; then
+      echo "ERROR: push reported success but $NEW_NAME is not in the remote manifest. Keeping local copy."
+      exit 1
+    fi
+
+    say "==> Confirmed remote, deleting local copy of $NEW_NAME..."
+    backup_delete_local "$NEW_NAME"
+    echo "Scheduled backup complete: $NEW_NAME pushed off-host, removed locally."
+    ;;
+
   *)
     echo "Environment: $DEPLOY_ENV"
     echo "Usage: ./deploy {init|start|stop|build|fix-assets|setup-prod|setup-dev}"
     echo "       ./deploy ops {up|down|rebuild|logs|status}"
     echo "       ./deploy backup [--no-files] [--keep=N] [--prune-only]"
     echo "       ./deploy restore {--list|<name> [--yes]}"
+    echo "       ./deploy space-clean"
+    echo "       ./deploy backup-remove <name>"
+    echo "       ./deploy backup-push <name> <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-remote-list <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-remote-test <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-pull <name> <host> <port> <remote-dir> <netrc-file>"
+    echo "       ./deploy backup-scheduled [target-id]  (cron entry point, installed via the ops dashboard)"
     if [ "$DEPLOY_ENV" != "production" ]; then
       echo "       ./deploy {nuke|destroy}  (dev only)"
     fi

@@ -1,0 +1,188 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:MPS-{company}-{year}-{month}",
+ "creation": "2026-08-25 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "period_start",
+  "year",
+  "month",
+  "column_break_period",
+  "period_end",
+  "status",
+  "bonus_approved",
+  "section_break_counts",
+  "total_employees",
+  "employees_without_attendance",
+  "column_break_counts",
+  "paid_employees",
+  "advance_sheet",
+  "section_break_employees",
+  "employees_preview",
+  "employees"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Month",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Month",
+   "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Period End",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nTo Pay\nPartly Paid\nPaid",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "bonus_approved",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Bonuses Approved",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_counts",
+   "fieldtype": "Section Break",
+   "label": "Headcount"
+  },
+  {
+   "fieldname": "total_employees",
+   "fieldtype": "Int",
+   "label": "Employees",
+   "read_only": 1
+  },
+  {
+   "description": "Employees whose attendance sheet is not approved for the month — they cannot be paid.",
+   "fieldname": "employees_without_attendance",
+   "fieldtype": "Int",
+   "label": "Without Attendance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_counts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "paid_employees",
+   "fieldtype": "Int",
+   "label": "Paid Employees",
+   "read_only": 1
+  },
+  {
+   "fieldname": "advance_sheet",
+   "fieldtype": "Link",
+   "label": "Advance",
+   "options": "Salary Advance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_employees",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employees_preview",
+   "fieldtype": "HTML",
+   "label": "Employees by Department"
+  },
+  {
+   "fieldname": "employees",
+   "fieldtype": "Table",
+   "label": "Employees",
+   "options": "Payroll Sheet Item",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Management Payroll Sheet",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

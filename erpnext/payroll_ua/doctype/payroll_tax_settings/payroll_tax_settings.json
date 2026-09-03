@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "creation": "2026-08-25 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_withheld",
+  "pit_rate",
+  "column_break_withheld",
+  "military_levy_rate",
+  "section_break_employer",
+  "ssc_rate",
+  "column_break_employer",
+  "ssc_disability_rate",
+  "section_break_reservation",
+  "minimum_reservation_salary"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_withheld",
+   "fieldtype": "Section Break",
+   "label": "Withheld from the Employee"
+  },
+  {
+   "default": "18",
+   "description": "Personal income tax withheld from the official part of the salary.",
+   "fieldname": "pit_rate",
+   "fieldtype": "Percent",
+   "label": "PIT Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_withheld",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "5",
+   "description": "Military levy withheld from the official part of the salary.",
+   "fieldname": "military_levy_rate",
+   "fieldtype": "Percent",
+   "label": "Military Levy Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_employer",
+   "fieldtype": "Section Break",
+   "label": "Paid by the Employer"
+  },
+  {
+   "default": "22",
+   "description": "SSC paid on top of the official part. It is not withheld from the employee.",
+   "fieldname": "ssc_rate",
+   "fieldtype": "Percent",
+   "label": "SSC Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_employer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "8.41",
+   "description": "Reduced SSC rate for an employee with a disability group. It applies to any group and needs the MSEC certificate on file.",
+   "fieldname": "ssc_disability_rate",
+   "fieldtype": "Percent",
+   "label": "SSC Rate for Disability",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_reservation",
+   "fieldtype": "Section Break",
+   "label": "Reservation (Бронювання)"
+  },
+  {
+   "default": "26000",
+   "description": "The minimum official salary an employee must be paid to qualify for military service reservation. The salary documents warn about anybody below it.",
+   "fieldname": "minimum_reservation_salary",
+   "fieldtype": "Currency",
+   "label": "Minimum Salary for Reservation"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-29 13:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Payroll Tax Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "HR User"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

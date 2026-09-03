@@ -36,7 +36,10 @@ doctype_js = {
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
 	# оклади працівника по періодах — секція на картці
-	"Employee": "public/js/custom/employee_salary_history.js",
+	"Employee": [
+		"public/js/custom/employee_salary_history.js",
+		"public/js/custom/employee_attendance_sheet.js",
+	],
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
@@ -54,7 +57,11 @@ doctype_list_js = {
 	],
 }
 
-override_doctype_class = {"Address": "erpnext.accounts.custom.address.ERPNextAddress"}
+override_doctype_class = {
+	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
+	"Attendance": "erpnext.payroll_ua.overrides.attendance.Attendance",
+	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
+}
 
 override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "erpnext.templates.utils.send_message",
@@ -112,9 +119,10 @@ before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
+	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
+	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.setup.payment_workflow_setup.after_migrate",
 	"erpnext.setup.procurement_workflow_setup.after_migrate",
-	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -412,6 +420,10 @@ doc_events = {
 	): {
 		"validate": "erpnext.stock.responsible_employee.validate_responsible_employee",
 	},
+	# a serial number is one unit, so its holder belongs on the Serial No itself
+	"Stock Ledger Entry": {
+		"on_submit": "erpnext.stock.responsible_employee.set_serial_no_responsible",
+	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
 		"validate": "erpnext.crm.utils.set_military_unit_from_party",
@@ -628,10 +640,23 @@ doc_events = {
 		"validate": "erpnext.accounts.doctype.payment_request.payment_request.validate_payment"
 	},
 	"Employee": {
-		"on_update": "erpnext.hr.salary_split.sync_salary_structure_assignment",
+		"validate": [
+			"erpnext.hr.payroll_tax.warn_missing_certificate",
+			"erpnext.hr.employee_identity.validate_tax_id",
+			"erpnext.hr.salary_split.set_card_amount",
+			"erpnext.hr.salary_split.restrict_salary_editing",
+		],
+		"on_update": [
+			"erpnext.hr.employee_period.clear_attendance_after_relieving",
+			"erpnext.hr.salary_split.sync_salary_structure_assignment",
+			"erpnext.hr.salary_advance.reschedule_deductions_on_relieving",
+		],
 	},
 	"Salary Slip": {
 		"validate": "erpnext.hr.salary_split.apply_cash_split",
+	},
+	"Attendance": {
+		"validate": "erpnext.hr.employee_period.validate_attendance_period",
 	},
 }
 

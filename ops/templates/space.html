@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Space management{% endblock %}
+{% block content %}
+
+<div class="grid">
+	<section class="card wide">
+		<h2>Safe clean</h2>
+		<p class="muted small">
+			Prunes dangling Docker images and unused build cache, vacuums the systemd journal down to
+			100 MB. Never touches backups, the site database, or files inside <code>sites/</code>.
+		</p>
+		<form hx-post="/actions/space-clean"
+		      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+		      hx-target="#console-slot"
+		      hx-swap="innerHTML"
+		      hx-on::after-request="document.getElementById('console-host').hidden = false">
+			<button type="submit" class="primary">Start safe clean</button>
+		</form>
+	</section>
+
+	<section class="card wide">
+		<h2>Hard clean</h2>
+		<p class="muted small">
+			Also removes every unused Docker image (including the previous release's — no more
+			rollback) and the full build cache (next build is uncached, slower). Frees the full
+			"Reclaimable" number shown below. Never touches backups, the site database, or files
+			inside <code>sites/</code>.
+		</p>
+		<button type="button" class="danger"
+		        hx-get="/actions/space-hard-clean/confirm"
+		        hx-target="#console-slot"
+		        hx-swap="innerHTML"
+		        hx-on::after-request="document.getElementById('console-host').hidden = false">
+			Start hard clean…
+		</button>
+	</section>
+
+	<section class="card wide" id="panel-disk"
+	         hx-get="/panels/disk" hx-trigger="load, every 60s" hx-swap="innerHTML">
+		<h2>Disk</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-space-backups"
+	         hx-get="/panels/space-backups" hx-trigger="load, every 60s" hx-swap="innerHTML">
+		<h2>Backups</h2><p class="muted">loading…</p>
+	</section>
+</div>
+
+{% endblock %}

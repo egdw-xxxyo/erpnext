@@ -1,77 +1,42 @@
 """Кого керівник бачить у своїх документах — та сама вибірка, що й у табелі.
 
-Табель («Attendance Sheet» у HRMS) показує керівникові його прямих підлеглих
-(`reports_to`) плюс тих, кого HR дописав у картку керівника вручну — так у табель
-потрапляє людина без власного керівника. Роль тут не дає нічого: HR-менеджер без
-підлеглих бачить порожній список так само, як будь-хто інший.
+Джерело правди тут одне — сторінка «Табель» HRMS (`get_editable_employees`): кому керівник
+заповнює табель, тому він і ставить премію. Дублювати цю логіку не можна — розійшовшись,
+вона дає керівникові премію того, чий табель веде хтось інший, і навпаки.
 
-Затвердження премій рахує ті самі гроші за тими самими людьми, тож вибірка мусить
-бути спільною — інакше керівник ставить премію тому, чий табель він навіть не веде.
+Роль не дає нічого, і адміністратор тут не виняток: у табелі він бачить лише своїх людей,
+тож і в документах — тих самих. Звільнений залишається у вибірці, поки період її документа
+зачіпає його роботу.
 """
 
-import frappe
 
-# Дописані вручну люди живуть у дитячій таблиці картки Employee (доктайп HRMS).
-EXTRA_EMPLOYEE_DOCTYPE = "Attendance Sheet Extra Employee"
-EXTRA_EMPLOYEE_FIELD = "attendance_sheet_extra_employees"
+def sheet_employees(company: str | None = None) -> dict:
+	"""Рядки табеля поточного користувача: `{employee: {дати прийому й звільнення}}`."""
+	from erpnext.payroll_ua.page.attendance_sheet.attendance_sheet import get_editable_employees
 
-
-def session_employee() -> str | None:
-	"""Працівник, до якого прив'язаний поточний користувач."""
-	return frappe.db.get_value("Employee", {"user_id": frappe.session.user, "status": "Active"}, "name")
+	return get_editable_employees(company)
 
 
-def extra_employees(manager: str) -> list[str]:
-	"""Кого HR дописав у картку цього керівника; сам керівник відкидається."""
-	if not frappe.db.exists("DocType", EXTRA_EMPLOYEE_DOCTYPE):
-		return []
+def managed_employees(company: str | None = None, start=None, end=None) -> list[str]:
+	"""Підлеглі поточного користувача — рівно ті, кому він заповнює табель.
 
-	rows = frappe.get_all(
-		EXTRA_EMPLOYEE_DOCTYPE,
-		filters={
-			"parenttype": "Employee",
-			"parentfield": EXTRA_EMPLOYEE_FIELD,
-			"parent": manager,
-		},
-		pluck="employee",
-		ignore_permissions=True,
-	)
-
-	return [employee for employee in rows if employee != manager]
-
-
-def managed_employees(company: str | None = None) -> list[str]:
-	"""Підлеглі поточного користувача — один рівень `reports_to` плюс дописані вручну.
-
-	Порядок такий самий, як у табелі: спершу дописані, далі підлеглі за ієрархією.
+	`start`/`end` — період документа: з ним у вибірці лишаються тільки ті, хто в цьому
+	періоді працював (звільнений минулого місяця в поточну відомість не потрапляє).
 	"""
-	own = session_employee()
+	from erpnext.payroll_ua.page.attendance_sheet.attendance_sheet import employed_within
 
-	if not own:
-		return []
+	employees = sheet_employees(company)
 
-	added = extra_employees(own)
-	scope = {"status": "Active", "reports_to": own}
+	if start and end:
+		employees = {
+			employee: details
+			for employee, details in employees.items()
+			if employed_within(details, start, end)
+		}
 
-	if company:
-		scope["company"] = company
-
-	reports = frappe.get_all(
-		"Employee",
-		filters=scope,
-		pluck="name",
-		order_by="employee_name",
-		ignore_permissions=True,
-	)
-
-	return added + [name for name in reports if name not in added]
+	return list(employees)
 
 
-def sees_everyone() -> bool:
-	"""Адміністратор — єдиний виняток: без нього не було б кому налаштувати ієрархію."""
-	return frappe.session.user == "Administrator"
-
-
-def visible_employees(company: str | None = None) -> list[str] | None:
-	"""Кого показувати в документі: `None` — обмеження немає (адміністратор)."""
-	return None if sees_everyone() else managed_employees(company)
+def visible_employees(company: str | None = None, start=None, end=None) -> list[str]:
+	"""Кого показувати в документі — той самий список, що й у табелі."""
+	return managed_employees(company, start, end)

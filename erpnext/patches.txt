@@ -475,3 +475,10 @@ erpnext.patches.v15_0.setup_eskd_templates
 erpnext.patches.v15_0.drop_eskd_bpak_combination
 erpnext.patches.v15_0.merge_mo_warehouses_into_rd
 erpnext.patches.v15_0.cleanup_stale_task_depends_on
+erpnext.patches.v15_0.backfill_serial_no_responsible
+erpnext.patches.v15_0.crm_sales_department_wishes
+erpnext.patches.v15_0.move_monthly_attendance_sheet_to_payroll_ua
+erpnext.patches.v15_0.seed_leave_type_attendance_sheet_abbr
+erpnext.patches.v15_0.drop_half_day_attendance
+erpnext.patches.v15_0.move_attendance_sheet_doctypes_to_payroll_ua
+erpnext.patches.v15_0.clear_leave_application_half_day

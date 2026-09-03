@@ -31,6 +31,9 @@ def execute():
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
 	create_salary_split_fields()
+	create_salary_tax_components()
+	create_disability_fields()
+	create_identity_fields()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -43,6 +46,7 @@ def execute():
 	create_custom_fields_on_whatsapp_message()
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
+	create_call_sign_fields()
 	create_customer_prospect_link()
 	setup_lead_sources()
 	setup_lead_permissions()
@@ -58,6 +62,8 @@ def execute():
 	setup_serial_no_write_for_stock_user()
 	create_callmebot_fields()
 	setup_callmebot_default_settings()
+	setup_payroll_ua_workspace_card()
+	setup_payroll_tax_accounts()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -408,15 +414,26 @@ def create_salary_split_fields():
 			"label": "Official Salary",
 			"options": "salary_currency",
 			"insert_after": "ctc",
-			"description": "Paid to the bank card. Together with the cash part it makes up the full salary.",
+			"description": "The amount accrued officially, before taxes.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_official_salary_net",
+			"fieldtype": "Currency",
+			"label": "Accrued to the Card",
+			"options": "salary_currency",
+			"insert_after": "custom_official_salary",
+			"read_only": 1,
+			"description": "Calculated: the official salary less PIT 18% and military levy 5%, so 77% of it. The employer pays SSC 22% on top of the official salary — that is not withheld from the employee.",
 		},
 		{
 			"dt": "Employee",
 			"fieldname": "custom_cash_salary",
 			"fieldtype": "Currency",
-			"label": "Cash Salary",
+			"label": "Mgmt. Salary",
 			"options": "salary_currency",
-			"insert_after": "custom_official_salary",
+			"insert_after": "custom_official_salary_net",
+			"description": "Paid from the cash desk and not taxed. Together with the official part it makes up the full salary.",
 		},
 		{
 			"dt": "Employee",
@@ -436,7 +453,85 @@ def create_salary_split_fields():
 		},
 	]
 	_create_custom_fields(fields)
+	_update_field_texts(fields)
 	_make_ctc_read_only()
+
+
+def create_identity_fields():
+	"""РНОКПП (ІПН) — у паспортному блоці картки працівника, поряд із номером паспорта."""
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_tax_id",
+			"fieldtype": "Data",
+			"label": "Tax Number (RNOKPP)",
+			"insert_after": "passport_details_section",
+			"description": "Ten digits of the taxpayer registration number. It must be unique across employees.",
+		},
+	]
+	_create_custom_fields(fields)
+	_update_field_texts(fields)
+
+
+def create_disability_fields():
+	"""Група інвалідності в картці працівника — від неї залежить ставка ЄСВ (8,41% замість 22%)."""
+	from erpnext.hr.payroll_tax import DISABILITY_GROUPS
+
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_disability_group",
+			"fieldtype": "Select",
+			"label": "Disability Group",
+			"options": "\n" + "\n".join(DISABILITY_GROUPS),
+			"insert_after": "health_details",
+			"description": "Any group gives the reduced SSC rate of 8.41% instead of 22%. Keep the MSEC certificate on file.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_disability_certificate",
+			"fieldtype": "Data",
+			"label": "MSEC Certificate",
+			"insert_after": "custom_disability_group",
+			"depends_on": "eval:doc.custom_disability_group",
+			"description": "Number of the MSEC certificate or of the expert team decision — the ground for the reduced rate.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_disability_valid_till",
+			"fieldtype": "Date",
+			"label": "Disability Valid Till",
+			"insert_after": "custom_disability_certificate",
+			"depends_on": "eval:doc.custom_disability_group",
+			"description": "Leave it empty if the group is set for good.",
+		},
+	]
+	_create_custom_fields(fields)
+	_update_field_texts(fields)
+
+
+def create_salary_tax_components():
+	"""ПДФО / військовий збір / ЄСВ — без них листок не знає, що утримати з офіційної частини."""
+	from erpnext.hr import payroll_tax
+
+	payroll_tax.ensure_components()
+
+
+def _update_field_texts(fields):
+	"""Підписи й підказки міняються частіше за самі поля, а `_create_custom_fields` наявне поле
+	лише пропускає — тож текст оновлюємо окремо."""
+	for f in fields:
+		name = frappe.db.exists("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]})
+
+		if not name:
+			continue
+
+		values = {key: f[key] for key in ("label", "description", "options") if key in f}
+		current = frappe.db.get_value("Custom Field", name, list(values), as_dict=True)
+
+		if values and (not current or any(current.get(key) != value for key, value in values.items())):
+			frappe.db.set_value("Custom Field", name, values)
+			print(f"  Updated Custom Field text: {f['dt']}.{f['fieldname']}")
 
 
 def _make_ctc_read_only():
@@ -846,6 +941,34 @@ def create_military_unit_fields():
 	_create_custom_fields(fields)
 
 
+def create_call_sign_fields():
+	"""«Позивний» of the people sales deals with — most of them are known by it, not by a surname.
+
+	It lives on the Contact, which is where a person is described, and on the Prospect, whose
+	own contact person is often the only thing known about a unit that early on."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Contact",
+				"fieldname": "call_sign",
+				"fieldtype": "Data",
+				"label": "Call Sign",
+				"insert_after": "last_name",
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+			},
+			{
+				"dt": "Prospect",
+				"fieldname": "call_sign",
+				"fieldtype": "Data",
+				"label": "Call Sign",
+				"insert_after": "military_unit",
+				"in_standard_filter": 1,
+			},
+		]
+	)
+
+
 def create_customer_prospect_link():
 	"""Persisted trace of the Prospect a Customer was converted from.
 
@@ -1102,8 +1225,10 @@ def create_responsible_employee_dimension():
 	The doctype creates the Link fields on every stock document and the
 	`responsible_employee` column on Stock Ledger Entry by itself.
 	"""
-	if frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION}):
+	existing = frappe.db.exists("Inventory Dimension", {"dimension_name": RESPONSIBLE_EMPLOYEE_DIMENSION})
+	if existing:
 		print(f"  Inventory Dimension exists: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
+		enforce_responsible_employee_stock(existing)
 	else:
 		frappe.get_doc(
 			{
@@ -1112,12 +1237,59 @@ def create_responsible_employee_dimension():
 				"reference_document": "Employee",
 				"apply_to_all_doctypes": 1,
 				"reqd": 0,
-				"validate_negative_stock": 0,
+				"validate_negative_stock": 1,
 			}
 		).insert(ignore_permissions=True)
 		print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
 	relax_rejected_responsible_employee()
+	create_serial_no_responsible_field()
+
+
+def enforce_responsible_employee_stock(name):
+	"""Turn on the per-person negative stock check on an already created dimension.
+
+	Without it the dimension is only a label: a person could hand over more than they
+	hold as long as the warehouse as a whole covered it, and their balance silently went
+	negative. `StockLedgerEntry.validate_inventory_dimension_negative_stock` does the
+	check, but only for dimensions that ask for it.
+
+	`validate_negative_stock` is one of the few fields `InventoryDimension.do_not_update_document`
+	still allows to change once stock transactions exist, so this is safe to flip late.
+	"""
+	if frappe.db.get_value("Inventory Dimension", name, "validate_negative_stock"):
+		print("  Responsible Employee already validates negative stock")
+		return
+
+	frappe.db.set_value("Inventory Dimension", name, "validate_negative_stock", 1)
+	frappe.clear_cache()
+	print("  Responsible Employee now validates negative stock")
+
+
+def create_serial_no_responsible_field():
+	"""Store the responsible employee on the Serial No itself.
+
+	The dimension lives on Stock Ledger Entry, and `get_inventory_documents()` excludes
+	Serial No from the doctypes it generates fields on, so custody of a single serial was
+	only reachable through a three table join. A serial is one unit, so the holder is a
+	property of the serial — kept in step with `warehouse` by
+	`erpnext.stock.responsible_employee.set_serial_no_responsible`.
+	"""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Serial No",
+				"fieldname": RESPONSIBLE_EMPLOYEE_FIELD,
+				"fieldtype": "Link",
+				"options": "Employee",
+				"label": "Responsible Employee",
+				"insert_after": "warehouse",
+				"read_only": 1,
+				"search_index": 1,
+				"in_standard_filter": 1,
+			}
+		]
+	)
 
 
 def relax_rejected_responsible_employee():
@@ -1495,7 +1667,7 @@ def create_callmebot_fields():
 		{
 			"dt": "Notification Settings",
 			"fieldname": "callmebot_api_key",
-			"fieldtype": "Data",
+			"fieldtype": "Password",
 			"label": "CallMeBot API Key",
 			"insert_after": "callmebot_column",
 			"depends_on": "eval:doc.callmebot_enabled",
@@ -1505,6 +1677,35 @@ def create_callmebot_fields():
 		},
 	]
 	_create_custom_fields(fields)
+	_migrate_callmebot_keys_to_auth()
+
+
+def _migrate_callmebot_keys_to_auth():
+	"""Move keys stored while `callmebot_api_key` was a plain Data field into `__Auth`.
+
+	A Password field keeps only a `*****` dummy in its own column, so any row still holding a
+	real key is one written before the fieldtype change. Encrypt it and blank out the column."""
+	if not frappe.db.has_column("Notification Settings", "callmebot_api_key"):
+		return
+
+	from frappe.utils.password import set_encrypted_password
+
+	rows = frappe.db.sql(
+		"""select name, callmebot_api_key from `tabNotification Settings`
+		where ifnull(callmebot_api_key, '') != '' and callmebot_api_key not rlike '^[*]+$'""",
+		as_dict=True,
+	)
+	for row in rows:
+		key = (row.callmebot_api_key or "").strip()
+		if not key:
+			continue
+		set_encrypted_password("Notification Settings", row.name, key, "callmebot_api_key")
+		frappe.db.set_value(
+			"Notification Settings", row.name, "callmebot_api_key", "*" * len(key), update_modified=False
+		)
+
+	if rows:
+		print(f"  Encrypted {len(rows)} CallMeBot API key(s) into __Auth")
 
 
 def setup_callmebot_default_settings():
@@ -1554,3 +1755,194 @@ def setup_callmebot_default_settings():
 			print("  Initialized CallMeBot Settings default privacy templates")
 	except Exception as e:
 		print(f"  Warning: could not initialize CallMeBot Settings: {e}")
+
+
+PAYROLL_UA_CARD_LABELS = ("Payroll UA", "Payrol UA")
+PAYROLL_UA_CARD = "Payrol UA"
+PAYROLL_UA_BLOCK_ID = "payrollUaCard"
+# (заголовок, тип, куди) — табель відкривається сторінкою, решта доктайпами.
+PAYROLL_UA_LINKS = (
+	("Salary Advance", "DocType", "Salary Advance"),
+	("Payroll Sheet", "DocType", "Payroll Sheet"),
+	("Management Payroll Sheet", "DocType", "Management Payroll Sheet"),
+	("Salary Change", "DocType", "Salary Change"),
+	("Attendance Sheet", "Page", "attendance-sheet"),
+	("Salary Approval", "DocType", "Salary Approval"),
+	("Payroll Tax Settings", "DocType", "Payroll Tax Settings"),
+)
+
+# Помилково додані посилання прибираються з картки, інакше вони лишаються на робочих сайтах.
+PAYROLL_UA_DROP = ("Attendance Sheet Approval",)
+
+
+def setup_payroll_ua_workspace_card():
+	"""Тримає картку «Зарплата» на робочому просторі HR повною.
+
+	Простір редагується в десктопі, тож його копія в базі з репозиторієм уже не синхронізується —
+	картка доповнюється тут, ідемпотентно: наявні посилання лишаються, бракуючі дописуються
+	в кінець картки."""
+	if not frappe.db.exists("Workspace", "HR"):
+		return
+
+	workspace = frappe.get_doc("Workspace", "HR")
+	links = list(workspace.links)
+	start = next(
+		(
+			index
+			for index, link in enumerate(links)
+			if link.type == "Card Break" and link.label in PAYROLL_UA_CARD_LABELS
+		),
+		None,
+	)
+
+	if start is None:
+		start = len(links)
+		links.append(frappe._dict(type="Card Break", label=PAYROLL_UA_CARD, link_count=0, hidden=0))
+
+	# Кінець картки — наступний розділювач: посилання дописуються всередину неї, а не в хвіст
+	# усього простору, інакше вони опиняться в чужій картці.
+	end = next(
+		(index for index in range(start + 1, len(links)) if links[index].type == "Card Break"),
+		len(links),
+	)
+	dropped = [
+		link for link in links[start + 1 : end] if link.type == "Link" and link.link_to in PAYROLL_UA_DROP
+	]
+	for link in dropped:
+		links.remove(link)
+
+	end -= len(dropped)
+	present = {link.link_to for link in links[start + 1 : end] if link.type == "Link"}
+	missing = [
+		(label, link_type, link_to)
+		for label, link_type, link_to in PAYROLL_UA_LINKS
+		if link_to not in present
+		and (link_type != "DocType" or frappe.db.exists("DocType", link_to))
+		and (link_type != "Page" or frappe.db.exists("Page", link_to))
+	]
+
+	if not (missing or dropped):
+		return
+
+	links[end:end] = [
+		frappe._dict(
+			type="Link",
+			label=label,
+			link_type=link_type,
+			link_to=link_to,
+			link_count=0,
+			hidden=0,
+			onboard=0,
+		)
+		for label, link_type, link_to in missing
+	]
+
+	workspace.set("links", [])
+	for index, link in enumerate(links, start=1):
+		# Порядок задається наново: перенесені рядки несуть старий `idx`, і з ним картка
+		# розсипається на два однакові номери.
+		row = workspace.append("links", link)
+		row.idx = index
+
+	content = json.loads(workspace.content or "[]")
+	if not any(block.get("data", {}).get("card_name") in PAYROLL_UA_CARD_LABELS for block in content):
+		content.append(
+			{"id": PAYROLL_UA_BLOCK_ID, "type": "card", "data": {"card_name": PAYROLL_UA_CARD, "col": 4}}
+		)
+		workspace.content = json.dumps(content, separators=(",", ":"), ensure_ascii=False)
+
+	workspace.save(ignore_permissions=True)
+
+	if missing:
+		print(f"  Added HR workspace links: {', '.join(label for label, _type, _to in missing)}")
+
+	if dropped:
+		print(f"  Removed HR workspace links: {', '.join(link.link_to for link in dropped)}")
+
+
+# Податок → (назва рахунку, під яким його видно в плані рахунків, рахунок-батько за типом).
+PAYROLL_TAX_ACCOUNTS = {
+	"ПДФО": "ПДФО до сплати",
+	"Військовий збір": "Військовий збір до сплати",
+	"ЄСВ (роботодавець)": "ЄСВ до сплати",
+}
+
+
+def setup_payroll_tax_accounts():
+	"""Окремий рахунок «до сплати» на кожен зарплатний податок.
+
+	Раніше ПДФО і військовий збір вели на зарплатний пасив разом із самою зарплатою, тож
+	борг перед бюджетом ніде не було видно. Рахунки створюються під групою податків компанії
+	й прописуються в самі компоненти — далі бухгалтер міняє їх у довіднику."""
+	for company in frappe.get_all("Company", pluck="name"):
+		parent = _tax_parent_account(company)
+
+		if not parent:
+			continue
+
+		payable = frappe.get_cached_value("Company", company, "default_payroll_payable_account")
+
+		for component, account_name in PAYROLL_TAX_ACCOUNTS.items():
+			if not frappe.db.exists("Salary Component", component):
+				continue
+
+			account = _ensure_tax_account(company, parent, account_name)
+
+			if not account:
+				continue
+
+			existing = frappe.db.get_value(
+				"Salary Component Account", {"parent": component, "company": company}, ["name", "account"]
+			)
+
+			# Свій рахунок бухгалтера не чіпаємо — міняємо лише те, що вело на спільний пасив.
+			if existing and existing[1] not in (None, "", payable):
+				continue
+
+			if existing:
+				frappe.db.set_value("Salary Component Account", existing[0], "account", account)
+				print(f"  {component}: account -> {account}")
+				continue
+
+			doc = frappe.get_doc("Salary Component", component)
+			doc.append("accounts", {"company": company, "account": account})
+			doc.save(ignore_permissions=True)
+			print(f"  {component}: account set to {account}")
+
+
+def _tax_parent_account(company):
+	"""Група, під якою живуть податкові зобов'язання компанії."""
+	return frappe.db.get_value(
+		"Account",
+		{"company": company, "is_group": 1, "root_type": "Liability", "account_type": "Tax"},
+		"name",
+	) or frappe.db.get_value(
+		"Account",
+		{"company": company, "is_group": 1, "root_type": "Liability", "account_name": ["like", "%Поточні%"]},
+		"name",
+	)
+
+
+def _ensure_tax_account(company, parent, account_name):
+	existing = frappe.db.get_value(
+		"Account", {"company": company, "account_name": account_name, "is_group": 0}, "name"
+	)
+
+	if existing:
+		return existing
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Account",
+			"account_name": account_name,
+			"company": company,
+			"parent_account": parent,
+			"root_type": "Liability",
+			"account_type": "Tax",
+			"is_group": 0,
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	print(f"  Created account: {doc.name}")
+
+	return doc.name

@@ -1,4 +1,4 @@
-"""Зарплата двома частинами: офіційна (на картку) і готівкова.
+"""Зарплата двома частинами: офіційна (нарахована) і готівкова.
 
 Джерело істини — картка працівника: `custom_official_salary` + `custom_cash_salary`. Усе інше
 робиться автоматично:
@@ -6,19 +6,23 @@
 * при збереженні Employee створюється поданий Salary Structure Assignment, де
   `base` = сума обох частин, а `variable` = офіційна частина;
 * при перерахунку Salary Slip відрахування «До виплати готівкою» забирає все нарахування понад
-  офіційну суму — тобто пропорцію відпрацьованих днів і премії з `custom_pay_in_cash`.
+  офіційну суму — тобто пропорцію відпрацьованих днів і премії з `custom_pay_in_cash`;
+* з офіційної частини утримуються ПДФО 18% і військовий збір 5%, а ЄСВ 22% додається окремим
+  статистичним рядком — це витрата роботодавця, а не утримання (див. `payroll_tax`).
 
-Офіційна сума за місяць фіксована: скільки б днів людина не відпрацювала, на картку йде рівно
-вона (аванс на картку + решта на картку). Виняток один — якщо нарахування менше за офіційну суму,
-готівки просто немає, і на картку йде все нарахування.
+Офіційна сума за місяць фіксована: скільки б днів людина не відпрацювала, нараховується рівно
+вона (аванс на картку + решта на картку), а на картку йде 77% від неї. Виняток один — якщо
+нарахування менше за офіційну суму, готівки просто немає, і офіційною вважається все нарахування.
 
-У підсумку `net_pay` листка = те, що йде на картку, а залишок рахунку «ЗП готівкою до виплати» =
-те, що видається з каси.
+У підсумку `net_pay` листка = те, що йде на картку (після податків), а залишок рахунку
+«ЗП готівкою до виплати» = те, що видається з каси.
 """
 
 import frappe
 from frappe import _
 from frappe.utils import flt, get_first_day, getdate, money_in_words, nowdate, rounded
+
+from erpnext.hr import payroll_tax
 
 CASH_COMPONENT = "До виплати готівкою"
 CASH_ADVANCE_COMPONENT = "Аванс готівкою"
@@ -107,6 +111,63 @@ def _sync_assignment(doc):
 		doc.db_set("ctc", total, update_modified=False)
 
 
+def set_card_amount(doc, method=None):
+	"""Employee.validate: скільки з офіційної суми дійде до картки.
+
+	Поле довідкове й тільки для читання: рахувати 77% в голові — зайвий привід помилитися,
+	а зберігати ще одну суму, яку хтось може поправити руками, ми не хочемо.
+	"""
+	doc.custom_official_salary_net = payroll_tax.net(doc.get("custom_official_salary"))
+
+
+# Поля картки, які тримають оклад: їх міняє лише керівник працівника (або «Зміна окладу»,
+# яка від його імені й затверджується).
+SALARY_FIELDS = ("custom_official_salary", "custom_cash_salary", "custom_salary_effective_from")
+
+
+def restrict_salary_editing(doc, method=None):
+	"""Employee.validate: оклад у картці міняє лише керівник цього працівника.
+
+	Вибірка та сама, що й у табелі та зарплатних документах (`erpnext.hr.team`), тож право
+	на оклад іде за правом вести людину, а не за роллю. Адміністратор лишається винятком:
+	без нього нікому було б виправити картку керівника, який пішов.
+	"""
+	from erpnext.hr.team import visible_employees
+
+	if doc.is_new() or frappe.flags.in_migrate or frappe.flags.in_patch or frappe.flags.in_install:
+		return
+
+	if frappe.session.user == "Administrator":
+		return
+
+	before = frappe.db.get_value("Employee", doc.name, SALARY_FIELDS, as_dict=True) or {}
+	changed = [
+		field for field in SALARY_FIELDS if _salary_value(doc.get(field)) != _salary_value(before.get(field))
+	]
+
+	if not changed:
+		return
+
+	if doc.name in visible_employees(doc.company):
+		return
+
+	frappe.throw(
+		_("Only the manager of {0} may change the salary.").format(doc.employee_name or doc.name),
+		title=_("Salary Is Not Yours to Change"),
+	)
+
+
+def _salary_value(value):
+	"""Дати й суми з бази й з форми приходять різними типами — порівнюємо їх однаково."""
+	if value in (None, ""):
+		return None
+
+	if isinstance(value, str) and not value.replace(".", "", 1).replace("-", "", 1).isdigit():
+		return str(getdate(value))
+
+	return flt(value)
+
+
 def salary_parts_on(employee, on_date) -> tuple:
 	"""Дві частини окладу, чинні на дату: (офіційна, готівкова).
 
@@ -192,7 +253,7 @@ def apply_cash_split(doc, method=None):
 	if not assignment:
 		return
 
-	# Офіційна сума не ділиться на відпрацьовані дні: за домовленістю на картку за місяць має піти
+	# Офіційна сума не ділиться на відпрацьовані дні: за домовленістю за місяць має нарахуватися
 	# рівно вона (аванс на картку + решта на картку). Пропорцію відпрацьованих днів і всі премії
 	# поглинає готівкова частина — вона ж лишок нарахування понад офіційну суму.
 	official = flt(assignment.variable) + _official_bonuses(doc)
@@ -200,8 +261,30 @@ def apply_cash_split(doc, method=None):
 	# Готівкову виплату зменшують лише ті відрахування, які й видані готівкою (аванс з каси,
 	# задаток). Відрахування без прапорця пішли з рахунку, тож вони зменшують офіційну частину.
 	cash_amount = flt(doc.gross_pay) - official - _cash_deductions(doc)
-	_set_cash_row(doc, flt(max(cash_amount, 0), doc.precision("amount", "deductions")))
+	_set_component_row(doc, CASH_COMPONENT, flt(max(cash_amount, 0), doc.precision("amount", "deductions")))
+
+	# Оподатковується лише те, що справді нараховано: у неповному місяці без готівкової частини
+	# нарахування менше за офіційну суму, і податок з неіснуючих грошей утримувати нема з чого.
+	_set_tax_rows(doc, min(official, flt(doc.gross_pay)))
 	_recalculate_totals(doc)
+
+
+def _set_tax_rows(doc, taxable):
+	"""ПДФО і військовий збір — утримання, ЄСВ — статистичний рядок вартості для компанії.
+
+	Ставку ЄСВ вибирає картка працівника: з групою інвалідності вона пільгова.
+	"""
+	taxes = payroll_tax.split(taxable, doc.employee)
+
+	for component, amount, statistical in (
+		(payroll_tax.PIT_COMPONENT, taxes.pit, 0),
+		(payroll_tax.MILITARY_COMPONENT, taxes.military, 0),
+		(payroll_tax.SSC_COMPONENT, taxes.ssc, 1),
+	):
+		if not frappe.db.exists("Salary Component", component):
+			continue
+
+		_set_component_row(doc, component, amount, statistical=statistical)
 
 
 def _official_bonuses(doc):
@@ -239,8 +322,8 @@ def _cash_deductions(doc):
 	return total
 
 
-def _set_cash_row(doc, amount):
-	existing = [row for row in doc.get("deductions") or [] if row.salary_component == CASH_COMPONENT]
+def _set_component_row(doc, component, amount, statistical=0):
+	existing = [row for row in doc.get("deductions") or [] if row.salary_component == component]
 
 	if not amount:
 		for row in existing:
@@ -252,22 +335,29 @@ def _set_cash_row(doc, amount):
 		existing[0].default_amount = amount
 		return
 
-	component = frappe.get_cached_doc("Salary Component", CASH_COMPONENT)
+	meta = frappe.get_cached_doc("Salary Component", component)
 	doc.append(
 		"deductions",
 		{
-			"salary_component": CASH_COMPONENT,
-			"abbr": component.salary_component_abbr,
+			"salary_component": component,
+			"abbr": meta.salary_component_abbr,
 			"amount": amount,
 			"default_amount": amount,
 			"depends_on_payment_days": 0,
 			"amount_based_on_formula": 0,
+			"statistical_component": statistical,
+			"do_not_include_in_total": statistical,
 		},
 	)
 
 
 def _recalculate_totals(doc):
-	doc.total_deduction = sum(flt(row.amount) for row in doc.get("deductions") or [])
+	# Статистичні рядки (ЄСВ) видно в листку, але жодної суми вони не зменшують.
+	doc.total_deduction = sum(
+		flt(row.amount)
+		for row in doc.get("deductions") or []
+		if not (row.get("statistical_component") or row.get("do_not_include_in_total"))
+	)
 	doc.net_pay = flt(doc.gross_pay) - flt(doc.total_deduction)
 	doc.rounded_total = rounded(doc.net_pay)
 	doc.total_in_words = money_in_words(doc.rounded_total, doc.currency)

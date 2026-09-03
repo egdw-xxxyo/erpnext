@@ -30,9 +30,11 @@
 	{% endfor %}
 </table>
 <p class="muted small">
-	Reclaim safely on the host with <code>docker builder prune -f</code> and
-	<code>sudo journalctl --vacuum-size=100M</code>. Never <code>docker volume prune</code> —
-	that deletes the site database.
+	"Reclaimable" is <code>docker system df</code>'s number for every unused image/cache layer —
+	<strong>Safe clean</strong> only removes the dangling slice of that (usually far less; it never
+	touches the previous release's tagged image, so rollback stays possible). To actually free the
+	full number shown here, run <strong>Hard clean</strong> below — it removes that tagged image
+	too. Neither ever runs <code>docker volume prune</code> — that deletes the site database.
 </p>
 {% endif %}
 

@@ -28,11 +28,13 @@ services:
       OPS_COMPOSE_PROJECT: ${OPS_COMPOSE_PROJECT:-docker}
       OPS_ALLOWED_USERS: ${OPS_ALLOWED_USERS:-}
       OPS_SESSION_SECRET: ${OPS_SESSION_SECRET:?set OPS_SESSION_SECRET in .ops.env}
+      OPS_SECRET_KEY: ${OPS_SECRET_KEY:-}
       OPS_SESSION_TTL: ${OPS_SESSION_TTL:-3600}
       OPS_SESSION_IDLE: ${OPS_SESSION_IDLE:-1800}
       OPS_BACKUP_KEEP: ${OPS_BACKUP_KEEP:-5}
       OPS_ENV_LABEL: ${OPS_ENV_LABEL:-dev}
       OPS_ERP_URL: ${OPS_ERP_URL:-http://127.0.0.1:8080}
+      OPS_LOCAL_MODE: ${OPS_LOCAL_MODE:-0}
     volumes:
       # known_hosts (TOFU) and lockout counters. Never removed by nuke/destroy.
       - ops-data:/data

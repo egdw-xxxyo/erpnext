@@ -9,9 +9,11 @@
  "field_order": [
   "employee",
   "employee_name",
+  "tax_id",
   "department",
   "manager",
   "column_break_days",
+  "advance_days",
   "credited_days",
   "planned_days",
   "planned_hours",
@@ -20,7 +22,6 @@
   "section_break_attendance",
   "working_hours",
   "present_days",
-  "half_days",
   "sick_days",
   "column_break_attendance",
   "leave_days",
@@ -32,6 +33,7 @@
   "official_salary",
   "cash_salary",
   "column_break_advance",
+  "advance_accrued",
   "advance_card",
   "advance_cash",
   "advance_total",
@@ -43,6 +45,7 @@
   "additional_salary_cash",
   "journal_entry_card",
   "journal_entry_cash",
+  "journal_entry_tax",
   "paid_on",
   "paid",
   "note"
@@ -64,6 +67,12 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax Number (RNOKPP)",
+   "read_only": 1
+  },
+  {
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
@@ -80,6 +89,14 @@
   {
    "fieldname": "column_break_days",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "Calendar working days from the joining date up to the cut-off, less sick leave over 5 days a month.",
+   "fieldname": "advance_days",
+   "fieldtype": "Float",
+   "label": "Paid Days of the Advance",
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "credited_days",
@@ -132,13 +149,6 @@
    "fieldname": "present_days",
    "fieldtype": "Float",
    "label": "Present Days",
-   "read_only": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "half_days",
-   "fieldtype": "Float",
-   "label": "Half Days",
    "read_only": 1,
    "precision": "2"
   },
@@ -209,6 +219,14 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "The official part for the paid days of the advance, before taxes.",
+   "fieldname": "advance_accrued",
+   "fieldtype": "Currency",
+   "label": "Advance Accrued",
+   "read_only": 1
+  },
+  {
+   "description": "The amount that actually lands on the card: the official part for the worked days less PIT 18% and military levy 5%.",
    "fieldname": "advance_card",
    "fieldtype": "Currency",
    "label": "Advance to Card"
@@ -272,6 +290,13 @@
    "fieldname": "journal_entry_cash",
    "fieldtype": "Link",
    "label": "Payment Entry (Cash)",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry_tax",
+   "fieldtype": "Link",
+   "label": "Tax Entry",
    "options": "Journal Entry",
    "read_only": 1
   },

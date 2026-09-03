@@ -93,17 +93,8 @@ function calculate_totals(frm) {
 const money = (value) => erpnext.utils.employee_preview.money(value);
 const number = (value) => erpnext.utils.employee_preview.number(value);
 
-function hours(value) {
-	return __("{0} h", [number(value)]);
-}
-
 function days(value) {
 	return __("{0} d", [number(value)]);
-}
-
-// one column for the worked time: days and the hours they add up to
-function worked(row) {
-	return `${days(row.credited_days)} / ${hours(row.working_hours)}`;
 }
 
 function render_preview(frm) {
@@ -111,28 +102,37 @@ function render_preview(frm) {
 		field: "employees_preview",
 		table: "employees",
 		group_by: (row) => row.department || __("No Department"),
+		open: (row) => show_attendance(frm, row),
 		warn: (row) => !row.attendance_approved,
 		filter: { label: __("Unpaid only"), test: (row) => !row.paid },
-		// attendance is not a column of its own: the name carries the warning, and the hours
-		// next to it open the whole month of that employee
+		// attendance is not a column of its own: the name carries the warning, and both the
+		// name and the days next to it open the whole month of that employee
 		name_suffix: (row) =>
 			row.attendance_approved
 				? ""
 				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
 		columns: [
+			{ label: __("Tax Number (RNOKPP)"), value: (row) => row.tax_id || "—" },
 			{
-				label: __("Worked"),
-				value: (row) => worked(row),
-				click: (row) => show_attendance(row),
+				// Дні, за які платимо, а не ті, що в табелі: аванс рахується за календарем,
+				// тож табельні дні в колонці лише збивали б з пантелику. Вони в попапі.
+				label: __("Accrued"),
+				value: (row) => days(row.advance_days),
+				click: (row) => show_attendance(frm, row),
 			},
-			{ label: __("Daily Rate"), value: (row) => money(row.daily_rate), secret: true },
-			{ label: __("Advance to Card"), value: (row) => money(row.advance_card), secret: true },
-			{ label: __("Advance in Cash"), value: (row) => money(row.advance_cash), secret: true },
+			{ label: __("Official Salary"), value: (row) => money(row.official_salary), secret: true },
 			{
-				label: __("Total Advance"),
+				label: __("Advance Accrued"),
+				value: (row) => money(row.advance_accrued),
+				secret: true,
+				click: (row) => show_accrual(row),
+			},
+			{
+				label: __("Advance to Pay"),
 				value: (row) => money(row.advance_total),
 				bold: true,
 				secret: true,
+				click: (row) => show_advance(row),
 			},
 			{
 				label: __("Payment"),
@@ -157,48 +157,191 @@ function row_action_label(row) {
 	return row.paid ? __("Paid") : __("Pay");
 }
 
-// What the hours are made of, and what is being paid for them — the same block serves the
-// info popup and both confirmations, so a click never asks for money without showing the basis.
-function details_html(row) {
+// Аванс нараховується лише з офіційної частини (`advance_accrued` = оклад ÷ робочі дні × дні),
+// тож і розклад показує офіційний оклад та офіційну ставку — `daily_rate` містить ще й готівкову
+// частину, і з нею підсумок у popup не сходився.
+function official_rate(row) {
+	const days_in_month = flt(row.month_working_days);
+
+	return days_in_month ? flt(row.official_salary) / days_in_month : 0;
+}
+
+function salary_lines(row) {
+	// Скільки днів заплановано і скільки з них зняли — інакше «5 із 8» доводиться
+	// відновлювати по календарю вручну.
+	const unpaid = flt(flt(row.planned_days) - flt(row.advance_days), 2);
 	const lines = [
-		[__("Present Days"), number(row.present_days)],
-		[__("Half Days"), number(row.half_days)],
-		[__("Sick Leave Days"), number(row.sick_days)],
-		[__("Paid Leave Days"), number(row.leave_days)],
-		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
-		[__("Absent Days"), number(row.absent_days)],
-		[__("Overtime Hours"), hours(row.overtime_hours)],
-		[__("Shortfall Hours"), hours(row.shortfall_hours)],
-		[__("Credited Days"), `<b>${days(row.credited_days)} / ${hours(row.working_hours)}</b>`],
-		[__("Monthly Salary"), money(flt(row.official_salary) + flt(row.cash_salary))],
+		[__("Planned Days"), number(row.planned_days)],
+		[__("Paid Days of the Advance"), `<b>${days(row.advance_days)}</b>`],
+		[__("Official Salary"), money(row.official_salary)],
 		[__("Working Days in Month"), number(row.month_working_days)],
-		[__("Daily Rate"), money(row.daily_rate)],
+		[__("Daily Rate"), money(official_rate(row))],
+		[__("Advance Accrued"), money(row.advance_accrued)],
 		[__("Advance to Card"), money(row.advance_card)],
-		[__("Advance in Cash"), money(row.advance_cash)],
-		[__("Total Advance"), `<b>${money(row.advance_total)}</b>`],
+		[__("Advance to Pay"), `<b>${money(row.advance_total)}</b>`],
 	];
 
+	if (unpaid > 0) {
+		lines.splice(1, 0, [__("Unpaid Days"), `− ${number(unpaid)}`]);
+	}
+
+	// Готівкою аванс не платиться — рядок з'являється лише тоді, коли суму вписали руками.
+	if (flt(row.advance_cash)) {
+		lines.splice(lines.length - 1, 0, [__("Advance in Cash"), money(row.advance_cash)]);
+	}
+
+	return lines;
+}
+
+// Діалог виплати говорить про гроші тим самим розкладом, що й місяць у відомості: скільки
+// нараховано за дні окремою секцією, а податки й сума на руки — окремою.
+function payment_salary_lines(row) {
+	const worked = `${days(row.advance_days)} / ${days(row.month_working_days)}`;
+
+	return [
+		[__("Off. Salary"), money(row.official_salary)],
+		[__("Advance Accrued"), `${money(row.advance_accrued)} (${worked})`],
+	];
+}
+
+function payment_payout_lines(row, pit_rate, levy_rate) {
+	const accrued = flt(row.advance_accrued);
+	const pit = flt(accrued * pit_rate, 2);
+	const lines = [
+		[__("PIT {0}%", [number(pit_rate * 100)]), money(pit)],
+		[__("Military Levy {0}%", [number(levy_rate * 100)]), money(flt(accrued * levy_rate, 2))],
+	];
+
+	// Готівкою аванс не платиться — половини показуються лише тоді, коли готівкову вписали
+	// руками. Без неї «на картку» і «до виплати» — те саме число двічі.
+	if (flt(row.advance_cash)) {
+		lines.push(
+			[__("Advance to Card"), money(row.advance_card)],
+			[__("Advance in Cash"), money(row.advance_cash)]
+		);
+	}
+
+	lines.push([__("Advance to Pay"), `<b>${money(row.advance_total)}</b>`]);
+
+	return lines;
+}
+
+function attendance_note(row) {
+	return row.attendance_approved
+		? ""
+		: __("The attendance sheet of this employee is not approved for the first half of the month");
+}
+
+function cutoff_date(frm) {
+	if (!frm.doc.period_start) return null;
+
+	const start = frappe.datetime.str_to_obj(frm.doc.period_start);
+	const last = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+	const day = Math.min(cint(frm.doc.cutoff_day) || 15, last);
+
+	return frappe.datetime.obj_to_str(new Date(start.getFullYear(), start.getMonth(), day));
+}
+
+// What the days are made of, and what is being paid for them — the same block serves the
+// info popup and both confirmations, so a click never asks for money without showing the basis.
+function details_html(row) {
+	return erpnext.utils.attendance_details.html(row, {
+		salary: salary_lines(row),
+		note: attendance_note(row),
+	});
+}
+
+function lines_html(lines) {
 	return `
 		<table class="table table-bordered" style="margin: 0;">
 			<tbody>
 				${lines.map(([label, value]) => `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`).join("")}
 			</tbody>
 		</table>
-		${
-			row.attendance_approved
-				? ""
-				: `<p class="text-muted" style="margin-top: 8px;">${__(
-						"The attendance sheet of this employee is not approved for the first half of the month"
-				  )}</p>`
-		}
 	`;
 }
 
-function show_attendance(row) {
+// Звідки взялася нарахована сума: оклад ділиться на робочі дні місяця, а не на оплачувані,
+// тож денна ставка в усіх однакова, і різницю робить лише кількість оплачуваних днів.
+function show_accrual(row) {
+	const salary = flt(row.official_salary);
+	const rate = official_rate(row);
+	const unpaid = flt(flt(row.planned_days) - flt(row.advance_days), 2);
+	const lines = [
+		[__("Official Salary"), money(salary)],
+		[__("Working Days in Month"), number(row.month_working_days)],
+		[__("Daily Rate"), money(rate)],
+		[__("Planned Days"), number(row.planned_days)],
+		[__("Paid Days of the Advance"), `<b>${days(row.advance_days)}</b>`],
+		[__("Advance Accrued"), `<b>${money(row.advance_accrued)}</b>`],
+	];
+
+	if (unpaid > 0) {
+		lines.splice(4, 0, [__("Unpaid Days"), `− ${number(unpaid)}`]);
+	}
+
 	frappe.msgprint({
 		title: row.employee_name || row.employee,
+		indicator: "blue",
+		message: `
+			${lines_html(lines)}
+			<p class="text-muted" style="margin-top: 8px;">${__(
+				"Daily rate = {0} ÷ {1} working days = {2}. Accrued = {2} × {3} paid days = {4}.",
+				[
+					money(salary),
+					number(row.month_working_days),
+					money(rate),
+					number(row.advance_days),
+					money(row.advance_accrued),
+				]
+			)}</p>
+		`,
+	});
+}
+
+// Скільки нарахували, скільки з того утримали і що лишається на руки — той самий розклад,
+// що й у листку, тільки за оплачувані дні авансу.
+function show_advance(row) {
+	// Ставки спільні з відомістю — див. `public/js/payroll/payroll_sheet_view.js`.
+	erpnext.payroll.withheld_rates().then(([pit_rate, levy_rate]) => {
+		const accrued = flt(row.advance_accrued);
+		const pit = flt(accrued * pit_rate, 2);
+		const levy = flt(accrued * levy_rate, 2);
+		const lines = [
+			[__("Advance Accrued"), money(accrued)],
+			[__("PIT {0}%", [number(pit_rate * 100)]), `− ${money(pit)}`],
+			[__("Military Levy {0}%", [number(levy_rate * 100)]), `− ${money(levy)}`],
+			[__("Advance to Card"), money(row.advance_card)],
+		];
+
+		if (flt(row.advance_cash)) {
+			lines.push([__("Advance in Cash"), money(row.advance_cash)]);
+		}
+
+		lines.push([__("Advance to Pay"), `<b>${money(row.advance_total)}</b>`]);
+
+		frappe.msgprint({
+			title: row.employee_name || row.employee,
+			indicator: "blue",
+			message: `
+				${lines_html(lines)}
+				<p class="text-muted" style="margin-top: 8px;">${__(
+					"The advance is paid for {0} paid days of {1} working days in the month.",
+					[number(row.advance_days), number(row.month_working_days)]
+				)}</p>
+			`,
+		});
+	});
+}
+
+function show_attendance(frm, row) {
+	erpnext.utils.attendance_details.show(row, {
+		title: row.employee_name || row.employee,
 		indicator: row.attendance_approved ? "green" : "orange",
-		message: details_html(row),
+		salary: salary_lines(row),
+		note: attendance_note(row),
+		start: frm.doc.period_start,
+		end: cutoff_date(frm),
 	});
 }
 
@@ -209,6 +352,8 @@ function show_receipt(frm, row) {
 		[__("Additional Salary (Cash)"), row.additional_salary_cash, "Additional Salary"],
 		[__("Payment Entry (Card)"), row.journal_entry_card, "Journal Entry"],
 		[__("Payment Entry (Cash)"), row.journal_entry_cash, "Journal Entry"],
+		// Податки авансу проводяться окремо — з розписки видно, куди вони пішли.
+		[__("Tax Entry"), row.journal_entry_tax, "Journal Entry"],
 	].filter(([, name]) => name);
 
 	frappe.msgprint({
@@ -320,19 +465,28 @@ function confirm_mark_paid(frm) {
 
 // always one employee: the row is the only way money leaves this document
 function ask_payment_date(frm, row) {
-	frappe.prompt(
-		[
-			{ fieldtype: "HTML", fieldname: "details", options: details_html(row) },
-			{
-				fieldname: "posting_date",
-				fieldtype: "Date",
-				label: __("Payment Date"),
-				default: frm.doc.payment_date,
-				reqd: 1,
-			},
-		],
-		(values) => run(frm, "settle", { ...values, employees: [row.employee] }),
-		__("Pay {0}", [row.employee_name || row.employee]),
-		__("Post")
-	);
+	erpnext.payroll.withheld_rates().then(([pit_rate, levy_rate]) => {
+		const details = erpnext.utils.attendance_details.html(row, {
+			skip_attendance: true,
+			salary: payment_salary_lines(row),
+			payout: payment_payout_lines(row, pit_rate, levy_rate),
+			note: attendance_note(row),
+		});
+
+		frappe.prompt(
+			[
+				{ fieldtype: "HTML", fieldname: "details", options: details },
+				{
+					fieldname: "posting_date",
+					fieldtype: "Date",
+					label: __("Payment Date"),
+					default: frm.doc.payment_date,
+					reqd: 1,
+				},
+			],
+			(values) => run(frm, "settle", { ...values, employees: [row.employee] }),
+			__("Pay {0}", [row.employee_name || row.employee]),
+			__("Post")
+		);
+	});
 }
