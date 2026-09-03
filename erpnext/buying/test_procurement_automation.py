@@ -12,10 +12,9 @@ from erpnext.buying.procurement_automation import (
 	_get_primary_procurement_initiator,
 	_notify_procurement_initiators,
 	create_external_payment_purchase_receipt,
-	prepare_purchase_receipt_ttn,
-	validate_purchase_receipt_ttn,
 )
 from erpnext.buying.procurement_workflow_reason import _apply_creator_department_approval
+from erpnext.setup.procurement_workflow_setup import CUSTOM_FIELDS
 
 
 class TestProcurementAutomation(FrappeTestCase):
@@ -55,28 +54,14 @@ class TestProcurementAutomation(FrappeTestCase):
 
 		self.assertEqual(_get_primary_procurement_initiator("CPO-TEST"), "Administrator")
 
-	def test_purchase_receipt_ttn_is_required_only_after_draft(self):
-		doc = frappe._dict(
-			docstatus=0,
-			is_return=0,
-			workflow_state="Чернетка",
-			custom_ttn_files=[],
-		)
-		validate_purchase_receipt_ttn(doc)
+	def test_purchase_receipt_ttn_uses_optional_text_fields(self):
+		fields = {field["fieldname"]: field for field in CUSTOM_FIELDS["Purchase Receipt"]}
 
-		doc.workflow_state = "На перевірці"
-		self.assertRaises(frappe.ValidationError, validate_purchase_receipt_ttn, doc)
+		for fieldname in ("custom_delivery_method", "custom_waybill_number"):
+			self.assertEqual(fields[fieldname]["fieldtype"], "Data")
+			self.assertFalse(fields[fieldname].get("reqd", 0))
 
-	def test_purchase_receipt_ttn_rows_are_normalized(self):
-		doc = frappe._dict(
-			supplier="SUPPLIER-1",
-			custom_ttn_files=[frappe._dict(invoice_pdf="/private/files/ttn-1.pdf")],
-		)
-
-		prepare_purchase_receipt_ttn(doc)
-
-		self.assertEqual(doc.custom_ttn_files[0].invoice_document, "ttn-1.pdf")
-		self.assertEqual(doc.custom_ttn_files[0].supplier, "SUPPLIER-1")
+		self.assertTrue(fields["custom_ttn_files"]["hidden"])
 
 	@patch("erpnext.stock.get_item_details.get_price_list_rate_for")
 	@patch("erpnext.buying.procurement_automation.frappe.get_cached_value")

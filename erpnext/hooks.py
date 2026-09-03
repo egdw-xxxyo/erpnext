@@ -566,7 +566,6 @@ doc_events = {
 		"after_delete": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
 	},
 	"Purchase Receipt": {
-		"before_validate": "erpnext.buying.procurement_automation.prepare_purchase_receipt_ttn",
 		"after_insert": "erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
 		"on_trash": [
 			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
@@ -577,10 +576,7 @@ doc_events = {
 			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
 		],
-		"validate": [
-			"erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
-			"erpnext.buying.procurement_automation.validate_purchase_receipt_ttn",
-		],
+		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
 		"on_submit": [
 			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
