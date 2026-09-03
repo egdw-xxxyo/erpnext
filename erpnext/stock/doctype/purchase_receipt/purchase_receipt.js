@@ -11,7 +11,6 @@ erpnext.buying.setup_buying_controller();
 
 frappe.ui.form.on("Purchase Receipt", {
 	setup: (frm) => {
-		set_purchase_receipt_ttn_formatter(frm);
 		frm.custom_make_buttons = {
 			"Stock Entry": "Return",
 			"Purchase Invoice": "Purchase Invoice",
@@ -65,8 +64,6 @@ frappe.ui.form.on("Purchase Receipt", {
 	},
 
 	refresh: function (frm) {
-		configure_purchase_receipt_ttn_grid(frm);
-		setTimeout(() => configure_purchase_receipt_ttn_grid(frm), 100);
 		const can_read_quality_inspection = frappe.model.can_read("Quality Inspection");
 		const can_create_quality_inspection = frappe.model.can_create("Quality Inspection");
 		if (frm.doc.company) {
@@ -675,28 +672,6 @@ frappe.ui.form.on("Purchase Receipt Item", {
 	},
 });
 
-frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
-	custom_ttn_files_add(frm, cdt, cdn) {
-		if (frm.doctype !== "Purchase Receipt") return;
-		frappe.model.set_value(cdt, cdn, "supplier", frm.doc.supplier);
-	},
-
-	invoice_pdf(frm, cdt, cdn) {
-		if (frm.doctype !== "Purchase Receipt") return;
-		const row = locals[cdt][cdn];
-		frappe.model.set_value(cdt, cdn, "invoice_document", get_ttn_file_name(row.invoice_pdf));
-		frappe.model.set_value(cdt, cdn, "supplier", frm.doc.supplier);
-		if (!row.invoice_pdf || row.invoice_pdf.split("?")[0].toLowerCase().endsWith(".pdf")) return;
-
-		frappe.model.set_value(cdt, cdn, "invoice_pdf", null);
-		frappe.msgprint({
-			title: __("Unsupported File Format"),
-			message: __("The TTN document must be a PDF file."),
-			indicator: "red",
-		});
-	},
-});
-
 cur_frm.cscript._make_purchase_return = function () {
 	frappe.model.open_mapped_doc({
 		method: "erpnext.stock.doctype.purchase_receipt.purchase_receipt.make_purchase_return",
@@ -728,38 +703,3 @@ var validate_sample_quantity = function (frm, cdt, cdn) {
 		});
 	}
 };
-
-function set_purchase_receipt_ttn_formatter(frm) {
-	const docfield = frappe.meta.get_docfield(
-		"Consolidated Purchase Supplier Invoice",
-		"invoice_document",
-		frm.doc.name
-	);
-	if (!docfield) return;
-	docfield.formatter = (value, df, options, doc) => {
-		const file_name = value || get_ttn_file_name(doc.invoice_pdf);
-		if (!file_name || !doc.invoice_pdf) return "";
-		return `<a href="${frappe.utils.escape_html(
-			doc.invoice_pdf
-		)}" target="_blank">${frappe.utils.escape_html(file_name)}</a>`;
-	};
-}
-
-function configure_purchase_receipt_ttn_grid(frm) {
-	const field = frm.get_field("custom_ttn_files");
-	if (!field || !field.grid) return;
-	field.grid.update_docfield_property("invoice_pdf", "options", {
-		restrictions: { allowed_file_types: [".pdf"] },
-		allow_web_link: false,
-	});
-	field.grid.update_docfield_property("supplier", "hidden", 1);
-	field.grid.update_docfield_property("supplier", "in_list_view", 0);
-	field.grid.set_column_disp("supplier", false);
-	field.grid.wrapper.find(".grid-heading-row .row-index span").text("\u2116");
-}
-
-function get_ttn_file_name(file_url) {
-	if (!file_url) return null;
-	const path = file_url.split("?")[0];
-	return decodeURIComponent(path.substring(path.lastIndexOf("/") + 1));
-}

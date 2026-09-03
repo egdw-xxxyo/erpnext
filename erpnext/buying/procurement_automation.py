@@ -134,51 +134,6 @@ def validate_material_request_purchase_receipts(doc, method=None):
 			)
 
 
-def prepare_purchase_receipt_ttn(doc, method=None):
-	"""Normalize the reusable attachment rows before mandatory-field validation."""
-	for row in doc.get("custom_ttn_files") or []:
-		row.invoice_document = _get_file_name(row.invoice_pdf)
-		row.supplier = doc.supplier
-
-
-def validate_purchase_receipt_ttn(doc, method=None):
-	"""Require PDF TTNs when a receipt leaves the buyer's draft stage."""
-	if doc.get("is_return") or _is_automatic_prepaid_purchase_receipt(doc):
-		return
-
-	rows = doc.get("custom_ttn_files") or []
-	workflow_state = doc.get("workflow_state")
-	requires_ttn = doc.docstatus == 1 or workflow_state not in (None, "", "Чернетка")
-	if requires_ttn and not rows:
-		frappe.throw(_("Attach at least one PDF TTN before submitting the Purchase Receipt for review."))
-
-	for row in rows:
-		if not row.invoice_pdf:
-			frappe.throw(_("Row {0}: Attach a PDF TTN.").format(row.idx))
-		if not urlsplit(row.invoice_pdf).path.lower().endswith(".pdf"):
-			frappe.throw(
-				_("The TTN document must be a PDF file."),
-				title=_("Unsupported File Format"),
-			)
-
-
-def _is_automatic_prepaid_purchase_receipt(doc):
-	purchase_invoices = {
-		row.purchase_invoice for row in (doc.get("items") or []) if row.purchase_invoice
-	}
-	return bool(
-		purchase_invoices
-		and frappe.db.exists(
-			"Purchase Invoice",
-			{
-				"name": ["in", list(purchase_invoices)],
-				"docstatus": 1,
-				"custom_paid_outside_company": 1,
-			},
-		)
-	)
-
-
 def validate_material_requests_available(material_requests, exclude=None):
 	for material_request in set(material_requests or []):
 		if not material_request:
