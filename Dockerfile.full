@@ -25,7 +25,26 @@ COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frapp
 RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs
 
 # ── Install core apps in editable mode ────────────────────────────────
-RUN cd /home/frappe/frappe-bench \
+# frappe's pyproject.toml pulls PyPika and gunicorn straight from GitHub
+# (git+https://...) — pip shells out to `git clone` for those, hitting the
+# same anonymous-git-upload-pack 401 as the apps.json clones below on hosts
+# GitHub has flagged. --mount=type=ssh forwards an ephemeral in-build
+# ssh-agent loaded with whatever key `deploy`'s --ssh default=... pointed at
+# (see GITHUB_SSH_KEY_FILE there) — never written to disk in the image. When
+# forwarded, a GIT_CONFIG_* insteadOf rewrite (scoped to this RUN's shell,
+# same reasoning) makes every https://github.com/ URL — including the one
+# buried in pip's git+https dependency spec — resolve over SSH instead.
+# required=false: silently absent on hosts that don't need it (e.g. not
+# behind GitHub's block), falls back to plain anonymous https.
+RUN --mount=type=ssh,id=default,required=false \
+    mkdir -p ~/.ssh && chmod 700 ~/.ssh \
+    && ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null; \
+    if ssh-add -l >/dev/null 2>&1; then \
+      export GIT_CONFIG_COUNT=1; \
+      export GIT_CONFIG_KEY_0="url.git@github.com:.insteadOf"; \
+      export GIT_CONFIG_VALUE_0="https://github.com/"; \
+    fi; true \
+    && cd /home/frappe/frappe-bench \
     && ./env/bin/pip install -e apps/frappe \
     && ./env/bin/pip install -e apps/erpnext
 
@@ -38,22 +57,19 @@ RUN cd /home/frappe/frappe-bench \
 # (Docker otherwise caches this RUN layer forever and never re-pulls fork changes).
 ARG APPS_CACHE_BUST=0
 COPY apps.json /tmp/apps.json
-# --mount=type=secret keeps the PAT out of the image layer entirely (tmpfs,
-# only readable during this RUN) — it's for hosts where GitHub 401s on
-# anonymous git-upload-pack even for public repos (see deploy's
-# GITHUB_TOKEN_FILE). required=false: absent on hosts that don't need it,
-# clone falls back to plain anonymous.
-RUN --mount=type=secret,id=github_token,required=false \
+RUN --mount=type=ssh,id=default,required=false \
     echo "apps-cache-bust: $APPS_CACHE_BUST" \
     && python3 -c "import json; [print(a['name'], a['repo'], a['branch']) for a in json.load(open('/tmp/apps.json'))]" > /tmp/extra_apps.txt \
     && sed -i -e '$a\' /home/frappe/frappe-bench/sites/apps.txt \
-    && GITHUB_TOKEN="$(cat /run/secrets/github_token 2>/dev/null || true)" \
+    && mkdir -p ~/.ssh && chmod 700 ~/.ssh \
+    && ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null; \
+    if ssh-add -l >/dev/null 2>&1; then \
+      export GIT_CONFIG_COUNT=1; \
+      export GIT_CONFIG_KEY_0="url.git@github.com:.insteadOf"; \
+      export GIT_CONFIG_VALUE_0="https://github.com/"; \
+    fi; true \
     && while read name repo branch; do \
-         if [ -n "$GITHUB_TOKEN" ]; then \
-           git -c "http.extraheader=Authorization: Bearer ${GITHUB_TOKEN}" clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name"; \
-         else \
-           git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name"; \
-         fi \
+         git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name" \
          && chown -R frappe:frappe "/home/frappe/frappe-bench/apps/$name" \
          && /home/frappe/frappe-bench/env/bin/pip install -e "/home/frappe/frappe-bench/apps/$name" \
          && { [ ! -f "/home/frappe/frappe-bench/apps/$name/package.json" ] || (cd "/home/frappe/frappe-bench/apps/$name" && yarn install); } \
