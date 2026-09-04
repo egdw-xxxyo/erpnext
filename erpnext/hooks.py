@@ -626,7 +626,6 @@ doc_events = {
 		"before_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
 		"on_update": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 		"on_submit": [
-			"erpnext.regional.create_transaction_log",
 			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
 			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
