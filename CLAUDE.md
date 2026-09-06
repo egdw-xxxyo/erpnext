@@ -123,7 +123,7 @@ When the user shares an ERPNext URL, pick the MCP server by host IP:
 
 | Host | Environment | MCP server prefix |
 |---|---|---|
-| `172.16.105.102` | prod | `mcp__erp-prod__*` (and `mcp__erp-prod-ssh-mcp__*` for shell) |
+| `172.16.51.10` | prod | `mcp__erp-prod__*` (and `mcp__erp-prod-ssh-mcp__*` for shell) |
 | `172.16.105.103` | dev | `mcp__erp-dev__*` (and `mcp__erp-dev-ssh-mcp__*` for shell) |
 | `localhost` / `127.0.0.1` | local | `mcp__erp-local__*` |
 
