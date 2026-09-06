@@ -2018,21 +2018,30 @@ def setup_callmebot_default_settings():
 			modified = True
 
 		if not settings.templates:
-			settings.append("templates", {
-				"notification_type": "Assignment",
-				"template": "На вас призначено нове завдання",
-				"include_link": 1,
-			})
-			settings.append("templates", {
-				"notification_type": "Mention",
-				"template": "Вас згадали у коментарі",
-				"include_link": 1,
-			})
-			settings.append("templates", {
-				"notification_type": "Share",
-				"template": "Вам надано доступ до документу",
-				"include_link": 1,
-			})
+			settings.append(
+				"templates",
+				{
+					"notification_type": "Assignment",
+					"template": "На вас призначено нове завдання",
+					"include_link": 1,
+				},
+			)
+			settings.append(
+				"templates",
+				{
+					"notification_type": "Mention",
+					"template": "Вас згадали у коментарі",
+					"include_link": 1,
+				},
+			)
+			settings.append(
+				"templates",
+				{
+					"notification_type": "Share",
+					"template": "Вам надано доступ до документу",
+					"include_link": 1,
+				},
+			)
 			modified = True
 
 		if modified:
