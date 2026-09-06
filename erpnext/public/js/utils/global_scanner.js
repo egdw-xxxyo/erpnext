@@ -6,22 +6,26 @@ erpnext.GlobalScanner = class GlobalScanner {
 	}
 
 	mount_button() {
-		if ($(".navbar .global-scanner-btn").length) return;
-		const $search = $(".navbar .search-bar").first();
+		if ($("#navbar-global-scanner").length) return;
+		const $search = $("#navbar-modal-search").first();
 		if (!$search.length) return;
 
-		const $btn = $(`
-			<button type="button" class="btn btn-default btn-sm global-scanner-btn"
-				title="${__("Scan barcode")} (Ctrl+Shift+B)"
-				style="margin-left: 6px; display: inline-flex; align-items: center; padding: 4px 8px;">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-					stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
-				</svg>
-			</button>
+		const $item = $(`
+			<div id="navbar-global-scanner" class="sidebar-item-container" title="${__(
+				"Scan barcode"
+			)} (Ctrl+Shift+B)" data-toggle="tooltip" data-placement="right">
+				<div class="standard-sidebar-item">
+					<a class="item-anchor">
+						<span class="sidebar-item-icon text-ink-gray-7" item-icon="barcode">
+							${frappe.utils.icon("barcode", "sm", "", "", "text-ink-gray-7 current-color", true)}
+						</span>
+						<span class="sidebar-item-label">${__("Scan barcode")}</span>
+					</a>
+				</div>
+			</div>
 		`);
-		$btn.on("click", () => this.show());
-		$search.after($btn);
+		$item.on("click", () => this.show());
+		$search.after($item);
 	}
 
 	show() {
