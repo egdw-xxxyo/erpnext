@@ -1,1 +1,0 @@
-{"action": "update-repo", "label": "Update repo", "command": "trap \"rm -f /tmp/ops-gitkey-a8a35541238344fdb90c6eaa28874029\" EXIT\nexport GIT_SSH_COMMAND=\"ssh -i /tmp/ops-gitkey-a8a35541238344fdb90c6eaa28874029 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\"\n./updateRepo", "user": "xxxyo", "args": {}, "started": 1788345740}
