@@ -3,6 +3,7 @@
 
 
 import json
+from collections import Counter
 
 import frappe
 from frappe import _, throw
@@ -495,15 +496,9 @@ def remove_depends_on_row(parent_task, task_name):
 
 def get_group_progress(task_name):
 	"""Share of completed child tasks, cancelled ones excluded from the total."""
-	tally = {
-		row.status: row.count
-		for row in frappe.get_all(
-			"Task",
-			filters={"parent_task": task_name},
-			fields=["status", "count(name) as count"],
-			group_by="status",
-		)
-	}
+	tally = Counter(
+		frappe.get_all("Task", filters={"parent_task": task_name}, pluck="status")
+	)
 	considered = sum(count for status, count in tally.items() if status != "Cancelled")
 
 	return flt(tally.get("Completed", 0) / considered * 100, 2) if considered else 0.0
