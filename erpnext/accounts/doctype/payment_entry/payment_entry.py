@@ -595,6 +595,7 @@ class PaymentEntry(AccountsController):
 				self.party_account_currency,
 				self.party_type,
 				self.party,
+				d.payment_request,
 			)
 
 			# Only update exchange rate when the reference is Journal Entry
@@ -2793,11 +2794,20 @@ def get_outstanding_on_journal_entry(voucher_no, party_type, party):
 
 @frappe.whitelist()
 def get_reference_details(
-	reference_doctype, reference_name, party_account_currency, party_type=None, party=None
+	reference_doctype,
+	reference_name,
+	party_account_currency,
+	party_type=None,
+	party=None,
+	payment_request=None,
 ):
 	total_amount = outstanding_amount = exchange_rate = account = None
 
-	frappe.has_permission(reference_doctype, "read", reference_name, throw=True)
+	if not (
+		frappe.flags.get("ignore_payment_request_reference_permission")
+		or _can_read_reference_via_payment_request(payment_request, reference_doctype, reference_name)
+	):
+		frappe.has_permission(reference_doctype, "read", reference_name, throw=True)
 	ref_doc = frappe.get_lazy_doc(reference_doctype, reference_name)
 	company_currency = ref_doc.get("company_currency") or erpnext.get_company_currency(ref_doc.company)
 
@@ -2879,6 +2889,31 @@ def get_reference_details(
 	if account:
 		res.update({"account": account})
 	return res
+
+
+def _can_read_reference_via_payment_request(payment_request, reference_doctype, reference_name):
+	if (
+		not payment_request
+		or reference_doctype != "Purchase Invoice"
+		or "Payments: Казначей" not in frappe.get_roles()
+	):
+		return False
+
+	request = frappe.db.get_value(
+		"Payment Request",
+		payment_request,
+		["reference_doctype", "reference_name", "payment_request_type", "docstatus", "workflow_state"],
+		as_dict=True,
+	)
+	return bool(
+		request
+		and request.reference_doctype == reference_doctype
+		and request.reference_name == reference_name
+		and request.payment_request_type == "Outward"
+		and request.docstatus == 1
+		and request.workflow_state == "Погоджено"
+		and frappe.has_permission("Payment Request", "read", payment_request)
+	)
 
 
 @frappe.whitelist()

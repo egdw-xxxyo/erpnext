@@ -371,15 +371,20 @@ class PaymentRequest(Document):
 			bank_amount = flt(self.outstanding_amount / exchange_rate, self.precision("grand_total"))
 
 		# outstanding amount is already in Part's account currency
-		payment_entry = get_payment_entry(
-			self.reference_doctype,
-			self.reference_name,
-			party_amount=party_amount,
-			bank_account=self.payment_account,
-			bank_amount=bank_amount,
-			created_from_payment_request=True,
-		)
-		payment_entry.set_missing_ref_details(force=True)
+		previous_permission_flag = frappe.flags.get("ignore_payment_request_reference_permission")
+		frappe.flags.ignore_payment_request_reference_permission = True
+		try:
+			payment_entry = get_payment_entry(
+				self.reference_doctype,
+				self.reference_name,
+				party_amount=party_amount,
+				bank_account=self.payment_account,
+				bank_amount=bank_amount,
+				created_from_payment_request=True,
+			)
+			payment_entry.set_missing_ref_details(force=True)
+		finally:
+			frappe.flags.ignore_payment_request_reference_permission = previous_permission_flag
 
 		payment_entry.update(
 			{
@@ -1187,6 +1192,9 @@ def get_irequests_of_payment_request(doc: str | None = None) -> list:
 
 @frappe.whitelist()
 def get_available_payment_schedules(reference_doctype, reference_name):
+	if not frappe.get_single_value("Accounts Settings", "fetch_payment_schedule_in_payment_request"):
+		return []
+
 	ref_doc = frappe.get_doc(reference_doctype, reference_name)
 	ref_doc.check_permission()
 
