@@ -526,6 +526,21 @@ doc_events = {
 	"Serial and Batch Bundle": {
 		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner
 		"on_submit": "erpnext.stock.additional_attributes.apply_bundle_attributes_to_serials",
+		# a non-ASCII serial number cannot be encoded in a Code 128 barcode
+		"validate": "erpnext.stock.serial_charset.validate_bundle_serial_nos",
+	},
+	# barcode-safe serial numbers: block non-Latin characters everywhere one is composed
+	"Serial No": {
+		"validate": "erpnext.stock.serial_charset.validate_serial_no",
+	},
+	"Item": {
+		"validate": "erpnext.stock.serial_charset.validate_item_serial_series",
+	},
+	"Item Attribute": {
+		"validate": "erpnext.stock.serial_charset.validate_item_attribute_abbr",
+	},
+	"Serial Number Template": {
+		"validate": "erpnext.stock.serial_charset.validate_serial_number_template",
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",

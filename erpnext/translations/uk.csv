@@ -13811,3 +13811,9 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Attendance Sheet: {0}, {1} — {2}","Табель відвідуваності: {0}, {1} — {2}"
 "Nothing to export for this period.","За цей період нема чого експортувати."
 "Not permitted to read this report","Немає доступу до цього звіту"
+"{0} may contain Latin letters, digits and punctuation only. Remove: {1}","{0} може містити лише латинські літери, цифри та розділові знаки. Приберіть: {1}"
+Serial Number Must Be Barcode Safe,Серійний номер має бути придатним для штрихкоду
+Serial Number Series,Серія серійних номерів
+Resulting Series,Підсумкова серія
+Abbreviation for {0},Скорочення для {0}
+Component {0},Компонент {0}
