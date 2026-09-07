@@ -19,6 +19,10 @@ dependencies = [
     "plaid-python~=7.2.1",
     "python-youtube~=0.9.9",
 
+    # Employee Chat push notifications (erpnext.crm.page.employee_chat). Import is
+    # try/except-guarded there, so a site can skip this and just get no push.
+    "firebase-admin~=6.9.0",
+
     # Not used directly - required by PyQRCode for PNG generation
     "pypng~=0.20220715.0",
 

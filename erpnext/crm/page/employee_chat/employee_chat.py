@@ -758,7 +758,9 @@ def send_message(
 	)
 
 	payload = _message_payload(msg.as_dict())
-	_fanout(doc, "chat_message", payload, users=_notify_users(doc, me))
+	notify_users = _notify_users(doc, me)
+	_fanout(doc, "chat_message", payload, users=notify_users)
+	_push_new_message(doc, msg, me, notify_users)
 	return payload
 
 
@@ -1360,6 +1362,109 @@ def search_employees(txt: str | None = None):
 			}
 		)
 	return rows
+
+
+# ---------------------------------------------------------------------------
+# Push notifications (FCM)
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def register_fcm_token(token: str, device_label: str | None = None, platform: str = "android"):
+	"""Register (or reassign) a device's FCM token to the current user. Keyed by token, not
+	user+device — a token seen again (reinstall, re-login as someone else on the same phone)
+	just moves the existing row rather than accumulating duplicates."""
+	token = (token or "").strip()
+	if not token:
+		frappe.throw(_("No token given"))
+	me = frappe.session.user
+	existing = frappe.db.get_value("FCM Device Token", {"token": token}, "name")
+	values = {
+		"user": me,
+		"platform": platform or "android",
+		"device_label": device_label,
+		"registered_on": now(),
+	}
+	if existing:
+		frappe.db.set_value("FCM Device Token", existing, values, update_modified=False)
+	else:
+		frappe.get_doc({"doctype": "FCM Device Token", "token": token, **values}).insert(
+			ignore_permissions=True
+		)
+	return {"ok": True}
+
+
+@frappe.whitelist()
+def unregister_fcm_token(token: str):
+	"""Best-effort cleanup on logout — stop pushing to a token the client no longer holds."""
+	token = (token or "").strip()
+	if token:
+		frappe.db.delete("FCM Device Token", {"token": token})
+	return {"ok": True}
+
+
+def _push_new_message(thread_doc, msg, sender, notify_users):
+	"""Queue a push to every notified participant's devices, except the sender's own. Runs
+	after commit, off the request thread — push is an enhancement, never allowed to slow down
+	or fail sending the message itself."""
+	recipients = [u for u in notify_users if u != sender]
+	if not recipients:
+		return
+	tokens = frappe.get_all("FCM Device Token", filters={"user": ["in", recipients]}, pluck="token")
+	if not tokens:
+		return
+	title = thread_doc.title or _user_name(sender)
+	body = _preview_text(msg.content_type, msg.message, msg.attach, is_encrypted=msg.is_encrypted)
+	frappe.enqueue(
+		"erpnext.crm.page.employee_chat.employee_chat._send_fcm_push",
+		queue="short",
+		enqueue_after_commit=True,
+		tokens=tokens,
+		title=title,
+		body=body,
+		data={"thread": thread_doc.name, "type": "chat_message"},
+	)
+
+
+def _send_fcm_push(tokens, title, body, data):
+	"""Actually call Firebase. Needs `firebase-admin` installed and `fcm_service_account_json`
+	(path to a Firebase service-account key file) set in site_config.json — neither is required
+	for the app to function, so both are missing on a fresh site and this silently no-ops."""
+	try:
+		import firebase_admin
+		from firebase_admin import credentials, messaging
+	except ImportError:
+		frappe.logger("fcm").info("firebase_admin not installed, skipping push")
+		return
+
+	key_path = frappe.conf.get("fcm_service_account_json")
+	if not key_path:
+		return
+
+	if not firebase_admin._apps:
+		firebase_admin.initialize_app(credentials.Certificate(key_path))
+
+	for i in range(0, len(tokens), 500):  # FCM's multicast cap per call
+		batch = tokens[i : i + 500]
+		message = messaging.MulticastMessage(
+			notification=messaging.Notification(title=title, body=body),
+			data={k: str(v) for k, v in data.items()},
+			tokens=batch,
+		)
+		try:
+			resp = messaging.send_each_for_multicast(message)
+		except Exception:
+			frappe.log_error(title="FCM push failed", message=frappe.get_traceback())
+			continue
+		# Tokens Firebase reports as dead (uninstalled/expired) — stop retrying them.
+		dead = [
+			batch[idx]
+			for idx, r in enumerate(resp.responses)
+			if not r.success and r.exception and "Unregistered" in str(r.exception)
+		]
+		if dead:
+			frappe.db.delete("FCM Device Token", {"token": ["in", dead]})
+			frappe.db.commit()  # nosemgrep
 
 
 def _require_admin(thread_doc):

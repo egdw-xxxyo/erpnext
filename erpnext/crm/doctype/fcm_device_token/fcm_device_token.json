@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-07 00:00:00.000000",
+ "default_view": "List",
+ "description": "One row per registered mobile device (Firebase Cloud Messaging token). Written only via erpnext.crm.page.employee_chat.employee_chat.register_fcm_token, keyed by token so a device that moves to a new user (reinstall/re-login) reassigns rather than duplicates.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "platform",
+  "column_break_details",
+  "device_label",
+  "registered_on",
+  "token_section",
+  "token"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "default": "android",
+   "fieldname": "platform",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Platform",
+   "options": "android\nios"
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "device_label",
+   "fieldtype": "Data",
+   "label": "Device Label"
+  },
+  {
+   "fieldname": "registered_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Registered On"
+  },
+  {
+   "fieldname": "token_section",
+   "fieldtype": "Section Break",
+   "label": "Token"
+  },
+  {
+   "description": "FCM registration token. Unique across all users/devices — a token seen again just reassigns this row (see class docstring).",
+   "fieldname": "token",
+   "fieldtype": "Data",
+   "label": "Token",
+   "length": 255,
+   "reqd": 1,
+   "unique": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-07 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "FCM Device Token",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
