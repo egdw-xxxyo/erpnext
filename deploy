@@ -590,6 +590,13 @@ run_deploy() {
   say "==> Starting workers..."
   dc start scheduler queue-short queue-long websocket > "$out" 2>&1 || true
 
+  # nginx resolves the `websocket` upstream once, when it loads its config. The
+  # stop/start above hands that container a new IP, so the frontend keeps proxying
+  # /socket.io to an address nobody listens on: every realtime connection 502s and
+  # the chat silently falls back to polling. Reload nginx so it resolves again.
+  say "==> Reloading frontend (websocket upstream IP changed)..."
+  dc restart frontend > "$out" 2>&1 || true
+
   say "==> Running setup_custom_fields..."
   local scf_log
   scf_log="$(mktemp)"
