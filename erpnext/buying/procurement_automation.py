@@ -11,8 +11,6 @@ from erpnext.buying.procurement_workflow import (
 	BUYER_ROLE,
 	CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
 	MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
-	PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
-	PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME,
 	PROCUREMENT_ASSIGNMENT_RULES,
 )
 
@@ -213,58 +211,6 @@ def set_purchase_invoice_external_payment_details(doc, method=None):
 		_clear_external_payment_details(doc)
 		return
 	set_external_payment_details(doc, consolidated)
-
-
-def create_external_payment_purchase_receipt(doc, method=None):
-	"""Receive prepaid goods automatically once the buyer submits their Purchase Invoice."""
-	if (
-		doc.docstatus != 1
-		or not doc.get("custom_paid_outside_company")
-		or doc.get("update_stock")
-		or doc.get("is_return")
-	):
-		return
-
-	consolidated_name = doc.get("custom_consolidated_purchase_order")
-	if not consolidated_name or not frappe.db.get_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		consolidated_name,
-		"items_already_purchased",
-	):
-		return
-
-	if frappe.db.exists(
-		"Purchase Receipt Item",
-		{
-			"purchase_invoice": doc.name,
-			"docstatus": ["<", 2],
-		},
-	):
-		return
-
-	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import make_purchase_receipt
-
-	receipt = make_purchase_receipt(doc.name)
-	if not receipt.get("items"):
-		return
-
-	receipt.flags.ignore_permissions = True
-	receipt.insert(ignore_permissions=True)
-	receipt.submit()
-
-	initiator = _get_primary_procurement_initiator(consolidated_name)
-	initiator_name = (
-		frappe.get_cached_value("User", initiator, "full_name") or initiator
-		if initiator
-		else _("the initiator")
-	)
-	receipt.add_comment(
-		"Info",
-		text=_("Received automatically on behalf of initiator {0} for prepaid invoice {1}.").format(
-			f"<b>{escape_html(initiator_name)}</b>",
-			get_link_to_form("Purchase Invoice", doc.name, escape_html(doc.name)),
-		),
-	)
 
 
 def set_external_payment_details(invoice, consolidated):
@@ -567,10 +513,6 @@ def apply_rules_to_existing_procurement_documents():
 	):
 		sync_procurement_stage_assignment(frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, name))
 
-	for name in frappe.get_all("Purchase Receipt", filters={"docstatus": 0}, pluck="name"):
-		sync_purchase_receipt_assignment(frappe.get_doc("Purchase Receipt", name))
-
-
 def _matches_assignment_rule(spec, doc):
 	return bool(frappe.safe_eval(spec["condition"], None, doc.as_dict()))
 
@@ -667,8 +609,6 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 		else:
 			order_status = PROCUREMENT_AWAITING_PAYMENT
 		_set_procurement_status(PURCHASE_ORDER_DOCTYPE, order.name, order_status)
-		_apply_purchase_order_assignment_rule(order.name)
-
 	material_requests = set(
 		frappe.get_all(
 			"Consolidated Purchase Order Item",
@@ -755,102 +695,6 @@ def _get_consolidated_procurement_status(
 	if payment_complete:
 		return PROCUREMENT_AWAITING_RECEIPT
 	return PROCUREMENT_AWAITING_PAYMENT
-
-
-def _apply_purchase_order_assignment_rule(purchase_order):
-	if not frappe.db.exists("Assignment Rule", PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME):
-		return
-	rule = frappe.get_doc("Assignment Rule", PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME)
-	status = frappe.db.get_value(
-		PURCHASE_ORDER_DOCTYPE, purchase_order, COMPLETION_FIELDS[PURCHASE_ORDER_DOCTYPE]
-	)
-	filters = {
-		"reference_type": PURCHASE_ORDER_DOCTYPE,
-		"reference_name": purchase_order,
-		"assignment_rule": PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
-		"status": "Open",
-	}
-	if status != PROCUREMENT_AWAITING_RECEIPT:
-		_close_assignments_silently(PURCHASE_ORDER_DOCTYPE, purchase_order, filters=filters)
-		return
-	if frappe.db.exists("ToDo", filters):
-		return
-
-	order = frappe.get_doc(PURCHASE_ORDER_DOCTYPE, purchase_order)
-	user = rule.get_user(order.as_dict())
-	if not user or not frappe.db.get_value("User", user, "enabled"):
-		return
-	add_assignment(
-		{
-			"assign_to": [user],
-			"doctype": PURCHASE_ORDER_DOCTYPE,
-			"name": purchase_order,
-			"description": frappe.render_template(rule.description, order.as_dict()),
-			"assignment_rule": rule.name,
-			"date": order.get(rule.due_date_based_on) if rule.due_date_based_on else None,
-		},
-		ignore_permissions=True,
-	)
-	rule.db_set("last_user", user)
-
-
-def sync_purchase_receipt_assignment(doc, method=None):
-	"""Move the receiving task from the buyer's Purchase Order to the warehouse receipt."""
-	purchase_orders = {
-		row.purchase_order for row in (doc.get("items") or []) if row.purchase_order
-	}
-	procurement_orders = {
-		name
-		for name in purchase_orders
-		if frappe.db.get_value(PURCHASE_ORDER_DOCTYPE, name, "custom_consolidated_purchase_order")
-	}
-	if not procurement_orders:
-		return
-
-	receipt_filters = {
-		"reference_type": "Purchase Receipt",
-		"reference_name": doc.name,
-		"assignment_rule": PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME,
-		"status": "Open",
-	}
-	if doc.docstatus != 0 or method == "on_trash":
-		_close_assignments_silently("Purchase Receipt", doc.name, filters=receipt_filters)
-		for purchase_order in procurement_orders:
-			_apply_purchase_order_assignment_rule(purchase_order)
-		return
-
-	for purchase_order in procurement_orders:
-		_close_assignments_silently(
-			PURCHASE_ORDER_DOCTYPE,
-			purchase_order,
-			filters={
-				"reference_type": PURCHASE_ORDER_DOCTYPE,
-				"reference_name": purchase_order,
-				"assignment_rule": PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
-				"status": "Open",
-			},
-		)
-
-	if frappe.db.exists("ToDo", receipt_filters) or not frappe.db.exists(
-		"Assignment Rule", PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME
-	):
-		return
-	rule = frappe.get_doc("Assignment Rule", PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME)
-	user = rule.get_user(doc.as_dict())
-	if not user or not frappe.db.get_value("User", user, "enabled"):
-		return
-	add_assignment(
-		{
-			"assign_to": [user],
-			"doctype": doc.doctype,
-			"name": doc.name,
-			"description": frappe.render_template(rule.description, doc.as_dict()),
-			"assignment_rule": rule.name,
-			"date": doc.get(rule.due_date_based_on) if rule.due_date_based_on else None,
-		},
-		ignore_permissions=True,
-	)
-	rule.db_set("last_user", user)
 
 
 def _close_assignments_silently(doctype, name, filters=None):

@@ -531,7 +531,6 @@ doc_events = {
 		],
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
 		"on_submit": [
-			"erpnext.buying.procurement_automation.create_external_payment_purchase_receipt",
 			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		],
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
@@ -596,21 +595,10 @@ doc_events = {
 		"after_delete": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
 	},
 	"Purchase Receipt": {
-		"after_insert": "erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
-		"on_trash": [
-			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
-			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
-		],
-		"on_cancel": [
-			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
-			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
-			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
-		],
+		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		# demand mandatory additional attributes before the serials are generated after save
 		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
-		"on_submit": [
-			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
-			"erpnext.buying.procurement_automation.sync_purchase_receipt_assignment",
-		],
 	},
 	"Serial and Batch Bundle": {
 		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner

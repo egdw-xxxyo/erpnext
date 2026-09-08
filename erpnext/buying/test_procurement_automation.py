@@ -11,7 +11,6 @@ from erpnext.buying.procurement_automation import (
 	_get_consolidated_item_rate,
 	_get_primary_procurement_initiator,
 	_notify_procurement_initiators,
-	create_external_payment_purchase_receipt,
 )
 from erpnext.buying.procurement_workflow_reason import _apply_creator_department_approval
 from erpnext.setup.procurement_workflow_setup import CUSTOM_FIELDS
@@ -37,8 +36,8 @@ class TestProcurementAutomation(FrappeTestCase):
 		self.assertIs(result, doc)
 		core_apply_workflow.assert_not_called()
 
-	def test_prepaid_materials_are_already_received_by_initiator(self):
-		self.assertTrue(_is_purchase_receipt_stage_complete(True, [], {}))
+	def test_prepaid_materials_still_require_warehouse_receipt(self):
+		self.assertFalse(_is_purchase_receipt_stage_complete(True, [], {}))
 
 	@patch("erpnext.buying.procurement_automation._get_procurement_chain")
 	@patch("erpnext.buying.procurement_automation.frappe.get_all")
@@ -54,14 +53,8 @@ class TestProcurementAutomation(FrappeTestCase):
 
 		self.assertEqual(_get_primary_procurement_initiator("CPO-TEST"), "Administrator")
 
-	def test_purchase_receipt_ttn_uses_optional_text_fields(self):
-		fields = {field["fieldname"]: field for field in CUSTOM_FIELDS["Purchase Receipt"]}
-
-		for fieldname in ("custom_delivery_method", "custom_waybill_number"):
-			self.assertEqual(fields[fieldname]["fieldtype"], "Data")
-			self.assertFalse(fields[fieldname].get("reqd", 0))
-
-		self.assertTrue(fields["custom_ttn_files"]["hidden"])
+	def test_purchase_receipt_ttn_is_not_provisioned(self):
+		self.assertNotIn("Purchase Receipt", CUSTOM_FIELDS)
 
 	@patch("erpnext.stock.get_item_details.get_price_list_rate_for")
 	@patch("erpnext.buying.procurement_automation.frappe.get_cached_value")
@@ -114,34 +107,6 @@ class TestProcurementAutomation(FrappeTestCase):
 		get_cached_value.assert_called_once_with(
 			"Item", "ITEM-1", ["valuation_rate", "last_purchase_rate"]
 		)
-
-	@patch("erpnext.buying.procurement_automation._get_primary_procurement_initiator")
-	@patch("erpnext.buying.procurement_automation.frappe.db.exists")
-	@patch("erpnext.buying.procurement_automation.frappe.db.get_value")
-	@patch("erpnext.accounts.doctype.purchase_invoice.purchase_invoice.make_purchase_receipt")
-	def test_prepaid_invoice_creates_and_submits_receipt(
-		self, make_purchase_receipt, get_value, exists, get_initiator
-	):
-		invoice = frappe._dict(
-			docstatus=1,
-			name="PINV-TEST",
-			custom_paid_outside_company=1,
-			custom_consolidated_purchase_order="CPO-TEST",
-			update_stock=0,
-			is_return=0,
-		)
-		receipt = MagicMock()
-		receipt.get.return_value = [frappe._dict(item_code="ITEM-1")]
-		make_purchase_receipt.return_value = receipt
-		get_value.return_value = 1
-		exists.return_value = False
-		get_initiator.return_value = None
-
-		create_external_payment_purchase_receipt(invoice)
-
-		make_purchase_receipt.assert_called_once_with(invoice.name)
-		receipt.insert.assert_called_once_with(ignore_permissions=True)
-		receipt.submit.assert_called_once_with()
 
 	@patch("erpnext.buying.procurement_automation.enqueue_create_notification")
 	@patch("erpnext.buying.procurement_automation._get_procurement_initiators")

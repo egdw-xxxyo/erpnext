@@ -64,8 +64,6 @@ frappe.ui.form.on("Purchase Receipt", {
 	},
 
 	refresh: function (frm) {
-		const can_read_quality_inspection = frappe.model.can_read("Quality Inspection");
-		const can_create_quality_inspection = frappe.model.can_create("Quality Inspection");
 		if (frm.doc.company) {
 			frm.trigger("toggle_display_account_head");
 		}
@@ -106,7 +104,7 @@ frappe.ui.form.on("Purchase Receipt", {
 		}
 
 		// Show button to navigate to linked Quality Inspections
-		if (can_read_quality_inspection && frm.doc.name && !frm.doc.name.startsWith("new-")) {
+		if (frm.doc.name && !frm.doc.name.startsWith("new-")) {
 			frappe.call({
 				method: "frappe.client.get_list",
 				args: {
@@ -175,7 +173,7 @@ frappe.ui.form.on("Purchase Receipt", {
 		}
 
 		// Create QI button — works on both draft and submitted PRs
-		if (can_create_quality_inspection && frm.doc.name && !frm.doc.__islocal) {
+		if (frm.doc.name && !frm.doc.__islocal) {
 			let items_needing_qi = (frm.doc.items || []).filter(
 				(item) => item.serial_and_batch_bundle && !item.quality_inspection
 			);

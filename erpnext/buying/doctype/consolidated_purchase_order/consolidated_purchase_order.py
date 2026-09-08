@@ -566,12 +566,6 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 	purchase_receipt_complete = _is_purchase_receipt_stage_complete(
 		external_payment, orders, by_order
 	)
-	if external_payment:
-		from erpnext.buying.procurement_automation import _get_primary_procurement_initiator
-
-		initiator = _get_primary_procurement_initiator(source_name)
-		if initiator:
-			receipt_actors = [initiator]
 	return {
 		"submitted_invoice_count": len(invoices),
 		"created_invoice_count": created_invoice_count,
@@ -589,10 +583,8 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 
 
 def _is_purchase_receipt_stage_complete(external_payment, orders, by_order):
-	"""Prepaid materials are already physically held by their initiator."""
-	return bool(external_payment) or (
-		bool(orders) and all(row["purchase_receipt_complete"] for row in by_order.values())
-	)
+	"""The warehouse completes receipt only by submitting receipts for every order."""
+	return bool(orders) and all(row["purchase_receipt_complete"] for row in by_order.values())
 
 
 def _get_purchase_receipts_by_order(orders):

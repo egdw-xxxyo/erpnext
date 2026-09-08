@@ -4,6 +4,14 @@ import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
+PURCHASE_RECEIPT_TTN_FIELDS = (
+	"custom_ttn_section",
+	"custom_delivery_method",
+	"custom_ttn_column",
+	"custom_waybill_number",
+	"custom_ttn_files",
+)
+
 CUSTOM_FIELDS = {
 	"Buying Settings": [
 		{
@@ -167,47 +175,6 @@ CUSTOM_FIELDS = {
 			"no_copy": 1,
 			"hidden": 1,
 			"insert_after": "material_request_item",
-		},
-	],
-	"Purchase Receipt": [
-		{
-			"fieldname": "custom_ttn_section",
-			"fieldtype": "Section Break",
-			"label": "ТТН",
-			"depends_on": "eval:!doc.is_return",
-			"insert_after": "supplier_warehouse",
-		},
-		{
-			"fieldname": "custom_delivery_method",
-			"fieldtype": "Data",
-			"label": "Спосіб доставки",
-			"depends_on": "eval:!doc.is_return",
-			"no_copy": 1,
-			"insert_after": "custom_ttn_section",
-		},
-		{
-			"fieldname": "custom_ttn_column",
-			"fieldtype": "Column Break",
-			"depends_on": "eval:!doc.is_return",
-			"insert_after": "custom_delivery_method",
-		},
-		{
-			"fieldname": "custom_waybill_number",
-			"fieldtype": "Data",
-			"label": "Номер накладної",
-			"depends_on": "eval:!doc.is_return",
-			"no_copy": 1,
-			"insert_after": "custom_ttn_column",
-		},
-		{
-			# Keep the legacy attachment table hidden so existing TTN files are not lost.
-			"fieldname": "custom_ttn_files",
-			"fieldtype": "Table",
-			"label": "TTN",
-			"options": "Consolidated Purchase Supplier Invoice",
-			"hidden": 1,
-			"no_copy": 1,
-			"insert_after": "custom_waybill_number",
 		},
 	],
 	"Purchase Invoice": [
@@ -448,6 +415,18 @@ def after_migrate():
 
 def sync_procurement_custom_fields():
 	create_custom_fields(CUSTOM_FIELDS, update=True)
+	_remove_purchase_receipt_ttn_fields()
+
+
+def _remove_purchase_receipt_ttn_fields():
+	"""Drop the procurement TTN customization from Purchase Receipt."""
+	for fieldname in PURCHASE_RECEIPT_TTN_FIELDS:
+		name = frappe.db.exists(
+			"Custom Field", {"dt": "Purchase Receipt", "fieldname": fieldname}
+		)
+		if name:
+			frappe.delete_doc("Custom Field", name, force=True, ignore_permissions=True)
+	frappe.clear_cache(doctype="Purchase Receipt")
 
 
 def _sync_consolidated_material_requests():
