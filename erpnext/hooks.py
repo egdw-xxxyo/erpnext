@@ -25,6 +25,7 @@ develop_version = "15.x.x-develop"
 app_include_js = "erpnext.bundle.js"
 app_include_css = "erpnext.bundle.css"
 web_include_css = "erpnext-web.bundle.css"
+web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
 
 app_include_icons = [

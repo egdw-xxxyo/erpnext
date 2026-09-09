@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
-"""Update check for the companion mobile apps.
+"""Update check and setup QR for the companion mobile apps.
 
 Deliberately separate from `otdr_api.get_configuration`: that one only answers for a device
 that has an OTDR configured, so chat-only users never learned their build was old.
@@ -15,6 +15,7 @@ from erpnext.devices.doctype.mobile_app_release.mobile_app_release import (
 	latest_release,
 )
 from erpnext.devices.doctype.otdr.otdr import _version_tuple, min_version_for
+from erpnext.devices.doctype.otdr.otdr_api import _make_qr_data_uri
 
 
 def _min_android_version():
@@ -61,3 +62,32 @@ def get_app_update(client="android", app_version=None, app=DEFAULT_APP, **kwargs
 	current = _version_tuple(app_version)
 	payload["update_available"] = bool(current) and _version_tuple(release.version) > current
 	return payload
+
+
+MAX_LOGIN_LENGTH = 140
+
+
+def _instance_name():
+	configured = frappe.db.get_single_value("Mobile App Settings", "instance_name")
+	if configured:
+		return configured.strip()
+	return get_url().split("//", 1)[-1].split("/", 1)[0]
+
+
+@frappe.whitelist(allow_guest=True)
+def get_provisioning_qr(login=None, **kwargs):
+	"""QR shown next to the desk login field, so a phone can be set up by scanning it.
+
+	Guest-callable on purpose: it runs on the login page, before there is a session. The
+	payload carries nothing secret — the site URL, the instance label and whatever login the
+	visitor typed into the form — and the endpoint never says whether that login exists.
+	"""
+	login = (login or "").strip()[:MAX_LOGIN_LENGTH]
+	payload = {
+		"v": 3,
+		"url": get_url(),
+		"name": _instance_name(),
+		"user": login,
+	}
+	text = frappe.as_json(payload, indent=None)
+	return {"payload": text, "instance_name": payload["name"], "qr_data_uri": _make_qr_data_uri(text)}

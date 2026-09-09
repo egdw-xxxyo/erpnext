@@ -6,6 +6,8 @@
  "editable_grid": 0,
  "engine": "InnoDB",
  "field_order": [
+  "instance_section",
+  "instance_name",
   "github_section",
   "enabled",
   "github_repo",
@@ -19,6 +21,17 @@
   "last_error"
  ],
  "fields": [
+  {
+   "fieldname": "instance_section",
+   "fieldtype": "Section Break",
+   "label": "Instance"
+  },
+  {
+   "description": "Shown on the phone when this site is set up from the login page QR (e.g. Prod, Dev). Empty falls back to the site's host name.",
+   "fieldname": "instance_name",
+   "fieldtype": "Data",
+   "label": "Instance Name"
+  },
   {
    "fieldname": "github_section",
    "fieldtype": "Section Break",
