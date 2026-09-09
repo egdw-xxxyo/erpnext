@@ -13817,3 +13817,8 @@ Serial Number Series,Серія серійних номерів
 Resulting Series,Підсумкова серія
 Abbreviation for {0},Скорочення для {0}
 Component {0},Компонент {0}
+"Check GitHub Now","Перевірити GitHub зараз"
+"Checking GitHub for a new release...","Перевіряємо GitHub на новий реліз..."
+"Poll failed","Перевірка не вдалася"
+"Latest release: {0}","Останній реліз: {0}"
+"No release found","Релізів не знайдено"
