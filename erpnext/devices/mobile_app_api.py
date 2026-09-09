@@ -18,6 +18,32 @@ from erpnext.devices.doctype.otdr.otdr import _version_tuple, min_version_for
 from erpnext.devices.doctype.otdr.otdr_api import _make_qr_data_uri
 
 
+def _site_url():
+	"""The address the visitor actually reached the site on.
+
+	`get_url()` answers with site_config's `host_name`, which in our container stacks is
+	the internal `http://frontend:8080` — a name no phone can resolve, so a QR built from
+	it provisions a dead server profile. The request's own host is the address that
+	provably works; `get_url()` stays the fallback for callers with no request (console,
+	background jobs).
+	"""
+	request = getattr(frappe.local, "request", None)
+	host_url = getattr(request, "host_url", None)
+	if host_url:
+		return host_url.rstrip("/")
+	return get_url()
+
+
+def _download_url(path):
+	"""Same reason as `_site_url`: an APK link on the internal host name is undownloadable
+	from the phone asking for the update."""
+	if not path:
+		return None
+	if path.startswith("http://") or path.startswith("https://"):
+		return path
+	return _site_url() + ("" if path.startswith("/") else "/") + path
+
+
 def _min_android_version():
 	override = frappe.db.get_single_value("Mobile App Settings", "min_android_version")
 	return (override or "").strip() or min_version_for("android")
@@ -53,7 +79,7 @@ def get_app_update(client="android", app_version=None, app=DEFAULT_APP, **kwargs
 	payload.update(
 		{
 			"latest_version": release.version,
-			"download_url": get_url(release.apk),
+			"download_url": _download_url(release.apk),
 			"release_notes": release.release_notes,
 			"size": release.apk_size or 0,
 			"published_on": str(release.published_on) if release.published_on else None,
@@ -71,7 +97,7 @@ def _instance_name():
 	configured = frappe.db.get_single_value("Mobile App Settings", "instance_name")
 	if configured:
 		return configured.strip()
-	return get_url().split("//", 1)[-1].split("/", 1)[0]
+	return _site_url().split("//", 1)[-1].split("/", 1)[0]
 
 
 @frappe.whitelist(allow_guest=True)
@@ -85,7 +111,7 @@ def get_provisioning_qr(login=None, **kwargs):
 	login = (login or "").strip()[:MAX_LOGIN_LENGTH]
 	payload = {
 		"v": 3,
-		"url": get_url(),
+		"url": _site_url(),
 		"name": _instance_name(),
 		"user": login,
 	}
