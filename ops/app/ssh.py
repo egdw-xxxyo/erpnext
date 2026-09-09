@@ -56,13 +56,25 @@ def _known_hosts_path() -> str:
 	return os.path.join(settings.data_dir, "known_hosts")
 
 
+def _host_key_id() -> str:
+	"""How paramiko keys an entry in known_hosts — bracketed when the port is not 22."""
+	if settings.ssh_port == 22:
+		return settings.ssh_host
+	return f"[{settings.ssh_host}]:{settings.ssh_port}"
+
+
 def _load_host_keys(client: paramiko.SSHClient) -> bool:
-	"""Load the pinned host keys. Returns True when a key is already pinned."""
+	"""Load the pinned host keys. Returns True when *this* host already has one.
+
+	Per host, not per file: a known_hosts holding a key for some other host (an earlier
+	OPS_SSH_HOST, say) must still let this one be pinned on first use, or the dashboard
+	locks itself out with "not found in known_hosts" and no way back in.
+	"""
 	path = _known_hosts_path()
-	if os.path.exists(path):
-		client.load_host_keys(path)
-		return bool(client.get_host_keys())
-	return False
+	if not os.path.exists(path):
+		return False
+	client.load_host_keys(path)
+	return bool(client.get_host_keys().lookup(_host_key_id()))
 
 
 class HostConnection:
@@ -156,6 +168,12 @@ def connect(username: str, password: str) -> HostConnection:
 		except paramiko.AuthenticationException as exc:
 			client.close()
 			raise AuthFailed("invalid username or password") from exc
+		except paramiko.BadHostKeyException as exc:
+			client.close()
+			raise HostUnreachable(
+				f"host key for {settings.ssh_host} does not match the pinned one. If the host "
+				f"was rebuilt, delete its entry from {_known_hosts_path()} and log in again."
+			) from exc
 		except (paramiko.SSHException, OSError) as exc:
 			client.close()
 			raise HostUnreachable(f"cannot reach {settings.ssh_host}:{settings.ssh_port} — {exc}") from exc
