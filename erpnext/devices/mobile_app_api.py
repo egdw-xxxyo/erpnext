@@ -13,6 +13,7 @@ import frappe
 from frappe import _
 from frappe.utils import get_url
 
+from erpnext import __version__ as erpnext_version
 from erpnext.devices.doctype.mobile_app_release.mobile_app_release import (
 	DEFAULT_APP,
 	latest_release,
@@ -87,6 +88,8 @@ def get_app_update(client="android", app_version=None, app=DEFAULT_APP, **kwargs
 		"published_on": None,
 	}
 
+	payload.update(_server_info())
+
 	release = latest_release(app)
 	if not release:
 		return payload
@@ -103,6 +106,28 @@ def get_app_update(client="android", app_version=None, app=DEFAULT_APP, **kwargs
 	current = _version_tuple(app_version)
 	payload["update_available"] = bool(current) and _version_tuple(release.version) > current
 	return payload
+
+
+def _server_info():
+	"""What the app shows under "Сервер" — the versions actually running here.
+
+	The phone had no way to tell which ERP it was talking to, so a stale site and a
+	current one looked identical from the update screen. `site_release` is the newest
+	Release Note, i.e. the deployment tag, which is the number people quote to each other;
+	the app versions are what the bench is running.
+	"""
+	release = frappe.get_all(
+		"Release Note",
+		fields=["version"],
+		order_by="release_date desc",
+		limit=1,
+	)
+	return {
+		"instance_name": _instance_name(),
+		"erpnext_version": erpnext_version,
+		"frappe_version": frappe.__version__,
+		"site_release": release[0].version if release else None,
+	}
 
 
 MAX_LOGIN_LENGTH = 140
