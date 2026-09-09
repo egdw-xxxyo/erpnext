@@ -1422,7 +1422,7 @@ def _push_new_message(thread_doc, msg, sender, notify_users):
 		tokens=tokens,
 		title=title,
 		body=body,
-		data={"thread": thread_doc.name, "type": "chat_message"},
+		data={"thread": thread_doc.name, "type": "chat_message", "open_tab": "chat"},
 	)
 
 

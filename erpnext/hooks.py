@@ -477,9 +477,13 @@ doc_events = {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 	},
-	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot
+	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
+	# and pushed to the mobile app's registered devices
 	"Notification Log": {
-		"after_insert": "erpnext.erpnext_integrations.callmebot.on_notification_log",
+		"after_insert": [
+			"erpnext.erpnext_integrations.callmebot.on_notification_log",
+			"erpnext.crm.notification_push.on_notification_log",
+		],
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
