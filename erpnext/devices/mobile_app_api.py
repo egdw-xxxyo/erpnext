@@ -8,6 +8,7 @@ that has an OTDR configured, so chat-only users never learned their build was ol
 """
 
 import frappe
+from frappe import _
 from frappe.utils import get_url
 
 from erpnext.devices.doctype.mobile_app_release.mobile_app_release import (
@@ -117,3 +118,40 @@ def get_provisioning_qr(login=None, **kwargs):
 	}
 	text = frappe.as_json(payload, indent=None)
 	return {"payload": text, "instance_name": payload["name"], "qr_data_uri": _make_qr_data_uri(text)}
+
+
+@frappe.whitelist()
+def get_me():
+	"""Who the caller is, for the app's own profile screen.
+
+	`frappe.auth.get_logged_user` answers with the email alone, which is why every screen
+	in the mobile app showed an address where a name belongs. Read from the session user's
+	own User document — no permission juggling, a user may always read itself — and hand
+	back an absolute image URL: `user_image` is stored site-relative (`/files/...`), and a
+	phone has no base to resolve that against.
+	"""
+	user = frappe.session.user
+	if not user or user == "Guest":
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	row = (
+		frappe.db.get_value(
+			"User",
+			user,
+			["first_name", "last_name", "full_name", "user_image"],
+			as_dict=True,
+		)
+		or frappe._dict()
+	)
+
+	image = (row.get("user_image") or "").strip()
+	if image and not image.startswith(("http://", "https://")):
+		image = _site_url() + ("" if image.startswith("/") else "/") + image
+
+	return {
+		"email": user,
+		"first_name": row.get("first_name") or "",
+		"last_name": row.get("last_name") or "",
+		"full_name": (row.get("full_name") or "").strip() or user,
+		"user_image": image or None,
+	}
