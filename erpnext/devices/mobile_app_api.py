@@ -7,6 +7,8 @@ Deliberately separate from `otdr_api.get_configuration`: that one only answers f
 that has an OTDR configured, so chat-only users never learned their build was old.
 """
 
+from urllib.parse import urlparse
+
 import frappe
 from frappe import _
 from frappe.utils import get_url
@@ -27,12 +29,24 @@ def _site_url():
 	it provisions a dead server profile. The request's own host is the address that
 	provably works; `get_url()` stays the fallback for callers with no request (console,
 	background jobs).
+
+	The request's host is missing its port, though: frappe_docker's nginx forwards
+	`Host $host`, and `$host` drops `:8080`. A site served on 8080 therefore answered with
+	`http://10.0.0.1/files/x.apk`, which connects to port 80 and fails. Take the port back
+	from `host_name` whenever it names the same host.
 	"""
 	request = getattr(frappe.local, "request", None)
-	host_url = getattr(request, "host_url", None)
-	if host_url:
-		return host_url.rstrip("/")
-	return get_url()
+	host_url = (getattr(request, "host_url", None) or "").rstrip("/")
+	configured = (get_url() or "").rstrip("/")
+	if not host_url:
+		return configured
+
+	if configured:
+		seen = urlparse(host_url)
+		known = urlparse(configured)
+		if seen.hostname == known.hostname and not seen.port and known.port:
+			return configured
+	return host_url
 
 
 def _download_url(path):
