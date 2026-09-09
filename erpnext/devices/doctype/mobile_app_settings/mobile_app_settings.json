@@ -8,6 +8,7 @@
  "field_order": [
   "instance_section",
   "instance_name",
+  "public_url",
   "github_section",
   "enabled",
   "github_repo",
@@ -31,6 +32,12 @@
    "fieldname": "instance_name",
    "fieldtype": "Data",
    "label": "Instance Name"
+  },
+  {
+   "description": "Absolute URL the phone should use for this site, including the port (e.g. http://172.16.51.10:8080). Set it when the site is reached on a non-default port: nginx forwards the Host header without one, so the login QR and APK links otherwise point at port 80.",
+   "fieldname": "public_url",
+   "fieldtype": "Data",
+   "label": "Public URL"
   },
   {
    "fieldname": "github_section",

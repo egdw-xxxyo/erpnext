@@ -22,6 +22,41 @@ from erpnext.devices.doctype.otdr.otdr import _version_tuple, min_version_for
 from erpnext.devices.doctype.otdr.otdr_api import _make_qr_data_uri
 
 
+def _public_url():
+	"""Operator's explicit answer for "what address do phones use", or empty."""
+	try:
+		configured = frappe.db.get_single_value("Mobile App Settings", "public_url")
+	except Exception:
+		return ""
+	return (configured or "").strip().rstrip("/")
+
+
+def _browser_origin(request):
+	"""The address the browser has in its own address bar, from `Origin`/`Referer`.
+
+	This is the only header that survives with a port: nginx forwards `Host $host` and
+	`$host` drops `:8080`, but the browser sends its full origin on the XHR that renders
+	the login QR. Accepted only when it names the same host as the request itself, so a
+	guest-callable endpoint can never be talked into provisioning a foreign server.
+	"""
+	headers = getattr(request, "headers", None)
+	if not headers:
+		return ""
+
+	seen = urlparse((getattr(request, "host_url", None) or "").rstrip("/"))
+	for name in ("Origin", "Referer"):
+		value = (headers.get(name) or "").strip()
+		if not value:
+			continue
+		parsed = urlparse(value)
+		if not parsed.scheme or not parsed.hostname or not parsed.port:
+			continue
+		if seen.hostname and parsed.hostname != seen.hostname:
+			continue
+		return f"{parsed.scheme}://{parsed.netloc}"
+	return ""
+
+
 def _site_url():
 	"""The address the visitor actually reached the site on.
 
@@ -33,20 +68,37 @@ def _site_url():
 
 	The request's host is missing its port, though: frappe_docker's nginx forwards
 	`Host $host`, and `$host` drops `:8080`. A site served on 8080 therefore answered with
-	`http://10.0.0.1/files/x.apk`, which connects to port 80 and fails. Take the port back
-	from `host_name` whenever it names the same host.
+	`http://10.0.0.1/files/x.apk`, which connects to port 80 and fails. Three ways back to
+	the port, most trustworthy first: the operator's `public_url`, the browser's own
+	`Origin`, and finally the port off `host_name` — which is worth borrowing even when
+	`host_name` names a different host (`frontend:8080`), because the port is a property
+	of how the stack is published, not of the name used to reach it.
 	"""
 	request = getattr(frappe.local, "request", None)
 	host_url = (getattr(request, "host_url", None) or "").rstrip("/")
 	configured = (get_url() or "").rstrip("/")
+
+	override = _public_url()
+	if override:
+		return override
 	if not host_url:
 		return configured
 
+	seen = urlparse(host_url)
+	if seen.port:
+		return host_url
+
+	origin = _browser_origin(request)
+	if origin:
+		return origin
+
 	if configured:
-		seen = urlparse(host_url)
 		known = urlparse(configured)
-		if seen.hostname == known.hostname and not seen.port and known.port:
-			return configured
+		if known.port and known.port not in (80, 443):
+			if known.hostname == seen.hostname:
+				return configured
+			netloc = f"{seen.hostname}:{known.port}"
+			return f"{seen.scheme}://{netloc}"
 	return host_url
 
 
@@ -137,7 +189,7 @@ def _instance_name():
 	configured = frappe.db.get_single_value("Mobile App Settings", "instance_name")
 	if configured:
 		return configured.strip()
-	return _site_url().split("//", 1)[-1].split("/", 1)[0]
+	return urlparse(_site_url()).hostname or _site_url().split("//", 1)[-1].split("/", 1)[0]
 
 
 @frappe.whitelist(allow_guest=True)

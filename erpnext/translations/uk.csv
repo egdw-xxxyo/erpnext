@@ -13822,3 +13822,5 @@ Component {0},Компонент {0}
 "Poll failed","Перевірка не вдалася"
 "Latest release: {0}","Останній реліз: {0}"
 "No release found","Релізів не знайдено"
+"Public URL","Публічна адреса"
+"Instance Name","Назва екземпляра"
