@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "autoname": "format:{app}-{version}",
+ "creation": "2026-09-09 00:00:00.000000",
+ "description": "A published build of a companion mobile app, with its APK mirrored onto this site",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "app",
+  "version",
+  "tag",
+  "column_break_main",
+  "is_active",
+  "published_on",
+  "github_asset_id",
+  "apk_section",
+  "apk",
+  "apk_size",
+  "notes_section",
+  "release_notes"
+ ],
+ "fields": [
+  {
+   "default": "kalheon-android",
+   "fieldname": "app",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "App",
+   "options": "kalheon-android",
+   "reqd": 1
+  },
+  {
+   "description": "Version name as the app reports it, without a leading v (e.g. 0.4.10)",
+   "fieldname": "version",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Version",
+   "reqd": 1
+  },
+  {
+   "description": "Git tag the build came from",
+   "fieldname": "tag",
+   "fieldtype": "Data",
+   "label": "Tag"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Only active releases are offered to devices",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "published_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Published On"
+  },
+  {
+   "fieldname": "github_asset_id",
+   "fieldtype": "Data",
+   "label": "GitHub Asset ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "apk_section",
+   "fieldtype": "Section Break",
+   "label": "APK"
+  },
+  {
+   "description": "The installable APK served to devices. Uploaded by the GitHub poller, or attached by hand.",
+   "fieldname": "apk",
+   "fieldtype": "Attach",
+   "label": "APK"
+  },
+  {
+   "fieldname": "apk_size",
+   "fieldtype": "Int",
+   "label": "APK Size (Bytes)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Release Notes"
+  },
+  {
+   "fieldname": "release_notes",
+   "fieldtype": "Small Text",
+   "label": "Release Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Mobile App Release",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "version",
+ "track_changes": 1
+}
