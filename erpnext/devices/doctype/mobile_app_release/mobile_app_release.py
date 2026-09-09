@@ -14,7 +14,7 @@ import logging
 import frappe
 import requests
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.utils import get_datetime, now_datetime
 from frappe.utils.file_manager import save_file
 
 from erpnext.devices.doctype.otdr.otdr import _version_tuple
@@ -118,6 +118,18 @@ def _download_asset(asset_url, token):
 	return resp.content
 
 
+def _published_on(value):
+	"""GitHub timestamps are ISO-8601 UTC with a trailing `Z`, which MariaDB rejects for a
+	Datetime column (\"Incorrect datetime value\"), taking the whole release insert with
+	it. Store it as a naive UTC datetime."""
+	if not value:
+		return None
+	parsed = get_datetime(str(value).replace("Z", "+00:00"))
+	if parsed is None:
+		return None
+	return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
+
+
 def _upsert_release(name, version, release, asset, content):
 	if frappe.db.exists("Mobile App Release", name):
 		doc = frappe.get_doc("Mobile App Release", name)
@@ -127,7 +139,7 @@ def _upsert_release(name, version, release, asset, content):
 		doc.version = version
 	doc.tag = release.get("tag_name")
 	doc.release_notes = (release.get("body") or "")[:5000]
-	doc.published_on = release.get("published_at")
+	doc.published_on = _published_on(release.get("published_at"))
 	doc.github_asset_id = str(asset.get("id") or "")
 	doc.is_active = 1
 	doc.save(ignore_permissions=True)
