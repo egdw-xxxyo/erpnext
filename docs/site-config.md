@@ -67,6 +67,7 @@ bench --site frontend set-config host_name "http://frontend:8080"
 | `logging` | int | Рівень логування (1=info, 2=debug) |
 | `mute_emails` | int | Заглушити всі листи |
 | `max_file_size` | int | Максимальний розмір файлу (МБ) |
+| `fcm_service_account_json` | str | Абсолютний шлях до ключа сервісного акаунта Firebase — вмикає push-сповіщення в мобільному застосунку |
 
 ## Ручна перевірка (Manual Check)
 
@@ -78,3 +79,37 @@ docker compose -f docker-compose.yml exec -T backend cat sites/frontend/site_con
 # Перевірити значення ключа через bench
 docker compose -f docker-compose.yml exec -T backend bench --site frontend execute frappe.conf.get --args '["server_script_enabled"]'
 ```
+
+## Push-сповіщення (FCM)
+
+Мобільний застосунок отримує push через Firebase Cloud Messaging. Серверу потрібні дві речі:
+
+1. Пакет `firebase-admin` — уже стоїть в образі (`Dockerfile.full`).
+2. Ключ сервісного акаунта Firebase (проєкт `erpnextkalheon`, той самий, що в `app/google-services.json` застосунку) і шлях до нього в `site_config.json`.
+
+Ключ **не зберігається в git**. Він лежить у томі `sites`, тому переживає `./deploy build`, але не переживає перестворення сайту чи тому:
+
+```bash
+# покласти ключ у том sites (файл беремо з менеджера паролів, не з репозиторію)
+docker compose cp /tmp/fcm-key.json backend:/home/frappe/frappe-bench/sites/fcm-service-account.json
+docker compose exec -T -u root backend chown frappe:frappe /home/frappe/frappe-bench/sites/fcm-service-account.json
+docker compose exec -T -u root backend chmod 600 /home/frappe/frappe-bench/sites/fcm-service-account.json
+rm -f /tmp/fcm-key.json
+
+# прописати шлях і перезапустити тих, хто читає конфіг
+docker compose exec -T backend bench --site frontend set-config fcm_service_account_json /home/frappe/frappe-bench/sites/fcm-service-account.json
+docker compose restart backend queue-short queue-long scheduler websocket
+```
+
+Перевірка (має вивести ідентифікатор повідомлення, надсилання несправжнє — `dry_run`):
+
+```python
+import frappe, firebase_admin
+from firebase_admin import credentials, messaging
+firebase_admin.initialize_app(credentials.Certificate(frappe.conf.get("fcm_service_account_json")))
+print(messaging.send(messaging.Message(topic="erp-selftest"), dry_run=True))
+```
+
+Токени пристроїв застосунок реєструє сам (`erpnext.crm.page.employee_chat.employee_chat.register_fcm_token`) — вони видно в DocType **FCM Device Token**. Порожній список означає лише те, що жоден телефон ще не входив у систему після ввімкнення push.
+
+Без ключа сервер мовчки не надсилає push (`_send_fcm_push` виходить одразу) — решта функцій працює як раніше.
