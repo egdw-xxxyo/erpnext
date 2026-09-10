@@ -218,16 +218,16 @@ def set_external_payment_details(invoice, consolidated):
 		{row.material_request for row in consolidated.items if row.material_request}
 		or ({consolidated.material_request} if consolidated.material_request else set())
 	)
-	payer = (
-		frappe.db.get_value(
+	payer = consolidated.get("request_initiator_user")
+	if not payer and material_requests:
+		request = frappe.db.get_value(
 			MATERIAL_REQUEST_DOCTYPE,
 			{"name": ["in", material_requests]},
-			"owner",
+			["owner", "custom_procurement_initiator_user"],
 			order_by="creation asc",
+			as_dict=True,
 		)
-		if material_requests
-		else None
-	)
+		payer = request.custom_procurement_initiator_user or request.owner if request else None
 	invoice.custom_paid_outside_company = 1
 	invoice.custom_external_payer = payer
 	invoice.custom_external_payment_note = EXTERNAL_PAYMENT_NOTE
@@ -348,7 +348,7 @@ def sync_procurement_participants_for_reference(
 		if doctype == MATERIAL_REQUEST_DOCTYPE:
 			identity_fields.append("custom_procurement_initiator_user")
 		elif doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
-			identity_fields.append("initiator_user")
+			identity_fields.extend(("initiator_user", "request_initiator_user"))
 		for row in frappe.get_all(
 			doctype,
 			filters={"name": ["in", list(names)]},
@@ -409,7 +409,7 @@ def sync_all_procurement_participants():
 		if doctype == MATERIAL_REQUEST_DOCTYPE:
 			identity_fields.append("custom_procurement_initiator_user")
 		elif doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
-			identity_fields.append("initiator_user")
+			identity_fields.extend(("initiator_user", "request_initiator_user"))
 		for row in frappe.get_all(doctype, fields=identity_fields):
 			users = set(_parse_participants(row.get(fieldname)))
 			users.add(row.owner)
@@ -751,7 +751,9 @@ def _get_procurement_initiators(source_name):
 			users.add(row.custom_procurement_initiator_user or row.owner)
 	if not users:
 		users.add(
-			frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "initiator_user")
+			frappe.db.get_value(
+				CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "request_initiator_user"
+			)
 		)
 	return sorted(user for user in users if user and user not in {"Administrator", "Guest"})
 
@@ -771,7 +773,39 @@ def _get_primary_procurement_initiator(source_name):
 			if initiator and initiator != "Guest":
 				return initiator
 
-	return frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "initiator_user")
+	return frappe.db.get_value(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "request_initiator_user"
+	)
+
+
+def notify_procurement_receipt(source_name, purchase_receipt):
+	users = _get_procurement_initiators(source_name)
+	if not users:
+		return
+
+	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
+		_get_invoice_receipt_summary,
+	)
+
+	is_complete = _get_invoice_receipt_summary(source_name)["purchase_receipt_complete"]
+	status = "повністю" if is_complete else "частково"
+	subject = f"Надходження {purchase_receipt}: {status}"
+	description = (
+		f"За зведеним замовленням {source_name} товари надійшли {status}. "
+		f"Прихідна накладна: {purchase_receipt}."
+	)
+	enqueue_create_notification(
+		users,
+		{
+			"type": "Alert",
+			"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			"document_name": source_name,
+			"from_user": frappe.session.user,
+			"subject": subject,
+			"email_content": description,
+		},
+		dedupe_on=["document_type", "document_name", "subject"],
+	)
 
 
 def _set_procurement_status(doctype, name, status):
@@ -866,6 +900,10 @@ def _make_consolidated_order(mapped_order, source_name):
 	source_request = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
 	source_items = {row.name: row for row in source_request.items}
 	consolidated = frappe.new_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
+	consolidated.initiator_user = frappe.session.user
+	consolidated.request_initiator_user = (
+		source_request.get("custom_procurement_initiator_user") or source_request.owner
+	)
 	consolidated.company = mapped_order.company
 	consolidated.transaction_date = mapped_order.transaction_date or nowdate()
 	consolidated.currency = (

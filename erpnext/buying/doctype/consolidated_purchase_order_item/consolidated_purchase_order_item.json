@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "supplier",
+  "related_supplier",
   "item_code",
   "item_name",
   "description",
@@ -30,6 +31,15 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Supplier",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "related_supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
    "options": "Supplier",
    "reqd": 1
   },

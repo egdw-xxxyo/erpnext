@@ -165,6 +165,14 @@ CUSTOM_FIELDS = {
 			"depends_on": "eval:doc.custom_items_already_purchased",
 			"insert_after": "custom_items_already_purchased",
 		},
+		{
+			"fieldname": "custom_supplier_delivery_notes_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Delivery Notes",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_prepaid_purchase_note",
+		},
 	],
 	"Purchase Order Item": [
 		{
@@ -229,6 +237,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		const actionsRequiringReason = [
 			"Повернути на доопрацювання",
 			"Відхилити",
+			"Відкликати на доопрацювання",
 		];
 
 		if (!actionsRequiringReason.includes(action)) {
@@ -394,6 +403,7 @@ def after_migrate():
 	)
 
 	sync_procurement_workflow()
+	_sync_consolidated_procurement_users()
 	apply_rules_to_existing_procurement_documents()
 	sync_existing_approval_thresholds()
 	sync_existing_final_approval_documents()
@@ -447,6 +457,49 @@ def _sync_consolidated_material_requests():
 			parent,
 			"material_request",
 			material_request,
+			update_modified=False,
+		)
+
+
+def _sync_consolidated_procurement_users():
+	"""Backfill the lead buyer and request initiator without storing display names twice."""
+	if not frappe.db.table_exists("Consolidated Purchase Order"):
+		return
+
+	orders = frappe.get_all(
+		"Consolidated Purchase Order",
+		fields=["name", "owner", "initiator_user", "request_initiator_user"],
+	)
+	for order in orders:
+		lead_buyer = order.initiator_user or order.owner
+		request_initiator = order.request_initiator_user
+		material_requests = frappe.get_all(
+			"Consolidated Purchase Order Item",
+			filters={"parent": order.name, "material_request": ["is", "set"]},
+			fields=["material_request"],
+			distinct=True,
+		)
+		if material_requests:
+			requests = frappe.get_all(
+				"Material Request",
+				filters={
+					"name": ["in", [row.material_request for row in material_requests]],
+				},
+				fields=["owner", "custom_procurement_initiator_user"],
+				order_by="creation asc",
+			)
+			if requests:
+				request_initiator = (
+					requests[0].custom_procurement_initiator_user or requests[0].owner
+				)
+		request_initiator = request_initiator or order.owner
+		frappe.db.set_value(
+			"Consolidated Purchase Order",
+			order.name,
+			{
+				"initiator_user": lead_buyer,
+				"request_initiator_user": request_initiator,
+			},
 			update_modified=False,
 		)
 

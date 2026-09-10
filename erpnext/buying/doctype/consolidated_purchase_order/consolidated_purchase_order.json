@@ -11,6 +11,9 @@
   "transaction_date",
   "column_break_main",
   "currency",
+  "request_initiator_html",
+  "request_initiator_user",
+  "lead_buyer_html",
   "initiator_user",
   "material_request",
   "items_already_purchased",
@@ -20,8 +23,6 @@
   "approval_route_html",
   "items_section",
   "items",
-  "supplier_invoices_section",
-  "supplier_invoices",
   "totals_section",
   "total_qty",
   "per_billed",
@@ -31,6 +32,12 @@
   "payment_receipt_count",
   "payment_invoice_count",
   "per_paid",
+  "supplier_contacts_section",
+  "supplier_contacts_html",
+  "supplier_invoices_section",
+  "supplier_invoices",
+  "delivery_notes_section",
+  "delivery_notes",
   "workflow_details_section",
   "workflow_action_reason",
   "current_assignees",
@@ -76,10 +83,29 @@
    "reqd": 1
   },
   {
+   "fieldname": "request_initiator_html",
+   "fieldtype": "HTML",
+   "label": "Initiator User"
+  },
+  {
+   "fieldname": "request_initiator_user",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Initiator User",
+   "no_copy": 1,
+   "options": "User"
+  },
+  {
+   "fieldname": "lead_buyer_html",
+   "fieldtype": "HTML",
+   "label": "Lead Buyer"
+  },
+  {
    "default": "__user",
    "fieldname": "initiator_user",
    "fieldtype": "Link",
-   "label": "Initiator User",
+   "hidden": 1,
+   "label": "Lead Buyer",
    "no_copy": 1,
    "options": "User",
    "read_only": 1
@@ -136,6 +162,17 @@
    "reqd": 1
   },
   {
+   "collapsible": 1,
+   "fieldname": "supplier_contacts_section",
+   "fieldtype": "Section Break",
+   "label": "Contacts"
+  },
+  {
+   "fieldname": "supplier_contacts_html",
+   "fieldtype": "HTML",
+   "label": "Contacts"
+  },
+  {
    "fieldname": "supplier_invoices_section",
    "fieldtype": "Section Break",
    "label": "Supplier Invoices"
@@ -146,6 +183,21 @@
    "fieldtype": "Table",
    "label": "Supplier Invoices",
    "options": "Consolidated Purchase Supplier Invoice"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "delivery_notes_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Delivery Notes"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "delivery_notes",
+   "fieldtype": "Table",
+   "label": "Supplier Delivery Notes",
+   "options": "Consolidated Purchase Delivery Note"
   },
   {
    "fieldname": "totals_section",

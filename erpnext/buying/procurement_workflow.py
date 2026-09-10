@@ -117,6 +117,7 @@ WORKFLOW_ACTIONS = (
 	"Відхилити",
 	"Подати повторно",
 	"Провести",
+	"Відкликати на доопрацювання",
 )
 
 WORKFLOW_DOCUMENT_STATES = (
@@ -180,6 +181,22 @@ WORKFLOW_TRANSITIONS = (
 		"next_state": "Погоджено",
 		"allowed": FINAL_APPROVER_ROLE,
 		"allow_self_approval": 0,
+	},
+	{
+		"state": "Перевірка підрозділу",
+		"action": "Відкликати на доопрацювання",
+		"next_state": "Потребує доопрацювання",
+		"allowed": BUYER_ROLE,
+		"allow_self_approval": 1,
+		"condition": "doc.owner == frappe.session.user",
+	},
+	{
+		"state": "Фінальне погодження",
+		"action": "Відкликати на доопрацювання",
+		"next_state": "Потребує доопрацювання",
+		"allowed": BUYER_ROLE,
+		"allow_self_approval": 1,
+		"condition": "doc.owner == frappe.session.user",
 	},
 	{
 		"state": "Фінальне погодження",

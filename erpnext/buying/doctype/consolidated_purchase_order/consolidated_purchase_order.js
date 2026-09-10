@@ -11,11 +11,33 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 				doc.invoice_pdf
 			)}" target="_blank">${frappe.utils.escape_html(file_name)}</a>`;
 		};
+		frappe.meta.get_docfield(
+			"Consolidated Purchase Delivery Note",
+			"delivery_note_document",
+			frm.doc.name
+		).formatter = (value, df, options, doc) => {
+			const file_name = value || get_file_name(doc.delivery_note_file);
+			if (!file_name || !doc.delivery_note_file) return "";
+			return `<a href="${frappe.utils.escape_html(
+				doc.delivery_note_file
+			)}" target="_blank">${frappe.utils.escape_html(file_name)}</a>`;
+		};
 		frm.set_query("supplier", "supplier_invoices", () => ({
 			filters: {
 				name: ["in", get_order_suppliers(frm)],
 			},
 		}));
+		frm.set_query("supplier", "delivery_notes", () => ({
+			filters: {
+				name: ["in", get_order_suppliers(frm)],
+			},
+		}));
+		frm.set_query("supplier", "items", (doc, cdt, cdn) =>
+			get_supplier_pair_query(locals[cdt][cdn].related_supplier, "supplier")
+		);
+		frm.set_query("related_supplier", "items", (doc, cdt, cdn) =>
+			get_supplier_pair_query(locals[cdt][cdn].supplier, "related_supplier")
+		);
 	},
 
 	refresh(frm) {
@@ -27,10 +49,19 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		});
 		frm.fields_dict.supplier_invoices.grid.update_docfield_property("supplier", "hidden", 0);
 		frm.fields_dict.supplier_invoices.grid.update_docfield_property("supplier", "reqd", 1);
+		if (frm.fields_dict.delivery_notes?.grid) {
+			frm.fields_dict.delivery_notes.grid.update_docfield_property("delivery_note_file", "options", {
+				restrictions: { allowed_file_types: [".pdf", ".zip"] },
+				allow_web_link: false,
+			});
+		}
+		set_delivery_notes_editability(frm);
 		set_table_row_number_labels(frm);
 		setTimeout(() => set_table_row_number_labels(frm), 100);
 		frm.trigger("render_approval_route");
 		frm.trigger("render_purchase_orders");
+		frm.trigger("render_procurement_users");
+		frm.trigger("render_supplier_contacts");
 		if (frm.doc.docstatus !== 1) return;
 
 		frm.add_custom_button(
@@ -85,6 +116,22 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 			},
 			__("Create")
 		);
+	},
+
+	request_initiator_user(frm) {
+		frm.trigger("render_procurement_users");
+	},
+
+	initiator_user(frm) {
+		frm.trigger("render_procurement_users");
+	},
+
+	render_procurement_users(frm) {
+		render_procurement_users(frm);
+	},
+
+	render_supplier_contacts(frm) {
+		render_supplier_contacts(frm);
 	},
 
 	workflow_state(frm) {
@@ -356,6 +403,13 @@ frappe.ui.form.on("Consolidated Purchase Order Item", {
 		if (frm.doc.set_supplier) {
 			frappe.model.set_value(cdt, cdn, "supplier", frm.doc.set_supplier);
 		}
+		frm.trigger("render_supplier_contacts");
+	},
+	items_remove(frm) {
+		frm.trigger("render_supplier_contacts");
+	},
+	supplier(frm) {
+		frm.trigger("render_supplier_contacts");
 	},
 	qty(frm, cdt, cdn) {
 		calculate_consolidated_item(frm, cdt, cdn);
@@ -382,15 +436,197 @@ frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
 	},
 });
 
+frappe.ui.form.on("Consolidated Purchase Delivery Note", {
+	delivery_note_file(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		frappe.model.set_value(
+			cdt,
+			cdn,
+			"delivery_note_document",
+			get_file_name(row.delivery_note_file)
+		);
+		if (
+			!row.delivery_note_file ||
+			[".pdf", ".zip"].some((extension) =>
+				row.delivery_note_file.split("?")[0].toLowerCase().endsWith(extension)
+			)
+		) {
+			return;
+		}
+
+		frappe.model.set_value(cdt, cdn, "delivery_note_file", null);
+		frappe.msgprint({
+			title: __("Unsupported File Format"),
+			message: __("The delivery note must be a PDF or ZIP file."),
+			indicator: "red",
+		});
+	},
+});
+
 function get_order_suppliers(frm) {
 	const suppliers = (frm.doc.items || []).map((row) => row.supplier).filter(Boolean);
 	return [...new Set(suppliers)].length ? [...new Set(suppliers)] : [""];
 }
 
+function set_delivery_notes_editability(frm) {
+	const can_edit =
+		frm.doc.docstatus === 1 &&
+		frm.doc.owner === frappe.session.user &&
+		frm.doc.procurement_completion_status !== "Завершено";
+	frm.set_df_property("delivery_notes", "read_only", can_edit ? 0 : 1);
+}
+
+function get_supplier_pair_query(reference_supplier, target_field) {
+	return {
+		query: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_related_supplier_options",
+		filters: { reference_supplier: reference_supplier || "", target_field },
+	};
+}
+
 function set_table_row_number_labels(frm) {
-	["items", "supplier_invoices"].forEach((fieldname) => {
-		frm.fields_dict[fieldname].grid.wrapper.find(".grid-heading-row .row-index span").text("\u2116");
+	["items", "supplier_invoices", "delivery_notes"].forEach((fieldname) => {
+		frm.fields_dict[fieldname]?.grid?.wrapper
+			.find(".grid-heading-row .row-index span")
+			.text("\u2116");
 	});
+}
+
+function render_procurement_users(frm) {
+	const users = [frm.doc.request_initiator_user, frm.doc.initiator_user].filter(Boolean);
+	const render = (names = {}) => {
+		render_user_identity(
+			frm,
+			"request_initiator_html",
+			__("Initiator User"),
+			frm.doc.request_initiator_user,
+			names[frm.doc.request_initiator_user],
+			can_select_request_initiator(frm)
+		);
+		render_user_identity(
+			frm,
+			"lead_buyer_html",
+			__("Lead Buyer"),
+			frm.doc.initiator_user,
+			names[frm.doc.initiator_user],
+			false
+		);
+	};
+
+	if (!users.length) {
+		render();
+		return;
+	}
+	frappe
+		.call({
+			method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_procurement_user_names",
+			args: { users },
+		})
+		.then((response) => render(response.message || {}));
+}
+
+function render_user_identity(frm, fieldname, label, user, full_name, editable) {
+	const field = frm.get_field(fieldname);
+	if (!field) return;
+	const display_name = full_name || (user === frappe.session.user ? frappe.session.user_fullname : user);
+	const value = display_name
+		? `<a href="/app/user/${encodeURIComponent(user)}">${frappe.utils.escape_html(display_name)}</a>`
+		: `<span class="text-muted">${__("Not specified")}</span>`;
+	const edit_button = editable
+		? `<button class="btn btn-xs btn-default ml-2 select-procurement-initiator">${__(
+				user ? "Change" : "Select"
+			)}</button>`
+		: "";
+	field.$wrapper.html(`<div class="form-group"><label class="control-label">${frappe.utils.escape_html(
+		label
+	)}</label><div class="control-value like-disabled-input">${value}${edit_button}</div></div>`);
+	field.$wrapper.find(".select-procurement-initiator").on("click", () => {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Select Initiator User"),
+			fields: [
+				{
+					fieldname: "user",
+					fieldtype: "Link",
+					label: __("User"),
+					options: "User",
+					reqd: 1,
+					get_query: () => ({ filters: { enabled: 1, user_type: "System User" } }),
+				},
+			],
+			primary_action_label: __("Select"),
+			primary_action(values) {
+				dialog.hide();
+				frm.set_value("request_initiator_user", values.user);
+			},
+		});
+		dialog.set_value("user", frm.doc.request_initiator_user);
+		dialog.show();
+	});
+}
+
+function can_select_request_initiator(frm) {
+	const has_material_request = Boolean(
+		frm.doc.material_request || (frm.doc.items || []).some((row) => row.material_request)
+	);
+	const editable_state = ["Чернетка", "Потребує доопрацювання"].includes(
+		frm.doc.workflow_state || "Чернетка"
+	);
+	return (
+		!has_material_request &&
+		frm.doc.docstatus === 0 &&
+		editable_state &&
+		(frm.is_new() || !frm.doc.owner || frm.doc.owner === frappe.session.user)
+	);
+}
+
+function render_supplier_contacts(frm) {
+	const section = frm.get_field("supplier_contacts_section");
+	const field = frm.get_field("supplier_contacts_html");
+	if (!section || !field) return;
+	const suppliers = get_order_suppliers(frm).filter(Boolean);
+	frm.set_df_property("supplier_contacts_section", "hidden", suppliers.length ? 0 : 1);
+	frm.set_df_property("supplier_contacts_html", "hidden", suppliers.length ? 0 : 1);
+	if (!suppliers.length) return;
+
+	frappe
+		.call({
+			method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_supplier_contacts",
+			args: frm.is_new() ? { suppliers } : { source_name: frm.doc.name },
+		})
+		.then((response) => {
+			const rows = response.message || [];
+			const body = rows
+				.map((row) => {
+					const email = row.email
+						? `<a href="mailto:${frappe.utils.escape_html(row.email)}">${frappe.utils.escape_html(
+								row.email
+							)}</a>`
+						: `<span class="text-muted">${__("Email is not specified.")}</span>`;
+					const phone = row.phone
+						? frappe.utils.escape_html(row.phone)
+						: `<span class="text-muted">${__("Phone is not specified.")}</span>`;
+					const digits = String(row.phone || "").replace(/\D/g, "");
+					const viber = digits
+						? `<a class="btn btn-xs btn-default" target="_blank" rel="noopener noreferrer" href="viber://chat?number=${encodeURIComponent(
+								`+${digits}`
+							)}">${__("Contact via Viber")}</a>`
+						: `<button class="btn btn-xs btn-default" disabled>${__("Contact via Viber")}</button>`;
+					return `<tr><td>${frappe.utils.escape_html(
+						row.supplier_name || row.supplier
+					)}</td><td>${email}</td><td>${phone}</td><td>${viber}</td></tr>`;
+				})
+				.join("");
+			field.$wrapper.html(`<div class="table-responsive"><table class="table table-bordered table-sm">
+				<thead><tr><th>${__("Supplier")}</th><th>${__("Email")}</th><th>${__(
+				"Phone"
+		)}</th><th>${__("Viber")}</th></tr></thead><tbody>${body}</tbody></table></div>`);
+			const layout_section = (frm.layout?.sections || []).find(
+				(row) => row.df.fieldname === "supplier_contacts_section"
+			);
+			if (!frm.__supplier_contacts_collapsed && layout_section) {
+				layout_section.collapse(true);
+				frm.__supplier_contacts_collapsed = true;
+			}
+		});
 }
 
 function get_file_name(file_url) {

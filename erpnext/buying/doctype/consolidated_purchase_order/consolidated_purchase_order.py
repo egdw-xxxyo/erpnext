@@ -10,6 +10,15 @@ PREPAID_PURCHASE_NOTE = (
 	"The materials have already been purchased. Review the attached receipts and verify suppliers and prices."
 )
 LOCKED_WORKFLOW_STATES = {"Перевірка підрозділу", "Фінальне погодження", "Погоджено"}
+COMPLETED_PROCUREMENT_STATUS = "Завершено"
+SERVER_MANAGED_PROGRESS_FIELDS = (
+	"per_billed",
+	"per_paid",
+	"payment_invoice_count",
+	"payment_receipt_count",
+	"payment_receipts_progress",
+	"procurement_completion_status",
+)
 
 
 class ConsolidatedPurchaseOrder(Document):
@@ -18,11 +27,13 @@ class ConsolidatedPurchaseOrder(Document):
 		self._set_company_currency()
 		self._set_ceo_approval_threshold()
 		self._set_material_request()
+		self._set_procurement_users()
 		self._set_prepaid_purchase_note()
 		self._apply_default_supplier()
 		self._calculate_totals()
 		self._validate_items()
 		self._validate_supplier_invoices()
+		self._validate_delivery_notes()
 		self._validate_material_request_uniqueness()
 
 	def _validate_locked_workflow_state(self):
@@ -49,6 +60,40 @@ class ConsolidatedPurchaseOrder(Document):
 	def on_submit(self):
 		self.create_purchase_orders()
 
+	def before_update_after_submit(self):
+		before = self.get_doc_before_save()
+		if not before:
+			return
+
+		if before.procurement_completion_status == COMPLETED_PROCUREMENT_STATUS:
+			frappe.throw(
+				_("The consolidated order cannot be changed after procurement is completed."),
+				title=_("Document is read-only"),
+			)
+
+		if self._delivery_notes_changed(before):
+			if frappe.session.user != before.owner:
+				frappe.throw(
+					_("Only the creator of this consolidated order can change delivery notes."),
+					title=_("Not Permitted"),
+				)
+			self._validate_delivery_notes()
+
+		# Procurement progress is synchronized in the background without changing the
+		# document timestamp. Preserve its current database values when an older open
+		# form saves an allowed delivery-note change.
+		for fieldname in SERVER_MANAGED_PROGRESS_FIELDS:
+			self.set(fieldname, before.get(fieldname))
+
+	def _delivery_notes_changed(self, before):
+		def row_values(doc):
+			return [
+				(row.name, row.supplier, row.delivery_note_file, row.delivery_note_document)
+				for row in (doc.delivery_notes or [])
+			]
+
+		return row_values(self) != row_values(before)
+
 	def before_cancel(self):
 		linked_orders = self.get_linked_purchase_orders(submitted_only=True)
 		if linked_orders:
@@ -70,6 +115,31 @@ class ConsolidatedPurchaseOrder(Document):
 	def _set_material_request(self):
 		material_requests = {row.material_request for row in self.items if row.material_request}
 		self.material_request = next(iter(material_requests)) if len(material_requests) == 1 else None
+
+	def _set_procurement_users(self):
+		before = self.get_doc_before_save()
+		if before and before.initiator_user and self.initiator_user != before.initiator_user:
+			frappe.throw(_("The lead buyer cannot be changed after the consolidated order is created."))
+		if not self.initiator_user:
+			self.initiator_user = self.owner or frappe.session.user
+
+		material_requests = sorted({row.material_request for row in self.items if row.material_request})
+		if material_requests:
+			requests = frappe.get_all(
+				"Material Request",
+				filters={"name": ["in", material_requests]},
+				fields=["owner", "custom_procurement_initiator_user"],
+				order_by="creation asc",
+			)
+			initiators = [
+				row.custom_procurement_initiator_user or row.owner
+				for row in requests
+				if row.custom_procurement_initiator_user or row.owner
+			]
+			self.request_initiator_user = initiators[0] if initiators else None
+
+		if not self.request_initiator_user:
+			frappe.throw(_("Select the initiator user for this consolidated order."))
 
 	def _set_prepaid_purchase_note(self):
 		self.prepaid_purchase_note = _(PREPAID_PURCHASE_NOTE) if self.items_already_purchased else None
@@ -93,9 +163,21 @@ class ConsolidatedPurchaseOrder(Document):
 		if not self.items:
 			frappe.throw(_("Add at least one item."))
 
+		allowed_supplier_pairs = {}
 		for row in self.items:
 			if not row.supplier:
 				frappe.throw(_("Row {0}: Supplier is required.").format(row.idx))
+			if not row.related_supplier:
+				frappe.throw(_("Row {0}: Company is required.").format(row.idx))
+			allowed = allowed_supplier_pairs.setdefault(
+				row.supplier, set(get_allowed_related_supplier_names(row.supplier))
+			)
+			if row.related_supplier not in allowed:
+				frappe.throw(
+					_(
+					"Row {0}: A different Company can only be selected when the Supplier is a Private Entrepreneur and cooperates with it."
+					).format(row.idx)
+				)
 			if (
 				row.item_code
 				and frappe.get_cached_value("Item", row.item_code, "is_stock_item")
@@ -125,9 +207,33 @@ class ConsolidatedPurchaseOrder(Document):
 				frappe.throw(
 					_("Row {0}: Select a supplier used in the order items.").format(row.idx)
 				)
-			if row.invoice_pdf and not urlsplit(row.invoice_pdf).path.lower().endswith(".pdf"):
+			if not urlsplit(row.invoice_pdf).path.lower().endswith(".pdf"):
 				frappe.throw(
 					_("The supplier invoice must be a PDF file."),
+					title=_("Unsupported File Format"),
+				)
+
+	def _validate_delivery_notes(self):
+		if not self.delivery_notes:
+			return
+		if self.docstatus != 1:
+			frappe.throw(_("Delivery notes can be added after the consolidated order is submitted."))
+
+		allowed_suppliers = {row.supplier for row in self.items if row.supplier}
+		for row in self.delivery_notes:
+			row.delivery_note_document = self._get_supplier_invoice_file_name(
+				row.delivery_note_file
+			)
+			if not row.delivery_note_file:
+				frappe.throw(_("Row {0}: Attach a delivery note file.").format(row.idx))
+			if row.supplier not in allowed_suppliers:
+				frappe.throw(
+					_("Row {0}: Select a supplier used in the order items.").format(row.idx)
+				)
+			file_path = urlsplit(row.delivery_note_file).path.lower()
+			if not file_path.endswith((".pdf", ".zip")):
+				frappe.throw(
+					_("The delivery note must be a PDF or ZIP file."),
 					title=_("Unsupported File Format"),
 				)
 
@@ -212,6 +318,148 @@ class ConsolidatedPurchaseOrder(Document):
 		if submitted_only:
 			filters["docstatus"] = 1
 		return frappe.get_all("Purchase Order", filters=filters, pluck="name")
+
+
+def get_related_supplier_names(supplier):
+	"""Return a supplier itself and every supplier connected to it in either direction."""
+	if not supplier:
+		return []
+
+	related = {supplier}
+	related.update(
+		frappe.get_all(
+			"Supplier Cooperation",
+			filters={"parenttype": "Supplier", "parent": supplier},
+			pluck="supplier",
+		)
+	)
+	related.update(
+		frappe.get_all(
+			"Supplier Cooperation",
+			filters={"parenttype": "Supplier", "supplier": supplier},
+			pluck="parent",
+		)
+	)
+	return sorted(name for name in related if name)
+
+
+def get_allowed_related_supplier_names(primary_supplier):
+	"""Valid second-column suppliers for a selected first-column supplier."""
+	if not primary_supplier:
+		return []
+	if frappe.db.get_value("Supplier", primary_supplier, "supplier_type") != "Individual":
+		return [primary_supplier]
+	return get_related_supplier_names(primary_supplier)
+
+
+def get_allowed_primary_supplier_names(related_supplier):
+	"""Valid first-column suppliers when the second column was selected first."""
+	if not related_supplier:
+		return []
+
+	connected = get_related_supplier_names(related_supplier)
+	private_entrepreneurs = frappe.get_all(
+		"Supplier",
+		filters={"name": ["in", connected], "supplier_type": "Individual"},
+		pluck="name",
+	)
+	return sorted({related_supplier, *private_entrepreneurs})
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_related_supplier_options(doctype, txt, searchfield, start, page_len, filters):
+	"""Filter either supplier column so only valid Private Entrepreneur pairs can be selected."""
+	filters = filters or {}
+	reference_supplier = filters.get("reference_supplier")
+	target_field = filters.get("target_field")
+	supplier_filters = {"disabled": 0}
+	if reference_supplier:
+		if target_field == "supplier":
+			allowed = get_allowed_primary_supplier_names(reference_supplier)
+		else:
+			allowed = get_allowed_related_supplier_names(reference_supplier)
+		supplier_filters["name"] = ["in", allowed]
+
+	like = f"%{txt or ''}%"
+	return frappe.get_list(
+		"Supplier",
+		filters=supplier_filters,
+		or_filters=[["name", "like", like], ["supplier_name", "like", like]],
+		fields=["name", "supplier_name"],
+		order_by="supplier_name asc, name asc",
+		limit_start=start,
+		limit_page_length=page_len,
+		as_list=True,
+	)
+
+
+@frappe.whitelist()
+def get_procurement_user_names(users):
+	users = frappe.parse_json(users) if isinstance(users, str) else users
+	return {
+		user: frappe.get_cached_value("User", user, "full_name") or user
+		for user in set(users or [])
+		if user and user != "Guest"
+	}
+
+
+@frappe.whitelist()
+def get_supplier_contacts(source_name=None, suppliers=None):
+	if source_name:
+		doc = frappe.get_doc("Consolidated Purchase Order", source_name)
+		doc.check_permission("read")
+		supplier_names = sorted({row.supplier for row in doc.items if row.supplier})
+	else:
+		supplier_names = frappe.parse_json(suppliers) if isinstance(suppliers, str) else suppliers
+		supplier_names = sorted(set(supplier_names or []))
+
+	if not supplier_names:
+		return []
+	rows = frappe.get_list(
+		"Supplier",
+		filters={"name": ["in", supplier_names]},
+		fields=["name", "supplier_name", "supplier_primary_contact"],
+		order_by="supplier_name asc, name asc",
+	)
+	contact_names = [row.supplier_primary_contact for row in rows if row.supplier_primary_contact]
+	contacts = {
+		row.name: row
+		for row in frappe.get_all(
+			"Contact",
+			filters={"name": ["in", contact_names]},
+			fields=["name", "email_id", "mobile_no", "phone"],
+		)
+	} if contact_names else {}
+	return [
+		{
+			"supplier": row.name,
+			"supplier_name": row.supplier_name or row.name,
+			"email": contacts.get(row.supplier_primary_contact, {}).get("email_id"),
+			"phone": contacts.get(row.supplier_primary_contact, {}).get("mobile_no")
+			or contacts.get(row.supplier_primary_contact, {}).get("phone"),
+		}
+		for row in rows
+	]
+
+
+@frappe.whitelist()
+def get_delivery_notes_for_purchase_order(purchase_order):
+	order = frappe.get_doc("Purchase Order", purchase_order)
+	order.check_permission("read")
+	if not order.get("custom_consolidated_purchase_order") or not order.supplier:
+		return []
+	return frappe.get_all(
+		"Consolidated Purchase Delivery Note",
+		filters={
+			"parent": order.custom_consolidated_purchase_order,
+			"parenttype": "Consolidated Purchase Order",
+			"parentfield": "delivery_notes",
+			"supplier": order.supplier,
+		},
+		fields=["delivery_note_document", "delivery_note_file"],
+		order_by="idx asc",
+	)
 
 
 @frappe.whitelist()
@@ -384,6 +632,10 @@ def sync_linked_consolidated_purchase_order_progress(doc, method=None):
 
 	for source_name in filter(None, source_names):
 		sync_consolidated_purchase_order_progress(source_name)
+		if doc.doctype == "Purchase Receipt" and method == "on_submit":
+			from erpnext.buying.procurement_automation import notify_procurement_receipt
+
+			notify_procurement_receipt(source_name, doc.name)
 
 
 def sync_all_consolidated_purchase_order_progress():

@@ -4,7 +4,11 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
+	ConsolidatedPurchaseOrder,
 	_is_purchase_receipt_stage_complete,
+	get_allowed_primary_supplier_names,
+	get_allowed_related_supplier_names,
+	get_related_supplier_names,
 )
 from erpnext.buying.procurement_automation import (
 	_close_assignments_silently,
@@ -17,6 +21,86 @@ from erpnext.setup.procurement_workflow_setup import CUSTOM_FIELDS
 
 
 class TestProcurementAutomation(FrappeTestCase):
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
+	def test_related_supplier_names_include_self_and_both_relation_directions(self, get_all):
+		get_all.side_effect = [["SUPPLIER-B"], ["SUPPLIER-C"]]
+
+		self.assertEqual(
+			get_related_supplier_names("SUPPLIER-A"),
+			["SUPPLIER-A", "SUPPLIER-B", "SUPPLIER-C"],
+		)
+
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value")
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_related_supplier_names",
+		return_value=["SUPPLIER-A", "SUPPLIER-B"],
+	)
+	def test_private_entrepreneur_can_select_cooperating_supplier(self, _get_related, get_value):
+		get_value.return_value = "Individual"
+		doc = MagicMock(
+			items=[
+				frappe._dict(
+					idx=1,
+					supplier="SUPPLIER-A",
+					related_supplier="SUPPLIER-B",
+					item_code=None,
+					qty=1,
+					rate=1,
+					schedule_date="2026-09-08",
+				)
+			]
+		)
+
+		ConsolidatedPurchaseOrder._validate_items(doc)
+
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value")
+	def test_regular_supplier_rejects_different_related_supplier(self, get_value):
+		get_value.return_value = "Company"
+		doc = MagicMock(
+			items=[
+				frappe._dict(
+					idx=1,
+					supplier="SUPPLIER-A",
+					related_supplier="SUPPLIER-X",
+					item_code=None,
+					qty=1,
+					rate=1,
+					schedule_date="2026-09-08",
+				)
+			]
+		)
+
+		with self.assertRaises(frappe.ValidationError):
+			ConsolidatedPurchaseOrder._validate_items(doc)
+
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value")
+	def test_regular_supplier_can_select_itself(self, get_value):
+		get_value.return_value = "Company"
+		self.assertEqual(get_allowed_related_supplier_names("SUPPLIER-A"), ["SUPPLIER-A"])
+
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_related_supplier_names",
+		return_value=["SUPPLIER-A", "SUPPLIER-B", "SUPPLIER-C"],
+	)
+	def test_reverse_selection_only_offers_self_and_connected_private_entrepreneurs(
+		self, _get_related, get_all
+	):
+		get_all.return_value = ["SUPPLIER-A"]
+
+		self.assertEqual(
+			get_allowed_primary_supplier_names("SUPPLIER-B"),
+			["SUPPLIER-A", "SUPPLIER-B"],
+		)
+		get_all.assert_called_once_with(
+			"Supplier",
+			filters={
+				"name": ["in", ["SUPPLIER-A", "SUPPLIER-B", "SUPPLIER-C"]],
+				"supplier_type": "Individual",
+			},
+			pluck="name",
+		)
+
 	@patch(
 		"erpnext.buying.procurement_final_approval.get_configured_final_approvers",
 		return_value=["ceo@example.invalid", "second.ceo@example.invalid"],

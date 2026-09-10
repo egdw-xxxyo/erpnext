@@ -2423,7 +2423,7 @@ Certificate Limit,Обмеження сертифіката
 Certificate No,Свідоцтво No
 Certificate Required,Сертифікат обов&#39;язковий
 Chain,Чейн
-Change,Здача
+Change,Замінити
 Change Amount,Сума змін
 Change Labels,Замінити етикетки
 Change Release Date,Змінити дату випуску
@@ -4870,7 +4870,7 @@ Indicator Color,Колір індикатора
 Indirect Expense,Непрямі витрати
 Indirect Expenses,Непрямі витрати
 Indirect Income,Непряме прибуток
-Individual,Індивідуальний
+Individual,Приватний підприємець
 Individual GL Entry cannot be cancelled.,Окремий запис у головній книзі не може бути скасований.
 Individual Stock Ledger Entry cannot be cancelled.,Окремий запис в обліку запасів не може бути скасований.
 Industry,Промисловість
@@ -13867,6 +13867,24 @@ created the Purchase Invoice,створив рахунок постачальн�
 created the Payment Request,створив запит на оплату
 created the Material Request,створив замовлення матеріалів
 {0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+Lead Buyer,Ведучий закупівельник
+Not specified,Не зазначено
+Select Initiator User,Виберіть користувача-ініціатора
+Select the initiator user for this consolidated order.,Виберіть користувача-ініціатора для цього зведеного замовлення.
+The lead buyer cannot be changed after the consolidated order is created.,Ведучого закупівельника не можна змінити після створення зведеного замовлення.
+Supplier Delivery Notes,Видаткові накладні
+Supplier Delivery Note Document,Документ видаткової накладної
+Supplier Delivery Note File,Файл видаткової накладної
+Delivery notes can be added after the consolidated order is submitted.,Видаткові накладні можна додавати після проведення зведеного замовлення.
+Row {0}: Attach a delivery note file.,Рядок {0}: прикріпіть файл видаткової накладної.
+The delivery note must be a PDF or ZIP file.,Видаткова накладна має бути файлом PDF або ZIP.
+Email is not specified.,Електронну пошту не зазначено.
+Phone is not specified.,Номер телефону не зазначено.
+Contact via Viber,Зв’язатися через Viber
+Only the buyer who created this consolidated order can recall it.,Відкликати зведене замовлення може лише закупівельник, який його створив.
+recalled the consolidated order for rework,відкликав зведене замовлення на доопрацювання
+The consolidated order cannot be changed after procurement is completed.,Зведене замовлення не можна змінювати після завершення закупівлі.
+Only the creator of this consolidated order can change delivery notes.,Змінювати видаткові накладні може лише автор цього зведеного замовлення.
 No Available Invoices,Немає доступних рахунків
 Create and submit a Purchase Invoice for this task first.,Спочатку створіть і проведіть рахунок постачальника для цього завдання.
 Create Payment Request,Створити запит на оплату
@@ -14081,11 +14099,12 @@ There are no Payment Requests yet.,Запитів на оплату ще нем�
 There are no suppliers with unbilled Purchase Orders.,Немає постачальників із замовленнями на придбання без рахунків.
 Unsupported File Format,Непідтримуваний формат файлу
 invoices created,рахунків створено
-TTN Documents,ТТН
-TTN,ТТН
-Attach at least one PDF TTN before submitting the Purchase Receipt for review.,Додайте принаймні один PDF-файл ТТН перед поданням прихідної накладної на перевірку.
-Row {0}: Attach a PDF TTN.,Рядок {0}: додайте PDF-файл ТТН.
-The TTN document must be a PDF file.,Документ ТТН має бути у форматі PDF.
+Cooperates With,Співпрацює з:
+Private Entrepreneur,Приватний підприємець
+Row {0}: Company is required.,Рядок {0}: поле «Компанія» є обов’язковим.
+Row {0}: A different Company can only be selected when the Supplier is a Private Entrepreneur and cooperates with it.,Рядок {0}: іншу компанію можна вибрати лише тоді, коли постачальник є приватним підприємцем і співпрацює з нею.
+A supplier cannot cooperate with itself.,Постачальник не може співпрацювати сам із собою.
+The same cooperating supplier cannot be added more than once.,Того самого пов’язаного постачальника не можна додавати кілька разів.
 Use a workflow action for this transition and provide a reason.,Виконайте цей перехід через дію workflow та вкажіть причину.
 Workflow Action Reason,Причина дії workflow
 performed action “{0}”,виконав дію «{0}»

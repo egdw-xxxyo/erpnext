@@ -6,7 +6,8 @@ CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
 REASON_FIELD = "workflow_action_reason"
 RETURN_ACTION = "Повернути на доопрацювання"
 REJECT_ACTION = "Відхилити"
-REQUIRED_ACTIONS = (RETURN_ACTION, REJECT_ACTION)
+RECALL_ACTION = "Відкликати на доопрацювання"
+REQUIRED_ACTIONS = (RETURN_ACTION, REJECT_ACTION, RECALL_ACTION)
 REQUIRED_TARGET_STATES = ("Потребує доопрацювання", "Відхилено")
 MAX_REASON_LENGTH = 2000
 
@@ -23,6 +24,8 @@ def apply_workflow(doc, action):
 	payload = frappe.parse_json(doc)
 	current_doc = frappe.get_doc(payload.get("doctype"), payload.get("name"))
 	reason = (payload.get(REASON_FIELD) or "").strip()
+	if action == RECALL_ACTION and current_doc.owner != frappe.session.user:
+		frappe.throw(_("Only the buyer who created this consolidated order can recall it."))
 	if action in REQUIRED_ACTIONS:
 		_validate_reason(reason)
 
@@ -157,6 +160,7 @@ def _add_action_comment(doc, action, reason=None):
 		"Подати повторно": _("resubmitted the consolidated order for department review"),
 		"Погодити": _("approved the consolidated order"),
 		RETURN_ACTION: _("returned the consolidated order for rework"),
+		RECALL_ACTION: _("recalled the consolidated order for rework"),
 		REJECT_ACTION: _("rejected the consolidated order"),
 		"Провести": _("submitted the approved consolidated order"),
 	}
