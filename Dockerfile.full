@@ -22,7 +22,10 @@ COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/
 COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frappe/realtime/
 
 # ── Extra pip dependencies (not in pyproject.toml) ────────────────────
-RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs
+# firebase-admin is declared in erpnext's pyproject.toml, but this image keeps the
+# stock pyproject (only the erpnext/ package dir is overlaid), so it has to be
+# installed explicitly for employee_chat's FCM push to import.
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs firebase-admin
 
 # ── Install core apps in editable mode ────────────────────────────────
 # frappe's pyproject.toml pulls PyPika and gunicorn straight from GitHub

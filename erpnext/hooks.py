@@ -25,6 +25,7 @@ develop_version = "15.x.x-develop"
 app_include_js = "erpnext.bundle.js"
 app_include_css = "erpnext.bundle.css"
 web_include_css = "erpnext-web.bundle.css"
+web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
 
 app_include_icons = [
@@ -489,9 +490,13 @@ doc_events = {
 		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 	},
-	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot
+	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
+	# and pushed to the mobile app's registered devices
 	"Notification Log": {
-		"after_insert": "erpnext.erpnext_integrations.callmebot.on_notification_log",
+		"after_insert": [
+			"erpnext.erpnext_integrations.callmebot.on_notification_log",
+			"erpnext.crm.notification_push.on_notification_log",
+		],
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
@@ -607,6 +612,21 @@ doc_events = {
 	"Serial and Batch Bundle": {
 		# inward paths that never touch a Purchase Receipt Item: dialog, CSV import, scanner
 		"on_submit": "erpnext.stock.additional_attributes.apply_bundle_attributes_to_serials",
+		# a non-ASCII serial number cannot be encoded in a Code 128 barcode
+		"validate": "erpnext.stock.serial_charset.validate_bundle_serial_nos",
+	},
+	# barcode-safe serial numbers: block non-Latin characters everywhere one is composed
+	"Serial No": {
+		"validate": "erpnext.stock.serial_charset.validate_serial_no",
+	},
+	"Item": {
+		"validate": "erpnext.stock.serial_charset.validate_item_serial_series",
+	},
+	"Item Attribute": {
+		"validate": "erpnext.stock.serial_charset.validate_item_attribute_abbr",
+	},
+	"Serial Number Template": {
+		"validate": "erpnext.stock.serial_charset.validate_serial_number_template",
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
@@ -703,6 +723,7 @@ scheduler_events = {
 	"hourly": [
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
+		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [

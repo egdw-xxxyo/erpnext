@@ -3,6 +3,7 @@
 
 
 import json
+from collections import Counter
 
 import frappe
 from frappe import _, throw
@@ -103,6 +104,7 @@ class Task(NestedSet):
 		self.validate_progress()
 		self.validate_status()
 		self.update_depends_on()
+		self.renumber_depends_on()
 		self.refresh_depends_on_details()
 		self.validate_dependencies_for_template_task()
 		self.validate_completed_on()
@@ -249,6 +251,11 @@ class Task(NestedSet):
 					),
 					TaskOwnedByAnotherGroupError,
 				)
+
+	def renumber_depends_on(self):
+		"""Keep `idx` gapless: rows dropped server-side leave holes that later appends reuse."""
+		for idx, row in enumerate(self.depends_on, 1):
+			row.idx = idx
 
 	def update_depends_on(self):
 		depends_on_tasks = ""
@@ -489,15 +496,9 @@ def remove_depends_on_row(parent_task, task_name):
 
 def get_group_progress(task_name):
 	"""Share of completed child tasks, cancelled ones excluded from the total."""
-	tally = {
-		row.status: row.count
-		for row in frappe.get_all(
-			"Task",
-			filters={"parent_task": task_name},
-			fields=["status", "count(name) as count"],
-			group_by="status",
-		)
-	}
+	tally = Counter(
+		frappe.get_all("Task", filters={"parent_task": task_name}, pluck="status")
+	)
 	considered = sum(count for status, count in tally.items() if status != "Cancelled")
 
 	return flt(tally.get("Completed", 0) / considered * 100, 2) if considered else 0.0

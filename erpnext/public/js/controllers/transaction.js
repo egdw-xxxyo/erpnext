@@ -1062,7 +1062,11 @@ erpnext.TransactionController = class TransactionController extends erpnext.taxe
 
 		if (item && item.serial_no) {
 			if (!item.item_code) {
-				this.frm.trigger("item_code", cdt, cdn);
+				// the barcode scanner sets item_code itself right after the serial no;
+				// firing item_code here races with it and wipes the row
+				if (!frappe.flags.trigger_from_barcode_scanner) {
+					this.frm.trigger("item_code", cdt, cdn);
+				}
 			} else {
 				// Replace all occurences of comma with line feed
 				item.serial_no = item.serial_no.replace(/,/g, "\n");

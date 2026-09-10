@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# Prod server shell. Not committed (bin/ is gitignored).
-exec sshpass -p 'Pa$$4access2026$x' ssh sergadm@172.16.105.102 "$@"

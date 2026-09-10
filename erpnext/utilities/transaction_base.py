@@ -355,7 +355,8 @@ class TransactionBase(StatusUpdater):
 		# Server side 'item' doc. Update this to reflect in UI
 		item_obj = self.get("items", {"idx": item_idx})[0]
 
-		if not item_obj.item_code:
+		# a row may carry only a scanned serial no; get_item_details resolves the item from it
+		if not item_obj.item_code and not item_obj.get("serial_no"):
 			return
 
 		if cint(reset_item_details):

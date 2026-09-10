@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "creation": "2026-09-09 00:00:00.000000",
+ "description": "Where the companion mobile apps get their builds from",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "instance_section",
+  "instance_name",
+  "public_url",
+  "github_section",
+  "enabled",
+  "github_repo",
+  "column_break_github",
+  "github_token",
+  "version_section",
+  "min_android_version",
+  "status_section",
+  "latest_version",
+  "last_polled_on",
+  "last_error"
+ ],
+ "fields": [
+  {
+   "fieldname": "instance_section",
+   "fieldtype": "Section Break",
+   "label": "Instance"
+  },
+  {
+   "description": "Shown on the phone when this site is set up from the login page QR (e.g. Prod, Dev). Empty falls back to the site's host name.",
+   "fieldname": "instance_name",
+   "fieldtype": "Data",
+   "label": "Instance Name"
+  },
+  {
+   "description": "Absolute URL the phone should use for this site, including the port (e.g. http://172.16.51.10:8080). Set it when the site is reached on a non-default port: nginx forwards the Host header without one, so the login QR and APK links otherwise point at port 80.",
+   "fieldname": "public_url",
+   "fieldtype": "Data",
+   "label": "Public URL"
+  },
+  {
+   "fieldname": "github_section",
+   "fieldtype": "Section Break",
+   "label": "GitHub Releases"
+  },
+  {
+   "default": "1",
+   "description": "Mirror the newest GitHub Release's APK onto this site once an hour",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Poll GitHub For New Releases"
+  },
+  {
+   "default": "egdw-xxxyo/erpnext-mobile-kalheon",
+   "fieldname": "github_repo",
+   "fieldtype": "Data",
+   "label": "Repository (owner/name)"
+  },
+  {
+   "fieldname": "column_break_github",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Personal access token with read access to the repository. Falls back to github_token in site_config.json when empty.",
+   "fieldname": "github_token",
+   "fieldtype": "Password",
+   "label": "GitHub Token"
+  },
+  {
+   "fieldname": "version_section",
+   "fieldtype": "Section Break",
+   "label": "Compatibility"
+  },
+  {
+   "description": "Overrides the built-in minimum Android app version. Leave empty to use the version shipped with this app.",
+   "fieldname": "min_android_version",
+   "fieldtype": "Data",
+   "label": "Minimum Android App Version"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Last Poll"
+  },
+  {
+   "fieldname": "latest_version",
+   "fieldtype": "Data",
+   "label": "Latest Version",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_polled_on",
+   "fieldtype": "Datetime",
+   "label": "Last Polled On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_error",
+   "fieldtype": "Small Text",
+   "label": "Last Error",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Mobile App Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
