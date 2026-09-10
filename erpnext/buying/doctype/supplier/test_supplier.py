@@ -145,6 +145,31 @@ class TestSupplier(ERPNextTestSuite):
 		# Rollback
 		address.delete()
 
+	def test_website_is_synchronized_between_details_and_more_information(self):
+		supplier = create_supplier(supplier_name=f"Website Supplier {frappe.generate_hash()}")
+
+		supplier.website_details = "https://details.example.com"
+		supplier.save()
+		self.assertEqual(supplier.website, supplier.website_details)
+
+		supplier.website = "https://more-info.example.com"
+		supplier.save()
+		self.assertEqual(supplier.website_details, supplier.website)
+
+	def test_supplier_cooperation_is_symmetric(self):
+		first = create_supplier(supplier_name=f"First Supplier {frappe.generate_hash()}")
+		second = create_supplier(supplier_name=f"Second Supplier {frappe.generate_hash()}")
+
+		first.append("cooperating_suppliers", {"supplier": second.name})
+		first.save()
+		second.reload()
+		self.assertEqual([row.supplier for row in second.cooperating_suppliers], [first.name])
+
+		first.set("cooperating_suppliers", [])
+		first.save()
+		second.reload()
+		self.assertFalse(second.cooperating_suppliers)
+
 
 def create_supplier(**args):
 	args = frappe._dict(args)

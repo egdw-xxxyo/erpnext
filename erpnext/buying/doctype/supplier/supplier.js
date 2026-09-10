@@ -98,6 +98,18 @@ frappe.ui.form.on("Supplier", {
 		};
 	},
 
+	website(frm) {
+		if (frm.doc.website_details !== frm.doc.website) {
+			frm.set_value("website_details", frm.doc.website);
+		}
+	},
+
+	website_details(frm) {
+		if (frm.doc.website !== frm.doc.website_details) {
+			frm.set_value("website", frm.doc.website_details);
+		}
+	},
+
 	supplier_group(frm) {
 		if (frm.doc.supplier_group) {
 			frm.trigger("get_supplier_group_details");

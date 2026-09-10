@@ -18,6 +18,7 @@
   "column_break0",
   "supplier_group",
   "country",
+  "website_details",
   "image",
   "defaults_section",
   "default_currency",
@@ -25,6 +26,8 @@
   "column_break_10",
   "default_price_list",
   "payment_terms",
+  "supplier_cooperation_section",
+  "cooperating_suppliers",
   "contact_and_address_tab",
   "address_contacts",
   "address_html",
@@ -213,7 +216,8 @@
    "description": "Disabled suppliers are hidden from selection in new transactions but remain in historical records",
    "fieldname": "disabled",
    "fieldtype": "Check",
-   "label": "Disabled"
+   "in_standard_filter": 1,
+   "label": "Archive"
   },
   {
    "default": "0",
@@ -348,6 +352,21 @@
    "label": "Website",
    "oldfieldname": "website",
    "oldfieldtype": "Data"
+  },
+  {
+   "fieldname": "website_details",
+   "fieldtype": "Data",
+   "label": "Website"
+  },
+  {
+   "fieldname": "supplier_cooperation_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cooperating_suppliers",
+   "fieldtype": "Table MultiSelect",
+   "label": "Cooperates With",
+   "options": "Supplier Cooperation"
   },
   {
    "description": "General information about your Supplier",
