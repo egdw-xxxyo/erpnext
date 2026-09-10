@@ -8,6 +8,8 @@ const days = (value) => __("{0} d", [number(value)]);
 function attendance_lines(row) {
 	return [
 		[__("Present Days"), number(row.present_days)],
+		// Відрядження вже враховане в присутності — рядок нижче каже, скільки з неї було в дорозі.
+		[__("Business Trip Days"), number(row.business_trip_days)],
 		[__("Sick Leave Days"), number(row.sick_days)],
 		[__("Paid Leave Days"), number(row.leave_days)],
 		[__("Unpaid Leave Days"), number(row.unpaid_leave_days)],
