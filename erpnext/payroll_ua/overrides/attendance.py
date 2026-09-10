@@ -3,12 +3,12 @@ from hrms.hr.utils import validate_active_employee
 
 from erpnext.controllers.status_updater import validate_status
 
-STATUSES = ["Present", "Absent", "Sick Leave", "On Leave", "Half Day", "Work From Home"]
+STATUSES = ["Present", "Absent", "Sick Leave", "Business Trip", "On Leave", "Half Day", "Work From Home"]
 
 
 class Attendance(HrmsAttendance):
 	def validate(self):
-		"""Upstream's own validate, with a sick day among the statuses it accepts.
+		"""Upstream's own validate, with a sick day and a business trip among the statuses.
 
 		Copied rather than wrapped: the status check runs first and would reject a sick
 		day before the rest of the method got to see the document. The method is a list

@@ -18,19 +18,24 @@ const STATUS_META = {
 	"Work From Home": { abbr: "WFH", color: "green" },
 	Absent: { abbr: "A", color: "red" },
 	"Sick Leave": { abbr: "SL", color: "#8B5CF6" },
+	"Business Trip": { abbr: "BT", color: "#D97706" },
 	"On Leave": { abbr: "L", color: "#3187D8" },
 	Holiday: { abbr: "H", color: "#878787" },
 	"Weekly Off": { abbr: "WO", color: "#878787" },
 };
 
-const ATTENDANCE_STATUSES = ["Present", "Work From Home", "Absent", "Sick Leave"];
+const ATTENDANCE_STATUSES = ["Present", "Work From Home", "Business Trip", "Absent", "Sick Leave"];
+
+// a trip on the company's business is a day worked: it is counted among the present days
+// and, on top of that, in a column of its own
+const PRESENT_STATUSES = ["Present", "Work From Home", "Business Trip"];
 
 // the days nobody was meant to work: a cell carries one of these only when it holds no
 // attendance and no leave of its own, so a weekend somebody did work is not among them
 const NON_WORKING_STATUSES = ["Weekly Off", "Holiday"];
 
 // the statuses worth a single click on a whole day, the rest go through the dialog
-const QUICK_STATUSES = ["Present", "Work From Home", "Absent", "Sick Leave"];
+const QUICK_STATUSES = ["Present", "Work From Home", "Business Trip", "Absent", "Sick Leave"];
 
 const DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -151,6 +156,13 @@ class AttendanceSheet {
 			"resize.attendance_sheet",
 			frappe.utils.debounce(() => this.size_table(), 100)
 		);
+
+		// the button sits inside a name cell, which drags nothing: the stop is against the
+		// click bubbling up to the row rather than against any selection of our own
+		this.$table.on("click", "button.employee-notes", (e) => {
+			e.stopPropagation();
+			this.open_notes_dialog(e.currentTarget.dataset.employee);
+		});
 
 		this.$table.on("mousedown", "td.day", (e) => this.start_selection(e));
 		this.$table.on("mouseover", "td.day", (e) => this.extend_selection(e));
@@ -362,6 +374,7 @@ class AttendanceSheet {
 		const columns = [
 			[__("Employee")],
 			[__("Present Days")],
+			[__("Business Trip Days")],
 			[__("Leave Days")],
 			[__("Sick Days")],
 			// absence here is always the unpaid kind, and the column is read by payroll
@@ -377,6 +390,7 @@ class AttendanceSheet {
 					<tr>
 						${get_employee_html(row, this.sheet.dates)}
 						<td class="number">${totals.present}</td>
+						<td class="number">${totals.trip}</td>
 						<td class="number">${totals.leave}</td>
 						<td class="number">${totals.sick}</td>
 						<td class="number">${totals.absent}</td>
@@ -820,6 +834,70 @@ class AttendanceSheet {
 		dialog.show();
 		refresh_summary();
 	}
+
+	/** The notes about one employee — everything ever written about them, by whoever
+	 * had them at the time, and a box to add one more. */
+	async open_notes_dialog(employee) {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Notes about {0}", [this.employee_name(employee)]),
+			size: "large",
+			fields: get_notes_fields(),
+			primary_action_label: __("Add Note"),
+			primary_action: () => save(),
+		});
+
+		// which note the box is editing, null while it is writing a new one
+		let editing = null;
+
+		// the list is read back by name when a button in it is pressed, so it is kept
+		const reload = async () => {
+			dialog.notes = await frappe.xcall(`${METHOD}.get_notes`, { employee });
+			dialog.get_field("notes").$wrapper.html(get_notes_list_html(dialog.notes));
+			bind();
+		};
+
+		const write = (note) => {
+			editing = note ? note.name : null;
+			dialog.set_value("note", note ? note.note : "");
+			dialog.set_primary_action(note ? __("Update Note") : __("Add Note"), () => save());
+			dialog.get_field("note").$input.focus();
+		};
+
+		const save = async () => {
+			const note = (dialog.get_value("note") || "").trim();
+			if (!note) return;
+
+			dialog.disable_primary_action();
+			try {
+				await frappe.xcall(`${METHOD}.save_note`, { employee, note, name: editing });
+				write(null);
+				await reload();
+				// the badge in the row counts the notes, so the sheet has to hear about this one
+				this.refresh();
+			} finally {
+				dialog.enable_primary_action();
+			}
+		};
+
+		const remove = (name) =>
+			frappe.confirm(__("Delete this note?"), async () => {
+				await frappe.xcall(`${METHOD}.delete_note`, { name });
+				if (editing === name) write(null);
+				await reload();
+				this.refresh();
+			});
+
+		const bind = () => {
+			const $list = dialog.get_field("notes").$wrapper;
+			const note_by = (target) => dialog.notes.find((entry) => entry.name === target.dataset.note);
+
+			$list.find("[data-action='edit']").on("click", (e) => write(note_by(e.currentTarget)));
+			$list.find("[data-action='delete']").on("click", (e) => remove(e.currentTarget.dataset.note));
+		};
+
+		dialog.show();
+		await reload();
+	}
 }
 
 // -------------------------------------------------------------------- cells
@@ -848,8 +926,24 @@ function get_employee_html(row, dates) {
 	return `
 		<td class="employee">
 			<a href="/app/employee/${encodeURIComponent(row.employee)}" title="${row.employee}"
-				>${name}</a>${marks}
+				>${name}</a>${marks}${get_notes_html(row)}
 		</td>`;
+}
+
+// The mark a row carries when there is something written about the person. It is the count
+// and not a dot: how much has been said is the first thing a manager wants to know, and a
+// row without notes keeps a button of its own so a first note can be written from anywhere.
+function get_notes_html(row) {
+	const count = cint(row.note_count);
+	const label = count
+		? __("Notes about this employee: {0}", [count])
+		: __("No notes about this employee yet");
+
+	return `
+		<button class="employee-notes ${count ? "has-notes" : ""}"
+			data-employee="${frappe.utils.escape_html(row.employee)}" title="${label}">
+			<i class="fa fa-sticky-note-o"></i>${count ? `<span class="count">${count}</span>` : ""}
+		</button>`;
 }
 
 function get_cell_html(row, date) {
@@ -918,12 +1012,15 @@ function get_cell_title(cell) {
 }
 
 function get_totals(row) {
-	const totals = { present: 0, leave: 0, sick: 0, absent: 0, overtime: 0, shortfall: 0 };
+	const totals = { present: 0, trip: 0, leave: 0, sick: 0, absent: 0, overtime: 0, shortfall: 0 };
 
 	Object.values(row.days).forEach((cell) => {
-		if (["Present", "Work From Home"].includes(cell.status)) totals.present += 1;
+		if (PRESENT_STATUSES.includes(cell.status)) totals.present += 1;
+		// the trip column does not repeat the presence, it says how much of it was away
+		if (cell.status === "Business Trip") totals.trip += 1;
+
 		// a leave nobody pays for is an absence at the employee's own expense
-		else if (cell.status === "On Leave") totals[cell.unpaid_leave ? "absent" : "leave"] += 1;
+		if (cell.status === "On Leave") totals[cell.unpaid_leave ? "absent" : "leave"] += 1;
 		else if (cell.status === "Sick Leave") totals.sick += 1;
 		else if (cell.status === "Absent") totals.absent += 1;
 
@@ -981,6 +1078,49 @@ function get_attendance_fields(is_range) {
 			precision: 2,
 		},
 	];
+}
+
+function get_notes_fields() {
+	return [
+		{ fieldtype: "HTML", fieldname: "notes" },
+		{ fieldtype: "Section Break" },
+		{
+			fieldtype: "Small Text",
+			fieldname: "note",
+			label: __("Note"),
+			reqd: 1,
+		},
+	];
+}
+
+// Whoever wrote a note signs it, and only they can change it: a note read by the next
+// manager is worth what its signature is worth.
+function get_notes_list_html(notes) {
+	if (!notes.length)
+		return `<div class="text-muted employee-notes-empty">${__("Nothing written yet")}</div>`;
+
+	return `<div class="employee-notes-list">${notes.map(get_note_html).join("")}</div>`;
+}
+
+function get_note_html(note) {
+	const actions = note.mine
+		? `<span class="employee-note-actions">
+				<a data-action="edit" data-note="${note.name}">${__("Edit")}</a>
+				<a data-action="delete" data-note="${note.name}">${__("Delete")}</a>
+			</span>`
+		: "";
+
+	return `
+		<div class="employee-note">
+			<div class="employee-note-head">
+				<span class="employee-note-author">${frappe.utils.escape_html(note.author)}</span>
+				<span class="employee-note-date">${frappe.datetime.str_to_user(note.creation)}${
+		note.edited ? ` · ${__("edited")}` : ""
+	}</span>
+				${actions}
+			</div>
+			<div class="employee-note-body">${frappe.utils.escape_html(note.note)}</div>
+		</div>`;
 }
 
 function get_leave_fields(allowed_types, refresh_summary) {
@@ -1244,6 +1384,28 @@ function inject_styles() {
 			margin-left: 6px; font-size: 11px; color: var(--text-muted);
 			white-space: nowrap;
 		}
+		/* the mark of a row that has something written about it. Without notes the button
+		   is drawn only under the cursor, so an empty column of icons does not compete
+		   with the days for the eye */
+		td.employee .employee-notes {
+			margin-left: 6px; padding: 0 4px; border: none; background: none;
+			font-size: 11px; line-height: 1; color: var(--text-muted);
+			opacity: 0; transition: opacity 120ms ease; cursor: pointer;
+		}
+		table.attendance-sheet tr:hover td.employee .employee-notes { opacity: 0.6; }
+		td.employee .employee-notes:hover { opacity: 1; }
+		td.employee .employee-notes.has-notes { opacity: 1; color: var(--blue-500, #2490ef); }
+		td.employee .employee-notes .count { margin-left: 3px; font-weight: 600; }
+		.employee-notes-empty { padding: 8px 0; }
+		.employee-notes-list { max-height: 320px; overflow-y: auto; }
+		.employee-note { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+		.employee-note:last-child { border-bottom: none; }
+		.employee-note-head { display: flex; gap: 8px; align-items: baseline;
+			font-size: var(--text-xs); color: var(--text-muted); margin-bottom: 3px; }
+		.employee-note-author { font-weight: 600; color: var(--text-color); }
+		.employee-note-actions { margin-left: auto; display: flex; gap: 10px; }
+		.employee-note-actions a { cursor: pointer; }
+		.employee-note-body { white-space: pre-wrap; font-size: var(--text-sm); }
 		table.attendance-sheet td.number, table.attendance-sheet th.number {
 			text-align: right; padding-right: 12px; min-width: 90px; }
 		.attendance-sheet .status { display: block; }

@@ -9,6 +9,7 @@
   "employee",
   "employee_name",
   "total_present",
+  "total_business_trip",
   "total_leave",
   "total_sick",
   "total_absent",
@@ -17,7 +18,7 @@
  ],
  "fields": [
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "employee",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -41,6 +42,15 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Present",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "total_business_trip",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Business Trip",
    "precision": "2",
    "read_only": 1
   },
