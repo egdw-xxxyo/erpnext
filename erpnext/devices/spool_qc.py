@@ -244,6 +244,10 @@ def make_quality_inspection(serial_no, item_code, payload, otdr, cfg, log):
 	qi.item_code = item_code
 	qi.item_serial_no = serial_no
 	qi.quality_inspection_template = template
+	# `inspected_by` defaults to the literal string "user", which is not a User and fails
+	# link validation outside a desk session. The measurement arrives over the API, so the
+	# inspector is whoever the device authenticated as.
+	qi.inspected_by = frappe.session.user
 
 	batch_no = _source_batch(serial_no)
 	if batch_no:
