@@ -23,6 +23,7 @@ def execute():
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
 	create_custom_field_on_serial_no()
+	create_spool_lineage_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
@@ -349,6 +350,40 @@ def create_custom_field_on_serial_no():
 			"in_list_view": 1,
 			"in_standard_filter": 1,
 			"description": "Auto-synced from submitted Quality Inspection",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_spool_lineage_fields():
+	"""Reel a produced optical spool was wound from, denormalised onto the Serial No.
+
+	Derivable from the Manufacture Stock Entry's consumed bundle, but only by walking
+	several documents — and the question this answers ("a spool failed QC, whose fiber was
+	it?") has to be one read. Written by `erpnext.devices.spool_lineage.stamp_source_batch`.
+	"""
+	fields = [
+		{
+			"dt": "Serial No",
+			"fieldname": "source_batch_no",
+			"fieldtype": "Link",
+			"options": "Batch",
+			"label": "Партія волокна",
+			"insert_after": "inspection_status",
+			"read_only": 1,
+			"in_standard_filter": 1,
+			"description": "Котушка волокна, з якої намотано цю котушку",
+		},
+		{
+			"dt": "Serial No",
+			"fieldname": "source_reel_supplier",
+			"fieldtype": "Link",
+			"options": "Supplier",
+			"label": "Виробник волокна",
+			"insert_after": "source_batch_no",
+			"read_only": 1,
+			"in_standard_filter": 1,
+			"description": "Постачальник партії волокна",
 		},
 	]
 	_create_custom_fields(fields)
