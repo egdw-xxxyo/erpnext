@@ -14,10 +14,11 @@ The clients version independently — do NOT assume the same number.
   desktop: ~/git/otdr-sync (unsupported since the workplace measurement cutover)
 """
 
-# 0.5.0 is where the spool stopped being scanned and started being handed out by
+# 0.6.0 is where the spool stopped being scanned and started being handed out by
 # `spool_production.next_spool`. An older build asks the operator to type a serial that does
-# not exist yet, so it cannot measure anything on this server.
-MIN_ANDROID_APP_VERSION = "0.5.0"
+# not exist yet, so it cannot measure anything on this server. The 0.5.x line shipped before
+# that change, which is why the floor is a minor bump rather than 0.5.0.
+MIN_ANDROID_APP_VERSION = "0.6.0"
 MIN_DESKTOP_APP_VERSION = "0.1.0"
 
 
