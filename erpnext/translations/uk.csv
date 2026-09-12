@@ -13842,3 +13842,54 @@ Component {0},Компонент {0}
 "This note does not exist","Такої нотатки не існує"
 "Attendance Sheet Note","Нотатка в табелі"
 "Days spent on a business trip. They are paid, and are already counted among the present days.","Дні у відрядженні. Вони оплачуються і вже враховані в днях присутності."
+OTDR Measurement,Вимірювання OTDR
+OTDR Measurements,Вимірювання OTDR
+Verdict,Висновок
+Undetermined,Не визначено
+Pass,Придатна
+Fail,Брак
+Measured On,Час вимірювання
+Loss (dB),Загасання (дБ)
+Fiber Length (km),Довжина волокна (км)
+Optical Return Loss (dB),Зворотні втрати (дБ)
+Wavelength (nm),Довжина хвилі (нм)
+Script State,Стан скрипта
+Script Log,Журнал скрипта
+SOR File,Файл SOR
+Filename,Ім'я файлу
+Remote Path,Шлях на пристрої
+Parsed Measurement,Розібране вимірювання
+Payload,Дані вимірювання
+Result,Результат
+"Sync and BLE settings sent to the phone measuring at this workplace","Налаштування синхронізації та BLE, які отримує телефон на цьому робочому місці"
+"Workplace Script state after this measurement was handled","Стан Скрипта робочого місця після обробки цього вимірювання"
+Workplace is required,Потрібно вказати робоче місце
+Measurement is required,Потрібно вказати вимірювання
+"Workplace {0} not found","Робоче місце {0} не знайдено"
+"You are not assigned to workplace {0}","Вас не призначено на робоче місце {0}"
+"Missing 'file' multipart field","Відсутнє поле 'file' у запиті"
+"Measurement {0} has no Quality Inspection to print for","Вимірювання {0} не має перевірки якості для друку мітки"
+Device Script — reusable libraries,Скрипт пристрою — бібліотеки для повторного використання
+"Device Scripts are reusable function libraries invoked from Workplace Scripts via the","Скрипти пристрою — це бібліотеки функцій, які викликаються зі Скриптів робочого місця через"
+Example,Приклад
+"Called from a Workplace Script state as","Викликається зі стану Скрипта робочого місця як"
+"The library name is the script name lowercased with spaces replaced by underscores.","Назва бібліотеки — це назва скрипта малими літерами, де пробіли замінено підкресленнями."
+"Unknown serial number: {0}","Невідомий серійний номер: {0}"
+"Item is required","Потрібно вказати товар"
+"Job Card is required","Потрібно вказати карту завдань"
+"Daily Qty cannot be negative (row {0})","Денна кількість не може бути від'ємною (рядок {0})"
+"Item {0} has no default BOM, cannot open a Work Order","Товар {0} не має норм за замовчуванням — неможливо створити наряд на роботу"
+"Spool production is not enabled","Виробництво котушок не увімкнено"
+"Work Order {0} produced no Job Card for {1}. Check the BOM operations.","Наряд на роботу {0} не створив карту завдань для {1}. Перевірте операції в нормах."
+"Spool Production Settings","Налаштування виробництва котушок"
+"Spool Production Plan Item","Рядок плану виробництва котушок"
+"Daily Plan","Денний план"
+"Daily Qty","Денна кількість"
+"Overflow Qty","Кількість на дозамовлення"
+"Close Stale Work Orders","Закривати застарілі наряди"
+"Delete Unused Serial Nos","Видаляти невикористані серійні номери"
+"Last Run On","Останній запуск"
+"Last Result","Результат останнього запуску"
+"WIP Warehouse","Склад \"В роботі\""
+"Finished Goods Warehouse","Склад готової продукції"
+"Spool production","Виробництво котушок"

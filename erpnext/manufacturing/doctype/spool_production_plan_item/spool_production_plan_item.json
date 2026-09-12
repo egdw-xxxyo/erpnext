@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "creation": "2026-09-12 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "item_code",
+  "workplace",
+  "daily_qty"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled",
+   "columns": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "columns": 4
+  },
+  {
+   "description": "The bench that winds this spool. Its allowed operations decide which Job Cards the app may hand out.",
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Workplace",
+   "options": "Workplace",
+   "columns": 3
+  },
+  {
+   "default": "0",
+   "description": "How many spools to open Work Orders for each day. Running out is not an error — an overflow Work Order is created on demand.",
+   "fieldname": "daily_qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Daily Qty",
+   "columns": 2
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Spool Production Plan Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

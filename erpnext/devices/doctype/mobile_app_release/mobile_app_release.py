@@ -17,7 +17,7 @@ from frappe.model.document import Document
 from frappe.utils import get_datetime, now_datetime
 from frappe.utils.file_manager import save_file
 
-from erpnext.devices.doctype.otdr.otdr import _version_tuple
+from erpnext.devices.app_version import _version_tuple
 
 log = logging.getLogger(__name__)
 

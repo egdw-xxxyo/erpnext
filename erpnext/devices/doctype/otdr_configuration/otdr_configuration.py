@@ -1,18 +1,18 @@
-import frappe
 from frappe.model.document import Document
 
 
 class OTDRConfiguration(Document):
-	def on_update(self):
-		from erpnext.devices.doctype.otdr.otdr import publish_config
+	"""Sync and BLE settings for the phone measuring at a workplace.
 
-		linked = frappe.get_all(
-			"OTDR",
-			filters={"otdr_configuration": self.name, "is_active": 1},
-			fields=["name"],
-		)
-		for row in linked:
-			try:
-				publish_config(row.name)
-			except Exception:
-				frappe.log_error(title="OTDR Configuration: publish_config failed")
+	These settings outlived the `OTDR` doctype they used to hang off: they describe the
+	reflectometer and the sync loop, which did not change when device identity was replaced
+	by workplace identity. `Workplace.otdr_configuration` points here now, and the phone
+	fetches them through `otdr_measurement_api.get_configuration`.
+
+	`on_update` used to push the new config to the device over realtime, addressed to the
+	OTDR record's `last_used_by`. There is no device record to address any more, and the app
+	re-reads the configuration when the operator picks a workplace, so the push is gone
+	rather than reimplemented.
+	"""
+
+	pass

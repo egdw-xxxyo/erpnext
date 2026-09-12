@@ -625,9 +625,15 @@ scheduler_events = {
 		],
 		# Daily but offset by 45 minutes
 		"45 0 * * *": [],
+		# Late evening: stop the spool Work Orders nobody finished today
+		"0 21 * * *": [
+			"erpnext.manufacturing.spool_production.close_stale_work_orders",
+		],
 	},
 	"hourly": [
 		"erpnext.projects.doctype.project.project.hourly_reminder",
+		# Idempotent per item per day, so an hourly tick also heals a missed scheduler run
+		"erpnext.manufacturing.spool_production.ensure_daily_work_orders",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
 	],

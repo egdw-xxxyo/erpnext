@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "creation": "2026-09-12 00:00:00.000000",
+ "description": "Keeps the spool line supplied with Work Orders so nobody has to size one by hand each morning",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "column_break_main",
+  "company",
+  "warehouse_section",
+  "wip_warehouse",
+  "column_break_warehouse",
+  "fg_warehouse",
+  "plan_section",
+  "plan",
+  "overflow_section",
+  "overflow_qty",
+  "cleanup_section",
+  "cleanup_enabled",
+  "column_break_cleanup",
+  "delete_unused_serials",
+  "status_section",
+  "last_run_on",
+  "last_result"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "While off, no Work Order is created automatically and the app cannot hand out spools.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "warehouse_section",
+   "fieldtype": "Section Break",
+   "label": "Warehouses"
+  },
+  {
+   "fieldname": "wip_warehouse",
+   "fieldtype": "Link",
+   "label": "WIP Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_warehouse",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fg_warehouse",
+   "fieldtype": "Link",
+   "label": "Finished Goods Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "plan_section",
+   "fieldtype": "Section Break",
+   "label": "Daily Plan"
+  },
+  {
+   "fieldname": "plan",
+   "fieldtype": "Table",
+   "label": "Plan",
+   "options": "Spool Production Plan Item"
+  },
+  {
+   "fieldname": "overflow_section",
+   "fieldtype": "Section Break",
+   "label": "Overflow"
+  },
+  {
+   "default": "5",
+   "description": "How many spools an overflow Work Order covers when the day's plan runs out mid-shift. Small is safer: unused spools are wasted serial numbers.",
+   "fieldname": "overflow_qty",
+   "fieldtype": "Int",
+   "label": "Overflow Qty"
+  },
+  {
+   "fieldname": "cleanup_section",
+   "fieldtype": "Section Break",
+   "label": "End of Day"
+  },
+  {
+   "default": "1",
+   "description": "Stop yesterday's Work Orders and cancel the Job Cards nobody used, so today's app does not hand out a stale spool.",
+   "fieldname": "cleanup_enabled",
+   "fieldtype": "Check",
+   "label": "Close Stale Work Orders"
+  },
+  {
+   "fieldname": "column_break_cleanup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Also delete the Serial Nos that were never wound. Off by default: deleting a serial is irreversible, and leaving it costs only a gap in the numbering.",
+   "fieldname": "delete_unused_serials",
+   "fieldtype": "Check",
+   "label": "Delete Unused Serial Nos"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Last Run"
+  },
+  {
+   "fieldname": "last_run_on",
+   "fieldtype": "Datetime",
+   "label": "Last Run On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_result",
+   "fieldtype": "Small Text",
+   "label": "Last Result",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Spool Production Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Manufacturing User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

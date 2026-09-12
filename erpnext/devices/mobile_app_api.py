@@ -14,12 +14,34 @@ from frappe import _
 from frappe.utils import get_url
 
 from erpnext import __version__ as erpnext_version
+from erpnext.devices.app_version import _version_tuple, min_version_for
 from erpnext.devices.doctype.mobile_app_release.mobile_app_release import (
 	DEFAULT_APP,
 	latest_release,
 )
-from erpnext.devices.doctype.otdr.otdr import _version_tuple, min_version_for
-from erpnext.devices.doctype.otdr.otdr_api import _make_qr_data_uri
+
+
+def _make_qr_data_uri(text: str) -> str:
+	"""PNG QR as a data URI. Moved here from `otdr_api` when the OTDR doctype was removed —
+	the provisioning QR below is the only remaining caller."""
+	import base64
+	import io
+
+	import qrcode
+	from qrcode.constants import ERROR_CORRECT_M
+
+	qr = qrcode.QRCode(
+		version=None,
+		error_correction=ERROR_CORRECT_M,
+		box_size=6,
+		border=2,
+	)
+	qr.add_data(text)
+	qr.make(fit=True)
+	img = qr.make_image(fill_color="black", back_color="white")
+	buf = io.BytesIO()
+	img.save(buf, format="PNG")
+	return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def _public_url():

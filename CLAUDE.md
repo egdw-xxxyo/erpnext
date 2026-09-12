@@ -1,7 +1,9 @@
 ## Related repos
 
-- **`~/git/otdr-sync/`** — Desktop sync application (Python, Senter ST3200H-M / Novker NK1500 OTDR over BLE). Pulls `.sor` files from device, uploads to ERPNext via `OTDR.add_measurement_log` whitelisted method. See `~/git/otdr-sync/README.md`. ERPNext side: `erpnext/devices/doctype/otdr/otdr.py` (API + measurement ingestion), `erpnext/devices/doctype/otdr_configuration/` (sync settings shipped to desktop app), `erpnext/devices/doctype/device_script/` (Reflectometer scripts fired on SOR upload via `trigger_event="SOR Uploaded"`).
-- **`~/git/otdr-sync-android/`** — Android sync application (Kotlin, Jetpack Compose). Core sync scope only: BLE scan/pair, auto-sync `.sor` download, ERPNext `submit_measurement` upload, sync status UI, ERP config. Same protocol constants as desktop (`~/git/otdr-sync/st3200_sync/ble/protocol.py`).
+- **`~/git/erpnext-mobile-kalheon/`** — Android application (Kotlin, Jetpack Compose, `ua.erpnextkalheon`). **The only supported OTDR client.** BLE scan/pair, auto-sync `.sor` download, workplace selection, taking the next spool off the day's plan, measurement upload, verdict display and label printing, plus Employee Chat. ERPNext side: `erpnext/devices/otdr_measurement_api.py` (the measurement API), `erpnext/manufacturing/spool_production.py` (daily Work Orders, `next_spool` hands out the serial + Job Card), `erpnext/devices/workplace_dispatch.py` (runs the Workplace Script), `erpnext/devices/spool_qc.py` (QI + label + Job Card link), `erpnext/devices/sor_parser.py` (SOR parsing), `erpnext/devices/doctype/otdr_configuration/` (BLE/sync settings, pointed at by `Workplace.otdr_configuration`).
+
+**Spool serials are never scanned.** A spool is produced, not received: it has no label until this flow prints one. `next_spool` picks a free Job Card, assigns its serial and marks it in progress; the app shows that serial and sends it back with the measurement.
+- **`~/git/otdr-sync/`** — Desktop sync application (Python, PySide6). **Unsupported since the workplace measurement cutover**: it posts to the removed `otdr_api` endpoints and never sent a workplace. Kept for reference and for its BLE protocol constants only (`st3200_sync/ble/protocol.py`).
 - **`~/git/otdr/`** — BLE protocol findings / reverse-engineering notes (`FINDINGS.md`).
 
 ## WhatsApp integration
@@ -33,15 +35,19 @@ otherwise it is invisible to `purge_thread` and leaks past the guards. Client-si
 are not the message's `attach` (the encrypted preview of a secret attachment) must be passed to
 `send_message(extra_files=[...])`.
 
-## Multi-client parity (desktop + Android)
+## Client apps
 
-Device-side functionality lives in two client apps:
-- **Desktop**: `~/git/otdr-sync/` (Python, PySide6) — full-featured
-- **Android**: `~/git/otdr-sync-android/` (Kotlin, Jetpack Compose) — core sync only
+Device-side functionality lives in one supported client:
+- **Android**: `~/git/erpnext-mobile-kalheon/` (Kotlin, Jetpack Compose) — the OTDR client
+- **Desktop**: `~/git/otdr-sync/` (Python, PySide6) — **unsupported**, see Related repos
 
 ### Duplication rule
 
-**Core sync features must exist on both clients.** Core = BLE scan/pair, file discovery, auto-sync download, ERPNext `submit_measurement` upload, sync status UI, ERP config.
+The former desktop/Android parity requirement no longer applies: the desktop client was
+dropped when measurements moved to workplace scoping, so there is no second client to keep
+in step. If desktop support is ever restored, the rule comes back with it — core sync being
+BLE scan/pair, file discovery, auto-sync download, measurement upload, sync status UI and
+ERP config.
 
 When changing any core-sync feature on one client, apply the equivalent change on the other in the same task. Do not merge desktop-only changes to core sync without a matching Android change (or an explicit note that Android is deferred).
 

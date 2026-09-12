@@ -1,0 +1,289 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-09-12 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "measurement_type",
+  "serial_no",
+  "item_code",
+  "measured_on",
+  "column_break_main",
+  "workplace",
+  "employee",
+  "verdict",
+  "status",
+  "readings_section",
+  "loss_db",
+  "distance_km",
+  "column_break_readings",
+  "orl_db",
+  "wavelength_nm",
+  "result_section",
+  "quality_inspection",
+  "print_job",
+  "column_break_result",
+  "script_state",
+  "error_message",
+  "source_section",
+  "sor_file",
+  "filename",
+  "column_break_source",
+  "remote_path",
+  "script_log",
+  "payload_section",
+  "payload"
+ ],
+ "fields": [
+  {
+   "default": "OM-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "OM-.#####"
+  },
+  {
+   "default": "SOR",
+   "fieldname": "measurement_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Measurement Type",
+   "options": "SOR\nOPM\nVFL",
+   "description": "SOR is a reflectometer trace; OPM is a power-meter reading; VFL is a visual fault locator toggle."
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Serial No",
+   "options": "Serial No",
+   "search_index": 1
+  },
+  {
+   "fetch_from": "serial_no.item_code",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "measured_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Measured On"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Workplace",
+   "options": "Workplace"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "verdict",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Verdict",
+   "options": "\nPass\nFail\nUndetermined"
+  },
+  {
+   "default": "Success",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Success\nError"
+  },
+  {
+   "fieldname": "readings_section",
+   "fieldtype": "Section Break",
+   "label": "Readings"
+  },
+  {
+   "fieldname": "loss_db",
+   "fieldtype": "Float",
+   "label": "Loss (dB)",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distance_km",
+   "fieldtype": "Float",
+   "label": "Fiber Length (km)",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_readings",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "orl_db",
+   "fieldtype": "Float",
+   "label": "Optical Return Loss (dB)",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "wavelength_nm",
+   "fieldtype": "Float",
+   "label": "Wavelength (nm)",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_section",
+   "fieldtype": "Section Break",
+   "label": "Result"
+  },
+  {
+   "fieldname": "quality_inspection",
+   "fieldtype": "Link",
+   "label": "Quality Inspection",
+   "options": "Quality Inspection",
+   "read_only": 1
+  },
+  {
+   "fieldname": "print_job",
+   "fieldtype": "Link",
+   "label": "Print Job",
+   "options": "Print Job",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_result",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Workplace Script state after this measurement was handled",
+   "fieldname": "script_state",
+   "fieldtype": "Data",
+   "label": "Script State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "sor_file",
+   "fieldtype": "Attach",
+   "label": "SOR File",
+   "read_only": 1
+  },
+  {
+   "fieldname": "filename",
+   "fieldtype": "Data",
+   "label": "Filename",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remote_path",
+   "fieldtype": "Data",
+   "label": "Remote Path",
+   "read_only": 1
+  },
+  {
+   "fieldname": "script_log",
+   "fieldtype": "Code",
+   "label": "Script Log",
+   "options": "Text",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payload_section",
+   "fieldtype": "Section Break",
+   "label": "Parsed Measurement"
+  },
+  {
+   "fieldname": "payload",
+   "fieldtype": "Code",
+   "label": "Payload",
+   "options": "JSON",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "OTDR Measurement",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Device Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Device Operator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

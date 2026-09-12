@@ -1,16 +1,11 @@
 const DEVICE_SCRIPT_API_REFERENCE = `
 <div style="font-size: 13px; line-height: 1.6;">
-<h5>${__("Device Script — Scanner vs Reflectometer")}</h5>
-<p><strong>${__("Scanner")}</strong> ${__(
-	"scripts are reusable function libraries invoked from Workplace Scripts via the"
+<h5>${__("Device Script — reusable libraries")}</h5>
+<p>${__(
+	"Device Scripts are reusable function libraries invoked from Workplace Scripts via the"
 )} <code>scripts</code> ${__("namespace. No entry point — define functions only.")}</p>
-<p><strong>${__("Reflectometer")}</strong> ${__(
-	"scripts run automatically after each OTDR measurement is uploaded. Define"
-)} <code>on_event(ctx)</code> ${__("or")} <code>on_reflectometer(ctx)</code>. ${__(
-	"ctx fields:"
-)} <code>ctx.otdr</code>, <code>ctx.log_entry</code>, <code>ctx.payload</code> ${__("(parsed dict).")}</p>
 
-<h5>${__("Example Scanner Script")}: "job_cards"</h5>
+<h5>${__("Example")}: "job_cards"</h5>
 <pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
 def start_or_finish(job_card_doc):
     if job_card_doc.status == "Open":
@@ -19,18 +14,9 @@ def start_or_finish(job_card_doc):
         job_card_doc.complete_job()
 </pre>
 
-<h5>${__("Example Reflectometer Script")}</h5>
-<pre style="background: var(--bg-color); padding: 10px; border-radius: 4px; font-size: 12px;">
-def on_event(ctx):
-    summary = (ctx.payload.get("Summary") or {})
-    loss = summary.get("end_to_end_loss_db")
-    ctx.log("measurement received", otdr=ctx.otdr.name, loss_db=loss)
-    if loss is not None and loss > 3:
-        ctx.log(f"loss alert: {loss} dB", level="WARN", payload_keys=list(ctx.payload.keys()))
-</pre>
-<p>${__(
-	"ctx.log(message, level='INFO'|'WARN'|'ERROR', **extra) appends a line to this run's logs. After the script returns, the run is stored under"
-)} <strong>${__("Recent Runs")}</strong> ${__("on this script (last 200 kept, older auto-pruned).")}</p>
+<p>${__("Called from a Workplace Script state as")} <code>scripts.job_cards.start_or_finish(doc)</code>. ${__(
+	"The library name is the script name lowercased with spaces replaced by underscores."
+)}</p>
 
 <p>${__("frappe and json modules are available in the script scope.")}</p>
 </div>

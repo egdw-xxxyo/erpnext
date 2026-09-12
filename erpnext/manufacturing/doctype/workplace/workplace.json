@@ -22,6 +22,7 @@
   "allowed_employees",
   "scanner_tab",
   "workplace_script",
+  "otdr_configuration",
   "printers_tab",
   "printers"
  ],
@@ -107,6 +108,13 @@
    "options": "Workplace Script",
    "read_only": 1,
    "description": "Automatically linked from the Workplace Script that references this workplace"
+  },
+  {
+   "fieldname": "otdr_configuration",
+   "fieldtype": "Link",
+   "label": "OTDR Configuration",
+   "options": "OTDR Configuration",
+   "description": "Sync and BLE settings sent to the phone measuring at this workplace"
   },
   {
    "fieldname": "printers_tab",

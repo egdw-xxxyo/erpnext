@@ -141,7 +141,7 @@ export const SCRIPT_TOOLS = [
   {
     name: "edit_workplace_script_main",
     description:
-      "Replace the main `script` field of a Workplace Script. Typically just a 2-line dispatcher: `from erpnext.manufacturing.doctype.workplace_script.workplace_script import run_state` / `def on_scan(e): return run_state(\"<name>\", e, scripts=scripts)`. Per-state logic belongs in the State rows. Targets the default version unless `version` is supplied.",
+      "Replace the main `script` field of a Workplace Script. Typically just a 2-line dispatcher: `from erpnext.devices.doctype.workplace_script.workplace_script import run_state` / `def on_scan(e): return run_state(\"<name>\", e, scripts=scripts)`. For reflectometer measurements the handler is `on_measurement(e)` and the dispatcher passes `handler=\"on_measurement\"`. Per-state logic belongs in the State rows. Targets the default version unless `version` is supplied.",
     inputSchema: {
       type: "object",
       properties: {
@@ -287,42 +287,6 @@ export const SCRIPT_TOOLS = [
       type: "object",
       properties: {
         name: { type: "string", description: "Script name (becomes the key under `scripts.`)" },
-        script: { type: "string", description: "Full Python source" },
-        is_active: { type: "boolean", description: "Default true on create" },
-        version: { type: "string", description: VERSION_NOTE },
-      },
-      required: ["name", "script"],
-    },
-  },
-
-  // ── Reflectometer Script ────────────────────────────────────────────────
-  {
-    name: "list_reflectometer_scripts",
-    description:
-      "List all Reflectometer Scripts (run automatically after each OTDR measurement upload). Same versioning model as Scanner Script. Entry point: `on_event(ctx)` or `on_reflectometer(ctx)`; ctx exposes ctx.otdr, ctx.log_entry, ctx.payload (parsed SOR dict).",
-    inputSchema: { type: "object", properties: {} },
-  },
-  {
-    name: "get_reflectometer_script",
-    description:
-      "Read a Reflectometer Script — name, is_active, full script body. Defaults to the default version's snapshot. Pass `version` for a specific snapshot.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        version: { type: "string", description: VERSION_NOTE },
-      },
-      required: ["name"],
-    },
-  },
-  {
-    name: "edit_reflectometer_script",
-    description:
-      "Create or update a Reflectometer Script. Define `def on_event(ctx)` (or `on_reflectometer(ctx)`). ctx fields: ctx.otdr (OTDR doc), ctx.log_entry (just-saved measurement row), ctx.payload (parsed SOR dict). Frappe and json modules in scope. Errors are logged to Error Log, never raised back to the desktop client.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        name: { type: "string" },
         script: { type: "string", description: "Full Python source" },
         is_active: { type: "boolean", description: "Default true on create" },
         version: { type: "string", description: VERSION_NOTE },
@@ -727,75 +691,6 @@ export async function handleScriptTool(
           200,
         );
         return json(docs);
-      }
-
-      case "list_reflectometer_scripts": {
-        const docs = await erpnext.getDocList(
-          "Device Script",
-          { script_type: "Reflectometer" },
-          ["name", "is_active", "default_version", "script_type"],
-          200,
-        );
-        return json(docs);
-      }
-
-      case "get_reflectometer_script": {
-        const n = arg<string>(args, "name");
-        const version = arg<string | undefined>(args, "version");
-        if (!n) return err("name is required");
-        const doc = await erpnext.getDocument("Device Script", n);
-        if (doc.script_type !== "Reflectometer") return err(`${n} is not a Reflectometer script`);
-        const row = findVersion(doc, version);
-        if (!row) return err(`Version ${version || "default"} not found on ${n}`);
-        const snap = scannerSnapshot(row);
-        return json({
-          name: doc.name,
-          script_type: doc.script_type,
-          is_active: doc.is_active,
-          default_version: doc.default_version,
-          viewing_version: doc.viewing_version,
-          version: row.version,
-          is_default: !!row.is_default,
-          versions: versionsSummary(doc),
-          script: snap.script,
-        });
-      }
-
-      case "edit_reflectometer_script": {
-        const n = arg<string>(args, "name");
-        const script = arg<string>(args, "script");
-        const isActive = arg<boolean | undefined>(args, "is_active");
-        const version = arg<string | undefined>(args, "version");
-        if (!n || script === undefined) return err("name and script are required");
-
-        let exists = true;
-        let doc: any = null;
-        try {
-          doc = await erpnext.getDocument("Device Script", n);
-        } catch {
-          exists = false;
-        }
-
-        if (exists) {
-          if (doc.script_type !== "Reflectometer") return err(`${n} exists but is not a Reflectometer script`);
-          const row = findVersion(doc, version);
-          if (!row) return err(`Version ${version || "default"} not found on ${n}`);
-          const data: Record<string, any> = {
-            viewing_version: row.version,
-            script,
-          };
-          if (isActive !== undefined) data.is_active = isActive ? 1 : 0;
-          await erpnext.updateDocument("Device Script", n, data);
-          return ok(`Updated Reflectometer Script ${n} (version ${row.version})`);
-        } else {
-          await erpnext.createDocument("Device Script", {
-            script_name: n,
-            script_type: "Reflectometer",
-            script,
-            is_active: isActive === false ? 0 : 1,
-          });
-          return ok(`Created Reflectometer Script ${n}`);
-        }
       }
 
       case "get_scanner_script": {
