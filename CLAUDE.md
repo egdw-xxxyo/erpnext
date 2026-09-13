@@ -67,7 +67,7 @@ When finishing a feature or fixing a bug, **create or update the release-note fi
 - Written **in Ukrainian**. First `# Heading` line = release title; the rest = body (bullet list of changes).
 - If a file for today's release already exists, **append** your change to its body; otherwise create a new file.
 - These files are the source of truth. On every `./deploy migrate` the `after_migrate` hook (`erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes`) upserts a **Release Note** DocType record per file, so the changelog shows in the UI (`/app/release-note`) and the deployed version appears in **Help → About**.
-- Tag the release commit (`git tag -a vYYYY.MM.DD -m "..."`). Prod deploy is blocked for untagged commits (`environment: "prod"` in `site-config.json`).
+- Tag the release commit (`git tag -a vYYYY.MM.DD -m "..."`).
 
 ## Linting / CI (pre-commit) — MANDATORY before committing code
 

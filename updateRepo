@@ -11,7 +11,7 @@ echo "==> Pulling erpnext (branch: $BRANCH)..."
 git pull origin "$BRANCH"
 
 # `git pull origin <branch>` passes an explicit refspec, which turns tag auto-following off —
-# so release tags never arrive and `./deploy` refuses to deploy an "untagged" commit on prod.
+# so release tags never arrive.
 echo "==> Fetching tags..."
 git fetch --tags --force origin
 

@@ -62,20 +62,6 @@ async def launch(key: str, request: Request, session: SessionDep):
 			),
 		)
 
-	# The same gate ./deploy enforces, applied here so the operator gets a real
-	# explanation instead of an instant opaque failure.
-	if key == "build" and (data.get("version") or {}).get("site_env") == "prod":
-		if not git.get("tag") and not git.get("merge"):
-			return _fragment(
-				request,
-				session,
-				error=(
-					f"Prod deploys are blocked for untagged commits. HEAD {git.get('head')} on "
-					f"{git.get('branch')} is {git.get('describe')} — commits past the last release tag. "
-					"Tag it (git tag -a vYYYY.MM.DD && git push origin --tags), then Update repo."
-				),
-			)
-
 	if key in _GIT_COMMANDS:
 		line = await asyncio.to_thread(git_ssh.wrap, session.conn, session.username, line)
 

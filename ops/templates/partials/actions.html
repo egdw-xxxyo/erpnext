@@ -1,5 +1,4 @@
 {% set git = data.git or {} %}
-{% set ver = data.version or {} %}
 {% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
 <h2>Actions</h2>
 
@@ -37,16 +36,13 @@
 		<input name="branch" placeholder="branch name" value="{{ git.branch or '' }}" required>
 		{% endif %}
 
-		{% set blocked_prod = key == 'build' and ver.site_env == 'prod' and not git.tag and not git.merge %}
 		{% set blocked_dirty = cmd.needs_clean_tree and git.dirty %}
 		<button type="submit" class="{{ 'danger' if cmd.destructive else 'primary' }}"
-		        {% if running or blocked_prod or blocked_dirty %}disabled{% endif %}>
+		        {% if running or blocked_dirty %}disabled{% endif %}>
 			{% if running and running[0].label == cmd.label %}<i class="fa fa-spinner fa-spin busy-icon"></i>{% endif %}
 			Run
 		</button>
-		{% if blocked_prod %}
-		<p class="muted small">Blocked: HEAD {{ git.head }} is {{ git.describe }} — no release tag on it.</p>
-		{% elif blocked_dirty %}
+		{% if blocked_dirty %}
 		<p class="muted small">Blocked: the host working tree has uncommitted changes.</p>
 		{% endif %}
 	</form>
