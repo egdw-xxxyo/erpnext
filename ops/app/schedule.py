@@ -98,7 +98,7 @@ def write(
 	target_arg = f" {shlex.quote(target_id)}" if target_id else ""
 	line = (
 		f"{minute} {hour} * * {dow} cd {shlex.quote(repo_path)} && mkdir -p .ops-jobs && "
-		f"./deploy backup-scheduled{target_arg} >> .ops-jobs/cron-backup.log 2>&1 # {MARKER}"
+		f"flock -w 7200 .ops-jobs/.lock ./deploy backup-scheduled{target_arg} >> .ops-jobs/cron-backup.log 2>&1 # {MARKER}"
 	)
 	_apply(conn, line)
 

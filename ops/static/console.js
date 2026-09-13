@@ -42,6 +42,10 @@
 					state.offset = parseInt(event.lastEventId, 10) || state.offset;
 				}
 				out.textContent += event.data + "\n";
+				if (stateEl && stateEl.textContent !== "running") {
+					stateEl.textContent = "running";
+					stateEl.className = "pill ok";
+				}
 				if (!followEl || followEl.checked) {
 					out.scrollTop = out.scrollHeight;
 				}

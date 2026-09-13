@@ -66,16 +66,16 @@ COMMANDS: dict[str, Command] = {
 	"build": Command(
 		key="build",
 		label="Deploy (build)",
-		description="Rebuild the image and run the full deploy (./deploy build --silent).",
+		description="Rebuild the image and run the full deploy (./deploy build), streaming every step.",
 		# One job, one shell line: when the "safety backup" preference is on,
 		# a failed backup (disk full, etc.) short-circuits via && and the
 		# build never runs — a hard gate, in the same spirit as
 		# backup_space_guard already blocking backup itself. --no-files keeps
 		# it fast enough to run before every deploy, not just occasionally.
 		build=lambda _: (
-			"./deploy backup --no-files && ./deploy build --silent"
+			"./deploy backup --no-files && ./deploy build"
 			if prefs.get("pre_deploy_backup", True)
-			else "./deploy build --silent"
+			else "./deploy build"
 		),
 		destructive=True,
 	),

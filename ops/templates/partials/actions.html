@@ -5,8 +5,10 @@
 {% if running %}
 <div class="alert warn small">
 	A job is running ({{ running[0].label }}). Only one runs at a time —
-	<a href="#" hx-get="/jobs/{{ running[0].id }}" hx-target="#console-slot"
-	   hx-on::after-request="document.getElementById('console-host').hidden = false">open its console</a>.
+	<button type="button" class="link" hx-get="/jobs/{{ running[0].id }}"
+	        hx-vals='{"label": {{ running[0].label|tojson }}}' hx-target="#console-slot" hx-swap="innerHTML">
+		<i class="fa fa-terminal"></i> open its console
+	</button>
 </div>
 {% endif %}
 
