@@ -429,7 +429,7 @@ backup_push_files() {
       database.sql.gz | meta.json) required=1 ;;
       *) required=0 ;;
     esac
-    if ! dc exec -T backend curl -sS -f -k --ssl --netrc-file "$netrc" -T "$f" \
+    if ! dc exec -T backend curl -sS -f -k --ssl --ftp-create-dirs --netrc-file "$netrc" -T "$f" \
       "ftp://$rhost:$rport$rdir/$name-$suffix" </dev/null; then
       if [ "$required" = "1" ]; then
         echo "ERROR: upload of $name-$suffix failed."
@@ -458,7 +458,7 @@ entries.append(meta)
 entries.sort(key=lambda e: e.get(\"created_at\", \"\"))
 json.dump(entries, open(path, \"w\"))
 " "$TMP" "$NAME" "$BACKUP_DIR/$NAME-meta.json"
-    curl -sS -f -k --ssl --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
+    curl -sS -f -k --ssl --ftp-create-dirs --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
     RC=$?
     rm -f "$TMP"
     exit $RC

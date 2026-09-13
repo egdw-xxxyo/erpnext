@@ -225,3 +225,4 @@ pre.console {
 @media (max-width: 780px) {
 	.grid { grid-template-columns: 1fr; }
 }
+.busy-icon { margin-right: 6px; }

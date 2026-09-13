@@ -48,7 +48,6 @@ class Command:
 	destructive: bool = False
 	# Refuse to start when the working tree has uncommitted changes.
 	needs_clean_tree: bool = False
-	confirm_phrase: str | None = None
 
 	def render(self, raw: dict) -> tuple[str, dict]:
 		values = {}
@@ -94,7 +93,6 @@ COMMANDS: dict[str, Command] = {
 		build=lambda p: f"./deploy restore {p['name']} --yes",
 		params={"name": _backup_name},
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"backup-remove": Command(
 		key="backup-remove",
@@ -103,7 +101,6 @@ COMMANDS: dict[str, Command] = {
 		build=lambda p: f"./deploy backup-remove {p['name']}",
 		params={"name": _backup_name},
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"backup-clean": Command(
 		key="backup-clean",
@@ -111,7 +108,6 @@ COMMANDS: dict[str, Command] = {
 		description="Deletes every local backup except the most recent one.",
 		build=lambda _: "./deploy backup --prune-only --keep=1",
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"space-clean": Command(
 		key="space-clean",
@@ -134,7 +130,6 @@ COMMANDS: dict[str, Command] = {
 		),
 		build=lambda _: "./deploy space-hard-clean",
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"switch-branch": Command(
 		key="switch-branch",

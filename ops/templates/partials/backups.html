@@ -30,10 +30,15 @@
 	      hx-target="#console-slot"
 	      hx-swap="innerHTML"
 	      hx-on::after-request="document.getElementById('console-host').hidden = false">
-		<button type="submit" class="primary" {% if running %}disabled{% endif %}>Create local backup</button>
+		<button type="submit" class="primary" {% if running %}disabled{% endif %}>
+			{% if running and running[0].label == 'Backup' %}<i class="fa fa-spinner fa-spin busy-icon"></i>{% endif %}
+			Create local backup
+		</button>
 	</form>
 	<button class="danger small"
-	        hx-get="/actions/backup-clean/confirm"
+	        hx-post="/actions/backup-clean"
+	        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	        hx-confirm="Delete every local backup except the most recent one? This cannot be undone."
 	        hx-target="#console-slot"
 	        hx-swap="innerHTML"
 	        hx-on::after-request="document.getElementById('console-host').hidden = false"
@@ -74,15 +79,20 @@
 						Push…
 					</button>
 					<button type="button"
-					        hx-post="/actions/restore/{{ b.name }}/confirm"
+					        hx-post="/actions/restore"
+					        hx-vals='{"name": "{{ b.name }}"}'
 					        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+					        hx-confirm="Restore {{ b.name }} on {{ settings.env_label|upper }}? This destroys the current database{{ ' and files' if b.with_files else '' }} of {{ settings.site }} and replaces them with this backup. A safety backup is taken first."
 					        hx-target="#console-slot"
 					        hx-swap="innerHTML"
 					        hx-on::after-request="document.getElementById('console-host').hidden = false">
 						Restore…
 					</button>
 					<button type="button" class="danger-text"
-					        hx-get="/actions/backup-remove/{{ b.name }}/confirm"
+					        hx-post="/actions/backup-remove"
+					        hx-vals='{"name": "{{ b.name }}"}'
+					        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+					        hx-confirm="Permanently delete local backup {{ b.name }}? This cannot be undone."
 					        hx-target="#console-slot"
 					        hx-swap="innerHTML"
 					        hx-on::after-request="document.getElementById('console-host').hidden = false">

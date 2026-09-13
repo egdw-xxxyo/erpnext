@@ -19,6 +19,7 @@
 	      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
 	      hx-target="#console-slot"
 	      hx-swap="innerHTML"
+	      {% if cmd.destructive %}hx-confirm="{{ cmd.label }} on {{ settings.env_label|upper }}? {{ cmd.description }}"{% endif %}
 	      hx-on::after-request="document.getElementById('console-host').hidden = false">
 		<div class="action-head">
 			<b>{{ cmd.label }}</b>
@@ -40,10 +41,11 @@
 		{% set blocked_dirty = cmd.needs_clean_tree and git.dirty %}
 		<button type="submit" class="{{ 'danger' if cmd.destructive else 'primary' }}"
 		        {% if running or blocked_prod or blocked_dirty %}disabled{% endif %}>
+			{% if running and running[0].label == cmd.label %}<i class="fa fa-spinner fa-spin busy-icon"></i>{% endif %}
 			Run
 		</button>
 		{% if blocked_prod %}
-		<p class="muted small">Blocked: HEAD ({{ git.head }}) has no release tag.</p>
+		<p class="muted small">Blocked: HEAD {{ git.head }} is {{ git.describe }} — no release tag on it.</p>
 		{% elif blocked_dirty %}
 		<p class="muted small">Blocked: the host working tree has uncommitted changes.</p>
 		{% endif %}
