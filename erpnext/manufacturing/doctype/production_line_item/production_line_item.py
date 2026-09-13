@@ -1,8 +1,7 @@
-import frappe
 from frappe.model.document import Document
 
 
-class SpoolProductionPlanItem(Document):
+class ProductionLineItem(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:

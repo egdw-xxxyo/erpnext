@@ -1,15 +1,19 @@
 {
  "actions": [],
- "creation": "2026-09-12 00:00:00.000000",
- "description": "Keeps the spool line supplied with Work Orders so nobody has to size one by hand each morning",
+ "autoname": "field:line_name",
+ "creation": "2026-09-13 00:00:00.000000",
+ "description": "A continuously running line that is kept supplied with Work Orders, so nobody has to size one by hand each morning",
  "doctype": "DocType",
  "editable_grid": 0,
  "engine": "InnoDB",
  "field_order": [
-  "enabled",
+  "line_name",
+  "line_type",
   "column_break_main",
+  "enabled",
   "company",
   "warehouse_section",
+  "source_warehouse",
   "wip_warehouse",
   "column_break_warehouse",
   "fg_warehouse",
@@ -27,15 +31,34 @@
  ],
  "fields": [
   {
-   "default": "0",
-   "description": "While off, no Work Order is created automatically and the app cannot hand out spools.",
-   "fieldname": "enabled",
-   "fieldtype": "Check",
-   "label": "Enabled"
+   "fieldname": "line_name",
+   "fieldtype": "Data",
+   "label": "Line Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Spool",
+   "description": "What the line makes. Decides which client and which finishing steps apply to it.",
+   "fieldname": "line_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Line Type",
+   "options": "Spool",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_main",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "While off, no Work Order is created automatically and the app cannot hand out units from this line.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
   },
   {
    "fieldname": "company",
@@ -47,6 +70,13 @@
    "fieldname": "warehouse_section",
    "fieldtype": "Section Break",
    "label": "Warehouses"
+  },
+  {
+   "description": "Where raw materials are taken from. Fills only the BOM rows that name no warehouse of their own.",
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Raw Material Warehouse",
+   "options": "Warehouse"
   },
   {
    "fieldname": "wip_warehouse",
@@ -73,7 +103,7 @@
    "fieldname": "plan",
    "fieldtype": "Table",
    "label": "Plan",
-   "options": "Spool Production Plan Item"
+   "options": "Production Line Item"
   },
   {
    "fieldname": "overflow_section",
@@ -82,7 +112,7 @@
   },
   {
    "default": "5",
-   "description": "How many spools an overflow Work Order covers when the day's plan runs out mid-shift. Small is safer: unused spools are wasted serial numbers.",
+   "description": "How many units an overflow Work Order covers when the day's plan runs out mid-shift. Small is safer: unused units are wasted serial numbers.",
    "fieldname": "overflow_qty",
    "fieldtype": "Int",
    "label": "Overflow Qty"
@@ -94,7 +124,7 @@
   },
   {
    "default": "1",
-   "description": "Stop yesterday's Work Orders and cancel the Job Cards nobody used, so today's app does not hand out a stale spool.",
+   "description": "Stop earlier days' Work Orders and delete the Job Cards nobody took, so today's app does not hand out a stale unit.",
    "fieldname": "cleanup_enabled",
    "fieldtype": "Check",
    "label": "Close Stale Work Orders"
@@ -105,12 +135,13 @@
   },
   {
    "default": "0",
-   "description": "Also delete the Serial Nos that were never wound. Off by default: deleting a serial is irreversible, and leaving it costs only a gap in the numbering.",
+   "description": "Also delete the Serial Nos that were never produced. Off by default: deleting a serial is irreversible, and leaving it costs only a gap in the numbering.",
    "fieldname": "delete_unused_serials",
    "fieldtype": "Check",
    "label": "Delete Unused Serial Nos"
   },
   {
+   "collapsible": 1,
    "fieldname": "status_section",
    "fieldtype": "Section Break",
    "label": "Last Run"
@@ -119,41 +150,47 @@
    "fieldname": "last_run_on",
    "fieldtype": "Datetime",
    "label": "Last Run On",
+   "no_copy": 1,
    "read_only": 1
   },
   {
    "fieldname": "last_result",
    "fieldtype": "Small Text",
    "label": "Last Result",
+   "no_copy": 1,
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
- "issingle": 1,
  "links": [],
- "modified": "2026-09-12 00:00:00.000000",
+ "modified": "2026-09-13 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
- "name": "Spool Production Settings",
+ "name": "Production Line",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
    "create": 1,
    "delete": 1,
    "email": 1,
+   "export": 1,
    "print": 1,
    "read": 1,
+   "report": 1,
    "role": "Manufacturing Manager",
    "share": 1,
    "write": 1
   },
   {
    "read": 1,
+   "report": 1,
    "role": "Manufacturing User"
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "title_field": "line_name",
  "track_changes": 1
 }

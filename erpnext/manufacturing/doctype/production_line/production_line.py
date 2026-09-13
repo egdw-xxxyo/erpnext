@@ -1,0 +1,549 @@
+"""Keep a continuously running line supplied with Work Orders.
+
+A Work Order for a serialised item mints its Serial Nos and one Job Card per unit at submit,
+and neither can be topped up afterwards: `Work Order.qty` is not `allow_on_submit`, and
+`_create_job_cards_per_serial` only runs once. So a fixed daily Work Order has two bad days —
+the one where the line runs out mid-shift and stops, and the one where it does not and leaves
+unused serials behind.
+
+Each `Production Line` removes both for the items on its plan:
+
+* `ensure_daily_work_orders` opens the day's Work Orders. It is idempotent per item per day,
+  so it can run hourly and heal a missed scheduler tick.
+* `next_unit` hands the operator the next free Job Card. When none is left it creates an
+  overflow Work Order on the spot, so running out is invisible to the bench.
+* `finish_unit` closes the unit's Job Card and posts its Manufacture entry for exactly that
+  serial, so a finished unit reaches the finished-goods warehouse without desk work.
+* `close_stale_work_orders` stops earlier days' leftovers overnight, so the app cannot hand
+  out a unit from a Work Order nobody is working on any more.
+
+Nothing here knows what the line makes. `Line Type` is what a client asks for — the spool
+app calls `erpnext.manufacturing.spool_production`, which passes "Spool" — so a second kind
+of line reuses this engine and only adds its own client endpoints.
+"""
+
+import json
+
+import frappe
+from frappe import _
+from frappe.model.document import Document
+from frappe.utils import cint, flt, get_datetime, now_datetime, today
+
+# A card is only "free" while it is Open. Handing one out moves it to Work In Progress, so
+# two operators at the same bench cannot be given the same unit.
+FREE_JOB_CARD_STATUS = "Open"
+CLAIMED_JOB_CARD_STATUS = "Work In Progress"
+LIVE_WORK_ORDER_STATUSES = ("Not Started", "In Process")
+
+
+class ProductionLine(Document):
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from erpnext.manufacturing.doctype.production_line_item.production_line_item import (
+			ProductionLineItem,
+		)
+
+		cleanup_enabled: DF.Check
+		company: DF.Link | None
+		delete_unused_serials: DF.Check
+		enabled: DF.Check
+		fg_warehouse: DF.Link | None
+		last_result: DF.SmallText | None
+		last_run_on: DF.Datetime | None
+		line_name: DF.Data
+		line_type: DF.Literal["Spool"]
+		overflow_qty: DF.Int
+		plan: DF.Table[ProductionLineItem]
+		source_warehouse: DF.Link | None
+		wip_warehouse: DF.Link | None
+
+	def validate(self):
+		for row in self.plan:
+			if row.daily_qty < 0:
+				frappe.throw(_("Daily Qty cannot be negative (row {0})").format(row.idx))
+
+		if self.enabled:
+			self._validate_items_not_on_other_lines()
+
+	def _validate_items_not_on_other_lines(self):
+		"""An item at a workplace belongs to one line.
+
+		Work Orders carry no link back to their line, so the daily check and the overflow both
+		find a line's Work Orders by item. Two lines planning the same item at the same bench
+		would each count the other's Work Order as their own.
+		"""
+		for row in self.plan:
+			if not row.enabled:
+				continue
+			other = frappe.db.sql(
+				"""
+				select line.name
+				from `tabProduction Line` line
+				join `tabProduction Line Item` item on item.parent = line.name
+					and item.parenttype = 'Production Line'
+				where line.enabled = 1 and item.enabled = 1 and line.name != %s
+					and item.item_code = %s and ifnull(item.workplace, '') = %s
+				limit 1
+				""",
+				(self.name or "", row.item_code, row.workplace or ""),
+			)
+			if other:
+				frappe.throw(
+					_("Row {0}: item {1} at workplace {2} is already planned on production line {3}").format(
+						row.idx, row.item_code, row.workplace or "-", other[0][0]
+					)
+				)
+
+
+def _enabled_lines(line_type=None):
+	filters = {"enabled": 1}
+	if line_type:
+		filters["line_type"] = line_type
+	return [
+		frappe.get_cached_doc("Production Line", name)
+		for name in frappe.get_all("Production Line", filters=filters, pluck="name")
+	]
+
+
+def _plan_rows(line, workplace=None, item_code=None):
+	rows = []
+	for row in line.plan:
+		if not row.enabled:
+			continue
+		if workplace and row.workplace and row.workplace != workplace:
+			continue
+		if item_code and row.item_code != item_code:
+			continue
+		rows.append(row)
+	return rows
+
+
+def _line_for(line_type, item_code, workplace=None):
+	for line in _enabled_lines(line_type):
+		if _plan_rows(line, workplace=workplace, item_code=item_code):
+			return line
+	frappe.throw(_("No enabled production line of type {0} plans item {1}").format(_(line_type), item_code))
+
+
+def _workstations(workplace):
+	"""The stations this bench covers, from `Workplace.allowed_operations`."""
+	if not workplace:
+		return []
+	rows = frappe.get_all(
+		"Workplace Operation",
+		filters={"parent": workplace, "parenttype": "Workplace"},
+		fields=["workstation"],
+	)
+	return [r.workstation for r in rows if r.workstation]
+
+
+def _free_job_cards(item_code, workplace=None, limit=20):
+	"""Open Job Cards holding a unit nobody has started on yet."""
+	filters = {
+		"docstatus": 0,
+		"status": FREE_JOB_CARD_STATUS,
+		"production_item": item_code,
+		"quality_inspection": ["is", "not set"],
+		"serial_no": ["is", "set"],
+	}
+	workstations = _workstations(workplace)
+	if workstations:
+		filters["workstation"] = ["in", workstations]
+
+	return frappe.get_all(
+		"Job Card",
+		filters=filters,
+		fields=["name", "serial_no", "work_order", "workstation", "operation"],
+		order_by="creation asc",
+		limit=limit,
+	)
+
+
+def _create_work_order(line, item_code, qty, reason="plan"):
+	"""Submit a Work Order, which is what mints the serials and the per-unit Job Cards."""
+	qty = cint(qty)
+	if qty <= 0:
+		return None
+
+	bom_no = frappe.db.get_value("Item", item_code, "default_bom")
+	if not bom_no:
+		frappe.throw(_("Item {0} has no default BOM, cannot open a Work Order").format(item_code))
+
+	wo = frappe.get_doc(
+		{
+			"doctype": "Work Order",
+			"production_item": item_code,
+			"bom_no": bom_no,
+			"qty": qty,
+			"company": line.company or frappe.defaults.get_defaults().get("company"),
+			# `Work Order.set_warehouses` copies this only onto rows the BOM left blank, so a row
+			# that names its own warehouse keeps it.
+			"source_warehouse": line.source_warehouse,
+			"wip_warehouse": line.wip_warehouse,
+			"fg_warehouse": line.fg_warehouse,
+			"description": f"{line.name} ({reason})",
+		}
+	)
+	# Operations are pulled by a whitelisted method the desk form calls on BOM select; without
+	# it a programmatic Work Order submits with no operations and therefore no Job Cards.
+	wo.get_items_and_operations_from_bom()
+	wo.flags.ignore_permissions = True
+	wo.insert()
+	wo.submit()
+	_clear_planned_slots(wo.name)
+	return wo
+
+
+def _clear_planned_slots(work_order):
+	"""Drop the capacity-planning slots ERPNext booked for this Work Order's Job Cards.
+
+	With capacity planning on, every per-serial card gets its own slot, laid end to end on
+	the workstation. The line does not follow that schedule — an operator takes whichever
+	unit is next — and `JobCard.get_overlap_for` counts those slots, so the first real time
+	log on any card collides with another card's imaginary one and the card cannot be closed.
+	"""
+	cards = frappe.get_all("Job Card", filters={"work_order": work_order, "docstatus": 0}, pluck="name")
+	if cards:
+		frappe.db.delete("Job Card Scheduled Time", {"parent": ["in", cards]})
+
+
+def _record_run(line, lines):
+	frappe.db.set_value(
+		"Production Line",
+		line.name,
+		{"last_run_on": now_datetime(), "last_result": "\n".join(lines) or "nothing to do"},
+		update_modified=False,
+	)
+
+
+def ensure_daily_work_orders():
+	"""Open today's Work Orders on every enabled line. Safe to run repeatedly."""
+	for line in _enabled_lines():
+		created, skipped, failed = [], [], []
+
+		for row in _plan_rows(line):
+			if row.daily_qty <= 0:
+				continue
+
+			already = frappe.db.exists(
+				"Work Order",
+				{"production_item": row.item_code, "docstatus": 1, "creation": [">=", today()]},
+			)
+			if already:
+				skipped.append(f"{row.item_code}: {already}")
+				continue
+
+			try:
+				wo = _create_work_order(line, row.item_code, row.daily_qty)
+				created.append(f"{row.item_code}: {wo.name} x{row.daily_qty}")
+			except Exception as e:
+				frappe.db.rollback()
+				failed.append(f"{row.item_code}: {e}")
+				frappe.log_error(
+					title=f"Production line {line.name}: daily Work Order failed",
+					message=f"{row.item_code}\n{frappe.get_traceback()}",
+				)
+
+		lines = []
+		if created:
+			lines.append("created: " + "; ".join(created))
+		if skipped:
+			lines.append("already open: " + "; ".join(skipped))
+		if failed:
+			lines.append("failed: " + "; ".join(failed))
+		_record_run(line, lines)
+		frappe.db.commit()
+
+
+def get_plan(line_type, workplace=None):
+	"""What this bench is supposed to make today, and how much of it is left."""
+	items = []
+	for line in _enabled_lines(line_type):
+		for row in _plan_rows(line, workplace=workplace):
+			free = _free_job_cards(row.item_code, workplace=row.workplace or workplace, limit=100)
+			items.append(
+				{
+					"production_line": line.name,
+					"item_code": row.item_code,
+					"item_name": frappe.db.get_value("Item", row.item_code, "item_name"),
+					"workplace": row.workplace,
+					"daily_qty": row.daily_qty,
+					"overflow_qty": line.overflow_qty,
+					"remaining": len(free),
+				}
+			)
+
+	return {"enabled": bool(items), "items": items}
+
+
+def next_unit(line_type, workplace=None, item_code=None):
+	"""Hand the operator the next unit, opening an overflow Work Order if needed."""
+	if not item_code:
+		frappe.throw(_("Item is required"))
+
+	line = _line_for(line_type, item_code, workplace=workplace)
+
+	free = _free_job_cards(item_code, workplace=workplace, limit=1)
+	overflow = None
+
+	if not free:
+		overflow = _create_work_order(line, item_code, line.overflow_qty or 1, reason="overflow")
+		free = _free_job_cards(item_code, workplace=workplace, limit=1)
+		if not free:
+			# The Work Order submitted but produced no usable card — a BOM without operations,
+			# or an item that is not serialised. Say so rather than looping.
+			frappe.throw(
+				_("Work Order {0} produced no Job Card for {1}. Check the BOM operations.").format(
+					overflow.name if overflow else "?", item_code
+				)
+			)
+
+	card = free[0]
+	serial_no = (card.serial_no or "").splitlines()[0].strip()
+	# The claim time becomes the start of the time log `finish_unit` writes.
+	frappe.db.set_value(
+		"Job Card",
+		card.name,
+		{"status": CLAIMED_JOB_CARD_STATUS, "actual_start_date": now_datetime()},
+	)
+	frappe.db.commit()
+
+	return {
+		"production_line": line.name,
+		"serial_no": serial_no,
+		"job_card": card.name,
+		"work_order": card.work_order,
+		"workstation": card.workstation,
+		"operation": card.operation,
+		"item_code": item_code,
+		"overflow_work_order": overflow.name if overflow else None,
+		"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
+	}
+
+
+def release_unit(job_card):
+	"""Put an untouched unit back in the pool — the operator took it and walked away."""
+	if not job_card:
+		frappe.throw(_("Job Card is required"))
+
+	card = frappe.db.get_value(
+		"Job Card", job_card, ["status", "docstatus", "quality_inspection"], as_dict=True
+	)
+	if not card or card.docstatus != 0 or card.quality_inspection:
+		return {"released": False}
+
+	frappe.db.set_value("Job Card", job_card, "status", FREE_JOB_CARD_STATUS)
+	frappe.db.commit()
+	return {"released": True}
+
+
+def _inspection_required(card):
+	"""Mirrors `JobCard.validate_inspection`: both the BOM and the operation must ask for it."""
+	return bool(
+		frappe.db.get_value("BOM", card.bom_no, "inspection_required")
+		and frappe.db.get_value("Work Order Operation", card.operation_id, "quality_inspection_required")
+	)
+
+
+def finish_unit(job_card):
+	"""Close a unit's Job Card and put the unit into stock.
+
+	A rejected unit is not closed — `JobCard.validate_inspection` would refuse anyway — and
+	stays on its card for whoever decides what happens to it. The caller is told, so it can
+	clear the bench either way. All writes share the request's transaction: if the
+	Manufacture entry fails, the Job Card submit is rolled back with it.
+	"""
+	if not job_card:
+		frappe.throw(_("Job Card is required"))
+
+	card = frappe.get_doc("Job Card", job_card)
+	serial_no = (card.serial_no or "").splitlines()[0].strip() if card.serial_no else None
+	result = {"job_card": card.name, "serial_no": serial_no, "work_order": card.work_order}
+
+	verdict = None
+	if card.quality_inspection:
+		qi_status, qi_docstatus = frappe.db.get_value(
+			"Quality Inspection", card.quality_inspection, ["status", "docstatus"]
+		)
+		if qi_docstatus != 1:
+			frappe.throw(_("Quality Inspection {0} is not submitted").format(card.quality_inspection))
+		if qi_status == "Rejected":
+			return {**result, "finished": False, "verdict": "Fail"}
+		verdict = "Pass"
+	elif _inspection_required(card):
+		frappe.throw(_("{0} has not passed quality inspection yet").format(serial_no or card.name))
+
+	if card.docstatus == 0:
+		_complete_job_card(card)
+
+	stock_entry = card.auto_stock_entry
+	if not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
+		stock_entry = _post_manufacture(card, serial_no)
+
+	frappe.db.commit()
+	return {
+		**result,
+		"finished": True,
+		"verdict": verdict,
+		"stock_entry": stock_entry,
+		"warehouse": frappe.db.get_value("Serial No", serial_no, "warehouse") if serial_no else None,
+	}
+
+
+def _complete_job_card(card):
+	"""One time log from the claim to now for the whole card, then submit."""
+	from erpnext.manufacturing.doctype.job_card.job_card import OverlapError
+
+	now = now_datetime()
+	start = get_datetime(card.actual_start_date) if card.actual_start_date else now
+	if start > now:
+		start = now
+
+	card.append("time_logs", {"from_time": start, "to_time": now, "completed_qty": card.for_quantity})
+	card.flags.ignore_permissions = True
+	try:
+		card.save()
+	except OverlapError:
+		# Every card of a Work Order is created on the BOM's workstation, while operators
+		# actually work on several machines at once — so two real jobs can overlap on paper.
+		# The inspection, not the timesheet, is what gates the unit; keep the finish time and
+		# drop the duration rather than strand a finished unit.
+		card.reload()
+		card.append("time_logs", {"from_time": now, "to_time": now, "completed_qty": card.for_quantity})
+		card.flags.ignore_permissions = True
+		card.save()
+	card.submit()
+
+
+def _post_manufacture(card, serial_no):
+	"""Manufacture exactly this unit's serial, carrying its inspection onto the entry."""
+	from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
+
+	wo = frappe.get_doc("Work Order", card.work_order)
+	qty = flt(card.for_quantity) or 1
+
+	# Materials normally go to WIP in the morning for the whole Work Order. If that was
+	# skipped, move just this unit's share rather than refuse to finish it.
+	if not wo.skip_transfer:
+		short = flt(wo.produced_qty) + qty - flt(wo.material_transferred_for_manufacturing)
+		if short > 0:
+			transfer = frappe.get_doc(
+				make_stock_entry(wo.name, "Material Transfer for Manufacture", qty=short)
+			)
+			transfer.flags.ignore_permissions = True
+			transfer.insert()
+			transfer.submit()
+
+	se = frappe.get_doc(
+		make_stock_entry(
+			wo.name,
+			"Manufacture",
+			qty=qty,
+			serial_nos=json.dumps([serial_no]) if serial_no else None,
+		)
+	)
+	# Stock Entry demands an inspection on the finished row when the item requires one;
+	# `make_stock_entry` leaves it empty.
+	if card.quality_inspection:
+		for row in se.items:
+			if row.is_finished_item and row.item_code == wo.production_item:
+				row.quality_inspection = card.quality_inspection
+	se.flags.ignore_permissions = True
+	se.insert()
+	se.submit()
+
+	# `auto_stock_entry` is what `JobCard.on_cancel` cancels, so undoing the card undoes this.
+	card.db_set("auto_stock_entry", se.name)
+	return se.name
+
+
+def close_stale_work_orders():
+	"""Stop Work Orders left over from earlier days so no stale unit is handed out.
+
+	Serial Nos are kept unless the line asks otherwise: a gap in the numbering is cheap, and
+	a nightly job that deletes records is the kind of thing that eventually deletes a real one.
+	"""
+	for line in _enabled_lines():
+		if not line.cleanup_enabled:
+			continue
+
+		items = [row.item_code for row in _plan_rows(line)]
+		if not items:
+			continue
+
+		work_orders = frappe.get_all(
+			"Work Order",
+			filters={
+				"production_item": ["in", items],
+				"docstatus": 1,
+				"status": ["in", LIVE_WORK_ORDER_STATUSES],
+				"creation": ["<", today()],
+			},
+			pluck="name",
+		)
+
+		stopped, held = [], []
+		for name in work_orders:
+			# Only cards nobody ever took. A card in Work In Progress was handed to an operator,
+			# and deleting it would strand its unit: the serial exists but no card can be issued
+			# for it again.
+			untouched = frappe.get_all(
+				"Job Card",
+				filters={
+					"work_order": name,
+					"docstatus": 0,
+					"status": FREE_JOB_CARD_STATUS,
+					"quality_inspection": ["is", "not set"],
+				},
+				pluck="name",
+			)
+			for card in untouched:
+				frappe.delete_doc("Job Card", card, force=1, ignore_permissions=True)
+
+			in_progress = frappe.db.count(
+				"Job Card",
+				{
+					"work_order": name,
+					"docstatus": 0,
+					"status": CLAIMED_JOB_CARD_STATUS,
+					"quality_inspection": ["is", "not set"],
+				},
+			)
+			if in_progress:
+				# Someone is still on it, or walked away from it. Either way stopping the Work
+				# Order would block them from closing the card, so leave it and report.
+				held.append(f"{name} ({in_progress} in progress)")
+				continue
+
+			if line.delete_unused_serials:
+				_delete_unused_serials(name)
+
+			wo = frappe.get_doc("Work Order", name)
+			wo.flags.ignore_permissions = True
+			wo.update_status("Stopped")
+			stopped.append(f"{name} ({len(untouched)} cards)")
+
+		lines = []
+		if stopped:
+			lines.append("stopped: " + "; ".join(stopped))
+		if held:
+			lines.append("left open: " + "; ".join(held))
+		if lines:
+			_record_run(line, lines)
+		frappe.db.commit()
+
+
+def _delete_unused_serials(work_order):
+	"""Serials this Work Order minted that never carried stock."""
+	serials = frappe.get_all(
+		"Serial No",
+		filters={"work_order": work_order, "status": ["!=", "Active"], "warehouse": ["is", "not set"]},
+		pluck="name",
+	)
+	for name in serials:
+		if frappe.db.exists("Stock Ledger Entry", {"serial_no": name}):
+			continue
+		frappe.delete_doc("Serial No", name, force=1, ignore_permissions=True)
