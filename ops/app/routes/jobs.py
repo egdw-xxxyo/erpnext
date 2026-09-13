@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
 from .. import jobs as jobs_mod
+from .. import stats
 from ..config import settings
 from ..deps import SessionDep
 from ..sessions import Session
@@ -19,15 +20,25 @@ router = APIRouter(prefix="/jobs")
 HEARTBEAT_SECONDS = 15
 
 
+@router.get("/latest", response_class=HTMLResponse)
+async def latest_job_console(request: Request, session: SessionDep):
+	data = await stats.cache.get(session.conn)
+	rows = data.get("jobs") or []
+	job = next((j for j in rows if j.get("state") == "running"), rows[0] if rows else None)
+	if job is None:
+		return HTMLResponse('<p class="muted">No jobs yet. Run an action to see its output here.</p>')
+	return await job_console(job["id"], request, session, label=job.get("label"))
+
+
 @router.get("/{job_id}", response_class=HTMLResponse)
-async def job_console(job_id: str, request: Request, session: SessionDep):
+async def job_console(job_id: str, request: Request, session: SessionDep, label: str | None = None):
 	if not job_id.isalnum():
 		raise HTTPException(status_code=400, detail="bad job id")
 	state = await asyncio.to_thread(jobs_mod.status, session.conn, job_id)
 	return templates.TemplateResponse(
 		request,
 		"partials/job_console.html",
-		{"settings": settings, "session": session, "job_id": job_id, "state": state},
+		{"settings": settings, "session": session, "job_id": job_id, "state": state, "label": label},
 	)
 
 

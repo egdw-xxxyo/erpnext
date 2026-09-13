@@ -14,8 +14,8 @@
 			</span>
 		</td>
 		<td>
-			<button class="link small" hx-get="/jobs/{{ j.id }}" hx-target="#console-slot" hx-swap="innerHTML"
-			        hx-on::after-request="document.getElementById('console-host').hidden = false">log</button>
+			<button class="link small" hx-get="/jobs/{{ j.id }}" hx-vals='{"label": {{ (j.label or j.action or "")|tojson }}}'
+			        hx-target="#console-slot" hx-swap="innerHTML">log</button>
 		</td>
 	</tr>
 	{% endfor %}

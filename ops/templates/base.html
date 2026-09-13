@@ -40,12 +40,16 @@
 
 	<main>
 		{% block content %}{% endblock %}
-
-		<section class="card wide" id="console-host" hidden>
-			<h2>Console</h2>
-			<div id="console-slot"></div>
-		</section>
 	</main>
+
+	{% if session %}
+	<aside class="console-pane" id="console-host">
+		<h2>Console</h2>
+		<div id="console-slot" hx-get="/jobs/latest" hx-trigger="load" hx-swap="innerHTML">
+			<p class="muted">loading…</p>
+		</div>
+	</aside>
+	{% endif %}
 </div>
 
 <dialog id="modal" class="modal"><div id="modal-body"></div></dialog>
