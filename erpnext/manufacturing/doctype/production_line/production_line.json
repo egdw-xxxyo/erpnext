@@ -18,16 +18,21 @@
   "column_break_warehouse",
   "fg_warehouse",
   "plan_section",
+  "plan_time",
   "plan",
   "overflow_section",
   "overflow_qty",
   "cleanup_section",
   "cleanup_enabled",
+  "cleanup_time",
   "column_break_cleanup",
   "delete_unused_serials",
   "status_section",
   "last_run_on",
-  "last_result"
+  "last_result",
+  "column_break_status",
+  "last_cleanup_on",
+  "last_cleanup_result"
  ],
  "fields": [
   {
@@ -100,6 +105,14 @@
    "label": "Daily Plan"
   },
   {
+   "default": "07:00:00",
+   "description": "When the day's Work Orders are opened. Until then the app hands out only what is left from earlier Work Orders, or opens an overflow one.",
+   "fieldname": "plan_time",
+   "fieldtype": "Time",
+   "label": "Plan At",
+   "reqd": 1
+  },
+  {
    "fieldname": "plan",
    "fieldtype": "Table",
    "label": "Plan",
@@ -124,10 +137,19 @@
   },
   {
    "default": "1",
-   "description": "Stop earlier days' Work Orders and delete the Job Cards nobody took, so today's app does not hand out a stale unit.",
+   "description": "Close the day at the time below: delete the Job Cards nobody took and stop the day's Work Orders, so the app does not hand out a stale unit tomorrow.",
    "fieldname": "cleanup_enabled",
    "fieldtype": "Check",
    "label": "Close Stale Work Orders"
+  },
+  {
+   "default": "21:00:00",
+   "depends_on": "cleanup_enabled",
+   "description": "When the day is closed: Job Cards nobody took are deleted and the Work Orders opened before this moment are stopped. Must be later than the plan time.",
+   "fieldname": "cleanup_time",
+   "fieldtype": "Time",
+   "label": "Close Day At",
+   "mandatory_depends_on": "cleanup_enabled"
   },
   {
    "fieldname": "column_break_cleanup",
@@ -159,11 +181,29 @@
    "label": "Last Result",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_cleanup_on",
+   "fieldtype": "Datetime",
+   "label": "Day Last Closed On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_cleanup_result",
+   "fieldtype": "Small Text",
+   "label": "Day Close Result",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-13 00:00:00.000000",
+ "modified": "2026-09-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Line",

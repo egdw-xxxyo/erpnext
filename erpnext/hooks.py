@@ -625,15 +625,14 @@ scheduler_events = {
 		],
 		# Daily but offset by 45 minutes
 		"45 0 * * *": [],
-		# Late evening: stop the production-line Work Orders nobody finished today
-		"0 21 * * *": [
-			"erpnext.manufacturing.doctype.production_line.production_line.close_stale_work_orders",
+		# Each Production Line sets its own plan and close-of-day times; the tick only checks
+		# whether one of them has come round, so its interval is the timing precision.
+		"*/15 * * * *": [
+			"erpnext.manufacturing.doctype.production_line.production_line.run_schedule",
 		],
 	},
 	"hourly": [
 		"erpnext.projects.doctype.project.project.hourly_reminder",
-		# Idempotent per item per day, so an hourly tick also heals a missed scheduler run
-		"erpnext.manufacturing.doctype.production_line.production_line.ensure_daily_work_orders",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
 	],

@@ -47,16 +47,20 @@ class ProductionLine(Document):
 		)
 
 		cleanup_enabled: DF.Check
+		cleanup_time: DF.Time | None
 		company: DF.Link | None
 		delete_unused_serials: DF.Check
 		enabled: DF.Check
 		fg_warehouse: DF.Link | None
+		last_cleanup_on: DF.Datetime | None
+		last_cleanup_result: DF.SmallText | None
 		last_result: DF.SmallText | None
 		last_run_on: DF.Datetime | None
 		line_name: DF.Data
 		line_type: DF.Literal["Spool"]
 		overflow_qty: DF.Int
 		plan: DF.Table[ProductionLineItem]
+		plan_time: DF.Time
 		source_warehouse: DF.Link | None
 		wip_warehouse: DF.Link | None
 
@@ -64,6 +68,17 @@ class ProductionLine(Document):
 		for row in self.plan:
 			if row.daily_qty < 0:
 				frappe.throw(_("Daily Qty cannot be negative (row {0})").format(row.idx))
+
+		# Both times fall on the same calendar day: closing the day stops every Work Order
+		# opened before it, so a close that came before the plan would stop the day's own
+		# Work Orders the moment they were opened.
+		if (
+			self.cleanup_enabled
+			and self.plan_time
+			and self.cleanup_time
+			and _moment(self.cleanup_time) <= _moment(self.plan_time)
+		):
+			frappe.throw(_("Close Day At must be later than Plan At"))
 
 		if self.enabled:
 			self._validate_items_not_on_other_lines()
@@ -210,18 +225,41 @@ def _clear_planned_slots(work_order):
 		frappe.db.delete("Job Card Scheduled Time", {"parent": ["in", cards]})
 
 
-def _record_run(line, lines):
-	frappe.db.set_value(
-		"Production Line",
-		line.name,
-		{"last_run_on": now_datetime(), "last_result": "\n".join(lines) or "nothing to do"},
-		update_modified=False,
-	)
+def _moment(time_value, day=None):
+	"""A line's time-of-day on `day` (today by default), as a datetime."""
+	return get_datetime(f"{day or today()} {time_value}")
 
 
-def ensure_daily_work_orders():
-	"""Open today's Work Orders on every enabled line. Safe to run repeatedly."""
+def _due(time_value, last_done_on, now):
+	"""Whether a once-a-day job at `time_value` should run at `now`.
+
+	Due once the time has come round today and it has not already run since that moment.
+	A missed tick therefore heals on the next one, and a restart does not repeat the job.
+	"""
+	if not time_value:
+		return False
+	moment = _moment(time_value, now.date())
+	return now >= moment and (not last_done_on or get_datetime(last_done_on) < moment)
+
+
+def run_schedule():
+	"""Scheduler tick: open or close the day on every line whose time has come."""
+	now = now_datetime()
 	for line in _enabled_lines():
+		if _due(line.plan_time, line.last_run_on, now):
+			ensure_daily_work_orders(line=line.name)
+		if line.cleanup_enabled and _due(line.cleanup_time, line.last_cleanup_on, now):
+			close_stale_work_orders(line=line.name)
+
+
+def ensure_daily_work_orders(line=None):
+	"""Open today's Work Orders. Safe to run repeatedly — one per item per day.
+
+	Runs for one line when named, otherwise for every enabled line regardless of its plan
+	time — the unconditional form is for a manager starting the day by hand.
+	"""
+	lines_to_run = [frappe.get_doc("Production Line", line)] if line else _enabled_lines()
+	for line in lines_to_run:
 		created, skipped, failed = [], [], []
 
 		for row in _plan_rows(line):
@@ -254,7 +292,13 @@ def ensure_daily_work_orders():
 			lines.append("already open: " + "; ".join(skipped))
 		if failed:
 			lines.append("failed: " + "; ".join(failed))
-		_record_run(line, lines)
+
+		stamp = {"last_result": "\n".join(lines) or "nothing to do"}
+		# A failed item keeps the day unplanned, so the next tick tries again instead of the
+		# line waiting until tomorrow.
+		if not failed:
+			stamp["last_run_on"] = now_datetime()
+		frappe.db.set_value("Production Line", line.name, stamp, update_modified=False)
 		frappe.db.commit()
 
 
@@ -460,18 +504,26 @@ def _post_manufacture(card, serial_no):
 	return se.name
 
 
-def close_stale_work_orders():
-	"""Stop Work Orders left over from earlier days so no stale unit is handed out.
+def close_stale_work_orders(line=None):
+	"""Close the day: stop the Work Orders opened before now so no stale unit is handed out.
 
 	Serial Nos are kept unless the line asks otherwise: a gap in the numbering is cheap, and
 	a nightly job that deletes records is the kind of thing that eventually deletes a real one.
 	"""
-	for line in _enabled_lines():
+	cutoff = now_datetime()
+	lines_to_run = [frappe.get_doc("Production Line", line)] if line else _enabled_lines()
+	for line in lines_to_run:
 		if not line.cleanup_enabled:
 			continue
 
 		items = [row.item_code for row in _plan_rows(line)]
 		if not items:
+			frappe.db.set_value(
+				"Production Line",
+				line.name,
+				{"last_cleanup_on": cutoff, "last_cleanup_result": "nothing to do"},
+				update_modified=False,
+			)
 			continue
 
 		work_orders = frappe.get_all(
@@ -480,7 +532,7 @@ def close_stale_work_orders():
 				"production_item": ["in", items],
 				"docstatus": 1,
 				"status": ["in", LIVE_WORK_ORDER_STATUSES],
-				"creation": ["<", today()],
+				"creation": ["<", cutoff],
 			},
 			pluck="name",
 		)
@@ -531,8 +583,12 @@ def close_stale_work_orders():
 			lines.append("stopped: " + "; ".join(stopped))
 		if held:
 			lines.append("left open: " + "; ".join(held))
-		if lines:
-			_record_run(line, lines)
+		frappe.db.set_value(
+			"Production Line",
+			line.name,
+			{"last_cleanup_on": cutoff, "last_cleanup_result": "\n".join(lines) or "nothing to do"},
+			update_modified=False,
+		)
 		frappe.db.commit()
 
 
