@@ -75,6 +75,9 @@ main { flex: 1; min-width: 0; padding: 18px; }
 	position: sticky; top: 49px;
 	display: flex; flex-direction: column;
 	flex: 0 0 clamp(380px, 40vw, 860px);
+	width: clamp(380px, 40vw, 860px);
+	min-width: 0;
+	overflow: hidden;
 	height: calc(100vh - 49px);
 	padding: 18px;
 	border-left: 1px solid var(--line);
@@ -82,7 +85,7 @@ main { flex: 1; min-width: 0; padding: 18px; }
 }
 #console-slot { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
 #console-slot > .console-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-#console-slot > .console-wrap pre.console { flex: 1; height: auto; }
+#console-slot > .console-wrap pre.console { flex: 1; height: auto; overflow-wrap: anywhere; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .card {
 	background: var(--card); border: 1px solid var(--line);
@@ -239,6 +242,6 @@ pre.console {
 }
 @media (max-width: 1000px) {
 	.shell { flex-wrap: wrap; }
-	.console-pane { position: static; flex: 1 1 100%; height: 60vh; border-left: none; border-top: 1px solid var(--line); }
+	.console-pane { position: static; flex: 1 1 100%; width: auto; height: 60vh; border-left: none; border-top: 1px solid var(--line); }
 }
 .busy-icon { margin-right: 6px; }

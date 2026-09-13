@@ -6,7 +6,7 @@
 	<title>{% block title %}Ops{% endblock %} — {{ settings.env_label|upper }}</title>
 	<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 	<link rel="stylesheet" href="/static/vendor/fontawesome/css/font-awesome.min.css">
-	<link rel="stylesheet" href="/static/app.css">
+	<link rel="stylesheet" href="/static/app.css?v={{ asset_v }}">
 	<script src="/static/vendor/htmx.min.js" defer></script>
 </head>
 <body class="env-{{ settings.env_label|lower }}">
@@ -55,8 +55,8 @@
 <dialog id="modal" class="modal"><div id="modal-body"></div></dialog>
 
 {% block scripts %}{% endblock %}
-<script src="/static/console.js" defer></script>
-<script src="/static/modal.js" defer></script>
-<script src="/static/busy.js" defer></script>
+<script src="/static/console.js?v={{ asset_v }}" defer></script>
+<script src="/static/modal.js?v={{ asset_v }}" defer></script>
+<script src="/static/busy.js?v={{ asset_v }}" defer></script>
 </body>
 </html>

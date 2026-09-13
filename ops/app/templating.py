@@ -56,3 +56,4 @@ templates.env.filters["human_bytes"] = human_bytes
 templates.env.filters["human_time"] = human_time
 templates.env.filters["ago"] = ago
 templates.env.filters["duration"] = duration
+templates.env.globals["asset_v"] = str(int(time.time()))
