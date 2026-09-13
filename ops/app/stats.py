@@ -81,6 +81,41 @@ MERGE=$([ "$(git rev-list --no-walk --count --merges HEAD 2>/dev/null)" = "1" ] 
 printf '"git": {"branch":"%s","head":"%s","tag":"%s","describe":"%s","dirty":%s,"behind":"%s","merge":%s,"untracked":%s},\n' \
   "$BRANCH" "$HEAD" "$TAG" "$DESCRIBE" "$DIRTY" "$BEHIND" "$MERGE" "${UNTRACKED:-0}"
 
+# Most recently checked-out branches (reflog), topped up with local branches by
+# commit date. Only names that still exist locally or on origin survive.
+printf '"recent_branches": '
+python3 - <<'PYEOF' 2>/dev/null || echo '[]'
+import json, re, subprocess
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.splitlines()
+
+valid = re.compile(r"^[A-Za-z0-9._/-]{1,100}$")
+known = set()
+for ref in git("for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes/origin"):
+    if ref.startswith("refs/heads/"):
+        known.add(ref[len("refs/heads/"):])
+    else:
+        known.add(ref[len("refs/remotes/origin/"):])
+known.discard("HEAD")
+
+candidates = git("rev-parse", "--abbrev-ref", "HEAD")
+for line in git("reflog", "--format=%gs"):
+    m = re.match(r"^checkout: moving from \S+ to (\S+)$", line)
+    if m:
+        candidates.append(m.group(1))
+candidates += git("for-each-ref", "--sort=-committerdate", "--format=%(refname:short)", "refs/heads")
+
+out = []
+for name in candidates:
+    if name in known and valid.match(name) and ".." not in name and name not in out:
+        out.append(name)
+    if len(out) == 10:
+        break
+print(json.dumps(out))
+PYEOF
+printf ',\n'
+
 # ---- containers ------------------------------------------------------------
 printf '"containers": '
 $DC ps -a --format json 2>/dev/null | @PS_PARSER@ 2>/dev/null || echo '[]'

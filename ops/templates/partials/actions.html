@@ -35,7 +35,21 @@
 		{% endif %}
 
 		{% if key == 'switch-branch' %}
-		<input name="branch" placeholder="branch name" value="{{ git.branch or '' }}" required>
+		<div class="combo" data-combo>
+			<input name="branch" placeholder="search branch…" value="{{ git.branch or '' }}"
+			       data-default="{{ git.branch or '' }}" autocomplete="off" spellcheck="false"
+			       role="combobox" aria-expanded="false" aria-autocomplete="list" required>
+			<i class="fa fa-caret-down combo-caret" aria-hidden="true"></i>
+			<ul class="combo-list" role="listbox" hidden>
+				{% for name in data.recent_branches or [] %}
+				<li role="option" data-value="{{ name }}">
+					<span>{{ name }}</span>
+					{% if name == git.branch %}<span class="muted small">current</span>{% endif %}
+				</li>
+				{% endfor %}
+				<li class="combo-empty muted small" hidden>no recent branch matches — Run uses the typed name</li>
+			</ul>
+		</div>
 		{% endif %}
 
 		{% set blocked_dirty = cmd.needs_clean_tree and git.dirty %}
