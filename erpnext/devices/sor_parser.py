@@ -42,6 +42,12 @@ def parse_sor_file(path: str) -> dict:
 	sor = otdrs.parse_file(path)
 	gp, fp, sp, ke = sor.general_parameters, sor.fixed_parameters, sor.supplier_parameters, sor.key_events
 
+	# Times in a SOR file are in 100 ps steps; distance = t * c / group index.
+	group_index = (g(fp, "group_index", 0) or 0) / 100000.0 or 1.4682
+
+	def km(t):
+		return round((t or 0) * 1e-10 * 299792.458 / group_index, 4)
+
 	ts = g(fp, "date_time_stamp", 0)
 	try:
 		dt_iso = datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat() if ts else ""
@@ -50,11 +56,10 @@ def parse_sor_file(path: str) -> dict:
 
 	events = []
 	for i, e in enumerate(g(ke, "key_events", []) or []):
-		prop = g(e, "event_propogation_time", 0) or 0
 		events.append(
 			{
 				"index": g(e, "event_number", i + 1),
-				"distance_km": round(prop / 10000.0, 4),
+				"distance_km": km(g(e, "event_propogation_time", 0)),
 				"event_code": evt_str(g(e, "event_code", "")),
 				"slope_db_per_km": round((g(e, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4),
 				"splice_loss_db": round((g(e, "event_loss", 0) or 0) / 1000.0, 4),
@@ -67,14 +72,13 @@ def parse_sor_file(path: str) -> dict:
 	last = g(ke, "last_key_event", None)
 	end_to_end_db = round((g(last, "end_to_end_loss", 0) or 0) / 1000.0, 4) if last else None
 	orl_db = round((g(last, "optical_return_loss", 0) or 0) / 1000.0, 4) if last else None
-	last_prop = (g(last, "event_propogation_time", 0) or 0) if last else 0
-	fiber_length_km = round(last_prop / 10000.0, 4) if last else None
+	fiber_length_km = km(g(last, "event_propogation_time", 0)) if last else None
 
 	if last:
 		events.append(
 			{
 				"index": g(last, "event_number", len(events) + 1),
-				"distance_km": round(last_prop / 10000.0, 4),
+				"distance_km": fiber_length_km,
 				"event_code": evt_str(g(last, "event_code", "")),
 				"slope_db_per_km": round(
 					(g(last, "attenuation_coefficient_lead_in_fiber", 0) or 0) / 1000.0, 4
@@ -91,7 +95,7 @@ def parse_sor_file(path: str) -> dict:
 		"Acquisition": {
 			"wavelength_nm": round((g(fp, "actual_wavelength", 0) or 0) / 10.0, 1),
 			"pulse_width_ns": first(g(fp, "pulse_widths_used", []) or [], 0),
-			"range_km": round((g(fp, "acquisition_range", 0) or 0) / 1000.0, 4),
+			"range_km": km(g(fp, "acquisition_range", 0)),
 			"averages": g(fp, "number_of_averages", 0),
 			"averaging_time_s": g(fp, "averaging_time", 0),
 			"date_time_utc": dt_iso,
@@ -99,7 +103,7 @@ def parse_sor_file(path: str) -> dict:
 			"trace_type": g(fp, "trace_type", ""),
 		},
 		"Fiber": {
-			"group_index": round((g(fp, "group_index", 0) or 0) / 100000.0, 5),
+			"group_index": round(group_index, 5),
 			"backscatter_db": -round((g(fp, "backscatter_coefficient", 0) or 0) / 10.0, 1),
 			"loss_threshold_db": round((g(fp, "loss_threshold", 0) or 0) / 1000.0, 3),
 			"reflectance_threshold_db": -round((g(fp, "reflectance_threshold", 0) or 0) / 1000.0, 3),
