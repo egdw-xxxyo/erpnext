@@ -13852,6 +13852,7 @@ Measured On,Час вимірювання
 Loss (dB),Загасання (дБ)
 Fiber Length (km),Довжина волокна (км)
 Optical Return Loss (dB),Зворотні втрати (дБ)
+End Reflectance (dB),Відбиття кінця волокна (дБ)
 Wavelength (nm),Довжина хвилі (нм)
 Script State,Стан скрипта
 Script Log,Журнал скрипта

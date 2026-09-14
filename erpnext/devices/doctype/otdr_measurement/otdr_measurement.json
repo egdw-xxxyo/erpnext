@@ -20,7 +20,7 @@
   "loss_db",
   "distance_km",
   "column_break_readings",
-  "orl_db",
+  "reflectance_db",
   "wavelength_nm",
   "result_section",
   "quality_inspection",
@@ -137,9 +137,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "orl_db",
+   "fieldname": "reflectance_db",
    "fieldtype": "Float",
-   "label": "Optical Return Loss (dB)",
+   "label": "End Reflectance (dB)",
    "precision": "4",
    "read_only": 1
   },

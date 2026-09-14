@@ -53,7 +53,7 @@ from erpnext.devices.label_resolution import PURPOSE_FAILED, PURPOSE_PASSED, res
 DEFAULT_READINGS = {
 	"Загасання волокна (дБ)": {"path": "loss_db"},
 	"Довжина волокна (км)": {"path": "distance_km", "limits": "length"},
-	"Зворотні втрати ORL (дБ)": {"path": "sor.Summary.optical_return_loss_db"},
+	"Відбиття кінця волокна (дБ)": {"path": "reflectance_db"},
 	"Довжина хвилі (нм)": {"path": "wavelength_nm"},
 }
 
@@ -494,6 +494,7 @@ def print_qc_label(
 		"purpose": purpose,
 		"fiber_length": _dig(payload, "distance_km"),
 		"loss_db": _dig(payload, "loss_db"),
+		"reflectance_db": _dig(payload, "reflectance_db"),
 		"wavelength": _dig(payload, "wavelength_nm"),
 		"source_batch_no": _source_batch(serial_no),
 		"label_date": frappe.utils.nowdate(),

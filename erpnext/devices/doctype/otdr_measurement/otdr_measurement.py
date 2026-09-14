@@ -31,7 +31,7 @@ class OTDRMeasurement(Document):
 		measured_on: DF.Datetime | None
 		measurement_type: DF.Literal["SOR", "OPM", "VFL"]
 		naming_series: DF.Literal["OM-.#####"]
-		orl_db: DF.Float
+		reflectance_db: DF.Float
 		payload: DF.Code | None
 		print_job: DF.Link | None
 		quality_inspection: DF.Link | None

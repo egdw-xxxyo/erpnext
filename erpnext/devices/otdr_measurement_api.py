@@ -161,7 +161,7 @@ def submit_measurement(
 			"remote_path": remote_path or None,
 			"loss_db": payload.get("loss_db") or 0,
 			"distance_km": payload.get("distance_km") or 0,
-			"orl_db": payload.get("orl_db") or 0,
+			"reflectance_db": payload.get("reflectance_db") or 0,
 			"wavelength_nm": payload.get("wavelength_nm") or 0,
 			"payload": json.dumps(payload, ensure_ascii=False, indent=2, default=str),
 		}

@@ -133,6 +133,7 @@ def parse_sor_file(path: str) -> dict:
 			"fiber_length_km": fiber_length_km,
 			"end_to_end_loss_db": end_to_end_db,
 			"optical_return_loss_db": orl_db,
+			"end_reflectance_db": events[-1]["reflectance_db"] if last else None,
 		},
 	}
 
@@ -153,8 +154,8 @@ def flatten_measurement(sor_info: dict) -> dict:
 		out["loss_db"] = summary["end_to_end_loss_db"]
 	if "fiber_length_km" in summary:
 		out["distance_km"] = summary["fiber_length_km"]
-	if "optical_return_loss_db" in summary:
-		out["orl_db"] = summary["optical_return_loss_db"]
+	if "end_reflectance_db" in summary:
+		out["reflectance_db"] = summary["end_reflectance_db"]
 	if "wavelength_nm" in acq:
 		out["wavelength_nm"] = acq["wavelength_nm"]
 	return out
