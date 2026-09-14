@@ -841,6 +841,14 @@ def check_printer_ready(printer_name):
 
 @frappe.whitelist()
 def create_print_job(label_template, printer_name, reference_name=None, raw_data=None, copies=1):
+	return queue_print_job(label_template, printer_name, reference_name, raw_data, copies)
+
+
+def queue_print_job(
+	label_template, printer_name, reference_name=None, raw_data=None, copies=1, ignore_permissions=False
+):
+	"""Server-side entry for flows that print on the operator's behalf (spool QC), where the
+	operator has no Print Job role. Not whitelisted, so a client cannot skip the check."""
 	template = frappe.get_doc("Label Template", label_template)
 	printer = _get_printer_doc(printer_name)
 
@@ -857,7 +865,7 @@ def create_print_job(label_template, printer_name, reference_name=None, raw_data
 			job.raw_data = raw_data
 		else:
 			job.raw_data = json.dumps(raw_data, ensure_ascii=False)
-	job.insert()
+	job.insert(ignore_permissions=ignore_permissions)
 
 	parsed_raw = json.loads(job.raw_data) if job.raw_data else None
 	ref_doc = None

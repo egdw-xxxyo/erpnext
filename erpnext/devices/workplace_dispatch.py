@@ -155,8 +155,9 @@ def dispatch_measurement(workplace, employee=None, **event_fields):
 			logger.error(f"Workplace Script '{script.name}' defines no on_measurement(e)")
 			error = "no_handler"
 	except Exception as e:
-		error = str(e)
-		logger.error(f"Script raised: {e}")
+		# A bare `frappe.PermissionError` stringifies to "", which left the log unreadable.
+		error = str(e) or type(e).__name__
+		logger.error(f"Script raised: {error}")
 		frappe.log_error(title=f"Workplace Script '{script.name}' failed on measurement")
 	finally:
 		_persist_state(workplace, user, state_proxy, timeout)

@@ -500,13 +500,16 @@ def print_qc_label(
 		"label_date": frappe.utils.nowdate(),
 	}
 
-	from erpnext.devices.doctype.label_printer.label_printer import create_print_job
+	from erpnext.devices.doctype.label_printer.label_printer import queue_print_job
 
-	result = create_print_job(
+	# The operator at the bench has no Print Job role; the label is part of the measurement
+	# they are allowed to submit.
+	result = queue_print_job(
 		label_template=resolved["label_template"],
 		printer_name=printer,
 		reference_name=serial_no,
 		raw_data=raw_data,
+		ignore_permissions=True,
 	)
 	log(
 		"Label queued",
@@ -614,17 +617,23 @@ def handle_measurement(e):
 
 	print_job = None
 	if cint(e.get("auto_print")):
-		print_job = print_qc_label(
-			serial_no,
-			item_code,
-			qi,
-			payload,
-			otdr_configuration,
-			cfg,
-			log,
-			workplace=workplace,
-			label_printer=e.get("label_printer"),
-		)
+		# The inspection is already submitted: a printer problem must not turn its verdict
+		# into "Undetermined" on the phone.
+		try:
+			print_job = print_qc_label(
+				serial_no,
+				item_code,
+				qi,
+				payload,
+				otdr_configuration,
+				cfg,
+				log,
+				workplace=workplace,
+				label_printer=e.get("label_printer"),
+			)
+		except Exception as exc:
+			log("Label not queued", level="ERROR", error=str(exc) or type(exc).__name__)
+			frappe.log_error(title=f"Spool QC label failed for {serial_no}")
 	else:
 		log("Auto-print off, label not queued", serial_no=serial_no)
 
