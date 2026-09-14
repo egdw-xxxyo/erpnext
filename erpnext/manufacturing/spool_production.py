@@ -30,6 +30,10 @@ def next_spool(workplace=None, item_code=None, **kwargs):
 	Returns the serial the app then shows on screen and sends back with the measurement, so
 	the spool is identified without anybody reading a number off a label.
 	"""
+	from erpnext.devices.otdr_measurement_api import _assert_workplace_allowed, _session_employee
+
+	if workplace:
+		_assert_workplace_allowed(workplace, _session_employee())
 	return production_line.next_unit(LINE_TYPE, workplace=workplace, item_code=item_code)
 
 

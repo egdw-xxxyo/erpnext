@@ -207,7 +207,16 @@ def _create_work_order(line, item_code, qty, reason="plan"):
 	wo.get_items_and_operations_from_bom()
 	wo.flags.ignore_permissions = True
 	wo.insert()
-	wo.submit()
+	# Submit mints Serial Nos and Job Cards inside stock code that inserts them without
+	# `ignore_permissions`, so an operator without a manufacturing role taking an overflow
+	# spool got a PermissionError on Job Card. The operator's right to the bench is already
+	# checked by the caller.
+	user = frappe.session.user
+	frappe.set_user("Administrator")
+	try:
+		wo.submit()
+	finally:
+		frappe.set_user(user)
 	_clear_planned_slots(wo.name)
 	return wo
 
