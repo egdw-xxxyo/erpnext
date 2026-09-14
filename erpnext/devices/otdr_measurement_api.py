@@ -230,12 +230,45 @@ def submit_measurement(
 		"verdict": verdict,
 		"reason": summary.get("reason"),
 		"quality_inspection": summary.get("quality_inspection"),
+		"qi_readings": _qi_readings(summary.get("quality_inspection")),
 		"print_job": summary.get("print_job"),
 		"state": info.get("state"),
 		"log": info.get("logs"),
 		"printers": _printers(workplace),
 		"sor": sor_info,
 	}
+
+
+def _qi_readings(quality_inspection):
+	"""Each graded reading with its measured value and allowed range, for the operator screen."""
+	if not quality_inspection:
+		return []
+
+	rows = frappe.get_all(
+		"Quality Inspection Reading",
+		filters={"parent": quality_inspection, "parenttype": "Quality Inspection"},
+		fields=[
+			"specification",
+			"reading_1",
+			"min_value",
+			"max_value",
+			"numeric",
+			"manual_inspection",
+			"status",
+		],
+		order_by="idx asc",
+	)
+	return [
+		{
+			"specification": r.specification,
+			"value": r.reading_1,
+			"min_value": r.min_value if cint(r.numeric) else None,
+			"max_value": r.max_value if cint(r.numeric) else None,
+			"manual": bool(cint(r.manual_inspection)),
+			"status": r.status,
+		}
+		for r in rows
+	]
 
 
 def _printers(workplace):
