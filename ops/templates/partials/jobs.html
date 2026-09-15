@@ -2,8 +2,9 @@
 {% set rows = data.jobs or [] %}
 {% if rows %}
 <table class="rows">
-	<tr><th>Action</th><th>By</th><th>Started</th><th>State</th><th></th></tr>
+	<tr><th>Action</th><th>By</th><th>Started</th><th>State</th><th>Step</th><th></th></tr>
 	{% for j in rows %}
+	{% set prog = j|job_progress %}
 	<tr>
 		<td>{{ j.label or j.action }}</td>
 		<td class="mono">{{ j.user }}</td>
@@ -12,6 +13,12 @@
 			<span class="pill {{ {'success':'good','running':'ok','failed':'bad','crashed':'bad','rejected':'muted-pill'}.get(j.state,'muted-pill') }}">
 				{{ j.state }}{% if j.exit not in (None, '', '0') %} ({{ j.exit }}){% endif %}
 			</span>
+		</td>
+		<td class="small">
+			{% if prog.current %}
+			<span class="{{ 'bad-text' if prog.current.state == 'failed' else 'muted' }}">{{ prog.current.label }}</span>
+			<em class="muted">{{ prog.done }}/{{ prog.total }}</em>
+			{% else %}<span class="muted">—</span>{% endif %}
 		</td>
 		<td>
 			<button class="link small" hx-get="/jobs/{{ j.id }}" hx-vals='{"label": {{ (j.label or j.action or "")|tojson }}}'

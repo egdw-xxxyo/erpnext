@@ -45,6 +45,11 @@ setsid nohup bash -c '
   fi
   echo $$ > "$J.pid"
   echo running > "$J.state"
+  # ./deploy and ./updateRepo append one line per milestone here (tools/ops-progress.sh).
+  # A side file, not the log: the dashboard polls it every few seconds and the
+  # log is tens of megabytes of docker build output.
+  : > "$J.progress"
+  export OPS_PHASE_LOG="$PWD/$J.progress"
   echo "=== @LABEL@ ===" >> "$J.log"
   set +e
   @COMMAND@ >> "$J.log" 2>&1
@@ -90,7 +95,8 @@ cd @REPO@ 2>/dev/null || exit 0
 # crashed (OOM, reboot, kill -9) and is recorded as such rather than sitting at
 # "running" forever.
 find .ops-jobs -maxdepth 1 -type f -mtime +14 \
-  \( -name '*.log' -o -name '*.meta' -o -name '*.pid' -o -name '*.state' -o -name '*.exit' \) -delete
+  \( -name '*.log' -o -name '*.meta' -o -name '*.pid' -o -name '*.state' -o -name '*.exit' \
+     -o -name '*.progress' \) -delete
 for pidfile in .ops-jobs/*.pid; do
   [ -e "$pidfile" ] || continue
   base="${pidfile%.pid}"

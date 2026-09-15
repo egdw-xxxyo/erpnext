@@ -1,0 +1,19 @@
+{% set prog = job|job_progress %}
+{% if prog.steps %}
+<div class="progress" data-job-progress="{{ job.id }}">
+	<div class="progress-head">
+		<b>{{ prog.current.label if prog.current else '—' }}</b>
+		<span class="muted small">{{ prog.current.text if prog.current else '' }}</span>
+		<span class="spacer"></span>
+		<span class="muted small">step {{ prog.done }} of {{ prog.total }}</span>
+	</div>
+	<ol class="progress-steps">
+		{% for step in prog.steps %}
+		<li class="step-{{ step.state }}">
+			<i class="fa {{ {'done': 'fa-check', 'running': 'fa-spinner fa-spin', 'failed': 'fa-times', 'skipped': 'fa-minus'}.get(step.state, 'fa-circle-o') }}"></i>
+			<span>{{ step.label }}</span>
+		</li>
+		{% endfor %}
+	</ol>
+</div>
+{% endif %}

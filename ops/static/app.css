@@ -242,6 +242,20 @@ dialog.modal h3 { margin-top: 0; }
 .combo-empty { padding: 6px 10px; }
 .combo-list [hidden] { display: none; }
 
+/* ---- job progress ---------------------------------------------------- */
+.progress { margin-top: 10px; }
+.progress-head { display: flex; align-items: baseline; gap: 8px; }
+.progress-steps {
+	list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px;
+	margin: 8px 0 0; padding: 0; font-size: 12.5px;
+}
+.progress-steps li { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.progress-steps li i { width: 12px; text-align: center; }
+.progress-steps li.step-done { color: var(--good); }
+.progress-steps li.step-running { color: var(--accent); }
+.progress-steps li.step-failed { color: var(--bad); }
+.bad-text { color: var(--bad); }
+
 /* ---- console --------------------------------------------------------- */
 .console-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 pre.console {

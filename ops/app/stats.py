@@ -208,7 +208,19 @@ for meta_path in sorted(glob.glob(".ops-jobs/*.meta")):
     rows.append(meta)
 
 rows.sort(key=lambda r: r.get("started", 0), reverse=True)
-print(json.dumps(rows[:20]))
+rows = rows[:20]
+
+# Milestone markers, newest jobs only: every panel poll carries these, and an
+# old job's phases are of no interest once its log is the only thing anyone
+# would open.
+for row in rows[:3]:
+    try:
+        with open(".ops-jobs/%s.progress" % row["id"]) as fh:
+            row["progress"] = [ln.rstrip("\n") for ln in fh.read().splitlines() if ln.strip()][-40:]
+    except OSError:
+        row["progress"] = []
+
+print(json.dumps(rows))
 PYEOF
 
 echo '}'

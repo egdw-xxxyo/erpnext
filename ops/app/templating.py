@@ -52,6 +52,14 @@ def duration(seconds) -> str:
 	return f"{total // 60}m {total % 60}s"
 
 
+def job_progress(job) -> dict:
+	"""[OPS] milestones of one job row, folded into steps."""
+	from . import progress
+
+	return progress.summary(job or {})
+
+
+templates.env.filters["job_progress"] = job_progress
 templates.env.filters["human_bytes"] = human_bytes
 templates.env.filters["human_time"] = human_time
 templates.env.filters["ago"] = ago

@@ -10,6 +10,32 @@
 
 	var current = null;
 
+	// [OPS] <ts> <phase> <start|ok|fail|skip> <text> — milestone markers the
+	// deploy scripts print. The stream replays the log from offset 0, so this
+	// reconstructs the phase without a second round-trip to the host.
+	var OPS_RE = /\[OPS\]\s+(\S+)\s+(\S+)\s+(start|ok|fail|skip)(?:\s+(.*))?$/;
+
+	function readMarkers(chunk, phaseEl) {
+		var seen = false;
+		chunk.split("\n").forEach(function (line) {
+			var m = OPS_RE.exec(line);
+			if (!m) return;
+			seen = true;
+			if (phaseEl) {
+				phaseEl.textContent = (m[4] || m[2]) + (m[3] === "fail" ? " — FAILED" : "");
+				phaseEl.className = m[3] === "fail" ? "small bad-text" : "muted small";
+			}
+		});
+		// Panels render the full step list server-side; a marker is the only
+		// moment their 15s poll has anything new to say.
+		if (seen && window.htmx) {
+			["actions", "jobs"].forEach(function (name) {
+				var el = document.getElementById("panel-" + name);
+				if (el) window.htmx.trigger(el, "load");
+			});
+		}
+	}
+
 	function detach() {
 		if (current && current.source) {
 			current.source.close();
@@ -26,6 +52,7 @@
 		var out = wrap.querySelector("[data-console-out]");
 		var stateEl = wrap.querySelector("[data-console-state]");
 		var followEl = wrap.querySelector("[data-console-follow]");
+		var phaseEl = wrap.querySelector("[data-console-phase]");
 
 		var state = { jobId: jobId, offset: 0, source: null };
 		current = state;
@@ -42,6 +69,7 @@
 					state.offset = parseInt(event.lastEventId, 10) || state.offset;
 				}
 				out.textContent += event.data + "\n";
+				readMarkers(event.data, phaseEl);
 				if (stateEl && stateEl.textContent !== "running") {
 					stateEl.textContent = "running";
 					stateEl.className = "pill ok";

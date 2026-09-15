@@ -9,6 +9,7 @@
 	        hx-vals='{"label": {{ running[0].label|tojson }}}' hx-target="#console-slot" hx-swap="innerHTML">
 		<i class="fa fa-terminal"></i> open its console
 	</button>
+	{% with job = running[0] %}{% include "partials/job_progress.html" %}{% endwith %}
 </div>
 {% endif %}
 
