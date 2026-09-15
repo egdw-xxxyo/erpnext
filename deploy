@@ -730,7 +730,17 @@ PY
 
   build)
     SILENT=0
-    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    SKIP_OPS=0
+    FOLLOW_LOGS=0
+    for arg in "$@"; do
+      case "$arg" in
+        --silent) SILENT=1 ;;
+        # The ops dashboard deploys through here; restarting itself mid-job
+        # is pointless — "Rebuild dashboard" does that on purpose.
+        --no-ops) SKIP_OPS=1 ;;
+        --logs) FOLLOW_LOGS=1 ;;
+      esac
+    done
     DEPLOY_SILENT=$SILENT
 
     ops_step image start "Building image"
@@ -751,19 +761,27 @@ PY
     run_deploy "$SILENT"
     # Outside run_deploy on purpose: inside, --silent routes stdout to /dev/null
     # and an ops failure would be invisible.
-    ops_step ops start "Restarting ops dashboard"
-    ops_up
-    ops_step ops ok "Ops dashboard up"
+    if [ "$SKIP_OPS" != "1" ]; then
+      ops_step ops start "Restarting ops dashboard"
+      ops_up
+      ops_step ops ok "Ops dashboard up"
+    fi
     ops_step done ok "Deploy finished"
 
-    if [ "${2:-}" = "--logs" ] || [ "${3:-}" = "--logs" ]; then
+    if [ "$FOLLOW_LOGS" = "1" ]; then
       dc logs -f --since 0s
     fi
     ;;
 
   migrate)
     SILENT=0
-    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    SKIP_OPS=0
+    for arg in "$@"; do
+      case "$arg" in
+        --silent) SILENT=1 ;;
+        --no-ops) SKIP_OPS=1 ;;
+      esac
+    done
     DEPLOY_SILENT=$SILENT
 
     say "(migrate is now an alias for build)"
@@ -782,9 +800,11 @@ PY
     fi
     ops_step image ok "Image built"
     run_deploy "$SILENT"
-    ops_step ops start "Restarting ops dashboard"
-    ops_up
-    ops_step ops ok "Ops dashboard up"
+    if [ "$SKIP_OPS" != "1" ]; then
+      ops_step ops start "Restarting ops dashboard"
+      ops_up
+      ops_step ops ok "Ops dashboard up"
+    fi
     ops_step done ok "Deploy finished"
     ;;
 

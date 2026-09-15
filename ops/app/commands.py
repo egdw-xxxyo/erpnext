@@ -72,10 +72,12 @@ COMMANDS: dict[str, Command] = {
 		# build never runs — a hard gate, in the same spirit as
 		# backup_space_guard already blocking backup itself. --no-files keeps
 		# it fast enough to run before every deploy, not just occasionally.
+		# --no-ops: a deploy from the dashboard leaves the dashboard itself
+		# alone; "Rebuild dashboard" is the explicit way to update it.
 		build=lambda _: (
-			"./deploy backup --no-files && ./deploy build"
+			"./deploy backup --no-files && ./deploy build --no-ops"
 			if prefs.get("pre_deploy_backup", True)
-			else "./deploy build"
+			else "./deploy build --no-ops"
 		),
 		destructive=True,
 	),

@@ -59,7 +59,6 @@ EXPECTED: dict[str, list[str]] = {
 		"custom-fields",
 		"manifest",
 		"extra-apps",
-		"ops",
 		"done",
 	],
 	"backup": ["backup-prune", "backup"],
