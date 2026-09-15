@@ -1,27 +1,57 @@
-const ENV_BADGES = {
-	prod: { label: "Prod", color: "#e03131" },
-	test: { label: "Test", color: "#2f9e44" },
-	local: { label: "Local", color: "#1c7ed6" },
+const ENV_BANNERS = {
+	test: { label: "Test server", icon: "fa-flask", color: "#2b8a3e", background: "#e6f4ea" },
+	local: { label: "Local server", icon: "fa-laptop", color: "#1864ab", background: "#e7f1fb" },
 };
 
-function get_environment_badge() {
-	return ENV_BADGES[frappe.boot && frappe.boot.instance_env];
+function get_environment_banner() {
+	return ENV_BANNERS[frappe.boot && frappe.boot.instance_env];
 }
 
-function add_environment_badge() {
-	const env = get_environment_badge();
-	document.querySelectorAll(".sidebar-header .header-subtitle").forEach((subtitle) => {
-		if (subtitle.querySelector(".env-badge")) return;
-		const badge = document.createElement("span");
-		badge.className = "env-badge";
-		badge.textContent = __(env.label, null, "Environment badge");
-		badge.style.cssText = `background:${env.color};color:#fff;font-size:10px;font-weight:600;line-height:1;padding:2px 5px;border-radius:4px;margin-left:6px;vertical-align:middle;text-transform:uppercase;`;
-		subtitle.appendChild(badge);
+function add_environment_style(env) {
+	if (document.getElementById("env-banner-style")) return;
+	const style = document.createElement("style");
+	style.id = "env-banner-style";
+	style.textContent = `
+		.body-sidebar .env-banner {
+			margin: -8px -8px 0;
+			min-height: 36px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex: 0 0 auto;
+			background: ${env.background};
+			color: ${env.color};
+			font-size: var(--text-sm);
+			border-bottom: 1px solid var(--sidebar-border-color);
+			white-space: nowrap;
+			overflow: hidden;
+		}
+		.body-sidebar .env-banner .env-banner-label { display: none; }
+		.body-sidebar-container.expanded .env-banner .env-banner-label { display: inline; }
+		.body-sidebar-container.expanded .env-banner .env-banner-icon { display: none; }
+		[data-theme="dark"] .body-sidebar .env-banner { background: ${env.color}; color: #fff; }
+	`;
+	document.head.appendChild(style);
+}
+
+function add_environment_banner() {
+	const env = get_environment_banner();
+	document.querySelectorAll(".body-sidebar").forEach((sidebar) => {
+		if (sidebar.querySelector(".env-banner")) return;
+		const label = __(env.label, null, "Environment banner");
+		const banner = document.createElement("div");
+		banner.className = "env-banner";
+		banner.title = label;
+		banner.innerHTML = `<i class="fa ${env.icon} env-banner-icon"></i><span class="env-banner-label"></span>`;
+		banner.querySelector(".env-banner-label").textContent = label;
+		sidebar.prepend(banner);
 	});
 }
 
 $(document).ready(() => {
-	if (!get_environment_badge()) return;
-	add_environment_badge();
-	new MutationObserver(add_environment_badge).observe(document.body, { childList: true, subtree: true });
+	const env = get_environment_banner();
+	if (!env) return;
+	add_environment_style(env);
+	add_environment_banner();
+	new MutationObserver(add_environment_banner).observe(document.body, { childList: true, subtree: true });
 });
