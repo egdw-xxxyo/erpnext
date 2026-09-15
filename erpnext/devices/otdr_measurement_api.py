@@ -483,3 +483,156 @@ def print_measurement_label(measurement=None, label_printer=None, **kwargs):
 		frappe.db.commit()
 
 	return {"success": bool(print_job), "print_job": print_job, "log": "\n".join(logs)}
+
+
+def _printer_state(printer_name):
+	row = frappe.db.get_value(
+		"Label Printer",
+		printer_name,
+		[
+			"is_enabled",
+			"mock_printing",
+			"loaded_label_size",
+			"is_label_change_in_progress",
+			"label_change_message",
+			"last_status",
+			"last_checked",
+			"printer_model",
+		],
+		as_dict=True,
+	)
+	if not row:
+		return {"name": printer_name, "exists": False}
+	return {
+		"name": printer_name,
+		"exists": True,
+		"enabled": bool(row.is_enabled),
+		"mock_printing": bool(row.mock_printing),
+		"loaded_label_size": row.loaded_label_size,
+		"label_change_in_progress": bool(row.is_label_change_in_progress),
+		"label_change_message": row.label_change_message,
+		"last_status": row.last_status,
+		"last_checked": str(row.last_checked) if row.last_checked else None,
+		"printer_model": row.printer_model,
+	}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_label_readiness(workplace=None, item_code=None, label_printer=None, **kwargs):
+	if not workplace:
+		frappe.throw(_("Workplace is required"))
+
+	_assert_workplace_allowed(workplace, _session_employee())
+
+	from erpnext.devices.label_resolution import PURPOSE_FAILED, PURPOSE_PASSED, resolve_label_template
+	from erpnext.devices.spool_qc import _any_printer_for, _get_config, _workplace_printer
+
+	otdr_configuration = frappe.db.get_value("Workplace", workplace, "otdr_configuration")
+	cfg = _get_config(otdr_configuration)
+
+	issues = []
+	if not cfg.get("print_label"):
+		issues.append({"code": "printing_disabled"})
+	if not item_code:
+		issues.append({"code": "no_item"})
+
+	workplace_printer = _workplace_printer(workplace)
+	fallback_printer = _any_printer_for(item_code) if item_code else None
+	printers = {}
+	labels = []
+
+	for purpose in (PURPOSE_PASSED, PURPOSE_FAILED):
+		resolved = (
+			resolve_label_template(item_code, purpose, otdr_configuration=otdr_configuration)
+			if item_code
+			else None
+		) or {}
+		template = resolved.get("label_template")
+		label_size = frappe.db.get_value("Label Template", template, "label_size") if template else None
+		printer = label_printer or workplace_printer or resolved.get("label_printer") or fallback_printer
+		if printer and printer not in printers:
+			printers[printer] = _printer_state(printer)
+		loaded = (printers.get(printer) or {}).get("loaded_label_size")
+
+		labels.append(
+			{
+				"purpose": purpose,
+				"label_template": template,
+				"label_size": label_size,
+				"source": resolved.get("source"),
+				"label_printer": printer,
+				"loaded_label_size": loaded,
+				"size_ok": bool(label_size and loaded and label_size == loaded),
+			}
+		)
+
+		if item_code and not template:
+			issues.append({"code": "no_template", "purpose": purpose})
+		elif template and not label_size:
+			issues.append({"code": "no_template_size", "purpose": purpose, "label_template": template})
+		if not printer:
+			issues.append({"code": "no_printer", "purpose": purpose})
+		elif label_size and loaded and label_size != loaded:
+			issues.append(
+				{
+					"code": "size_mismatch",
+					"purpose": purpose,
+					"printer": printer,
+					"expected": label_size,
+					"loaded": loaded,
+				}
+			)
+
+	for name, state in printers.items():
+		if not state["exists"]:
+			issues.append({"code": "printer_not_found", "printer": name})
+			continue
+		if not state["enabled"]:
+			issues.append({"code": "printer_disabled", "printer": name})
+		if state["label_change_in_progress"]:
+			issues.append({"code": "label_change_in_progress", "printer": name})
+		if not state["loaded_label_size"]:
+			issues.append({"code": "no_loaded_size", "printer": name})
+
+	return {
+		"ready": not issues,
+		"workplace": workplace,
+		"item_code": item_code,
+		"labels": labels,
+		"printers": list(printers.values()),
+		"issues": issues,
+	}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_print_job_status(print_job=None, **kwargs):
+	if not print_job:
+		frappe.throw(_("Print Job is required"))
+
+	workplace = frappe.db.get_value("OTDR Measurement", {"print_job": print_job}, "workplace")
+	if not workplace:
+		frappe.throw(
+			_("Print Job {0} does not belong to a measurement").format(print_job), frappe.DoesNotExistError
+		)
+
+	_assert_workplace_allowed(workplace, _session_employee())
+
+	job = frappe.db.get_value(
+		"Print Job",
+		print_job,
+		["name", "status", "error_message", "printed_at", "label_printer", "label_template", "label_size", "creation"],
+		as_dict=True,
+	)
+	if not job:
+		frappe.throw(_("Print Job {0} not found").format(print_job), frappe.DoesNotExistError)
+
+	return {
+		"print_job": job.name,
+		"status": job.status,
+		"error_message": job.error_message,
+		"printed_at": str(job.printed_at) if job.printed_at else None,
+		"label_printer": job.label_printer,
+		"label_template": job.label_template,
+		"label_size": job.label_size,
+		"age_seconds": int((frappe.utils.now_datetime() - job.creation).total_seconds()),
+	}

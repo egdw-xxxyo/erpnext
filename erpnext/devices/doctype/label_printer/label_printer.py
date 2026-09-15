@@ -484,20 +484,30 @@ def print_label(print_job_name, label_printer=None):
 		)
 
 	t0 = time.monotonic()
-	printer = _get_printer_doc(job.label_printer)
+	try:
+		printer = _get_printer_doc(job.label_printer)
+
+		if printer.is_label_change_in_progress:
+			frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
+
+		if job.label_size and printer.loaded_label_size and job.label_size != printer.loaded_label_size:
+			frappe.throw(
+				_("Label size mismatch: job requires {0} but printer has {1} loaded").format(
+					job.label_size, printer.loaded_label_size
+				)
+			)
+	except Exception as e:
+		tlog(f"print_label REFUSED job={print_job_name} printer={job.label_printer}: {e}", level="error")
+		frappe.db.set_value(
+			"Print Job",
+			print_job_name,
+			{"status": "Failed", "error_message": str(e), "log": "\n".join(log_lines)},
+		)
+		frappe.db.commit()
+		raise
 	tlog(
 		f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms printer={printer.name} ip={printer.ip_address}:{printer.port}"
 	)
-
-	if printer.is_label_change_in_progress:
-		frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
-
-	if job.label_size and printer.loaded_label_size and job.label_size != printer.loaded_label_size:
-		frappe.throw(
-			_("Label size mismatch: job requires {0} but printer has {1} loaded").format(
-				job.label_size, printer.loaded_label_size
-			)
-		)
 
 	t0 = time.monotonic()
 	template = frappe.get_doc("Label Template", job.label_template)
