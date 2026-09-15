@@ -1576,7 +1576,43 @@ def create_responsible_employee_dimension():
 		print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
 	relax_rejected_responsible_employee()
+	ignore_user_permissions_on_responsible_employee()
 	create_serial_no_responsible_field()
+
+
+def ignore_user_permissions_on_responsible_employee():
+	"""Stop Frappe from prefilling the dimension with the user's own Employee.
+
+	An Employee linked to a User gets an Employee User Permission, and Frappe uses a single
+	permitted value as the default of every Link to Employee, on every new row in every
+	warehouse. Custody is only meant for R&D, and outside it that stray value made issues fail
+	the per-person negative stock check. The R&D default is set on purpose by
+	`erpnext.stock.responsible_employee`, not by user permissions.
+	"""
+	fields = frappe.get_all(
+		"Custom Field",
+		filters={
+			"fieldname": (
+				"in",
+				[
+					RESPONSIBLE_EMPLOYEE_FIELD,
+					f"to_{RESPONSIBLE_EMPLOYEE_FIELD}",
+					f"from_{RESPONSIBLE_EMPLOYEE_FIELD}",
+					f"rejected_{RESPONSIBLE_EMPLOYEE_FIELD}",
+				],
+			),
+			"options": "Employee",
+			"ignore_user_permissions": 0,
+		},
+		pluck="name",
+	)
+
+	for name in fields:
+		frappe.db.set_value("Custom Field", name, "ignore_user_permissions", 1, update_modified=False)
+		print(f"  Ignored user permissions: {name}")
+
+	if fields:
+		frappe.clear_cache()
 
 
 def enforce_responsible_employee_stock(name):
