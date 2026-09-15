@@ -4,6 +4,7 @@ Run via: docker compose exec -T backend bench --site frontend execute erpnext.pa
 Or via bench console and calling execute() manually.
 """
 import json
+from functools import reduce
 
 import frappe
 
@@ -35,6 +36,15 @@ def execute():
 	create_salary_tax_components()
 	create_disability_fields()
 	create_identity_fields()
+	create_employee_overview_photo_field()
+	create_employee_subordinates_fields()
+	create_employee_documents_fields()
+	hide_employee_overview_fields()
+	set_employee_overview_properties()
+	create_designation_name_en_fields()
+	backfill_employee_designation_name_en()
+	create_employee_kp_fields()
+	arrange_employee_overview_fields()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -574,6 +584,266 @@ def _make_ctc_read_only():
 		}
 	).insert(ignore_permissions=True)
 	print("  Created Property Setter: Employee.ctc.read_only")
+
+
+EMPLOYEE_OVERVIEW_HIDDEN_FIELDS = (
+	"salutation",
+	"employee_name",
+	"shortname",
+	"employee_number",
+	"branch",
+	"grade",
+	"erpnext_user",
+	"create_user_permission",
+	"create_user_automatically",
+	"does_not_fill_attendance_sheet",
+)
+
+EMPLOYEE_OVERVIEW_MOVES = (
+	("overview_photo", "basic_information"),
+	("column_break_9", "overview_photo"),
+	("naming_series", "last_name"),
+	("documents_section", "create_user_automatically"),
+	("employee_documents", "documents_section"),
+	("column_break1", "employee_name"),
+	("reports_to", "employee_number"),
+	("designation", "column_break_25"),
+	("designation_name_en", "designation"),
+	("kp_code", "designation_name_en"),
+	("kp_job_title", "kp_code"),
+	("employment_type", "grade"),
+	("user_id", "employment_type"),
+	("does_not_fill_attendance_sheet", "user_id"),
+	("subordinates_section", "does_not_fill_attendance_sheet"),
+	("subordinates_html", "subordinates_section"),
+)
+
+
+def _move_field_after(order, move):
+	fieldname, anchor = move
+	if fieldname not in order or anchor not in order:
+		return order
+	rest = [name for name in order if name != fieldname]
+	position = rest.index(anchor) + 1
+	return [*rest[:position], fieldname, *rest[position:]]
+
+
+def create_employee_overview_photo_field():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "overview_photo",
+				"fieldtype": "HTML",
+				"insert_after": "basic_information",
+			},
+		]
+	)
+
+
+def create_employee_subordinates_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "does_not_fill_attendance_sheet",
+				"fieldtype": "Check",
+				"label": "Does Not Fill Attendance Sheet",
+				"insert_after": "user_id",
+				"hidden": 1,
+				"description": (
+					"Their direct reports show up in their manager's Attendance Sheet instead, "
+					"or further up the chain if that manager is checked too."
+				),
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "subordinates_section",
+				"fieldtype": "Section Break",
+				"label": "Has Subordinates",
+				"insert_after": "does_not_fill_attendance_sheet",
+				"hidden": 1,
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "subordinates_html",
+				"fieldtype": "HTML",
+				"insert_after": "subordinates_section",
+			},
+		]
+	)
+
+
+def create_employee_documents_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "documents_section",
+				"fieldtype": "Section Break",
+				"label": "Attached Documents",
+				"insert_after": "create_user_automatically",
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "employee_documents",
+				"fieldtype": "Table",
+				"options": "Employee Document",
+				"insert_after": "documents_section",
+			},
+		]
+	)
+
+
+def arrange_employee_overview_fields():
+	current = [df.fieldname for df in frappe.get_meta("Employee", cached=False).fields]
+	arranged = reduce(_move_field_after, EMPLOYEE_OVERVIEW_MOVES, current)
+	if arranged == current:
+		return
+
+	frappe.make_property_setter(
+		{
+			"doctype": "Employee",
+			"doctype_or_field": "DocType",
+			"property": "field_order",
+			"value": json.dumps(arranged),
+			"property_type": "Data",
+		},
+		validate_fields_for_doctype=False,
+	)
+	frappe.clear_cache(doctype="Employee")
+	print("  Arranged Employee overview field order")
+
+
+EMPLOYEE_OVERVIEW_PROPERTIES = (
+	("naming_series", "depends_on", "eval:doc.__islocal", "Code"),
+	("designation", "label", "Designation (Ukrainian)", "Data"),
+)
+
+
+def set_employee_overview_properties():
+	for fieldname, prop, value, property_type in EMPLOYEE_OVERVIEW_PROPERTIES:
+		existing = frappe.db.get_value(
+			"Property Setter",
+			{"doc_type": "Employee", "field_name": fieldname, "property": prop},
+			"value",
+		)
+		if existing == value:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": "Employee",
+				"fieldname": fieldname,
+				"property": prop,
+				"value": value,
+				"property_type": property_type,
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Set {prop}: Employee.{fieldname}")
+
+	frappe.clear_cache(doctype="Employee")
+
+
+def create_designation_name_en_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Designation",
+				"fieldname": "designation_name_en",
+				"fieldtype": "Data",
+				"label": "Designation (English)",
+				"insert_after": "designation_name",
+				"in_list_view": 1,
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "designation_name_en",
+				"fieldtype": "Data",
+				"label": "Designation (English)",
+				"insert_after": "designation",
+				"fetch_from": "designation.designation_name_en",
+				"read_only": 1,
+			},
+		]
+	)
+
+
+def create_employee_kp_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "kp_code",
+				"fieldtype": "Autocomplete",
+				"label": "KP Code",
+				"insert_after": "designation_name_en",
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "kp_job_title",
+				"fieldtype": "Data",
+				"label": "Professional Title",
+				"length": 255,
+				"insert_after": "kp_code",
+				"read_only": 1,
+				"hidden": 1,
+			},
+		]
+	)
+
+
+def backfill_employee_designation_name_en():
+	frappe.db.sql(
+		"""
+		update `tabEmployee` e
+		join `tabDesignation` d on d.name = e.designation
+		set e.designation_name_en = d.designation_name_en
+		where not (e.designation_name_en <=> d.designation_name_en)
+		"""
+	)
+
+
+def hide_employee_overview_fields():
+	meta = frappe.get_meta("Employee")
+	present = [fieldname for fieldname in EMPLOYEE_OVERVIEW_HIDDEN_FIELDS if meta.has_field(fieldname)]
+	custom = dict(
+		frappe.get_all(
+			"Custom Field",
+			filters={"dt": "Employee", "fieldname": ["in", present]},
+			fields=["fieldname", "name"],
+			as_list=True,
+		)
+	)
+	standard = [fieldname for fieldname in present if fieldname not in custom]
+
+	for fieldname, name in custom.items():
+		if frappe.db.get_value("Custom Field", name, "hidden"):
+			continue
+		frappe.db.set_value("Custom Field", name, "hidden", 1)
+		print(f"  Hidden Custom Field: Employee.{fieldname}")
+
+	for fieldname in standard:
+		existing = frappe.db.get_value(
+			"Property Setter",
+			{"doc_type": "Employee", "field_name": fieldname, "property": "hidden"},
+			"value",
+		)
+		if existing == "1":
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": "Employee",
+				"fieldname": fieldname,
+				"property": "hidden",
+				"value": "1",
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Hidden field: Employee.{fieldname}")
+
+	frappe.clear_cache(doctype="Employee")
 
 
 def remove_label_templates_from_employee():
