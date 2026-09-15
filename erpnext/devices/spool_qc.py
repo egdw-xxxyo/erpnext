@@ -498,6 +498,7 @@ def print_qc_label(
 		"wavelength": _dig(payload, "wavelength_nm"),
 		"source_batch_no": _source_batch(serial_no),
 		"label_date": frappe.utils.nowdate(),
+		"failed_readings": _failed_readings(qi),
 	}
 
 	from erpnext.devices.doctype.label_printer.label_printer import queue_print_job
@@ -511,8 +512,17 @@ def print_qc_label(
 		raw_data=raw_data,
 		ignore_permissions=True,
 	)
+	# Queueing only creates the job; nothing else sends a spool label to the printer. Printing
+	# runs after commit: `print_label` rolls back on a printer error, which inside this request
+	# would take the submitted Quality Inspection with it.
+	frappe.enqueue(
+		"erpnext.devices.doctype.label_printer.label_printer.print_label",
+		queue="short",
+		enqueue_after_commit=True,
+		print_job_name=result.get("print_job"),
+	)
 	log(
-		"Label queued",
+		"Label sent to printer",
 		print_job=result.get("print_job"),
 		label_template=resolved["label_template"],
 		printer=printer,
@@ -520,6 +530,25 @@ def print_qc_label(
 		template_source=resolved.get("source"),
 	)
 	return result.get("print_job")
+
+
+def _failed_readings(qi):
+	"""Rejected readings for the Failed label: what was measured against what was allowed."""
+	failed = []
+	for reading in qi.readings:
+		if reading.status != "Rejected":
+			continue
+		limits = None
+		if cint(reading.numeric) and not cint(reading.formula_based_criteria):
+			limits = f"{_format_reading(reading.min_value)}..{_format_reading(reading.max_value)}"
+		failed.append(
+			{
+				"specification": reading.specification,
+				"value": reading.reading_1 if cint(reading.numeric) else reading.reading_value,
+				"limits": limits,
+			}
+		)
+	return failed
 
 
 def _any_printer_for(item_code):
