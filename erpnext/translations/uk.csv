@@ -13916,3 +13916,6 @@ Example,Приклад
 "Finished Goods Warehouse","Склад готової продукції"
 "Spool production","Виробництво котушок"
 "Raw Material Warehouse","Склад сировини"
+"Prod","Прод","Environment badge"
+"Test","Тест","Environment badge"
+"Local","Локал","Environment badge"

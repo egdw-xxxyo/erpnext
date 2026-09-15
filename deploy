@@ -335,7 +335,20 @@ PY
   return 1
 }
 
+instance_env() {
+  if [ -n "$INSTANCE_ENV" ]; then
+    echo "$INSTANCE_ENV"
+  elif [ "$DEPLOY_ENV" = "production" ]; then
+    echo prod
+  elif [ "$(uname -s)" = "Darwin" ]; then
+    echo local
+  else
+    echo test
+  fi
+}
+
 apply_site_config() {
+  dc exec -T backend bench --site frontend set-config instance_env "$(instance_env)"
   SITE_CONFIG="$DIR/site-config.json"
   if [ ! -f "$SITE_CONFIG" ]; then
     return
