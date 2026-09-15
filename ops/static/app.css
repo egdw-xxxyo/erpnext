@@ -255,6 +255,13 @@ dialog.modal h3 { margin-top: 0; }
 .progress-steps li.step-running { color: var(--accent); }
 .progress-steps li.step-failed { color: var(--bad); }
 .bad-text { color: var(--bad); }
+.progress-steps li em { font-style: normal; font-size: 11.5px; }
+.eta { color: var(--accent); font-style: normal; white-space: nowrap; }
+.timeline { margin-bottom: 8px; }
+.timeline summary { cursor: pointer; color: var(--muted); }
+.timeline .table-scroll { overflow-x: auto; margin-top: 6px; }
+.timeline tr.step-failed td { color: var(--bad); }
+.timeline tr.step-running td { color: var(--accent); }
 
 /* ---- console --------------------------------------------------------- */
 .console-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }

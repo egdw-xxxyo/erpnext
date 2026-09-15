@@ -210,10 +210,9 @@ for meta_path in sorted(glob.glob(".ops-jobs/*.meta")):
 rows.sort(key=lambda r: r.get("started", 0), reverse=True)
 rows = rows[:20]
 
-# Milestone markers, newest jobs only: every panel poll carries these, and an
-# old job's phases are of no interest once its log is the only thing anyone
-# would open.
-for row in rows[:3]:
+# Milestone markers for every listed job: a dozen short lines each, so the Step
+# column stays filled for older runs too.
+for row in rows:
     try:
         with open(".ops-jobs/%s.progress" % row["id"]) as fh:
             row["progress"] = [ln.rstrip("\n") for ln in fh.read().splitlines() if ln.strip()][-40:]
@@ -221,6 +220,25 @@ for row in rows[:3]:
         row["progress"] = []
 
 print(json.dumps(rows))
+PYEOF
+printf ',\n'
+
+# ---- job timing history: last 5 successful runs per action (jobs.py) --------
+printf '"history": '
+python3 - <<'PYEOF' 2>/dev/null || echo '{}'
+import glob, json, os
+
+history = {}
+for path in sorted(glob.glob(".ops-jobs/history/*/")):
+    runs = []
+    for run in sorted(glob.glob(path + "*.progress"), reverse=True)[:5]:
+        try:
+            with open(run) as fh:
+                runs.append([ln for ln in fh.read().splitlines() if ln.strip()][-60:])
+        except OSError:
+            continue
+    history[os.path.basename(path.rstrip("/"))] = runs
+print(json.dumps(history))
 PYEOF
 
 echo '}'

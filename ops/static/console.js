@@ -36,6 +36,25 @@
 		}
 	}
 
+	// Time-left estimates are rendered server-side as seconds remaining; tick
+	// them down locally between panel polls. The deadline is pinned on first
+	// sight, so a re-rendered panel restarts from the fresh server value.
+	function formatSeconds(total) {
+		total = Math.max(0, Math.round(total));
+		return total < 60 ? total + "s" : Math.floor(total / 60) + "m " + (total % 60) + "s";
+	}
+
+	setInterval(function () {
+		var now = Date.now() / 1000;
+		document.querySelectorAll("[data-countdown]").forEach(function (el) {
+			if (!el.dataset.deadline) {
+				el.dataset.deadline = now + (parseFloat(el.getAttribute("data-countdown")) || 0);
+			}
+			var left = parseFloat(el.dataset.deadline) - now;
+			el.textContent = left > 0 ? "~" + formatSeconds(left) + " left" : "over estimate";
+		});
+	}, 1000);
+
 	function detach() {
 		if (current && current.source) {
 			current.source.close();

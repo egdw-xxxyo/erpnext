@@ -11,6 +11,7 @@ would lose.
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import time
 import uuid
@@ -51,11 +52,25 @@ setsid nohup bash -c '
   : > "$J.progress"
   export OPS_PHASE_LOG="$PWD/$J.progress"
   echo "=== @LABEL@ ===" >> "$J.log"
+  # Start and end of the whole run, same format as tools/ops-progress.sh.
+  ops_mark() {
+    printf "%s\n" "[OPS] $(date -u +%Y-%m-%dT%H:%M:%SZ) job $*" | tee -a "$J.progress" >> "$J.log"
+  }
+  ops_mark start "@LABEL@"
   set +e
   @COMMAND@ >> "$J.log" 2>&1
   rc=$?
+  if [ "$rc" = 0 ]; then ops_mark ok "exit 0"; else ops_mark fail "exit $rc"; fi
   echo "DEPLOY_EXIT=$rc" >> "$J.log"
   echo $rc > "$J.exit"
+  # Timings of the last five successful runs per action feed the time-left
+  # estimates. Kept outside the 14-day sweep (it only looks at depth 1).
+  if [ "$rc" = 0 ]; then
+    H=".ops-jobs/history/@ACTION@"
+    mkdir -p "$H"
+    cp "$J.progress" "$H/$(date -u +%Y%m%dT%H%M%S)-@ID@.progress"
+    ls -1 "$H"/*.progress 2>/dev/null | sort -r | tail -n +6 | xargs -r rm -f
+  fi
 ' >> "$J.log" 2>&1 </dev/null &
 disown
 
@@ -145,7 +160,8 @@ def launch(conn: HostConnection, action: str, command: str, label: str, username
 		# already shlex-quoted, but reject the impossible case rather than
 		# assume it.
 		COMMAND=_assert_no_single_quote(command),
-		LABEL=label.replace("'", ""),
+		LABEL=label.replace("'", "").replace('"', ""),
+		ACTION=re.sub(r"[^A-Za-z0-9_-]", "", action) or "other",
 	)
 	result = conn.run(script, timeout=20)
 	state = result.text.splitlines()[-1] if result.text else "unknown"
@@ -170,6 +186,23 @@ def status(conn: HostConnection, job_id: str) -> dict:
 		return json.loads(result.text or "{}")
 	except ValueError:
 		return {"id": job_id, "state": "unknown", "error": result.err.strip()[:200]}
+
+
+PROGRESS_SCRIPT = r"""
+cd @REPO@ 2>/dev/null || exit 0
+cat ".ops-jobs/@ID@.progress" 2>/dev/null && exit 0
+for f in .ops-jobs/history/*/*-@ID@.progress; do
+  [ -f "$f" ] && cat "$f" && exit 0
+done
+"""
+
+
+def progress_lines(conn: HostConnection, job_id: str) -> list[str]:
+	"""[OPS] markers of one run: its own side file, or the history copy once swept."""
+	if not job_id.isalnum():
+		raise ValueError("bad job id")
+	result = conn.run(_render(PROGRESS_SCRIPT, job_id), timeout=15)
+	return [line for line in (result.text or "").splitlines() if line.strip()]
 
 
 def sweep(conn: HostConnection) -> None:

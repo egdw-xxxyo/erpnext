@@ -4,7 +4,7 @@
 <table class="rows">
 	<tr><th>Action</th><th>By</th><th>Started</th><th>State</th><th>Step</th><th></th></tr>
 	{% for j in rows %}
-	{% set prog = j|job_progress %}
+	{% set prog = j|job_progress(data.history) %}
 	<tr>
 		<td>{{ j.label or j.action }}</td>
 		<td class="mono">{{ j.user }}</td>
@@ -18,6 +18,11 @@
 			{% if prog.current %}
 			<span class="{{ 'bad-text' if prog.current.state == 'failed' else 'muted' }}">{{ prog.current.label }}</span>
 			<em class="muted">{{ prog.done }}/{{ prog.total }}</em>
+			{% if prog.left is number %}
+			<em class="eta" data-countdown="{{ prog.left|round|int }}">~{{ prog.left|duration }} left</em>
+			{% elif prog.took is number %}
+			<em class="muted">{{ prog.took|duration }}</em>
+			{% endif %}
 			{% else %}<span class="muted">—</span>{% endif %}
 		</td>
 		<td>

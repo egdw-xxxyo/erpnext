@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
 from .. import jobs as jobs_mod
-from .. import stats
+from .. import progress, stats
 from ..config import settings
 from ..deps import SessionDep
 from ..sessions import Session
@@ -35,10 +35,22 @@ async def job_console(job_id: str, request: Request, session: SessionDep, label:
 	if not job_id.isalnum():
 		raise HTTPException(status_code=400, detail="bad job id")
 	state = await asyncio.to_thread(jobs_mod.status, session.conn, job_id)
+	try:
+		lines = await asyncio.to_thread(jobs_mod.progress_lines, session.conn, job_id)
+	except Exception:
+		lines = []
+	timeline = progress.parse(lines, (state or {}).get("state"))
 	return templates.TemplateResponse(
 		request,
 		"partials/job_console.html",
-		{"settings": settings, "session": session, "job_id": job_id, "state": state, "label": label},
+		{
+			"settings": settings,
+			"session": session,
+			"job_id": job_id,
+			"state": state,
+			"label": label,
+			"timeline": timeline,
+		},
 	)
 
 
