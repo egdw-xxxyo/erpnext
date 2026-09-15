@@ -328,6 +328,17 @@ class StatsCache:
 			self._fetched_at = time.time()
 			return self._snapshot()
 
+	def note_launched(self, row: dict[str, Any]) -> dict[str, Any]:
+		"""Put a just-launched job on top of the cached snapshot.
+
+		The next real refresh replaces it; until then the panels show the job as
+		running right away instead of waiting out the TTL.
+		"""
+		if self._data:
+			jobs = [j for j in self._data.get("jobs") or [] if j.get("id") != row.get("id")]
+			self._data["jobs"] = [row, *jobs][:20]
+		return self._snapshot()
+
 	def _snapshot(self) -> dict[str, Any]:
 		data = dict(self._data)
 		data["_fetched_at"] = self._fetched_at

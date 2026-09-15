@@ -28,6 +28,7 @@ LINE_RE = re.compile(r"\[OPS\]\s+(\S+)\s+(\S+)\s+(start|ok|fail|skip)(?:\s+(.*))
 JOB_PHASE = "job"
 
 LABELS = {
+	JOB_PHASE: "Command start",
 	"image": "Build image",
 	"containers": "Recreate containers",
 	"assets": "Sync assets",
@@ -49,6 +50,7 @@ LABELS = {
 # Only used for the "step N of M" hint; a mismatch is cosmetic.
 EXPECTED: dict[str, list[str]] = {
 	"build": [
+		JOB_PHASE,
 		"backup-prune",
 		"backup",
 		"image",
@@ -61,10 +63,10 @@ EXPECTED: dict[str, list[str]] = {
 		"extra-apps",
 		"done",
 	],
-	"backup": ["backup-prune", "backup"],
-	"update-repo": ["repo", "tags", "submodules", "done"],
-	"switch-branch": ["repo", "tags", "submodules", "done"],
-	"ops-rebuild": ["ops-image", "ops", "done"],
+	"backup": [JOB_PHASE, "backup-prune", "backup"],
+	"update-repo": [JOB_PHASE, "repo", "tags", "submodules", "done"],
+	"switch-branch": [JOB_PHASE, "repo", "tags", "submodules", "done"],
+	"ops-rebuild": [JOB_PHASE, "ops-image", "ops", "done"],
 }
 
 
@@ -84,6 +86,12 @@ def span(start: str | None, end: str | None) -> float | None:
 	return max(b - a, 0.0)
 
 
+def _close_job_step(index: dict[str, dict], stamp: str) -> None:
+	step = index.get(JOB_PHASE)
+	if step and step.get("state") == "running":
+		step.update(state="done", finished=stamp, took=span(step.get("started"), stamp))
+
+
 def parse(lines, job_state: str | None = None) -> dict:
 	"""Fold marker lines into ordered steps. `job_state` is the job's own state."""
 	steps: list[dict] = []
@@ -96,10 +104,20 @@ def parse(lines, job_state: str | None = None) -> dict:
 			continue
 		stamp, phase, status, text = match.group(1), match.group(2), match.group(3), match.group(4) or ""
 		if phase == JOB_PHASE:
-			job["started" if status == "start" else "finished"] = stamp
+			if status == "start":
+				job["started"] = stamp
+				step = {"key": JOB_PHASE, "label": LABELS[JOB_PHASE], "started": stamp}
+				step.update(state="running", text=text.strip())
+				index[JOB_PHASE] = step
+				steps.insert(0, step)
+			else:
+				job["finished"] = stamp
+				_close_job_step(index, stamp)
 			continue
 		step = index.get(phase)
 		if step is None:
+			# The first script milestone ends the "command start" step.
+			_close_job_step(index, stamp)
 			step = {"key": phase, "label": LABELS.get(phase, phase), "started": stamp}
 			index[phase] = step
 			steps.append(step)

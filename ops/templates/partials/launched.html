@@ -2,4 +2,8 @@
 <div class="alert error">{{ error }}</div>
 {% else %}
 {% include "partials/job_console.html" %}
+{% if data and data.jobs %}
+<div hx-swap-oob="innerHTML:#panel-actions">{% include "partials/actions.html" %}</div>
+<div hx-swap-oob="innerHTML:#panel-jobs">{% include "partials/jobs.html" %}</div>
+{% endif %}
 {% endif %}

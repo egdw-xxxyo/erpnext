@@ -7,6 +7,7 @@ token, and is written to the host-side audit log before it runs.
 from __future__ import annotations
 
 import asyncio
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -84,4 +85,21 @@ async def launch(key: str, request: Request, session: SessionDep):
 		job_id=job_id,
 		result="launched",
 	)
-	return _fragment(request, session, job_id=job_id, label=command.label)
+	started = time.time()
+	stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
+	data = stats.cache.note_launched(
+		{
+			"id": job_id,
+			"action": key,
+			"label": command.label,
+			"user": session.username,
+			"args": values,
+			"started": int(started),
+			"state": "running",
+			"exit": "",
+			"progress": [f"[OPS] {stamp} job start {command.label}"],
+		}
+	)
+	return _fragment(
+		request, session, job_id=job_id, label=command.label, data=data, commands=commands.COMMANDS
+	)
