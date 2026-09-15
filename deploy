@@ -340,6 +340,10 @@ instance_env() {
     echo "$INSTANCE_ENV"
   elif [ "$DEPLOY_ENV" = "production" ]; then
     echo prod
+  # Prod was set up before .deploy-env existed and has none, so DEPLOY_ENV
+  # defaults to dev there; its site-config.json is the reliable marker.
+  elif [ "$(python3 -c "import json;print(json.load(open('$DIR/site-config.json')).get('environment',''))" 2>/dev/null)" = "prod" ]; then
+    echo prod
   elif [ "$(uname -s)" = "Darwin" ]; then
     echo local
   else
