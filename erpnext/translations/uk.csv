@@ -6055,6 +6055,7 @@ New Purchase Invoice,Нова накладна за купівлю
 New Purchase Orders,Нові Замовлення на придбання
 New Quality Procedure,Нова процедура якості
 New Quotations,Нові Угоди
+New Revision,Нова редакція
 New Sales Invoice,Новий вихідний рахунок
 New Sales Orders,Нові Замовлення клієнтів
 New Sales Person Name,Ім'я нового Відповідального з продажу
@@ -13842,3 +13843,172 @@ Component {0},Компонент {0}
 "This note does not exist","Такої нотатки не існує"
 "Attendance Sheet Note","Нотатка в табелі"
 "Days spent on a business trip. They are paid, and are already counted among the present days.","Дні у відрядженні. Вони оплачуються і вже враховані в днях присутності."
+Document Section,Розділ реєстру
+Section Name,Назва розділу
+Default Document Type,Тип документа за замовчуванням
+Naming Prefix,Префікс нумерації
+Prefix used by the Document Naming Rule of this section,"Префікс, який використовує правило нумерації цього розділу"
+Default Section,Розділ за замовчуванням
+Review Period (Months),"Періодичність перегляду, міс."
+Retention Period (Months),"Строк зберігання, міс."
+Requires Approval,Потребує погодження
+Product Classification,Класифікація виробу
+Modifications,Модифікації
+Cannot delete section {0}: it holds {1} document(s),Неможливо видалити розділ {0}: у ньому {1} документ(ів)
+Document Relation,Звʼязок документа
+Document Title,Назва документа
+External Number,Зовнішній номер
+Section,Розділ
+Document Date,Дата документа
+Responsibility,Відповідальність
+Responsible,Відповідальний
+Responsible Department,Підрозділ відповідального
+Author,Автор
+Approved By,Погодив
+Approval Date,Дата погодження
+Validity,Чинність
+Valid Until,Чинний до
+Next Review Date,Дата наступного перегляду
+Retention Until,Зберігати до
+Related Documents,Повʼязані документи
+Relations,Звʼязки
+Relation Type,Тип звʼязку
+No related documents yet,Повʼязаних документів ще немає
+Document Revision,Редакція документа
+Revision Number,Номер редакції
+Revision Title,Назва редакції
+Revision Status,Статус редакції
+PDF File,Файл PDF
+Signed Scan,Скан із підписом
+Change,Зміна
+Prepared By,Підготував
+Checked By,Перевірив
+Effective Date,Дата набуття чинності
+End Date,Дата припинення
+Revisions,Редакції
+Current Revision,Актуальна редакція
+Revision {0} is not submitted,Редакція {0} не проведена
+PDF,PDF
+Document Audit Entry,Запис журналу аудиту
+Event,Подія
+Event Time,Час події
+User,Користувач
+Field Changed,Змінене поле
+Value Before,Значення до
+Value After,Значення після
+Audit entries are written by the register itself,Записи журналу створює сам реєстр
+Product Type,Тип виробу
+Product Subtype,Підтип виробу
+Product Model,Модель виробу
+Modification Code,Шифр модифікації
+Modification,Модифікація
+Introduction Date,Дата впровадження
+Discontinued Date,Дата зняття з виробництва
+Result,Результат
+NSN,NSN
+Other Codes,Інші коди
+Documents,Документи
+NATO Codification,Кодифікація НАТО
+Codification,Кодифікація
+Requirements,Вимоги
+Required Document Type,Потрібний тип документа
+Mandatory,Обовʼязковий
+Requirement Template,Шаблон комплектності
+Documentation Completeness,Комплектність документації
+Completeness,Комплектність
+Requirement,Вимога
+State,Стан
+optional,необовʼязковий
+of,із
+Start Date,Дата початку
+Additional Attachment,Додаткове вкладення
+Change Basis,Підстава зміни
+Change Description,Опис змін
+Codification Documents,Документи кодифікації
+Codification Start Date,Дата початку кодифікації
+Completeness Record,Запис комплектності
+Current Revision Effective Date,Дата набуття чинності поточної редакції
+Document Revisions,Редакції документа
+Linked Records,Пов'язані записи
+Main Document,Основний документ
+NATO Code / NSN,Код НАТО / NSN
+Number,Номер
+Other Codes Received,Інші отримані коди
+Product Modification,Модифікація виробу
+Related Document,Пов'язаний документ
+"Revisions, Modifications and Codification","Редакції, модифікації та кодифікація"
+Subtype,Підтип
+Technical Document Type,Тип технічного документа
+Technical Specification,ТУ
+Word File,Word-файл
+Responsibility and Validity,Відповідальність і чинність
+Legacy Mirror Tables,Застарілі дзеркальні таблиці
+Review and Retention,Перегляд і зберігання
+Default Review Period (Months),Період перегляду за замовчуванням (місяців)
+Extensions,Розширення
+Has Product Classification,Має класифікацію виробу
+Has Modifications,Має модифікації
+Requires Completeness,Потребує контролю комплектності
+Requires Approval By Default,Потребує погодження за замовчуванням
+Parent Section,Батьківський розділ
+Expiry date cannot be earlier than the effective date,Дата завершення не може бути раніше за дату набуття чинності
+Revision {0} is already in force for document {1},Редакція {0} уже є чинною для документа {1}
+Revision {0} belongs to another document,Редакція {0} належить іншому документу
+Revision {0} is not submitted and cannot be the current one,Редакція {0} не проведена і не може бути чинною
+Revision {0} has status {1} and cannot be the current one,Редакція {0} має статус {1} і не може бути чинною
+A document cannot be related to itself,Документ не можна повʼязати сам із собою
+Relation {0} already records this link,Звʼязок {0} уже фіксує це повʼязання
+Duplicate relation,Дубльований звʼязок
+An audit entry cannot be changed once written,Запис журналу не можна змінити після створення
+Access restricted,Доступ обмежено
+Annex,Додаток
+Codification Date,Дата кодифікації
+Codification Record,Запис кодифікації
+Codification Status,Статус кодифікації
+Codified,Кодифіковано
+Could not load this section,Не вдалося завантажити розділ
+In force,Чинних
+In progress,В процесі
+Mandatory documents,Обовʼязкових документів
+Modification Status,Статус модифікації
+No document refers to this one,На цей документ ніхто не посилається
+No requirement template selected,Шаблон комплектності не вибрано
+Not codified,Не кодифіковано
+Referred to by,На цей документ посилаються
+Scan,Скан
+The template lists no requirements,У шаблоні немає вимог
+This document has no revisions yet,Для цього документа ще немає редакцій
+This document refers to,Цей документ посилається на
+This specification has no modifications yet,Для цих ТУ ще немає модифікацій
+Technical Documentation Completeness,Комплектність технічної документації
+Documents present,Наявних документів
+Problems,Проблеми
+Completeness template is not set,Шаблон комплектності не задано
+Incomplete only,Лише неповні
+Technical Documentation,Технічна документація
+Register,Реєстр
+Specifications,Технічні умови
+Reports and Journal,Звіти та журнал
+State of the Register,Стан реєстру
+Your Shortcuts,Ваші ярлики
+Masters & Reports,Довідники та звіти
+{} Effective,{} чинних
+Effective Specifications,Чинних ТУ
+Documents Without a Current Revision,Документів без чинної редакції
+Codified Modifications,Кодифікованих модифікацій
+Codification in Progress,Кодифікація в процесі
+Technical Document,Технічний документ
+Technical Document Section,Розділ технічної документації
+Technical Document Revision,Редакція технічного документа
+Technical Document Relation,Звʼязок технічних документів
+Document Requirement Template,Шаблон комплектності
+Technical Document Audit Entry,Запис журналу технічної документації
+"Modifications and Codification","Модифікації та кодифікація"
+"Current version","Актуальна"
+"Document {0} is of a type that has no product modifications","Документ {0} має тип, у якого немає модифікацій виробу"
+"Modification {0} belongs to document {1}, not to {2}","Модифікація {0} належить документу {1}, а не {2}"
+"Make Effective","Ввести в дію"
+"Revision {0} becomes the one in force, and the revision in force until now becomes superseded. Continue?","Редакція {0} стане чинною, а редакція, чинна дотепер, стане заміненою. Продовжити?"
+"Putting the revision into force","Введення редакції в дію"
+"Revision is now in force","Редакція введена в дію"
+"Only a submitted revision can be put into force","Ввести в дію можна лише проведену редакцію"

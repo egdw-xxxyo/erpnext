@@ -84,6 +84,12 @@ permission_query_conditions = {
 	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.get_permission_query_conditions",
 	# Chat attachments never appear in a File list query (file library picker, File list view).
 	"File": "erpnext.crm.chat_files.get_permission_query_conditions",
+	# Revisions, satellites and journal entries are visible exactly where their document is.
+	"Technical Document Revision": "erpnext.technical_documentation.permissions.revision_query_conditions",
+	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_query_conditions",
+	"Product Modification": "erpnext.technical_documentation.permissions.modification_query_conditions",
+	"NATO Codification": "erpnext.technical_documentation.permissions.codification_query_conditions",
+	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -93,6 +99,41 @@ share_access_inheritance = [
 	{"doctype": "Task", "fieldname": "project", "parent_doctype": "Project"},
 	{"doctype": "Task", "fieldname": "parent_task", "parent_doctype": "Task"},
 	{"doctype": "Timesheet", "fieldname": "parent_project", "parent_doctype": "Project"},
+	{
+		"doctype": "Technical Document Section",
+		"fieldname": "parent_technical_document_section",
+		"parent_doctype": "Technical Document Section",
+	},
+	{
+		"doctype": "Technical Document",
+		"fieldname": "section",
+		"parent_doctype": "Technical Document Section",
+	},
+	{
+		"doctype": "Technical Document Revision",
+		"fieldname": "technical_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "Technical Document Relation",
+		"fieldname": "main_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "Product Modification",
+		"fieldname": "technical_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "NATO Codification",
+		"fieldname": "technical_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "Technical Document Audit Entry",
+		"fieldname": "document",
+		"parent_doctype": "Technical Document",
+	},
 ]
 
 has_permission = {
@@ -102,6 +143,11 @@ has_permission = {
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
 	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.has_permission",
+	"Technical Document Revision": "erpnext.technical_documentation.permissions.revision_has_permission",
+	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_has_permission",
+	"Product Modification": "erpnext.technical_documentation.permissions.modification_has_permission",
+	"NATO Codification": "erpnext.technical_documentation.permissions.codification_has_permission",
+	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
 }
 
 welcome_email = "erpnext.setup.utils.welcome_email"
@@ -138,6 +184,7 @@ treeviews = [
 	"Sales Person",
 	"Territory",
 	"Department",
+	"Technical Document Section",
 ]
 
 demo_master_doctypes = [
