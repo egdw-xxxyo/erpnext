@@ -576,7 +576,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Fiscal Receipt",
+   "label": "Payment Instruction",
    "no_copy": 1,
    "options": "\nДодано\nВідсутній\nЧастково",
    "read_only": 1

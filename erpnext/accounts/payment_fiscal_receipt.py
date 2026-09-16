@@ -36,8 +36,8 @@ frappe.ui.form.on("Payment Entry", {
 						<div class="flex align-start">
 							<div class="mr-2" style="font-size: 1.25rem; line-height: 1;">&#9888;</div>
 							<div>
-								<strong>${__("Fiscal receipt has not been attached")}</strong><br>
-								<span class="text-muted">${__("The payment can be submitted without a receipt and the receipt can be attached later.")}</span>
+								<strong>${__("Payment instruction has not been attached")}</strong><br>
+								<span class="text-muted">${__("The payment can be submitted without a payment instruction and it can be attached later.")}</span>
 							</div>
 						</div>
 					</div>`;
@@ -204,7 +204,7 @@ def _validate_file_extension(file_url):
 		return
 
 	frappe.throw(
-		_("The fiscal receipt must be a PDF, JPG, JPEG or PNG file."),
+		_("The payment instruction must be a PDF, JPG, JPEG or PNG file."),
 		title=_("Unsupported File Format"),
 	)
 
@@ -217,10 +217,10 @@ def _validate_private_file(file_url):
 		as_dict=True,
 	)
 	if not file_record:
-		frappe.throw(_("The uploaded fiscal receipt could not be found."))
+		frappe.throw(_("The uploaded payment instruction could not be found."))
 	if not file_record.is_private:
 		frappe.throw(
-			_("The fiscal receipt must be uploaded as a private file."),
+			_("The payment instruction must be uploaded as a private file."),
 			title=_("Private File Required"),
 		)
 

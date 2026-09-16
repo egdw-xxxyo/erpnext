@@ -202,7 +202,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 							row.payment_complete ? "green" : "gray"
 						)}</td>
 						<td>${render_status_badge(
-							row.fiscal_receipt_added ? __("Added") : __("Fiscal receipt missing"),
+							row.fiscal_receipt_added ? __("Added") : __("Payment instruction missing"),
 							row.fiscal_receipt_added ? "green" : "gray"
 						)}</td>
 						<td>${render_percentage_progress(row.per_received)}</td>
@@ -216,7 +216,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 					"Grand Total"
 				)}</th><th class="text-right">${__("Billed")}</th><th>${__(
 					"Payment Completed"
-				)}</th><th>${__("Fiscal Receipt")}</th><th>${__(
+				)}</th><th>${__("Payment Instruction")}</th><th>${__(
 					"Received"
 				)}</th></tr></thead><tbody>${body}</tbody></table></div>
 				<h5 class="mt-4 mb-3">${__("Purchase Receipts")}</h5>

@@ -105,7 +105,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_fiscal_receipt_status",
 			"fieldtype": "Select",
-			"label": "Fiscal Receipt",
+			"label": "Payment Instruction",
 			"options": "\nДодано\nВідсутній\nЧастково",
 			"read_only": 1,
 			"no_copy": 1,
@@ -117,15 +117,29 @@ PAYMENTS_CUSTOM_FIELDS = {
 	],
 	"Payment Entry": [
 		{
+			"fieldname": "custom_supplier_invoice_files_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Invoice Files",
+			"insert_after": "reference_date",
+		},
+		{
+			"fieldname": "custom_supplier_invoice_files_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Invoice Files",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_invoice_files_section",
+		},
+		{
 			"fieldname": "custom_fiscal_receipt_section",
 			"fieldtype": "Section Break",
-			"label": "Fiscal Receipt",
-			"insert_after": "reference_date",
+			"label": "Payment Instruction",
+			"insert_after": "custom_supplier_invoice_files_html",
 		},
 		{
 			"fieldname": "custom_fiscal_receipt",
 			"fieldtype": "Attach",
-			"label": "Fiscal Receipt (File)",
+			"label": "Payment Instruction (File)",
 			"allow_on_submit": 1,
 			"no_copy": 1,
 			"insert_after": "custom_fiscal_receipt_section",
@@ -133,7 +147,7 @@ PAYMENTS_CUSTOM_FIELDS = {
 		{
 			"fieldname": "custom_fiscal_receipt_status",
 			"fieldtype": "Select",
-			"label": "Fiscal Receipt Availability",
+			"label": "Payment Instruction Availability",
 			"options": "Відсутній\nДодано",
 			"default": "Відсутній",
 			"read_only": 1,
@@ -375,7 +389,7 @@ def sync_payment_entry_list_fields():
 		{"fieldname": "name", "label": "ID"},
 		{
 			"fieldname": "custom_fiscal_receipt_status",
-			"label": "Fiscal Receipt Availability",
+			"label": "Payment Instruction Availability",
 		},
 	]
 

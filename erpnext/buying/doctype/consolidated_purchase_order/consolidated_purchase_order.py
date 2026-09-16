@@ -444,6 +444,77 @@ def get_supplier_contacts(source_name=None, suppliers=None):
 
 
 @frappe.whitelist()
+def get_supplier_invoice_files(consolidated_order=None, supplier=None, references=None):
+	"""Return source supplier invoice files without copying them to downstream documents."""
+	contexts = {}
+	if consolidated_order and supplier:
+		contexts[(consolidated_order, supplier)] = False
+
+	references = frappe.parse_json(references) if isinstance(references, str) else references
+	purchase_invoice_names = set()
+	payment_request_names = set()
+	for reference in references or []:
+		reference = frappe._dict(reference)
+		if reference.reference_doctype == "Purchase Invoice" and reference.reference_name:
+			purchase_invoice_names.add(reference.reference_name)
+		elif reference.reference_doctype == "Payment Request" and reference.reference_name:
+			payment_request_names.add(reference.reference_name)
+		elif reference.payment_request:
+			payment_request_names.add(reference.payment_request)
+
+	for payment_request_name in payment_request_names:
+		payment_request = frappe.get_doc("Payment Request", payment_request_name)
+		payment_request.check_permission("read")
+		if payment_request.reference_doctype == "Purchase Invoice" and payment_request.reference_name:
+			purchase_invoice_names.add(payment_request.reference_name)
+
+	for purchase_invoice_name in purchase_invoice_names:
+		purchase_invoice = frappe.get_doc("Purchase Invoice", purchase_invoice_name)
+		purchase_invoice.check_permission("read")
+		if purchase_invoice.get("custom_consolidated_purchase_order") and purchase_invoice.supplier:
+			contexts[(purchase_invoice.custom_consolidated_purchase_order, purchase_invoice.supplier)] = True
+
+	result = []
+	for source_name, supplier_name in sorted(contexts):
+		if not contexts[(source_name, supplier_name)]:
+			source = frappe.get_doc("Consolidated Purchase Order", source_name)
+			source.check_permission("read")
+		rows = frappe.get_all(
+			"Consolidated Purchase Supplier Invoice",
+			filters={
+				"parent": source_name,
+				"parenttype": "Consolidated Purchase Order",
+				"parentfield": "supplier_invoices",
+				"supplier": supplier_name,
+				"invoice_pdf": ["is", "set"],
+			},
+			fields=["invoice_document", "invoice_pdf"],
+			order_by="idx asc",
+		)
+		seen_urls = set()
+		files = []
+		for row in rows:
+			if row.invoice_pdf in seen_urls:
+				continue
+			seen_urls.add(row.invoice_pdf)
+			files.append(
+				{
+					"file_name": row.invoice_document
+					or ConsolidatedPurchaseOrder._get_supplier_invoice_file_name(row.invoice_pdf),
+					"file_url": row.invoice_pdf,
+				}
+			)
+		result.append(
+			{
+				"consolidated_order": source_name,
+				"supplier": supplier_name,
+				"files": files,
+			}
+		)
+	return result
+
+
+@frappe.whitelist()
 def get_delivery_notes_for_purchase_order(purchase_order):
 	order = frappe.get_doc("Purchase Order", purchase_order)
 	order.check_permission("read")

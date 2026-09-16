@@ -197,6 +197,14 @@ CUSTOM_FIELDS = {
 			"insert_after": "supplier_name",
 		},
 		{
+			"fieldname": "custom_supplier_invoice_files_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Invoice Files",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "bill_date",
+		},
+		{
 			"fieldname": "custom_paid_outside_company",
 			"fieldtype": "Check",
 			"label": "Payer",
@@ -419,13 +427,25 @@ def after_migrate():
 	frappe.clear_cache(doctype="Purchase Order Item")
 	frappe.clear_cache(doctype="Purchase Receipt")
 	frappe.clear_cache(doctype="Purchase Invoice")
+	frappe.clear_cache(doctype="Payment Entry")
 	frappe.clear_cache(doctype="Consolidated Purchase Order")
 	frappe.clear_cache(doctype="Workspace")
 
 
 def sync_procurement_custom_fields():
+	_remove_legacy_purchase_invoice_supplier_files_section()
 	create_custom_fields(CUSTOM_FIELDS, update=True)
 	_remove_purchase_receipt_ttn_fields()
+
+
+def _remove_legacy_purchase_invoice_supplier_files_section():
+	"""Remove the separate top-level section replaced by the standard invoice section."""
+	name = frappe.db.exists(
+		"Custom Field",
+		{"dt": "Purchase Invoice", "fieldname": "custom_supplier_invoice_files_section"},
+	)
+	if name:
+		frappe.delete_doc("Custom Field", name, force=True, ignore_permissions=True)
 
 
 def _remove_purchase_receipt_ttn_fields():

@@ -13880,6 +13880,19 @@ created the Purchase Invoice,створив рахунок постачальн�
 created the Payment Request,створив запит на оплату
 created the Material Request,створив замовлення матеріалів
 {0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+Payment Instruction,Платіжна інструкція
+Payment Instruction (File),Платіжна інструкція
+Payment Instruction Availability,Наявність платіжної інструкції
+Payment instruction has not been attached,Платіжну інструкцію не прикріплено
+The payment can be submitted without a payment instruction and it can be attached later.,Оплату можна провести без платіжної інструкції та прикріпити її пізніше.
+"The payment instruction must be a PDF, JPG, JPEG or PNG file.","Платіжна інструкція має бути файлом PDF, JPG, JPEG або PNG."
+The uploaded payment instruction could not be found.,Завантажену платіжну інструкцію не знайдено.
+The payment instruction must be uploaded as a private file.,Платіжну інструкцію потрібно завантажити як приватний файл.
+Payment instruction missing,Відсутня
+Supplier Invoice Files,Файли рахунків постачальника
+Supplier invoice files are available for invoices created from a consolidated purchase order.,Файли рахунків постачальника доступні для рахунків-фактур, створених зі зведеного замовлення на придбання.
+Supplier invoice files will appear after selecting a linked Purchase Invoice.,Файли рахунків постачальника з’являться після вибору пов’язаного вхідного рахунку-фактури.
+No supplier invoice files are attached for this supplier.,Для цього постачальника не додано файлів рахунків.
 Lead Buyer,Ведучий закупівельник
 Not specified,Не зазначено
 Select Initiator User,Виберіть користувача-ініціатора
