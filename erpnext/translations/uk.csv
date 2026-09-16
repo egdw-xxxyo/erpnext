@@ -1434,7 +1434,7 @@ Allow User to Edit Rate,Дозволити користувачу редагув
 Allow User to Edit Warehouse,Дозволити користувачу редагувати склад
 Allow Variant UOM to be different from Template UOM,Дозволити одиниці виміру варіанту відрізнятися від одиниці виміру шаблону
 Allow Zero Rate,Дозволити нульову ставку
-Allow Zero Valuation Rate,Дозволити нульову Незалежну оцінку Оцінити
+Allow Zero Valuation Rate,Дозволити нульову оцінку
 Allow existing Serial No to be Manufactured/Received again,Дозволити повторне виробництво/отримання існуючого серійного номера
 Allow material consumptions without immediately manufacturing finished goods against a Work Order,Дозволити споживання матеріалів без негайного виробництва готової продукції за робочим замовленням
 Allow multi-currency invoices against single party account ,Дозволити мультивалютні рахунки для облікового запису однієї сторони 
@@ -8361,7 +8361,8 @@ Row #{0}: Item {1} cannot be transferred more than {2} against {3} {4},Рядо�
 Row #{0}: Item {1} does not exist,Рядок #{0}: Товар {1} не існує
 "Row #{0}: Item {1} has been picked, please reserve stock from the Pick List.","Рядок #{0}: обрано товар {1}, будь ласка, зарезервуйте запас зі списку підбору."
 Row #{0}: Item {1} has no stock in warehouse {2}.,Рядок #{0}: Товар {1} відсутній на складі {2}.
-Row #{0}: Item {1} has zero rate but 'Allow Zero Valuation Rate' is not enabled.,"Рядок #{0}: Товар {1} має нульову ставку, але параметр ""Дозволити нульову ставку оцінки"" не увімкнено."
+Row #{0}: Item {1} has zero rate but '{2}' is not enabled.,"Рядок #{0}: Товар {1} має нульову ставку, але параметр «{2}» не увімкнено."
+Row #{0}: Item {1} has zero rate but 'Allow Zero Valuation Rate' is not enabled.,"Рядок #{0}: Товар {1} має нульову ставку, але параметр «Дозволити нульову оцінку» не увімкнено."
 "Row #{0}: Item {1} in warehouse {2}: Available {3}, Needed {4}.","Рядок #{0}: Товар {1} на складі {2}: Доступно {3}, Потрібно {4}."
 Row #{0}: Item {1} is not a Customer Provided Item.,"Рядок #{0}: Товар {1} не є товаром, наданим клієнтом."
 Row #{0}: Item {1} is not a Serialized/Batched Item. It cannot have a Serial No/Batch No against it.,Рядок № {0}: Пункт {1} не є серіалізованим / пакетним елементом. Він не може мати серійний номер / номер партії проти нього.
@@ -13933,3 +13934,273 @@ Example,Приклад
 "KP Code","Код КП"
 "Professional Title","Професійна назва роботи"
 "KP Code {0} with professional title {1} is not in the Classifier of Professions","Коду КП {0} з професійною назвою роботи {1} немає в Класифікаторі професій"
+Employees this one fills the attendance sheet for on top of their direct reports. ,"Працівники, за яких цей співробітник заповнює табель додатково до своїх прямих підлеглих. "
+Shown in the attendance sheet on the days of this leave. ,Показується в табелі у дні цієї відсутності. 
+There is nothing left to pay here.,Тут більше немає чого виплачувати.
+Summarized View,Зведений вигляд
+Mark Attendance,Відмітити відвідування
+Leave Type,Тип відпустки
+Please set a date range less than {0} days.,"Вкажіть діапазон дат, менший за {0} днів."
+Jan,Січ
+Feb,Лют
+Mar,Бер
+Apr,Кві
+Aug,Сер
+Sep,Вер
+Oct,Жов
+Nov,Лис
+Dec,Гру
+Absent,Відсутній
+Present,Присутній
+Select the company.,Оберіть компанію.
+Payment Entry (Card),Платіж (картка)
+Payment Entry (Cash),Платіж (готівка)
+Paid {0},Виплачено {0}
+Pay {0},Виплатити {0}
+Unlink,Відв'язати
+Managers,Керівники
+No token given,Токен не надано
+En Route,У дорозі
+Odometer End is required before submitting,Перед проведенням потрібно вказати кінцевий пробіг
+Vehicle {0} is already en route in trip {1},Транспорт {0} вже в дорозі у поїздці {1}
+Odometer End cannot be less than Odometer Start,Кінцевий пробіг не може бути меншим за початковий
+Odometer Start ({0}) cannot be less than last recorded reading ({1}),Початковий пробіг ({0}) не може бути меншим за останнє записане значення ({1})
+No previous trips found for this vehicle. Please update the odometer manually.,Для цього транспорту немає попередніх поїздок. Оновіть пробіг вручну.
+Complete Trip,Завершити поїздку
+The value {0} is already assigned to an existing {1}.,Значення {0} вже призначено наявному {1}.
+"To still proceed with editing this Attribute Value, enable {0} in Specification Variant Settings.","Щоб усе одно змінити це значення атрибута, увімкніть {0} у налаштуваннях варіантів специфікацій."
+Production Flow,Виробничий потік
+Select Item...,Оберіть товар...
+Select BOM...,Оберіть норми...
+No BOM with operations found for this item,Для цього товару не знайдено норм з операціями
+Materials,Матеріали
+No specific materials mapped,Конкретні матеріали не призначені
+min,хв
+BpAK Modifications Sheet,Відомість модифікацій БпАК
+Select a specification,Оберіть специфікацію
+Modification,Модифікація
+FPV Code,Шифр FPV
+No modifications for this specification,Немає модифікацій для цієї специфікації
+BpAK Matrix (board × ground station),Матриця БпАК (борт × НСУ)
+Workplace Portal,Портал робочого місця
+No active Workplaces found. Create one first.,Активних робочих місць не знайдено. Спочатку створіть робоче місце.
+My Job Cards,Мої карти завдань
+Other Job Cards,Інші карти завдань
+No Job Cards found for the configured operations,Для налаштованих операцій карт завдань не знайдено
+"Scan Job Card, Serial Number or Item Barcode","Скануйте карту завдань, серійний номер або штрихкод товару"
+Job Card Found,Карту завдань знайдено
+Job Card {0} for {1} ({2}),Карта завдань {0} для {1} ({2})
+No matching Job Card found for barcode: {0},Не знайдено карти завдань за штрихкодом: {0}
+Back to list,Назад до списку
+Click to unassign,"Натисніть, щоб скасувати призначення"
+Assign Employee,Призначити працівника
+No workstation found for: {0},Робочу станцію не знайдено для: {0}
+Workstation set: {0},Встановлено робочу станцію: {0}
+Missing Required Fields,Не заповнені обов'язкові поля
+Select Employee,Оберіть працівника
+No employee linked to your user,З вашим користувачем не пов'язано працівника
+"Nothing to order, the selected rows are already covered by stock or existing orders",Немає чого замовляти: обрані рядки вже покриті запасом або наявними замовленнями
+Nothing to order from the selected rows,З обраних рядків немає чого замовляти
+Product BOM,Норми виробу
+Maximum Producible Items,Максимальна кількість виробів
+Warehouse is required to get producible FG Items,Для отримання готових виробів потрібно вказати склад
+FG Items to Make,Готові вироби до випуску
+Show availability of exploded items,Показати наявність розгорнутих позицій
+Open Portal,Відкрити портал
+"Version must start with 'v', e.g. v2026.07.13","Версія має починатися з «v», напр. v2026.07.13"
+Modification {0} already exists for specification {1}: {2},Модифікація {0} вже існує для специфікації {1}: {2}
+Price List {0} is not enabled for {1},Прайс-лист {0} не увімкнено для {1}
+Record,Записати
+(no text),(без тексту)
+No Label Templates configured for barcode type: {0},Для типу штрихкоду {0} не налаштовано шаблонів етикеток
+Please select a Label Template,Оберіть шаблон етикетки
+No packages linked.,Пакування не прив'язані.
+— select printer —,— оберіть принтер —
+Payroll,Зарплата
+"Salary for {0}, paid on {1}.","Зарплата за {0}, виплачено {1}."
+Production Data,Виробничі дані
+labels will be created,етикеток буде створено
+Go to <a href='/banking/statement-importer' target='_blank' style='text-decoration: underline;'>Bank Statement Importer</a> in the Banking module to use this importer.,"Перейдіть до <a href='/banking/statement-importer' target='_blank' style='text-decoration: underline;'>Імпортера банківських виписок</a> у модулі «Банкінг», щоб скористатися цим імпортером."
+You do not have permission to import bank transactions,У вас немає прав на імпорт банківських транзакцій
+Permission Denied,Доступ заборонено
+You do not have permission to import and submit bank transactions,У вас немає прав на імпорт і проведення банківських транзакцій
+The bank account is not a company account. Please select a company account,Банківський рахунок не є рахунком компанії. Оберіть рахунок компанії
+Invalid Bank Account,Некоректний банківський рахунок
+The bank account is disabled. Please enable it,Банківський рахунок вимкнено. Увімкніть його
+Disabled Bank Account,Вимкнений банківський рахунок
+"Import template should be of type .csv, .xlsx, .xls or .pdf","Шаблон імпорту має бути типу .csv, .xlsx, .xls або .pdf"
+Invalid File Type,Некоректний тип файлу
+PDF statement support requires the 'pdfplumber' library to be installed.,Підтримка PDF-виписок потребує встановленої бібліотеки «pdfplumber».
+Missing Dependency,Відсутня залежність
+This PDF is password protected. Please set the correct statement password on the,Цей PDF захищено паролем. Вкажіть правильний пароль виписки у
+Password Required,Потрібен пароль
+Could not detect any tables in this PDF. It may be a scanned or image-based,"Не вдалося виявити таблиці в цьому PDF. Можливо, він сканований або графічний"
+No Tables Detected,Таблиць не виявлено
+This statement has already been imported.,Цю виписку вже імпортовано.
+Already Imported,Вже імпортовано
+Missing Required Filter,Відсутній обов'язковий фільтр
+Unsupported Feature,Непідтримувана можливість
+Method {0} must permit GET requests,Метод {0} має дозволяти GET-запити
+Account Filter,Фільтр рахунків
+API Method Path,Шлях до методу API
+Calculation Formula,Формула розрахунку
+"Invalid line reference format: '{0}'. Must start with letter and contain only letters, numbers, underscores, and hyphens","Некоректний формат посилання на рядок: «{0}». Має починатися з літери та містити лише літери, цифри, підкреслення та дефіси"
+Duplicate line reference: '{0}',Дубльоване посилання на рядок: «{0}»
+Balance Type is required for Account Data,Для даних рахунку потрібен тип залишку
+{0} is required for {1},{0} обов'язкове для {1}
+Circular dependency detected: {0},Виявлено циклічну залежність: {0}
+Line References undefined in Formula: {0},У формулі використані невизначені посилання на рядки: {0}
+{0} is required for Calculated Amount,{0} обов'язкове для розрахованої суми
+Formula has unbalanced parentheses,У формулі незбалансовані дужки
+Formula references itself ('{0}'),Формула посилається сама на себе («{0}»)
+Formula references undefined codes: {0},Формула посилається на невизначені коди: {0}
+Formula evaluation error: {0},Помилка обчислення формули: {0}
+"Formula must return a numeric value, got {0}","Формула має повертати число, отримано {0}"
+{0} is required for Account Data,{0} обов'язкове для даних рахунку
+{0}: Invalid JSON format: {1},{0}: некоректний формат JSON: {1}
+"Filter must be [field, operator, value]","Фільтр має бути [поле, оператор, значення]"
+Field and operator must be strings,Поле та оператор мають бути рядками
+Field '{0}' is not a valid Account field,Поле «{0}» не є коректним полем рахунку
+Invalid operator '{0}',Некоректний оператор «{0}»
+Operator '{0}' requires a list value,Оператор «{0}» потребує значення-списку
+Logical condition must have exactly one operator,Логічна умова має містити рівно один оператор
+Logical operators must be 'and' or 'or',Логічні оператори мають бути «and» або «or»
+Logical conditions need at least 1 sub-condition,Логічна умова потребує щонайменше однієї підумови
+Filter must be a list or dict,Фільтр має бути списком або словником
+{0} should be in format: app.module.method,{0} має бути у форматі: app.module.method
+{0}: Method '{1}' must be whitelisted and permit GET requests,{0}: метод «{1}» має бути у білому списку та дозволяти GET-запити
+Could not validate {0}: {1},Не вдалося перевірити {0}: {1}
+Tip,Підказка
+Tip: Select report lines to view their accounts,"Підказка: оберіть рядки звіту, щоб побачити їхні рахунки"
+Go to the <a href='/banking' target='_blank' style='text-decoration: underline;'>Banking module</a> to setup this rule.,"Перейдіть до <a href='/banking' target='_blank' style='text-decoration: underline;'>модуля «Банкінг»</a>, щоб налаштувати це правило."
+Invalid debit/credit formula: {0},Некоректна формула дебету/кредиту: {0}
+Min amount cannot be greater than max amount.,Мінімальна сума не може бути більшою за максимальну.
+Party type is required to create a payment entry.,Для створення платежу потрібен тип контрагента.
+Party is required create a payment entry.,Для створення платежу потрібен контрагент.
+Party account is required to create a payment entry.,Для створення платежу потрібен рахунок контрагента.
+Please add an account for the Bank Entry rule.,Додайте рахунок для правила банківського запису.
+Please configure accounts for the Bank Entry rule.,Налаштуйте рахунки для правила банківського запису.
+The last account row must not have any debit or credit amounts set.,В останньому рядку рахунку не має бути сум дебету чи кредиту.
+Invalid regex pattern.,Некоректний регулярний вираз.
+Account company does not match with the rule company.,Компанія рахунку не збігається з компанією правила.
+Related Item,Пов'язаний товар
+BOM Component,Компонент норм
+BOM Secondary Item,Супутній товар норм
+BOM Output,Випуск за нормами
+Product Bundle Component,Компонент комплекту
+Product Bundle Parent,Комплект
+Subcontracting Service Item,Послуга субпідряду
+Subcontracting Finished Good,Готовий виріб субпідряду
+Alternative For Item,Альтернатива для товару
+Add attributes first.,Спочатку додайте атрибути.
+Set Attribute Values,Задати значення атрибутів
+View Packages,Переглянути пакування
+No packages yet.,Пакувань ще немає.
+Serial No / Qty,Серійний номер / к-сть
+(empty),(порожньо)
+Packed {0} out of {1},Запаковано {0} з {1}
+Please select at least one BpAK,Оберіть щонайменше один БпАК
+A token like {0} reads a specification parameter of the item linked to that attribute value.,"Токен на кшталт {0} читає параметр специфікації товару, пов'язаного з цим значенням атрибута."
+Serial No is required for: {0},Потрібен серійний номер для: {0}
+Packing Template {0} requires a BpAK to be selected.,Шаблон пакування {0} потребує обраного БпАК.
+BpAK {0} not found,БпАК {0} не знайдено
+BpAK {0} is cancelled,БпАК {0} скасовано
+Package Sales Order {0} does not match BpAK Sales Order {1},Замовлення клієнта пакування {0} не збігається із замовленням БпАК {1}
+Cannot submit an empty Package. Add items first.,Неможливо провести порожнє пакування. Спочатку додайте позиції.
+Auto-pass QC is enabled but no draft Quality Inspection exists for serials: {0},"Автоматичне проходження контролю увімкнено, але немає чернеток перевірки якості для серійних номерів: {0}"
+No open Job Card with operation {0} found for serials: {1},Не знайдено відкритої карти завдань з операцією {0} для серійних номерів: {1}
+No draft Quality Inspection found for serial {0},Не знайдено чернетки перевірки якості для серійного номера {0}
+Cannot cancel a Package linked to Shipment {0},"Неможливо скасувати пакування, пов'язане з відправленням {0}"
+Cannot delete Package {0} because it is linked to Purchase Receipt {1},"Неможливо видалити пакування {0}, бо воно пов'язане з прибутковою накладною {1}"
+Cannot delete Package {0} because it is linked to Shipment {1},"Неможливо видалити пакування {0}, бо воно пов'язане з відправленням {1}"
+Duplicate serial number {0} in this package,Дубльований серійний номер {0} у цьому пакуванні
+No submitted Package found for barcode {0},Не знайдено проведеного пакування за штрихкодом {0}
+No Package found for {0},Не знайдено пакування для {0}
+Package {0} must be submitted first,Спочатку проведіть пакування {0}
+Purchase Receipt {0} not found,Прибуткову накладну {0} не знайдено
+Package {0} already linked to {1},Пакування {0} вже пов'язане з {1}
+Package {0} added to {1},Пакування {0} додано до {1}
+Package {0} is already linked to Shipment {1},Пакування {0} вже пов'язане з відправленням {1}
+Shipment {0} must be in Draft to add packages,"Щоб додати пакування, відправлення {0} має бути в чернетці"
+Package {0} added to Shipment {1},Пакування {0} додано до відправлення {1}
+Select BpAK before scanning items.,Оберіть БпАК перед скануванням позицій.
+Item {0} is not in BpAK {1},Товару {0} немає у БпАК {1}
+Stock Closing Entry {0} belongs to a closed accounting period. Cancel the Period Closing Voucher {1} first.,Запис закриття складу {0} належить до закритого облікового періоду. Спочатку скасуйте документ закриття періоду {1}.
+Closed Period,Закритий період
+Row #{0}: Cannot cancel this Manufacturing Stock Entry as quantity of Secondary Item {1} produced cannot be less than quantity delivered.,"Рядок #{0}: неможливо скасувати цей виробничий рух ТМЦ, оскільки випущена кількість супутнього товару {1} не може бути меншою за відвантажену."
+Print Job is required,Потрібне завдання друку
+Print Job {0} does not belong to a measurement,Завдання друку {0} не належить до вимірювання
+Print Job {0} not found,Завдання друку {0} не знайдено
+Send Next Step,Надіслати наступний крок
+Run All,Виконати все
+Test Case,Тестовий випадок
+Only Slow Scans,Лише повільні сканування
+Slower Than (ms),Повільніше ніж (мс)
+Total (ms),Разом (мс)
+Script (ms),Скрипт (мс)
+Resolve (ms),Обробка (мс)
+namespace. No entry point — define functions only.,простір імен. Без точки входу — визначайте лише функції.
+Template rendered empty HTML output,Шаблон повернув порожній HTML
+Print Job {0} is not in a printable state (status: {1}),"Завдання друку {0} не у стані, придатному для друку (статус: {1})"
+Printer {0} ({1}:{2}) is not responding. Check that it is powered on and connected to the network.,"Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі."
+Printer {0} ({1}:{2}) refused the connection. Check that the printer is on and the port is correct.,"Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний."
+Printer {0} ({1}:{2}) is unreachable from the network.,Принтер {0} ({1}:{2}) недоступний з мережі.
+Print error on printer {0} ({1}:{2}): {3},Помилка друку на принтері {0} ({1}:{2}): {3}
+Changing labels...,Зміна етикеток...
+Clear Memory,Очистити пам'ять
+Erase all stored images from printer memory?,Стерти всі збережені зображення з пам'яті принтера?
+Clearing printer memory...,Очищення пам'яті принтера...
+Printer memory cleared!,Пам'ять принтера очищено!
+Repository must be written as owner/name,Репозиторій треба вказувати як owner/name
+Please select at least one Scanner Command,Оберіть щонайменше одну команду сканера
+Subflows,Підпотоки
+Add states and transitions to render the diagram.,"Додайте стани та переходи, щоб побудувати діаграму."
+Please select at least one Print Job,Оберіть щонайменше одне завдання друку
+Cancelling...,Скасування...
+Deleting...,Видалення...
+No printers,Немає принтерів
+Select the label size you have loaded,"Оберіть розмір етикетки, який заряджено"
+Please select a printer first,Спочатку оберіть принтер
+Scan or type a serial number / name and press Enter,Скануйте або введіть серійний номер / назву та натисніть Enter
+Scan or type a value and press Enter to add to the list,"Скануйте або введіть значення та натисніть Enter, щоб додати до списку"
+No {0} found for '{1}',Не знайдено {0} для «{1}»
+", {0} skipped (printer error)",", {0} пропущено (помилка принтера)"
+Printing Stopped,Друк зупинено
+Printer reported an error. Remaining {0} labels were skipped.,Принтер повідомив про помилку. Решту {0} етикеток пропущено.
+No data to preview,Немає даних для попереднього перегляду
+Rendering preview...,Формування попереднього перегляду...
+Preview not available,Попередній перегляд недоступний
+Preview not available for this template type,Попередній перегляд недоступний для цього типу шаблону
+HTML Template is required,Потрібен HTML-шаблон
+Failed to render HTML to image,Не вдалося перетворити HTML на зображення
+Available Fields,Доступні поля
+Rendering...,Формування...
+Nothing to print. Set a Label Size and template.,Нічого друкувати. Вкажіть розмір етикетки та шаблон.
+Examples,Приклади
+Copy,Копіювати
+Copied,Скопійовано
+Loading fields...,Завантаження полів...
+No Reference DocType is set on this template.,У цьому шаблоні не вказано довідковий DocType.
+"For Raw Data templates, available keys are defined in the document(s) you pass at print time, or via Field Mapping.","Для шаблонів із сирими даними доступні ключі визначаються документами, які ви передаєте під час друку, або через зіставлення полів."
+Document fields,Поля документа
+Copy loop,Копіювати цикл
+(no renderable fields),(немає полів для виводу)
+Child tables,Дочірні таблиці
+Linked documents (one-level),Пов'язані документи (один рівень)
+Spec params,Параметри специфікації
+Flattened from the item's specification.,Розгорнуто зі специфікації товару.
+Field Mapping aliases,Псевдоніми зіставлення полів
+Runtime / preview-only keys,Ключі лише часу виконання / перегляду
+Seen in preview_data but not in doctype meta. Make sure they exist at runtime.,"Присутні у preview_data, але не в метаданих DocType. Переконайтеся, що вони існують під час виконання."
+Helpers,Помічники
+Translate,Перекласти
+Format date,Формат дати
+Barcode tag,Тег штрихкоду
+Attachment tag,Тег вкладення
+Filter fields...,Фільтрувати поля...
+Lines: {0} (limit {1}),Рядків: {0} (ліміт {1})
+line {0}: {1} chars,рядок {0}: {1} символів
+Too long: {0} (limit {1}),Задовге: {0} (ліміт {1})
+You have a new notification in ERPnext,У вас нове сповіщення у ERPnext
+Generate Barcode,Створити штрихкод
+(none),(немає)

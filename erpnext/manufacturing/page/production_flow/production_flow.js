@@ -460,7 +460,7 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				'<div class="pf-materials-panel">' +
 				'<div class="pf-materials-header" style="cursor: pointer">' +
 				"<span>" +
-				__("Матеріали") +
+				__("Materials") +
 				" (" +
 				this.data.items.length +
 				")</span>" +
@@ -514,7 +514,7 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 						options:
 							'<div class="pf-op-detail">' +
 							'<div class="pf-detail-row"><label>' +
-							__("Операція") +
+							__("Operation") +
 							"</label>" +
 							'<a href="' +
 							op_link +
@@ -522,7 +522,7 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 							op.operation +
 							" &#8599;</a></div>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Робоча станція") +
+							__("Workstation") +
 							"</label>" +
 							'<a href="' +
 							ws_link +
@@ -530,24 +530,24 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 							ws.name +
 							" &#8599;</a></div>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Час") +
+							__("Time") +
 							"</label>" +
 							"<span>" +
 							op.time_in_mins +
 							" " +
-							__("хв") +
+							__("min") +
 							"</span></div>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Крок") +
+							__("Step") +
 							"</label>" +
 							"<span>#" +
 							op.idx +
-							" з " +
+							" / " +
 							this.data.operations.length +
 							"</span></div>" +
 							"<hr>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Матеріали") +
+							__("Materials") +
 							"</label></div>" +
 							items_html +
 							"</div>",

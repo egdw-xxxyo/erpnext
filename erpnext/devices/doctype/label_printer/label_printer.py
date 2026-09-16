@@ -629,18 +629,18 @@ def print_label(print_job_name, label_printer=None):
 		err_text = str(e)
 		if "timed out" in err_text.lower() or isinstance(e, socket.timeout | TimeoutError):
 			msg = _(
-				"Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі."
+				"Printer {0} ({1}:{2}) is not responding. Check that it is powered on and connected to the network."
 			).format(job.label_printer, printer.ip_address, printer.port)
 		elif isinstance(e, ConnectionRefusedError) or "refused" in err_text.lower():
 			msg = _(
-				"Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний."
+				"Printer {0} ({1}:{2}) refused the connection. Check that the printer is on and the port is correct."
 			).format(job.label_printer, printer.ip_address, printer.port)
 		elif isinstance(e, OSError) and "unreachable" in err_text.lower():
-			msg = _("Принтер {0} ({1}:{2}) недоступний з мережі.").format(
+			msg = _("Printer {0} ({1}:{2}) is unreachable from the network.").format(
 				job.label_printer, printer.ip_address, printer.port
 			)
 		else:
-			msg = _("Помилка друку на принтері {0} ({1}:{2}): {3}").format(
+			msg = _("Print error on printer {0} ({1}:{2}): {3}").format(
 				job.label_printer, printer.ip_address, printer.port, err_text
 			)
 		frappe.throw(msg)
