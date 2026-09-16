@@ -1,4 +1,9 @@
 <h2>Recent jobs</h2>
+{% if data._jobs_error %}
+<div class="alert error small">Could not read job state from the host: {{ data._jobs_error }}</div>
+{% elif data._jobs_fetched_at %}
+<p class="muted small">state as of {{ data._jobs_fetched_at|ago }}</p>
+{% endif %}
 {% set rows = data.jobs or [] %}
 {% if rows %}
 <table class="rows">

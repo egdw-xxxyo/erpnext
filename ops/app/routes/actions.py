@@ -87,7 +87,7 @@ async def launch(key: str, request: Request, session: SessionDep):
 	)
 	started = time.time()
 	stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
-	data = stats.cache.note_launched(
+	jobs_snapshot = stats.jobs_cache.note_launched(
 		{
 			"id": job_id,
 			"action": key,
@@ -100,6 +100,14 @@ async def launch(key: str, request: Request, session: SessionDep):
 			"progress": [f"[OPS] {stamp} job start {command.label}"],
 		}
 	)
+	panel_data = dict(data)
+	panel_data["jobs"] = jobs_snapshot.get("jobs") or []
+	panel_data["history"] = jobs_snapshot.get("history") or {}
 	return _fragment(
-		request, session, job_id=job_id, label=command.label, data=data, commands=commands.COMMANDS
+		request,
+		session,
+		job_id=job_id,
+		label=command.label,
+		data=panel_data,
+		commands=commands.COMMANDS,
 	)

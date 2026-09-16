@@ -24,6 +24,7 @@ from .config import settings
 from .ssh import HostConnection
 
 FAST_TTL = 10.0
+JOBS_TTL = 3.0
 BACKUPS_TTL = 60.0
 DISK_DETAIL_TTL = 600.0
 
@@ -127,9 +128,11 @@ SECS=$(curl -s -o /dev/null -w '%{time_total}' -m 5 @ERP@/api/method/ping 2>/dev
 printf '"http": {"code":"%s","seconds":"%s"},\n' "$CODE" "$SECS"
 
 # ---- db + redis ------------------------------------------------------------
-DB=$($DC exec -T db mysqladmin ping --password=admin </dev/null 2>/dev/null | tr -d '\r\n' | grep -o alive || echo "")
-RC=$($DC exec -T redis-cache redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
-RQ=$($DC exec -T redis-queue redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
+# Every exec is capped: mid-deploy these containers are being recreated and an
+# uncapped `docker compose exec` hangs until the whole collection times out.
+DB=$(timeout 10 $DC exec -T db mysqladmin ping --password=admin </dev/null 2>/dev/null | tr -d '\r\n' | grep -o alive || echo "")
+RC=$(timeout 10 $DC exec -T redis-cache redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
+RQ=$(timeout 10 $DC exec -T redis-queue redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
 printf '"db":"%s","redis_cache":"%s","redis_queue":"%s",\n' "$DB" "$RC" "$RQ"
 
 # ---- version ---------------------------------------------------------------
@@ -152,7 +155,7 @@ printf ',\n'
 
 # ---- backups ---------------------------------------------------------------
 printf '"backups": '
-$DC exec -T backend bash -c '
+timeout 20 $DC exec -T backend bash -c '
   d="$1"
   [ -d "$d" ] || exit 0
   for f in "$d"/*-database.sql.gz; do
@@ -171,10 +174,21 @@ $DC exec -T backend bash -c '
 printf ',\n'
 
 # ---- backup free space (same filesystem the sites volume lives on) ---------
-BFREE=$($DC exec -T backend df -B1 --output=avail "$BACKUP_DIR" </dev/null 2>/dev/null | tail -1 | tr -d '[:space:]')
+BFREE=$(timeout 10 $DC exec -T backend df -B1 --output=avail "$BACKUP_DIR" </dev/null 2>/dev/null | tail -1 | tr -d '[:space:]')
 printf '"backup_avail":"%s",\n' "$BFREE"
 
-# ---- jobs ------------------------------------------------------------------
+echo '}'
+"""
+
+
+# Jobs are read by their own script, not as part of STATS_SCRIPT: that one
+# `docker compose exec`s into backend, db and redis, which blocks for as long
+# as a deploy is recreating those containers — exactly when the job list has to
+# stay live. This one only reads files under .ops-jobs, so it answers in
+# milliseconds whatever the stack is doing.
+JOBS_SCRIPT = r"""
+cd @REPO@ 2>/dev/null || exit 90
+echo '{'
 printf '"jobs": '
 python3 - <<'PYEOF' 2>/dev/null || echo '[]'
 import glob, json, os
@@ -328,17 +342,6 @@ class StatsCache:
 			self._fetched_at = time.time()
 			return self._snapshot()
 
-	def note_launched(self, row: dict[str, Any]) -> dict[str, Any]:
-		"""Put a just-launched job on top of the cached snapshot.
-
-		The next real refresh replaces it; until then the panels show the job as
-		running right away instead of waiting out the TTL.
-		"""
-		if self._data:
-			jobs = [j for j in self._data.get("jobs") or [] if j.get("id") != row.get("id")]
-			self._data["jobs"] = [row, *jobs][:20]
-		return self._snapshot()
-
 	def _snapshot(self) -> dict[str, Any]:
 		data = dict(self._data)
 		data["_fetched_at"] = self._fetched_at
@@ -372,5 +375,64 @@ class DiskDetailCache:
 			return dict(self._data, _fetched_at=self._fetched_at)
 
 
+class JobsCache:
+	"""Job rows and timing history — cheap, so it has its own short TTL.
+
+	Kept apart from StatsCache on purpose: a stalled host script must never
+	freeze the job list, which is the one thing that has to stay right while a
+	deploy is running. Failures are reported (`_error`) instead of being hidden
+	behind the last good snapshot.
+	"""
+
+	def __init__(self) -> None:
+		self._lock = asyncio.Lock()
+		self._data: dict[str, Any] = {}
+		self._fetched_at = 0.0
+		self._error: str | None = None
+
+	async def get(self, conn: HostConnection, ttl: float = JOBS_TTL, force: bool = False) -> dict[str, Any]:
+		async with self._lock:
+			if not force and self._data and time.time() - self._fetched_at < ttl:
+				return self._snapshot()
+			try:
+				result = await asyncio.to_thread(conn.run, _render(JOBS_SCRIPT), 20)
+				if result.rc == 90:
+					raise RuntimeError(f"repo path {settings.repo_path} not found on host")
+				self._data = json.loads(result.out)
+				self._error = None
+				self._fetched_at = time.time()
+			except Exception as exc:
+				self._error = str(exc)
+			return self._snapshot()
+
+	def note_launched(self, row: dict[str, Any]) -> dict[str, Any]:
+		"""Put a just-launched job on top of the snapshot.
+
+		The next refresh replaces it; until then the panels show the job as
+		running right away instead of waiting out the TTL.
+		"""
+		jobs = [j for j in self._data.get("jobs") or [] if j.get("id") != row.get("id")]
+		self._data["jobs"] = [row, *jobs][:20]
+		return self._snapshot()
+
+	def _snapshot(self) -> dict[str, Any]:
+		data = dict(self._data)
+		data["_fetched_at"] = self._fetched_at
+		data["_error"] = self._error
+		return data
+
+
 cache = StatsCache()
+jobs_cache = JobsCache()
 disk_detail = DiskDetailCache()
+
+
+async def with_jobs(conn: HostConnection, data: dict[str, Any], force: bool = False) -> dict[str, Any]:
+	"""Host snapshot with the live job list merged in, for panels that show jobs."""
+	jobs = await jobs_cache.get(conn, force=force)
+	merged = dict(data)
+	merged["jobs"] = jobs.get("jobs") or []
+	merged["history"] = jobs.get("history") or {}
+	merged["_jobs_error"] = jobs.get("_error")
+	merged["_jobs_fetched_at"] = jobs.get("_fetched_at")
+	return merged

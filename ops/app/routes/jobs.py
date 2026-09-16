@@ -22,7 +22,7 @@ HEARTBEAT_SECONDS = 15
 
 @router.get("/latest", response_class=HTMLResponse)
 async def latest_job_console(request: Request, session: SessionDep):
-	data = await stats.cache.get(session.conn)
+	data = await stats.jobs_cache.get(session.conn)
 	rows = data.get("jobs") or []
 	job = next((j for j in rows if j.get("state") == "running"), rows[0] if rows else None)
 	if job is None:
