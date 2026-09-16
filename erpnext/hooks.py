@@ -48,6 +48,7 @@ doctype_js = {
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
 		"public/js/custom/employee_attendance_sheet.js",
+		"public/js/custom/employee_overview.js",
 	],
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
@@ -432,6 +433,9 @@ doc_events = {
 	"Stock Ledger Entry": {
 		"on_submit": "erpnext.stock.responsible_employee.set_serial_no_responsible",
 	},
+	"Designation": {
+		"on_update": "erpnext.hr.designation_translation.sync_employee_designation_name_en",
+	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
 		"validate": "erpnext.crm.utils.set_military_unit_from_party",
@@ -580,6 +584,7 @@ doc_events = {
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
 			"erpnext.hr.salary_split.restrict_salary_editing",
+			"erpnext.hr.kp_classifier.validate_kp_profession",
 		],
 		"on_update": [
 			"erpnext.hr.employee_period.clear_attendance_after_relieving",
