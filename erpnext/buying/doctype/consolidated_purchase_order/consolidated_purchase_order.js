@@ -1,5 +1,6 @@
 frappe.ui.form.on("Consolidated Purchase Order", {
 	setup(frm) {
+		frm.page.wrapper.css("--page-max-width", "1280px");
 		frappe.meta.get_docfield(
 			"Consolidated Purchase Supplier Invoice",
 			"invoice_document",
@@ -147,6 +148,17 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		if (!field) return;
 		if (frm.is_new()) {
 			render_approval_route(frm, field, {});
+			const material_requests = get_material_request_names(frm);
+			if (!material_requests.length) {
+				render_material_request_comments(frm, []);
+				return;
+			}
+			frappe
+				.call({
+					method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_material_request_summaries",
+					args: { material_requests },
+				})
+				.then((response) => render_material_request_comments(frm, response.message || []));
 			return;
 		}
 
@@ -155,7 +167,11 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 				method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_approval_route_summary",
 				args: { source_name: frm.doc.name },
 			})
-			.then((response) => render_approval_route(frm, field, response.message || {}));
+			.then((response) => {
+				const route_data = response.message || {};
+				render_approval_route(frm, field, route_data);
+				render_material_request_comments(frm, route_data.material_requests || []);
+			});
 	},
 
 	company(frm) {
@@ -466,6 +482,42 @@ frappe.ui.form.on("Consolidated Purchase Delivery Note", {
 function get_order_suppliers(frm) {
 	const suppliers = (frm.doc.items || []).map((row) => row.supplier).filter(Boolean);
 	return [...new Set(suppliers)].length ? [...new Set(suppliers)] : [""];
+}
+
+function render_material_request_comments(frm, material_requests) {
+	const section = frm.get_field("material_request_comments_section");
+	const field = frm.get_field("material_request_comments_html");
+	if (!section || !field) return;
+	const rows = (material_requests || []).filter((row) => row.procurement_comment);
+	frm.set_df_property("material_request_comments_section", "hidden", rows.length ? 0 : 1);
+	frm.set_df_property("material_request_comments_html", "hidden", rows.length ? 0 : 1);
+	if (!rows.length) {
+		field.$wrapper.empty();
+		return;
+	}
+
+	const content = rows
+		.map((row) => {
+			const source = `<a href="/app/material-request/${encodeURIComponent(row.name)}">${frappe.utils.escape_html(
+				row.name
+			)}</a>`;
+			return `<div class="cpo-material-request-comment">
+				${rows.length > 1 ? `<div class="text-muted small mb-2">${source}</div>` : ""}
+				<div class="ql-editor read-mode">${row.procurement_comment}</div>
+			</div>`;
+		})
+		.join("");
+	field.$wrapper.html(`<style>
+		.cpo-material-request-comment{padding:12px 14px;border:1px solid var(--border-color);border-radius:var(--border-radius-md);background:var(--control-bg);margin-bottom:8px}
+		.cpo-material-request-comment .ql-editor{padding:0;min-height:0;color:var(--text-color)}
+		.cpo-material-request-comment .ql-editor>:last-child{margin-bottom:0}
+	</style>${content}`);
+}
+
+function get_material_request_names(frm) {
+	const names = (frm.doc.items || []).map((row) => row.material_request).filter(Boolean);
+	if (frm.doc.material_request) names.push(frm.doc.material_request);
+	return [...new Set(names)];
 }
 
 function set_delivery_notes_editability(frm) {

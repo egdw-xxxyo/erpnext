@@ -151,20 +151,7 @@ def validate_material_requests_available(material_requests, exclude=None):
 
 
 def get_active_consolidated_purchase_order(material_request, exclude=None):
-	parents = set(
-		frappe.get_all(
-			"Consolidated Purchase Order Item",
-			filters={"material_request": material_request},
-			pluck="parent",
-		)
-	)
-	parents.update(
-		frappe.get_all(
-			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-			filters={"material_request": material_request},
-			pluck="name",
-		)
-	)
+	parents = _get_consolidated_purchase_order_names(material_request)
 	if exclude:
 		parents.discard(exclude)
 	if not parents:
@@ -182,11 +169,46 @@ def get_active_consolidated_purchase_order(material_request, exclude=None):
 	)
 
 
+def _get_consolidated_purchase_order_names(material_request):
+	parents = set(
+		frappe.get_all(
+			"Consolidated Purchase Order Item",
+			filters={"material_request": material_request},
+			pluck="parent",
+		)
+	)
+	parents.update(
+		frappe.get_all(
+			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			filters={"material_request": material_request},
+			pluck="name",
+		)
+	)
+	return parents
+
+
 @frappe.whitelist()
 def get_existing_consolidated_purchase_order(source_name):
 	doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
 	doc.check_permission("read")
 	return get_active_consolidated_purchase_order(source_name)
+
+
+@frappe.whitelist()
+def get_material_request_consolidated_orders(source_name):
+	"""Return linked consolidated orders for display on a Material Request."""
+	doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
+	doc.check_permission("read")
+	names = _get_consolidated_purchase_order_names(source_name)
+	if not names:
+		return []
+
+	return frappe.get_all(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		filters={"name": ["in", list(names)]},
+		fields=["name", "workflow_state", "procurement_completion_status", "docstatus"],
+		order_by="creation desc",
+	)
 
 
 def set_purchase_invoice_external_payment_details(doc, method=None):

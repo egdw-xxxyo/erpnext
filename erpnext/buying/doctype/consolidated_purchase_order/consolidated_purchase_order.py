@@ -4,7 +4,7 @@ from urllib.parse import unquote, urlsplit
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, escape_html, flt, get_link_to_form, nowdate
+from frappe.utils import cint, escape_html, flt, get_link_to_form, nowdate, sanitize_html, strip_html
 
 PREPAID_PURCHASE_NOTE = (
 	"The materials have already been purchased. Review the attached receipts and verify suppliers and prices."
@@ -569,22 +569,7 @@ def get_approval_route_summary(source_name):
 	doc = frappe.get_doc("Consolidated Purchase Order", source_name)
 	doc.check_permission("read")
 
-	material_request_names = sorted(
-		{row.material_request for row in doc.items if row.material_request}
-		or ({doc.material_request} if doc.material_request else set())
-	)
-	material_requests = (
-		frappe.get_all(
-			"Material Request",
-			filters={"name": ["in", material_request_names]},
-			fields=["name", "owner"],
-			order_by="creation asc",
-		)
-		if material_request_names
-		else []
-	)
-	for request in material_requests:
-		request.created_by = _get_user_summary(request.owner)
+	material_requests = _get_material_request_summaries(doc)
 
 	stage_states = {
 		"preparation": {"Чернетка", "Потребує доопрацювання"},
@@ -643,6 +628,40 @@ def get_approval_route_summary(source_name):
 		"external_payer": external_payer,
 		**_get_invoice_receipt_summary(source_name),
 	}
+
+
+def _get_material_request_summaries(doc):
+	material_request_names = sorted(
+		{row.material_request for row in doc.items if row.material_request}
+		or ({doc.material_request} if doc.material_request else set())
+	)
+	return _get_material_request_summaries_by_names(material_request_names)
+
+
+@frappe.whitelist()
+def get_material_request_summaries(material_requests):
+	material_request_names = sorted(set(frappe.parse_json(material_requests) or []))
+	for name in material_request_names:
+		frappe.get_doc("Material Request", name).check_permission("read")
+	return _get_material_request_summaries_by_names(material_request_names)
+
+
+def _get_material_request_summaries_by_names(material_request_names):
+	if not material_request_names:
+		return []
+
+	material_requests = frappe.get_all(
+		"Material Request",
+		filters={"name": ["in", material_request_names]},
+		fields=["name", "owner", "custom_procurement_comment"],
+		order_by="creation asc",
+	)
+	for request in material_requests:
+		request.created_by = _get_user_summary(request.owner)
+		comment = request.custom_procurement_comment or ""
+		request.procurement_comment = sanitize_html(comment) if strip_html(comment).strip() else None
+		request.pop("custom_procurement_comment", None)
+	return material_requests
 
 
 def sync_consolidated_purchase_order_progress(source_name):

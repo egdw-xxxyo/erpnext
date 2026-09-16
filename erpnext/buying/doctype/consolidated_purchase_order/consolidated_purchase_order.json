@@ -21,6 +21,8 @@
   "set_supplier",
   "approval_route_section",
   "approval_route_html",
+  "material_request_comments_section",
+  "material_request_comments_html",
   "items_section",
   "items",
   "totals_section",
@@ -148,6 +150,18 @@
    "fieldname": "approval_route_html",
    "fieldtype": "HTML",
    "label": "Approval Route"
+  },
+  {
+   "fieldname": "material_request_comments_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Коментар замовника матеріалів"
+  },
+  {
+   "fieldname": "material_request_comments_html",
+   "fieldtype": "HTML",
+   "hidden": 1,
+   "label": "Коментар замовника матеріалів"
   },
   {
    "fieldname": "items_section",

@@ -26,7 +26,7 @@
  ],
  "fields": [
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "supplier",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -35,7 +35,7 @@
    "reqd": 1
   },
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "related_supplier",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -103,14 +103,18 @@
    "read_only": 1
   },
   {
+   "columns": 1,
    "fieldname": "schedule_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Required By",
    "reqd": 1
   },
   {
+   "columns": 1,
    "fieldname": "warehouse",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Target Warehouse",
    "options": "Warehouse"
   },

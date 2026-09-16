@@ -76,6 +76,20 @@ CUSTOM_FIELDS = {
 			"insert_after": "custom_procurement_participants",
 		},
 		{
+			"fieldname": "custom_consolidated_purchase_orders_section",
+			"fieldtype": "Section Break",
+			"label": "Зведені замовлення на придбання",
+			"insert_after": "custom_procurement_comment",
+		},
+		{
+			"fieldname": "custom_consolidated_purchase_orders_html",
+			"fieldtype": "HTML",
+			"label": "Зведені замовлення на придбання",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_consolidated_purchase_orders_section",
+		},
+		{
 			"fieldname": "custom_procurement_initiator_user",
 			"fieldtype": "Link",
 			"label": "Material Request Initiator",
@@ -314,6 +328,7 @@ frappe.ui.form.on("Material Request", {
 	refresh(frm) {
 		configure_purchase_receipts_grid(frm);
 		setTimeout(() => configure_purchase_receipts_grid(frm), 100);
+		render_consolidated_purchase_orders(frm);
 		if (frappe.user_roles.includes("Закупівельник")) {
 			restrict_duplicate_consolidated_order(frm);
 			return;
@@ -388,6 +403,45 @@ function restrict_duplicate_consolidated_order(frm) {
 		.then((response) => {
 			if (!response.message) return;
 			frm.remove_custom_button(__("Purchase Order"), __("Create"));
+		});
+}
+
+function render_consolidated_purchase_orders(frm) {
+	const field = frm.get_field("custom_consolidated_purchase_orders_html");
+	if (!field) return;
+	if (frm.is_new() || frm.doc.material_request_type !== "Purchase") {
+		frm.set_df_property("custom_consolidated_purchase_orders_section", "hidden", 1);
+		frm.set_df_property("custom_consolidated_purchase_orders_html", "hidden", 1);
+		return;
+	}
+
+	frappe
+		.call({
+			method: "erpnext.buying.procurement_automation.get_material_request_consolidated_orders",
+			args: { source_name: frm.doc.name },
+		})
+		.then((response) => {
+			const rows = response.message || [];
+			frm.set_df_property("custom_consolidated_purchase_orders_section", "hidden", rows.length ? 0 : 1);
+			frm.set_df_property("custom_consolidated_purchase_orders_html", "hidden", rows.length ? 0 : 1);
+			if (!rows.length) {
+				field.$wrapper.empty();
+				return;
+			}
+			const body = rows
+				.map((row) => {
+					const approval_status = row.docstatus === 2 ? __("Cancelled") : row.workflow_state || __("Draft");
+					const procurement_status = row.procurement_completion_status || __("Not specified");
+					return `<tr>
+						<td><a href="/app/consolidated-purchase-order/${encodeURIComponent(row.name)}">${frappe.utils.escape_html(row.name)}</a></td>
+						<td>${frappe.utils.escape_html(approval_status)}</td>
+						<td>${frappe.utils.escape_html(procurement_status)}</td>
+					</tr>`;
+				})
+				.join("");
+			field.$wrapper.html(`<div class="table-responsive"><table class="table table-bordered table-sm" style="width:100%">
+				<thead><tr><th>Зведене замовлення на придбання</th><th>Стан погодження</th><th>Стан закупівлі</th></tr></thead><tbody>${body}</tbody>
+			</table></div>`);
 		});
 }
 """.strip()

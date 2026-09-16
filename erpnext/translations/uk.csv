@@ -13880,6 +13880,9 @@ created the Purchase Invoice,створив рахунок постачальн�
 created the Payment Request,створив запит на оплату
 created the Material Request,створив замовлення матеріалів
 {0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+Approval Status,Стан погодження
+Consolidated Purchase Orders,Зведені замовлення на придбання
+Material Request Customer Comment,Коментар замовника матеріалів
 EDRPOU Code,Код ЄДРПОУ
 Supplier Bank Accounts,Банківські рахунки постачальника
 Default Account,Основний рахунок
