@@ -1,5 +1,5 @@
 const ENV_BANNERS = {
-	test: { label: "Test server", icon: "fa-flask", color: "#2b8a3e", background: "#e6f4ea" },
+	test: { label: "Test server", icon: "fa-flask", color: "#6741d9", background: "#f0ebfb" },
 	local: { label: "Local server", icon: "fa-laptop", color: "#1864ab", background: "#e7f1fb" },
 };
 
