@@ -112,10 +112,38 @@ class PaymentRequest(Document):
 		if self.get("__islocal"):
 			self.status = "Draft"
 		self.validate_reference_document()
+		self.validate_supplier_bank_account()
 		self.validate_against_payment_reference()
 		self.validate_payment_request_amount()
 		# self.validate_currency()
 		self.validate_subscription_details()
+
+	def validate_supplier_bank_account(self):
+		if (
+			self.payment_request_type != "Outward"
+			or self.party_type != "Supplier"
+			or not self.bank_account
+		):
+			return
+
+		bank_account = frappe.db.get_value(
+			"Bank Account",
+			self.bank_account,
+			["party_type", "party", "is_company_account", "disabled"],
+			as_dict=True,
+		)
+		if (
+			not bank_account
+			or bank_account.party_type != "Supplier"
+			or bank_account.party != self.party
+			or bank_account.is_company_account
+			or bank_account.disabled
+		):
+			frappe.throw(
+				_("Bank Account {0} does not belong to Supplier {1}").format(
+					frappe.bold(self.bank_account), frappe.bold(self.party)
+				)
+			)
 
 	def validate_against_payment_reference(self):
 		if not self.payment_reference:

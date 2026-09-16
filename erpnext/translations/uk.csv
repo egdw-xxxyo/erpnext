@@ -13880,6 +13880,13 @@ created the Purchase Invoice,створив рахунок постачальн�
 created the Payment Request,створив запит на оплату
 created the Material Request,створив замовлення матеріалів
 {0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+EDRPOU Code,Код ЄДРПОУ
+Supplier Bank Accounts,Банківські рахунки постачальника
+Default Account,Основний рахунок
+No bank accounts are configured for this supplier.,Для цього постачальника не налаштовано банківських рахунків.
+Save the supplier before adding bank accounts.,Збережіть постачальника перед додаванням банківських рахунків.
+Saving default bank account...,Збереження основного банківського рахунку...
+Bank Account {0} does not belong to Supplier {1},Банківський рахунок {0} не належить постачальнику {1}
 Payment Instruction,Платіжна інструкція
 Payment Instruction (File),Платіжна інструкція
 Payment Instruction Availability,Наявність платіжної інструкції

@@ -17,6 +17,23 @@ frappe.ui.form.on("Payment Request", {
 				},
 			};
 		});
+
+		frm.set_query("bank_account", function () {
+			if (
+				frm.doc.payment_request_type === "Outward" &&
+				frm.doc.party_type === "Supplier" &&
+				frm.doc.party
+			) {
+				return {
+					filters: {
+						party_type: "Supplier",
+						party: frm.doc.party,
+						is_company_account: 0,
+						disabled: 0,
+					},
+				};
+			}
+		});
 	},
 });
 

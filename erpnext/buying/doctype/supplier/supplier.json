@@ -43,6 +43,9 @@
   "accounting_tab",
   "default_accounts_section",
   "accounts",
+  "supplier_bank_accounts_section",
+  "supplier_bank_accounts_html",
+  "supplier_default_bank_account_selection",
   "internal_supplier_section",
   "is_internal_supplier",
   "represents_company",
@@ -52,6 +55,7 @@
   "tax_tab",
   "taxation_section",
   "tax_id",
+  "edrpou",
   "tax_category",
   "column_break_27",
   "tax_withholding_category",
@@ -133,6 +137,12 @@
    "fieldname": "tax_id",
    "fieldtype": "Data",
    "label": "Tax ID"
+  },
+  {
+   "description": "Unified State Register code of the supplier",
+   "fieldname": "edrpou",
+   "fieldtype": "Data",
+   "label": "EDRPOU Code"
   },
   {
    "description": "Determines which tax rules apply to this supplier",
@@ -338,6 +348,25 @@
    "fieldtype": "Table",
    "label": "Per-Company Accounts",
    "options": "Party Account"
+  },
+  {
+   "fieldname": "supplier_bank_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Bank Accounts"
+  },
+  {
+   "fieldname": "supplier_bank_accounts_html",
+   "fieldtype": "HTML",
+   "label": "Supplier Bank Accounts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_default_bank_account_selection",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "is_virtual": 1,
+   "label": "Supplier Default Bank Account Selection",
+   "no_copy": 1
   },
   {
    "collapsible_depends_on": "supplier_details",

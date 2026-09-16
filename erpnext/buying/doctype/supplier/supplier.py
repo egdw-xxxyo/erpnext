@@ -55,6 +55,7 @@ class Supplier(TransactionBase):
 		default_currency: DF.Link | None
 		default_price_list: DF.Link | None
 		disabled: DF.Check
+		edrpou: DF.Data | None
 		email_id: DF.ReadOnly | None
 		gender: DF.Link | None
 		hold_type: DF.Literal["All", "Invoices", "Payments"]
@@ -74,6 +75,7 @@ class Supplier(TransactionBase):
 		release_date: DF.Date | None
 		represents_company: DF.Link | None
 		supplier_details: DF.Text | None
+		supplier_default_bank_account_selection: DF.Data | None
 		supplier_group: DF.Link | None
 		supplier_name: DF.Data
 		supplier_primary_address: DF.Link | None
@@ -99,6 +101,10 @@ class Supplier(TransactionBase):
 	def before_save(self):
 		self.sync_website_fields()
 		self.validate_cooperating_suppliers()
+		if self.get("supplier_default_bank_account_selection") is not None:
+			_set_default_supplier_bank_account(
+				self.name, self.get("supplier_default_bank_account_selection")
+			)
 		if not self.on_hold:
 			self.release_date = ""
 		elif self.on_hold and not self.hold_type:
@@ -319,3 +325,56 @@ def get_supplier_primary(doctype, txt, searchfield, start, page_len, filters):
 		query = query.select(type_doctype.email_id)
 
 	return query.run()
+
+
+def _get_supplier_bank_accounts(supplier):
+	return frappe.get_all(
+		"Bank Account",
+		filters={
+			"party_type": "Supplier",
+			"party": supplier,
+			"is_company_account": 0,
+			"disabled": 0,
+		},
+		fields=["name", "account_name", "iban", "is_default"],
+		order_by="is_default desc, account_name asc, name asc",
+	)
+
+
+@frappe.whitelist()
+def get_supplier_bank_accounts(supplier):
+	"""Return the active external bank accounts linked to a supplier."""
+	supplier_doc = frappe.get_doc("Supplier", supplier)
+	supplier_doc.check_permission("read")
+	return _get_supplier_bank_accounts(supplier)
+
+
+@frappe.whitelist(methods=["POST"])
+def set_default_supplier_bank_account(supplier, bank_account=None):
+	"""Set at most one default external bank account for a supplier."""
+	supplier_doc = frappe.get_doc("Supplier", supplier)
+	supplier_doc.check_permission("write")
+	return _set_default_supplier_bank_account(supplier, bank_account)
+
+
+def _set_default_supplier_bank_account(supplier, bank_account=None):
+	"""Apply the selection inside the caller's database transaction."""
+
+	accounts = _get_supplier_bank_accounts(supplier)
+	account_names = {row.name for row in accounts}
+	if bank_account and bank_account not in account_names:
+		frappe.throw(
+			_("Bank Account {0} does not belong to Supplier {1}").format(
+				frappe.bold(bank_account), frappe.bold(supplier)
+			)
+		)
+
+	for account in accounts:
+		is_default = int(account.name == bank_account)
+		if account.is_default != is_default:
+			frappe.db.set_value(
+				"Bank Account", account.name, "is_default", is_default, update_modified=False
+			)
+
+	frappe.clear_cache(doctype="Bank Account")
+	return _get_supplier_bank_accounts(supplier)
