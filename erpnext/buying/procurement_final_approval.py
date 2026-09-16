@@ -1,6 +1,5 @@
 import frappe
 from frappe import _
-from frappe.desk.form.assign_to import _add as add_assignment
 from frappe.utils import escape_html, flt
 
 from erpnext.buying.procurement_workflow import CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME
@@ -142,8 +141,9 @@ def reset_final_approvals(docname):
 
 
 def sync_final_approval_assignments(doc, method=None):
+	# Keep the hook name for compatibility; approvers now receive alerts only.
+	close_final_approval_assignments(doc.name)
 	if doc.workflow_state != FINAL_APPROVAL_STATE or is_automatic_final_approval(doc):
-		close_final_approval_assignments(doc.name)
 		return
 
 	approvers = get_configured_final_approvers(throw=False)
@@ -153,27 +153,12 @@ def sync_final_approval_assignments(doc, method=None):
 	users_to_assign = [user for user in approvers if user not in approved_users]
 	if not users_to_assign:
 		return
-	rule = (
-		frappe.get_doc("Assignment Rule", CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME)
-		if frappe.db.exists("Assignment Rule", CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME)
-		else None
-	)
+	from erpnext.buying.procurement_automation import notify_procurement_approval
 
-	add_assignment(
-		{
-			"assign_to": users_to_assign,
-			"doctype": doc.doctype,
-			"name": doc.name,
-			"description": (
-				frappe.render_template(rule.description, doc.as_dict())
-				if rule
-				else _("Review and provide CEO approval for consolidated purchase {0}.").format(
-					doc.name
-				)
-			),
-			"assignment_rule": rule.name if rule else None,
-		},
-		ignore_permissions=True,
+	notify_procurement_approval(
+		doc,
+		users_to_assign,
+		f"Виконати фінальне погодження зведеного замовлення {doc.name}.",
 	)
 
 
@@ -209,23 +194,12 @@ def sync_existing_approval_thresholds():
 def close_final_approval_assignments(docname, method=None):
 	if hasattr(docname, "name"):
 		docname = docname.name
-	users = set(get_configured_final_approvers(throw=False))
-	stored_users = frappe.db.get_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		docname,
-		list(APPROVAL_USER_FIELDS),
-		as_dict=True,
-	) or {}
-	users.update(user for user in stored_users.values() if user)
-	if not users:
-		return
-
 	for todo_name in frappe.get_all(
 		"ToDo",
 		filters={
 			"reference_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 			"reference_name": docname,
-			"allocated_to": ["in", list(users)],
+			"assignment_rule": CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
 			"status": "Open",
 		},
 		pluck="name",

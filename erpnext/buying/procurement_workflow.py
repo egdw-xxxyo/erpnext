@@ -20,6 +20,10 @@ OBSOLETE_RECEIPT_ASSIGNMENT_RULE_NAMES = (
 	PURCHASE_ORDER_BUYER_ASSIGNMENT_RULE_NAME,
 	PURCHASE_RECEIPT_WAREHOUSE_ASSIGNMENT_RULE_NAME,
 )
+OBSOLETE_PURCHASE_ORDER_PERMISSION_ROLES = (
+	DEPARTMENT_HEAD_ROLE,
+	FINAL_APPROVER_ROLE,
+)
 MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: опрацювання замовлення матеріалів"
 CONSOLIDATED_BUYER_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання закупівельнику"
 CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME = "Закупівлі: завдання керівнику підрозділу"
@@ -71,7 +75,7 @@ PROCUREMENT_ASSIGNMENT_RULES = (
 		"unassign_condition": "docstatus != 0 or workflow_state != 'Перевірка підрозділу'",
 		"close_condition": "docstatus == 2 or workflow_state == 'Відхилено'",
 		"role": DEPARTMENT_HEAD_ROLE,
-		"description": "Перевірити зведене замовлення на придбання {{ name }} від підрозділу.",
+		"description": "Перевірити і погодити зведене замовлення на придбання {{ name }}.",
 	},
 	{
 		"name": CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
@@ -269,6 +273,21 @@ DOCTYPE_PERMISSIONS = {
 		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
 		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
 	},
+	"Purchase Order": {
+		BUYER_ROLE: (
+			"select",
+			"read",
+			"write",
+			"create",
+			"delete",
+			"submit",
+			"cancel",
+			"amend",
+			"report",
+			"print",
+		),
+		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
+	},
 	"Purchase Invoice": {
 		BUYER_ROLE: ("select", "read", "write", "create", "submit", "report", "print"),
 		TREASURER_ROLE: ("select", "read", "report", "print"),
@@ -279,6 +298,7 @@ DOCTYPE_PERMISSIONS = {
 def sync_procurement_workflow():
 	_ensure_roles()
 	_ensure_role_profiles()
+	_remove_obsolete_purchase_order_permissions()
 	_ensure_permissions()
 	_ensure_procurement_assignment_rules()
 	_disable_obsolete_receipt_assignment_rules()
@@ -291,6 +311,7 @@ def sync_procurement_workflow():
 	frappe.clear_cache()
 	frappe.clear_cache(doctype="Material Request")
 	frappe.clear_cache(doctype=CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
+	frappe.clear_cache(doctype="Purchase Order")
 
 
 def _ensure_roles():
@@ -337,6 +358,20 @@ def _ensure_permissions():
 			for permission in PERMISSION_FIELDS:
 				doc.set(permission, int(permission in enabled_permissions))
 			_save(doc)
+
+
+def _remove_obsolete_purchase_order_permissions():
+	"""Remove approver access left from the workflow that previously ran on Purchase Order."""
+	for name in frappe.get_all(
+		"Custom DocPerm",
+		filters={
+			"parent": "Purchase Order",
+			"role": ["in", OBSOLETE_PURCHASE_ORDER_PERMISSION_ROLES],
+			"permlevel": 0,
+		},
+		pluck="name",
+	):
+		frappe.delete_doc("Custom DocPerm", name, force=True, ignore_permissions=True)
 
 
 def _disable_obsolete_receipt_assignment_rules():

@@ -4,11 +4,12 @@ from urllib.parse import unquote, urlsplit
 import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
-from frappe.desk.form.assign_to import _add as add_assignment
 from frappe.utils import escape_html, flt, get_link_to_form, nowdate
 
+from erpnext.buying.procurement_assignment import _add as add_assignment
 from erpnext.buying.procurement_workflow import (
 	BUYER_ROLE,
+	CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME,
 	CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
 	MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
 	PROCUREMENT_ASSIGNMENT_RULES,
@@ -318,30 +319,45 @@ def sync_current_assignees(todo, method=None):
 	if todo.reference_type != CONSOLIDATED_PURCHASE_ORDER_DOCTYPE or not todo.reference_name:
 		return
 
+	_sync_current_assignee_names(
+		todo.reference_name,
+		excluded_todo=todo.name if method == "on_trash" else None,
+	)
+
+
+def _sync_current_assignee_names(reference_name, excluded_todo=None):
 	rows = frappe.get_all(
 		"ToDo",
 		filters={
 			"reference_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-			"reference_name": todo.reference_name,
+			"reference_name": reference_name,
 			"status": "Open",
 		},
 		fields=["name", "allocated_to"],
 	)
-	users = [row.allocated_to for row in rows if method != "on_trash" or row.name != todo.name]
+	users = [row.allocated_to for row in rows if row.name != excluded_todo]
 	full_names = []
 	for user in users:
 		full_name = frappe.get_cached_value("User", user, "full_name") or user
 		if full_name not in full_names:
 			full_names.append(full_name)
 
-	if frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, todo.reference_name):
+	if frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, reference_name):
 		frappe.db.set_value(
 			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-			todo.reference_name,
+			reference_name,
 			"current_assignees",
 			", ".join(full_names),
 			update_modified=False,
 		)
+
+
+def sync_all_current_assignee_names():
+	"""Replace stale email identifiers in the visible current-assignee field."""
+	if not frappe.db.has_column(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, "current_assignees"):
+		return
+	for name in frappe.get_all(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, pluck="name"):
+		_sync_current_assignee_names(name)
 
 
 def sync_procurement_participants(todo, method=None):
@@ -476,12 +492,18 @@ def sync_procurement_stage_assignment(doc, method=None):
 	)
 
 	for todo in open_todos:
-		if matching and todo.assignment_rule == matching["name"]:
+		if (
+			matching
+			and todo.assignment_rule == matching["name"]
+			and matching["name"] not in {
+				CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME,
+				CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
+			}
+		):
 			continue
 		_close_todo_silently(todo.name)
 
-	# The final stage intentionally assigns both configured CEO approvers. Its
-	# dedicated synchronizer owns those ToDos while this function closes other stages.
+	# The dedicated final-stage synchronizer sends CEO alerts without ToDos.
 	if not matching or matching["name"] == CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME:
 		return
 	if not frappe.db.exists("Assignment Rule", matching["name"]):
@@ -498,6 +520,13 @@ def sync_procurement_stage_assignment(doc, method=None):
 		return
 	target_user = _get_procurement_assignment_user(rule, matching, doc)
 	if not target_user:
+		return
+	if matching["name"] == CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME:
+		notify_procurement_approval(
+			doc,
+			[target_user],
+			f"Перевірити і погодити зведене замовлення на придбання {doc.name}.",
+		)
 		return
 	if any(todo.allocated_to == target_user for todo in matching_todos):
 		return
@@ -517,6 +546,34 @@ def sync_procurement_stage_assignment(doc, method=None):
 	)
 	if rule.rule == "Round Robin":
 		rule.db_set("last_user", target_user)
+
+
+def notify_procurement_approval(doc, users, description):
+	"""Notify on entering an approval stage without creating a ToDo."""
+	previous = doc.get_doc_before_save()
+	if previous and previous.workflow_state == doc.workflow_state:
+		return
+	if doc.flags.get("procurement_approval_notified") == doc.workflow_state or not users:
+		return
+	doc.flags.procurement_approval_notified = doc.workflow_state
+	buyer = doc.get("initiator_user") or doc.owner
+	buyer_name = frappe.get_cached_value("User", buyer, "full_name") or buyer
+	enqueue_create_notification(
+		users,
+		{
+			"type": "Alert",
+			"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			"document_name": doc.name,
+			"from_user": frappe.session.user,
+			"subject": (
+				f"Нове замовлення на придбання потребує погодження: {doc.name}. "
+				f"Ведучий закупівельник: {buyer_name}"
+			),
+			"email_content": description,
+		},
+	)
+	for user in users:
+		sync_procurement_participants_for_reference(doc.doctype, doc.name, additional_user=user)
 
 
 def apply_rules_to_existing_procurement_documents():
@@ -761,16 +818,11 @@ def _notify_procurement_initiators(source_name, outcome):
 
 
 def _get_procurement_initiators(source_name):
-	chain = _get_procurement_chain(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name)
-	users = set()
-	request_names = chain[MATERIAL_REQUEST_DOCTYPE]
-	if request_names:
-		for row in frappe.get_all(
-			MATERIAL_REQUEST_DOCTYPE,
-			filters={"name": ["in", list(request_names)]},
-			fields=["owner", "custom_procurement_initiator_user"],
-		):
-			users.add(row.custom_procurement_initiator_user or row.owner)
+	users = {
+		row.initiator
+		for row in _get_procurement_requests_with_initiators(source_name)
+		if row.initiator
+	}
 	if not users:
 		users.add(
 			frappe.db.get_value(
@@ -778,6 +830,23 @@ def _get_procurement_initiators(source_name):
 			)
 		)
 	return sorted(user for user in users if user and user not in {"Administrator", "Guest"})
+
+
+def _get_procurement_requests_with_initiators(source_name):
+	chain = _get_procurement_chain(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name)
+	request_names = chain[MATERIAL_REQUEST_DOCTYPE]
+	if not request_names:
+		return []
+
+	requests = frappe.get_all(
+		MATERIAL_REQUEST_DOCTYPE,
+		filters={"name": ["in", list(request_names)]},
+		fields=["name", "owner", "custom_procurement_initiator_user"],
+		order_by="creation asc",
+	)
+	for request in requests:
+		request.initiator = request.custom_procurement_initiator_user or request.owner
+	return requests
 
 
 def _get_primary_procurement_initiator(source_name):
@@ -801,8 +870,8 @@ def _get_primary_procurement_initiator(source_name):
 
 
 def notify_procurement_receipt(source_name, purchase_receipt):
-	users = _get_procurement_initiators(source_name)
-	if not users:
+	requests = _get_procurement_requests_with_initiators(source_name)
+	if not requests:
 		return
 
 	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
@@ -811,23 +880,27 @@ def notify_procurement_receipt(source_name, purchase_receipt):
 
 	is_complete = _get_invoice_receipt_summary(source_name)["purchase_receipt_complete"]
 	status = "повністю" if is_complete else "частково"
-	subject = f"Надходження {purchase_receipt}: {status}"
-	description = (
-		f"За зведеним замовленням {source_name} товари надійшли {status}. "
-		f"Прихідна накладна: {purchase_receipt}."
-	)
-	enqueue_create_notification(
-		users,
-		{
-			"type": "Alert",
-			"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-			"document_name": source_name,
-			"from_user": frappe.session.user,
-			"subject": subject,
-			"email_content": description,
-		},
-		dedupe_on=["document_type", "document_name", "subject"],
-	)
+	for request in requests:
+		if not request.initiator or request.initiator in {"Administrator", "Guest"}:
+			continue
+		subject = f"Надходження за замовленням матеріалів {request.name}: {status}"
+		description = (
+			f"За вашим замовленням матеріалів {request.name} товари надійшли {status}. "
+			f"Прихідна накладна: {purchase_receipt}. "
+			f"Замовлення на придбання: {source_name}."
+		)
+		enqueue_create_notification(
+			[request.initiator],
+			{
+				"type": "Alert",
+				"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+				"document_name": source_name,
+				"from_user": frappe.session.user,
+				"subject": subject,
+				"email_content": description,
+			},
+			dedupe_on=["document_type", "document_name", "subject", "email_content"],
+		)
 
 
 def _set_procurement_status(doctype, name, status):

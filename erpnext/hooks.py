@@ -80,6 +80,8 @@ override_doctype_class = {
 
 override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "erpnext.templates.utils.send_message",
+	"frappe.desk.form.assign_to.add": "erpnext.buying.procurement_assignment.add",
+	"frappe.desk.form.assign_to.add_multiple": "erpnext.buying.procurement_assignment.add_multiple",
 	"frappe.model.workflow.apply_workflow": "erpnext.accounts.payment_workflow_reason.apply_workflow",
 	"erpnext.stock.doctype.material_request.material_request.make_purchase_order": "erpnext.buying.procurement_automation.make_purchase_order",
 	"erpnext.stock.doctype.material_request.material_request.make_purchase_order_based_on_supplier": "erpnext.buying.procurement_automation.make_purchase_order_based_on_supplier",
@@ -583,9 +585,8 @@ doc_events = {
 			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
 		],
 		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
-		# Run after Frappe's wildcard on_update Assignment Rule handler. A standard
-		# Assignment Rule intentionally picks one user; the final approval stage
-		# needs both configured CEO approvers to have an open ToDo.
+		# Manage buyer ToDos and send approval-stage alerts without assigning
+		# ToDos to the department head or the configured CEO approvers.
 		"on_change": [
 			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
 			"erpnext.buying.procurement_final_approval.record_creator_final_approval",

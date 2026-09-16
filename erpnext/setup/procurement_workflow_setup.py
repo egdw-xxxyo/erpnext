@@ -460,6 +460,7 @@ def after_migrate():
 	)
 	from erpnext.buying.procurement_automation import (
 		apply_rules_to_existing_procurement_documents,
+		sync_all_current_assignee_names,
 		sync_all_procurement_participants,
 		sync_existing_purchase_invoice_external_payment_details,
 	)
@@ -467,6 +468,7 @@ def after_migrate():
 	sync_procurement_workflow()
 	_sync_consolidated_procurement_users()
 	apply_rules_to_existing_procurement_documents()
+	sync_all_current_assignee_names()
 	sync_existing_approval_thresholds()
 	sync_existing_final_approval_documents()
 	sync_existing_purchase_invoice_external_payment_details()

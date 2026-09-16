@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
-from frappe.desk.form.assign_to import _add as add_assignment
+
+from erpnext.buying.procurement_assignment import _add as add_assignment
 
 PAYMENT_REQUEST_DOCTYPE = "Payment Request"
 ALL_ASSIGNMENT_DAYS = (
