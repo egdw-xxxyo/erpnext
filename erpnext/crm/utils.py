@@ -175,6 +175,9 @@ def military_unit_contact_query(doctype, txt, searchfield, start, page_len, filt
 		contact_filters["name"] = ["in", linked]
 
 	or_filters = [
+		# The docname itself has to match too: link validation re-runs this query with
+		# `txt` set to the picked docname, and drops the value when nothing comes back.
+		["name", "like", like],
 		["full_name", "like", like],
 		["mobile_no", "like", like],
 		["phone", "like", like],

@@ -47,7 +47,8 @@ async def panel(name: str, request: Request, session: SessionDep):
 	force = request.query_params.get("force") == "1"
 	data = await stats.cache.get(session.conn, force=force)
 	if name in JOB_PANELS:
-		data = await stats.with_jobs(session.conn, data, force=force)
+		fresh = force or request.query_params.get("fresh") == "1"
+		data = await stats.with_jobs(session.conn, data, force=fresh)
 
 	context = {"settings": settings, "session": session, "data": data, "commands": COMMANDS}
 	if name == "backups":

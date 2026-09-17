@@ -22,12 +22,13 @@ status_map = {
 	# erpnext/crm/doctype/lead/lead.py (see the «Запит» spec). Re-adding it here would let
 	# an existing Opportunity force a reverted Lead straight back to "Converted to
 	# Opportunity" on the next save.
+	# Opportunity carries the «Пропозиція» status set: New / Converted to Quotation / Lost.
+	# "Converted to Quotation" is final — an Opportunity that produced a Quotation never
+	# falls back, even if that Quotation is later lost.
 	"Opportunity": [
 		["Lost", "eval:self.status=='Lost'"],
-		["Lost", "has_lost_quotation"],
-		["Quotation", "has_active_quotation"],
-		["Converted", "has_ordered_quotation"],
-		["Closed", "eval:self.status=='Closed'"],
+		["Converted to Quotation", "has_active_quotation"],
+		["Converted to Quotation", "has_ordered_quotation"],
 	],
 	"Quotation": [
 		["Draft", None],
