@@ -28,12 +28,21 @@
 		});
 		// Panels render the full step list server-side; a marker is the only
 		// moment their 15s poll has anything new to say.
-		if (seen && window.htmx) {
-			["actions", "jobs"].forEach(function (name) {
-				var el = document.getElementById("panel-" + name);
-				if (el) window.htmx.trigger(el, "load");
-			});
-		}
+		if (seen) refreshPanels(["actions", "jobs"]);
+	}
+
+	// htmx.trigger(el, "load") is a no-op: htmx 2 runs the "load" trigger once
+	// at init and never listens for the event, so the panels are fetched
+	// directly. fresh=1 skips the jobs cache TTL — the job state just changed.
+	function refreshPanels(names) {
+		if (!window.htmx) return;
+		names.forEach(function (name) {
+			var el = document.getElementById("panel-" + name);
+			var url = el && el.getAttribute("hx-get");
+			if (!url) return;
+			url += (url.indexOf("?") === -1 ? "?" : "&") + "fresh=1";
+			window.htmx.ajax("GET", url, { target: el, swap: "innerHTML" });
+		});
 	}
 
 	// Time-left estimates are rendered server-side as seconds remaining; tick
@@ -112,14 +121,7 @@
 				// Without this the browser reconnects forever once the job ends.
 				source.close();
 				state.source = null;
-				if (window.htmx) {
-					["jobs", "version", "backups", "actions", "disk", "space-backups"].forEach(function (
-						name
-					) {
-						var el = document.getElementById("panel-" + name);
-						if (el) window.htmx.trigger(el, "load");
-					});
-				}
+				refreshPanels(["jobs", "version", "backups", "actions", "disk", "space-backups"]);
 			});
 
 			source.onerror = function () {
