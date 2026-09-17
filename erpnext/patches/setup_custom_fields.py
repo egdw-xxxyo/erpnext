@@ -83,6 +83,8 @@ def execute():
 
 
 def setup_todo_deadline():
+	from erpnext.utilities.todo import upgrade_overdue_filters, upgrade_today_filters
+
 	_create_custom_fields(
 		[
 			{
@@ -119,6 +121,8 @@ def setup_todo_deadline():
 			validate_fields_for_doctype=False,
 		)
 	frappe.clear_cache(doctype="ToDo")
+	upgrade_today_filters()
+	upgrade_overdue_filters()
 
 
 def create_workflow_states():

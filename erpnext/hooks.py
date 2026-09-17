@@ -59,6 +59,7 @@ doctype_js = {
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"ToDo": "public/js/custom/todo_list.js",
 	"Code List": [
 		"edi/doctype/code_list/code_list_import.js",
 	],
@@ -405,6 +406,7 @@ override_doctype_dashboards = {
 }
 
 doc_events = {
+	"List Filter": {"on_trash": "erpnext.utilities.todo.prevent_default_filter_deletion"},
 	"*": {
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",
