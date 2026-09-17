@@ -2,6 +2,16 @@
 (() => {
 	const settings = frappe.listview_settings["ToDo"];
 	const onload = settings.onload;
+	const refresh = settings.refresh;
+	settings.refresh = function (listview) {
+		refresh?.(listview);
+		if (listview.views_list && !listview.views_menu.find('[data-view="Planner"]').length) {
+			listview.views_list.icon_map.Planner = "calendar";
+			listview.views_list.add_view_to_menu("Planner", () =>
+				erpnext.todo_planner.switch_view(listview, "Planner")
+			);
+		}
+	};
 	settings.filters = [["allocated_to", "=", frappe.session.user]];
 	settings.add_fields = [...(settings.add_fields || []), "deadline"];
 	settings.formatters = {
@@ -15,6 +25,16 @@
 	};
 	settings.onload = function (listview) {
 		onload?.(listview);
+		const before_refresh = listview.before_refresh.bind(listview);
+		listview.before_refresh = async function () {
+			await before_refresh();
+			const pending = erpnext.todo_planner.pending_filters;
+			if (pending?.view === listview.view_name) {
+				erpnext.todo_planner.pending_filters = null;
+				await listview.filter_area.clear(false);
+				await listview.filter_area.add(pending.filters, false);
+			}
+		};
 		// CSS also covers the asynchronously loaded/rebuilt saved-filter menu.
 		if (frappe.session.user !== "Administrator") {
 			$("<style>")

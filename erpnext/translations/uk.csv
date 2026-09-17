@@ -14215,3 +14215,15 @@ Last Three Days,Останні три дні
 Before Now,До поточного моменту
 Only Administrator can delete default ToDo filters.,Лише Administrator може видаляти стандартні фільтри завдань.
 Next 24 Hours,Найближчі 24 години
+Planner,Планувальник,
+Show Completed Tasks,Показувати завершені задачі,
+Set Deadline,Встановити дедлайн,
+Change Deadline,Змінити дедлайн,
+Set a deadline or drag a task to a day,Встановіть дедлайн або перетягніть задачу на день,
+No overdue tasks,Немає протермінованих задач,
+No tasks without deadlines,Немає задач без термінів,
+Could not load tasks,Не вдалося завантажити задачі,
+Invalid planner date range,Некоректний діапазон дат планувальника,
+Invalid planner section,Некоректний розділ планувальника,
+Invalid ToDo filters,Некоректні фільтри задач,
+Overdue,Протерміновано,ToDo
