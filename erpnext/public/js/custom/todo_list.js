@@ -3,6 +3,16 @@
 	const settings = frappe.listview_settings["ToDo"];
 	const onload = settings.onload;
 	settings.filters = [["allocated_to", "=", frappe.session.user]];
+	settings.add_fields = [...(settings.add_fields || []), "deadline"];
+	settings.formatters = {
+		...settings.formatters,
+		deadline(value, df) {
+			if (!value) {
+				return `<span class="indicator-pill gray">${__("No Deadline", null, "ToDo")}</span>`;
+			}
+			return frappe.format(value, df);
+		},
+	};
 	settings.onload = function (listview) {
 		onload?.(listview);
 		// CSS also covers the asynchronously loaded/rebuilt saved-filter menu.
