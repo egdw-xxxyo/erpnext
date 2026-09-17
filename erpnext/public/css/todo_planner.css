@@ -31,7 +31,7 @@
 	overflow-x: auto;
 }
 .todo-planner .tp-calendar {
-	--tp-card-height: 240px;
+	--tp-card-height: 130px;
 	--tp-visible-cards: 2;
 	display: grid;
 	grid-template-columns: repeat(7, minmax(240px, 1fr));
@@ -69,6 +69,38 @@
 	min-height: var(--tp-card-height);
 	box-sizing: border-box;
 	padding: 6px;
+}
+.todo-planner .tp-day-cards .tp-title {
+	display: block;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	line-height: 18px;
+	margin-bottom: 2px;
+}
+.todo-planner .tp-day-cards .tp-badges {
+	flex-wrap: nowrap;
+	gap: 3px;
+	margin-bottom: 2px;
+}
+.todo-planner .tp-day-cards .indicator-pill {
+	font-size: 10px;
+	line-height: 16px;
+}
+.todo-planner .tp-day-cards .tp-deadline,
+.todo-planner .tp-day-cards .tp-assigned {
+	line-height: 14px;
+	margin: 2px 0;
+}
+.todo-planner .tp-day-cards .tp-deadline {
+	padding: 2px 4px;
+}
+.todo-planner .tp-day-cards .tp-reference {
+	margin-top: 2px;
+	padding-top: 2px;
+	line-height: 13px;
+}
+.todo-planner .tp-day-cards .tp-reference span {
+	margin-bottom: 0;
 }
 .todo-planner .tp-day-cards .tp-card:last-child {
 	margin-bottom: 0;
