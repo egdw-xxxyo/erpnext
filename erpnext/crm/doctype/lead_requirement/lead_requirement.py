@@ -16,6 +16,7 @@ class LeadRequirement(Document):
 
 		budget: DF.Data | None
 		comment: DF.SmallText | None
+		delivery_timeline: DF.Data | None
 		item_group: DF.Link | None
 		parent: DF.Data
 		parentfield: DF.Data

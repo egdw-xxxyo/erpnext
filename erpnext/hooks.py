@@ -44,6 +44,8 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	# «Угода»: approval lock + the Sales Order fulfilment panel
+	"Quotation": "public/js/custom/quotation.js",
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
@@ -99,6 +101,8 @@ share_access_inheritance = [
 has_permission = {
 	# Leads in a final status are read-only until a Sales Manager returns them.
 	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
+	# Opportunities in a final status are read-only until a Sales Manager reopens them.
+	"Opportunity": "erpnext.crm.opportunity_rules.has_permission",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
@@ -438,12 +442,16 @@ doc_events = {
 	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
-		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+		"validate": [
+			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.selling.quotation_rules.validate_sales_order_against_quotation",
+		],
 	},
 	"Opportunity": {
 		"validate": [
 			"erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
 			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.crm.opportunity_rules.validate",
 		],
 	},
 	"Issue": {
@@ -454,7 +462,12 @@ doc_events = {
 	},
 	"Quotation": {
 		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
-		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+		"validate": [
+			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.selling.quotation_rules.validate",
+		],
+		"before_cancel": "erpnext.selling.quotation_rules.before_cancel",
+		"after_insert": "erpnext.crm.opportunity_rules.mark_converted_to_quotation",
 	},
 	"WhatsApp Message": {
 		"after_insert": [
@@ -655,6 +668,7 @@ scheduler_events = {
 	"daily": [
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
+		"erpnext.crm.opportunity_rules.refresh_overdue_flags",
 		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
 		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",

@@ -8,7 +8,7 @@
  "doctype": "Dashboard Chart",
  "document_type": "Opportunity",
  "dynamic_filters_json": "[[\"Opportunity\",\"company\",\"=\",\"frappe.defaults.get_user_default(\\\"Company\\\")\"]]",
- "filters_json": "[[\"Opportunity\",\"status\",\"=\",\"Converted\"]]",
+ "filters_json": "[[\"Opportunity\",\"status\",\"=\",\"Converted to Quotation\"]]",
  "group_by_based_on": "territory",
  "group_by_type": "Sum",
  "idx": 0,

@@ -7,6 +7,7 @@
  "field_order": [
   "item_group",
   "qty",
+  "delivery_timeline",
   "budget",
   "comment"
  ],
@@ -23,6 +24,12 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Estimated Quantity"
+  },
+  {
+   "fieldname": "delivery_timeline",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Estimated Delivery Timeline"
   },
   {
    "fieldname": "budget",

@@ -6674,7 +6674,7 @@ Partially Completed,Частково завершено
 Partially Delivered,Частково доставлено
 Partially Depreciated,Частково амортизований
 Partially Fulfilled,Частково виконано
-Partially Ordered,Частково впорядковано
+Partially Ordered,Частково замовлено
 Partially Paid,Частково оплачується
 Partially Received,Частково отримано
 Partially Reconciled,Частково узгоджено
@@ -14204,3 +14204,54 @@ Too long: {0} (limit {1}),Задовге: {0} (ліміт {1})
 You have a new notification in ERPnext,У вас нове сповіщення у ERPnext
 Generate Barcode,Створити штрихкод
 (none),(немає)
+Very Low Probability,Дуже низька
+Very High Probability,Дуже висока
+Estimated Delivery Timeline,Орієнтовні терміни постачання
+Engagement Channel,Канал залучення
+Converted to Quotation,Перетворена в Quotation
+Negotiation Stage,Етап переговорів
+Client Budget (if known),Бюджет клієнта (якщо відомо)
+Next Action Type,Тип наступної дії
+Next Action Comment,Коментар до наступної дії
+Key Events,Ключові події
+Demonstration Conducted,Проведена демонстрація
+Test Sample Sent,Відправлено тестовий зразок
+Requirement Clarification,Уточнення потреб
+Solution Shaping,Формування рішення
+Call,Дзвінок
+Letter,Лист
+Internal Alignment,Внутрішнє узгодження
+Awaiting Client Response,Очікуємо відповідь клієнта
+Reason for Losing the Opportunity,Причина втрати Пропозиції
+Client cancelled the purchase,Клієнт відмовився від закупівлі
+Another supplier chosen,Обрано іншого постачальника
+Budget not agreed,Не погоджено бюджет
+Deadlines not agreed,Не погоджено терміни
+Technical solution not agreed,Не погоджено технічне рішення
+We declined,Ми відмовилися
+No further contact established,Не вдалося встановити подальший контакт
+Purchase postponed indefinitely,Закупівлю відкладено на невизначений термін
+Need is no longer relevant,Втрачено актуальність потреби
+My Opportunities,Мої Пропозиції
+Active Opportunities,Активні Пропозиції
+{0} is mandatory while the Opportunity is active,"{0} є обов'язковим, поки Пропозиція активна"
+Status {0} is set automatically when a Quotation is created and cannot be selected manually,Статус {0} встановлюється автоматично при створенні Quotation і не може бути обраний вручну
+Converted to Quotation {0},Перетворена в Quotation {0}
+Fulfilment Type,Тип виконання
+Finished Goods Sale,Продаж готової продукції
+New Production,Нове виробництво
+Combined,Комбіноване
+Cancellation,Скасування
+Cancellation Reason,Причина скасування
+Cancellation Comment,Коментар до скасування
+Sales Order Fulfilment,Оформлення через Sales Order
+Approved Quantity,Погоджена кількість
+Remaining Quantity,Залишок до оформлення
+Quotation Locked,Угода заблокована
+Quantity Exceeded,Перевищено кількість
+{0} can only be changed while the Quotation is in state {1},{0} можна змінити лише у статусі {1}
+{0} cannot be changed while the Quotation is being approved. Return it for rework first.,{0} не можна змінювати під час погодження. Спочатку поверніть Угоду на доопрацювання.
+{0} and {1} are mandatory to cancel a Quotation,{0} та {1} обов'язкові для скасування Угоди
+Row #{0}: Item {1} is not part of Quotation {2},Рядок #{0}: товару {1} немає в Угоді {2}
+Row #{0}: only {1} of {2} is left to order on Quotation {3},Рядок #{0}: в Угоді {3} залишилось лише {1} товару {2}
+The Quotation is being approved and cannot be edited. Return it for rework to change the terms.,"Угода перебуває на погодженні та недоступна для редагування. Щоб змінити умови, поверніть її на доопрацювання."

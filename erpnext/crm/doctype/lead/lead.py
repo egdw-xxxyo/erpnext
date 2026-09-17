@@ -65,7 +65,14 @@ class Lead(SellingController, CRMNote):
 		company_name: DF.Data | None
 		contact_display: DF.Data | None
 		contact_person: DF.Link | None
-		conversion_probability: DF.Literal["", "Low Probability", "Medium Probability", "High Probability"]
+		conversion_probability: DF.Literal[
+			"",
+			"Very Low Probability",
+			"Low Probability",
+			"Medium Probability",
+			"High Probability",
+			"Very High Probability",
+		]
 		country: DF.Link | None
 		customer: DF.Link | None
 		customer_need: DF.SmallText | None
@@ -559,8 +566,16 @@ def make_opportunity(source_name, target_doc=None):
 					"mobile_no": "contact_mobile",
 					"lead_owner": "opportunity_owner",
 					"notes": "notes",
+					# Everything the manager already collected, so nobody re-asks the client.
+					"customer_need": "customer_need",
+					"contact_person": "contact_person",
+					"military_unit": "military_unit",
+					"utm_source": "utm_source",
 				},
-			}
+			},
+			"Lead Requirement": {
+				"doctype": "Lead Requirement",
+			},
 		},
 		target_doc,
 		set_missing_values,
