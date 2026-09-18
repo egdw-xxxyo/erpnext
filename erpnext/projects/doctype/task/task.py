@@ -164,11 +164,7 @@ class Task(NestedSet):
 			self.progress = get_group_progress(self.name)
 			return
 
-		if flt(self.progress or 0) > 100:
-			frappe.throw(_("Progress % for a task cannot be more than 100."))
-
-		if self.status == "Completed":
-			self.progress = 100
+		self.progress = 100 if self.status == "Completed" else 0
 
 	def validate_dependencies_for_template_task(self):
 		if self.is_template:
