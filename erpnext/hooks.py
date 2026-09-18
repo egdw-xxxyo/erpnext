@@ -88,7 +88,6 @@ permission_query_conditions = {
 	"Technical Document Revision": "erpnext.technical_documentation.permissions.revision_query_conditions",
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_query_conditions",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_query_conditions",
-	"NATO Codification": "erpnext.technical_documentation.permissions.codification_query_conditions",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
 }
 
@@ -125,11 +124,6 @@ share_access_inheritance = [
 		"parent_doctype": "Technical Document",
 	},
 	{
-		"doctype": "NATO Codification",
-		"fieldname": "technical_document",
-		"parent_doctype": "Technical Document",
-	},
-	{
 		"doctype": "Technical Document Audit Entry",
 		"fieldname": "document",
 		"parent_doctype": "Technical Document",
@@ -146,7 +140,6 @@ has_permission = {
 	"Technical Document Revision": "erpnext.technical_documentation.permissions.revision_has_permission",
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_has_permission",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_has_permission",
-	"NATO Codification": "erpnext.technical_documentation.permissions.codification_has_permission",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
 }
 

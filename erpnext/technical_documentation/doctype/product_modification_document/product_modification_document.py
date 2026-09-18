@@ -4,7 +4,7 @@
 from frappe.model.document import Document
 
 
-class NATOCodificationDocument(Document):
+class ProductModificationDocument(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -19,7 +19,7 @@ class NATOCodificationDocument(Document):
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
-		technical_document: DF.Link | None
+		technical_document: DF.Link
 	# end: auto-generated types
 
 	pass

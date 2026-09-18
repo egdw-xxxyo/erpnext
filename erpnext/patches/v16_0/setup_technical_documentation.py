@@ -32,8 +32,6 @@ DOCUMENT_TYPES = (
 		"has_product_classification": 1,
 		"has_modifications": 1,
 		"requires_completeness": 1,
-		"requires_approval_by_default": 1,
-		"default_review_months": 60,
 	},
 	{"document_type": "Інструкція", "abbreviation": "ІН", "default_section": "Інструкції"},
 	{"document_type": "Методика випробувань", "abbreviation": "МВ"},

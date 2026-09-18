@@ -14,16 +14,13 @@ class TechnicalDocumentType(Document):
 		from frappe.types import DF
 
 		abbreviation: DF.Data | None
-		default_review_months: DF.Int
 		default_section: DF.Link | None
 		description: DF.SmallText | None
 		disabled: DF.Check
 		document_type: DF.Data
 		has_modifications: DF.Check
 		has_product_classification: DF.Check
-		requires_approval_by_default: DF.Check
 		requires_completeness: DF.Check
-		retention_months: DF.Int
 	# end: auto-generated types
 
 	pass

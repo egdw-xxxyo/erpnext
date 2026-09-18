@@ -13,11 +13,22 @@
   "modification_code",
   "full_name",
   "company",
+  "main_column",
   "product_type",
   "product_subtype",
   "status",
   "introduction_date",
   "discontinued_date",
+  "attributes_section",
+  "attributes",
+  "attribute_summary",
+  "nsn_section",
+  "nsn_code",
+  "nsn_column",
+  "nsn_date",
+  "documents_section",
+  "documents",
+  "note_section",
   "note"
  ],
  "fields": [
@@ -69,7 +80,7 @@
    "in_global_search": 0,
    "in_list_view": 0,
    "in_preview": 0,
-   "in_standard_filter": 0,
+   "in_standard_filter": 1,
    "is_virtual": 0,
    "label": "Product Type",
    "length": 0,
@@ -109,7 +120,7 @@
    "in_global_search": 0,
    "in_list_view": 0,
    "in_preview": 0,
-   "in_standard_filter": 0,
+   "in_standard_filter": 1,
    "is_virtual": 0,
    "label": "Subtype",
    "length": 0,
@@ -135,6 +146,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Status",
    "options": "Чернетка\nЧинна\nЗамінена\nСкасована\nАрхівна"
   },
@@ -217,6 +229,50 @@
    "unique": 0
   },
   {
+   "fieldname": "attributes_section",
+   "fieldtype": "Section Break",
+   "label": "Attributes"
+  },
+  {
+   "fieldname": "attributes",
+   "fieldtype": "Table",
+   "label": "Attributes",
+   "options": "Product Modification Attribute"
+  },
+  {
+   "fieldname": "nsn_section",
+   "fieldtype": "Section Break",
+   "label": "NATO Codification"
+  },
+  {
+   "fieldname": "nsn_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "NSN"
+  },
+  {
+   "fieldname": "nsn_date",
+   "fieldtype": "Date",
+   "label": "Codification Date"
+  },
+  {
+   "fieldname": "documents_section",
+   "fieldtype": "Section Break",
+   "label": "Documents"
+  },
+  {
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "Product Modification Document"
+  },
+  {
+   "fieldname": "note_section",
+   "fieldtype": "Section Break",
+   "label": "Note"
+  },
+  {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
    "allow_on_submit": 0,
@@ -254,12 +310,29 @@
    "sort_options": 0,
    "translatable": 0,
    "unique": 0
+  },
+  {
+   "fieldname": "main_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "attribute_summary",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Attributes",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "nsn_column",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-08 00:02:09.371800",
+ "modified": "2026-09-18 00:02:09.371800",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Product Modification",
@@ -272,7 +345,7 @@
    "email": 1,
    "export": 1,
    "idx": 1,
-   "modified": "2026-09-08 00:02:09.371800",
+   "modified": "2026-09-18 00:02:09.371800",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vpdkin7bn4",
    "owner": "k.plodovskyi@kalheon.com",
@@ -292,7 +365,7 @@
    "email": 1,
    "export": 1,
    "idx": 2,
-   "modified": "2026-09-08 00:02:09.371800",
+   "modified": "2026-09-18 00:02:09.371800",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vpdjaag98i",
    "owner": "k.plodovskyi@kalheon.com",
@@ -311,7 +384,7 @@
    "email": 1,
    "export": 1,
    "idx": 3,
-   "modified": "2026-09-08 00:02:09.371800",
+   "modified": "2026-09-18 00:02:09.371800",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vpd0lun3ls",
    "owner": "k.plodovskyi@kalheon.com",
@@ -332,7 +405,7 @@
    "email": 1,
    "export": 1,
    "idx": 4,
-   "modified": "2026-09-08 00:02:09.371800",
+   "modified": "2026-09-18 00:02:09.371800",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vpd4s6dqjp",
    "owner": "k.plodovskyi@kalheon.com",

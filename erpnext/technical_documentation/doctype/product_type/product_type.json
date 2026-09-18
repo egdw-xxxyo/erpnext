@@ -9,7 +9,9 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "product_type"
+  "product_type",
+  "attributes_section",
+  "attributes"
  ],
  "fields": [
   {
@@ -19,12 +21,23 @@
    "label": "Product Type",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "attributes_section",
+   "fieldtype": "Section Break",
+   "label": "Attributes"
+  },
+  {
+   "fieldname": "attributes",
+   "fieldtype": "Table",
+   "label": "Attributes",
+   "options": "Product Attribute Assignment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-08 00:01:16.686077",
+ "modified": "2026-09-18 00:01:16.686077",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Product Type",
@@ -33,11 +46,12 @@
   {
    "create": 1,
    "creation": "2026-09-07 23:52:54.464709",
+   "delete": 1,
    "doctype": "DocPerm",
    "email": 1,
    "export": 1,
    "idx": 1,
-   "modified": "2026-09-08 00:01:16.686077",
+   "modified": "2026-09-18 00:01:16.686077",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "v8ue2jta4b",
    "owner": "k.plodovskyi@kalheon.com",
@@ -57,7 +71,7 @@
    "email": 1,
    "export": 1,
    "idx": 2,
-   "modified": "2026-09-08 00:01:16.686077",
+   "modified": "2026-09-18 00:01:16.686077",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "v8u3s37ud0",
    "owner": "k.plodovskyi@kalheon.com",
@@ -72,11 +86,12 @@
   {
    "create": 1,
    "creation": "2026-09-07 23:52:54.464709",
+   "delete": 1,
    "doctype": "DocPerm",
    "email": 1,
    "export": 1,
    "idx": 3,
-   "modified": "2026-09-08 00:01:16.686077",
+   "modified": "2026-09-18 00:01:16.686077",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "v8ue2n6uja",
    "owner": "k.plodovskyi@kalheon.com",
@@ -93,11 +108,12 @@
   {
    "create": 1,
    "creation": "2026-09-07 23:52:54.464709",
+   "delete": 1,
    "doctype": "DocPerm",
    "email": 1,
    "export": 1,
    "idx": 4,
-   "modified": "2026-09-08 00:01:16.686077",
+   "modified": "2026-09-18 00:01:16.686077",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "v8urg5eaev",
    "owner": "k.plodovskyi@kalheon.com",

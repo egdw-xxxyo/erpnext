@@ -13,6 +13,11 @@ class ProductType(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.technical_documentation.doctype.product_attribute_assignment.product_attribute_assignment import (
+			ProductAttributeAssignment,
+		)
+
+		attributes: DF.Table[ProductAttributeAssignment]
 		product_type: DF.Data
 	# end: auto-generated types
 

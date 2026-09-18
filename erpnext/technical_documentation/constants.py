@@ -10,8 +10,10 @@ makes any comparison in code language-dependent, so nothing in the module compar
 against a literal: it imports from here, and a future rename stays a data patch plus one
 edit of this file.
 
-Two document statuses (`На погодженні`, `Погоджено`) have no rows behind them yet. They
-are seats kept for the approval wave, and adding a Select value never touches data.
+Every value here is one the register actually produces. Seats kept for a routing engine
+that was never built — an approval status nothing sets, an audit event nothing writes —
+were removed: an enumeration is read as a promise of what can happen, and a value no code
+can ever store is a promise the module does not keep.
 """
 
 MODULE_NAME = "Technical Documentation"
@@ -21,8 +23,6 @@ ROLE_EDITOR = "Technical Documentation Editor"
 ROLE_MANAGER = "Technical Documentation Manager"
 
 DOCUMENT_DRAFT = "Чернетка"
-DOCUMENT_IN_APPROVAL = "На погодженні"
-DOCUMENT_APPROVED = "Погоджено"
 DOCUMENT_EFFECTIVE = "Чинний"
 DOCUMENT_SUPERSEDED = "Замінений"
 DOCUMENT_CANCELLED = "Скасований"
@@ -30,8 +30,6 @@ DOCUMENT_ARCHIVED = "Архівний"
 
 DOCUMENT_STATUSES = (
 	DOCUMENT_DRAFT,
-	DOCUMENT_IN_APPROVAL,
-	DOCUMENT_APPROVED,
 	DOCUMENT_EFFECTIVE,
 	DOCUMENT_SUPERSEDED,
 	DOCUMENT_CANCELLED,
@@ -68,34 +66,12 @@ MODIFICATION_STATUSES = (
 	MODIFICATION_ARCHIVED,
 )
 
-CODIFICATION_NOT_STARTED = "Не розпочато"
-CODIFICATION_PREPARING = "Підготовка документів"
-CODIFICATION_TESTING = "На випробуваннях"
-CODIFICATION_IN_PROGRESS = "На кодифікації"
-CODIFICATION_DONE = "Кодифіковано"
-CODIFICATION_REJECTED = "Відхилено"
-CODIFICATION_CANCELLED = "Скасовано"
-
-CODIFICATION_STATUSES = (
-	CODIFICATION_NOT_STARTED,
-	CODIFICATION_PREPARING,
-	CODIFICATION_TESTING,
-	CODIFICATION_IN_PROGRESS,
-	CODIFICATION_DONE,
-	CODIFICATION_REJECTED,
-	CODIFICATION_CANCELLED,
-)
-
-CODIFICATION_OPEN_STATUSES = (
-	CODIFICATION_PREPARING,
-	CODIFICATION_TESTING,
-	CODIFICATION_IN_PROGRESS,
-)
-
 RELATION_SUPERSEDES = "Замінює"
 RELATION_SUPERSEDED_BY = "Замінений документом"
+RELATION_HAS_ANNEX = "Має додаток"
 RELATION_ANNEX_TO = "Додаток до"
 RELATION_RELATED_TO = "Повʼязаний з"
+RELATION_BASIS_FOR = "Є підставою для"
 RELATION_BASED_ON = "Розроблений на підставі"
 RELATION_CANCELS = "Скасовує"
 RELATION_PREVIOUS_EDITION = "Попередня редакція"
@@ -104,13 +80,21 @@ RELATION_NEXT_EDITION = "Наступна редакція"
 RELATION_TYPES = (
 	RELATION_SUPERSEDES,
 	RELATION_SUPERSEDED_BY,
+	RELATION_HAS_ANNEX,
 	RELATION_ANNEX_TO,
 	RELATION_RELATED_TO,
+	RELATION_BASIS_FOR,
 	RELATION_BASED_ON,
 	RELATION_CANCELS,
 	RELATION_PREVIOUS_EDITION,
 	RELATION_NEXT_EDITION,
 )
+
+# A relation is read as a sentence — the main document, the type, the related document — so
+# a type that only reads one way can only be recorded from one card. «Замінює» has had its
+# mirror «Замінений документом» from the start; «Має додаток» and «Є підставою для» are the
+# mirrors the vocabulary was missing, and without them a specification could not say what
+# belongs to it without stating the opposite of what was meant.
 
 ATTACHMENT_SIGNATURE = "Підпис"
 ATTACHMENT_MEDOC_RECEIPT = "Квитанція M.E.Doc"
@@ -137,8 +121,6 @@ AUDIT_STATUS_CHANGED = "Зміна статусу"
 AUDIT_RESPONSIBLE_CHANGED = "Зміна відповідального"
 AUDIT_ARCHIVED = "Архівовано"
 AUDIT_CANCELLED = "Скасовано"
-AUDIT_APPROVED = "Погоджено"
-AUDIT_REJECTED = "Відхилено"
 AUDIT_OTHER = "Інше"
 
 AUDIT_EVENTS = (
@@ -149,8 +131,6 @@ AUDIT_EVENTS = (
 	AUDIT_RESPONSIBLE_CHANGED,
 	AUDIT_ARCHIVED,
 	AUDIT_CANCELLED,
-	AUDIT_APPROVED,
-	AUDIT_REJECTED,
 	AUDIT_OTHER,
 )
 
@@ -166,6 +146,4 @@ SECTION_DOCTYPE = "Technical Document Section"
 TYPE_DOCTYPE = "Technical Document Type"
 AUDIT_DOCTYPE = "Technical Document Audit Entry"
 MODIFICATION_DOCTYPE = "Product Modification"
-CODIFICATION_DOCTYPE = "NATO Codification"
-
-ALLOWED_LINK_DOCTYPES = (DOCUMENT_DOCTYPE,)
+ATTRIBUTE_DOCTYPE = "Product Attribute"

@@ -8,7 +8,7 @@ Section-level access is two stock mechanisms and no code: a `User Permission` on
 expands nested-set descendants, and `share_access_inheritance` carries an explicit share
 down the same edges.
 
-Neither of those reaches a revision, a modification or a codification, because none of
+Neither of those reaches a revision or a modification, because neither of
 them has a `section` field to restrict — they hang off the document through
 `technical_document` instead. So the satellites delegate: whoever may read the document
 may read what belongs to it, and the list query is filtered by the set of documents the
@@ -71,14 +71,6 @@ def modification_has_permission(doc, ptype, user):
 
 
 def modification_query_conditions(user=None, doctype="Product Modification"):
-	return delegate_query_conditions(user, doctype)
-
-
-def codification_has_permission(doc, ptype, user):
-	return delegate_has_permission(doc, ptype, user)
-
-
-def codification_query_conditions(user=None, doctype="NATO Codification"):
 	return delegate_query_conditions(user, doctype)
 
 

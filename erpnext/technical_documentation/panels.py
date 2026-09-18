@@ -25,10 +25,8 @@ import frappe
 
 from erpnext.technical_documentation.completeness import get_completeness
 from erpnext.technical_documentation.constants import (
-	CODIFICATION_DONE,
-	CODIFICATION_NOT_STARTED,
-	CODIFICATION_OPEN_STATUSES,
 	DOCUMENT_DOCTYPE,
+	MODIFICATION_DOCTYPE,
 	RELATION_DOCTYPE,
 	REVISION_DOCTYPE,
 	REVISION_EFFECTIVE,
@@ -136,35 +134,45 @@ def read_relations(own_field, other_field, document):
 
 def get_modifications(document):
 	modifications = frappe.get_list(
-		"Product Modification",
+		MODIFICATION_DOCTYPE,
 		filters={"technical_document": document},
-		fields=["name", "modification_code", "full_name", "status", "product_type", "product_subtype"],
+		fields=[
+			"name",
+			"modification_code",
+			"full_name",
+			"status",
+			"product_type",
+			"product_subtype",
+			"nsn_code",
+			"nsn_date",
+		],
 		order_by="modification_code",
 		limit_page_length=0,
 	)
 
-	codifications = frappe.get_list(
-		"NATO Codification",
-		filters={"technical_document": document},
-		fields=["name", "product_modification", "status", "end_date", "nsn_code"],
-		limit_page_length=0,
-	)
-	by_modification = {row.product_modification: row for row in codifications}
-
-	for modification in modifications:
-		codification = by_modification.get(modification.name)
-		modification["codification"] = codification.name if codification else None
-		modification["codification_status"] = (
-			codification.status if codification else CODIFICATION_NOT_STARTED
-		)
-		modification["nsn_code"] = codification.nsn_code if codification else None
-		modification["codification_date"] = codification.end_date if codification else None
+	attributes = read_attributes([row.name for row in modifications])
+	for row in modifications:
+		row["attributes"] = attributes.get(row.name, [])
 
 	return {
 		"rows": modifications,
 		"total": len(modifications),
-		"codified": sum(1 for row in modifications if row["codification_status"] == CODIFICATION_DONE),
-		"in_progress": sum(
-			1 for row in modifications if row["codification_status"] in CODIFICATION_OPEN_STATUSES
-		),
+		"codified": sum(1 for row in modifications if row.nsn_code),
 	}
+
+
+def read_attributes(modifications):
+	"""The attribute values of several modifications, read in one query and grouped."""
+	if not modifications:
+		return {}
+
+	grouped = {}
+	for row in frappe.get_all(
+		"Product Modification Attribute",
+		filters={"parenttype": MODIFICATION_DOCTYPE, "parent": ("in", modifications)},
+		fields=["parent", "attribute", "attribute_value"],
+		order_by="parent, idx",
+	):
+		grouped.setdefault(row.parent, []).append({"attribute": row.attribute, "value": row.attribute_value})
+
+	return grouped

@@ -12,20 +12,28 @@
   "technical_document",
   "revision_number",
   "revision_title",
+  "revision_status",
+  "revision_column",
   "creation_date",
   "approval_date",
   "effective_date",
   "end_date",
-  "revision_status",
-  "change_description",
+  "change_section",
   "change_basis",
+  "change_column",
+  "change_description",
+  "responsible_section",
   "prepared_by",
   "checked_by",
+  "responsible_column",
   "approved_by",
+  "files_section",
   "word_file",
   "pdf_file",
+  "files_column",
   "signed_scan",
   "additional_attachment",
+  "comment_section",
   "comment",
   "amended_from"
  ],
@@ -585,13 +593,49 @@
    "options": "Technical Document Revision",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "revision_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "change_section",
+   "fieldtype": "Section Break",
+   "label": "Changes"
+  },
+  {
+   "fieldname": "change_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "responsible_section",
+   "fieldtype": "Section Break",
+   "label": "Responsible"
+  },
+  {
+   "fieldname": "responsible_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "files_section",
+   "fieldtype": "Section Break",
+   "label": "Files"
+  },
+  {
+   "fieldname": "files_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-08 00:01:44.075745",
+ "modified": "2026-09-18 00:01:44.075745",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Document Revision",
@@ -605,7 +649,7 @@
    "email": 1,
    "export": 1,
    "idx": 1,
-   "modified": "2026-09-08 00:01:44.075745",
+   "modified": "2026-09-18 00:01:44.075745",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vhgs31cnkm",
    "owner": "k.plodovskyi@kalheon.com",
@@ -627,7 +671,7 @@
    "email": 1,
    "export": 1,
    "idx": 2,
-   "modified": "2026-09-08 00:01:44.075745",
+   "modified": "2026-09-18 00:01:44.075745",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vhg73o9qdg",
    "owner": "k.plodovskyi@kalheon.com",
@@ -647,7 +691,7 @@
    "email": 1,
    "export": 1,
    "idx": 3,
-   "modified": "2026-09-08 00:01:44.075745",
+   "modified": "2026-09-18 00:01:44.075745",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vhgr809ghv",
    "owner": "k.plodovskyi@kalheon.com",
@@ -670,7 +714,7 @@
    "email": 1,
    "export": 1,
    "idx": 4,
-   "modified": "2026-09-08 00:01:44.075745",
+   "modified": "2026-09-18 00:01:44.075745",
    "modified_by": "k.plodovskyi@kalheon.com",
    "name": "vhgsd31r73",
    "owner": "k.plodovskyi@kalheon.com",

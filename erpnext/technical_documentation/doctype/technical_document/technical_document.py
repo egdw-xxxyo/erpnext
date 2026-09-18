@@ -31,6 +31,9 @@ from erpnext.technical_documentation.constants import (
 	REVISION_EFFECTIVE,
 	TYPE_DOCTYPE,
 )
+from erpnext.technical_documentation.doctype.product_subtype.product_subtype import (
+	validate_type_and_subtype,
+)
 
 
 class TechnicalDocument(Document):
@@ -52,8 +55,6 @@ class TechnicalDocument(Document):
 			TechnicalDocumentRevisionRow,
 		)
 
-		approval_date: DF.Date | None
-		approved_by: DF.Link | None
 		company: DF.Link
 		completeness_rows: DF.Table[TechnicalDocumentCompletenessRow]
 		current_revision: DF.Link | None
@@ -70,16 +71,12 @@ class TechnicalDocument(Document):
 		product_subtype: DF.Link | None
 		product_type: DF.Link | None
 		requirement_template: DF.Link | None
-		requires_approval: DF.Check
 		responsible: DF.Link
 		responsible_department: DF.Data | None
-		retention_until: DF.Date | None
 		revision_rows: DF.Table[TechnicalDocumentRevisionRow]
 		section: DF.Link
 		status: DF.Literal[
 			"\u0427\u0435\u0440\u043d\u0435\u0442\u043a\u0430",
-			"\u041d\u0430 \u043f\u043e\u0433\u043e\u0434\u0436\u0435\u043d\u043d\u0456",
-			"\u041f\u043e\u0433\u043e\u0434\u0436\u0435\u043d\u043e",
 			"\u0427\u0438\u043d\u043d\u0438\u0439",
 			"\u0417\u0430\u043c\u0456\u043d\u0435\u043d\u0438\u0439",
 			"\u0421\u043a\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0439",
@@ -92,6 +89,7 @@ class TechnicalDocument(Document):
 		self.set_onload("type_flags", type_flags(self.document_type))
 
 	def validate(self):
+		validate_type_and_subtype(self)
 		self.validate_current_revision()
 
 	def after_insert(self):

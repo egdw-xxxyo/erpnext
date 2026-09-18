@@ -15,6 +15,13 @@ current revision. The cost of that choice is explicit — a document that exists
 never linked to the ТУ shows as missing — and it is the intended one, because the
 alternative is matching documents by name and being quietly wrong.
 
+Not every relation puts a document in the package. Only the two that say so do: «Має
+додаток» recorded on the specification, and «Додаток до» recorded on the annex, which are
+the same sentence read from either end. A document merely «Повʼязаний з» the specification
+is related to it, not part of it, and one the specification «Замінює» is the opposite of a
+package member — counting either would let a required line be closed by a document nobody
+claimed belongs there.
+
 The calculation reads every related document, permissions aside, so that two people
 looking at the same specification are told the same thing about it — a percentage that
 falls when a reader lacks access to one annex would be worse than useless in an ISO
@@ -24,6 +31,15 @@ may not open keeps its state and loses its name.
 Four states rather than two, because «present» and «absent» cannot express a package that
 is formally complete and materially out of date: a linked document past its review or
 validity date reads «Прострочено», one that was superseded or archived «Не актуально».
+
+A missing row that has a merely related document of the required type says so. The rule
+above is what makes that possible to get wrong: the document is on the card, in the
+relations panel, of exactly the type the template asks for, and the package still reads
+«Немає» — correctly, because nobody declared it part of the package. Naming the candidate
+turns that into one visible step. It is a hint and not a correction: «Повʼязаний з» is
+what a person chose, and rewriting it into «Має додаток» would be guessing at what they
+meant. Only that one relation is suggested, because every other type states a relationship
+that is not membership — a document this one «Замінює» is the opposite of a package member.
 """
 
 import frappe
@@ -36,7 +52,10 @@ from erpnext.technical_documentation.constants import (
 	COMPLETENESS_PRESENT,
 	DOCUMENT_DOCTYPE,
 	DOCUMENT_EFFECTIVE,
+	RELATION_ANNEX_TO,
 	RELATION_DOCTYPE,
+	RELATION_HAS_ANNEX,
+	RELATION_RELATED_TO,
 )
 
 STATE_KEYS = {
@@ -64,8 +83,9 @@ def get_completeness(document):
 		order_by="idx",
 	)
 
-	related = get_related_by_type(document)
-	rows = [build_row(requirement, related) for requirement in requirements]
+	related = get_related_by_type(document, RELATION_HAS_ANNEX, RELATION_ANNEX_TO)
+	candidates = get_related_by_type(document, RELATION_RELATED_TO, RELATION_RELATED_TO)
+	rows = [build_row(requirement, related, candidates) for requirement in requirements]
 	mandatory = [row for row in rows if row["mandatory"]]
 
 	return {
@@ -76,11 +96,17 @@ def get_completeness(document):
 	}
 
 
-def get_related_by_type(document):
+# A relation is recorded from one side, so a relation to this document is read from either
+# end: the type written on the cards that point at it, and the type written on this one.
+def get_related_by_type(document, from_here, from_there):
 	names = frappe.get_all(
 		RELATION_DOCTYPE,
-		filters={"main_document": document},
+		filters={"main_document": document, "relation_type": from_here},
 		pluck="related_document",
+	) + frappe.get_all(
+		RELATION_DOCTYPE,
+		filters={"related_document": document, "relation_type": from_there},
+		pluck="main_document",
 	)
 
 	if not names:
@@ -105,9 +131,9 @@ def get_related_by_type(document):
 	return related
 
 
-def build_row(requirement, related):
-	candidates = related.get(requirement.document_type) or []
-	states = [(candidate, state_of(candidate)) for candidate in candidates]
+def build_row(requirement, related, candidates):
+	members = related.get(requirement.document_type) or []
+	states = [(member, state_of(member)) for member in members]
 
 	best = next((pair for pair in states if pair[1] == COMPLETENESS_PRESENT), None)
 	best = best or next((pair for pair in states if pair[1] == COMPLETENESS_EXPIRED), None)
@@ -116,6 +142,7 @@ def build_row(requirement, related):
 	document, state = best
 
 	readable = bool(document) and frappe.has_permission(DOCUMENT_DOCTYPE, doc=document.name)
+	candidate = suggest_candidate(requirement, candidates) if state == COMPLETENESS_MISSING else None
 
 	return {
 		"document_type": requirement.document_type,
@@ -126,7 +153,19 @@ def build_row(requirement, related):
 		"restricted": bool(document) and not readable,
 		"state": state,
 		"state_key": STATE_KEYS[state],
+		"candidate": candidate.name if candidate else None,
+		"candidate_title": candidate.document_title if candidate else None,
 	}
+
+
+# A candidate nobody may open is not offered: the hint exists to be acted on, and the one
+# action it leads to is opening that card and declaring it an annex.
+def suggest_candidate(requirement, candidates):
+	for candidate in candidates.get(requirement.document_type) or []:
+		if frappe.has_permission(DOCUMENT_DOCTYPE, doc=candidate.name):
+			return candidate
+
+	return None
 
 
 def state_of(document):

@@ -25,7 +25,6 @@ infer which revision was meant.
 import frappe
 
 from erpnext.technical_documentation.constants import (
-	CODIFICATION_DOCTYPE,
 	DOCUMENT_DOCTYPE,
 	MODIFICATION_DOCTYPE,
 	RELATION_ANNEX_TO,
@@ -41,7 +40,6 @@ NAMING_SERIES = {
 	REVISION_DOCTYPE: "TDR-",
 	RELATION_DOCTYPE: "TDRL-",
 	MODIFICATION_DOCTYPE: "PM-",
-	CODIFICATION_DOCTYPE: "NATO-",
 }
 
 SECTION_BY_TYPE_PREFIX = (

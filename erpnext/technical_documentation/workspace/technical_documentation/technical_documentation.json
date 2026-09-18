@@ -1,7 +1,7 @@
 {
  "app": "erpnext",
  "charts": [],
- "content": "[{\"id\": \"td_hdr_state\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>State of the Register</b></span>\", \"col\": 12}}, {\"id\": \"td_nc_effective\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Effective Specifications\", \"col\": 3}}, {\"id\": \"td_nc_norev\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Documents Without a Current Revision\", \"col\": 3}}, {\"id\": \"td_nc_codified\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Codified Modifications\", \"col\": 3}}, {\"id\": \"td_nc_inprogress\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Codification in Progress\", \"col\": 3}}, {\"id\": \"td_spacer_1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"td_hdr_shortcuts\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"td_sc_document\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Document\", \"col\": 3}}, {\"id\": \"td_sc_section\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Document Section\", \"col\": 3}}, {\"id\": \"td_sc_modification\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Product Modification\", \"col\": 3}}, {\"id\": \"td_sc_report\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Documentation Completeness\", \"col\": 3}}, {\"id\": \"td_spacer_2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"td_hdr_cards\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"td_card_register\", \"type\": \"card\", \"data\": {\"card_name\": \"Register\", \"col\": 4}}, {\"id\": \"td_card_specs\", \"type\": \"card\", \"data\": {\"card_name\": \"Specifications\", \"col\": 4}}, {\"id\": \"td_card_reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports and Journal\", \"col\": 4}}, {\"id\": \"td_card_settings\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}]",
+ "content": "[{\"id\": \"td_hdr_state\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>State of the Register</b></span>\", \"col\": 12}}, {\"id\": \"td_nc_effective\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Effective Specifications\", \"col\": 4}}, {\"id\": \"td_nc_norev\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Documents Without a Current Revision\", \"col\": 4}}, {\"id\": \"td_nc_codified\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Codified Modifications\", \"col\": 4}}, {\"id\": \"td_spacer_1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"td_hdr_shortcuts\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"td_sc_document\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Document\", \"col\": 3}}, {\"id\": \"td_sc_section\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Document Section\", \"col\": 3}}, {\"id\": \"td_sc_modification\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Product Modification\", \"col\": 3}}, {\"id\": \"td_sc_report\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Documentation Completeness\", \"col\": 3}}, {\"id\": \"td_spacer_2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"td_hdr_cards\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"td_card_register\", \"type\": \"card\", \"data\": {\"card_name\": \"Register\", \"col\": 4}}, {\"id\": \"td_card_specs\", \"type\": \"card\", \"data\": {\"card_name\": \"Specifications\", \"col\": 4}}, {\"id\": \"td_card_reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports and Journal\", \"col\": 4}}, {\"id\": \"td_card_settings\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}]",
  "creation": "2026-09-14 12:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -88,17 +88,6 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
-   "label": "NATO Codification",
-   "link_count": 0,
-   "link_to": "NATO Codification",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "Product Type",
    "link_count": 0,
    "link_to": "Product Type",
@@ -113,6 +102,17 @@
    "label": "Product Subtype",
    "link_count": 0,
    "link_to": "Product Subtype",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Product Attribute",
+   "link_count": 0,
+   "link_to": "Product Attribute",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -178,7 +178,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-09-14 12:00:00.000000",
+ "modified": "2026-09-18 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Documentation",
@@ -194,10 +194,6 @@
   {
    "label": "Codified Modifications",
    "number_card_name": "Codified Modifications"
-  },
-  {
-   "label": "Codification in Progress",
-   "number_card_name": "Codification in Progress"
   }
  ],
  "owner": "Administrator",
