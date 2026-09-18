@@ -36,7 +36,7 @@ NUMBER_TYPE = "decimal(20,6)"
 
 
 @frappe.whitelist()
-def get_attributes(product_type=None, product_subtype=None):
+def get_attributes(product_type: str | None = None, product_subtype: str | None = None) -> list[dict]:
 	"""The attributes declared for this type and subtype, with the values each one allows."""
 	frappe.has_permission(ATTRIBUTE_DOCTYPE, throw=True)
 
@@ -60,7 +60,7 @@ def get_attributes(product_type=None, product_subtype=None):
 
 
 @frappe.whitelist()
-def search_modifications(conditions):
+def search_modifications(conditions: str | list) -> list[str]:
 	"""The modifications that carry every one of these attribute values.
 
 	Several attributes cannot be asked for in the list filter row: the child table is joined
@@ -79,7 +79,9 @@ def search_modifications(conditions):
 
 
 @frappe.whitelist()
-def count_modifications(conditions, product_type=None, product_subtype=None):
+def count_modifications(
+	conditions: str | list, product_type: str | None = None, product_subtype: str | None = None
+) -> int:
 	"""How many modifications the conditions gathered so far leave.
 
 	Asked while the conditions are still being collected, because the useful thing to know

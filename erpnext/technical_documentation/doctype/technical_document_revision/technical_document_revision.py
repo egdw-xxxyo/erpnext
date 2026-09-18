@@ -141,7 +141,7 @@ class TechnicalDocumentRevision(Document):
 
 
 @frappe.whitelist()
-def make_effective(revision):
+def make_effective(revision: str) -> str:
 	"""Put a revision into force, and move everything that follows from it in one step.
 
 	Three records change together: the revision that was in force becomes superseded and

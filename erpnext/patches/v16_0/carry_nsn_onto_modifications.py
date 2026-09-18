@@ -36,7 +36,7 @@ def execute():
 	if not (frappe.db.table_exists(SOURCE) and frappe.db.table_exists(TARGET)):
 		return
 
-	for row in frappe.db.sql(
+	for row in frappe.db.sql(  # nosemgrep: frappe-semgrep-rules.rules.security.frappe-sql-format-injection
 		f"""select name, product_modification, nsn_code, end_date
 		from `tab{SOURCE}` where ifnull(product_modification, '') != ''""",
 		as_dict=True,
@@ -78,7 +78,7 @@ def carry_package(modification, codification):
 	if frappe.db.exists(TARGET_PACKAGE, {"parenttype": TARGET, "parent": modification}):
 		return
 
-	rows = frappe.db.sql(
+	rows = frappe.db.sql(  # nosemgrep: frappe-semgrep-rules.rules.security.frappe-sql-format-injection
 		f"""select document_type, technical_document, document_revision, note, idx
 		from `tab{SOURCE_PACKAGE}` where parenttype = %s and parent = %s order by idx""",
 		(SOURCE, codification),

@@ -69,7 +69,7 @@ EMPTY = {"template": None, "rows": [], "required": 0, "present": 0}
 
 
 @frappe.whitelist()
-def get_completeness(document):
+def get_completeness(document: str) -> dict:
 	frappe.has_permission(DOCUMENT_DOCTYPE, doc=document, throw=True)
 
 	template = frappe.db.get_value(DOCUMENT_DOCTYPE, document, "requirement_template")
@@ -141,6 +141,7 @@ def build_row(requirement, related, candidates):
 
 	document, state = best
 
+	# nosemgrep: frappe-semgrep-rules.rules.unchecked-frappe-permission-call
 	readable = bool(document) and frappe.has_permission(DOCUMENT_DOCTYPE, doc=document.name)
 	candidate = suggest_candidate(requirement, candidates) if state == COMPLETENESS_MISSING else None
 
@@ -162,6 +163,7 @@ def build_row(requirement, related, candidates):
 # action it leads to is opening that card and declaring it an annex.
 def suggest_candidate(requirement, candidates):
 	for candidate in candidates.get(requirement.document_type) or []:
+		# nosemgrep: frappe-semgrep-rules.rules.unchecked-frappe-permission-call
 		if frappe.has_permission(DOCUMENT_DOCTYPE, doc=candidate.name):
 			return candidate
 

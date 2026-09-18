@@ -44,7 +44,7 @@ RELATED_FIELDS = (
 
 
 @frappe.whitelist()
-def get_panels(document):
+def get_panels(document: str) -> dict:
 	frappe.has_permission(DOCUMENT_DOCTYPE, doc=document, throw=True)
 
 	return {
