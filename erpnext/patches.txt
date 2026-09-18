@@ -544,4 +544,5 @@ erpnext.patches.v15_0.clear_leave_application_half_day
 erpnext.patches.v15_0.renumber_task_depends_on
 erpnext.patches.v15_0.drop_otdr_doctypes
 erpnext.patches.v15_0.rework_opportunity_status
+erpnext.patches.v15_0.backfill_production_line_workplaces
 erpnext.patches.v15_0.adopt_orphan_group_task_children

@@ -120,33 +120,21 @@ class Package(Document):
 		for row in self.items:
 			if not row.serial_no:
 				continue
-			if self.auto_pass_qc:
-				qi_match = frappe.db.sql(
-					"""SELECT 1 FROM `tabQI Serial Entry` qse
-					   JOIN `tabQuality Inspection` qi ON qi.name = qse.parent
-					   WHERE qse.serial_no=%s AND qi.docstatus=0
-					     AND qi.reference_type='Purchase Receipt' LIMIT 1""",
-					row.serial_no,
-				)
-				if not qi_match:
-					missing_qi.append(row.serial_no)
-			if self.operation:
-				jc_match = frappe.db.exists(
-					"Job Card",
-					{"serial_no": row.serial_no, "operation": self.operation, "docstatus": 0},
-				)
-				if not jc_match:
-					missing_jc.append(row.serial_no)
+			if self.auto_pass_qc and not serial_has_qc(row.serial_no):
+				missing_qi.append(row.serial_no)
+			if self.operation and not serial_has_operation(row.serial_no, self.operation):
+				missing_jc.append(row.serial_no)
 
 		if missing_qi:
 			frappe.throw(
-				_("Auto-pass QC is enabled but no draft Quality Inspection exists for serials: {0}").format(
-					", ".join(missing_qi)
-				)
+				_(
+					"Auto-pass QC is enabled but serials have neither a draft nor a passed"
+					" Quality Inspection: {0}"
+				).format(", ".join(missing_qi))
 			)
 		if missing_jc:
 			frappe.throw(
-				_("No open Job Card with operation {0} found for serials: {1}").format(
+				_("No open or finished Job Card with operation {0} found for serials: {1}").format(
 					self.operation, ", ".join(missing_jc)
 				)
 			)
@@ -450,3 +438,139 @@ def add_package_to_shipment(package_name, shipment_name):
 		update_status_from_package(pkg.bpak)
 
 	return {"message": _("Package {0} added to Shipment {1}").format(package_name, shipment_name)}
+
+
+def serial_has_qc(serial_no):
+	"""True when the serial has a draft QI to pass, or already passed one earlier.
+
+	A serial that was packed once keeps its quality result: after the box is
+	unpacked the serial can be repacked without a fresh inspection.
+	"""
+	return bool(
+		frappe.db.sql(
+			"""SELECT 1 FROM `tabQI Serial Entry` qse
+			   JOIN `tabQuality Inspection` qi ON qi.name = qse.parent
+			   WHERE qse.serial_no = %s
+			     AND (
+			       (qi.docstatus = 0 AND qi.reference_type = 'Purchase Receipt')
+			       OR (qi.docstatus = 1 AND qse.status = 'Pass')
+			     )
+			   LIMIT 1""",
+			serial_no,
+		)
+	)
+
+
+def serial_has_operation(serial_no, operation):
+	"""True when an open Job Card exists for the operation, or one is already finished."""
+	return bool(
+		frappe.db.exists(
+			"Job Card",
+			{"serial_no": serial_no, "operation": operation, "docstatus": ["in", [0, 1]]},
+		)
+	)
+
+
+def _resolve_package(package_name):
+	if frappe.db.exists("Package", package_name):
+		return package_name
+	resolved = frappe.db.get_value("Package", {"box_barcode": package_name}, "name")
+	if not resolved:
+		frappe.throw(_("No Package found for {0}").format(package_name))
+	return resolved
+
+
+def _unlink_package_rows(package_name):
+	"""Drop child rows in other documents that point at this package."""
+	for child_doctype in ("Sales Order Package", "Delivery Note Package", "Purchase Receipt Package"):
+		frappe.db.sql(
+			f"DELETE FROM `tab{child_doctype}` WHERE package = %s",
+			package_name,
+		)
+
+
+@frappe.whitelist()
+def unpack_package(package_name, employee=None):
+	"""Empty a packed box: cancel the Package and free its serials for repacking.
+
+	The item rows stay on the cancelled document as the record of what the box
+	held. Quality Inspections and Job Cards finished while packing are kept —
+	the result belongs to the serial, not to the box.
+	"""
+	package_name = _resolve_package(package_name)
+	pkg = frappe.get_doc("Package", package_name)
+
+	if pkg.docstatus == 2:
+		frappe.throw(_("Package {0} is already unpacked or cancelled").format(package_name))
+	if pkg.docstatus != 1:
+		frappe.throw(_("Package {0} must be submitted first").format(package_name))
+
+	serials = [row.serial_no for row in pkg.items if row.serial_no]
+	item_count = len(pkg.items)
+	previous_links = {
+		"sales_order": pkg.sales_order,
+		"bpak": pkg.bpak,
+		"pallet": pkg.pallet,
+		"shipment": pkg.shipment,
+		"delivery_note": pkg.delivery_note,
+		"purchase_receipt": pkg.purchase_receipt,
+	}
+
+	for fieldname in previous_links:
+		if previous_links[fieldname]:
+			pkg.db_set(fieldname, None, update_modified=False)
+	_unlink_package_rows(package_name)
+
+	pkg.reload()
+	pkg.flags.ignore_links = True
+	pkg.flags.ignore_permissions = True
+	pkg.cancel()
+	pkg.db_set("status", "Unpacked")
+
+	pkg.add_comment(
+		"Comment",
+		_("Unpacked by {0}. Serials released: {1}").format(
+			employee or frappe.session.user, ", ".join(serials) or "-"
+		),
+	)
+
+	if previous_links["sales_order"]:
+		from erpnext.selling.doctype.sales_order.progress import update_so_progress
+
+		update_so_progress(previous_links["sales_order"])
+	if previous_links["bpak"]:
+		from erpnext.stock.doctype.bpak.bpak import update_status_from_package
+
+		update_status_from_package(previous_links["bpak"])
+
+	return {
+		"package": package_name,
+		"serials": serials,
+		"item_count": item_count,
+		"unlinked": {k: v for k, v in previous_links.items() if v},
+	}
+
+
+@frappe.whitelist()
+def unpack_packages(package_names, employee=None):
+	"""Unpack several boxes; returns per-package result and collected errors."""
+	if isinstance(package_names, str):
+		import json
+
+		try:
+			package_names = json.loads(package_names)
+		except ValueError:
+			package_names = [package_names]
+
+	done = []
+	errors = []
+	for name in package_names:
+		try:
+			done.append(unpack_package(name, employee=employee))
+		except Exception as ex:
+			errors.append(f"{name}: {ex}")
+	return {
+		"unpacked": done,
+		"serial_count": sum(len(d["serials"]) for d in done),
+		"errors": errors,
+	}

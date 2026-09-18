@@ -45,6 +45,9 @@ class ProductionLine(Document):
 		from erpnext.manufacturing.doctype.production_line_item.production_line_item import (
 			ProductionLineItem,
 		)
+		from erpnext.manufacturing.doctype.production_line_workplace.production_line_workplace import (
+			ProductionLineWorkplace,
+		)
 
 		cleanup_enabled: DF.Check
 		cleanup_time: DF.Time | None
@@ -63,8 +66,11 @@ class ProductionLine(Document):
 		plan_time: DF.Time
 		source_warehouse: DF.Link | None
 		wip_warehouse: DF.Link | None
+		workplaces: DF.Table[ProductionLineWorkplace]
 
 	def validate(self):
+		self._validate_workplaces()
+
 		for row in self.plan:
 			if row.daily_qty < 0:
 				frappe.throw(_("Daily Qty cannot be negative (row {0})").format(row.idx))
@@ -82,6 +88,64 @@ class ProductionLine(Document):
 
 		if self.enabled:
 			self._validate_items_not_on_other_lines()
+			self._validate_workplaces_not_on_other_lines()
+
+	def _validate_workplaces(self):
+		"""The line's benches, and the plan rows that must stay inside them.
+
+		The workplace list is what the clients offer, so a plan row naming a bench the line
+		does not run at would be unreachable from the app.
+		"""
+		seen = set()
+		for row in self.workplaces:
+			if row.workplace in seen:
+				frappe.throw(_("Workplace {0} is listed more than once").format(row.workplace))
+			seen.add(row.workplace)
+
+		allowed = {row.workplace for row in self.workplaces if row.enabled}
+		if not allowed:
+			return
+
+		for row in self.plan:
+			if not row.enabled:
+				continue
+			if not row.workplace:
+				frappe.throw(_("Row {0}: Workplace is required").format(row.idx))
+			if row.workplace not in allowed:
+				frappe.throw(
+					_("Row {0}: workplace {1} is not one of this line's workplaces").format(
+						row.idx, row.workplace
+					)
+				)
+
+	def _validate_workplaces_not_on_other_lines(self):
+		"""A bench belongs to one enabled line per line type.
+
+		The app asks for the workplaces of a line type and gets a flat list, and `next_unit`
+		resolves the line from the item plus the bench — two enabled lines of the same type at
+		one bench would make both ambiguous.
+		"""
+		for row in self.workplaces:
+			if not row.enabled:
+				continue
+			other = frappe.db.sql(
+				"""
+				select line.name
+				from `tabProduction Line` line
+				join `tabProduction Line Workplace` wp on wp.parent = line.name
+					and wp.parenttype = 'Production Line'
+				where line.enabled = 1 and wp.enabled = 1 and line.name != %s
+					and line.line_type = %s and wp.workplace = %s
+				limit 1
+				""",
+				(self.name or "", self.line_type, row.workplace),
+			)
+			if other:
+				frappe.throw(
+					_("Workplace {0} already belongs to production line {1}").format(
+						row.workplace, other[0][0]
+					)
+				)
 
 	def _validate_items_not_on_other_lines(self):
 		"""An item at a workplace belongs to one line.
@@ -141,6 +205,44 @@ def _line_for(line_type, item_code, workplace=None):
 		if _plan_rows(line, workplace=workplace, item_code=item_code):
 			return line
 	frappe.throw(_("No enabled production line of type {0} plans item {1}").format(_(line_type), item_code))
+
+
+def line_workplaces(line_type=None, production_line=None):
+	"""The benches the enabled lines run at — what a client's workplace picker may offer.
+
+	Empty means no line restricts its benches, which the caller reads as "no filter" rather
+	than "no bench": a line set up before the workplace table existed keeps working.
+	"""
+	lines = (
+		[frappe.get_cached_doc("Production Line", production_line)]
+		if production_line
+		else _enabled_lines(line_type)
+	)
+	names = []
+	for line in lines:
+		for row in line.workplaces:
+			if row.enabled and row.workplace and row.workplace not in names:
+				names.append(row.workplace)
+	return names
+
+
+@frappe.whitelist()
+def lines_for_workplace(workplace):
+	"""The lines that run at this bench — read-only display on the Workplace form."""
+	if not workplace:
+		return []
+	return frappe.db.sql(
+		"""
+		select line.name, line.line_name, line.line_type, line.enabled
+		from `tabProduction Line` line
+		join `tabProduction Line Workplace` wp on wp.parent = line.name
+			and wp.parenttype = 'Production Line'
+		where wp.workplace = %s and wp.enabled = 1
+		order by line.name
+		""",
+		(workplace,),
+		as_dict=True,
+	)
 
 
 def _workstations(workplace):

@@ -17,6 +17,8 @@
   "wip_warehouse",
   "column_break_warehouse",
   "fg_warehouse",
+  "workplace_section",
+  "workplaces",
   "plan_section",
   "plan_time",
   "plan",
@@ -98,6 +100,18 @@
    "fieldtype": "Link",
    "label": "Finished Goods Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "workplace_section",
+   "fieldtype": "Section Break",
+   "label": "Workplaces"
+  },
+  {
+   "description": "The benches this line runs at. The clients of this line offer only these workplaces, and every plan row must name one of them.",
+   "fieldname": "workplaces",
+   "fieldtype": "Table",
+   "label": "Workplaces",
+   "options": "Production Line Workplace"
   },
   {
    "fieldname": "plan_section",
@@ -203,7 +217,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-13 12:00:00.000000",
+ "modified": "2026-09-17 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Line",
