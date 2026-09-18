@@ -53,9 +53,10 @@ setsid nohup bash -c '
   : > "$J.progress"
   export OPS_PHASE_LOG="$PWD/$J.progress"
   # Markers also go inline into the log, by path rather than through stdout:
-  # under --silent a step's own stdout is redirected away, which used to lose
+  # under --silent each step redirects its own stdout away, which used to lose
   # every marker but the last few. The console needs them in the log to jump
   # from a step row to the output that step produced.
+  # NB: no apostrophe anywhere in this body — it is a single-quoted bash -c.
   export OPS_JOB_LOG="$PWD/$J.log"
   echo "=== @LABEL@ ===" >> "$J.log"
   # Start and end of the whole run, same format as tools/ops-progress.sh.
@@ -130,6 +131,20 @@ for pidfile in .ops-jobs/*.pid; do
   fi
 done
 """
+
+
+def _assert_quotable_body(script: str) -> None:
+	"""The job body runs as `bash -c '<body>'`, so a single quote anywhere in
+	it — including in a comment — ends the string and the launch dies with
+	"unexpected EOF while looking for matching `\''". Checked at import so it
+	is a failed build, not a failed deploy at 3am."""
+	_, _, rest = script.partition("bash -c '")
+	body, _, _ = rest.rpartition("' >>")
+	if "'" in body:
+		raise AssertionError("LAUNCH_SCRIPT body contains a single quote; bash -c would break on it")
+
+
+_assert_quotable_body(LAUNCH_SCRIPT)
 
 
 class JobBusy(Exception):
