@@ -14256,3 +14256,8 @@ Row #{0}: Item {1} is not part of Quotation {2},Рядок #{0}: товару {1
 Row #{0}: only {1} of {2} is left to order on Quotation {3},Рядок #{0}: в Угоді {3} залишилось лише {1} товару {2}
 The Quotation is being approved and cannot be edited. Return it for rework to change the terms.,"Угода перебуває на погодженні та недоступна для редагування. Щоб змінити умови, поверніть її на доопрацювання."
 "{0} child tasks were detached because this Task is no longer a Group Task.","{0} дочірніх задач відкріплено, бо ця задача більше не є груповою."
+Unpacked,Розпаковано
+"Auto-pass QC is enabled but serials have neither a draft nor a passed Quality Inspection: {0}","Auto-pass QC увімкнено, але серійні номери не мають ні чернетки, ні пройденої перевірки якості: {0}"
+"No open or finished Job Card with operation {0} found for serials: {1}","Не знайдено відкритої або завершеної карти завдань з операцією {0} для серійних номерів: {1}"
+Package {0} is already unpacked or cancelled,Пакет {0} вже розпаковано або скасовано
+"Unpacked by {0}. Serials released: {1}","Розпаковано {0}. Звільнені серійні номери: {1}"
