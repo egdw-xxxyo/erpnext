@@ -88,6 +88,7 @@ from the sweep) keeps the last 200 runs and 20 000 audit lines.
 ## Non-negotiables
 
 - `uvicorn --workers 1` — SSH connections and sessions are in-process state.
+- Panels set their own poll rate: `partials/*.html` render `data-poll="<seconds>"` and `console.js` rewrites the container's `hx-trigger`. Actions and Jobs ask for 1s while a job runs, 15s when idle — never poll everything at 1s all day.
 - The HTTP layer never accepts a shell string; everything goes through `commands.py`.
 - The ops container is its own compose project (`-p ops`), never part of `-p docker`.
 - Job logs and the audit trail stay files on the host. `ops.db` only indexes them — never treat a missing row as "it did not happen".

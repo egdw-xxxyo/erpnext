@@ -45,6 +45,28 @@
 		});
 	}
 
+	// A panel that has just rendered says how often it wants to be polled
+	// (`data-poll`, seconds): every second while a job is running, back to the
+	// idle interval once it ends. The alternative — polling everything at 1s
+	// all day — is the 50k-execs-a-day problem the visibility guard below
+	// exists to avoid.
+	function applyPollRates(root) {
+		(root || document).querySelectorAll("[data-poll]").forEach(function (marker) {
+			var panel = marker.closest("[hx-get]");
+			if (!panel) return;
+			var want = "load, every " + (parseInt(marker.getAttribute("data-poll"), 10) || 15) + "s";
+			// Paused by the visibility guard: change what it will restore to,
+			// not the live trigger, or the tab starts polling while hidden.
+			if (panel.hasAttribute("data-paused-trigger")) {
+				panel.setAttribute("data-paused-trigger", want);
+				return;
+			}
+			if (panel.getAttribute("hx-trigger") === want) return;
+			panel.setAttribute("hx-trigger", want);
+			if (window.htmx) window.htmx.process(panel);
+		});
+	}
+
 	// Time-left estimates are rendered server-side as seconds remaining; tick
 	// them down locally between panel polls. The deadline is pinned on first
 	// sight, so a re-rendered panel restarts from the fresh server value.
@@ -213,7 +235,14 @@
 				// Without this the browser reconnects forever once the job ends.
 				source.close();
 				state.source = null;
-				refreshPanels(["jobs", "version", "backups", "actions", "disk", "space-backups"]);
+				var after = ["jobs", "version", "backups", "actions", "disk", "space-backups"];
+				refreshPanels(after);
+				// The host writes .exit and only then unwinds the job wrapper,
+				// so a refresh issued this instant can still read "running"
+				// and leave the banner stuck until the next poll. Ask again.
+				setTimeout(function () {
+					refreshPanels(["jobs", "actions"]);
+				}, 1500);
 			});
 
 			source.onerror = function () {
@@ -241,7 +270,10 @@
 	}
 
 	document.addEventListener("DOMContentLoaded", scan);
-	document.body.addEventListener("htmx:afterSwap", scan);
+	document.body.addEventListener("htmx:afterSwap", function (event) {
+		scan();
+		applyPollRates(event.target);
+	});
 
 	// Native <details> menus (.menu) don't close on outside click or on their
 	// own item click — do both here instead of hand-rolling a dropdown widget.

@@ -1,5 +1,7 @@
 {% set git = data.git or {} %}
 {% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
+{# A running job is the one thing worth a per-second poll; idle, 15s is plenty. #}
+<span data-poll="{{ 1 if running else 15 }}" hidden></span>
 <h2>Actions</h2>
 
 {% if data._jobs_error %}

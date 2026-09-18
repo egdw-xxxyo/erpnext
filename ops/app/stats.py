@@ -24,7 +24,10 @@ from .config import settings
 from .ssh import HostConnection
 
 FAST_TTL = 10.0
-JOBS_TTL = 3.0
+# Job state is what the dashboard is judged on while a deploy runs, and
+# JOBS_SCRIPT only reads a handful of small files under .ops-jobs — cheap
+# enough to keep it a second behind the host at most.
+JOBS_TTL = 1.0
 BACKUPS_TTL = 60.0
 DISK_DETAIL_TTL = 600.0
 

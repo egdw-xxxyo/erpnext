@@ -1,3 +1,5 @@
+{% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
+<span data-poll="{{ 1 if running else 15 }}" hidden></span>
 <h2>Recent jobs</h2>
 {% if data._jobs_error %}
 <div class="alert error small">Could not read job state from the host: {{ data._jobs_error }}</div>
