@@ -19,7 +19,9 @@
 			<table class="rows small">
 				<tr><th>Step</th><th>Started</th><th>Finished</th><th>Took</th><th>State</th><th></th></tr>
 				{% for step in timeline.steps %}
-				<tr class="step-{{ step.state }}">
+				<tr class="step-{{ step.state }} step-jump" data-step-phase="{{ step.key }}"
+					data-step-started="{{ step.started }}" tabindex="0" role="button"
+					title="Jump to this step in the log">
 					<td>{{ step.label }}</td>
 					<td class="mono">{{ step.started|clock }}</td>
 					<td class="mono">{{ step.finished|clock if step.finished else '—' }}</td>

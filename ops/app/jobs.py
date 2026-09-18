@@ -52,6 +52,11 @@ setsid nohup bash -c '
   # log is tens of megabytes of docker build output.
   : > "$J.progress"
   export OPS_PHASE_LOG="$PWD/$J.progress"
+  # Markers also go inline into the log, by path rather than through stdout:
+  # under --silent a step's own stdout is redirected away, which used to lose
+  # every marker but the last few. The console needs them in the log to jump
+  # from a step row to the output that step produced.
+  export OPS_JOB_LOG="$PWD/$J.log"
   echo "=== @LABEL@ ===" >> "$J.log"
   # Start and end of the whole run, same format as tools/ops-progress.sh.
   ops_mark() {

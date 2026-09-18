@@ -52,7 +52,7 @@ operator's own account:
 |---|---|
 | `<id>.log` | job output, streamed to the browser by byte offset |
 | `<id>.meta/.pid/.state/.exit` | the run's card |
-| `<id>.progress`, `history/<action>/` | `[OPS]` milestone markers and the last five runs per action |
+| `<id>.progress`, `history/<action>/` | `[OPS]` milestone markers and the last five runs per action (also written inline into the log, so the console can jump to a step) |
 | `audit.log` | append-only JSONL, written under `flock` |
 
 These are the source of truth. They survive this container being rebuilt by the

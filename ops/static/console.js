@@ -64,6 +64,98 @@
 		});
 	}, 1000);
 
+	// ---- jump from a step row to where that step starts in the log --------
+	//
+	// The markers the timeline is built from are also printed to stdout by
+	// tools/ops-progress.sh, so every step has a literal line in the log:
+	//   [OPS] 2026-09-18T08:50:25Z custom-fields start Applying custom fields
+	// Matching on the step's own timestamp pins the right occurrence even when
+	// a phase runs more than once in a job.
+
+	function markerIndex(text, phase, started) {
+		var exact = text.indexOf("[OPS] " + started + " " + phase + " ");
+		if (exact !== -1) return exact;
+		// No timestamp (or a log that predates it): first mention of the phase.
+		var loose = new RegExp("\\[OPS\\]\\s+\\S+\\s+" + phase.replace(/[^\w-]/g, "") + "\\s", "m");
+		var m = loose.exec(text);
+		return m ? m.index : -1;
+	}
+
+	// The <pre> normally holds one text node, but a highlight or a re-render
+	// can split it — walk to whichever node owns this character offset.
+	function positionAt(root, index) {
+		var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+		var node;
+		var seen = 0;
+		while ((node = walker.nextNode())) {
+			var len = node.nodeValue.length;
+			if (seen + len > index) return { node: node, offset: index - seen };
+			seen += len;
+		}
+		return null;
+	}
+
+	function highlight(range) {
+		if (!window.CSS || !CSS.highlights || typeof window.Highlight === "undefined") return;
+		try {
+			CSS.highlights.set("ops-step", new window.Highlight(range));
+		} catch (err) {
+			/* highlighting is decoration; never let it break the jump */
+		}
+	}
+
+	function jumpToStep(row) {
+		var wrap = row.closest(".console-wrap");
+		var out = wrap && wrap.querySelector("[data-console-out]");
+		if (!out) return;
+
+		var phase = row.getAttribute("data-step-phase") || "";
+		var started = row.getAttribute("data-step-started") || "";
+		var index = markerIndex(out.textContent, phase, started);
+		if (index === -1) {
+			row.classList.add("step-missing");
+			setTimeout(function () {
+				row.classList.remove("step-missing");
+			}, 1200);
+			return;
+		}
+
+		var lineEnd = out.textContent.indexOf("\n", index);
+		var start = positionAt(out, index);
+		var end = positionAt(out, lineEnd === -1 ? out.textContent.length : lineEnd);
+		if (!start || !end) return;
+
+		var range = document.createRange();
+		range.setStart(start.node, start.offset);
+		range.setEnd(end.node, end.offset);
+
+		// Following the tail would yank the view straight back to the bottom.
+		var followEl = wrap.querySelector("[data-console-follow]");
+		if (followEl) followEl.checked = false;
+
+		var rect = range.getClientRects()[0] || range.getBoundingClientRect();
+		out.scrollTop += rect.top - out.getBoundingClientRect().top - 24;
+		highlight(range);
+
+		wrap.querySelectorAll(".step-current").forEach(function (el) {
+			el.classList.remove("step-current");
+		});
+		row.classList.add("step-current");
+	}
+
+	document.addEventListener("click", function (event) {
+		var row = event.target.closest && event.target.closest("tr.step-jump");
+		if (row) jumpToStep(row);
+	});
+
+	document.addEventListener("keydown", function (event) {
+		if (event.key !== "Enter" && event.key !== " ") return;
+		var row = event.target.closest && event.target.closest("tr.step-jump");
+		if (!row) return;
+		event.preventDefault();
+		jumpToStep(row);
+	});
+
 	function detach() {
 		if (current && current.source) {
 			current.source.close();

@@ -263,6 +263,15 @@ dialog.modal h3 { margin-top: 0; }
 .timeline tr.step-failed td { color: var(--bad); }
 .timeline tr.step-running td { color: var(--accent); }
 
+/* Every step row jumps the console to the line that step printed. */
+.timeline tr.step-jump { cursor: pointer; }
+.timeline tr.step-jump:hover td,
+.timeline tr.step-jump:focus-visible td { background: #171c25; }
+.timeline tr.step-current td { box-shadow: inset 2px 0 0 var(--accent); }
+.timeline tr.step-missing td { background: #2a1a1a; }
+
+::highlight(ops-step) { background: #3a3f18; color: #f2f4e8; }
+
 /* ---- console --------------------------------------------------------- */
 .console-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 pre.console {
