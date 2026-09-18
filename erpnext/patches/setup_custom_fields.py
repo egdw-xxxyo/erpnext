@@ -2385,10 +2385,6 @@ def set_v16_ported_properties():
 		("Job Card", "serial_no", "hidden", "0", "Check"),
 		("Employee", "attendance_device_id", "label", "Barcode", "Data"),
 		("Employee", "attendance_device_id", "options", "Barcode", "Text"),
-		# Stock JSON's Lead.status default ("Lead") isn't in our localized options list
-		# (New Request/Contacted/...); v16 validates defaults against options on every
-		# custom field insert, which crashed setup_custom_fields before this was added.
-		("Lead", "status", "default", "New Request", "Select"),
 	]
 	for doctype, fieldname, prop, value, property_type in props:
 		if not frappe.db.exists("DocType", doctype):
