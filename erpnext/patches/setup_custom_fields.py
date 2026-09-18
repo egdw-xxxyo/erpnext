@@ -1127,6 +1127,7 @@ QUOTATION_WORKFLOW_STATES = (
 	("Погодження керівника виробництва", "0", "Manufacturing Manager", "Warning"),
 	("Підтвердження клієнта", "0", "Sales User", "Info"),
 	("Погоджено", "1", "Sales Manager", "Success"),
+	("Відхилено", "0", "Sales Manager", "Danger"),
 	("Скасовано", "2", "Sales Manager", "Danger"),
 )
 
@@ -1370,7 +1371,9 @@ def _quotation_route_transitions():
 			}
 		)
 
-	# A Quotation can be cancelled at any stage.
+	# A Quotation can be dropped at any stage, but Frappe only allows a submitted document
+	# to reach a cancelled state (doc_status 2): before approval the route ends in
+	# «Відхилено», which is still a draft.
 	for state, role in (
 		(QUOTATION_DRAFT_STATE, "Sales User"),
 		("Погодження складу", "Stock Manager"),
@@ -1378,16 +1381,24 @@ def _quotation_route_transitions():
 		("Погодження фінансів", "Accounts Manager"),
 		("Погодження керівника виробництва", "Manufacturing Manager"),
 		("Підтвердження клієнта", "Sales User"),
-		("Погоджено", "Sales Manager"),
 	):
 		transitions.append(
 			{
 				"state": state,
 				"action": "Скасувати",
-				"next_state": "Скасовано",
+				"next_state": "Відхилено",
 				"allowed": role,
 			}
 		)
+
+	transitions.append(
+		{
+			"state": "Погоджено",
+			"action": "Скасувати",
+			"next_state": "Скасовано",
+			"allowed": "Sales Manager",
+		}
+	)
 
 	for transition in transitions:
 		transition["allow_self_approval"] = 1

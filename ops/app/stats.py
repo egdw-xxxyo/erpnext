@@ -175,7 +175,7 @@ printf ',\n'
 
 # ---- backup free space (same filesystem the sites volume lives on) ---------
 BFREE=$(timeout 10 $DC exec -T backend df -B1 --output=avail "$BACKUP_DIR" </dev/null 2>/dev/null | tail -1 | tr -d '[:space:]')
-printf '"backup_avail":"%s",\n' "$BFREE"
+printf '"backup_avail":"%s"\n' "$BFREE"
 
 echo '}'
 """
