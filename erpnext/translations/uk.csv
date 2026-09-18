@@ -14504,3 +14504,10 @@ Technical Document Audit Entry,Запис журналу технічної до
 "Relation removed","Звʼязок видалено"
 "Reads as: this document — relation — the document below","Читається так: цей документ — звʼязок — документ нижче"
 "Reads as: the document below — relation — this document","Читається так: документ нижче — звʼязок — цей документ"
+Display Code,Шифр для виробів
+"Designation shown on Items: the Number Template override if one matches, else Specification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код специфікації."
+ЄСКД specification this item belongs to,"Специфікація ЄСКД, до якої належить ця номенклатура"
+Optional. Its Overrides table replaces this designation in Display Code.,Необовʼязково. Таблиця замін цього шаблону підміняє позначення в полі «Шифр для виробів».
+"ЄСКД designation as written in the catalog, e.g. УКРП.563562.001-01С.","Позначення ЄСКД як у каталозі, наприклад УКРП.563562.001-01С."
+Position within the catalog.,Порядковий номер у каталозі.
+"Specifications this one is built from, each in a role: a БпАК takes a drone and a ground station.","Специфікації, з яких складається ця, кожна у своїй ролі: БпАК складається з борту та НСУ."

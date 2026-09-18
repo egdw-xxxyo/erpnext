@@ -6,6 +6,20 @@ class SpecificationNumberTemplate(Document):
 	def validate(self):
 		self.preview = self._build_preview()
 
+	def on_update(self):
+		specs = frappe.get_all(
+			"Specification",
+			filters={"specification_number_template": self.name},
+			fields=["name", "specification_code", "display_code"],
+		)
+		for spec in specs:
+			display_code = _override(self, spec.specification_code)
+			if display_code != spec.display_code:
+				doc = frappe.get_doc("Specification", spec.name)
+				doc.display_code = display_code
+				doc.flags.display_code_set = True
+				doc.save()
+
 	def _build_preview(self):
 		parts = []
 		for c in self.components or []:
@@ -126,8 +140,17 @@ def resolve_specification_template(item_doc):
 		if not resolved:
 			return None
 		parts.append(str(resolved))
-	result = "".join(parts)
+	return _override(tmpl, "".join(parts))
+
+
+def _override(tmpl, code):
 	for ov in tmpl.get("overrides") or []:
-		if ov.original_value and ov.original_value == result:
-			return ov.override_value or result
-	return result
+		if ov.original_value and ov.original_value == code:
+			return ov.override_value or code
+	return code
+
+
+def apply_override(template, code):
+	if not template or not code:
+		return code
+	return _override(frappe.get_cached_doc("Specification Number Template", template), code)

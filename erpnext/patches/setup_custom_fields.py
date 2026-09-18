@@ -265,10 +265,12 @@ def create_custom_fields_on_item():
 		"battery_capacity",
 		"battery_voltage",
 		"cell_type",
+		"custom_шифр",
 		"item_qc_profile",
 		"item_specification",
 		"label_template",
 		"requires_incoming_qc",
+		"specification_number_template",
 	]:
 		old_cf = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": old_field})
 		if old_cf:
@@ -278,12 +280,23 @@ def create_custom_fields_on_item():
 	fields = [
 		{
 			"dt": "Item",
-			"fieldname": "custom_шифр",
+			"fieldname": "specification",
+			"fieldtype": "Link",
+			"label": "Specification",
+			"options": "Specification",
+			"insert_after": "item_name",
+			"in_standard_filter": 1,
+			"description": "ЄСКД specification this item belongs to",
+		},
+		{
+			"dt": "Item",
+			"fieldname": "specification_code",
 			"fieldtype": "Data",
 			"label": "Шифр",
 			"read_only": 1,
-			"insert_after": "item_name",
-			"description": "Resolved from Specification Number Template, or denormalized from Specification Parameters",
+			"fetch_from": "specification.display_code",
+			"insert_after": "specification",
+			"in_list_view": 1,
 		},
 	]
 	_create_custom_fields(fields)
@@ -314,26 +327,8 @@ def create_item_specification_tab():
 			"options": "Item Label Template",
 			"insert_after": "item_spec_parameters",
 		},
-		{
-			"dt": "Item",
-			"fieldname": "specification_number_template",
-			"fieldtype": "Link",
-			"label": "Specification Number Template",
-			"options": "Specification Number Template",
-			"insert_after": "label_templates",
-		},
 	]
 	_create_custom_fields(fields)
-
-	existing = frappe.db.exists(
-		"Custom Field",
-		{"dt": "Item", "fieldname": "specification_number_template"},
-	)
-	if existing:
-		cf = frappe.get_doc("Custom Field", existing)
-		if cf.insert_after != "label_templates":
-			cf.insert_after = "label_templates"
-			cf.save(ignore_permissions=True)
 
 
 def create_custom_fields_on_pr_item():

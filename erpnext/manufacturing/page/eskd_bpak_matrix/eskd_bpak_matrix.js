@@ -5,14 +5,6 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 
-	const product_field = page.add_field({
-		label: __("Product"),
-		fieldtype: "Link",
-		fieldname: "product",
-		options: "ESKD Product",
-		change: () => render(),
-	});
-
 	const $container = $('<div class="bpak-matrix"></div>').appendTo(page.body);
 
 	$("<style>")
@@ -46,10 +38,8 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 	}
 
 	function render() {
-		const product = product_field.get_value();
 		frappe.call({
 			method: "erpnext.manufacturing.page.eskd_bpak_matrix.eskd_bpak_matrix.get_matrix",
-			args: { product },
 			callback: (r) => paint(r.message),
 		});
 	}
@@ -105,11 +95,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 			: "erpnext.manufacturing.page.eskd_bpak_matrix.eskd_bpak_matrix.assign";
 		const args = bpak
 			? { specification: bpak }
-			: {
-					product: product_field.get_value(),
-					board: $cell.attr("data-board"),
-					ground_station: $cell.attr("data-gs"),
-			  };
+			: { board: $cell.attr("data-board"), ground_station: $cell.attr("data-gs") };
 		frappe.call({ method, args, callback: () => render() });
 	}
 

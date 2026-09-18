@@ -1,20 +1,11 @@
 import frappe
-from frappe import _
 from frappe.utils import cint
 
-from erpnext.manufacturing.eskd_templates import ROLE_BOARD, ROLE_GROUND_STATION
-
-BPAK_TEMPLATE = "Специфікація БпАК"
+from erpnext.manufacturing.eskd_import import ROLE_BOARD, ROLE_GROUND_STATION
 
 
 @frappe.whitelist()
-def get_products():
-	products = frappe.get_all("ESKD Product", filters={"disabled": 0}, pluck="name", order_by="name")
-	return products
-
-
-@frappe.whitelist()
-def get_matrix(product=None):
+def get_matrix():
 	"""Drone specifications (rows) x ground-station specifications (columns).
 
 	A cell holds the БпАК that pairs that drone with that ground station — an empty cell
@@ -22,19 +13,19 @@ def get_matrix(product=None):
 	"""
 	rows = frappe.get_all(
 		"Specification",
-		filters={"specification_kind": "Board", "has_variants": 0, "disabled": 0},
+		filters={"specification_kind": "Board", "disabled": 0},
 		fields=["name", "specification_code", "specification_name"],
 		order_by="specification_code",
 	)
 	columns = frappe.get_all(
 		"Specification",
-		filters={"specification_kind": "Ground Station", "has_variants": 0, "disabled": 0},
+		filters={"specification_kind": "Ground Station", "disabled": 0},
 		fields=["name", "specification_code", "specification_name"],
 		order_by="organization_code, ordinal, specification_code",
 	)
 
 	cells = {}
-	for bpak in _bpak_specifications(product):
+	for bpak in _bpak_specifications():
 		board = bpak["components"].get(ROLE_BOARD)
 		ground_station = bpak["components"].get(ROLE_GROUND_STATION)
 		if board and ground_station:
@@ -45,7 +36,6 @@ def get_matrix(product=None):
 			}
 
 	return {
-		"product": product,
 		"columns": columns,
 		"rows": [
 			{
@@ -59,13 +49,10 @@ def get_matrix(product=None):
 	}
 
 
-def _bpak_specifications(product=None):
-	filters = {"specification_kind": "BpAK", "has_variants": 0}
-	if product:
-		filters["product"] = product
+def _bpak_specifications():
 	bpaks = frappe.get_all(
 		"Specification",
-		filters=filters,
+		filters={"specification_kind": "BpAK"},
 		fields=["name", "ordinal", "specification_code"],
 	)
 	if not bpaks:
@@ -84,55 +71,36 @@ def _bpak_specifications(product=None):
 
 
 @frappe.whitelist()
-def assign(board, ground_station, product=None):
+def assign(board, ground_station):
 	"""Create the БпАК that pairs this drone with this ground station."""
 	frappe.has_permission("Specification", "create", throw=True)
 
-	for bpak in _bpak_specifications(product):
+	for bpak in _bpak_specifications():
 		if (
 			bpak["components"].get(ROLE_BOARD) == board
 			and bpak["components"].get(ROLE_GROUND_STATION) == ground_station
 		):
 			return bpak["name"]
 
-	if not frappe.db.exists("Specification", BPAK_TEMPLATE):
-		frappe.throw(_("The БпАК specification template is missing — run the ЄСКД setup first."))
-
-	ordinal = _next_ordinal(product)
+	ordinal = _next_ordinal()
 	board_code = frappe.db.get_value("Specification", board, "specification_code")
 	gs_code = frappe.db.get_value("Specification", ground_station, "specification_code")
 
 	doc = frappe.new_doc("Specification")
-	doc.variant_of = BPAK_TEMPLATE
 	doc.specification_kind = "BpAK"
-	doc.product = product
 	doc.ordinal = ordinal
-	doc.specification_name = f"{product or 'БпАК'} — модифікація {ordinal}"
+	doc.specification_name = f"БпАК — модифікація {ordinal}"
 	doc.specification_code = f"{board_code} / {gs_code}"
 	doc.append("components", {"role": ROLE_BOARD, "specification": board})
 	doc.append("components", {"role": ROLE_GROUND_STATION, "specification": ground_station})
-	for row in frappe.get_all(
-		"Specification Variant Attribute",
-		filters={"parent": BPAK_TEMPLATE, "parenttype": "Specification"},
-		fields=["attribute"],
-	):
-		value = frappe.db.get_value(
-			"Specification Variant Attribute",
-			{"parent": board, "attribute": row.attribute},
-			"attribute_value",
-		)
-		if value:
-			doc.append("attributes", {"attribute": row.attribute, "attribute_value": value})
 	doc.insert()
 	return doc.name
 
 
-def _next_ordinal(product):
+def _next_ordinal():
 	last = frappe.get_all(
 		"Specification",
-		filters={"specification_kind": "BpAK", "product": product}
-		if product
-		else {"specification_kind": "BpAK"},
+		filters={"specification_kind": "BpAK"},
 		fields=["ordinal"],
 		order_by="ordinal desc",
 		limit=1,

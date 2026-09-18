@@ -528,9 +528,7 @@ erpnext.patches.v15_0.rework_lead_status
 erpnext.patches.v15_0.drop_legacy_lead_military_unit_field
 erpnext.patches.v15_0.add_chat_manager_role
 erpnext.patches.v15_0.backfill_chat_archived_on
-erpnext.patches.v15_0.seed_eskd_document_types
 erpnext.patches.v15_0.add_eskd_workspace_card
-erpnext.patches.v15_0.setup_eskd_templates
 erpnext.patches.v15_0.drop_eskd_bpak_combination
 erpnext.patches.v15_0.merge_mo_warehouses_into_rd
 erpnext.patches.v15_0.cleanup_stale_task_depends_on
@@ -553,3 +551,4 @@ erpnext.patches.v16_0.carry_nsn_onto_modifications
 erpnext.patches.v16_0.fill_modification_attribute_summary
 erpnext.patches.v16_0.fix_annex_relation_direction
 erpnext.patches.v16_0.clear_measured_attribute_step
+erpnext.patches.v16_0.flatten_specification

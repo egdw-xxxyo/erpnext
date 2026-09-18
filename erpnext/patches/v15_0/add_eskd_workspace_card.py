@@ -7,9 +7,6 @@ CARD = "ESKD Documentation"
 BLOCK_ID = "eskdDocsCard"
 
 CARD_LINKS = [
-	("ESKD Document", "DocType"),
-	("ESKD Document Type", "DocType"),
-	("ESKD Product", "DocType"),
 	("Specification Component Role", "DocType"),
 	("Specification", "DocType"),
 	("Specification Number Template", "DocType"),
