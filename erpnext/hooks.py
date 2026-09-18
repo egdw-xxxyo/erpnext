@@ -22,8 +22,8 @@ add_to_apps_screen = [
 
 develop_version = "15.x.x-develop"
 
-app_include_js = "erpnext.bundle.js"
-app_include_css = "erpnext.bundle.css"
+app_include_js = ["erpnext.bundle.js", "/assets/erpnext/js/custom/todo_planner.js"]
+app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
@@ -61,6 +61,7 @@ doctype_js = {
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"ToDo": "public/js/custom/todo_list.js",
 	"Code List": [
 		"edi/doctype/code_list/code_list_import.js",
 	],
@@ -409,6 +410,7 @@ override_doctype_dashboards = {
 }
 
 doc_events = {
+	"List Filter": {"on_trash": "erpnext.utilities.todo.prevent_default_filter_deletion"},
 	"*": {
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",

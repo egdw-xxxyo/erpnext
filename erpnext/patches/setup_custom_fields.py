@@ -15,6 +15,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_todo_deadline()
 	create_workflow_states()
 	create_workflow_actions()
 	create_workflow()
@@ -85,6 +86,49 @@ def execute():
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_todo_deadline():
+	from erpnext.utilities.todo import upgrade_overdue_filters, upgrade_today_filters
+
+	_create_custom_fields(
+		[
+			{
+				"dt": "ToDo",
+				"fieldname": "deadline",
+				"fieldtype": "Datetime",
+				"label": "Deadline",
+				"insert_after": "date",
+				"allow_in_quick_entry": 1,
+				"in_list_view": 1,
+			},
+		]
+	)
+	if frappe.get_meta("ToDo").get_field("date").label != "Assignment Date":
+		frappe.make_property_setter(
+			{
+				"doctype": "ToDo",
+				"fieldname": "date",
+				"property": "label",
+				"value": "Assignment Date",
+				"property_type": "Data",
+			},
+			validate_fields_for_doctype=False,
+		)
+	if frappe.get_meta("ToDo").get_field("priority").default != "Low":
+		frappe.make_property_setter(
+			{
+				"doctype": "ToDo",
+				"fieldname": "priority",
+				"property": "default",
+				"value": "Low",
+				"property_type": "Data",
+			},
+			validate_fields_for_doctype=False,
+		)
+	frappe.clear_cache(doctype="ToDo")
+	upgrade_today_filters()
+	upgrade_overdue_filters()
 
 
 def create_workflow_states():
