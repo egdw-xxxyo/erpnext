@@ -2,8 +2,37 @@
 	<div class="console-head">
 		<b>{{ label or (state.state if state else 'Job') }}</b>
 		<span class="pill" data-console-state>{{ (state.state if state else 'starting') }}</span>
+		<span class="muted small" data-console-phase></span>
 		<span class="spacer"></span>
 		<label class="inline-label"><input type="checkbox" data-console-follow checked> follow</label>
 	</div>
+	{% if timeline and timeline.steps %}
+	<details class="timeline"{% if not state or state.state != 'running' %} open{% endif %}>
+		<summary class="small">
+			Steps
+			<span class="muted">
+				{{ timeline.started|clock }} → {{ timeline.finished|clock if timeline.finished else '…' }}
+				{% if timeline.took is number %}· total {{ timeline.took|duration }}{% endif %}
+			</span>
+		</summary>
+		<div class="table-scroll">
+			<table class="rows small">
+				<tr><th>Step</th><th>Started</th><th>Finished</th><th>Took</th><th>State</th><th></th></tr>
+				{% for step in timeline.steps %}
+				<tr class="step-{{ step.state }} step-jump" data-step-phase="{{ step.key }}"
+					data-step-started="{{ step.started }}" tabindex="0" role="button"
+					title="Jump to this step in the log">
+					<td>{{ step.label }}</td>
+					<td class="mono">{{ step.started|clock }}</td>
+					<td class="mono">{{ step.finished|clock if step.finished else '—' }}</td>
+					<td>{{ step.took|duration if step.took is number else '—' }}</td>
+					<td>{{ step.state }}</td>
+					<td class="muted">{{ step.text }}</td>
+				</tr>
+				{% endfor %}
+			</table>
+		</div>
+	</details>
+	{% endif %}
 	<pre class="console" data-console-out></pre>
 </div>

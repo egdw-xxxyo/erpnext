@@ -1,0 +1,32 @@
+{% set prog = job|job_progress((data or {}).history) %}
+{% if prog.steps %}
+<div class="progress" data-job-progress="{{ job.id }}">
+	<div class="progress-head">
+		<b>{{ prog.current.label if prog.current else '—' }}</b>
+		<span class="muted small">{{ prog.current.text if prog.current else '' }}</span>
+		<span class="spacer"></span>
+		{% if prog.left is number %}
+		<span class="small eta" title="average of last {{ prog.runs }} successful runs: {{ prog.avg_total|duration }}">
+			<i class="fa fa-clock-o"></i>
+			<span data-countdown="{{ prog.left|round|int }}">~{{ prog.left|duration }} left</span>
+		</span>
+		{% endif %}
+		<span class="muted small">step {{ prog.done }} of {{ prog.total }}</span>
+	</div>
+	<ol class="progress-steps">
+		{% for step in prog.steps %}
+		<li class="step-{{ step.state }}"{% if step.avg is number %} title="average {{ step.avg|duration }}"{% endif %}>
+			<i class="fa {{ {'done': 'fa-check', 'running': 'fa-spinner fa-spin', 'failed': 'fa-times', 'skipped': 'fa-minus'}.get(step.state, 'fa-circle-o') }}"></i>
+			<span>{{ step.label }}</span>
+			{% if step.state == 'running' and step.left is number %}
+			<em class="muted" data-countdown="{{ step.left|round|int }}">~{{ step.left|duration }} left</em>
+			{% elif step.state == 'pending' and step.left is number %}
+			<em class="muted">~{{ step.left|duration }}</em>
+			{% elif step.took is number %}
+			<em class="muted">{{ step.took|duration }}</em>
+			{% endif %}
+		</li>
+		{% endfor %}
+	</ol>
+</div>
+{% endif %}

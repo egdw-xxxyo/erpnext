@@ -48,7 +48,6 @@ class Command:
 	destructive: bool = False
 	# Refuse to start when the working tree has uncommitted changes.
 	needs_clean_tree: bool = False
-	confirm_phrase: str | None = None
 
 	def render(self, raw: dict) -> tuple[str, dict]:
 		values = {}
@@ -67,16 +66,18 @@ COMMANDS: dict[str, Command] = {
 	"build": Command(
 		key="build",
 		label="Deploy (build)",
-		description="Rebuild the image and run the full deploy (./deploy build --silent).",
+		description="Rebuild the image and run the full deploy (./deploy build), streaming every step.",
 		# One job, one shell line: when the "safety backup" preference is on,
 		# a failed backup (disk full, etc.) short-circuits via && and the
 		# build never runs — a hard gate, in the same spirit as
 		# backup_space_guard already blocking backup itself. --no-files keeps
 		# it fast enough to run before every deploy, not just occasionally.
+		# --no-ops: a deploy from the dashboard leaves the dashboard itself
+		# alone; "Rebuild dashboard" is the explicit way to update it.
 		build=lambda _: (
-			"./deploy backup --no-files && ./deploy build --silent"
+			"./deploy backup --no-files && ./deploy build --no-ops"
 			if prefs.get("pre_deploy_backup", True)
-			else "./deploy build --silent"
+			else "./deploy build --no-ops"
 		),
 		destructive=True,
 	),
@@ -94,7 +95,6 @@ COMMANDS: dict[str, Command] = {
 		build=lambda p: f"./deploy restore {p['name']} --yes",
 		params={"name": _backup_name},
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"backup-remove": Command(
 		key="backup-remove",
@@ -103,7 +103,6 @@ COMMANDS: dict[str, Command] = {
 		build=lambda p: f"./deploy backup-remove {p['name']}",
 		params={"name": _backup_name},
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"backup-clean": Command(
 		key="backup-clean",
@@ -111,7 +110,6 @@ COMMANDS: dict[str, Command] = {
 		description="Deletes every local backup except the most recent one.",
 		build=lambda _: "./deploy backup --prune-only --keep=1",
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"space-clean": Command(
 		key="space-clean",
@@ -134,7 +132,6 @@ COMMANDS: dict[str, Command] = {
 		),
 		build=lambda _: "./deploy space-hard-clean",
 		destructive=True,
-		confirm_phrase="site",
 	),
 	"switch-branch": Command(
 		key="switch-branch",

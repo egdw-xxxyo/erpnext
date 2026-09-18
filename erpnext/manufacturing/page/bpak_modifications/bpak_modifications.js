@@ -1,12 +1,12 @@
 frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Відомість модифікацій БпАК"),
+		title: __("BpAK Modifications Sheet"),
 		single_column: true,
 	});
 
 	const spec_field = page.add_field({
-		label: __("Специфікація"),
+		label: __("Specification"),
 		fieldtype: "Link",
 		fieldname: "specification",
 		options: "BpAK Specification",
@@ -65,7 +65,7 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 		const specification = spec_field.get_value();
 		if (!specification) {
 			$container.html(
-				`<div class="text-muted" style="margin: 15px 0;">${__("Оберіть специфікацію")}</div>`
+				`<div class="text-muted" style="margin: 15px 0;">${__("Select a specification")}</div>`
 			);
 			return;
 		}
@@ -84,9 +84,9 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 		let html = `<h3 style="margin: 15px 0;">${frappe.utils.escape_html(data.title)}</h3>`;
 		html += '<table class="table table-bordered">';
 		html += "<thead><tr>";
-		html += `<th>${__("Модифікація")}</th>`;
-		html += `<th>${__("Найменування")}</th>`;
-		html += `<th>${__("Шифр FPV")}</th>`;
+		html += `<th>${__("Modification")}</th>`;
+		html += `<th>${__("Name")}</th>`;
+		html += `<th>${__("FPV Code")}</th>`;
 		for (const g of gs) {
 			html += `<th class="gs-col">${item_link("Item", g.item, g.shifr)}</th>`;
 		}
@@ -94,7 +94,7 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 
 		for (const row of rows) {
 			html += "<tr>";
-			html += `<td>${__("Модифікація")} ${row.mod_num}</td>`;
+			html += `<td>${__("Modification")} ${row.mod_num}</td>`;
 			html += `<td class="cell-name">${frappe.utils.escape_html(row.fpv_name || "")}</td>`;
 			html += `<td>${item_link("Item", row.fpv_item, row.fpv_shifr)}</td>`;
 			for (const g of gs) {
@@ -106,7 +106,7 @@ frappe.pages["bpak-modifications"].on_page_load = function (wrapper) {
 		html += "</tbody></table>";
 
 		if (!rows.length) {
-			html += `<div class="text-muted">${__("Немає модифікацій для цієї специфікації")}</div>`;
+			html += `<div class="text-muted">${__("No modifications for this specification")}</div>`;
 		}
 
 		$container.html(html);

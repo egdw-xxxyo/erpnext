@@ -406,7 +406,7 @@ def get_label_templates_for_items(item_codes):
 	rows = frappe.get_all(
 		"Item Label Template",
 		filters=[["parent", "in", item_codes]],
-		fields=["parent", "label_template", "label_printer"],
+		fields=["parent", "label_template", "label_printer", "purpose"],
 	)
 	result = {}
 	for r in rows:
@@ -414,6 +414,7 @@ def get_label_templates_for_items(item_codes):
 			{
 				"label_template": r.label_template,
 				"label_printer": r.label_printer,
+				"purpose": r.purpose,
 			}
 		)
 
@@ -432,7 +433,7 @@ def get_label_templates_for_items(item_codes):
 			template_rows = frappe.get_all(
 				"Item Label Template",
 				filters=[["parent", "in", template_codes]],
-				fields=["parent", "label_template", "label_printer"],
+				fields=["parent", "label_template", "label_printer", "purpose"],
 			)
 			templates_by_parent = {}
 			for r in template_rows:
@@ -440,6 +441,7 @@ def get_label_templates_for_items(item_codes):
 					{
 						"label_template": r.label_template,
 						"label_printer": r.label_printer,
+						"purpose": r.purpose,
 					}
 				)
 			for item_code, tmpl_code in template_map.items():

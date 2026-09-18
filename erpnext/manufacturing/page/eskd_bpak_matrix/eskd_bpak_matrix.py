@@ -107,7 +107,7 @@ def assign(board, ground_station, product=None):
 	doc.specification_kind = "BpAK"
 	doc.product = product
 	doc.ordinal = ordinal
-	doc.specification_name = f"{product or _('БпАК')} — модифікація {ordinal}"
+	doc.specification_name = f"{product or 'БпАК'} — модифікація {ordinal}"
 	doc.specification_code = f"{board_code} / {gs_code}"
 	doc.append("components", {"role": ROLE_BOARD, "specification": board})
 	doc.append("components", {"role": ROLE_GROUND_STATION, "specification": ground_station})

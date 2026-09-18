@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, jobs, lockout, sessions
+from . import auth, jobs, lockout, sessions, store
 from .config import settings
 from .deps import LoginRequired
 from .routes import actions, dashboard, git_key_settings, panels, remote_backups
@@ -49,6 +49,7 @@ async def _reaper() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+	store.migrate_from_files()
 	lockout.load()
 	task = asyncio.create_task(_reaper())
 	print(

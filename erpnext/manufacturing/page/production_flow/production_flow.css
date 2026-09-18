@@ -252,3 +252,149 @@
 .pf-detail-item:last-child {
 	border-bottom: none;
 }
+
+/* Production line panel: the benches, printers and operations behind the diagram */
+.pf-line-panel:empty {
+	display: none;
+}
+
+.pf-line-card {
+	padding: 16px 24px;
+	border-bottom: 1px solid var(--border-color);
+	background: var(--fg-color);
+}
+
+.pf-line-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.pf-line-name {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--text-color);
+}
+
+.pf-line-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.pf-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	margin-right: 4px;
+	border-radius: 10px;
+	background: var(--control-bg);
+	color: var(--text-muted);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.pf-chip-default {
+	background: var(--bg-blue);
+	color: var(--blue-600);
+}
+
+.pf-chip-off {
+	background: var(--bg-gray);
+	color: var(--text-muted);
+}
+
+.pf-wp-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 12px;
+	margin-top: 12px;
+}
+
+.pf-wp-card {
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	padding: 12px;
+	background: var(--card-bg, var(--fg-color));
+}
+
+.pf-wp-card-off {
+	opacity: 0.55;
+}
+
+.pf-wp-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.pf-wp-short {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.pf-wp-row {
+	display: flex;
+	gap: 8px;
+	margin-top: 6px;
+	font-size: 12px;
+}
+
+.pf-wp-row > label {
+	flex: 0 0 90px;
+	margin: 0;
+	color: var(--text-muted);
+	font-weight: 400;
+}
+
+.pf-wp-op {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.pf-wp-op-ws {
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.pf-plan {
+	margin-top: 14px;
+	border-top: 1px solid var(--border-color);
+	padding-top: 10px;
+}
+
+.pf-plan-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin-bottom: 6px;
+}
+
+.pf-plan-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 4px 0;
+	font-size: 12px;
+}
+
+.pf-plan-row-off {
+	opacity: 0.5;
+}
+
+.pf-ws-ours {
+	border-color: var(--blue-400, #74a9f7);
+	box-shadow: 0 0 0 1px var(--blue-400, #74a9f7) inset;
+}
+
+.pf-ws-badge {
+	margin-left: 8px;
+	font-size: 10px;
+	font-weight: 400;
+	color: var(--text-muted);
+}

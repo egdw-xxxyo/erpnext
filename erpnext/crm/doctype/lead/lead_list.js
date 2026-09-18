@@ -51,9 +51,13 @@ frappe.listview_settings["Lead"] = {
 		lead_owner: function (value) {
 			if (!value) return "";
 			// Not frappe.user.full_name — that renders "You" for your own Leads, and the
-			// point of the column is to see whose Lead it is at a glance.
+			// point of the column is to see whose Lead it is at a glance. Only the first
+			// name is shown: the column is narrow and the surname adds nothing here.
 			const full_name = frappe.user_info(value).fullname || value;
-			return `<span class="filterable ellipsis" data-filter="lead_owner,=,${value}">${full_name}</span>`;
+			const first_name = full_name.trim().split(/\s+/)[0];
+			return `<span class="filterable ellipsis" title="${frappe.utils.escape_html(
+				full_name
+			)}" data-filter="lead_owner,=,${value}">${first_name}</span>`;
 		},
 	},
 	onload: function (listview) {

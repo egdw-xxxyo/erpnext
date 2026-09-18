@@ -24,6 +24,10 @@ from .config import settings
 from .ssh import HostConnection
 
 FAST_TTL = 10.0
+# Job state is what the dashboard is judged on while a deploy runs, and
+# JOBS_SCRIPT only reads a handful of small files under .ops-jobs — cheap
+# enough to keep it a second behind the host at most.
+JOBS_TTL = 1.0
 BACKUPS_TTL = 60.0
 DISK_DETAIL_TTL = 600.0
 
@@ -81,6 +85,41 @@ MERGE=$([ "$(git rev-list --no-walk --count --merges HEAD 2>/dev/null)" = "1" ] 
 printf '"git": {"branch":"%s","head":"%s","tag":"%s","describe":"%s","dirty":%s,"behind":"%s","merge":%s,"untracked":%s},\n' \
   "$BRANCH" "$HEAD" "$TAG" "$DESCRIBE" "$DIRTY" "$BEHIND" "$MERGE" "${UNTRACKED:-0}"
 
+# Most recently checked-out branches (reflog), topped up with local branches by
+# commit date. Only names that still exist locally or on origin survive.
+printf '"recent_branches": '
+python3 - <<'PYEOF' 2>/dev/null || echo '[]'
+import json, re, subprocess
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.splitlines()
+
+valid = re.compile(r"^[A-Za-z0-9._/-]{1,100}$")
+known = set()
+for ref in git("for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes/origin"):
+    if ref.startswith("refs/heads/"):
+        known.add(ref[len("refs/heads/"):])
+    else:
+        known.add(ref[len("refs/remotes/origin/"):])
+known.discard("HEAD")
+
+candidates = git("rev-parse", "--abbrev-ref", "HEAD")
+for line in git("reflog", "--format=%gs"):
+    m = re.match(r"^checkout: moving from \S+ to (\S+)$", line)
+    if m:
+        candidates.append(m.group(1))
+candidates += git("for-each-ref", "--sort=-committerdate", "--format=%(refname:short)", "refs/heads")
+
+out = []
+for name in candidates:
+    if name in known and valid.match(name) and ".." not in name and name not in out:
+        out.append(name)
+    if len(out) == 10:
+        break
+print(json.dumps(out))
+PYEOF
+printf ',\n'
+
 # ---- containers ------------------------------------------------------------
 printf '"containers": '
 $DC ps -a --format json 2>/dev/null | @PS_PARSER@ 2>/dev/null || echo '[]'
@@ -92,9 +131,11 @@ SECS=$(curl -s -o /dev/null -w '%{time_total}' -m 5 @ERP@/api/method/ping 2>/dev
 printf '"http": {"code":"%s","seconds":"%s"},\n' "$CODE" "$SECS"
 
 # ---- db + redis ------------------------------------------------------------
-DB=$($DC exec -T db mysqladmin ping --password=admin </dev/null 2>/dev/null | tr -d '\r\n' | grep -o alive || echo "")
-RC=$($DC exec -T redis-cache redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
-RQ=$($DC exec -T redis-queue redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
+# Every exec is capped: mid-deploy these containers are being recreated and an
+# uncapped `docker compose exec` hangs until the whole collection times out.
+DB=$(timeout 10 $DC exec -T db mysqladmin ping --password=admin </dev/null 2>/dev/null | tr -d '\r\n' | grep -o alive || echo "")
+RC=$(timeout 10 $DC exec -T redis-cache redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
+RQ=$(timeout 10 $DC exec -T redis-queue redis-cli ping </dev/null 2>/dev/null | tr -d '\r\n' || echo "")
 printf '"db":"%s","redis_cache":"%s","redis_queue":"%s",\n' "$DB" "$RC" "$RQ"
 
 # ---- version ---------------------------------------------------------------
@@ -117,7 +158,7 @@ printf ',\n'
 
 # ---- backups ---------------------------------------------------------------
 printf '"backups": '
-$DC exec -T backend bash -c '
+timeout 20 $DC exec -T backend bash -c '
   d="$1"
   [ -d "$d" ] || exit 0
   for f in "$d"/*-database.sql.gz; do
@@ -136,10 +177,21 @@ $DC exec -T backend bash -c '
 printf ',\n'
 
 # ---- backup free space (same filesystem the sites volume lives on) ---------
-BFREE=$($DC exec -T backend df -B1 --output=avail "$BACKUP_DIR" </dev/null 2>/dev/null | tail -1 | tr -d '[:space:]')
-printf '"backup_avail":"%s",\n' "$BFREE"
+BFREE=$(timeout 10 $DC exec -T backend df -B1 --output=avail "$BACKUP_DIR" </dev/null 2>/dev/null | tail -1 | tr -d '[:space:]')
+printf '"backup_avail":"%s"\n' "$BFREE"
 
-# ---- jobs ------------------------------------------------------------------
+echo '}'
+"""
+
+
+# Jobs are read by their own script, not as part of STATS_SCRIPT: that one
+# `docker compose exec`s into backend, db and redis, which blocks for as long
+# as a deploy is recreating those containers — exactly when the job list has to
+# stay live. This one only reads files under .ops-jobs, so it answers in
+# milliseconds whatever the stack is doing.
+JOBS_SCRIPT = r"""
+cd @REPO@ 2>/dev/null || exit 90
+echo '{'
 printf '"jobs": '
 python3 - <<'PYEOF' 2>/dev/null || echo '[]'
 import glob, json, os
@@ -173,7 +225,37 @@ for meta_path in sorted(glob.glob(".ops-jobs/*.meta")):
     rows.append(meta)
 
 rows.sort(key=lambda r: r.get("started", 0), reverse=True)
-print(json.dumps(rows[:20]))
+rows = rows[:20]
+
+# Milestone markers for every listed job: a dozen short lines each, so the Step
+# column stays filled for older runs too.
+for row in rows:
+    try:
+        with open(".ops-jobs/%s.progress" % row["id"]) as fh:
+            row["progress"] = [ln.rstrip("\n") for ln in fh.read().splitlines() if ln.strip()][-40:]
+    except OSError:
+        row["progress"] = []
+
+print(json.dumps(rows))
+PYEOF
+printf ',\n'
+
+# ---- job timing history: last 5 successful runs per action (jobs.py) --------
+printf '"history": '
+python3 - <<'PYEOF' 2>/dev/null || echo '{}'
+import glob, json, os
+
+history = {}
+for path in sorted(glob.glob(".ops-jobs/history/*/")):
+    runs = []
+    for run in sorted(glob.glob(path + "*.progress"), reverse=True)[:5]:
+        try:
+            with open(run) as fh:
+                runs.append([ln for ln in fh.read().splitlines() if ln.strip()][-60:])
+        except OSError:
+            continue
+    history[os.path.basename(path.rstrip("/"))] = runs
+print(json.dumps(history))
 PYEOF
 
 echo '}'
@@ -296,5 +378,64 @@ class DiskDetailCache:
 			return dict(self._data, _fetched_at=self._fetched_at)
 
 
+class JobsCache:
+	"""Job rows and timing history — cheap, so it has its own short TTL.
+
+	Kept apart from StatsCache on purpose: a stalled host script must never
+	freeze the job list, which is the one thing that has to stay right while a
+	deploy is running. Failures are reported (`_error`) instead of being hidden
+	behind the last good snapshot.
+	"""
+
+	def __init__(self) -> None:
+		self._lock = asyncio.Lock()
+		self._data: dict[str, Any] = {}
+		self._fetched_at = 0.0
+		self._error: str | None = None
+
+	async def get(self, conn: HostConnection, ttl: float = JOBS_TTL, force: bool = False) -> dict[str, Any]:
+		async with self._lock:
+			if not force and self._data and time.time() - self._fetched_at < ttl:
+				return self._snapshot()
+			try:
+				result = await asyncio.to_thread(conn.run, _render(JOBS_SCRIPT), 20)
+				if result.rc == 90:
+					raise RuntimeError(f"repo path {settings.repo_path} not found on host")
+				self._data = json.loads(result.out)
+				self._error = None
+				self._fetched_at = time.time()
+			except Exception as exc:
+				self._error = str(exc)
+			return self._snapshot()
+
+	def note_launched(self, row: dict[str, Any]) -> dict[str, Any]:
+		"""Put a just-launched job on top of the snapshot.
+
+		The next refresh replaces it; until then the panels show the job as
+		running right away instead of waiting out the TTL.
+		"""
+		jobs = [j for j in self._data.get("jobs") or [] if j.get("id") != row.get("id")]
+		self._data["jobs"] = [row, *jobs][:20]
+		return self._snapshot()
+
+	def _snapshot(self) -> dict[str, Any]:
+		data = dict(self._data)
+		data["_fetched_at"] = self._fetched_at
+		data["_error"] = self._error
+		return data
+
+
 cache = StatsCache()
+jobs_cache = JobsCache()
 disk_detail = DiskDetailCache()
+
+
+async def with_jobs(conn: HostConnection, data: dict[str, Any], force: bool = False) -> dict[str, Any]:
+	"""Host snapshot with the live job list merged in, for panels that show jobs."""
+	jobs = await jobs_cache.get(conn, force=force)
+	merged = dict(data)
+	merged["jobs"] = jobs.get("jobs") or []
+	merged["history"] = jobs.get("history") or {}
+	merged["_jobs_error"] = jobs.get("_error")
+	merged["_jobs_fetched_at"] = jobs.get("_fetched_at")
+	return merged

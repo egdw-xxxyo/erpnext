@@ -52,7 +52,25 @@ def duration(seconds) -> str:
 	return f"{total // 60}m {total % 60}s"
 
 
+def job_progress(job, history=None) -> dict:
+	"""[OPS] milestones of one job row, folded into steps, with time-left estimates."""
+	from . import progress
+
+	return progress.summary(job or {}, history if isinstance(history, dict) else None)
+
+
+def clock(stamp) -> str:
+	"""HH:MM:SS local time of an [OPS] UTC stamp."""
+	from . import progress
+
+	value = progress.epoch(stamp)
+	return time.strftime("%H:%M:%S", time.localtime(value)) if value is not None else "—"
+
+
+templates.env.filters["job_progress"] = job_progress
+templates.env.filters["clock"] = clock
 templates.env.filters["human_bytes"] = human_bytes
 templates.env.filters["human_time"] = human_time
 templates.env.filters["ago"] = ago
 templates.env.filters["duration"] = duration
+templates.env.globals["asset_v"] = str(int(time.time()))

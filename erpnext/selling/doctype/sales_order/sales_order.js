@@ -2066,7 +2066,7 @@ erpnext.selling.open_bpak_create_dialog = function (frm) {
 
 erpnext.selling.add_bpak_buttons = function (frm) {
 	if (!frm.doc.delivered_in_bpaks || frm.is_new() || frm.doc.docstatus !== 1) return;
-	frm.add_custom_button(__("Оновити БпАК"), () => {
+	frm.add_custom_button(__("Refresh BpAK"), () => {
 		frappe.call({
 			method: "erpnext.stock.doctype.bpak.bpak.refresh_bpak_aggregates",
 			args: { sales_order: frm.doc.name },

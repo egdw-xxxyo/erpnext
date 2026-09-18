@@ -4146,7 +4146,7 @@ msgstr "Дозволити нульову ставку"
 #: erpnext/stock/doctype/stock_entry_detail/stock_entry_detail.json
 #: erpnext/stock/doctype/stock_reconciliation_item/stock_reconciliation_item.json
 msgid "Allow Zero Valuation Rate"
-msgstr "Дозволити нульову Незалежну оцінку Оцінити"
+msgstr "Дозволити нульову оцінку"
 
 #. Label of the allow_existing_serial_no (Check) field in DocType 'Stock
 #. Settings'

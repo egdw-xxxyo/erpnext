@@ -1,9 +1,17 @@
+{% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
+<span data-poll="{{ 1 if running else 15 }}" hidden></span>
 <h2>Recent jobs</h2>
+{% if data._jobs_error %}
+<div class="alert error small">Could not read job state from the host: {{ data._jobs_error }}</div>
+{% elif data._jobs_fetched_at %}
+<p class="muted small">state as of {{ data._jobs_fetched_at|ago }}</p>
+{% endif %}
 {% set rows = data.jobs or [] %}
 {% if rows %}
 <table class="rows">
-	<tr><th>Action</th><th>By</th><th>Started</th><th>State</th><th></th></tr>
+	<tr><th>Action</th><th>By</th><th>Started</th><th>State</th><th>Step</th><th></th></tr>
 	{% for j in rows %}
+	{% set prog = j|job_progress(data.history) %}
 	<tr>
 		<td>{{ j.label or j.action }}</td>
 		<td class="mono">{{ j.user }}</td>
@@ -13,9 +21,20 @@
 				{{ j.state }}{% if j.exit not in (None, '', '0') %} ({{ j.exit }}){% endif %}
 			</span>
 		</td>
+		<td class="small">
+			{% if prog.current %}
+			<span class="{{ 'bad-text' if prog.current.state == 'failed' else 'muted' }}">{{ prog.current.label }}</span>
+			<em class="muted">{{ prog.done }}/{{ prog.total }}</em>
+			{% if prog.left is number %}
+			<em class="eta" data-countdown="{{ prog.left|round|int }}">~{{ prog.left|duration }} left</em>
+			{% elif prog.took is number %}
+			<em class="muted">{{ prog.took|duration }}</em>
+			{% endif %}
+			{% else %}<span class="muted">—</span>{% endif %}
+		</td>
 		<td>
-			<button class="link small" hx-get="/jobs/{{ j.id }}" hx-target="#console-slot" hx-swap="innerHTML"
-			        hx-on::after-request="document.getElementById('console-host').hidden = false">log</button>
+			<button class="link small" hx-get="/jobs/{{ j.id }}" hx-vals='{"label": {{ (j.label or j.action or "")|tojson }}}'
+			        hx-target="#console-slot" hx-swap="innerHTML">log</button>
 		</td>
 	</tr>
 	{% endfor %}

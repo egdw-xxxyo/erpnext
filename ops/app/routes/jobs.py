@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
 from .. import jobs as jobs_mod
+from .. import progress, stats
 from ..config import settings
 from ..deps import SessionDep
 from ..sessions import Session
@@ -19,15 +20,37 @@ router = APIRouter(prefix="/jobs")
 HEARTBEAT_SECONDS = 15
 
 
+@router.get("/latest", response_class=HTMLResponse)
+async def latest_job_console(request: Request, session: SessionDep):
+	data = await stats.jobs_cache.get(session.conn)
+	rows = data.get("jobs") or []
+	job = next((j for j in rows if j.get("state") == "running"), rows[0] if rows else None)
+	if job is None:
+		return HTMLResponse('<p class="muted">No jobs yet. Run an action to see its output here.</p>')
+	return await job_console(job["id"], request, session, label=job.get("label"))
+
+
 @router.get("/{job_id}", response_class=HTMLResponse)
-async def job_console(job_id: str, request: Request, session: SessionDep):
+async def job_console(job_id: str, request: Request, session: SessionDep, label: str | None = None):
 	if not job_id.isalnum():
 		raise HTTPException(status_code=400, detail="bad job id")
 	state = await asyncio.to_thread(jobs_mod.status, session.conn, job_id)
+	try:
+		lines = await asyncio.to_thread(jobs_mod.progress_lines, session.conn, job_id)
+	except Exception:
+		lines = []
+	timeline = progress.parse(lines, (state or {}).get("state"))
 	return templates.TemplateResponse(
 		request,
 		"partials/job_console.html",
-		{"settings": settings, "session": session, "job_id": job_id, "state": state},
+		{
+			"settings": settings,
+			"session": session,
+			"job_id": job_id,
+			"state": state,
+			"label": label,
+			"timeline": timeline,
+		},
 	)
 
 
@@ -49,6 +72,11 @@ def _sse(data: str, event: str | None = None, event_id: int | None = None) -> by
 	return (out + "\n").encode("utf-8")
 
 
+async def _replay(body: str, state: dict):
+	yield _sse(body.rstrip("\n"), event_id=len(body))
+	yield _sse(json.dumps(state), event="done", event_id=len(body))
+
+
 @router.get("/{job_id}/stream")
 async def job_stream(job_id: str, request: Request, session: SessionDep):
 	"""Stream the job log as SSE, resumable by byte offset.
@@ -65,6 +93,20 @@ async def job_stream(job_id: str, request: Request, session: SessionDep):
 		offset = int(request.headers.get("last-event-id") or request.query_params.get("offset") or 0)
 	except ValueError:
 		offset = 0
+
+	# A finished run is served from the database copy, not from the host: it
+	# is one local read instead of an SSH tail over a file that the 14-day
+	# sweep, a disk cleanup or a rebuilt host may no longer have. Only a live
+	# job still streams from the host, because only it is still being written.
+	state = await asyncio.to_thread(jobs_mod.status, session.conn, job_id)
+	if state.get("state") in jobs_mod.TERMINAL_STATES:
+		archived = await asyncio.to_thread(jobs_mod.ensure_archived, session.conn, job_id)
+		if archived is not None:
+			return StreamingResponse(
+				_replay(archived[offset:], state),
+				media_type="text/event-stream",
+				headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+			)
 
 	channel = await asyncio.to_thread(session.conn.open_stream, jobs_mod.tail_command(job_id, offset))
 

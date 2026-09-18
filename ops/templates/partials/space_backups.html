@@ -8,7 +8,9 @@
 </div>
 
 <button class="danger small"
-        hx-get="/actions/backup-clean/confirm"
+        hx-post="/actions/backup-clean"
+        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+        hx-confirm="Delete every local backup except the most recent one? This cannot be undone."
         hx-target="#console-slot"
         hx-swap="innerHTML"
         hx-on::after-request="document.getElementById('console-host').hidden = false"

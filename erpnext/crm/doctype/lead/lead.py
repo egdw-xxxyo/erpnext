@@ -65,7 +65,14 @@ class Lead(SellingController, CRMNote):
 		company_name: DF.Data | None
 		contact_display: DF.Data | None
 		contact_person: DF.Link | None
-		conversion_probability: DF.Literal["", "Low Probability", "Medium Probability", "High Probability"]
+		conversion_probability: DF.Literal[
+			"",
+			"Very Low Probability",
+			"Low Probability",
+			"Medium Probability",
+			"High Probability",
+			"Very High Probability",
+		]
 		country: DF.Link | None
 		customer: DF.Link | None
 		customer_need: DF.SmallText | None
@@ -559,8 +566,16 @@ def make_opportunity(source_name, target_doc=None):
 					"mobile_no": "contact_mobile",
 					"lead_owner": "opportunity_owner",
 					"notes": "notes",
+					# Everything the manager already collected, so nobody re-asks the client.
+					"customer_need": "customer_need",
+					"contact_person": "contact_person",
+					"military_unit": "military_unit",
+					"utm_source": "utm_source",
 				},
-			}
+			},
+			"Lead Requirement": {
+				"doctype": "Lead Requirement",
+			},
 		},
 		target_doc,
 		set_missing_values,
@@ -796,21 +811,22 @@ def revert_from_final_status(lead: str, reason: str, comment: str, return_date: 
 def has_permission(doc, ptype, user=None, debug=False):
 	"""Make Leads in a final status read-only for everyone but a Sales Manager.
 
-	Returns None to defer to the standard role permissions.
+	Returns True to defer to the standard role permissions: a controller hook can
+	only deny, and frappe treats any falsy return (including None) as a denial.
 	"""
 	if ptype not in ("write", "create", "delete"):
-		return None
+		return True
 
 	if doc.get("status") not in FINAL_STATUSES:
-		return None
+		return True
 
 	user = user or frappe.session.user
 	if user == "Administrator":
-		return None
+		return True
 
 	roles = frappe.get_roles(user)
 	if "Sales Manager" in roles or "System Manager" in roles:
-		return None
+		return True
 
 	return False
 

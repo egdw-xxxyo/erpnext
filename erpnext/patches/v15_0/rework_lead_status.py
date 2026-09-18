@@ -8,6 +8,7 @@ NEW_OPTIONS = [
 	"Contacted",
 	"Requirement Gathering",
 	"Awaiting Response",
+	"Result of Processing",
 	"Postponed",
 	"Converted to Opportunity",
 	"Not Relevant",
@@ -66,19 +67,8 @@ OVERRIDDEN_PROPERTIES = [
 
 def execute():
 	frappe.reload_doctype("Lead")
+	reset_lead_field_overrides()
 	ensure_lead_custom_fields()
-
-	stale = frappe.get_all(
-		"Property Setter",
-		filters={
-			"doc_type": "Lead",
-			"field_name": ["in", REWORKED_FIELDS],
-			"property": ["in", OVERRIDDEN_PROPERTIES],
-		},
-		pluck="name",
-	)
-	for name in stale:
-		frappe.delete_doc("Property Setter", name, ignore_permissions=True, force=True)
 
 	for old_status, new_status in STATUS_MAP.items():
 		frappe.db.sql("update `tabLead` set status = %s where status = %s", (new_status, old_status))
@@ -101,6 +91,34 @@ def execute():
 
 	backfill_overdue_flags()
 	rebuild_lead_kanban_boards()
+
+
+def reset_lead_field_overrides():
+	"""Normalize metadata before Custom Field inserts validate the entire Lead schema."""
+	stale = frappe.get_all(
+		"Property Setter",
+		filters={
+			"doc_type": "Lead",
+			"field_name": ["in", REWORKED_FIELDS],
+			"property": ["in", OVERRIDDEN_PROPERTIES],
+		},
+		pluck="name",
+	)
+	for name in stale:
+		frappe.delete_doc("Property Setter", name, ignore_permissions=True, force=True)
+
+	# v16 keeps the stock default "Lead", while the shipped options use "New Request".
+	# Apply this after removing stale setters, or the cleanup would remove the fix too.
+	frappe.make_property_setter(
+		{
+			"doctype": "Lead",
+			"fieldname": "status",
+			"property": "default",
+			"value": "New Request",
+			"property_type": "Select",
+		},
+		validate_fields_for_doctype=False,
+	)
 
 
 def ensure_lead_custom_fields():

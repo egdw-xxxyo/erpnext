@@ -1,7 +1,7 @@
 frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Матриця БпАК (борт × НСУ)"),
+		title: __("BpAK Matrix (board × ground station)"),
 		single_column: true,
 	});
 

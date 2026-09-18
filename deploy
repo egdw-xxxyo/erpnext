@@ -2,6 +2,8 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+# ops_step: [OPS] milestone markers the ops dashboard parses.
+. "$DIR/tools/ops-progress.sh"
 ERPNEXT_VERSION="v16.31.1"
 IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
 
@@ -333,7 +335,24 @@ PY
   return 1
 }
 
+instance_env() {
+  if [ -n "$INSTANCE_ENV" ]; then
+    echo "$INSTANCE_ENV"
+  elif [ "$DEPLOY_ENV" = "production" ]; then
+    echo prod
+  # Prod was set up before .deploy-env existed and has none, so DEPLOY_ENV
+  # defaults to dev there; its site-config.json is the reliable marker.
+  elif [ "$(python3 -c "import json;print(json.load(open('$DIR/site-config.json')).get('environment',''))" 2>/dev/null)" = "prod" ]; then
+    echo prod
+  elif [ "$(uname -s)" = "Darwin" ]; then
+    echo local
+  else
+    echo test
+  fi
+}
+
 apply_site_config() {
+  dc exec -T backend bench --site frontend set-config instance_env "$(instance_env)"
   SITE_CONFIG="$DIR/site-config.json"
   if [ ! -f "$SITE_CONFIG" ]; then
     return
@@ -429,7 +448,7 @@ backup_push_files() {
       database.sql.gz | meta.json) required=1 ;;
       *) required=0 ;;
     esac
-    if ! dc exec -T backend curl -sS -f -k --ssl --netrc-file "$netrc" -T "$f" \
+    if ! dc exec -T backend curl -sS -f -k --ssl --ftp-create-dirs --netrc-file "$netrc" -T "$f" \
       "ftp://$rhost:$rport$rdir/$name-$suffix" </dev/null; then
       if [ "$required" = "1" ]; then
         echo "ERROR: upload of $name-$suffix failed."
@@ -458,7 +477,7 @@ entries.append(meta)
 entries.sort(key=lambda e: e.get(\"created_at\", \"\"))
 json.dump(entries, open(path, \"w\"))
 " "$TMP" "$NAME" "$BACKUP_DIR/$NAME-meta.json"
-    curl -sS -f -k --ssl --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
+    curl -sS -f -k --ssl --ftp-create-dirs --netrc-file "$NETRC" -T "$TMP" "ftp://$RHOST:$RPORT$RDIR/manifest.json"
     RC=$?
     rm -f "$TMP"
     exit $RC
@@ -553,20 +572,26 @@ run_deploy() {
     err="/dev/null"
   fi
 
+  ops_step containers start "Recreating containers"
   say "==> Recreating containers with new image..."
   dc up -d > "$out" 2>&1
 
   say "==> Waiting for configurator to finish..."
   dc wait configurator > "$out" 2>&1 || sleep 5
+  ops_step containers ok "Containers running"
 
+  ops_step assets start "Syncing built assets"
   sync_built_assets > "$out" 2>&1
+  ops_step assets ok "Assets synced"
 
+  ops_step config start "Applying site config"
   say "==> Applying site config..."
   apply_site_config > "$out" 2>&1
 
   wait_for_db > "$out" 2>&1
 
   strip_extra_apps > "$out" 2>&1
+  ops_step config ok "Site config applied"
 
   # Workers hold a metadata lock on tabDocType, which starves the ALTER TABLE in
   # frappe.patches.v16_0.switch_default_sort_order until it dies with a lock wait
@@ -574,16 +599,19 @@ run_deploy() {
   say "==> Stopping workers for migrate..."
   dc stop scheduler queue-short queue-long websocket > "$out" 2>&1 || true
 
+  ops_step migrate start "Running bench migrate"
   say "==> Running bench migrate..."
   local migrate_log
   migrate_log="$(mktemp)"
   if ! dc exec -T backend bench --site frontend migrate > "$migrate_log" 2>&1; then
+    ops_step migrate fail "bench migrate failed"
     echo "!! bench migrate FAILED — last 40 lines:" >&2
     tail -40 "$migrate_log" >&2
     dc start scheduler queue-short queue-long websocket >/dev/null 2>&1 || true
     rm -f "$migrate_log"
     exit 1
   fi
+  ops_step migrate ok "Schema migrated"
   [ "$SILENT" = "1" ] || cat "$migrate_log"
   rm -f "$migrate_log"
 
@@ -597,16 +625,19 @@ run_deploy() {
   say "==> Reloading frontend (websocket upstream IP changed)..."
   dc restart frontend > "$out" 2>&1 || true
 
+  ops_step custom-fields start "Applying custom fields"
   say "==> Running setup_custom_fields..."
   local scf_log
   scf_log="$(mktemp)"
   if ! dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute > "$scf_log" 2>&1; then
+    ops_step custom-fields fail "setup_custom_fields failed"
     # Not fatal — the site is already migrated — but never swallow it silently:
     # a throw in here leaves every custom field of the release uncreated.
     echo "!! setup_custom_fields FAILED — last 20 lines:" >&2
     tail -20 "$scf_log" >&2
   else
     [ "$SILENT" = "1" ] || cat "$scf_log"
+    ops_step custom-fields ok "Custom fields applied"
   fi
   rm -f "$scf_log"
 
@@ -621,9 +652,13 @@ run_deploy() {
   # Must run before install_extra_apps: that is what copies assets to the
   # frontend (nginx) container and flushes assets_json from Redis, so the
   # manifest has to be correct by then.
+  ops_step manifest start "Verifying asset manifest"
   ensure_assets_manifest
+  ops_step manifest ok "Asset manifest OK"
 
+  ops_step extra-apps start "Installing extra apps"
   install_extra_apps > "$out" 2>&1
+  ops_step extra-apps ok "Extra apps installed"
 
   echo "Done. http://localhost:8080"
 }
@@ -699,14 +734,26 @@ PY
 
   build)
     SILENT=0
-    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    SKIP_OPS=0
+    FOLLOW_LOGS=0
+    for arg in "$@"; do
+      case "$arg" in
+        --silent) SILENT=1 ;;
+        # The ops dashboard deploys through here; restarting itself mid-job
+        # is pointless — "Rebuild dashboard" does that on purpose.
+        --no-ops) SKIP_OPS=1 ;;
+        --logs) FOLLOW_LOGS=1 ;;
+      esac
+    done
     DEPLOY_SILENT=$SILENT
 
+    ops_step image start "Building image"
     if [ "$SILENT" = "1" ]; then
       # Stream build to a temp log so we can show context only if it fails.
       BUILD_LOG=$(mktemp)
       trap "rm -f $BUILD_LOG" EXIT
       if ! build_image > "$BUILD_LOG" 2>&1; then
+        ops_step image fail "Image build failed"
         echo "ERROR: docker build failed. Last 30 lines:"
         tail -30 "$BUILD_LOG"
         exit 1
@@ -714,26 +761,40 @@ PY
     else
       build_image
     fi
+    ops_step image ok "Image built"
     run_deploy "$SILENT"
     # Outside run_deploy on purpose: inside, --silent routes stdout to /dev/null
     # and an ops failure would be invisible.
-    ops_up
+    if [ "$SKIP_OPS" != "1" ]; then
+      ops_step ops start "Restarting ops dashboard"
+      ops_up
+      ops_step ops ok "Ops dashboard up"
+    fi
+    ops_step done ok "Deploy finished"
 
-    if [ "${2:-}" = "--logs" ] || [ "${3:-}" = "--logs" ]; then
+    if [ "$FOLLOW_LOGS" = "1" ]; then
       dc logs -f --since 0s
     fi
     ;;
 
   migrate)
     SILENT=0
-    for arg in "$@"; do [ "$arg" = "--silent" ] && SILENT=1; done
+    SKIP_OPS=0
+    for arg in "$@"; do
+      case "$arg" in
+        --silent) SILENT=1 ;;
+        --no-ops) SKIP_OPS=1 ;;
+      esac
+    done
     DEPLOY_SILENT=$SILENT
 
     say "(migrate is now an alias for build)"
+    ops_step image start "Building image"
     if [ "$SILENT" = "1" ]; then
       BUILD_LOG=$(mktemp)
       trap "rm -f $BUILD_LOG" EXIT
       if ! build_image > "$BUILD_LOG" 2>&1; then
+        ops_step image fail "Image build failed"
         echo "ERROR: docker build failed. Last 30 lines:"
         tail -30 "$BUILD_LOG"
         exit 1
@@ -741,8 +802,14 @@ PY
     else
       build_image
     fi
+    ops_step image ok "Image built"
     run_deploy "$SILENT"
-    ops_up
+    if [ "$SKIP_OPS" != "1" ]; then
+      ops_step ops start "Restarting ops dashboard"
+      ops_up
+      ops_step ops ok "Ops dashboard up"
+    fi
+    ops_step done ok "Deploy finished"
     ;;
 
   destroy)
@@ -800,7 +867,15 @@ PY
     case "${2:-}" in
       up|"")   ops_up ;;
       down)    ops_dc down ;;
-      rebuild) ops_dc build --no-cache && ops_up ;;
+      rebuild)
+        ops_step ops-image start "Rebuilding dashboard image"
+        ops_dc build --no-cache
+        ops_step ops-image ok "Dashboard image built"
+        ops_step ops start "Restarting ops dashboard"
+        ops_up
+        ops_step ops ok "Ops dashboard up"
+        ops_step done ok "Dashboard rebuilt"
+        ;;
       logs)    ops_dc logs -f --since 0s ;;
       status)  ops_dc ps ;;
       *)
@@ -832,9 +907,12 @@ PY
 
     # Prune BEFORE taking the new one. On a disk this full, writing a ~2.7GB
     # backup and only then deleting the oldest is exactly backwards.
+    ops_step backup-prune start "Pruning old backups"
     backup_prune "$((KEEP - 1))"
     backup_space_guard
+    ops_step backup-prune ok "Old backups pruned"
 
+    ops_step backup start "Backing up site $SITE"
     say "==> Backing up site $SITE..."
     if [ "$WITH_FILES" = "1" ]; then
       dc exec -T backend bench --site "$SITE" backup --with-files
@@ -843,6 +921,7 @@ PY
     fi
     NEW_NAME=$(backup_list | tail -1 | awk '{print $1}')
     [ -n "$NEW_NAME" ] && backup_write_meta "$NEW_NAME"
+    ops_step backup ok "Backup ${NEW_NAME:-created}"
     echo "Backups (keeping last $KEEP):"
     backup_list_human
     ;;
