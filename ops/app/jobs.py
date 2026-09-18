@@ -205,8 +205,26 @@ def _index_finish(conn: HostConnection, job_id: str, state: dict) -> None:
 			int(exit_raw) if exit_raw.isdigit() else None,
 			steps,
 		)
+		_archive_log(conn, job_id)
 	except Exception as exc:
 		print(f"[ops] WARNING: could not index job finish: {exc}", flush=True)
+
+
+def _archive_log(conn: HostConnection, job_id: str) -> None:
+	"""Copy the finished run's log into the database.
+
+	The host file is left in place: consoles opened on this job are still
+	streaming it, and it is the copy that survives ops itself dying. The
+	14-day sweep is what eventually removes it — from then on the console
+	reads this archive instead."""
+	try:
+		result = conn.run(_render(READ_LOG_SCRIPT, job_id), timeout=60)
+	except Exception as exc:
+		print(f"[ops] WARNING: could not read log of {job_id} to archive: {exc}", flush=True)
+		return
+	if result.rc != 0:
+		return
+	store.job_log_put(job_id, result.out)
 
 
 def _assert_no_single_quote(command: str) -> str:
@@ -223,9 +241,37 @@ def status(conn: HostConnection, job_id: str) -> dict:
 		state = json.loads(result.text or "{}")
 	except ValueError:
 		return {"id": job_id, "state": "unknown", "error": result.err.strip()[:200]}
+	if state.get("error"):
+		# Swept off the host: answer from the index instead of "no such job".
+		archived = _status_from_index(job_id)
+		if archived:
+			return archived
 	_index_finish(conn, job_id, state)
 	return state
 
+
+def _status_from_index(job_id: str) -> dict | None:
+	try:
+		row = store.job_run_get(job_id)
+	except Exception:
+		return None
+	if not row or row.get("finished") is None:
+		return None
+	return {
+		"id": job_id,
+		"state": row["state"],
+		"exit": "" if row["exit_code"] is None else str(row["exit_code"]),
+		"pid": "",
+		"log_size": 0,
+		"archived": True,
+	}
+
+
+READ_LOG_SCRIPT = r"""
+cd @REPO@ 2>/dev/null || exit 1
+[ -f ".ops-jobs/@ID@.log" ] || exit 1
+cat ".ops-jobs/@ID@.log"
+"""
 
 PROGRESS_SCRIPT = r"""
 cd @REPO@ 2>/dev/null || exit 0
@@ -237,11 +283,50 @@ done
 
 
 def progress_lines(conn: HostConnection, job_id: str) -> list[str]:
-	"""[OPS] markers of one run: its own side file, or the history copy once swept."""
+	"""[OPS] markers of one run: its own side file, the history copy once
+	swept, or the set captured into the index when the run finished."""
 	if not job_id.isalnum():
 		raise ValueError("bad job id")
 	result = conn.run(_render(PROGRESS_SCRIPT, job_id), timeout=15)
-	return [line for line in (result.text or "").splitlines() if line.strip()]
+	lines = [line for line in (result.text or "").splitlines() if line.strip()]
+	if lines:
+		return lines
+	return indexed_steps(job_id)
+
+
+def indexed_steps(job_id: str) -> list[str]:
+	try:
+		row = store.job_run_get(job_id)
+		return json.loads(row["steps"]) if row else []
+	except Exception:
+		return []
+
+
+def archived_log(job_id: str) -> str | None:
+	"""The finished run's log as copied into the database, if it is there."""
+	if not job_id.isalnum():
+		raise ValueError("bad job id")
+	try:
+		return store.job_log_get(job_id)
+	except Exception as exc:
+		print(f"[ops] WARNING: could not read archived log of {job_id}: {exc}", flush=True)
+		return None
+
+
+def ensure_archived(conn: HostConnection, job_id: str) -> str | None:
+	"""The log of a finished run, from the database — archiving it first if it
+	is not there yet (runs that ended before this existed, or whose archive
+	pass failed). None means neither copy is reachable and the caller should
+	fall back to the host file."""
+	body = archived_log(job_id)
+	if body is not None:
+		return body
+	try:
+		_archive_log(conn, job_id)
+	except Exception as exc:
+		print(f"[ops] WARNING: could not archive log of {job_id} on demand: {exc}", flush=True)
+		return None
+	return archived_log(job_id)
 
 
 def sweep(conn: HostConnection) -> None:
@@ -249,6 +334,10 @@ def sweep(conn: HostConnection) -> None:
 		conn.run(_render(SWEEP_SCRIPT, "-"), timeout=30)
 	except Exception as exc:
 		print(f"[ops] job sweep failed: {exc}", flush=True)
+	try:
+		store.prune()
+	except Exception as exc:
+		print(f"[ops] index prune failed: {exc}", flush=True)
 
 
 def tail_command(job_id: str, offset: int) -> str:

@@ -22,6 +22,7 @@ import os
 import sqlite3
 import threading
 import time
+import zlib
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -68,6 +69,17 @@ CREATE TABLE IF NOT EXISTS job_run (
 );
 CREATE INDEX IF NOT EXISTS job_run_action_started ON job_run (action, started DESC);
 CREATE INDEX IF NOT EXISTS job_run_started ON job_run (started DESC);
+
+-- The job log, zlib-compressed, copied off the host once the run ends. The
+-- host file stays until the 14-day sweep; this is what the console falls back
+-- to afterwards.
+CREATE TABLE IF NOT EXISTS job_log (
+	job_id    TEXT PRIMARY KEY REFERENCES job_run (id) ON DELETE CASCADE,
+	body      BLOB NOT NULL,
+	raw_size  INTEGER NOT NULL,
+	truncated INTEGER NOT NULL DEFAULT 0,
+	created   REAL NOT NULL
+);
 
 -- Mirror of the host-side audit.log, for search and retention beyond the
 -- 14-day sweep. The host file stays authoritative: it is the copy whose
@@ -239,9 +251,86 @@ def job_runs(action: str | None = None, limit: int = 50) -> list[dict]:
 	return [dict(row) for row in query(sql, params)]
 
 
+def job_run_get(job_id: str) -> dict | None:
+	rows = query("SELECT * FROM job_run WHERE id = ?", (job_id,))
+	return dict(rows[0]) if rows else None
+
+
 def job_pending(job_id: str) -> bool:
 	"""True while a known run has no terminal state recorded yet."""
 	return bool(query("SELECT 1 FROM job_run WHERE id = ? AND finished IS NULL", (job_id,)))
+
+
+# ---- archived job logs -------------------------------------------------------
+
+#: Kept from the head and the tail of an oversized log. A docker build is
+#: hundreds of thousands of lines of layer chatter in the middle; what anyone
+#: ever reads back is how it started and how it died.
+LOG_HEAD_BYTES = 128 * 1024
+LOG_TAIL_BYTES = 4 * 1024 * 1024
+
+
+def clip_log(text: str) -> tuple[str, int, bool]:
+	"""(stored text, original size, truncated?)"""
+	raw = text.encode("utf-8", "replace")
+	if len(raw) <= LOG_HEAD_BYTES + LOG_TAIL_BYTES:
+		return text, len(raw), False
+	dropped = len(raw) - LOG_HEAD_BYTES - LOG_TAIL_BYTES
+	head = raw[:LOG_HEAD_BYTES].decode("utf-8", "replace")
+	tail = raw[-LOG_TAIL_BYTES:].decode("utf-8", "replace")
+	marker = f"\n\n[ops] ... {dropped} bytes omitted when this log was archived ...\n\n"
+	return head + marker + tail, len(raw), True
+
+
+def job_log_put(job_id: str, text: str) -> None:
+	body, raw_size, truncated = clip_log(text)
+	with write() as conn:
+		conn.execute(
+			"INSERT OR REPLACE INTO job_log (job_id, body, raw_size, truncated, created) "
+			"VALUES (?, ?, ?, ?, ?)",
+			(job_id, zlib.compress(body.encode("utf-8"), 6), raw_size, int(truncated), time.time()),
+		)
+
+
+def job_log_get(job_id: str) -> str | None:
+	rows = query("SELECT body FROM job_log WHERE job_id = ?", (job_id,))
+	if not rows:
+		return None
+	try:
+		return zlib.decompress(bytes(rows[0]["body"])).decode("utf-8", "replace")
+	except zlib.error as exc:
+		print(f"[ops] WARNING: archived log for {job_id} is unreadable: {exc}", flush=True)
+		return None
+
+
+def job_log_stored(job_id: str) -> bool:
+	return bool(query("SELECT 1 FROM job_log WHERE job_id = ?", (job_id,)))
+
+
+#: How much history the database keeps. The host sweeps its own artifacts after
+#: 14 days; these bounds are what stops ops.db growing without limit in their
+#: place. ~200 runs of compressed deploy output is single-digit megabytes.
+KEEP_RUNS = 200
+KEEP_AUDIT = 20000
+
+
+def prune(keep_runs: int = KEEP_RUNS, keep_audit: int = KEEP_AUDIT) -> None:
+	"""Drop the oldest runs and audit lines. Called from the hourly sweep."""
+	with write() as conn:
+		conn.execute(
+			"DELETE FROM job_log WHERE job_id IN ("
+			"  SELECT id FROM job_run ORDER BY started DESC LIMIT -1 OFFSET ?"
+			")",
+			(int(keep_runs),),
+		)
+		conn.execute(
+			"DELETE FROM job_run WHERE id IN (SELECT id FROM job_run ORDER BY started DESC LIMIT -1 OFFSET ?)",
+			(int(keep_runs),),
+		)
+		conn.execute(
+			"DELETE FROM audit WHERE id IN (SELECT id FROM audit ORDER BY id DESC LIMIT -1 OFFSET ?)",
+			(int(keep_audit),),
+		)
 
 
 # ---- audit index ------------------------------------------------------------

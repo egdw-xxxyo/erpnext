@@ -69,10 +69,21 @@ that belongs to the dashboard:
 | `lockout` | login failure counters, so a restart does not clear a lockout |
 | `secret` | Fernet blobs: FTP server/targets, per-user git deploy keys. Ciphertext only — same bytes the `.enc` files held |
 | `job_run` | one row per launched job, with its `[OPS]` steps captured at finish — timings outlive the 14-day sweep |
+| `job_log` | the finished run's log, zlib-compressed. What the console reads for any job that is not still running |
 | `audit` | mirror of `audit.log`, for search by user/action and history past the sweep |
 
 `prefs.json`, `lockout.json` and the `*.enc` files from before the database are
 imported on first boot and renamed `*.imported` (`store.migrate_from_files`).
+
+A **running** job streams from the host file by byte offset — that is the only
+copy being written, and the offset is what lets the console survive the deploy
+restarting this container. The moment the job ends its log is copied into
+`job_log`, and from then on the console reads the database: one local read
+instead of an SSH tail over a file the sweep, a disk cleanup or a rebuilt host
+may no longer have. The host file itself is left alone until the sweep — open
+consoles are still reading it, and it is the copy that outlives ops crashing.
+Logs over 4 MB keep their first 128 KB and last 4 MB. `store.prune()` (hourly,
+from the sweep) keeps the last 200 runs and 20 000 audit lines.
 
 ## Non-negotiables
 
