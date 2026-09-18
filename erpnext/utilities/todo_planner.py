@@ -1,5 +1,7 @@
 """Permission-aware, paginated data for the ToDo planner."""
 
+from datetime import datetime
+
 import frappe
 from frappe import _
 from frappe.utils import cint, get_datetime, now_datetime
@@ -8,7 +10,14 @@ PAGE_SIZE = 100
 
 
 @frappe.whitelist()
-def get_tasks(start, end, filters=None, include_closed=False, section="calendar", offset=0):
+def get_tasks(
+	start: str | datetime,
+	end: str | datetime,
+	filters: str | list | None = None,
+	include_closed: bool | int | str = False,
+	section: str = "calendar",
+	offset: int | str = 0,
+) -> dict:
 	frappe.has_permission("ToDo", "read", throw=True)
 	start, end = get_datetime(start), get_datetime(end)
 	if not 0 < (end - start).total_seconds() <= 43 * 86400:
