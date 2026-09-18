@@ -139,7 +139,7 @@
    "search_index": 1
   },
   {
-   "default": "Lead",
+   "default": "New Request",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,

@@ -8,6 +8,7 @@ NEW_OPTIONS = [
 	"Contacted",
 	"Requirement Gathering",
 	"Awaiting Response",
+	"Result of Processing",
 	"Postponed",
 	"Converted to Opportunity",
 	"Not Relevant",
