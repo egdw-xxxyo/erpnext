@@ -14511,3 +14511,10 @@ Optional. Its Overrides table replaces this designation in Display Code.,Нео�
 "ЄСКД designation as written in the catalog, e.g. УКРП.563562.001-01С.","Позначення ЄСКД як у каталозі, наприклад УКРП.563562.001-01С."
 Position within the catalog.,Порядковий номер у каталозі.
 "Specifications this one is built from, each in a role: a БпАК takes a drone and a ground station.","Специфікації, з яких складається ця, кожна у своїй ролі: БпАК складається з борту та НСУ."
+BpAK Modification List,Відомість модифікацій БпАК
+Modification List,Відомість модифікацій
+Items: {0},Номенклатур: {0}
+Items of {0},Номенклатури специфікації {0}
+No modification lists yet,Відомостей модифікацій ще немає
+Modification {0},Модифікація {0}
+No modifications in this list yet,У цій відомості ще немає модифікацій

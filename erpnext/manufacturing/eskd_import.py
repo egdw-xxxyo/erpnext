@@ -37,12 +37,14 @@ ROLE_COIL = "Котушка"
 ROLE_BATTERY = "Батарея"
 ROLE_BOARD = "Борт"
 ROLE_GROUND_STATION = "НСУ"
+ROLE_MODIFICATION_LIST = "Відомість"
 
 COMPONENT_ROLES = {
 	ROLE_COIL: "Coil",
 	ROLE_BATTERY: "Battery",
 	ROLE_BOARD: "Board",
 	ROLE_GROUND_STATION: "Ground Station",
+	ROLE_MODIFICATION_LIST: "Modification List",
 }
 
 
@@ -403,10 +405,17 @@ def import_modifications(wb, summary, dry_run):
 	if len(grid) < 5:
 		return
 
-	product = _modification_product(grid[2][0])
-	if not product:
-		summary.hit("modification sheets skipped (no product)")
+	product, list_code = _modification_list(grid[2][0])
+	if not product or not list_code:
+		summary.hit("modification sheets skipped (no list designation)")
 		return
+	modification_list = upsert_specification(
+		list_code,
+		f"Відомість модифікацій БпАК {product}",
+		summary,
+		dry_run,
+		specification_kind="Modification List",
+	)
 
 	header_row = 4
 	columns = {
@@ -421,7 +430,9 @@ def import_modifications(wb, summary, dry_run):
 		board_code = row[2] if len(row) > 2 else ""
 		if not number or not board_code:
 			continue
-		upsert_combination(
+		upsert_modification(
+			modification_list,
+			list_code,
 			product,
 			number,
 			board_code,
@@ -440,14 +451,17 @@ def _marked_ground_station(ws, row_index, columns):
 	return ""
 
 
-def _modification_product(title):
-	"""`Відомість модифікацій БпАК Укропчик 15 FO УКРП.463145.006ВМ` -> `Укропчик 15 FO`."""
+def _modification_list(title):
+	"""`Відомість модифікацій БпАК Укропчик 15 FO УКРП.463145.006ВМ` -> (`Укропчик 15 FO`, `УКРП.463145.006ВМ`)."""
 	text = _norm(title)
 	marker = "БпАК "
 	if marker not in text:
-		return ""
+		return "", ""
 	tail = text.split(marker, 1)[1]
-	return re.sub(r"\s+[А-ЯІЇЄҐA-Z]{4}\.\S+$", "", tail).strip()
+	match = re.search(r"\s+([А-ЯІЇЄҐA-Z]{4}\.\S+)$", tail)
+	if not match:
+		return tail.strip(), ""
+	return tail[: match.start()].strip(), match.group(1)
 
 
 def _modification_number(label):
@@ -455,31 +469,35 @@ def _modification_number(label):
 	return cint(match.group(1)) if match else 0
 
 
-def upsert_combination(product, number, board_code, board_name, gs_code, summary, dry_run):
+def upsert_modification(
+	modification_list, list_code, product, number, board_code, board_name, gs_code, summary, dry_run
+):
 	board = _specification_by_code(board_code)
 	if not board:
-		summary.hit("combinations skipped (board specification not in catalog)")
+		summary.hit("modifications skipped (board specification not in catalog)")
 		return None
 
-	ground_station = _specification_by_code(gs_code) if gs_code else None
-	if gs_code and not ground_station:
-		summary.hit("intersections whose ground station is not in the catalog")
-	elif ground_station:
-		summary.hit("intersections read from cell fills")
-
+	if not gs_code:
+		summary.hit("modifications skipped (no ground station marked)")
+		return None
+	ground_station = _specification_by_code(gs_code)
 	if not ground_station:
-		# without a marked intersection there is no pairing to record
+		summary.hit("modifications skipped (ground station not in catalog)")
 		return None
 
 	return upsert_specification(
-		f"{board_code} / {gs_code}",
+		f"{board_code} / {gs_code} ({list_code})",
 		f"{product} — модифікація {number}",
 		summary,
 		dry_run,
 		specification_kind="BpAK",
 		ordinal=number,
 		description=board_name,
-		components=[(ROLE_BOARD, board), (ROLE_GROUND_STATION, ground_station)],
+		components=[
+			(ROLE_BOARD, board),
+			(ROLE_GROUND_STATION, ground_station),
+			(ROLE_MODIFICATION_LIST, modification_list),
+		],
 	)
 
 
