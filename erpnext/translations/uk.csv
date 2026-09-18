@@ -14255,6 +14255,21 @@ Quantity Exceeded,Перевищено кількість
 Row #{0}: Item {1} is not part of Quotation {2},Рядок #{0}: товару {1} немає в Угоді {2}
 Row #{0}: only {1} of {2} is left to order on Quotation {3},Рядок #{0}: в Угоді {3} залишилось лише {1} товару {2}
 The Quotation is being approved and cannot be edited. Return it for rework to change the terms.,"Угода перебуває на погодженні та недоступна для редагування. Щоб змінити умови, поверніть її на доопрацювання."
+Workplaces,Робочі місця
+"The benches this line runs at. The clients of this line offer only these workplaces, and every plan row must name one of them.","Робочі місця, на яких працює ця лінія. Клієнти лінії пропонують лише ці робочі місця, і кожен рядок плану має вказувати одне з них."
+"While off, the line's clients no longer offer this bench.","Якщо вимкнено, клієнти лінії більше не пропонують це робоче місце."
+Workplace {0} is listed more than once,Робоче місце {0} вказано більше одного разу
+Row {0}: Workplace is required,Рядок {0}: робоче місце обов'язкове
+Row {0}: workplace {1} is not one of this line's workplaces,Рядок {0}: робоче місце {1} не належить до робочих місць цієї лінії
+Workplace {0} already belongs to production line {1},Робоче місце {0} вже належить виробничій лінії {1}
+Production Line: {0},Виробнича лінія: {0}
+All lines,Усі лінії
+No BOM with operations is planned on this production line,На цій виробничій лінії не заплановано жодної BOM з операціями
+No allowed operations,Немає дозволених операцій
+per day,на день
+No workplaces on this line,На цій лінії немає робочих місць
+Workplaces of this line,Робочі місця цієї лінії
+Step,Крок
 "{0} child tasks were detached because this Task is no longer a Group Task.","{0} дочірніх задач відкріплено, бо ця задача більше не є груповою."
 Unpacked,Розпаковано
 "Auto-pass QC is enabled but serials have neither a draft nor a passed Quality Inspection: {0}","Auto-pass QC увімкнено, але серійні номери не мають ні чернетки, ні пройденої перевірки якості: {0}"

@@ -278,11 +278,17 @@ def _printers(workplace):
 
 
 @frappe.whitelist(methods=["GET"])
-def get_workplaces(**kwargs):
+def get_workplaces(line_type=None, production_line=None, **kwargs):
 	"""Workplaces the caller may measure at, each with its printers.
 
 	This is what fills the app's workplace picker, replacing the device-scoped item
 	dropdown that `get_configuration` used to ship as `qc_items`.
+
+	`line_type` (or a named `production_line`) narrows the list to the benches that line runs
+	at — the app's OTDR tab passes "Spool", so an operator assigned to several kinds of bench
+	is only offered the optics ones. A line type nobody has listed benches for is not a
+	filter: the full list is returned, so a line set up before the workplace table keeps
+	working.
 	"""
 	employee = _session_employee()
 	is_manager = any(role in frappe.get_roles() for role in MANAGER_ROLES)
@@ -303,6 +309,13 @@ def get_workplaces(**kwargs):
 				filters={"name": ["in", names], "is_active": 1},
 				pluck="name",
 			)
+
+	if line_type or production_line:
+		from erpnext.manufacturing.doctype.production_line import production_line as production_line_engine
+
+		allowed = production_line_engine.line_workplaces(line_type=line_type, production_line=production_line)
+		if allowed:
+			names = [name for name in names if name in allowed]
 
 	out = []
 	for name in names:
@@ -620,7 +633,16 @@ def get_print_job_status(print_job=None, **kwargs):
 	job = frappe.db.get_value(
 		"Print Job",
 		print_job,
-		["name", "status", "error_message", "printed_at", "label_printer", "label_template", "label_size", "creation"],
+		[
+			"name",
+			"status",
+			"error_message",
+			"printed_at",
+			"label_printer",
+			"label_template",
+			"label_size",
+			"creation",
+		],
 		as_dict=True,
 	)
 	if not job:
