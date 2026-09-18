@@ -620,7 +620,16 @@ def get_print_job_status(print_job=None, **kwargs):
 	job = frappe.db.get_value(
 		"Print Job",
 		print_job,
-		["name", "status", "error_message", "printed_at", "label_printer", "label_template", "label_size", "creation"],
+		[
+			"name",
+			"status",
+			"error_message",
+			"printed_at",
+			"label_printer",
+			"label_template",
+			"label_size",
+			"creation",
+		],
 		as_dict=True,
 	)
 	if not job:
