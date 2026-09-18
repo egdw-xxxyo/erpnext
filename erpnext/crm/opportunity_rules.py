@@ -114,21 +114,22 @@ def mark_converted_to_quotation(doc, method=None):
 def has_permission(doc, ptype, user=None, debug=False):
 	"""Make Opportunities in a final status read-only for everyone but a Sales Manager.
 
-	Returns None to defer to the standard role permissions.
+	Returns True to defer to the standard role permissions: a controller hook can
+	only deny, and frappe treats any falsy return (including None) as a denial.
 	"""
 	if ptype not in ("write", "create", "delete"):
-		return None
+		return True
 
 	if doc.get("status") not in FINAL_STATUSES:
-		return None
+		return True
 
 	user = user or frappe.session.user
 	if user == "Administrator":
-		return None
+		return True
 
 	roles = frappe.get_roles(user)
 	if "Sales Manager" in roles or "System Manager" in roles:
-		return None
+		return True
 
 	return False
 
