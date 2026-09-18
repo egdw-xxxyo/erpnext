@@ -16,6 +16,7 @@ import shlex
 import time
 import uuid
 
+from . import store
 from .config import settings
 from .ssh import HostConnection
 
@@ -169,7 +170,43 @@ def launch(conn: HostConnection, action: str, command: str, label: str, username
 		raise JobBusy("another ops job is already running")
 	if result.rc != 0 and state not in {"running", "rejected"}:
 		raise RuntimeError(f"could not start job: rc={result.rc} {result.err.strip()}")
+	_index_start(job_id, action, label, username, args)
 	return job_id
+
+
+#: A run recorded as finished in the index is never touched again, so the
+#: [OPS] markers of a run outlive the 14-day sweep of .ops-jobs/.
+TERMINAL_STATES = {"success", "failed", "crashed", "rejected"}
+
+
+def _index_start(job_id: str, action: str, label: str, username: str, args: dict) -> None:
+	try:
+		store.job_started(job_id, action, label, username, args, time.time())
+	except Exception as exc:
+		print(f"[ops] WARNING: could not index job start: {exc}", flush=True)
+
+
+def _index_finish(conn: HostConnection, job_id: str, state: dict) -> None:
+	"""Called from the polled status endpoint: the only moment ops reliably
+	learns that a host-side job ended."""
+	if state.get("state") not in TERMINAL_STATES:
+		return
+	try:
+		if not store.job_pending(job_id):
+			return
+		try:
+			steps = progress_lines(conn, job_id)
+		except Exception:
+			steps = []
+		exit_raw = str(state.get("exit") or "").strip()
+		store.job_finished(
+			job_id,
+			str(state["state"]),
+			int(exit_raw) if exit_raw.isdigit() else None,
+			steps,
+		)
+	except Exception as exc:
+		print(f"[ops] WARNING: could not index job finish: {exc}", flush=True)
 
 
 def _assert_no_single_quote(command: str) -> str:
@@ -183,9 +220,11 @@ def status(conn: HostConnection, job_id: str) -> dict:
 		raise ValueError("bad job id")
 	result = conn.run(_render(STATUS_SCRIPT, job_id), timeout=15)
 	try:
-		return json.loads(result.text or "{}")
+		state = json.loads(result.text or "{}")
 	except ValueError:
 		return {"id": job_id, "state": "unknown", "error": result.err.strip()[:200]}
+	_index_finish(conn, job_id, state)
+	return state
 
 
 PROGRESS_SCRIPT = r"""
