@@ -1172,6 +1172,7 @@ Add Participants,Додати учасників
 Add Phantom Item,Додати фантомну позицію
 Add Quote,Додати Цитата
 Add Raw Materials,Додати сировину
+Add Relation,Додати звʼязок
 Add Safety Stock,Додати страховий запас
 Add Sales Partners,Додайте Партнерів продажу
 Add Schedule,Додати графік
@@ -1752,7 +1753,14 @@ Attribute Name,Ім'я атрибуту
 Attribute Value,Значення атрибуту
 Attribute table is mandatory,Атрибут стіл є обов&#39;язковим
 Attribute value: {0} must appear only once,Значення атрибута: {0} повинно зустрічатися лише один раз
+Attribute {0} changes in steps of {1},Атрибут {0} змінюється з кроком {1}
+Attribute {0} has no value {1}. Allowed: {2},Атрибут {0} не має значення {1}. Дозволені: {2}
+Attribute {0} is filled in twice,Атрибут {0} заповнено двічі
+Attribute {0} is not declared by the product type or subtype,"Атрибут {0} не оголошено ні типом, ні підтипом виробу"
 Attribute {0} selected multiple times in Attributes Table,Атрибут {0} вибрано кілька разів в таблиці атрибутів
+Attribute {0} takes a number,Атрибут {0} приймає число
+Attribute {0} takes a value between {1} and {2},Атрибут {0} приймає значення від {1} до {2}
+Attribute {0} takes a value of {1} or more,Атрибут {0} приймає значення не менше ніж {1}
 Attributes,Атрибути
 Auditor,Аудитор
 Authentication Failed,Помилка аутентифікації
@@ -3486,6 +3494,7 @@ Direct Expense,Прямі витрати
 Direct Expenses,Прямі витрати
 Direct Income,Пряма прибуток
 Direct return is not allowed for Timesheet.,Пряме повернення не дозволене для табеля обліку робочого часу.
+Direction,Напрямок
 Disable,Відключити
 Disable Capacity Planning,Вимкнути планування потенціалу
 Disable Cumulative Threshold,Вимкнути накопичувальний поріг
@@ -6055,6 +6064,7 @@ New Purchase Invoice,Нова накладна за купівлю
 New Purchase Orders,Нові Замовлення на придбання
 New Quality Procedure,Нова процедура якості
 New Quotations,Нові Угоди
+New Revision,Нова редакція
 New Sales Invoice,Новий вихідний рахунок
 New Sales Orders,Нові Замовлення клієнтів
 New Sales Person Name,Ім'я нового Відповідального з продажу
@@ -7451,6 +7461,9 @@ Produced / Received Qty,Вироблено/отримано Кільк.
 Produced Qty,Вироблена кількість
 Produced Quantity,Здобуте кількість
 Product,Продукт
+Product Attribute,Атрибут виробу
+Product Attribute Assignment,Призначення атрибута виробу
+Product Attribute Value,Значення атрибута виробу
 Product Bundle,Комплект
 Product Bundle Balance,Баланс продукту
 Product Bundle Help,Довідка з комплектів
@@ -7459,6 +7472,8 @@ Product Discount Scheme,Схема знижок на продукти
 Product Discount Slabs,Плити із знижкою на продукцію
 Product Enquiry,Запит про продукт
 Product Manager,Менеджер з продукту
+Product Modification Attribute,Атрибут модифікації
+Product Modification Document,Документ модифікації
 Product Price ID,Ідентифікатор ціни продукту
 Production,Виробництво
 Production Analytics,виробництво Аналітика
@@ -7984,6 +7999,7 @@ Rejected Warehouse,Склад для відхиленого
 Rejected Warehouse and Accepted Warehouse cannot be same.,Склад відхилення та склад прийняття не можуть бути однаковими.
 Related,Зв'язані
 Relation,Відношення
+Relation added,Звʼязок додано
 Release Date,Дата випуску
 Release date must be in the future,Дата виходу повинна бути в майбутньому
 Relieving Date,Дата звільнення
@@ -8585,6 +8601,7 @@ Row {0}: Total Number of Depreciations cannot be less than or equal to Number of
 Row {0}: Transferred quantity cannot be greater than the requested quantity.,Рядок {0}: Переміщена кількість не може перевищувати запитану кількість.
 Row {0}: UOM Conversion Factor is mandatory,Ряд {0}: Коефіцієнт перетворення Одиниця виміру є обов&#39;язковим
 Row {0}: Workstation or Workstation Type is mandatory for an operation {1},Рядок {0}: Робоча станція або тип робочої станції є обов'язковими для операції {1}
+Row {0}: revision {1} belongs to another document,Рядок {0}: редакція {1} належить іншому документу
 Row {0}: user has not applied the rule {1} on the item {2},Рядок {0}: користувач не застосував правило {1} до елемента {2}
 Row {0}: {1} account already applied for Accounting Dimension {2},Рядок {0}: Рахунок {1} вже застосовано для облікового виміру {2}
 Row {0}: {1} must be greater than 0,Рядок {0}: {1} має бути більше 0
@@ -8809,6 +8826,7 @@ Search,Пошук
 Search APIs,Пошукові API
 Search Sub Assemblies,Пошук Sub Асамблей
 Search Term Param Name,Пошуковий термін Назва пароля
+Search by Attribute,Пошук за атрибутом
 "Search by customer name, phone, email.","Пошук за іменем клієнта, телефоном, електронною поштою."
 Search by invoice id or customer name,Шукайте за ідентифікатором рахунка-фактури або іменем клієнта
 "Search by item code, serial number or barcode","Пошук за кодом товару, серійним номером або штрих-кодом"
@@ -9009,6 +9027,14 @@ Components,Компоненти
 Resulting Series,Підсумкова серія
 Start Counting From,Починати лічити з
 Literal,Літерал
+"Subtype {0} belongs to product type {1}, not {2}","Підтип {0} належить до типу виробу {1}, а не {2}"
+The increment cannot be negative,Крок не може бути відʼємним
+The selected document refers to this one,Обраний документ посилається на цей
+The start of the range cannot be greater than its end,Початок діапазону не може бути більшим за його кінець
+These attributes are mandatory for this product type: {0},Ці атрибути обовʼязкові для цього типу виробу: {0}
+This document refers to the selected one,Цей документ посилається на обраний
+Value {0} is listed twice,Значення {0} вказано двічі
+Values,Значення
 "Year (YYYY)","Рік (YYYY)"
 "Short Year (YY)","Короткий рік (YY)"
 "Month (MM)","Місяць (MM)"
@@ -14299,3 +14325,182 @@ Invalid planner date range,Некоректний діапазон дат пла
 Invalid planner section,Некоректний розділ планувальника,
 Invalid ToDo filters,Некоректні фільтри задач,
 Overdue,Протерміновано,ToDo
+Document Section,Розділ реєстру
+Section Name,Назва розділу
+Default Document Type,Тип документа за замовчуванням
+Naming Prefix,Префікс нумерації
+Prefix used by the Document Naming Rule of this section,"Префікс, який використовує правило нумерації цього розділу"
+Default Section,Розділ за замовчуванням
+Product Classification,Класифікація виробу
+Modifications,Модифікації
+Cannot delete section {0}: it holds {1} document(s),Неможливо видалити розділ {0}: у ньому {1} документ(ів)
+Document Relation,Звʼязок документа
+Document Title,Назва документа
+External Number,Зовнішній номер
+Section,Розділ
+Document Date,Дата документа
+Responsibility,Відповідальність
+Responsible,Відповідальний
+Responsible Department,Підрозділ відповідального
+Author,Автор
+Approved By,Погодив
+Approval Date,Дата погодження
+Validity,Чинність
+Valid Until,Чинний до
+Next Review Date,Дата наступного перегляду
+Related Documents,Повʼязані документи
+Relations,Звʼязки
+Relation Type,Тип звʼязку
+No related documents yet,Повʼязаних документів ще немає
+Document Revision,Редакція документа
+Revision Number,Номер редакції
+Revision Title,Назва редакції
+Revision Status,Статус редакції
+PDF File,Файл PDF
+Signed Scan,Скан із підписом
+Change,Зміна
+Prepared By,Підготував
+Checked By,Перевірив
+Effective Date,Дата набуття чинності
+End Date,Дата припинення
+Revisions,Редакції
+Current Revision,Актуальна редакція
+Revision {0} is not submitted,Редакція {0} не проведена
+PDF,PDF
+Document Audit Entry,Запис журналу аудиту
+Event,Подія
+Event Time,Час події
+User,Користувач
+Field Changed,Змінене поле
+Value Before,Значення до
+Value After,Значення після
+Audit entries are written by the register itself,Записи журналу створює сам реєстр
+Product Type,Тип виробу
+Product Subtype,Підтип виробу
+Product Model,Модель виробу
+Modification Code,Шифр модифікації
+Introduction Date,Дата впровадження
+Discontinued Date,Дата зняття з виробництва
+NSN,NSN
+Other Codes,Інші коди
+Documents,Документи
+NATO Codification,Кодифікація НАТО
+Requirements,Вимоги
+Required Document Type,Потрібний тип документа
+Mandatory,Обовʼязковий
+Requirement Template,Шаблон комплектності
+Documentation Completeness,Комплектність документації
+Completeness,Комплектність
+Requirement,Вимога
+State,Стан
+optional,необовʼязковий
+of,із
+Start Date,Дата початку
+Additional Attachment,Додаткове вкладення
+Change Basis,Підстава зміни
+Change Description,Опис змін
+Completeness Record,Запис комплектності
+Current Revision Effective Date,Дата набуття чинності поточної редакції
+Document Revisions,Редакції документа
+Linked Records,Пов'язані записи
+Main Document,Основний документ
+NATO Code / NSN,Код НАТО / NSN
+Number,Номер
+Other Codes Received,Інші отримані коди
+Product Modification,Модифікація виробу
+Related Document,Пов'язаний документ
+Subtype,Підтип
+Technical Document Type,Тип технічного документа
+Technical Specification,ТУ
+Word File,Word-файл
+Responsibility and Validity,Відповідальність і чинність
+Legacy Mirror Tables,Застарілі дзеркальні таблиці
+Extensions,Розширення
+Has Product Classification,Має класифікацію виробу
+Has Modifications,Має модифікації
+Requires Completeness,Потребує контролю комплектності
+Parent Section,Батьківський розділ
+Expiry date cannot be earlier than the effective date,Дата завершення не може бути раніше за дату набуття чинності
+Revision {0} is already in force for document {1},Редакція {0} уже є чинною для документа {1}
+Revision {0} belongs to another document,Редакція {0} належить іншому документу
+Revision {0} is not submitted and cannot be the current one,Редакція {0} не проведена і не може бути чинною
+Revision {0} has status {1} and cannot be the current one,Редакція {0} має статус {1} і не може бути чинною
+A document cannot be related to itself,Документ не можна повʼязати сам із собою
+Relation {0} already records this link,Звʼязок {0} уже фіксує це повʼязання
+Duplicate relation,Дубльований звʼязок
+An audit entry cannot be changed once written,Запис журналу не можна змінити після створення
+Access restricted,Доступ обмежено
+Annex,Додаток
+Codification Date,Дата кодифікації
+Codified,Кодифіковано
+Could not load this section,Не вдалося завантажити розділ
+In force,Чинних
+Mandatory documents,Обовʼязкових документів
+Modification Status,Статус модифікації
+No document refers to this one,На цей документ ніхто не посилається
+No requirement template selected,Шаблон комплектності не вибрано
+"Related but not declared an annex","Повʼязаний, але не оголошений додатком"
+"{0} is a document this package requires — only the relation {1} puts it there","{0} — документ, якого вимагає комплектність; у комплект його поставить лише звʼязок «{1}»"
+Not codified,Не кодифіковано
+Referred to by,На цей документ посилаються
+Scan,Скан
+The template lists no requirements,У шаблоні немає вимог
+This document has no revisions yet,Для цього документа ще немає редакцій
+This document refers to,Цей документ посилається на
+This specification has no modifications yet,Для цих ТУ ще немає модифікацій
+Technical Documentation Completeness,Комплектність технічної документації
+Documents present,Наявних документів
+Problems,Проблеми
+Completeness template is not set,Шаблон комплектності не задано
+Incomplete only,Лише неповні
+Technical Documentation,Технічна документація
+Register,Реєстр
+Specifications,Технічні умови
+Reports and Journal,Звіти та журнал
+State of the Register,Стан реєстру
+Your Shortcuts,Ваші ярлики
+Masters & Reports,Довідники та звіти
+{} Effective,{} чинних
+Effective Specifications,Чинних ТУ
+Documents Without a Current Revision,Документів без чинної редакції
+Codified Modifications,Кодифікованих модифікацій
+Technical Document,Технічний документ
+Technical Document Section,Розділ технічної документації
+Technical Document Revision,Редакція технічного документа
+Technical Document Relation,Звʼязок технічних документів
+Document Requirement Template,Шаблон комплектності
+Technical Document Audit Entry,Запис журналу технічної документації
+"Current version","Актуальна"
+"Document {0} is of a type that has no product modifications","Документ {0} має тип, у якого немає модифікацій виробу"
+"Modification {0} belongs to document {1}, not to {2}","Модифікація {0} належить документу {1}, а не {2}"
+"Make Effective","Ввести в дію"
+"Revision {0} becomes the one in force, and the revision in force until now becomes superseded. Continue?","Редакція {0} стане чинною, а редакція, чинна дотепер, стане заміненою. Продовжити?"
+"Putting the revision into force","Введення редакції в дію"
+"Revision is now in force","Редакція введена в дію"
+"Only a submitted revision can be put into force","Ввести в дію можна лише проведену редакцію"
+"Add Condition","Додати умову"
+"No conditions yet","Умов ще немає"
+"Pick an attribute and a value","Виберіть атрибут і значення"
+"Pick a product type first","Спочатку виберіть тип виробу"
+"Condition","Умова"
+"is exactly","дорівнює"
+"starts with","починається з"
+"contains the text","містить текст"
+"Pick one of the values this attribute allows","Виберіть одне зі значень, які допускає цей атрибут"
+"Type a number and choose a condition above","Введіть число й виберіть умову вище"
+"Type a value and choose a condition above","Введіть значення й виберіть умову вище"
+"Conditions","Умови"
+"Counting…","Рахуємо…"
+"Matching modifications: {0}","Підходить модифікацій: {0}"
+"No modification matches these conditions","Жодна модифікація не підходить під ці умови"
+"is at least","не менше ніж"
+"is at most","не більше ніж"
+"is between","у межах"
+"Up To","До"
+"Attribute {0} is compared with a number, and {1} is not one","Атрибут {0} порівнюється з числом, а {1} числом не є"
+"A number out of a range. Leave it unchecked and the attribute holds text.","Число з діапазону. Якщо не позначено, атрибут зберігає текст."
+"Leave the table empty to let the modification hold any text.","Залиште таблицю порожньою, щоб модифікація могла містити будь-який текст."
+"Remove the relation to {0}?","Видалити звʼязок із {0}?"
+"Relation removed","Звʼязок видалено"
+"Reads as: this document — relation — the document below","Читається так: цей документ — звʼязок — документ нижче"
+"Reads as: the document below — relation — this document","Читається так: документ нижче — звʼязок — цей документ"

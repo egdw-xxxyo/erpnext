@@ -546,3 +546,10 @@ erpnext.patches.v15_0.drop_otdr_doctypes
 erpnext.patches.v15_0.rework_opportunity_status
 erpnext.patches.v15_0.backfill_production_line_workplaces
 erpnext.patches.v15_0.adopt_orphan_group_task_children
+erpnext.patches.v16_0.codify_technical_documentation
+erpnext.patches.v16_0.setup_technical_documentation
+erpnext.patches.v16_0.repair_technical_documentation_data
+erpnext.patches.v16_0.carry_nsn_onto_modifications
+erpnext.patches.v16_0.fill_modification_attribute_summary
+erpnext.patches.v16_0.fix_annex_relation_direction
+erpnext.patches.v16_0.clear_measured_attribute_step

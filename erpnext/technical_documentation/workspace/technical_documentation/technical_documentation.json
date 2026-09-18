@@ -1,0 +1,246 @@
+{
+ "app": "erpnext",
+ "charts": [],
+ "content": "[{\"id\": \"td_hdr_state\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>State of the Register</b></span>\", \"col\": 12}}, {\"id\": \"td_nc_effective\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Effective Specifications\", \"col\": 4}}, {\"id\": \"td_nc_norev\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Documents Without a Current Revision\", \"col\": 4}}, {\"id\": \"td_nc_codified\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Codified Modifications\", \"col\": 4}}, {\"id\": \"td_spacer_1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"td_hdr_shortcuts\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"td_sc_document\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Document\", \"col\": 3}}, {\"id\": \"td_sc_section\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Document Section\", \"col\": 3}}, {\"id\": \"td_sc_modification\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Product Modification\", \"col\": 3}}, {\"id\": \"td_sc_report\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Technical Documentation Completeness\", \"col\": 3}}, {\"id\": \"td_spacer_2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"td_hdr_cards\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"td_card_register\", \"type\": \"card\", \"data\": {\"card_name\": \"Register\", \"col\": 4}}, {\"id\": \"td_card_specs\", \"type\": \"card\", \"data\": {\"card_name\": \"Specifications\", \"col\": 4}}, {\"id\": \"td_card_reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports and Journal\", \"col\": 4}}, {\"id\": \"td_card_settings\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}]",
+ "creation": "2026-09-14 12:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "file",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Technical Documentation",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Register",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Technical Document",
+   "link_count": 0,
+   "link_to": "Technical Document",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Technical Document Section",
+   "link_count": 0,
+   "link_to": "Technical Document Section",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Technical Document Revision",
+   "link_count": 0,
+   "link_to": "Technical Document Revision",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Technical Document Relation",
+   "link_count": 0,
+   "link_to": "Technical Document Relation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Specifications",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Product Modification",
+   "link_count": 0,
+   "link_to": "Product Modification",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Product Type",
+   "link_count": 0,
+   "link_to": "Product Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Product Subtype",
+   "link_count": 0,
+   "link_to": "Product Subtype",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Product Attribute",
+   "link_count": 0,
+   "link_to": "Product Attribute",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports and Journal",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Technical Documentation Completeness",
+   "link_count": 0,
+   "link_to": "Technical Documentation Completeness",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Technical Document Audit Entry",
+   "link_count": 0,
+   "link_to": "Technical Document Audit Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Settings",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Technical Document Type",
+   "link_count": 0,
+   "link_to": "Technical Document Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Document Requirement Template",
+   "link_count": 0,
+   "link_to": "Document Requirement Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Technical Documentation",
+ "name": "Technical Documentation",
+ "number_cards": [
+  {
+   "label": "Effective Specifications",
+   "number_card_name": "Effective Specifications"
+  },
+  {
+   "label": "Documents Without a Current Revision",
+   "number_card_name": "Documents Without a Current Revision"
+  },
+  {
+   "label": "Codified Modifications",
+   "number_card_name": "Codified Modifications"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "Technical Documentation Viewer"
+  },
+  {
+   "role": "Technical Documentation Editor"
+  },
+  {
+   "role": "Technical Documentation Manager"
+  }
+ ],
+ "sequence_id": 30.0,
+ "shortcuts": [
+  {
+   "color": "Green",
+   "format": "{} Effective",
+   "label": "Technical Document",
+   "link_to": "Technical Document",
+   "stats_filter": "{\"status\": \"Чинний\"}",
+   "type": "DocType"
+  },
+  {
+   "label": "Technical Document Section",
+   "link_to": "Technical Document Section",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "format": "{} Effective",
+   "label": "Product Modification",
+   "link_to": "Product Modification",
+   "stats_filter": "{\"status\": \"Чинна\"}",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "Report",
+   "label": "Technical Documentation Completeness",
+   "link_to": "Technical Documentation Completeness",
+   "type": "Report"
+  }
+ ],
+ "title": "Technical Documentation"
+}
