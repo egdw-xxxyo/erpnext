@@ -283,7 +283,8 @@ def create_custom_fields_on_item():
 			"fieldname": "specification",
 			"fieldtype": "Link",
 			"label": "Specification",
-			"options": "Specification",
+			"options": "Technical Document",
+			"link_filters": '[["Technical Document","document_type","=","Специфікація"]]',
 			"insert_after": "item_name",
 			"in_standard_filter": 1,
 			"description": "ЄСКД specification this item belongs to",
@@ -300,6 +301,23 @@ def create_custom_fields_on_item():
 		},
 	]
 	_create_custom_fields(fields)
+	_sync_custom_field_properties(fields, ("options", "link_filters", "fetch_from"))
+
+
+def _sync_custom_field_properties(fields, properties):
+	"""_create_custom_fields skips existing fields; carry changed link targets onto them."""
+	for f in fields:
+		name = frappe.db.exists("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]})
+		if not name:
+			continue
+		changes = {
+			p: f.get(p) for p in properties if p in f and frappe.db.get_value("Custom Field", name, p) != f[p]
+		}
+		if changes:
+			cf = frappe.get_doc("Custom Field", name)
+			cf.update(changes)
+			cf.save(ignore_permissions=True)
+			print(f"  Updated Custom Field: {f['dt']}.{f['fieldname']} {sorted(changes)}")
 
 
 def create_item_specification_tab():

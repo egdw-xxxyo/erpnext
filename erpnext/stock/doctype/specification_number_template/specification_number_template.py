@@ -8,14 +8,14 @@ class SpecificationNumberTemplate(Document):
 
 	def on_update(self):
 		specs = frappe.get_all(
-			"Specification",
+			"Technical Document",
 			filters={"specification_number_template": self.name},
-			fields=["name", "specification_code", "display_code"],
+			fields=["name", "document_code", "display_code"],
 		)
 		for spec in specs:
-			display_code = _override(self, spec.specification_code)
+			display_code = _override(self, spec.document_code)
 			if display_code != spec.display_code:
-				doc = frappe.get_doc("Specification", spec.name)
+				doc = frappe.get_doc("Technical Document", spec.name)
 				doc.display_code = display_code
 				doc.flags.display_code_set = True
 				doc.save()
@@ -109,7 +109,7 @@ def resolve_specification_template(item_doc):
 			linked = _component_in_role(item_doc, c.component_role)
 			if not linked:
 				return None
-			ordinal = frappe.db.get_value("Specification", linked, "ordinal")
+			ordinal = frappe.db.get_value("Technical Document", linked, "ordinal")
 			if not ordinal:
 				return None
 			parts.append(str(int(ordinal)).zfill(int(c.ordinal_digits or 2)))

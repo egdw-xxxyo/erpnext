@@ -12,6 +12,7 @@
   "technical_document",
   "modification_code",
   "full_name",
+  "modification_number",
   "company",
   "main_column",
   "product_type",
@@ -19,6 +20,8 @@
   "status",
   "introduction_date",
   "discontinued_date",
+  "components_section",
+  "components",
   "attributes_section",
   "attributes",
   "attribute_summary",
@@ -53,6 +56,12 @@
    "in_list_view": 1,
    "label": "Full Name",
    "reqd": 1
+  },
+  {
+   "description": "Position in the modification list.",
+   "fieldname": "modification_number",
+   "fieldtype": "Int",
+   "label": "Modification Number"
   },
   {
    "fieldname": "company",
@@ -229,6 +238,18 @@
    "unique": 0
   },
   {
+   "description": "The board and ground station specifications this modification pairs.",
+   "fieldname": "components_section",
+   "fieldtype": "Section Break",
+   "label": "Component Specifications"
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Specification Component"
+  },
+  {
    "fieldname": "attributes_section",
    "fieldtype": "Section Break",
    "label": "Attributes"
@@ -332,7 +353,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-18 00:02:09.371800",
+ "modified": "2026-09-19 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Product Modification",
@@ -422,8 +443,8 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "sort_field": "creation",
- "sort_order": "DESC",
+ "sort_field": "modification_number",
+ "sort_order": "ASC",
  "states": [],
  "title_field": "full_name",
  "track_changes": 1

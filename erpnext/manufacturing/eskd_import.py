@@ -1,10 +1,11 @@
-"""Import the ЄСКД workbook (`ЄСКД.xlsx`) into Specification and Technical Document.
+"""Import the ЄСКД workbook (`ЄСКД.xlsx`) into Technical Documentation.
 
 MANUAL TOOL — never wire this into a hook, a patch or the scheduler. Every designation in
-the catalog sheets becomes one flat Specification keyed on its code; Items point at it through
-`Item.specification`. The document register (`Сводная`, `Сводная таблиця ТУ`,
-`Технологічні карти`) becomes Technical Documents keyed on code + product. Defaults to a
-dry run.
+the catalog sheets becomes a Technical Document of type «Специфікація» keyed on its code;
+Items point at it through `Item.specification`. The document register (`Сводная`,
+`Сводная таблиця ТУ`, `Технологічні карти`) becomes Technical Documents keyed on code +
+product. A modification list becomes a «Відомість модифікацій» document and each of its
+rows a Product Modification. Defaults to a dry run.
 
 Run from the container console:
 
@@ -51,9 +52,22 @@ TYPE_PROCESS_CARD = "Технологічна карта"
 TYPE_PART = "Деталь"
 TYPE_USER_MANUAL = "Інструкція користувача"
 TYPE_PASSPORT = "Паспорт"
+TYPE_MODIFICATION_LIST = "Відомість модифікацій"
+MODIFICATION_DOCTYPE = "Product Modification"
 
 DESIGN_DOCUMENT_TYPES = (
-	{"document_type": TYPE_SPECIFICATION, "abbreviation": "С", "default_section": DESIGN_SECTION},
+	{
+		"document_type": TYPE_SPECIFICATION,
+		"abbreviation": "С",
+		"default_section": DESIGN_SECTION,
+		"has_specification_data": 1,
+	},
+	{
+		"document_type": TYPE_MODIFICATION_LIST,
+		"abbreviation": "ВМ",
+		"default_section": DESIGN_SECTION,
+		"has_modifications": 1,
+	},
 	{"document_type": TYPE_ASSEMBLY_DRAWING, "abbreviation": "СК", "default_section": DESIGN_SECTION},
 	{"document_type": TYPE_WIRING_DIAGRAM, "abbreviation": "ЕХ", "default_section": DESIGN_SECTION},
 	{"document_type": TYPE_PROCESS_CARD, "abbreviation": "ТК", "default_section": DESIGN_SECTION},
@@ -65,14 +79,12 @@ ROLE_COIL = "Котушка"
 ROLE_BATTERY = "Батарея"
 ROLE_BOARD = "Борт"
 ROLE_GROUND_STATION = "НСУ"
-ROLE_MODIFICATION_LIST = "Відомість"
 
 COMPONENT_ROLES = {
 	ROLE_COIL: "Coil",
 	ROLE_BATTERY: "Battery",
 	ROLE_BOARD: "Board",
 	ROLE_GROUND_STATION: "Ground Station",
-	ROLE_MODIFICATION_LIST: "Modification List",
 }
 
 
@@ -164,7 +176,30 @@ def _parameter_rows(parameters, dry_run):
 	return rows
 
 
+def _new_document(document_type, code, title, product=None, **values):
+	doc = frappe.get_doc(
+		{
+			"doctype": DOCUMENT_DOCTYPE,
+			"document_type": document_type,
+			"document_title": (title or code)[:140],
+			"document_code": code,
+			"company": frappe.defaults.get_global_default("company")
+			or frappe.db.get_value("Company", {}, "name"),
+			"section": frappe.db.get_value("Technical Document Type", document_type, "default_section")
+			or DESIGN_SECTION,
+			"status": "Чинний",
+			"responsible": frappe.session.user,
+			"product_model": product,
+			**values,
+		}
+	)
+	if frappe.db.get_value("Technical Document Type", document_type, "has_product_classification"):
+		doc.product_type = _product_type(product or "")
+	return doc
+
+
 def upsert_specification(code, name, summary, dry_run, parameters=None, components=None, **values):
+	"""A catalog designation: a «Специфікація» document carrying the ЄСКД catalog data."""
 	code = _norm(code)
 	name = _norm(name) or code
 	if not code:
@@ -174,6 +209,8 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 		return None
 
 	values = {k: v for k, v in values.items() if v not in (None, "")}
+	if "description" in values:
+		values["note"] = values.pop("description")
 	values["organization_code"] = values.get("organization_code") or _org_code(code)
 	rows = _parameter_rows(parameters, dry_run)
 	component_rows = [{"role": role, "specification": spec} for role, spec in components or [] if spec]
@@ -185,10 +222,8 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 		summary.hit("specifications updated")
 		if dry_run:
 			return existing
-		doc = frappe.get_doc("Specification", existing)
+		doc = frappe.get_doc(DOCUMENT_DOCTYPE, existing)
 		doc.update({k: v for k, v in values.items() if not doc.get(k)})
-		if not doc.specification_name:
-			doc.specification_name = name
 		present = {row.parameter for row in doc.get("parameters") or []}
 		for row in rows:
 			if row["parameter"] not in present:
@@ -201,14 +236,7 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 	summary.hit("specifications created")
 	if dry_run:
 		return None
-	doc = frappe.get_doc(
-		{
-			"doctype": "Specification",
-			"specification_code": code,
-			"specification_name": name[:140],
-			**values,
-		}
-	)
+	doc = _new_document(TYPE_SPECIFICATION, code, name, **values)
 	doc.set("parameters", rows)
 	doc.set("components", component_rows)
 	doc.insert(ignore_permissions=True)
@@ -242,6 +270,14 @@ def ensure_document_setup(summary, dry_run):
 			).insert(ignore_permissions=True)
 	for row in DESIGN_DOCUMENT_TYPES:
 		if frappe.db.exists("Technical Document Type", row["document_type"]):
+			flags = {
+				k: v
+				for k, v in row.items()
+				if k.startswith("has_")
+				and not frappe.db.get_value("Technical Document Type", row["document_type"], k)
+			}
+			if flags and not dry_run:
+				frappe.db.set_value("Technical Document Type", row["document_type"], flags)
 			continue
 		summary.hit("document types created")
 		if not dry_run:
@@ -295,33 +331,9 @@ def upsert_document(code, title, document_type, product, summary, dry_run, note=
 	summary.hit(f"documents created: {document_type}")
 	if dry_run:
 		return None
-	section = (
-		frappe.db.get_value("Technical Document Type", document_type, "default_section") or DESIGN_SECTION
-	)
-	doc = frappe.get_doc(
-		{
-			"doctype": DOCUMENT_DOCTYPE,
-			"document_type": document_type,
-			"document_title": (title or code)[:140],
-			"document_code": code,
-			"company": frappe.defaults.get_global_default("company")
-			or frappe.db.get_value("Company", {}, "name"),
-			"section": section,
-			"status": "Чинний",
-			"responsible": frappe.session.user,
-			"product_model": product,
-			"note": note,
-		}
-	)
-	if frappe.db.get_value("Technical Document Type", document_type, "has_product_classification"):
-		doc.product_type = _product_type(product)
+	doc = _new_document(document_type, code, title, product, note=note)
 	doc.insert(ignore_permissions=True)
 	return doc.name
-
-
-# --------------------------------------------------------------------------------------
-# sheet readers
-# --------------------------------------------------------------------------------------
 
 
 def import_register(wb, summary, dry_run):
@@ -409,7 +421,7 @@ def import_coils(wb, summary, dry_run):
 			dry_run,
 			specification_kind="Coil",
 			ordinal=cint(ordinal),
-			description=purpose,
+			purpose=purpose,
 			parameters=_coil_parameters(purpose),
 		)
 
@@ -467,7 +479,7 @@ def import_varnex(wb, summary, dry_run):
 			specification_kind="Ground Station",
 			organization_code="ВРНК",
 			ordinal=cint(ordinal),
-			description=note,
+			purpose=note,
 		)
 
 	# `БпАК - Укропчик Штурм` and the coil / battery it is built from
@@ -480,7 +492,7 @@ def import_varnex(wb, summary, dry_run):
 			dry_run,
 			specification_kind="Coil",
 			ordinal=cint(ws.cell(43, 7).value),
-			description=coil_purpose,
+			purpose=coil_purpose,
 			parameters=_coil_parameters(coil_purpose),
 		)
 	battery_code, battery_layout = _norm(ws.cell(47, 9).value), _norm(ws.cell(47, 8).value)
@@ -492,7 +504,7 @@ def import_varnex(wb, summary, dry_run):
 			dry_run,
 			specification_kind="Battery",
 			ordinal=cint(ws.cell(47, 7).value),
-			description=battery_layout,
+			purpose=battery_layout,
 			parameters=[(PARAM_BATTERY_LAYOUT, battery_layout, "")],
 		)
 	tu = _norm(ws.cell(37, 4).value)
@@ -533,7 +545,7 @@ def import_batteries(wb, summary, dry_run):
 				specification_kind="Battery",
 				organization_code=org,
 				ordinal=cint(ordinal),
-				description=purpose,
+				purpose=purpose,
 				parameters=[(PARAM_BATTERY_LAYOUT, purpose, "")],
 			)
 
@@ -554,7 +566,7 @@ def import_ground_stations(wb, summary, dry_run):
 			dry_run,
 			specification_kind="Ground Station",
 			ordinal=cint(ordinal),
-			description=purpose,
+			purpose=purpose,
 		)
 
 
@@ -614,8 +626,9 @@ def _board_components(code):
 
 def _catalog_entry(kind, organization_code, ordinal):
 	return frappe.db.get_value(
-		"Specification",
+		DOCUMENT_DOCTYPE,
 		{
+			"document_type": TYPE_SPECIFICATION,
 			"specification_kind": kind,
 			"organization_code": organization_code,
 			"ordinal": cint(ordinal),
@@ -724,14 +737,14 @@ def import_modifications(wb, summary, dry_run):
 	if not product or not list_code:
 		summary.hit("modification sheets skipped (no list designation)")
 		return
-	modification_list = upsert_specification(
+	modification_list = upsert_document(
 		list_code,
 		f"Відомість модифікацій БпАК {product}",
+		TYPE_MODIFICATION_LIST,
+		product,
 		summary,
 		dry_run,
-		specification_kind="Modification List",
 	)
-
 	header_row = 4
 	columns = {
 		col: grid[header_row - 1][col - 1]
@@ -747,8 +760,6 @@ def import_modifications(wb, summary, dry_run):
 			continue
 		upsert_modification(
 			modification_list,
-			list_code,
-			product,
 			number,
 			board_code,
 			row[1],
@@ -784,9 +795,7 @@ def _modification_number(label):
 	return cint(match.group(1)) if match else 0
 
 
-def upsert_modification(
-	modification_list, list_code, product, number, board_code, board_name, gs_code, summary, dry_run
-):
+def upsert_modification(modification_list, number, board_code, board_name, gs_code, summary, dry_run):
 	board = _specification_by_code(board_code)
 	if not board:
 		summary.hit("modifications skipped (board specification not in catalog)")
@@ -800,20 +809,34 @@ def upsert_modification(
 		summary.hit("modifications skipped (ground station not in catalog)")
 		return None
 
-	return upsert_specification(
-		f"{board_code} / {gs_code} ({list_code})",
-		f"{product} — модифікація {number}",
-		summary,
-		dry_run,
-		specification_kind="BpAK",
-		ordinal=number,
-		description=board_name,
-		components=[
-			(ROLE_BOARD, board),
-			(ROLE_GROUND_STATION, ground_station),
-			(ROLE_MODIFICATION_LIST, modification_list),
-		],
+	existing = modification_list and frappe.db.get_value(
+		MODIFICATION_DOCTYPE,
+		{"technical_document": modification_list, "modification_number": number},
+		"name",
 	)
+	if existing:
+		summary.hit("modifications updated")
+		return existing
+	summary.hit("modifications created")
+	if dry_run:
+		return None
+	doc = frappe.get_doc(
+		{
+			"doctype": MODIFICATION_DOCTYPE,
+			"technical_document": modification_list,
+			"modification_code": f"Модифікація {number}",
+			"modification_number": number,
+			"full_name": _norm(board_name) or board_code,
+			"company": frappe.db.get_value(DOCUMENT_DOCTYPE, modification_list, "company"),
+			"status": "Чинна",
+			"components": [
+				{"role": ROLE_BOARD, "specification": board},
+				{"role": ROLE_GROUND_STATION, "specification": ground_station},
+			],
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	return doc.name
 
 
 def _specification_by_code(code):
@@ -821,13 +844,13 @@ def _specification_by_code(code):
 	code = _norm(code)
 	if not code:
 		return None
-	found = frappe.db.get_value("Specification", {"specification_code": code}, "name")
-	if found:
-		return found
-	swapped = code.replace(LATIN_ES, CYRILLIC_ES)
-	if swapped != code:
-		found = frappe.db.get_value("Specification", {"specification_code": swapped}, "name")
-	return found
+	for candidate in dict.fromkeys((code, code.replace(LATIN_ES, CYRILLIC_ES))):
+		found = frappe.db.get_value(
+			DOCUMENT_DOCTYPE, {"document_type": TYPE_SPECIFICATION, "document_code": candidate}, "name"
+		)
+		if found:
+			return found
+	return None
 
 
 SHEET_IMPORTERS = {

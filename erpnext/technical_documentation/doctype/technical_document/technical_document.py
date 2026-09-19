@@ -91,6 +91,20 @@ class TechnicalDocument(Document):
 	def validate(self):
 		validate_type_and_subtype(self)
 		self.validate_current_revision()
+		self.set_display_code()
+
+	def set_display_code(self):
+		"""The designation Items show: a Number Template override when one matches, else the code."""
+		if self.flags.display_code_set:
+			return
+		if not type_flags(self.document_type).get("has_specification_data"):
+			self.display_code = None
+			return
+		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
+			apply_override,
+		)
+
+		self.display_code = apply_override(self.specification_number_template, self.document_code)
 
 	def after_insert(self):
 		log_event(self.name, AUDIT_CREATED)
@@ -98,6 +112,12 @@ class TechnicalDocument(Document):
 	def on_update(self):
 		log_document_changes(self)
 		self.log_current_revision_change()
+		if self.has_value_changed("display_code"):
+			self.update_linked_items()
+
+	def update_linked_items(self):
+		for item in frappe.get_all("Item", filters={"specification": self.name}, pluck="name"):
+			frappe.db.set_value("Item", item, "specification_code", self.display_code, update_modified=False)
 
 	def log_current_revision_change(self):
 		before = self.get_doc_before_save()
@@ -144,7 +164,12 @@ def type_flags(document_type):
 	flags = frappe.db.get_value(
 		TYPE_DOCTYPE,
 		document_type,
-		["has_product_classification", "has_modifications", "requires_completeness"],
+		[
+			"has_product_classification",
+			"has_modifications",
+			"requires_completeness",
+			"has_specification_data",
+		],
 		as_dict=True,
 	)
 	return flags or frappe._dict()

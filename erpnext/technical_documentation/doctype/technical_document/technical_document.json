@@ -21,6 +21,18 @@
   "product_type",
   "product_subtype",
   "product_model",
+  "specification_section",
+  "specification_kind",
+  "organization_code",
+  "ordinal",
+  "specification_column_break",
+  "purpose",
+  "specification_number_template",
+  "display_code",
+  "components_section",
+  "components",
+  "parameters_section",
+  "parameters",
   "iso_section",
   "responsible",
   "responsible_department",
@@ -229,6 +241,82 @@
    "fieldname": "product_model",
    "fieldtype": "Data",
    "label": "Product Model"
+  },
+  {
+   "depends_on": "eval:doc.__onload && doc.__onload.type_flags && doc.__onload.type_flags.has_specification_data",
+   "fieldname": "specification_section",
+   "fieldtype": "Section Break",
+   "label": "Specification"
+  },
+  {
+   "fieldname": "specification_kind",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Specification Kind",
+   "options": "\nBoard\nCoil\nBattery\nGround Station\nOther"
+  },
+  {
+   "default": "УКРП",
+   "description": "Organization code prefix of the ЄСКД designation (УКРП, ВРНК).",
+   "fieldname": "organization_code",
+   "fieldtype": "Data",
+   "label": "Organization Code"
+  },
+  {
+   "description": "Position within the catalog.",
+   "fieldname": "ordinal",
+   "fieldtype": "Int",
+   "label": "Ordinal"
+  },
+  {
+   "fieldname": "specification_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "«Призначення» column of the ЄСКД catalog, e.g. 125 0,25 5 км or 6S3P.",
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Intended Use"
+  },
+  {
+   "description": "Optional. Its Overrides table replaces this designation in Display Code.",
+   "fieldname": "specification_number_template",
+   "fieldtype": "Link",
+   "label": "Specification Number Template",
+   "options": "Specification Number Template"
+  },
+  {
+   "description": "Designation shown on Items: the Number Template override if one matches, else Document Code.",
+   "fieldname": "display_code",
+   "fieldtype": "Data",
+   "label": "Display Code",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.__onload && doc.__onload.type_flags && doc.__onload.type_flags.has_specification_data",
+   "description": "Specifications this one is built from, each in a role: a drone takes a coil and a battery.",
+   "fieldname": "components_section",
+   "fieldtype": "Section Break",
+   "label": "Component Specifications"
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Specification Component"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.__onload && doc.__onload.type_flags && doc.__onload.type_flags.has_specification_data",
+   "fieldname": "parameters_section",
+   "fieldtype": "Section Break",
+   "label": "Parameters"
+  },
+  {
+   "fieldname": "parameters",
+   "fieldtype": "Table",
+   "label": "Parameters",
+   "options": "Item Specification Parameter"
   },
   {
    "fieldname": "iso_section",
@@ -775,7 +863,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-18 22:32:36.214475",
+ "modified": "2026-09-19 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Document",
@@ -865,7 +953,7 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "search_fields": "document_code,document_type,section,status,responsible",
+ "search_fields": "document_code,display_code,document_type,section,status,responsible",
  "show_name_in_global_search": 1,
  "sort_field": "creation",
  "sort_order": "DESC",
