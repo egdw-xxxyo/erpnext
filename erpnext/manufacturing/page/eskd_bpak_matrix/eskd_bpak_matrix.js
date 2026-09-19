@@ -15,6 +15,19 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 	});
 	list_field.$wrapper.css({ "min-width": "480px" });
 
+	page.set_primary_action(__("New Modification"), () => {
+		const modification_list = list_field.get_value();
+		if (!modification_list) return;
+		frappe.model.with_doctype("Specification", () => {
+			const doc = frappe.model.get_new_doc("Specification");
+			doc.specification_kind = "BpAK";
+			const row = frappe.model.add_child(doc, "components");
+			row.role = "Відомість";
+			row.specification = modification_list;
+			frappe.set_route("Form", "Specification", doc.name);
+		});
+	});
+
 	const $container = $('<div class="bpak-matrix"></div>').appendTo(page.body);
 	let items = {};
 

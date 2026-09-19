@@ -1,15 +1,17 @@
-"""Import the ЄСКД workbook (`ЄСКД.xlsx`) into Specification.
+"""Import the ЄСКД workbook (`ЄСКД.xlsx`) into Specification and Technical Document.
 
 MANUAL TOOL — never wire this into a hook, a patch or the scheduler. Every designation in
-the workbook becomes one flat Specification keyed on its code; Items point at it through
-`Item.specification`. Defaults to a dry run.
+the catalog sheets becomes one flat Specification keyed on its code; Items point at it through
+`Item.specification`. The document register (`Сводная`, `Сводная таблиця ТУ`,
+`Технологічні карти`) becomes Technical Documents keyed on code + product. Defaults to a
+dry run.
 
 Run from the container console:
 
 	bench --site frontend execute erpnext.manufacturing.eskd_import.run \
 		--kwargs "{'path': '/tmp/ЄСКД.xlsx', 'dry_run': True}"
 
-The import is idempotent: specifications are matched on their code and only blank fields
+The import is idempotent: records are matched on their natural key and only blank fields
 are filled in, so re-running after the workbook changes only applies the delta.
 """
 
@@ -32,6 +34,32 @@ PARAM_FIBRE_DIAMETER = "Діаметр волокна, мм"
 PARAM_CAMERA_CHANNEL = "Тип каналу камери"
 PARAM_CAMERA_SIGNAL = "Тип сигналу камери"
 PARAM_BATTERY_LAYOUT = "Конфігурація батареї"
+PARAM_PREVIOUS_CODE = "Попередній шифр"
+PARAM_OLD_NAME = "Стара назва"
+
+DESIGNATION_RE = re.compile(r"^[А-ЯІЇЄҐA-Z]{4}\.\d{6}\.")
+
+DOCUMENT_DOCTYPE = "Technical Document"
+DESIGN_SECTION = "Конструкторська документація"
+DESIGN_SECTION_PREFIX = "КД-.YYYY.-"
+TU_SECTION = "Технічні умови"
+TYPE_TU = "Технічні умови"
+TYPE_SPECIFICATION = "Специфікація"
+TYPE_ASSEMBLY_DRAWING = "Складальний кресленик"
+TYPE_WIRING_DIAGRAM = "Схема електрична"
+TYPE_PROCESS_CARD = "Технологічна карта"
+TYPE_PART = "Деталь"
+TYPE_USER_MANUAL = "Інструкція користувача"
+TYPE_PASSPORT = "Паспорт"
+
+DESIGN_DOCUMENT_TYPES = (
+	{"document_type": TYPE_SPECIFICATION, "abbreviation": "С", "default_section": DESIGN_SECTION},
+	{"document_type": TYPE_ASSEMBLY_DRAWING, "abbreviation": "СК", "default_section": DESIGN_SECTION},
+	{"document_type": TYPE_WIRING_DIAGRAM, "abbreviation": "ЕХ", "default_section": DESIGN_SECTION},
+	{"document_type": TYPE_PROCESS_CARD, "abbreviation": "ТК", "default_section": DESIGN_SECTION},
+	{"document_type": TYPE_PART, "abbreviation": "Д", "default_section": DESIGN_SECTION},
+	{"document_type": TYPE_USER_MANUAL, "abbreviation": "ІК", "default_section": "Інструкції"},
+)
 
 ROLE_COIL = "Котушка"
 ROLE_BATTERY = "Батарея"
@@ -161,8 +189,10 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 		doc.update({k: v for k, v in values.items() if not doc.get(k)})
 		if not doc.specification_name:
 			doc.specification_name = name
-		if rows and not doc.get("parameters"):
-			doc.set("parameters", rows)
+		present = {row.parameter for row in doc.get("parameters") or []}
+		for row in rows:
+			if row["parameter"] not in present:
+				doc.append("parameters", row)
 		if component_rows and not doc.get("components"):
 			doc.set("components", component_rows)
 		doc.save(ignore_permissions=True)
@@ -185,9 +215,181 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 	return doc.name
 
 
+def ensure_document_setup(summary, dry_run):
+	"""Section, naming rule and ЄСКД document types the register needs."""
+	if not frappe.db.exists("DocType", DOCUMENT_DOCTYPE):
+		frappe.throw("Technical Documentation module is not installed")
+	if not frappe.db.exists("Technical Document Section", DESIGN_SECTION):
+		summary.hit("document sections created")
+		if not dry_run:
+			frappe.get_doc(
+				{
+					"doctype": "Technical Document Section",
+					"section_name": DESIGN_SECTION,
+					"is_group": 1,
+					"naming_prefix": DESIGN_SECTION_PREFIX,
+				}
+			).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Document Naming Rule",
+					"document_type": DOCUMENT_DOCTYPE,
+					"prefix": DESIGN_SECTION_PREFIX,
+					"prefix_digits": 5,
+					"priority": 1,
+					"conditions": [{"field": "section", "condition": "=", "value": DESIGN_SECTION}],
+				}
+			).insert(ignore_permissions=True)
+	for row in DESIGN_DOCUMENT_TYPES:
+		if frappe.db.exists("Technical Document Type", row["document_type"]):
+			continue
+		summary.hit("document types created")
+		if not dry_run:
+			frappe.get_doc({"doctype": "Technical Document Type", **row}).insert(ignore_permissions=True)
+
+
+def _document_type(title, code, category):
+	title_l = title.lower()
+	if title_l.startswith(("специфікац", "спеціфікац")):
+		return TYPE_SPECIFICATION
+	if title_l.startswith("ту"):
+		return TYPE_TU
+	if title_l.startswith("інструкція користувача"):
+		return TYPE_USER_MANUAL
+	if title_l.startswith("паспорт"):
+		return TYPE_PASSPORT
+	if title_l.startswith("складальн") or code.replace(" ", "").endswith("СК"):
+		return TYPE_ASSEMBLY_DRAWING
+	if "схем" in category.lower() or code.endswith("ЭХ") or code.endswith("ЕХ"):
+		return TYPE_WIRING_DIAGRAM
+	return TYPE_PART
+
+
+def _product_type(product):
+	text = product.lower()
+	if "станці" in text or "нсу" in text or "нск" in text:
+		return "НСУ"
+	if "катушк" in text or "котушк" in text or text == "укропчик fo":
+		return "Котушка"
+	return "БпЛА"
+
+
+def upsert_document(code, title, document_type, product, summary, dry_run, note=None):
+	code = _norm(code)
+	product = _norm(product)
+	if not code:
+		return None
+	if _is_placeholder(code):
+		summary.hit("documents skipped (placeholder code)")
+		return None
+
+	existing = frappe.db.get_value(
+		DOCUMENT_DOCTYPE, {"document_code": code, "product_model": product or ("is", "not set")}, "name"
+	)
+	if existing:
+		summary.hit("documents updated")
+		if not dry_run and note and not frappe.db.get_value(DOCUMENT_DOCTYPE, existing, "note"):
+			frappe.db.set_value(DOCUMENT_DOCTYPE, existing, "note", note)
+		return existing
+
+	summary.hit(f"documents created: {document_type}")
+	if dry_run:
+		return None
+	section = (
+		frappe.db.get_value("Technical Document Type", document_type, "default_section") or DESIGN_SECTION
+	)
+	doc = frappe.get_doc(
+		{
+			"doctype": DOCUMENT_DOCTYPE,
+			"document_type": document_type,
+			"document_title": (title or code)[:140],
+			"document_code": code,
+			"company": frappe.defaults.get_global_default("company")
+			or frappe.db.get_value("Company", {}, "name"),
+			"section": section,
+			"status": "Чинний",
+			"responsible": frappe.session.user,
+			"product_model": product,
+			"note": note,
+		}
+	)
+	if frappe.db.get_value("Technical Document Type", document_type, "has_product_classification"):
+		doc.product_type = _product_type(product)
+	doc.insert(ignore_permissions=True)
+	return doc.name
+
+
 # --------------------------------------------------------------------------------------
 # sheet readers
 # --------------------------------------------------------------------------------------
+
+
+def import_register(wb, summary, dry_run):
+	"""`Сводная` — the per-product document register, laid out as 3-column blocks."""
+	ws = wb["Сводная"]
+	grid = [[_norm(c) for c in row] for row in ws.iter_rows(values_only=True)]
+	if not grid:
+		return
+	width = max(len(r) for r in grid)
+	for row in grid:
+		row.extend([""] * (width - len(row) + 3))
+
+	for block_start in range(0, width, 3):
+		product = grid[0][block_start]
+		if not any(row[block_start + 2] for row in grid[1:]):
+			continue
+		category = ""
+		for row in grid[1:]:
+			title, code = row[block_start], row[block_start + 2]
+			if not title and not code:
+				continue
+			if title and not code:
+				category = title
+				continue
+			upsert_document(
+				code,
+				title or category,
+				_document_type(title or category, code, category),
+				product,
+				summary,
+				dry_run,
+				note=category,
+			)
+
+
+def import_tu_table(wb, summary, dry_run):
+	"""`Сводная таблиця ТУ` — one ТУ number per product."""
+	ws = wb["Сводная таблиця ТУ"]
+	for row in ws.iter_rows(min_row=2, values_only=True):
+		cells = [_norm(c) for c in row]
+		cells.extend([""] * (4 - len(cells)))
+		product, number, note = cells[1], cells[2], cells[3]
+		if not product or not number:
+			continue
+		upsert_document(number, f"Технічні умови {product}", TYPE_TU, product, summary, dry_run, note=note)
+
+
+def import_process_cards(wb, summary, dry_run):
+	"""`Технологічні карти` — ТК codes grouped by a product heading row."""
+	ws = wb["Технологічні карти"]
+	product = ""
+	for row in ws.iter_rows(min_row=3, values_only=True):
+		cells = [_norm(c) for c in row]
+		cells.extend([""] * (5 - len(cells)))
+		label, code, note = cells[1], cells[2], cells[4]
+		if label and not code:
+			product = label
+			continue
+		if not code:
+			continue
+		upsert_document(
+			code,
+			note or f"Технологічна карта {code}",
+			TYPE_PROCESS_CARD,
+			product,
+			summary,
+			dry_run,
+		)
 
 
 def import_coils(wb, summary, dry_run):
@@ -268,6 +470,48 @@ def import_varnex(wb, summary, dry_run):
 			description=note,
 		)
 
+	# `БпАК - Укропчик Штурм` and the coil / battery it is built from
+	coil_code, coil_purpose, coil_name = (_norm(ws.cell(43, c).value) for c in (10, 8, 11))
+	if coil_code:
+		upsert_specification(
+			coil_code,
+			coil_name,
+			summary,
+			dry_run,
+			specification_kind="Coil",
+			ordinal=cint(ws.cell(43, 7).value),
+			description=coil_purpose,
+			parameters=_coil_parameters(coil_purpose),
+		)
+	battery_code, battery_layout = _norm(ws.cell(47, 9).value), _norm(ws.cell(47, 8).value)
+	if battery_code:
+		upsert_specification(
+			battery_code,
+			f"УКРП {battery_layout}",
+			summary,
+			dry_run,
+			specification_kind="Battery",
+			ordinal=cint(ws.cell(47, 7).value),
+			description=battery_layout,
+			parameters=[(PARAM_BATTERY_LAYOUT, battery_layout, "")],
+		)
+	tu = _norm(ws.cell(37, 4).value)
+	for row in ws.iter_rows(min_row=39, max_row=41, values_only=True):
+		cells = [_norm(c) for c in row]
+		cells.extend([""] * (4 - len(cells)))
+		code, note, name = cells[1], cells[2], cells[3]
+		if not DESIGNATION_RE.match(code):
+			continue
+		upsert_specification(
+			code,
+			name or note,
+			summary,
+			dry_run,
+			specification_kind="Board",
+			description=f"{note}; {tu}" if tu else note,
+			components=_board_components(code),
+		)
+
 
 def import_batteries(wb, summary, dry_run):
 	"""`Специфікація на батарею` — two side-by-side blocks, УКРП and ВРНК."""
@@ -318,12 +562,33 @@ def import_ground_stations(wb, summary, dry_run):
 # the names and parameters that ship with the ТУ, so they are read first and win; the
 # working blocks above them only contribute designations the ПЕРЕЛІК lists do not have.
 FPV_BLOCKS = (
-	{"start": 174, "end": 221, "code": 2, "name": 3, "note": 7, "params": True},
-	{"start": 139, "end": 169, "code": 2, "name": 3, "note": 7, "params": True},
-	{"start": 84, "end": 134, "code": 2, "name": 4, "note": 3, "params": False},
+	{
+		"start": 174,
+		"end": 221,
+		"code": 2,
+		"name": 3,
+		"note": 7,
+		"params": True,
+		"aliases": (7, 8),
+		"export": {"code": 10, "tu": (171, 13)},
+	},
+	{
+		"start": 139,
+		"end": 169,
+		"code": 2,
+		"name": 3,
+		"note": 7,
+		"params": True,
+		"aliases": (7,),
+		"export": {"code": 9, "tu": (137, 12)},
+	},
+	{"start": 84, "end": 134, "code": 2, "name": 4, "note": 3, "params": False, "aliases": (5, 6)},
 	{"start": 14, "end": 45, "code": 2, "name": 4, "note": 3, "params": False},
 	{"start": 49, "end": 80, "code": 2, "name": None, "note": 3, "params": False},
 )
+
+# Radio boards listed beside the `Укропчик 10 FO` draft block: name, designation.
+RADIO_BOARDS = {"start": 51, "end": 80, "name": 10, "code": 11}
 
 
 # `УКРП.200121.` + frame(2) + camera(2) + battery ordinal(2) + coil ordinal(4) + `С`
@@ -381,6 +646,7 @@ def import_boards(wb, summary, dry_run):
 					(PARAM_CAMERA_CHANNEL, row[5], ""),
 					(PARAM_CAMERA_SIGNAL, row[6], ""),
 				]
+			parameters += _alias_parameters(row, block.get("aliases") or ())
 			upsert_specification(
 				code,
 				name or note,
@@ -391,6 +657,55 @@ def import_boards(wb, summary, dry_run):
 				parameters=parameters,
 				components=_board_components(code),
 			)
+			if block.get("export"):
+				_import_export_board(grid, row, code, block["export"], summary, dry_run)
+
+	for row in grid[RADIO_BOARDS["start"] - 1 : RADIO_BOARDS["end"]]:
+		code, name = row[RADIO_BOARDS["code"]], row[RADIO_BOARDS["name"]]
+		if not DESIGNATION_RE.match(code):
+			continue
+		upsert_specification(
+			code, name, summary, dry_run, specification_kind="Board", description="Для радіо"
+		)
+
+
+def _alias_parameters(row, columns):
+	"""Earlier designations and names of a board, kept next to the current one."""
+	parameters = []
+	for col in columns:
+		value = row[col] if col < len(row) else ""
+		if not value:
+			continue
+		if DESIGNATION_RE.match(value):
+			parameters.append((PARAM_PREVIOUS_CODE, value, ""))
+		else:
+			parameters.append((PARAM_OLD_NAME, value.strip("*«» ").replace("»", "").replace("«", ""), ""))
+	return parameters
+
+
+def _import_export_board(grid, row, source_code, export, summary, dry_run):
+	"""`Для нового ТУ` columns: the board re-issued under a new ТУ with an English name."""
+	col = export["code"]
+	code = row[col] if col < len(row) else ""
+	if not DESIGNATION_RE.match(code):
+		return
+	tu_row, tu_col = export["tu"]
+	tu = grid[tu_row - 1][tu_col]
+	upsert_specification(
+		code,
+		row[col + 1],
+		summary,
+		dry_run,
+		specification_kind="Board",
+		description=f"Для нового ТУ {tu}; відповідає {source_code}",
+		parameters=[
+			(PARAM_WINDING_LENGTH, _num(row[col + 2]), "км"),
+			(PARAM_CAMERA_CHANNEL, row[col + 3], ""),
+			(PARAM_CAMERA_SIGNAL, row[col + 4], ""),
+			(PARAM_PREVIOUS_CODE, source_code, ""),
+		],
+		components=_board_components(code),
+	)
 
 
 def import_modifications(wb, summary, dry_run):
@@ -516,6 +831,9 @@ def _specification_by_code(code):
 
 
 SHEET_IMPORTERS = {
+	"register": import_register,
+	"tu": import_tu_table,
+	"process_cards": import_process_cards,
 	"coils": import_coils,
 	"varnex": import_varnex,
 	"batteries": import_batteries,
@@ -534,6 +852,7 @@ def run(path, dry_run=True, only=None):
 	summary = Summary()
 
 	ensure_roles(summary, dry_run)
+	ensure_document_setup(summary, dry_run)
 
 	names = [only] if isinstance(only, str) else (only or list(SHEET_IMPORTERS))
 	for key in names:
