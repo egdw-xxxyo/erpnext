@@ -60,7 +60,7 @@ def get_matrix(modification_list: str | None = None):
 	return {
 		"columns": columns,
 		"rows": rows,
-		"items": _items_by_specification([modification_list, *boards, *ground_stations]),
+		"items": _items_by_specification([*[r["modification"] for r in rows], *boards, *ground_stations]),
 	}
 
 
@@ -81,11 +81,11 @@ def _display_codes(names):
 	if not names:
 		return {}
 	return {
-		row.name: row.display_code or row.document_code
+		row.name: row.display_code or row.modification_code
 		for row in frappe.get_all(
-			DOCUMENT_DOCTYPE,
+			MODIFICATION_DOCTYPE,
 			filters={"name": ("in", list(names))},
-			fields=["name", "display_code", "document_code"],
+			fields=["name", "display_code", "modification_code"],
 		)
 	}
 

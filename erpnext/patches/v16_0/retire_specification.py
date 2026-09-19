@@ -14,10 +14,10 @@ RETIRED_DOCTYPES = (
 def execute():
 	"""ЄСКД specifications live in Technical Documentation now.
 
-	A catalog designation is a Technical Document of type «Специфікація», a БпАК modification
-	is a Product Modification. The Specification catalog, its variant machinery and the ESKD
+	A catalog prefix (УКРП.563562.003-ХХС) is a Technical Document of type «Специфікація» and
+	every designation under it a Product Modification; so is every БпАК modification. The Specification catalog, its variant machinery and the ESKD
 	document register are dropped; `eskd_import.run` reloads the catalog from the workbook.
-	Item.specification now links Technical Document, so values pointing at the old catalog
+	Item.specification now links Product Modification, so values pointing at the old catalog
 	are cleared.
 	"""
 	_drop_workspace_links()
@@ -46,7 +46,7 @@ def _clear_item_links():
 	frappe.db.sql(
 		"""
 		UPDATE `tabItem` i
-		LEFT JOIN `tabTechnical Document` d ON d.name = i.specification
+		LEFT JOIN `tabProduct Modification` d ON d.name = i.specification
 		SET i.specification = NULL, i.specification_code = NULL
 		WHERE i.specification IS NOT NULL AND d.name IS NULL
 		"""

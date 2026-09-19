@@ -1,8 +1,9 @@
 """Import the ЄСКД workbook (`ЄСКД.xlsx`) into Technical Documentation.
 
 MANUAL TOOL — never wire this into a hook, a patch or the scheduler. Every designation in
-the catalog sheets becomes a Technical Document of type «Специфікація» keyed on its code;
-Items point at it through `Item.specification`. The document register (`Сводная`,
+the catalog sheets becomes a Product Modification of the «Специфікація» document that stands
+for its prefix (УКРП.563562.003-01С under УКРП.563562.003-ХХС); Items point at the
+modification through `Item.specification`. The document register (`Сводная`,
 `Сводная таблиця ТУ`, `Технологічні карти`) becomes Technical Documents keyed on code +
 product. A modification list becomes a «Відомість модифікацій» document and each of its
 rows a Product Modification. Defaults to a dry run.
@@ -38,6 +39,20 @@ PARAM_BATTERY_LAYOUT = "Конфігурація батареї"
 PARAM_PREVIOUS_CODE = "Попередній шифр"
 PARAM_OLD_NAME = "Стара назва"
 
+# Catalog parameters become modification attributes, declared on the product type.
+NUMERIC_PARAMETERS = {PARAM_WINDING_LENGTH, PARAM_SPOOL_DIAMETER, PARAM_FIBRE_DIAMETER}
+ATTRIBUTES_BY_PRODUCT_TYPE = {
+	"Котушка": (PARAM_WINDING_LENGTH, PARAM_SPOOL_DIAMETER, PARAM_FIBRE_DIAMETER),
+	"БпЛА": (
+		PARAM_WINDING_LENGTH,
+		PARAM_CAMERA_CHANNEL,
+		PARAM_CAMERA_SIGNAL,
+		PARAM_PREVIOUS_CODE,
+		PARAM_OLD_NAME,
+	),
+	"Батарея": (PARAM_BATTERY_LAYOUT,),
+}
+
 DESIGNATION_RE = re.compile(r"^[А-ЯІЇЄҐA-Z]{4}\.\d{6}\.")
 
 DOCUMENT_DOCTYPE = "Technical Document"
@@ -55,12 +70,29 @@ TYPE_PASSPORT = "Паспорт"
 TYPE_MODIFICATION_LIST = "Відомість модифікацій"
 MODIFICATION_DOCTYPE = "Product Modification"
 
+# What the catalog calls a kind, the modification calls a product type.
+PRODUCT_TYPE_BY_KIND = {
+	"Board": "БпЛА",
+	"Coil": "Котушка",
+	"Battery": "Батарея",
+	"Ground Station": "НСУ",
+}
+CATALOG_TITLES = {
+	"Board": "Специфікація на борт",
+	"Coil": "Специфікація на котушку",
+	"Battery": "Специфікація на батарею",
+	"Ground Station": "Специфікація на наземну станцію керування",
+}
+# `УКРП.563562.003-01С` -> prefix `УКРП.563562.003`, number 1
+NUMBERED_CODE_RE = re.compile(r"^(?P<prefix>.+)-(?P<number>\d{2})[СC]?$")
+
 DESIGN_DOCUMENT_TYPES = (
 	{
 		"document_type": TYPE_SPECIFICATION,
 		"abbreviation": "С",
 		"default_section": DESIGN_SECTION,
 		"has_specification_data": 1,
+		"has_modifications": 1,
 	},
 	{
 		"document_type": TYPE_MODIFICATION_LIST,
@@ -146,33 +178,51 @@ def ensure_roles(summary, dry_run):
 		).insert(ignore_permissions=True)
 
 
-def _ensure_parameter(parameter, dry_run):
-	if frappe.db.exists("Quality Inspection Parameter", parameter):
-		return True
-	if dry_run:
-		return False
-	frappe.get_doc({"doctype": "Quality Inspection Parameter", "parameter": parameter}).insert(
-		ignore_permissions=True
-	)
-	return True
+def ensure_attributes(summary, dry_run):
+	"""Product attributes the catalog parameters land in, declared on their product types."""
+	for product_type, attributes in ATTRIBUTES_BY_PRODUCT_TYPE.items():
+		for attribute in attributes:
+			if not frappe.db.exists("Product Attribute", attribute):
+				summary.hit("product attributes created")
+				if not dry_run:
+					frappe.get_doc(
+						{
+							"doctype": "Product Attribute",
+							"attribute_name": attribute,
+							"numeric_values": int(attribute in NUMERIC_PARAMETERS),
+						}
+					).insert(ignore_permissions=True)
+			if not frappe.db.exists("Product Type", product_type):
+				continue
+			if frappe.db.exists(
+				"Product Attribute Assignment",
+				{"parent": product_type, "parenttype": "Product Type", "attribute": attribute},
+			):
+				continue
+			summary.hit("product attributes declared")
+			if not dry_run:
+				doc = frappe.get_doc("Product Type", product_type)
+				doc.append("attributes", {"attribute": attribute})
+				doc.save(ignore_permissions=True)
 
 
 CYRILLIC_ES = "С"
 LATIN_ES = "C"
 
 
-def _parameter_rows(parameters, dry_run):
-	rows = []
-	for parameter, value, uom in parameters or []:
-		if value in (None, ""):
+def _attribute_rows(parameters, product_type):
+	declared = ATTRIBUTES_BY_PRODUCT_TYPE.get(product_type, ())
+	rows, seen = [], set()
+	for attribute, value, _uom in parameters or []:
+		if value in (None, "") or attribute not in declared or attribute in seen:
 			continue
-		if not _ensure_parameter(parameter, dry_run):
-			continue
-		row = {"parameter": parameter, "value": str(value), "uom": uom or ""}
-		numeric = _num(value)
-		if numeric is not None:
-			row["calculated_value"] = numeric
-		rows.append(row)
+		seen.add(attribute)
+		if attribute in NUMERIC_PARAMETERS:
+			number = _num(value)
+			if number is None:
+				continue
+			value = f"{number:g}"
+		rows.append({"attribute": attribute, "attribute_value": str(value)})
 	return rows
 
 
@@ -198,8 +248,39 @@ def _new_document(document_type, code, title, product=None, **values):
 	return doc
 
 
+def _catalog_prefix(code, kind):
+	"""The designation of the catalog a code belongs to, and its position in it."""
+	match = NUMBERED_CODE_RE.match(code)
+	if match:
+		return f"{match.group('prefix')}-ХХС", cint(match.group("number"))
+	head = ".".join(code.split(".")[:2])
+	return f"{head}.YYQQWWEEС", None
+
+
+def upsert_catalog(prefix, kind, organization_code, summary, dry_run):
+	"""The «Специфікація» document a family of designations hangs from."""
+	existing = frappe.db.get_value(
+		DOCUMENT_DOCTYPE, {"document_type": TYPE_SPECIFICATION, "document_code": prefix}, "name"
+	)
+	if existing:
+		return existing
+	summary.hit(f"catalogs created: {kind}")
+	if dry_run:
+		return None
+	doc = _new_document(
+		TYPE_SPECIFICATION,
+		prefix,
+		f"{CATALOG_TITLES.get(kind, TYPE_SPECIFICATION)} {prefix}",
+		specification_kind=kind,
+		organization_code=organization_code,
+		product_type=PRODUCT_TYPE_BY_KIND.get(kind),
+	)
+	doc.insert(ignore_permissions=True)
+	return doc.name
+
+
 def upsert_specification(code, name, summary, dry_run, parameters=None, components=None, **values):
-	"""A catalog designation: a «Специфікація» document carrying the ЄСКД catalog data."""
+	"""A catalog designation: a modification of the «Специфікація» document of its prefix."""
 	code = _norm(code)
 	name = _norm(name) or code
 	if not code:
@@ -208,11 +289,14 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 		summary.hit("specifications skipped (placeholder code)")
 		return None
 
-	values = {k: v for k, v in values.items() if v not in (None, "")}
-	if "description" in values:
-		values["note"] = values.pop("description")
-	values["organization_code"] = values.get("organization_code") or _org_code(code)
-	rows = _parameter_rows(parameters, dry_run)
+	kind = values.get("specification_kind")
+	product_type = PRODUCT_TYPE_BY_KIND.get(kind)
+	fields = {
+		"purpose": values.get("purpose"),
+		"note": values.get("description"),
+	}
+	fields = {k: v for k, v in fields.items() if v not in (None, "")}
+	attribute_rows = _attribute_rows(parameters, product_type)
 	component_rows = [{"role": role, "specification": spec} for role, spec in components or [] if spec]
 
 	existing = _specification_by_code(code)
@@ -222,23 +306,39 @@ def upsert_specification(code, name, summary, dry_run, parameters=None, componen
 		summary.hit("specifications updated")
 		if dry_run:
 			return existing
-		doc = frappe.get_doc(DOCUMENT_DOCTYPE, existing)
-		doc.update({k: v for k, v in values.items() if not doc.get(k)})
-		present = {row.parameter for row in doc.get("parameters") or []}
-		for row in rows:
-			if row["parameter"] not in present:
-				doc.append("parameters", row)
+		doc = frappe.get_doc(MODIFICATION_DOCTYPE, existing)
+		doc.update({k: v for k, v in fields.items() if not doc.get(k)})
+		present = {row.attribute for row in doc.get("attributes") or []}
+		for row in attribute_rows:
+			if row["attribute"] not in present:
+				doc.append("attributes", row)
 		if component_rows and not doc.get("components"):
 			doc.set("components", component_rows)
 		doc.save(ignore_permissions=True)
 		return doc.name
 
 	summary.hit("specifications created")
+	prefix, number = _catalog_prefix(code, kind)
+	catalog = upsert_catalog(
+		prefix, kind, values.get("organization_code") or _org_code(code), summary, dry_run
+	)
 	if dry_run:
 		return None
-	doc = _new_document(TYPE_SPECIFICATION, code, name, **values)
-	doc.set("parameters", rows)
-	doc.set("components", component_rows)
+	doc = frappe.get_doc(
+		{
+			"doctype": MODIFICATION_DOCTYPE,
+			"technical_document": catalog,
+			"modification_code": code,
+			"modification_number": number,
+			"full_name": name[:140],
+			"company": frappe.db.get_value(DOCUMENT_DOCTYPE, catalog, "company"),
+			"product_type": product_type,
+			"status": "Чинна",
+			"attributes": attribute_rows,
+			"components": component_rows,
+			**fields,
+		}
+	)
 	doc.insert(ignore_permissions=True)
 	return doc.name
 
@@ -625,14 +725,20 @@ def _board_components(code):
 
 
 def _catalog_entry(kind, organization_code, ordinal):
-	return frappe.db.get_value(
+	catalogs = frappe.get_all(
 		DOCUMENT_DOCTYPE,
-		{
+		filters={
 			"document_type": TYPE_SPECIFICATION,
 			"specification_kind": kind,
 			"organization_code": organization_code,
-			"ordinal": cint(ordinal),
 		},
+		pluck="name",
+	)
+	if not catalogs:
+		return None
+	return frappe.db.get_value(
+		MODIFICATION_DOCTYPE,
+		{"technical_document": ("in", catalogs), "modification_number": cint(ordinal)},
 		"name",
 	)
 
@@ -844,10 +950,10 @@ def _specification_by_code(code):
 	code = _norm(code)
 	if not code:
 		return None
-	for candidate in dict.fromkeys((code, code.replace(LATIN_ES, CYRILLIC_ES))):
-		found = frappe.db.get_value(
-			DOCUMENT_DOCTYPE, {"document_type": TYPE_SPECIFICATION, "document_code": candidate}, "name"
-		)
+	for candidate in dict.fromkeys(
+		(code, code.replace(LATIN_ES, CYRILLIC_ES), code.replace(CYRILLIC_ES, LATIN_ES))
+	):
+		found = frappe.db.get_value(MODIFICATION_DOCTYPE, {"modification_code": candidate}, "name")
 		if found:
 			return found
 	return None
@@ -876,6 +982,7 @@ def run(path, dry_run=True, only=None):
 
 	ensure_roles(summary, dry_run)
 	ensure_document_setup(summary, dry_run)
+	ensure_attributes(summary, dry_run)
 
 	names = [only] if isinstance(only, str) else (only or list(SHEET_IMPORTERS))
 	for key in names:

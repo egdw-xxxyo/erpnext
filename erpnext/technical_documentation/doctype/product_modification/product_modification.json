@@ -13,6 +13,8 @@
   "modification_code",
   "full_name",
   "modification_number",
+  "purpose",
+  "display_code",
   "company",
   "main_column",
   "product_type",
@@ -64,9 +66,22 @@
    "label": "Modification Number"
   },
   {
+   "description": "«Призначення» column of the ЄСКД catalog, e.g. 125 0,25 5 км or 6S3P.",
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Intended Use"
+  },
+  {
+   "description": "Designation shown on Items: the Number Template override if one matches, else Modification Code.",
+   "fieldname": "display_code",
+   "fieldtype": "Data",
+   "label": "Display Code",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
    "fieldname": "company",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Company",
    "options": "Company"
   },
@@ -238,7 +253,7 @@
    "unique": 0
   },
   {
-   "description": "The board and ground station specifications this modification pairs.",
+   "description": "Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.",
    "fieldname": "components_section",
    "fieldtype": "Section Break",
    "label": "Component Specifications"
@@ -353,7 +368,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-19 16:00:00.000000",
+ "modified": "2026-09-19 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Product Modification",
@@ -447,5 +462,6 @@
  "sort_order": "ASC",
  "states": [],
  "title_field": "full_name",
- "track_changes": 1
+ "track_changes": 1,
+ "search_fields": "modification_code,display_code,full_name"
 }

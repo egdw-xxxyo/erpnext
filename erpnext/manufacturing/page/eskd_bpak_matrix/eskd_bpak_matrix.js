@@ -61,7 +61,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 
 	function spec_link(name, label) {
 		if (!name) return "";
-		return `<a href="/app/technical-document/${encodeURIComponent(name)}">${esc(label || name)}</a>`;
+		return `<a href="/app/product-modification/${encodeURIComponent(name)}">${esc(label || name)}</a>`;
 	}
 
 	function items_button(specification) {
@@ -162,7 +162,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 				if (row.ground_station === column.name) {
 					html += `<td class="gs-cell gs-marked" data-modification="${esc(
 						row.modification
-					)}" title="${esc(row.code)}"></td>`;
+					)}" title="${esc(row.code)}">${items_button(row.modification)}</td>`;
 				} else {
 					html += '<td class="gs-cell"></td>';
 				}

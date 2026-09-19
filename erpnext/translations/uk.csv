@@ -14527,3 +14527,9 @@ Has Specification Data,Має дані специфікації
 "Specifications this one is built from, each in a role: a drone takes a coil and a battery.","Специфікації, з яких складається ця, кожна у своїй ролі: борт складається з котушки та батареї."
 Position in the modification list.,Порядковий номер у відомості модифікацій.
 The board and ground station specifications this modification pairs.,"Специфікації борту та НСУ, які поєднує ця модифікація."
+"Optional. Its Overrides table replaces the designation of a modification in its Display Code.","Необовʼязково. Таблиця замін цього шаблону підміняє позначення модифікації в полі «Шифр для виробів»."
+"Catalog of ЄСКД designations: every designation under this prefix is a modification below.","Каталог позначень ЄСКД: кожне позначення з цим префіксом — модифікація нижче."
+"ЄСКД catalog: kind, organization code and number template; its designations are the modifications.","Каталог ЄСКД: вид, код організації та шаблон номера; його позначення — модифікації."
+"Designation shown on Items: the Number Template override if one matches, else Modification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код модифікації."
+"Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.","Модифікації, з яких складається ця, кожна у своїй ролі: борт — з котушки та батареї, БпАК — з борту та НСУ."
+ЄСКД designation (specification modification) this item belongs to,"Позначення ЄСКД (модифікація специфікації), до якого належить ця номенклатура"
