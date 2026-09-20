@@ -368,7 +368,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-19 18:00:00.000000",
+ "modified": "2026-09-20 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Product Modification",
@@ -461,7 +461,8 @@
  "sort_field": "modification_number",
  "sort_order": "ASC",
  "states": [],
- "title_field": "full_name",
+ "title_field": "modification_code",
  "track_changes": 1,
- "search_fields": "modification_code,display_code,full_name"
+ "search_fields": "modification_code,display_code,full_name",
+ "show_title_field_in_link": 1
 }

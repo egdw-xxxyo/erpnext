@@ -4,8 +4,33 @@ frappe.ui.form.on("Item", {
 	setup(frm) {
 		frm.set_query("specification", () => ({
 			query: "erpnext.technical_documentation.item_match.modification_link_query",
-			filters: { item: frm.doc.name },
+			filters: { item: frm.doc.name, product_type: frm.doc.specification_product_type || "" },
 		}));
+	},
+
+	// The type is a filter for the picker, so a designation of another kind clears it rather
+	// than staying behind a list it no longer belongs to.
+	specification_product_type(frm) {
+		if (!frm.doc.specification || !frm.doc.specification_product_type) return;
+		frappe.db
+			.get_value("Product Modification", frm.doc.specification, "product_type")
+			.then(({ message }) => {
+				if (message && message.product_type !== frm.doc.specification_product_type) {
+					frm.set_value("specification", null);
+				}
+			});
+	},
+
+	// Picking a designation fills the type in, so the filter matches what is chosen.
+	specification(frm) {
+		if (!frm.doc.specification) return;
+		frappe.db
+			.get_value("Product Modification", frm.doc.specification, "product_type")
+			.then(({ message }) => {
+				if (message && message.product_type) {
+					frm.set_value("specification_product_type", message.product_type);
+				}
+			});
 	},
 
 	refresh(frm) {
@@ -17,7 +42,7 @@ frappe.ui.form.on("Item", {
 function suggest(frm) {
 	frappe.call({
 		method: "erpnext.technical_documentation.item_match.suggest_modifications",
-		args: { item: frm.doc.name },
+		args: { item: frm.doc.name, product_type: frm.doc.specification_product_type || null },
 		freeze: true,
 		callback: ({ message }) => {
 			const rows = message || [];

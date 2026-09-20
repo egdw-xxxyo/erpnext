@@ -14547,3 +14547,5 @@ No designation shares words with this item's attributes.,Жодне познач
 "No Item is linked to these designations yet: {0}","До цих позначень ще не прив'язано жодної номенклатури: {0}"
 "{0} is made as several Items ({1}) — link only one of them to it","{0} виготовляється кількома номенклатурами ({1}) — прив'яжіть до нього лише одну"
 {0} has no component modifications to build a kit from,{0} не має складових модифікацій для комплекту
+Specification Type,Тип специфікації
+Narrows the Specification list to designations of this kind of product,Звужує список специфікацій до позначень цього виду виробу

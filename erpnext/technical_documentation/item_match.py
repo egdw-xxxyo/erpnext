@@ -54,7 +54,7 @@ def _modification_tokens(modification, attribute_values):
 
 
 @frappe.whitelist()
-def suggest_modifications(item: str, limit: int = 10):
+def suggest_modifications(item: str, limit: int = 10, product_type: str | None = None):
 	"""Designations whose words overlap the Item's, best first."""
 	doc = frappe.db.get_value("Item", item, ["name", "item_name"], as_dict=True)
 	if not doc:
@@ -66,6 +66,7 @@ def suggest_modifications(item: str, limit: int = 10):
 
 	modifications = frappe.get_all(
 		MODIFICATION_DOCTYPE,
+		filters={"product_type": product_type} if product_type else None,
 		fields=["name", "modification_code", "display_code", "full_name", "purpose", "note"],
 	)
 	attributes = {}
@@ -95,25 +96,50 @@ def suggest_modifications(item: str, limit: int = 10):
 	]
 
 
+def _describe(full_name, purpose):
+	"""The name, and the intended use when it says something the name does not."""
+	parts = [full_name] if full_name else []
+	if purpose and purpose not in (full_name or ""):
+		parts.append(purpose)
+	return parts
+
+
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def modification_link_query(doctype, txt, searchfield, start, page_len, filters):
-	"""The Item's Specification picker: designations that fit this Item first, then the rest."""
-	item = (filters or {}).get("item")
-	suggested = [row["name"] for row in suggest_modifications(item, limit=10)] if item else []
+	"""The Item's Specification picker: the designation and what it is for, fitting ones first."""
+	filters = filters or {}
+	item, product_type = filters.get("item"), filters.get("product_type")
+	suggested = (
+		[row["name"] for row in suggest_modifications(item, limit=10, product_type=product_type)]
+		if item
+		else []
+	)
 
-	like = f"%{txt or ''}%"
+	conditions = ["(modification_code LIKE %(like)s OR full_name LIKE %(like)s OR purpose LIKE %(like)s)"]
+	if product_type:
+		conditions.append("product_type = %(product_type)s")
 	rows = frappe.db.sql(
-		"""
-		SELECT name, modification_code, full_name
+		f"""
+		SELECT name, modification_code, full_name, purpose
 		FROM `tabProduct Modification`
-		WHERE modification_code LIKE %(like)s OR full_name LIKE %(like)s OR name LIKE %(like)s
+		WHERE {" AND ".join(conditions)}
 		ORDER BY modification_code
 		LIMIT %(start)s, %(page_len)s
 		""",
-		{"like": like, "start": start, "page_len": page_len},
+		{
+			"like": f"%{txt or ''}%",
+			"product_type": product_type,
+			"start": start,
+			"page_len": page_len,
+		},
 	)
 	ordered = sorted(rows, key=lambda row: (row[0] not in suggested, row[1]))
 	return [
-		[name, f"{'★ ' if name in suggested else ''}{code}", full_name] for name, code, full_name in ordered
+		[
+			name,
+			f"{'★ ' if name in suggested else ''}{code}",
+			" · ".join(_describe(full_name, purpose)),
+		]
+		for name, code, full_name, purpose in ordered
 	]

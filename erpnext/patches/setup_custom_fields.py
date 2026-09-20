@@ -280,12 +280,21 @@ def create_custom_fields_on_item():
 	fields = [
 		{
 			"dt": "Item",
+			"fieldname": "specification_product_type",
+			"fieldtype": "Link",
+			"label": "Specification Type",
+			"options": "Product Type",
+			"insert_after": "item_name",
+			"description": "Narrows the Specification list to designations of this kind of product",
+		},
+		{
+			"dt": "Item",
 			"fieldname": "specification",
 			"fieldtype": "Link",
 			"label": "Specification",
 			"options": "Product Modification",
 			"link_filters": "[]",
-			"insert_after": "item_name",
+			"insert_after": "specification_product_type",
 			"in_standard_filter": 1,
 			"description": "ЄСКД designation (specification modification) this item belongs to",
 		},
@@ -301,7 +310,7 @@ def create_custom_fields_on_item():
 		},
 	]
 	_create_custom_fields(fields)
-	_sync_custom_field_properties(fields, ("options", "link_filters", "fetch_from"))
+	_sync_custom_field_properties(fields, ("options", "link_filters", "fetch_from", "insert_after"))
 
 
 def _sync_custom_field_properties(fields, properties):
