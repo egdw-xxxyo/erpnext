@@ -14533,3 +14533,17 @@ The board and ground station specifications this modification pairs.,"Специ
 "Designation shown on Items: the Number Template override if one matches, else Modification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код модифікації."
 "Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.","Модифікації, з яких складається ця, кожна у своїй ролі: борт — з котушки та батареї, БпАК — з борту та НСУ."
 ЄСКД designation (specification modification) this item belongs to,"Позначення ЄСКД (модифікація специфікації), до якого належить ця номенклатура"
+Suggest Specification,Підібрати специфікацію
+Suggested Specifications,Підібрані специфікації
+Matched On,Збіг за
+No Match,Немає збігів
+Pick,Обрати
+Create Kit,Створити комплект
+Kit: {0},Комплект: {0}
+Kit {0} created,Комплект {0} створено
+Create a kit from these Items?,Створити комплект із цих номенклатур?
+Kit Incomplete,Комплект неповний
+No designation shares words with this item's attributes.,Жодне позначення не має спільних слів з атрибутами цієї номенклатури.
+"No Item is linked to these designations yet: {0}","До цих позначень ще не прив'язано жодної номенклатури: {0}"
+"{0} is made as several Items ({1}) — link only one of them to it","{0} виготовляється кількома номенклатурами ({1}) — прив'яжіть до нього лише одну"
+{0} has no component modifications to build a kit from,{0} не має складових модифікацій для комплекту
