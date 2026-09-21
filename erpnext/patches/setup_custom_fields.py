@@ -703,7 +703,6 @@ EMPLOYEE_OVERVIEW_MOVES = (
 	("designation_name_en", "designation"),
 	("kp_code", "designation_name_en"),
 	("department_name_en", "department"),
-	("iban", "salary_cb"),
 	("kp_job_title", "kp_code"),
 	("employment_type", "grade"),
 	("user_id", "employment_type"),
@@ -821,7 +820,6 @@ EMPLOYEE_OVERVIEW_PROPERTIES = (
 	("naming_series", "depends_on", "eval:doc.__islocal", "Code"),
 	("designation", "label", "Designation (Ukrainian)", "Data"),
 	("cell_number", "reqd", "1", "Check"),
-	("iban", "depends_on", "", "Code"),
 )
 
 
