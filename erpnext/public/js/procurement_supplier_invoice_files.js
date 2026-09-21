@@ -18,6 +18,16 @@ frappe.ui.form.on("Purchase Invoice", {
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
 		render_supplier_invoice_files(frm);
+		render_supplier_payment_details(frm);
+	},
+	party_type(frm) {
+		render_supplier_payment_details(frm);
+	},
+	party(frm) {
+		render_supplier_payment_details(frm);
+	},
+	party_bank_account(frm) {
+		render_supplier_payment_details(frm);
 	},
 });
 
@@ -45,12 +55,11 @@ function render_supplier_invoice_files(frm) {
 	if (!args) {
 		const message =
 			frm.doctype === "Purchase Invoice"
-				? __("Supplier invoice files are available for invoices created from a consolidated purchase order.")
+				? __(
+						"Supplier invoice files are available for invoices created from a consolidated purchase order."
+				  )
 				: __("Supplier invoice files will appear after selecting a linked Purchase Invoice.");
-		set_supplier_invoice_files_html(
-			frm,
-			`<div class="text-muted">${message}</div>`
-		);
+		set_supplier_invoice_files_html(frm, `<div class="text-muted">${message}</div>`);
 		return;
 	}
 
@@ -146,7 +155,9 @@ function build_supplier_invoice_files_html(groups) {
 	});
 
 	if (!rows.length) {
-		return `<div class="text-muted">${__("No supplier invoice files are attached for this supplier.")}</div>`;
+		return `<div class="text-muted">${__(
+			"No supplier invoice files are attached for this supplier."
+		)}</div>`;
 	}
 
 	return `
@@ -165,4 +176,60 @@ function build_supplier_invoice_files_html(groups) {
 
 function set_supplier_invoice_files_html(frm, html) {
 	frm.fields_dict[supplierInvoiceFilesField]?.$wrapper.html(html);
+}
+
+const supplierPaymentDetailFields = {
+	tax_id: "custom_party_tax_id",
+	edrpou: "custom_party_edrpou",
+	iban: "custom_party_iban",
+};
+
+async function render_supplier_payment_details(frm) {
+	const requestId = (frm.__supplier_payment_details_request_id || 0) + 1;
+	frm.__supplier_payment_details_request_id = requestId;
+
+	if (frm.doc.party_type !== "Supplier" || !frm.doc.party) {
+		set_supplier_payment_details(frm, {});
+		return;
+	}
+
+	const supplierRequest = frappe.db.get_value("Supplier", frm.doc.party, ["tax_id", "edrpou"]);
+	const bankAccountRequest = frm.doc.party_bank_account
+		? frappe.db.get_value("Bank Account", frm.doc.party_bank_account, "iban")
+		: Promise.resolve({ message: {} });
+	const [supplierResponse, bankAccountResponse] = await Promise.all([supplierRequest, bankAccountRequest]);
+
+	if (frm.__supplier_payment_details_request_id !== requestId) return;
+	set_supplier_payment_details(frm, {
+		tax_id: supplierResponse.message?.tax_id,
+		edrpou: supplierResponse.message?.edrpou,
+		iban: bankAccountResponse.message?.iban,
+	});
+}
+
+function set_supplier_payment_details(frm, values) {
+	Object.entries(supplierPaymentDetailFields).forEach(([sourceField, targetField]) => {
+		frm.doc[targetField] = values[sourceField] || "";
+		frm.refresh_field(targetField);
+		add_supplier_detail_copy_button(frm, targetField);
+	});
+}
+
+function add_supplier_detail_copy_button(frm, fieldname) {
+	const field = frm.fields_dict[fieldname];
+	const value = frm.doc[fieldname];
+	if (!field || !value) return;
+
+	const display = field.$wrapper.find(".control-value");
+	if (!display.length || display.find(".supplier-detail-copy").length) return;
+
+	display.addClass("d-flex align-items-center justify-content-between");
+	$(`
+		<button type="button" class="btn btn-xs btn-default supplier-detail-copy" title="${__("Copy")}">
+			<i class="fa fa-copy" aria-hidden="true"></i>
+			<span class="sr-only">${__("Copy")}</span>
+		</button>
+	`)
+		.appendTo(display)
+		.on("click", () => frappe.utils.copy_to_clipboard(value));
 }
