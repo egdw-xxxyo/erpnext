@@ -55,12 +55,10 @@ PROCUREMENT_ASSIGNMENT_RULES = (
 		"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 		"priority": 30,
 		"condition": (
-			"docstatus == 0 and workflow_state in "
-			"('Чернетка', 'Потребує доопрацювання', 'Погоджено')"
+			"docstatus == 0 and workflow_state in " "('Чернетка', 'Потребує доопрацювання', 'Погоджено')"
 		),
 		"unassign_condition": (
-			"docstatus != 0 or workflow_state not in "
-			"('Чернетка', 'Потребує доопрацювання', 'Погоджено')"
+			"docstatus != 0 or workflow_state not in " "('Чернетка', 'Потребує доопрацювання', 'Погоджено')"
 		),
 		"close_condition": "docstatus == 1 or docstatus == 2 or workflow_state == 'Відхилено'",
 		"rule": "Based on Field",
@@ -271,6 +269,7 @@ DOCTYPE_PERMISSIONS = {
 		),
 		DEPARTMENT_HEAD_ROLE: ("select", "read", "write", "report", "print"),
 		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
+		TREASURER_ROLE: ("select", "read", "report", "print"),
 		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
 	},
 	"Purchase Order": {
@@ -286,6 +285,7 @@ DOCTYPE_PERMISSIONS = {
 			"report",
 			"print",
 		),
+		TREASURER_ROLE: ("select", "read", "report", "print"),
 		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
 	},
 	"Purchase Invoice": {
@@ -419,9 +419,7 @@ def _ensure_procurement_assignment_rules():
 				"users",
 				[
 					{"user": user}
-					for user in _get_default_role_users(
-						spec["role"], role_profile=spec.get("role_profile")
-					)
+					for user in _get_default_role_users(spec["role"], role_profile=spec.get("role_profile"))
 				],
 			)
 		doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
