@@ -12,6 +12,7 @@
   "supplier",
   "supplier_name",
   "tax_id",
+  "edrpou",
   "company",
   "column_break_6",
   "posting_date",
@@ -35,6 +36,7 @@
   "cost_center",
   "dimension_col_break",
   "project",
+  "custom_task",
   "currency_and_price_list",
   "currency",
   "conversion_rate",
@@ -251,6 +253,14 @@
    "fieldname": "tax_id",
    "fieldtype": "Read Only",
    "label": "Tax Id",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fetch_from": "supplier.edrpou",
+   "fieldname": "edrpou",
+   "fieldtype": "Read Only",
+   "label": "EDRPOU Code",
    "print_hide": 1,
    "read_only": 1
   },
@@ -1697,6 +1707,13 @@
    "label": "Title",
    "no_copy": 1,
    "print_hide": 1
+  },
+  {
+   "fieldname": "custom_task",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+  "label": "Task",
+   "options": "Task"
   }
  ],
  "grid_page_length": 50,

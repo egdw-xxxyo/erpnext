@@ -500,11 +500,43 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends (
 	}
 
 	make_purchase_receipt() {
-		frappe.model.open_mapped_doc({
-			method: "erpnext.buying.doctype.purchase_order.purchase_order.make_purchase_receipt",
-			frm: this.frm,
-			freeze_message: __("Creating Purchase Receipt ..."),
-		});
+		const frm = this.frm;
+		frappe
+			.call({
+				method: "erpnext.buying.doctype.purchase_order.purchase_order.get_purchase_receipt_warehouses",
+				args: { source_name: frm.doc.name },
+			})
+			.then((response) => {
+				const warehouses = response.message || [];
+				if (!warehouses.length) {
+					frappe.msgprint(__("Set a destination warehouse in at least one outstanding item."));
+					return;
+				}
+				const dialog = new frappe.ui.Dialog({
+					title: __("Select Destination Warehouse"),
+					fields: [
+						{
+							fieldname: "warehouse",
+							fieldtype: "Link",
+							label: __("Target Warehouse"),
+							options: "Warehouse",
+							reqd: 1,
+							get_query: () => ({ filters: { name: ["in", warehouses] } }),
+						},
+					],
+					primary_action_label: __("Create"),
+					primary_action: (values) => {
+						dialog.hide();
+						frappe.model.open_mapped_doc({
+							method: "erpnext.buying.doctype.purchase_order.purchase_order.make_purchase_receipt",
+							frm,
+							args: { target_warehouse: values.warehouse },
+							freeze_message: __("Creating Purchase Receipt ..."),
+						});
+					},
+				});
+				dialog.show();
+			});
 	}
 
 	make_purchase_invoice() {
@@ -891,3 +923,53 @@ frappe.ui.form.on("Purchase Order", "is_subcontracted", function (frm) {
 		erpnext.buying.get_default_bom(frm);
 	}
 });
+
+frappe.ui.form.on("Purchase Order", {
+	refresh(frm) {
+		render_consolidated_delivery_notes(frm);
+	},
+});
+
+function render_consolidated_delivery_notes(frm) {
+	const field = frm.get_field("custom_supplier_delivery_notes_html");
+	if (!field) return;
+	if (frm.is_new() || !frm.doc.custom_consolidated_purchase_order) {
+		field.$wrapper.empty();
+		frm.set_df_property("custom_supplier_delivery_notes_html", "hidden", 1);
+		return;
+	}
+
+	frappe
+		.call({
+			method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_delivery_notes_for_purchase_order",
+			args: { purchase_order: frm.doc.name },
+		})
+		.then((response) => {
+			const rows = response.message || [];
+			frm.set_df_property("custom_supplier_delivery_notes_html", "hidden", rows.length ? 0 : 1);
+			if (!rows.length) {
+				field.$wrapper.empty();
+				return;
+			}
+			const links = rows
+				.map((row) => {
+					const file_name =
+						row.delivery_note_document || get_consolidated_file_name(row.delivery_note_file);
+					return `<li><a href="${frappe.utils.escape_html(
+						row.delivery_note_file
+					)}" target="_blank">${frappe.utils.escape_html(file_name)}</a></li>`;
+				})
+				.join("");
+			field.$wrapper.html(
+				`<div class="form-group"><label class="control-label">${__(
+					"Supplier Delivery Notes"
+				)}</label><ul class="list-unstyled mb-0">${links}</ul></div>`
+			);
+		});
+}
+
+function get_consolidated_file_name(file_url) {
+	if (!file_url) return "";
+	const path = file_url.split("?")[0];
+	return decodeURIComponent(path.substring(path.lastIndexOf("/") + 1));
+}

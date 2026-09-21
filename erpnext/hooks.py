@@ -59,7 +59,11 @@ doctype_js = {
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
-	"Purchase Invoice": "public/js/responsible_employee.js",
+	"Purchase Invoice": [
+		"public/js/responsible_employee.js",
+		"public/js/procurement_supplier_invoice_files.js",
+	],
+	"Payment Entry": "public/js/procurement_supplier_invoice_files.js",
 	"Delivery Note": "public/js/responsible_employee.js",
 	"Sales Invoice": "public/js/responsible_employee.js",
 	"Stock Reconciliation": "public/js/responsible_employee.js",
@@ -82,10 +86,20 @@ override_doctype_class = {
 	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
 }
 
-override_whitelisted_methods = {"frappe.www.contact.send_message": "erpnext.templates.utils.send_message"}
+override_whitelisted_methods = {
+	"frappe.www.contact.send_message": "erpnext.templates.utils.send_message",
+	"frappe.desk.form.assign_to.add": "erpnext.buying.procurement_assignment.add",
+	"frappe.desk.form.assign_to.add_multiple": "erpnext.buying.procurement_assignment.add_multiple",
+	"frappe.model.workflow.apply_workflow": "erpnext.accounts.payment_workflow_reason.apply_workflow",
+	"erpnext.stock.doctype.material_request.material_request.make_purchase_order": "erpnext.buying.procurement_automation.make_purchase_order",
+	"erpnext.stock.doctype.material_request.material_request.make_purchase_order_based_on_supplier": "erpnext.buying.procurement_automation.make_purchase_order_based_on_supplier",
+	"erpnext.stock.doctype.material_request.material_request.make_request_for_quotation": "erpnext.buying.procurement_automation.make_request_for_quotation",
+	"erpnext.stock.doctype.material_request.material_request.make_supplier_quotation": "erpnext.buying.procurement_automation.make_supplier_quotation",
+}
 
 # Internal Employee Chat — messages/threads are visible only to their participants.
 permission_query_conditions = {
+	"Payment Request": "erpnext.accounts.payment_request_permissions.get_permission_query_conditions",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.get_permission_query_conditions",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.get_permission_query_conditions",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.get_permission_query_conditions",
@@ -143,6 +157,7 @@ has_permission = {
 	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
 	# Opportunities in a final status are read-only until a Sales Manager reopens them.
 	"Opportunity": "erpnext.crm.opportunity_rules.has_permission",
+	"Payment Request": "erpnext.accounts.payment_request_permissions.has_permission",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
@@ -160,10 +175,13 @@ setup_wizard_requires = "assets/erpnext/js/setup_wizard.js"
 setup_wizard_stages = "erpnext.setup.setup_wizard.setup_wizard.get_setup_stages"
 
 after_install = "erpnext.setup.install.after_install"
+before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
+	"erpnext.setup.payment_workflow_setup.after_migrate",
+	"erpnext.setup.procurement_workflow_setup.after_migrate",
 	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 ]
@@ -587,11 +605,79 @@ doc_events = {
 		"validate": [
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
+			"erpnext.buying.procurement_automation.set_purchase_invoice_external_payment_details",
 		],
+		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"on_submit": [
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
+		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+	},
+	"Payment Request": {
+		"validate": [
+			"erpnext.accounts.payment_procurement_route.set_procurement_approval_route",
+			"erpnext.accounts.payment_workflow_reason.validate_required_reason",
+			"erpnext.projects.task_payments.set_payment_request_task",
+			"erpnext.projects.task_payments.validate_payment_request_short_description",
+		],
+		"on_change": [
+			"erpnext.accounts.payment_workflow_automation.sync_payment_request_assignment",
+			"erpnext.projects.task_payments.sync_payment_request_task_summary",
+		],
+		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",
+		"after_delete": "erpnext.projects.task_payments.sync_payment_request_task_summary",
+	},
+	"Material Request": {
+		"after_insert": [
+			"erpnext.projects.task_activity.log_linked_document_creation",
+			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
+		],
+		"validate": "erpnext.buying.procurement_automation.validate_material_request_purchase_receipts",
+		"on_submit": [
+			"erpnext.buying.procurement_automation.on_material_request_submit",
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+		],
+		"on_cancel": [
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+			"erpnext.buying.procurement_automation.sync_procurement_document_completion",
+		],
+	},
+	"Purchase Order": {
+		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
+		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+	},
+	"Consolidated Purchase Order": {
+		"after_insert": [
+			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+		],
+		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
+		# Manage buyer ToDos and send approval-stage alerts without assigning
+		# ToDos to the department head or the configured CEO approvers.
+		"on_change": [
+			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
+			"erpnext.buying.procurement_final_approval.record_creator_final_approval",
+			"erpnext.buying.procurement_final_approval.sync_final_approval_assignments",
+			"erpnext.buying.procurement_automation.sync_procurement_document_completion",
+		],
+		"on_cancel": "erpnext.buying.procurement_final_approval.close_final_approval_assignments",
+	},
+	"ToDo": {
+		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_update": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_trash": "erpnext.buying.procurement_automation.sync_current_assignees",
+	},
+	"Task": {
+		"on_update": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
+		"after_delete": "erpnext.projects.task_payments.sync_task_hierarchy_summary",
 	},
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
-		"on_cancel": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		"on_cancel": [
+			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
 		# demand mandatory additional attributes before the serials are generated after save
 		"validate": "erpnext.stock.additional_attributes.validate_purchase_receipt_attributes",
 	},
@@ -620,6 +706,23 @@ doc_events = {
 	},
 	"Payment Entry": {
 		"on_trash": "erpnext.regional.check_deletion_permission",
+		"validate": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+		"before_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+		"on_update": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+		"on_submit": [
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
+		"on_update_after_submit": [
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
+		"on_cancel": [
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
+			"erpnext.projects.task_payments.sync_payment_entry_task_summaries",
+			"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
+		],
 	},
 	"Address": {
 		"validate": [

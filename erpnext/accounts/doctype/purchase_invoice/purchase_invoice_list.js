@@ -16,7 +16,19 @@ frappe.listview_settings["Purchase Invoice"] = {
 		"on_hold",
 		"represents_company",
 		"is_internal_supplier",
+		"custom_paid_outside_company",
+		"custom_external_payer",
 	],
+	formatters: {
+		custom_paid_outside_company(value) {
+			const outside = cint(value);
+			const label = outside ? __("Initiator") : __("Company");
+			const colour = outside ? "yellow" : "green";
+			return `<span class="indicator-pill no-indicator-dot ${colour}">${frappe.utils.escape_html(
+				label
+			)}</span>`;
+		},
+	},
 	get_indicator(doc) {
 		if (doc.status == "Debit Note Issued") {
 			return [__(doc.status), "gray", "status,=," + doc.status];

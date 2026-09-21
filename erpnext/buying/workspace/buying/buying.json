@@ -6,7 +6,7 @@
    "label": "Purchase Order Trends"
   }
  ],
- "content": "[{\"id\":\"j3dJGo8Ok6\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Purchase Order Trends\",\"col\":12}},{\"id\":\"k75jSq2D6Z\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Purchase Orders Count\",\"col\":4}},{\"id\":\"UPXys0lQLj\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Purchase Amount\",\"col\":4}},{\"id\":\"yQGK3eb2hg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Average Order Values\",\"col\":4}},{\"id\":\"oN7lXSwQji\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"Xe2GVLOq8J\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports &amp; Masters</b></span>\",\"col\":12}},{\"id\":\"QwqyG6XuUt\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying\",\"col\":4}},{\"id\":\"bTPjOxC_N_\",\"type\":\"card\",\"data\":{\"card_name\":\"Items & Pricing\",\"col\":4}},{\"id\":\"87ht0HIneb\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}},{\"id\":\"EDOsBOmwgw\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier\",\"col\":4}},{\"id\":\"oWNNIiNb2i\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier Scorecard\",\"col\":4}},{\"id\":\"7F_13-ihHB\",\"type\":\"card\",\"data\":{\"card_name\":\"Key Reports\",\"col\":4}},{\"id\":\"pfwiLvionl\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"8ySDy6s4qn\",\"type\":\"card\",\"data\":{\"card_name\":\"Regional\",\"col\":4}}]",
+ "content": "[{\"id\":\"j3dJGo8Ok6\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Purchase Order Trends\",\"col\":12}},{\"id\":\"k75jSq2D6Z\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Purchase Orders Count\",\"col\":4}},{\"id\":\"UPXys0lQLj\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Purchase Amount\",\"col\":4}},{\"id\":\"yQGK3eb2hg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Average Order Values\",\"col\":4}},{\"id\":\"cpOrderList01\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Consolidated Purchase Order\",\"col\":4}},{\"id\":\"oN7lXSwQji\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"Xe2GVLOq8J\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports &amp; Masters</b></span>\",\"col\":12}},{\"id\":\"QwqyG6XuUt\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying\",\"col\":4}},{\"id\":\"bTPjOxC_N_\",\"type\":\"card\",\"data\":{\"card_name\":\"Items & Pricing\",\"col\":4}},{\"id\":\"87ht0HIneb\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}},{\"id\":\"EDOsBOmwgw\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier\",\"col\":4}},{\"id\":\"oWNNIiNb2i\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier Scorecard\",\"col\":4}},{\"id\":\"7F_13-ihHB\",\"type\":\"card\",\"data\":{\"card_name\":\"Key Reports\",\"col\":4}},{\"id\":\"pfwiLvionl\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"8ySDy6s4qn\",\"type\":\"card\",\"data\":{\"card_name\":\"Regional\",\"col\":4}}]",
  "creation": "2020-01-28 11:50:26.195467",
  "custom_blocks": [],
  "docstatus": 0,
@@ -35,6 +35,17 @@
    "link_to": "Material Request",
    "link_type": "DocType",
    "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "Item, Supplier",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Consolidated Purchase Order",
+   "link_count": 0,
+   "link_to": "Consolidated Purchase Order",
+   "link_type": "DocType",
+   "onboard": 0,
    "type": "Link"
   },
   {
@@ -512,7 +523,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-02 14:55:59.078773",
+ "modified": "2026-08-13 13:50:00.000000",
  "modified_by": "Administrator",
  "module": "Buying",
  "name": "Buying",
@@ -537,7 +548,15 @@
  "restrict_to_domain": "",
  "roles": [],
  "sequence_id": 5.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Consolidated Purchase Order",
+   "link_to": "Consolidated Purchase Order",
+   "type": "DocType"
+  }
+ ],
  "title": "Buying",
  "type": "Workspace"
 }

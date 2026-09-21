@@ -18,6 +18,7 @@
   "column_break0",
   "supplier_group",
   "country",
+  "website_details",
   "image",
   "defaults_section",
   "default_currency",
@@ -25,6 +26,8 @@
   "column_break_10",
   "default_price_list",
   "payment_terms",
+  "supplier_cooperation_section",
+  "cooperating_suppliers",
   "contact_and_address_tab",
   "address_contacts",
   "address_html",
@@ -40,6 +43,9 @@
   "accounting_tab",
   "default_accounts_section",
   "accounts",
+  "supplier_bank_accounts_section",
+  "supplier_bank_accounts_html",
+  "supplier_default_bank_account_selection",
   "internal_supplier_section",
   "is_internal_supplier",
   "represents_company",
@@ -49,6 +55,7 @@
   "tax_tab",
   "taxation_section",
   "tax_id",
+  "edrpou",
   "tax_category",
   "column_break_27",
   "tax_withholding_category",
@@ -132,6 +139,12 @@
    "label": "Tax ID"
   },
   {
+   "description": "Unified State Register code of the supplier",
+   "fieldname": "edrpou",
+   "fieldtype": "Data",
+   "label": "EDRPOU Code"
+  },
+  {
    "description": "Determines which tax rules apply to this supplier",
    "fieldname": "tax_category",
    "fieldtype": "Link",
@@ -213,7 +226,8 @@
    "description": "Disabled suppliers are hidden from selection in new transactions but remain in historical records",
    "fieldname": "disabled",
    "fieldtype": "Check",
-   "label": "Disabled"
+   "in_standard_filter": 1,
+   "label": "Archive"
   },
   {
    "default": "0",
@@ -336,6 +350,25 @@
    "options": "Party Account"
   },
   {
+   "fieldname": "supplier_bank_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Bank Accounts"
+  },
+  {
+   "fieldname": "supplier_bank_accounts_html",
+   "fieldtype": "HTML",
+   "label": "Supplier Bank Accounts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_default_bank_account_selection",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "is_virtual": 1,
+   "label": "Supplier Default Bank Account Selection",
+   "no_copy": 1
+  },
+  {
    "collapsible_depends_on": "supplier_details",
    "fieldname": "column_break2",
    "fieldtype": "Section Break",
@@ -348,6 +381,21 @@
    "label": "Website",
    "oldfieldname": "website",
    "oldfieldtype": "Data"
+  },
+  {
+   "fieldname": "website_details",
+   "fieldtype": "Data",
+   "label": "Website"
+  },
+  {
+   "fieldname": "supplier_cooperation_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cooperating_suppliers",
+   "fieldtype": "Table MultiSelect",
+   "label": "Cooperates With",
+   "options": "Supplier Cooperation"
   },
   {
    "description": "General information about your Supplier",

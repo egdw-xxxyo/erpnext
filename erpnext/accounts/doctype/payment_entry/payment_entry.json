@@ -19,6 +19,8 @@
   "party_type",
   "party",
   "party_name",
+  "custom_party_tax_id",
+  "custom_party_edrpou",
   "book_advance_payments_in_separate_party_account",
   "reconcile_on_advance_payment_date",
   "apply_tds",
@@ -26,6 +28,7 @@
   "column_break_11",
   "bank_account",
   "party_bank_account",
+  "custom_party_iban",
   "contact_person",
   "contact_email",
   "payment_accounts_section",
@@ -59,6 +62,8 @@
   "unallocated_amount",
   "difference_amount",
   "write_off_difference_amount",
+  "custom_supplier_invoice_files_section",
+  "custom_supplier_invoice_files_html",
   "taxes_and_charges_section",
   "purchase_taxes_and_charges_template",
   "sales_taxes_and_charges_template",
@@ -78,6 +83,9 @@
   "reference_no",
   "column_break_23",
   "reference_date",
+  "custom_fiscal_receipt_section",
+  "custom_fiscal_receipt",
+  "custom_fiscal_receipt_status",
   "clearance_date",
   "accounting_dimensions_section",
   "project",
@@ -196,6 +204,24 @@
    "fieldtype": "Data",
    "in_global_search": 1,
    "label": "Party Name"
+  },
+  {
+   "depends_on": "eval:doc.party_type == \"Supplier\" && doc.party",
+   "fieldname": "custom_party_tax_id",
+   "fieldtype": "Data",
+   "is_virtual": 1,
+   "label": "Tax ID",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.party_type == \"Supplier\" && doc.party",
+   "fieldname": "custom_party_edrpou",
+   "fieldtype": "Data",
+   "is_virtual": 1,
+   "label": "EDRPOU Code",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_11",
@@ -545,6 +571,15 @@
    "options": "Bank Account"
   },
   {
+   "depends_on": "eval:doc.party_type == \"Supplier\" && doc.party_bank_account",
+   "fieldname": "custom_party_iban",
+   "fieldtype": "Data",
+   "is_virtual": 1,
+   "label": "IBAN",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "fieldname": "payment_order_status",
    "fieldtype": "Select",
    "hidden": 1,
@@ -781,6 +816,42 @@
    "fieldname": "auto_repeat_section",
    "fieldtype": "Section Break",
    "label": "Auto Repeat"
+  },
+  {
+   "fieldname": "custom_supplier_invoice_files_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Invoice Files"
+  },
+  {
+   "fieldname": "custom_supplier_invoice_files_html",
+   "fieldtype": "HTML",
+   "label": "Supplier Invoice Files",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_fiscal_receipt_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Instruction"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "custom_fiscal_receipt",
+   "fieldtype": "Attach",
+   "label": "Payment Instruction (File)",
+   "no_copy": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Відсутній",
+   "fieldname": "custom_fiscal_receipt_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment Instruction Availability",
+   "no_copy": 1,
+   "options": "Відсутній\nДодано",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

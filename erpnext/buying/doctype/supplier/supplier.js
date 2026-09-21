@@ -98,6 +98,18 @@ frappe.ui.form.on("Supplier", {
 		};
 	},
 
+	website(frm) {
+		if (frm.doc.website_details !== frm.doc.website) {
+			frm.set_value("website_details", frm.doc.website);
+		}
+	},
+
+	website_details(frm) {
+		if (frm.doc.website !== frm.doc.website_details) {
+			frm.set_value("website", frm.doc.website_details);
+		}
+	},
+
 	supplier_group(frm) {
 		if (frm.doc.supplier_group) {
 			frm.trigger("get_supplier_group_details");
@@ -105,6 +117,8 @@ frappe.ui.form.on("Supplier", {
 	},
 
 	refresh: function (frm) {
+		frm.trigger("render_supplier_bank_accounts");
+
 		if (frappe.defaults.get_default("supp_master_name") != "Naming Series") {
 			frm.toggle_display("naming_series", false);
 		} else {
@@ -172,6 +186,35 @@ frappe.ui.form.on("Supplier", {
 			// indicators
 			erpnext.utils.set_party_dashboard_indicators(frm);
 		}
+	},
+
+	render_supplier_bank_accounts(frm) {
+		const field = frm.fields_dict.supplier_bank_accounts_html;
+		if (!field) {
+			return;
+		}
+
+		if (frm.is_new()) {
+			field.$wrapper.html(
+				`<p class="text-muted">${__("Save the supplier before adding bank accounts.")}</p>`
+			);
+			return;
+		}
+
+		field.$wrapper.html(`<p class="text-muted">${__("Loading...")}</p>`);
+		frappe.call({
+			method: "erpnext.buying.doctype.supplier.supplier.get_supplier_bank_accounts",
+			args: { supplier: frm.doc.name },
+			callback: (response) => {
+				const accounts = response.message || [];
+				render_supplier_bank_accounts_table(frm, accounts);
+			},
+		});
+	},
+
+	after_save(frm) {
+		frm.doc.supplier_default_bank_account_selection = null;
+		frm.trigger("render_supplier_bank_accounts");
 	},
 	get_supplier_group_details: function (frm) {
 		frappe.call({
@@ -266,3 +309,65 @@ frappe.ui.form.on("Supplier", {
 		});
 	},
 });
+
+function render_supplier_bank_accounts_table(frm, accounts) {
+	const field = frm.fields_dict.supplier_bank_accounts_html;
+	if (!field) {
+		return;
+	}
+
+	if (!accounts.length) {
+		field.$wrapper.html(
+			`<p class="text-muted">${__("No bank accounts are configured for this supplier.")}</p>`
+		);
+		return;
+	}
+
+	const pending = frm.doc.supplier_default_bank_account_selection;
+	const has_pending = pending !== undefined && pending !== null;
+	const rows = accounts
+		.map((account) => {
+			const account_name = frappe.utils.escape_html(account.account_name || account.name);
+			const bank_account = frappe.utils.escape_html(account.name);
+			const account_link = frappe.utils.get_form_link("Bank Account", account.name, true, account_name);
+			const iban = frappe.utils.escape_html(account.iban || __("Not specified"));
+			const is_default = has_pending ? pending === account.name : cint(account.is_default);
+			return `
+				<tr>
+					<td>${account_link}</td>
+					<td>${iban}</td>
+					<td class="text-center">
+						<input type="checkbox" class="supplier-bank-account-default"
+							data-bank-account="${bank_account}" ${is_default ? "checked" : ""}>
+					</td>
+				</tr>`;
+		})
+		.join("");
+
+	field.$wrapper.html(`
+		<div class="table-responsive">
+			<table class="table table-bordered">
+				<thead>
+					<tr>
+						<th>${__("Account Name")}</th>
+						<th>${__("IBAN")}</th>
+						<th class="text-center">${__("Default Account")}</th>
+					</tr>
+				</thead>
+				<tbody>${rows}</tbody>
+			</table>
+		</div>`);
+
+	field.$wrapper
+		.find(".supplier-bank-account-default")
+		.off("change.supplier-bank-accounts")
+		.on("change.supplier-bank-accounts", function () {
+			const checkbox = $(this);
+			if (checkbox.prop("checked")) {
+				field.$wrapper.find(".supplier-bank-account-default").not(checkbox).prop("checked", false);
+				frm.set_value("supplier_default_bank_account_selection", checkbox.attr("data-bank-account"));
+			} else {
+				frm.set_value("supplier_default_bank_account_selection", "");
+			}
+		});
+}

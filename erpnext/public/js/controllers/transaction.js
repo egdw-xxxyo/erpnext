@@ -514,16 +514,6 @@ erpnext.TransactionController = class TransactionController extends erpnext.taxe
 			return;
 		}
 
-		const value = await frappe.db.get_single_value(
-			"Accounts Settings",
-			"fetch_payment_schedule_in_payment_request"
-		);
-
-		if (!value) {
-			this.make_payment_request();
-			return;
-		}
-
 		schedules.forEach((schedule) => {
 			schedule.__checked = 1;
 			schedule.currency = frm.doc.currency;
