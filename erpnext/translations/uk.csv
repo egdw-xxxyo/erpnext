@@ -14549,3 +14549,8 @@ No designation shares words with this item's attributes.,Жодне познач
 {0} has no component modifications to build a kit from,{0} не має складових модифікацій для комплекту
 Specification Type,Тип специфікації
 Narrows the Specification list to designations of this kind of product,Звужує список специфікацій до позначень цього виду виробу
+Scan Serial / Batch No,Сканувати серійний / партійний номер
+Scanned value is appended to the entries table,Відскановане значення додається до таблиці записів
+Please select an Item Code first,Спочатку виберіть код товару
+Serial No {0} is already added,Серійний номер {0} вже додано
+Added {0},Додано {0}

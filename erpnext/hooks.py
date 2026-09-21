@@ -54,6 +54,8 @@ doctype_js = {
 		"public/js/custom/employee_attendance_sheet.js",
 		"public/js/custom/employee_overview.js",
 	],
+	# сканер серійних / партійних номерів на самому комплекті
+	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",

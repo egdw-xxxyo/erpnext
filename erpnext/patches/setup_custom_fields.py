@@ -25,6 +25,7 @@ def execute():
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
 	create_custom_field_on_serial_no()
+	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
@@ -414,6 +415,22 @@ def create_custom_field_on_qi():
 			"options": "QI Serial Entry",
 			"insert_after": "readings",
 			"description": "Per-serial-number pass/fail inspection results",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_scan_field_on_serial_batch_bundle():
+	fields = [
+		{
+			"dt": "Serial and Batch Bundle",
+			"fieldname": "scan_serial_no",
+			"fieldtype": "Data",
+			"label": "Scan Serial / Batch No",
+			"options": "Barcode",
+			"insert_after": "serial_no_and_batch_no_tab",
+			"depends_on": "eval:doc.docstatus === 0 && doc.item_code",
+			"description": "Scanned value is appended to the entries table",
 		},
 	]
 	_create_custom_fields(fields)
