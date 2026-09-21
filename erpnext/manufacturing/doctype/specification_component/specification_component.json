@@ -11,6 +11,7 @@
   "column_break_1",
   "specification_kind",
   "ordinal",
+  "item",
   "notes"
  ],
  "fields": [
@@ -60,6 +61,13 @@
    "in_list_view": 1,
    "label": "Ordinal",
    "read_only": 1
+  },
+  {
+   "description": "Overrides the designation's own default for this kit only.",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
   },
   {
    "fieldname": "notes",

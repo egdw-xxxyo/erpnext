@@ -23,6 +23,7 @@
   "introduction_date",
   "discontinued_date",
   "components_section",
+  "default_kit_item",
   "components",
   "attributes_section",
   "attributes",
@@ -257,6 +258,13 @@
    "fieldname": "components_section",
    "fieldtype": "Section Break",
    "label": "Component Specifications"
+  },
+  {
+   "description": "Which Item ships when this designation ships. Needed only when several Items are made to it, or when none is linked to it at all.",
+   "fieldname": "default_kit_item",
+   "fieldtype": "Link",
+   "label": "Default Kit Item",
+   "options": "Item"
   },
   {
    "fieldname": "components",

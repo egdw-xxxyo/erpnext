@@ -14883,3 +14883,8 @@ performed action “{0}”,виконав дію «{0}»
 {0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів і передав його до закупівель.
 {0} {1} for the following reason:<br>{2},{0} {1} з такої причини:<br>{2}
 {0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+Default Kit Item,Номенклатура комплекту за замовчуванням
+"Which Item ships when this designation ships. Needed only when several Items are made to it, or when none is linked to it at all.","Яка номенклатура відвантажується за цим позначенням. Потрібна лише тоді, коли за позначенням виготовляють кілька номенклатур або жодна з ним не зв'язана."
+Overrides the designation's own default for this kit only.,Перекриває типову номенклатуру позначення лише для цього комплекту.
+Kit Ambiguous,Комплект неоднозначний
+"Several Items are made to these designations — set «Default Kit Item» on each, or name the Item on the component row: {0}","За цими позначеннями виготовляють кілька номенклатур — вкажіть «Номенклатуру комплекту за замовчуванням» для кожного або назвіть номенклатуру в рядку складової: {0}"

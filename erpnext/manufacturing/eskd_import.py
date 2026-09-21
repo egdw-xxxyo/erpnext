@@ -107,6 +107,8 @@ DESIGN_DOCUMENT_TYPES = (
 	{"document_type": TYPE_USER_MANUAL, "abbreviation": "ІК", "default_section": "Інструкції"},
 )
 
+PRODUCT_TYPE_COMPLEX = "БпАК"
+
 ROLE_COIL = "Котушка"
 ROLE_BATTERY = "Батарея"
 ROLE_BOARD = "Борт"
@@ -933,6 +935,7 @@ def upsert_modification(modification_list, number, board_code, board_name, gs_co
 			"modification_code": f"Модифікація {number}",
 			"modification_number": number,
 			"full_name": _norm(board_name) or board_code,
+			"product_type": PRODUCT_TYPE_COMPLEX,
 			"company": frappe.db.get_value(DOCUMENT_DOCTYPE, modification_list, "company"),
 			"status": "Чинна",
 			"components": [
