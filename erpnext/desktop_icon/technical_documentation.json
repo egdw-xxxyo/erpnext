@@ -1,0 +1,21 @@
+{
+ "app": "erpnext",
+ "creation": "2026-09-15 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "file-text",
+ "icon_type": "Link",
+ "idx": 1,
+ "label": "Technical Documentation",
+ "link_to": "Technical Documentation",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-09-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Technical Documentation",
+ "owner": "Administrator",
+ "parent_icon": "ERPNext",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

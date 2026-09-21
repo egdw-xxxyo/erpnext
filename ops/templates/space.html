@@ -27,7 +27,9 @@
 			inside <code>sites/</code>.
 		</p>
 		<button type="button" class="danger"
-		        hx-get="/actions/space-hard-clean/confirm"
+		        hx-post="/actions/space-hard-clean"
+		        hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+		        hx-confirm="Hard clean? Removes every unused Docker image including the previous release's — no rollback afterwards — and clears the build cache."
 		        hx-target="#console-slot"
 		        hx-swap="innerHTML"
 		        hx-on::after-request="document.getElementById('console-host').hidden = false">

@@ -59,5 +59,6 @@ import "./chat_bubble.js";
 import "./send_to_chat.js";
 import "./deal_documents_panel.js";
 import "./quotation_negotiation.js";
+import "./environment_badge.js";
 
 // import { sum } from 'frappe/public/utils/util.js'

@@ -82,7 +82,7 @@ class Opportunity(TransactionBase, CRMNote):
 		probability: DF.Percent
 		sales_stage: DF.Link | None
 		state: DF.Data | None
-		status: DF.Literal["Open", "Quotation", "Converted", "Lost", "Replied", "Closed"]
+		status: DF.Literal["New", "Converted to Quotation", "Lost"]
 		territory: DF.Link | None
 		title: DF.Data | None
 		total: DF.Currency

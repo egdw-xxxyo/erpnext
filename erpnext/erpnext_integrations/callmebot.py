@@ -144,7 +144,7 @@ def build_text(doc) -> str:
 			include_link = matched.include_link if matched.include_link is not None else 1
 		else:
 			default_msg = getattr(settings, "default_message", None) if settings else None
-			text = (default_msg or "").strip() or _("У вас нове сповіщення у ERPnext")
+			text = (default_msg or "").strip() or _("You have a new notification in ERPnext")
 			include_link = getattr(settings, "include_link", 1) if settings else 1
 
 		if include_link and doc.link:

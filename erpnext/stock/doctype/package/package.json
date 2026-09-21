@@ -87,7 +87,7 @@
    "in_standard_filter": 1,
    "label": "Status",
    "no_copy": 1,
-   "options": "Draft\nPacked\nShipped\nCancelled",
+   "options": "Draft\nPacked\nShipped\nUnpacked\nCancelled",
    "read_only": 1
   },
   {

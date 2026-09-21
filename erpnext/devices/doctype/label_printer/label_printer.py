@@ -484,20 +484,30 @@ def print_label(print_job_name, label_printer=None):
 		)
 
 	t0 = time.monotonic()
-	printer = _get_printer_doc(job.label_printer)
+	try:
+		printer = _get_printer_doc(job.label_printer)
+
+		if printer.is_label_change_in_progress:
+			frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
+
+		if job.label_size and printer.loaded_label_size and job.label_size != printer.loaded_label_size:
+			frappe.throw(
+				_("Label size mismatch: job requires {0} but printer has {1} loaded").format(
+					job.label_size, printer.loaded_label_size
+				)
+			)
+	except Exception as e:
+		tlog(f"print_label REFUSED job={print_job_name} printer={job.label_printer}: {e}", level="error")
+		frappe.db.set_value(
+			"Print Job",
+			print_job_name,
+			{"status": "Failed", "error_message": str(e), "log": "\n".join(log_lines)},
+		)
+		frappe.db.commit()
+		raise
 	tlog(
 		f"[TIMING] load_printer: {(time.monotonic() - t0)*1000:.0f}ms printer={printer.name} ip={printer.ip_address}:{printer.port}"
 	)
-
-	if printer.is_label_change_in_progress:
-		frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))
-
-	if job.label_size and printer.loaded_label_size and job.label_size != printer.loaded_label_size:
-		frappe.throw(
-			_("Label size mismatch: job requires {0} but printer has {1} loaded").format(
-				job.label_size, printer.loaded_label_size
-			)
-		)
 
 	t0 = time.monotonic()
 	template = frappe.get_doc("Label Template", job.label_template)
@@ -619,18 +629,18 @@ def print_label(print_job_name, label_printer=None):
 		err_text = str(e)
 		if "timed out" in err_text.lower() or isinstance(e, socket.timeout | TimeoutError):
 			msg = _(
-				"Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі."
+				"Printer {0} ({1}:{2}) is not responding. Check that it is powered on and connected to the network."
 			).format(job.label_printer, printer.ip_address, printer.port)
 		elif isinstance(e, ConnectionRefusedError) or "refused" in err_text.lower():
 			msg = _(
-				"Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний."
+				"Printer {0} ({1}:{2}) refused the connection. Check that the printer is on and the port is correct."
 			).format(job.label_printer, printer.ip_address, printer.port)
 		elif isinstance(e, OSError) and "unreachable" in err_text.lower():
-			msg = _("Принтер {0} ({1}:{2}) недоступний з мережі.").format(
+			msg = _("Printer {0} ({1}:{2}) is unreachable from the network.").format(
 				job.label_printer, printer.ip_address, printer.port
 			)
 		else:
-			msg = _("Помилка друку на принтері {0} ({1}:{2}): {3}").format(
+			msg = _("Print error on printer {0} ({1}:{2}): {3}").format(
 				job.label_printer, printer.ip_address, printer.port, err_text
 			)
 		frappe.throw(msg)
@@ -841,6 +851,14 @@ def check_printer_ready(printer_name):
 
 @frappe.whitelist()
 def create_print_job(label_template, printer_name, reference_name=None, raw_data=None, copies=1):
+	return queue_print_job(label_template, printer_name, reference_name, raw_data, copies)
+
+
+def queue_print_job(
+	label_template, printer_name, reference_name=None, raw_data=None, copies=1, ignore_permissions=False
+):
+	"""Server-side entry for flows that print on the operator's behalf (spool QC), where the
+	operator has no Print Job role. Not whitelisted, so a client cannot skip the check."""
 	template = frappe.get_doc("Label Template", label_template)
 	printer = _get_printer_doc(printer_name)
 
@@ -857,7 +875,7 @@ def create_print_job(label_template, printer_name, reference_name=None, raw_data
 			job.raw_data = raw_data
 		else:
 			job.raw_data = json.dumps(raw_data, ensure_ascii=False)
-	job.insert()
+	job.insert(ignore_permissions=ignore_permissions)
 
 	parsed_raw = json.loads(job.raw_data) if job.raw_data else None
 	ref_doc = None

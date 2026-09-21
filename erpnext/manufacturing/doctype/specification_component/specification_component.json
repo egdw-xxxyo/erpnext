@@ -28,13 +28,13 @@
    "fieldname": "specification",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Specification",
-   "options": "Specification",
+   "label": "Modification",
+   "options": "Product Modification",
    "reqd": 1
   },
   {
    "columns": 3,
-   "fetch_from": "specification.specification_code",
+   "fetch_from": "specification.modification_code",
    "fieldname": "specification_code",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -46,15 +46,15 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "specification.specification_kind",
+   "fetch_from": "specification.product_type",
    "fieldname": "specification_kind",
    "fieldtype": "Data",
-   "label": "Kind",
+   "label": "Product Type",
    "read_only": 1
   },
   {
    "columns": 1,
-   "fetch_from": "specification.ordinal",
+   "fetch_from": "specification.modification_number",
    "fieldname": "ordinal",
    "fieldtype": "Int",
    "in_list_view": 1,
@@ -70,7 +70,7 @@
  "index_web_pages_for_search": 0,
  "istable": 1,
  "links": [],
- "modified": "2026-08-12 00:00:00.000000",
+ "modified": "2026-09-19 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Specification Component",

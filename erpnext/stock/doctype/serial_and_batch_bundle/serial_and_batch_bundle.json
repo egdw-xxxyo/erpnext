@@ -237,12 +237,6 @@
    "set_only_once": 1
   },
   {
-   "default": "0",
-   "fieldname": "is_packed",
-   "fieldtype": "Check",
-   "label": "Is Packed"
-  },
-  {
    "fieldname": "posting_datetime",
    "fieldtype": "Datetime",
    "label": "Posting Datetime"

@@ -27,9 +27,9 @@ def get_data(specification=None):
 	mods = frappe.db.sql(
 		"""
 		SELECT m.name, m.modification_number, m.fpv_combo, m.ground_station, m.bpak_combo,
-		       fpv.item_name AS fpv_name, fpv.custom_шифр AS fpv_shifr,
-		       gs.custom_шифр AS gs_shifr, gs.item_name AS gs_name,
-		       bpak.custom_шифр AS bpak_shifr
+		       fpv.item_name AS fpv_name, fpv.specification_code AS fpv_shifr,
+		       gs.specification_code AS gs_shifr, gs.item_name AS gs_name,
+		       bpak.specification_code AS bpak_shifr
 		FROM `tabBpAK Modification` m
 		LEFT JOIN `tabItem` fpv ON fpv.name = m.fpv_combo
 		LEFT JOIN `tabItem` gs ON gs.name = m.ground_station

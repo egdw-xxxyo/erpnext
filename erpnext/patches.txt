@@ -528,9 +528,7 @@ erpnext.patches.v15_0.rework_lead_status
 erpnext.patches.v15_0.drop_legacy_lead_military_unit_field
 erpnext.patches.v15_0.add_chat_manager_role
 erpnext.patches.v15_0.backfill_chat_archived_on
-erpnext.patches.v15_0.seed_eskd_document_types
 erpnext.patches.v15_0.add_eskd_workspace_card
-erpnext.patches.v15_0.setup_eskd_templates
 erpnext.patches.v15_0.drop_eskd_bpak_combination
 erpnext.patches.v15_0.merge_mo_warehouses_into_rd
 erpnext.patches.v15_0.cleanup_stale_task_depends_on
@@ -542,3 +540,15 @@ erpnext.patches.v15_0.drop_half_day_attendance
 erpnext.patches.v15_0.move_attendance_sheet_doctypes_to_payroll_ua
 erpnext.patches.v15_0.clear_leave_application_half_day
 erpnext.patches.v15_0.renumber_task_depends_on
+erpnext.patches.v15_0.drop_otdr_doctypes
+erpnext.patches.v15_0.rework_opportunity_status
+erpnext.patches.v15_0.backfill_production_line_workplaces
+erpnext.patches.v15_0.adopt_orphan_group_task_children
+erpnext.patches.v16_0.codify_technical_documentation
+erpnext.patches.v16_0.setup_technical_documentation
+erpnext.patches.v16_0.repair_technical_documentation_data
+erpnext.patches.v16_0.carry_nsn_onto_modifications
+erpnext.patches.v16_0.fill_modification_attribute_summary
+erpnext.patches.v16_0.fix_annex_relation_direction
+erpnext.patches.v16_0.clear_measured_attribute_step
+erpnext.patches.v16_0.retire_specification

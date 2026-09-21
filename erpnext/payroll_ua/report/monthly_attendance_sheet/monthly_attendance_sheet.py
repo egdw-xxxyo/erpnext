@@ -194,6 +194,7 @@ def get_columns_for_totals() -> list[dict]:
 	"""
 	labels = {
 		"total_present": _("Present Days"),
+		"total_business_trip": _("Business Trip Days"),
 		"total_leave": _("Leave Days"),
 		"total_sick": _("Sick Days"),
 		"total_absent": f"{_('Absent Days')}, {_('at their own expense')}",
@@ -737,7 +738,10 @@ def get_totals(employee: str, filters: Filters) -> dict[str, float]:
 	totals = (
 		frappe.qb.from_(Attendance)
 		.select(
-			days(Attendance.status.isin(["Present", "Work From Home"])).as_("total_present"),
+			# a business trip is a day worked: counted among the present days, and again in
+			# a column of its own that says how much of that presence was spent away
+			days(Attendance.status.isin(["Present", "Work From Home", "Business Trip"])).as_("total_present"),
+			days(Attendance.status == "Business Trip").as_("total_business_trip"),
 			days(paid_leave).as_("total_leave"),
 			days(Attendance.status == "Sick Leave").as_("total_sick"),
 			absent.as_("total_absent"),
@@ -814,7 +818,7 @@ def get_chart_data(attendance_map: dict, filters: Filters) -> dict:
 					break
 				elif attendance_on_day == "Absent":
 					total_absent_on_day += 1
-				elif attendance_on_day in ["Present", "Work From Home"]:
+				elif attendance_on_day in ["Present", "Work From Home", "Business Trip"]:
 					total_present_on_day += 1
 
 		absent.append(total_absent_on_day)

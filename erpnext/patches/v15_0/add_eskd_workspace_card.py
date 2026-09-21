@@ -7,11 +7,7 @@ CARD = "ESKD Documentation"
 BLOCK_ID = "eskdDocsCard"
 
 CARD_LINKS = [
-	("ESKD Document", "DocType"),
-	("ESKD Document Type", "DocType"),
-	("ESKD Product", "DocType"),
 	("Specification Component Role", "DocType"),
-	("Specification", "DocType"),
 	("Specification Number Template", "DocType"),
 	("Item Specification", "DocType"),
 	("ESKD BpAK Matrix", "Page"),
@@ -52,4 +48,8 @@ def execute():
 		content.append({"id": BLOCK_ID, "type": "card", "data": {"card_name": CARD, "col": 4}})
 		workspace.content = json.dumps(content, separators=(",", ":"), ensure_ascii=False)
 
+	# Dashboard charts and number cards are synced after post-model-sync patches.
+	# Preserve existing workspace links even when their targets are not created yet,
+	# just as the standard workspace import does during migration.
+	workspace.flags.ignore_links = True
 	workspace.save(ignore_permissions=True)

@@ -17,6 +17,7 @@
   "working_hours",
   "present_days",
   "sick_days",
+  "business_trip_days",
   "column_break_attendance",
   "leave_days",
   "unpaid_leave_days",
@@ -116,6 +117,14 @@
    "label": "Sick Leave Days",
    "precision": "2",
    "read_only": 1
+  },
+  {
+   "fieldname": "business_trip_days",
+   "fieldtype": "Float",
+   "label": "Business Trip Days",
+   "description": "Days spent on a business trip. They are paid, and are already counted among the present days.",
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "column_break_attendance",

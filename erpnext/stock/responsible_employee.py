@@ -91,11 +91,16 @@ def get_responsible_defaults(company: str | None = None) -> dict:
 
 
 def validate_responsible_employee(doc, method=None):
-	"""Default the Responsible Employee dimension to the current user, then require it.
+	"""Keep the Responsible Employee dimension on R&D rows only, defaulted and required there.
 
 	Rows touching the R&D warehouse must name a responsible employee. Whoever enters the
 	row is the responsible person in the common case, so an empty field is filled with the
 	Employee linked to the session user; an explicitly set value is never overwritten.
+
+	Every other warehouse holds stock with no custody, so the dimension is cleared there.
+	Frappe prefills any Employee link from the user's own Employee User Permission, and the
+	dimension validates negative stock: an issue from a common warehouse tagged with the
+	user's employee was checked against a per-person balance that is always zero.
 	"""
 	warehouse = get_responsible_warehouse(doc.get("company"))
 	if not warehouse:
@@ -109,11 +114,13 @@ def validate_responsible_employee(doc, method=None):
 			continue
 
 		for warehouse_field, dimension_field in field_pairs:
+			if not row.meta.has_field(dimension_field):
+				continue
 			if row.get(warehouse_field) != warehouse:
+				if row.get(dimension_field):
+					row.set(dimension_field, None)
 				continue
 			if row.get(dimension_field):
-				continue
-			if not row.meta.has_field(dimension_field):
 				continue
 
 			if session_employee:

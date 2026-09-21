@@ -19,6 +19,7 @@ STATUS_META = {
 	"Work From Home": ("WFH", "green"),
 	"Absent": ("A", "red"),
 	"Sick Leave": ("SL", "#8B5CF6"),
+	"Business Trip": ("BT", "#D97706"),
 	"On Leave": ("L", "#3187D8"),
 	"Holiday": ("H", "#878787"),
 	"Weekly Off": ("WO", "#878787"),

@@ -243,8 +243,7 @@ class Item(Document):
 		self.resolve_serial_number_template()
 		self._sync_spec_from_template()
 		self._evaluate_spec_formulas()
-		self._inherit_specification_template_from_template()
-		self._resolve_specification_template()
+		self._inherit_specification_from_template()
 
 		if not self.is_new():
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
@@ -283,25 +282,14 @@ class Item(Document):
 						series = series.replace(token, abbr)
 			self.serial_no_series = series
 
-	def _inherit_specification_template_from_template(self):
-		if not self.variant_of:
+	def _inherit_specification_from_template(self):
+		if not self.variant_of or not self.is_new() or self.get("specification"):
 			return
-		if self.get("specification_number_template"):
-			return
-		val = frappe.db.get_value("Item", self.variant_of, "specification_number_template")
-		if val:
-			self.specification_number_template = val
-
-	def _resolve_specification_template(self):
-		if not self.get("specification_number_template"):
-			return
-		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
-			resolve_specification_template,
-		)
-
-		resolved = resolve_specification_template(self)
-		if resolved:
-			self.set("custom_шифр", resolved)
+		self.specification = frappe.db.get_value("Item", self.variant_of, "specification")
+		if self.specification:
+			self.specification_code = frappe.db.get_value(
+				"Technical Document", self.specification, "display_code"
+			)
 
 	def _sync_spec_from_template(self):
 		if not self.variant_of:
@@ -336,10 +324,8 @@ class Item(Document):
 		)
 
 		if not any(is_formula(row.get("value")) for row in self.item_spec_parameters):
-			self._denormalize_shifr()
 			return
 		evaluate_spec_formulas(self)
-		self._denormalize_shifr()
 
 	def _inherit_spec_parameters_from_template(self):
 		template_rows = frappe.get_all(
@@ -358,16 +344,6 @@ class Item(Document):
 					"calculated_value": r.calculated_value,
 				},
 			)
-
-	def _denormalize_shifr(self):
-		shifr = ""
-		for row in self.get("item_spec_parameters") or []:
-			if row.parameter == "Шифр":
-				shifr = row.get("display_value") or row.get("value") or ""
-				if shifr.startswith("="):
-					shifr = ""
-				break
-		self.custom_шифр = shifr
 
 	def on_update(self):
 		self.update_variants()

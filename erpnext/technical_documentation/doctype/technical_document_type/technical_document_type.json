@@ -1,0 +1,199 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:document_type",
+ "creation": "2026-09-07 23:53:23.309564",
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "abbreviation",
+  "default_section",
+  "type_column_break",
+  "disabled",
+  "extensions_section",
+  "has_product_classification",
+  "has_modifications",
+  "extensions_column_break",
+  "requires_completeness",
+  "has_specification_data",
+  "description_section",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Technical Document Type",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "abbreviation",
+   "fieldtype": "Data",
+   "label": "Abbreviation"
+  },
+  {
+   "fieldname": "default_section",
+   "fieldtype": "Link",
+   "label": "Default Section",
+   "options": "Technical Document Section"
+  },
+  {
+   "fieldname": "type_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled",
+   "default": "0"
+  },
+  {
+   "fieldname": "extensions_section",
+   "fieldtype": "Section Break",
+   "label": "Extensions",
+   "description": "Which parts of the document card this type switches on"
+  },
+  {
+   "fieldname": "has_product_classification",
+   "fieldtype": "Check",
+   "label": "Has Product Classification",
+   "default": "0"
+  },
+  {
+   "fieldname": "has_modifications",
+   "fieldtype": "Check",
+   "label": "Has Modifications",
+   "default": "0"
+  },
+  {
+   "fieldname": "extensions_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "requires_completeness",
+   "fieldtype": "Check",
+   "label": "Requires Completeness",
+   "default": "0"
+  },
+  {
+   "default": "0",
+   "description": "ЄСКД catalog: kind, organization code and number template; its designations are the modifications.",
+   "fieldname": "has_specification_data",
+   "fieldtype": "Check",
+   "label": "Has Specification Data"
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-19 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Technical Documentation",
+ "name": "Technical Document Type",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "creation": "2026-09-07 23:53:23.309564",
+   "doctype": "DocPerm",
+   "email": 1,
+   "export": 1,
+   "idx": 1,
+   "modified": "2026-09-18 00:01:43.128475",
+   "modified_by": "k.plodovskyi@kalheon.com",
+   "name": "vh7iofhjb8",
+   "owner": "k.plodovskyi@kalheon.com",
+   "parent": "Technical Document Type",
+   "parentfield": "permissions",
+   "parenttype": "DocType",
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "creation": "2026-09-07 23:53:23.309564",
+   "doctype": "DocPerm",
+   "email": 1,
+   "export": 1,
+   "idx": 2,
+   "modified": "2026-09-18 00:01:43.128475",
+   "modified_by": "k.plodovskyi@kalheon.com",
+   "name": "vh7kkld800",
+   "owner": "k.plodovskyi@kalheon.com",
+   "parent": "Technical Document Type",
+   "parentfield": "permissions",
+   "parenttype": "DocType",
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Viewer"
+  },
+  {
+   "create": 1,
+   "creation": "2026-09-07 23:53:23.309564",
+   "doctype": "DocPerm",
+   "email": 1,
+   "export": 1,
+   "idx": 3,
+   "modified": "2026-09-18 00:01:43.128475",
+   "modified_by": "k.plodovskyi@kalheon.com",
+   "name": "vh74n6011n",
+   "owner": "k.plodovskyi@kalheon.com",
+   "parent": "Technical Document Type",
+   "parentfield": "permissions",
+   "parenttype": "DocType",
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Editor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "creation": "2026-09-07 23:53:23.309564",
+   "doctype": "DocPerm",
+   "email": 1,
+   "export": 1,
+   "idx": 4,
+   "modified": "2026-09-18 00:01:43.128475",
+   "modified_by": "k.plodovskyi@kalheon.com",
+   "name": "vh705k95p5",
+   "owner": "k.plodovskyi@kalheon.com",
+   "parent": "Technical Document Type",
+   "parentfield": "permissions",
+   "parenttype": "DocType",
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "document_type"
+}

@@ -5,10 +5,27 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 
-	new erpnext.ProductionFlow({
+	// `Production Line` opens this page with its own name, either through `frappe.set_route`
+	// (route options) or from a bookmarked URL.
+	var route_options = frappe.route_options || {};
+	frappe.route_options = null;
+
+	wrapper.production_flow = new erpnext.ProductionFlow({
 		wrapper: $(wrapper).find(".layout-main-section"),
 		page: page,
+		production_line: route_options.production_line || frappe.utils.get_url_arg("production_line") || null,
 	});
+};
+
+// The page is built once and then re-shown, so a second visit from another Production Line
+// has to be picked up here rather than in `on_page_load`.
+frappe.pages["production-flow"].on_page_show = function (wrapper) {
+	var options = frappe.route_options || {};
+	frappe.route_options = null;
+	var line = options.production_line || frappe.utils.get_url_arg("production_line");
+	if (line && wrapper.production_flow && wrapper.production_flow.production_line() !== line) {
+		wrapper.production_flow.line_field.set_value(line);
+	}
 };
 
 (function () {
@@ -40,9 +57,10 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 	};
 
 	erpnext.ProductionFlow = class ProductionFlow {
-		constructor({ wrapper, page }) {
+		constructor({ wrapper, page, production_line }) {
 			this.$wrapper = $(wrapper);
 			this.page = page;
+			this.initial_production_line = production_line || null;
 			this.setup_controls();
 		}
 
@@ -51,14 +69,30 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				<div class="production-flow-container">
 					<div class="pf-selector">
 						<div class="pf-selector-row">
+							<div class="pf-selector-field" data-field="production_line"></div>
 							<div class="pf-selector-field" data-field="item"></div>
 							<div class="pf-selector-field" data-field="bom"></div>
 						</div>
 					</div>
+					<div class="pf-line-panel"></div>
 					<div class="pf-content"></div>
 				</div>
 			`);
 			this.$container = this.$wrapper.find(".pf-content");
+			this.$line_panel = this.$wrapper.find(".pf-line-panel");
+
+			this.line_field = frappe.ui.form.make_control({
+				df: {
+					label: __("Production Line"),
+					fieldtype: "Link",
+					fieldname: "production_line",
+					options: "Production Line",
+					placeholder: __("All lines"),
+					change: () => this.on_line_change(),
+				},
+				parent: this.$wrapper.find('[data-field="production_line"]'),
+				render_input: true,
+			});
 
 			this.item_field = frappe.ui.form.make_control({
 				df: {
@@ -95,18 +129,58 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				render_input: true,
 			});
 
-			this.load_bom_items();
+			if (this.initial_production_line) {
+				this.line_field.set_value(this.initial_production_line);
+			} else {
+				this.load_bom_items();
+			}
+		}
+
+		/** The line the page is scoped to, or "" for none. */
+		production_line() {
+			return this.line_field ? this.line_field.get_value() : null;
+		}
+
+		on_line_change() {
+			var line = this.production_line();
+			this.item_field.set_value("");
+			this.bom_field.set_value("");
+			this.$container.empty();
+
+			if (!line) {
+				this.line = null;
+				this.$line_panel.empty();
+				this.load_bom_items();
+				return;
+			}
+
+			frappe.call({
+				method: API + ".get_production_line",
+				args: { production_line: line },
+				callback: (r) => {
+					this.line = r.message || null;
+					this.render_line_panel();
+					this.load_bom_items();
+				},
+			});
 		}
 
 		load_bom_items() {
 			frappe.call({
 				method: API + ".get_bom_list",
+				args: { production_line: this.production_line() || undefined },
 				callback: (r) => {
 					if (r.message) {
 						this.bom_items = [...new Set(r.message.map((b) => b.item))];
 						if (r.message.length) {
 							this.item_field.set_value(r.message[0].item);
 							this.bom_field.set_value(r.message[0].name);
+						} else {
+							this.$container.html(
+								'<div class="pf-empty">' +
+									__("No BOM with operations is planned on this production line") +
+									"</div>"
+							);
 						}
 					}
 				},
@@ -119,7 +193,7 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 			this.bom_field.set_value("");
 			frappe.call({
 				method: API + ".get_bom_list",
-				args: { item },
+				args: { item, production_line: this.production_line() || undefined },
 				callback: (r) => {
 					if (r.message && r.message.length) {
 						this.bom_field.set_value(r.message[0].name);
@@ -148,6 +222,162 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 					}
 				},
 			});
+		}
+
+		/** Which of the line's benches cover a workstation, keyed by workstation. */
+		line_workstation_map() {
+			var map = {};
+			var workplaces = (this.line && this.line.workplaces) || [];
+			workplaces.forEach(function (wp) {
+				if (!wp.enabled) return;
+				(wp.operations || []).forEach(function (op) {
+					if (!op.workstation) return;
+					if (!map[op.workstation]) map[op.workstation] = [];
+					if (map[op.workstation].indexOf(wp.workplace_name) === -1) {
+						map[op.workstation].push(wp.workplace_name);
+					}
+				});
+			});
+			return map;
+		}
+
+		render_line_panel() {
+			this.$line_panel.empty();
+			if (!this.line) return;
+
+			var esc = frappe.utils.escape_html;
+			var line = this.line;
+
+			var meta = [
+				__("Line Type") + ": " + esc(line.line_type || "-"),
+				__("Plan At") + ": " + esc(line.plan_time || "-"),
+				__("Overflow Qty") + ": " + (line.overflow_qty || 0),
+				__("WIP Warehouse") + ": " + esc(line.wip_warehouse || "-"),
+				__("Finished Goods Warehouse") + ": " + esc(line.fg_warehouse || "-"),
+			];
+
+			var cards = (line.workplaces || []).map(function (wp) {
+				var printers = (wp.printers || []).length
+					? wp.printers
+							.map(function (p) {
+								return (
+									'<span class="pf-chip' +
+									(p.is_default ? " pf-chip-default" : "") +
+									'"><i class="fa fa-print"></i> ' +
+									esc(p.label_printer) +
+									(p.printer_model ? " (" + esc(p.printer_model) + ")" : "") +
+									"</span>"
+								);
+							})
+							.join("")
+					: '<span class="text-muted">' + __("No printers") + "</span>";
+
+				var operations = (wp.operations || []).length
+					? wp.operations
+							.map(function (op) {
+								return (
+									'<div class="pf-wp-op"><span class="pf-wp-op-name">' +
+									esc(op.operation || "-") +
+									'</span><span class="pf-wp-op-ws"><i class="fa fa-cogs"></i> ' +
+									esc(op.workstation || "-") +
+									"</span></div>"
+								);
+							})
+							.join("")
+					: '<div class="text-muted">' + __("No allowed operations") + "</div>";
+
+				return (
+					'<div class="pf-wp-card' +
+					(wp.enabled && wp.is_active ? "" : " pf-wp-card-off") +
+					'">' +
+					'<div class="pf-wp-head">' +
+					'<a href="/app/workplace/' +
+					encodeURIComponent(wp.name) +
+					'">' +
+					esc(wp.workplace_name) +
+					"</a>" +
+					(wp.short_name ? '<span class="pf-wp-short">' + esc(wp.short_name) + "</span>" : "") +
+					(wp.enabled && wp.is_active
+						? ""
+						: '<span class="pf-chip pf-chip-off">' + __("Inactive") + "</span>") +
+					"</div>" +
+					'<div class="pf-wp-row"><label>' +
+					__("Printers") +
+					"</label><div>" +
+					printers +
+					"</div></div>" +
+					'<div class="pf-wp-row"><label>' +
+					__("Operations") +
+					"</label><div>" +
+					operations +
+					"</div></div>" +
+					'<div class="pf-wp-row"><label>' +
+					__("Employees") +
+					"</label><div>" +
+					(wp.employees || 0) +
+					"</div></div>" +
+					"</div>"
+				);
+			});
+
+			var plan_rows = (line.plan || []).map(function (row) {
+				return (
+					'<div class="pf-plan-row' +
+					(row.enabled ? "" : " pf-plan-row-off") +
+					'">' +
+					'<span class="pf-mat-code">' +
+					esc(row.item_code) +
+					"</span>" +
+					'<span class="pf-mat-name">' +
+					esc(row.item_name || "") +
+					"</span>" +
+					'<span class="pf-chip"><i class="fa fa-wrench"></i> ' +
+					esc(row.workplace || "-") +
+					"</span>" +
+					'<span class="pf-mat-qty">' +
+					(row.daily_qty || 0) +
+					" " +
+					__("per day") +
+					"</span>" +
+					"</div>"
+				);
+			});
+
+			this.$line_panel.html(
+				'<div class="pf-line-card">' +
+					'<div class="pf-line-head">' +
+					'<a class="pf-line-name" href="/app/production-line/' +
+					encodeURIComponent(line.name) +
+					'">' +
+					esc(line.line_name || line.name) +
+					"</a>" +
+					'<span class="pf-chip' +
+					(line.enabled ? " pf-chip-default" : " pf-chip-off") +
+					'">' +
+					(line.enabled ? __("Enabled") : __("Disabled")) +
+					"</span>" +
+					"</div>" +
+					'<div class="pf-line-meta">' +
+					meta
+						.map(function (m) {
+							return '<span class="pf-chip">' + m + "</span>";
+						})
+						.join("") +
+					"</div>" +
+					'<div class="pf-wp-grid">' +
+					(cards.length
+						? cards.join("")
+						: '<div class="text-muted">' + __("No workplaces on this line") + "</div>") +
+					"</div>" +
+					(plan_rows.length
+						? '<div class="pf-plan"><div class="pf-plan-title">' +
+						  __("Daily Plan") +
+						  "</div>" +
+						  plan_rows.join("") +
+						  "</div>"
+						: "") +
+					"</div>"
+			);
 		}
 
 		classify_workstation(ws_name) {
@@ -246,6 +476,9 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 		render_swim_lanes($diagram, graph) {
 			var lane_order = ["prep", "conveyor", "final"];
 			var self = this;
+			// Workstations the picked line actually works at, so the diagram says which part of
+			// the BOM is this line's business.
+			var line_ws = this.line_workstation_map();
 
 			for (var li = 0; li < lane_order.length; li++) {
 				var lane_id = lane_order[li];
@@ -270,12 +503,22 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 
 				for (var wi = 0; wi < workstations.length; wi++) {
 					var ws = workstations[wi];
+					var ours = line_ws[ws.name];
 					var $ws = $(
-						'<div class="pf-workstation" data-ws="' +
+						'<div class="pf-workstation' +
+							(ours ? " pf-ws-ours" : "") +
+							'" data-ws="' +
 							ws.name +
 							'">' +
 							'<div class="pf-ws-header">' +
 							ws.name +
+							(ours
+								? '<span class="pf-ws-badge" title="' +
+								  __("Workplaces of this line") +
+								  '"><i class="fa fa-wrench"></i> ' +
+								  frappe.utils.escape_html(ours.join(", ")) +
+								  "</span>"
+								: "") +
 							"</div>" +
 							'<div class="pf-ws-ops"></div></div>'
 					);
@@ -460,7 +703,7 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 				'<div class="pf-materials-panel">' +
 				'<div class="pf-materials-header" style="cursor: pointer">' +
 				"<span>" +
-				__("Матеріали") +
+				__("Materials") +
 				" (" +
 				this.data.items.length +
 				")</span>" +
@@ -506,6 +749,31 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 			var op_link = "/app/operation/" + encodeURIComponent(op.operation);
 			var ws_link = "/app/workstation/" + encodeURIComponent(ws.name);
 
+			// Which of the line's benches is allowed to run this step — the same rows that decide
+			// which Job Cards the app hands out there.
+			var benches = ((this.line && this.line.workplaces) || [])
+				.filter(function (wp) {
+					return (wp.operations || []).some(function (o) {
+						return o.operation === op.operation || o.workstation === ws.name;
+					});
+				})
+				.map(function (wp) {
+					return (
+						'<a href="/app/workplace/' +
+						encodeURIComponent(wp.name) +
+						'">' +
+						frappe.utils.escape_html(wp.workplace_name) +
+						"</a>"
+					);
+				});
+			var benches_html = benches.length
+				? '<div class="pf-detail-row"><label>' +
+				  __("Workplaces") +
+				  "</label><span>" +
+				  benches.join(", ") +
+				  "</span></div>"
+				: "";
+
 			var d = new frappe.ui.Dialog({
 				title: op.operation,
 				fields: [
@@ -514,7 +782,7 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 						options:
 							'<div class="pf-op-detail">' +
 							'<div class="pf-detail-row"><label>' +
-							__("Операція") +
+							__("Operation") +
 							"</label>" +
 							'<a href="' +
 							op_link +
@@ -522,32 +790,33 @@ frappe.pages["production-flow"].on_page_load = function (wrapper) {
 							op.operation +
 							" &#8599;</a></div>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Робоча станція") +
+							__("Workstation") +
 							"</label>" +
 							'<a href="' +
 							ws_link +
 							'">' +
 							ws.name +
 							" &#8599;</a></div>" +
+							benches_html +
 							'<div class="pf-detail-row"><label>' +
-							__("Час") +
+							__("Time") +
 							"</label>" +
 							"<span>" +
 							op.time_in_mins +
 							" " +
-							__("хв") +
+							__("min") +
 							"</span></div>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Крок") +
+							__("Step") +
 							"</label>" +
 							"<span>#" +
 							op.idx +
-							" з " +
+							" / " +
 							this.data.operations.length +
 							"</span></div>" +
 							"<hr>" +
 							'<div class="pf-detail-row"><label>' +
-							__("Матеріали") +
+							__("Materials") +
 							"</label></div>" +
 							items_html +
 							"</div>",

@@ -9,7 +9,7 @@ path was pure friction. A target's `FtpTarget` is still assembled with the
 server's creds merged in at read time, so `ftp.py` (which pushes/pulls/lists
 over the SSH+curl path) is unchanged.
 
-Every password never leaves this file in plaintext and is never echoed back
+Every password never leaves this module in plaintext and is never echoed back
 to a browser after it is saved — only a "configured since" marker is. It
 reaches the monitored host only inside a short-lived netrc file written over
 the SSH connection's stdin-piped script path (see ftp.py), never as part of
@@ -20,13 +20,13 @@ from __future__ import annotations
 
 import base64
 import json
-import os
 import time
 import uuid
 from dataclasses import asdict, dataclass, replace
 
 from cryptography.fernet import Fernet, InvalidToken
 
+from . import store
 from .config import settings
 
 ENV_LABELS = ("prod", "dev", "test")
@@ -76,16 +76,12 @@ class FtpTarget:
 	updated_at: float
 
 
-def _server_path() -> str:
-	return os.path.join(settings.data_dir, "ftp_server.enc")
-
-
-def _targets_path() -> str:
-	return os.path.join(settings.data_dir, "ftp_targets.enc")
-
-
-def _legacy_path() -> str:
-	return os.path.join(settings.data_dir, "ftp_config.enc")
+#: Row names in the `secret` table of the ops database. The stored bytes are
+#: exactly what the old ftp_*.enc files held — Fernet ciphertext, never
+#: plaintext — so the database is no more sensitive than those files were.
+SERVER_SECRET = "ftp_server"
+TARGETS_SECRET = "ftp_targets"
+LEGACY_SECRET = "ftp_config_legacy"
 
 
 def _fernet() -> Fernet:
@@ -99,19 +95,18 @@ def _fernet() -> Fernet:
 	return Fernet(key)
 
 
-def _write_blob(path: str, data) -> None:
-	blob = _fernet().encrypt(json.dumps(data).encode("utf-8"))
-	os.makedirs(settings.data_dir, exist_ok=True)
-	tmp = path + ".tmp"
-	with open(tmp, "wb") as fh:
-		fh.write(blob)
-	os.chmod(tmp, 0o600)
-	os.replace(tmp, path)
+class NotStored(Exception):
+	"""No such secret row yet — the read-path equivalent of a missing file."""
 
 
-def _read_blob(path: str):
-	with open(path, "rb") as fh:
-		blob = fh.read()
+def _write_blob(name: str, data) -> None:
+	store.secret_set(name, _fernet().encrypt(json.dumps(data).encode("utf-8")))
+
+
+def _read_blob(name: str):
+	blob = store.secret_get(name)
+	if blob is None:
+		raise NotStored(name)
 	return json.loads(_fernet().decrypt(blob))
 
 
@@ -120,9 +115,9 @@ def _read_blob(path: str):
 
 def get_server() -> FtpServer | None:
 	try:
-		raw = _read_blob(_server_path())
-	except OSError:
-		return _migrate_old_shape_targets()  # may populate the server file as a side effect
+		raw = _read_blob(SERVER_SECRET)
+	except NotStored:
+		return _migrate_old_shape_targets()  # may populate the server row as a side effect
 	except InvalidToken:
 		print("[ops] WARNING: stored FTP server config could not be decrypted (key changed?)", flush=True)
 		return None
@@ -138,7 +133,7 @@ def save_server(*, host: str, port: int, username: str, password: str) -> FtpSer
 	server = FtpServer(
 		host=host.strip(), port=port, username=username.strip(), password=password, updated_at=time.time()
 	)
-	_write_blob(_server_path(), asdict(server))
+	_write_blob(SERVER_SECRET, asdict(server))
 	return server
 
 
@@ -146,14 +141,14 @@ def save_server(*, host: str, port: int, username: str, password: str) -> FtpSer
 
 
 def _migrate_old_shape_targets() -> FtpServer | None:
-	"""One-shot: the pre-split ftp_targets.enc stored host/port/username/
-	password on every row. Lift the first row's creds into the new server
-	file, strip credentials from every row, rewrite in the new shape. Falls
-	through to the even-older single-target ftp_config.enc if that file
-	doesn't exist either."""
+	"""One-shot: the pre-split ftp_targets blob stored host/port/username/
+	password on every row. Lift the first row's creds into the server row,
+	strip credentials from every target, rewrite in the new shape. Falls
+	through to the even-older single-target ftp_config blob when there is no
+	targets blob either."""
 	try:
-		raw = _read_blob(_targets_path())
-	except OSError:
+		raw = _read_blob(TARGETS_SECRET)
+	except NotStored:
 		return _migrate_legacy_single_target()
 	except InvalidToken:
 		print("[ops] WARNING: stored FTP targets could not be decrypted (key changed?)", flush=True)
@@ -167,7 +162,7 @@ def _migrate_old_shape_targets() -> FtpServer | None:
 		password=raw[0]["password"],
 		updated_at=time.time(),
 	)
-	_write_blob(_server_path(), asdict(server))
+	_write_blob(SERVER_SECRET, asdict(server))
 	trimmed = [
 		FtpTargetMeta(
 			id=row["id"],
@@ -178,15 +173,15 @@ def _migrate_old_shape_targets() -> FtpServer | None:
 		)
 		for row in raw
 	]
-	_write_blob(_targets_path(), [asdict(t) for t in trimmed])
+	_write_blob(TARGETS_SECRET, [asdict(t) for t in trimmed])
 	return server
 
 
 def _migrate_legacy_single_target() -> FtpServer | None:
 	"""One-shot import of the very first, single-target config format."""
 	try:
-		raw = _read_blob(_legacy_path())
-	except OSError:
+		raw = _read_blob(LEGACY_SECRET)
+	except NotStored:
 		return None
 	except InvalidToken:
 		return None
@@ -197,7 +192,7 @@ def _migrate_legacy_single_target() -> FtpServer | None:
 		password=raw["password"],
 		updated_at=time.time(),
 	)
-	_write_blob(_server_path(), asdict(server))
+	_write_blob(SERVER_SECRET, asdict(server))
 	target = FtpTargetMeta(
 		id=uuid.uuid4().hex,
 		name="Migrated target",
@@ -205,25 +200,25 @@ def _migrate_legacy_single_target() -> FtpServer | None:
 		remote_dir=raw["remote_dir"],
 		updated_at=raw.get("updated_at") or time.time(),
 	)
-	_write_blob(_targets_path(), [asdict(target)])
+	_write_blob(TARGETS_SECRET, [asdict(target)])
 	return server
 
 
 def _list_target_meta() -> list[FtpTargetMeta]:
 	try:
-		raw = _read_blob(_targets_path())
-	except OSError:
-		_migrate_old_shape_targets()  # populates ftp_targets.enc as a side effect, if anything to migrate
+		raw = _read_blob(TARGETS_SECRET)
+	except NotStored:
+		_migrate_old_shape_targets()  # populates the targets row as a side effect, if anything to migrate
 		try:
-			raw = _read_blob(_targets_path())
-		except OSError:
+			raw = _read_blob(TARGETS_SECRET)
+		except NotStored:
 			return []
 	except InvalidToken:
 		print("[ops] WARNING: stored FTP targets could not be decrypted (key changed?)", flush=True)
 		return []
 	if raw and "host" in raw[0]:
 		_migrate_old_shape_targets()
-		raw = _read_blob(_targets_path())
+		raw = _read_blob(TARGETS_SECRET)
 	return [FtpTargetMeta(**entry) for entry in raw]
 
 
@@ -273,13 +268,13 @@ def save_target(*, target_id: str | None, name: str, env_label: str, remote_dir:
 			updated_at=time.time(),
 		)
 		metas = [*metas, updated]
-	_write_blob(_targets_path(), [asdict(m) for m in metas])
+	_write_blob(TARGETS_SECRET, [asdict(m) for m in metas])
 	return updated
 
 
 def delete_target(target_id: str) -> None:
 	metas = [m for m in _list_target_meta() if m.id != target_id]
-	_write_blob(_targets_path(), [asdict(m) for m in metas])
+	_write_blob(TARGETS_SECRET, [asdict(m) for m in metas])
 
 
 def require_target(target_id: str | None) -> FtpTarget:

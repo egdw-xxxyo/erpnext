@@ -4,6 +4,7 @@ Run via: docker compose exec -T backend bench --site frontend execute erpnext.pa
 Or via bench console and calling execute() manually.
 """
 import json
+from functools import reduce
 
 import frappe
 
@@ -14,6 +15,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_todo_deadline()
 	create_workflow_states()
 	create_workflow_actions()
 	create_workflow()
@@ -23,6 +25,8 @@ def execute():
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
 	create_custom_field_on_serial_no()
+	create_scan_field_on_serial_batch_bundle()
+	create_spool_lineage_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
@@ -34,6 +38,15 @@ def execute():
 	create_salary_tax_components()
 	create_disability_fields()
 	create_identity_fields()
+	create_employee_overview_photo_field()
+	create_employee_subordinates_fields()
+	create_employee_documents_fields()
+	hide_employee_overview_fields()
+	set_employee_overview_properties()
+	create_designation_name_en_fields()
+	backfill_employee_designation_name_en()
+	create_employee_kp_fields()
+	arrange_employee_overview_fields()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -43,6 +56,9 @@ def execute():
 	create_custom_fields_on_opportunity()
 	create_custom_fields_on_quotation()
 	create_custom_fields_on_quotation_item()
+	create_custom_fields_on_quotation_process()
+	create_quotation_approval_workflow()
+	setup_quotation_approval_permissions()
 	create_custom_fields_on_whatsapp_message()
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
@@ -51,6 +67,9 @@ def execute():
 	setup_lead_sources()
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
+	setup_lead_field_properties()
+	create_custom_fields_on_opportunity_process()
+	setup_opportunity_field_properties()
 	set_v16_ported_properties()
 	create_v16_ported_fields()
 	setup_chat_manager_role()
@@ -69,6 +88,49 @@ def execute():
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_todo_deadline():
+	from erpnext.utilities.todo import upgrade_overdue_filters, upgrade_today_filters
+
+	_create_custom_fields(
+		[
+			{
+				"dt": "ToDo",
+				"fieldname": "deadline",
+				"fieldtype": "Datetime",
+				"label": "Deadline",
+				"insert_after": "date",
+				"allow_in_quick_entry": 1,
+				"in_list_view": 1,
+			},
+		]
+	)
+	if frappe.get_meta("ToDo").get_field("date").label != "Assignment Date":
+		frappe.make_property_setter(
+			{
+				"doctype": "ToDo",
+				"fieldname": "date",
+				"property": "label",
+				"value": "Assignment Date",
+				"property_type": "Data",
+			},
+			validate_fields_for_doctype=False,
+		)
+	if frappe.get_meta("ToDo").get_field("priority").default != "Low":
+		frappe.make_property_setter(
+			{
+				"doctype": "ToDo",
+				"fieldname": "priority",
+				"property": "default",
+				"value": "Low",
+				"property_type": "Data",
+			},
+			validate_fields_for_doctype=False,
+		)
+	frappe.clear_cache(doctype="ToDo")
+	upgrade_today_filters()
+	upgrade_overdue_filters()
 
 
 def setup_procurement_custom_fields():
@@ -221,10 +283,12 @@ def create_custom_fields_on_item():
 		"battery_capacity",
 		"battery_voltage",
 		"cell_type",
+		"custom_шифр",
 		"item_qc_profile",
 		"item_specification",
 		"label_template",
 		"requires_incoming_qc",
+		"specification_number_template",
 	]:
 		old_cf = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": old_field})
 		if old_cf:
@@ -234,15 +298,53 @@ def create_custom_fields_on_item():
 	fields = [
 		{
 			"dt": "Item",
-			"fieldname": "custom_шифр",
+			"fieldname": "specification_product_type",
+			"fieldtype": "Link",
+			"label": "Specification Type",
+			"options": "Product Type",
+			"insert_after": "item_name",
+			"description": "Narrows the Specification list to designations of this kind of product",
+		},
+		{
+			"dt": "Item",
+			"fieldname": "specification",
+			"fieldtype": "Link",
+			"label": "Specification",
+			"options": "Product Modification",
+			"link_filters": "[]",
+			"insert_after": "specification_product_type",
+			"in_standard_filter": 1,
+			"description": "ЄСКД designation (specification modification) this item belongs to",
+		},
+		{
+			"dt": "Item",
+			"fieldname": "specification_code",
 			"fieldtype": "Data",
 			"label": "Шифр",
 			"read_only": 1,
-			"insert_after": "item_name",
-			"description": "Resolved from Specification Number Template, or denormalized from Specification Parameters",
+			"fetch_from": "specification.display_code",
+			"insert_after": "specification",
+			"in_list_view": 1,
 		},
 	]
 	_create_custom_fields(fields)
+	_sync_custom_field_properties(fields, ("options", "link_filters", "fetch_from", "insert_after"))
+
+
+def _sync_custom_field_properties(fields, properties):
+	"""_create_custom_fields skips existing fields; carry changed link targets onto them."""
+	for f in fields:
+		name = frappe.db.exists("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]})
+		if not name:
+			continue
+		changes = {
+			p: f.get(p) for p in properties if p in f and frappe.db.get_value("Custom Field", name, p) != f[p]
+		}
+		if changes:
+			cf = frappe.get_doc("Custom Field", name)
+			cf.update(changes)
+			cf.save(ignore_permissions=True)
+			print(f"  Updated Custom Field: {f['dt']}.{f['fieldname']} {sorted(changes)}")
 
 
 def create_item_specification_tab():
@@ -270,26 +372,8 @@ def create_item_specification_tab():
 			"options": "Item Label Template",
 			"insert_after": "item_spec_parameters",
 		},
-		{
-			"dt": "Item",
-			"fieldname": "specification_number_template",
-			"fieldtype": "Link",
-			"label": "Specification Number Template",
-			"options": "Specification Number Template",
-			"insert_after": "label_templates",
-		},
 	]
 	_create_custom_fields(fields)
-
-	existing = frappe.db.exists(
-		"Custom Field",
-		{"dt": "Item", "fieldname": "specification_number_template"},
-	)
-	if existing:
-		cf = frappe.get_doc("Custom Field", existing)
-		if cf.insert_after != "label_templates":
-			cf.insert_after = "label_templates"
-			cf.save(ignore_permissions=True)
 
 
 def create_custom_fields_on_pr_item():
@@ -353,6 +437,22 @@ def create_custom_field_on_qi():
 	_create_custom_fields(fields)
 
 
+def create_scan_field_on_serial_batch_bundle():
+	fields = [
+		{
+			"dt": "Serial and Batch Bundle",
+			"fieldname": "scan_serial_no",
+			"fieldtype": "Data",
+			"label": "Scan Serial / Batch No",
+			"options": "Barcode",
+			"insert_after": "serial_no_and_batch_no_tab",
+			"depends_on": "eval:doc.docstatus === 0 && doc.item_code",
+			"description": "Scanned value is appended to the entries table",
+		},
+	]
+	_create_custom_fields(fields)
+
+
 def create_custom_field_on_serial_no():
 	fields = [
 		{
@@ -366,6 +466,40 @@ def create_custom_field_on_serial_no():
 			"in_list_view": 1,
 			"in_standard_filter": 1,
 			"description": "Auto-synced from submitted Quality Inspection",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_spool_lineage_fields():
+	"""Reel a produced optical spool was wound from, denormalised onto the Serial No.
+
+	Derivable from the Manufacture Stock Entry's consumed bundle, but only by walking
+	several documents — and the question this answers ("a spool failed QC, whose fiber was
+	it?") has to be one read. Written by `erpnext.devices.spool_lineage.stamp_source_batch`.
+	"""
+	fields = [
+		{
+			"dt": "Serial No",
+			"fieldname": "source_batch_no",
+			"fieldtype": "Link",
+			"options": "Batch",
+			"label": "Партія волокна",
+			"insert_after": "inspection_status",
+			"read_only": 1,
+			"in_standard_filter": 1,
+			"description": "Котушка волокна, з якої намотано цю котушку",
+		},
+		{
+			"dt": "Serial No",
+			"fieldname": "source_reel_supplier",
+			"fieldtype": "Link",
+			"options": "Supplier",
+			"label": "Виробник волокна",
+			"insert_after": "source_batch_no",
+			"read_only": 1,
+			"in_standard_filter": 1,
+			"description": "Постачальник партії волокна",
 		},
 	]
 	_create_custom_fields(fields)
@@ -556,6 +690,266 @@ def _make_ctc_read_only():
 		}
 	).insert(ignore_permissions=True)
 	print("  Created Property Setter: Employee.ctc.read_only")
+
+
+EMPLOYEE_OVERVIEW_HIDDEN_FIELDS = (
+	"salutation",
+	"employee_name",
+	"shortname",
+	"employee_number",
+	"branch",
+	"grade",
+	"erpnext_user",
+	"create_user_permission",
+	"create_user_automatically",
+	"does_not_fill_attendance_sheet",
+)
+
+EMPLOYEE_OVERVIEW_MOVES = (
+	("overview_photo", "basic_information"),
+	("column_break_9", "overview_photo"),
+	("naming_series", "last_name"),
+	("documents_section", "create_user_automatically"),
+	("employee_documents", "documents_section"),
+	("column_break1", "employee_name"),
+	("reports_to", "employee_number"),
+	("designation", "column_break_25"),
+	("designation_name_en", "designation"),
+	("kp_code", "designation_name_en"),
+	("kp_job_title", "kp_code"),
+	("employment_type", "grade"),
+	("user_id", "employment_type"),
+	("does_not_fill_attendance_sheet", "user_id"),
+	("subordinates_section", "does_not_fill_attendance_sheet"),
+	("subordinates_html", "subordinates_section"),
+)
+
+
+def _move_field_after(order, move):
+	fieldname, anchor = move
+	if fieldname not in order or anchor not in order:
+		return order
+	rest = [name for name in order if name != fieldname]
+	position = rest.index(anchor) + 1
+	return [*rest[:position], fieldname, *rest[position:]]
+
+
+def create_employee_overview_photo_field():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "overview_photo",
+				"fieldtype": "HTML",
+				"insert_after": "basic_information",
+			},
+		]
+	)
+
+
+def create_employee_subordinates_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "does_not_fill_attendance_sheet",
+				"fieldtype": "Check",
+				"label": "Does Not Fill Attendance Sheet",
+				"insert_after": "user_id",
+				"hidden": 1,
+				"description": (
+					"Their direct reports show up in their manager's Attendance Sheet instead, "
+					"or further up the chain if that manager is checked too."
+				),
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "subordinates_section",
+				"fieldtype": "Section Break",
+				"label": "Has Subordinates",
+				"insert_after": "does_not_fill_attendance_sheet",
+				"hidden": 1,
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "subordinates_html",
+				"fieldtype": "HTML",
+				"insert_after": "subordinates_section",
+			},
+		]
+	)
+
+
+def create_employee_documents_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "documents_section",
+				"fieldtype": "Section Break",
+				"label": "Attached Documents",
+				"insert_after": "create_user_automatically",
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "employee_documents",
+				"fieldtype": "Table",
+				"options": "Employee Document",
+				"insert_after": "documents_section",
+			},
+		]
+	)
+
+
+def arrange_employee_overview_fields():
+	current = [df.fieldname for df in frappe.get_meta("Employee", cached=False).fields]
+	arranged = reduce(_move_field_after, EMPLOYEE_OVERVIEW_MOVES, current)
+	if arranged == current:
+		return
+
+	frappe.make_property_setter(
+		{
+			"doctype": "Employee",
+			"doctype_or_field": "DocType",
+			"property": "field_order",
+			"value": json.dumps(arranged),
+			"property_type": "Data",
+		},
+		validate_fields_for_doctype=False,
+	)
+	frappe.clear_cache(doctype="Employee")
+	print("  Arranged Employee overview field order")
+
+
+EMPLOYEE_OVERVIEW_PROPERTIES = (
+	("naming_series", "depends_on", "eval:doc.__islocal", "Code"),
+	("designation", "label", "Designation (Ukrainian)", "Data"),
+)
+
+
+def set_employee_overview_properties():
+	for fieldname, prop, value, property_type in EMPLOYEE_OVERVIEW_PROPERTIES:
+		existing = frappe.db.get_value(
+			"Property Setter",
+			{"doc_type": "Employee", "field_name": fieldname, "property": prop},
+			"value",
+		)
+		if existing == value:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": "Employee",
+				"fieldname": fieldname,
+				"property": prop,
+				"value": value,
+				"property_type": property_type,
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Set {prop}: Employee.{fieldname}")
+
+	frappe.clear_cache(doctype="Employee")
+
+
+def create_designation_name_en_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Designation",
+				"fieldname": "designation_name_en",
+				"fieldtype": "Data",
+				"label": "Designation (English)",
+				"insert_after": "designation_name",
+				"in_list_view": 1,
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "designation_name_en",
+				"fieldtype": "Data",
+				"label": "Designation (English)",
+				"insert_after": "designation",
+				"fetch_from": "designation.designation_name_en",
+				"read_only": 1,
+			},
+		]
+	)
+
+
+def create_employee_kp_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "kp_code",
+				"fieldtype": "Autocomplete",
+				"label": "KP Code",
+				"insert_after": "designation_name_en",
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "kp_job_title",
+				"fieldtype": "Data",
+				"label": "Professional Title",
+				"length": 255,
+				"insert_after": "kp_code",
+				"read_only": 1,
+				"hidden": 1,
+			},
+		]
+	)
+
+
+def backfill_employee_designation_name_en():
+	frappe.db.sql(
+		"""
+		update `tabEmployee` e
+		join `tabDesignation` d on d.name = e.designation
+		set e.designation_name_en = d.designation_name_en
+		where not (e.designation_name_en <=> d.designation_name_en)
+		"""
+	)
+
+
+def hide_employee_overview_fields():
+	meta = frappe.get_meta("Employee")
+	present = [fieldname for fieldname in EMPLOYEE_OVERVIEW_HIDDEN_FIELDS if meta.has_field(fieldname)]
+	custom = dict(
+		frappe.get_all(
+			"Custom Field",
+			filters={"dt": "Employee", "fieldname": ["in", present]},
+			fields=["fieldname", "name"],
+			as_list=True,
+		)
+	)
+	standard = [fieldname for fieldname in present if fieldname not in custom]
+
+	for fieldname, name in custom.items():
+		if frappe.db.get_value("Custom Field", name, "hidden"):
+			continue
+		frappe.db.set_value("Custom Field", name, "hidden", 1)
+		print(f"  Hidden Custom Field: Employee.{fieldname}")
+
+	for fieldname in standard:
+		existing = frappe.db.get_value(
+			"Property Setter",
+			{"doc_type": "Employee", "field_name": fieldname, "property": "hidden"},
+			"value",
+		)
+		if existing == "1":
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": "Employee",
+				"fieldname": fieldname,
+				"property": "hidden",
+				"value": "1",
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Hidden field: Employee.{fieldname}")
+
+	frappe.clear_cache(doctype="Employee")
 
 
 def remove_label_templates_from_employee():
@@ -773,6 +1167,372 @@ def create_custom_fields_on_quotation_item():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+#: «Тип виконання» — picks the approval route of a Quotation.
+QUOTATION_FULFILMENT_TYPES = ("Finished Goods Sale", "New Production", "Combined")
+
+#: The only state in which a Quotation may be edited.
+QUOTATION_DRAFT_STATE = "Опрацьовується"
+
+QUOTATION_WORKFLOW_STATES = (
+	(QUOTATION_DRAFT_STATE, "0", "Sales User", "Primary"),
+	("Погодження складу", "0", "Stock Manager", "Warning"),
+	("Погодження виробництва", "0", "Manufacturing User", "Warning"),
+	("Погодження фінансів", "0", "Accounts Manager", "Warning"),
+	("Погодження керівника виробництва", "0", "Manufacturing Manager", "Warning"),
+	("Підтвердження клієнта", "0", "Sales User", "Info"),
+	("Погоджено", "1", "Sales Manager", "Success"),
+	("Відхилено", "0", "Sales Manager", "Danger"),
+	("Скасовано", "2", "Sales Manager", "Danger"),
+)
+
+QUOTATION_WORKFLOW_ACTIONS = (
+	"На погодження",
+	"Погодити",
+	"Повернути на доопрацювання",
+	"Клієнт підтвердив",
+	"Скасувати",
+)
+
+#: Roles that take part in the approval route but must not see money.
+QUOTATION_APPROVER_ROLES = ("Stock Manager", "Manufacturing User")
+
+#: Roles that take part in the approval route and do see money.
+QUOTATION_FINANCIAL_ROLES = ("Accounts Manager", "Manufacturing Manager")
+
+#: Quotation fields moved behind permlevel 1 — prices, discounts, totals, payment terms.
+QUOTATION_RESTRICTED_FIELDS = (
+	"currency_and_price_list",
+	"selling_price_list",
+	"price_list_currency",
+	"plc_conversion_rate",
+	"sec_break23",
+	"base_total",
+	"base_net_total",
+	"total",
+	"net_total",
+	"taxes_section",
+	"tax_category",
+	"taxes_and_charges",
+	"section_break_36",
+	"taxes",
+	"section_break_39",
+	"base_total_taxes_and_charges",
+	"total_taxes_and_charges",
+	"totals",
+	"base_grand_total",
+	"base_rounding_adjustment",
+	"base_rounded_total",
+	"base_in_words",
+	"grand_total",
+	"rounding_adjustment",
+	"rounded_total",
+	"in_words",
+	"section_break_44",
+	"apply_discount_on",
+	"base_discount_amount",
+	"additional_discount_percentage",
+	"discount_amount",
+	"sec_tax_breakup",
+	"other_charges_calculation",
+	"item_wise_tax_details",
+	"payment_schedule_section",
+	"payment_terms_template",
+	"payment_schedule",
+)
+
+#: The same, on the item rows.
+QUOTATION_ITEM_RESTRICTED_FIELDS = (
+	"section_break_16",
+	"price_list_rate",
+	"base_price_list_rate",
+	"discount_and_margin",
+	"margin_type",
+	"margin_rate_or_amount",
+	"rate_with_margin",
+	"base_rate_with_margin",
+	"discount_percentage",
+	"discount_amount",
+	"section_break1",
+	"rate",
+	"net_rate",
+	"amount",
+	"net_amount",
+	"base_rate",
+	"base_net_rate",
+	"base_amount",
+	"base_net_amount",
+	"item_tax_rate",
+	"item_tax_template",
+	"valuation_rate",
+	"gross_profit",
+	"stock_uom_rate",
+	"distributed_discount_amount",
+)
+
+
+def create_custom_fields_on_quotation_process():
+	"""Fields the «Угода» spec adds on top of the stock Quotation."""
+	fields = [
+		{
+			"dt": "Quotation",
+			"description": "Picks the approval route. Can only be changed while the Quotation is being worked on.",
+			"fieldname": "fulfilment_type",
+			"fieldtype": "Select",
+			"label": "Fulfilment Type",
+			"options": "\n" + "\n".join(QUOTATION_FULFILMENT_TYPES),
+			"in_standard_filter": 1,
+			"insert_after": "order_type",
+		},
+		{
+			"dt": "Quotation",
+			"fieldname": "cancellation_section",
+			"fieldtype": "Section Break",
+			"label": "Cancellation",
+			"depends_on": "eval:doc.cancellation_reason || doc.docstatus==2",
+			"insert_after": "order_lost_reason",
+		},
+		{
+			"dt": "Quotation",
+			"fieldname": "cancellation_reason",
+			"fieldtype": "Link",
+			"label": "Cancellation Reason",
+			"options": "Quotation Lost Reason",
+			"insert_after": "cancellation_section",
+		},
+		{
+			"dt": "Quotation",
+			"fieldname": "cancellation_comment",
+			"fieldtype": "Small Text",
+			"label": "Cancellation Comment",
+			"insert_after": "cancellation_reason",
+		},
+		{
+			"dt": "Quotation",
+			"fieldname": "fulfilment_section",
+			"fieldtype": "Section Break",
+			"label": "Sales Order Fulfilment",
+			"insert_after": "opportunity",
+		},
+		{
+			"dt": "Quotation",
+			"fieldname": "fulfilment_html",
+			"fieldtype": "HTML",
+			"label": "Sales Order Fulfilment",
+			"insert_after": "fulfilment_section",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_quotation_workflow_states():
+	for state, _doc_status, _allow_edit, style in QUOTATION_WORKFLOW_STATES:
+		if frappe.db.exists("Workflow State", state):
+			continue
+		frappe.get_doc({"doctype": "Workflow State", "workflow_state_name": state, "style": style}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Workflow State: {state}")
+
+	for action in QUOTATION_WORKFLOW_ACTIONS:
+		if frappe.db.exists("Workflow Action Master", action):
+			continue
+		frappe.get_doc({"doctype": "Workflow Action Master", "workflow_action_name": action}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Workflow Action: {action}")
+
+
+def _quotation_route_transitions():
+	"""One Workflow, three routes — the route is chosen by `fulfilment_type` conditions.
+
+	Finished Goods Sale: Warehouse -> Finance -> Production Head -> Client
+	New Production:      Production -> Finance -> Production Head -> Client
+	Combined:            Warehouse -> Production -> Finance -> Production Head -> Client
+	"""
+	warehouse_first = "doc.fulfilment_type in ('Finished Goods Sale', 'Combined')"
+	production_first = "doc.fulfilment_type == 'New Production'"
+
+	transitions = [
+		{
+			"state": QUOTATION_DRAFT_STATE,
+			"action": "На погодження",
+			"next_state": "Погодження складу",
+			"allowed": "Sales User",
+			"condition": warehouse_first,
+		},
+		{
+			"state": QUOTATION_DRAFT_STATE,
+			"action": "На погодження",
+			"next_state": "Погодження виробництва",
+			"allowed": "Sales User",
+			"condition": production_first,
+		},
+		{
+			"state": "Погодження складу",
+			"action": "Погодити",
+			"next_state": "Погодження виробництва",
+			"allowed": "Stock Manager",
+			"condition": "doc.fulfilment_type == 'Combined'",
+		},
+		{
+			"state": "Погодження складу",
+			"action": "Погодити",
+			"next_state": "Погодження фінансів",
+			"allowed": "Stock Manager",
+			"condition": "doc.fulfilment_type == 'Finished Goods Sale'",
+		},
+		{
+			"state": "Погодження виробництва",
+			"action": "Погодити",
+			"next_state": "Погодження фінансів",
+			"allowed": "Manufacturing User",
+		},
+		{
+			"state": "Погодження фінансів",
+			"action": "Погодити",
+			"next_state": "Погодження керівника виробництва",
+			"allowed": "Accounts Manager",
+		},
+		{
+			"state": "Погодження керівника виробництва",
+			"action": "Погодити",
+			"next_state": "Підтвердження клієнта",
+			"allowed": "Manufacturing Manager",
+		},
+		{
+			"state": "Підтвердження клієнта",
+			"action": "Клієнт підтвердив",
+			"next_state": "Погоджено",
+			"allowed": "Sales User",
+		},
+	]
+
+	# Every approval step can send the document back, which voids the approvals collected
+	# so far: the route restarts from its first stage.
+	for state, role in (
+		("Погодження складу", "Stock Manager"),
+		("Погодження виробництва", "Manufacturing User"),
+		("Погодження фінансів", "Accounts Manager"),
+		("Погодження керівника виробництва", "Manufacturing Manager"),
+		("Підтвердження клієнта", "Sales User"),
+	):
+		transitions.append(
+			{
+				"state": state,
+				"action": "Повернути на доопрацювання",
+				"next_state": QUOTATION_DRAFT_STATE,
+				"allowed": role,
+			}
+		)
+
+	# A Quotation can be dropped at any stage, but Frappe only allows a submitted document
+	# to reach a cancelled state (doc_status 2): before approval the route ends in
+	# «Відхилено», which is still a draft.
+	for state, role in (
+		(QUOTATION_DRAFT_STATE, "Sales User"),
+		("Погодження складу", "Stock Manager"),
+		("Погодження виробництва", "Manufacturing User"),
+		("Погодження фінансів", "Accounts Manager"),
+		("Погодження керівника виробництва", "Manufacturing Manager"),
+		("Підтвердження клієнта", "Sales User"),
+	):
+		transitions.append(
+			{
+				"state": state,
+				"action": "Скасувати",
+				"next_state": "Відхилено",
+				"allowed": role,
+			}
+		)
+
+	transitions.append(
+		{
+			"state": "Погоджено",
+			"action": "Скасувати",
+			"next_state": "Скасовано",
+			"allowed": "Sales Manager",
+		}
+	)
+
+	for transition in transitions:
+		transition["allow_self_approval"] = 1
+
+	return transitions
+
+
+def create_quotation_approval_workflow():
+	workflow_name = "Quotation Approval Workflow"
+	if frappe.db.exists("Workflow", workflow_name):
+		print(f"  Workflow exists: {workflow_name}")
+		return
+
+	create_quotation_workflow_states()
+
+	frappe.get_doc(
+		{
+			"doctype": "Workflow",
+			"workflow_name": workflow_name,
+			"document_type": "Quotation",
+			"is_active": 1,
+			"override_status": 0,
+			"send_email_alert": 0,
+			"workflow_state_field": "workflow_state",
+			"states": [
+				{
+					"state": state,
+					"doc_status": doc_status,
+					"allow_edit": allow_edit,
+					"is_optional_state": 0,
+				}
+				for state, doc_status, allow_edit, _style in QUOTATION_WORKFLOW_STATES
+			],
+			"transitions": _quotation_route_transitions(),
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Workflow: {workflow_name}")
+
+
+def setup_quotation_approval_permissions():
+	"""Approvers need write access to move the document; the state's `allow_edit` is what
+	keeps them from changing its contents.
+
+	Money lives at permlevel 1, so Warehouse and Production never see prices, discounts,
+	totals or payment terms — an MVP requirement of the «Угода» spec."""
+	props = []
+	for fieldname in QUOTATION_RESTRICTED_FIELDS:
+		props.append(("Quotation", fieldname, "permlevel", "1", "Int"))
+	for fieldname in QUOTATION_ITEM_RESTRICTED_FIELDS:
+		props.append(("Quotation Item", fieldname, "permlevel", "1", "Int"))
+	_create_property_setters(props)
+
+	for role in QUOTATION_APPROVER_ROLES + QUOTATION_FINANCIAL_ROLES:
+		_ensure_custom_docperm("Quotation", role, 0, {"read": 1, "write": 1, "report": 1})
+
+	# Only these two get to read what sits behind permlevel 1; Sales User and Sales Manager
+	# already have it from the stock permissions.
+	for role in QUOTATION_FINANCIAL_ROLES:
+		_ensure_custom_docperm("Quotation", role, 1, {"read": 1, "report": 1})
+
+
+def _ensure_custom_docperm(doctype, role, permlevel, rights):
+	if frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": permlevel}):
+		print(f"  Custom DocPerm exists: {doctype} / {role} (permlevel {permlevel})")
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Custom DocPerm",
+			"parent": doctype,
+			"parenttype": "DocType",
+			"parentfield": "permissions",
+			"role": role,
+			"permlevel": permlevel,
+			**rights,
+		}
+	).insert(ignore_permissions=True)
+	print(f"  Created Custom DocPerm: {doctype} / {role} (permlevel {permlevel})")
 
 
 def create_custom_fields_on_whatsapp_message():
@@ -1069,6 +1829,329 @@ def setup_lead_next_action_notification():
 		}
 	).insert(ignore_permissions=True)
 	print(f"  Created Notification: {name}")
+
+
+#: Stock Lead fields the sales process does not use. Hidden instead of removed so that
+#: historical values stay readable through the API and the report builder.
+LEAD_HIDDEN_FIELDS = (
+	"salutation",
+	"gender",
+	"job_title",
+	"annual_revenue",
+	"no_of_employees",
+	"industry",
+	"fax",
+	"market_segment",
+	"qualification_tab",
+	"qualification_status",
+	"column_break_64",
+	"qualified_by",
+	"qualified_on",
+)
+
+#: «Мета звернення». Matches the Literal already declared on Lead.request_type.
+LEAD_REQUEST_TYPES = (
+	"Product Purchase",
+	"Quotation Request",
+	"Technical Information",
+	"Demonstration",
+	"Testing",
+	"Consultation",
+	"Partnership",
+	"Training",
+	"Other",
+)
+
+#: Stock option -> our option, for Leads created before the list was replaced.
+LEAD_REQUEST_TYPE_MIGRATION = {
+	"Product Enquiry": "Product Purchase",
+	"Request for Information": "Technical Information",
+	"Suggestions": "Other",
+}
+
+#: «Ймовірність переходу в Opportunity». The three original values keep their names.
+LEAD_CONVERSION_PROBABILITIES = (
+	"Very Low Probability",
+	"Low Probability",
+	"Medium Probability",
+	"High Probability",
+	"Very High Probability",
+)
+
+
+def setup_lead_field_properties():
+	"""Shape the stock Lead form around our sales process.
+
+	Everything here is a Property Setter: lead.json stays as close to upstream as possible
+	(see CLAUDE.md — deletions in stock files are what produces merge conflicts)."""
+	props = []
+
+	for fieldname in LEAD_HIDDEN_FIELDS:
+		props.append(("Lead", fieldname, "hidden", "1", "Check"))
+
+	# job_title also sits in the list view and the filter bar, which a hidden field has no
+	# business doing.
+	props.append(("Lead", "job_title", "in_list_view", "0", "Check"))
+	props.append(("Lead", "job_title", "in_standard_filter", "0", "Check"))
+
+	props.append(("Lead", "request_type", "label", "Purpose of Request", "Data"))
+	props.append(("Lead", "request_type", "options", "\n" + "\n".join(LEAD_REQUEST_TYPES), "Text"))
+	props.append(
+		(
+			"Lead",
+			"conversion_probability",
+			"options",
+			"\n" + "\n".join(LEAD_CONVERSION_PROBABILITIES),
+			"Text",
+		)
+	)
+	props.append(("Lead", "utm_source", "label", "Engagement Channel", "Data"))
+
+	# Business filters the sales team actually works by.
+	for fieldname in ("status", "lead_owner", "request_type", "utm_source"):
+		props.append(("Lead", fieldname, "in_standard_filter", "1", "Check"))
+
+	_create_property_setters(props)
+	_migrate_lead_request_types()
+
+
+def _migrate_lead_request_types():
+	"""Repoint values that are no longer in the option list, so the field stays editable."""
+	for old, new in LEAD_REQUEST_TYPE_MIGRATION.items():
+		names = frappe.get_all("Lead", filters={"request_type": old}, pluck="name")
+		if not names:
+			continue
+		frappe.db.set_value("Lead", {"request_type": old}, "request_type", new, update_modified=False)
+		print(f"  Lead.request_type: {old} -> {new} ({len(names)} rows)")
+
+
+#: «Статус» of an Opportunity. The three the sales process actually distinguishes.
+OPPORTUNITY_STATUSES = ("New", "Converted to Quotation", "Lost")
+
+#: Stock option -> our option.
+OPPORTUNITY_STATUS_MIGRATION = {
+	"Open": "New",
+	"Replied": "New",
+	"Closed": "Lost",
+	"Quotation": "Converted to Quotation",
+	"Converted": "Converted to Quotation",
+}
+
+#: Stock Opportunity fields the sales process does not use.
+OPPORTUNITY_HIDDEN_FIELDS = (
+	"utm_source",
+	"organization_details_section",
+	"no_of_employees",
+	"annual_revenue",
+	"industry",
+	"market_segment",
+	"column_break_23",
+	# Replaced by customer_budget, which has to hold ranges and free text.
+	"opportunity_amount",
+	"base_opportunity_amount",
+	# Replaced by probability_level — a manager's judgement, not a percentage.
+	"probability",
+)
+
+#: «Етап переговорів» values.
+OPPORTUNITY_SALES_STAGES = ("Requirement Clarification", "Solution Shaping")
+
+#: «Причини втрати Пропозиції».
+OPPORTUNITY_LOST_REASONS = (
+	"Client cancelled the purchase",
+	"Another supplier chosen",
+	"Budget not agreed",
+	"Deadlines not agreed",
+	"Technical solution not agreed",
+	"We declined",
+	"No further contact established",
+	"Purchase postponed indefinitely",
+	"Need is no longer relevant",
+	"Other",
+)
+
+
+def create_custom_fields_on_opportunity_process():
+	"""Fields the «Пропозиція» spec adds on top of the stock Opportunity."""
+	fields = [
+		{
+			"dt": "Opportunity",
+			"description": "What the client named as their budget. May be an amount, a range or free text.",
+			"fieldname": "customer_budget",
+			"fieldtype": "Data",
+			"label": "Client Budget (if known)",
+			"insert_after": "opportunity_amount",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "probability_level",
+			"fieldtype": "Select",
+			"label": "Probability",
+			"options": "\nLow\nMedium\nHigh",
+			"in_standard_filter": 1,
+			"insert_after": "probability",
+		},
+		{
+			"dt": "Opportunity",
+			"description": "One of the contacts of the linked Prospect or Customer.",
+			"fieldname": "decision_maker",
+			"fieldtype": "Link",
+			"label": "Decision Maker",
+			"options": "Contact",
+			"insert_after": "opportunity_owner",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "next_action_section",
+			"fieldtype": "Section Break",
+			"label": "Next Action Control",
+			"insert_after": "probability_level",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "next_action_type",
+			"fieldtype": "Select",
+			"label": "Next Action Type",
+			"options": "\nCall\nLetter\nMeeting\nInternal Alignment\nAwaiting Client Response\nOther",
+			"insert_after": "next_action_section",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "next_action_date",
+			"fieldtype": "Date",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"label": "Next Action Date",
+			"insert_after": "next_action_type",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "column_break_next_action",
+			"fieldtype": "Column Break",
+			"insert_after": "next_action_date",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "next_action_comment",
+			"fieldtype": "Small Text",
+			"label": "Next Action Comment",
+			"insert_after": "column_break_next_action",
+		},
+		{
+			"dt": "Opportunity",
+			"default": "0",
+			"fieldname": "next_action_overdue",
+			"fieldtype": "Check",
+			"hidden": 1,
+			"label": "Next Action Overdue",
+			"no_copy": 1,
+			"read_only": 1,
+			"insert_after": "next_action_comment",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "key_events_section",
+			"fieldtype": "Section Break",
+			"label": "Key Events",
+			"insert_after": "next_action_overdue",
+		},
+		{
+			"dt": "Opportunity",
+			"default": "0",
+			"fieldname": "demo_conducted",
+			"fieldtype": "Check",
+			"label": "Demonstration Conducted",
+			"insert_after": "key_events_section",
+		},
+		{
+			"dt": "Opportunity",
+			"default": "0",
+			"fieldname": "sample_sent",
+			"fieldtype": "Check",
+			"label": "Test Sample Sent",
+			"insert_after": "demo_conducted",
+		},
+		{
+			"dt": "Opportunity",
+			"default": "0",
+			"fieldname": "feedback_received",
+			"fieldtype": "Check",
+			"label": "Feedback Received",
+			"insert_after": "sample_sent",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "customer_need_section",
+			"fieldtype": "Section Break",
+			"label": "Customer Need",
+			"insert_after": "feedback_received",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "customer_need",
+			"fieldtype": "Small Text",
+			"label": "Customer Need",
+			"insert_after": "customer_need_section",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "requirement_section",
+			"fieldtype": "Section Break",
+			"label": "Customer Requirement",
+			"insert_after": "customer_need",
+		},
+		{
+			"dt": "Opportunity",
+			"fieldname": "requirement",
+			"fieldtype": "Table",
+			"label": "Customer Requirement",
+			"options": "Lead Requirement",
+			"insert_after": "requirement_section",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def setup_opportunity_field_properties():
+	"""Shape the stock Opportunity form around the «Пропозиція» spec."""
+	props = [
+		("Opportunity", "status", "options", "\n".join(OPPORTUNITY_STATUSES), "Text"),
+		("Opportunity", "status", "default", "New", "Data"),
+		("Opportunity", "sales_stage", "label", "Negotiation Stage", "Data"),
+		("Opportunity", "sales_stage", "in_standard_filter", "1", "Check"),
+		("Opportunity", "opportunity_owner", "label", "Responsible Manager", "Data"),
+		("Opportunity", "opportunity_owner", "in_standard_filter", "1", "Check"),
+		("Opportunity", "order_lost_reason", "label", "Reason for Losing the Opportunity", "Data"),
+		(
+			"Opportunity",
+			"order_lost_reason",
+			"mandatory_depends_on",
+			"eval:doc.status=='Lost'",
+			"Data",
+		),
+	]
+
+	for fieldname in OPPORTUNITY_HIDDEN_FIELDS:
+		props.append(("Opportunity", fieldname, "hidden", "1", "Check"))
+
+	_create_property_setters(props)
+	_seed_opportunity_reference_data()
+
+
+def _seed_opportunity_reference_data():
+	for stage in OPPORTUNITY_SALES_STAGES:
+		if frappe.db.exists("Sales Stage", stage):
+			continue
+		frappe.get_doc({"doctype": "Sales Stage", "stage_name": stage}).insert(ignore_permissions=True)
+		print(f"  Created Sales Stage: {stage}")
+
+	for reason in OPPORTUNITY_LOST_REASONS:
+		if frappe.db.exists("Opportunity Lost Reason", reason):
+			continue
+		frappe.get_doc({"doctype": "Opportunity Lost Reason", "lost_reason": reason}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Opportunity Lost Reason: {reason}")
 
 
 def create_v16_ported_fields():
@@ -1369,10 +2452,6 @@ def set_v16_ported_properties():
 		("Job Card", "serial_no", "hidden", "0", "Check"),
 		("Employee", "attendance_device_id", "label", "Barcode", "Data"),
 		("Employee", "attendance_device_id", "options", "Barcode", "Text"),
-		# Stock JSON's Lead.status default ("Lead") isn't in our localized options list
-		# (New Request/Contacted/...); v16 validates defaults against options on every
-		# custom field insert, which crashed setup_custom_fields before this was added.
-		("Lead", "status", "default", "New Request", "Select"),
 	]
 	for doctype, fieldname, prop, value, property_type in props:
 		if not frappe.db.exists("DocType", doctype):
@@ -1558,7 +2637,43 @@ def create_responsible_employee_dimension():
 		print(f"  Created Inventory Dimension: {RESPONSIBLE_EMPLOYEE_DIMENSION}")
 
 	relax_rejected_responsible_employee()
+	ignore_user_permissions_on_responsible_employee()
 	create_serial_no_responsible_field()
+
+
+def ignore_user_permissions_on_responsible_employee():
+	"""Stop Frappe from prefilling the dimension with the user's own Employee.
+
+	An Employee linked to a User gets an Employee User Permission, and Frappe uses a single
+	permitted value as the default of every Link to Employee, on every new row in every
+	warehouse. Custody is only meant for R&D, and outside it that stray value made issues fail
+	the per-person negative stock check. The R&D default is set on purpose by
+	`erpnext.stock.responsible_employee`, not by user permissions.
+	"""
+	fields = frappe.get_all(
+		"Custom Field",
+		filters={
+			"fieldname": (
+				"in",
+				[
+					RESPONSIBLE_EMPLOYEE_FIELD,
+					f"to_{RESPONSIBLE_EMPLOYEE_FIELD}",
+					f"from_{RESPONSIBLE_EMPLOYEE_FIELD}",
+					f"rejected_{RESPONSIBLE_EMPLOYEE_FIELD}",
+				],
+			),
+			"options": "Employee",
+			"ignore_user_permissions": 0,
+		},
+		pluck="name",
+	)
+
+	for name in fields:
+		frappe.db.set_value("Custom Field", name, "ignore_user_permissions", 1, update_modified=False)
+		print(f"  Ignored user permissions: {name}")
+
+	if fields:
+		frappe.clear_cache()
 
 
 def enforce_responsible_employee_stock(name):
@@ -1635,6 +2750,31 @@ def relax_rejected_responsible_employee():
 
 	if fields:
 		frappe.clear_cache()
+
+
+def _create_property_setters(props):
+	"""props: (doctype, fieldname, property, value, property_type) tuples."""
+	for doctype, fieldname, prop, value, property_type in props:
+		if not frappe.db.exists("DocType", doctype):
+			continue
+
+		name = f"{doctype}-{fieldname}-{prop}"
+		if frappe.db.exists("Property Setter", name):
+			print(f"  Property Setter exists: {name}")
+			continue
+
+		frappe.get_doc(
+			{
+				"doctype": "Property Setter",
+				"doctype_or_field": "DocField",
+				"doc_type": doctype,
+				"field_name": fieldname,
+				"property": prop,
+				"value": value,
+				"property_type": property_type,
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Property Setter: {name}")
 
 
 def _create_custom_fields(fields):

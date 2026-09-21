@@ -45,6 +45,7 @@ DAY_WIDTH = 6
 # the totals of the summarized view, in the order both screens read them
 TOTAL_FIELDS = (
 	("total_present", "Present Days"),
+	("total_business_trip", "Business Trip Days"),
 	("total_leave", "Leave Days"),
 	("total_sick", "Sick Days"),
 	("total_absent", "Absent Days"),
@@ -52,7 +53,9 @@ TOTAL_FIELDS = (
 	("shortfall_hours", "Shortfall Hours"),
 )
 
-PAID_STATUSES = ("Present", "Work From Home")
+# the days somebody was at work; a trip on the company's business is one of them, and is
+# counted again in a column of its own
+PAID_STATUSES = ("Present", "Work From Home", "Business Trip")
 
 # the days nobody was meant to work, tinted rather than counted
 NON_WORKING_STATUSES = ("Weekly Off", "Holiday")
@@ -151,7 +154,11 @@ def get_totals_of_sheet(row: dict) -> dict[str, float]:
 
 		if status in PAID_STATUSES:
 			totals["total_present"] += 1
-		elif status == "On Leave":
+
+		if status == "Business Trip":
+			totals["total_business_trip"] += 1
+
+		if status == "On Leave":
 			# a leave nobody pays for is an absence at the employee's own expense
 			totals["total_absent" if cell.get("unpaid_leave") else "total_leave"] += 1
 		elif status == "Sick Leave":

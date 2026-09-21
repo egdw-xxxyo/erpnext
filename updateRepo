@@ -4,16 +4,22 @@
 set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
+# ops_step: [OPS] milestone markers the ops dashboard parses.
+. "$DIR/tools/ops-progress.sh"
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
+ops_step repo start "Pulling erpnext ($BRANCH)"
 echo "==> Pulling erpnext (branch: $BRANCH)..."
 git pull origin "$BRANCH"
+ops_step repo ok "erpnext pulled ($BRANCH)"
 
 # `git pull origin <branch>` passes an explicit refspec, which turns tag auto-following off —
-# so release tags never arrive and `./deploy` refuses to deploy an "untagged" commit on prod.
+# so release tags never arrive.
+ops_step tags start "Fetching tags"
 echo "==> Fetching tags..."
 git fetch --tags --force origin
+ops_step tags ok "Tags fetched"
 
 CURRENT_TAG=$(git tag --points-at HEAD | tail -1)
 if [ -n "$CURRENT_TAG" ]; then
@@ -22,12 +28,14 @@ else
     echo "    WARNING: HEAD ($(git rev-parse --short HEAD)) has no tag — prod deploy will be blocked."
 fi
 
+ops_step submodules start "Updating submodules"
 echo "==> Syncing submodule URLs from .gitmodules..."
 git submodule sync
 
 echo "==> Updating submodules to latest remote branch..."
 git submodule update --init --remote
 
+ops_step submodules ok "Submodules updated"
 echo "==> Submodule status:"
 git submodule status
 
@@ -39,3 +47,4 @@ else
     git add frappe
     echo "Submodules updated. Commit with: git commit -m 'Update frappe submodule'"
 fi
+ops_step done ok "Repo up to date"

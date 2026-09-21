@@ -1,7 +1,8 @@
 // Prefill the "Responsible Employee" inventory dimension with the Employee of the current
 // user on every row that points at the R&D warehouse. The server does the same in
 // `erpnext.stock.responsible_employee.validate_responsible_employee`; this only makes the
-// value visible while the row is being entered. An existing value is never overwritten.
+// value visible while the row is being entered. An existing value is never overwritten, and
+// rows outside R&D have the dimension cleared.
 frappe.provide("erpnext.responsible_employee");
 
 erpnext.responsible_employee.fields = {
@@ -52,12 +53,17 @@ erpnext.responsible_employee.apply = function (frm, cdt, cdn) {
 	if (!pairs || !frm.doc.company) return;
 
 	erpnext.responsible_employee.defaults(frm.doc.company).then((defaults) => {
-		if (!defaults.warehouse || !defaults.employee) return;
+		if (!defaults.warehouse) return;
 
 		for (const [warehouse_field, dimension_field] of pairs) {
-			if (row[warehouse_field] !== defaults.warehouse) continue;
-			if (row[dimension_field]) continue;
 			if (!frappe.meta.has_field(cdt, dimension_field)) continue;
+
+			// custody exists only inside R&D; the server clears it elsewhere too
+			if (row[warehouse_field] !== defaults.warehouse) {
+				if (row[dimension_field]) frappe.model.set_value(cdt, cdn, dimension_field, "");
+				continue;
+			}
+			if (row[dimension_field] || !defaults.employee) continue;
 
 			frappe.model.set_value(cdt, cdn, dimension_field, defaults.employee);
 		}

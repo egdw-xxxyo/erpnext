@@ -16,7 +16,7 @@ class BpAKModification(Document):
 		)
 		if existing:
 			frappe.throw(
-				_("Модифікація {0} вже існує для специфікації {1}: {2}").format(
+				_("Modification {0} already exists for specification {1}: {2}").format(
 					self.modification_number, self.specification, existing
 				)
 			)

@@ -225,11 +225,16 @@ def get_diagram_extras(script_name):
 	return {"subflows": out_subflows, "entries": entries}
 
 
-def run_state(script_name, e, scripts=None):
-	"""Dispatch a scan to the current state's script.
+def run_state(script_name, e, scripts=None, handler="on_scan"):
+	"""Dispatch an event to the current state's script.
 
 	Reads states/transitions from the default version's snapshot, not the working copy.
 	If Redis state is empty, falls back to the row marked as initial.
+
+	`handler` names the function the state script must define. It defaults to `on_scan` so
+	every existing scanner script body keeps working untouched; the OTDR measurement path
+	passes `on_measurement`, which lets one workplace answer both a barcode scan and a
+	reflectometer trace without the two handlers colliding.
 	"""
 	ws = frappe.get_cached_doc("Workplace Script", script_name)
 	snap = _resolve_default_snapshot(ws)
@@ -260,10 +265,10 @@ def run_state(script_name, e, scripts=None):
 		ns = {"frappe": frappe, "scripts": scripts, "e": e}
 		exec(code, ns)
 
-		handler = ns.get("on_scan")
-		if not handler:
+		fn = ns.get(handler)
+		if not fn:
 			return None
-		return handler(e)
+		return fn(e)
 	except TransitionError as ex:
 		td = None
 		if scripts and hasattr(scripts, "display") and hasattr(scripts.display, "td"):

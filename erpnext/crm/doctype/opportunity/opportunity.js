@@ -121,16 +121,14 @@ frappe.ui.form.on("Opportunity", {
 			}
 		}
 
+		// «Пропозиція» statuses: New / Converted to Quotation / Lost. A converted
+		// Opportunity is final, so only a lost one can be reopened.
 		if (!frm.doc.__islocal && frm.perm[0].write && frm.doc.docstatus == 0) {
-			if (frm.doc.status === "Open") {
-				frm.add_custom_button(__("Close"), function () {
-					frm.set_value("status", "Closed");
-					frm.save();
-				});
-			} else {
+			if (frm.doc.status === "Lost") {
 				frm.add_custom_button(__("Reopen"), function () {
 					frm.set_value("lost_reasons", []);
-					frm.set_value("status", "Open");
+					frm.set_value("order_lost_reason", "");
+					frm.set_value("status", "New");
 					frm.save();
 				});
 			}
@@ -276,7 +274,7 @@ frappe.ui.form.on("Opportunity Item", {
 erpnext.crm.Opportunity = class Opportunity extends frappe.ui.form.Controller {
 	onload() {
 		if (!this.frm.doc.status) {
-			this.frm.set_value("status", "Open");
+			this.frm.set_value("status", "New");
 		}
 		if (!this.frm.doc.company && frappe.defaults.get_user_default("Company")) {
 			this.frm.set_value("company", frappe.defaults.get_user_default("Company"));

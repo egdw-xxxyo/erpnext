@@ -1,13 +1,21 @@
 {% set git = data.git or {} %}
-{% set ver = data.version or {} %}
 {% set running = (data.jobs or []) | selectattr('state', 'equalto', 'running') | list %}
+{# A running job is the one thing worth a per-second poll; idle, 15s is plenty. #}
+<span data-poll="{{ 1 if running else 15 }}" hidden></span>
 <h2>Actions</h2>
+
+{% if data._jobs_error %}
+<div class="alert error small">Could not read job state from the host: {{ data._jobs_error }}</div>
+{% endif %}
 
 {% if running %}
 <div class="alert warn small">
 	A job is running ({{ running[0].label }}). Only one runs at a time —
-	<a href="#" hx-get="/jobs/{{ running[0].id }}" hx-target="#console-slot"
-	   hx-on::after-request="document.getElementById('console-host').hidden = false">open its console</a>.
+	<button type="button" class="link" hx-get="/jobs/{{ running[0].id }}"
+	        hx-vals='{"label": {{ running[0].label|tojson }}}' hx-target="#console-slot" hx-swap="innerHTML">
+		<i class="fa fa-terminal"></i> open its console
+	</button>
+	{% with job = running[0] %}{% include "partials/job_progress.html" %}{% endwith %}
 </div>
 {% endif %}
 
@@ -19,6 +27,7 @@
 	      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
 	      hx-target="#console-slot"
 	      hx-swap="innerHTML"
+	      {% if cmd.destructive %}hx-confirm="{{ cmd.label }} on {{ settings.env_label|upper }}? {{ cmd.description }}"{% endif %}
 	      hx-on::after-request="document.getElementById('console-host').hidden = false">
 		<div class="action-head">
 			<b>{{ cmd.label }}</b>
@@ -33,18 +42,30 @@
 		{% endif %}
 
 		{% if key == 'switch-branch' %}
-		<input name="branch" placeholder="branch name" value="{{ git.branch or '' }}" required>
+		<div class="combo" data-combo>
+			<input name="branch" placeholder="search branch…" value="{{ git.branch or '' }}"
+			       data-default="{{ git.branch or '' }}" autocomplete="off" spellcheck="false"
+			       role="combobox" aria-expanded="false" aria-autocomplete="list" required>
+			<i class="fa fa-caret-down combo-caret" aria-hidden="true"></i>
+			<ul class="combo-list" role="listbox" hidden>
+				{% for name in data.recent_branches or [] %}
+				<li role="option" data-value="{{ name }}">
+					<span>{{ name }}</span>
+					{% if name == git.branch %}<span class="muted small">current</span>{% endif %}
+				</li>
+				{% endfor %}
+				<li class="combo-empty muted small" hidden>no recent branch matches — Run uses the typed name</li>
+			</ul>
+		</div>
 		{% endif %}
 
-		{% set blocked_prod = key == 'build' and ver.site_env == 'prod' and not git.tag and not git.merge %}
 		{% set blocked_dirty = cmd.needs_clean_tree and git.dirty %}
 		<button type="submit" class="{{ 'danger' if cmd.destructive else 'primary' }}"
-		        {% if running or blocked_prod or blocked_dirty %}disabled{% endif %}>
+		        {% if running or blocked_dirty %}disabled{% endif %}>
+			{% if running and running[0].label == cmd.label %}<i class="fa fa-spinner fa-spin busy-icon"></i>{% endif %}
 			Run
 		</button>
-		{% if blocked_prod %}
-		<p class="muted small">Blocked: HEAD ({{ git.head }}) has no release tag.</p>
-		{% elif blocked_dirty %}
+		{% if blocked_dirty %}
 		<p class="muted small">Blocked: the host working tree has uncommitted changes.</p>
 		{% endif %}
 	</form>

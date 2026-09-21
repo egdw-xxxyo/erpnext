@@ -258,6 +258,11 @@ class Quotation(SellingController):
 		if not opportunity:
 			opportunity = self.opportunity
 
+		# Stock callers pass the stock option names; the «Пропозиція» status set has its own.
+		from erpnext.crm.opportunity_rules import OPPORTUNITY_STATUS_ALIASES
+
+		status = OPPORTUNITY_STATUS_ALIASES.get(status, status)
+
 		opp = frappe.get_doc("Opportunity", opportunity)
 		opp.set_status(status=status, update=True)
 

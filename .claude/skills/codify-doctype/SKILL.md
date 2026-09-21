@@ -1,6 +1,6 @@
 ---
 name: codify-doctype
-description: Graduate a desk-created (custom=1) DocType into repo-owned code with ./codify — export, fold Custom Fields/Property Setters, generate the migration patch, verify. Use when asked to "codify", "move a custom doctype to code", "make a custom doctype standard/default", or when the deploy drift report flags a DB-only DocType.
+description: "Graduate a desk-created (custom=1) DocType into repo-owned code with ./codify — export, fold Custom Fields/Property Setters, generate the migration patch, verify. Use when asked to \"codify\", \"move a custom doctype to code\", \"make a custom doctype standard/default\", or when the deploy drift report flags a DB-only DocType."
 ---
 
 # Codify a custom DocType

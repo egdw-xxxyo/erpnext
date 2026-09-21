@@ -21,12 +21,12 @@ from __future__ import annotations
 
 import base64
 import json
-import os
 import time
 from dataclasses import asdict, dataclass
 
 from cryptography.fernet import Fernet, InvalidToken
 
+from . import store
 from .config import settings
 
 
@@ -45,8 +45,8 @@ def _safe_username(username: str) -> str:
 	return "".join(c for c in username if c.isalnum() or c in "-_.") or "user"
 
 
-def _path(username: str) -> str:
-	return os.path.join(settings.data_dir, f"git_key_{_safe_username(username)}.enc")
+def _secret_name(username: str) -> str:
+	return f"git_key_{_safe_username(username)}"
 
 
 def _fernet() -> Fernet:
@@ -59,10 +59,8 @@ def _fernet() -> Fernet:
 
 
 def load(username: str) -> GitKey | None:
-	try:
-		with open(_path(username), "rb") as fh:
-			blob = fh.read()
-	except OSError:
+	blob = store.secret_get(_secret_name(username))
+	if blob is None:
 		return None
 	try:
 		raw = json.loads(_fernet().decrypt(blob))
@@ -75,17 +73,8 @@ def load(username: str) -> GitKey | None:
 def save(username: str, private_key: str) -> None:
 	key = GitKey(username=username, private_key=private_key.strip() + "\n", updated_at=time.time())
 	blob = _fernet().encrypt(json.dumps(asdict(key)).encode("utf-8"))
-	os.makedirs(settings.data_dir, exist_ok=True)
-	path = _path(username)
-	tmp = path + ".tmp"
-	with open(tmp, "wb") as fh:
-		fh.write(blob)
-	os.chmod(tmp, 0o600)
-	os.replace(tmp, path)
+	store.secret_set(_secret_name(username), blob)
 
 
 def delete(username: str) -> None:
-	try:
-		os.remove(_path(username))
-	except OSError:
-		pass
+	store.secret_delete(_secret_name(username))

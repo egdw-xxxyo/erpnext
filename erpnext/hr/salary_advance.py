@@ -39,9 +39,14 @@ DEFAULT_CUTOFF_DAY = 15
 DAY_WEIGHT = {
 	"Present": 1.0,
 	"Work From Home": 1.0,
+	# Відрядження — робочий день: платиться як присутність, а рахується ще й окремо.
+	"Business Trip": 1.0,
 	"On Leave": 1.0,
 	"Absent": 0.0,
 }
+
+# Дні, коли людина була на роботі — відрядження серед них.
+PRESENT_STATUSES = ("Present", "Work From Home", "Business Trip")
 
 # Скільки днів офіційного лікарняного оплачується на місяць — понад норму день не платиться.
 SICK_DAYS_PAID = 5
@@ -52,6 +57,7 @@ DEFAULT_DAY_HOURS = 8.0
 EMPTY_STATS = {
 	"credited_days": 0.0,
 	"present_days": 0.0,
+	"business_trip_days": 0.0,
 	"leave_days": 0.0,
 	"unpaid_leave_days": 0.0,
 	"sick_days": 0.0,
@@ -187,6 +193,7 @@ def plan_advance(
 				planned_hours=flt(planned_days * day_hours, 2),
 				credited_days=credited_days,
 				present_days=flt(attendance.present_days, 2),
+				business_trip_days=flt(attendance.business_trip_days, 2),
 				leave_days=flt(attendance.leave_days, 2),
 				unpaid_leave_days=flt(attendance.unpaid_leave_days, 2),
 				sick_days=flt(attendance.sick_days, 2),
@@ -381,6 +388,7 @@ def standard_day_hours() -> float:
 
 ATTENDANCE_FIELDS = (
 	"present_days",
+	"business_trip_days",
 	"leave_days",
 	"unpaid_leave_days",
 	"sick_days",
@@ -442,9 +450,14 @@ def attendance_stats(employees: list, start, end) -> dict:
 		entry = stats.setdefault(row.employee, frappe._dict(EMPTY_STATS.copy()))
 		lwp = row.leave_application in unpaid
 
-		if row.status in ("Present", "Work From Home"):
+		if row.status in PRESENT_STATUSES:
 			entry.present_days += 1
-		elif row.status == "Sick Leave":
+
+		# Окрема колонка не повторює присутність, а уточнює її: скільки з неї — у відрядженні.
+		if row.status == "Business Trip":
+			entry.business_trip_days += 1
+
+		if row.status == "Sick Leave":
 			entry.sick_days += 1
 		elif row.status == "Absent":
 			entry.absent_days += 1

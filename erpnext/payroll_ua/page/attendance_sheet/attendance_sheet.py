@@ -14,6 +14,7 @@ from frappe import _
 from frappe.utils import cstr, flt, formatdate, getdate
 from hrms.utils import get_date_range
 
+from erpnext.payroll_ua import attendance_notes
 from erpnext.payroll_ua.attendance_marks import get_leave_abbreviations, get_unpaid_leave_types
 from erpnext.payroll_ua.doctype.attendance_sheet_approval.attendance_sheet_approval import (
 	get_approval_for,
@@ -22,7 +23,10 @@ from erpnext.payroll_ua.doctype.attendance_sheet_approval.attendance_sheet_appro
 
 MAX_PERIOD_DAYS = 90
 
-ATTENDANCE_STATUSES = ("Present", "Work From Home", "Absent", "Sick Leave")
+ATTENDANCE_STATUSES = ("Present", "Work From Home", "Business Trip", "Absent", "Sick Leave")
+
+# the days somebody was at work, a trip away on the company's business among them
+PRESENT_STATUSES = ("Present", "Work From Home", "Business Trip")
 
 
 def get_session_employee() -> str | None:
@@ -38,17 +42,47 @@ def get_editable_employees(company: str | None = None) -> dict[str, dict]:
 	grant nothing here on purpose: an HR manager or an administrator without reports
 	gets an empty sheet, exactly like anybody else.
 
+	Whoever has `does_not_fill_attendance_sheet` checked gets no sheet at all — their
+	own reports climb to whoever fills the sheet for *them* instead (see
+	`get_reporting_line`), and a checked employee sees this blocked at their own level.
+
 	The additions come first, ahead of the reports, and the order carries into the page.
 	"""
 	own = get_session_employee()
 	if not own:
 		return {}
 
+	if frappe.db.get_value("Employee", own, "does_not_fill_attendance_sheet"):
+		return {}
+
 	added = get_extra_employees(own)
 	extra = fetch_employees({"name": ["in", added]}, company) if added else {}
-	reports = fetch_employees({"reports_to": own}, company)
+	reports = get_reporting_line(own, company)
 
 	return extra | {name: entry for name, entry in reports.items() if name not in extra}
+
+
+def get_reporting_line(manager: str, company: str | None, seen: set[str] | None = None) -> dict[str, dict]:
+	"""Direct reports of `manager`, plus the reports of anyone among them who does not
+	fill their own sheet, climbing the chain until somebody who does fill it is found.
+
+	Whoever does not fill their own sheet still stays in the result themselves — they
+	are still one of `manager`'s reports and still get tracked — only the collecting of
+	*their* reports moves up instead of staying with them.
+	"""
+	seen = seen or set()
+	if manager in seen:
+		return {}
+	seen.add(manager)
+
+	direct = fetch_employees({"reports_to": manager}, company)
+
+	result = dict(direct)
+	for name, entry in direct.items():
+		if entry.does_not_fill_attendance_sheet:
+			result |= get_reporting_line(name, company, seen)
+
+	return result
 
 
 def get_extra_employees(manager: str) -> list[str]:
@@ -127,6 +161,7 @@ def fetch_employees(filters: dict, company: str | None = None) -> dict[str, dict
 			"holiday_list",
 			"date_of_joining",
 			"relieving_date",
+			"does_not_fill_attendance_sheet",
 		],
 		order_by="employee_name",
 		ignore_permissions=True,
@@ -198,6 +233,7 @@ def build_sheet(company: str, from_date, to_date) -> dict:
 	locks = get_lock_map(list(employees), from_date, to_date)
 	leave_abbrs = get_leave_abbreviations()
 	unpaid_types = get_unpaid_leave_types()
+	note_counts = attendance_notes.get_note_counts(list(employees))
 
 	rows = [
 		{
@@ -219,6 +255,7 @@ def build_sheet(company: str, from_date, to_date) -> dict:
 			},
 			"date_of_joining": cstr(details.date_of_joining or ""),
 			"relieving_date": cstr(details.relieving_date or ""),
+			"note_count": note_counts.get(employee, 0),
 		}
 		for employee, details in employees.items()
 	]
@@ -811,6 +848,7 @@ def get_totals(cells) -> dict:
 	"""The numbers of the summarized view, for one employee."""
 	totals = {
 		"total_present": 0.0,
+		"total_business_trip": 0.0,
 		"total_leave": 0.0,
 		"total_sick": 0.0,
 		"total_absent": 0.0,
@@ -821,9 +859,15 @@ def get_totals(cells) -> dict:
 	for cell in cells:
 		status = cell["status"]
 
-		if status in ("Present", "Work From Home"):
+		if status in PRESENT_STATUSES:
 			totals["total_present"] += 1
-		elif status == "On Leave":
+
+		# a business trip is a day worked and is counted among the present ones; the column
+		# of its own says how much of that presence was spent away, and does not repeat it
+		if status == "Business Trip":
+			totals["total_business_trip"] += 1
+
+		if status == "On Leave":
 			# a leave nobody pays for is an absence at the employee's own expense
 			totals["total_absent" if cell["unpaid_leave"] else "total_leave"] += 1
 		elif status == "Sick Leave":
@@ -835,6 +879,64 @@ def get_totals(cells) -> dict:
 		totals["shortfall_hours"] += flt(cell["shortfall_hours"])
 
 	return totals
+
+
+# --------------------------------------------------------------------- notes
+
+
+@frappe.whitelist()
+def get_notes(employee: str) -> list[dict]:
+	"""The notes about one employee, for whoever fills his sheet.
+
+	The gate is the sheet itself: a manager reads the notes of the people he is
+	responsible for, and keeps reading them for as long as he is. Everything written
+	by the managers before him is there too — the notes belong to the employee.
+	"""
+	assert_can_edit([employee])
+
+	return attendance_notes.get_notes(employee)
+
+
+@frappe.whitelist()
+def save_note(employee: str, note: str, name: str | None = None) -> dict:
+	"""Writes a note about an employee, a new one or an edit of an existing one.
+
+	Only the author may change what he wrote: a note is signed, and a manager who
+	could rewrite his predecessor's would leave a signature that means nothing.
+	"""
+	assert_can_edit([employee])
+
+	if name:
+		assert_own_note(name, employee)
+		attendance_notes.update_note(name, note)
+	else:
+		name = attendance_notes.add_note(employee, note)
+
+	return {"name": name}
+
+
+@frappe.whitelist()
+def delete_note(name: str) -> None:
+	employee = frappe.db.get_value(attendance_notes.DOCTYPE, name, "employee")
+	assert_can_edit([employee])
+	assert_own_note(name, employee)
+
+	attendance_notes.remove_note(name)
+
+
+def assert_own_note(name: str, employee: str) -> None:
+	"""Refuses a note that is somebody else's, or one about somebody else.
+
+	The employee is checked as well as the author: the caller names both, and a note
+	reached through the wrong employee would be one the gate above never saw.
+	"""
+	note = frappe.db.get_value(attendance_notes.DOCTYPE, name, ["owner", "employee"], as_dict=True)
+
+	if not note or note.employee != employee:
+		frappe.throw(_("This note does not exist"), frappe.DoesNotExistError)
+
+	if note.owner != frappe.session.user:
+		frappe.throw(_("Only the author can change this note"), frappe.PermissionError)
 
 
 @frappe.whitelist()

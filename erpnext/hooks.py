@@ -22,8 +22,8 @@ add_to_apps_screen = [
 
 develop_version = "15.x.x-develop"
 
-app_include_js = "erpnext.bundle.js"
-app_include_css = "erpnext.bundle.css"
+app_include_js = ["erpnext.bundle.js", "/assets/erpnext/js/custom/todo_planner.js"]
+app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
@@ -44,11 +44,18 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	# ЄСКД designation picker + suggestions
+	"Item": "public/js/custom/item_specification.js",
+	# «Угода»: approval lock + the Sales Order fulfilment panel
+	"Quotation": "public/js/custom/quotation.js",
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
 		"public/js/custom/employee_attendance_sheet.js",
+		"public/js/custom/employee_overview.js",
 	],
+	# сканер серійних / партійних номерів на самому комплекті
+	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
@@ -62,6 +69,7 @@ doctype_js = {
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"ToDo": "public/js/custom/todo_list.js",
 	"Code List": [
 		"edi/doctype/code_list/code_list_import.js",
 	],
@@ -98,6 +106,11 @@ permission_query_conditions = {
 	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.get_permission_query_conditions",
 	# Chat attachments never appear in a File list query (file library picker, File list view).
 	"File": "erpnext.crm.chat_files.get_permission_query_conditions",
+	# Revisions, satellites and journal entries are visible exactly where their document is.
+	"Technical Document Revision": "erpnext.technical_documentation.permissions.revision_query_conditions",
+	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_query_conditions",
+	"Product Modification": "erpnext.technical_documentation.permissions.modification_query_conditions",
+	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -107,16 +120,52 @@ share_access_inheritance = [
 	{"doctype": "Task", "fieldname": "project", "parent_doctype": "Project"},
 	{"doctype": "Task", "fieldname": "parent_task", "parent_doctype": "Task"},
 	{"doctype": "Timesheet", "fieldname": "parent_project", "parent_doctype": "Project"},
+	{
+		"doctype": "Technical Document Section",
+		"fieldname": "parent_technical_document_section",
+		"parent_doctype": "Technical Document Section",
+	},
+	{
+		"doctype": "Technical Document",
+		"fieldname": "section",
+		"parent_doctype": "Technical Document Section",
+	},
+	{
+		"doctype": "Technical Document Revision",
+		"fieldname": "technical_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "Technical Document Relation",
+		"fieldname": "main_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "Product Modification",
+		"fieldname": "technical_document",
+		"parent_doctype": "Technical Document",
+	},
+	{
+		"doctype": "Technical Document Audit Entry",
+		"fieldname": "document",
+		"parent_doctype": "Technical Document",
+	},
 ]
 
 has_permission = {
 	# Leads in a final status are read-only until a Sales Manager returns them.
 	"Lead": "erpnext.crm.doctype.lead.lead.has_permission",
+	# Opportunities in a final status are read-only until a Sales Manager reopens them.
+	"Opportunity": "erpnext.crm.opportunity_rules.has_permission",
 	"Payment Request": "erpnext.accounts.payment_request_permissions.has_permission",
 	"Chat Thread": "erpnext.crm.doctype.chat_thread.chat_thread.has_permission",
 	"Chat Message": "erpnext.crm.doctype.chat_message.chat_message.has_permission",
 	"Chat Encryption Key": "erpnext.crm.doctype.chat_encryption_key.chat_encryption_key.has_permission",
 	"Chat Thread Key": "erpnext.crm.doctype.chat_thread_key.chat_thread_key.has_permission",
+	"Technical Document Revision": "erpnext.technical_documentation.permissions.revision_has_permission",
+	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_has_permission",
+	"Product Modification": "erpnext.technical_documentation.permissions.modification_has_permission",
+	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
 }
 
 welcome_email = "erpnext.setup.utils.welcome_email"
@@ -156,6 +205,7 @@ treeviews = [
 	"Sales Person",
 	"Territory",
 	"Department",
+	"Technical Document Section",
 ]
 
 demo_master_doctypes = [
@@ -422,6 +472,7 @@ override_doctype_dashboards = {
 }
 
 doc_events = {
+	"List Filter": {"on_trash": "erpnext.utilities.todo.prevent_default_filter_deletion"},
 	"*": {
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",
@@ -450,14 +501,21 @@ doc_events = {
 	"Stock Ledger Entry": {
 		"on_submit": "erpnext.stock.responsible_employee.set_serial_no_responsible",
 	},
+	"Designation": {
+		"on_update": "erpnext.hr.designation_translation.sync_employee_designation_name_en",
+	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
-		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+		"validate": [
+			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.selling.quotation_rules.validate_sales_order_against_quotation",
+		],
 	},
 	"Opportunity": {
 		"validate": [
 			"erpnext.crm.doctype.opportunity_participant.opportunity_participant.fill_participant_names",
 			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.crm.opportunity_rules.validate",
 		],
 	},
 	"Issue": {
@@ -468,7 +526,12 @@ doc_events = {
 	},
 	"Quotation": {
 		"on_update": "erpnext.selling.doctype.quotation_version.quotation_version.snapshot_quotation",
-		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+		"validate": [
+			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.selling.quotation_rules.validate",
+		],
+		"before_cancel": "erpnext.selling.quotation_rules.before_cancel",
+		"after_insert": "erpnext.crm.opportunity_rules.mark_converted_to_quotation",
 	},
 	"WhatsApp Message": {
 		"after_insert": [
@@ -493,7 +556,11 @@ doc_events = {
 		"on_trash": "erpnext.setup.doctype.employee_group.group_access.clear_group_cache",
 	},
 	"Stock Entry": {
-		"on_submit": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+		"on_submit": [
+			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+			# record which fiber reel each produced optical spool was wound from
+			"erpnext.devices.spool_lineage.stamp_source_batch",
+		],
 		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 	},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
@@ -679,6 +746,7 @@ doc_events = {
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
 			"erpnext.hr.salary_split.restrict_salary_editing",
+			"erpnext.hr.kp_classifier.validate_kp_profession",
 		],
 		"on_update": [
 			"erpnext.hr.employee_period.clear_attendance_after_relieving",
@@ -724,6 +792,11 @@ scheduler_events = {
 		],
 		# Daily but offset by 45 minutes
 		"45 0 * * *": [],
+		# Each Production Line sets its own plan and close-of-day times; the tick only checks
+		# whether one of them has come round, so its interval is the timing precision.
+		"*/15 * * * *": [
+			"erpnext.manufacturing.doctype.production_line.production_line.run_schedule",
+		],
 	},
 	"hourly": [
 		"erpnext.projects.doctype.project.project.hourly_reminder",
@@ -744,6 +817,7 @@ scheduler_events = {
 	"daily": [
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
+		"erpnext.crm.opportunity_rules.refresh_overdue_flags",
 		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
 		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
@@ -977,6 +1051,7 @@ additional_timeline_content = {"*": ["erpnext.telephony.doctype.call_log.call_lo
 extend_bootinfo = [
 	"erpnext.support.doctype.service_level_agreement.service_level_agreement.add_sla_doctypes",
 	"erpnext.startup.boot.bootinfo",
+	"erpnext.startup.instance_env.add_instance_env",
 ]
 
 

@@ -1,0 +1,141 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-11 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "document",
+  "event",
+  "event_time",
+  "user",
+  "column_break_main",
+  "revision",
+  "field_changed",
+  "value_before",
+  "value_after",
+  "section_comment",
+  "comment"
+ ],
+ "fields": [
+  {
+   "fieldname": "document",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Document",
+   "options": "Technical Document",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Event",
+   "options": "Створено\nНова редакція\nВведено в дію\nЗміна статусу\nЗміна відповідального\nАрхівовано\nСкасовано\nІнше",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "event_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Event Time",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "revision",
+   "fieldtype": "Link",
+   "label": "Revision",
+   "options": "Technical Document Revision",
+   "read_only": 1
+  },
+  {
+   "fieldname": "field_changed",
+   "fieldtype": "Data",
+   "label": "Field Changed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "value_before",
+   "fieldtype": "Small Text",
+   "label": "Value Before",
+   "read_only": 1
+  },
+  {
+   "fieldname": "value_after",
+   "fieldtype": "Small Text",
+   "label": "Value After",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_comment",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Comment",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-18 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Technical Documentation",
+ "name": "Technical Document Audit Entry",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Viewer"
+  },
+  {
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Editor"
+  },
+  {
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Manager"
+  },
+  {
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "document,event,user",
+ "sort_field": "event_time",
+ "sort_order": "DESC",
+ "states": []
+}

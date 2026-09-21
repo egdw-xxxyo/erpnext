@@ -375,6 +375,7 @@ def row_values(row) -> dict:
 			"planned_hours",
 			"credited_days",
 			"present_days",
+			"business_trip_days",
 			"leave_days",
 			"unpaid_leave_days",
 			"sick_days",

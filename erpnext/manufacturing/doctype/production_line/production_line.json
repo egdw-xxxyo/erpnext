@@ -1,0 +1,250 @@
+{
+ "actions": [],
+ "autoname": "field:line_name",
+ "creation": "2026-09-13 00:00:00.000000",
+ "description": "A continuously running line that is kept supplied with Work Orders, so nobody has to size one by hand each morning",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "line_name",
+  "line_type",
+  "column_break_main",
+  "enabled",
+  "company",
+  "warehouse_section",
+  "source_warehouse",
+  "wip_warehouse",
+  "column_break_warehouse",
+  "fg_warehouse",
+  "workplace_section",
+  "workplaces",
+  "plan_section",
+  "plan_time",
+  "plan",
+  "overflow_section",
+  "overflow_qty",
+  "cleanup_section",
+  "cleanup_enabled",
+  "cleanup_time",
+  "column_break_cleanup",
+  "delete_unused_serials",
+  "status_section",
+  "last_run_on",
+  "last_result",
+  "column_break_status",
+  "last_cleanup_on",
+  "last_cleanup_result"
+ ],
+ "fields": [
+  {
+   "fieldname": "line_name",
+   "fieldtype": "Data",
+   "label": "Line Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Spool",
+   "description": "What the line makes. Decides which client and which finishing steps apply to it.",
+   "fieldname": "line_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Line Type",
+   "options": "Spool",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "While off, no Work Order is created automatically and the app cannot hand out units from this line.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "warehouse_section",
+   "fieldtype": "Section Break",
+   "label": "Warehouses"
+  },
+  {
+   "description": "Where raw materials are taken from. Fills only the BOM rows that name no warehouse of their own.",
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Raw Material Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "wip_warehouse",
+   "fieldtype": "Link",
+   "label": "WIP Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_warehouse",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fg_warehouse",
+   "fieldtype": "Link",
+   "label": "Finished Goods Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "workplace_section",
+   "fieldtype": "Section Break",
+   "label": "Workplaces"
+  },
+  {
+   "description": "The benches this line runs at. The clients of this line offer only these workplaces, and every plan row must name one of them.",
+   "fieldname": "workplaces",
+   "fieldtype": "Table",
+   "label": "Workplaces",
+   "options": "Production Line Workplace"
+  },
+  {
+   "fieldname": "plan_section",
+   "fieldtype": "Section Break",
+   "label": "Daily Plan"
+  },
+  {
+   "default": "07:00:00",
+   "description": "When the day's Work Orders are opened. Until then the app hands out only what is left from earlier Work Orders, or opens an overflow one.",
+   "fieldname": "plan_time",
+   "fieldtype": "Time",
+   "label": "Plan At",
+   "reqd": 1
+  },
+  {
+   "fieldname": "plan",
+   "fieldtype": "Table",
+   "label": "Plan",
+   "options": "Production Line Item"
+  },
+  {
+   "fieldname": "overflow_section",
+   "fieldtype": "Section Break",
+   "label": "Overflow"
+  },
+  {
+   "default": "5",
+   "description": "How many units an overflow Work Order covers when the day's plan runs out mid-shift. Small is safer: unused units are wasted serial numbers.",
+   "fieldname": "overflow_qty",
+   "fieldtype": "Int",
+   "label": "Overflow Qty"
+  },
+  {
+   "fieldname": "cleanup_section",
+   "fieldtype": "Section Break",
+   "label": "End of Day"
+  },
+  {
+   "default": "1",
+   "description": "Close the day at the time below: delete the Job Cards nobody took and stop the day's Work Orders, so the app does not hand out a stale unit tomorrow.",
+   "fieldname": "cleanup_enabled",
+   "fieldtype": "Check",
+   "label": "Close Stale Work Orders"
+  },
+  {
+   "default": "21:00:00",
+   "depends_on": "cleanup_enabled",
+   "description": "When the day is closed: Job Cards nobody took are deleted and the Work Orders opened before this moment are stopped. Must be later than the plan time.",
+   "fieldname": "cleanup_time",
+   "fieldtype": "Time",
+   "label": "Close Day At",
+   "mandatory_depends_on": "cleanup_enabled"
+  },
+  {
+   "fieldname": "column_break_cleanup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Also delete the Serial Nos that were never produced. Off by default: deleting a serial is irreversible, and leaving it costs only a gap in the numbering.",
+   "fieldname": "delete_unused_serials",
+   "fieldtype": "Check",
+   "label": "Delete Unused Serial Nos"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Last Run"
+  },
+  {
+   "fieldname": "last_run_on",
+   "fieldtype": "Datetime",
+   "label": "Last Run On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_result",
+   "fieldtype": "Small Text",
+   "label": "Last Result",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_cleanup_on",
+   "fieldtype": "Datetime",
+   "label": "Day Last Closed On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_cleanup_result",
+   "fieldtype": "Small Text",
+   "label": "Day Close Result",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-17 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Production Line",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "line_name",
+ "track_changes": 1
+}

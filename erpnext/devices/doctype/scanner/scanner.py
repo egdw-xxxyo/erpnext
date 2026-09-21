@@ -176,7 +176,7 @@ def render_barcode_svg(data):
 def get_config_barcodes(scanner_name, endpoint_url):
 	from urllib.parse import urlparse
 
-	from erpnext.devices.doctype.otdr.otdr_api import detect_public_base_url
+	from erpnext.devices.server_url import detect_public_base_url
 
 	doc = frappe.get_doc("Scanner", scanner_name)
 	doc.check_permission("read")

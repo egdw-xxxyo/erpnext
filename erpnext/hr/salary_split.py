@@ -18,6 +18,8 @@
 «ЗП готівкою до виплати» = те, що видається з каси.
 """
 
+import datetime
+
 import frappe
 from frappe import _
 from frappe.utils import flt, get_first_day, getdate, money_in_words, nowdate, rounded
@@ -162,7 +164,9 @@ def _salary_value(value):
 	if value in (None, ""):
 		return None
 
-	if isinstance(value, str) and not value.replace(".", "", 1).replace("-", "", 1).isdigit():
+	if isinstance(value, datetime.date) or (
+		isinstance(value, str) and not value.replace(".", "", 1).replace("-", "", 1).isdigit()
+	):
 		return str(getdate(value))
 
 	return flt(value)

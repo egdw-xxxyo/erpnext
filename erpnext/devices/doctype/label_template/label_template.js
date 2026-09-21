@@ -297,7 +297,7 @@ function _render_html_help_dialog(data) {
 
 	let examples_html = "";
 	if (examples.length) {
-		examples_html += `<h2>${__("Приклади")}</h2>`;
+		examples_html += `<h2>${__("Examples")}</h2>`;
 		for (const cat of Object.keys(examples_by_category)) {
 			examples_html += `<h3>${frappe.utils.escape_html(cat)}</h3>`;
 			for (const ex of examples_by_category[cat]) {

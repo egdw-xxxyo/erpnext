@@ -2,24 +2,24 @@
 
 Two layers: a per-(username, client IP) counter that locks that pair out after
 repeated failures, and a global failure rate cap so a spray across many
-usernames is slowed down too. State is persisted so a container restart is not
-a way to clear a lockout.
+usernames is slowed down too. State is persisted in the ops database so a
+container restart is not a way to clear a lockout.
 """
 
 from __future__ import annotations
 
-import json
-import os
 import threading
 import time
 
-from .config import settings
+from . import store
 
 MAX_FAILURES = 5
 FAILURE_WINDOW = 15 * 60
 LOCKOUT_SECONDS = 15 * 60
 GLOBAL_MAX_PER_MIN = 20
 GLOBAL_COOLDOWN = 60
+
+GLOBAL_KEY = "lockout_global_until"
 
 _lock = threading.Lock()
 _failures: dict[str, list[float]] = {}
@@ -28,39 +28,33 @@ _global_failures: list[float] = []
 _global_until = 0.0
 
 
-def _path() -> str:
-	return os.path.join(settings.data_dir, "lockout.json")
-
-
 def load() -> None:
+	"""Read persisted state into the in-process counters at startup."""
 	global _global_until
 	try:
-		with open(_path()) as fh:
-			data = json.load(fh)
-	except (OSError, ValueError):
+		failures, locked_until = store.lockout_load()
+		persisted_global = float(store.kv_get(GLOBAL_KEY, 0.0) or 0.0)
+	except Exception as exc:
+		print(f"[ops] WARNING: could not load lockout state: {exc}", flush=True)
 		return
 	with _lock:
-		_failures.update({k: list(v) for k, v in data.get("failures", {}).items()})
-		_locked_until.update(data.get("locked_until", {}))
-		_global_until = data.get("global_until", 0.0)
+		_failures.update(failures)
+		_locked_until.update(locked_until)
+		_global_until = persisted_global
 
 
-def _save_locked() -> None:
-	"""Persist current state. Caller must hold the lock."""
+def _persist_key_locked(key: str) -> None:
+	"""Write one key's counters. Caller must hold the lock."""
 	try:
-		os.makedirs(settings.data_dir, exist_ok=True)
-		tmp = _path() + ".tmp"
-		with open(tmp, "w") as fh:
-			json.dump(
-				{
-					"failures": _failures,
-					"locked_until": _locked_until,
-					"global_until": _global_until,
-				},
-				fh,
-			)
-		os.replace(tmp, _path())
-	except OSError as exc:
+		store.lockout_save(key, _failures.get(key, []), _locked_until.get(key, 0.0))
+	except Exception as exc:
+		print(f"[ops] WARNING: could not persist lockout state: {exc}", flush=True)
+
+
+def _persist_global_locked() -> None:
+	try:
+		store.kv_set(GLOBAL_KEY, _global_until)
+	except Exception as exc:
 		print(f"[ops] WARNING: could not persist lockout state: {exc}", flush=True)
 
 
@@ -76,6 +70,7 @@ def check(username: str, client_ip: str) -> float:
 			return until - now
 		if until:
 			_locked_until.pop(key, None)
+			_persist_key_locked(key)
 		return 0.0
 
 
@@ -97,8 +92,9 @@ def record_failure(username: str, client_ip: str) -> None:
 		if len(recent) >= GLOBAL_MAX_PER_MIN:
 			_global_until = now + GLOBAL_COOLDOWN
 			_global_failures.clear()
+			_persist_global_locked()
 
-		_save_locked()
+		_persist_key_locked(key)
 
 
 def record_success(username: str, client_ip: str) -> None:
@@ -106,4 +102,7 @@ def record_success(username: str, client_ip: str) -> None:
 	with _lock:
 		_failures.pop(key, None)
 		_locked_until.pop(key, None)
-		_save_locked()
+		try:
+			store.lockout_forget(key)
+		except Exception as exc:
+			print(f"[ops] WARNING: could not persist lockout state: {exc}", flush=True)

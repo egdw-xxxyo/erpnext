@@ -233,7 +233,6 @@ async def ftp_target_remove_confirm(target_id: str, request: Request, session: S
 			),
 			"post_url": f"/settings/ftp/{target_id}/delete",
 			"hidden": {},
-			"require_typed": False,
 			"danger": True,
 			"button_label": "Remove target",
 			"target_el": "#modal-body",

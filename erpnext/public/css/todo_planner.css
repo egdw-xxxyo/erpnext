@@ -1,0 +1,262 @@
+.todo-planner {
+	padding: 16px;
+}
+.todo-planner .tp-toolbar,
+.todo-planner .tp-navigation,
+.todo-planner .tp-options {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.todo-planner .tp-toolbar {
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+.todo-planner .tp-navigation strong {
+	margin-left: 8px;
+}
+.todo-planner .tp-options label {
+	margin: 0 8px 0 0;
+	font-size: 12px;
+	font-weight: normal;
+}
+.todo-planner .tp-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 16px;
+	align-items: start;
+}
+.todo-planner .tp-calendar-wrap {
+	overflow-x: auto;
+}
+.todo-planner .tp-calendar {
+	--tp-card-height: 130px;
+	--tp-visible-cards: 2;
+	display: grid;
+	grid-template-columns: repeat(7, minmax(240px, 1fr));
+	min-width: 1680px;
+	border-top: 1px solid var(--border-color);
+	border-left: 1px solid var(--border-color);
+	border-radius: 8px;
+	overflow: hidden;
+}
+.todo-planner .tp-weekday {
+	font-size: 12px;
+	text-align: center;
+	padding: 10px 4px;
+	background: var(--subtle-fg);
+	border-right: 1px solid var(--border-color);
+	border-bottom: 1px solid var(--border-color);
+}
+.todo-planner .tp-day {
+	min-width: 0;
+	padding: 7px;
+	border-right: 1px solid var(--border-color);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--fg-color);
+}
+.todo-planner .tp-week {
+	--tp-visible-cards: 3;
+}
+.todo-planner .tp-day-cards {
+	height: calc(var(--tp-visible-cards) * (var(--tp-card-height) + 8px) - 8px);
+	overflow-y: auto;
+	overscroll-behavior-y: contain;
+	scrollbar-gutter: stable;
+}
+.todo-planner .tp-day-cards .tp-card {
+	min-height: var(--tp-card-height);
+	box-sizing: border-box;
+	padding: 6px;
+}
+.todo-planner .tp-day-cards .tp-title {
+	display: block;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	line-height: 18px;
+	margin-bottom: 2px;
+}
+.todo-planner .tp-day-cards .tp-badges {
+	flex-wrap: nowrap;
+	gap: 3px;
+	margin-bottom: 2px;
+}
+.todo-planner .tp-day-cards .indicator-pill {
+	font-size: 10px;
+	line-height: 16px;
+}
+.todo-planner .tp-day-cards .tp-deadline,
+.todo-planner .tp-day-cards .tp-assigned {
+	line-height: 14px;
+	margin: 2px 0;
+}
+.todo-planner .tp-day-cards .tp-deadline {
+	padding: 2px 4px;
+}
+.todo-planner .tp-day-cards .tp-reference {
+	margin-top: 2px;
+	padding-top: 2px;
+	line-height: 13px;
+}
+.todo-planner .tp-day-cards .tp-reference span {
+	margin-bottom: 0;
+}
+.todo-planner .tp-day-cards .tp-card:last-child {
+	margin-bottom: 0;
+}
+.todo-planner .tp-day-cards .tp-reference span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.todo-planner .tp-day-cards .tp-reference a {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.todo-planner .tp-day-label {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin: 0 2px 10px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+.todo-planner .tp-day-label time {
+	padding: 3px 6px;
+}
+.todo-planner .tp-today .tp-day-label time {
+	background: var(--primary);
+	color: var(--neutral);
+	border-radius: 5px;
+}
+.todo-planner .tp-outside {
+	background: var(--subtle-fg);
+}
+.todo-planner .tp-card {
+	cursor: pointer;
+	background: var(--fg-color);
+	padding: 10px;
+	margin-bottom: 8px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	box-shadow: var(--shadow-xs);
+	font-size: 11px;
+	overflow-wrap: anywhere;
+}
+.todo-planner .tp-card:hover {
+	border-color: var(--text-muted);
+}
+.todo-planner .tp-card.tp-overdue {
+	border-left: 3px solid var(--red-500);
+}
+.todo-planner .tp-title {
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-color);
+	margin-bottom: 8px;
+}
+.todo-planner .tp-badges {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 5px;
+	margin-bottom: 8px;
+}
+.todo-planner .tp-priority,
+.todo-planner .tp-assigned {
+	color: var(--text-muted);
+}
+.todo-planner .tp-deadline,
+.todo-planner .tp-assigned {
+	margin: 5px 0;
+}
+.todo-planner .tp-deadline strong {
+	display: inline;
+	font-weight: 500;
+}
+.todo-planner .tp-deadline {
+	white-space: nowrap;
+	padding: 4px 5px;
+	border: 1px solid var(--border-color);
+	border-radius: 5px;
+	background: var(--subtle-fg);
+}
+.todo-planner .tp-overdue .tp-deadline {
+	color: var(--red-500);
+}
+.todo-planner .tp-reference {
+	border-top: 1px solid var(--border-color);
+	padding-top: 7px;
+	margin-top: 8px;
+}
+.todo-planner .tp-reference span,
+.todo-planner .tp-reference a {
+	display: block;
+}
+.todo-planner .tp-reference span {
+	color: var(--text-muted);
+	margin-bottom: 3px;
+}
+.todo-planner .tp-reference a {
+	color: var(--primary);
+}
+.todo-planner .tp-backlog {
+	border-radius: 8px;
+	padding: 12px;
+	background: var(--subtle-fg);
+}
+.todo-planner .tp-backlog-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 12px;
+	align-items: start;
+}
+.todo-planner .tp-backlog h3 {
+	margin: 0 0 8px;
+	font-size: 14px;
+}
+.todo-planner .tp-hint {
+	font-size: 12px;
+}
+.todo-planner .tp-count {
+	font-size: 11px;
+	font-weight: normal;
+	color: var(--text-muted);
+	margin-left: 5px;
+}
+.todo-planner .tp-overdue-section {
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	margin-bottom: 16px;
+	padding: 12px;
+}
+.todo-planner .tp-overdue-section summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+.todo-planner .tp-overdue-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+	gap: 10px;
+	margin-top: 12px;
+	max-height: 320px;
+	overflow-y: auto;
+}
+.todo-planner .tp-overdue-cards .tp-card {
+	margin: 0;
+}
+.todo-planner .tp-more {
+	margin: 10px 0;
+}
+.todo-planner .tp-error {
+	padding: 32px;
+	text-align: center;
+}
+.todo-planner[aria-busy="true"] {
+	opacity: 0.65;
+}

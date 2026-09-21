@@ -1172,6 +1172,7 @@ Add Participants,Додати учасників
 Add Phantom Item,Додати фантомну позицію
 Add Quote,Додати Цитата
 Add Raw Materials,Додати сировину
+Add Relation,Додати звʼязок
 Add Safety Stock,Додати страховий запас
 Add Sales Partners,Додайте Партнерів продажу
 Add Schedule,Додати графік
@@ -1434,7 +1435,7 @@ Allow User to Edit Rate,Дозволити користувачу редагув
 Allow User to Edit Warehouse,Дозволити користувачу редагувати склад
 Allow Variant UOM to be different from Template UOM,Дозволити одиниці виміру варіанту відрізнятися від одиниці виміру шаблону
 Allow Zero Rate,Дозволити нульову ставку
-Allow Zero Valuation Rate,Дозволити нульову Незалежну оцінку Оцінити
+Allow Zero Valuation Rate,Дозволити нульову оцінку
 Allow existing Serial No to be Manufactured/Received again,Дозволити повторне виробництво/отримання існуючого серійного номера
 Allow material consumptions without immediately manufacturing finished goods against a Work Order,Дозволити споживання матеріалів без негайного виробництва готової продукції за робочим замовленням
 Allow multi-currency invoices against single party account ,Дозволити мультивалютні рахунки для облікового запису однієї сторони
@@ -1752,7 +1753,14 @@ Attribute Name,Ім'я атрибуту
 Attribute Value,Значення атрибуту
 Attribute table is mandatory,Атрибут стіл є обов&#39;язковим
 Attribute value: {0} must appear only once,Значення атрибута: {0} повинно зустрічатися лише один раз
+Attribute {0} changes in steps of {1},Атрибут {0} змінюється з кроком {1}
+Attribute {0} has no value {1}. Allowed: {2},Атрибут {0} не має значення {1}. Дозволені: {2}
+Attribute {0} is filled in twice,Атрибут {0} заповнено двічі
+Attribute {0} is not declared by the product type or subtype,"Атрибут {0} не оголошено ні типом, ні підтипом виробу"
 Attribute {0} selected multiple times in Attributes Table,Атрибут {0} вибрано кілька разів в таблиці атрибутів
+Attribute {0} takes a number,Атрибут {0} приймає число
+Attribute {0} takes a value between {1} and {2},Атрибут {0} приймає значення від {1} до {2}
+Attribute {0} takes a value of {1} or more,Атрибут {0} приймає значення не менше ніж {1}
 Attributes,Атрибути
 Auditor,Аудитор
 Authentication Failed,Помилка аутентифікації
@@ -3486,6 +3494,7 @@ Direct Expense,Прямі витрати
 Direct Expenses,Прямі витрати
 Direct Income,Пряма прибуток
 Direct return is not allowed for Timesheet.,Пряме повернення не дозволене для табеля обліку робочого часу.
+Direction,Напрямок
 Disable,Відключити
 Disable Capacity Planning,Вимкнути планування потенціалу
 Disable Cumulative Threshold,Вимкнути накопичувальний поріг
@@ -5306,7 +5315,7 @@ Itemwise Recommended Reorder Level,Рекомендовані рівні пер�
 JAN,Січ
 Job,Завдання
 Job Capacity,Потужність робочого місця
-Job Card,Карта вакансій
+Job Card,Картка завдання
 Job Card Analysis,Аналіз вакансій
 Job Card Item,Картка для роботи
 Job Card Operation,Операція картки завдання
@@ -6055,6 +6064,7 @@ New Purchase Invoice,Нова накладна за купівлю
 New Purchase Orders,Нові Замовлення на придбання
 New Quality Procedure,Нова процедура якості
 New Quotations,Нові Угоди
+New Revision,Нова редакція
 New Sales Invoice,Новий вихідний рахунок
 New Sales Orders,Нові Замовлення клієнтів
 New Sales Person Name,Ім'я нового Відповідального з продажу
@@ -6674,7 +6684,7 @@ Partially Completed,Частково завершено
 Partially Delivered,Частково доставлено
 Partially Depreciated,Частково амортизований
 Partially Fulfilled,Частково виконано
-Partially Ordered,Частково впорядковано
+Partially Ordered,Частково замовлено
 Partially Paid,Частково оплачується
 Partially Received,Частково отримано
 Partially Reconciled,Частково узгоджено
@@ -7451,6 +7461,9 @@ Produced / Received Qty,Вироблено/отримано Кільк.
 Produced Qty,Вироблена кількість
 Produced Quantity,Здобуте кількість
 Product,Продукт
+Product Attribute,Атрибут виробу
+Product Attribute Assignment,Призначення атрибута виробу
+Product Attribute Value,Значення атрибута виробу
 Product Bundle,Комплект
 Product Bundle Balance,Баланс продукту
 Product Bundle Help,Довідка з комплектів
@@ -7459,6 +7472,8 @@ Product Discount Scheme,Схема знижок на продукти
 Product Discount Slabs,Плити із знижкою на продукцію
 Product Enquiry,Запит про продукт
 Product Manager,Менеджер з продукту
+Product Modification Attribute,Атрибут модифікації
+Product Modification Document,Документ модифікації
 Product Price ID,Ідентифікатор ціни продукту
 Production,Виробництво
 Production Analytics,виробництво Аналітика
@@ -7984,6 +7999,7 @@ Rejected Warehouse,Склад для відхиленого
 Rejected Warehouse and Accepted Warehouse cannot be same.,Склад відхилення та склад прийняття не можуть бути однаковими.
 Related,Зв'язані
 Relation,Відношення
+Relation added,Звʼязок додано
 Release Date,Дата випуску
 Release date must be in the future,Дата виходу повинна бути в майбутньому
 Relieving Date,Дата звільнення
@@ -8361,7 +8377,8 @@ Row #{0}: Item {1} cannot be transferred more than {2} against {3} {4},Рядо�
 Row #{0}: Item {1} does not exist,Рядок #{0}: Товар {1} не існує
 "Row #{0}: Item {1} has been picked, please reserve stock from the Pick List.","Рядок #{0}: обрано товар {1}, будь ласка, зарезервуйте запас зі списку підбору."
 Row #{0}: Item {1} has no stock in warehouse {2}.,Рядок #{0}: Товар {1} відсутній на складі {2}.
-Row #{0}: Item {1} has zero rate but 'Allow Zero Valuation Rate' is not enabled.,"Рядок #{0}: Товар {1} має нульову ставку, але параметр ""Дозволити нульову ставку оцінки"" не увімкнено."
+Row #{0}: Item {1} has zero rate but '{2}' is not enabled.,"Рядок #{0}: Товар {1} має нульову ставку, але параметр «{2}» не увімкнено."
+Row #{0}: Item {1} has zero rate but 'Allow Zero Valuation Rate' is not enabled.,"Рядок #{0}: Товар {1} має нульову ставку, але параметр «Дозволити нульову оцінку» не увімкнено."
 "Row #{0}: Item {1} in warehouse {2}: Available {3}, Needed {4}.","Рядок #{0}: Товар {1} на складі {2}: Доступно {3}, Потрібно {4}."
 Row #{0}: Item {1} is not a Customer Provided Item.,"Рядок #{0}: Товар {1} не є товаром, наданим клієнтом."
 Row #{0}: Item {1} is not a Serialized/Batched Item. It cannot have a Serial No/Batch No against it.,Рядок № {0}: Пункт {1} не є серіалізованим / пакетним елементом. Він не може мати серійний номер / номер партії проти нього.
@@ -8584,6 +8601,7 @@ Row {0}: Total Number of Depreciations cannot be less than or equal to Number of
 Row {0}: Transferred quantity cannot be greater than the requested quantity.,Рядок {0}: Переміщена кількість не може перевищувати запитану кількість.
 Row {0}: UOM Conversion Factor is mandatory,Ряд {0}: Коефіцієнт перетворення Одиниця виміру є обов&#39;язковим
 Row {0}: Workstation or Workstation Type is mandatory for an operation {1},Рядок {0}: Робоча станція або тип робочої станції є обов'язковими для операції {1}
+Row {0}: revision {1} belongs to another document,Рядок {0}: редакція {1} належить іншому документу
 Row {0}: user has not applied the rule {1} on the item {2},Рядок {0}: користувач не застосував правило {1} до елемента {2}
 Row {0}: {1} account already applied for Accounting Dimension {2},Рядок {0}: Рахунок {1} вже застосовано для облікового виміру {2}
 Row {0}: {1} must be greater than 0,Рядок {0}: {1} має бути більше 0
@@ -8808,6 +8826,7 @@ Search,Пошук
 Search APIs,Пошукові API
 Search Sub Assemblies,Пошук Sub Асамблей
 Search Term Param Name,Пошуковий термін Назва пароля
+Search by Attribute,Пошук за атрибутом
 "Search by customer name, phone, email.","Пошук за іменем клієнта, телефоном, електронною поштою."
 Search by invoice id or customer name,Шукайте за ідентифікатором рахунка-фактури або іменем клієнта
 "Search by item code, serial number or barcode","Пошук за кодом товару, серійним номером або штрих-кодом"
@@ -9008,6 +9027,14 @@ Components,Компоненти
 Resulting Series,Підсумкова серія
 Start Counting From,Починати лічити з
 Literal,Літерал
+"Subtype {0} belongs to product type {1}, not {2}","Підтип {0} належить до типу виробу {1}, а не {2}"
+The increment cannot be negative,Крок не може бути відʼємним
+The selected document refers to this one,Обраний документ посилається на цей
+The start of the range cannot be greater than its end,Початок діапазону не може бути більшим за його кінець
+These attributes are mandatory for this product type: {0},Ці атрибути обовʼязкові для цього типу виробу: {0}
+This document refers to the selected one,Цей документ посилається на обраний
+Value {0} is listed twice,Значення {0} вказано двічі
+Values,Значення
 "Year (YYYY)","Рік (YYYY)"
 "Short Year (YY)","Короткий рік (YY)"
 "Month (MM)","Місяць (MM)"
@@ -13584,6 +13611,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Present Days","Присутність (днів)"
 "Half Days","Неповних днів"
 "Sick Leave Days","Днів лікарняного"
+"Business Trip Days","Днів у відрядженні"
 "Paid Leave Days","Днів оплачуваної відпустки"
 "Unpaid Leave Days","Днів відпустки за свій рахунок"
 "Overtime Hours","Переробіток годин"
@@ -13730,6 +13758,7 @@ No rows to calculate.,Немає рядків для підрахунку.
 "A","Н","Attendance Sheet Abbreviation"
 "WFH","ВД","Attendance Sheet Abbreviation"
 "SL","ЛК","Attendance Sheet Abbreviation"
+"BT","ВДР","Attendance Sheet Abbreviation"
 "L","ВП","Attendance Sheet Abbreviation"
 "H","С","Attendance Sheet Abbreviation"
 "WO","ВХ","Attendance Sheet Abbreviation"
@@ -13775,6 +13804,8 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Totals of the period as they were when the sheet was approved","Підсумки періоду на момент погодження табеля"
 "Leave Days","Відпустка (днів)"
 "Sick Days","Лікарняний (днів)"
+"Business Trip","Відрядження"
+"Business Trip Days","Днів у відрядженні"
 "at their own expense","за свій рахунок"
 "Open Attendance","Відкрити відвідуваність"
 "Leave","Відпустка","Attendance Sheet"
@@ -13824,6 +13855,705 @@ Component {0},Компонент {0}
 "No release found","Релізів не знайдено"
 "Public URL","Публічна адреса"
 "Instance Name","Назва екземпляра"
+"Notes about {0}","Нотатки про {0}"
+"Notes about this employee: {0}","Нотаток про цього працівника: {0}"
+"No notes about this employee yet","Про цього працівника ще немає нотаток"
+"Nothing written yet","Ще нічого не написано"
+"Note","Нотатка"
+"Add Note","Додати нотатку"
+"Update Note","Оновити нотатку"
+"Delete this note?","Видалити цю нотатку?"
+"edited","редаговано"
+"The note cannot be empty","Нотатка не може бути порожньою"
+"Only the author can change this note","Змінити цю нотатку може лише її автор"
+"This note does not exist","Такої нотатки не існує"
+"Attendance Sheet Note","Нотатка в табелі"
+"Days spent on a business trip. They are paid, and are already counted among the present days.","Дні у відрядженні. Вони оплачуються і вже враховані в днях присутності."
+OTDR Measurement,Вимірювання OTDR
+OTDR Measurements,Вимірювання OTDR
+Verdict,Висновок
+Undetermined,Не визначено
+Pass,Придатна
+Fail,Брак
+Measured On,Час вимірювання
+Loss (dB),Загасання (дБ)
+Fiber Length (km),Довжина волокна (км)
+Optical Return Loss (dB),Зворотні втрати (дБ)
+End Reflectance (dB),Відбиття кінця волокна (дБ)
+Wavelength (nm),Довжина хвилі (нм)
+Script State,Стан скрипта
+Script Log,Журнал скрипта
+SOR File,Файл SOR
+Filename,Ім'я файлу
+Remote Path,Шлях на пристрої
+Parsed Measurement,Розібране вимірювання
+Payload,Дані вимірювання
+Result,Результат
+"Sync and BLE settings sent to the phone measuring at this workplace","Налаштування синхронізації та BLE, які отримує телефон на цьому робочому місці"
+"Workplace Script state after this measurement was handled","Стан Скрипта робочого місця після обробки цього вимірювання"
+Workplace is required,Потрібно вказати робоче місце
+Measurement is required,Потрібно вказати вимірювання
+"Workplace {0} not found","Робоче місце {0} не знайдено"
+"You are not assigned to workplace {0}","Вас не призначено на робоче місце {0}"
+"Missing 'file' multipart field","Відсутнє поле 'file' у запиті"
+"Measurement {0} has no Quality Inspection to print for","Вимірювання {0} не має перевірки якості для друку мітки"
+Device Script — reusable libraries,Скрипт пристрою — бібліотеки для повторного використання
+"Device Scripts are reusable function libraries invoked from Workplace Scripts via the","Скрипти пристрою — це бібліотеки функцій, які викликаються зі Скриптів робочого місця через"
+Example,Приклад
+"Called from a Workplace Script state as","Викликається зі стану Скрипта робочого місця як"
+"The library name is the script name lowercased with spaces replaced by underscores.","Назва бібліотеки — це назва скрипта малими літерами, де пробіли замінено підкресленнями."
+"Unknown serial number: {0}","Невідомий серійний номер: {0}"
+"Item is required","Потрібно вказати товар"
+"Job Card is required","Потрібно вказати карту завдань"
+"Daily Qty cannot be negative (row {0})","Денна кількість не може бути від'ємною (рядок {0})"
+"Item {0} has no default BOM, cannot open a Work Order","Товар {0} не має норм за замовчуванням — неможливо створити наряд на роботу"
+"Work Order {0} produced no Job Card for {1}. Check the BOM operations.","Наряд на роботу {0} не створив карту завдань для {1}. Перевірте операції в нормах."
+"Production Line","Виробнича лінія"
+"Production Line Item","Рядок плану виробничої лінії"
+"Line Name","Назва лінії"
+"Line Type","Тип лінії"
+"Spool","Котушки"
+"What the line makes. Decides which client and which finishing steps apply to it.","Що виготовляє лінія. Визначає, який застосунок і які завершальні кроки до неї застосовуються."
+"A continuously running line that is kept supplied with Work Orders, so nobody has to size one by hand each morning","Безперервна лінія, яку автоматично забезпечують нарядами на роботу, щоб нікому не доводилось щоранку створювати їх вручну"
+"While off, no Work Order is created automatically and the app cannot hand out units from this line.","Поки вимкнено, наряди не створюються автоматично, а застосунок не видає одиниці з цієї лінії."
+"Where raw materials are taken from. Fills only the BOM rows that name no warehouse of their own.","Звідки беруться матеріали. Заповнює лише ті рядки норм, де склад не вказано."
+"The bench that makes this item. Its allowed operations decide which Job Cards the app may hand out.","Робоче місце, що виготовляє цей товар. Його дозволені операції визначають, які карти завдань може видавати застосунок."
+"How many units to open Work Orders for each day. Running out is not an error — an overflow Work Order is created on demand.","На скільки одиниць щодня відкривати наряди. Якщо їх забракне — це не помилка: додатковий наряд створюється на вимогу."
+"How many units an overflow Work Order covers when the day's plan runs out mid-shift. Small is safer: unused units are wasted serial numbers.","Скільки одиниць покриває додатковий наряд, коли денний план вичерпано посеред зміни. Менше — безпечніше: невикористані одиниці — це втрачені серійні номери."
+"Close the day at the time below: delete the Job Cards nobody took and stop the day's Work Orders, so the app does not hand out a stale unit tomorrow.","Закривати день у вказаний нижче час: видаляти карти завдань, яких ніхто не взяв, і зупиняти наряди дня, щоб завтра застосунок не видав застарілу одиницю."
+"Plan At","Планувати о"
+"When the day's Work Orders are opened. Until then the app hands out only what is left from earlier Work Orders, or opens an overflow one.","Коли відкриваються наряди дня. До цього часу застосунок видає лише залишки з попередніх нарядів або відкриває додатковий."
+"Close Day At","Закривати день о"
+"When the day is closed: Job Cards nobody took are deleted and the Work Orders opened before this moment are stopped. Must be later than the plan time.","Коли закривається день: карти завдань, яких ніхто не взяв, видаляються, а наряди, відкриті до цього моменту, зупиняються. Має бути пізніше за час планування."
+"Day Last Closed On","День востаннє закрито"
+"Day Close Result","Результат закриття дня"
+"Close Day At must be later than Plan At","Час закриття дня має бути пізнішим за час планування"
+"Also delete the Serial Nos that were never produced. Off by default: deleting a serial is irreversible, and leaving it costs only a gap in the numbering.","Також видаляти серійні номери, які так і не були виготовлені. Типово вимкнено: видалення незворотне, а залишений номер коштує лише пропуску в нумерації."
+"No enabled production line of type {0} plans item {1}","Жодна увімкнена виробнича лінія типу {0} не планує товар {1}"
+"Row {0}: item {1} at workplace {2} is already planned on production line {3}","Рядок {0}: товар {1} на робочому місці {2} уже заплановано на виробничій лінії {3}"
+"{0} has not passed quality inspection yet","{0} ще не пройшов перевірку якості"
+"Daily Plan","Денний план"
+"Daily Qty","Денна кількість"
+"Overflow Qty","Кількість на дозамовлення"
+"Close Stale Work Orders","Закривати застарілі наряди"
+"Delete Unused Serial Nos","Видаляти невикористані серійні номери"
+"Last Run On","Останній запуск"
+"Last Result","Результат останнього запуску"
+"WIP Warehouse","Склад \"В роботі\""
+"Finished Goods Warehouse","Склад готової продукції"
+"Spool production","Виробництво котушок"
+"Raw Material Warehouse","Склад сировини"
+"Test server","Тестовий сервер","Environment banner"
+"Local server","Локальний сервер","Environment banner"
+"Add Photo","Додати фото"
+"Change Photo","Змінити фото"
+"Save the employee to add a photo","Збережіть працівника, щоб додати фото"
+"Has Subordinates","Має у підпорядкуванні"
+"Does Not Fill Attendance Sheet","Не заповнює табель відвідуваності"
+"Their direct reports show up in their manager's Attendance Sheet instead, or further up the chain if that manager is checked too.","Його прямі підлеглі показуються в табелі його керівника, або далі по ланцюгу, якщо в керівника теж стоїть ця галка."
+"Attached Documents","Додані документи"
+"File Name","Назва файлу"
+"Employee Document","Документ працівника"
+"Employee Document Type","Тип документа працівника"
+"Designation (English)","Посада eng"
+"Designation (Ukrainian)","Посада укр"
+"KP Code","Код КП"
+"Professional Title","Професійна назва роботи"
+"KP Code {0} with professional title {1} is not in the Classifier of Professions","Коду КП {0} з професійною назвою роботи {1} немає в Класифікаторі професій"
+Employees this one fills the attendance sheet for on top of their direct reports. ,"Працівники, за яких цей співробітник заповнює табель додатково до своїх прямих підлеглих. "
+Shown in the attendance sheet on the days of this leave. ,Показується в табелі у дні цієї відсутності.
+There is nothing left to pay here.,Тут більше немає чого виплачувати.
+Summarized View,Зведений вигляд
+Mark Attendance,Відмітити відвідування
+Leave Type,Тип відпустки
+Please set a date range less than {0} days.,"Вкажіть діапазон дат, менший за {0} днів."
+Jan,Січ
+Feb,Лют
+Mar,Бер
+Apr,Кві
+Aug,Сер
+Sep,Вер
+Oct,Жов
+Nov,Лис
+Dec,Гру
+Absent,Відсутній
+Present,Присутній
+Select the company.,Оберіть компанію.
+Payment Entry (Card),Платіж (картка)
+Payment Entry (Cash),Платіж (готівка)
+Paid {0},Виплачено {0}
+Pay {0},Виплатити {0}
+Unlink,Відв'язати
+Managers,Керівники
+No token given,Токен не надано
+En Route,У дорозі
+Odometer End is required before submitting,Перед проведенням потрібно вказати кінцевий пробіг
+Vehicle {0} is already en route in trip {1},Транспорт {0} вже в дорозі у поїздці {1}
+Odometer End cannot be less than Odometer Start,Кінцевий пробіг не може бути меншим за початковий
+Odometer Start ({0}) cannot be less than last recorded reading ({1}),Початковий пробіг ({0}) не може бути меншим за останнє записане значення ({1})
+No previous trips found for this vehicle. Please update the odometer manually.,Для цього транспорту немає попередніх поїздок. Оновіть пробіг вручну.
+Complete Trip,Завершити поїздку
+The value {0} is already assigned to an existing {1}.,Значення {0} вже призначено наявному {1}.
+"To still proceed with editing this Attribute Value, enable {0} in Specification Variant Settings.","Щоб усе одно змінити це значення атрибута, увімкніть {0} у налаштуваннях варіантів специфікацій."
+Production Flow,Виробничий потік
+Select Item...,Оберіть товар...
+Select BOM...,Оберіть норми...
+No BOM with operations found for this item,Для цього товару не знайдено норм з операціями
+Materials,Матеріали
+No specific materials mapped,Конкретні матеріали не призначені
+min,хв
+BpAK Modifications Sheet,Відомість модифікацій БпАК
+Select a specification,Оберіть специфікацію
+Modification,Модифікація
+FPV Code,Шифр FPV
+No modifications for this specification,Немає модифікацій для цієї специфікації
+BpAK Matrix (board × ground station),Матриця БпАК (борт × НСУ)
+Workplace Portal,Портал робочого місця
+No active Workplaces found. Create one first.,Активних робочих місць не знайдено. Спочатку створіть робоче місце.
+My Job Cards,Мої карти завдань
+Other Job Cards,Інші карти завдань
+No Job Cards found for the configured operations,Для налаштованих операцій карт завдань не знайдено
+"Scan Job Card, Serial Number or Item Barcode","Скануйте карту завдань, серійний номер або штрихкод товару"
+Job Card Found,Карту завдань знайдено
+Job Card {0} for {1} ({2}),Карта завдань {0} для {1} ({2})
+No matching Job Card found for barcode: {0},Не знайдено карти завдань за штрихкодом: {0}
+Back to list,Назад до списку
+Click to unassign,"Натисніть, щоб скасувати призначення"
+Assign Employee,Призначити працівника
+No workstation found for: {0},Робочу станцію не знайдено для: {0}
+Workstation set: {0},Встановлено робочу станцію: {0}
+Missing Required Fields,Не заповнені обов'язкові поля
+Select Employee,Оберіть працівника
+No employee linked to your user,З вашим користувачем не пов'язано працівника
+"Nothing to order, the selected rows are already covered by stock or existing orders",Немає чого замовляти: обрані рядки вже покриті запасом або наявними замовленнями
+Nothing to order from the selected rows,З обраних рядків немає чого замовляти
+Product BOM,Норми виробу
+Maximum Producible Items,Максимальна кількість виробів
+Warehouse is required to get producible FG Items,Для отримання готових виробів потрібно вказати склад
+FG Items to Make,Готові вироби до випуску
+Show availability of exploded items,Показати наявність розгорнутих позицій
+Open Portal,Відкрити портал
+"Version must start with 'v', e.g. v2026.07.13","Версія має починатися з «v», напр. v2026.07.13"
+Modification {0} already exists for specification {1}: {2},Модифікація {0} вже існує для специфікації {1}: {2}
+Price List {0} is not enabled for {1},Прайс-лист {0} не увімкнено для {1}
+Record,Записати
+(no text),(без тексту)
+No Label Templates configured for barcode type: {0},Для типу штрихкоду {0} не налаштовано шаблонів етикеток
+Please select a Label Template,Оберіть шаблон етикетки
+No packages linked.,Пакування не прив'язані.
+— select printer —,— оберіть принтер —
+Payroll,Зарплата
+"Salary for {0}, paid on {1}.","Зарплата за {0}, виплачено {1}."
+Production Data,Виробничі дані
+labels will be created,етикеток буде створено
+Go to <a href='/banking/statement-importer' target='_blank' style='text-decoration: underline;'>Bank Statement Importer</a> in the Banking module to use this importer.,"Перейдіть до <a href='/banking/statement-importer' target='_blank' style='text-decoration: underline;'>Імпортера банківських виписок</a> у модулі «Банкінг», щоб скористатися цим імпортером."
+You do not have permission to import bank transactions,У вас немає прав на імпорт банківських транзакцій
+Permission Denied,Доступ заборонено
+You do not have permission to import and submit bank transactions,У вас немає прав на імпорт і проведення банківських транзакцій
+The bank account is not a company account. Please select a company account,Банківський рахунок не є рахунком компанії. Оберіть рахунок компанії
+Invalid Bank Account,Некоректний банківський рахунок
+The bank account is disabled. Please enable it,Банківський рахунок вимкнено. Увімкніть його
+Disabled Bank Account,Вимкнений банківський рахунок
+"Import template should be of type .csv, .xlsx, .xls or .pdf","Шаблон імпорту має бути типу .csv, .xlsx, .xls або .pdf"
+Invalid File Type,Некоректний тип файлу
+PDF statement support requires the 'pdfplumber' library to be installed.,Підтримка PDF-виписок потребує встановленої бібліотеки «pdfplumber».
+Missing Dependency,Відсутня залежність
+This PDF is password protected. Please set the correct statement password on the,Цей PDF захищено паролем. Вкажіть правильний пароль виписки у
+Password Required,Потрібен пароль
+Could not detect any tables in this PDF. It may be a scanned or image-based,"Не вдалося виявити таблиці в цьому PDF. Можливо, він сканований або графічний"
+No Tables Detected,Таблиць не виявлено
+This statement has already been imported.,Цю виписку вже імпортовано.
+Already Imported,Вже імпортовано
+Missing Required Filter,Відсутній обов'язковий фільтр
+Unsupported Feature,Непідтримувана можливість
+Method {0} must permit GET requests,Метод {0} має дозволяти GET-запити
+Account Filter,Фільтр рахунків
+API Method Path,Шлях до методу API
+Calculation Formula,Формула розрахунку
+"Invalid line reference format: '{0}'. Must start with letter and contain only letters, numbers, underscores, and hyphens","Некоректний формат посилання на рядок: «{0}». Має починатися з літери та містити лише літери, цифри, підкреслення та дефіси"
+Duplicate line reference: '{0}',Дубльоване посилання на рядок: «{0}»
+Balance Type is required for Account Data,Для даних рахунку потрібен тип залишку
+{0} is required for {1},{0} обов'язкове для {1}
+Circular dependency detected: {0},Виявлено циклічну залежність: {0}
+Line References undefined in Formula: {0},У формулі використані невизначені посилання на рядки: {0}
+{0} is required for Calculated Amount,{0} обов'язкове для розрахованої суми
+Formula has unbalanced parentheses,У формулі незбалансовані дужки
+Formula references itself ('{0}'),Формула посилається сама на себе («{0}»)
+Formula references undefined codes: {0},Формула посилається на невизначені коди: {0}
+Formula evaluation error: {0},Помилка обчислення формули: {0}
+"Formula must return a numeric value, got {0}","Формула має повертати число, отримано {0}"
+{0} is required for Account Data,{0} обов'язкове для даних рахунку
+{0}: Invalid JSON format: {1},{0}: некоректний формат JSON: {1}
+"Filter must be [field, operator, value]","Фільтр має бути [поле, оператор, значення]"
+Field and operator must be strings,Поле та оператор мають бути рядками
+Field '{0}' is not a valid Account field,Поле «{0}» не є коректним полем рахунку
+Invalid operator '{0}',Некоректний оператор «{0}»
+Operator '{0}' requires a list value,Оператор «{0}» потребує значення-списку
+Logical condition must have exactly one operator,Логічна умова має містити рівно один оператор
+Logical operators must be 'and' or 'or',Логічні оператори мають бути «and» або «or»
+Logical conditions need at least 1 sub-condition,Логічна умова потребує щонайменше однієї підумови
+Filter must be a list or dict,Фільтр має бути списком або словником
+{0} should be in format: app.module.method,{0} має бути у форматі: app.module.method
+{0}: Method '{1}' must be whitelisted and permit GET requests,{0}: метод «{1}» має бути у білому списку та дозволяти GET-запити
+Could not validate {0}: {1},Не вдалося перевірити {0}: {1}
+Tip,Підказка
+Tip: Select report lines to view their accounts,"Підказка: оберіть рядки звіту, щоб побачити їхні рахунки"
+Go to the <a href='/banking' target='_blank' style='text-decoration: underline;'>Banking module</a> to setup this rule.,"Перейдіть до <a href='/banking' target='_blank' style='text-decoration: underline;'>модуля «Банкінг»</a>, щоб налаштувати це правило."
+Invalid debit/credit formula: {0},Некоректна формула дебету/кредиту: {0}
+Min amount cannot be greater than max amount.,Мінімальна сума не може бути більшою за максимальну.
+Party type is required to create a payment entry.,Для створення платежу потрібен тип контрагента.
+Party is required create a payment entry.,Для створення платежу потрібен контрагент.
+Party account is required to create a payment entry.,Для створення платежу потрібен рахунок контрагента.
+Please add an account for the Bank Entry rule.,Додайте рахунок для правила банківського запису.
+Please configure accounts for the Bank Entry rule.,Налаштуйте рахунки для правила банківського запису.
+The last account row must not have any debit or credit amounts set.,В останньому рядку рахунку не має бути сум дебету чи кредиту.
+Invalid regex pattern.,Некоректний регулярний вираз.
+Account company does not match with the rule company.,Компанія рахунку не збігається з компанією правила.
+Related Item,Пов'язаний товар
+BOM Component,Компонент норм
+BOM Secondary Item,Супутній товар норм
+BOM Output,Випуск за нормами
+Product Bundle Component,Компонент комплекту
+Product Bundle Parent,Комплект
+Subcontracting Service Item,Послуга субпідряду
+Subcontracting Finished Good,Готовий виріб субпідряду
+Alternative For Item,Альтернатива для товару
+Add attributes first.,Спочатку додайте атрибути.
+Set Attribute Values,Задати значення атрибутів
+View Packages,Переглянути пакування
+No packages yet.,Пакувань ще немає.
+Serial No / Qty,Серійний номер / к-сть
+(empty),(порожньо)
+Packed {0} out of {1},Запаковано {0} з {1}
+Please select at least one BpAK,Оберіть щонайменше один БпАК
+A token like {0} reads a specification parameter of the item linked to that attribute value.,"Токен на кшталт {0} читає параметр специфікації товару, пов'язаного з цим значенням атрибута."
+Serial No is required for: {0},Потрібен серійний номер для: {0}
+Packing Template {0} requires a BpAK to be selected.,Шаблон пакування {0} потребує обраного БпАК.
+BpAK {0} not found,БпАК {0} не знайдено
+BpAK {0} is cancelled,БпАК {0} скасовано
+Package Sales Order {0} does not match BpAK Sales Order {1},Замовлення клієнта пакування {0} не збігається із замовленням БпАК {1}
+Cannot submit an empty Package. Add items first.,Неможливо провести порожнє пакування. Спочатку додайте позиції.
+Auto-pass QC is enabled but no draft Quality Inspection exists for serials: {0},"Автоматичне проходження контролю увімкнено, але немає чернеток перевірки якості для серійних номерів: {0}"
+No open Job Card with operation {0} found for serials: {1},Не знайдено відкритої карти завдань з операцією {0} для серійних номерів: {1}
+No draft Quality Inspection found for serial {0},Не знайдено чернетки перевірки якості для серійного номера {0}
+Cannot cancel a Package linked to Shipment {0},"Неможливо скасувати пакування, пов'язане з відправленням {0}"
+Cannot delete Package {0} because it is linked to Purchase Receipt {1},"Неможливо видалити пакування {0}, бо воно пов'язане з прибутковою накладною {1}"
+Cannot delete Package {0} because it is linked to Shipment {1},"Неможливо видалити пакування {0}, бо воно пов'язане з відправленням {1}"
+Duplicate serial number {0} in this package,Дубльований серійний номер {0} у цьому пакуванні
+No submitted Package found for barcode {0},Не знайдено проведеного пакування за штрихкодом {0}
+No Package found for {0},Не знайдено пакування для {0}
+Package {0} must be submitted first,Спочатку проведіть пакування {0}
+Purchase Receipt {0} not found,Прибуткову накладну {0} не знайдено
+Package {0} already linked to {1},Пакування {0} вже пов'язане з {1}
+Package {0} added to {1},Пакування {0} додано до {1}
+Package {0} is already linked to Shipment {1},Пакування {0} вже пов'язане з відправленням {1}
+Shipment {0} must be in Draft to add packages,"Щоб додати пакування, відправлення {0} має бути в чернетці"
+Package {0} added to Shipment {1},Пакування {0} додано до відправлення {1}
+Select BpAK before scanning items.,Оберіть БпАК перед скануванням позицій.
+Item {0} is not in BpAK {1},Товару {0} немає у БпАК {1}
+Stock Closing Entry {0} belongs to a closed accounting period. Cancel the Period Closing Voucher {1} first.,Запис закриття складу {0} належить до закритого облікового періоду. Спочатку скасуйте документ закриття періоду {1}.
+Closed Period,Закритий період
+Row #{0}: Cannot cancel this Manufacturing Stock Entry as quantity of Secondary Item {1} produced cannot be less than quantity delivered.,"Рядок #{0}: неможливо скасувати цей виробничий рух ТМЦ, оскільки випущена кількість супутнього товару {1} не може бути меншою за відвантажену."
+Print Job is required,Потрібне завдання друку
+Print Job {0} does not belong to a measurement,Завдання друку {0} не належить до вимірювання
+Print Job {0} not found,Завдання друку {0} не знайдено
+Send Next Step,Надіслати наступний крок
+Run All,Виконати все
+Test Case,Тестовий випадок
+Only Slow Scans,Лише повільні сканування
+Slower Than (ms),Повільніше ніж (мс)
+Total (ms),Разом (мс)
+Script (ms),Скрипт (мс)
+Resolve (ms),Обробка (мс)
+namespace. No entry point — define functions only.,простір імен. Без точки входу — визначайте лише функції.
+Template rendered empty HTML output,Шаблон повернув порожній HTML
+Print Job {0} is not in a printable state (status: {1}),"Завдання друку {0} не у стані, придатному для друку (статус: {1})"
+Printer {0} ({1}:{2}) is not responding. Check that it is powered on and connected to the network.,"Принтер {0} ({1}:{2}) не відповідає. Перевірте, чи він увімкнений і підключений до мережі."
+Printer {0} ({1}:{2}) refused the connection. Check that the printer is on and the port is correct.,"Принтер {0} ({1}:{2}) відхилив з'єднання. Перевірте, що принтер увімкнено і порт правильний."
+Printer {0} ({1}:{2}) is unreachable from the network.,Принтер {0} ({1}:{2}) недоступний з мережі.
+Print error on printer {0} ({1}:{2}): {3},Помилка друку на принтері {0} ({1}:{2}): {3}
+Changing labels...,Зміна етикеток...
+Clear Memory,Очистити пам'ять
+Erase all stored images from printer memory?,Стерти всі збережені зображення з пам'яті принтера?
+Clearing printer memory...,Очищення пам'яті принтера...
+Printer memory cleared!,Пам'ять принтера очищено!
+Repository must be written as owner/name,Репозиторій треба вказувати як owner/name
+Please select at least one Scanner Command,Оберіть щонайменше одну команду сканера
+Subflows,Підпотоки
+Add states and transitions to render the diagram.,"Додайте стани та переходи, щоб побудувати діаграму."
+Please select at least one Print Job,Оберіть щонайменше одне завдання друку
+Cancelling...,Скасування...
+Deleting...,Видалення...
+No printers,Немає принтерів
+Select the label size you have loaded,"Оберіть розмір етикетки, який заряджено"
+Please select a printer first,Спочатку оберіть принтер
+Scan or type a serial number / name and press Enter,Скануйте або введіть серійний номер / назву та натисніть Enter
+Scan or type a value and press Enter to add to the list,"Скануйте або введіть значення та натисніть Enter, щоб додати до списку"
+No {0} found for '{1}',Не знайдено {0} для «{1}»
+", {0} skipped (printer error)",", {0} пропущено (помилка принтера)"
+Printing Stopped,Друк зупинено
+Printer reported an error. Remaining {0} labels were skipped.,Принтер повідомив про помилку. Решту {0} етикеток пропущено.
+No data to preview,Немає даних для попереднього перегляду
+Rendering preview...,Формування попереднього перегляду...
+Preview not available,Попередній перегляд недоступний
+Preview not available for this template type,Попередній перегляд недоступний для цього типу шаблону
+HTML Template is required,Потрібен HTML-шаблон
+Failed to render HTML to image,Не вдалося перетворити HTML на зображення
+Available Fields,Доступні поля
+Rendering...,Формування...
+Nothing to print. Set a Label Size and template.,Нічого друкувати. Вкажіть розмір етикетки та шаблон.
+Examples,Приклади
+Copy,Копіювати
+Copied,Скопійовано
+Loading fields...,Завантаження полів...
+No Reference DocType is set on this template.,У цьому шаблоні не вказано довідковий DocType.
+"For Raw Data templates, available keys are defined in the document(s) you pass at print time, or via Field Mapping.","Для шаблонів із сирими даними доступні ключі визначаються документами, які ви передаєте під час друку, або через зіставлення полів."
+Document fields,Поля документа
+Copy loop,Копіювати цикл
+(no renderable fields),(немає полів для виводу)
+Child tables,Дочірні таблиці
+Linked documents (one-level),Пов'язані документи (один рівень)
+Spec params,Параметри специфікації
+Flattened from the item's specification.,Розгорнуто зі специфікації товару.
+Field Mapping aliases,Псевдоніми зіставлення полів
+Runtime / preview-only keys,Ключі лише часу виконання / перегляду
+Seen in preview_data but not in doctype meta. Make sure they exist at runtime.,"Присутні у preview_data, але не в метаданих DocType. Переконайтеся, що вони існують під час виконання."
+Helpers,Помічники
+Translate,Перекласти
+Format date,Формат дати
+Barcode tag,Тег штрихкоду
+Attachment tag,Тег вкладення
+Filter fields...,Фільтрувати поля...
+Lines: {0} (limit {1}),Рядків: {0} (ліміт {1})
+line {0}: {1} chars,рядок {0}: {1} символів
+Too long: {0} (limit {1}),Задовге: {0} (ліміт {1})
+You have a new notification in ERPnext,У вас нове сповіщення у ERPnext
+Generate Barcode,Створити штрихкод
+(none),(немає)
+Very Low Probability,Дуже низька
+Very High Probability,Дуже висока
+Estimated Delivery Timeline,Орієнтовні терміни постачання
+Engagement Channel,Канал залучення
+Converted to Quotation,Перетворена в Quotation
+Negotiation Stage,Етап переговорів
+Client Budget (if known),Бюджет клієнта (якщо відомо)
+Next Action Type,Тип наступної дії
+Next Action Comment,Коментар до наступної дії
+Key Events,Ключові події
+Demonstration Conducted,Проведена демонстрація
+Test Sample Sent,Відправлено тестовий зразок
+Requirement Clarification,Уточнення потреб
+Solution Shaping,Формування рішення
+Call,Дзвінок
+Letter,Лист
+Internal Alignment,Внутрішнє узгодження
+Awaiting Client Response,Очікуємо відповідь клієнта
+Reason for Losing the Opportunity,Причина втрати Пропозиції
+Client cancelled the purchase,Клієнт відмовився від закупівлі
+Another supplier chosen,Обрано іншого постачальника
+Budget not agreed,Не погоджено бюджет
+Deadlines not agreed,Не погоджено терміни
+Technical solution not agreed,Не погоджено технічне рішення
+We declined,Ми відмовилися
+No further contact established,Не вдалося встановити подальший контакт
+Purchase postponed indefinitely,Закупівлю відкладено на невизначений термін
+Need is no longer relevant,Втрачено актуальність потреби
+My Opportunities,Мої Пропозиції
+Active Opportunities,Активні Пропозиції
+{0} is mandatory while the Opportunity is active,"{0} є обов'язковим, поки Пропозиція активна"
+Status {0} is set automatically when a Quotation is created and cannot be selected manually,Статус {0} встановлюється автоматично при створенні Quotation і не може бути обраний вручну
+Converted to Quotation {0},Перетворена в Quotation {0}
+Fulfilment Type,Тип виконання
+Finished Goods Sale,Продаж готової продукції
+New Production,Нове виробництво
+Combined,Комбіноване
+Cancellation,Скасування
+Cancellation Reason,Причина скасування
+Cancellation Comment,Коментар до скасування
+Sales Order Fulfilment,Оформлення через Sales Order
+Approved Quantity,Погоджена кількість
+Remaining Quantity,Залишок до оформлення
+Quotation Locked,Угода заблокована
+Quantity Exceeded,Перевищено кількість
+{0} can only be changed while the Quotation is in state {1},{0} можна змінити лише у статусі {1}
+{0} cannot be changed while the Quotation is being approved. Return it for rework first.,{0} не можна змінювати під час погодження. Спочатку поверніть Угоду на доопрацювання.
+{0} and {1} are mandatory to cancel a Quotation,{0} та {1} обов'язкові для скасування Угоди
+Row #{0}: Item {1} is not part of Quotation {2},Рядок #{0}: товару {1} немає в Угоді {2}
+Row #{0}: only {1} of {2} is left to order on Quotation {3},Рядок #{0}: в Угоді {3} залишилось лише {1} товару {2}
+The Quotation is being approved and cannot be edited. Return it for rework to change the terms.,"Угода перебуває на погодженні та недоступна для редагування. Щоб змінити умови, поверніть її на доопрацювання."
+Workplaces,Робочі місця
+"The benches this line runs at. The clients of this line offer only these workplaces, and every plan row must name one of them.","Робочі місця, на яких працює ця лінія. Клієнти лінії пропонують лише ці робочі місця, і кожен рядок плану має вказувати одне з них."
+"While off, the line's clients no longer offer this bench.","Якщо вимкнено, клієнти лінії більше не пропонують це робоче місце."
+Workplace {0} is listed more than once,Робоче місце {0} вказано більше одного разу
+Row {0}: Workplace is required,Рядок {0}: робоче місце обов'язкове
+Row {0}: workplace {1} is not one of this line's workplaces,Рядок {0}: робоче місце {1} не належить до робочих місць цієї лінії
+Workplace {0} already belongs to production line {1},Робоче місце {0} вже належить виробничій лінії {1}
+Production Line: {0},Виробнича лінія: {0}
+All lines,Усі лінії
+No BOM with operations is planned on this production line,На цій виробничій лінії не заплановано жодної BOM з операціями
+No allowed operations,Немає дозволених операцій
+per day,на день
+No workplaces on this line,На цій лінії немає робочих місць
+Workplaces of this line,Робочі місця цієї лінії
+Step,Крок
+"{0} child tasks were detached because this Task is no longer a Group Task.","{0} дочірніх задач відкріплено, бо ця задача більше не є груповою."
+Unpacked,Розпаковано
+"Auto-pass QC is enabled but serials have neither a draft nor a passed Quality Inspection: {0}","Auto-pass QC увімкнено, але серійні номери не мають ні чернетки, ні пройденої перевірки якості: {0}"
+"No open or finished Job Card with operation {0} found for serials: {1}","Не знайдено відкритої або завершеної карти завдань з операцією {0} для серійних номерів: {1}"
+Package {0} is already unpacked or cancelled,Пакет {0} вже розпаковано або скасовано
+"Unpacked by {0}. Serials released: {1}","Розпаковано {0}. Звільнені серійні номери: {1}"
+Deadline,Дедлайн
+Assignment Date,Дата призначення
+No Deadline,Без терміну,ToDo
+Recently Added,Нещодавно додані
+Overdue ToDo Tasks,Протерміновані задачі
+Tasks for Today,Задачі на сьогодні
+Tasks Without Deadlines,Задачі без термінів
+Last Three Days,Останні три дні
+Before Now,До поточного моменту
+Only Administrator can delete default ToDo filters.,Лише Administrator може видаляти стандартні фільтри завдань.
+Next 24 Hours,Найближчі 24 години
+Planner,Планувальник,
+Show Completed Tasks,Показувати завершені задачі,
+Set Deadline,Встановити дедлайн,
+Change Deadline,Змінити дедлайн,
+Set a deadline or drag a task to a day,Встановіть дедлайн або перетягніть задачу на день,
+No overdue tasks,Немає протермінованих задач,
+No tasks without deadlines,Немає задач без термінів,
+Could not load tasks,Не вдалося завантажити задачі,
+Invalid planner date range,Некоректний діапазон дат планувальника,
+Invalid planner section,Некоректний розділ планувальника,
+Invalid ToDo filters,Некоректні фільтри задач,
+Overdue,Протерміновано,ToDo
+Document Section,Розділ реєстру
+Section Name,Назва розділу
+Default Document Type,Тип документа за замовчуванням
+Naming Prefix,Префікс нумерації
+Prefix used by the Document Naming Rule of this section,"Префікс, який використовує правило нумерації цього розділу"
+Default Section,Розділ за замовчуванням
+Product Classification,Класифікація виробу
+Modifications,Модифікації
+Cannot delete section {0}: it holds {1} document(s),Неможливо видалити розділ {0}: у ньому {1} документ(ів)
+Document Relation,Звʼязок документа
+Document Title,Назва документа
+External Number,Зовнішній номер
+Section,Розділ
+Document Date,Дата документа
+Responsibility,Відповідальність
+Responsible,Відповідальний
+Responsible Department,Підрозділ відповідального
+Author,Автор
+Approved By,Погодив
+Approval Date,Дата погодження
+Validity,Чинність
+Valid Until,Чинний до
+Next Review Date,Дата наступного перегляду
+Related Documents,Повʼязані документи
+Relations,Звʼязки
+Relation Type,Тип звʼязку
+No related documents yet,Повʼязаних документів ще немає
+Document Revision,Редакція документа
+Revision Number,Номер редакції
+Revision Title,Назва редакції
+Revision Status,Статус редакції
+PDF File,Файл PDF
+Signed Scan,Скан із підписом
+Change,Зміна
+Prepared By,Підготував
+Checked By,Перевірив
+Effective Date,Дата набуття чинності
+End Date,Дата припинення
+Revisions,Редакції
+Current Revision,Актуальна редакція
+Revision {0} is not submitted,Редакція {0} не проведена
+PDF,PDF
+Document Audit Entry,Запис журналу аудиту
+Event,Подія
+Event Time,Час події
+User,Користувач
+Field Changed,Змінене поле
+Value Before,Значення до
+Value After,Значення після
+Audit entries are written by the register itself,Записи журналу створює сам реєстр
+Product Type,Тип виробу
+Product Subtype,Підтип виробу
+Product Model,Модель виробу
+Modification Code,Шифр модифікації
+Introduction Date,Дата впровадження
+Discontinued Date,Дата зняття з виробництва
+NSN,NSN
+Other Codes,Інші коди
+Documents,Документи
+NATO Codification,Кодифікація НАТО
+Requirements,Вимоги
+Required Document Type,Потрібний тип документа
+Mandatory,Обовʼязковий
+Requirement Template,Шаблон комплектності
+Documentation Completeness,Комплектність документації
+Completeness,Комплектність
+Requirement,Вимога
+State,Стан
+optional,необовʼязковий
+of,із
+Start Date,Дата початку
+Additional Attachment,Додаткове вкладення
+Change Basis,Підстава зміни
+Change Description,Опис змін
+Completeness Record,Запис комплектності
+Current Revision Effective Date,Дата набуття чинності поточної редакції
+Document Revisions,Редакції документа
+Linked Records,Пов'язані записи
+Main Document,Основний документ
+NATO Code / NSN,Код НАТО / NSN
+Number,Номер
+Other Codes Received,Інші отримані коди
+Product Modification,Модифікація виробу
+Related Document,Пов'язаний документ
+Subtype,Підтип
+Technical Document Type,Тип технічного документа
+Technical Specification,ТУ
+Word File,Word-файл
+Responsibility and Validity,Відповідальність і чинність
+Legacy Mirror Tables,Застарілі дзеркальні таблиці
+Extensions,Розширення
+Has Product Classification,Має класифікацію виробу
+Has Modifications,Має модифікації
+Requires Completeness,Потребує контролю комплектності
+Parent Section,Батьківський розділ
+Expiry date cannot be earlier than the effective date,Дата завершення не може бути раніше за дату набуття чинності
+Revision {0} is already in force for document {1},Редакція {0} уже є чинною для документа {1}
+Revision {0} belongs to another document,Редакція {0} належить іншому документу
+Revision {0} is not submitted and cannot be the current one,Редакція {0} не проведена і не може бути чинною
+Revision {0} has status {1} and cannot be the current one,Редакція {0} має статус {1} і не може бути чинною
+A document cannot be related to itself,Документ не можна повʼязати сам із собою
+Relation {0} already records this link,Звʼязок {0} уже фіксує це повʼязання
+Duplicate relation,Дубльований звʼязок
+An audit entry cannot be changed once written,Запис журналу не можна змінити після створення
+Access restricted,Доступ обмежено
+Annex,Додаток
+Codification Date,Дата кодифікації
+Codified,Кодифіковано
+Could not load this section,Не вдалося завантажити розділ
+In force,Чинних
+Mandatory documents,Обовʼязкових документів
+Modification Status,Статус модифікації
+No document refers to this one,На цей документ ніхто не посилається
+No requirement template selected,Шаблон комплектності не вибрано
+"Related but not declared an annex","Повʼязаний, але не оголошений додатком"
+"{0} is a document this package requires — only the relation {1} puts it there","{0} — документ, якого вимагає комплектність; у комплект його поставить лише звʼязок «{1}»"
+Not codified,Не кодифіковано
+Referred to by,На цей документ посилаються
+Scan,Скан
+The template lists no requirements,У шаблоні немає вимог
+This document has no revisions yet,Для цього документа ще немає редакцій
+This document refers to,Цей документ посилається на
+This specification has no modifications yet,Для цих ТУ ще немає модифікацій
+Technical Documentation Completeness,Комплектність технічної документації
+Documents present,Наявних документів
+Problems,Проблеми
+Completeness template is not set,Шаблон комплектності не задано
+Incomplete only,Лише неповні
+Technical Documentation,Технічна документація
+Register,Реєстр
+Specifications,Технічні умови
+Reports and Journal,Звіти та журнал
+State of the Register,Стан реєстру
+Your Shortcuts,Ваші ярлики
+Masters & Reports,Довідники та звіти
+{} Effective,{} чинних
+Effective Specifications,Чинних ТУ
+Documents Without a Current Revision,Документів без чинної редакції
+Codified Modifications,Кодифікованих модифікацій
+Technical Document,Технічний документ
+Technical Document Section,Розділ технічної документації
+Technical Document Revision,Редакція технічного документа
+Technical Document Relation,Звʼязок технічних документів
+Document Requirement Template,Шаблон комплектності
+Technical Document Audit Entry,Запис журналу технічної документації
+"Current version","Актуальна"
+"Document {0} is of a type that has no product modifications","Документ {0} має тип, у якого немає модифікацій виробу"
+"Modification {0} belongs to document {1}, not to {2}","Модифікація {0} належить документу {1}, а не {2}"
+"Make Effective","Ввести в дію"
+"Revision {0} becomes the one in force, and the revision in force until now becomes superseded. Continue?","Редакція {0} стане чинною, а редакція, чинна дотепер, стане заміненою. Продовжити?"
+"Putting the revision into force","Введення редакції в дію"
+"Revision is now in force","Редакція введена в дію"
+"Only a submitted revision can be put into force","Ввести в дію можна лише проведену редакцію"
+"Add Condition","Додати умову"
+"No conditions yet","Умов ще немає"
+"Pick an attribute and a value","Виберіть атрибут і значення"
+"Pick a product type first","Спочатку виберіть тип виробу"
+"Condition","Умова"
+"is exactly","дорівнює"
+"starts with","починається з"
+"contains the text","містить текст"
+"Pick one of the values this attribute allows","Виберіть одне зі значень, які допускає цей атрибут"
+"Type a number and choose a condition above","Введіть число й виберіть умову вище"
+"Type a value and choose a condition above","Введіть значення й виберіть умову вище"
+"Conditions","Умови"
+"Counting…","Рахуємо…"
+"Matching modifications: {0}","Підходить модифікацій: {0}"
+"No modification matches these conditions","Жодна модифікація не підходить під ці умови"
+"is at least","не менше ніж"
+"is at most","не більше ніж"
+"is between","у межах"
+"Up To","До"
+"Attribute {0} is compared with a number, and {1} is not one","Атрибут {0} порівнюється з числом, а {1} числом не є"
+"A number out of a range. Leave it unchecked and the attribute holds text.","Число з діапазону. Якщо не позначено, атрибут зберігає текст."
+"Leave the table empty to let the modification hold any text.","Залиште таблицю порожньою, щоб модифікація могла містити будь-який текст."
+"Remove the relation to {0}?","Видалити звʼязок із {0}?"
+"Relation removed","Звʼязок видалено"
+"Reads as: this document — relation — the document below","Читається так: цей документ — звʼязок — документ нижче"
+"Reads as: the document below — relation — this document","Читається так: документ нижче — звʼязок — цей документ"
+Display Code,Шифр для виробів
+"Designation shown on Items: the Number Template override if one matches, else Specification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код специфікації."
+ЄСКД specification this item belongs to,"Специфікація ЄСКД, до якої належить ця номенклатура"
+Optional. Its Overrides table replaces this designation in Display Code.,Необовʼязково. Таблиця замін цього шаблону підміняє позначення в полі «Шифр для виробів».
+"ЄСКД designation as written in the catalog, e.g. УКРП.563562.001-01С.","Позначення ЄСКД як у каталозі, наприклад УКРП.563562.001-01С."
+Position within the catalog.,Порядковий номер у каталозі.
+"Specifications this one is built from, each in a role: a БпАК takes a drone and a ground station.","Специфікації, з яких складається ця, кожна у своїй ролі: БпАК складається з борту та НСУ."
+BpAK Modification List,Відомість модифікацій БпАК
+Modification List,Відомість модифікацій
+Items: {0},Номенклатур: {0}
+Items of {0},Номенклатури специфікації {0}
+No modification lists yet,Відомостей модифікацій ще немає
+Modification {0},Модифікація {0}
+No modifications in this list yet,У цій відомості ще немає модифікацій
+New Modification,Нова модифікація
+"«Призначення» column of the ЄСКД catalog, e.g. 125 0,25 5 км or 6S3P.","Стовпець «Призначення» каталогу ЄСКД, наприклад 125 0,25 5 км або 6S3P."
+Intended Use,Призначення
+Has Specification Data,Має дані специфікації
+"ЄСКД catalog data: kind, ordinal, intended use, parameters and component specifications.","Дані каталогу ЄСКД: вид, порядковий номер, призначення, параметри та специфікації-складові."
+"Designation shown on Items: the Number Template override if one matches, else Document Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код документа."
+"Specifications this one is built from, each in a role: a drone takes a coil and a battery.","Специфікації, з яких складається ця, кожна у своїй ролі: борт складається з котушки та батареї."
+Position in the modification list.,Порядковий номер у відомості модифікацій.
+The board and ground station specifications this modification pairs.,"Специфікації борту та НСУ, які поєднує ця модифікація."
+"Optional. Its Overrides table replaces the designation of a modification in its Display Code.","Необовʼязково. Таблиця замін цього шаблону підміняє позначення модифікації в полі «Шифр для виробів»."
+"Catalog of ЄСКД designations: every designation under this prefix is a modification below.","Каталог позначень ЄСКД: кожне позначення з цим префіксом — модифікація нижче."
+"ЄСКД catalog: kind, organization code and number template; its designations are the modifications.","Каталог ЄСКД: вид, код організації та шаблон номера; його позначення — модифікації."
+"Designation shown on Items: the Number Template override if one matches, else Modification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код модифікації."
+"Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.","Модифікації, з яких складається ця, кожна у своїй ролі: борт — з котушки та батареї, БпАК — з борту та НСУ."
+ЄСКД designation (specification modification) this item belongs to,"Позначення ЄСКД (модифікація специфікації), до якого належить ця номенклатура"
+Suggest Specification,Підібрати специфікацію
+Suggested Specifications,Підібрані специфікації
+Matched On,Збіг за
+No Match,Немає збігів
+Pick,Обрати
+Create Kit,Створити комплект
+Kit: {0},Комплект: {0}
+Kit {0} created,Комплект {0} створено
+Create a kit from these Items?,Створити комплект із цих номенклатур?
+Kit Incomplete,Комплект неповний
+No designation shares words with this item's attributes.,Жодне позначення не має спільних слів з атрибутами цієї номенклатури.
+"No Item is linked to these designations yet: {0}","До цих позначень ще не прив'язано жодної номенклатури: {0}"
+"{0} is made as several Items ({1}) — link only one of them to it","{0} виготовляється кількома номенклатурами ({1}) — прив'яжіть до нього лише одну"
+{0} has no component modifications to build a kit from,{0} не має складових модифікацій для комплекту
+Specification Type,Тип специфікації
+Narrows the Specification list to designations of this kind of product,Звужує список специфікацій до позначень цього виду виробу
+Scan Serial / Batch No,Сканувати серійний / партійний номер
+Scanned value is appended to the entries table,Відскановане значення додається до таблиці записів
+Please select an Item Code first,Спочатку виберіть код товару
+Serial No {0} is already added,Серійний номер {0} вже додано
+Added {0},Додано {0}
 Material Request Initiator,Ініціатор замовлення матеріалів
 Decision Reason,Причина рішення
 Current Assignee,Поточний виконавець

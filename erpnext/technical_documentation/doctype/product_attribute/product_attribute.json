@@ -1,0 +1,148 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:attribute_name",
+ "creation": "2026-09-16 10:00:00.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attribute_name",
+  "disabled",
+  "numeric_values",
+  "numeric_section",
+  "from_range",
+  "increment",
+  "numeric_column_break",
+  "to_range",
+  "values_section",
+  "attribute_values"
+ ],
+ "fields": [
+  {
+   "fieldname": "attribute_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Attribute Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Disabled"
+  },
+  {
+   "description": "A number out of a range. Leave it unchecked and the attribute holds text.",
+   "fieldname": "numeric_values",
+   "fieldtype": "Check",
+   "label": "Numeric Values"
+  },
+  {
+   "depends_on": "numeric_values",
+   "fieldname": "numeric_section",
+   "fieldtype": "Section Break",
+   "label": "Range"
+  },
+  {
+   "fieldname": "from_range",
+   "fieldtype": "Float",
+   "label": "From Range"
+  },
+  {
+   "fieldname": "increment",
+   "fieldtype": "Float",
+   "label": "Increment"
+  },
+  {
+   "fieldname": "numeric_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_range",
+   "fieldtype": "Float",
+   "label": "To Range"
+  },
+  {
+   "depends_on": "eval: !doc.numeric_values",
+   "fieldname": "values_section",
+   "fieldtype": "Section Break",
+   "label": "Values"
+  },
+  {
+   "description": "Leave the table empty to let the modification hold any text.",
+   "fieldname": "attribute_values",
+   "fieldtype": "Table",
+   "label": "Values",
+   "options": "Product Attribute Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-18 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Technical Documentation",
+ "name": "Product Attribute",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "idx": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "idx": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Viewer"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "idx": 3,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Editor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "idx": 4,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Technical Documentation Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "attribute_name",
+ "track_changes": 1
+}

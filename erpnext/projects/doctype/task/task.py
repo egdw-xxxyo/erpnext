@@ -278,6 +278,7 @@ class Task(NestedSet):
 		self.reschedule_dependent_tasks()
 		self.update_project()
 		self.unassign_todo()
+		self.detach_children_when_ungrouped()
 		self.populate_depends_on()
 		self.detach_from_previous_parent()
 		self.prune_stale_group_membership()
@@ -303,6 +304,30 @@ class Task(NestedSet):
 		for task_name in previous_tasks - current_tasks:
 			if frappe.db.get_value("Task", task_name, "parent_task") == self.name:
 				set_parent_task(task_name, None)
+
+	def detach_children_when_ungrouped(self):
+		"""Release the children of a task that stopped being a Group Task.
+
+		Their `parent_task` would keep pointing at a task that is not a group anymore, and
+		`validate_parent_is_group` then rejects every later save of the child — it can no
+		longer be edited, detached or deleted.
+		"""
+		previous = self.get_doc_before_save()
+		if self.is_group or not previous or not previous.is_group:
+			return
+
+		children = frappe.get_all("Task", filters={"parent_task": self.name}, pluck="name")
+		for child in children:
+			set_parent_task(child, None)
+
+		if children:
+			frappe.msgprint(
+				_("{0} child tasks were detached because this Task is no longer a Group Task.").format(
+					len(children)
+				),
+				indicator="orange",
+				alert=True,
+			)
 
 	def detach_from_previous_parent(self):
 		previous = self.get_doc_before_save()
@@ -454,7 +479,23 @@ class Task(NestedSet):
 		if check_if_child_exists(self.name):
 			throw(_("Child Task exists for this Task. You can not delete this Task."))
 
+		self.remove_incoming_depends_on_rows()
 		self.update_nsm_model()
+
+	def remove_incoming_depends_on_rows(self):
+		"""Drop the `depends_on` rows other tasks hold for this one.
+
+		`on_trash` runs before frappe checks for links, so rows left here would both block
+		the delete and survive it as a link to a task that no longer exists.
+		"""
+		holders = frappe.get_all(
+			"Task Depends On",
+			filters={"task": self.name, "parenttype": "Task"},
+			pluck="parent",
+		)
+
+		for holder in set(holders) - {self.name}:
+			remove_depends_on_row(holder, self.name)
 
 	def after_delete(self):
 		self.update_project()
@@ -496,9 +537,7 @@ def remove_depends_on_row(parent_task, task_name):
 
 def get_group_progress(task_name):
 	"""Share of completed child tasks, cancelled ones excluded from the total."""
-	tally = Counter(
-		frappe.get_all("Task", filters={"parent_task": task_name}, pluck="status")
-	)
+	tally = Counter(frappe.get_all("Task", filters={"parent_task": task_name}, pluck="status"))
 	considered = sum(count for status, count in tally.items() if status != "Cancelled")
 
 	return flt(tally.get("Completed", 0) / considered * 100, 2) if considered else 0.0

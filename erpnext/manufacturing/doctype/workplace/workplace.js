@@ -20,6 +20,7 @@ frappe.ui.form.on("Workplace", {
 		}
 		frm._barcode_field.refresh();
 		render_workplace_script_link(frm);
+		render_production_lines(frm);
 		setup_workplace_print_labels(frm);
 	},
 	barcode(frm) {
@@ -45,6 +46,27 @@ function setup_workplace_print_labels(frm) {
 					doc_name: frm.doc.name,
 					label_templates: templates,
 				});
+			});
+		},
+	});
+}
+
+function render_production_lines(frm) {
+	if (frm.is_new()) return;
+
+	// The binding lives on `Production Line.workplaces`; show it here read-only so the bench
+	// tells you which line it runs, without a second field to keep in sync.
+	frappe.call({
+		method: "erpnext.manufacturing.doctype.production_line.production_line.lines_for_workplace",
+		args: { workplace: frm.doc.name },
+		callback(r) {
+			const lines = r.message || [];
+			if (!lines.length) return;
+			lines.forEach((line) => {
+				frm.dashboard.add_indicator(
+					__("Production Line: {0}", [line.line_name || line.name]),
+					line.enabled ? "blue" : "gray"
+				);
 			});
 		},
 	});

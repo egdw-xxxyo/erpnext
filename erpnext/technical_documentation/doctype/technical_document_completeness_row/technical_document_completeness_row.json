@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-09-10 22:06:27.801066",
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "relation",
+  "related_document",
+  "relation_type",
+  "note"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "relation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Completeness Record",
+   "options": "Technical Document Relation",
+   "reqd": 1
+  },
+  {
+   "columns": 4,
+   "fetch_from": "relation.related_document",
+   "fieldname": "related_document",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Related Document",
+   "options": "Technical Document",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fetch_from": "relation.relation_type",
+   "fieldname": "relation_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Relation Type",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fetch_from": "relation.note",
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Note",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-18 22:29:26.296238",
+ "modified_by": "Administrator",
+ "module": "Technical Documentation",
+ "name": "Technical Document Completeness Row",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "relation"
+}
