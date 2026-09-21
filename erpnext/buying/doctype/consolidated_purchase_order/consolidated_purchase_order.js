@@ -67,14 +67,28 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 
 		frm.add_custom_button(
 			__("Purchase Invoice"),
-			() => {
+			async () => {
+				if (frm.is_dirty()) {
+					await frm.save();
+				}
 				frappe
 					.call({
 						method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_purchase_invoice_options",
 						args: { source_name: frm.doc.name },
 					})
 					.then((response) => {
-						const orders = response.message || [];
+						const result = response.message || {};
+						const orders = result.eligible_orders || [];
+						const missing_suppliers = result.missing_suppliers || [];
+						const missing_warning = get_missing_supplier_invoice_warning(missing_suppliers);
+						if (!orders.length && missing_suppliers.length) {
+							frappe.msgprint({
+								title: __("Supplier invoice required"),
+								indicator: "orange",
+								message: missing_warning,
+							});
+							return;
+						}
 						if (!orders.length) {
 							frappe.msgprint(__("There are no suppliers with unbilled Purchase Orders."));
 							return;
@@ -101,6 +115,15 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 										)
 										.join("<br>"),
 								},
+								...(missing_suppliers.length
+									? [
+											{
+												fieldname: "missing_supplier_invoice_warning",
+												fieldtype: "HTML",
+												options: `<div class="alert alert-warning mb-0">${missing_warning}</div>`,
+											},
+									  ]
+									: []),
 							],
 							primary_action_label: __("Create"),
 							primary_action(values) {
@@ -230,16 +253,24 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 					.html(`<div class="table-responsive"><table class="table table-bordered table-sm">
 				<thead><tr><th>${__("Purchase Order")}</th><th>${__("Supplier")}</th><th class="text-right">${__(
 					"Grand Total"
-				)}</th><th class="text-right">${__("Billed")}</th><th>${__(
-					"Payment Completed"
-				)}</th><th>${__("Payment Instruction")}</th><th>${__(
-					"Received"
-				)}</th></tr></thead><tbody>${body}</tbody></table></div>
+				)}</th><th class="text-right">${__("Billed")}</th><th>${__("Payment Completed")}</th><th>${__(
+					"Payment Instruction"
+				)}</th><th>${__("Received")}</th></tr></thead><tbody>${body}</tbody></table></div>
 				<h5 class="mt-4 mb-3">${__("Purchase Receipts")}</h5>
 				${render_purchase_receipt_table(receipt_rows)}`);
 			});
 	},
 });
+
+function get_missing_supplier_invoice_warning(suppliers) {
+	const supplier_names = suppliers
+		.map((row) => frappe.utils.escape_html(row.supplier_name || row.supplier))
+		.join(", ");
+	return __(
+		"Supplier invoices are missing for: {0}. Attach at least one supplier invoice before creating a Purchase Invoice for these suppliers.",
+		[supplier_names]
+	);
+}
 
 function render_approval_route(frm, field, route_data) {
 	const invoice_count = cint(route_data.payment_invoice_count ?? frm.doc.payment_invoice_count);
@@ -250,9 +281,10 @@ function render_approval_route(frm, field, route_data) {
 	const has_submitted_invoice = created_invoice_count > 0;
 	const all_invoices_created = invoice_count > 0 && created_invoice_count >= invoice_count;
 	const external_payment = Boolean(route_data.external_payment);
-	const payment_complete =
-		external_payment || (has_submitted_invoice && receipt_count >= invoice_count);
+	const payment_complete = external_payment || (has_submitted_invoice && receipt_count >= invoice_count);
+	const warehouse_receipt_complete = Boolean(route_data.warehouse_receipt_complete);
 	const purchase_receipt_complete = Boolean(route_data.purchase_receipt_complete);
+	const missing_delivery_note_suppliers = route_data.missing_delivery_note_suppliers || [];
 	const final_approval_count = cint(route_data.final_approval_count);
 	const final_approval_required = cint(route_data.final_approval_required) || 2;
 	const final_approval_automatic = Boolean(route_data.final_approval_automatic);
@@ -316,7 +348,7 @@ function render_approval_route(frm, field, route_data) {
 				? frm.doc.docstatus === 1 && has_submitted_invoice && !payment_complete
 				: !is_rejected &&
 				  ((frm.doc.docstatus !== 1 && index === current_index) ||
-					(is_posting && frm.doc.docstatus === 1 && !all_invoices_created));
+						(is_posting && frm.doc.docstatus === 1 && !all_invoices_created));
 			const status_class = completed ? "is-complete" : current ? "is-current" : "is-pending";
 			const actors = is_receipt
 				? route_data.receipt_actors || []
@@ -349,7 +381,17 @@ function render_approval_route(frm, field, route_data) {
 			} else if (is_receipt && external_payment && completed) {
 				role_text = __("Received by initiator:");
 			} else if (is_receipt && current) {
-				role_text = `${stage.role} · ${__("Awaiting Purchase Receipt")}`;
+				if (!warehouse_receipt_complete && missing_delivery_note_suppliers.length) {
+					role_text = `${stage.role} · ${__(
+						"Awaiting Purchase Receipt and supplier delivery notes"
+					)}`;
+				} else if (missing_delivery_note_suppliers.length) {
+					role_text = `${stage.role} · ${__(
+						"Awaiting supplier delivery notes"
+					)}: ${frappe.utils.escape_html(missing_delivery_note_suppliers.join(", "))}`;
+				} else {
+					role_text = `${stage.role} · ${__("Awaiting Purchase Receipt")}`;
+				}
 			}
 			const actor_html =
 				is_payment && external_payment && route_data.external_payer
@@ -361,9 +403,7 @@ function render_approval_route(frm, field, route_data) {
 					<div class="cpo-route-copy">
 						<div class="cpo-route-title">${frappe.utils.escape_html(stage.title)}</div>
 						<div class="cpo-route-role">${frappe.utils.escape_html(role_text)}</div>
-						<div class="cpo-route-actor" title="${frappe.utils.escape_html(
-							actor_text
-						)}">${actor_html}</div>
+						<div class="cpo-route-actor" title="${frappe.utils.escape_html(actor_text)}">${actor_html}</div>
 					</div>
 				</div>
 			</div>`;
@@ -398,9 +438,9 @@ function render_approval_route(frm, field, route_data) {
 	<div class="cpo-route-card ${state_class}">
 		<div class="cpo-route-head">
 			<div class="cpo-route-heading">${__("Approval Route")}</div>
-			<span class="indicator-pill no-indicator-dot ${get_route_indicator_color(state)} cpo-route-state">${frappe.utils.escape_html(
+			<span class="indicator-pill no-indicator-dot ${get_route_indicator_color(
 				state
-			)}</span>
+			)} cpo-route-state">${frappe.utils.escape_html(state)}</span>
 		</div>
 		${origin}
 		<div class="cpo-route-scroll"><div class="cpo-route">${steps}</div></div>
@@ -455,12 +495,7 @@ frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
 frappe.ui.form.on("Consolidated Purchase Delivery Note", {
 	delivery_note_file(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		frappe.model.set_value(
-			cdt,
-			cdn,
-			"delivery_note_document",
-			get_file_name(row.delivery_note_file)
-		);
+		frappe.model.set_value(cdt, cdn, "delivery_note_document", get_file_name(row.delivery_note_file));
 		if (
 			!row.delivery_note_file ||
 			[".pdf", ".zip"].some((extension) =>
@@ -498,9 +533,9 @@ function render_material_request_comments(frm, material_requests) {
 
 	const content = rows
 		.map((row) => {
-			const source = `<a href="/app/material-request/${encodeURIComponent(row.name)}">${frappe.utils.escape_html(
+			const source = `<a href="/app/material-request/${encodeURIComponent(
 				row.name
-			)}</a>`;
+			)}">${frappe.utils.escape_html(row.name)}</a>`;
 			return `<div class="cpo-material-request-comment">
 				${rows.length > 1 ? `<div class="text-muted small mb-2">${source}</div>` : ""}
 				<div class="ql-editor read-mode">${row.procurement_comment}</div>
@@ -537,9 +572,7 @@ function get_supplier_pair_query(reference_supplier, target_field) {
 
 function set_table_row_number_labels(frm) {
 	["items", "supplier_invoices", "delivery_notes"].forEach((fieldname) => {
-		frm.fields_dict[fieldname]?.grid?.wrapper
-			.find(".grid-heading-row .row-index span")
-			.text("\u2116");
+		frm.fields_dict[fieldname]?.grid?.wrapper.find(".grid-heading-row .row-index span").text("\u2116");
 	});
 }
 
@@ -586,11 +619,13 @@ function render_user_identity(frm, fieldname, label, user, full_name, editable) 
 	const edit_button = editable
 		? `<button class="btn btn-xs btn-default ml-2 select-procurement-initiator">${__(
 				user ? "Change" : "Select"
-			)}</button>`
+		  )}</button>`
 		: "";
-	field.$wrapper.html(`<div class="form-group"><label class="control-label">${frappe.utils.escape_html(
-		label
-	)}</label><div class="control-value like-disabled-input">${value}${edit_button}</div></div>`);
+	field.$wrapper.html(
+		`<div class="form-group"><label class="control-label">${frappe.utils.escape_html(
+			label
+		)}</label><div class="control-value like-disabled-input">${value}${edit_button}</div></div>`
+	);
 	field.$wrapper.find(".select-procurement-initiator").on("click", () => {
 		const dialog = new frappe.ui.Dialog({
 			title: __("Select Initiator User"),
@@ -651,7 +686,7 @@ function render_supplier_contacts(frm) {
 					const email = row.email
 						? `<a href="mailto:${frappe.utils.escape_html(row.email)}">${frappe.utils.escape_html(
 								row.email
-							)}</a>`
+						  )}</a>`
 						: `<span class="text-muted">${__("Email is not specified.")}</span>`;
 					const phone = row.phone
 						? frappe.utils.escape_html(row.phone)
@@ -660,17 +695,19 @@ function render_supplier_contacts(frm) {
 					const viber = digits
 						? `<a class="btn btn-xs btn-default" target="_blank" rel="noopener noreferrer" href="viber://chat?number=${encodeURIComponent(
 								`+${digits}`
-							)}">${__("Contact via Viber")}</a>`
-						: `<button class="btn btn-xs btn-default" disabled>${__("Contact via Viber")}</button>`;
+						  )}">${__("Contact via Viber")}</a>`
+						: `<button class="btn btn-xs btn-default" disabled>${__(
+								"Contact via Viber"
+						  )}</button>`;
 					return `<tr><td>${frappe.utils.escape_html(
 						row.supplier_name || row.supplier
 					)}</td><td>${email}</td><td>${phone}</td><td>${viber}</td></tr>`;
 				})
 				.join("");
 			field.$wrapper.html(`<div class="table-responsive"><table class="table table-bordered table-sm">
-				<thead><tr><th>${__("Supplier")}</th><th>${__("Email")}</th><th>${__(
-				"Phone"
-		)}</th><th>${__("Viber")}</th></tr></thead><tbody>${body}</tbody></table></div>`);
+				<thead><tr><th>${__("Supplier")}</th><th>${__("Email")}</th><th>${__("Phone")}</th><th>${__(
+				"Viber"
+			)}</th></tr></thead><tbody>${body}</tbody></table></div>`);
 			const layout_section = (frm.layout?.sections || []).find(
 				(row) => row.df.fieldname === "supplier_contacts_section"
 			);
@@ -741,9 +778,9 @@ function render_purchase_receipt_table(receipts) {
 		})
 		.join("");
 	return `<div class="table-responsive"><table class="table table-bordered table-sm">
-		<thead><tr><th>${__("Name")}</th><th>${__("Purchase Order")}</th><th>${__(
-		"Target Warehouse"
-	)}</th><th>${__("Status")}</th></tr></thead><tbody>${body}</tbody></table></div>`;
+		<thead><tr><th>${__("Name")}</th><th>${__("Purchase Order")}</th><th>${__("Target Warehouse")}</th><th>${__(
+		"Status"
+	)}</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function get_route_indicator_color(state) {
@@ -761,9 +798,9 @@ function render_material_request_origin(material_requests) {
 
 	const requests = material_requests
 		.map((request) => {
-			const link = `<a href="/app/material-request/${encodeURIComponent(request.name)}">${frappe.utils.escape_html(
+			const link = `<a href="/app/material-request/${encodeURIComponent(
 				request.name
-			)}</a>`;
+			)}">${frappe.utils.escape_html(request.name)}</a>`;
 			const creator = frappe.utils.escape_html(request.created_by?.full_name || request.owner || "");
 			return `${link} · ${__("Created by")}: ${creator}`;
 		})

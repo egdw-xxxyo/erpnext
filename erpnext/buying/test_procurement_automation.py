@@ -7,15 +7,24 @@ from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequ
 from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
 	ConsolidatedPurchaseOrder,
 	_get_material_request_summaries,
+	_get_supplier_invoice_suppliers,
 	_is_purchase_receipt_stage_complete,
 	get_allowed_primary_supplier_names,
 	get_allowed_related_supplier_names,
+	get_purchase_invoice_options,
 	get_related_supplier_names,
 	get_supplier_invoice_files,
+	make_purchase_invoice,
 )
 from erpnext.buying.doctype.supplier.supplier import (
 	get_supplier_bank_accounts,
 	set_default_supplier_bank_account,
+)
+from erpnext.buying.procurement_assignment import (
+	_add as add_procurement_assignment_internal,
+)
+from erpnext.buying.procurement_assignment import (
+	add as add_procurement_assignment,
 )
 from erpnext.buying.procurement_automation import (
 	_close_assignments_silently,
@@ -26,10 +35,6 @@ from erpnext.buying.procurement_automation import (
 	notify_procurement_approval,
 	notify_procurement_receipt,
 	sync_all_current_assignee_names,
-)
-from erpnext.buying.procurement_assignment import (
-	_add as add_procurement_assignment_internal,
-	add as add_procurement_assignment,
 )
 from erpnext.buying.procurement_workflow import _remove_obsolete_purchase_order_permissions
 from erpnext.buying.procurement_workflow_reason import _apply_creator_department_approval
@@ -140,9 +145,7 @@ class TestProcurementAutomation(FrappeTestCase):
 		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_cached_value",
 		return_value="Замовник Матеріалів",
 	)
-	@patch(
-		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all"
-	)
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
 	def test_material_request_comment_is_read_and_sanitized_without_copying(self, get_all, _get_name):
 		get_all.return_value = [
 			frappe._dict(
@@ -195,20 +198,14 @@ class TestProcurementAutomation(FrappeTestCase):
 			frappe._dict(name="BANK-A", is_default=1),
 			frappe._dict(name="BANK-B", is_default=0),
 		]
-		after = [
-			frappe._dict(name="BANK-B", account_name="New Main", iban="UA456", is_default=1)
-		]
+		after = [frappe._dict(name="BANK-B", account_name="New Main", iban="UA456", is_default=1)]
 		get_accounts.side_effect = [before, after]
 
 		result = set_default_supplier_bank_account("SUPPLIER-A", "BANK-B")
 
 		get_doc.return_value.check_permission.assert_called_once_with("write")
-		set_value.assert_any_call(
-			"Bank Account", "BANK-A", "is_default", 0, update_modified=False
-		)
-		set_value.assert_any_call(
-			"Bank Account", "BANK-B", "is_default", 1, update_modified=False
-		)
+		set_value.assert_any_call("Bank Account", "BANK-A", "is_default", 0, update_modified=False)
+		set_value.assert_any_call("Bank Account", "BANK-B", "is_default", 1, update_modified=False)
 		clear_cache.assert_called_once_with(doctype="Bank Account")
 		self.assertEqual(result, after)
 
@@ -240,9 +237,7 @@ class TestProcurementAutomation(FrappeTestCase):
 		_remove_obsolete_purchase_order_permissions()
 
 		self.assertEqual(delete_doc.call_count, 2)
-		delete_doc.assert_any_call(
-			"Custom DocPerm", "OLD-PERM-1", force=True, ignore_permissions=True
-		)
+		delete_doc.assert_any_call("Custom DocPerm", "OLD-PERM-1", force=True, ignore_permissions=True)
 
 	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_doc")
 	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
@@ -284,6 +279,72 @@ class TestProcurementAutomation(FrappeTestCase):
 			],
 		)
 
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order._get_supplier_invoice_suppliers",
+		return_value={"SUPPLIER-A"},
+	)
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_doc")
+	def test_purchase_invoice_options_only_include_suppliers_with_attached_invoice(
+		self, get_doc, get_all, _get_invoice_suppliers
+	):
+		get_all.return_value = [
+			frappe._dict(
+				name="PO-A",
+				supplier="SUPPLIER-A",
+				supplier_name="Supplier A",
+				grand_total=100,
+				currency="UAH",
+				per_billed=0,
+			),
+			frappe._dict(
+				name="PO-B",
+				supplier="SUPPLIER-B",
+				supplier_name="Supplier B",
+				grand_total=200,
+				currency="UAH",
+				per_billed=0,
+			),
+		]
+
+		result = get_purchase_invoice_options("CPO-TEST")
+
+		self.assertEqual([row.supplier for row in result["eligible_orders"]], ["SUPPLIER-A"])
+		self.assertEqual(
+			result["missing_suppliers"],
+			[{"supplier": "SUPPLIER-B", "supplier_name": "Supplier B"}],
+		)
+		get_doc.return_value.check_permission.assert_called_once_with("read")
+
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order._get_supplier_invoice_suppliers",
+		return_value=set(),
+	)
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_doc")
+	def test_purchase_invoice_creation_requires_attached_supplier_invoice(
+		self, get_doc, _get_invoice_suppliers
+	):
+		get_doc.return_value.docstatus = 1
+
+		with self.assertRaises(frappe.ValidationError):
+			make_purchase_invoice("CPO-TEST", "SUPPLIER-A")
+
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
+	def test_supplier_invoice_supplier_lookup_requires_attached_file(self, get_all):
+		get_all.return_value = ["SUPPLIER-A"]
+
+		self.assertEqual(_get_supplier_invoice_suppliers("CPO-TEST"), {"SUPPLIER-A"})
+		get_all.assert_called_once_with(
+			"Consolidated Purchase Supplier Invoice",
+			filters={
+				"parent": "CPO-TEST",
+				"parenttype": "Consolidated Purchase Order",
+				"parentfield": "supplier_invoices",
+				"invoice_pdf": ["is", "set"],
+			},
+			pluck="supplier",
+		)
+
 	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_doc")
 	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
 	def test_payment_reference_resolves_supplier_files_through_purchase_invoice(self, get_all, get_doc):
@@ -322,7 +383,9 @@ class TestProcurementAutomation(FrappeTestCase):
 			["SUPPLIER-A", "SUPPLIER-B", "SUPPLIER-C"],
 		)
 
-	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value")
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value"
+	)
 	@patch(
 		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_related_supplier_names",
 		return_value=["SUPPLIER-A", "SUPPLIER-B"],
@@ -345,7 +408,9 @@ class TestProcurementAutomation(FrappeTestCase):
 
 		ConsolidatedPurchaseOrder._validate_items(doc)
 
-	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value")
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value"
+	)
 	def test_regular_supplier_rejects_different_related_supplier(self, get_value):
 		get_value.return_value = "Company"
 		doc = MagicMock(
@@ -365,7 +430,9 @@ class TestProcurementAutomation(FrappeTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			ConsolidatedPurchaseOrder._validate_items(doc)
 
-	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value")
+	@patch(
+		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.db.get_value"
+	)
 	def test_regular_supplier_can_select_itself(self, get_value):
 		get_value.return_value = "Company"
 		self.assertEqual(get_allowed_related_supplier_names("SUPPLIER-A"), ["SUPPLIER-A"])
@@ -423,9 +490,7 @@ class TestProcurementAutomation(FrappeTestCase):
 			"Consolidated Purchase Order": {"CPO-TEST"},
 			"Purchase Order": set(),
 		}
-		get_all.return_value = [
-			frappe._dict(owner="Administrator", custom_procurement_initiator_user=None)
-		]
+		get_all.return_value = [frappe._dict(owner="Administrator", custom_procurement_initiator_user=None)]
 
 		self.assertEqual(_get_primary_procurement_initiator("CPO-TEST"), "Administrator")
 
@@ -480,9 +545,7 @@ class TestProcurementAutomation(FrappeTestCase):
 		)
 
 		self.assertEqual(rate, 600)
-		get_cached_value.assert_called_once_with(
-			"Item", "ITEM-1", ["valuation_rate", "last_purchase_rate"]
-		)
+		get_cached_value.assert_called_once_with("Item", "ITEM-1", ["valuation_rate", "last_purchase_rate"])
 
 	@patch("erpnext.buying.procurement_automation.enqueue_create_notification")
 	@patch("erpnext.buying.procurement_automation._get_procurement_initiators")
@@ -499,9 +562,7 @@ class TestProcurementAutomation(FrappeTestCase):
 		self.assertIn("завершено", enqueue.call_args.args[1]["subject"])
 
 	@patch("erpnext.buying.procurement_automation.enqueue_create_notification")
-	@patch(
-		"erpnext.buying.procurement_automation._get_procurement_requests_with_initiators"
-	)
+	@patch("erpnext.buying.procurement_automation._get_procurement_requests_with_initiators")
 	@patch(
 		"erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order._get_invoice_receipt_summary"
 	)

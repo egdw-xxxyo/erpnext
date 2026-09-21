@@ -175,7 +175,7 @@ class ConsolidatedPurchaseOrder(Document):
 			if row.related_supplier not in allowed:
 				frappe.throw(
 					_(
-					"Row {0}: A different Company can only be selected when the Supplier is a Private Entrepreneur and cooperates with it."
+						"Row {0}: A different Company can only be selected when the Supplier is a Private Entrepreneur and cooperates with it."
 					).format(row.idx)
 				)
 			if (
@@ -204,9 +204,7 @@ class ConsolidatedPurchaseOrder(Document):
 			if not row.supplier:
 				frappe.throw(_("Row {0}: Supplier is required for the purchase receipt.").format(row.idx))
 			if row.supplier not in allowed_suppliers:
-				frappe.throw(
-					_("Row {0}: Select a supplier used in the order items.").format(row.idx)
-				)
+				frappe.throw(_("Row {0}: Select a supplier used in the order items.").format(row.idx))
 			if not urlsplit(row.invoice_pdf).path.lower().endswith(".pdf"):
 				frappe.throw(
 					_("The supplier invoice must be a PDF file."),
@@ -221,15 +219,11 @@ class ConsolidatedPurchaseOrder(Document):
 
 		allowed_suppliers = {row.supplier for row in self.items if row.supplier}
 		for row in self.delivery_notes:
-			row.delivery_note_document = self._get_supplier_invoice_file_name(
-				row.delivery_note_file
-			)
+			row.delivery_note_document = self._get_supplier_invoice_file_name(row.delivery_note_file)
 			if not row.delivery_note_file:
 				frappe.throw(_("Row {0}: Attach a delivery note file.").format(row.idx))
 			if row.supplier not in allowed_suppliers:
-				frappe.throw(
-					_("Row {0}: Select a supplier used in the order items.").format(row.idx)
-				)
+				frappe.throw(_("Row {0}: Select a supplier used in the order items.").format(row.idx))
 			file_path = urlsplit(row.delivery_note_file).path.lower()
 			if not file_path.endswith((".pdf", ".zip")):
 				frappe.throw(
@@ -423,14 +417,18 @@ def get_supplier_contacts(source_name=None, suppliers=None):
 		order_by="supplier_name asc, name asc",
 	)
 	contact_names = [row.supplier_primary_contact for row in rows if row.supplier_primary_contact]
-	contacts = {
-		row.name: row
-		for row in frappe.get_all(
-			"Contact",
-			filters={"name": ["in", contact_names]},
-			fields=["name", "email_id", "mobile_no", "phone"],
-		)
-	} if contact_names else {}
+	contacts = (
+		{
+			row.name: row
+			for row in frappe.get_all(
+				"Contact",
+				filters={"name": ["in", contact_names]},
+				fields=["name", "email_id", "mobile_no", "phone"],
+			)
+		}
+		if contact_names
+		else {}
+	)
 	return [
 		{
 			"supplier": row.name,
@@ -537,7 +535,7 @@ def get_delivery_notes_for_purchase_order(purchase_order):
 def get_purchase_invoice_options(source_name):
 	doc = frappe.get_doc("Consolidated Purchase Order", source_name)
 	doc.check_permission("read")
-	return frappe.get_all(
+	orders = frappe.get_all(
 		"Purchase Order",
 		filters={
 			"custom_consolidated_purchase_order": source_name,
@@ -547,6 +545,38 @@ def get_purchase_invoice_options(source_name):
 		},
 		fields=["name", "supplier", "supplier_name", "grand_total", "currency", "per_billed"],
 		order_by="supplier_name asc, name asc",
+	)
+	invoice_suppliers = _get_supplier_invoice_suppliers(source_name)
+	missing_suppliers = []
+	for order in orders:
+		if order.supplier not in invoice_suppliers and not any(
+			row["supplier"] == order.supplier for row in missing_suppliers
+		):
+			missing_suppliers.append(
+				{
+					"supplier": order.supplier,
+					"supplier_name": order.supplier_name or order.supplier,
+				}
+			)
+
+	return {
+		"eligible_orders": [order for order in orders if order.supplier in invoice_suppliers],
+		"missing_suppliers": missing_suppliers,
+	}
+
+
+def _get_supplier_invoice_suppliers(source_name):
+	return set(
+		frappe.get_all(
+			"Consolidated Purchase Supplier Invoice",
+			filters={
+				"parent": source_name,
+				"parenttype": "Consolidated Purchase Order",
+				"parentfield": "supplier_invoices",
+				"invoice_pdf": ["is", "set"],
+			},
+			pluck="supplier",
+		)
 	)
 
 
@@ -606,11 +636,11 @@ def get_approval_route_summary(source_name):
 	)
 	current_assignees = [_get_user_summary(user) for user in dict.fromkeys(current_assignees) if user]
 	final_approved_users = [
-		_get_user_summary(user)
-		for user in (doc.final_approved_by_1, doc.final_approved_by_2)
-		if user
+		_get_user_summary(user) for user in (doc.final_approved_by_1, doc.final_approved_by_2) if user
 	]
-	external_payer = material_requests[0].created_by if doc.items_already_purchased and material_requests else None
+	external_payer = (
+		material_requests[0].created_by if doc.items_already_purchased and material_requests else None
+	)
 
 	return {
 		"material_requests": material_requests,
@@ -619,9 +649,7 @@ def get_approval_route_summary(source_name):
 		"final_approval_count": cint(doc.final_approval_count),
 		"final_approval_required": REQUIRED_FINAL_APPROVALS,
 		"final_approved_users": final_approved_users,
-		"final_approvers": [
-			_get_user_summary(user) for user in get_configured_final_approvers(throw=False)
-		],
+		"final_approvers": [_get_user_summary(user) for user in get_configured_final_approvers(throw=False)],
 		"final_approval_automatic": is_automatic_final_approval(doc),
 		"final_approval_threshold": get_approval_threshold(),
 		"external_payment": bool(doc.items_already_purchased),
@@ -697,9 +725,7 @@ def sync_linked_consolidated_purchase_order_progress(doc, method=None):
 		if doc.get("custom_consolidated_purchase_order"):
 			source_names.add(doc.custom_consolidated_purchase_order)
 	elif doc.doctype == "Purchase Receipt":
-		purchase_orders = {
-			row.purchase_order for row in (doc.get("items") or []) if row.purchase_order
-		}
+		purchase_orders = {row.purchase_order for row in (doc.get("items") or []) if row.purchase_order}
 		if purchase_orders:
 			source_names.update(
 				frappe.get_all(
@@ -855,9 +881,21 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 	orders = orders or frappe.get_all(
 		"Purchase Order",
 		filters={"custom_consolidated_purchase_order": source_name, "docstatus": 1},
-		fields=["name", "supplier", "per_billed", "per_received"],
+		fields=["name", "supplier", "supplier_name", "per_billed", "per_received"],
 	)
 	purchase_receipts_by_order, receipt_actors = _get_purchase_receipts_by_order(orders)
+	delivery_note_suppliers = set(
+		frappe.get_all(
+			"Consolidated Purchase Delivery Note",
+			filters={
+				"parent": source_name,
+				"parenttype": "Consolidated Purchase Order",
+				"parentfield": "delivery_notes",
+				"delivery_note_file": ["is", "set"],
+			},
+			pluck="supplier",
+		)
+	)
 	invoice_orders = _get_invoice_purchase_orders(invoices, orders)
 	invoices_by_order = defaultdict(list)
 	for invoice in invoices:
@@ -889,7 +927,9 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 		fiscal_receipt_added = external_payment or bool(order_payment_entries & receipt_entry_names)
 		fully_completed = payment_complete and fiscal_receipt_added
 		purchase_receipts = purchase_receipts_by_order.get(order.name, [])
-		purchase_receipt_complete = bool(purchase_receipts) and flt(order.per_received) >= 99.99
+		delivery_note_attached = order.supplier in delivery_note_suppliers
+		warehouse_receipt_complete = bool(purchase_receipts) and flt(order.per_received) >= 99.99
+		purchase_receipt_complete = warehouse_receipt_complete and delivery_note_attached
 		if payment_complete:
 			payment_complete_count += 1
 		if fully_completed:
@@ -900,25 +940,32 @@ def _get_invoice_receipt_summary(source_name, orders=None):
 			"fiscal_receipt_added": fiscal_receipt_added,
 			"fully_completed": fully_completed,
 			"purchase_receipts": purchase_receipts,
+			"warehouse_receipt_complete": warehouse_receipt_complete,
+			"delivery_note_attached": delivery_note_attached,
 			"purchase_receipt_complete": purchase_receipt_complete,
 		}
 
 	supplier_count = len(orders)
 	users = list(dict.fromkeys(entry.modified_by for entry in receipt_entries if entry.modified_by))
-	purchase_receipt_complete = _is_purchase_receipt_stage_complete(
-		external_payment, orders, by_order
-	)
+	purchase_receipt_complete = _is_purchase_receipt_stage_complete(external_payment, orders, by_order)
 	return {
 		"submitted_invoice_count": len(invoices),
 		"created_invoice_count": created_invoice_count,
 		"payment_invoice_count": supplier_count,
 		"payment_complete_count": payment_complete_count,
 		"payment_receipt_count": completed_supplier_count,
-		"payment_receipts_progress": _format_receipt_progress(
-			completed_supplier_count, supplier_count
-		),
+		"payment_receipts_progress": _format_receipt_progress(completed_supplier_count, supplier_count),
 		"payment_actors": [_get_user_summary(user) for user in users],
+		"warehouse_receipt_complete": bool(orders)
+		and all(row["warehouse_receipt_complete"] for row in by_order.values()),
 		"purchase_receipt_complete": purchase_receipt_complete,
+		"missing_delivery_note_suppliers": list(
+			dict.fromkeys(
+				(order.supplier_name or order.supplier)
+				for order in orders
+				if order.supplier not in delivery_note_suppliers
+			)
+		),
 		"receipt_actors": [_get_user_summary(user) for user in receipt_actors],
 		"by_order": by_order,
 	}
@@ -970,9 +1017,7 @@ def _get_purchase_receipts_by_order(orders):
 			)
 	actors = list(
 		dict.fromkeys(
-			receipt.modified_by
-			for receipt in receipts
-			if receipt.docstatus == 1 and receipt.modified_by
+			receipt.modified_by for receipt in receipts if receipt.docstatus == 1 and receipt.modified_by
 		)
 	)
 	return dict(by_order), actors
@@ -1028,6 +1073,13 @@ def make_purchase_invoice(source_name, supplier=None):
 	doc.check_permission("read")
 	if doc.docstatus != 1:
 		frappe.throw(_("Submit the consolidated order before creating a Purchase Invoice."))
+	if supplier not in _get_supplier_invoice_suppliers(source_name):
+		frappe.throw(
+			_("Attach at least one supplier invoice for {0} before creating a Purchase Invoice.").format(
+				frappe.bold(supplier)
+			),
+			title=_("Supplier invoice required"),
+		)
 
 	purchase_order = frappe.db.get_value(
 		"Purchase Order",

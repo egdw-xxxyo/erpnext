@@ -14141,6 +14141,11 @@ Row {0}: Company is required.,Рядок {0}: поле «Компанія» є �
 Row {0}: A different Company can only be selected when the Supplier is a Private Entrepreneur and cooperates with it.,Рядок {0}: іншу компанію можна вибрати лише тоді, коли постачальник є приватним підприємцем і співпрацює з нею.
 A supplier cannot cooperate with itself.,Постачальник не може співпрацювати сам із собою.
 The same cooperating supplier cannot be added more than once.,Того самого пов’язаного постачальника не можна додавати кілька разів.
+Attach at least one supplier invoice for {0} before creating a Purchase Invoice.,Прикріпіть щонайменше один рахунок постачальника для {0} перед створенням вхідного рахунку-фактури.
+Supplier invoice required,Потрібен рахунок постачальника
+Supplier invoices are missing for: {0}. Attach at least one supplier invoice before creating a Purchase Invoice for these suppliers.,Відсутні рахунки постачальників для: {0}. Прикріпіть щонайменше один рахунок перед створенням вхідного рахунку-фактури для цих постачальників.
+Awaiting Purchase Receipt and supplier delivery notes,Очікується прихідна та видаткова накладні
+Awaiting supplier delivery notes,Очікуються видаткові накладні постачальників
 Use a workflow action for this transition and provide a reason.,Виконайте цей перехід через дію workflow та вкажіть причину.
 Workflow Action Reason,Причина дії workflow
 performed action “{0}”,виконав дію «{0}»
