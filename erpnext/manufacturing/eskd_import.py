@@ -974,9 +974,19 @@ SHEET_IMPORTERS = {
 	"modifications": import_modifications,
 }
 
+# The catalogs — what a designation is made of, and what carries one. A plain `run()` does
+# only these. The register sheets («Сводная», «Сводна таблиця ТУ», «Технологічні карти»)
+# are every drawing, part and process card the workbook happens to list: 457 documents
+# that nothing here links to, so they are opt-in via `only=["register", …]`.
+DEFAULT_SHEETS = ("coils", "varnex", "batteries", "ground_stations", "boards", "modifications")
+
 
 def run(path, dry_run=True, only=None):
-	"""Import the ЄСКД workbook. Pass dry_run=False to actually write."""
+	"""Import the ЄСКД workbook's catalogs. Pass dry_run=False to actually write.
+
+	`only` names the sheets to run, defaulting to `DEFAULT_SHEETS`; pass
+	`only=list(SHEET_IMPORTERS)` for the register as well.
+	"""
 	import openpyxl
 
 	dry_run = bool(dry_run)
@@ -987,7 +997,7 @@ def run(path, dry_run=True, only=None):
 	ensure_document_setup(summary, dry_run)
 	ensure_attributes(summary, dry_run)
 
-	names = [only] if isinstance(only, str) else (only or list(SHEET_IMPORTERS))
+	names = [only] if isinstance(only, str) else (only or list(DEFAULT_SHEETS))
 	for key in names:
 		importer = SHEET_IMPORTERS.get(key)
 		if not importer:
