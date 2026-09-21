@@ -27,6 +27,7 @@ import "./utils/barcode_scanner";
 import "./utils/barcode_field";
 import "./utils/bulk_serial_scanner";
 import "./utils/global_scanner";
+import "./utils/global_todo_sidebar";
 import "./utils/label_print_dialog";
 import "./utils/month_field";
 import "./utils/grid_editor";
