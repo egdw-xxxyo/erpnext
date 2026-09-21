@@ -953,15 +953,18 @@ function render_consolidated_delivery_notes(frm) {
 			}
 			const links = rows
 				.map((row) => {
-					const file_name = row.delivery_note_document || get_consolidated_file_name(row.delivery_note_file);
+					const file_name =
+						row.delivery_note_document || get_consolidated_file_name(row.delivery_note_file);
 					return `<li><a href="${frappe.utils.escape_html(
 						row.delivery_note_file
 					)}" target="_blank">${frappe.utils.escape_html(file_name)}</a></li>`;
 				})
 				.join("");
-			field.$wrapper.html(`<div class="form-group"><label class="control-label">${__(
-				"Supplier Delivery Notes"
-			)}</label><ul class="list-unstyled mb-0">${links}</ul></div>`);
+			field.$wrapper.html(
+				`<div class="form-group"><label class="control-label">${__(
+					"Supplier Delivery Notes"
+				)}</label><ul class="list-unstyled mb-0">${links}</ul></div>`
+			);
 		});
 }
 

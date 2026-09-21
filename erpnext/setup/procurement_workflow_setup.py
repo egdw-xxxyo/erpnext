@@ -450,13 +450,8 @@ function render_consolidated_purchase_orders(frm) {
 def after_migrate():
 	sync_procurement_custom_fields()
 
-	from erpnext.buying.procurement_workflow import sync_procurement_workflow
 	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
 		sync_all_consolidated_purchase_order_progress,
-	)
-	from erpnext.buying.procurement_final_approval import (
-		sync_existing_approval_thresholds,
-		sync_existing_final_approval_documents,
 	)
 	from erpnext.buying.procurement_automation import (
 		apply_rules_to_existing_procurement_documents,
@@ -464,6 +459,11 @@ def after_migrate():
 		sync_all_procurement_participants,
 		sync_existing_purchase_invoice_external_payment_details,
 	)
+	from erpnext.buying.procurement_final_approval import (
+		sync_existing_approval_thresholds,
+		sync_existing_final_approval_documents,
+	)
+	from erpnext.buying.procurement_workflow import sync_procurement_workflow
 
 	sync_procurement_workflow()
 	_sync_consolidated_procurement_users()
@@ -507,9 +507,7 @@ def _remove_legacy_purchase_invoice_supplier_files_section():
 def _remove_purchase_receipt_ttn_fields():
 	"""Drop the procurement TTN customization from Purchase Receipt."""
 	for fieldname in PURCHASE_RECEIPT_TTN_FIELDS:
-		name = frappe.db.exists(
-			"Custom Field", {"dt": "Purchase Receipt", "fieldname": fieldname}
-		)
+		name = frappe.db.exists("Custom Field", {"dt": "Purchase Receipt", "fieldname": fieldname})
 		if name:
 			frappe.delete_doc("Custom Field", name, force=True, ignore_permissions=True)
 	frappe.clear_cache(doctype="Purchase Receipt")
@@ -565,9 +563,7 @@ def _sync_consolidated_procurement_users():
 				order_by="creation asc",
 			)
 			if requests:
-				request_initiator = (
-					requests[0].custom_procurement_initiator_user or requests[0].owner
-				)
+				request_initiator = requests[0].custom_procurement_initiator_user or requests[0].owner
 		request_initiator = request_initiator or order.owner
 		frappe.db.set_value(
 			"Consolidated Purchase Order",

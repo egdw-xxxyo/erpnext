@@ -119,11 +119,7 @@ class PaymentRequest(Document):
 		self.validate_subscription_details()
 
 	def validate_supplier_bank_account(self):
-		if (
-			self.payment_request_type != "Outward"
-			or self.party_type != "Supplier"
-			or not self.bank_account
-		):
+		if self.payment_request_type != "Outward" or self.party_type != "Supplier" or not self.bank_account:
 			return
 
 		bank_account = frappe.db.get_value(

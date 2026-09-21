@@ -222,9 +222,7 @@ def set_purchase_invoice_external_payment_details(doc, method=None):
 				{"name": ["in", list(purchase_orders)]},
 				"custom_consolidated_purchase_order",
 			)
-	if not consolidated_name or not frappe.db.exists(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, consolidated_name
-	):
+	if not consolidated_name or not frappe.db.exists(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, consolidated_name):
 		_clear_external_payment_details(doc)
 		return
 	doc.custom_consolidated_purchase_order = consolidated_name
@@ -371,9 +369,7 @@ def sync_procurement_participants(todo, method=None):
 	)
 
 
-def sync_procurement_participants_for_reference(
-	reference_type, reference_name, additional_user=None
-):
+def sync_procurement_participants_for_reference(reference_type, reference_name, additional_user=None):
 	if reference_type not in PROCUREMENT_DOCTYPES or not reference_name:
 		return
 
@@ -495,7 +491,8 @@ def sync_procurement_stage_assignment(doc, method=None):
 		if (
 			matching
 			and todo.assignment_rule == matching["name"]
-			and matching["name"] not in {
+			and matching["name"]
+			not in {
 				CONSOLIDATED_DEPARTMENT_ASSIGNMENT_RULE_NAME,
 				CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
 			}
@@ -513,8 +510,7 @@ def sync_procurement_stage_assignment(doc, method=None):
 	matching_todos = [todo for todo in open_todos if todo.assignment_rule == matching["name"]]
 	configured_users = {row.user for row in rule.users}
 	if rule.rule == "Round Robin" and any(
-		todo.allocated_to in configured_users
-		and frappe.db.get_value("User", todo.allocated_to, "enabled")
+		todo.allocated_to in configured_users and frappe.db.get_value("User", todo.allocated_to, "enabled")
 		for todo in matching_todos
 	):
 		return
@@ -592,6 +588,7 @@ def apply_rules_to_existing_procurement_documents():
 	):
 		sync_procurement_stage_assignment(frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, name))
 
+
 def _matches_assignment_rule(spec, doc):
 	return bool(frappe.safe_eval(spec["condition"], None, doc.as_dict()))
 
@@ -647,8 +644,7 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 	)
 	all_payments_submitted = bool(
 		receipt_summary["payment_invoice_count"]
-		and receipt_summary.get("payment_complete_count", 0)
-		>= receipt_summary["payment_invoice_count"]
+		and receipt_summary.get("payment_complete_count", 0) >= receipt_summary["payment_invoice_count"]
 	)
 	purchase_receipt_complete = bool(receipt_summary.get("purchase_receipt_complete"))
 	consolidated_status = _get_consolidated_procurement_status(
@@ -695,9 +691,7 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 			pluck="material_request",
 		)
 	)
-	direct_request = frappe.db.get_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "material_request"
-	)
+	direct_request = frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "material_request")
 	if direct_request:
 		material_requests.add(direct_request)
 	for material_request in material_requests:
@@ -818,16 +812,10 @@ def _notify_procurement_initiators(source_name, outcome):
 
 
 def _get_procurement_initiators(source_name):
-	users = {
-		row.initiator
-		for row in _get_procurement_requests_with_initiators(source_name)
-		if row.initiator
-	}
+	users = {row.initiator for row in _get_procurement_requests_with_initiators(source_name) if row.initiator}
 	if not users:
 		users.add(
-			frappe.db.get_value(
-				CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "request_initiator_user"
-			)
+			frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "request_initiator_user")
 		)
 	return sorted(user for user in users if user and user not in {"Administrator", "Guest"})
 
@@ -864,9 +852,7 @@ def _get_primary_procurement_initiator(source_name):
 			if initiator and initiator != "Guest":
 				return initiator
 
-	return frappe.db.get_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "request_initiator_user"
-	)
+	return frappe.db.get_value(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name, "request_initiator_user")
 
 
 def notify_procurement_receipt(source_name, purchase_receipt):
@@ -1071,9 +1057,7 @@ def _get_consolidated_item_rate(mapped_item, source_item, source_request, suppli
 	if price_list:
 		from erpnext.stock.get_item_details import get_price_list_rate_for
 
-		price_not_uom_dependent = frappe.get_cached_value(
-			"Price List", price_list, "price_not_uom_dependent"
-		)
+		price_not_uom_dependent = frappe.get_cached_value("Price List", price_list, "price_not_uom_dependent")
 		rate = get_price_list_rate_for(
 			frappe._dict(
 				{

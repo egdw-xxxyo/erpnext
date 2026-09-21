@@ -52,9 +52,7 @@ def _add(args=None, *, ignore_permissions=False):
 		result = get_assignments(args)
 
 	if duplicates:
-		display_names = [
-			frappe.get_cached_value("User", user, "full_name") or user for user in duplicates
-		]
+		display_names = [frappe.get_cached_value("User", user, "full_name") or user for user in duplicates]
 		user_list = "<br><br>" + "<br>".join(escape_html(name) for name in display_names)
 		frappe.msgprint(_("Already in the following Users ToDo list:{0}").format(user_list))
 	return result

@@ -170,8 +170,7 @@ def sync_payment_request_assignment(doc, method=None):
 	if not matching or not target_user or not frappe.db.get_value("User", target_user, "enabled"):
 		return
 	if any(
-		todo.assignment_rule == matching["name"] and todo.allocated_to == target_user
-		for todo in open_todos
+		todo.assignment_rule == matching["name"] and todo.allocated_to == target_user for todo in open_todos
 	):
 		return
 

@@ -9,10 +9,7 @@ frappe.listview_settings["Material Request"] = {
 	],
 	formatters: {
 		custom_procurement_completion_status(value) {
-			return erpnext.buying.format_procurement_status(
-				value,
-				"custom_procurement_completion_status"
-			);
+			return erpnext.buying.format_procurement_status(value, "custom_procurement_completion_status");
 		},
 	},
 	onload(listview) {

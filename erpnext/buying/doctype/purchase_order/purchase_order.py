@@ -769,8 +769,7 @@ def get_purchase_receipt_warehouses(source_name):
 			if row.warehouse
 			and row.delivered_by_supplier != 1
 			and (
-				(doc.has_unit_price_items and row.qty == 0)
-				or abs(flt(row.received_qty)) < abs(flt(row.qty))
+				(doc.has_unit_price_items and row.qty == 0) or abs(flt(row.received_qty)) < abs(flt(row.qty))
 			)
 		)
 	)

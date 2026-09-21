@@ -102,9 +102,7 @@ class Supplier(TransactionBase):
 		self.sync_website_fields()
 		self.validate_cooperating_suppliers()
 		if self.get("supplier_default_bank_account_selection") is not None:
-			_set_default_supplier_bank_account(
-				self.name, self.get("supplier_default_bank_account_selection")
-			)
+			_set_default_supplier_bank_account(self.name, self.get("supplier_default_bank_account_selection"))
 		if not self.on_hold:
 			self.release_date = ""
 		elif self.on_hold and not self.hold_type:
@@ -372,9 +370,7 @@ def _set_default_supplier_bank_account(supplier, bank_account=None):
 	for account in accounts:
 		is_default = int(account.name == bank_account)
 		if account.is_default != is_default:
-			frappe.db.set_value(
-				"Bank Account", account.name, "is_default", is_default, update_modified=False
-			)
+			frappe.db.set_value("Bank Account", account.name, "is_default", is_default, update_modified=False)
 
 	frappe.clear_cache(doctype="Bank Account")
 	return _get_supplier_bank_accounts(supplier)

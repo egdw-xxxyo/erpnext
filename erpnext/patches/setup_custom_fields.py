@@ -186,76 +186,76 @@ def create_workflow_actions():
 def create_workflow():
 	workflow_name = "Purchase Receipt QC Workflow"
 	workflow_config = {
-			"doctype": "Workflow",
-			"workflow_name": workflow_name,
-			"document_type": "Purchase Receipt",
-			"is_active": 1,
-			"override_status": 0,
-			"send_email_alert": 0,
-			"states": [
-				{
-					"state": "Чернетка",
-					"doc_status": "0",
-					"allow_edit": "Stock User",
-					"is_optional_state": 0,
-				},
-				{
-					"state": "На перевірці",
-					"doc_status": "0",
-					"allow_edit": "Quality Manager",
-					"is_optional_state": 0,
-				},
-				{
-					"state": "На затвердженні",
-					"doc_status": "0",
-					"allow_edit": "Stock Manager",
-					"is_optional_state": 0,
-				},
-				{
-					"state": "Проведено",
-					"doc_status": "1",
-					"allow_edit": "Stock Manager",
-					"is_optional_state": 0,
-				},
-			],
-			"transitions": [
-				{
-					"state": "Чернетка",
-					"action": "На перевірку",
-					"next_state": "На перевірці",
-					"allowed": "Stock User",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На перевірці",
-					"action": "Якість підтверджено",
-					"next_state": "На затвердженні",
-					"allowed": "Quality Manager",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На перевірці",
-					"action": "Повернути",
-					"next_state": "Чернетка",
-					"allowed": "Quality Manager",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На затвердженні",
-					"action": "Провести",
-					"next_state": "Проведено",
-					"allowed": "Stock Manager",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На затвердженні",
-					"action": "Повернути на перевірку",
-					"next_state": "На перевірці",
-					"allowed": "Stock Manager",
-					"allow_self_approval": 1,
-				},
-			],
-		}
+		"doctype": "Workflow",
+		"workflow_name": workflow_name,
+		"document_type": "Purchase Receipt",
+		"is_active": 1,
+		"override_status": 0,
+		"send_email_alert": 0,
+		"states": [
+			{
+				"state": "Чернетка",
+				"doc_status": "0",
+				"allow_edit": "Stock User",
+				"is_optional_state": 0,
+			},
+			{
+				"state": "На перевірці",
+				"doc_status": "0",
+				"allow_edit": "Quality Manager",
+				"is_optional_state": 0,
+			},
+			{
+				"state": "На затвердженні",
+				"doc_status": "0",
+				"allow_edit": "Stock Manager",
+				"is_optional_state": 0,
+			},
+			{
+				"state": "Проведено",
+				"doc_status": "1",
+				"allow_edit": "Stock Manager",
+				"is_optional_state": 0,
+			},
+		],
+		"transitions": [
+			{
+				"state": "Чернетка",
+				"action": "На перевірку",
+				"next_state": "На перевірці",
+				"allowed": "Stock User",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На перевірці",
+				"action": "Якість підтверджено",
+				"next_state": "На затвердженні",
+				"allowed": "Quality Manager",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На перевірці",
+				"action": "Повернути",
+				"next_state": "Чернетка",
+				"allowed": "Quality Manager",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На затвердженні",
+				"action": "Провести",
+				"next_state": "Проведено",
+				"allowed": "Stock Manager",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На затвердженні",
+				"action": "Повернути на перевірку",
+				"next_state": "На перевірці",
+				"allowed": "Stock Manager",
+				"allow_self_approval": 1,
+			},
+		],
+	}
 
 	if frappe.db.exists("Workflow", workflow_name):
 		doc = frappe.get_doc("Workflow", workflow_name)

@@ -14,6 +14,7 @@ MAX_REASON_LENGTH = 2000
 
 def apply_workflow(doc, action):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
+
 	from erpnext.buying.procurement_final_approval import (
 		FINAL_APPROVAL_STATE,
 		close_final_approval_assignments,

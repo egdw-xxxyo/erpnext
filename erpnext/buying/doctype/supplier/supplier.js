@@ -329,12 +329,7 @@ function render_supplier_bank_accounts_table(frm, accounts) {
 		.map((account) => {
 			const account_name = frappe.utils.escape_html(account.account_name || account.name);
 			const bank_account = frappe.utils.escape_html(account.name);
-			const account_link = frappe.utils.get_form_link(
-				"Bank Account",
-				account.name,
-				true,
-				account_name
-			);
+			const account_link = frappe.utils.get_form_link("Bank Account", account.name, true, account_name);
 			const iban = frappe.utils.escape_html(account.iban || __("Not specified"));
 			const is_default = has_pending ? pending === account.name : cint(account.is_default);
 			return `
@@ -370,10 +365,7 @@ function render_supplier_bank_accounts_table(frm, accounts) {
 			const checkbox = $(this);
 			if (checkbox.prop("checked")) {
 				field.$wrapper.find(".supplier-bank-account-default").not(checkbox).prop("checked", false);
-				frm.set_value(
-					"supplier_default_bank_account_selection",
-					checkbox.attr("data-bank-account")
-				);
+				frm.set_value("supplier_default_bank_account_selection", checkbox.attr("data-bank-account"));
 			} else {
 				frm.set_value("supplier_default_bank_account_selection", "");
 			}
