@@ -36,6 +36,20 @@ def _kit_item_of(modification, override=None):
 	return None, items
 
 
+def _stock_uom():
+	"""The site's own default unit.
+
+	Never «whatever UOM row comes back first»: this site's UOM names are Ukrainian, so a
+	lookup for «Nos» misses and the fallback handed kits «Рулон».
+	"""
+	uom = frappe.db.get_single_value("Stock Settings", "stock_uom") or frappe.db.get_value(
+		"UOM", {"uom_name": "Nos"}, "name"
+	)
+	if not uom:
+		frappe.throw(_("Set a default unit of measure in Stock Settings first"))
+	return uom
+
+
 def _kit_item_group():
 	if frappe.db.exists("Item Group", KIT_ITEM_GROUP):
 		return KIT_ITEM_GROUP
@@ -115,8 +129,7 @@ def create_kit(modification: str):
 				"item_code": item_code,
 				"item_name": f"Комплект {doc.full_name}"[:140],
 				"item_group": _kit_item_group(),
-				"stock_uom": frappe.db.get_value("UOM", {"uom_name": "Nos"}, "name")
-				or frappe.db.get_value("UOM", {}, "name"),
+				"stock_uom": _stock_uom(),
 				"is_stock_item": 0,
 				"specification": modification,
 				"description": f"{code} — {doc.full_name}",

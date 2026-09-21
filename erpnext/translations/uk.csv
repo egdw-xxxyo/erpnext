@@ -14888,3 +14888,4 @@ Default Kit Item,Номенклатура комплекту за замовчу
 Overrides the designation's own default for this kit only.,Перекриває типову номенклатуру позначення лише для цього комплекту.
 Kit Ambiguous,Комплект неоднозначний
 "Several Items are made to these designations — set «Default Kit Item» on each, or name the Item on the component row: {0}","За цими позначеннями виготовляють кілька номенклатур — вкажіть «Номенклатуру комплекту за замовчуванням» для кожного або назвіть номенклатуру в рядку складової: {0}"
+Set a default unit of measure in Stock Settings first,Спершу вкажіть одиницю виміру за замовчуванням у «Налаштуваннях запасів»
