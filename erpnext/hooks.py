@@ -486,6 +486,9 @@ doc_events = {
 	"Designation": {
 		"on_update": "erpnext.hr.designation_translation.sync_employee_designation_name_en",
 	},
+	"Department": {
+		"on_update": "erpnext.hr.designation_translation.sync_employee_department_name_en",
+	},
 	"Sales Order": {
 		"before_submit": "erpnext.stock.doctype.bpak.bpak.create_bpaks_on_so_submit",
 		"validate": [

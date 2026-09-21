@@ -13957,6 +13957,7 @@ Example,Приклад
 "Employee Document Type","Тип документа працівника"
 "Designation (English)","Посада eng"
 "Designation (Ukrainian)","Посада укр"
+"Department (English)","Відділ eng"
 "KP Code","Код КП"
 "Professional Title","Професійна назва роботи"
 "KP Code {0} with professional title {1} is not in the Classifier of Professions","Коду КП {0} з професійною назвою роботи {1} немає в Класифікаторі професій"
