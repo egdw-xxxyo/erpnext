@@ -759,7 +759,7 @@ def set_missing_values(source, target):
 
 
 @frappe.whitelist()
-def get_purchase_receipt_warehouses(source_name):
+def get_purchase_receipt_warehouses(source_name: str):
 	doc = frappe.get_doc("Purchase Order", source_name)
 	doc.check_permission("read")
 	return list(
@@ -776,7 +776,11 @@ def get_purchase_receipt_warehouses(source_name):
 
 
 @frappe.whitelist()
-def make_purchase_receipt(source_name, target_doc=None, args=None):
+def make_purchase_receipt(
+	source_name: str,
+	target_doc: object | None = None,
+	args: str | dict | None = None,
+):
 	# ``open_mapped_doc`` passes its JS ``args`` through ``frappe.flags.args``.
 	# Keep the explicit argument for bulk mapping and direct Python callers.
 	if args is None:

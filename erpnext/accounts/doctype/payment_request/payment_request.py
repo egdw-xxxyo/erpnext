@@ -1215,7 +1215,7 @@ def get_irequests_of_payment_request(doc: str | None = None) -> list:
 
 
 @frappe.whitelist()
-def get_available_payment_schedules(reference_doctype, reference_name):
+def get_available_payment_schedules(reference_doctype: str, reference_name: str):
 	if not frappe.get_single_value("Accounts Settings", "fetch_payment_schedule_in_payment_request"):
 		return []
 

@@ -2794,12 +2794,12 @@ def get_outstanding_on_journal_entry(voucher_no, party_type, party):
 
 @frappe.whitelist()
 def get_reference_details(
-	reference_doctype,
-	reference_name,
-	party_account_currency,
-	party_type=None,
-	party=None,
-	payment_request=None,
+	reference_doctype: str,
+	reference_name: str,
+	party_account_currency: str,
+	party_type: str | None = None,
+	party: str | None = None,
+	payment_request: str | None = None,
 ):
 	total_amount = outstanding_amount = exchange_rate = account = None
 

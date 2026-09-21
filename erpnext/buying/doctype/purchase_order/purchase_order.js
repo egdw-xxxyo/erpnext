@@ -500,7 +500,7 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends (
 	}
 
 	make_purchase_receipt() {
-		const frm = cur_frm;
+		const frm = this.frm;
 		frappe
 			.call({
 				method: "erpnext.buying.doctype.purchase_order.purchase_order.get_purchase_receipt_warehouses",

@@ -18,8 +18,8 @@ PROCUREMENT_ASSIGNMENT_DOCTYPES = {
 
 
 @frappe.whitelist()
-def add(args=None):
-	return _add(args, ignore_permissions=False)
+def add(assignment: str | dict | None = None, **kwargs):
+	return _add(assignment if assignment is not None else kwargs.get("args"), ignore_permissions=False)
 
 
 def _add(args=None, *, ignore_permissions=False):
@@ -59,9 +59,10 @@ def _add(args=None, *, ignore_permissions=False):
 
 
 @frappe.whitelist()
-def add_multiple(args=None):
-	args = frappe._dict(args or frappe.local.form_dict)
-	for name in json.loads(args.name):
-		doc_args = frappe._dict(args)
+def add_multiple(assignment: str | dict | None = None, **kwargs):
+	payload = assignment if assignment is not None else kwargs.get("args")
+	payload = frappe._dict(payload or frappe.local.form_dict)
+	for name in json.loads(payload.name):
+		doc_args = frappe._dict(payload)
 		doc_args.name = name
 		add(doc_args)

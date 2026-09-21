@@ -340,7 +340,7 @@ def _get_supplier_bank_accounts(supplier):
 
 
 @frappe.whitelist()
-def get_supplier_bank_accounts(supplier):
+def get_supplier_bank_accounts(supplier: str):
 	"""Return the active external bank accounts linked to a supplier."""
 	supplier_doc = frappe.get_doc("Supplier", supplier)
 	supplier_doc.check_permission("read")
@@ -348,7 +348,7 @@ def get_supplier_bank_accounts(supplier):
 
 
 @frappe.whitelist(methods=["POST"])
-def set_default_supplier_bank_account(supplier, bank_account=None):
+def set_default_supplier_bank_account(supplier: str, bank_account: str | None = None):
 	"""Set at most one default external bank account for a supplier."""
 	supplier_doc = frappe.get_doc("Supplier", supplier)
 	supplier_doc.check_permission("write")

@@ -14,53 +14,60 @@ ALL_ASSIGNMENT_DAYS = (
 	"Sunday",
 )
 
-ASSIGNMENT_RULES = (
-	{
-		"name": "Payments: завдання ініціатору",
-		"priority": 40,
-		"condition": "workflow_state in ('Чернетка', 'Потребує доопрацювання')",
-		"unassign_condition": "workflow_state not in ('Чернетка', 'Потребує доопрацювання')",
-		"rule": "Based on Field",
-		"field": "custom_initiator_user",
-		"description": _("Process Payment Request {{ name }} at stage “{{ workflow_state }}”."),
-	},
-	{
-		"name": "Payments: завдання керівнику підрозділу",
-		"priority": 30,
-		"condition": "workflow_state == 'Перевірка підрозділу'",
-		"unassign_condition": "workflow_state != 'Перевірка підрозділу'",
-		"user": "payments.department.head@example.invalid",
-		"description": _("Review Payment Request {{ name }} from the department."),
-	},
-	{
-		"name": "Payments: завдання фінальному погоджувачу",
-		"priority": 20,
-		"condition": "workflow_state == 'Фінальне погодження'",
-		"unassign_condition": "workflow_state != 'Фінальне погодження'",
-		"user": "payments.final.approver@example.invalid",
-		"description": _("Perform the final approval of Payment Request {{ name }}."),
-	},
-	{
-		"name": "Payments: завдання казначею",
-		"priority": 10,
-		"condition": "workflow_state == 'Перевірка казначейства'",
-		"unassign_condition": "workflow_state != 'Перевірка казначейства'",
-		"user": "payments.treasury@example.invalid",
-		"description": _("Review and schedule payment for Payment Request {{ name }}."),
-	},
-)
-
 NOTIFICATION_NAME = "Payments: сповіщення про етап погодження"
-DEMO_NOTIFICATION_USERS = tuple(
-	sorted(
-		{rule["user"] for rule in ASSIGNMENT_RULES if rule.get("user")} | {"payments.auditor@example.invalid"}
+
+
+def _get_assignment_rules():
+	"""Build site-aware assignment specs without keeping translated values in module state."""
+	return (
+		{
+			"name": "Payments: завдання ініціатору",
+			"priority": 40,
+			"condition": "workflow_state in ('Чернетка', 'Потребує доопрацювання')",
+			"unassign_condition": "workflow_state not in ('Чернетка', 'Потребує доопрацювання')",
+			"rule": "Based on Field",
+			"field": "custom_initiator_user",
+			"description": _("Process Payment Request {{ name }} at stage “{{ workflow_state }}”."),
+		},
+		{
+			"name": "Payments: завдання керівнику підрозділу",
+			"priority": 30,
+			"condition": "workflow_state == 'Перевірка підрозділу'",
+			"unassign_condition": "workflow_state != 'Перевірка підрозділу'",
+			"user": "payments.department.head@example.invalid",
+			"description": _("Review Payment Request {{ name }} from the department."),
+		},
+		{
+			"name": "Payments: завдання фінальному погоджувачу",
+			"priority": 20,
+			"condition": "workflow_state == 'Фінальне погодження'",
+			"unassign_condition": "workflow_state != 'Фінальне погодження'",
+			"user": "payments.final.approver@example.invalid",
+			"description": _("Perform the final approval of Payment Request {{ name }}."),
+		},
+		{
+			"name": "Payments: завдання казначею",
+			"priority": 10,
+			"condition": "workflow_state == 'Перевірка казначейства'",
+			"unassign_condition": "workflow_state != 'Перевірка казначейства'",
+			"user": "payments.treasury@example.invalid",
+			"description": _("Review and schedule payment for Payment Request {{ name }}."),
+		},
 	)
-)
+
+
+def _get_demo_notification_users():
+	return tuple(
+		sorted(
+			{rule["user"] for rule in _get_assignment_rules() if rule.get("user")}
+			| {"payments.auditor@example.invalid"}
+		)
+	)
 
 
 def sync_automation_configuration():
 	"""Synchronize production-safe automation with an Administrator fallback."""
-	for rule in ASSIGNMENT_RULES:
+	for rule in _get_assignment_rules():
 		_ensure_assignment_rule(rule, default_user="Administrator")
 	_ensure_notification()
 	frappe.clear_cache(doctype=PAYMENT_REQUEST_DOCTYPE)
@@ -68,7 +75,7 @@ def sync_automation_configuration():
 
 def sync_demo_automation_configuration():
 	"""Create local demo assignments after the demo users have been seeded."""
-	for rule in ASSIGNMENT_RULES:
+	for rule in _get_assignment_rules():
 		_ensure_assignment_rule(rule, default_user=rule.get("user") or "Administrator")
 	_ensure_notification()
 	_ensure_demo_notification_settings()
@@ -84,7 +91,8 @@ def apply_rules_to_existing_requests():
 	)
 	for name in requests:
 		sync_payment_request_assignment(frappe.get_doc(PAYMENT_REQUEST_DOCTYPE, name))
-	frappe.db.commit()
+	# This patch helper is called explicitly outside the request transaction.
+	frappe.db.commit()  # nosemgrep: frappe-semgrep-rules.rules.frappe-manual-commit
 	return requests
 
 
@@ -146,8 +154,9 @@ def sync_payment_request_assignment(doc, method=None):
 	if doc.doctype != PAYMENT_REQUEST_DOCTYPE:
 		return
 
-	matching = next((spec for spec in ASSIGNMENT_RULES if _matches_stage(spec, doc)), None)
-	managed_rules = [spec["name"] for spec in ASSIGNMENT_RULES]
+	assignment_rules = _get_assignment_rules()
+	matching = next((spec for spec in assignment_rules if _matches_stage(spec, doc)), None)
+	managed_rules = [spec["name"] for spec in assignment_rules]
 	open_todos = frappe.get_all(
 		"ToDo",
 		filters={
@@ -180,6 +189,8 @@ def sync_payment_request_assignment(doc, method=None):
 			"assign_to": [target_user],
 			"doctype": PAYMENT_REQUEST_DOCTYPE,
 			"name": doc.name,
+			# Assignment Rule descriptions are created by this module, not by request input.
+			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-ssti
 			"description": frappe.render_template(rule.description, doc.as_dict()),
 			"assignment_rule": rule.name,
 			"date": doc.get(rule.due_date_based_on) if rule.due_date_based_on else None,
@@ -205,7 +216,7 @@ def _get_stage_user(spec, doc):
 
 def _ensure_demo_notification_settings():
 	"""Keep Desk notifications enabled without requiring outgoing email locally."""
-	for user in DEMO_NOTIFICATION_USERS:
+	for user in _get_demo_notification_users():
 		if frappe.db.exists("Notification Settings", user):
 			doc = frappe.get_doc("Notification Settings", user)
 		else:

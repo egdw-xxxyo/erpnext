@@ -61,7 +61,11 @@ def require_buyer_role():
 
 
 @frappe.whitelist()
-def make_purchase_order(source_name, target_doc=None, args=None):
+def make_purchase_order(
+	source_name: str,
+	target_doc: object | None = None,
+	args: str | dict | None = None,
+):
 	require_buyer_role()
 	validate_material_requests_available([source_name])
 	from erpnext.stock.doctype.material_request.material_request import make_purchase_order as core_make
@@ -71,7 +75,11 @@ def make_purchase_order(source_name, target_doc=None, args=None):
 
 
 @frappe.whitelist()
-def make_purchase_order_based_on_supplier(source_name, target_doc=None, args=None):
+def make_purchase_order_based_on_supplier(
+	source_name: str,
+	target_doc: object | None = None,
+	args: str | dict | None = None,
+):
 	require_buyer_role()
 	validate_material_requests_available([source_name])
 	from erpnext.stock.doctype.material_request.material_request import (
@@ -83,7 +91,7 @@ def make_purchase_order_based_on_supplier(source_name, target_doc=None, args=Non
 
 
 @frappe.whitelist()
-def make_request_for_quotation(source_name, target_doc=None):
+def make_request_for_quotation(source_name: str, target_doc: object | None = None):
 	require_buyer_role()
 	from erpnext.stock.doctype.material_request.material_request import (
 		make_request_for_quotation as core_make,
@@ -93,7 +101,7 @@ def make_request_for_quotation(source_name, target_doc=None):
 
 
 @frappe.whitelist()
-def make_supplier_quotation(source_name, target_doc=None):
+def make_supplier_quotation(source_name: str, target_doc: object | None = None):
 	require_buyer_role()
 	from erpnext.stock.doctype.material_request.material_request import make_supplier_quotation as core_make
 
@@ -189,14 +197,14 @@ def _get_consolidated_purchase_order_names(material_request):
 
 
 @frappe.whitelist()
-def get_existing_consolidated_purchase_order(source_name):
+def get_existing_consolidated_purchase_order(source_name: str):
 	doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
 	doc.check_permission("read")
 	return get_active_consolidated_purchase_order(source_name)
 
 
 @frappe.whitelist()
-def get_material_request_consolidated_orders(source_name):
+def get_material_request_consolidated_orders(source_name: str):
 	"""Return linked consolidated orders for display on a Material Request."""
 	doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
 	doc.check_permission("read")
@@ -534,6 +542,8 @@ def sync_procurement_stage_assignment(doc, method=None):
 			"assign_to": [target_user],
 			"doctype": doc.doctype,
 			"name": doc.name,
+			# Assignment Rule descriptions are trusted setup configuration.
+			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-ssti
 			"description": frappe.render_template(rule.description, doc.as_dict()),
 			"assignment_rule": rule.name,
 			"date": doc.get(rule.due_date_based_on) if rule.due_date_based_on else None,

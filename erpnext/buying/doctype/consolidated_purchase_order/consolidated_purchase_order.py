@@ -362,7 +362,14 @@ def get_allowed_primary_supplier_names(related_supplier):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def get_related_supplier_options(doctype, txt, searchfield, start, page_len, filters):
+def get_related_supplier_options(
+	doctype: str,
+	txt: str,
+	searchfield: str,
+	start: int,
+	page_len: int,
+	filters: dict | None,
+):
 	"""Filter either supplier column so only valid Private Entrepreneur pairs can be selected."""
 	filters = filters or {}
 	reference_supplier = filters.get("reference_supplier")
@@ -389,7 +396,7 @@ def get_related_supplier_options(doctype, txt, searchfield, start, page_len, fil
 
 
 @frappe.whitelist()
-def get_procurement_user_names(users):
+def get_procurement_user_names(users: str | list[str]):
 	users = frappe.parse_json(users) if isinstance(users, str) else users
 	return {
 		user: frappe.get_cached_value("User", user, "full_name") or user
@@ -399,7 +406,7 @@ def get_procurement_user_names(users):
 
 
 @frappe.whitelist()
-def get_supplier_contacts(source_name=None, suppliers=None):
+def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[str] | None = None):
 	if source_name:
 		doc = frappe.get_doc("Consolidated Purchase Order", source_name)
 		doc.check_permission("read")
@@ -442,7 +449,11 @@ def get_supplier_contacts(source_name=None, suppliers=None):
 
 
 @frappe.whitelist()
-def get_supplier_invoice_files(consolidated_order=None, supplier=None, references=None):
+def get_supplier_invoice_files(
+	consolidated_order: str | None = None,
+	supplier: str | None = None,
+	references: str | list[dict] | None = None,
+):
 	"""Return source supplier invoice files without copying them to downstream documents."""
 	contexts = {}
 	if consolidated_order and supplier:
@@ -513,7 +524,7 @@ def get_supplier_invoice_files(consolidated_order=None, supplier=None, reference
 
 
 @frappe.whitelist()
-def get_delivery_notes_for_purchase_order(purchase_order):
+def get_delivery_notes_for_purchase_order(purchase_order: str):
 	order = frappe.get_doc("Purchase Order", purchase_order)
 	order.check_permission("read")
 	if not order.get("custom_consolidated_purchase_order") or not order.supplier:
@@ -532,7 +543,7 @@ def get_delivery_notes_for_purchase_order(purchase_order):
 
 
 @frappe.whitelist()
-def get_purchase_invoice_options(source_name):
+def get_purchase_invoice_options(source_name: str):
 	doc = frappe.get_doc("Consolidated Purchase Order", source_name)
 	doc.check_permission("read")
 	orders = frappe.get_all(
@@ -581,14 +592,14 @@ def _get_supplier_invoice_suppliers(source_name):
 
 
 @frappe.whitelist()
-def get_purchase_order_summary(source_name):
+def get_purchase_order_summary(source_name: str):
 	doc = frappe.get_doc("Consolidated Purchase Order", source_name)
 	doc.check_permission("read")
 	return _get_purchase_order_summary(source_name)
 
 
 @frappe.whitelist()
-def get_approval_route_summary(source_name):
+def get_approval_route_summary(source_name: str):
 	from erpnext.buying.procurement_final_approval import (
 		REQUIRED_FINAL_APPROVALS,
 		get_approval_threshold,
@@ -667,7 +678,7 @@ def _get_material_request_summaries(doc):
 
 
 @frappe.whitelist()
-def get_material_request_summaries(material_requests):
+def get_material_request_summaries(material_requests: str | list[str]):
 	material_request_names = sorted(set(frappe.parse_json(material_requests) or []))
 	for name in material_request_names:
 		frappe.get_doc("Material Request", name).check_permission("read")
@@ -746,7 +757,7 @@ def sync_linked_consolidated_purchase_order_progress(doc, method=None):
 			if source_name:
 				source_names.add(source_name)
 
-	for source_name in filter(None, source_names):
+	for source_name in (name for name in source_names if name):
 		sync_consolidated_purchase_order_progress(source_name)
 		if doc.doctype == "Purchase Receipt" and method == "on_submit":
 			from erpnext.buying.procurement_automation import notify_procurement_receipt
@@ -1064,7 +1075,7 @@ def _as_percent(amount, total):
 
 
 @frappe.whitelist()
-def make_purchase_invoice(source_name, supplier=None):
+def make_purchase_invoice(source_name: str, supplier: str | None = None):
 	supplier = supplier or (frappe.flags.args or {}).get("supplier")
 	if not supplier:
 		frappe.throw(_("Supplier is required for all selected Items"))

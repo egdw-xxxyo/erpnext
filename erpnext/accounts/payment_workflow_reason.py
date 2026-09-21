@@ -83,7 +83,7 @@ def sync_workflow_reason_configuration():
 
 
 @frappe.whitelist()
-def apply_workflow(doc, action):
+def apply_workflow(doc: str | dict, action: str):
 	"""Apply the stock workflow while carrying a mandatory decision reason."""
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
 

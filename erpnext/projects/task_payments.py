@@ -466,7 +466,7 @@ def _get_material_requests(task):
 
 
 @frappe.whitelist()
-def get_task_payment_overview(task):
+def get_task_payment_overview(task: str):
 	task_doc = frappe.get_doc("Task", task)
 	task_doc.check_permission("read")
 	direct_requests = _get_requests([task])
@@ -515,7 +515,7 @@ def get_task_payment_overview(task):
 
 
 @frappe.whitelist()
-def get_available_purchase_invoices(task):
+def get_available_purchase_invoices(task: str):
 	frappe.get_doc("Task", task).check_permission("read")
 	return frappe.get_list(
 		"Purchase Invoice",
@@ -526,7 +526,7 @@ def get_available_purchase_invoices(task):
 
 
 @frappe.whitelist()
-def create_payment_request(task, purchase_invoice):
+def create_payment_request(task: str, purchase_invoice: str):
 	from erpnext.accounts.doctype.payment_request.payment_request import make_payment_request
 
 	frappe.get_doc("Task", task).check_permission("read")

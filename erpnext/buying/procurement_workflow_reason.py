@@ -12,7 +12,7 @@ REQUIRED_TARGET_STATES = ("Потребує доопрацювання", "Від
 MAX_REASON_LENGTH = 2000
 
 
-def apply_workflow(doc, action):
+def apply_workflow(doc: str | dict, action: str):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
 
 	from erpnext.buying.procurement_final_approval import (
@@ -98,10 +98,11 @@ def _apply_creator_department_approval(doc, core_apply_workflow):
 		# Administrator performs the technical transition because the workflow keeps
 		# self-approval disabled. The Workflow Action and comment are attributed to
 		# the actual creator below.
-		frappe.set_user("Administrator")
+		# The transition must bypass self-approval while attribution is restored below.
+		frappe.set_user("Administrator")  # nosemgrep: frappe-semgrep-rules.rules.security.frappe-setuser
 		result = core_apply_workflow(doc, "Погодити")
 	finally:
-		frappe.set_user(original_user)
+		frappe.set_user(original_user)  # nosemgrep: frappe-semgrep-rules.rules.security.frappe-setuser
 
 	if workflow_action:
 		frappe.db.set_value(
