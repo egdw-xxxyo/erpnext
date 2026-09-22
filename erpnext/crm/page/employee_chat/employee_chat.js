@@ -964,12 +964,13 @@ class EmployeeChat {
 			this.messages = older.concat(this.messages);
 			this.render_thread(false);
 			const new_h = this.$thread[0].scrollHeight;
-			console.log("[chat] employee load_older: restoring scroll", {
-				older_count: older.length,
-				prev_h,
-				new_h,
-				new_scrollTop: new_h - prev_h,
-			});
+			if (window.__chat_debug)
+				console.log("[chat] employee load_older: restoring scroll", {
+					older_count: older.length,
+					prev_h,
+					new_h,
+					new_scrollTop: new_h - prev_h,
+				});
 			this.$thread.scrollTop(new_h - prev_h);
 		}
 		this.loading_older = false;
@@ -1096,11 +1097,12 @@ class EmployeeChat {
 			this.toggle_reaction(m, $badge.data("emoji"));
 		});
 
-		console.log("[chat] employee render_thread", {
-			scroll: !!scroll,
-			msg_count: this.messages.length,
-			scrollHeight: this.$thread[0].scrollHeight,
-		});
+		if (window.__chat_debug)
+			console.log("[chat] employee render_thread", {
+				scroll: !!scroll,
+				msg_count: this.messages.length,
+				scrollHeight: this.$thread[0].scrollHeight,
+			});
 		if (scroll) this.$thread.scrollTop(this.$thread[0].scrollHeight);
 	}
 
@@ -1126,7 +1128,8 @@ class EmployeeChat {
 
 	async show_info() {
 		if (!this.active) return;
-		console.log("[chat] employee show_info (conversation name pressed)", { thread: this.active });
+		if (window.__chat_debug)
+			console.log("[chat] employee show_info (conversation name pressed)", { thread: this.active });
 		const info = await frappe.xcall(API + "get_thread_info", { thread: this.active });
 		const media = [];
 		const files = [];
@@ -1570,16 +1573,17 @@ class EmployeeChat {
 	// --- realtime handlers -------------------------------------------------
 
 	async on_realtime_message(d) {
-		console.log("[chat] employee page realtime message", d);
+		if (window.__chat_debug) console.log("[chat] employee page realtime message", d);
 		// Someone else's message rings, unless this user muted the thread.
 		if (d && d.sender && d.sender !== this.me) {
 			const t = this.threads[d.thread];
-			console.log("[chat] employee ring", {
-				thread: d.thread,
-				sender: d.sender,
-				thread_found: !!t,
-				muted: t && t.muted,
-			});
+			if (window.__chat_debug)
+				console.log("[chat] employee ring", {
+					thread: d.thread,
+					sender: d.sender,
+					thread_found: !!t,
+					muted: t && t.muted,
+				});
 			erpnext.chat_sound.play(t && t.muted);
 		}
 		if (d && d.thread === this.active && d.name) {

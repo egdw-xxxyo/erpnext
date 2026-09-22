@@ -663,9 +663,9 @@ class ChatBubble {
 		this.refresh();
 
 		this.on_rt = (d) => {
-			console.log("[chat] bubble realtime event", d);
+			if (window.__chat_debug) console.log("[chat] bubble realtime event", d);
 			this.ring(d);
-			this.refresh();
+			this.refresh_soon();
 		};
 		this.sources.forEach((s) => s.realtime_events.forEach((ev) => frappe.realtime.on(ev, this.on_rt)));
 		// Progress is high-frequency: it only moves the bar, never triggers a refresh.
@@ -685,24 +685,27 @@ class ChatBubble {
 			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find(
 				(c) => c.id === d.number
 			);
-			console.log("[chat] ring: whatsapp incoming", {
-				number: d.number,
-				chat_found: !!chat,
-				muted: chat && chat.muted,
-			});
+			if (window.__chat_debug)
+				console.log("[chat] ring: whatsapp incoming", {
+					number: d.number,
+					chat_found: !!chat,
+					muted: chat && chat.muted,
+				});
 		} else if (d.sender && d.sender !== frappe.session.user && d.thread) {
 			// Employee Chat: a full message payload
 			chat = (this.sources.find((s) => s.key === "employee")?.chats || []).find(
 				(c) => c.id === d.thread
 			);
-			console.log("[chat] ring: employee message", {
-				thread: d.thread,
-				sender: d.sender,
-				chat_found: !!chat,
-				muted: chat && chat.muted,
-			});
+			if (window.__chat_debug)
+				console.log("[chat] ring: employee message", {
+					thread: d.thread,
+					sender: d.sender,
+					chat_found: !!chat,
+					muted: chat && chat.muted,
+				});
 		} else {
-			console.log("[chat] ring: event ignored (not an incoming/foreign message)", d);
+			if (window.__chat_debug)
+				console.log("[chat] ring: event ignored (not an incoming/foreign message)", d);
 			return;
 		}
 		erpnext.chat_sound.play(chat && chat.muted);
@@ -1103,6 +1106,13 @@ class ChatBubble {
 		}
 	}
 
+	// Realtime is chatty: chat_seen alone fires on every read by every participant, and each
+	// event reloaded every source list (two server calls). Coalesce a burst into one refresh.
+	refresh_soon() {
+		clearTimeout(this._refresh_timer);
+		this._refresh_timer = setTimeout(() => this.refresh(), 800);
+	}
+
 	async refresh() {
 		await Promise.all(
 			this.sources.map(async (s) => {
@@ -1242,7 +1252,8 @@ class ChatBubble {
 	}
 
 	open_thread(id) {
-		console.log("[chat] open_thread (conversation clicked)", { source: this.source.key, id });
+		if (window.__chat_debug)
+			console.log("[chat] open_thread (conversation clicked)", { source: this.source.key, id });
 		this.active = id;
 		// Coming back from this thread should land on the tab it belongs to.
 		if (this.source.tab_of) this.tab = this.source.tab_of(id);
@@ -1280,7 +1291,8 @@ class ChatBubble {
 		// unread breaks it: after the first mark the count is 0, so the echo can't re-arm it.
 		const chat = (source.chats || []).find((c) => c.id === id);
 		if (chat && chat.unread) {
-			console.log("[chat] load_thread: marking read (unread=" + chat.unread + ")", { id });
+			if (window.__chat_debug)
+				console.log("[chat] load_thread: marking read (unread=" + chat.unread + ")", { id });
 			await source.mark_read(id);
 			this.render_badges();
 		}
