@@ -60,6 +60,7 @@ SCAN_LOG_FIELDS = [
 
 CONTEXT_FIELD_FIELDS = [
 	"key",
+	"link_doctype",
 	"label",
 	"fieldtype",
 	"options",
@@ -195,6 +196,16 @@ def _declared_context_fields(root_script, subflow):
 	return declared
 
 
+def _link_doctype(decl):
+	"""The DocType a Link key points at.
+
+	`link_doctype` is what the form asks for now — a real DocType picker instead of free text.
+	Rows written before that field existed keep the DocType name in `options`, so it is still
+	read as a fallback.
+	"""
+	return (decl.get("link_doctype") or decl.get("options") or "").strip()
+
+
 def _link_filters(decl):
 	raw = (decl.get("link_filters") or "").strip()
 	if not raw:
@@ -227,9 +238,9 @@ def _render_display(decl, value):
 		return _("{0} values").format(len(value))
 	if decl.get("fieldtype") == "Check":
 		return _("Yes") if cint(value) else _("No")
-	if decl.get("fieldtype") == "Link" and decl.get("options"):
+	if decl.get("fieldtype") == "Link" and _link_doctype(decl):
 		try:
-			return _link_label(decl.get("options"), value)
+			return _link_label(_link_doctype(decl), value)
 		except Exception:
 			return str(value)
 	return str(value)
@@ -343,6 +354,7 @@ def _read_session(scanner_row):
 				"label": decl.get("label") or key,
 				"fieldtype": decl.get("fieldtype") or "Data",
 				"options": decl.get("options"),
+				"link_doctype": _link_doctype(decl) or None,
 				"show_in_app": cint(decl.get("show_in_app")),
 				"app_editable": cint(decl.get("app_editable")),
 				"is_primary": cint(decl.get("is_primary")),
@@ -369,6 +381,7 @@ def _read_session(scanner_row):
 				"label": key,
 				"fieldtype": "Data",
 				"options": None,
+				"link_doctype": None,
 				"show_in_app": 0,
 				"app_editable": 0,
 				"is_primary": 0,
@@ -547,7 +560,7 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 	if decl.get("fieldtype") != "Link":
 		frappe.throw(_("Context field {0} has no options to pick from").format(key))
 
-	doctype = decl.get("options")
+	doctype = _link_doctype(decl)
 	filters = _link_filters(decl)
 	if query:
 		filters["name"] = ["like", f"%{query}%"]
@@ -725,7 +738,7 @@ def _coerce_value(decl, value):
 		return value
 
 	if fieldtype == "Link":
-		doctype = decl.get("options")
+		doctype = _link_doctype(decl)
 		if not frappe.db.exists(doctype, value):
 			frappe.throw(_("{0} {1} not found").format(_(doctype), value), frappe.DoesNotExistError)
 		# The same filters the picker applies, re-checked here: a client that skipped the

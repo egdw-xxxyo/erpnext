@@ -220,10 +220,15 @@ class WorkplaceScript(Document):
 		known_states = {s.state for s in (self.states or [])} | snapshot_states
 
 		for row in self.context_fields:
-			if row.fieldtype in ("Link", "Select") and not (row.options or "").strip():
+			if row.fieldtype == "Link" and not (
+				(row.link_doctype or "").strip() or (row.options or "").strip()
+			):
 				frappe.throw(
-					_("Context field {0}: Options is required for a {1} field").format(row.key, row.fieldtype)
+					_("Context field {0}: Link DocType is required for a Link field").format(row.key)
 				)
+
+			if row.fieldtype == "Select" and not (row.options or "").strip():
+				frappe.throw(_("Context field {0}: Options is required for a Select field").format(row.key))
 
 			if row.is_primary and not row.app_editable:
 				frappe.throw(_("Context field {0}: Primary requires App Editable").format(row.key))

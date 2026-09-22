@@ -8,6 +8,7 @@
   "key",
   "label",
   "fieldtype",
+  "link_doctype",
   "options",
   "column_break_1",
   "show_in_app",
@@ -50,10 +51,19 @@
    "reqd": 1
   },
   {
+   "fieldname": "link_doctype",
+   "fieldtype": "Link",
+   "label": "Link DocType",
+   "options": "DocType",
+   "depends_on": "eval:doc.fieldtype==\"Link\"",
+   "description": "The DocType the app offers to pick from (e.g. Sales Order). Only for Link."
+  },
+  {
    "fieldname": "options",
    "fieldtype": "Small Text",
    "label": "Options",
-   "description": "For Link: the target DocType (e.g. Sales Order). For Select: one option per line."
+   "description": "One option per line, for Select. A Link uses \"Link DocType\" instead (an older row may still carry the DocType name here).",
+   "depends_on": "eval:doc.fieldtype==\"Select\""
   },
   {
    "fieldname": "column_break_1",

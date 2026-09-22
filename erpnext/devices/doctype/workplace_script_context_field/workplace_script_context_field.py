@@ -15,6 +15,7 @@ class WorkplaceScriptContextField(Document):
 		is_primary: DF.Check
 		key: DF.Data
 		label: DF.Data | None
+		link_doctype: DF.Link | None
 		link_filters: DF.Code | None
 		link_order_by: DF.Data | None
 		options: DF.SmallText | None

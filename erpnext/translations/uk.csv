@@ -14904,7 +14904,9 @@ Finish or reset the session first — it still holds: {0},Спершу заве�
 {0} values,{0} значень
 Context field {0}: Key is required,Поле контексту {0}: вкажіть ключ
 Duplicate context field keys: {0},Дублікати ключів полів контексту: {0}
-Context field {0}: Options is required for a {1} field,Поле контексту {0}: для типу {1} потрібні «Варіанти»
+Context field {0}: Options is required for a Select field,Поле контексту {0}: для типу «Вибір» потрібні «Варіанти»
+Context field {0}: Link DocType is required for a Link field,Поле контексту {0}: для типу «Посилання» потрібен «DocType посилання»
+Link DocType,DocType посилання
 Context field {0}: Primary requires App Editable,Поле контексту {0}: «Основне» вимагає «Можна змінювати з застосунку»
 Context field {0}: Primary cannot be Preserve On Switch — the primary key is always rewritten by the switch,Поле контексту {0}: «Основне» не може бути «Зберігати при перемиканні» — основний ключ завжди перезаписується при перемиканні
 Context field {0}: Enter State '{1}' is not a state of this script,Поле контексту {0}: стан «{1}» не належить цьому скрипту
