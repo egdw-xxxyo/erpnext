@@ -161,9 +161,29 @@ def _declared_context_fields(root_script, subflow):
 	the authoritative ones — but a root script may legitimately declare keys that outlive a
 	subflow switch, so the two are merged with the subflow winning on a collision. This
 	mirrors how `handle_scan` picks the active script: `frame.subflow or root`.
+
+	With **no** subflow active the root's own subflows are folded in as well. Their keys are
+	how a flow is entered — in packing, `so` is declared by «Пакування — Замовлення» and
+	setting it is what starts that subflow (see `_subflow_for`) — so without this an idle
+	scanner would offer nothing to start and the app could only watch. Once a subflow is
+	running, only it and the root contribute: offering a sibling flow's keys mid-flow would
+	write context the running states never read.
 	"""
+	scripts = [root_script]
+	if subflow:
+		scripts.append(subflow)
+	elif root_script:
+		scripts.extend(
+			frappe.get_all(
+				"Workplace Script",
+				filters={"parent_script": root_script, "is_active": 1},
+				pluck="name",
+				order_by="name asc",
+			)
+		)
+
 	declared = {}
-	for script in (root_script, subflow):
+	for script in scripts:
 		if not script:
 			continue
 		for row in _script_context_fields(script):
