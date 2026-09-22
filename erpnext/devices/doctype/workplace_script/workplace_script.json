@@ -8,34 +8,40 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "tab_details",
   "script_name",
   "column_break_1",
   "is_active",
   "column_break_2",
   "workplace",
   "parent_script",
-  "section_subflow_entries",
-  "subflow_entries",
-  "section_context_fields",
-  "context_fields",
   "section_versions",
   "default_version",
   "column_break_v1",
   "viewing_version",
   "section_versions_list",
   "versions",
+  "section_diagram",
+  "diagram_html",
+  "tab_flow",
   "section_script",
   "script",
   "section_states",
   "states",
   "section_transitions",
   "transitions",
-  "section_diagram",
-  "diagram_html",
-  "section_help",
-  "help_html"
+  "section_subflow_entries",
+  "subflow_entries",
+  "tab_variables",
+  "section_context_fields",
+  "context_fields"
  ],
  "fields": [
+  {
+   "fieldname": "tab_details",
+   "fieldtype": "Tab Break",
+   "label": "Details"
+  },
   {
    "fieldname": "script_name",
    "fieldtype": "Data",
@@ -72,32 +78,6 @@
    "description": "If set, this script is a subflow invoked by the parent. Subflows have no Workplace and are not subject to per-workplace uniqueness."
   },
   {
-   "fieldname": "section_subflow_entries",
-   "fieldtype": "Section Break",
-   "label": "Subflow Entries",
-   "collapsible": 1,
-   "description": "Declarative entry points to subflows. The dispatcher matches each scan against these rows BEFORE running the main script. On match, the current state is pushed onto the stack and the target subflow runs with the same event (so its initial state can process the trigger scan). Diagram renders an edge per row."
-  },
-  {
-   "fieldname": "subflow_entries",
-   "fieldtype": "Table",
-   "label": "Subflow Entries",
-   "options": "Workplace Script Subflow Entry"
-  },
-  {
-   "fieldname": "section_context_fields",
-   "fieldtype": "Section Break",
-   "label": "Context Fields",
-   "collapsible": 1,
-   "description": "Declares the runtime context contract of this script: which keys live in e.state.context, how they are typed, which ones the mobile app may show and steer, and what survives when the operator switches the primary entity from the app. Purely declarative - the scanner runtime ignores these rows, so a script with none behaves exactly as before."
-  },
-  {
-   "fieldname": "context_fields",
-   "fieldtype": "Table",
-   "label": "Context Fields",
-   "options": "Workplace Script Context Field"
-  },
-  {
    "fieldname": "section_versions",
    "fieldtype": "Section Break",
    "label": "Versions"
@@ -130,6 +110,21 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_diagram",
+   "fieldtype": "Section Break",
+   "label": "Diagram"
+  },
+  {
+   "fieldname": "diagram_html",
+   "fieldtype": "HTML",
+   "label": "Diagram"
+  },
+  {
+   "fieldname": "tab_flow",
+   "fieldtype": "Tab Break",
+   "label": "Flow Configuration"
+  },
+  {
    "fieldname": "section_script",
    "fieldtype": "Section Break",
    "label": "Script (Working Copy)"
@@ -142,7 +137,6 @@
    "reqd": 1
   },
   {
-   "collapsible": 1,
    "fieldname": "section_states",
    "fieldtype": "Section Break",
    "label": "States"
@@ -154,7 +148,6 @@
    "options": "Workplace Script State"
   },
   {
-   "collapsible": 1,
    "fieldname": "section_transitions",
    "fieldtype": "Section Break",
    "label": "Transitions"
@@ -166,26 +159,33 @@
    "options": "Workplace Script Transition"
   },
   {
-   "collapsible": 1,
-   "fieldname": "section_diagram",
+   "fieldname": "section_subflow_entries",
    "fieldtype": "Section Break",
-   "label": "Diagram"
+   "label": "Subflow Entries",
+   "description": "Declarative entry points to subflows. The dispatcher matches each scan against these rows BEFORE running the main script. On match, the current state is pushed onto the stack and the target subflow runs with the same event (so its initial state can process the trigger scan). Diagram renders an edge per row."
   },
   {
-   "fieldname": "diagram_html",
-   "fieldtype": "HTML",
-   "label": "Diagram"
+   "fieldname": "subflow_entries",
+   "fieldtype": "Table",
+   "label": "Subflow Entries",
+   "options": "Workplace Script Subflow Entry"
   },
   {
-   "fieldname": "section_help",
+   "fieldname": "tab_variables",
+   "fieldtype": "Tab Break",
+   "label": "Variables"
+  },
+  {
+   "fieldname": "section_context_fields",
    "fieldtype": "Section Break",
-   "label": "API Reference",
-   "collapsible": 1
+   "label": "Context Fields",
+   "description": "Declares the runtime context contract of this script: which keys live in e.state.context, how they are typed, which ones the mobile app may show and steer, and what survives when the operator switches the primary entity from the app. Purely declarative - the scanner runtime ignores these rows, so a script with none behaves exactly as before."
   },
   {
-   "fieldname": "help_html",
-   "fieldtype": "HTML",
-   "label": "API Reference"
+   "fieldname": "context_fields",
+   "fieldtype": "Table",
+   "label": "Context Fields",
+   "options": "Workplace Script Context Field"
   }
  ],
  "index_web_pages_for_search": 1,
