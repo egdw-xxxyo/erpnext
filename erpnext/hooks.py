@@ -776,6 +776,16 @@ auto_cancel_exempted_doctypes = [
 	"Payment Entry",
 ]
 
+# Scanner / workplace runtime state lives in Redis, not in the DB, so a bare
+# frappe.clear_cache() (Employee.on_update calls one on every save) deletes every site key
+# and drops an operator mid-package. These keys are runtime session data, never a cache of
+# something re-derivable, so they must survive a cache clear.
+persistent_cache_keys = [
+	"scanner_state:*",
+	"scanner_last_active:*",
+	"otdr_state:*",
+]
+
 scheduler_events = {
 	"cron": {
 		"0/5 * * * *": [
