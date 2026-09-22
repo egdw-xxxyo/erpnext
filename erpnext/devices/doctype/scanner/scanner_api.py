@@ -56,6 +56,7 @@ class ScannerStateProxy:
 		self._current = state_dict or {}
 		self._next = None
 		self._cleared = False
+		self._rev = self._current.get("rev")
 
 	@property
 	def name(self):
@@ -71,6 +72,21 @@ class ScannerStateProxy:
 
 	def set(self, state_name, context=None):
 		next_state = {"state": state_name, "context": context or {}}
+		sub = self.subflow
+		if sub:
+			next_state["subflow"] = sub
+		self._next = next_state
+
+	def update(self, patch, state_name=None):
+		"""Merge `patch` into the context, keeping the rest of the frame.
+
+		`set()` replaces the context wholesale; this is the additive counterpart for the
+		common "remember one more thing" case. Staying in the current state is the default.
+		"""
+		next_state = {
+			"state": state_name or self.name,
+			"context": {**(self.context or {}), **(patch or {})},
+		}
 		sub = self.subflow
 		if sub:
 			next_state["subflow"] = sub
@@ -134,8 +150,19 @@ def _load_state(scanner_name, timeout):
 	return state
 
 
+def _read_rev(scanner_name):
+	raw = frappe.cache().get_value(_state_key(scanner_name))
+	if not raw:
+		return None
+	try:
+		return json.loads(raw).get("rev")
+	except Exception:
+		return None
+
+
 def _save_state(scanner_name, state_dict, timeout):
 	state_dict["updated_at"] = time.time()
+	state_dict["rev"] = int(_read_rev(scanner_name) or 0) + 1
 	frappe.cache().set_value(
 		_state_key(scanner_name),
 		json.dumps(state_dict),
@@ -147,7 +174,20 @@ def _clear_state(scanner_name):
 	frappe.cache().delete_value(_state_key(scanner_name))
 
 
+# Known asymmetry, kept deliberately: a script that mutates `e.state.context` in place
+# without calling set()/update() has its change persisted when no transition happened (we
+# write `_current` below) and silently dropped when one did (we write `_next`). Scripts are
+# expected to always go through set()/update(); changing the rule now would alter the
+# behaviour of every existing script for no gain.
 def _persist_state(scanner_name, state_proxy, timeout):
+	stored_rev = _read_rev(scanner_name)
+	if state_proxy._rev is not None and stored_rev != state_proxy._rev:
+		# Someone (the mobile app) rewrote the frame while this scan was running. The
+		# physical device is the source of truth, so the scan still wins — but say so.
+		frappe.logger("scanner").warning(
+			f"{scanner_name}: state frame changed under a running scan "
+			f"(read rev {state_proxy._rev}, stored rev {stored_rev})"
+		)
 	if state_proxy._cleared:
 		_clear_state(scanner_name)
 		return
@@ -208,19 +248,34 @@ def _is_reset_scan(scan_type, scan_ctx):
 	return bool(doc and getattr(doc, "barcode_id", None) in RESET_BARCODE_IDS)
 
 
-def _handle_reset(state_proxy):
-	cur_subflow = state_proxy.subflow
+def reset_frame(frame):
+	"""Subflow-aware reset, shared by the CMD-RESET barcode and the mobile app.
+
+	Inside a subflow, reset lands on that subflow's initial state and keeps the subflow;
+	at root level — or when already sitting on that initial state — the frame is dropped
+	entirely. Returns `(new_frame | None, display_message)`.
+	"""
+	cur_subflow = (frame or {}).get("subflow")
 	if cur_subflow:
 		sub_initial = _subflow_initial_state(cur_subflow)
-		if sub_initial and state_proxy.name != sub_initial:
-			frame = {"subflow": cur_subflow, "state": sub_initial, "context": {}}
-			state_proxy._current = dict(frame)
-			state_proxy._next = dict(frame)
-			state_proxy._cleared = False
-			return {"templateData": f"↺ {cur_subflow}\n{sub_initial}"}
-	state_proxy._cleared = True
-	state_proxy._next = None
-	return {"templateData": "↺ Скинуто"}
+		if sub_initial and (frame or {}).get("state") != sub_initial:
+			return (
+				{"subflow": cur_subflow, "state": sub_initial, "context": {}},
+				f"↺ {cur_subflow}\n{sub_initial}",
+			)
+	return None, "↺ Скинуто"
+
+
+def _handle_reset(state_proxy):
+	frame, message = reset_frame(state_proxy._current)
+	if frame:
+		state_proxy._current = dict(frame)
+		state_proxy._next = dict(frame)
+		state_proxy._cleared = False
+	else:
+		state_proxy._cleared = True
+		state_proxy._next = None
+	return {"templateData": message}
 
 
 def _enter_subflow(state_proxy, target_subflow):
@@ -239,6 +294,14 @@ def _enter_subflow(state_proxy, target_subflow):
 # ---------------------------------------------------------------------------
 # Public endpoint
 # ---------------------------------------------------------------------------
+
+
+def _publish_after_scan(scanner, scan_log_row):
+	"""Tell the operator's phone what just happened. Imported late: the session API imports
+	this module, so a module-level import would be circular."""
+	from erpnext.devices.scanner_session_api import publish_after_scan
+
+	publish_after_scan(scanner, scan_log_row)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -342,6 +405,7 @@ def handle_scan(scanner_key=None, data=None):
 				script_logs=logger.render() or None,
 			)
 			frappe.db.commit()
+			_publish_after_scan(scanner, scan_log_row)
 			return _resp(
 				success=True,
 				message=message,
@@ -369,6 +433,7 @@ def handle_scan(scanner_key=None, data=None):
 			script_logs=logger.render() or None,
 		)
 		frappe.db.commit()
+		_publish_after_scan(scanner, scan_log_row)
 		return _resp(success=False, error="on_scan handler not found or returned None", scan_log=scan_log_row)
 
 	except Exception as e:
@@ -384,6 +449,7 @@ def handle_scan(scanner_key=None, data=None):
 			script_logs=logger.render() or None,
 		)
 		frappe.db.commit()
+		_publish_after_scan(scanner, scan_log_row)
 		return _resp(success=False, error=str(e), scan_log=scan_log_row)
 
 

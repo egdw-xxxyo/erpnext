@@ -1,6 +1,7 @@
 import json
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -43,6 +44,12 @@ class _GuardedStateProxy:
 		if state_name != self._current and state_name not in self._allowed:
 			raise TransitionError(f"{self._current} → {state_name}")
 		self._real.set(state_name, context)
+
+	def update(self, patch, state_name=None):
+		target = state_name or self._current
+		if target != self._current and target not in self._allowed:
+			raise TransitionError(f"{self._current} → {target}")
+		self._real.update(patch, state_name)
 
 	def set_subflow(self, subflow_name, state_name, context=None):
 		self._real.set_subflow(subflow_name, state_name, context)
@@ -98,11 +105,16 @@ class WorkplaceScript(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.devices.doctype.workplace_script_context_field.workplace_script_context_field import (
+			WorkplaceScriptContextField,
+		)
+
 		default_version: DF.Data | None
 		is_active: DF.Check
 		parent_script: DF.Link | None
 		script: DF.Code | None
 		script_name: DF.Data | None
+		context_fields: DF.Table[WorkplaceScriptContextField]
 		viewing_version: DF.Data | None
 		workplace: DF.Link | None
 
@@ -131,6 +143,7 @@ class WorkplaceScript(Document):
 
 		self._ensure_versions()
 		self._validate_state_machine()
+		self._validate_context_fields()
 
 	def _ensure_versions(self):
 		if not self.versions:
@@ -181,6 +194,62 @@ class WorkplaceScript(Document):
 				frappe.throw(f"Transition {t.idx}: from_state '{t.from_state}' is not in States")
 			if t.to_state and t.to_state != "__exit__" and t.to_state not in valid:
 				frappe.throw(f"Transition {t.idx}: to_state '{t.to_state}' is not in States")
+
+	def _validate_context_fields(self):
+		"""Validate the declared context contract.
+
+		Declarations are purely descriptive for the scanner runtime — a script without any
+		row behaves exactly as it did before — so everything here is skipped when the table
+		is empty.
+		"""
+		if not self.context_fields:
+			return
+
+		keys = []
+		for row in self.context_fields:
+			row.key = (row.key or "").strip()
+			if not row.key:
+				frappe.throw(_("Context field {0}: Key is required").format(row.idx))
+			keys.append(row.key)
+
+		dupes = {k for k in keys if keys.count(k) > 1}
+		if dupes:
+			frappe.throw(_("Duplicate context field keys: {0}").format(", ".join(sorted(dupes))))
+
+		snapshot_states = {s.get("state") for s in (_resolve_default_snapshot(self).get("states") or [])}
+		known_states = {s.state for s in (self.states or [])} | snapshot_states
+
+		for row in self.context_fields:
+			if row.fieldtype in ("Link", "Select") and not (row.options or "").strip():
+				frappe.throw(
+					_("Context field {0}: Options is required for a {1} field").format(row.key, row.fieldtype)
+				)
+
+			if row.is_primary and not row.app_editable:
+				frappe.throw(_("Context field {0}: Primary requires App Editable").format(row.key))
+
+			if row.is_primary and row.preserve_on_switch:
+				frappe.throw(
+					_(
+						"Context field {0}: Primary cannot be Preserve On Switch — the primary key is always rewritten by the switch"
+					).format(row.key)
+				)
+
+			enter_state = (row.enter_state or "").strip()
+			if enter_state and enter_state not in known_states:
+				frappe.throw(
+					_("Context field {0}: Enter State '{1}' is not a state of this script").format(
+						row.key, enter_state
+					)
+				)
+
+			if (row.link_filters or "").strip():
+				try:
+					parsed = json.loads(row.link_filters)
+				except ValueError:
+					frappe.throw(_("Context field {0}: Link Filters is not valid JSON").format(row.key))
+				if not isinstance(parsed, dict):
+					frappe.throw(_("Context field {0}: Link Filters must be a JSON object").format(row.key))
 
 
 @frappe.whitelist()

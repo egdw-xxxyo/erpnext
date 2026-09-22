@@ -14889,3 +14889,48 @@ Overrides the designation's own default for this kit only.,Перекриває 
 Kit Ambiguous,Комплект неоднозначний
 "Several Items are made to these designations — set «Default Kit Item» on each, or name the Item on the component row: {0}","За цими позначеннями виготовляють кілька номенклатур — вкажіть «Номенклатуру комплекту за замовчуванням» для кожного або назвіть номенклатуру в рядку складової: {0}"
 Set a default unit of measure in Stock Settings first,Спершу вкажіть одиницю виміру за замовчуванням у «Налаштуваннях запасів»
+Scanner is required,Вкажіть сканер
+Scanner {0} not found,Сканер {0} не знайдено
+Scanner {0} is not assigned to you,Сканер {0} не закріплено за вами
+Context field key is required,Вкажіть ключ поля контексту
+Unknown context field {0},Невідоме поле контексту {0}
+Context field {0} is not editable from the app,Поле контексту {0} не можна змінювати з застосунку
+Context field {0} has no options to pick from,Поле контексту {0} не має варіантів для вибору
+{0} is not a valid option for {1},{0} не є допустимим варіантом для {1}
+{0} {1} not found,{0} {1} не знайдено
+{0} {1} is not available for selection,{0} {1} недоступний для вибору
+Finish or reset the session first — it still holds: {0},Спершу завершіть або скиньте сесію — у ній ще є: {0}
+{0} pcs,{0} шт.
+{0} values,{0} значень
+Context field {0}: Key is required,Поле контексту {0}: вкажіть ключ
+Duplicate context field keys: {0},Дублікати ключів полів контексту: {0}
+Context field {0}: Options is required for a {1} field,Поле контексту {0}: для типу {1} потрібні «Варіанти»
+Context field {0}: Primary requires App Editable,Поле контексту {0}: «Основне» вимагає «Можна змінювати з застосунку»
+Context field {0}: Primary cannot be Preserve On Switch — the primary key is always rewritten by the switch,Поле контексту {0}: «Основне» не може бути «Зберігати при перемиканні» — основний ключ завжди перезаписується при перемиканні
+Context field {0}: Enter State '{1}' is not a state of this script,Поле контексту {0}: стан «{1}» не належить цьому скрипту
+Context field {0}: Link Filters is not valid JSON,Поле контексту {0}: «Фільтри зв'язку» не є коректним JSON
+Context field {0}: Link Filters must be a JSON object,Поле контексту {0}: «Фільтри зв'язку» мають бути об'єктом JSON
+Workplace Script Context Field,Поле контексту скрипта робочого місця
+Context Fields,Поля контексту
+Field Type,Тип поля
+Show In App,Показувати в застосунку
+App Editable,Можна змінювати з застосунку
+Primary,Основне
+Preserve On Switch,Зберігати при перемиканні
+Blocks Switch,Блокує перемикання
+App Behaviour,Поведінка в застосунку
+Enter State,Переходити у стан
+Link Filters,Фільтри зв'язку
+Link Order By,Сортування зв'язку
+"Literal key inside the runtime context dict, as the script reads it: e.g. e.state.context.get(""so"").","Ключ у словнику контексту під час виконання — саме так, як його читає скрипт: напр. e.state.context.get(""so"")."
+Shown to the operator in the mobile app. Falls back to Key.,Показується оператору в мобільному застосунку. Якщо порожнє — використовується «Ключ».
+For Link: the target DocType (e.g. Sales Order). For Select: one option per line.,Для «Link»: цільовий DocType (напр. Sales Order). Для «Select»: по одному варіанту в рядку.
+Uncheck for internal bookkeeping keys the operator should never see.,"Знімайте позначку для внутрішніх службових ключів, яких оператор не має бачити."
+The mobile app may write this key.,Мобільний застосунок може записувати цей ключ.
+The entity this session is about (e.g. the Sales Order being packed). Setting it from the app clears every other key except those marked Preserve On Switch. Requires App Editable.,"Сутність, якій присвячена сесія (напр. замовлення, яке пакують). Встановлення з застосунку очищає всі інші ключі, крім позначених «Зберігати при перемиканні». Вимагає «Можна змінювати з застосунку»."
+"This key survives a primary switch. Use for operator choices that outlive the entity (printer, box type).","Цей ключ зберігається при перемиканні основної сутності. Для вибору оператора, який живе довше за сутність (принтер, тип коробки)."
+"While this key holds a non-empty value, the app refuses to switch the primary entity and asks the operator to finish or reset the session first. Use for keys recording work already committed to the database.","Поки цей ключ має непорожнє значення, застосунок відмовляється перемикати основну сутність і просить спершу завершити або скинути сесію. Для ключів, що фіксують роботу, вже записану в базу."
+State to enter when the app sets this key. Leave blank to stay in the current state. Must be a state of this script.,"Стан, у який перейти, коли застосунок встановлює цей ключ. Порожнє — залишитися в поточному стані. Має бути станом цього скрипта."
+"JSON object of frappe filters restricting the options offered for a Link field, e.g. {""docstatus"": 1}. Also re-applied server-side when the app writes the value.","Об'єкт JSON із фільтрами frappe, що обмежують варіанти для поля «Link», напр. {""docstatus"": 1}. Також перевіряється на сервері, коли застосунок записує значення."
+"Order clause for Link options, e.g. transaction_date desc.","Сортування варіантів «Link», напр. transaction_date desc."
+"Declares the runtime context contract of this script: which keys live in e.state.context, how they are typed, which ones the mobile app may show and steer, and what survives when the operator switches the primary entity from the app. Purely declarative - the scanner runtime ignores these rows, so a script with none behaves exactly as before.","Описує контракт контексту цього скрипта: які ключі живуть у e.state.context, якого вони типу, які з них мобільний застосунок може показувати й змінювати та що зберігається, коли оператор перемикає основну сутність із застосунку. Суто декларативно — рушій сканера ці рядки ігнорує, тому скрипт без них працює точно як раніше."

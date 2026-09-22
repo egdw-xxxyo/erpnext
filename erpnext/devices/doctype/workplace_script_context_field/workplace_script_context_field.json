@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "creation": "2026-09-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "key",
+  "label",
+  "fieldtype",
+  "options",
+  "column_break_1",
+  "show_in_app",
+  "app_editable",
+  "is_primary",
+  "preserve_on_switch",
+  "blocks_switch",
+  "section_behaviour",
+  "enter_state",
+  "link_filters",
+  "link_order_by",
+  "description"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "key",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Key",
+   "reqd": 1,
+   "description": "Literal key inside the runtime context dict, as the script reads it: e.g. e.state.context.get(\"so\")."
+  },
+  {
+   "columns": 2,
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "description": "Shown to the operator in the mobile app. Falls back to Key."
+  },
+  {
+   "columns": 1,
+   "fieldname": "fieldtype",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Field Type",
+   "options": "Data\nInt\nFloat\nCheck\nLink\nSelect",
+   "default": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "options",
+   "fieldtype": "Small Text",
+   "label": "Options",
+   "description": "For Link: the target DocType (e.g. Sales Order). For Select: one option per line."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_in_app",
+   "fieldtype": "Check",
+   "label": "Show In App",
+   "description": "Uncheck for internal bookkeeping keys the operator should never see."
+  },
+  {
+   "columns": 1,
+   "fieldname": "app_editable",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "App Editable",
+   "description": "The mobile app may write this key."
+  },
+  {
+   "columns": 1,
+   "fieldname": "is_primary",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Primary",
+   "description": "The entity this session is about (e.g. the Sales Order being packed). Setting it from the app clears every other key except those marked Preserve On Switch. Requires App Editable."
+  },
+  {
+   "fieldname": "preserve_on_switch",
+   "fieldtype": "Check",
+   "label": "Preserve On Switch",
+   "description": "This key survives a primary switch. Use for operator choices that outlive the entity (printer, box type)."
+  },
+  {
+   "fieldname": "blocks_switch",
+   "fieldtype": "Check",
+   "label": "Blocks Switch",
+   "description": "While this key holds a non-empty value, the app refuses to switch the primary entity and asks the operator to finish or reset the session first. Use for keys recording work already committed to the database."
+  },
+  {
+   "fieldname": "section_behaviour",
+   "fieldtype": "Section Break",
+   "label": "App Behaviour"
+  },
+  {
+   "fieldname": "enter_state",
+   "fieldtype": "Data",
+   "label": "Enter State",
+   "description": "State to enter when the app sets this key. Leave blank to stay in the current state. Must be a state of this script."
+  },
+  {
+   "fieldname": "link_filters",
+   "fieldtype": "Code",
+   "label": "Link Filters",
+   "options": "JSON",
+   "description": "JSON object of frappe filters restricting the options offered for a Link field, e.g. {\"docstatus\": 1}. Also re-applied server-side when the app writes the value."
+  },
+  {
+   "fieldname": "link_order_by",
+   "fieldtype": "Data",
+   "label": "Link Order By",
+   "description": "Order clause for Link options, e.g. transaction_date desc."
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Devices",
+ "name": "Workplace Script Context Field",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

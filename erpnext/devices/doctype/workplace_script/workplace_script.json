@@ -16,6 +16,8 @@
   "parent_script",
   "section_subflow_entries",
   "subflow_entries",
+  "section_context_fields",
+  "context_fields",
   "section_versions",
   "default_version",
   "column_break_v1",
@@ -81,6 +83,19 @@
    "fieldtype": "Table",
    "label": "Subflow Entries",
    "options": "Workplace Script Subflow Entry"
+  },
+  {
+   "fieldname": "section_context_fields",
+   "fieldtype": "Section Break",
+   "label": "Context Fields",
+   "collapsible": 1,
+   "description": "Declares the runtime context contract of this script: which keys live in e.state.context, how they are typed, which ones the mobile app may show and steer, and what survives when the operator switches the primary entity from the app. Purely declarative - the scanner runtime ignores these rows, so a script with none behaves exactly as before."
+  },
+  {
+   "fieldname": "context_fields",
+   "fieldtype": "Table",
+   "label": "Context Fields",
+   "options": "Workplace Script Context Field"
   },
   {
    "fieldname": "section_versions",
