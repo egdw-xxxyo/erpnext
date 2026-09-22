@@ -262,6 +262,54 @@ def _snapshot_states(script_name):
 	return {row.get("state") for row in (snap.get("states") or [])}
 
 
+def _flows(root_script, active_subflow):
+	"""The flows this scanner can be in: the root script itself, plus its subflows.
+
+	A subflow is normally entered by scanning its command barcode (`subflow_entries`), so
+	the trigger is reported alongside — the app shows «Замовлення (CMD-SO-ADD)» and the
+	operator can recognise the barcode they would otherwise have hunted for.
+	"""
+	if not root_script:
+		return []
+
+	triggers = {}
+	for row in frappe.get_all(
+		"Workplace Script Subflow Entry",
+		filters={"parent": root_script, "parenttype": "Workplace Script", "parentfield": "subflow_entries"},
+		fields=["target_subflow", "trigger_type", "trigger_value"],
+		order_by="idx asc",
+	):
+		triggers.setdefault(row.target_subflow, row.trigger_value)
+
+	out = [
+		{
+			"name": root_script,
+			"label": root_script,
+			"is_root": 1,
+			"is_active": 0 if active_subflow else 1,
+			"trigger": None,
+			"initial_state": _subflow_initial_state(root_script),
+		}
+	]
+	for name in frappe.get_all(
+		"Workplace Script",
+		filters={"parent_script": root_script, "is_active": 1},
+		pluck="name",
+		order_by="name asc",
+	):
+		out.append(
+			{
+				"name": name,
+				"label": name.split("—")[-1].strip() or name,
+				"is_root": 0,
+				"is_active": 1 if name == active_subflow else 0,
+				"trigger": triggers.get(name),
+				"initial_state": _subflow_initial_state(name),
+			}
+		)
+	return out
+
+
 # ---------------------------------------------------------------------------
 # Reading a session
 # ---------------------------------------------------------------------------
@@ -349,6 +397,7 @@ def _read_session(scanner_row):
 		"rev": frame.get("rev"),
 		"updated_at": updated_at,
 		"state_timeout": timeout,
+		"flows": _flows(root_script, subflow),
 		"expires_in": max(int(timeout - (time.time() - updated_at)), 0) if updated_at else None,
 		"context_fields": fields,
 	}
@@ -533,15 +582,7 @@ def set_context_field(scanner=None, key=None, value=None):
 	is_switch = bool(cint(decl.get("is_primary"))) and current not in (None, "") and current != coerced
 
 	if is_switch:
-		blockers = [
-			d.get("label") or k
-			for k, d in declared.items()
-			if cint(d.get("blocks_switch")) and context.get(k) not in (None, "", [], {})
-		]
-		if blockers:
-			frappe.throw(
-				_("Finish or reset the session first — it still holds: {0}").format(", ".join(blockers))
-			)
+		_assert_no_blockers(declared, context)
 
 	if cint(decl.get("is_primary")):
 		context = {
@@ -555,6 +596,59 @@ def set_context_field(scanner=None, key=None, value=None):
 		new_frame["subflow"] = subflow
 
 	_save_state(row.name, new_frame, timeout)
+
+	session = _read_session(row)
+	_publish_session_update(row.name, session)
+	return session
+
+
+def _assert_no_blockers(declared, context):
+	"""Refuse to abandon work the session has already written to the database.
+
+	`blocks_switch` keys record committed side effects — in packing, the packages already
+	bound to the current order — so leaving them behind silently is worse than making the
+	operator finish the batch or reset on purpose.
+	"""
+	blockers = [
+		d.get("label") or k
+		for k, d in declared.items()
+		if cint(d.get("blocks_switch")) and context.get(k) not in (None, "", [], {})
+	]
+	if blockers:
+		frappe.throw(_("Finish or reset the session first — it still holds: {0}").format(", ".join(blockers)))
+
+
+@frappe.whitelist(methods=["POST"])
+def set_scanner_flow(scanner=None, flow=None):
+	"""Move the scanner into a flow, or back out to the root script.
+
+	The same switch a subflow command barcode performs (`_enter_subflow`): the target's
+	initial state, empty context. Passing the root script — or nothing — drops the frame, so
+	the scanner is back at the root waiting for the next scan. Guarded by the same
+	`blocks_switch` rule as a primary switch, because changing flow abandons the context
+	just as thoroughly.
+	"""
+	row = _assert_scanner_mine(scanner)
+	root_script = _root_script_name(row)
+	if not root_script:
+		frappe.throw(_("Scanner {0} has no workplace script").format(scanner))
+
+	timeout = _state_timeout(row)
+	frame = _load_state(row.name, timeout) or {}
+	context = frame.get("context") or {}
+	declared = _declared_context_fields(root_script, frame.get("subflow"))
+	_assert_no_blockers(declared, context)
+
+	if not flow or flow == root_script:
+		_clear_state(row.name)
+	else:
+		allowed = {f["name"] for f in _flows(root_script, frame.get("subflow")) if not f["is_root"]}
+		if flow not in allowed:
+			frappe.throw(_("{0} is not a flow of {1}").format(flow, root_script))
+		initial = _subflow_initial_state(flow)
+		if not initial:
+			frappe.throw(_("Flow {0} has no initial state").format(flow))
+		_save_state(row.name, {"subflow": flow, "state": initial, "context": {}}, timeout)
 
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
