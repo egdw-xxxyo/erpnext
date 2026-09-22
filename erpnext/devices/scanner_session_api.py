@@ -53,6 +53,8 @@ SCAN_LOG_FIELDS = [
 	"target_document",
 	"result_message",
 	"error_message",
+	"resolve_ms",
+	"script_ms",
 	"total_ms",
 ]
 
