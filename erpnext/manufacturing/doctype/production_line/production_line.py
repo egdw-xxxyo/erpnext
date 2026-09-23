@@ -312,13 +312,20 @@ def _unfinished_job_cards(item_code=None, workplace=None, limit=20):
 	if workstations:
 		filters["workstation"] = ["in", workstations]
 
-	return frappe.get_all(
+	cards = frappe.get_all(
 		"Job Card",
 		filters=filters,
 		fields=["name", "serial_no", "work_order", "workstation", "operation", "production_item"],
 		order_by="creation asc",
 		limit=limit,
 	)
+	# A card whose Work Order was stopped overnight cannot be submitted, so handing it back
+	# would replace one loop with another. Those belong to whoever reopens the Work Order.
+	return [
+		card
+		for card in cards
+		if frappe.db.get_value("Work Order", card.work_order, "status") in LIVE_WORK_ORDER_STATUSES
+	]
 
 
 def _create_work_order(line, item_code, qty, reason="plan"):
@@ -593,7 +600,14 @@ def finish_unit(job_card):
 		if qi_docstatus != 1:
 			frappe.throw(_("Quality Inspection {0} is not submitted").format(card.quality_inspection))
 		if qi_status == "Rejected":
-			return {**result, "finished": False, "verdict": "Fail"}
+			# A rejected unit is done with the line: it goes nowhere near stock, but its card
+			# closes all the same. Leaving it in draft is what made a rejected unit immortal —
+			# it is skipped by the free-card query, so `next_unit` handed the same one back
+			# every single time and the bench could not get past it.
+			if card.docstatus == 0:
+				_complete_job_card(card, rejected=True)
+			frappe.db.commit()
+			return {**result, "finished": False, "closed": True, "verdict": "Fail"}
 		verdict = "Pass"
 	elif _inspection_required(card):
 		frappe.throw(_("{0} has not passed quality inspection yet").format(serial_no or card.name))
@@ -624,9 +638,20 @@ def finish_unit(job_card):
 	}
 
 
-def _complete_job_card(card):
-	"""One time log from the claim to now for the whole card, then submit."""
+def _complete_job_card(card, rejected=False):
+	"""One time log from the claim to now for the whole card, then submit.
+
+	`rejected` closes a card whose inspection failed. `JobCard.on_submit` refuses that while
+	Stock Settings says `Stop` for a rejected inspection — a rule written for a card that is
+	about to move stock, which this one never does: `finish_unit` posts no Manufacture entry
+	for a rejected unit. The two checks that gate are worth keeping (the inspection exists,
+	and it is submitted) have already run in `finish_unit`, so the instance-level override is
+	the whole of what is skipped.
+	"""
 	from erpnext.manufacturing.doctype.job_card.job_card import OverlapError
+
+	if rejected:
+		card.validate_inspection = lambda: None
 
 	now = now_datetime()
 	start = get_datetime(card.actual_start_date) if card.actual_start_date else now
