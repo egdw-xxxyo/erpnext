@@ -98,8 +98,6 @@ class TechnicalDocument(Document):
 	def on_update(self):
 		log_document_changes(self)
 		self.log_current_revision_change()
-		if self.has_value_changed("specification_number_template"):
-			refresh_display_codes(self.name)
 
 	def log_current_revision_change(self):
 		before = self.get_doc_before_save()
@@ -146,12 +144,7 @@ def type_flags(document_type):
 	flags = frappe.db.get_value(
 		TYPE_DOCTYPE,
 		document_type,
-		[
-			"has_product_classification",
-			"has_modifications",
-			"requires_completeness",
-			"has_specification_data",
-		],
+		["has_product_classification", "has_modifications", "requires_completeness"],
 		as_dict=True,
 	)
 	return flags or frappe._dict()
@@ -160,11 +153,3 @@ def type_flags(document_type):
 def document_type_flags(document):
 	"""The extension flags of a document, read through the type it carries."""
 	return type_flags(frappe.db.get_value(DOCUMENT_DOCTYPE, document, "document_type"))
-
-
-def refresh_display_codes(document):
-	"""Re-apply the document's Number Template overrides to the designations it catalogs."""
-	for name in frappe.get_all(
-		"Product Modification", filters={"technical_document": document}, pluck="name"
-	):
-		frappe.get_doc("Product Modification", name).save(ignore_permissions=True)

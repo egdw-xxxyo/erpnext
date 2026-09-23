@@ -12,9 +12,6 @@
   "technical_document",
   "modification_code",
   "full_name",
-  "modification_number",
-  "purpose",
-  "display_code",
   "company",
   "main_column",
   "product_type",
@@ -22,9 +19,6 @@
   "status",
   "introduction_date",
   "discontinued_date",
-  "components_section",
-  "default_kit_item",
-  "components",
   "attributes_section",
   "attributes",
   "attribute_summary",
@@ -61,28 +55,9 @@
    "reqd": 1
   },
   {
-   "description": "Position in the modification list.",
-   "fieldname": "modification_number",
-   "fieldtype": "Int",
-   "label": "Modification Number"
-  },
-  {
-   "description": "«Призначення» column of the ЄСКД catalog, e.g. 125 0,25 5 км or 6S3P.",
-   "fieldname": "purpose",
-   "fieldtype": "Small Text",
-   "label": "Intended Use"
-  },
-  {
-   "description": "Designation shown on Items: the Number Template override if one matches, else Modification Code.",
-   "fieldname": "display_code",
-   "fieldtype": "Data",
-   "label": "Display Code",
-   "read_only": 1,
-   "in_list_view": 1
-  },
-  {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Company",
    "options": "Company"
   },
@@ -254,25 +229,6 @@
    "unique": 0
   },
   {
-   "description": "Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.",
-   "fieldname": "components_section",
-   "fieldtype": "Section Break",
-   "label": "Component Specifications"
-  },
-  {
-   "description": "Which Item ships when this designation ships. Needed only when several Items are made to it, or when none is linked to it at all.",
-   "fieldname": "default_kit_item",
-   "fieldtype": "Link",
-   "label": "Default Kit Item",
-   "options": "Item"
-  },
-  {
-   "fieldname": "components",
-   "fieldtype": "Table",
-   "label": "Components",
-   "options": "Specification Component"
-  },
-  {
    "fieldname": "attributes_section",
    "fieldtype": "Section Break",
    "label": "Attributes"
@@ -376,7 +332,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-20 12:00:00.000000",
+ "modified": "2026-09-18 00:02:09.371800",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Product Modification",
@@ -466,11 +422,9 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "sort_field": "modification_number",
- "sort_order": "ASC",
+ "sort_field": "creation",
+ "sort_order": "DESC",
  "states": [],
- "title_field": "modification_code",
- "track_changes": 1,
- "search_fields": "modification_code,display_code,full_name",
- "show_title_field_in_link": 1
+ "title_field": "full_name",
+ "track_changes": 1
 }

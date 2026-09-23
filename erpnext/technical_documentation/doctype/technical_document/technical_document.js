@@ -78,7 +78,6 @@ function load_type_flags(frm) {
 			"has_product_classification",
 			"has_modifications",
 			"requires_completeness",
-			"has_specification_data",
 		])
 		.then(({ message }) => {
 			frm.doc.__onload = { ...(frm.doc.__onload || {}), type_flags: message || {} };

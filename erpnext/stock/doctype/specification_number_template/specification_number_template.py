@@ -7,14 +7,18 @@ class SpecificationNumberTemplate(Document):
 		self.preview = self._build_preview()
 
 	def on_update(self):
-		from erpnext.technical_documentation.doctype.technical_document.technical_document import (
-			refresh_display_codes,
+		specs = frappe.get_all(
+			"Specification",
+			filters={"specification_number_template": self.name},
+			fields=["name", "specification_code", "display_code"],
 		)
-
-		for document in frappe.get_all(
-			"Technical Document", filters={"specification_number_template": self.name}, pluck="name"
-		):
-			refresh_display_codes(document)
+		for spec in specs:
+			display_code = _override(self, spec.specification_code)
+			if display_code != spec.display_code:
+				doc = frappe.get_doc("Specification", spec.name)
+				doc.display_code = display_code
+				doc.flags.display_code_set = True
+				doc.save()
 
 	def _build_preview(self):
 		parts = []
@@ -105,7 +109,7 @@ def resolve_specification_template(item_doc):
 			linked = _component_in_role(item_doc, c.component_role)
 			if not linked:
 				return None
-			ordinal = frappe.db.get_value("Product Modification", linked, "modification_number")
+			ordinal = frappe.db.get_value("Specification", linked, "ordinal")
 			if not ordinal:
 				return None
 			parts.append(str(int(ordinal)).zfill(int(c.ordinal_digits or 2)))
@@ -149,4 +153,4 @@ def _override(tmpl, code):
 def apply_override(template, code):
 	if not template or not code:
 		return code
-	return _override(frappe.get_doc("Specification Number Template", template), code)
+	return _override(frappe.get_cached_doc("Specification Number Template", template), code)

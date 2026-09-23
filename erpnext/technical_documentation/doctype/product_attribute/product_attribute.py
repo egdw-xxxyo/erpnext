@@ -19,7 +19,6 @@ say so on the form.
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
 
 
 class ProductAttribute(Document):
@@ -52,11 +51,10 @@ class ProductAttribute(Document):
 		if not self.numeric_values:
 			return
 
-		# An empty upper bound means "no upper bound", as validate_range in attributes.py reads it.
-		if flt(self.to_range) and flt(self.from_range) > flt(self.to_range):
+		if self.from_range > self.to_range:
 			frappe.throw(_("The start of the range cannot be greater than its end"))
 
-		if flt(self.increment) < 0:
+		if self.increment < 0:
 			frappe.throw(_("The increment cannot be negative"))
 
 	def validate_duplicate_values(self):

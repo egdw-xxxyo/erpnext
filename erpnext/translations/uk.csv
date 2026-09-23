@@ -14518,37 +14518,6 @@ Items of {0},Номенклатури специфікації {0}
 No modification lists yet,Відомостей модифікацій ще немає
 Modification {0},Модифікація {0}
 No modifications in this list yet,У цій відомості ще немає модифікацій
-New Modification,Нова модифікація
-"«Призначення» column of the ЄСКД catalog, e.g. 125 0,25 5 км or 6S3P.","Стовпець «Призначення» каталогу ЄСКД, наприклад 125 0,25 5 км або 6S3P."
-Intended Use,Призначення
-Has Specification Data,Має дані специфікації
-"ЄСКД catalog data: kind, ordinal, intended use, parameters and component specifications.","Дані каталогу ЄСКД: вид, порядковий номер, призначення, параметри та специфікації-складові."
-"Designation shown on Items: the Number Template override if one matches, else Document Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код документа."
-"Specifications this one is built from, each in a role: a drone takes a coil and a battery.","Специфікації, з яких складається ця, кожна у своїй ролі: борт складається з котушки та батареї."
-Position in the modification list.,Порядковий номер у відомості модифікацій.
-The board and ground station specifications this modification pairs.,"Специфікації борту та НСУ, які поєднує ця модифікація."
-"Optional. Its Overrides table replaces the designation of a modification in its Display Code.","Необовʼязково. Таблиця замін цього шаблону підміняє позначення модифікації в полі «Шифр для виробів»."
-"Catalog of ЄСКД designations: every designation under this prefix is a modification below.","Каталог позначень ЄСКД: кожне позначення з цим префіксом — модифікація нижче."
-"ЄСКД catalog: kind, organization code and number template; its designations are the modifications.","Каталог ЄСКД: вид, код організації та шаблон номера; його позначення — модифікації."
-"Designation shown on Items: the Number Template override if one matches, else Modification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код модифікації."
-"Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.","Модифікації, з яких складається ця, кожна у своїй ролі: борт — з котушки та батареї, БпАК — з борту та НСУ."
-ЄСКД designation (specification modification) this item belongs to,"Позначення ЄСКД (модифікація специфікації), до якого належить ця номенклатура"
-Suggest Specification,Підібрати специфікацію
-Suggested Specifications,Підібрані специфікації
-Matched On,Збіг за
-No Match,Немає збігів
-Pick,Обрати
-Create Kit,Створити комплект
-Kit: {0},Комплект: {0}
-Kit {0} created,Комплект {0} створено
-Create a kit from these Items?,Створити комплект із цих номенклатур?
-Kit Incomplete,Комплект неповний
-No designation shares words with this item's attributes.,Жодне позначення не має спільних слів з атрибутами цієї номенклатури.
-"No Item is linked to these designations yet: {0}","До цих позначень ще не прив'язано жодної номенклатури: {0}"
-"{0} is made as several Items ({1}) — link only one of them to it","{0} виготовляється кількома номенклатурами ({1}) — прив'яжіть до нього лише одну"
-{0} has no component modifications to build a kit from,{0} не має складових модифікацій для комплекту
-Specification Type,Тип специфікації
-Narrows the Specification list to designations of this kind of product,Звужує список специфікацій до позначень цього виду виробу
 Scan Serial / Batch No,Сканувати серійний / партійний номер
 Scanned value is appended to the entries table,Відскановане значення додається до таблиці записів
 Please select an Item Code first,Спочатку виберіть код товару
@@ -14883,12 +14852,6 @@ performed action “{0}”,виконав дію «{0}»
 {0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів і передав його до закупівель.
 {0} {1} for the following reason:<br>{2},{0} {1} з такої причини:<br>{2}
 {0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
-Default Kit Item,Номенклатура комплекту за замовчуванням
-"Which Item ships when this designation ships. Needed only when several Items are made to it, or when none is linked to it at all.","Яка номенклатура відвантажується за цим позначенням. Потрібна лише тоді, коли за позначенням виготовляють кілька номенклатур або жодна з ним не зв'язана."
-Overrides the designation's own default for this kit only.,Перекриває типову номенклатуру позначення лише для цього комплекту.
-Kit Ambiguous,Комплект неоднозначний
-"Several Items are made to these designations — set «Default Kit Item» on each, or name the Item on the component row: {0}","За цими позначеннями виготовляють кілька номенклатур — вкажіть «Номенклатуру комплекту за замовчуванням» для кожного або назвіть номенклатуру в рядку складової: {0}"
-Set a default unit of measure in Stock Settings first,Спершу вкажіть одиницю виміру за замовчуванням у «Налаштуваннях запасів»
 Scanner is required,Вкажіть сканер
 Scanner {0} not found,Сканер {0} не знайдено
 Scanner {0} is not assigned to you,Сканер {0} не закріплено за вами

@@ -44,8 +44,6 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
-	# ЄСКД designation picker + suggestions
-	"Item": "public/js/custom/item_specification.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
 	# оклади працівника по періодах — секція на картці
