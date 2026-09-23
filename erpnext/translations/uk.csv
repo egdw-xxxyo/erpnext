@@ -14925,3 +14925,4 @@ Required Android App Version,Потрібна версія Android-додатк�
 Written on every migrate from the version this server build was shipped with. A warning is raised when the APK published here is older than this.,"Записується під час кожної міграції з версії, з якою зібрано цей сервер. Якщо опублікований APK старіший — показується попередження."
 Reject Warehouse,Склад браку
 "Where a unit that failed its quality inspection is stocked. It is still manufactured — the materials were consumed — it just does not join the finished goods. Left empty, a rejected unit closes its Job Card and enters no warehouse at all.","Куди оприбутковується одиниця, яка не пройшла перевірку якості. Її все одно виготовлено — матеріали витрачено — просто вона не потрапляє до готової продукції. Якщо поле порожнє, бракована одиниця лише закриває свою карту завдань і на склад не потрапляє."
+{0} failed quality inspection {1} and is not packed,{0} не пройшла перевірку якості {1} і не пакується
