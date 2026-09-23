@@ -14943,3 +14943,6 @@ Flow Configuration,Налаштування потоку
 Diagram,Діаграма
 Dotchain Number,Номер Дотчейн
 Optional. The order's number in Dotchain.,Необов'язково. Номер замовлення в Дотчейн.
+Serial No is required,Потрібен серійний номер
+{0} has no closed Job Card to finish,"У {0} немає закритої карти завдань, яку можна завершити"
+Manufacture At Packing,Виготовлення на пакуванні

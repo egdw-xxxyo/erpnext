@@ -17,6 +17,7 @@
   "wip_warehouse",
   "column_break_warehouse",
   "fg_warehouse",
+  "manufacture_at_packing",
   "workplace_section",
   "workplaces",
   "plan_section",
@@ -100,6 +101,13 @@
    "fieldtype": "Link",
    "label": "Finished Goods Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "default": "0",
+   "description": "Leave off for a line that finishes into stock at the bench. Switch on when a later step (packing) is what puts the unit into stock: the bench then only closes its own Job Card, and the Manufacture entry is posted by that later step, into the warehouse it names. This is what lets packing be a real BOM operation — ERPNext refuses a Manufacture entry while any operation of the Work Order is still open.",
+   "fieldname": "manufacture_at_packing",
+   "fieldtype": "Check",
+   "label": "Manufacture At Packing"
   },
   {
    "fieldname": "workplace_section",

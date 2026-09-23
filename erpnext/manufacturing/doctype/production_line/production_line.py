@@ -61,6 +61,7 @@ class ProductionLine(Document):
 		last_run_on: DF.Datetime | None
 		line_name: DF.Data
 		line_type: DF.Literal["Spool"]
+		manufacture_at_packing: DF.Check
 		overflow_qty: DF.Int
 		plan: DF.Table[ProductionLineItem]
 		plan_time: DF.Time
@@ -198,6 +199,19 @@ def _plan_rows(line, workplace=None, item_code=None):
 			continue
 		rows.append(row)
 	return rows
+
+
+def _line_for_item(item_code):
+	"""The enabled line that plans this item, whatever its type — or None.
+
+	`_line_for` needs the caller to know the line type. Code reached from a Job Card (a
+	finished unit, a packed unit) only knows the item, and a missing line is not an error
+	there: it means "no line rules apply", not "refuse the unit".
+	"""
+	for line in _enabled_lines():
+		if _plan_rows(line, item_code=item_code):
+			return line
+	return None
 
 
 def _line_for(line_type, item_code, workplace=None):
@@ -534,8 +548,16 @@ def finish_unit(job_card):
 	if card.docstatus == 0:
 		_complete_job_card(card)
 
+	# A line that finishes into stock at packing leaves the unit out of stock here on purpose:
+	# `Stock Entry.check_if_operations_completed` refuses a Manufacture entry while any
+	# operation of the Work Order is still open, and packing is one of those operations.
+	line = _line_for_item(card.production_item)
+	deferred = bool(line and line.manufacture_at_packing)
+
 	stock_entry = card.auto_stock_entry
-	if not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
+	if deferred:
+		stock_entry = None
+	elif not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
 		stock_entry = _post_manufacture(card, serial_no)
 
 	frappe.db.commit()
@@ -544,6 +566,7 @@ def finish_unit(job_card):
 		"finished": True,
 		"verdict": verdict,
 		"stock_entry": stock_entry,
+		"manufacture_deferred": deferred,
 		"warehouse": frappe.db.get_value("Serial No", serial_no, "warehouse") if serial_no else None,
 	}
 
@@ -573,8 +596,13 @@ def _complete_job_card(card):
 	card.submit()
 
 
-def _post_manufacture(card, serial_no):
-	"""Manufacture exactly this unit's serial, carrying its inspection onto the entry."""
+def _post_manufacture(card, serial_no, target_warehouse=None):
+	"""Manufacture exactly this unit's serial, carrying its inspection onto the entry.
+
+	`target_warehouse` overrides the Work Order's finished-goods warehouse, which is what a
+	packing step uses to land the unit straight in the warehouse the box is destined for
+	instead of moving it there afterwards.
+	"""
 	from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
 
 	wo = frappe.get_doc("Work Order", card.work_order)
@@ -602,10 +630,12 @@ def _post_manufacture(card, serial_no):
 	)
 	# Stock Entry demands an inspection on the finished row when the item requires one;
 	# `make_stock_entry` leaves it empty.
-	if card.quality_inspection:
-		for row in se.items:
-			if row.is_finished_item and row.item_code == wo.production_item:
+	for row in se.items:
+		if row.is_finished_item and row.item_code == wo.production_item:
+			if card.quality_inspection:
 				row.quality_inspection = card.quality_inspection
+			if target_warehouse:
+				row.t_warehouse = target_warehouse
 	se.flags.ignore_permissions = True
 	se.insert()
 	se.submit()
@@ -613,6 +643,101 @@ def _post_manufacture(card, serial_no):
 	# `auto_stock_entry` is what `JobCard.on_cancel` cancels, so undoing the card undoes this.
 	card.db_set("auto_stock_entry", se.name)
 	return se.name
+
+
+PACKING_OPERATION = "Упаковка"
+
+
+def _card_for(serial_no, operation=None, docstatus=None):
+	"""One Job Card of this serial, optionally of one operation and docstatus."""
+	filters = {"serial_no": serial_no}
+	if operation:
+		filters["operation"] = operation
+	if docstatus is not None:
+		filters["docstatus"] = docstatus
+	name = frappe.db.get_value("Job Card", filters, "name", order_by="creation desc")
+	return frappe.get_doc("Job Card", name) if name else None
+
+
+def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operation=None):
+	"""Close the packing Job Card of a unit and put the unit into stock.
+
+	This is the other half of `manufacture_at_packing`: the bench closed its own card and
+	left the unit out of stock, and packing is what finishes it. Order matters and is the
+	whole point — the packing card has to be submitted *before* the Manufacture entry, or
+	`Stock Entry.check_if_operations_completed` sees an open operation and refuses.
+
+	Idempotent per serial: a unit already carrying a submitted Manufacture entry is reported
+	as `already_in_stock` and nothing is posted twice. A unit whose Work Order predates the
+	packing operation simply has no card — `card: False`, and it is still manufactured.
+
+	Never raises for one bad unit: the box is already built and labelled by the time this
+	runs, so every serial reports its own outcome.
+	"""
+	result = {
+		"serial_no": serial_no,
+		"card": None,
+		"card_closed": False,
+		"stock_entry": None,
+		"already_in_stock": False,
+		"error": None,
+	}
+	if not serial_no:
+		result["error"] = _("Serial No is required")
+		return result
+
+	try:
+		packing_card = _card_for(serial_no, operation=operation or PACKING_OPERATION, docstatus=0)
+		if packing_card:
+			result["card"] = packing_card.name
+			now = now_datetime()
+			start = get_datetime(packing_card.actual_start_date) if packing_card.actual_start_date else now
+			if start > now:
+				start = now
+			row = {"from_time": start, "to_time": now, "completed_qty": packing_card.for_quantity or 1}
+			if employee:
+				row["employee"] = employee
+			packing_card.append("time_logs", row)
+			packing_card.flags.ignore_permissions = True
+			packing_card.save()
+			packing_card.submit()
+			result["card_closed"] = True
+
+		# The inspection lives on the bench's card, so that is the one the entry is posted
+		# from — it carries the Quality Inspection onto the finished row.
+		bench_card = _card_for(serial_no, docstatus=1)
+		if not bench_card:
+			result["error"] = _("{0} has no closed Job Card to finish").format(serial_no)
+			return result
+
+		existing = bench_card.auto_stock_entry
+		if existing and frappe.db.get_value("Stock Entry", existing, "docstatus") == 1:
+			result["stock_entry"] = existing
+			result["already_in_stock"] = True
+			return result
+
+		result["stock_entry"] = _post_manufacture(bench_card, serial_no, target_warehouse=target_warehouse)
+	except Exception as e:
+		result["error"] = str(e)
+
+	return result
+
+
+def finish_packed_units(serials, target_warehouse=None, employee=None, operation=None):
+	"""`finish_packed_unit` for a whole box, summarised for a scanner display."""
+	rows = [
+		finish_packed_unit(sn, target_warehouse=target_warehouse, employee=employee, operation=operation)
+		for sn in (serials or [])
+	]
+	errors = [f"{r['serial_no']}: {r['error']}" for r in rows if r.get("error")]
+	return {
+		"manufactured": len([r for r in rows if r.get("stock_entry") and not r.get("already_in_stock")]),
+		"already_in_stock": len([r for r in rows if r.get("already_in_stock")]),
+		"cards_closed": len([r for r in rows if r.get("card_closed")]),
+		"stock_entries": [r["stock_entry"] for r in rows if r.get("stock_entry")],
+		"error": "; ".join(errors) if errors else None,
+		"rows": rows,
+	}
 
 
 def close_stale_work_orders(line=None):
