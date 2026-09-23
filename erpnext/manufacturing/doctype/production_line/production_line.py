@@ -65,6 +65,7 @@ class ProductionLine(Document):
 		overflow_qty: DF.Int
 		plan: DF.Table[ProductionLineItem]
 		plan_time: DF.Time
+		reject_warehouse: DF.Link | None
 		source_warehouse: DF.Link | None
 		wip_warehouse: DF.Link | None
 		workplaces: DF.Table[ProductionLineWorkplace]
@@ -600,14 +601,33 @@ def finish_unit(job_card):
 		if qi_docstatus != 1:
 			frappe.throw(_("Quality Inspection {0} is not submitted").format(card.quality_inspection))
 		if qi_status == "Rejected":
-			# A rejected unit is done with the line: it goes nowhere near stock, but its card
-			# closes all the same. Leaving it in draft is what made a rejected unit immortal —
-			# it is skipped by the free-card query, so `next_unit` handed the same one back
-			# every single time and the bench could not get past it.
+			# A rejected unit is still a unit: the materials went into it and it physically
+			# exists, so it is manufactured like any other and lands in the line's reject
+			# warehouse instead of finished goods. Its card closes either way — leaving it in
+			# draft is what made a rejected unit immortal, since the free-card query skips a
+			# card with an inspection and `next_unit` had nothing else to offer the bench.
 			if card.docstatus == 0:
 				_complete_job_card(card, rejected=True)
+			line = _line_for_item(card.production_item)
+			reject_warehouse = line.reject_warehouse if line else None
+			stock_entry = card.auto_stock_entry
+			if reject_warehouse and (
+				not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1
+			):
+				# Packing is where a good unit reaches stock on a deferred line; a rejected one
+				# never gets there, so it is posted here whatever the line says.
+				stock_entry = _post_manufacture(
+					card, serial_no, target_warehouse=reject_warehouse, rejected=True
+				)
 			frappe.db.commit()
-			return {**result, "finished": False, "closed": True, "verdict": "Fail"}
+			return {
+				**result,
+				"finished": False,
+				"closed": True,
+				"verdict": "Fail",
+				"stock_entry": stock_entry if reject_warehouse else None,
+				"warehouse": reject_warehouse,
+			}
 		verdict = "Pass"
 	elif _inspection_required(card):
 		frappe.throw(_("{0} has not passed quality inspection yet").format(serial_no or card.name))
@@ -652,6 +672,7 @@ def _complete_job_card(card, rejected=False):
 
 	if rejected:
 		card.validate_inspection = lambda: None
+		card.flags.skip_auto_stock_entry = True
 
 	now = now_datetime()
 	start = get_datetime(card.actual_start_date) if card.actual_start_date else now
@@ -674,12 +695,18 @@ def _complete_job_card(card, rejected=False):
 	card.submit()
 
 
-def _post_manufacture(card, serial_no, target_warehouse=None):
+def _post_manufacture(card, serial_no, target_warehouse=None, rejected=False):
 	"""Manufacture exactly this unit's serial, carrying its inspection onto the entry.
 
 	`target_warehouse` overrides the Work Order's finished-goods warehouse, which is what a
 	packing step uses to land the unit straight in the warehouse the box is destined for
-	instead of moving it there afterwards.
+	instead of moving it there afterwards, and what a rejected unit uses to land in the
+	reject warehouse.
+
+	`rejected` posts a unit whose inspection failed. `StockController.validate_qi_rejection`
+	refuses that while Stock Settings says `Stop`, a rule meant to keep bad units out of
+	finished goods — which is exactly what `target_warehouse` is doing here by other means.
+	The inspection is still carried onto the row, so the entry says what was wrong with it.
 	"""
 	from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
 
@@ -714,6 +741,8 @@ def _post_manufacture(card, serial_no, target_warehouse=None):
 				row.quality_inspection = card.quality_inspection
 			if target_warehouse:
 				row.t_warehouse = target_warehouse
+	if rejected:
+		se.validate_inspection = lambda: None
 	se.flags.ignore_permissions = True
 	se.insert()
 	se.submit()

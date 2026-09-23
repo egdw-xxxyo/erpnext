@@ -17,6 +17,7 @@
   "wip_warehouse",
   "column_break_warehouse",
   "fg_warehouse",
+  "reject_warehouse",
   "manufacture_at_packing",
   "workplace_section",
   "workplaces",
@@ -101,6 +102,13 @@
    "fieldtype": "Link",
    "label": "Finished Goods Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "reject_warehouse",
+   "fieldtype": "Link",
+   "label": "Reject Warehouse",
+   "options": "Warehouse",
+   "description": "Where a unit that failed its quality inspection is stocked. It is still manufactured — the materials were consumed — it just does not join the finished goods. Left empty, a rejected unit closes its Job Card and enters no warehouse at all."
   },
   {
    "default": "0",
