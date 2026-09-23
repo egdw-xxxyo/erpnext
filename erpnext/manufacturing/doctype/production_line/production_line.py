@@ -614,8 +614,13 @@ def finish_unit(job_card):
 			if reject_warehouse and (
 				not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1
 			):
-				# Packing is where a good unit reaches stock on a deferred line; a rejected one
-				# never gets there, so it is posted here whatever the line says.
+				# A rejected unit is finished here and nowhere else: it is not packed, so the
+				# packing card would stay open forever, and `Stock Entry.check_if_operations_
+				# completed` refuses a Manufacture entry while any operation of the Work Order
+				# is still open. Closing the unit's remaining cards is what makes the rejected
+				# unit a one-stop affair at the bench rather than a second flow for the
+				# scanner at packing.
+				_close_remaining_cards(serial_no, skip=card.name)
 				stock_entry = _post_manufacture(
 					card, serial_no, target_warehouse=reject_warehouse, rejected=True
 				)
@@ -678,6 +683,10 @@ def _complete_job_card(card, rejected=False):
 	start = get_datetime(card.actual_start_date) if card.actual_start_date else now
 	if start > now:
 		start = now
+	if rejected and not card.actual_start_date:
+		# Nobody ever started this one — it is being closed because the unit was rejected
+		# upstream — so it gets a zero-length log instead of an invented shift.
+		start = now
 
 	card.append("time_logs", {"from_time": start, "to_time": now, "completed_qty": card.for_quantity})
 	card.flags.ignore_permissions = True
@@ -693,6 +702,45 @@ def _complete_job_card(card, rejected=False):
 		card.flags.ignore_permissions = True
 		card.save()
 	card.submit()
+
+
+def _rejected_inspection(serial_no):
+	"""The rejected Quality Inspection of this unit, if it has one."""
+	rows = frappe.get_all(
+		"Job Card",
+		filters={"serial_no": serial_no, "quality_inspection": ["is", "set"]},
+		fields=["quality_inspection"],
+		order_by="creation desc",
+		limit=1,
+	)
+	if not rows:
+		return None
+	qi = rows[0].quality_inspection
+	status, docstatus = frappe.db.get_value("Quality Inspection", qi, ["status", "docstatus"])
+	return qi if docstatus == 1 and status == "Rejected" else None
+
+
+def _close_remaining_cards(serial_no, skip=None):
+	"""Close every other open Job Card of this serial — the unit is going no further.
+
+	Only reached for a rejected unit. The operations it skips (packing, and anything else the
+	BOM lists after the bench) were never performed, so each card is closed with a zero-length
+	time log rather than pretending someone worked it.
+	"""
+	names = frappe.get_all(
+		"Job Card",
+		filters={"serial_no": serial_no, "docstatus": 0},
+		pluck="name",
+		order_by="creation asc",
+	)
+	closed = []
+	for name in names:
+		if name == skip:
+			continue
+		other = frappe.get_doc("Job Card", name)
+		_complete_job_card(other, rejected=True)
+		closed.append(name)
+	return closed
 
 
 def _post_manufacture(card, serial_no, target_warehouse=None, rejected=False):
@@ -794,6 +842,16 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 		return result
 
 	try:
+		# A rejected unit was finished at the bench, cards and stock included. If one reaches
+		# the packing station anyway, say so instead of posting it into the packed warehouse.
+		bench_verdict = _rejected_inspection(serial_no)
+		if bench_verdict:
+			result["rejected"] = True
+			result["error"] = _("{0} failed quality inspection {1} and is not packed").format(
+				serial_no, bench_verdict
+			)
+			return result
+
 		packing_card = _card_for(serial_no, operation=operation or PACKING_OPERATION, docstatus=0)
 		if packing_card:
 			result["card"] = packing_card.name
