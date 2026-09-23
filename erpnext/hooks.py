@@ -181,6 +181,7 @@ after_migrate = [
 	"erpnext.setup.payment_workflow_setup.after_migrate",
 	"erpnext.setup.procurement_workflow_setup.after_migrate",
 	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
+	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 ]
 

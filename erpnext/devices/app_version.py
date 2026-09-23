@@ -14,11 +14,15 @@ The clients version independently — do NOT assume the same number.
   desktop: ~/git/otdr-sync (unsupported since the workplace measurement cutover)
 """
 
-# 0.6.0 is where the spool stopped being scanned and started being handed out by
-# `spool_production.next_spool`. An older build asks the operator to type a serial that does
-# not exist yet, so it cannot measure anything on this server. The 0.5.x line shipped before
-# that change, which is why the floor is a minor bump rather than 0.5.0.
-MIN_ANDROID_APP_VERSION = "0.6.0"
+import frappe
+
+# 0.7.1 is where `next_spool` started handing back an already measured spool (`resumed`) and
+# `release_spool` started refusing one (`reason: "measured"`). A 0.7.0 build ignores both: it
+# clears the spool off the screen on a refused release, which is exactly how measured spools
+# ended up stranded out of stock with nothing pointing back at them.
+# Before that, 0.6.0 was the floor — where the spool stopped being scanned and started being
+# handed out by `spool_production.next_spool`.
+MIN_ANDROID_APP_VERSION = "0.7.1"
 MIN_DESKTOP_APP_VERSION = "0.1.0"
 
 
@@ -51,3 +55,57 @@ def is_app_compatible(app_version, client=None):
 	if not cur:
 		return True
 	return cur >= _version_tuple(min_version_for(client))
+
+
+def sync_required_app_version():
+	"""Copy the code constant onto Mobile App Settings. Runs on `after_migrate`.
+
+	The APK itself lives in `Mobile App Release`, mirrored from GitHub — but that mirror can
+	fail (a poll error, a token that expired, a release published without an APK), and then
+	the site holds an old build while the server already requires a newer one and nothing
+	says so. The constant is deployed with the server, so writing it into the database on
+	every migrate gives the desk something to compare the uploaded APK against.
+	"""
+	if not frappe.db.exists("DocType", "Mobile App Settings"):
+		return
+	current = frappe.db.get_single_value("Mobile App Settings", "required_android_version")
+	if (current or "") == MIN_ANDROID_APP_VERSION:
+		return
+	frappe.db.set_single_value("Mobile App Settings", "required_android_version", MIN_ANDROID_APP_VERSION)
+	frappe.db.commit()
+
+
+def required_android_version():
+	"""What this server build needs the Android app to be, operator override winning."""
+	override = frappe.db.get_single_value("Mobile App Settings", "min_android_version")
+	return (override or "").strip() or MIN_ANDROID_APP_VERSION
+
+
+@frappe.whitelist()
+def android_version_status():
+	"""Whether the APK this site hands out is new enough for the server running here.
+
+	`missing` and `stale` are the two ways the bench ends up unable to update: no APK
+	mirrored at all, or one older than the server requires.
+	"""
+	from erpnext.devices.doctype.mobile_app_release.mobile_app_release import latest_release
+
+	required = required_android_version()
+	release = latest_release()
+	available = release.version if release else None
+
+	if not available:
+		state = "missing"
+	elif _version_tuple(available) < _version_tuple(required):
+		state = "stale"
+	else:
+		state = "ok"
+
+	return {
+		"required": required,
+		"available": available,
+		"state": state,
+		"ok": state == "ok",
+		"last_error": frappe.db.get_single_value("Mobile App Settings", "last_error"),
+		"last_polled_on": str(frappe.db.get_single_value("Mobile App Settings", "last_polled_on") or ""),
+	}

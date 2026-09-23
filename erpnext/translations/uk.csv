@@ -14909,3 +14909,17 @@ Optional. The order's number in Dotchain.,Необов'язково. Номер 
 Serial No is required,Потрібен серійний номер
 {0} has no closed Job Card to finish,"У {0} немає закритої карти завдань, яку можна завершити"
 Manufacture At Packing,Виготовлення на пакуванні
+Android app required,Потрібна версія Android-додатка
+Published: {0},Опубліковано: {0}
+Published: {0} — update required,Опубліковано: {0} — потрібне оновлення
+The published Android app is older than this server needs,"Опублікований Android-додаток старіший, ніж потрібно цьому серверу"
+This server was deployed expecting Android app {0}.,Цей сервер розгорнуто з розрахунком на Android-додаток {0}.
+The newest APK published here is {0}.,"Найновіший APK, опублікований тут — {0}."
+No APK has been published on this site yet.,На цьому сайті ще не опубліковано жодного APK.
+Last release poll failed: {0},Останнє опитування релізів не вдалося: {0}
+"Publish the matching release, then check Mobile App Settings.",Опублікуйте відповідний реліз і перевірте «Налаштування мобільного додатка».
+Android app out of date,Android-додаток застарів
+No Android APK is published on this site. This server needs {0}.,На цьому сайті не опубліковано жодного Android APK. Цьому серверу потрібен {0}.
+"Published Android app is {0}, but this server needs {1}.","Опублікований Android-додаток — {0}, а цьому серверу потрібен {1}."
+Required Android App Version,Потрібна версія Android-додатка
+Written on every migrate from the version this server build was shipped with. A warning is raised when the APK published here is older than this.,"Записується під час кожної міграції з версії, з якою зібрано цей сервер. Якщо опублікований APK старіший — показується попередження."

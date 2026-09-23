@@ -293,6 +293,34 @@ def _free_job_cards(item_code, workplace=None, limit=20):
 	)
 
 
+def _unfinished_job_cards(item_code=None, workplace=None, limit=20):
+	"""Units already measured but never closed — the bench walked away from them.
+
+	`_free_job_cards` deliberately skips a card that carries a Quality Inspection, so once a
+	measured unit leaves the operator's hand it can never be handed out again: it is not in
+	stock, it still counts against the plan, and nothing in the app points at it. These are
+	those cards, so `next_unit` can give one back instead of minting more work.
+	"""
+	filters = {
+		"docstatus": 0,
+		"quality_inspection": ["is", "set"],
+		"serial_no": ["is", "set"],
+	}
+	if item_code:
+		filters["production_item"] = item_code
+	workstations = _workstations(workplace)
+	if workstations:
+		filters["workstation"] = ["in", workstations]
+
+	return frappe.get_all(
+		"Job Card",
+		filters=filters,
+		fields=["name", "serial_no", "work_order", "workstation", "operation", "production_item"],
+		order_by="creation asc",
+		limit=limit,
+	)
+
+
 def _create_work_order(line, item_code, qty, reason="plan"):
 	"""Submit a Work Order, which is what mints the serials and the per-unit Job Cards."""
 	qty = cint(qty)
@@ -455,6 +483,24 @@ def next_unit(line_type, workplace=None, item_code=None):
 
 	line = _line_for(line_type, item_code, workplace=workplace)
 
+	# An unfinished measured unit is handed back before any new one. Whoever is at the bench
+	# has to close it, otherwise it stays out of stock forever and the plan never drains.
+	stranded = _unfinished_job_cards(item_code, workplace=workplace, limit=1)
+	if stranded:
+		card = stranded[0]
+		return {
+			"production_line": line.name,
+			"serial_no": (card.serial_no or "").splitlines()[0].strip(),
+			"job_card": card.name,
+			"work_order": card.work_order,
+			"workstation": card.workstation,
+			"operation": card.operation,
+			"item_code": item_code,
+			"overflow_work_order": None,
+			"resumed": True,
+			"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
+		}
+
 	free = _free_job_cards(item_code, workplace=workplace, limit=1)
 	overflow = None
 
@@ -489,6 +535,7 @@ def next_unit(line_type, workplace=None, item_code=None):
 		"operation": card.operation,
 		"item_code": item_code,
 		"overflow_work_order": overflow.name if overflow else None,
+		"resumed": False,
 		"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
 	}
 
@@ -501,8 +548,14 @@ def release_unit(job_card):
 	card = frappe.db.get_value(
 		"Job Card", job_card, ["status", "docstatus", "quality_inspection"], as_dict=True
 	)
-	if not card or card.docstatus != 0 or card.quality_inspection:
-		return {"released": False}
+	if not card:
+		return {"released": False, "reason": "missing"}
+	if card.docstatus != 0:
+		return {"released": False, "reason": "closed"}
+	if card.quality_inspection:
+		# A measured unit cannot go back in the pool: the free-card query skips anything with
+		# an inspection, so releasing it here would strand it. It has to be finished.
+		return {"released": False, "reason": "measured", "quality_inspection": card.quality_inspection}
 
 	frappe.db.set_value("Job Card", job_card, "status", FREE_JOB_CARD_STATUS)
 	frappe.db.commit()
@@ -796,13 +849,17 @@ def close_stale_work_orders(line=None):
 				{
 					"work_order": name,
 					"docstatus": 0,
-					"status": CLAIMED_JOB_CARD_STATUS,
-					"quality_inspection": ["is", "not set"],
+					"status": ["!=", FREE_JOB_CARD_STATUS],
 				},
+			) + frappe.db.count(
+				"Job Card",
+				{"work_order": name, "docstatus": 0, "quality_inspection": ["is", "set"]},
 			)
 			if in_progress:
 				# Someone is still on it, or walked away from it. Either way stopping the Work
-				# Order would block them from closing the card, so leave it and report.
+				# Order would block them from closing the card, so leave it and report. A card
+				# that carries an inspection counts too: it holds a measured unit `next_unit`
+				# hands back to be finished, and a stopped Work Order refuses that finish.
 				held.append(f"{name} ({in_progress} in progress)")
 				continue
 
