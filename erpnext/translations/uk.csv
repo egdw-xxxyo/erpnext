@@ -14941,3 +14941,5 @@ Scanner {0} has no workplace script,Сканер {0} не має скрипта 
 Flow {0} has no initial state,Потік {0} не має початкового стану
 Flow Configuration,Налаштування потоку
 Diagram,Діаграма
+Dotchain Number,Номер Дотчейн
+Optional. The order's number in Dotchain.,Необов'язково. Номер замовлення в Дотчейн.

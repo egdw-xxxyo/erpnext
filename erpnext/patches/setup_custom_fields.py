@@ -974,6 +974,14 @@ def create_custom_fields_on_so():
 	fields = [
 		{
 			"dt": "Sales Order",
+			"fieldname": "dotchain_no",
+			"fieldtype": "Data",
+			"label": "Dotchain Number",
+			"insert_after": "po_no",
+			"description": "Optional. The order's number in Dotchain.",
+		},
+		{
+			"dt": "Sales Order",
 			"fieldname": "attachments_section",
 			"fieldtype": "Section Break",
 			"label": "Attachments",
