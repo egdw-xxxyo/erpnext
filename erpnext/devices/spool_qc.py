@@ -252,14 +252,39 @@ def _find_job_card(serial_no, item_code, workplace, log):
 	First by serial: a spool measured twice must land on the same card. Otherwise the open
 	card for this item at this bench, which is what the operator is standing at — the serial
 	is then written onto it, so nobody has to type it in twice.
+
+	A BOM with more than one operation mints one card per operation per serial (winding and
+	packing both carry the same serial), so the serial alone no longer identifies a card.
+	This bench's own operations decide which of them the measurement belongs to; without a
+	workplace the oldest card wins, the first operation being the one that makes the spool.
 	"""
+	operations, workstations = _workplace_operations(workplace)
+
+	serial_filters = [["serial_no", "like", f"%{serial_no}%"], ["docstatus", "<", 2]]
+	mine = list(serial_filters)
+	if operations:
+		mine.append(["operation", "in", operations])
+	if workstations:
+		mine.append(["workstation", "in", workstations])
+
 	by_serial = frappe.get_all(
 		"Job Card",
-		filters=[["serial_no", "like", f"%{serial_no}%"], ["docstatus", "<", 2]],
+		filters=mine,
 		fields=["name", "serial_no", "quality_inspection"],
-		order_by="creation desc",
+		order_by="creation asc",
 		limit=1,
 	)
+	if not by_serial and (operations or workstations):
+		# The bench declares operations this spool has no card for — an older Work Order, or a
+		# workplace whose operations were edited. Fall back to the serial alone rather than
+		# leave a real measurement unlinked.
+		by_serial = frappe.get_all(
+			"Job Card",
+			filters=serial_filters,
+			fields=["name", "serial_no", "quality_inspection"],
+			order_by="creation asc",
+			limit=1,
+		)
 	if by_serial:
 		return by_serial[0], False
 
@@ -271,7 +296,6 @@ def _find_job_card(serial_no, item_code, workplace, log):
 		"status": ["in", OPEN_JOB_CARD_STATUSES],
 		"production_item": item_code,
 	}
-	operations, workstations = _workplace_operations(workplace)
 	if operations:
 		filters["operation"] = ["in", operations]
 	if workstations:
