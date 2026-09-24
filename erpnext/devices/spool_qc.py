@@ -270,7 +270,7 @@ def _find_job_card(serial_no, item_code, workplace, log):
 	by_serial = frappe.get_all(
 		"Job Card",
 		filters=mine,
-		fields=["name", "serial_no", "quality_inspection"],
+		fields=["name", "serial_no", "quality_inspection", "docstatus"],
 		order_by="creation asc",
 		limit=1,
 	)
@@ -281,7 +281,7 @@ def _find_job_card(serial_no, item_code, workplace, log):
 		by_serial = frappe.get_all(
 			"Job Card",
 			filters=serial_filters,
-			fields=["name", "serial_no", "quality_inspection"],
+			fields=["name", "serial_no", "quality_inspection", "docstatus"],
 			order_by="creation asc",
 			limit=1,
 		)
@@ -304,7 +304,7 @@ def _find_job_card(serial_no, item_code, workplace, log):
 	candidates = frappe.get_all(
 		"Job Card",
 		filters=filters,
-		fields=["name", "serial_no", "quality_inspection", "for_quantity"],
+		fields=["name", "serial_no", "quality_inspection", "for_quantity", "docstatus"],
 		order_by="creation asc",
 		limit=20,
 	)
@@ -374,6 +374,11 @@ def _link_job_card(qi_name, serial_no, log, item_code=None, workplace=None):
 	Done from this side on purpose: setting `Quality Inspection.reference_type` to
 	`Job Card` makes stock `validate` reload every reading from the item template and
 	discard the per-spool length limits.
+
+	A re-measurement re-points an open card at its newest inspection. Keeping the first one
+	made a spool that failed and was then rewound and passed immortally rejected: the card
+	still carried the failed inspection, so `finish_unit` kept sending the unit to the reject
+	warehouse no matter how often it was measured again.
 	"""
 	job_card, claimed = _find_job_card(serial_no, item_code, workplace, log)
 	if not job_card:
@@ -382,11 +387,16 @@ def _link_job_card(qi_name, serial_no, log, item_code=None, workplace=None):
 	if claimed:
 		_append_serial(job_card, serial_no, log)
 
-	if job_card.quality_inspection:
+	if job_card.quality_inspection == qi_name:
+		return job_card.name
+
+	if job_card.quality_inspection and job_card.get("docstatus"):
+		# The card is closed: its inspection is the one the unit was finished on, and stock
+		# has already moved. A later measurement of the same serial is a record, not a retry.
 		return job_card.name
 
 	frappe.db.set_value("Job Card", job_card.name, "quality_inspection", qi_name)
-	log("Job Card linked to inspection", job_card=job_card.name)
+	log("Job Card linked to inspection", job_card=job_card.name, quality_inspection=qi_name)
 	return job_card.name
 
 

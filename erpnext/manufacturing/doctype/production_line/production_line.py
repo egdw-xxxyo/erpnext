@@ -27,7 +27,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt, get_datetime, now_datetime, today
+from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, today
 
 # A card is only "free" while it is Open. Handing one out moves it to Work In Progress, so
 # two operators at the same bench cannot be given the same unit.
@@ -316,7 +316,16 @@ def _unfinished_job_cards(item_code=None, workplace=None, limit=20):
 	cards = frappe.get_all(
 		"Job Card",
 		filters=filters,
-		fields=["name", "serial_no", "work_order", "workstation", "operation", "production_item"],
+		fields=[
+			"name",
+			"serial_no",
+			"work_order",
+			"workstation",
+			"operation",
+			"production_item",
+			"quality_inspection",
+			"creation",
+		],
 		order_by="creation asc",
 		limit=limit,
 	)
@@ -493,7 +502,8 @@ def next_unit(line_type, workplace=None, item_code=None):
 
 	# An unfinished measured unit is handed back before any new one. Whoever is at the bench
 	# has to close it, otherwise it stays out of stock forever and the plan never drains.
-	stranded = _unfinished_job_cards(item_code, workplace=workplace, limit=1)
+	stranded = _unfinished_job_cards(item_code, workplace=workplace, limit=20)
+	stranded = _close_abandoned_rejects(stranded)
 	if stranded:
 		card = stranded[0]
 		return {
@@ -546,6 +556,30 @@ def next_unit(line_type, workplace=None, item_code=None):
 		"resumed": False,
 		"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
 	}
+
+
+def _close_abandoned_rejects(cards):
+	"""Close yesterday's rejected units instead of handing them back to the bench.
+
+	A unit rejected at the bench needs no decision from the operator — `finish_unit` closes it
+	and posts it to the reject warehouse whatever they press. Handing it back days later only
+	shows them a serial they have never seen, in front of a dialog that says the spool is
+	scrap; meanwhile the unit sits out of stock. A reject from today is left alone: the spool
+	is still in the operator's hand and may yet be rewound and measured again.
+	"""
+	live = []
+	for card in cards:
+		if getdate(card.get("creation")) < getdate(today()) and _is_rejected(card.quality_inspection):
+			try:
+				finish_unit(card.name)
+				continue
+			except Exception:
+				frappe.log_error(
+					title="Production Line: could not close abandoned reject",
+					message=frappe.get_traceback(),
+				)
+		live.append(card)
+	return live
 
 
 def release_unit(job_card):
@@ -702,6 +736,14 @@ def _complete_job_card(card, rejected=False):
 		card.flags.ignore_permissions = True
 		card.save()
 	card.submit()
+
+
+def _is_rejected(quality_inspection):
+	"""True when this inspection exists, is submitted and failed."""
+	if not quality_inspection:
+		return False
+	row = frappe.db.get_value("Quality Inspection", quality_inspection, ["status", "docstatus"], as_dict=True)
+	return bool(row and row.docstatus == 1 and row.status == "Rejected")
 
 
 def _rejected_inspection(serial_no):
