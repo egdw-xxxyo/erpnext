@@ -14941,3 +14941,5 @@ Workplaces,Робочі місця
 "An active default Workplace Script (no workplace) already exists: {0}","Активний Скрипт робочого місця за замовчуванням (без робочого місця) вже існує: {0}"
 "Benches that run this script. Leave empty for a default script that runs when no workplace-specific script is found. A bench may appear in only one active script.","Робочі місця, на яких виконується цей скрипт. Залиште порожнім для скрипта за замовчуванням, який виконується, коли скрипт для робочого місця не знайдено. Робоче місце може бути лише в одному активному скрипті."
 "If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."
+"Two printers are set for purpose {0}","Для призначення {0} задано два принтери"
+"Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.","Які етикетки друкує цей принтер, напр. Package, Passed, Failed. Порожньо — будь-які."

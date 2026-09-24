@@ -493,20 +493,29 @@ def print_qc_label(
 		)
 		return None
 
-	printer = (
-		label_printer
-		or _workplace_printer(workplace)
-		or resolved.get("label_printer")
-		or _any_printer_for(item_code)
+	from erpnext.devices.printer_resolution import resolve_printer
+
+	printer, printer_source = resolve_printer(
+		workplace=workplace,
+		explicit=label_printer,
+		purpose=purpose,
+		fallbacks=[resolved.get("label_printer"), lambda: _any_printer_for(item_code)],
 	)
 	if not printer:
 		log(
-			"Label template has no printer, nothing printed",
+			"Neither the workplace nor the label template names a printer, nothing printed",
 			level="WARN",
 			label_template=resolved["label_template"],
 			purpose=purpose,
 		)
 		return None
+
+	log(
+		"Printer resolved",
+		label_printer=printer,
+		source=printer_source,
+		purpose=purpose,
+	)
 
 	raw_data = {
 		"serial_no": serial_no,
@@ -584,42 +593,18 @@ def _any_printer_for(item_code):
 	)
 
 
-def _workplace_printer(workplace):
-	"""The workplace's default printer, if it declares one.
+def _workplace_printer(workplace, purpose=None):
+	"""Kept as the name `otdr_measurement_api` imports; the logic lives in `printer_resolution`."""
+	from erpnext.devices.printer_resolution import workplace_printer
 
-	`Workplace.printers` allows several — a bench with a spool printer and a box printer —
-	with at most one marked default (enforced in `Workplace._validate_printers`). Only the
-	default is chosen automatically; when there is none the app offers the list.
-	"""
-	if not workplace:
-		return None
-
-	name = workplace if isinstance(workplace, str) else workplace.get("name")
-	if not name:
-		return None
-
-	return frappe.db.get_value(
-		"Workplace Printer",
-		{"parent": name, "parenttype": "Workplace", "is_default": 1},
-		"label_printer",
-	)
+	return workplace_printer(workplace, purpose=purpose)
 
 
 def printers_for_workplace(workplace):
 	"""Every printer a workplace declares, for the app's picker."""
-	if not workplace:
-		return []
+	from erpnext.devices.printer_resolution import printers_for_workplace as _printers
 
-	name = workplace if isinstance(workplace, str) else workplace.get("name")
-	if not name:
-		return []
-
-	return frappe.get_all(
-		"Workplace Printer",
-		filters={"parent": name, "parenttype": "Workplace"},
-		fields=["label_printer", "printer_model", "ip_address", "is_default"],
-		order_by="is_default desc, idx",
-	)
+	return _printers(workplace)
 
 
 def handle_measurement(e):
