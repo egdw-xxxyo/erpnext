@@ -8,6 +8,7 @@ from functools import reduce
 
 import frappe
 
+from erpnext.crm.lead_rules import ENGAGEMENT_CHANNELS
 from erpnext.stock.responsible_employee import (
 	RESPONSIBLE_EMPLOYEE_DIMENSION,
 	RESPONSIBLE_EMPLOYEE_FIELD,
@@ -1932,15 +1933,6 @@ def _migrate_lead_request_types():
 		print(f"  Lead.request_type: {old} -> {new} ({len(names)} rows)")
 
 
-LEAD_ENGAGEMENT_CHANNEL_DETAILS = {
-	"Онлайн": ("Сайт", "Соціальні мережі", "Месенджери (онлайн)"),
-	"Офлайн": ("Виставка", "Конференція", "Форум", "Презентація"),
-	"Рекомендації": ("Клієнт", "Партнер", "Особисте знайомство"),
-	"Холодний контакт": ("Продзвони баз", "LinkedIn", "Email", "Месенджери (холодний контакт)"),
-	"Державні закупівлі": ("Прозоро", "АОЗ", "ДРСЗІ", "DOTChain / Brave1", "Закриті закупівлі"),
-	"Партнерські організації": ("Дилери", "Дистриб'ютори", "Виробники", "Інтегратори"),
-}
-
 LEAD_FIRST_BLOCK_MOVES = (
 	("customer", "last_name"),
 	("prospect", "customer"),
@@ -1971,7 +1963,7 @@ def create_engagement_channel_detail_field():
 def setup_engagement_channel_details():
 	details = [
 		(detail, channel)
-		for channel, channel_details in LEAD_ENGAGEMENT_CHANNEL_DETAILS.items()
+		for channel, channel_details in ENGAGEMENT_CHANNELS.items()
 		for detail in channel_details
 	]
 	for detail, channel in details:
@@ -1990,6 +1982,8 @@ def setup_lead_channel_properties():
 		[
 			("Lead", "utm_medium", "label", "Engagement Channel Detail", "Data"),
 			("Lead", "utm_medium", "in_standard_filter", "1", "Check"),
+			("Lead", "utm_source", "only_select", "1", "Check"),
+			("Lead", "utm_medium", "only_select", "1", "Check"),
 		]
 	)
 

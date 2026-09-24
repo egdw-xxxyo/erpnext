@@ -1,6 +1,11 @@
 frappe.ui.form.on("Lead", {
 	setup: function (frm) {
+		frm.set_query("utm_source", () => ({
+			query: "erpnext.crm.lead_rules.engagement_channel_query",
+		}));
+
 		frm.set_query("utm_medium", () => ({
+			query: "erpnext.crm.lead_rules.engagement_channel_detail_query",
 			filters: frm.doc.utm_source ? { engagement_channel: frm.doc.utm_source } : {},
 		}));
 	},
