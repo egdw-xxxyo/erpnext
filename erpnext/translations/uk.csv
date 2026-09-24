@@ -14932,3 +14932,12 @@ Reply to message,Відповісти на повідомлення
 Nothing to copy,Нема чого копіювати
 Show more,Показати більше
 Show less,Згорнути
+Workplace Script Workplace,Робоче місце скрипта робочого місця
+Workplaces,Робочі місця
+"Subflow scripts (with Parent Script) must not have Workplaces assigned","Скрипти підпотоку (з батьківським скриптом) не можуть мати призначених робочих місць"
+"Parent Script cannot reference itself","Батьківський скрипт не може посилатися сам на себе"
+"Workplace {0} is listed twice","Робоче місце {0} вказано двічі"
+"An active Workplace Script already exists for workplace {0}: {1}","Активний Скрипт робочого місця для робочого місця {0} вже існує: {1}"
+"An active default Workplace Script (no workplace) already exists: {0}","Активний Скрипт робочого місця за замовчуванням (без робочого місця) вже існує: {0}"
+"Benches that run this script. Leave empty for a default script that runs when no workplace-specific script is found. A bench may appear in only one active script.","Робочі місця, на яких виконується цей скрипт. Залиште порожнім для скрипта за замовчуванням, який виконується, коли скрипт для робочого місця не знайдено. Робоче місце може бути лише в одному активному скрипті."
+"If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."

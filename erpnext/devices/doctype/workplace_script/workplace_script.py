@@ -108,6 +108,9 @@ class WorkplaceScript(Document):
 		from erpnext.devices.doctype.workplace_script_context_field.workplace_script_context_field import (
 			WorkplaceScriptContextField,
 		)
+		from erpnext.devices.doctype.workplace_script_workplace.workplace_script_workplace import (
+			WorkplaceScriptWorkplace,
+		)
 
 		default_version: DF.Data | None
 		is_active: DF.Check
@@ -116,34 +119,91 @@ class WorkplaceScript(Document):
 		script_name: DF.Data | None
 		context_fields: DF.Table[WorkplaceScriptContextField]
 		viewing_version: DF.Data | None
-		workplace: DF.Link | None
+		workplaces: DF.Table[WorkplaceScriptWorkplace]
 
 	def validate(self):
 		if self.parent_script:
-			if self.workplace:
-				frappe.throw("Subflow scripts (with Parent Script) must not have a Workplace assigned")
+			if self.workplaces:
+				frappe.throw(_("Subflow scripts (with Parent Script) must not have Workplaces assigned"))
 			if self.parent_script == self.name:
-				frappe.throw("Parent Script cannot reference itself")
-		elif self.is_active:
-			filters = {"is_active": 1, "name": ["!=", self.name], "parent_script": ["is", "not set"]}
-			if self.workplace:
-				filters["workplace"] = self.workplace
-				existing = frappe.db.exists("Workplace Script", filters)
-				if existing:
-					frappe.throw(
-						f"An active Workplace Script already exists for workplace {self.workplace}: {existing}"
-					)
-			else:
-				filters["workplace"] = ["is", "not set"]
-				existing = frappe.db.exists("Workplace Script", filters)
-				if existing:
-					frappe.throw(
-						f"An active default Workplace Script (no workplace) already exists: {existing}"
-					)
+				frappe.throw(_("Parent Script cannot reference itself"))
+		else:
+			self._validate_workplaces()
 
 		self._ensure_versions()
 		self._validate_state_machine()
 		self._validate_context_fields()
+
+	def _validate_workplaces(self):
+		seen = []
+		for row in self.workplaces:
+			if row.workplace in seen:
+				frappe.throw(_("Workplace {0} is listed twice").format(row.workplace))
+			seen.append(row.workplace)
+
+		if not self.is_active:
+			return
+
+		if seen:
+			taken = frappe.get_all(
+				"Workplace Script Workplace",
+				filters={
+					"parenttype": "Workplace Script",
+					"parentfield": "workplaces",
+					"workplace": ["in", seen],
+					"parent": ["!=", self.name],
+				},
+				fields=["parent", "workplace"],
+			)
+			for row in taken:
+				script = frappe.db.get_value(
+					"Workplace Script", row.parent, ["is_active", "parent_script"], as_dict=True
+				)
+				if not script or not script.is_active or script.parent_script:
+					continue
+				frappe.throw(
+					_("An active Workplace Script already exists for workplace {0}: {1}").format(
+						row.workplace, row.parent
+					)
+				)
+		else:
+			for name in frappe.get_all(
+				"Workplace Script",
+				filters={"is_active": 1, "name": ["!=", self.name], "parent_script": ["is", "not set"]},
+				pluck="name",
+			):
+				if frappe.db.exists(
+					"Workplace Script Workplace",
+					{"parenttype": "Workplace Script", "parentfield": "workplaces", "parent": name},
+				):
+					continue
+				frappe.throw(
+					_("An active default Workplace Script (no workplace) already exists: {0}").format(name)
+				)
+
+	def on_update(self):
+		self._sync_workplace_links()
+
+	def _sync_workplace_links(self):
+		"""Keep the read-only `Workplace.workplace_script` pointer in step with this table."""
+		listed = [row.workplace for row in self.workplaces] if not self.parent_script else []
+
+		for workplace in listed:
+			if (
+				self.is_active
+				and frappe.db.get_value("Workplace", workplace, "workplace_script") != self.name
+			):
+				frappe.db.set_value(
+					"Workplace", workplace, "workplace_script", self.name, update_modified=False
+				)
+
+		for workplace in frappe.get_all("Workplace", filters={"workplace_script": self.name}, pluck="name"):
+			if workplace not in listed or not self.is_active:
+				frappe.db.set_value("Workplace", workplace, "workplace_script", None, update_modified=False)
+
+	def on_trash(self):
+		for workplace in frappe.get_all("Workplace", filters={"workplace_script": self.name}, pluck="name"):
+			frappe.db.set_value("Workplace", workplace, "workplace_script", None, update_modified=False)
 
 	def _ensure_versions(self):
 		if not self.versions:
@@ -351,3 +411,43 @@ def run_state(script_name, e, scripts=None, handler="on_scan"):
 		return td(text) if td else {"templateData": text}
 	finally:
 		e.state = real_proxy
+
+
+@frappe.whitelist()
+def script_for_workplace(workplace=None, include_default=1):
+	"""Name of the active root script that runs at `workplace`.
+
+	With `include_default` the site-wide default script (the active root script with no
+	workplaces) is returned when the bench names none of its own.
+	"""
+	if workplace:
+		rows = frappe.get_all(
+			"Workplace Script Workplace",
+			filters={
+				"parenttype": "Workplace Script",
+				"parentfield": "workplaces",
+				"workplace": workplace,
+			},
+			pluck="parent",
+		)
+		for name in rows:
+			script = frappe.db.get_value(
+				"Workplace Script", name, ["name", "is_active", "parent_script"], as_dict=True
+			)
+			if script and script.is_active and not script.parent_script:
+				return script.name
+
+	if not frappe.utils.cint(include_default):
+		return None
+
+	for name in frappe.get_all(
+		"Workplace Script",
+		filters={"is_active": 1, "parent_script": ["is", "not set"]},
+		pluck="name",
+	):
+		if not frappe.db.exists(
+			"Workplace Script Workplace",
+			{"parenttype": "Workplace Script", "parentfield": "workplaces", "parent": name},
+		):
+			return name
+	return None

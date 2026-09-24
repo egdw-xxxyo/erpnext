@@ -468,22 +468,12 @@ def _authenticate(scanner_key):
 
 
 def _get_workplace_script(workplace):
-	script = None
-	if workplace:
-		script = frappe.db.get_value(
-			"Workplace Script",
-			{"is_active": 1, "workplace": workplace, "parent_script": ["is", "not set"]},
-			["name", "script"],
-			as_dict=True,
-		)
-	if not script:
-		script = frappe.db.get_value(
-			"Workplace Script",
-			{"is_active": 1, "workplace": ["is", "not set"], "parent_script": ["is", "not set"]},
-			["name", "script"],
-			as_dict=True,
-		)
-	return script
+	from erpnext.devices.doctype.workplace_script.workplace_script import script_for_workplace
+
+	name = script_for_workplace(workplace)
+	if not name:
+		return None
+	return frappe.db.get_value("Workplace Script", name, ["name", "script"], as_dict=True)
 
 
 def _impersonate(employee_name):

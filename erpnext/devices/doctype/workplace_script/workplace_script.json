@@ -13,8 +13,9 @@
   "column_break_1",
   "is_active",
   "column_break_2",
-  "workplace",
   "parent_script",
+  "section_workplaces",
+  "workplaces",
   "section_versions",
   "default_version",
   "column_break_v1",
@@ -64,18 +65,23 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "workplace",
-   "fieldtype": "Link",
-   "label": "Workplace",
-   "options": "Workplace",
-   "description": "Leave empty for a default script that runs when no workplace-specific script is found"
-  },
-  {
    "fieldname": "parent_script",
    "fieldtype": "Link",
    "label": "Parent Script (Subflow Of)",
    "options": "Workplace Script",
-   "description": "If set, this script is a subflow invoked by the parent. Subflows have no Workplace and are not subject to per-workplace uniqueness."
+   "description": "If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness."
+  },
+  {
+   "fieldname": "section_workplaces",
+   "fieldtype": "Section Break",
+   "label": "Workplaces"
+  },
+  {
+   "fieldname": "workplaces",
+   "fieldtype": "Table",
+   "label": "Workplaces",
+   "options": "Workplace Script Workplace",
+   "description": "Benches that run this script. Leave empty for a default script that runs when no workplace-specific script is found. A bench may appear in only one active script."
   },
   {
    "fieldname": "section_versions",
