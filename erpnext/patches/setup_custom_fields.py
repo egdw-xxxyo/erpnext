@@ -68,10 +68,14 @@ def execute():
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
 	setup_lead_field_properties()
+	create_engagement_channel_detail_field()
+	setup_engagement_channel_details()
+	setup_lead_channel_properties()
 	create_custom_fields_on_opportunity_process()
 	setup_opportunity_field_properties()
 	set_v16_ported_properties()
 	create_v16_ported_fields()
+	arrange_lead_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
 	create_responsible_employee_dimension()
@@ -793,14 +797,18 @@ def create_employee_documents_fields():
 
 
 def arrange_employee_overview_fields():
-	current = [df.fieldname for df in frappe.get_meta("Employee", cached=False).fields]
-	arranged = reduce(_move_field_after, EMPLOYEE_OVERVIEW_MOVES, current)
+	_arrange_field_order("Employee", EMPLOYEE_OVERVIEW_MOVES)
+
+
+def _arrange_field_order(doctype, moves):
+	current = [df.fieldname for df in frappe.get_meta(doctype, cached=False).fields]
+	arranged = reduce(_move_field_after, moves, current)
 	if arranged == current:
 		return
 
 	frappe.make_property_setter(
 		{
-			"doctype": "Employee",
+			"doctype": doctype,
 			"doctype_or_field": "DocType",
 			"property": "field_order",
 			"value": json.dumps(arranged),
@@ -808,8 +816,8 @@ def arrange_employee_overview_fields():
 		},
 		validate_fields_for_doctype=False,
 	)
-	frappe.clear_cache(doctype="Employee")
-	print("  Arranged Employee overview field order")
+	frappe.clear_cache(doctype=doctype)
+	print(f"  Arranged {doctype} field order")
 
 
 EMPLOYEE_OVERVIEW_PROPERTIES = (
@@ -1924,6 +1932,72 @@ def _migrate_lead_request_types():
 		print(f"  Lead.request_type: {old} -> {new} ({len(names)} rows)")
 
 
+LEAD_ENGAGEMENT_CHANNEL_DETAILS = {
+	"Онлайн": ("Сайт", "Соціальні мережі", "Месенджери (онлайн)"),
+	"Офлайн": ("Виставка", "Конференція", "Форум", "Презентація"),
+	"Рекомендації": ("Клієнт", "Партнер", "Особисте знайомство"),
+	"Холодний контакт": ("Продзвони баз", "LinkedIn", "Email", "Месенджери (холодний контакт)"),
+	"Державні закупівлі": ("Прозоро", "АОЗ", "ДРСЗІ", "DOTChain / Brave1", "Закриті закупівлі"),
+	"Партнерські організації": ("Дилери", "Дистриб'ютори", "Виробники", "Інтегратори"),
+}
+
+LEAD_FIRST_BLOCK_MOVES = (
+	("customer", "last_name"),
+	("prospect", "customer"),
+	("type", "gender"),
+	("request_type", "type"),
+	("utm_source", "request_type"),
+	("utm_medium", "utm_source"),
+)
+
+
+def create_engagement_channel_detail_field():
+	_create_custom_fields(
+		[
+			{
+				"dt": "UTM Medium",
+				"fieldname": "engagement_channel",
+				"fieldtype": "Link",
+				"label": "Engagement Channel",
+				"options": "UTM Source",
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"insert_after": "description",
+			},
+		]
+	)
+
+
+def setup_engagement_channel_details():
+	details = [
+		(detail, channel)
+		for channel, channel_details in LEAD_ENGAGEMENT_CHANNEL_DETAILS.items()
+		for detail in channel_details
+	]
+	for detail, channel in details:
+		if not frappe.db.exists("UTM Medium", detail):
+			frappe.get_doc({"doctype": "UTM Medium", "name": detail, "engagement_channel": channel}).insert(
+				ignore_permissions=True
+			)
+			print(f"  Created UTM Medium: {detail} ({channel})")
+		elif frappe.db.get_value("UTM Medium", detail, "engagement_channel") != channel:
+			frappe.db.set_value("UTM Medium", detail, "engagement_channel", channel)
+			print(f"  UTM Medium {detail} -> {channel}")
+
+
+def setup_lead_channel_properties():
+	_create_property_setters(
+		[
+			("Lead", "utm_medium", "label", "Engagement Channel Detail", "Data"),
+			("Lead", "utm_medium", "in_standard_filter", "1", "Check"),
+		]
+	)
+
+
+def arrange_lead_fields():
+	_arrange_field_order("Lead", LEAD_FIRST_BLOCK_MOVES)
+
+
 #: «Статус» of an Opportunity. The three the sales process actually distinguishes.
 OPPORTUNITY_STATUSES = ("New", "Converted to Quotation", "Lost")
 
@@ -2246,9 +2320,7 @@ def create_v16_ported_fields():
 		},
 		{
 			"dt": "Lead",
-			"description": "The month the party actually has budget for. Stays a plain Date"
-			" (sorting/filtering keep working); erpnext/public/js/utils/month_field.js renders"
-			" it as month/year only and snaps the value to the first of the month.",
+			"description": "The month for which the client has a purchase budget.",
 			"fieldname": "required_month",
 			"fieldtype": "Date",
 			"in_list_view": 1,
@@ -2442,6 +2514,7 @@ def create_v16_ported_fields():
 		},
 	]
 	_create_custom_fields(fields)
+	_sync_custom_field_properties(fields, ("label", "description"))
 
 
 def set_v16_ported_properties():

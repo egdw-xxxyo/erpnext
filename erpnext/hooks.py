@@ -46,6 +46,7 @@ doctype_js = {
 	"Notification Settings": "public/js/custom/notification_settings.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
+	"Lead": "public/js/custom/lead.js",
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
@@ -468,6 +469,7 @@ period_closing_doctypes = [
 
 override_doctype_dashboards = {
 	"Contact": "erpnext.crm.dashboard_overrides.get_contact_dashboard_data",
+	"Lead": "erpnext.crm.dashboard_overrides.get_lead_dashboard_data",
 }
 
 doc_events = {
@@ -509,6 +511,9 @@ doc_events = {
 			"erpnext.crm.utils.set_military_unit_from_party",
 			"erpnext.selling.quotation_rules.validate_sales_order_against_quotation",
 		],
+	},
+	"Lead": {
+		"validate": "erpnext.crm.lead_rules.validate",
 	},
 	"Opportunity": {
 		"validate": [

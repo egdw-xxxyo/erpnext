@@ -13038,7 +13038,7 @@ Product Category,Категорія продукції
 Estimated Quantity,Орієнтовна кількість
 Estimated Customer Budget,Орієнтовний бюджет клієнта
 Lead Assessment,Оцінка Звернення
-Conversion Probability,Ймовірність переходу в Opportunity
+Conversion Probability,Ймовірність переходу в Пропозицію
 Next Action Control,Контроль наступних дій
 Next Action,Наступна дія
 Next Action Date,Дата наступної дії
@@ -14932,3 +14932,7 @@ Reply to message,Відповісти на повідомлення
 Nothing to copy,Нема чого копіювати
 Show more,Показати більше
 Show less,Згорнути
+Engagement Channel Detail,Деталізація каналу
+The month for which the client has a purchase budget.,"Місяць, на який у замовника є бюджет на закупівлю."
+{0} belongs to the engagement channel {1},{0} належить до каналу залучення {1}
+Invalid Engagement Channel Detail,Некоректна деталізація каналу

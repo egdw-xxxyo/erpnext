@@ -36,3 +36,19 @@ def get_contact_dashboard_data(data=None):
 			data["transactions"].append(group)
 
 	return data
+
+
+def get_lead_dashboard_data(data=None):
+	data = data or frappe._dict()
+	data.setdefault("transactions", [])
+	data.setdefault("non_standard_fieldnames", {})
+	data.setdefault("internal_and_external_links", {})
+
+	data["internal_and_external_links"]["Customer"] = "customer"
+	data["non_standard_fieldnames"]["Customer"] = "lead_name"
+
+	existing = {item for group in data["transactions"] for item in group.get("items", [])}
+	if "Customer" not in existing:
+		data["transactions"].insert(0, {"label": _("Customer"), "items": ["Customer"]})
+
+	return data
