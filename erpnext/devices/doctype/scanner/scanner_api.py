@@ -335,8 +335,6 @@ def _publish_after_scan(scanner, scan_log_row):
 
 @frappe.whitelist(allow_guest=True)
 def handle_scan(scanner_key=None, data=None):
-	t_start = time.perf_counter()
-
 	if not scanner_key or not data:
 		frappe.response["http_status_code"] = 400
 		return _resp(success=False, error="scanner_key and data are required")
@@ -346,8 +344,21 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.response["http_status_code"] = 403
 		return _resp(success=False, error="Invalid or inactive scanner key")
 
+	return run_scan(scanner, data)
+
+
+def run_scan(scanner, data):
+	"""Everything a scan does, once the device behind it is known.
+
+	Split out of `handle_scan` so the session API can press a command button on the
+	operator's behalf: a button is the same barcode, and it must go through the same script,
+	the same state frame and the same scan log — otherwise the two ways of running a flow
+	would start to disagree.
+	"""
+	t_start = time.perf_counter()
+
 	_touch_last_active(scanner.name)
-	data = data.strip()
+	data = (data or "").strip()
 
 	state_timeout = scanner.get_state_timeout()
 	state_dict = _load_state(scanner.name, state_timeout)

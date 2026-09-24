@@ -373,6 +373,63 @@ def _snapshot_states(script_name):
 	return {row.get("state") for row in (snap.get("states") or [])}
 
 
+def _scanner_commands():
+	"""`{barcode: label}` for every command barcode, the command's own name as the label.
+
+	Scanner Command names are already the Ukrainian wording the operator knows from the
+	printed barcode sheet («Завершити пакування»), so a button does not invent a second
+	vocabulary for the same action.
+	"""
+	rows = frappe.get_all("Scanner Command", fields=["name", "barcode_id", "description"])
+	return {
+		(row.barcode_id or "").strip(): {"label": row.name, "description": row.description}
+		for row in rows
+		if (row.barcode_id or "").strip()
+	}
+
+
+def _state_commands(script_name, state):
+	"""Command buttons the app offers in `state`, read off the Transitions table.
+
+	A transition whose event names a command barcode is the declaration: it is what the
+	diagram already draws and what runtime already validates, so the buttons cannot drift
+	from the flow the scanner actually runs. Anything else on that table — "серійник
+	відскановано" — is a scan the operator makes with the device, not a button.
+	"""
+	if not script_name or not state:
+		return []
+
+	from erpnext.devices.doctype.workplace_script.workplace_script import (
+		_resolve_default_snapshot,
+	)
+
+	try:
+		snap = _resolve_default_snapshot(frappe.get_cached_doc("Workplace Script", script_name))
+	except Exception:
+		return []
+
+	known = _scanner_commands()
+	commands = []
+	seen = set()
+	for row in snap.get("transitions") or []:
+		if row.get("from_state") != state:
+			continue
+		barcode = (row.get("event") or "").strip()
+		decl = known.get(barcode)
+		if not decl or barcode in seen:
+			continue
+		seen.add(barcode)
+		commands.append(
+			{
+				"command": barcode,
+				"label": decl["label"],
+				"description": decl.get("description"),
+				"to_state": row.get("to_state"),
+			}
+		)
+	return commands
+
+
 def _flows(root_script, active_subflow):
 	"""The flows this scanner can be in: the root script itself, plus its subflows.
 
@@ -522,6 +579,7 @@ def _read_session(scanner_row):
 		"updated_at": updated_at,
 		"state_timeout": timeout,
 		"flows": _flows(root_script, subflow),
+		"commands": _state_commands(active_script, frame.get("state")),
 		"expires_in": max(int(timeout - (time.time() - updated_at)), 0) if updated_at else None,
 		"context_fields": fields,
 	}
@@ -793,6 +851,43 @@ def set_scanner_flow(scanner=None, flow=None):
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
 	return session
+
+
+@frappe.whitelist(methods=["POST"])
+def run_scanner_command(scanner=None, command=None):
+	"""Press a command button: run its barcode exactly as the device would have scanned it.
+
+	Only a command the current state declares is accepted, so the phone can do nothing at a
+	step that the printed barcode sheet could not do at the same step. The work itself goes
+	through `run_scan` — same script, same frame, same scan log — and the refreshed session
+	comes back so the screen redraws from what actually happened.
+	"""
+	from erpnext.devices.doctype.scanner.scanner_api import run_scan
+
+	row = _assert_scanner_mine(scanner)
+	command = (command or "").strip()
+	if not command:
+		frappe.throw(_("Command is required"))
+
+	frame = _load_state(row.name, _state_timeout(row)) or {}
+	root_script = _root_script_name(row)
+	active_script = frame.get("subflow") or root_script
+	offered = {c["command"] for c in _state_commands(active_script, frame.get("state"))}
+	if command not in offered:
+		frappe.throw(_("{0} is not available at this step").format(command))
+
+	# `run_scan` impersonates the scanner's employee, exactly as a device scan does. The
+	# caller is that employee anyway (`_assert_scanner_mine`), but restore the session user
+	# so the rest of this request is not left running as someone else.
+	caller = frappe.session.user
+	try:
+		result = run_scan(frappe.get_doc("Scanner", row.name), command)
+	finally:
+		frappe.set_user(caller)
+
+	session = _read_session(_scanner_row(row.name))
+	_publish_session_update(row.name, session)
+	return {"result": result, "session": session}
 
 
 @frappe.whitelist(methods=["POST"])
