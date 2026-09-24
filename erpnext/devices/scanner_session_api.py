@@ -671,7 +671,12 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 
 	doctype = _link_doctype(decl)
 	filters = _link_filters(decl)
-	if query:
+	limit = min(cint(limit) or 20, 50)
+
+	# A declaration may restrict the picker by name — one packing template for this bench —
+	# and the operator's search must narrow that list, never replace the restriction.
+	declared_name_filter = "name" in filters
+	if query and not declared_name_filter:
 		filters["name"] = ["like", f"%{query}%"]
 
 	names = frappe.get_list(
@@ -679,8 +684,11 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 		filters=filters,
 		pluck="name",
 		order_by=decl.get("link_order_by") or "modified desc",
-		limit_page_length=min(cint(limit) or 20, 50),
+		limit_page_length=limit if not (query and declared_name_filter) else 0,
 	)
+	if query and declared_name_filter:
+		needle = query.lower()
+		names = [name for name in names if needle in name.lower()][:limit]
 	return [{"value": name, "label": _link_label(doctype, name)} for name in names]
 
 
