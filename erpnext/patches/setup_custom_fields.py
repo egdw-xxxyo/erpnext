@@ -69,6 +69,7 @@ def execute():
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
 	setup_lead_field_properties()
+	allow_repeat_leads_from_one_contact()
 	create_engagement_channel_detail_field()
 	setup_engagement_channel_details()
 	setup_lead_channel_properties()
@@ -1885,6 +1886,13 @@ LEAD_CONVERSION_PROBABILITIES = (
 	"High Probability",
 	"Very High Probability",
 )
+
+
+def allow_repeat_leads_from_one_contact():
+	if frappe.db.get_single_value("CRM Settings", "allow_lead_duplication_based_on_emails"):
+		return
+	frappe.db.set_single_value("CRM Settings", "allow_lead_duplication_based_on_emails", 1)
+	print("  CRM Settings: allowed several Leads per email")
 
 
 def setup_lead_field_properties():
