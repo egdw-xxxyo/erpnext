@@ -16,6 +16,9 @@ The clients version independently — do NOT assume the same number.
 
 import frappe
 
+# 0.7.6 is where the session screen learned to draw the step's command barcodes as buttons
+# (`commands` in the session payload); an older build simply does not show them, so the
+# operator has to reach for the printed barcode sheet.
 # 0.7.5 is where the scanner session screen learned `editable_now`: a context key is writable
 # only at the step that asks for it, so an older build still offers a picker for the packing
 # template after the order is chosen and the server refuses that write.
@@ -25,7 +28,7 @@ import frappe
 # ended up stranded out of stock with nothing pointing back at them.
 # Before that, 0.6.0 was the floor — where the spool stopped being scanned and started being
 # handed out by `spool_production.next_spool`.
-MIN_ANDROID_APP_VERSION = "0.7.5"
+MIN_ANDROID_APP_VERSION = "0.7.6"
 MIN_DESKTOP_APP_VERSION = "0.1.0"
 
 
