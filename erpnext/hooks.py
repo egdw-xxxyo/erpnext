@@ -564,8 +564,13 @@ doc_events = {
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			# record which fiber reel each produced optical spool was wound from
 			"erpnext.devices.spool_lineage.stamp_source_batch",
+			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		],
-		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+		"on_cancel": [
+			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+		],
+		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 	},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices

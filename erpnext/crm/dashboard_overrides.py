@@ -50,5 +50,7 @@ def get_lead_dashboard_data(data=None):
 	existing = {item for group in data["transactions"] for item in group.get("items", [])}
 	if "Customer" not in existing:
 		data["transactions"].insert(0, {"label": _("Customer"), "items": ["Customer"]})
+	if "Lead Expense" not in existing:
+		data["transactions"].append({"label": _("Expenses"), "items": ["Lead Expense"]})
 
 	return data

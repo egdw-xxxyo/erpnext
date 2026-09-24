@@ -73,6 +73,7 @@ def execute():
 	create_engagement_channel_detail_field()
 	setup_engagement_channel_details()
 	setup_lead_channel_properties()
+	create_lead_expense_fields()
 	create_custom_fields_on_opportunity_process()
 	setup_opportunity_field_properties()
 	set_v16_ported_properties()
@@ -1992,6 +1993,36 @@ def setup_lead_channel_properties():
 			("Lead", "utm_medium", "in_standard_filter", "1", "Check"),
 			("Lead", "utm_source", "only_select", "1", "Check"),
 			("Lead", "utm_medium", "only_select", "1", "Check"),
+		]
+	)
+
+
+def create_lead_expense_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Lead",
+				"fieldname": "expenses_tab",
+				"fieldtype": "Tab Break",
+				"label": "Expenses",
+				"insert_after": "all_activities_html",
+			},
+			{
+				"dt": "Lead",
+				"fieldname": "expenses_html",
+				"fieldtype": "HTML",
+				"label": "Expenses",
+				"insert_after": "expenses_tab",
+			},
+			{
+				"dt": "Stock Entry",
+				"fieldname": "lead_expense",
+				"fieldtype": "Link",
+				"label": "Lead Expense",
+				"options": "Lead Expense",
+				"read_only": 1,
+				"insert_after": "stock_entry_type",
+			},
 		]
 	)
 
