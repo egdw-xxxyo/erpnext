@@ -106,6 +106,17 @@ class ScannerStateProxy:
 		self._cleared = True
 		self._next = None
 
+	def seed_defaults(self, root_script):
+		"""Fill declared context defaults into the frame the script is about to read.
+
+		Seeded on every scan, not only on a fresh frame: a script that resets its own context
+		(CMD-RESET lands back on the first step) would otherwise lose the default and ask the
+		operator for a value that never changes.
+		"""
+		context = _seeded_context(root_script, self.subflow, self.context)
+		if context != (self.context or {}):
+			self._current["context"] = context
+
 
 # ---------------------------------------------------------------------------
 # Scan event — wraps frappe._dict with helper methods
@@ -248,7 +259,24 @@ def _is_reset_scan(scan_type, scan_ctx):
 	return bool(doc and getattr(doc, "barcode_id", None) in RESET_BARCODE_IDS)
 
 
-def reset_frame(frame):
+def _seeded_context(root_script, subflow, base=None):
+	"""Declared defaults for a frame that is starting empty.
+
+	Imported late for the same reason as `_publish_after_scan`: the session API imports this
+	module. A script that declares no defaults gets `base` back unchanged, exactly as before.
+	"""
+	from erpnext.devices.scanner_session_api import seeded_context
+
+	try:
+		return seeded_context(root_script, subflow, base)
+	except Exception:
+		frappe.logger("scanner").warning(
+			f"could not seed context defaults for {subflow or root_script}", exc_info=True
+		)
+		return dict(base or {})
+
+
+def reset_frame(frame, root_script=None):
 	"""Subflow-aware reset, shared by the CMD-RESET barcode and the mobile app.
 
 	Inside a subflow, reset lands on that subflow's initial state and keeps the subflow;
@@ -260,14 +288,18 @@ def reset_frame(frame):
 		sub_initial = _subflow_initial_state(cur_subflow)
 		if sub_initial and (frame or {}).get("state") != sub_initial:
 			return (
-				{"subflow": cur_subflow, "state": sub_initial, "context": {}},
+				{
+					"subflow": cur_subflow,
+					"state": sub_initial,
+					"context": _seeded_context(root_script, cur_subflow),
+				},
 				f"↺ {cur_subflow}\n{sub_initial}",
 			)
 	return None, "↺ Скинуто"
 
 
-def _handle_reset(state_proxy):
-	frame, message = reset_frame(state_proxy._current)
+def _handle_reset(state_proxy, root_script=None):
+	frame, message = reset_frame(state_proxy._current, root_script)
 	if frame:
 		state_proxy._current = dict(frame)
 		state_proxy._next = dict(frame)
@@ -278,13 +310,17 @@ def _handle_reset(state_proxy):
 	return {"templateData": message}
 
 
-def _enter_subflow(state_proxy, target_subflow):
+def _enter_subflow(state_proxy, target_subflow, root_script=None):
 	if not target_subflow:
 		return None
 	initial = _subflow_initial_state(target_subflow)
 	if not initial:
 		return {"templateData": f"Підпотік {target_subflow}\nне має початкового стану"}
-	frame = {"subflow": target_subflow, "state": initial, "context": {}}
+	frame = {
+		"subflow": target_subflow,
+		"state": initial,
+		"context": _seeded_context(root_script, target_subflow),
+	}
 	state_proxy._current = dict(frame)
 	state_proxy._next = dict(frame)
 	state_proxy._cleared = False
@@ -351,6 +387,8 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.db.commit()
 		return _resp(success=False, error="No Workplace Script configured")
 
+	state_proxy.seed_defaults(workplace_script.name)
+
 	_impersonate(scanner.employee)
 
 	scan_log_row = _create_scan_log(scanner, data, state_proxy.name)
@@ -366,7 +404,7 @@ def handle_scan(scanner_key=None, data=None):
 		t_script_start = time.perf_counter()
 
 		if _is_reset_scan(scan_type, scan_ctx):
-			result = _handle_reset(state_proxy)
+			result = _handle_reset(state_proxy, workplace_script.name)
 		else:
 			active_script_name = state_proxy.subflow or workplace_script.name
 			current_state = state_proxy.name or _subflow_initial_state(active_script_name)
@@ -377,7 +415,7 @@ def handle_scan(scanner_key=None, data=None):
 				current_state,
 			)
 			if entry:
-				err = _enter_subflow(state_proxy, entry.target_subflow)
+				err = _enter_subflow(state_proxy, entry.target_subflow, workplace_script.name)
 				result = err if err else _execute_workplace_script(workplace_script, event, scripts_ns)
 			else:
 				result = _execute_workplace_script(workplace_script, event, scripts_ns)

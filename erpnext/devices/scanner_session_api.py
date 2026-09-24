@@ -64,11 +64,13 @@ CONTEXT_FIELD_FIELDS = [
 	"label",
 	"fieldtype",
 	"options",
+	"default_value",
 	"show_in_app",
 	"app_editable",
 	"is_primary",
 	"preserve_on_switch",
 	"blocks_switch",
+	"editable_in_states",
 	"enter_state",
 	"link_filters",
 	"link_order_by",
@@ -194,6 +196,54 @@ def _declared_context_fields(root_script, subflow):
 			row.undeclared = 0
 			declared[row.key] = row
 	return declared
+
+
+def _editable_states(decl):
+	"""State names where the app may write this key. Empty — every state."""
+	return [line.strip() for line in (decl.get("editable_in_states") or "").splitlines() if line.strip()]
+
+
+def _editable_now(decl, state):
+	"""Whether the app may write this key while the session sits in `state`.
+
+	A key is answered at one step of the flow and read-only afterwards: the packing template
+	is chosen before the order, the order before the item. Without a state the session has no
+	frame yet, so the declaration's own `app_editable` is the whole answer.
+	"""
+	if not cint(decl.get("app_editable")):
+		return False
+	states = _editable_states(decl)
+	if not states:
+		return True
+	if not state:
+		return True
+	return state in states
+
+
+def seeded_context(root_script, subflow, base=None):
+	"""`base` with every declared default filled in for keys it does not carry.
+
+	A fresh frame starts at the flow's first step, and a step whose answer is always the same
+	(one packing template at the bench) is a step the operator should not have to take. The
+	default is seeded rather than resolved at read time so the scripts, which only ever read
+	`e.state.context`, see exactly what the app shows.
+	"""
+	context = dict(base or {})
+	for key, decl in _declared_context_fields(root_script, subflow).items():
+		if context.get(key) not in (None, ""):
+			continue
+		default = decl.get("default_value")
+		if default in (None, ""):
+			continue
+		try:
+			context[key] = _coerce_value(decl, default)
+		except Exception:
+			# A default pointing at a deleted or filtered-out document must cost the operator
+			# one extra tap, not the whole session.
+			frappe.logger("scanner").warning(
+				f"context field {key}: default '{default}' is not a valid value", exc_info=True
+			)
+	return context
 
 
 def _link_doctype(decl):
@@ -344,7 +394,7 @@ def _read_session(scanner_row):
 	subflow = frame.get("subflow")
 	active_script = subflow or root_script
 	declared = _declared_context_fields(root_script, subflow)
-	context = frame.get("context") or {}
+	context = seeded_context(root_script, subflow, frame.get("context") or {})
 
 	fields = []
 	for key, decl in declared.items():
@@ -360,6 +410,8 @@ def _read_session(scanner_row):
 				"is_primary": cint(decl.get("is_primary")),
 				"preserve_on_switch": cint(decl.get("preserve_on_switch")),
 				"blocks_switch": cint(decl.get("blocks_switch")),
+				"editable_in_states": _editable_states(decl),
+				"editable_now": 1 if _editable_now(decl, frame.get("state")) else 0,
 				"enter_state": decl.get("enter_state"),
 				"description": decl.get("description"),
 				"source_script": decl.get("source_script"),
@@ -387,6 +439,8 @@ def _read_session(scanner_row):
 				"is_primary": 0,
 				"preserve_on_switch": 0,
 				"blocks_switch": 0,
+				"editable_in_states": [],
+				"editable_now": 0,
 				"enter_state": None,
 				"description": None,
 				"source_script": None,
@@ -588,9 +642,10 @@ def set_context_field(scanner=None, key=None, value=None):
 	row = _assert_scanner_mine(scanner)
 	timeout = _state_timeout(row)
 	frame = _load_state(row.name, timeout) or {}
-	context = dict(frame.get("context") or {})
-	declared = _declared_context_fields(_root_script_name(row), frame.get("subflow"))
-	decl = _require_editable(declared, key)
+	root_script = _root_script_name(row)
+	context = seeded_context(root_script, frame.get("subflow"), frame.get("context") or {})
+	declared = _declared_context_fields(root_script, frame.get("subflow"))
+	decl = _require_editable(declared, key, frame.get("state"))
 
 	coerced = _coerce_value(decl, value)
 	current = context.get(key)
@@ -599,14 +654,16 @@ def set_context_field(scanner=None, key=None, value=None):
 	if is_switch:
 		_assert_no_blockers(declared, context)
 
+	subflow = frame.get("subflow") or _subflow_for(decl)
+
 	if cint(decl.get("is_primary")):
 		context = {
 			k: v for k, v in context.items() if cint((declared.get(k) or {}).get("preserve_on_switch"))
 		}
+		context = seeded_context(root_script, subflow, context)
 	context[key] = coerced
 
 	new_frame = {"state": _target_state(decl, frame, declared), "context": context}
-	subflow = frame.get("subflow") or _subflow_for(decl)
 	if subflow:
 		new_frame["subflow"] = subflow
 
@@ -663,7 +720,11 @@ def set_scanner_flow(scanner=None, flow=None):
 		initial = _subflow_initial_state(flow)
 		if not initial:
 			frappe.throw(_("Flow {0} has no initial state").format(flow))
-		_save_state(row.name, {"subflow": flow, "state": initial, "context": {}}, timeout)
+		_save_state(
+			row.name,
+			{"subflow": flow, "state": initial, "context": seeded_context(root_script, flow)},
+			timeout,
+		)
 
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
@@ -683,6 +744,9 @@ def reset_scanner_session(scanner=None):
 
 	new_frame, _message = reset_frame(frame)
 	if new_frame:
+		new_frame["context"] = seeded_context(
+			_root_script_name(row), new_frame.get("subflow"), new_frame.get("context")
+		)
 		_save_state(row.name, new_frame, timeout)
 	else:
 		_clear_state(row.name)
@@ -704,8 +768,13 @@ def _root_script_name(scanner_row):
 	return script_doc.name if script_doc else None
 
 
-def _require_editable(declared, key):
-	"""The declaration for `key`, or a throw. Only app-editable keys are addressable."""
+def _require_editable(declared, key, state=None):
+	"""The declaration for `key`, or a throw.
+
+	Only app-editable keys are addressable, and only at the step of the flow that asks for
+	them: once the order is chosen the template is settled, and rewriting it behind the
+	operator's back would relabel boxes they have already packed.
+	"""
 	if not key:
 		frappe.throw(_("Context field key is required"))
 
@@ -714,6 +783,12 @@ def _require_editable(declared, key):
 		frappe.throw(_("Unknown context field {0}").format(key))
 	if not cint(decl.get("app_editable")):
 		frappe.throw(_("Context field {0} is not editable from the app").format(key))
+	if not _editable_now(decl, state):
+		frappe.throw(
+			_("{0} cannot be changed at this step — reset the session to change it").format(
+				decl.get("label") or key
+			)
+		)
 	return decl
 
 

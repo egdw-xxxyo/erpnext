@@ -14887,6 +14887,12 @@ App Behaviour,Поведінка в застосунку
 Enter State,Переходити у стан
 Link Filters,Фільтри зв'язку
 Link Order By,Сортування зв'язку
+Context field {0}: Editable In States requires App Editable,Поле контексту {0}: «Редагується у станах» вимагає «Можна змінювати з застосунку»
+Context field {0}: '{1}' is not a state of this script,Поле контексту {0}: «{1}» не є станом цього скрипта
+{0} cannot be changed at this step — reset the session to change it,"{0} не можна змінити на цьому кроці — щоб змінити, скиньте сесію"
+Editable In States,Редагується у станах
+"Seeded into a fresh session context, so the operator starts with this value already chosen. A Link is checked against Link Filters.","Підставляється в новий контекст сесії, тож оператор починає роботу з уже обраним значенням. Для «Посилання» значення перевіряється «Фільтрами зв'язку»."
+"One state name per line: the app may write this key only while the session sits in one of them, and shows it read-only elsewhere. Blank — editable in every state.","По одному стану в рядку: застосунок може записувати цей ключ, лише поки сесія перебуває в одному з них; у решті станів показує його лише для читання. Порожньо — редагується в будь-якому стані."
 "Literal key inside the runtime context dict, as the script reads it: e.g. e.state.context.get(""so"").","Ключ у словнику контексту під час виконання — саме так, як його читає скрипт: напр. e.state.context.get(""so"")."
 Shown to the operator in the mobile app. Falls back to Key.,Показується оператору в мобільному застосунку. Якщо порожнє — використовується «Ключ».
 For Link: the target DocType (e.g. Sales Order). For Select: one option per line.,Для «Link»: цільовий DocType (напр. Sales Order). Для «Select»: по одному варіанту в рядку.

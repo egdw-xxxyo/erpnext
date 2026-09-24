@@ -300,6 +300,17 @@ class WorkplaceScript(Document):
 					).format(row.key)
 				)
 
+			editable_states = [
+				line.strip() for line in (row.editable_in_states or "").splitlines() if line.strip()
+			]
+			if editable_states and not row.app_editable:
+				frappe.throw(_("Context field {0}: Editable In States requires App Editable").format(row.key))
+			for state in editable_states:
+				if state not in known_states:
+					frappe.throw(
+						_("Context field {0}: '{1}' is not a state of this script").format(row.key, state)
+					)
+
 			enter_state = (row.enter_state or "").strip()
 			if enter_state and enter_state not in known_states:
 				frappe.throw(
