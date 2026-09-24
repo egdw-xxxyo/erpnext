@@ -75,7 +75,7 @@ RUN --mount=type=ssh,id=default,required=false \
          git clone --depth 1 -b "$branch" "$repo" "/home/frappe/frappe-bench/apps/$name" \
          && chown -R frappe:frappe "/home/frappe/frappe-bench/apps/$name" \
          && /home/frappe/frappe-bench/env/bin/pip install -e "/home/frappe/frappe-bench/apps/$name" \
-         && { [ ! -f "/home/frappe/frappe-bench/apps/$name/package.json" ] || (cd "/home/frappe/frappe-bench/apps/$name" && yarn install); } \
+         && { [ ! -f "/home/frappe/frappe-bench/apps/$name/package.json" ] || (cd "/home/frappe/frappe-bench/apps/$name" && n=0; until yarn install --network-timeout 600000; do n=$((n+1)); if [ $n -ge 3 ]; then exit 1; fi; echo "yarn install failed for $name, retry $n in 15s"; sleep 15; done); } \
          && echo "$name" >> /home/frappe/frappe-bench/sites/apps.txt \
          || exit 1; \
        done < /tmp/extra_apps.txt
