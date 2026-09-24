@@ -111,11 +111,13 @@ class ScannerStateProxy:
 
 		Seeded on every scan, not only on a fresh frame: a script that resets its own context
 		(CMD-RESET lands back on the first step) would otherwise lose the default and ask the
-		operator for a value that never changes.
+		operator for a value that never changes. A default also carries the session past the
+		step it answers, so the scanner waits for the next scan the operator actually has to
+		make.
 		"""
-		context = _seeded_context(root_script, self.subflow, self.context)
-		if context != (self.context or {}):
-			self._current["context"] = context
+		seeded = _seeded_frame(root_script, self._current)
+		if seeded != self._current:
+			self._current = seeded
 
 
 # ---------------------------------------------------------------------------
@@ -259,21 +261,22 @@ def _is_reset_scan(scan_type, scan_ctx):
 	return bool(doc and getattr(doc, "barcode_id", None) in RESET_BARCODE_IDS)
 
 
-def _seeded_context(root_script, subflow, base=None):
-	"""Declared defaults for a frame that is starting empty.
+def _seeded_frame(root_script, frame):
+	"""`frame` with declared defaults filled in and the state moved past what they answer.
 
 	Imported late for the same reason as `_publish_after_scan`: the session API imports this
-	module. A script that declares no defaults gets `base` back unchanged, exactly as before.
+	module. A script that declares no defaults gets `frame` back unchanged, exactly as before.
 	"""
-	from erpnext.devices.scanner_session_api import seeded_context
+	from erpnext.devices.scanner_session_api import seeded_frame
 
 	try:
-		return seeded_context(root_script, subflow, base)
+		return seeded_frame(root_script, frame)
 	except Exception:
 		frappe.logger("scanner").warning(
-			f"could not seed context defaults for {subflow or root_script}", exc_info=True
+			f"could not seed context defaults for {(frame or {}).get('subflow') or root_script}",
+			exc_info=True,
 		)
-		return dict(base or {})
+		return dict(frame or {})
 
 
 def reset_frame(frame, root_script=None):
@@ -287,14 +290,8 @@ def reset_frame(frame, root_script=None):
 	if cur_subflow:
 		sub_initial = _subflow_initial_state(cur_subflow)
 		if sub_initial and (frame or {}).get("state") != sub_initial:
-			return (
-				{
-					"subflow": cur_subflow,
-					"state": sub_initial,
-					"context": _seeded_context(root_script, cur_subflow),
-				},
-				f"↺ {cur_subflow}\n{sub_initial}",
-			)
+			reset = _seeded_frame(root_script, {"subflow": cur_subflow, "state": sub_initial, "context": {}})
+			return reset, f"↺ {cur_subflow}\n{reset.get('state') or sub_initial}"
 	return None, "↺ Скинуто"
 
 
@@ -316,11 +313,7 @@ def _enter_subflow(state_proxy, target_subflow, root_script=None):
 	initial = _subflow_initial_state(target_subflow)
 	if not initial:
 		return {"templateData": f"Підпотік {target_subflow}\nне має початкового стану"}
-	frame = {
-		"subflow": target_subflow,
-		"state": initial,
-		"context": _seeded_context(root_script, target_subflow),
-	}
+	frame = _seeded_frame(root_script, {"subflow": target_subflow, "state": initial, "context": {}})
 	state_proxy._current = dict(frame)
 	state_proxy._next = dict(frame)
 	state_proxy._cleared = False

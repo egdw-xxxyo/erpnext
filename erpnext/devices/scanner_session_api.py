@@ -246,6 +246,54 @@ def seeded_context(root_script, subflow, base=None):
 	return context
 
 
+def _state_past_defaults(state, declared, context):
+	"""Where the session belongs once the defaults have answered for it.
+
+	A default is an answer already given, so the step that asks for it is a step to walk
+	past: with the packing template pre-filled the operator should land on the order, not on
+	a screen whose only editable row is the one already filled in. Only a key that carries a
+	default and names both the step it is answered at and the step that follows moves the
+	session, and each state is visited once, so a cycle in the declarations cannot spin here.
+	"""
+	seen = set()
+	while state and state not in seen:
+		seen.add(state)
+		nxt = None
+		for key, decl in declared.items():
+			if not decl.get("default_value"):
+				continue
+			if context.get(key) in (None, "", [], {}):
+				continue
+			enter_state = (decl.get("enter_state") or "").strip()
+			if not enter_state or enter_state == state:
+				continue
+			if state in _editable_states(decl):
+				nxt = enter_state
+				break
+		if not nxt:
+			break
+		state = nxt
+	return state
+
+
+def seeded_frame(root_script, frame):
+	"""`frame` with declared defaults filled in and the state moved past what they answer.
+
+	Returns a new dict; an empty frame stays empty, because an idle scanner has no session to
+	seed — the defaults land the moment the app or a scan opens one.
+	"""
+	if not frame:
+		return dict(frame or {})
+
+	subflow = frame.get("subflow")
+	declared = _declared_context_fields(root_script, subflow)
+	context = seeded_context(root_script, subflow, frame.get("context") or {})
+	seeded = dict(frame)
+	seeded["context"] = context
+	seeded["state"] = _state_past_defaults(frame.get("state"), declared, context)
+	return seeded
+
+
 def _link_doctype(decl):
 	"""The DocType a Link key points at.
 
@@ -391,10 +439,17 @@ def _read_session(scanner_row):
 		script_doc = _get_workplace_script(scanner_row.get("workplace"))
 		root_script = script_doc.name if script_doc else None
 
+	seeded = seeded_frame(root_script, frame)
+	if frame and seeded != frame:
+		# Seeding is what the next write would do anyway; persisting it here keeps the screen
+		# and the scanner's own frame from disagreeing about which step the session is on.
+		_save_state(scanner_row.name, seeded, timeout)
+		frame = _load_state(scanner_row.name, timeout) or seeded
+
 	subflow = frame.get("subflow")
 	active_script = subflow or root_script
 	declared = _declared_context_fields(root_script, subflow)
-	context = seeded_context(root_script, subflow, frame.get("context") or {})
+	context = frame.get("context") or {}
 
 	fields = []
 	for key, decl in declared.items():
@@ -643,7 +698,8 @@ def set_context_field(scanner=None, key=None, value=None):
 	timeout = _state_timeout(row)
 	frame = _load_state(row.name, timeout) or {}
 	root_script = _root_script_name(row)
-	context = seeded_context(root_script, frame.get("subflow"), frame.get("context") or {})
+	frame = seeded_frame(root_script, frame)
+	context = dict(frame.get("context") or {})
 	declared = _declared_context_fields(root_script, frame.get("subflow"))
 	decl = _require_editable(declared, key, frame.get("state"))
 
@@ -667,7 +723,7 @@ def set_context_field(scanner=None, key=None, value=None):
 	if subflow:
 		new_frame["subflow"] = subflow
 
-	_save_state(row.name, new_frame, timeout)
+	_save_state(row.name, seeded_frame(root_script, new_frame), timeout)
 
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
@@ -722,7 +778,7 @@ def set_scanner_flow(scanner=None, flow=None):
 			frappe.throw(_("Flow {0} has no initial state").format(flow))
 		_save_state(
 			row.name,
-			{"subflow": flow, "state": initial, "context": seeded_context(root_script, flow)},
+			seeded_frame(root_script, {"subflow": flow, "state": initial, "context": {}}),
 			timeout,
 		)
 
@@ -744,10 +800,7 @@ def reset_scanner_session(scanner=None):
 
 	new_frame, _message = reset_frame(frame)
 	if new_frame:
-		new_frame["context"] = seeded_context(
-			_root_script_name(row), new_frame.get("subflow"), new_frame.get("context")
-		)
-		_save_state(row.name, new_frame, timeout)
+		_save_state(row.name, seeded_frame(_root_script_name(row), new_frame), timeout)
 	else:
 		_clear_state(row.name)
 
