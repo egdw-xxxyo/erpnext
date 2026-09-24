@@ -16,13 +16,16 @@ The clients version independently — do NOT assume the same number.
 
 import frappe
 
+# 0.7.5 is where the scanner session screen learned `editable_now`: a context key is writable
+# only at the step that asks for it, so an older build still offers a picker for the packing
+# template after the order is chosen and the server refuses that write.
 # 0.7.1 is where `next_spool` started handing back an already measured spool (`resumed`) and
 # `release_spool` started refusing one (`reason: "measured"`). A 0.7.0 build ignores both: it
 # clears the spool off the screen on a refused release, which is exactly how measured spools
 # ended up stranded out of stock with nothing pointing back at them.
 # Before that, 0.6.0 was the floor — where the spool stopped being scanned and started being
 # handed out by `spool_production.next_spool`.
-MIN_ANDROID_APP_VERSION = "0.7.1"
+MIN_ANDROID_APP_VERSION = "0.7.5"
 MIN_DESKTOP_APP_VERSION = "0.1.0"
 
 
