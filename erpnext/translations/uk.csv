@@ -8003,7 +8003,7 @@ Relation added,Звʼязок додано
 Release Date,Дата випуску
 Release date must be in the future,Дата виходу повинна бути в майбутньому
 Relieving Date,Дата звільнення
-Remaining,решті
+Remaining,Залишилось
 Remaining Amount,Залишкова сума
 Remaining Balance,Залишковий баланс
 Remark,Зауваження
@@ -14952,3 +14952,6 @@ Workplaces,Робочі місця
 "Print Job {0} was not printed by this scanner","Завдання друку {0} надруковано не цим сканером"
 "Scan Log Entry","Запис журналу сканувань"
 "The scan whose script queued this label (Scanner Scan Log Entry)","Сканування, скрипт якого поставив цю етикетку в чергу (запис журналу сканувань)"
+Packing Progress,Прогрес пакування
+Attached,Прикріплено
+Over,Понад план,Packing Progress
