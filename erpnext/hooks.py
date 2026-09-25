@@ -46,6 +46,7 @@ doctype_js = {
 	"Notification Settings": "public/js/custom/notification_settings.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
+	"Lead": "public/js/custom/lead.js",
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
@@ -468,6 +469,7 @@ period_closing_doctypes = [
 
 override_doctype_dashboards = {
 	"Contact": "erpnext.crm.dashboard_overrides.get_contact_dashboard_data",
+	"Lead": "erpnext.crm.dashboard_overrides.get_lead_dashboard_data",
 }
 
 doc_events = {
@@ -509,6 +511,9 @@ doc_events = {
 			"erpnext.crm.utils.set_military_unit_from_party",
 			"erpnext.selling.quotation_rules.validate_sales_order_against_quotation",
 		],
+	},
+	"Lead": {
+		"validate": "erpnext.crm.lead_rules.validate",
 	},
 	"Opportunity": {
 		"validate": [
@@ -555,12 +560,19 @@ doc_events = {
 		"on_trash": "erpnext.setup.doctype.employee_group.group_access.clear_group_cache",
 	},
 	"Stock Entry": {
+		"validate": "erpnext.crm.doctype.lead_expense.lead_expense.validate_stock_entry",
 		"on_submit": [
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			# record which fiber reel each produced optical spool was wound from
 			"erpnext.devices.spool_lineage.stamp_source_batch",
+			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		],
-		"on_cancel": "erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+		"on_cancel": [
+			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
+			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+		],
+		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 	},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices

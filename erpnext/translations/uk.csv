@@ -2905,7 +2905,7 @@ Create Sales Invoice,Створіть рахунок-фактуру з прод�
 Create Sales Order,Створити замовлення на продаж
 Create Sales Orders to help you plan your work and deliver on-time,"Створіть замовлення з продажу, щоб допомогти спланувати роботу та доставити вчасно"
 Create Sample Retention Stock Entry,Створити запис складу зберігання зразків
-Create Stock Entry,Створити запис про запаси
+Create Stock Entry,Створити рух ТМЦ
 Create Supplier Quotation,Створіть котирування постачальників
 Create Tax Template,Створіть шаблон оподаткування
 Create Timesheet,Створення розкладу
@@ -5765,7 +5765,7 @@ Material,Матеріал
 Material Consumption,Матеріальне споживання
 Material Consumption for Manufacture,Матеріальний потік для виробництва
 Material Consumption is not set in Manufacturing Settings.,Масштабне споживання не встановлено в налаштуваннях виробництва.
-Material Issue,Матеріал Випуск
+Material Issue,Списання матеріалів
 Material Receipt,Матеріал Надходження
 Material Request,Замовлення матеріалів
 Material Request Date,Дата Замовлення матеріалів
@@ -13038,7 +13038,7 @@ Product Category,Категорія продукції
 Estimated Quantity,Орієнтовна кількість
 Estimated Customer Budget,Орієнтовний бюджет клієнта
 Lead Assessment,Оцінка Звернення
-Conversion Probability,Ймовірність переходу в Opportunity
+Conversion Probability,Ймовірність переходу в Пропозицію
 Next Action Control,Контроль наступних дій
 Next Action,Наступна дія
 Next Action Date,Дата наступної дії
@@ -14986,3 +14986,43 @@ Over,Понад план,Packing Progress
 "Latest GitHub release has no tag","Останній реліз на GitHub не має тегу"
 "Release {0} has no .apk asset","Реліз {0} не містить файлу .apk"
 "Published On","Дата публікації"
+Engagement Channel Detail,Деталізація каналу
+The month for which the client has a purchase budget.,"Місяць, на який у замовника є бюджет на закупівлю."
+{0} belongs to the engagement channel {1},{0} належить до каналу залучення {1}
+Invalid Engagement Channel Detail,Некоректна деталізація каналу
+Lead Expense,Витрата по зверненню
+Lead Expense Type,Тип витрат
+Lead Expense Item,Позиція витрати
+Expense Type,Тип витрат
+Expense Kind,Вид витрати
+Expense Date,Дата витрати
+Money,Гроші
+Stock Entry Status,Статус руху ТМЦ
+Add Expense,Додати витрату
+No expenses yet,Витрат поки немає
+Not Submitted,Не проведено
+Save the Lead to add expenses.,"Збережіть звернення, щоб додати витрати."
+Expense Type {0} is disabled,Тип витрат {0} вимкнено
+Add at least one item to a materials expense,Додайте хоча б одну позицію до матеріальної витрати
+Row #{0}: {1} is not a stock item,Рядок #{0}: {1} не є складською позицією
+Row #{0}: quantity must be greater than zero,Рядок #{0}: кількість має бути більше нуля
+Expense {0} for Lead {1}: {2},Витрата {0} по зверненню {1}: {2}
+Awaiting Warehouse,Очікує складу
+Materials expense {0} for Lead {1} is waiting for a warehouse,Матеріальна витрата {0} по зверненню {1} очікує вибору складу
+A stock entry can only be created for a submitted materials expense,Рух ТМЦ можна створити лише для проведеної матеріальної витрати
+Has Draft,Є чернетка
+Partially Issued,Частково списано
+Fully Issued,Списано
+Partially Issued (Closed),Списано частково (закрито)
+Remainder Closed,Залишок закрито
+Issued Quantity,Списано
+Issued / Required,списано / потрібно
+Close Remainder,Закрити залишок
+Close the remainder of this expense? No more stock entries can be created for it.,Закрити залишок цієї витрати? Нові рухи ТМЦ для неї створити буде неможливо.
+The remainder of expense {0} is closed,Залишок витрати {0} закрито
+Nothing is left to issue for expense {0},За витратою {0} списувати більше нічого
+Submit or delete the draft stock entries of expense {0} first,Спершу проведіть або видаліть чернетки рухів ТМЦ витрати {0}
+Row #{0}: {1} is already listed,Рядок #{0}: {1} уже є у списку
+Row #{0}: {1} is not part of expense {2},Рядок #{0}: {1} немає у витраті {2}
+Only {0} of {1} is left to issue for expense {2},За витратою {2} залишилось списати лише {0} {1}
+A stock entry for expense {0} must be a Material Issue of company {1},Рух ТМЦ для витрати {0} має бути списанням матеріалів компанії {1}
