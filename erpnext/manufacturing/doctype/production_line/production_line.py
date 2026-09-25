@@ -856,6 +856,22 @@ def _card_for(serial_no, operation=None, docstatus=None):
 	return frappe.get_doc("Job Card", name) if name else None
 
 
+def _bench_card(serial_no, packing_operation=PACKING_OPERATION):
+	"""The closed card a unit is manufactured from: the one carrying its inspection.
+
+	Falls back to the newest closed card of any other operation, for a unit whose item needs
+	no inspection.
+	"""
+	for filters in (
+		{"serial_no": serial_no, "docstatus": 1, "quality_inspection": ["is", "set"]},
+		{"serial_no": serial_no, "docstatus": 1, "operation": ["!=", packing_operation]},
+	):
+		name = frappe.db.get_value("Job Card", filters, "name", order_by="creation desc")
+		if name:
+			return frappe.get_doc("Job Card", name)
+	return None
+
+
 def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operation=None):
 	"""Close the packing Job Card of a unit and put the unit into stock.
 
@@ -911,8 +927,9 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 			result["card_closed"] = True
 
 		# The inspection lives on the bench's card, so that is the one the entry is posted
-		# from — it carries the Quality Inspection onto the finished row.
-		bench_card = _card_for(serial_no, docstatus=1)
+		# from — it carries the Quality Inspection onto the finished row. The packing card
+		# was just submitted and is now the newest closed card, so it is skipped explicitly.
+		bench_card = _bench_card(serial_no, packing_operation=operation or PACKING_OPERATION)
 		if not bench_card:
 			result["error"] = _("{0} has no closed Job Card to finish").format(serial_no)
 			return result
