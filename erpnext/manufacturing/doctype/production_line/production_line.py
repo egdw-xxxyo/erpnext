@@ -829,6 +829,7 @@ def _post_manufacture(card, serial_no, target_warehouse=None, rejected=False):
 				row.quality_inspection = card.quality_inspection
 			if target_warehouse:
 				row.t_warehouse = target_warehouse
+				_move_draft_bundle(row.serial_and_batch_bundle, target_warehouse)
 	if rejected:
 		se.validate_inspection = lambda: None
 	se.flags.ignore_permissions = True
@@ -838,6 +839,19 @@ def _post_manufacture(card, serial_no, target_warehouse=None, rejected=False):
 	# `auto_stock_entry` is what `JobCard.on_cancel` cancels, so undoing the card undoes this.
 	card.db_set("auto_stock_entry", se.name)
 	return se.name
+
+
+def _move_draft_bundle(bundle, warehouse):
+	"""Point the finished row's draft Serial and Batch Bundle at the warehouse the row now targets.
+
+	`make_stock_entry` builds the bundle for the Work Order's finished-goods warehouse before
+	the row is redirected, and the stock ledger refuses a bundle whose warehouse differs from
+	its row's ("does not belong to Item or Warehouse").
+	"""
+	if not bundle:
+		return
+	frappe.db.set_value("Serial and Batch Bundle", bundle, "warehouse", warehouse)
+	frappe.db.set_value("Serial and Batch Entry", {"parent": bundle}, "warehouse", warehouse)
 
 
 PACKING_OPERATION = "Упаковка"
