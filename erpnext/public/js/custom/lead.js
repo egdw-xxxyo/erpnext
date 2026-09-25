@@ -89,7 +89,7 @@ function stock_entry_cell(entries) {
 function item_line(item) {
 	return `${frappe.utils.escape_html(item.item_name || item.item_code)} — ${format_number(
 		item.issued_qty
-	)} / ${format_number(item.qty)} ${frappe.utils.escape_html(item.uom || "")}`;
+	)} / ${format_number(item.qty)} ${frappe.utils.escape_html(__(item.uom || ""))}`;
 }
 
 function expense_state(expense) {
