@@ -37,6 +37,7 @@ from erpnext.devices.doctype.scanner.scanner_api import (
 	reset_frame,
 )
 from erpnext.devices.otdr_measurement_api import MANAGER_ROLES, _session_employee
+from erpnext.devices.session_user import preserved_session
 
 REALTIME_EVENT = "scanner_session_update"
 DEFAULT_SCAN_LOG_LIMIT = 25
@@ -986,13 +987,10 @@ def run_scanner_command(scanner=None, command=None):
 		frappe.throw(_("{0} is not available at this step").format(command))
 
 	# `run_scan` impersonates the scanner's employee, exactly as a device scan does. The
-	# caller is that employee anyway (`_assert_scanner_mine`), but restore the session user
-	# so the rest of this request is not left running as someone else.
-	caller = frappe.session.user
-	try:
+	# caller is that employee anyway (`_assert_scanner_mine`), but restore the whole session,
+	# not just the user: `set_user` empties it, and saving that back logs the phone out.
+	with preserved_session():
 		result = run_scan(frappe.get_doc("Scanner", row.name), command)
-	finally:
-		frappe.set_user(caller)
 
 	session = _read_session(_scanner_row(row.name))
 	_publish_session_update(row.name, session)

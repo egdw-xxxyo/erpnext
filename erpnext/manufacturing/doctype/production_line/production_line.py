@@ -29,6 +29,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, today
 
+from erpnext.devices.session_user import acting_as
+
 # A card is only "free" while it is Open. Handing one out moves it to Work In Progress, so
 # two operators at the same bench cannot be given the same unit.
 FREE_JOB_CARD_STATUS = "Open"
@@ -372,12 +374,8 @@ def _create_work_order(line, item_code, qty, reason="plan"):
 	# `ignore_permissions`, so an operator without a manufacturing role taking an overflow
 	# spool got a PermissionError on Job Card. The operator's right to the bench is already
 	# checked by the caller.
-	user = frappe.session.user
-	frappe.set_user("Administrator")
-	try:
+	with acting_as("Administrator"):
 		wo.submit()
-	finally:
-		frappe.set_user(user)
 	_clear_planned_slots(wo.name)
 	return wo
 
