@@ -9,7 +9,9 @@ class WorkplaceScriptContextField(Document):
 
 		app_editable: DF.Check
 		blocks_switch: DF.Check
+		default_value: DF.Data | None
 		description: DF.SmallText | None
+		editable_in_states: DF.SmallText | None
 		enter_state: DF.Data | None
 		fieldtype: DF.Literal["Data", "Int", "Float", "Check", "Link", "Select"]
 		is_primary: DF.Check

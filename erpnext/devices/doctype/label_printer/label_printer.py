@@ -107,6 +107,7 @@ def build_ezpl_label(content_lines, width_mm=65, height_mm=20, gap_mm=3, heat=13
 	lines.append(f"^Q{height_mm},{gap_mm}")
 	lines.append(f"^W{width_mm}")
 	lines.append(f"^E{heat}")
+	lines.append(f"^P{max(1, int(copies))}")
 	lines.append("^L")
 	lines.extend(content_lines)
 	lines.append("E")
@@ -821,6 +822,9 @@ def _send_pcx_label(printer_doc, pcx_data, size_doc, copies=1):
 		parts = []
 		parts.append(f"^W{int(size_doc.width_mm)}\r\n".encode("ascii"))
 		parts.append(b"^E13\r\n")
+		# ^P persists in the printer's NVRAM: without it a printer left at ^P2
+		# prints every job twice, so each copy here turns into two labels.
+		parts.append(b"^P1\r\n")
 		parts.append(b"^L\r\n")
 		# Q command: inline bitmap, bottom-left origin
 		parts.append(f"Q{ox},{oy},{width_bytes},{height}\r\n".encode("ascii"))

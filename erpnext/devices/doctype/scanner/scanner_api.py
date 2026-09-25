@@ -106,6 +106,19 @@ class ScannerStateProxy:
 		self._cleared = True
 		self._next = None
 
+	def seed_defaults(self, root_script):
+		"""Fill declared context defaults into the frame the script is about to read.
+
+		Seeded on every scan, not only on a fresh frame: a script that resets its own context
+		(CMD-RESET lands back on the first step) would otherwise lose the default and ask the
+		operator for a value that never changes. A default also carries the session past the
+		step it answers, so the scanner waits for the next scan the operator actually has to
+		make.
+		"""
+		seeded = _seeded_frame(root_script, self._current)
+		if seeded != self._current:
+			self._current = seeded
+
 
 # ---------------------------------------------------------------------------
 # Scan event — wraps frappe._dict with helper methods
@@ -248,7 +261,25 @@ def _is_reset_scan(scan_type, scan_ctx):
 	return bool(doc and getattr(doc, "barcode_id", None) in RESET_BARCODE_IDS)
 
 
-def reset_frame(frame):
+def _seeded_frame(root_script, frame):
+	"""`frame` with declared defaults filled in and the state moved past what they answer.
+
+	Imported late for the same reason as `_publish_after_scan`: the session API imports this
+	module. A script that declares no defaults gets `frame` back unchanged, exactly as before.
+	"""
+	from erpnext.devices.scanner_session_api import seeded_frame
+
+	try:
+		return seeded_frame(root_script, frame)
+	except Exception:
+		frappe.logger("scanner").warning(
+			f"could not seed context defaults for {(frame or {}).get('subflow') or root_script}",
+			exc_info=True,
+		)
+		return dict(frame or {})
+
+
+def reset_frame(frame, root_script=None):
 	"""Subflow-aware reset, shared by the CMD-RESET barcode and the mobile app.
 
 	Inside a subflow, reset lands on that subflow's initial state and keeps the subflow;
@@ -259,15 +290,13 @@ def reset_frame(frame):
 	if cur_subflow:
 		sub_initial = _subflow_initial_state(cur_subflow)
 		if sub_initial and (frame or {}).get("state") != sub_initial:
-			return (
-				{"subflow": cur_subflow, "state": sub_initial, "context": {}},
-				f"↺ {cur_subflow}\n{sub_initial}",
-			)
+			reset = _seeded_frame(root_script, {"subflow": cur_subflow, "state": sub_initial, "context": {}})
+			return reset, f"↺ {cur_subflow}\n{reset.get('state') or sub_initial}"
 	return None, "↺ Скинуто"
 
 
-def _handle_reset(state_proxy):
-	frame, message = reset_frame(state_proxy._current)
+def _handle_reset(state_proxy, root_script=None):
+	frame, message = reset_frame(state_proxy._current, root_script)
 	if frame:
 		state_proxy._current = dict(frame)
 		state_proxy._next = dict(frame)
@@ -278,13 +307,13 @@ def _handle_reset(state_proxy):
 	return {"templateData": message}
 
 
-def _enter_subflow(state_proxy, target_subflow):
+def _enter_subflow(state_proxy, target_subflow, root_script=None):
 	if not target_subflow:
 		return None
 	initial = _subflow_initial_state(target_subflow)
 	if not initial:
 		return {"templateData": f"Підпотік {target_subflow}\nне має початкового стану"}
-	frame = {"subflow": target_subflow, "state": initial, "context": {}}
+	frame = _seeded_frame(root_script, {"subflow": target_subflow, "state": initial, "context": {}})
 	state_proxy._current = dict(frame)
 	state_proxy._next = dict(frame)
 	state_proxy._cleared = False
@@ -306,8 +335,6 @@ def _publish_after_scan(scanner, scan_log_row):
 
 @frappe.whitelist(allow_guest=True)
 def handle_scan(scanner_key=None, data=None):
-	t_start = time.perf_counter()
-
 	if not scanner_key or not data:
 		frappe.response["http_status_code"] = 400
 		return _resp(success=False, error="scanner_key and data are required")
@@ -317,8 +344,21 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.response["http_status_code"] = 403
 		return _resp(success=False, error="Invalid or inactive scanner key")
 
+	return run_scan(scanner, data)
+
+
+def run_scan(scanner, data):
+	"""Everything a scan does, once the device behind it is known.
+
+	Split out of `handle_scan` so the session API can press a command button on the
+	operator's behalf: a button is the same barcode, and it must go through the same script,
+	the same state frame and the same scan log — otherwise the two ways of running a flow
+	would start to disagree.
+	"""
+	t_start = time.perf_counter()
+
 	_touch_last_active(scanner.name)
-	data = data.strip()
+	data = (data or "").strip()
 
 	state_timeout = scanner.get_state_timeout()
 	state_dict = _load_state(scanner.name, state_timeout)
@@ -351,9 +391,13 @@ def handle_scan(scanner_key=None, data=None):
 		frappe.db.commit()
 		return _resp(success=False, error="No Workplace Script configured")
 
+	state_proxy.seed_defaults(workplace_script.name)
+
 	_impersonate(scanner.employee)
 
 	scan_log_row = _create_scan_log(scanner, data, state_proxy.name)
+	frappe.flags.scan_log_entry = scan_log_row
+	frappe.flags.scan_scanner = scanner.name
 
 	try:
 		from erpnext.devices.doctype.device_script.device_script import (
@@ -366,7 +410,7 @@ def handle_scan(scanner_key=None, data=None):
 		t_script_start = time.perf_counter()
 
 		if _is_reset_scan(scan_type, scan_ctx):
-			result = _handle_reset(state_proxy)
+			result = _handle_reset(state_proxy, workplace_script.name)
 		else:
 			active_script_name = state_proxy.subflow or workplace_script.name
 			current_state = state_proxy.name or _subflow_initial_state(active_script_name)
@@ -377,7 +421,7 @@ def handle_scan(scanner_key=None, data=None):
 				current_state,
 			)
 			if entry:
-				err = _enter_subflow(state_proxy, entry.target_subflow)
+				err = _enter_subflow(state_proxy, entry.target_subflow, workplace_script.name)
 				result = err if err else _execute_workplace_script(workplace_script, event, scripts_ns)
 			else:
 				result = _execute_workplace_script(workplace_script, event, scripts_ns)
@@ -468,22 +512,12 @@ def _authenticate(scanner_key):
 
 
 def _get_workplace_script(workplace):
-	script = None
-	if workplace:
-		script = frappe.db.get_value(
-			"Workplace Script",
-			{"is_active": 1, "workplace": workplace, "parent_script": ["is", "not set"]},
-			["name", "script"],
-			as_dict=True,
-		)
-	if not script:
-		script = frappe.db.get_value(
-			"Workplace Script",
-			{"is_active": 1, "workplace": ["is", "not set"], "parent_script": ["is", "not set"]},
-			["name", "script"],
-			as_dict=True,
-		)
-	return script
+	from erpnext.devices.doctype.workplace_script.workplace_script import script_for_workplace
+
+	name = script_for_workplace(workplace)
+	if not name:
+		return None
+	return frappe.db.get_value("Workplace Script", name, ["name", "script"], as_dict=True)
 
 
 def _impersonate(employee_name):

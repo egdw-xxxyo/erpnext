@@ -8003,7 +8003,7 @@ Relation added,Звʼязок додано
 Release Date,Дата випуску
 Release date must be in the future,Дата виходу повинна бути в майбутньому
 Relieving Date,Дата звільнення
-Remaining,решті
+Remaining,Залишилось
 Remaining Amount,Залишкова сума
 Remaining Balance,Залишковий баланс
 Remark,Зауваження
@@ -14887,6 +14887,12 @@ App Behaviour,Поведінка в застосунку
 Enter State,Переходити у стан
 Link Filters,Фільтри зв'язку
 Link Order By,Сортування зв'язку
+Context field {0}: Editable In States requires App Editable,Поле контексту {0}: «Редагується у станах» вимагає «Можна змінювати з застосунку»
+Context field {0}: '{1}' is not a state of this script,Поле контексту {0}: «{1}» не є станом цього скрипта
+{0} cannot be changed at this step — reset the session to change it,"{0} не можна змінити на цьому кроці — щоб змінити, скиньте сесію"
+Editable In States,Редагується у станах
+"Seeded into a fresh session context, so the operator starts with this value already chosen. A Link is checked against Link Filters.","Підставляється в новий контекст сесії, тож оператор починає роботу з уже обраним значенням. Для «Посилання» значення перевіряється «Фільтрами зв'язку»."
+"One state name per line: the app may write this key only while the session sits in one of them, and shows it read-only elsewhere. Blank — editable in every state.","По одному стану в рядку: застосунок може записувати цей ключ, лише поки сесія перебуває в одному з них; у решті станів показує його лише для читання. Порожньо — редагується в будь-якому стані."
 "Literal key inside the runtime context dict, as the script reads it: e.g. e.state.context.get(""so"").","Ключ у словнику контексту під час виконання — саме так, як його читає скрипт: напр. e.state.context.get(""so"")."
 Shown to the operator in the mobile app. Falls back to Key.,Показується оператору в мобільному застосунку. Якщо порожнє — використовується «Ключ».
 For Link: the target DocType (e.g. Sales Order). For Select: one option per line.,Для «Link»: цільовий DocType (напр. Sales Order). Для «Select»: по одному варіанту в рядку.
@@ -14932,6 +14938,54 @@ Reply to message,Відповісти на повідомлення
 Nothing to copy,Нема чого копіювати
 Show more,Показати більше
 Show less,Згорнути
+Workplace Script Workplace,Робоче місце скрипта робочого місця
+Workplaces,Робочі місця
+"Subflow scripts (with Parent Script) must not have Workplaces assigned","Скрипти підпотоку (з батьківським скриптом) не можуть мати призначених робочих місць"
+"Parent Script cannot reference itself","Батьківський скрипт не може посилатися сам на себе"
+"Workplace {0} is listed twice","Робоче місце {0} вказано двічі"
+"An active Workplace Script already exists for workplace {0}: {1}","Активний Скрипт робочого місця для робочого місця {0} вже існує: {1}"
+"An active default Workplace Script (no workplace) already exists: {0}","Активний Скрипт робочого місця за замовчуванням (без робочого місця) вже існує: {0}"
+"Benches that run this script. Leave empty for a default script that runs when no workplace-specific script is found. A bench may appear in only one active script.","Робочі місця, на яких виконується цей скрипт. Залиште порожнім для скрипта за замовчуванням, який виконується, коли скрипт для робочого місця не знайдено. Робоче місце може бути лише в одному активному скрипті."
+"If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."
+"Two printers are set for purpose {0}","Для призначення {0} задано два принтери"
+"Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.","Які етикетки друкує цей принтер, напр. Package, Passed, Failed. Порожньо — будь-які."
+"Print Job {0} was not printed by this scanner","Завдання друку {0} надруковано не цим сканером"
+"Scan Log Entry","Запис журналу сканувань"
+"The scan whose script queued this label (Scanner Scan Log Entry)","Сканування, скрипт якого поставив цю етикетку в чергу (запис журналу сканувань)"
+Packing Progress,Прогрес пакування
+Attached,Прикріплено
+Over,Понад план,Packing Progress
+"Mobile App Settings","Налаштування мобільного застосунку"
+"Mobile App Release","Реліз мобільного застосунку"
+"Where the companion mobile apps get their builds from","Звідки мобільні застосунки отримують свої збірки"
+"A published build of a companion mobile app, with its APK mirrored onto this site","Опублікована збірка мобільного застосунку, APK якої скопійовано на цей сайт"
+"Instance","Екземпляр"
+"Shown on the phone when this site is set up from the login page QR (e.g. Prod, Dev). Empty falls back to the site's host name.","Показується на телефоні, коли сайт налаштовують через QR-код зі сторінки входу (напр. Prod, Dev). Якщо порожньо — використовується ім'я хоста сайту."
+"Absolute URL the phone should use for this site, including the port (e.g. http://172.16.51.10:8080). Set it when the site is reached on a non-default port: nginx forwards the Host header without one, so the login QR and APK links otherwise point at port 80.","Повна адреса, за якою телефон звертається до цього сайту, разом із портом (напр. http://172.16.51.10:8080). Вкажіть її, якщо сайт працює на нестандартному порту: nginx передає заголовок Host без порту, тож інакше QR-код входу та посилання на APK вказують на порт 80."
+"GitHub Releases","Релізи GitHub"
+"Poll GitHub For New Releases","Перевіряти нові релізи на GitHub"
+"Mirror the newest GitHub Release's APK onto this site once an hour","Раз на годину копіювати APK найновішого релізу GitHub на цей сайт"
+"Repository (owner/name)","Репозиторій (owner/name)"
+"GitHub Token","Токен GitHub"
+"Personal access token with read access to the repository. Falls back to github_token in site_config.json when empty.","Персональний токен доступу з правом читання репозиторію. Якщо порожньо — використовується github_token із site_config.json."
+"Compatibility","Сумісність"
+"Minimum Android App Version","Мінімальна версія Android-додатка"
+"Overrides the built-in minimum Android app version. Leave empty to use the version shipped with this app.","Замінює вбудовану мінімальну версію Android-додатка. Залиште порожнім, щоб використовувати версію, що постачається з цим застосунком."
+"Last Poll","Остання перевірка"
+"Latest Version","Остання версія"
+"Last Polled On","Час останньої перевірки"
+"Last Error","Остання помилка"
+"Version name as the app reports it, without a leading v (e.g. 0.4.10)","Назва версії, як її повідомляє застосунок, без початкової v (напр. 0.4.10)"
+"Git tag the build came from","Git-тег, з якого зібрано збірку"
+"Only active releases are offered to devices","Пристроям пропонуються лише активні релізи"
+"GitHub Asset ID","ID файлу на GitHub"
+"APK","APK"
+"The installable APK served to devices. Uploaded by the GitHub poller, or attached by hand.","APK для встановлення, який отримують пристрої. Завантажується автоматично з GitHub або прикріплюється вручну."
+"APK Size (Bytes)","Розмір APK (байти)"
+"GitHub repository or token is not configured","Не налаштовано репозиторій або токен GitHub"
+"Latest GitHub release has no tag","Останній реліз на GitHub не має тегу"
+"Release {0} has no .apk asset","Реліз {0} не містить файлу .apk"
+"Published On","Дата публікації"
 Engagement Channel Detail,Деталізація каналу
 The month for which the client has a purchase budget.,"Місяць, на який у замовника є бюджет на закупівлю."
 {0} belongs to the engagement channel {1},{0} належить до каналу залучення {1}
@@ -14949,7 +15003,6 @@ No expenses yet,Витрат поки немає
 Not Submitted,Не проведено
 Save the Lead to add expenses.,"Збережіть звернення, щоб додати витрати."
 Expense Type {0} is disabled,Тип витрат {0} вимкнено
-{0} must be greater than zero,{0} має бути більше нуля
 Add at least one item to a materials expense,Додайте хоча б одну позицію до матеріальної витрати
 Row #{0}: {1} is not a stock item,Рядок #{0}: {1} не є складською позицією
 Row #{0}: quantity must be greater than zero,Рядок #{0}: кількість має бути більше нуля

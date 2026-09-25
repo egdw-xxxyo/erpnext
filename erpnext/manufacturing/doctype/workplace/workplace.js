@@ -75,13 +75,15 @@ function render_production_lines(frm) {
 function render_workplace_script_link(frm) {
 	if (frm.is_new()) return;
 
-	frappe.db.get_value("Workplace Script", { workplace: frm.doc.name, is_active: 1 }, "name").then((r) => {
-		const name = r?.message?.name;
-		if (name && frm.doc.workplace_script !== name) {
-			frm.set_value("workplace_script", name);
-		} else if (!name && frm.doc.workplace_script) {
-			frm.set_value("workplace_script", null);
-		}
+	frappe.call({
+		method: "erpnext.devices.doctype.workplace_script.workplace_script.script_for_workplace",
+		args: { workplace: frm.doc.name, include_default: 0 },
+		callback(r) {
+			const name = r.message || null;
+			if (name !== (frm.doc.workplace_script || null)) {
+				frm.set_value("workplace_script", name);
+			}
+		},
 	});
 }
 

@@ -37,6 +37,7 @@ from erpnext.devices.doctype.scanner.scanner_api import (
 	reset_frame,
 )
 from erpnext.devices.otdr_measurement_api import MANAGER_ROLES, _session_employee
+from erpnext.devices.session_user import preserved_session
 
 REALTIME_EVENT = "scanner_session_update"
 DEFAULT_SCAN_LOG_LIMIT = 25
@@ -64,11 +65,13 @@ CONTEXT_FIELD_FIELDS = [
 	"label",
 	"fieldtype",
 	"options",
+	"default_value",
 	"show_in_app",
 	"app_editable",
 	"is_primary",
 	"preserve_on_switch",
 	"blocks_switch",
+	"editable_in_states",
 	"enter_state",
 	"link_filters",
 	"link_order_by",
@@ -196,6 +199,102 @@ def _declared_context_fields(root_script, subflow):
 	return declared
 
 
+def _editable_states(decl):
+	"""State names where the app may write this key. Empty — every state."""
+	return [line.strip() for line in (decl.get("editable_in_states") or "").splitlines() if line.strip()]
+
+
+def _editable_now(decl, state):
+	"""Whether the app may write this key while the session sits in `state`.
+
+	A key is answered at one step of the flow and read-only afterwards: the packing template
+	is chosen before the order, the order before the item. Without a state the session has no
+	frame yet, so the declaration's own `app_editable` is the whole answer.
+	"""
+	if not cint(decl.get("app_editable")):
+		return False
+	states = _editable_states(decl)
+	if not states:
+		return True
+	if not state:
+		return True
+	return state in states
+
+
+def seeded_context(root_script, subflow, base=None):
+	"""`base` with every declared default filled in for keys it does not carry.
+
+	A fresh frame starts at the flow's first step, and a step whose answer is always the same
+	(one packing template at the bench) is a step the operator should not have to take. The
+	default is seeded rather than resolved at read time so the scripts, which only ever read
+	`e.state.context`, see exactly what the app shows.
+	"""
+	context = dict(base or {})
+	for key, decl in _declared_context_fields(root_script, subflow).items():
+		if context.get(key) not in (None, ""):
+			continue
+		default = decl.get("default_value")
+		if default in (None, ""):
+			continue
+		try:
+			context[key] = _coerce_value(decl, default)
+		except Exception:
+			# A default pointing at a deleted or filtered-out document must cost the operator
+			# one extra tap, not the whole session.
+			frappe.logger("scanner").warning(
+				f"context field {key}: default '{default}' is not a valid value", exc_info=True
+			)
+	return context
+
+
+def _state_past_defaults(state, declared, context):
+	"""Where the session belongs once the defaults have answered for it.
+
+	A default is an answer already given, so the step that asks for it is a step to walk
+	past: with the packing template pre-filled the operator should land on the order, not on
+	a screen whose only editable row is the one already filled in. Only a key that carries a
+	default and names both the step it is answered at and the step that follows moves the
+	session, and each state is visited once, so a cycle in the declarations cannot spin here.
+	"""
+	seen = set()
+	while state and state not in seen:
+		seen.add(state)
+		nxt = None
+		for key, decl in declared.items():
+			if not decl.get("default_value"):
+				continue
+			if context.get(key) in (None, "", [], {}):
+				continue
+			enter_state = (decl.get("enter_state") or "").strip()
+			if not enter_state or enter_state == state:
+				continue
+			if state in _editable_states(decl):
+				nxt = enter_state
+				break
+		if not nxt:
+			break
+		state = nxt
+	return state
+
+
+def seeded_frame(root_script, frame):
+	"""`frame` with declared defaults filled in and the state moved past what they answer.
+
+	Returns a new dict; an empty frame stays empty, because an idle scanner has no session to
+	seed — the defaults land the moment the app or a scan opens one.
+	"""
+	if not frame:
+		return dict(frame or {})
+
+	subflow = frame.get("subflow")
+	declared = _declared_context_fields(root_script, subflow)
+	context = seeded_context(root_script, subflow, frame.get("context") or {})
+	seeded = dict(frame)
+	seeded["context"] = context
+	seeded["state"] = _state_past_defaults(frame.get("state"), declared, context)
+	return seeded
+
+
 def _link_doctype(decl):
 	"""The DocType a Link key points at.
 
@@ -275,6 +374,63 @@ def _snapshot_states(script_name):
 	return {row.get("state") for row in (snap.get("states") or [])}
 
 
+def _scanner_commands():
+	"""`{barcode: label}` for every command barcode, the command's own name as the label.
+
+	Scanner Command names are already the Ukrainian wording the operator knows from the
+	printed barcode sheet («Завершити пакування»), so a button does not invent a second
+	vocabulary for the same action.
+	"""
+	rows = frappe.get_all("Scanner Command", fields=["name", "barcode_id", "description"])
+	return {
+		(row.barcode_id or "").strip(): {"label": row.name, "description": row.description}
+		for row in rows
+		if (row.barcode_id or "").strip()
+	}
+
+
+def _state_commands(script_name, state):
+	"""Command buttons the app offers in `state`, read off the Transitions table.
+
+	A transition whose event names a command barcode is the declaration: it is what the
+	diagram already draws and what runtime already validates, so the buttons cannot drift
+	from the flow the scanner actually runs. Anything else on that table — "серійник
+	відскановано" — is a scan the operator makes with the device, not a button.
+	"""
+	if not script_name or not state:
+		return []
+
+	from erpnext.devices.doctype.workplace_script.workplace_script import (
+		_resolve_default_snapshot,
+	)
+
+	try:
+		snap = _resolve_default_snapshot(frappe.get_cached_doc("Workplace Script", script_name))
+	except Exception:
+		return []
+
+	known = _scanner_commands()
+	commands = []
+	seen = set()
+	for row in snap.get("transitions") or []:
+		if row.get("from_state") != state:
+			continue
+		barcode = (row.get("event") or "").strip()
+		decl = known.get(barcode)
+		if not decl or barcode in seen:
+			continue
+		seen.add(barcode)
+		commands.append(
+			{
+				"command": barcode,
+				"label": decl["label"],
+				"description": decl.get("description"),
+				"to_state": row.get("to_state"),
+			}
+		)
+	return commands
+
+
 def _flows(root_script, active_subflow):
 	"""The flows this scanner can be in: the root script itself, plus its subflows.
 
@@ -341,6 +497,13 @@ def _read_session(scanner_row):
 		script_doc = _get_workplace_script(scanner_row.get("workplace"))
 		root_script = script_doc.name if script_doc else None
 
+	seeded = seeded_frame(root_script, frame)
+	if frame and seeded != frame:
+		# Seeding is what the next write would do anyway; persisting it here keeps the screen
+		# and the scanner's own frame from disagreeing about which step the session is on.
+		_save_state(scanner_row.name, seeded, timeout)
+		frame = _load_state(scanner_row.name, timeout) or seeded
+
 	subflow = frame.get("subflow")
 	active_script = subflow or root_script
 	declared = _declared_context_fields(root_script, subflow)
@@ -360,6 +523,8 @@ def _read_session(scanner_row):
 				"is_primary": cint(decl.get("is_primary")),
 				"preserve_on_switch": cint(decl.get("preserve_on_switch")),
 				"blocks_switch": cint(decl.get("blocks_switch")),
+				"editable_in_states": _editable_states(decl),
+				"editable_now": 1 if _editable_now(decl, frame.get("state")) else 0,
 				"enter_state": decl.get("enter_state"),
 				"description": decl.get("description"),
 				"source_script": decl.get("source_script"),
@@ -387,6 +552,8 @@ def _read_session(scanner_row):
 				"is_primary": 0,
 				"preserve_on_switch": 0,
 				"blocks_switch": 0,
+				"editable_in_states": [],
+				"editable_now": 0,
 				"enter_state": None,
 				"description": None,
 				"source_script": None,
@@ -413,6 +580,7 @@ def _read_session(scanner_row):
 		"updated_at": updated_at,
 		"state_timeout": timeout,
 		"flows": _flows(root_script, subflow),
+		"commands": _state_commands(active_script, frame.get("state")),
 		"expires_in": max(int(timeout - (time.time() - updated_at)), 0) if updated_at else None,
 		"context_fields": fields,
 	}
@@ -463,6 +631,7 @@ def publish_after_scan(scanner, scan_log_row=None):
 		scan = None
 		if scan_log_row:
 			scan = frappe.db.get_value("Scanner Scan Log Entry", scan_log_row, SCAN_LOG_FIELDS, as_dict=True)
+			scan = (_with_labels([scan]) or [None])[0]
 		row = frappe.db.get_value(
 			"Scanner",
 			scanner.name,
@@ -521,21 +690,129 @@ def get_scan_log(scanner=None, limit=DEFAULT_SCAN_LOG_LIMIT):
 	"""The scanner's recent scans, newest first.
 
 	`idx` is append-only per scanner, so it orders the feed without trusting clocks.
-	`script_logs` is deliberately left out for non-managers — it is unbounded and carries
-	script internals.
+	`script_logs` is left out: it is unbounded, carries script internals, and the desk shows
+	it on the Scanner itself. Each scan carries the labels it printed instead.
 	"""
 	_assert_scanner_mine(scanner)
-	fields = list(SCAN_LOG_FIELDS)
-	if _is_manager():
-		fields.append("script_logs")
-
-	return frappe.get_all(
+	rows = frappe.get_all(
 		"Scanner Scan Log Entry",
 		filters={"parent": scanner, "parenttype": "Scanner", "parentfield": "scan_logs"},
-		fields=fields,
+		fields=SCAN_LOG_FIELDS,
 		order_by="idx desc",
 		limit_page_length=min(cint(limit) or DEFAULT_SCAN_LOG_LIMIT, 100),
 	)
+	return _with_labels(rows)
+
+
+def _with_labels(rows):
+	"""Attach to each scan the labels its script printed, as `labels`.
+
+	One entry per distinct label — the same template for the same document — with how many
+	copies went out in total, and the newest job of it, which is what a reprint copies.
+	Print Jobs are cleaned up after a week, so an older scan simply shows none.
+	"""
+	rows = [row for row in rows if row]
+	names = [row.name for row in rows]
+	jobs = (
+		frappe.get_all(
+			"Print Job",
+			filters={"scan_log_entry": ["in", names]},
+			fields=[
+				"name",
+				"scan_log_entry",
+				"label_template",
+				"reference_name",
+				"raw_data",
+				"copies",
+				"status",
+			],
+			order_by="creation asc",
+		)
+		if names
+		else []
+	)
+
+	grouped = {}
+	for job in jobs:
+		key = (job.scan_log_entry, job.label_template, job.reference_name, job.raw_data)
+		label = grouped.setdefault(
+			key,
+			{"label_template": job.label_template, "reference_name": job.reference_name, "count": 0},
+		)
+		label["count"] += cint(job.copies) or 1
+		label["print_job"] = job.name
+		label["status"] = job.status
+
+	by_row = {}
+	for (entry, *_rest), label in grouped.items():
+		by_row.setdefault(entry, []).append(label)
+	for row in rows:
+		row["labels"] = by_row.get(row.name, [])
+	return rows
+
+
+@frappe.whitelist(methods=["POST"])
+def reprint_scan_label(scanner=None, print_job=None):
+	"""Print a label from the scan journal again, on the printer it first came out of.
+
+	The job must have been queued by a scan of this scanner — that, and the scanner being
+	the caller's, is the whole check: the operator has no Print Job role, and needs none to
+	repeat a label their own scan already printed. The copy is linked to the same scan, so
+	the journal's count goes up by the copies printed.
+	"""
+	row = _assert_scanner_mine(scanner)
+	if not print_job:
+		frappe.throw(_("Print Job is required"))
+	source = frappe.db.get_value(
+		"Print Job",
+		print_job,
+		[
+			"label_template",
+			"label_printer",
+			"reference_name",
+			"parent_doctype",
+			"parent_name",
+			"raw_data",
+			"copies",
+			"scanner",
+			"scan_log_entry",
+		],
+		as_dict=True,
+	)
+	if not source or source.scanner != row.name:
+		frappe.throw(
+			_("Print Job {0} was not printed by this scanner").format(print_job), frappe.PermissionError
+		)
+
+	from erpnext.devices.doctype.label_printer.label_printer import queue_print_job
+
+	frappe.flags.scan_log_entry = source.scan_log_entry
+	frappe.flags.scan_scanner = row.name
+	result = queue_print_job(
+		label_template=source.label_template,
+		printer_name=source.label_printer,
+		reference_name=source.reference_name,
+		raw_data=source.raw_data,
+		copies=source.copies or 1,
+		ignore_permissions=True,
+	)
+	job = result.get("print_job")
+	if source.parent_doctype or source.parent_name:
+		frappe.db.set_value(
+			"Print Job",
+			job,
+			{"parent_doctype": source.parent_doctype, "parent_name": source.parent_name},
+			update_modified=False,
+		)
+	# Printing runs after commit: `print_label` rolls back on a printer error, which inside
+	# this request would take the new job with it.
+	frappe.enqueue(
+		"erpnext.devices.doctype.label_printer.label_printer.print_label",
+		queue="short",
+		enqueue_after_commit=True,
+		print_job_name=job,
+	)
+	return {"print_job": job}
 
 
 @frappe.whitelist(methods=["GET"])
@@ -562,7 +839,12 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 
 	doctype = _link_doctype(decl)
 	filters = _link_filters(decl)
-	if query:
+	limit = min(cint(limit) or 20, 50)
+
+	# A declaration may restrict the picker by name — one packing template for this bench —
+	# and the operator's search must narrow that list, never replace the restriction.
+	declared_name_filter = "name" in filters
+	if query and not declared_name_filter:
 		filters["name"] = ["like", f"%{query}%"]
 
 	names = frappe.get_list(
@@ -570,8 +852,11 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 		filters=filters,
 		pluck="name",
 		order_by=decl.get("link_order_by") or "modified desc",
-		limit_page_length=min(cint(limit) or 20, 50),
+		limit_page_length=limit if not (query and declared_name_filter) else 0,
 	)
+	if query and declared_name_filter:
+		needle = query.lower()
+		names = [name for name in names if needle in name.lower()][:limit]
 	return [{"value": name, "label": _link_label(doctype, name)} for name in names]
 
 
@@ -588,9 +873,11 @@ def set_context_field(scanner=None, key=None, value=None):
 	row = _assert_scanner_mine(scanner)
 	timeout = _state_timeout(row)
 	frame = _load_state(row.name, timeout) or {}
+	root_script = _root_script_name(row)
+	frame = seeded_frame(root_script, frame)
 	context = dict(frame.get("context") or {})
-	declared = _declared_context_fields(_root_script_name(row), frame.get("subflow"))
-	decl = _require_editable(declared, key)
+	declared = _declared_context_fields(root_script, frame.get("subflow"))
+	decl = _require_editable(declared, key, frame.get("state"))
 
 	coerced = _coerce_value(decl, value)
 	current = context.get(key)
@@ -599,18 +886,20 @@ def set_context_field(scanner=None, key=None, value=None):
 	if is_switch:
 		_assert_no_blockers(declared, context)
 
+	subflow = frame.get("subflow") or _subflow_for(decl)
+
 	if cint(decl.get("is_primary")):
 		context = {
 			k: v for k, v in context.items() if cint((declared.get(k) or {}).get("preserve_on_switch"))
 		}
+		context = seeded_context(root_script, subflow, context)
 	context[key] = coerced
 
 	new_frame = {"state": _target_state(decl, frame, declared), "context": context}
-	subflow = frame.get("subflow") or _subflow_for(decl)
 	if subflow:
 		new_frame["subflow"] = subflow
 
-	_save_state(row.name, new_frame, timeout)
+	_save_state(row.name, seeded_frame(root_script, new_frame), timeout)
 
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
@@ -663,11 +952,49 @@ def set_scanner_flow(scanner=None, flow=None):
 		initial = _subflow_initial_state(flow)
 		if not initial:
 			frappe.throw(_("Flow {0} has no initial state").format(flow))
-		_save_state(row.name, {"subflow": flow, "state": initial, "context": {}}, timeout)
+		_save_state(
+			row.name,
+			seeded_frame(root_script, {"subflow": flow, "state": initial, "context": {}}),
+			timeout,
+		)
 
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
 	return session
+
+
+@frappe.whitelist(methods=["POST"])
+def run_scanner_command(scanner=None, command=None):
+	"""Press a command button: run its barcode exactly as the device would have scanned it.
+
+	Only a command the current state declares is accepted, so the phone can do nothing at a
+	step that the printed barcode sheet could not do at the same step. The work itself goes
+	through `run_scan` — same script, same frame, same scan log — and the refreshed session
+	comes back so the screen redraws from what actually happened.
+	"""
+	from erpnext.devices.doctype.scanner.scanner_api import run_scan
+
+	row = _assert_scanner_mine(scanner)
+	command = (command or "").strip()
+	if not command:
+		frappe.throw(_("Command is required"))
+
+	frame = _load_state(row.name, _state_timeout(row)) or {}
+	root_script = _root_script_name(row)
+	active_script = frame.get("subflow") or root_script
+	offered = {c["command"] for c in _state_commands(active_script, frame.get("state"))}
+	if command not in offered:
+		frappe.throw(_("{0} is not available at this step").format(command))
+
+	# `run_scan` impersonates the scanner's employee, exactly as a device scan does. The
+	# caller is that employee anyway (`_assert_scanner_mine`), but restore the whole session,
+	# not just the user: `set_user` empties it, and saving that back logs the phone out.
+	with preserved_session():
+		result = run_scan(frappe.get_doc("Scanner", row.name), command)
+
+	session = _read_session(_scanner_row(row.name))
+	_publish_session_update(row.name, session)
+	return {"result": result, "session": session}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -683,7 +1010,7 @@ def reset_scanner_session(scanner=None):
 
 	new_frame, _message = reset_frame(frame)
 	if new_frame:
-		_save_state(row.name, new_frame, timeout)
+		_save_state(row.name, seeded_frame(_root_script_name(row), new_frame), timeout)
 	else:
 		_clear_state(row.name)
 
@@ -704,8 +1031,13 @@ def _root_script_name(scanner_row):
 	return script_doc.name if script_doc else None
 
 
-def _require_editable(declared, key):
-	"""The declaration for `key`, or a throw. Only app-editable keys are addressable."""
+def _require_editable(declared, key, state=None):
+	"""The declaration for `key`, or a throw.
+
+	Only app-editable keys are addressable, and only at the step of the flow that asks for
+	them: once the order is chosen the template is settled, and rewriting it behind the
+	operator's back would relabel boxes they have already packed.
+	"""
 	if not key:
 		frappe.throw(_("Context field key is required"))
 
@@ -714,6 +1046,12 @@ def _require_editable(declared, key):
 		frappe.throw(_("Unknown context field {0}").format(key))
 	if not cint(decl.get("app_editable")):
 		frappe.throw(_("Context field {0} is not editable from the app").format(key))
+	if not _editable_now(decl, state):
+		frappe.throw(
+			_("{0} cannot be changed at this step — reset the session to change it").format(
+				decl.get("label") or key
+			)
+		)
 	return decl
 
 

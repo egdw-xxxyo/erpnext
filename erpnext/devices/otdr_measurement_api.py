@@ -272,7 +272,7 @@ def _qi_readings(quality_inspection):
 
 
 def _printers(workplace):
-	from erpnext.devices.spool_qc import printers_for_workplace
+	from erpnext.devices.printer_resolution import printers_for_workplace
 
 	return printers_for_workplace(workplace)
 
@@ -538,7 +538,8 @@ def get_label_readiness(workplace=None, item_code=None, label_printer=None, **kw
 	_assert_workplace_allowed(workplace, _session_employee())
 
 	from erpnext.devices.label_resolution import PURPOSE_FAILED, PURPOSE_PASSED, resolve_label_template
-	from erpnext.devices.spool_qc import _any_printer_for, _get_config, _workplace_printer
+	from erpnext.devices.printer_resolution import resolve_printer
+	from erpnext.devices.spool_qc import _any_printer_for, _get_config
 
 	otdr_configuration = frappe.db.get_value("Workplace", workplace, "otdr_configuration")
 	cfg = _get_config(otdr_configuration)
@@ -549,7 +550,6 @@ def get_label_readiness(workplace=None, item_code=None, label_printer=None, **kw
 	if not item_code:
 		issues.append({"code": "no_item"})
 
-	workplace_printer = _workplace_printer(workplace)
 	fallback_printer = _any_printer_for(item_code) if item_code else None
 	printers = {}
 	labels = []
@@ -562,7 +562,12 @@ def get_label_readiness(workplace=None, item_code=None, label_printer=None, **kw
 		) or {}
 		template = resolved.get("label_template")
 		label_size = frappe.db.get_value("Label Template", template, "label_size") if template else None
-		printer = label_printer or workplace_printer or resolved.get("label_printer") or fallback_printer
+		printer, _source = resolve_printer(
+			workplace=workplace,
+			explicit=label_printer,
+			purpose=purpose,
+			fallbacks=[resolved.get("label_printer"), fallback_printer],
+		)
 		if printer and printer not in printers:
 			printers[printer] = _printer_state(printer)
 		loaded = (printers.get(printer) or {}).get("loaded_label_size")

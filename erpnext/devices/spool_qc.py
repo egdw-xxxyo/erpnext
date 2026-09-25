@@ -270,7 +270,7 @@ def _find_job_card(serial_no, item_code, workplace, log):
 	by_serial = frappe.get_all(
 		"Job Card",
 		filters=mine,
-		fields=["name", "serial_no", "quality_inspection"],
+		fields=["name", "serial_no", "quality_inspection", "docstatus"],
 		order_by="creation asc",
 		limit=1,
 	)
@@ -281,7 +281,7 @@ def _find_job_card(serial_no, item_code, workplace, log):
 		by_serial = frappe.get_all(
 			"Job Card",
 			filters=serial_filters,
-			fields=["name", "serial_no", "quality_inspection"],
+			fields=["name", "serial_no", "quality_inspection", "docstatus"],
 			order_by="creation asc",
 			limit=1,
 		)
@@ -304,7 +304,7 @@ def _find_job_card(serial_no, item_code, workplace, log):
 	candidates = frappe.get_all(
 		"Job Card",
 		filters=filters,
-		fields=["name", "serial_no", "quality_inspection", "for_quantity"],
+		fields=["name", "serial_no", "quality_inspection", "for_quantity", "docstatus"],
 		order_by="creation asc",
 		limit=20,
 	)
@@ -374,6 +374,11 @@ def _link_job_card(qi_name, serial_no, log, item_code=None, workplace=None):
 	Done from this side on purpose: setting `Quality Inspection.reference_type` to
 	`Job Card` makes stock `validate` reload every reading from the item template and
 	discard the per-spool length limits.
+
+	A re-measurement re-points an open card at its newest inspection. Keeping the first one
+	made a spool that failed and was then rewound and passed immortally rejected: the card
+	still carried the failed inspection, so `finish_unit` kept sending the unit to the reject
+	warehouse no matter how often it was measured again.
 	"""
 	job_card, claimed = _find_job_card(serial_no, item_code, workplace, log)
 	if not job_card:
@@ -382,11 +387,16 @@ def _link_job_card(qi_name, serial_no, log, item_code=None, workplace=None):
 	if claimed:
 		_append_serial(job_card, serial_no, log)
 
-	if job_card.quality_inspection:
+	if job_card.quality_inspection == qi_name:
+		return job_card.name
+
+	if job_card.quality_inspection and job_card.get("docstatus"):
+		# The card is closed: its inspection is the one the unit was finished on, and stock
+		# has already moved. A later measurement of the same serial is a record, not a retry.
 		return job_card.name
 
 	frappe.db.set_value("Job Card", job_card.name, "quality_inspection", qi_name)
-	log("Job Card linked to inspection", job_card=job_card.name)
+	log("Job Card linked to inspection", job_card=job_card.name, quality_inspection=qi_name)
 	return job_card.name
 
 
@@ -493,20 +503,29 @@ def print_qc_label(
 		)
 		return None
 
-	printer = (
-		label_printer
-		or _workplace_printer(workplace)
-		or resolved.get("label_printer")
-		or _any_printer_for(item_code)
+	from erpnext.devices.printer_resolution import resolve_printer
+
+	printer, printer_source = resolve_printer(
+		workplace=workplace,
+		explicit=label_printer,
+		purpose=purpose,
+		fallbacks=[resolved.get("label_printer"), lambda: _any_printer_for(item_code)],
 	)
 	if not printer:
 		log(
-			"Label template has no printer, nothing printed",
+			"Neither the workplace nor the label template names a printer, nothing printed",
 			level="WARN",
 			label_template=resolved["label_template"],
 			purpose=purpose,
 		)
 		return None
+
+	log(
+		"Printer resolved",
+		label_printer=printer,
+		source=printer_source,
+		purpose=purpose,
+	)
 
 	raw_data = {
 		"serial_no": serial_no,
@@ -584,42 +603,18 @@ def _any_printer_for(item_code):
 	)
 
 
-def _workplace_printer(workplace):
-	"""The workplace's default printer, if it declares one.
+def _workplace_printer(workplace, purpose=None):
+	"""Kept as the name `otdr_measurement_api` imports; the logic lives in `printer_resolution`."""
+	from erpnext.devices.printer_resolution import workplace_printer
 
-	`Workplace.printers` allows several — a bench with a spool printer and a box printer —
-	with at most one marked default (enforced in `Workplace._validate_printers`). Only the
-	default is chosen automatically; when there is none the app offers the list.
-	"""
-	if not workplace:
-		return None
-
-	name = workplace if isinstance(workplace, str) else workplace.get("name")
-	if not name:
-		return None
-
-	return frappe.db.get_value(
-		"Workplace Printer",
-		{"parent": name, "parenttype": "Workplace", "is_default": 1},
-		"label_printer",
-	)
+	return workplace_printer(workplace, purpose=purpose)
 
 
 def printers_for_workplace(workplace):
 	"""Every printer a workplace declares, for the app's picker."""
-	if not workplace:
-		return []
+	from erpnext.devices.printer_resolution import printers_for_workplace as _printers
 
-	name = workplace if isinstance(workplace, str) else workplace.get("name")
-	if not name:
-		return []
-
-	return frappe.get_all(
-		"Workplace Printer",
-		filters={"parent": name, "parenttype": "Workplace"},
-		fields=["label_printer", "printer_model", "ip_address", "is_default"],
-		order_by="is_default desc, idx",
-	)
+	return _printers(workplace)
 
 
 def handle_measurement(e):

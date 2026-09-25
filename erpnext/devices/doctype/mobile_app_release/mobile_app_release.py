@@ -13,6 +13,7 @@ import logging
 
 import frappe
 import requests
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_datetime, now_datetime
 from frappe.utils.file_manager import save_file
@@ -60,14 +61,14 @@ def poll_github_releases():
 	repo = (settings.github_repo or "").strip().strip("/")
 	token = settings.token()
 	if not repo or not token:
-		_record(error="GitHub repository or token is not configured")
+		_record(error=_("GitHub repository or token is not configured"))
 		return
 
 	try:
 		release = _fetch_latest_release(repo, token)
 		version = (release.get("tag_name") or "").strip().lstrip("vV")
 		if not version:
-			_record(error="Latest GitHub release has no tag")
+			_record(error=_("Latest GitHub release has no tag"))
 			return
 
 		name = f"{DEFAULT_APP}-{version}"
@@ -80,7 +81,7 @@ def poll_github_releases():
 
 		asset = next((a for a in release.get("assets") or [] if (a.get("name") or "").endswith(".apk")), None)
 		if not asset:
-			_record(error=f"Release {version} has no .apk asset")
+			_record(error=_("Release {0} has no .apk asset").format(version))
 			return
 
 		content = _download_asset(asset["url"], token)

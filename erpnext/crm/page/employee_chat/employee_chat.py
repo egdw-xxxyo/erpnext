@@ -785,7 +785,16 @@ def mark_read(thread: str, upto: str | None = None):
 		# Never move the cursor backwards.
 		return {"last_read_on": str(current)}
 	frappe.db.set_value("Chat Participant", name, "last_read_on", ts, update_modified=False)
-	_fanout(doc, "chat_seen", {"thread": thread, "user": me, "last_read_on": ts})
+	# Everyone but the reader: a seen tick is news to the other side only. Sending it back to
+	# the reader let a client that reacts to the event by marking the thread read drive itself
+	# in a circle — mark_read, chat_seen, mark_read — which is what flooded the Android app
+	# with hundreds of requests a minute.
+	_fanout(
+		doc,
+		"chat_seen",
+		{"thread": thread, "user": me, "last_read_on": ts},
+		users=[u for u in _participant_users(doc) if u != me],
+	)
 	return {"last_read_on": str(ts)}
 
 

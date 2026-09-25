@@ -22,9 +22,18 @@ class PrintJob(Document):
 		printed_at: DF.Datetime | None
 		reference_doctype: DF.Link | None
 		reference_name: DF.DynamicLink | None
+		scan_log_entry: DF.Data | None
+		scanner: DF.Link | None
 		status: DF.Literal["Queued", "Printing", "Printed", "Failed", "Cancelled"]
 		zpl_output: DF.Code | None
 		log: DF.Code | None
+
+	def before_insert(self):
+		# A label queued while a scan runs belongs to that scan: the operator's scan journal
+		# lists it and prints it again from there. `run_scan` sets the flags for its request.
+		if frappe.flags.scan_log_entry and not self.scan_log_entry:
+			self.scan_log_entry = frappe.flags.scan_log_entry
+			self.scanner = frappe.flags.scan_scanner
 
 	def validate(self):
 		pass
