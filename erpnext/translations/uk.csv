@@ -14439,7 +14439,8 @@ Mandatory documents,Обовʼязкових документів
 Modification Status,Статус модифікації
 No document refers to this one,На цей документ ніхто не посилається
 No requirement template selected,Шаблон комплектності не вибрано
-"Related but not declared an annex","Повʼязаний, але не оголошений додатком"
+"Related but not included in the package","Повʼязаний, але не включений до комплекту"
+Reads as,Читається так
 "{0} is a document this package requires — only the relation {1} puts it there","{0} — документ, якого вимагає комплектність; у комплект його поставить лише звʼязок «{1}»"
 Not codified,Не кодифіковано
 Referred to by,На цей документ посилаються
@@ -14502,8 +14503,6 @@ Technical Document Audit Entry,Запис журналу технічної до
 "Leave the table empty to let the modification hold any text.","Залиште таблицю порожньою, щоб модифікація могла містити будь-який текст."
 "Remove the relation to {0}?","Видалити звʼязок із {0}?"
 "Relation removed","Звʼязок видалено"
-"Reads as: this document — relation — the document below","Читається так: цей документ — звʼязок — документ нижче"
-"Reads as: the document below — relation — this document","Читається так: документ нижче — звʼязок — цей документ"
 Display Code,Шифр для виробів
 "Designation shown on Items: the Number Template override if one matches, else Specification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код специфікації."
 ЄСКД specification this item belongs to,"Специфікація ЄСКД, до якої належить ця номенклатура"

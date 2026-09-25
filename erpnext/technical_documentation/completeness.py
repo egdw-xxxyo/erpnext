@@ -15,9 +15,9 @@ current revision. The cost of that choice is explicit — a document that exists
 never linked to the ТУ shows as missing — and it is the intended one, because the
 alternative is matching documents by name and being quietly wrong.
 
-Not every relation puts a document in the package. Only the two that say so do: «Має
-додаток» recorded on the specification, and «Додаток до» recorded on the annex, which are
-the same sentence read from either end. A document merely «Повʼязаний з» the specification
+Not every relation puts a document in the package. Only the two that say so do: «Включає
+до комплекту» recorded on the specification, and «Входить до комплекту» recorded on the
+member, which are the same sentence read from either end. A document merely «Повʼязаний з» the specification
 is related to it, not part of it, and one the specification «Замінює» is the opposite of a
 package member — counting either would let a required line be closed by a document nobody
 claimed belongs there.
@@ -37,8 +37,8 @@ above is what makes that possible to get wrong: the document is on the card, in 
 relations panel, of exactly the type the template asks for, and the package still reads
 «Немає» — correctly, because nobody declared it part of the package. Naming the candidate
 turns that into one visible step. It is a hint and not a correction: «Повʼязаний з» is
-what a person chose, and rewriting it into «Має додаток» would be guessing at what they
-meant. Only that one relation is suggested, because every other type states a relationship
+what a person chose, and rewriting it into «Включає до комплекту» would be guessing at what
+they meant. Only that one relation is suggested, because every other type states a relationship
 that is not membership — a document this one «Замінює» is the opposite of a package member.
 """
 
@@ -52,9 +52,9 @@ from erpnext.technical_documentation.constants import (
 	COMPLETENESS_PRESENT,
 	DOCUMENT_DOCTYPE,
 	DOCUMENT_EFFECTIVE,
-	RELATION_ANNEX_TO,
 	RELATION_DOCTYPE,
-	RELATION_HAS_ANNEX,
+	RELATION_INCLUDED_IN,
+	RELATION_INCLUDES,
 	RELATION_RELATED_TO,
 )
 
@@ -83,7 +83,7 @@ def get_completeness(document: str) -> dict:
 		order_by="idx",
 	)
 
-	related = get_related_by_type(document, RELATION_HAS_ANNEX, RELATION_ANNEX_TO)
+	related = get_related_by_type(document, RELATION_INCLUDES, RELATION_INCLUDED_IN)
 	candidates = get_related_by_type(document, RELATION_RELATED_TO, RELATION_RELATED_TO)
 	rows = [build_row(requirement, related, candidates) for requirement in requirements]
 	mandatory = [row for row in rows if row["mandatory"]]
@@ -160,7 +160,7 @@ def build_row(requirement, related, candidates):
 
 
 # A candidate nobody may open is not offered: the hint exists to be acted on, and the one
-# action it leads to is opening that card and declaring it an annex.
+# action it leads to is opening that card and including it in the package.
 def suggest_candidate(requirement, candidates):
 	for candidate in candidates.get(requirement.document_type) or []:
 		# nosemgrep: frappe-semgrep-rules.rules.unchecked-frappe-permission-call

@@ -27,7 +27,6 @@ import frappe
 from erpnext.technical_documentation.constants import (
 	DOCUMENT_DOCTYPE,
 	MODIFICATION_DOCTYPE,
-	RELATION_ANNEX_TO,
 	RELATION_DOCTYPE,
 	RELATION_RELATED_TO,
 	REVISION_DOCTYPE,
@@ -49,6 +48,12 @@ SECTION_BY_TYPE_PREFIX = (
 	("Регламент", "Регламенти"),
 )
 FALLBACK_SECTION = "Інше"
+
+# The package pair under the names it had when this patch was written. They count as known
+# types here even once the schema has moved on, so a row already typed is not mistaken for
+# free text; rename_package_relation_types moves them to the current names afterwards.
+RELATION_HAS_ANNEX = "Має додаток"
+RELATION_ANNEX_TO = "Додаток до"
 
 
 def execute():
@@ -144,9 +149,8 @@ def normalise_relation_types():
 	"""Free text used as a completeness marker becomes a real relation type, text kept in `note`."""
 	for row in frappe.get_all("Technical Document Relation", fields=["name", "relation_type", "note"]):
 		current = (row.relation_type or "").strip()
-		if current in frappe.get_meta("Technical Document Relation").get_field("relation_type").options.split(
-			"\n"
-		):
+		known = frappe.get_meta("Technical Document Relation").get_field("relation_type").options.split("\n")
+		if current in (*known, RELATION_HAS_ANNEX, RELATION_ANNEX_TO):
 			continue
 
 		mapped = RELATION_ANNEX_TO if current else RELATION_RELATED_TO
