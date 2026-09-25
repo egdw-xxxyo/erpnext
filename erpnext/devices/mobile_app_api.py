@@ -135,8 +135,9 @@ def _download_url(path):
 
 
 def _min_android_version():
-	override = frappe.db.get_single_value("Mobile App Settings", "min_android_version")
-	return (override or "").strip() or min_version_for("android")
+	from erpnext.devices.app_version import required_android_version
+
+	return required_android_version()
 
 
 @frappe.whitelist(methods=["GET"])

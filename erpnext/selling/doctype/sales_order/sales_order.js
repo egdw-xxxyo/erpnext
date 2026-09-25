@@ -2359,7 +2359,7 @@ erpnext.selling.render_attachment_progress = function (frm) {
 						<th class="text-right">${__("Planned")}</th>
 						<th class="text-right">${__("Attached")}</th>
 						<th class="text-right">${__("Remaining")}</th>
-						<th class="text-right">${__("Over")}</th>
+						<th class="text-right">${__("Over", null, "Packing Progress")}</th>
 						<th style="width:140px;">${__("Progress")}</th>
 					</tr></thead><tbody>`;
 			data.rows.forEach((row) => {

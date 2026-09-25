@@ -2431,7 +2431,7 @@ Certificate Limit,Обмеження сертифіката
 Certificate No,Свідоцтво No
 Certificate Required,Сертифікат обов&#39;язковий
 Chain,Чейн
-Change,Здача
+Change,Замінити
 Change Amount,Сума змін
 Change Labels,Замінити етикетки
 Change Release Date,Змінити дату випуску
@@ -2905,7 +2905,7 @@ Create Sales Invoice,Створіть рахунок-фактуру з прод�
 Create Sales Order,Створити замовлення на продаж
 Create Sales Orders to help you plan your work and deliver on-time,"Створіть замовлення з продажу, щоб допомогти спланувати роботу та доставити вчасно"
 Create Sample Retention Stock Entry,Створити запис складу зберігання зразків
-Create Stock Entry,Створити запис про запаси
+Create Stock Entry,Створити рух ТМЦ
 Create Supplier Quotation,Створіть котирування постачальників
 Create Tax Template,Створіть шаблон оподаткування
 Create Timesheet,Створення розкладу
@@ -4879,7 +4879,7 @@ Indicator Color,Колір індикатора
 Indirect Expense,Непрямі витрати
 Indirect Expenses,Непрямі витрати
 Indirect Income,Непряме прибуток
-Individual,Індивідуальний
+Individual,Приватний підприємець
 Individual GL Entry cannot be cancelled.,Окремий запис у головній книзі не може бути скасований.
 Individual Stock Ledger Entry cannot be cancelled.,Окремий запис в обліку запасів не може бути скасований.
 Industry,Промисловість
@@ -5765,7 +5765,7 @@ Material,Матеріал
 Material Consumption,Матеріальне споживання
 Material Consumption for Manufacture,Матеріальний потік для виробництва
 Material Consumption is not set in Manufacturing Settings.,Масштабне споживання не встановлено в налаштуваннях виробництва.
-Material Issue,Матеріал Випуск
+Material Issue,Списання матеріалів
 Material Receipt,Матеріал Надходження
 Material Request,Замовлення матеріалів
 Material Request Date,Дата Замовлення матеріалів
@@ -8003,7 +8003,7 @@ Relation added,Звʼязок додано
 Release Date,Дата випуску
 Release date must be in the future,Дата виходу повинна бути в майбутньому
 Relieving Date,Дата звільнення
-Remaining,решті
+Remaining,Залишилось
 Remaining Amount,Залишкова сума
 Remaining Balance,Залишковий баланс
 Remark,Зауваження
@@ -13038,7 +13038,7 @@ Product Category,Категорія продукції
 Estimated Quantity,Орієнтовна кількість
 Estimated Customer Budget,Орієнтовний бюджет клієнта
 Lead Assessment,Оцінка Звернення
-Conversion Probability,Ймовірність переходу в Opportunity
+Conversion Probability,Ймовірність переходу в Пропозицію
 Next Action Control,Контроль наступних дій
 Next Action,Наступна дія
 Next Action Date,Дата наступної дії
@@ -14519,39 +14519,511 @@ Items of {0},Номенклатури специфікації {0}
 No modification lists yet,Відомостей модифікацій ще немає
 Modification {0},Модифікація {0}
 No modifications in this list yet,У цій відомості ще немає модифікацій
-New Modification,Нова модифікація
-"«Призначення» column of the ЄСКД catalog, e.g. 125 0,25 5 км or 6S3P.","Стовпець «Призначення» каталогу ЄСКД, наприклад 125 0,25 5 км або 6S3P."
-Intended Use,Призначення
-Has Specification Data,Має дані специфікації
-"ЄСКД catalog data: kind, ordinal, intended use, parameters and component specifications.","Дані каталогу ЄСКД: вид, порядковий номер, призначення, параметри та специфікації-складові."
-"Designation shown on Items: the Number Template override if one matches, else Document Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код документа."
-"Specifications this one is built from, each in a role: a drone takes a coil and a battery.","Специфікації, з яких складається ця, кожна у своїй ролі: борт складається з котушки та батареї."
-Position in the modification list.,Порядковий номер у відомості модифікацій.
-The board and ground station specifications this modification pairs.,"Специфікації борту та НСУ, які поєднує ця модифікація."
-"Optional. Its Overrides table replaces the designation of a modification in its Display Code.","Необовʼязково. Таблиця замін цього шаблону підміняє позначення модифікації в полі «Шифр для виробів»."
-"Catalog of ЄСКД designations: every designation under this prefix is a modification below.","Каталог позначень ЄСКД: кожне позначення з цим префіксом — модифікація нижче."
-"ЄСКД catalog: kind, organization code and number template; its designations are the modifications.","Каталог ЄСКД: вид, код організації та шаблон номера; його позначення — модифікації."
-"Designation shown on Items: the Number Template override if one matches, else Modification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код модифікації."
-"Modifications this one is built from, each in a role: a board takes a coil and a battery, a БпАК a board and a ground station.","Модифікації, з яких складається ця, кожна у своїй ролі: борт — з котушки та батареї, БпАК — з борту та НСУ."
-ЄСКД designation (specification modification) this item belongs to,"Позначення ЄСКД (модифікація специфікації), до якого належить ця номенклатура"
-Suggest Specification,Підібрати специфікацію
-Suggested Specifications,Підібрані специфікації
-Matched On,Збіг за
-No Match,Немає збігів
-Pick,Обрати
-Create Kit,Створити комплект
-Kit: {0},Комплект: {0}
-Kit {0} created,Комплект {0} створено
-Create a kit from these Items?,Створити комплект із цих номенклатур?
-Kit Incomplete,Комплект неповний
-No designation shares words with this item's attributes.,Жодне позначення не має спільних слів з атрибутами цієї номенклатури.
-"No Item is linked to these designations yet: {0}","До цих позначень ще не прив'язано жодної номенклатури: {0}"
-"{0} is made as several Items ({1}) — link only one of them to it","{0} виготовляється кількома номенклатурами ({1}) — прив'яжіть до нього лише одну"
-{0} has no component modifications to build a kit from,{0} не має складових модифікацій для комплекту
-Specification Type,Тип специфікації
-Narrows the Specification list to designations of this kind of product,Звужує список специфікацій до позначень цього виду виробу
 Scan Serial / Batch No,Сканувати серійний / партійний номер
 Scanned value is appended to the entries table,Відскановане значення додається до таблиці записів
 Please select an Item Code first,Спочатку виберіть код товару
 Serial No {0} is already added,Серійний номер {0} вже додано
 Added {0},Додано {0}
+Material Request Initiator,Ініціатор замовлення матеріалів
+Decision Reason,Причина рішення
+Current Assignee,Поточний виконавець
+Approval Stage,Етап погодження
+Confirm,Підтвердити
+Enter the reason for the decision.,Вкажіть причину рішення.
+Reason is required,Причина обов'язкова
+Reason is too long,Причина занадто довга
+Only a buyer can create procurement documents from a Material Request.,Створювати закупівельні документи із замовлення матеріалів може лише закупівельник.
+Use a workflow action for this transition and provide a reason.,Виконайте перехід через дію робочого процесу та вкажіть причину.
+The reason cannot contain more than {0} characters.,Причина не може містити більше {0} символів.
+{0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів та передав його у закупівлю.
+{0} created {1} based on this Material Request and completed its processing by the buyer.,{0} створив {1} на підставі цього замовлення та завершив його опрацювання закупівельником.
+{0} created this Purchase Order from {1}.,{0} створив це замовлення на придбання із {1}.
+submitted the Purchase Order for department review,подав замовлення на перевірку підрозділу
+resubmitted the Purchase Order for department review,повторно подав замовлення на перевірку підрозділу
+approved the Purchase Order,погодив замовлення
+returned the Purchase Order for rework,повернув замовлення на доопрацювання
+rejected the Purchase Order,відхилив замовлення
+submitted the approved Purchase Order,провів погоджене замовлення
+performed action “{0}”,виконав дію «{0}»
+{0} {1} for the following reason:<br>{2},{0} {1} з причини:<br>{2}
+Payment Approval Details,Деталі погодження платежу
+Initiator User,Користувач-ініціатор
+Initiator Employee,Працівник-ініціатор
+Payment Purpose,Призначення платежу
+Requested Payment Date,Бажана дата оплати
+Planned Payment Date,Планова дата оплати
+Workflow Action Reason,Причина дії погодження
+Fiscal Receipt,Фіскальний чек
+Fiscal Receipt (File),Фіскальний чек (файл)
+Fiscal Receipt Availability,Наявність фіскального чека
+Task Payments,Оплати за завданням
+Payment Request Count,Кількість запитів на оплату
+Payment Request Expenses,Витрати за запитами
+Expense Currency,Валюта витрат
+Payment Requests,Запити на оплату
+Fiscal receipt has not been attached,Фіскальний чек не додано
+The payment can be submitted without a receipt and the receipt can be attached later.,Оплату можна провести без чека та додати його пізніше.
+"The fiscal receipt must be a PDF, JPG, JPEG or PNG file.","Фіскальний чек має бути файлом PDF, JPG, JPEG або PNG."
+Unsupported File Format,Непідтримуваний формат файла
+The uploaded fiscal receipt could not be found.,Не вдалося знайти завантажений фіскальний чек.
+The fiscal receipt must be uploaded as a private file.,Фіскальний чек має бути завантажений як приватний файл.
+Private File Required,Потрібен приватний файл
+returned this request for rework,повернув цей запит на доопрацювання
+rejected this request,відхилив цей запит
+Process Payment Request {{ name }} at stage “{{ workflow_state }}”.,Опрацювати запит на оплату {{ name }} на етапі «{{ workflow_state }}».
+Review Payment Request {{ name }} from the department.,Перевірити запит на оплату {{ name }} від підрозділу.
+Perform the final approval of Payment Request {{ name }}.,Виконати фінальне погодження запиту на оплату {{ name }}.
+Review and schedule payment for Payment Request {{ name }}.,Перевірити та запланувати оплату за запитом {{ name }}.
+Request {{ doc.name }}: {{ doc.workflow_state }},Запит {{ doc.name }}: {{ doc.workflow_state }}
+Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.,Запит на оплату <b>{{ doc.name }}</b> перейшов на етап <b>{{ doc.workflow_state }}</b>.
+created the Purchase Invoice,створив рахунок постачальника
+created the Payment Request,створив запит на оплату
+created the Material Request,створив замовлення матеріалів
+{0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+Approval Status,Стан погодження
+Consolidated Purchase Orders,Зведені замовлення на придбання
+Material Request Customer Comment,Коментар замовника матеріалів
+EDRPOU Code,Код ЄДРПОУ
+Supplier Bank Accounts,Банківські рахунки постачальника
+Default Account,Основний рахунок
+No bank accounts are configured for this supplier.,Для цього постачальника не налаштовано банківських рахунків.
+Save the supplier before adding bank accounts.,Збережіть постачальника перед додаванням банківських рахунків.
+Saving default bank account...,Збереження основного банківського рахунку...
+Bank Account {0} does not belong to Supplier {1},Банківський рахунок {0} не належить постачальнику {1}
+Payment Instruction,Платіжна інструкція
+Payment Instruction (File),Платіжна інструкція
+Payment Instruction Availability,Наявність платіжної інструкції
+Payment instruction has not been attached,Платіжну інструкцію не прикріплено
+The payment can be submitted without a payment instruction and it can be attached later.,Оплату можна провести без платіжної інструкції та прикріпити її пізніше.
+"The payment instruction must be a PDF, JPG, JPEG or PNG file.","Платіжна інструкція має бути файлом PDF, JPG, JPEG або PNG."
+The uploaded payment instruction could not be found.,Завантажену платіжну інструкцію не знайдено.
+The payment instruction must be uploaded as a private file.,Платіжну інструкцію потрібно завантажити як приватний файл.
+Payment instruction missing,Відсутня
+Supplier Invoice Files,Файли рахунків постачальника
+Supplier invoice files are available for invoices created from a consolidated purchase order.,Файли рахунків постачальника доступні для рахунків-фактур, створених зі зведеного замовлення на придбання.
+Supplier invoice files will appear after selecting a linked Purchase Invoice.,Файли рахунків постачальника з’являться після вибору пов’язаного вхідного рахунку-фактури.
+No supplier invoice files are attached for this supplier.,Для цього постачальника не додано файлів рахунків.
+Lead Buyer,Ведучий закупівельник
+Not specified,Не зазначено
+Select Initiator User,Виберіть користувача-ініціатора
+Select the initiator user for this consolidated order.,Виберіть користувача-ініціатора для цього зведеного замовлення.
+The lead buyer cannot be changed after the consolidated order is created.,Ведучого закупівельника не можна змінити після створення зведеного замовлення.
+Supplier Delivery Notes,Видаткові накладні
+Supplier Delivery Note Document,Документ видаткової накладної
+Supplier Delivery Note File,Файл видаткової накладної
+Delivery notes can be added after the consolidated order is submitted.,Видаткові накладні можна додавати після проведення зведеного замовлення.
+Row {0}: Attach a delivery note file.,Рядок {0}: прикріпіть файл видаткової накладної.
+The delivery note must be a PDF or ZIP file.,Видаткова накладна має бути файлом PDF або ZIP.
+Email is not specified.,Електронну пошту не зазначено.
+Phone is not specified.,Номер телефону не зазначено.
+Contact via Viber,Зв’язатися через Viber
+Only the buyer who created this consolidated order can recall it.,Відкликати зведене замовлення може лише закупівельник, який його створив.
+recalled the consolidated order for rework,відкликав зведене замовлення на доопрацювання
+The consolidated order cannot be changed after procurement is completed.,Зведене замовлення не можна змінювати після завершення закупівлі.
+Only the creator of this consolidated order can change delivery notes.,Змінювати видаткові накладні може лише автор цього зведеного замовлення.
+No Available Invoices,Немає доступних рахунків
+Create and submit a Purchase Invoice for this task first.,Спочатку створіть і проведіть рахунок постачальника для цього завдання.
+Create Payment Request,Створити запит на оплату
+Material Requests for This Task,Замовлення матеріалів цього завдання
+There are no Material Requests yet.,Замовлень матеріалів ще немає.
+Material Cost,Вартість матеріалів
+Payment Requests for This Task,Запити на оплату цього завдання
+There are no Payment Requests yet.,Запитів на оплату ще немає.
+Child Task Payments,Оплати дочірніх завдань
+No Description,Немає опису
+The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
+Select a submitted Purchase Invoice linked to this task.,Оберіть проведений рахунок постачальника, пов'язаний із цим завданням.
+Consolidated Purchase Order,Зведене замовлення на придбання
+Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
+Items by Supplier,Позиції за постачальниками
+Approval Details,Деталі погодження
+Generated Documents,Створені документи
+Purchase Orders have not been created yet.,Замовлення на придбання ще не створено.
+Select Supplier for Purchase Invoice,Оберіть постачальника для рахунку постачальника
+There are no suppliers with unbilled Purchase Orders.,Немає постачальників із невиставленими замовленнями на придбання.
+Billed,Виставлено рахунків
+Cancel the linked Purchase Orders before cancelling this consolidated order: {0},Перед скасуванням зведеного замовлення скасуйте пов'язані замовлення на придбання: {0}
+Add at least one item.,Додайте щонайменше одну позицію.
+Row {0}: Supplier is required.,Рядок {0}: постачальник є обов'язковим.
+Row {0}: Quantity must be greater than zero.,Рядок {0}: кількість має бути більшою за нуль.
+Row {0}: Rate cannot be negative.,Рядок {0}: ціна не може бути від'ємною.
+Row {0}: Required By date is required.,Рядок {0}: дата потреби є обов'язковою.
+Created and submitted Purchase Order {0} for supplier {1}.,Створено та проведено замовлення на придбання {0} для постачальника {1}.
+Submit the consolidated order before creating a Purchase Invoice.,Проведіть зведене замовлення перед створенням рахунку постачальника.
+No billable Purchase Order was found for supplier {0}.,Для постачальника {0} не знайдено замовлення на придбання для виставлення рахунку.
+submitted the consolidated order for department review,подав зведене замовлення на перевірку підрозділу
+resubmitted the consolidated order for department review,повторно подав зведене замовлення на перевірку підрозділу
+approved the consolidated order,погодив зведене замовлення
+returned the consolidated order for rework,повернув зведене замовлення на доопрацювання
+rejected the consolidated order,відхилив зведене замовлення
+submitted the approved consolidated order,провів погоджене зведене замовлення
+Consolidated Purchase Supplier Invoice,Рахунок постачальника зведеного замовлення
+Supplier Invoices,Рахунки постачальників
+Supplier Invoice PDF,Рахунок постачальника (PDF)
+Invoice Document,Назва документу
+Procurement Approval Confirmed,Погодження закупівлі підтверджено
+Row {0}: Select a supplier used in the order items.,Рядок {0}: оберіть постачальника, використаного в позиціях замовлення.
+The supplier invoice must be a PDF file.,Рахунок постачальника має бути файлом PDF.
+Items Already Purchased,Товари вже придбано
+Prepaid Purchase Note,Примітка щодо вже придбаних товарів
+Purchase Receipt Files,Файли чеків про придбання
+The materials have already been purchased. Review the attached receipts and verify suppliers and prices.,Матеріали вже придбано. Перегляньте прикріплені чеки та перевірте постачальників і ціни.
+Attach at least one PDF receipt when the materials are already purchased.,Якщо матеріали вже придбано, прикріпіть щонайменше один чек у форматі PDF.
+Row {0}: Attach a PDF receipt.,Рядок {0}: прикріпіть чек у форматі PDF.
+The purchase receipt must be a PDF file.,Чек про придбання має бути файлом PDF.
+Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.
+"Please fill the following mandatory fields before saving:","Будь ласка, заповніть такі обов’язкові поля перед збереженням:"
+"In {0}, {1} is required in every row.","У таблиці {0} поле {1} є обов’язковим у кожному рядку."
+"Approval Route","Маршрут погодження"
+"Preparation","Підготовка"
+"Buyer","Закупівельник"
+"Department Review","Перевірка підрозділу"
+"Department Head","Керівник підрозділу"
+"Final Approval","Фінальне погодження"
+"Final Approver","Фінальний погоджувач"
+"Posting","Проведення"
+"Treasurer","Казначей"
+"Source Material Request","Вихідне замовлення матеріалів"
+"Source Material Request is not specified.","Вихідне замовлення матеріалів не вказано."
+"Created by","Створив"
+"Completed by","Виконав"
+"Assigned to","Виконує"
+"In progress","У роботі"
+"User is not recorded","Користувача не зафіксовано"
+"Not completed yet","Ще не виконано"
+"Submitted, invoice not created","Проведено, рахунок не створено"
+"paid","оплачено"
+"{0}/{1} paid","{0}/{1} оплачено"
+"Invoices with Fiscal Receipt","Рахунки з фіскальним чеком"
+"Submitted Purchase Invoices","Проведені вхідні рахунки-фактури"
+"Paid Amount Percentage","Відсоток оплаченої суми"
+"Payment Completed","Оплата проведена"
+"Payment completed","Проведена"
+"Payment not completed","Не проведена"
+"Fully Paid Suppliers","Повністю оплачені постачальники"
+"Suppliers in Payment Progress","Постачальники у прогресі оплати"
+"Fiscal receipt missing","Відсутній"
+"Procurement Approval","Погодження закупівель"
+"CEO Approval Threshold","Поріг погодження CEO"
+"CEO Approver 1","CEO-погоджувач 1"
+"CEO Approver 2","CEO-погоджувач 2"
+"Final Approval Count","Кількість фінальних погоджень"
+"Final Approved By 1","Фінально погодив 1"
+"Final Approved By 2","Фінально погодив 2"
+"Approved automatically","Погоджено автоматично"
+"Threshold","Поріг"
+"Paid outside the company","Оплату здійснено не компанією"
+"Configure two enabled CEO approvers with the Final Approver role in Buying Settings.","Налаштуйте двох активних CEO-погоджувачів із роллю фінального погоджувача в Налаштуваннях купівлі."
+"CEO approvers are not configured","CEO-погоджувачів не налаштовано"
+"The document is not at the final approval stage.","Документ не перебуває на етапі фінального погодження."
+"This purchase does not require manual CEO approval.","Ця закупівля не потребує ручного погодження CEO."
+"Only a configured CEO approver can approve this purchase.","Цю закупівлю може погодити лише налаштований CEO-погоджувач."
+"You have already approved this purchase.","Ви вже погодили цю закупівлю."
+"{0} recorded CEO approval {1}/{2}.","{0} зафіксував погодження CEO {1}/{2}."
+"{0} recorded CEO approval {1}/{2} as the document creator.","{0} погодив як автор документа; зафіксовано погодження CEO {1}/{2}."
+"{0} approved the department review as the document creator.","{0} погодив перевірку підрозділу як автор документа."
+"Select Destination Warehouse","Оберіть склад призначення"
+"Set a destination warehouse in at least one outstanding item.","Вкажіть склад призначення хоча б в одній неотриманій позиції."
+"Select a destination warehouse used by an outstanding Purchase Order item.","Оберіть склад призначення, вказаний у неотриманій позиції замовлення на придбання."
+"Purchase Receipts have not been created yet.","Прихідні накладні ще не створено."
+"Review and provide CEO approval for consolidated purchase {0}.","Перевірте та надайте погодження CEO для зведеної закупівлі {0}."
+"CEO approval {0}/2 recorded. The document is waiting for the second CEO.","Погодження CEO {0}/2 зафіксовано. Документ очікує на другого CEO."
+"CEO approval was completed automatically by threshold.","Погодження CEO виконано автоматично за порогом."
+"Paid Outside the Company","Оплачено не компанією"
+"Paid by Initiator","Оплачено ініціатором"
+"External Payment Note","Примітка про зовнішню оплату"
+"Company Payment","Оплата компанією"
+"Payer","Платник"
+"Initiator","Ініціатор"
+"Company","Компанія"
+"This invoice was paid outside the company by the Material Request initiator.","Цей рахунок оплачено не компанією, а ініціатором замовлення матеріалів."
+"The consolidated order cannot be edited while it is under approval.","Зведене замовлення не можна редагувати під час погодження."
+"Document is read-only","Документ доступний лише для читання"
+"Consolidated order already exists","Зведене замовлення вже існує"
+"Material Request {0} is already linked to active consolidated order {1}. A new consolidated order can be created only after the existing one is rejected.","Замовлення матеріалів {0} вже пов’язане з активним зведеним замовленням {1}. Нове зведене замовлення можна створити лише після відхилення наявного."
+"Procurement Participants","Учасники закупівлі"
+"Procurement Completion","Стан закупівлі"
+"Procurement Status","Стан закупівлі"
+"Goods Receipt","Надходження"
+"Storekeeper","Комірник"
+"Warehouse Manager","Начальник складу"
+"Awaiting Purchase Receipt","Очікує прихідну накладну"
+"Payment was made at the expense of:","Оплату здійснено за рахунок:"
+"Not created","Не створено"
+Received by initiator:,Отримано ініціатором:
+Received automatically on behalf of initiator {0} for prepaid invoice {1}.,Отримано автоматично від імені ініціатора {0} за попередньо оплаченим рахунком {1}.
+Add at least one item.,Додайте хоча б одну позицію.
+Approval Details,Деталі погодження
+Approval Stage,Етап погодження
+Attach at least one PDF receipt when the materials are already purchased.,Прикріпіть хоча б один PDF-чек для вже придбаних матеріалів.
+Cancel the linked Purchase Orders before cancelling this consolidated order: {0},Скасуйте пов’язані замовлення на придбання перед скасуванням цього зведеного замовлення: {0}
+Child Task Payments,Оплати дочірніх завдань
+Confirm,Підтвердити
+Consolidated Purchase Order,Зведене замовлення на придбання
+Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
+Consolidated Purchase Supplier Invoice,Рахунок постачальника зведеного замовлення
+Create Payment Request,Створити запит на оплату
+Create and submit a Purchase Invoice for this task first.,Спочатку створіть і проведіть вхідний рахунок-фактуру для цього завдання.
+Created and submitted Purchase Order {0} for supplier {1}.,Створено та проведено замовлення на придбання {0} для постачальника {1}.
+Current Assignee,Поточний виконавець
+Decision Reason,Причина рішення
+Enter the reason for the decision.,Вкажіть причину рішення.
+Expense Currency,Валюта витрат
+Fiscal Receipt,Фіскальний чек
+Fiscal Receipt (File),Фіскальний чек (файл)
+Fiscal Receipt Availability,Наявність фіскального чека
+Fiscal receipt has not been attached,Фіскальний чек не прикріплено
+Generated Documents,Створені документи
+Initiator Employee,Працівник-ініціатор
+Initiator User,Користувач-ініціатор
+Invoice Document,Документ рахунку
+Items Already Purchased,Матеріали вже придбані
+Items by Supplier,Позиції за постачальниками
+Material Cost,Вартість матеріалів
+Material Request Initiator,Ініціатор замовлення матеріалів
+Material Requests for This Task,Замовлення матеріалів цього завдання
+No Available Invoices,Немає доступних рахунків
+No Description,Немає опису
+No billable Purchase Order was found for supplier {0}.,Для постачальника {0} не знайдено замовлення на придбання для виставлення рахунку.
+Only a buyer can create procurement documents from a Material Request.,Тільки закупівельник може створювати закупівельні документи із замовлення матеріалів.
+Payment Approval Details,Деталі погодження оплати
+Payment Purpose,Призначення платежу
+Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.,Запит на оплату <b>{{ doc.name }}</b> перейшов на етап <b>{{ doc.workflow_state }}</b>.
+Payment Request Count,Кількість запитів на оплату
+Payment Request Expenses,Витрати за запитами на оплату
+Payment Requests,Запити на оплату
+Payment Requests for This Task,Запити на оплату цього завдання
+Perform the final approval of Payment Request {{ name }}.,Виконайте фінальне погодження запиту на оплату {{ name }}.
+Planned Payment Date,Запланована дата оплати
+Prepaid Purchase Note,Примітка про попередню оплату
+Private File Required,Потрібен приватний файл
+Process Payment Request {{ name }} at stage “{{ workflow_state }}”.,Опрацюйте запит на оплату {{ name }} на етапі «{{ workflow_state }}».
+Procurement Approval Confirmed,Погодження закупівлі підтверджено
+Purchase Orders have not been created yet.,Замовлення на придбання ще не створено.
+Purchase Receipt Files,Файли чеків про придбання
+Reason is required,Причина обов’язкова
+Reason is too long,Причина надто довга
+Request,Запит
+Request {{ doc.name }}: {{ doc.workflow_state }},Запит {{ doc.name }}: {{ doc.workflow_state }}
+Requested Payment Date,Бажана дата оплати
+Review Payment Request {{ name }} from the department.,Перевірте запит на оплату {{ name }} від підрозділу.
+Review and schedule payment for Payment Request {{ name }}.,Перевірте та заплануйте оплату запиту {{ name }}.
+Row {0}: Attach a PDF receipt.,Рядок {0}: прикріпіть PDF-чек.
+Row {0}: Quantity must be greater than zero.,Рядок {0}: кількість має бути більшою за нуль.
+Row {0}: Rate cannot be negative.,Рядок {0}: ціна не може бути від’ємною.
+Row {0}: Required By date is required.,Рядок {0}: вкажіть дату «Потрібно до».
+Row {0}: Select a supplier used in the order items.,Рядок {0}: виберіть постачальника з позицій замовлення.
+Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.
+Row {0}: Supplier is required.,Рядок {0}: постачальник обов’язковий.
+Select Supplier for Purchase Invoice,Виберіть постачальника для вхідного рахунку-фактури
+Select a submitted Purchase Invoice linked to this task.,Виберіть проведений вхідний рахунок-фактуру цього завдання.
+Short Description,Короткий опис
+Submit the consolidated order before creating a Purchase Invoice.,Проведіть зведене замовлення перед створенням вхідного рахунку-фактури.
+Supplier Invoice PDF,PDF рахунку постачальника
+Supplier Invoices,Рахунки постачальників
+Task Payments,Оплати за завданням
+"The fiscal receipt must be a PDF, JPG, JPEG or PNG file.","Фіскальний чек має бути файлом PDF, JPG, JPEG або PNG."
+The fiscal receipt must be uploaded as a private file.,Фіскальний чек потрібно завантажити як приватний файл.
+The payment can be submitted without a receipt and the receipt can be attached later.,Оплату можна провести без чека та прикріпити чек пізніше.
+The purchase receipt must be a PDF file.,Чек про придбання має бути PDF-файлом.
+The reason cannot contain more than {0} characters.,Причина не може містити більше ніж {0} символів.
+The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
+The supplier invoice must be a PDF file.,Рахунок постачальника має бути PDF-файлом.
+The uploaded fiscal receipt could not be found.,Завантажений фіскальний чек не знайдено.
+There are no Material Requests yet.,Замовлень матеріалів ще немає.
+There are no Payment Requests yet.,Запитів на оплату ще немає.
+There are no suppliers with unbilled Purchase Orders.,Немає постачальників із замовленнями на придбання без рахунків.
+Unsupported File Format,Непідтримуваний формат файлу
+invoices created,рахунків створено
+Cooperates With,Співпрацює з:
+Private Entrepreneur,Приватний підприємець
+Row {0}: Company is required.,Рядок {0}: поле «Компанія» є обов’язковим.
+Row {0}: A different Company can only be selected when the Supplier is a Private Entrepreneur and cooperates with it.,Рядок {0}: іншу компанію можна вибрати лише тоді, коли постачальник є приватним підприємцем і співпрацює з нею.
+A supplier cannot cooperate with itself.,Постачальник не може співпрацювати сам із собою.
+The same cooperating supplier cannot be added more than once.,Того самого пов’язаного постачальника не можна додавати кілька разів.
+Attach at least one supplier invoice for {0} before creating a Purchase Invoice.,Прикріпіть щонайменше один рахунок постачальника для {0} перед створенням вхідного рахунку-фактури.
+Supplier invoice required,Потрібен рахунок постачальника
+Supplier invoices are missing for: {0}. Attach at least one supplier invoice before creating a Purchase Invoice for these suppliers.,Відсутні рахунки постачальників для: {0}. Прикріпіть щонайменше один рахунок перед створенням вхідного рахунку-фактури для цих постачальників.
+Awaiting Purchase Receipt and supplier delivery notes,Очікується прихідна та видаткова накладні
+Awaiting supplier delivery notes,Очікуються видаткові накладні постачальників
+Use a workflow action for this transition and provide a reason.,Виконайте цей перехід через дію workflow та вкажіть причину.
+Workflow Action Reason,Причина дії workflow
+performed action “{0}”,виконав дію «{0}»
+{0} created this Purchase Order from {1}.,{0} створив це замовлення на придбання з {1}.
+{0} submitted the Material Request and transferred it to procurement.,{0} провів замовлення матеріалів і передав його до закупівель.
+{0} {1} for the following reason:<br>{2},{0} {1} з такої причини:<br>{2}
+{0} {1} {2} for this task.,{0} {1} {2} для цього завдання.
+Scanner is required,Вкажіть сканер
+Scanner {0} not found,Сканер {0} не знайдено
+Scanner {0} is not assigned to you,Сканер {0} не закріплено за вами
+Context field key is required,Вкажіть ключ поля контексту
+Unknown context field {0},Невідоме поле контексту {0}
+Context field {0} is not editable from the app,Поле контексту {0} не можна змінювати з застосунку
+Context field {0} has no options to pick from,Поле контексту {0} не має варіантів для вибору
+{0} is not a valid option for {1},{0} не є допустимим варіантом для {1}
+{0} {1} not found,{0} {1} не знайдено
+{0} {1} is not available for selection,{0} {1} недоступний для вибору
+Finish or reset the session first — it still holds: {0},Спершу завершіть або скиньте сесію — у ній ще є: {0}
+{0} pcs,{0} шт.
+{0} values,{0} значень
+Context field {0}: Key is required,Поле контексту {0}: вкажіть ключ
+Duplicate context field keys: {0},Дублікати ключів полів контексту: {0}
+Context field {0}: Options is required for a Select field,Поле контексту {0}: для типу «Вибір» потрібні «Варіанти»
+Context field {0}: Link DocType is required for a Link field,Поле контексту {0}: для типу «Посилання» потрібен «DocType посилання»
+Link DocType,DocType посилання
+Context field {0}: Primary requires App Editable,Поле контексту {0}: «Основне» вимагає «Можна змінювати з застосунку»
+Context field {0}: Primary cannot be Preserve On Switch — the primary key is always rewritten by the switch,Поле контексту {0}: «Основне» не може бути «Зберігати при перемиканні» — основний ключ завжди перезаписується при перемиканні
+Context field {0}: Enter State '{1}' is not a state of this script,Поле контексту {0}: стан «{1}» не належить цьому скрипту
+Context field {0}: Link Filters is not valid JSON,Поле контексту {0}: «Фільтри зв'язку» не є коректним JSON
+Context field {0}: Link Filters must be a JSON object,Поле контексту {0}: «Фільтри зв'язку» мають бути об'єктом JSON
+Workplace Script Context Field,Поле контексту скрипта робочого місця
+Context Fields,Поля контексту
+Field Type,Тип поля
+Show In App,Показувати в застосунку
+App Editable,Можна змінювати з застосунку
+Primary,Основне
+Preserve On Switch,Зберігати при перемиканні
+Blocks Switch,Блокує перемикання
+App Behaviour,Поведінка в застосунку
+Enter State,Переходити у стан
+Link Filters,Фільтри зв'язку
+Link Order By,Сортування зв'язку
+Context field {0}: Editable In States requires App Editable,Поле контексту {0}: «Редагується у станах» вимагає «Можна змінювати з застосунку»
+Context field {0}: '{1}' is not a state of this script,Поле контексту {0}: «{1}» не є станом цього скрипта
+{0} cannot be changed at this step — reset the session to change it,"{0} не можна змінити на цьому кроці — щоб змінити, скиньте сесію"
+Editable In States,Редагується у станах
+"Seeded into a fresh session context, so the operator starts with this value already chosen. A Link is checked against Link Filters.","Підставляється в новий контекст сесії, тож оператор починає роботу з уже обраним значенням. Для «Посилання» значення перевіряється «Фільтрами зв'язку»."
+"One state name per line: the app may write this key only while the session sits in one of them, and shows it read-only elsewhere. Blank — editable in every state.","По одному стану в рядку: застосунок може записувати цей ключ, лише поки сесія перебуває в одному з них; у решті станів показує його лише для читання. Порожньо — редагується в будь-якому стані."
+"Literal key inside the runtime context dict, as the script reads it: e.g. e.state.context.get(""so"").","Ключ у словнику контексту під час виконання — саме так, як його читає скрипт: напр. e.state.context.get(""so"")."
+Shown to the operator in the mobile app. Falls back to Key.,Показується оператору в мобільному застосунку. Якщо порожнє — використовується «Ключ».
+For Link: the target DocType (e.g. Sales Order). For Select: one option per line.,Для «Link»: цільовий DocType (напр. Sales Order). Для «Select»: по одному варіанту в рядку.
+Uncheck for internal bookkeeping keys the operator should never see.,"Знімайте позначку для внутрішніх службових ключів, яких оператор не має бачити."
+The mobile app may write this key.,Мобільний застосунок може записувати цей ключ.
+The entity this session is about (e.g. the Sales Order being packed). Setting it from the app clears every other key except those marked Preserve On Switch. Requires App Editable.,"Сутність, якій присвячена сесія (напр. замовлення, яке пакують). Встановлення з застосунку очищає всі інші ключі, крім позначених «Зберігати при перемиканні». Вимагає «Можна змінювати з застосунку»."
+"This key survives a primary switch. Use for operator choices that outlive the entity (printer, box type).","Цей ключ зберігається при перемиканні основної сутності. Для вибору оператора, який живе довше за сутність (принтер, тип коробки)."
+"While this key holds a non-empty value, the app refuses to switch the primary entity and asks the operator to finish or reset the session first. Use for keys recording work already committed to the database.","Поки цей ключ має непорожнє значення, застосунок відмовляється перемикати основну сутність і просить спершу завершити або скинути сесію. Для ключів, що фіксують роботу, вже записану в базу."
+State to enter when the app sets this key. Leave blank to stay in the current state. Must be a state of this script.,"Стан, у який перейти, коли застосунок встановлює цей ключ. Порожнє — залишитися в поточному стані. Має бути станом цього скрипта."
+"JSON object of frappe filters restricting the options offered for a Link field, e.g. {""docstatus"": 1}. Also re-applied server-side when the app writes the value.","Об'єкт JSON із фільтрами frappe, що обмежують варіанти для поля «Link», напр. {""docstatus"": 1}. Також перевіряється на сервері, коли застосунок записує значення."
+"Order clause for Link options, e.g. transaction_date desc.","Сортування варіантів «Link», напр. transaction_date desc."
+"Declares the runtime context contract of this script: which keys live in e.state.context, how they are typed, which ones the mobile app may show and steer, and what survives when the operator switches the primary entity from the app. Purely declarative - the scanner runtime ignores these rows, so a script with none behaves exactly as before.","Описує контракт контексту цього скрипта: які ключі живуть у e.state.context, якого вони типу, які з них мобільний застосунок може показувати й змінювати та що зберігається, коли оператор перемикає основну сутність із застосунку. Суто декларативно — рушій сканера ці рядки ігнорує, тому скрипт без них працює точно як раніше."
+Scanner {0} has no workplace script,Сканер {0} не має скрипта робочого місця
+{0} is not a flow of {1},{0} не є потоком скрипта {1}
+Flow {0} has no initial state,Потік {0} не має початкового стану
+Flow Configuration,Налаштування потоку
+Diagram,Діаграма
+Dotchain Number,Номер Дотчейн
+Optional. The order's number in Dotchain.,Необов'язково. Номер замовлення в Дотчейн.
+Serial No is required,Потрібен серійний номер
+{0} has no closed Job Card to finish,"У {0} немає закритої карти завдань, яку можна завершити"
+Manufacture At Packing,Виготовлення на пакуванні
+Android app required,Потрібна версія Android-додатка
+Published: {0},Опубліковано: {0}
+Published: {0} — update required,Опубліковано: {0} — потрібне оновлення
+The published Android app is older than this server needs,"Опублікований Android-додаток старіший, ніж потрібно цьому серверу"
+This server was deployed expecting Android app {0}.,Цей сервер розгорнуто з розрахунком на Android-додаток {0}.
+The newest APK published here is {0}.,"Найновіший APK, опублікований тут — {0}."
+No APK has been published on this site yet.,На цьому сайті ще не опубліковано жодного APK.
+Last release poll failed: {0},Останнє опитування релізів не вдалося: {0}
+"Publish the matching release, then check Mobile App Settings.",Опублікуйте відповідний реліз і перевірте «Налаштування мобільного додатка».
+Android app out of date,Android-додаток застарів
+No Android APK is published on this site. This server needs {0}.,На цьому сайті не опубліковано жодного Android APK. Цьому серверу потрібен {0}.
+"Published Android app is {0}, but this server needs {1}.","Опублікований Android-додаток — {0}, а цьому серверу потрібен {1}."
+Required Android App Version,Потрібна версія Android-додатка
+Written on every migrate from the version this server build was shipped with. A warning is raised when the APK published here is older than this.,"Записується під час кожної міграції з версії, з якою зібрано цей сервер. Якщо опублікований APK старіший — показується попередження."
+Reject Warehouse,Склад браку
+"Where a unit that failed its quality inspection is stocked. It is still manufactured — the materials were consumed — it just does not join the finished goods. Left empty, a rejected unit closes its Job Card and enters no warehouse at all.","Куди оприбутковується одиниця, яка не пройшла перевірку якості. Її все одно виготовлено — матеріали витрачено — просто вона не потрапляє до готової продукції. Якщо поле порожнє, бракована одиниця лише закриває свою карту завдань і на склад не потрапляє."
+{0} failed quality inspection {1} and is not packed,{0} не пройшла перевірку якості {1} і не пакується
+Message actions,Дії з повідомленням
+Copy message,Копіювати повідомлення
+Reply to message,Відповісти на повідомлення
+Nothing to copy,Нема чого копіювати
+Show more,Показати більше
+Show less,Згорнути
+Workplace Script Workplace,Робоче місце скрипта робочого місця
+Workplaces,Робочі місця
+"Subflow scripts (with Parent Script) must not have Workplaces assigned","Скрипти підпотоку (з батьківським скриптом) не можуть мати призначених робочих місць"
+"Parent Script cannot reference itself","Батьківський скрипт не може посилатися сам на себе"
+"Workplace {0} is listed twice","Робоче місце {0} вказано двічі"
+"An active Workplace Script already exists for workplace {0}: {1}","Активний Скрипт робочого місця для робочого місця {0} вже існує: {1}"
+"An active default Workplace Script (no workplace) already exists: {0}","Активний Скрипт робочого місця за замовчуванням (без робочого місця) вже існує: {0}"
+"Benches that run this script. Leave empty for a default script that runs when no workplace-specific script is found. A bench may appear in only one active script.","Робочі місця, на яких виконується цей скрипт. Залиште порожнім для скрипта за замовчуванням, який виконується, коли скрипт для робочого місця не знайдено. Робоче місце може бути лише в одному активному скрипті."
+"If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."
+"Two printers are set for purpose {0}","Для призначення {0} задано два принтери"
+"Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.","Які етикетки друкує цей принтер, напр. Package, Passed, Failed. Порожньо — будь-які."
+"Print Job {0} was not printed by this scanner","Завдання друку {0} надруковано не цим сканером"
+"Scan Log Entry","Запис журналу сканувань"
+"The scan whose script queued this label (Scanner Scan Log Entry)","Сканування, скрипт якого поставив цю етикетку в чергу (запис журналу сканувань)"
+Packing Progress,Прогрес пакування
+Attached,Прикріплено
+Over,Понад план,Packing Progress
+"Mobile App Settings","Налаштування мобільного застосунку"
+"Mobile App Release","Реліз мобільного застосунку"
+"Where the companion mobile apps get their builds from","Звідки мобільні застосунки отримують свої збірки"
+"A published build of a companion mobile app, with its APK mirrored onto this site","Опублікована збірка мобільного застосунку, APK якої скопійовано на цей сайт"
+"Instance","Екземпляр"
+"Shown on the phone when this site is set up from the login page QR (e.g. Prod, Dev). Empty falls back to the site's host name.","Показується на телефоні, коли сайт налаштовують через QR-код зі сторінки входу (напр. Prod, Dev). Якщо порожньо — використовується ім'я хоста сайту."
+"Absolute URL the phone should use for this site, including the port (e.g. http://172.16.51.10:8080). Set it when the site is reached on a non-default port: nginx forwards the Host header without one, so the login QR and APK links otherwise point at port 80.","Повна адреса, за якою телефон звертається до цього сайту, разом із портом (напр. http://172.16.51.10:8080). Вкажіть її, якщо сайт працює на нестандартному порту: nginx передає заголовок Host без порту, тож інакше QR-код входу та посилання на APK вказують на порт 80."
+"GitHub Releases","Релізи GitHub"
+"Poll GitHub For New Releases","Перевіряти нові релізи на GitHub"
+"Mirror the newest GitHub Release's APK onto this site once an hour","Раз на годину копіювати APK найновішого релізу GitHub на цей сайт"
+"Repository (owner/name)","Репозиторій (owner/name)"
+"GitHub Token","Токен GitHub"
+"Personal access token with read access to the repository. Falls back to github_token in site_config.json when empty.","Персональний токен доступу з правом читання репозиторію. Якщо порожньо — використовується github_token із site_config.json."
+"Compatibility","Сумісність"
+"Minimum Android App Version","Мінімальна версія Android-додатка"
+"Overrides the built-in minimum Android app version. Leave empty to use the version shipped with this app.","Замінює вбудовану мінімальну версію Android-додатка. Залиште порожнім, щоб використовувати версію, що постачається з цим застосунком."
+"Last Poll","Остання перевірка"
+"Latest Version","Остання версія"
+"Last Polled On","Час останньої перевірки"
+"Last Error","Остання помилка"
+"Version name as the app reports it, without a leading v (e.g. 0.4.10)","Назва версії, як її повідомляє застосунок, без початкової v (напр. 0.4.10)"
+"Git tag the build came from","Git-тег, з якого зібрано збірку"
+"Only active releases are offered to devices","Пристроям пропонуються лише активні релізи"
+"GitHub Asset ID","ID файлу на GitHub"
+"APK","APK"
+"The installable APK served to devices. Uploaded by the GitHub poller, or attached by hand.","APK для встановлення, який отримують пристрої. Завантажується автоматично з GitHub або прикріплюється вручну."
+"APK Size (Bytes)","Розмір APK (байти)"
+"GitHub repository or token is not configured","Не налаштовано репозиторій або токен GitHub"
+"Latest GitHub release has no tag","Останній реліз на GitHub не має тегу"
+"Release {0} has no .apk asset","Реліз {0} не містить файлу .apk"
+"Published On","Дата публікації"
+Engagement Channel Detail,Деталізація каналу
+The month for which the client has a purchase budget.,"Місяць, на який у замовника є бюджет на закупівлю."
+{0} belongs to the engagement channel {1},{0} належить до каналу залучення {1}
+Invalid Engagement Channel Detail,Некоректна деталізація каналу
+Lead Expense,Витрата по зверненню
+Lead Expense Type,Тип витрат
+Lead Expense Item,Позиція витрати
+Expense Type,Тип витрат
+Expense Kind,Вид витрати
+Expense Date,Дата витрати
+Money,Гроші
+Stock Entry Status,Статус руху ТМЦ
+Add Expense,Додати витрату
+No expenses yet,Витрат поки немає
+Not Submitted,Не проведено
+Save the Lead to add expenses.,"Збережіть звернення, щоб додати витрати."
+Expense Type {0} is disabled,Тип витрат {0} вимкнено
+Add at least one item to a materials expense,Додайте хоча б одну позицію до матеріальної витрати
+Row #{0}: {1} is not a stock item,Рядок #{0}: {1} не є складською позицією
+Row #{0}: quantity must be greater than zero,Рядок #{0}: кількість має бути більше нуля
+Expense {0} for Lead {1}: {2},Витрата {0} по зверненню {1}: {2}
+Awaiting Warehouse,Очікує складу
+Materials expense {0} for Lead {1} is waiting for a warehouse,Матеріальна витрата {0} по зверненню {1} очікує вибору складу
+A stock entry can only be created for a submitted materials expense,Рух ТМЦ можна створити лише для проведеної матеріальної витрати
+Has Draft,Є чернетка
+Partially Issued,Частково списано
+Fully Issued,Списано
+Partially Issued (Closed),Списано частково (закрито)
+Remainder Closed,Залишок закрито
+Issued Quantity,Списано
+Issued / Required,списано / потрібно
+Close Remainder,Закрити залишок
+Close the remainder of this expense? No more stock entries can be created for it.,Закрити залишок цієї витрати? Нові рухи ТМЦ для неї створити буде неможливо.
+The remainder of expense {0} is closed,Залишок витрати {0} закрито
+Nothing is left to issue for expense {0},За витратою {0} списувати більше нічого
+Submit or delete the draft stock entries of expense {0} first,Спершу проведіть або видаліть чернетки рухів ТМЦ витрати {0}
+Row #{0}: {1} is already listed,Рядок #{0}: {1} уже є у списку
+Row #{0}: {1} is not part of expense {2},Рядок #{0}: {1} немає у витраті {2}
+Only {0} of {1} is left to issue for expense {2},За витратою {2} залишилось списати лише {0} {1}
+A stock entry for expense {0} must be a Material Issue of company {1},Рух ТМЦ для витрати {0} має бути списанням матеріалів компанії {1}

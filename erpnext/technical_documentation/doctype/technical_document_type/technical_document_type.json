@@ -19,7 +19,6 @@
   "has_modifications",
   "extensions_column_break",
   "requires_completeness",
-  "has_specification_data",
   "description_section",
   "description"
  ],
@@ -82,13 +81,6 @@
    "default": "0"
   },
   {
-   "default": "0",
-   "description": "ЄСКД catalog: kind, organization code and number template; its designations are the modifications.",
-   "fieldname": "has_specification_data",
-   "fieldtype": "Check",
-   "label": "Has Specification Data"
-  },
-  {
    "fieldname": "description_section",
    "fieldtype": "Section Break",
    "label": "Description"
@@ -102,7 +94,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-19 18:00:00.000000",
+ "modified": "2026-09-18 00:01:43.128475",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Document Type",

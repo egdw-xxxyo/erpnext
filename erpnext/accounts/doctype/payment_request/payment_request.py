@@ -112,10 +112,34 @@ class PaymentRequest(Document):
 		if self.get("__islocal"):
 			self.status = "Draft"
 		self.validate_reference_document()
+		self.validate_supplier_bank_account()
 		self.validate_against_payment_reference()
 		self.validate_payment_request_amount()
 		# self.validate_currency()
 		self.validate_subscription_details()
+
+	def validate_supplier_bank_account(self):
+		if self.payment_request_type != "Outward" or self.party_type != "Supplier" or not self.bank_account:
+			return
+
+		bank_account = frappe.db.get_value(
+			"Bank Account",
+			self.bank_account,
+			["party_type", "party", "is_company_account", "disabled"],
+			as_dict=True,
+		)
+		if (
+			not bank_account
+			or bank_account.party_type != "Supplier"
+			or bank_account.party != self.party
+			or bank_account.is_company_account
+			or bank_account.disabled
+		):
+			frappe.throw(
+				_("Bank Account {0} does not belong to Supplier {1}").format(
+					frappe.bold(self.bank_account), frappe.bold(self.party)
+				)
+			)
 
 	def validate_against_payment_reference(self):
 		if not self.payment_reference:
@@ -371,15 +395,20 @@ class PaymentRequest(Document):
 			bank_amount = flt(self.outstanding_amount / exchange_rate, self.precision("grand_total"))
 
 		# outstanding amount is already in Part's account currency
-		payment_entry = get_payment_entry(
-			self.reference_doctype,
-			self.reference_name,
-			party_amount=party_amount,
-			bank_account=self.payment_account,
-			bank_amount=bank_amount,
-			created_from_payment_request=True,
-		)
-		payment_entry.set_missing_ref_details(force=True)
+		previous_permission_flag = frappe.flags.get("ignore_payment_request_reference_permission")
+		frappe.flags.ignore_payment_request_reference_permission = True
+		try:
+			payment_entry = get_payment_entry(
+				self.reference_doctype,
+				self.reference_name,
+				party_amount=party_amount,
+				bank_account=self.payment_account,
+				bank_amount=bank_amount,
+				created_from_payment_request=True,
+			)
+			payment_entry.set_missing_ref_details(force=True)
+		finally:
+			frappe.flags.ignore_payment_request_reference_permission = previous_permission_flag
 
 		payment_entry.update(
 			{
@@ -1186,7 +1215,10 @@ def get_irequests_of_payment_request(doc: str | None = None) -> list:
 
 
 @frappe.whitelist()
-def get_available_payment_schedules(reference_doctype, reference_name):
+def get_available_payment_schedules(reference_doctype: str, reference_name: str):
+	if not frappe.get_single_value("Accounts Settings", "fetch_payment_schedule_in_payment_request"):
+		return []
+
 	ref_doc = frappe.get_doc(reference_doctype, reference_name)
 	ref_doc.check_permission()
 

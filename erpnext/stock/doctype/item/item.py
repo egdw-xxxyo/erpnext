@@ -287,9 +287,7 @@ class Item(Document):
 			return
 		self.specification = frappe.db.get_value("Item", self.variant_of, "specification")
 		if self.specification:
-			self.specification_code = frappe.db.get_value(
-				"Technical Document", self.specification, "display_code"
-			)
+			self.specification_code = frappe.db.get_value("Specification", self.specification, "display_code")
 
 	def _sync_spec_from_template(self):
 		if not self.variant_of:

@@ -1,0 +1,442 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "CON-PO-.YYYY.-.#####",
+ "creation": "2026-08-13 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "transaction_date",
+  "column_break_main",
+  "currency",
+  "request_initiator_html",
+  "request_initiator_user",
+  "lead_buyer_html",
+  "initiator_user",
+  "material_request",
+  "items_already_purchased",
+  "prepaid_purchase_note",
+  "set_supplier",
+  "approval_route_section",
+  "approval_route_html",
+  "material_request_comments_section",
+  "material_request_comments_html",
+  "items_section",
+  "items",
+  "totals_section",
+  "total_qty",
+  "per_billed",
+  "column_break_totals",
+  "grand_total",
+  "payment_receipts_progress",
+  "payment_receipt_count",
+  "payment_invoice_count",
+  "per_paid",
+  "supplier_contacts_section",
+  "supplier_contacts_html",
+  "supplier_invoices_section",
+  "supplier_invoices",
+  "delivery_notes_section",
+  "delivery_notes",
+  "workflow_details_section",
+  "workflow_action_reason",
+  "current_assignees",
+  "procurement_participants",
+  "procurement_completion_status",
+  "final_approval_count",
+  "ceo_approval_threshold",
+  "final_approved_by_1",
+  "final_approved_by_2",
+  "generated_documents_section",
+  "purchase_orders_html",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "transaction_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "request_initiator_html",
+   "fieldtype": "HTML",
+   "label": "Initiator User"
+  },
+  {
+   "fieldname": "request_initiator_user",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Initiator User",
+   "no_copy": 1,
+   "options": "User"
+  },
+  {
+   "fieldname": "lead_buyer_html",
+   "fieldtype": "HTML",
+   "label": "Lead Buyer"
+  },
+  {
+   "default": "__user",
+   "fieldname": "initiator_user",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Lead Buyer",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "material_request",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Material Request",
+   "no_copy": 1,
+   "options": "Material Request",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_already_purchased",
+   "fieldtype": "Check",
+   "label": "Items Already Purchased",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.items_already_purchased",
+   "fieldname": "prepaid_purchase_note",
+   "fieldtype": "Small Text",
+   "label": "Prepaid Purchase Note",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "set_supplier",
+   "fieldtype": "Link",
+   "label": "Set Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "approval_route_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approval_route_html",
+   "fieldtype": "HTML",
+   "label": "Approval Route"
+  },
+  {
+   "fieldname": "material_request_comments_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Коментар замовника матеріалів"
+  },
+  {
+   "fieldname": "material_request_comments_html",
+   "fieldtype": "HTML",
+   "hidden": 1,
+   "label": "Коментар замовника матеріалів"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items by Supplier"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Consolidated Purchase Order Item",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "supplier_contacts_section",
+   "fieldtype": "Section Break",
+   "label": "Contacts"
+  },
+  {
+   "fieldname": "supplier_contacts_html",
+   "fieldtype": "HTML",
+   "label": "Contacts"
+  },
+  {
+   "fieldname": "supplier_invoices_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Invoices"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "supplier_invoices",
+   "fieldtype": "Table",
+   "label": "Supplier Invoices",
+   "options": "Consolidated Purchase Supplier Invoice"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "delivery_notes_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Delivery Notes"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "delivery_notes",
+   "fieldtype": "Table",
+   "label": "Supplier Delivery Notes",
+   "options": "Consolidated Purchase Delivery Note"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "per_billed",
+   "fieldtype": "Percent",
+   "label": "Billed",
+   "no_copy": 1,
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Grand Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_receipts_progress",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_receipt_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Fully Paid Suppliers",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_invoice_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Suppliers in Payment Progress",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "per_paid",
+   "fieldtype": "Percent",
+   "hidden": 1,
+   "label": "Paid Amount Percentage",
+   "no_copy": 1,
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "workflow_details_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Details"
+  },
+  {
+   "fieldname": "workflow_action_reason",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Decision Reason",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "current_assignees",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Current Assignee",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "procurement_participants",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Procurement Participants",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "Підготовка",
+   "fieldname": "procurement_completion_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Procurement Status",
+   "no_copy": 1,
+   "options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_approval_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Final Approval Count",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "ceo_approval_threshold",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "CEO Approval Threshold",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_approved_by_1",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Final Approved By 1",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_approved_by_2",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Final Approved By 2",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "generated_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Generated Documents"
+  },
+  {
+   "fieldname": "purchase_orders_html",
+   "fieldtype": "HTML",
+   "label": "Purchase Orders"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Consolidated Purchase Order",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "custom_consolidated_purchase_order"
+  },
+  {
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "custom_consolidated_purchase_order"
+  }
+ ],
+ "modified": "2026-08-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Buying",
+ "name": "Consolidated Purchase Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Закупівельник",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Payments: Керівник підрозділу",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Payments: Фінальний погоджувач",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "company,workflow_state",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

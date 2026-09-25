@@ -15,12 +15,6 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 	});
 	list_field.$wrapper.css({ "min-width": "480px" });
 
-	page.set_primary_action(__("New Modification"), () => {
-		const modification_list = list_field.get_value();
-		if (!modification_list) return;
-		frappe.new_doc("Product Modification", { technical_document: modification_list });
-	});
-
 	const $container = $('<div class="bpak-matrix"></div>').appendTo(page.body);
 	let items = {};
 
@@ -61,7 +55,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 
 	function spec_link(name, label) {
 		if (!name) return "";
-		return `<a href="/app/product-modification/${encodeURIComponent(name)}">${esc(label || name)}</a>`;
+		return `<a href="/app/specification/${encodeURIComponent(name)}">${esc(label || name)}</a>`;
 	}
 
 	function items_button(specification) {
@@ -107,7 +101,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 				const lists = r.message || [];
 				list_field.df.options = lists.map((l) => ({
 					value: l.name,
-					label: `${l.document_title} ${l.document_code}`,
+					label: `${l.specification_name} ${l.display_code}`,
 				}));
 				list_field.refresh();
 				if (lists.length) {
@@ -153,16 +147,14 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 
 		for (const row of rows) {
 			html += "<tr>";
-			html += `<td><a href="/app/product-modification/${encodeURIComponent(row.modification)}">${esc(
-				row.code
-			)}</a></td>`;
-			html += `<td>${esc(row.name)}</td>`;
+			html += `<td>${spec_link(row.modification, __("Modification {0}", [row.ordinal]))}</td>`;
+			html += `<td>${esc(row.description)}</td>`;
 			html += `<td>${spec_link(row.board, row.board_code)} ${items_button(row.board)}</td>`;
 			for (const column of columns) {
 				if (row.ground_station === column.name) {
-					html += `<td class="gs-cell gs-marked" data-modification="${esc(
-						row.modification
-					)}" title="${esc(row.code)}">${items_button(row.modification)}</td>`;
+					html += `<td class="gs-cell gs-marked" data-spec="${esc(row.modification)}" title="${esc(
+						row.code
+					)}">${items_button(row.modification)}</td>`;
 				} else {
 					html += '<td class="gs-cell"></td>';
 				}
@@ -182,7 +174,7 @@ frappe.pages["eskd-bpak-matrix"].on_page_load = function (wrapper) {
 			show_items($(this).attr("data-spec"));
 		});
 		$container.find("td.gs-marked").on("click", function () {
-			frappe.set_route("Form", "Product Modification", $(this).attr("data-modification"));
+			frappe.set_route("Form", "Specification", $(this).attr("data-spec"));
 		});
 	}
 

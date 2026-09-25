@@ -21,11 +21,6 @@
   "product_type",
   "product_subtype",
   "product_model",
-  "specification_section",
-  "specification_kind",
-  "organization_code",
-  "specification_column_break",
-  "specification_number_template",
   "iso_section",
   "responsible",
   "responsible_department",
@@ -234,38 +229,6 @@
    "fieldname": "product_model",
    "fieldtype": "Data",
    "label": "Product Model"
-  },
-  {
-   "depends_on": "eval:doc.__onload && doc.__onload.type_flags && doc.__onload.type_flags.has_specification_data",
-   "fieldname": "specification_section",
-   "fieldtype": "Section Break",
-   "label": "Specification",
-   "description": "Catalog of ЄСКД designations: every designation under this prefix is a modification below."
-  },
-  {
-   "fieldname": "specification_kind",
-   "fieldtype": "Select",
-   "in_standard_filter": 1,
-   "label": "Specification Kind",
-   "options": "\nBoard\nCoil\nBattery\nGround Station\nOther"
-  },
-  {
-   "default": "УКРП",
-   "description": "Organization code prefix of the ЄСКД designation (УКРП, ВРНК).",
-   "fieldname": "organization_code",
-   "fieldtype": "Data",
-   "label": "Organization Code"
-  },
-  {
-   "fieldname": "specification_column_break",
-   "fieldtype": "Column Break"
-  },
-  {
-   "description": "Optional. Its Overrides table replaces the designation of a modification in its Display Code.",
-   "fieldname": "specification_number_template",
-   "fieldtype": "Link",
-   "label": "Specification Number Template",
-   "options": "Specification Number Template"
   },
   {
    "fieldname": "iso_section",
@@ -812,7 +775,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-19 18:00:00.000000",
+ "modified": "2026-09-18 22:32:36.214475",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Document",

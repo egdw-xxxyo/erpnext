@@ -19,6 +19,8 @@
   "reference_name",
   "parent_doctype",
   "parent_name",
+  "scanner",
+  "scan_log_entry",
   "raw_data",
   "preview_section",
   "preview_html",
@@ -126,6 +128,22 @@
    "read_only": 1
   },
   {
+   "fieldname": "scanner",
+   "fieldtype": "Link",
+   "label": "Scanner",
+   "options": "Scanner",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "scan_log_entry",
+   "fieldtype": "Data",
+   "label": "Scan Log Entry",
+   "read_only": 1,
+   "search_index": 1,
+   "description": "The scan whose script queued this label (Scanner Scan Log Entry)"
+  },
+  {
    "fieldname": "raw_data",
    "fieldtype": "Code",
    "label": "Raw Data",
@@ -195,7 +213,7 @@
  "allow_comments": 0,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-14 12:00:00.000000",
+ "modified": "2026-09-25 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Print Job",

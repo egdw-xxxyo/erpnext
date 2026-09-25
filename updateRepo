@@ -9,6 +9,29 @@ cd "$DIR"
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
+# Deployments follow the submodule commit this repo pins, never the tip of frappe's branch:
+# the pinned commit is what the erpnext commit was tested against. Pass --bump-submodules on
+# a development machine to move the pointer forward, then commit it.
+BUMP_SUBMODULES=0
+for arg in "$@"; do
+    case "$arg" in
+        --bump-submodules) BUMP_SUBMODULES=1 ;;
+        *) echo "unknown option: $arg" >&2; exit 2 ;;
+    esac
+done
+
+# A previous run that bumped the pointer leaves the gitlink modified — staged, even — and
+# `git pull` then refuses to touch it: "Your local changes to the following files would be
+# overwritten by merge: frappe". Nothing here is worth keeping: the pointer that matters
+# arrives with the pull.
+if ! git diff --quiet -- frappe || ! git diff --cached --quiet -- frappe; then
+    echo "==> Discarding local frappe pointer (the pull brings the pinned one)..."
+    git restore --staged --worktree -- frappe 2>/dev/null || {
+        git reset -q -- frappe
+        git checkout -- frappe
+    }
+fi
+
 ops_step repo start "Pulling erpnext ($BRANCH)"
 echo "==> Pulling erpnext (branch: $BRANCH)..."
 git pull origin "$BRANCH"
@@ -32,19 +55,26 @@ ops_step submodules start "Updating submodules"
 echo "==> Syncing submodule URLs from .gitmodules..."
 git submodule sync
 
-echo "==> Updating submodules to latest remote branch..."
-git submodule update --init --remote
+if [ "$BUMP_SUBMODULES" = "1" ]; then
+    echo "==> Updating submodules to the tip of their remote branch..."
+    git submodule update --init --remote
+else
+    echo "==> Checking out the pinned submodule commits..."
+    git submodule update --init --force
+fi
 
 ops_step submodules ok "Submodules updated"
 echo "==> Submodule status:"
 git submodule status
 
-echo ""
-echo "==> Checking for submodule pointer changes..."
-if git diff --quiet frappe 2>/dev/null; then
-    echo "No submodule changes."
-else
-    git add frappe
-    echo "Submodules updated. Commit with: git commit -m 'Update frappe submodule'"
+if [ "$BUMP_SUBMODULES" = "1" ]; then
+    echo ""
+    echo "==> Checking for submodule pointer changes..."
+    if git diff --quiet frappe 2>/dev/null; then
+        echo "No submodule changes."
+    else
+        git add frappe
+        echo "Submodules updated. Commit with: git commit -m 'Update frappe submodule'"
+    fi
 fi
 ops_step done ok "Repo up to date"

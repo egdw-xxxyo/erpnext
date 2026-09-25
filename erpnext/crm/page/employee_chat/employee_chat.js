@@ -273,6 +273,26 @@ class EmployeeChat {
 		.ec-bubble:hover .ec-bubble-actions{display:flex;}
 		.ec-act{cursor:pointer;background:var(--card-bg);border:1px solid var(--border-color);border-radius:50%;width:22px;height:22px;line-height:20px;text-align:center;font-size:12px;}
 		.ec-act:hover{background:var(--bg-light-gray);}
+		/* The kebab sits inside the bubble's own corner so it never covers the neighbouring
+		   message, and it is keyboard reachable rather than hover-only. */
+		.ec-kebab{position:absolute;top:1px;left:2px;width:18px;height:18px;line-height:18px;text-align:center;
+			border-radius:4px;cursor:pointer;color:var(--text-muted);font-size:12px;opacity:0;transition:opacity .1s;}
+		.ec-bubble:hover .ec-kebab,.ec-kebab.open,.ec-kebab:focus{opacity:.9;}
+		.ec-kebab:hover{background:rgba(0,0,0,.08);opacity:1;}
+		.ec-bubble{padding-left:20px;}
+		.ec-menu{position:absolute;z-index:30;min-width:170px;background:var(--card-bg);border:1px solid var(--border-color);
+			border-radius:6px;padding:4px 0;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:12px;}
+		.ec-menu-item{padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;color:var(--text-color);}
+		.ec-menu-item:hover{background:var(--bg-light-gray);}
+		.ec-menu-item .fa{width:12px;text-align:center;color:var(--text-muted);}
+		/* A long message is clipped to a readable preview; the full text stays in the DOM so
+		   Ctrl+F and a select-all copy still see all of it. */
+		.ec-clamp{max-height:230px;overflow:hidden;position:relative;}
+		.ec-clamp::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;
+			background:linear-gradient(to bottom,transparent,var(--card-bg));pointer-events:none;}
+		.ec-out .ec-clamp::after{background:linear-gradient(to bottom,transparent,#d9fdd3);}
+		.ec-more{cursor:pointer;color:var(--primary);font-size:11px;font-weight:600;margin-top:2px;display:inline-block;user-select:none;}
+		.ec-more:hover{text-decoration:underline;}
 		.ec-react-pop{position:absolute;z-index:10;background:var(--card-bg);border:1px solid var(--border-color);border-radius:16px;padding:3px 6px;display:flex;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);}
 		.ec-react-pop span{cursor:pointer;font-size:16px;}
 		.ec-react-pop span:hover{transform:scale(1.25);}
@@ -964,12 +984,13 @@ class EmployeeChat {
 			this.messages = older.concat(this.messages);
 			this.render_thread(false);
 			const new_h = this.$thread[0].scrollHeight;
-			console.log("[chat] employee load_older: restoring scroll", {
-				older_count: older.length,
-				prev_h,
-				new_h,
-				new_scrollTop: new_h - prev_h,
-			});
+			if (window.__chat_debug)
+				console.log("[chat] employee load_older: restoring scroll", {
+					older_count: older.length,
+					prev_h,
+					new_h,
+					new_scrollTop: new_h - prev_h,
+				});
 			this.$thread.scrollTop(new_h - prev_h);
 		}
 		this.loading_older = false;
@@ -1006,6 +1027,7 @@ class EmployeeChat {
 	}
 
 	render_thread(scroll) {
+		this.close_menu();
 		this.$thread.empty();
 		const t = this.threads[this.active] || {};
 		const is_group = t.thread_type === "Group";
@@ -1063,9 +1085,13 @@ class EmployeeChat {
 				tick = `<span class="ec-tick ${seen ? "seen" : ""}">${seen ? "✓✓" : "✓"}</span>`;
 			}
 
-			const actions = `<div class="ec-bubble-actions"><span class="ec-act ec-do-react" title="${__(
-				"React"
-			)}">😊</span><span class="ec-act ec-do-reply" title="${__("Reply")}">↩</span></div>`;
+			const actions =
+				`<div class="ec-bubble-actions"><span class="ec-act ec-do-react" title="${__(
+					"React"
+				)}">😊</span></div>` +
+				`<span class="ec-kebab" tabindex="0" role="button" title="${__(
+					"Message actions"
+				)}"><i class="fa fa-ellipsis-v"></i></span>`;
 
 			const $b = $(
 				`<div class="ec-bubble ${out ? "ec-out" : "ec-in"}" id="ec-msg-${frappe.utils.escape_html(
@@ -1085,9 +1111,22 @@ class EmployeeChat {
 			e.preventDefault();
 			this.download_encrypted(JSON.parse($(e.currentTarget).attr("data-file")));
 		});
-		this.$thread.find(".ec-do-reply").on("click", (e) => {
-			const m = $(e.currentTarget).closest(".ec-bubble").data("msg");
-			this.set_reply({ name: m.name, text: this.preview_of(m) });
+		this.$thread.find(".ec-kebab").on("click", (e) => {
+			e.stopPropagation();
+			this.message_menu(e.currentTarget);
+		});
+		this.$thread.find(".ec-kebab").on("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				this.message_menu(e.currentTarget);
+			}
+		});
+		this.$thread.find(".ec-more").on("click", (e) => {
+			const $more = $(e.currentTarget);
+			const $text = $more.prev(".ec-clampable");
+			const open = $text.hasClass("ec-clamp");
+			$text.toggleClass("ec-clamp", !open);
+			$more.text(open ? __("Show less") : __("Show more"));
 		});
 		this.$thread.find(".ec-do-react").on("click", (e) => this.react_popover(e));
 		this.$thread.find(".ec-react-badge").on("click", (e) => {
@@ -1096,12 +1135,146 @@ class EmployeeChat {
 			this.toggle_reaction(m, $badge.data("emoji"));
 		});
 
-		console.log("[chat] employee render_thread", {
-			scroll: !!scroll,
-			msg_count: this.messages.length,
-			scrollHeight: this.$thread[0].scrollHeight,
-		});
+		if (window.__chat_debug)
+			console.log("[chat] employee render_thread", {
+				scroll: !!scroll,
+				msg_count: this.messages.length,
+				scrollHeight: this.$thread[0].scrollHeight,
+			});
 		if (scroll) this.$thread.scrollTop(this.$thread[0].scrollHeight);
+	}
+
+	// --- per-message menu ---------------------------------------------------
+
+	message_menu(trigger) {
+		const $k = $(trigger);
+		const $bubble = $k.closest(".ec-bubble");
+		const m = $bubble.data("msg");
+		if (!m) return;
+
+		if (this.$menu && this.$menu.data("for") === m.name) return this.close_menu();
+		this.close_menu();
+
+		const items = [
+			{
+				icon: "fa fa-files-o",
+				label: __("Copy message"),
+				action: () => {
+					const text = this.copy_text_of(m);
+					if (!text)
+						return frappe.show_alert({ message: __("Nothing to copy"), indicator: "orange" });
+					frappe.utils.copy_to_clipboard(text);
+				},
+			},
+			{
+				icon: "fa fa-reply",
+				label: __("Reply to message"),
+				action: () => this.set_reply({ name: m.name, text: this.preview_of(m) }),
+			},
+		];
+
+		this.$menu = $(
+			`<div class="ec-menu">${items
+				.map(
+					(it, i) =>
+						`<div class="ec-menu-item" data-i="${i}"><i class="${
+							it.icon
+						}"></i>${frappe.utils.escape_html(it.label)}</div>`
+				)
+				.join("")}</div>`
+		)
+			.data("for", m.name)
+			.appendTo(this.$thread);
+
+		// Positioned inside the scroller, so it travels with the message instead of floating
+		// over the page when the thread scrolls.
+		const wrap = this.$thread[0].getBoundingClientRect();
+		const box = trigger.getBoundingClientRect();
+		const top = box.bottom - wrap.top + this.$thread.scrollTop() + 2;
+		let left = box.left - wrap.left;
+		const overflow = left + this.$menu.outerWidth() - this.$thread[0].clientWidth;
+		if (overflow > 0) left = Math.max(4, left - overflow - 4);
+		this.$menu.css({ top: `${top}px`, left: `${left}px` });
+		$k.addClass("open");
+
+		this.$menu.find(".ec-menu-item").on("click", (e) => {
+			const it = items[$(e.currentTarget).data("i")];
+			this.close_menu();
+			it.action();
+		});
+		this.close_menu_handler = (e) => {
+			if (this.$menu && !$(e.target).closest(".ec-menu,.ec-kebab").length) this.close_menu();
+		};
+		this.close_menu_key = (e) => {
+			if (e.key === "Escape") this.close_menu();
+		};
+		$(document).on("click.ecmenu", this.close_menu_handler);
+		$(document).on("keydown.ecmenu", this.close_menu_key);
+		// Scrolling the thread would leave the menu behind at its old offset.
+		this.$thread.on("scroll.ecmenu", () => this.close_menu());
+	}
+
+	close_menu() {
+		if (!this.$menu) return;
+		this.$menu.remove();
+		this.$menu = null;
+		this.$thread.find(".ec-kebab.open").removeClass("open");
+		$(document).off("click.ecmenu keydown.ecmenu");
+		this.$thread.off("scroll.ecmenu");
+	}
+
+	// What "copy" puts on the clipboard: the words of the message, and for an attachment
+	// without a caption its address, which is the only useful thing to paste.
+	copy_text_of(m) {
+		// A decrypted message lives on `_dec`, the same place the renderer reads it from; an
+		// undecrypted one has nothing to copy but its padlock.
+		if (m.is_encrypted) {
+			if (!m._dec) return "";
+			const dec = m._dec;
+			return (dec.text || (dec.link && dec.link.url) || "").trim();
+		}
+		const text = (m.message || "").trim();
+		if (text) return text;
+		if (m.content_type === "link" && m.link_data) return m.link_data.url || "";
+		if (m.attach) return frappe.urllib.get_full_url(m.attach);
+		return "";
+	}
+
+	// --- in-place updates ----------------------------------------------------
+
+	$bubble_of(name) {
+		const el = this.$thread[0] && this.$thread[0].querySelector(`[id="ec-msg-${CSS.escape(name)}"]`);
+		return el ? $(el) : null;
+	}
+
+	// Redrawing the whole thread for a read receipt is what made the messages flicker and
+	// dropped any text the reader had selected — and the other side emits one of these every
+	// time they scroll. Only the tick on the last outgoing message can change.
+	update_seen_ticks() {
+		let last_out = null;
+		for (const m of this.messages) if (m.sender === this.me) last_out = m;
+		if (!last_out) return;
+		const $b = this.$bubble_of(last_out.name);
+		if (!$b) return;
+		const seen = this.other_last_read && this.other_last_read >= last_out.creation;
+		const $tick = $b.find(".ec-tick");
+		if (!$tick.length) return;
+		$tick.toggleClass("seen", !!seen).text(seen ? "✓✓" : "✓");
+	}
+
+	// Same reasoning for a reaction: it belongs to one bubble, so only that bubble is redrawn.
+	update_reactions(m) {
+		const $b = this.$bubble_of(m.name);
+		if (!$b) return this.render_thread(false);
+		const html = this.reactions_html(m);
+		$b.find(".ec-reactions").remove();
+		if (html) {
+			const $r = $(html).appendTo($b);
+			$r.find(".ec-react-badge").on("click", (e) => {
+				const $badge = $(e.currentTarget);
+				this.toggle_reaction($badge.closest(".ec-bubble").data("msg"), $badge.data("emoji"));
+			});
+		}
 	}
 
 	// Encrypted documents have no directly usable URL — decrypt, then hand the blob to
@@ -1126,7 +1299,8 @@ class EmployeeChat {
 
 	async show_info() {
 		if (!this.active) return;
-		console.log("[chat] employee show_info (conversation name pressed)", { thread: this.active });
+		if (window.__chat_debug)
+			console.log("[chat] employee show_info (conversation name pressed)", { thread: this.active });
 		const info = await frappe.xcall(API + "get_thread_info", { thread: this.active });
 		const media = [];
 		const files = [];
@@ -1455,7 +1629,7 @@ class EmployeeChat {
 	render_body(m) {
 		if (m.is_encrypted) return this.render_encrypted_body(m);
 		const caption = m.message || "";
-		const cap_html = caption ? `<div class="ec-caption">${frappe.utils.escape_html(caption)}</div>` : "";
+		const cap_html = caption ? this.text_html(caption, "ec-caption") : "";
 		if (m.content_type === "link") {
 			return this.link_card_html(m.link_data);
 		}
@@ -1472,9 +1646,24 @@ class EmployeeChat {
 			);
 			return `<a class="ec-doc" href="${url}" target="_blank" download>📎 ${fname}</a>${cap_html}`;
 		}
-		return caption
-			? `<span class="ec-body">${frappe.utils.escape_html(caption)}</span>`
-			: `<i>(${__("no text")})</i>`;
+		return caption ? this.text_html(caption, "ec-body") : `<i>(${__("no text")})</i>`;
+	}
+
+	// A wall of text pushed every other message off the screen and made the thread unreadable.
+	// Long bodies are clipped to a preview with a toggle; the text itself is all there, so
+	// selecting, searching and copying still get the whole message.
+	text_html(text, cls) {
+		const safe = frappe.utils.escape_html(text);
+		if (!this.is_long(text)) return `<span class="${cls}">${safe}</span>`;
+		return (
+			`<div class="${cls} ec-clampable ec-clamp">${safe}</div>` +
+			`<span class="ec-more">${__("Show more")}</span>`
+		);
+	}
+
+	is_long(text) {
+		const t = text || "";
+		return t.length > 600 || t.split("\n").length > 12;
 	}
 
 	// A secret message renders from its decrypted payload; without the key there is
@@ -1490,7 +1679,7 @@ class EmployeeChat {
 		}
 
 		const text = m._dec.text || "";
-		const cap_html = text ? `<div class="ec-caption">${frappe.utils.escape_html(text)}</div>` : "";
+		const cap_html = text ? this.text_html(text, "ec-caption") : "";
 		const file = m._dec.file;
 		if (file && m.content_type === "audio") {
 			return `<div class="ec-media">${erpnext.chat_media.encrypted_audio_html({
@@ -1519,9 +1708,7 @@ class EmployeeChat {
 				JSON.stringify(file)
 			)}">📎 ${fname}</a>${cap_html}`;
 		}
-		return text
-			? `<span class="ec-body">${frappe.utils.escape_html(text)}</span>`
-			: `<i>(${__("no text")})</i>`;
+		return text ? this.text_html(text, "ec-body") : `<i>(${__("no text")})</i>`;
 	}
 
 	reactions_html(m) {
@@ -1570,16 +1757,17 @@ class EmployeeChat {
 	// --- realtime handlers -------------------------------------------------
 
 	async on_realtime_message(d) {
-		console.log("[chat] employee page realtime message", d);
+		if (window.__chat_debug) console.log("[chat] employee page realtime message", d);
 		// Someone else's message rings, unless this user muted the thread.
 		if (d && d.sender && d.sender !== this.me) {
 			const t = this.threads[d.thread];
-			console.log("[chat] employee ring", {
-				thread: d.thread,
-				sender: d.sender,
-				thread_found: !!t,
-				muted: t && t.muted,
-			});
+			if (window.__chat_debug)
+				console.log("[chat] employee ring", {
+					thread: d.thread,
+					sender: d.sender,
+					thread_found: !!t,
+					muted: t && t.muted,
+				});
 			erpnext.chat_sound.play(t && t.muted);
 		}
 		if (d && d.thread === this.active && d.name) {
@@ -1623,7 +1811,7 @@ class EmployeeChat {
 	on_realtime_seen(d) {
 		if (!d || d.thread !== this.active || d.user === this.me) return;
 		this.other_last_read = d.last_read_on;
-		this.render_thread(false);
+		this.update_seen_ticks();
 	}
 
 	on_realtime_reaction(d) {
@@ -1631,7 +1819,7 @@ class EmployeeChat {
 		const m = this.msg_by_name && this.msg_by_name[d.message];
 		if (m) {
 			m.reactions = d.reactions;
-			this.render_thread(false);
+			this.update_reactions(m);
 		}
 	}
 
@@ -2033,7 +2221,7 @@ class EmployeeChat {
 				emoji,
 			});
 			m.reactions = reactions;
-			this.render_thread(false);
+			this.update_reactions(m);
 		} catch (e) {
 			frappe.msgprint(__("Failed to react"));
 		}

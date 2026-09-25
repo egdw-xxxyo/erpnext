@@ -1,6 +1,7 @@
 import json
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -43,6 +44,12 @@ class _GuardedStateProxy:
 		if state_name != self._current and state_name not in self._allowed:
 			raise TransitionError(f"{self._current} → {state_name}")
 		self._real.set(state_name, context)
+
+	def update(self, patch, state_name=None):
+		target = state_name or self._current
+		if target != self._current and target not in self._allowed:
+			raise TransitionError(f"{self._current} → {target}")
+		self._real.update(patch, state_name)
 
 	def set_subflow(self, subflow_name, state_name, context=None):
 		self._real.set_subflow(subflow_name, state_name, context)
@@ -98,39 +105,105 @@ class WorkplaceScript(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.devices.doctype.workplace_script_context_field.workplace_script_context_field import (
+			WorkplaceScriptContextField,
+		)
+		from erpnext.devices.doctype.workplace_script_workplace.workplace_script_workplace import (
+			WorkplaceScriptWorkplace,
+		)
+
 		default_version: DF.Data | None
 		is_active: DF.Check
 		parent_script: DF.Link | None
 		script: DF.Code | None
 		script_name: DF.Data | None
+		context_fields: DF.Table[WorkplaceScriptContextField]
 		viewing_version: DF.Data | None
-		workplace: DF.Link | None
+		workplaces: DF.Table[WorkplaceScriptWorkplace]
 
 	def validate(self):
 		if self.parent_script:
-			if self.workplace:
-				frappe.throw("Subflow scripts (with Parent Script) must not have a Workplace assigned")
+			if self.workplaces:
+				frappe.throw(_("Subflow scripts (with Parent Script) must not have Workplaces assigned"))
 			if self.parent_script == self.name:
-				frappe.throw("Parent Script cannot reference itself")
-		elif self.is_active:
-			filters = {"is_active": 1, "name": ["!=", self.name], "parent_script": ["is", "not set"]}
-			if self.workplace:
-				filters["workplace"] = self.workplace
-				existing = frappe.db.exists("Workplace Script", filters)
-				if existing:
-					frappe.throw(
-						f"An active Workplace Script already exists for workplace {self.workplace}: {existing}"
-					)
-			else:
-				filters["workplace"] = ["is", "not set"]
-				existing = frappe.db.exists("Workplace Script", filters)
-				if existing:
-					frappe.throw(
-						f"An active default Workplace Script (no workplace) already exists: {existing}"
-					)
+				frappe.throw(_("Parent Script cannot reference itself"))
+		else:
+			self._validate_workplaces()
 
 		self._ensure_versions()
 		self._validate_state_machine()
+		self._validate_context_fields()
+
+	def _validate_workplaces(self):
+		seen = []
+		for row in self.workplaces:
+			if row.workplace in seen:
+				frappe.throw(_("Workplace {0} is listed twice").format(row.workplace))
+			seen.append(row.workplace)
+
+		if not self.is_active:
+			return
+
+		if seen:
+			taken = frappe.get_all(
+				"Workplace Script Workplace",
+				filters={
+					"parenttype": "Workplace Script",
+					"parentfield": "workplaces",
+					"workplace": ["in", seen],
+					"parent": ["!=", self.name],
+				},
+				fields=["parent", "workplace"],
+			)
+			for row in taken:
+				script = frappe.db.get_value(
+					"Workplace Script", row.parent, ["is_active", "parent_script"], as_dict=True
+				)
+				if not script or not script.is_active or script.parent_script:
+					continue
+				frappe.throw(
+					_("An active Workplace Script already exists for workplace {0}: {1}").format(
+						row.workplace, row.parent
+					)
+				)
+		else:
+			for name in frappe.get_all(
+				"Workplace Script",
+				filters={"is_active": 1, "name": ["!=", self.name], "parent_script": ["is", "not set"]},
+				pluck="name",
+			):
+				if frappe.db.exists(
+					"Workplace Script Workplace",
+					{"parenttype": "Workplace Script", "parentfield": "workplaces", "parent": name},
+				):
+					continue
+				frappe.throw(
+					_("An active default Workplace Script (no workplace) already exists: {0}").format(name)
+				)
+
+	def on_update(self):
+		self._sync_workplace_links()
+
+	def _sync_workplace_links(self):
+		"""Keep the read-only `Workplace.workplace_script` pointer in step with this table."""
+		listed = [row.workplace for row in self.workplaces] if not self.parent_script else []
+
+		for workplace in listed:
+			if (
+				self.is_active
+				and frappe.db.get_value("Workplace", workplace, "workplace_script") != self.name
+			):
+				frappe.db.set_value(
+					"Workplace", workplace, "workplace_script", self.name, update_modified=False
+				)
+
+		for workplace in frappe.get_all("Workplace", filters={"workplace_script": self.name}, pluck="name"):
+			if workplace not in listed or not self.is_active:
+				frappe.db.set_value("Workplace", workplace, "workplace_script", None, update_modified=False)
+
+	def on_trash(self):
+		for workplace in frappe.get_all("Workplace", filters={"workplace_script": self.name}, pluck="name"):
+			frappe.db.set_value("Workplace", workplace, "workplace_script", None, update_modified=False)
 
 	def _ensure_versions(self):
 		if not self.versions:
@@ -181,6 +254,78 @@ class WorkplaceScript(Document):
 				frappe.throw(f"Transition {t.idx}: from_state '{t.from_state}' is not in States")
 			if t.to_state and t.to_state != "__exit__" and t.to_state not in valid:
 				frappe.throw(f"Transition {t.idx}: to_state '{t.to_state}' is not in States")
+
+	def _validate_context_fields(self):
+		"""Validate the declared context contract.
+
+		Declarations are purely descriptive for the scanner runtime — a script without any
+		row behaves exactly as it did before — so everything here is skipped when the table
+		is empty.
+		"""
+		if not self.context_fields:
+			return
+
+		keys = []
+		for row in self.context_fields:
+			row.key = (row.key or "").strip()
+			if not row.key:
+				frappe.throw(_("Context field {0}: Key is required").format(row.idx))
+			keys.append(row.key)
+
+		dupes = {k for k in keys if keys.count(k) > 1}
+		if dupes:
+			frappe.throw(_("Duplicate context field keys: {0}").format(", ".join(sorted(dupes))))
+
+		snapshot_states = {s.get("state") for s in (_resolve_default_snapshot(self).get("states") or [])}
+		known_states = {s.state for s in (self.states or [])} | snapshot_states
+
+		for row in self.context_fields:
+			if row.fieldtype == "Link" and not (
+				(row.link_doctype or "").strip() or (row.options or "").strip()
+			):
+				frappe.throw(
+					_("Context field {0}: Link DocType is required for a Link field").format(row.key)
+				)
+
+			if row.fieldtype == "Select" and not (row.options or "").strip():
+				frappe.throw(_("Context field {0}: Options is required for a Select field").format(row.key))
+
+			if row.is_primary and not row.app_editable:
+				frappe.throw(_("Context field {0}: Primary requires App Editable").format(row.key))
+
+			if row.is_primary and row.preserve_on_switch:
+				frappe.throw(
+					_(
+						"Context field {0}: Primary cannot be Preserve On Switch — the primary key is always rewritten by the switch"
+					).format(row.key)
+				)
+
+			editable_states = [
+				line.strip() for line in (row.editable_in_states or "").splitlines() if line.strip()
+			]
+			if editable_states and not row.app_editable:
+				frappe.throw(_("Context field {0}: Editable In States requires App Editable").format(row.key))
+			for state in editable_states:
+				if state not in known_states:
+					frappe.throw(
+						_("Context field {0}: '{1}' is not a state of this script").format(row.key, state)
+					)
+
+			enter_state = (row.enter_state or "").strip()
+			if enter_state and enter_state not in known_states:
+				frappe.throw(
+					_("Context field {0}: Enter State '{1}' is not a state of this script").format(
+						row.key, enter_state
+					)
+				)
+
+			if (row.link_filters or "").strip():
+				try:
+					parsed = json.loads(row.link_filters)
+				except ValueError:
+					frappe.throw(_("Context field {0}: Link Filters is not valid JSON").format(row.key))
+				if not isinstance(parsed, dict):
+					frappe.throw(_("Context field {0}: Link Filters must be a JSON object").format(row.key))
 
 
 @frappe.whitelist()
@@ -277,3 +422,43 @@ def run_state(script_name, e, scripts=None, handler="on_scan"):
 		return td(text) if td else {"templateData": text}
 	finally:
 		e.state = real_proxy
+
+
+@frappe.whitelist()
+def script_for_workplace(workplace=None, include_default=1):
+	"""Name of the active root script that runs at `workplace`.
+
+	With `include_default` the site-wide default script (the active root script with no
+	workplaces) is returned when the bench names none of its own.
+	"""
+	if workplace:
+		rows = frappe.get_all(
+			"Workplace Script Workplace",
+			filters={
+				"parenttype": "Workplace Script",
+				"parentfield": "workplaces",
+				"workplace": workplace,
+			},
+			pluck="parent",
+		)
+		for name in rows:
+			script = frappe.db.get_value(
+				"Workplace Script", name, ["name", "is_active", "parent_script"], as_dict=True
+			)
+			if script and script.is_active and not script.parent_script:
+				return script.name
+
+	if not frappe.utils.cint(include_default):
+		return None
+
+	for name in frappe.get_all(
+		"Workplace Script",
+		filters={"is_active": 1, "parent_script": ["is", "not set"]},
+		pluck="name",
+	):
+		if not frappe.db.exists(
+			"Workplace Script Workplace",
+			{"parenttype": "Workplace Script", "parentfield": "workplaces", "parent": name},
+		):
+			return name
+	return None

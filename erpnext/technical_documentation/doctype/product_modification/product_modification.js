@@ -42,7 +42,6 @@ frappe.ui.form.on("Product Modification", {
 	refresh(frm) {
 		load_attributes(frm);
 		lock_subtype(frm);
-		show_kit(frm);
 	},
 
 	product_type(frm) {
@@ -121,57 +120,4 @@ function load_attributes(frm) {
 
 function declared_attributes(frm) {
 	return (frm.__declared_attributes || []).map((row) => row.attribute);
-}
-
-// What is made to this designation, and what ships with it. The kit is a Product Bundle of
-// the Items its components are made as, so one order line leaves the warehouse as parts.
-function show_kit(frm) {
-	if (frm.is_new()) return;
-
-	frm.add_custom_button(__("Items"), () =>
-		frappe.set_route("List", "Item", { specification: frm.doc.name })
-	);
-
-	if (!(frm.doc.components || []).length) return;
-
-	frappe
-		.xcall("erpnext.technical_documentation.kit.get_kit", { modification: frm.doc.name })
-		.then((kit) => {
-			if (kit.bundle) {
-				frm.add_custom_button(__("Kit: {0}", [kit.bundle]), () =>
-					frappe.set_route("Form", "Product Bundle", kit.bundle)
-				);
-				return;
-			}
-
-			frm.add_custom_button(__("Create Kit"), () => confirm_kit(frm, kit));
-		});
-}
-
-function confirm_kit(frm, kit) {
-	const rows = (kit.parts || [])
-		.map(
-			(part) =>
-				`<tr><td>${frappe.utils.escape_html(part.role)}</td><td>${frappe.utils.escape_html(
-					part.code || ""
-				)}</td><td>${
-					part.items.length
-						? frappe.utils.escape_html(part.items.join(", "))
-						: `<span class="text-danger">${__("no Item linked")}</span>`
-				}</td></tr>`
-		)
-		.join("");
-
-	frappe.confirm(
-		`${__("Create a kit from these Items?")}<table class="table table-bordered" style="margin-top:8px">
-			<thead><tr><th>${__("Role")}</th><th>${__("Code")}</th><th>${__("Item")}</th></tr></thead>
-			<tbody>${rows}</tbody></table>`,
-		() =>
-			frappe
-				.xcall("erpnext.technical_documentation.kit.create_kit", { modification: frm.doc.name })
-				.then((bundle) => {
-					frappe.show_alert({ message: __("Kit {0} created", [bundle]), indicator: "green" });
-					frappe.set_route("Form", "Product Bundle", bundle);
-				})
-	);
 }

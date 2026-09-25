@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 0,
+ "autoname": "field:specification_code",
+ "creation": "2026-06-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "specification_code",
+  "specification_name",
+  "disabled",
+  "column_break_basic",
+  "specification_number_template",
+  "display_code",
+  "section_catalog",
+  "specification_kind",
+  "organization_code",
+  "column_break_catalog",
+  "ordinal",
+  "section_components",
+  "components",
+  "section_parameters",
+  "parameters",
+  "section_description",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "ЄСКД designation as written in the catalog, e.g. УКРП.563562.001-01С.",
+   "fieldname": "specification_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Specification Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "specification_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Specification Name",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional. Its Overrides table replaces this designation in Display Code.",
+   "fieldname": "specification_number_template",
+   "fieldtype": "Link",
+   "label": "Specification Number Template",
+   "options": "Specification Number Template"
+  },
+  {
+   "description": "Designation shown on Items: the Number Template override if one matches, else Specification Code.",
+   "fieldname": "display_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Display Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_catalog",
+   "fieldtype": "Section Break",
+   "label": "Catalog"
+  },
+  {
+   "description": "Which ЄСКД catalog this specification belongs to.",
+   "fieldname": "specification_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Specification Kind",
+   "options": "\nBoard\nCoil\nBattery\nGround Station\nBpAK\nModification List\nOther"
+  },
+  {
+   "default": "УКРП",
+   "description": "Organization code prefix of the ЄСКД designation (УКРП, ВРНК).",
+   "fieldname": "organization_code",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Organization Code"
+  },
+  {
+   "fieldname": "column_break_catalog",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Position within the catalog.",
+   "fieldname": "ordinal",
+   "fieldtype": "Int",
+   "label": "Ordinal"
+  },
+  {
+   "description": "Specifications this one is built from, each in a role: a БпАК takes a drone and a ground station.",
+   "fieldname": "section_components",
+   "fieldtype": "Section Break",
+   "label": "Component Specifications"
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Specification Component"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_parameters",
+   "fieldtype": "Section Break",
+   "label": "Parameters"
+  },
+  {
+   "fieldname": "parameters",
+   "fieldtype": "Table",
+   "label": "Parameters",
+   "options": "Item Specification Parameter"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  }
+ ],
+ "icon": "fa fa-file-text-o",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-18 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Specification",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "specification_name, display_code, specification_kind",
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "display_code",
+ "track_changes": 1,
+ "show_title_field_in_link": 1
+}

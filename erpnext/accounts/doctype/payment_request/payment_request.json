@@ -21,6 +21,20 @@
   "reference_name",
   "payment_reference_section",
   "payment_reference",
+  "custom_task",
+  "custom_short_description",
+  "custom_procurement_approved",
+  "custom_payments_approval_section",
+  "custom_department",
+  "custom_initiator_user",
+  "custom_initiator_employee",
+  "custom_payments_approval_column",
+  "custom_payment_purpose",
+  "custom_priority",
+  "custom_requested_payment_date",
+  "custom_planned_payment_date",
+  "custom_workflow_action_reason",
+  "custom_fiscal_receipt_status",
   "transaction_details",
   "grand_total",
   "currency",
@@ -470,6 +484,101 @@
    "fieldtype": "Table",
    "label": "Payment Reference",
    "options": "Payment Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_task",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Task",
+   "options": "Task",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_short_description",
+   "fieldtype": "Data",
+   "label": "Short Description",
+   "length": 255
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_procurement_approved",
+   "fieldtype": "Check",
+   "label": "Procurement Approval Confirmed",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payments_approval_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Approval Details"
+  },
+  {
+   "fieldname": "custom_department",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "default": "__user",
+   "fieldname": "custom_initiator_user",
+   "fieldtype": "Link",
+   "label": "Initiator User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_initiator_employee",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Initiator Employee",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "custom_payments_approval_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_payment_purpose",
+   "fieldtype": "Small Text",
+   "label": "Payment Purpose"
+  },
+  {
+   "default": "Звичайний",
+   "fieldname": "custom_priority",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Priority",
+   "options": "Звичайний\nТерміновий"
+  },
+  {
+   "fieldname": "custom_requested_payment_date",
+   "fieldtype": "Date",
+   "label": "Requested Payment Date"
+  },
+  {
+   "fieldname": "custom_planned_payment_date",
+   "fieldtype": "Date",
+   "label": "Planned Payment Date"
+  },
+  {
+   "fieldname": "custom_workflow_action_reason",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Workflow Action Reason",
+   "no_copy": 1
+  },
+  {
+   "depends_on": "eval:doc.status == 'Paid'",
+   "fieldname": "custom_fiscal_receipt_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment Instruction",
+   "no_copy": 1,
+   "options": "\nДодано\nВідсутній\nЧастково",
    "read_only": 1
   }
  ],

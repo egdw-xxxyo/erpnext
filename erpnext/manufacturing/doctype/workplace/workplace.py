@@ -36,11 +36,20 @@ class Workplace(Document):
 		if not self.printers:
 			return
 		seen = set()
+		purposes = set()
 		default_count = 0
 		for row in self.printers:
 			if row.label_printer in seen:
 				frappe.throw(_("Printer {0} is listed more than once").format(row.label_printer))
 			seen.add(row.label_printer)
+
+			# A purpose picks exactly one printer, otherwise the resolver would have to guess.
+			purpose = (row.purpose or "").strip().casefold()
+			if purpose:
+				if purpose in purposes:
+					frappe.throw(_("Two printers are set for purpose {0}").format(row.purpose))
+				purposes.add(purpose)
+
 			if row.is_default:
 				default_count += 1
 		if default_count > 1:

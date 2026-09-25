@@ -75,25 +75,6 @@ class ProductModification(Document):
 		self.fill_package_types()
 		self.validate_package_revisions()
 		self.attribute_summary = build_summary(self.attributes)
-		self.set_display_code()
-
-	def set_display_code(self):
-		"""The designation Items show: a Number Template override when one matches, else the code."""
-		from erpnext.stock.doctype.specification_number_template.specification_number_template import (
-			apply_override,
-		)
-
-		template = frappe.db.get_value(
-			DOCUMENT_DOCTYPE, self.technical_document, "specification_number_template"
-		)
-		self.display_code = apply_override(template, self.modification_code)
-
-	def on_update(self):
-		if self.has_value_changed("display_code"):
-			for item in frappe.get_all("Item", filters={"specification": self.name}, pluck="name"):
-				frappe.db.set_value(
-					"Item", item, "specification_code", self.display_code, update_modified=False
-				)
 
 	def validate_document_has_modifications(self):
 		if not document_type_flags(self.technical_document).get("has_modifications"):

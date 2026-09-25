@@ -15,6 +15,7 @@
   "column_break_github",
   "github_token",
   "version_section",
+  "required_android_version",
   "min_android_version",
   "status_section",
   "latest_version",
@@ -71,6 +72,13 @@
    "fieldname": "version_section",
    "fieldtype": "Section Break",
    "label": "Compatibility"
+  },
+  {
+   "fieldname": "required_android_version",
+   "fieldtype": "Data",
+   "label": "Required Android App Version",
+   "read_only": 1,
+   "description": "Written on every migrate from the version this server build was shipped with. A warning is raised when the APK published here is older than this."
   },
   {
    "description": "Overrides the built-in minimum Android app version. Leave empty to use the version shipped with this app.",

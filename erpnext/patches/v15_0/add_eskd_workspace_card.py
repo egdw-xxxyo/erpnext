@@ -8,6 +8,7 @@ BLOCK_ID = "eskdDocsCard"
 
 CARD_LINKS = [
 	("Specification Component Role", "DocType"),
+	("Specification", "DocType"),
 	("Specification Number Template", "DocType"),
 	("Item Specification", "DocType"),
 	("ESKD BpAK Matrix", "Page"),

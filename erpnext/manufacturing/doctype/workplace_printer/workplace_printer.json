@@ -8,6 +8,7 @@
   "label_printer",
   "printer_model",
   "ip_address",
+  "purpose",
   "is_default"
  ],
  "fields": [
@@ -34,6 +35,14 @@
    "in_list_view": 1,
    "label": "IP Address",
    "read_only": 1
+  },
+  {
+   "columns": 2,
+   "description": "Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.",
+   "fieldname": "purpose",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Purpose"
   },
   {
    "default": "0",

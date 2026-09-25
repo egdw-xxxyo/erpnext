@@ -851,6 +851,10 @@ class JobCard(Document):
 					)
 
 	def auto_post_finished_to_stock(self):
+		# A rejected unit is posted by the caller, into the line's reject warehouse rather
+		# than finished goods (`production_line.finish_unit`).
+		if self.flags.skip_auto_stock_entry:
+			return
 		if not self.operation or not self.work_order:
 			return
 		if not frappe.db.get_value("Operation", self.operation, "finishes_to_stock"):

@@ -8,6 +8,7 @@ from functools import reduce
 
 import frappe
 
+from erpnext.crm.lead_rules import ENGAGEMENT_CHANNELS
 from erpnext.stock.responsible_employee import (
 	RESPONSIBLE_EMPLOYEE_DIMENSION,
 	RESPONSIBLE_EMPLOYEE_FIELD,
@@ -71,10 +72,16 @@ def execute():
 	setup_lead_permissions()
 	setup_lead_next_action_notification()
 	setup_lead_field_properties()
+	allow_repeat_leads_from_one_contact()
+	create_engagement_channel_detail_field()
+	setup_engagement_channel_details()
+	setup_lead_channel_properties()
+	create_lead_expense_fields()
 	create_custom_fields_on_opportunity_process()
 	setup_opportunity_field_properties()
 	set_v16_ported_properties()
 	create_v16_ported_fields()
+	arrange_lead_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
 	create_responsible_employee_dimension()
@@ -86,6 +93,7 @@ def execute():
 	setup_callmebot_default_settings()
 	setup_payroll_ua_workspace_card()
 	setup_payroll_tax_accounts()
+	setup_procurement_custom_fields()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -135,6 +143,12 @@ def setup_todo_deadline():
 	upgrade_overdue_filters()
 
 
+def setup_procurement_custom_fields():
+	from erpnext.setup.procurement_workflow_setup import sync_procurement_custom_fields
+
+	sync_procurement_custom_fields()
+
+
 def create_workflow_states():
 	states = [
 		{"workflow_state_name": "Чернетка", "style": "Primary"},
@@ -181,83 +195,93 @@ def create_workflow_actions():
 
 def create_workflow():
 	workflow_name = "Purchase Receipt QC Workflow"
+	workflow_config = {
+		"doctype": "Workflow",
+		"workflow_name": workflow_name,
+		"document_type": "Purchase Receipt",
+		"is_active": 1,
+		"override_status": 0,
+		"send_email_alert": 0,
+		"states": [
+			{
+				"state": "Чернетка",
+				"doc_status": "0",
+				"allow_edit": "Stock User",
+				"is_optional_state": 0,
+			},
+			{
+				"state": "На перевірці",
+				"doc_status": "0",
+				"allow_edit": "Quality Manager",
+				"is_optional_state": 0,
+			},
+			{
+				"state": "На затвердженні",
+				"doc_status": "0",
+				"allow_edit": "Stock Manager",
+				"is_optional_state": 0,
+			},
+			{
+				"state": "Проведено",
+				"doc_status": "1",
+				"allow_edit": "Stock Manager",
+				"is_optional_state": 0,
+			},
+		],
+		"transitions": [
+			{
+				"state": "Чернетка",
+				"action": "На перевірку",
+				"next_state": "На перевірці",
+				"allowed": "Stock User",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На перевірці",
+				"action": "Якість підтверджено",
+				"next_state": "На затвердженні",
+				"allowed": "Quality Manager",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На перевірці",
+				"action": "Повернути",
+				"next_state": "Чернетка",
+				"allowed": "Quality Manager",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На затвердженні",
+				"action": "Провести",
+				"next_state": "Проведено",
+				"allowed": "Stock Manager",
+				"allow_self_approval": 1,
+			},
+			{
+				"state": "На затвердженні",
+				"action": "Повернути на перевірку",
+				"next_state": "На перевірці",
+				"allowed": "Stock Manager",
+				"allow_self_approval": 1,
+			},
+		],
+	}
+
 	if frappe.db.exists("Workflow", workflow_name):
-		print(f"  Workflow exists: {workflow_name}")
+		doc = frappe.get_doc("Workflow", workflow_name)
+		for fieldname in ("document_type", "is_active", "override_status", "send_email_alert"):
+			doc.set(fieldname, workflow_config[fieldname])
+		doc.set("states", [])
+		doc.set("transitions", [])
+		for state in workflow_config["states"]:
+			doc.append("states", state)
+		for transition in workflow_config["transitions"]:
+			doc.append("transitions", transition)
+		doc.save(ignore_permissions=True)
+		print(f"  Updated Workflow: {workflow_name}")
 		return
 
-	doc = frappe.get_doc(
-		{
-			"doctype": "Workflow",
-			"workflow_name": workflow_name,
-			"document_type": "Purchase Receipt",
-			"is_active": 1,
-			"override_status": 0,
-			"send_email_alert": 0,
-			"states": [
-				{
-					"state": "Чернетка",
-					"doc_status": "0",
-					"allow_edit": "Stock User",
-					"is_optional_state": 0,
-				},
-				{
-					"state": "На перевірці",
-					"doc_status": "0",
-					"allow_edit": "Quality Manager",
-					"is_optional_state": 0,
-				},
-				{
-					"state": "На затвердженні",
-					"doc_status": "0",
-					"allow_edit": "Accounts User",
-					"is_optional_state": 0,
-				},
-				{
-					"state": "Проведено",
-					"doc_status": "1",
-					"allow_edit": "Accounts User",
-					"is_optional_state": 0,
-				},
-			],
-			"transitions": [
-				{
-					"state": "Чернетка",
-					"action": "На перевірку",
-					"next_state": "На перевірці",
-					"allowed": "Stock User",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На перевірці",
-					"action": "Якість підтверджено",
-					"next_state": "На затвердженні",
-					"allowed": "Quality Manager",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На перевірці",
-					"action": "Повернути",
-					"next_state": "Чернетка",
-					"allowed": "Quality Manager",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На затвердженні",
-					"action": "Провести",
-					"next_state": "Проведено",
-					"allowed": "Accounts User",
-					"allow_self_approval": 1,
-				},
-				{
-					"state": "На затвердженні",
-					"action": "Повернути на перевірку",
-					"next_state": "На перевірці",
-					"allowed": "Accounts User",
-					"allow_self_approval": 1,
-				},
-			],
-		}
-	)
+	doc = frappe.get_doc(workflow_config)
 	doc.insert(ignore_permissions=True)
 	print(f"  Created Workflow: {workflow_name}")
 
@@ -275,6 +299,7 @@ def create_custom_fields_on_item():
 		"label_template",
 		"requires_incoming_qc",
 		"specification_number_template",
+		"specification_product_type",
 	]:
 		old_cf = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": old_field})
 		if old_cf:
@@ -284,23 +309,13 @@ def create_custom_fields_on_item():
 	fields = [
 		{
 			"dt": "Item",
-			"fieldname": "specification_product_type",
-			"fieldtype": "Link",
-			"label": "Specification Type",
-			"options": "Product Type",
-			"insert_after": "item_name",
-			"description": "Narrows the Specification list to designations of this kind of product",
-		},
-		{
-			"dt": "Item",
 			"fieldname": "specification",
 			"fieldtype": "Link",
 			"label": "Specification",
-			"options": "Product Modification",
-			"link_filters": "[]",
-			"insert_after": "specification_product_type",
+			"options": "Specification",
+			"insert_after": "item_name",
 			"in_standard_filter": 1,
-			"description": "ЄСКД designation (specification modification) this item belongs to",
+			"description": "ЄСКД specification this item belongs to",
 		},
 		{
 			"dt": "Item",
@@ -314,7 +329,7 @@ def create_custom_fields_on_item():
 		},
 	]
 	_create_custom_fields(fields)
-	_sync_custom_field_properties(fields, ("options", "link_filters", "fetch_from", "insert_after"))
+	_sync_custom_field_properties(fields, ("options", "fetch_from", "insert_after"))
 
 
 def _sync_custom_field_properties(fields, properties):
@@ -797,14 +812,18 @@ def create_employee_documents_fields():
 
 
 def arrange_employee_overview_fields():
-	current = [df.fieldname for df in frappe.get_meta("Employee", cached=False).fields]
-	arranged = reduce(_move_field_after, EMPLOYEE_OVERVIEW_MOVES, current)
+	_arrange_field_order("Employee", EMPLOYEE_OVERVIEW_MOVES)
+
+
+def _arrange_field_order(doctype, moves):
+	current = [df.fieldname for df in frappe.get_meta(doctype, cached=False).fields]
+	arranged = reduce(_move_field_after, moves, current)
 	if arranged == current:
 		return
 
 	frappe.make_property_setter(
 		{
-			"doctype": "Employee",
+			"doctype": doctype,
 			"doctype_or_field": "DocType",
 			"property": "field_order",
 			"value": json.dumps(arranged),
@@ -812,8 +831,8 @@ def arrange_employee_overview_fields():
 		},
 		validate_fields_for_doctype=False,
 	)
-	frappe.clear_cache(doctype="Employee")
-	print("  Arranged Employee overview field order")
+	frappe.clear_cache(doctype=doctype)
+	print(f"  Arranged {doctype} field order")
 
 
 EMPLOYEE_OVERVIEW_PROPERTIES = (
@@ -1038,6 +1057,14 @@ def remove_label_templates_from_workplace():
 
 def create_custom_fields_on_so():
 	fields = [
+		{
+			"dt": "Sales Order",
+			"fieldname": "dotchain_no",
+			"fieldtype": "Data",
+			"label": "Dotchain Number",
+			"insert_after": "po_no",
+			"description": "Optional. The order's number in Dotchain.",
+		},
 		{
 			"dt": "Sales Order",
 			"fieldname": "attachments_section",
@@ -1945,6 +1972,13 @@ LEAD_CONVERSION_PROBABILITIES = (
 )
 
 
+def allow_repeat_leads_from_one_contact():
+	if frappe.db.get_single_value("CRM Settings", "allow_lead_duplication_based_on_emails"):
+		return
+	frappe.db.set_single_value("CRM Settings", "allow_lead_duplication_based_on_emails", 1)
+	print("  CRM Settings: allowed several Leads per email")
+
+
 def setup_lead_field_properties():
 	"""Shape the stock Lead form around our sales process.
 
@@ -1989,6 +2023,95 @@ def _migrate_lead_request_types():
 			continue
 		frappe.db.set_value("Lead", {"request_type": old}, "request_type", new, update_modified=False)
 		print(f"  Lead.request_type: {old} -> {new} ({len(names)} rows)")
+
+
+LEAD_FIRST_BLOCK_MOVES = (
+	("customer", "last_name"),
+	("prospect", "customer"),
+	("type", "gender"),
+	("request_type", "type"),
+	("utm_source", "request_type"),
+	("utm_medium", "utm_source"),
+)
+
+
+def create_engagement_channel_detail_field():
+	_create_custom_fields(
+		[
+			{
+				"dt": "UTM Medium",
+				"fieldname": "engagement_channel",
+				"fieldtype": "Link",
+				"label": "Engagement Channel",
+				"options": "UTM Source",
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"insert_after": "description",
+			},
+		]
+	)
+
+
+def setup_engagement_channel_details():
+	details = [
+		(detail, channel)
+		for channel, channel_details in ENGAGEMENT_CHANNELS.items()
+		for detail in channel_details
+	]
+	for detail, channel in details:
+		if not frappe.db.exists("UTM Medium", detail):
+			frappe.get_doc({"doctype": "UTM Medium", "name": detail, "engagement_channel": channel}).insert(
+				ignore_permissions=True
+			)
+			print(f"  Created UTM Medium: {detail} ({channel})")
+		elif frappe.db.get_value("UTM Medium", detail, "engagement_channel") != channel:
+			frappe.db.set_value("UTM Medium", detail, "engagement_channel", channel)
+			print(f"  UTM Medium {detail} -> {channel}")
+
+
+def setup_lead_channel_properties():
+	_create_property_setters(
+		[
+			("Lead", "utm_medium", "label", "Engagement Channel Detail", "Data"),
+			("Lead", "utm_medium", "in_standard_filter", "1", "Check"),
+			("Lead", "utm_source", "only_select", "1", "Check"),
+			("Lead", "utm_medium", "only_select", "1", "Check"),
+		]
+	)
+
+
+def create_lead_expense_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Lead",
+				"fieldname": "expenses_tab",
+				"fieldtype": "Tab Break",
+				"label": "Expenses",
+				"insert_after": "all_activities_html",
+			},
+			{
+				"dt": "Lead",
+				"fieldname": "expenses_html",
+				"fieldtype": "HTML",
+				"label": "Expenses",
+				"insert_after": "expenses_tab",
+			},
+			{
+				"dt": "Stock Entry",
+				"fieldname": "lead_expense",
+				"fieldtype": "Link",
+				"label": "Lead Expense",
+				"options": "Lead Expense",
+				"read_only": 1,
+				"insert_after": "stock_entry_type",
+			},
+		]
+	)
+
+
+def arrange_lead_fields():
+	_arrange_field_order("Lead", LEAD_FIRST_BLOCK_MOVES)
 
 
 #: «Статус» of an Opportunity. The three the sales process actually distinguishes.
@@ -2313,9 +2436,7 @@ def create_v16_ported_fields():
 		},
 		{
 			"dt": "Lead",
-			"description": "The month the party actually has budget for. Stays a plain Date"
-			" (sorting/filtering keep working); erpnext/public/js/utils/month_field.js renders"
-			" it as month/year only and snaps the value to the first of the month.",
+			"description": "The month for which the client has a purchase budget.",
 			"fieldname": "required_month",
 			"fieldtype": "Date",
 			"in_list_view": 1,
@@ -2509,6 +2630,7 @@ def create_v16_ported_fields():
 		},
 	]
 	_create_custom_fields(fields)
+	_sync_custom_field_properties(fields, ("label", "description"))
 
 
 def set_v16_ported_properties():

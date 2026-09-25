@@ -40,6 +40,7 @@ class Supplier(TransactionBase):
 		from erpnext.buying.doctype.customer_number_at_supplier.customer_number_at_supplier import (
 			CustomerNumberAtSupplier,
 		)
+		from erpnext.buying.doctype.supplier_cooperation.supplier_cooperation import SupplierCooperation
 		from erpnext.utilities.doctype.portal_user.portal_user import PortalUser
 
 		accounts: DF.Table[PartyAccount]
@@ -47,12 +48,14 @@ class Supplier(TransactionBase):
 		allow_purchase_invoice_creation_without_purchase_order: DF.Check
 		allow_purchase_invoice_creation_without_purchase_receipt: DF.Check
 		companies: DF.Table[AllowedToTransactWith]
+		cooperating_suppliers: DF.TableMultiSelect[SupplierCooperation]
 		country: DF.Link | None
 		customer_numbers: DF.Table[CustomerNumberAtSupplier]
 		default_bank_account: DF.Link | None
 		default_currency: DF.Link | None
 		default_price_list: DF.Link | None
 		disabled: DF.Check
+		edrpou: DF.Data | None
 		email_id: DF.ReadOnly | None
 		gender: DF.Link | None
 		hold_type: DF.Literal["All", "Invoices", "Payments"]
@@ -72,6 +75,7 @@ class Supplier(TransactionBase):
 		release_date: DF.Date | None
 		represents_company: DF.Link | None
 		supplier_details: DF.Text | None
+		supplier_default_bank_account_selection: DF.Data | None
 		supplier_group: DF.Link | None
 		supplier_name: DF.Data
 		supplier_primary_address: DF.Link | None
@@ -84,14 +88,21 @@ class Supplier(TransactionBase):
 		warn_pos: DF.Check
 		warn_rfqs: DF.Check
 		website: DF.Data | None
+		website_details: DF.Data | None
 	# end: auto-generated types
 
 	def onload(self):
 		"""Load address and contacts in `__onload`"""
+		# Existing suppliers may predate the duplicate Details field.
+		self.website_details = self.website
 		load_address_and_contact(self)
 		self.load_dashboard_info()
 
 	def before_save(self):
+		self.sync_website_fields()
+		self.validate_cooperating_suppliers()
+		if self.get("supplier_default_bank_account_selection") is not None:
+			_set_default_supplier_bank_account(self.name, self.get("supplier_default_bank_account_selection"))
 		if not self.on_hold:
 			self.release_date = ""
 		elif self.on_hold and not self.hold_type:
@@ -114,6 +125,54 @@ class Supplier(TransactionBase):
 		self.create_primary_contact()
 		self.create_primary_address()
 		link_portal_users_to_contacts(self)
+		self.sync_cooperating_suppliers()
+
+	def sync_website_fields(self):
+		"""Keep the Website field on Details and More Information backed by one value."""
+		before = self.get_doc_before_save()
+		if not before:
+			value = self.website_details or self.website
+			self.website = self.website_details = value
+			return
+
+		website_changed = self.website != before.website
+		details_changed = self.website_details != before.website_details
+		if details_changed and not website_changed:
+			self.website = self.website_details
+		else:
+			self.website_details = self.website
+
+	def validate_cooperating_suppliers(self):
+		suppliers = [row.supplier for row in self.cooperating_suppliers if row.supplier]
+		if self.name in suppliers:
+			frappe.throw(_("A supplier cannot cooperate with itself."))
+		if len(suppliers) != len(set(suppliers)):
+			frappe.throw(_("The same cooperating supplier cannot be added more than once."))
+
+	def sync_cooperating_suppliers(self):
+		"""Store the reverse row so cooperation is visible from either supplier."""
+		desired = {row.supplier for row in self.cooperating_suppliers if row.supplier}
+		reverse_rows = frappe.get_all(
+			"Supplier Cooperation",
+			filters={
+				"parenttype": "Supplier",
+				"parentfield": "cooperating_suppliers",
+				"supplier": self.name,
+			},
+			fields=["name", "parent"],
+		)
+		reverse_by_supplier = {row.parent: row.name for row in reverse_rows}
+
+		for supplier in desired - reverse_by_supplier.keys():
+			row = frappe.new_doc("Supplier Cooperation")
+			row.parent = supplier
+			row.parenttype = "Supplier"
+			row.parentfield = "cooperating_suppliers"
+			row.supplier = self.name
+			row.db_insert()
+
+		for supplier in reverse_by_supplier.keys() - desired:
+			frappe.db.delete("Supplier Cooperation", {"name": reverse_by_supplier[supplier]})
 
 	def add_role_for_user(self):
 		for portal_user in self.portal_users:
@@ -216,6 +275,14 @@ class Supplier(TransactionBase):
 			self.db_set("primary_address", address_display)
 
 	def on_trash(self):
+		frappe.db.delete(
+			"Supplier Cooperation",
+			{
+				"parenttype": "Supplier",
+				"parentfield": "cooperating_suppliers",
+				"supplier": self.name,
+			},
+		)
 		if self.supplier_primary_contact:
 			self.db_set("supplier_primary_contact", None)
 		if self.supplier_primary_address:
@@ -256,3 +323,54 @@ def get_supplier_primary(doctype, txt, searchfield, start, page_len, filters):
 		query = query.select(type_doctype.email_id)
 
 	return query.run()
+
+
+def _get_supplier_bank_accounts(supplier):
+	return frappe.get_all(
+		"Bank Account",
+		filters={
+			"party_type": "Supplier",
+			"party": supplier,
+			"is_company_account": 0,
+			"disabled": 0,
+		},
+		fields=["name", "account_name", "iban", "is_default"],
+		order_by="is_default desc, account_name asc, name asc",
+	)
+
+
+@frappe.whitelist()
+def get_supplier_bank_accounts(supplier: str):
+	"""Return the active external bank accounts linked to a supplier."""
+	supplier_doc = frappe.get_doc("Supplier", supplier)
+	supplier_doc.check_permission("read")
+	return _get_supplier_bank_accounts(supplier)
+
+
+@frappe.whitelist(methods=["POST"])
+def set_default_supplier_bank_account(supplier: str, bank_account: str | None = None):
+	"""Set at most one default external bank account for a supplier."""
+	supplier_doc = frappe.get_doc("Supplier", supplier)
+	supplier_doc.check_permission("write")
+	return _set_default_supplier_bank_account(supplier, bank_account)
+
+
+def _set_default_supplier_bank_account(supplier, bank_account=None):
+	"""Apply the selection inside the caller's database transaction."""
+
+	accounts = _get_supplier_bank_accounts(supplier)
+	account_names = {row.name for row in accounts}
+	if bank_account and bank_account not in account_names:
+		frappe.throw(
+			_("Bank Account {0} does not belong to Supplier {1}").format(
+				frappe.bold(bank_account), frappe.bold(supplier)
+			)
+		)
+
+	for account in accounts:
+		is_default = int(account.name == bank_account)
+		if account.is_default != is_default:
+			frappe.db.set_value("Bank Account", account.name, "is_default", is_default, update_modified=False)
+
+	frappe.clear_cache(doctype="Bank Account")
+	return _get_supplier_bank_accounts(supplier)

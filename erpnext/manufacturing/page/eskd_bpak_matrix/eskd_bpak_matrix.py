@@ -1,21 +1,15 @@
 import frappe
 
-from erpnext.manufacturing.eskd_import import (
-	DOCUMENT_DOCTYPE,
-	MODIFICATION_DOCTYPE,
-	ROLE_BOARD,
-	ROLE_GROUND_STATION,
-	TYPE_MODIFICATION_LIST,
-)
+from erpnext.manufacturing.eskd_import import ROLE_BOARD, ROLE_GROUND_STATION, ROLE_MODIFICATION_LIST
 
 
 @frappe.whitelist()
 def get_modification_lists():
-	return frappe.get_list(
-		DOCUMENT_DOCTYPE,
-		filters={"document_type": TYPE_MODIFICATION_LIST},
-		fields=["name", "document_code", "document_title"],
-		order_by="document_code",
+	return frappe.get_all(
+		"Specification",
+		filters={"specification_kind": "Modification List", "disabled": 0},
+		fields=["name", "display_code", "specification_name"],
+		order_by="specification_code",
 	)
 
 
@@ -25,24 +19,33 @@ def get_matrix(modification_list: str | None = None):
 	if not modification_list:
 		return {"columns": [], "rows": [], "items": {}}
 
-	modifications = frappe.get_list(
-		MODIFICATION_DOCTYPE,
-		filters={"technical_document": modification_list},
-		fields=["name", "modification_number", "modification_code", "full_name", "status"],
-		order_by="modification_number",
+	modifications = frappe.get_all(
+		"Specification Component",
+		filters={
+			"parenttype": "Specification",
+			"role": ROLE_MODIFICATION_LIST,
+			"specification": modification_list,
+		},
+		pluck="parent",
 	)
-	components = _components_of([m.name for m in modifications])
+	specs = frappe.get_all(
+		"Specification",
+		filters={"name": ("in", modifications or [""])},
+		fields=["name", "ordinal", "display_code", "specification_name", "description"],
+		order_by="ordinal",
+	)
+	components = _components_of([s.name for s in specs])
 
 	rows = []
-	for modification in modifications:
-		parts = components.get(modification.name, {})
+	for spec in specs:
+		parts = components.get(spec.name, {})
 		rows.append(
 			{
-				"modification": modification.name,
-				"number": modification.modification_number,
-				"code": modification.modification_code,
-				"name": modification.full_name,
-				"status": modification.status,
+				"modification": spec.name,
+				"ordinal": spec.ordinal,
+				"code": spec.display_code,
+				"name": spec.specification_name,
+				"description": spec.description,
 				"board": parts.get(ROLE_BOARD),
 				"ground_station": parts.get(ROLE_GROUND_STATION),
 			}
@@ -54,13 +57,10 @@ def get_matrix(modification_list: str | None = None):
 	for row in rows:
 		row["board_code"] = codes.get(row["board"], row["board"])
 
-	columns = sorted(
-		({"name": gs, "code": codes.get(gs, gs)} for gs in ground_stations), key=lambda c: c["code"]
-	)
 	return {
-		"columns": columns,
+		"columns": [{"name": gs, "code": codes.get(gs, gs)} for gs in ground_stations],
 		"rows": rows,
-		"items": _items_by_specification([*[r["modification"] for r in rows], *boards, *ground_stations]),
+		"items": _items_by_specification([r["modification"] for r in rows] + list(boards) + ground_stations),
 	}
 
 
@@ -70,7 +70,7 @@ def _components_of(parents):
 	by_parent = {}
 	for row in frappe.get_all(
 		"Specification Component",
-		filters={"parenttype": MODIFICATION_DOCTYPE, "parent": ("in", parents)},
+		filters={"parenttype": "Specification", "parent": ("in", parents)},
 		fields=["parent", "role", "specification"],
 	):
 		by_parent.setdefault(row.parent, {})[row.role] = row.specification
@@ -80,14 +80,14 @@ def _components_of(parents):
 def _display_codes(names):
 	if not names:
 		return {}
-	return {
-		row.name: row.display_code or row.modification_code
-		for row in frappe.get_all(
-			MODIFICATION_DOCTYPE,
+	return dict(
+		frappe.get_all(
+			"Specification",
 			filters={"name": ("in", list(names))},
-			fields=["name", "display_code", "modification_code"],
+			fields=["name", "display_code"],
+			as_list=True,
 		)
-	}
+	)
 
 
 def _items_by_specification(specifications):

@@ -27,7 +27,9 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt, get_datetime, now_datetime, today
+from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, today
+
+from erpnext.devices.session_user import acting_as
 
 # A card is only "free" while it is Open. Handing one out moves it to Work In Progress, so
 # two operators at the same bench cannot be given the same unit.
@@ -61,9 +63,11 @@ class ProductionLine(Document):
 		last_run_on: DF.Datetime | None
 		line_name: DF.Data
 		line_type: DF.Literal["Spool"]
+		manufacture_at_packing: DF.Check
 		overflow_qty: DF.Int
 		plan: DF.Table[ProductionLineItem]
 		plan_time: DF.Time
+		reject_warehouse: DF.Link | None
 		source_warehouse: DF.Link | None
 		wip_warehouse: DF.Link | None
 		workplaces: DF.Table[ProductionLineWorkplace]
@@ -200,6 +204,19 @@ def _plan_rows(line, workplace=None, item_code=None):
 	return rows
 
 
+def _line_for_item(item_code):
+	"""The enabled line that plans this item, whatever its type — or None.
+
+	`_line_for` needs the caller to know the line type. Code reached from a Job Card (a
+	finished unit, a packed unit) only knows the item, and a missing line is not an error
+	there: it means "no line rules apply", not "refuse the unit".
+	"""
+	for line in _enabled_lines():
+		if _plan_rows(line, item_code=item_code):
+			return line
+	return None
+
+
 def _line_for(line_type, item_code, workplace=None):
 	for line in _enabled_lines(line_type):
 		if _plan_rows(line, workplace=workplace, item_code=item_code):
@@ -279,6 +296,50 @@ def _free_job_cards(item_code, workplace=None, limit=20):
 	)
 
 
+def _unfinished_job_cards(item_code=None, workplace=None, limit=20):
+	"""Units already measured but never closed — the bench walked away from them.
+
+	`_free_job_cards` deliberately skips a card that carries a Quality Inspection, so once a
+	measured unit leaves the operator's hand it can never be handed out again: it is not in
+	stock, it still counts against the plan, and nothing in the app points at it. These are
+	those cards, so `next_unit` can give one back instead of minting more work.
+	"""
+	filters = {
+		"docstatus": 0,
+		"quality_inspection": ["is", "set"],
+		"serial_no": ["is", "set"],
+	}
+	if item_code:
+		filters["production_item"] = item_code
+	workstations = _workstations(workplace)
+	if workstations:
+		filters["workstation"] = ["in", workstations]
+
+	cards = frappe.get_all(
+		"Job Card",
+		filters=filters,
+		fields=[
+			"name",
+			"serial_no",
+			"work_order",
+			"workstation",
+			"operation",
+			"production_item",
+			"quality_inspection",
+			"creation",
+		],
+		order_by="creation asc",
+		limit=limit,
+	)
+	# A card whose Work Order was stopped overnight cannot be submitted, so handing it back
+	# would replace one loop with another. Those belong to whoever reopens the Work Order.
+	return [
+		card
+		for card in cards
+		if frappe.db.get_value("Work Order", card.work_order, "status") in LIVE_WORK_ORDER_STATUSES
+	]
+
+
 def _create_work_order(line, item_code, qty, reason="plan"):
 	"""Submit a Work Order, which is what mints the serials and the per-unit Job Cards."""
 	qty = cint(qty)
@@ -313,12 +374,8 @@ def _create_work_order(line, item_code, qty, reason="plan"):
 	# `ignore_permissions`, so an operator without a manufacturing role taking an overflow
 	# spool got a PermissionError on Job Card. The operator's right to the bench is already
 	# checked by the caller.
-	user = frappe.session.user
-	frappe.set_user("Administrator")
-	try:
+	with acting_as("Administrator"):
 		wo.submit()
-	finally:
-		frappe.set_user(user)
 	_clear_planned_slots(wo.name)
 	return wo
 
@@ -441,6 +498,25 @@ def next_unit(line_type, workplace=None, item_code=None):
 
 	line = _line_for(line_type, item_code, workplace=workplace)
 
+	# An unfinished measured unit is handed back before any new one. Whoever is at the bench
+	# has to close it, otherwise it stays out of stock forever and the plan never drains.
+	stranded = _unfinished_job_cards(item_code, workplace=workplace, limit=20)
+	stranded = _close_abandoned_rejects(stranded)
+	if stranded:
+		card = stranded[0]
+		return {
+			"production_line": line.name,
+			"serial_no": (card.serial_no or "").splitlines()[0].strip(),
+			"job_card": card.name,
+			"work_order": card.work_order,
+			"workstation": card.workstation,
+			"operation": card.operation,
+			"item_code": item_code,
+			"overflow_work_order": None,
+			"resumed": True,
+			"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
+		}
+
 	free = _free_job_cards(item_code, workplace=workplace, limit=1)
 	overflow = None
 
@@ -475,8 +551,33 @@ def next_unit(line_type, workplace=None, item_code=None):
 		"operation": card.operation,
 		"item_code": item_code,
 		"overflow_work_order": overflow.name if overflow else None,
+		"resumed": False,
 		"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
 	}
+
+
+def _close_abandoned_rejects(cards):
+	"""Close yesterday's rejected units instead of handing them back to the bench.
+
+	A unit rejected at the bench needs no decision from the operator — `finish_unit` closes it
+	and posts it to the reject warehouse whatever they press. Handing it back days later only
+	shows them a serial they have never seen, in front of a dialog that says the spool is
+	scrap; meanwhile the unit sits out of stock. A reject from today is left alone: the spool
+	is still in the operator's hand and may yet be rewound and measured again.
+	"""
+	live = []
+	for card in cards:
+		if getdate(card.get("creation")) < getdate(today()) and _is_rejected(card.quality_inspection):
+			try:
+				finish_unit(card.name)
+				continue
+			except Exception:
+				frappe.log_error(
+					title="Production Line: could not close abandoned reject",
+					message=frappe.get_traceback(),
+				)
+		live.append(card)
+	return live
 
 
 def release_unit(job_card):
@@ -487,8 +588,14 @@ def release_unit(job_card):
 	card = frappe.db.get_value(
 		"Job Card", job_card, ["status", "docstatus", "quality_inspection"], as_dict=True
 	)
-	if not card or card.docstatus != 0 or card.quality_inspection:
-		return {"released": False}
+	if not card:
+		return {"released": False, "reason": "missing"}
+	if card.docstatus != 0:
+		return {"released": False, "reason": "closed"}
+	if card.quality_inspection:
+		# A measured unit cannot go back in the pool: the free-card query skips anything with
+		# an inspection, so releasing it here would strand it. It has to be finished.
+		return {"released": False, "reason": "measured", "quality_inspection": card.quality_inspection}
 
 	frappe.db.set_value("Job Card", job_card, "status", FREE_JOB_CARD_STATUS)
 	frappe.db.commit()
@@ -526,7 +633,38 @@ def finish_unit(job_card):
 		if qi_docstatus != 1:
 			frappe.throw(_("Quality Inspection {0} is not submitted").format(card.quality_inspection))
 		if qi_status == "Rejected":
-			return {**result, "finished": False, "verdict": "Fail"}
+			# A rejected unit is still a unit: the materials went into it and it physically
+			# exists, so it is manufactured like any other and lands in the line's reject
+			# warehouse instead of finished goods. Its card closes either way — leaving it in
+			# draft is what made a rejected unit immortal, since the free-card query skips a
+			# card with an inspection and `next_unit` had nothing else to offer the bench.
+			if card.docstatus == 0:
+				_complete_job_card(card, rejected=True)
+			line = _line_for_item(card.production_item)
+			reject_warehouse = line.reject_warehouse if line else None
+			stock_entry = card.auto_stock_entry
+			if reject_warehouse and (
+				not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1
+			):
+				# A rejected unit is finished here and nowhere else: it is not packed, so the
+				# packing card would stay open forever, and `Stock Entry.check_if_operations_
+				# completed` refuses a Manufacture entry while any operation of the Work Order
+				# is still open. Closing the unit's remaining cards is what makes the rejected
+				# unit a one-stop affair at the bench rather than a second flow for the
+				# scanner at packing.
+				_close_remaining_cards(serial_no, skip=card.name)
+				stock_entry = _post_manufacture(
+					card, serial_no, target_warehouse=reject_warehouse, rejected=True
+				)
+			frappe.db.commit()
+			return {
+				**result,
+				"finished": False,
+				"closed": True,
+				"verdict": "Fail",
+				"stock_entry": stock_entry if reject_warehouse else None,
+				"warehouse": reject_warehouse,
+			}
 		verdict = "Pass"
 	elif _inspection_required(card):
 		frappe.throw(_("{0} has not passed quality inspection yet").format(serial_no or card.name))
@@ -534,8 +672,16 @@ def finish_unit(job_card):
 	if card.docstatus == 0:
 		_complete_job_card(card)
 
+	# A line that finishes into stock at packing leaves the unit out of stock here on purpose:
+	# `Stock Entry.check_if_operations_completed` refuses a Manufacture entry while any
+	# operation of the Work Order is still open, and packing is one of those operations.
+	line = _line_for_item(card.production_item)
+	deferred = bool(line and line.manufacture_at_packing)
+
 	stock_entry = card.auto_stock_entry
-	if not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
+	if deferred:
+		stock_entry = None
+	elif not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
 		stock_entry = _post_manufacture(card, serial_no)
 
 	frappe.db.commit()
@@ -544,17 +690,34 @@ def finish_unit(job_card):
 		"finished": True,
 		"verdict": verdict,
 		"stock_entry": stock_entry,
+		"manufacture_deferred": deferred,
 		"warehouse": frappe.db.get_value("Serial No", serial_no, "warehouse") if serial_no else None,
 	}
 
 
-def _complete_job_card(card):
-	"""One time log from the claim to now for the whole card, then submit."""
+def _complete_job_card(card, rejected=False):
+	"""One time log from the claim to now for the whole card, then submit.
+
+	`rejected` closes a card whose inspection failed. `JobCard.on_submit` refuses that while
+	Stock Settings says `Stop` for a rejected inspection — a rule written for a card that is
+	about to move stock, which this one never does: `finish_unit` posts no Manufacture entry
+	for a rejected unit. The two checks that gate are worth keeping (the inspection exists,
+	and it is submitted) have already run in `finish_unit`, so the instance-level override is
+	the whole of what is skipped.
+	"""
 	from erpnext.manufacturing.doctype.job_card.job_card import OverlapError
+
+	if rejected:
+		card.validate_inspection = lambda: None
+		card.flags.skip_auto_stock_entry = True
 
 	now = now_datetime()
 	start = get_datetime(card.actual_start_date) if card.actual_start_date else now
 	if start > now:
+		start = now
+	if rejected and not card.actual_start_date:
+		# Nobody ever started this one — it is being closed because the unit was rejected
+		# upstream — so it gets a zero-length log instead of an invented shift.
 		start = now
 
 	card.append("time_logs", {"from_time": start, "to_time": now, "completed_qty": card.for_quantity})
@@ -573,8 +736,66 @@ def _complete_job_card(card):
 	card.submit()
 
 
-def _post_manufacture(card, serial_no):
-	"""Manufacture exactly this unit's serial, carrying its inspection onto the entry."""
+def _is_rejected(quality_inspection):
+	"""True when this inspection exists, is submitted and failed."""
+	if not quality_inspection:
+		return False
+	row = frappe.db.get_value("Quality Inspection", quality_inspection, ["status", "docstatus"], as_dict=True)
+	return bool(row and row.docstatus == 1 and row.status == "Rejected")
+
+
+def _rejected_inspection(serial_no):
+	"""The rejected Quality Inspection of this unit, if it has one."""
+	rows = frappe.get_all(
+		"Job Card",
+		filters={"serial_no": serial_no, "quality_inspection": ["is", "set"]},
+		fields=["quality_inspection"],
+		order_by="creation desc",
+		limit=1,
+	)
+	if not rows:
+		return None
+	qi = rows[0].quality_inspection
+	status, docstatus = frappe.db.get_value("Quality Inspection", qi, ["status", "docstatus"])
+	return qi if docstatus == 1 and status == "Rejected" else None
+
+
+def _close_remaining_cards(serial_no, skip=None):
+	"""Close every other open Job Card of this serial — the unit is going no further.
+
+	Only reached for a rejected unit. The operations it skips (packing, and anything else the
+	BOM lists after the bench) were never performed, so each card is closed with a zero-length
+	time log rather than pretending someone worked it.
+	"""
+	names = frappe.get_all(
+		"Job Card",
+		filters={"serial_no": serial_no, "docstatus": 0},
+		pluck="name",
+		order_by="creation asc",
+	)
+	closed = []
+	for name in names:
+		if name == skip:
+			continue
+		other = frappe.get_doc("Job Card", name)
+		_complete_job_card(other, rejected=True)
+		closed.append(name)
+	return closed
+
+
+def _post_manufacture(card, serial_no, target_warehouse=None, rejected=False):
+	"""Manufacture exactly this unit's serial, carrying its inspection onto the entry.
+
+	`target_warehouse` overrides the Work Order's finished-goods warehouse, which is what a
+	packing step uses to land the unit straight in the warehouse the box is destined for
+	instead of moving it there afterwards, and what a rejected unit uses to land in the
+	reject warehouse.
+
+	`rejected` posts a unit whose inspection failed. `StockController.validate_qi_rejection`
+	refuses that while Stock Settings says `Stop`, a rule meant to keep bad units out of
+	finished goods — which is exactly what `target_warehouse` is doing here by other means.
+	The inspection is still carried onto the row, so the entry says what was wrong with it.
+	"""
 	from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
 
 	wo = frappe.get_doc("Work Order", card.work_order)
@@ -602,10 +823,15 @@ def _post_manufacture(card, serial_no):
 	)
 	# Stock Entry demands an inspection on the finished row when the item requires one;
 	# `make_stock_entry` leaves it empty.
-	if card.quality_inspection:
-		for row in se.items:
-			if row.is_finished_item and row.item_code == wo.production_item:
+	for row in se.items:
+		if row.is_finished_item and row.item_code == wo.production_item:
+			if card.quality_inspection:
 				row.quality_inspection = card.quality_inspection
+			if target_warehouse:
+				row.t_warehouse = target_warehouse
+				_move_draft_bundle(row.serial_and_batch_bundle, target_warehouse)
+	if rejected:
+		se.validate_inspection = lambda: None
 	se.flags.ignore_permissions = True
 	se.insert()
 	se.submit()
@@ -613,6 +839,141 @@ def _post_manufacture(card, serial_no):
 	# `auto_stock_entry` is what `JobCard.on_cancel` cancels, so undoing the card undoes this.
 	card.db_set("auto_stock_entry", se.name)
 	return se.name
+
+
+def _move_draft_bundle(bundle, warehouse):
+	"""Point the finished row's draft Serial and Batch Bundle at the warehouse the row now targets.
+
+	`make_stock_entry` builds the bundle for the Work Order's finished-goods warehouse before
+	the row is redirected, and the stock ledger refuses a bundle whose warehouse differs from
+	its row's ("does not belong to Item or Warehouse").
+	"""
+	if not bundle:
+		return
+	frappe.db.set_value("Serial and Batch Bundle", bundle, "warehouse", warehouse)
+	frappe.db.set_value("Serial and Batch Entry", {"parent": bundle}, "warehouse", warehouse)
+
+
+PACKING_OPERATION = "Упаковка"
+
+
+def _card_for(serial_no, operation=None, docstatus=None):
+	"""One Job Card of this serial, optionally of one operation and docstatus."""
+	filters = {"serial_no": serial_no}
+	if operation:
+		filters["operation"] = operation
+	if docstatus is not None:
+		filters["docstatus"] = docstatus
+	name = frappe.db.get_value("Job Card", filters, "name", order_by="creation desc")
+	return frappe.get_doc("Job Card", name) if name else None
+
+
+def _bench_card(serial_no, packing_operation=PACKING_OPERATION):
+	"""The closed card a unit is manufactured from: the one carrying its inspection.
+
+	Falls back to the newest closed card of any other operation, for a unit whose item needs
+	no inspection.
+	"""
+	for filters in (
+		{"serial_no": serial_no, "docstatus": 1, "quality_inspection": ["is", "set"]},
+		{"serial_no": serial_no, "docstatus": 1, "operation": ["!=", packing_operation]},
+	):
+		name = frappe.db.get_value("Job Card", filters, "name", order_by="creation desc")
+		if name:
+			return frappe.get_doc("Job Card", name)
+	return None
+
+
+def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operation=None):
+	"""Close the packing Job Card of a unit and put the unit into stock.
+
+	This is the other half of `manufacture_at_packing`: the bench closed its own card and
+	left the unit out of stock, and packing is what finishes it. Order matters and is the
+	whole point — the packing card has to be submitted *before* the Manufacture entry, or
+	`Stock Entry.check_if_operations_completed` sees an open operation and refuses.
+
+	Idempotent per serial: a unit already carrying a submitted Manufacture entry is reported
+	as `already_in_stock` and nothing is posted twice. A unit whose Work Order predates the
+	packing operation simply has no card — `card: False`, and it is still manufactured.
+
+	Never raises for one bad unit: the box is already built and labelled by the time this
+	runs, so every serial reports its own outcome.
+	"""
+	result = {
+		"serial_no": serial_no,
+		"card": None,
+		"card_closed": False,
+		"stock_entry": None,
+		"already_in_stock": False,
+		"error": None,
+	}
+	if not serial_no:
+		result["error"] = _("Serial No is required")
+		return result
+
+	try:
+		# A rejected unit was finished at the bench, cards and stock included. If one reaches
+		# the packing station anyway, say so instead of posting it into the packed warehouse.
+		bench_verdict = _rejected_inspection(serial_no)
+		if bench_verdict:
+			result["rejected"] = True
+			result["error"] = _("{0} failed quality inspection {1} and is not packed").format(
+				serial_no, bench_verdict
+			)
+			return result
+
+		packing_card = _card_for(serial_no, operation=operation or PACKING_OPERATION, docstatus=0)
+		if packing_card:
+			result["card"] = packing_card.name
+			now = now_datetime()
+			start = get_datetime(packing_card.actual_start_date) if packing_card.actual_start_date else now
+			if start > now:
+				start = now
+			row = {"from_time": start, "to_time": now, "completed_qty": packing_card.for_quantity or 1}
+			if employee:
+				row["employee"] = employee
+			packing_card.append("time_logs", row)
+			packing_card.flags.ignore_permissions = True
+			packing_card.save()
+			packing_card.submit()
+			result["card_closed"] = True
+
+		# The inspection lives on the bench's card, so that is the one the entry is posted
+		# from — it carries the Quality Inspection onto the finished row. The packing card
+		# was just submitted and is now the newest closed card, so it is skipped explicitly.
+		bench_card = _bench_card(serial_no, packing_operation=operation or PACKING_OPERATION)
+		if not bench_card:
+			result["error"] = _("{0} has no closed Job Card to finish").format(serial_no)
+			return result
+
+		existing = bench_card.auto_stock_entry
+		if existing and frappe.db.get_value("Stock Entry", existing, "docstatus") == 1:
+			result["stock_entry"] = existing
+			result["already_in_stock"] = True
+			return result
+
+		result["stock_entry"] = _post_manufacture(bench_card, serial_no, target_warehouse=target_warehouse)
+	except Exception as e:
+		result["error"] = str(e)
+
+	return result
+
+
+def finish_packed_units(serials, target_warehouse=None, employee=None, operation=None):
+	"""`finish_packed_unit` for a whole box, summarised for a scanner display."""
+	rows = [
+		finish_packed_unit(sn, target_warehouse=target_warehouse, employee=employee, operation=operation)
+		for sn in (serials or [])
+	]
+	errors = [f"{r['serial_no']}: {r['error']}" for r in rows if r.get("error")]
+	return {
+		"manufactured": len([r for r in rows if r.get("stock_entry") and not r.get("already_in_stock")]),
+		"already_in_stock": len([r for r in rows if r.get("already_in_stock")]),
+		"cards_closed": len([r for r in rows if r.get("card_closed")]),
+		"stock_entries": [r["stock_entry"] for r in rows if r.get("stock_entry")],
+		"error": "; ".join(errors) if errors else None,
+		"rows": rows,
+	}
 
 
 def close_stale_work_orders(line=None):
@@ -650,34 +1011,39 @@ def close_stale_work_orders(line=None):
 
 		stopped, held = [], []
 		for name in work_orders:
-			# Only cards nobody ever took. A card in Work In Progress was handed to an operator,
-			# and deleting it would strand its unit: the serial exists but no card can be issued
-			# for it again.
-			untouched = frappe.get_all(
+			cards = frappe.get_all(
 				"Job Card",
-				filters={
-					"work_order": name,
-					"docstatus": 0,
-					"status": FREE_JOB_CARD_STATUS,
-					"quality_inspection": ["is", "not set"],
-				},
-				pluck="name",
+				filters={"work_order": name, "docstatus": ["<", 2]},
+				fields=["name", "docstatus", "status", "quality_inspection", "serial_no"],
 			)
+			# A unit is started once any of its cards was handed out, measured or closed. Its
+			# remaining cards are the rest of that unit's route — packing after winding — and
+			# deleting them strands a physical unit: nothing can ever finish it into stock.
+			started = {
+				_first_serial(c.serial_no)
+				for c in cards
+				if c.docstatus == 1 or c.status != FREE_JOB_CARD_STATUS or c.quality_inspection
+			}
+			started.discard(None)
+
+			# Only cards of units nobody ever touched.
+			untouched = [
+				c.name
+				for c in cards
+				if c.docstatus == 0
+				and c.status == FREE_JOB_CARD_STATUS
+				and not c.quality_inspection
+				and _first_serial(c.serial_no) not in started
+			]
 			for card in untouched:
 				frappe.delete_doc("Job Card", card, force=1, ignore_permissions=True)
 
-			in_progress = frappe.db.count(
-				"Job Card",
-				{
-					"work_order": name,
-					"docstatus": 0,
-					"status": CLAIMED_JOB_CARD_STATUS,
-					"quality_inspection": ["is", "not set"],
-				},
-			)
+			# Someone is still on a unit, walked away from it, or finished one operation of it
+			# and not the next. Stopping the Work Order would block closing any of those cards,
+			# so leave it open and report. `next_unit` hands a measured unit back to be finished;
+			# the next operation's card waits for its own station.
+			in_progress = len([c for c in cards if c.docstatus == 0 and c.name not in untouched])
 			if in_progress:
-				# Someone is still on it, or walked away from it. Either way stopping the Work
-				# Order would block them from closing the card, so leave it and report.
 				held.append(f"{name} ({in_progress} in progress)")
 				continue
 
@@ -701,6 +1067,61 @@ def close_stale_work_orders(line=None):
 			update_modified=False,
 		)
 		frappe.db.commit()
+
+
+def restore_route_cards(work_order):
+	"""Give every started unit of a Work Order back the cards the nightly cleanup deleted.
+
+	Until the cleanup learned to keep a started unit's route, it deleted the packing card of
+	every spool wound that day — the unit was measured and closed at the bench, but nothing
+	could pack it or finish it into stock. A unit is started once any of its cards was handed
+	out, measured or closed; a unit nobody touched is left as the cleanup left it. Resumes the
+	Work Order when it was stopped, since a stopped one refuses to close the new cards.
+
+	bench --site <site> execute erpnext.manufacturing.doctype.production_line.production_line.restore_route_cards --kwargs '{"work_order": "MFG-WO-..."}'
+	"""
+	from erpnext.manufacturing.doctype.work_order.work_order import create_job_card
+
+	wo = frappe.get_doc("Work Order", work_order)
+	if wo.docstatus != 1 or wo.status == "Closed":
+		frappe.throw(_("Work Order {0} is not open").format(work_order))
+
+	cards = frappe.get_all(
+		"Job Card",
+		filters={"work_order": work_order, "docstatus": ["<", 2]},
+		fields=["docstatus", "status", "quality_inspection", "serial_no", "operation_id"],
+	)
+	started = sorted(
+		{
+			_first_serial(c.serial_no)
+			for c in cards
+			if c.docstatus == 1 or c.status != FREE_JOB_CARD_STATUS or c.quality_inspection
+		}
+		- {None}
+	)
+	have = {(c.operation_id, _first_serial(c.serial_no)) for c in cards}
+	missing = [(row, serial) for row in wo.operations for serial in started if (row.name, serial) not in have]
+	if not missing:
+		return {"work_order": work_order, "restored": []}
+
+	if wo.status == "Stopped":
+		wo.flags.ignore_permissions = True
+		wo.update_status("Resumed")
+
+	restored = []
+	for row, serial in missing:
+		row.job_card_qty = 1
+		row.serial_no = serial
+		card = create_job_card(wo, row, auto_create=True)
+		restored.append(f"{serial}: {row.operation} → {card.name}")
+	frappe.db.commit()
+	return {"work_order": work_order, "status": wo.status, "restored": restored}
+
+
+def _first_serial(serial_no):
+	"""A per-unit card holds one serial; the field is still a newline-separated list."""
+	lines = (serial_no or "").strip().splitlines()
+	return lines[0].strip() if lines else None
 
 
 def _delete_unused_serials(work_order):

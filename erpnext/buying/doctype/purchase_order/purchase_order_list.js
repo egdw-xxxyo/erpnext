@@ -9,7 +9,13 @@ frappe.listview_settings["Purchase Order"] = {
 		"per_billed",
 		"status",
 		"advance_payment_status",
+		"custom_procurement_completion_status",
 	],
+	formatters: {
+		custom_procurement_completion_status(value) {
+			return erpnext.buying.format_procurement_status(value, "custom_procurement_completion_status");
+		},
+	},
 	get_indicator: function (doc) {
 		// Please do not add precision in the flt function
 		if (doc.status === "Closed") {
@@ -49,6 +55,11 @@ frappe.listview_settings["Purchase Order"] = {
 		}
 	},
 	onload: function (listview) {
+		erpnext.buying.apply_procurement_work_queue_filters(listview, {
+			participants_field: "custom_procurement_participants",
+			completion_field: "custom_procurement_completion_status",
+		});
+
 		var method = "erpnext.buying.doctype.purchase_order.purchase_order.close_or_unclose_purchase_orders";
 
 		listview.page.add_action_item(__("Close"), function () {
