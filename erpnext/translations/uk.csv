@@ -2905,7 +2905,7 @@ Create Sales Invoice,Створіть рахунок-фактуру з прод�
 Create Sales Order,Створити замовлення на продаж
 Create Sales Orders to help you plan your work and deliver on-time,"Створіть замовлення з продажу, щоб допомогти спланувати роботу та доставити вчасно"
 Create Sample Retention Stock Entry,Створити запис складу зберігання зразків
-Create Stock Entry,Створити запис про запаси
+Create Stock Entry,Створити рух ТМЦ
 Create Supplier Quotation,Створіть котирування постачальників
 Create Tax Template,Створіть шаблон оподаткування
 Create Timesheet,Створення розкладу
@@ -14954,4 +14954,8 @@ Add at least one item to a materials expense,Додайте хоча б одну
 Row #{0}: {1} is not a stock item,Рядок #{0}: {1} не є складською позицією
 Row #{0}: quantity must be greater than zero,Рядок #{0}: кількість має бути більше нуля
 Expense {0} for Lead {1}: {2},Витрата {0} по зверненню {1}: {2}
-Company {0} has no warehouse to issue {1} from,У компанії {0} немає складу для списання {1}
+Awaiting Warehouse,Очікує складу
+Materials expense {0} for Lead {1} is waiting for a warehouse,Матеріальна витрата {0} по зверненню {1} очікує вибору складу
+A stock entry can only be created for a submitted materials expense,Рух ТМЦ можна створити лише для проведеної матеріальної витрати
+Expense {0} already has stock entry {1},Витрата {0} вже має рух ТМЦ {1}
+Warehouse {0} cannot be used to issue materials for company {1},Склад {0} не можна використати для списання матеріалів компанії {1}

@@ -135,7 +135,7 @@
    "in_standard_filter": 1,
    "label": "Stock Entry Status",
    "no_copy": 1,
-   "options": "\nDraft\nSubmitted\nCancelled\nDeleted",
+   "options": "\nAwaiting Warehouse\nDraft\nSubmitted\nCancelled\nDeleted",
    "read_only": 1
   },
   {
@@ -160,7 +160,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-24 20:00:00.000000",
+ "modified": "2026-09-25 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Lead Expense",

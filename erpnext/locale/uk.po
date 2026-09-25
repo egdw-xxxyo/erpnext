@@ -12283,7 +12283,7 @@ msgstr "Створіть замовлення з продажу, щоб допо
 #: erpnext/stock/dashboard/item_dashboard.js:283
 #: erpnext/stock/doctype/material_request/material_request.js:500
 msgid "Create Stock Entry"
-msgstr "Створити запис про запаси"
+msgstr "Створити рух ТМЦ"
 
 #: erpnext/buying/doctype/request_for_quotation/request_for_quotation.js:184
 msgid "Create Supplier Quotation"

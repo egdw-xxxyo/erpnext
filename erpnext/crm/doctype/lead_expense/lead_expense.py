@@ -3,14 +3,15 @@
 
 import frappe
 from frappe import _
+from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 from frappe.model.document import Document
 from frappe.utils import flt
 
 import erpnext
-from erpnext.stock.doctype.item.item import get_item_defaults
 
 MONEY = "Money"
 MATERIALS = "Materials"
+AWAITING_WAREHOUSE = "Awaiting Warehouse"
 
 STOCK_ENTRY_STATUS_BY_EVENT = {
 	"on_submit": "Submitted",
@@ -42,7 +43,7 @@ class LeadExpense(Document):
 		lead: DF.Link
 		military_unit: DF.Link | None
 		stock_entry: DF.Data | None
-		stock_entry_status: DF.Literal["", "Draft", "Submitted", "Cancelled", "Deleted"]
+		stock_entry_status: DF.Literal["", "Awaiting Warehouse", "Draft", "Submitted", "Cancelled", "Deleted"]
 	# end: auto-generated types
 
 	def before_validate(self):
@@ -88,8 +89,8 @@ class LeadExpense(Document):
 		if self.expense_kind != MATERIALS:
 			return
 
-		stock_entry = make_stock_entry(self)
-		self.db_set({"stock_entry": stock_entry.name, "stock_entry_status": "Draft"})
+		self.db_set("stock_entry_status", AWAITING_WAREHOUSE)
+		notify_stock_managers(self)
 
 	def on_cancel(self):
 		drafts = frappe.get_all(
@@ -99,20 +100,57 @@ class LeadExpense(Document):
 			frappe.delete_doc("Stock Entry", name, ignore_permissions=True)
 
 
-def make_stock_entry(expense):
+def users_with_role(role):
+	return set(
+		frappe.get_all(
+			"Has Role", filters={"parenttype": "User", "role": role}, pluck="parent", distinct=True
+		)
+	)
+
+
+def stock_managers():
+	enabled = set(frappe.get_all("User", filters={"enabled": 1, "user_type": "System User"}, pluck="name"))
+	return sorted((users_with_role("Stock Manager") - users_with_role("System Manager")) & enabled)
+
+
+def notify_stock_managers(expense):
+	recipients = stock_managers()
+	if not recipients:
+		return
+
+	enqueue_create_notification(
+		recipients,
+		{
+			"type": "Alert",
+			"document_type": "Lead Expense",
+			"document_name": expense.name,
+			"from_user": frappe.session.user,
+			"subject": _("Materials expense {0} for Lead {1} is waiting for a warehouse").format(
+				frappe.bold(expense.name), frappe.bold(expense.lead)
+			),
+		},
+	)
+
+
+@frappe.whitelist()
+def make_stock_entry(expense: str, warehouse: str):
+	frappe.only_for("Stock Manager")
+	doc = frappe.get_doc("Lead Expense", expense)
+	doc.check_permission("read")
+	validate_stock_entry_request(doc, warehouse)
+
 	stock_entry = frappe.new_doc("Stock Entry")
 	stock_entry.stock_entry_type = "Material Issue"
 	stock_entry.purpose = "Material Issue"
-	stock_entry.company = expense.company
-	stock_entry.lead_expense = expense.name
-	stock_entry.remarks = _("Expense {0} for Lead {1}: {2}").format(
-		expense.name, expense.lead, expense.expense_type
-	)
+	stock_entry.company = doc.company
+	stock_entry.lead_expense = doc.name
+	stock_entry.from_warehouse = warehouse
+	stock_entry.remarks = _("Expense {0} for Lead {1}: {2}").format(doc.name, doc.lead, doc.expense_type)
 
 	cost_center, expense_account = frappe.get_cached_value(
-		"Company", expense.company, ["cost_center", "stock_adjustment_account"]
+		"Company", doc.company, ["cost_center", "stock_adjustment_account"]
 	)
-	for row in expense.items:
+	for row in doc.items:
 		stock_entry.append(
 			"items",
 			{
@@ -122,36 +160,38 @@ def make_stock_entry(expense):
 				"stock_uom": row.uom,
 				"conversion_factor": 1.0,
 				"transfer_qty": row.qty,
-				"s_warehouse": default_warehouse(row.item_code, expense.company),
+				"s_warehouse": warehouse,
 				"cost_center": cost_center,
 				"expense_account": expense_account,
 			},
 		)
 
 	stock_entry.set_stock_entry_type()
-	stock_entry.insert(ignore_permissions=True)
-	return stock_entry
+	stock_entry.insert()
+	doc.db_set({"stock_entry": stock_entry.name, "stock_entry_status": "Draft"})
+	return stock_entry.name
 
 
-def default_warehouse(item_code, company):
-	settings_warehouse = frappe.db.get_single_value("Stock Settings", "default_warehouse")
-	candidates = (
-		get_item_defaults(item_code, company).get("default_warehouse"),
-		settings_warehouse
-		if settings_warehouse and frappe.db.get_value("Warehouse", settings_warehouse, "company") == company
-		else None,
-		frappe.db.get_value(
-			"Warehouse", {"company": company, "is_group": 0, "disabled": 0}, "name", order_by="name asc"
-		),
-	)
-	warehouse = next((w for w in candidates if w), None)
-	if not warehouse:
+def validate_stock_entry_request(doc, warehouse):
+	if doc.docstatus != 1 or doc.expense_kind != MATERIALS:
+		frappe.throw(_("A stock entry can only be created for a submitted materials expense"))
+
+	active = frappe.db.get_value("Stock Entry", {"lead_expense": doc.name, "docstatus": ["<", 2]}, "name")
+	if active:
 		frappe.throw(
-			_("Company {0} has no warehouse to issue {1} from").format(
-				frappe.bold(company), frappe.bold(item_code)
+			_("Expense {0} already has stock entry {1}").format(frappe.bold(doc.name), frappe.bold(active))
+		)
+
+	frappe.has_permission("Warehouse", "read", doc=warehouse, throw=True)
+	company, is_group, disabled = frappe.db.get_value(
+		"Warehouse", warehouse, ["company", "is_group", "disabled"]
+	)
+	if company != doc.company or is_group or disabled:
+		frappe.throw(
+			_("Warehouse {0} cannot be used to issue materials for company {1}").format(
+				frappe.bold(warehouse), frappe.bold(doc.company)
 			)
 		)
-	return warehouse
 
 
 def sync_stock_entry_status(doc, method=None):
