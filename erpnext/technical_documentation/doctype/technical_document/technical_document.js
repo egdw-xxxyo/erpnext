@@ -111,16 +111,48 @@ function open_new_revision(frm) {
 	});
 }
 
+const MODIFICATION_DOCTYPE = "Product Modification";
+
+// A modification belongs to exactly one specification, so starting one from the
+// specification's own card is the route that cannot get the link wrong. The product type
+// and subtype come along too: they decide which attributes the modification is described
+// by, and the card has already answered them. The full form rather than quick entry, for
+// the same reason as a revision — the attributes are the point, and the dialog has no
+// room for them.
+function open_new_modification(frm) {
+	frappe.model.with_doctype(MODIFICATION_DOCTYPE, () => {
+		const modification = frappe.model.get_new_doc(MODIFICATION_DOCTYPE);
+
+		modification.technical_document = frm.doc.name;
+		modification.product_type = frm.doc.product_type;
+		modification.product_subtype = frm.doc.product_subtype;
+
+		frappe.set_route("Form", MODIFICATION_DOCTYPE, modification.name);
+	});
+}
+
+function modification_button() {
+	if (!frappe.model.can_create(MODIFICATION_DOCTYPE)) return "";
+
+	return `<button class="btn btn-xs btn-default ml-2" data-new-modification>${esc(__("Add"))}</button>`;
+}
+
+function bind_modification_button(frm) {
+	const field = frm.fields_dict.modifications_html;
+	if (field) field.$wrapper.find("[data-new-modification]").on("click", () => open_new_modification(frm));
+}
+
 const RELATION_DOCTYPE = "Technical Document Relation";
 
 // A relation is recorded on one side only, so adding one from the card has to say which
-// side this card is on: a methodology is "an annex to" three specifications, and the same
-// pair entered the other way round says something else entirely. That question is answered
-// by which table the button sits above — one button per direction, right where the rows it
-// adds to are — so the dialog itself never asks it. It does say it: the types come in
-// mirrored pairs («Має додаток» / «Додаток до»), and picking the wrong half of a pair
-// records the opposite of what was meant, so the side this card is on is written out above
-// the list rather than left to be inferred from the heading.
+// side this card is on: a methodology «Входить до комплекту» of three specifications, and
+// the same pair entered the other way round says something else entirely. That question is
+// answered by which table the button sits above — one button per direction, right where the
+// rows it adds to are — so the dialog itself never asks it. It does say it: the types come
+// in mirrored pairs, and picking the wrong half of a pair records the opposite of what was
+// meant, so the dialog writes out the sentence being recorded, with the real codes and the
+// real relation, as it is filled in. A template sentence with «this document» and «the
+// document below» left the reader to substitute them; the filled one is read, not decoded.
 function open_relation_dialog(frm, direction) {
 	frappe.model.with_doctype(RELATION_DOCTYPE, () => {
 		const types = frappe.meta.get_docfield(RELATION_DOCTYPE, "relation_type").options;
@@ -134,11 +166,7 @@ function open_relation_dialog(frm, direction) {
 					label: __("Relation Type"),
 					options: types,
 					reqd: 1,
-					description:
-						direction === "outgoing"
-							? __("Reads as: this document — relation — the document below")
-							: __("Reads as: the document below — relation — this document"),
-					onchange: () => update_package_hint(frm, dialog, direction),
+					onchange: () => render_relation_preview(frm, dialog, direction),
 				},
 				{
 					fieldname: "document",
@@ -147,8 +175,9 @@ function open_relation_dialog(frm, direction) {
 					options: "Technical Document",
 					reqd: 1,
 					get_query: () => ({ filters: { name: ["!=", frm.doc.name] } }),
-					onchange: () => update_package_hint(frm, dialog, direction),
+					onchange: () => load_other_document(frm, dialog, direction),
 				},
+				{ fieldname: "reading", fieldtype: "HTML" },
 				{ fieldname: "package_hint", fieldtype: "HTML" },
 				{ fieldname: "note", fieldtype: "Small Text", label: __("Note") },
 			],
@@ -157,49 +186,85 @@ function open_relation_dialog(frm, direction) {
 		});
 
 		dialog.show();
+		render_relation_preview(frm, dialog, direction);
 	});
 }
 
 // The relation types this hint reasons about, spelled the way the schema stores them: the
 // two the package is read from, and the neutral one it can be confused with.
-const RELATION_HAS_ANNEX = "Має додаток";
-const RELATION_ANNEX_TO = "Додаток до";
+const RELATION_INCLUDES = "Включає до комплекту";
+const RELATION_INCLUDED_IN = "Входить до комплекту";
 const RELATION_RELATED_TO = "Повʼязаний з";
+
+// The other document is read once, when it is picked, and kept on the dialog: the sentence
+// needs its code and the package hint its type, and both are redrawn on every change of the
+// relation type, which should not cost a request each time.
+function load_other_document(frm, dialog, direction) {
+	const name = dialog.get_value("document");
+
+	dialog.__other = null;
+	render_relation_preview(frm, dialog, direction);
+	if (!name) return;
+
+	frappe.db
+		.get_value("Technical Document", name, ["document_code", "document_type"])
+		.then(({ message }) => {
+			if (dialog.get_value("document") !== name) return;
+
+			dialog.__other = { name, ...(message || {}) };
+			render_relation_preview(frm, dialog, direction);
+		});
+}
+
+function render_relation_preview(frm, dialog, direction) {
+	render_reading(frm, dialog, direction);
+	render_package_hint(dialog, direction, incomplete_types(frm));
+}
+
+// Parts not chosen yet stay as a placeholder rather than disappearing, so the shape of the
+// sentence — which end this card is on — is visible before anything is picked.
+function render_reading(frm, dialog, direction) {
+	const other = dialog.__other;
+	const placeholder = '<span class="text-muted">…</span>';
+	const own = `<b>${esc(frm.doc.document_code || frm.doc.name)}</b>`;
+	const theirs = other ? `<b>${esc(other.document_code || other.name)}</b>` : placeholder;
+	const relation_type = dialog.get_value("relation_type");
+	const relation = relation_type ? `<i>${esc(relation_type)}</i>` : placeholder;
+	const parts = direction === "outgoing" ? [own, relation, theirs] : [theirs, relation, own];
+
+	dialog
+		.get_field("reading")
+		.$wrapper.html(
+			`<div class="small mb-3"><span class="text-muted">${esc(__("Reads as"))}:</span> ${parts.join(
+				" — "
+			)}</div>`
+		);
+}
 
 // Nothing about the completeness rule is announced up front: on most relations it is beside
 // the point, and a warning shown to everyone is read by no one. It is said at the one moment
 // it is about to matter — a document of a type this package still needs, being recorded as
-// merely related to it — and it names the relation that would have filed it in the package.
+// merely related to it — and it names the relation that would have put it in the package.
 // The same reasoning the missing row uses, at the moment the row is being created rather
 // than after: «Повʼязаний з» is the one type that says nothing about membership either way,
-// so it is the one that can be meant as an annex. The dialog then records exactly what was
-// asked for, hint or no hint.
-function update_package_hint(frm, dialog, direction) {
+// so it is the one that can be meant as a package member. The dialog then records exactly
+// what was asked for, hint or no hint.
+function render_package_hint(dialog, direction, wanted) {
 	const wrapper = dialog.get_field("package_hint").$wrapper;
-	const expected = direction === "outgoing" ? RELATION_HAS_ANNEX : RELATION_ANNEX_TO;
-	const document = dialog.get_value("document");
-	const wanted = incomplete_types(frm);
+	const type = dialog.__other && dialog.__other.document_type;
+	const expected = direction === "outgoing" ? RELATION_INCLUDES : RELATION_INCLUDED_IN;
 
 	wrapper.empty();
-	if (!document || dialog.get_value("relation_type") !== RELATION_RELATED_TO || !wanted.size) return;
+	if (dialog.get_value("relation_type") !== RELATION_RELATED_TO || !type || !wanted.has(type)) return;
 
-	frappe.db.get_value("Technical Document", document, "document_type").then(({ message }) => {
-		const type = message && message.document_type;
-		const stale =
-			dialog.get_value("document") !== document ||
-			dialog.get_value("relation_type") !== RELATION_RELATED_TO;
-
-		if (stale || !type || !wanted.has(type)) return;
-
-		wrapper.html(
-			`<div class="small text-muted">${esc(
-				__("{0} is a document this package requires — only the relation {1} puts it there", [
-					type,
-					expected,
-				])
-			)}</div>`
-		);
-	});
+	wrapper.html(
+		`<div class="small text-muted">${esc(
+			__("{0} is a document this package requires — only the relation {1} puts it there", [
+				type,
+				expected,
+			])
+		)}</div>`
+	);
 }
 
 // The types the package asks for and has not got. A row already satisfied is not worth a
@@ -261,6 +326,7 @@ function render_panels(frm) {
 			frm.__completeness = message.completeness;
 			set_panel(frm, "completeness_html", completeness_html(message.completeness));
 			set_panel(frm, "modifications_html", modifications_html(message.modifications));
+			bind_modification_button(frm);
 		})
 		.catch(() => {
 			PANEL_FIELDS.forEach((field) => set_panel(frm, field, muted(__("Could not load this section"))));
@@ -303,8 +369,11 @@ function table(headers, rows, empty) {
 	</table></div>`;
 }
 
-function summary(parts) {
-	return `<div class="mb-3 text-muted">${parts.filter(Boolean).map(esc).join(" · ")}</div>`;
+function summary(parts, action = "") {
+	return `<div class="mb-3"><span class="text-muted">${parts
+		.filter(Boolean)
+		.map(esc)
+		.join(" · ")}</span>${action}</div>`;
 }
 
 function revisions_html(panel) {
@@ -396,7 +465,7 @@ function remove_relation_link(row) {
 }
 
 // Each table is read as a sentence, and the two tables read from opposite ends. The card
-// itself is the subject of the first — «this document · Має додаток · ІПАК» — so the
+// itself is the subject of the first — «this document · Включає до комплекту · ІПАК» — so the
 // relation opens the row and the other document follows it. In the second the other
 // document is the subject: putting the type first there would leave the sentence starting
 // with a verb whose subject is two columns away.
@@ -466,9 +535,10 @@ function completeness_html(panel) {
 	);
 }
 
-// A missing row whose document is already on the card, related but not declared an annex,
-// says which one it means. The row stays missing — it is: the package is what was declared,
-// not what is nearby — and the name is offered as the next step rather than as the answer.
+// A missing row whose document is already on the card, related but not included in the
+// package, says which one it means. The row stays missing — it is: the package is what was
+// declared, not what is nearby — and the name is offered as the next step rather than as the
+// answer.
 function related_cell(row) {
 	if (row.document) {
 		return doc_link("Technical Document", row.document, row.document_title || row.document);
@@ -476,7 +546,7 @@ function related_cell(row) {
 
 	if (row.candidate) {
 		return `<span class="text-muted">—</span>
-			<div class="small text-muted mt-1">${__("Related but not declared an annex")}:
+			<div class="small text-muted mt-1">${__("Related but not included in the package")}:
 			${doc_link("Technical Document", row.candidate, row.candidate_title || row.candidate)}</div>`;
 	}
 
@@ -511,11 +581,14 @@ function modifications_html(panel) {
 	);
 
 	return (
-		summary([
-			`${__("Modifications")}: ${panel.total}`,
-			`${__("Codified")}: ${panel.codified}`,
-			`${__("Not codified")}: ${Math.max(panel.total - panel.codified, 0)}`,
-		]) +
+		summary(
+			[
+				`${__("Modifications")}: ${panel.total}`,
+				`${__("Codified")}: ${panel.codified}`,
+				`${__("Not codified")}: ${Math.max(panel.total - panel.codified, 0)}`,
+			],
+			modification_button()
+		) +
 		table(
 			[
 				__("Modification"),
