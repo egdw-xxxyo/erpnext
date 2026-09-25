@@ -268,7 +268,7 @@ def validate_stock_entry(doc, method=None):
 
 
 @frappe.whitelist()
-def make_stock_entry(source_name: str, target_doc=None):
+def make_stock_entry(source_name: str, target_doc: object | None = None):
 	frappe.only_for("Stock Manager")
 	doc = frappe.get_doc("Lead Expense", source_name)
 	doc.check_permission("read")

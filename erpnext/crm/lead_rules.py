@@ -35,13 +35,17 @@ def validate_channel_detail(doc):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def engagement_channel_query(doctype, txt, searchfield, start, page_len, filters):
+def engagement_channel_query(
+	doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict | None
+):
 	return _search_in_order(tuple(ENGAGEMENT_CHANNELS), txt, start, page_len)
 
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def engagement_channel_detail_query(doctype, txt, searchfield, start, page_len, filters):
+def engagement_channel_detail_query(
+	doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict | None
+):
 	channel = (filters or {}).get("engagement_channel")
 	details = (
 		ENGAGEMENT_CHANNELS.get(channel, ())
