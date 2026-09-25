@@ -16,6 +16,8 @@ The clients version independently — do NOT assume the same number.
 
 import frappe
 
+# 0.7.8 is where OTDR sync survives a day of more than 50 traces: an older build rejects the
+# paged folder listing from the 51st trace on and uploads nothing until the next day.
 # 0.7.7 is where the scan journal lists the labels each scan printed and prints one again
 # (`labels` in the scan log, `reprint_scan_label`), and the CMD-PRINT-AGAIN button left the
 # session screen; an older build still offers that button, which repeats a whole batch blind.
@@ -32,7 +34,7 @@ import frappe
 # ended up stranded out of stock with nothing pointing back at them.
 # Before that, 0.6.0 was the floor — where the spool stopped being scanned and started being
 # handed out by `spool_production.next_spool`.
-MIN_ANDROID_APP_VERSION = "0.7.7"
+MIN_ANDROID_APP_VERSION = "0.7.8"
 MIN_DESKTOP_APP_VERSION = "0.1.0"
 
 
