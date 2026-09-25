@@ -46,8 +46,11 @@ def execute():
 	set_employee_overview_properties()
 	create_designation_name_en_fields()
 	backfill_employee_designation_name_en()
+	create_department_name_en_fields()
+	backfill_employee_department_name_en()
 	create_employee_kp_fields()
 	arrange_employee_overview_fields()
+	setup_hr_manager_org_permissions()
 	remove_label_templates_from_employee()
 	remove_label_templates_from_workplace()
 	create_custom_fields_on_so()
@@ -714,12 +717,21 @@ EMPLOYEE_OVERVIEW_MOVES = (
 	("designation", "column_break_25"),
 	("designation_name_en", "designation"),
 	("kp_code", "designation_name_en"),
+	("department_name_en", "department"),
 	("kp_job_title", "kp_code"),
 	("employment_type", "grade"),
 	("user_id", "employment_type"),
 	("does_not_fill_attendance_sheet", "user_id"),
 	("subordinates_section", "does_not_fill_attendance_sheet"),
 	("subordinates_html", "subordinates_section"),
+	("cell_number", "last_name"),
+	("passport_details_section", "does_not_fill_attendance_sheet"),
+	("custom_tax_id", "passport_details_section"),
+	("passport_number", "custom_tax_id"),
+	("valid_upto", "passport_number"),
+	("column_break_73", "valid_upto"),
+	("date_of_issue", "column_break_73"),
+	("place_of_issue", "date_of_issue"),
 )
 
 
@@ -826,6 +838,7 @@ def _arrange_field_order(doctype, moves):
 EMPLOYEE_OVERVIEW_PROPERTIES = (
 	("naming_series", "depends_on", "eval:doc.__islocal", "Code"),
 	("designation", "label", "Designation (Ukrainian)", "Data"),
+	("cell_number", "reqd", "1", "Check"),
 )
 
 
@@ -853,6 +866,41 @@ def set_employee_overview_properties():
 	frappe.clear_cache(doctype="Employee")
 
 
+HR_MANAGER_ORG_RIGHTS = {
+	"read": 1,
+	"write": 1,
+	"create": 1,
+	"delete": 1,
+	"report": 1,
+	"export": 1,
+	"print": 1,
+	"email": 1,
+	"share": 1,
+}
+
+
+def setup_hr_manager_org_permissions():
+	for doctype in ("Department", "Designation"):
+		if not frappe.db.exists("Custom DocPerm", {"parent": doctype}):
+			continue
+
+		existing = frappe.db.get_value(
+			"Custom DocPerm",
+			{"parent": doctype, "role": "HR Manager", "permlevel": 0},
+			["name", *HR_MANAGER_ORG_RIGHTS],
+			as_dict=True,
+		)
+		if not existing:
+			_ensure_custom_docperm(doctype, "HR Manager", 0, HR_MANAGER_ORG_RIGHTS)
+		elif any(existing.get(right) != value for right, value in HR_MANAGER_ORG_RIGHTS.items()):
+			frappe.db.set_value("Custom DocPerm", existing.name, HR_MANAGER_ORG_RIGHTS)
+			print(f"  Updated Custom DocPerm: {doctype} / HR Manager")
+		else:
+			continue
+
+		frappe.clear_cache(doctype=doctype)
+
+
 def create_designation_name_en_fields():
 	_create_custom_fields(
 		[
@@ -874,6 +922,41 @@ def create_designation_name_en_fields():
 				"read_only": 1,
 			},
 		]
+	)
+
+
+def create_department_name_en_fields():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Department",
+				"fieldname": "department_name_en",
+				"fieldtype": "Data",
+				"label": "Department (English)",
+				"insert_after": "department_name",
+				"in_list_view": 1,
+			},
+			{
+				"dt": "Employee",
+				"fieldname": "department_name_en",
+				"fieldtype": "Data",
+				"label": "Department (English)",
+				"insert_after": "department",
+				"fetch_from": "department.department_name_en",
+				"read_only": 1,
+			},
+		]
+	)
+
+
+def backfill_employee_department_name_en():
+	frappe.db.sql(
+		"""
+		update `tabEmployee` e
+		join `tabDepartment` d on d.name = e.department
+		set e.department_name_en = d.department_name_en
+		where not (e.department_name_en <=> d.department_name_en)
+		"""
 	)
 
 
