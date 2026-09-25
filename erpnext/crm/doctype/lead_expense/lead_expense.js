@@ -1,10 +1,9 @@
 // Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 // For license information, please see license.txt
 
-const STOCK_ENTRY_REOPEN_STATUSES = ["Awaiting Warehouse", "Cancelled", "Deleted"];
-
 frappe.ui.form.on("Lead Expense", {
 	setup: function (frm) {
+		frm.custom_make_buttons = { "Stock Entry": "Create Stock Entry" };
 		frm.set_query("expense_type", () => ({ filters: { disabled: 0 } }));
 		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
 	},
@@ -16,42 +15,37 @@ frappe.ui.form.on("Lead Expense", {
 	},
 
 	refresh: function (frm) {
-		if (can_make_stock_entry(frm)) {
+		if (!frappe.user.has_role("Stock Manager")) return;
+
+		const { can_issue, can_close } = frm.doc.__onload || {};
+		if (can_issue) {
 			frm.add_custom_button(__("Create Stock Entry"), () => make_stock_entry(frm)).addClass(
 				"btn-primary"
 			);
 		}
+		if (can_close) {
+			frm.add_custom_button(__("Close Remainder"), () => close_remainder(frm));
+		}
 	},
 });
 
-function can_make_stock_entry(frm) {
-	return (
-		frm.doc.docstatus === 1 &&
-		frm.doc.expense_kind === "Materials" &&
-		frappe.user.has_role("Stock Manager") &&
-		STOCK_ENTRY_REOPEN_STATUSES.includes(frm.doc.stock_entry_status)
+function close_remainder(frm) {
+	frappe.confirm(
+		__("Close the remainder of this expense? No more stock entries can be created for it."),
+		() =>
+			frappe
+				.call({
+					method: "erpnext.crm.doctype.lead_expense.lead_expense.close_remainder",
+					args: { expense: frm.doc.name },
+					freeze: true,
+				})
+				.then(() => frm.reload_doc())
 	);
 }
 
 function make_stock_entry(frm) {
-	frappe.prompt(
-		{
-			fieldname: "warehouse",
-			fieldtype: "Link",
-			options: "Warehouse",
-			label: __("Source Warehouse"),
-			reqd: 1,
-			get_query: () => ({ filters: { company: frm.doc.company, is_group: 0, disabled: 0 } }),
-		},
-		({ warehouse }) =>
-			frappe
-				.call({
-					method: "erpnext.crm.doctype.lead_expense.lead_expense.make_stock_entry",
-					args: { expense: frm.doc.name, warehouse },
-					freeze: true,
-				})
-				.then(({ message }) => frappe.set_route("Form", "Stock Entry", message)),
-		__("Create Stock Entry"),
-		__("Create")
-	);
+	frappe.model.open_mapped_doc({
+		method: "erpnext.crm.doctype.lead_expense.lead_expense.make_stock_entry",
+		frm,
+	});
 }

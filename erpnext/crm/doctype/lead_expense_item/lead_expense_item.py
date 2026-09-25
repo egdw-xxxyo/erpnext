@@ -15,6 +15,7 @@ class LeadExpenseItem(Document):
 		from frappe.types import DF
 
 		item_code: DF.Link
+		issued_qty: DF.Float
 		item_name: DF.Data | None
 		parent: DF.Data
 		parentfield: DF.Data

@@ -8,6 +8,7 @@
   "item_code",
   "item_name",
   "qty",
+  "issued_qty",
   "uom"
  ],
  "fields": [
@@ -36,6 +37,15 @@
    "reqd": 1
   },
   {
+   "default": "0",
+   "fieldname": "issued_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Issued Quantity",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "fetch_from": "item_code.stock_uom",
    "fieldname": "uom",
    "fieldtype": "Link",
@@ -48,7 +58,7 @@
  "index_web_pages_for_search": 0,
  "istable": 1,
  "links": [],
- "modified": "2026-09-24 20:00:00.000000",
+ "modified": "2026-09-25 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Lead Expense Item",

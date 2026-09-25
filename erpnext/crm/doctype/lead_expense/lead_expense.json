@@ -17,7 +17,7 @@
   "currency",
   "materials_section",
   "items",
-  "stock_entry",
+  "issue_closed",
   "stock_entry_status",
   "description_section",
   "description",
@@ -120,10 +120,11 @@
    "options": "Lead Expense Item"
   },
   {
-   "depends_on": "eval:doc.stock_entry",
-   "fieldname": "stock_entry",
-   "fieldtype": "Data",
-   "label": "Stock Entry",
+   "default": "0",
+   "fieldname": "issue_closed",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Remainder Closed",
    "no_copy": 1,
    "read_only": 1
   },
@@ -135,7 +136,7 @@
    "in_standard_filter": 1,
    "label": "Stock Entry Status",
    "no_copy": 1,
-   "options": "\nAwaiting Warehouse\nDraft\nSubmitted\nCancelled\nDeleted",
+   "options": "\nAwaiting Warehouse\nHas Draft\nPartially Issued\nFully Issued\nPartially Issued (Closed)",
    "read_only": 1
   },
   {
@@ -160,7 +161,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-25 12:00:00.000000",
+ "modified": "2026-09-25 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Lead Expense",

@@ -72,11 +72,24 @@ function expense_link(expense) {
 	return frappe.utils.get_form_link("Lead Expense", expense.name, true, __(expense.expense_type));
 }
 
-function stock_entry_cell(stock_entry) {
-	if (!stock_entry) return "";
-	return frappe.model.can_read("Stock Entry")
-		? frappe.utils.get_form_link("Stock Entry", stock_entry, true)
-		: frappe.utils.escape_html(stock_entry);
+function stock_entry_cell(entries) {
+	const readable = frappe.model.can_read("Stock Entry");
+	return entries
+		.map(
+			(entry) =>
+				`${
+					readable
+						? frappe.utils.get_form_link("Stock Entry", entry.name, true)
+						: frappe.utils.escape_html(entry.name)
+				} — ${entry.docstatus === 1 ? __("Submitted") : __("Draft")}`
+		)
+		.join("<br>");
+}
+
+function item_line(item) {
+	return `${frappe.utils.escape_html(item.item_name || item.item_code)} — ${format_number(
+		item.issued_qty
+	)} / ${format_number(item.qty)} ${frappe.utils.escape_html(item.uom || "")}`;
 }
 
 function expense_state(expense) {
@@ -90,15 +103,8 @@ function materials_table(rows) {
 			<tr>
 				<td>${frappe.datetime.str_to_user(expense.expense_date)}</td>
 				<td>${expense_link(expense)}</td>
-				<td>${expense.items
-					.map(
-						(item) =>
-							`${frappe.utils.escape_html(item.item_name || item.item_code)} — ${format_number(
-								item.qty
-							)} ${frappe.utils.escape_html(item.uom || "")}`
-					)
-					.join("<br>")}</td>
-				<td>${stock_entry_cell(expense.stock_entry)}</td>
+				<td>${expense.items.map(item_line).join("<br>")}</td>
+				<td>${stock_entry_cell(expense.stock_entries)}</td>
 				<td>${expense_state(expense)}</td>
 			</tr>`
 		)
@@ -111,7 +117,7 @@ function materials_table(rows) {
 					<tr>
 						<th>${__("Date")}</th>
 						<th>${__("Expense Type")}</th>
-						<th>${__("Items")}</th>
+						<th>${__("Items")} (${__("Issued / Required")})</th>
 						<th>${__("Stock Entry")}</th>
 						<th>${__("Stock Entry Status")}</th>
 					</tr>

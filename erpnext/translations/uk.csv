@@ -14957,5 +14957,19 @@ Expense {0} for Lead {1}: {2},Витрата {0} по зверненню {1}: {2
 Awaiting Warehouse,Очікує складу
 Materials expense {0} for Lead {1} is waiting for a warehouse,Матеріальна витрата {0} по зверненню {1} очікує вибору складу
 A stock entry can only be created for a submitted materials expense,Рух ТМЦ можна створити лише для проведеної матеріальної витрати
-Expense {0} already has stock entry {1},Витрата {0} вже має рух ТМЦ {1}
-Warehouse {0} cannot be used to issue materials for company {1},Склад {0} не можна використати для списання матеріалів компанії {1}
+Has Draft,Є чернетка
+Partially Issued,Частково списано
+Fully Issued,Списано
+Partially Issued (Closed),Списано частково (закрито)
+Remainder Closed,Залишок закрито
+Issued Quantity,Списано
+Issued / Required,списано / потрібно
+Close Remainder,Закрити залишок
+Close the remainder of this expense? No more stock entries can be created for it.,Закрити залишок цієї витрати? Нові рухи ТМЦ для неї створити буде неможливо.
+The remainder of expense {0} is closed,Залишок витрати {0} закрито
+Nothing is left to issue for expense {0},За витратою {0} списувати більше нічого
+Submit or delete the draft stock entries of expense {0} first,Спершу проведіть або видаліть чернетки рухів ТМЦ витрати {0}
+Row #{0}: {1} is already listed,Рядок #{0}: {1} уже є у списку
+Row #{0}: {1} is not part of expense {2},Рядок #{0}: {1} немає у витраті {2}
+Only {0} of {1} is left to issue for expense {2},За витратою {2} залишилось списати лише {0} {1}
+A stock entry for expense {0} must be a Material Issue of company {1},Рух ТМЦ для витрати {0} має бути списанням матеріалів компанії {1}
