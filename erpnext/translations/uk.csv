@@ -14949,3 +14949,6 @@ Workplaces,Робочі місця
 "If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."
 "Two printers are set for purpose {0}","Для призначення {0} задано два принтери"
 "Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.","Які етикетки друкує цей принтер, напр. Package, Passed, Failed. Порожньо — будь-які."
+"Print Job {0} was not printed by this scanner","Завдання друку {0} надруковано не цим сканером"
+"Scan Log Entry","Запис журналу сканувань"
+"The scan whose script queued this label (Scanner Scan Log Entry)","Сканування, скрипт якого поставив цю етикетку в чергу (запис журналу сканувань)"

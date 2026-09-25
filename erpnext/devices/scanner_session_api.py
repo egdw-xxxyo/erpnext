@@ -630,6 +630,7 @@ def publish_after_scan(scanner, scan_log_row=None):
 		scan = None
 		if scan_log_row:
 			scan = frappe.db.get_value("Scanner Scan Log Entry", scan_log_row, SCAN_LOG_FIELDS, as_dict=True)
+			scan = (_with_labels([scan]) or [None])[0]
 		row = frappe.db.get_value(
 			"Scanner",
 			scanner.name,
@@ -688,21 +689,129 @@ def get_scan_log(scanner=None, limit=DEFAULT_SCAN_LOG_LIMIT):
 	"""The scanner's recent scans, newest first.
 
 	`idx` is append-only per scanner, so it orders the feed without trusting clocks.
-	`script_logs` is deliberately left out for non-managers — it is unbounded and carries
-	script internals.
+	`script_logs` is left out: it is unbounded, carries script internals, and the desk shows
+	it on the Scanner itself. Each scan carries the labels it printed instead.
 	"""
 	_assert_scanner_mine(scanner)
-	fields = list(SCAN_LOG_FIELDS)
-	if _is_manager():
-		fields.append("script_logs")
-
-	return frappe.get_all(
+	rows = frappe.get_all(
 		"Scanner Scan Log Entry",
 		filters={"parent": scanner, "parenttype": "Scanner", "parentfield": "scan_logs"},
-		fields=fields,
+		fields=SCAN_LOG_FIELDS,
 		order_by="idx desc",
 		limit_page_length=min(cint(limit) or DEFAULT_SCAN_LOG_LIMIT, 100),
 	)
+	return _with_labels(rows)
+
+
+def _with_labels(rows):
+	"""Attach to each scan the labels its script printed, as `labels`.
+
+	One entry per distinct label — the same template for the same document — with how many
+	copies went out in total, and the newest job of it, which is what a reprint copies.
+	Print Jobs are cleaned up after a week, so an older scan simply shows none.
+	"""
+	rows = [row for row in rows if row]
+	names = [row.name for row in rows]
+	jobs = (
+		frappe.get_all(
+			"Print Job",
+			filters={"scan_log_entry": ["in", names]},
+			fields=[
+				"name",
+				"scan_log_entry",
+				"label_template",
+				"reference_name",
+				"raw_data",
+				"copies",
+				"status",
+			],
+			order_by="creation asc",
+		)
+		if names
+		else []
+	)
+
+	grouped = {}
+	for job in jobs:
+		key = (job.scan_log_entry, job.label_template, job.reference_name, job.raw_data)
+		label = grouped.setdefault(
+			key,
+			{"label_template": job.label_template, "reference_name": job.reference_name, "count": 0},
+		)
+		label["count"] += cint(job.copies) or 1
+		label["print_job"] = job.name
+		label["status"] = job.status
+
+	by_row = {}
+	for (entry, *_rest), label in grouped.items():
+		by_row.setdefault(entry, []).append(label)
+	for row in rows:
+		row["labels"] = by_row.get(row.name, [])
+	return rows
+
+
+@frappe.whitelist(methods=["POST"])
+def reprint_scan_label(scanner=None, print_job=None):
+	"""Print a label from the scan journal again, on the printer it first came out of.
+
+	The job must have been queued by a scan of this scanner — that, and the scanner being
+	the caller's, is the whole check: the operator has no Print Job role, and needs none to
+	repeat a label their own scan already printed. The copy is linked to the same scan, so
+	the journal's count goes up by the copies printed.
+	"""
+	row = _assert_scanner_mine(scanner)
+	if not print_job:
+		frappe.throw(_("Print Job is required"))
+	source = frappe.db.get_value(
+		"Print Job",
+		print_job,
+		[
+			"label_template",
+			"label_printer",
+			"reference_name",
+			"parent_doctype",
+			"parent_name",
+			"raw_data",
+			"copies",
+			"scanner",
+			"scan_log_entry",
+		],
+		as_dict=True,
+	)
+	if not source or source.scanner != row.name:
+		frappe.throw(
+			_("Print Job {0} was not printed by this scanner").format(print_job), frappe.PermissionError
+		)
+
+	from erpnext.devices.doctype.label_printer.label_printer import queue_print_job
+
+	frappe.flags.scan_log_entry = source.scan_log_entry
+	frappe.flags.scan_scanner = row.name
+	result = queue_print_job(
+		label_template=source.label_template,
+		printer_name=source.label_printer,
+		reference_name=source.reference_name,
+		raw_data=source.raw_data,
+		copies=source.copies or 1,
+		ignore_permissions=True,
+	)
+	job = result.get("print_job")
+	if source.parent_doctype or source.parent_name:
+		frappe.db.set_value(
+			"Print Job",
+			job,
+			{"parent_doctype": source.parent_doctype, "parent_name": source.parent_name},
+			update_modified=False,
+		)
+	# Printing runs after commit: `print_label` rolls back on a printer error, which inside
+	# this request would take the new job with it.
+	frappe.enqueue(
+		"erpnext.devices.doctype.label_printer.label_printer.print_label",
+		queue="short",
+		enqueue_after_commit=True,
+		print_job_name=job,
+	)
+	return {"print_job": job}
 
 
 @frappe.whitelist(methods=["GET"])
