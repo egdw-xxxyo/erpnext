@@ -72,6 +72,13 @@ function expense_link(expense) {
 	return frappe.utils.get_form_link("Lead Expense", expense.name, true, __(expense.expense_type));
 }
 
+function stock_entry_cell(stock_entry) {
+	if (!stock_entry) return "";
+	return frappe.model.can_read("Stock Entry")
+		? frappe.utils.get_form_link("Stock Entry", stock_entry, true)
+		: frappe.utils.escape_html(stock_entry);
+}
+
 function expense_state(expense) {
 	return expense.docstatus === 0 ? __("Not Submitted") : __(expense.stock_entry_status || "");
 }
@@ -91,7 +98,7 @@ function materials_table(rows) {
 							)} ${frappe.utils.escape_html(item.uom || "")}`
 					)
 					.join("<br>")}</td>
-				<td>${expense.stock_entry ? frappe.utils.get_form_link("Stock Entry", expense.stock_entry, true) : ""}</td>
+				<td>${stock_entry_cell(expense.stock_entry)}</td>
 				<td>${expense_state(expense)}</td>
 			</tr>`
 		)
