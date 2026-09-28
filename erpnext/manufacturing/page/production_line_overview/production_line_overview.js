@@ -295,10 +295,16 @@ class ProductionLineOverview {
 			</div>
 			<div class="plo-flow">
 				<span><i class="fa fa-calendar"></i> ${__("Plan")}</span><i class="fa fa-long-arrow-right"></i>
-				<span><i class="fa fa-cogs"></i> ${__("Work Order")} (${__("serials")})</span><i class="fa fa-long-arrow-right"></i>
-				<span><i class="fa fa-id-card-o"></i> ${__("Job Card")} ${__("per unit")}</span><i class="fa fa-long-arrow-right"></i>
+				<span><i class="fa fa-cogs"></i> ${__("Work Order")} (${__(
+			"serials"
+		)})</span><i class="fa fa-long-arrow-right"></i>
+				<span><i class="fa fa-id-card-o"></i> ${__("Job Card")} ${__(
+			"per unit"
+		)}</span><i class="fa fa-long-arrow-right"></i>
 				<span><i class="fa fa-map-marker"></i> ${__("Workplace")}</span><i class="fa fa-long-arrow-right"></i>
-				<span><i class="fa fa-check-square-o"></i> ${__("Quality Inspection")}</span><i class="fa fa-long-arrow-right"></i>
+				<span><i class="fa fa-check-square-o"></i> ${__(
+					"Quality Inspection"
+				)}</span><i class="fa fa-long-arrow-right"></i>
 				<span><i class="fa fa-archive"></i> ${__("Stock")}</span>
 			</div>
 			<h5 class="plo-h">${__("Setup checks")} <span class="text-muted">(${issues.length})</span></h5>
@@ -316,7 +322,9 @@ class ProductionLineOverview {
 						</div>`
 							)
 							.join("")}</div>`
-					: `<div class="plo-ok"><i class="fa fa-check-circle"></i> ${__("No problems found")}</div>`
+					: `<div class="plo-ok"><i class="fa fa-check-circle"></i> ${__(
+							"No problems found"
+					  )}</div>`
 			}
 			${this.where_to_find()}
 		`;
@@ -382,9 +390,7 @@ class ProductionLineOverview {
 					}
 					${l.manufacture_at_packing ? this.pill(__("Into stock at packing"), "purple") : ""}
 					<span class="plo-card-right text-muted small">
-						<a href="/desk/production-flow?production_line=${encodeURIComponent(l.name)}">${__(
-					"Production Flow"
-				)}</a> ·
+						<a href="/desk/production-flow?production_line=${encodeURIComponent(l.name)}">${__("Production Flow")}</a> ·
 						${this.link("Production Line", l.name, __("Go to"))}</span>
 				</div>
 				<div class="plo-card-sub text-muted small">
@@ -415,9 +421,7 @@ class ProductionLineOverview {
 						<span class="plo-trigger">${p.daily_qty} ${__("per day")}</span>
 						<i class="fa fa-long-arrow-right text-muted"></i>
 						${this.item_link(p.item_code)}
-						<span class="text-muted small">${__("at")}</span> ${
-											p.workplace ? this.link("Workplace", p.workplace) : dash
-										}
+						<span class="text-muted small">${__("at")}</span> ${p.workplace ? this.link("Workplace", p.workplace) : dash}
 						${p.enabled ? "" : this.pill(__("off"), "gray")}
 					</div>`
 									)
@@ -433,9 +437,6 @@ class ProductionLineOverview {
 							<span class="text-muted">${__("Work-in-progress warehouse")}</span><span>${this.wh(l.wip_warehouse)}</span>
 							<span class="text-muted">${__("Finished goods warehouse")}</span><span>${this.wh(l.fg_warehouse)}</span>
 							<span class="text-muted">${__("Reject warehouse")}</span><span>${this.wh(l.reject_warehouse)}</span>
-							<span class="text-muted">${__("Delete unused serials")}</span><span>${
-					l.delete_unused_serials ? __("Yes") : __("No")
-				}</span>
 						</div>
 						<div>
 							<div class="plo-label">${__("Last plan run")} ${
@@ -502,7 +503,10 @@ class ProductionLineOverview {
 							`<span class="text-danger">${__("None yet")}</span>`
 						}${
 							plan.overflow_work_orders
-								? `<div>${this.pill(__("{0} overflow", [plan.overflow_work_orders]), "orange")}</div>`
+								? `<div>${this.pill(
+										__("{0} overflow", [plan.overflow_work_orders]),
+										"orange"
+								  )}</div>`
 								: ""
 						}</td>
 						<td style="min-width: 220px">${this.bar(u)}${this.state_counts(u)}</td>
@@ -516,7 +520,15 @@ class ProductionLineOverview {
 
 	render_units(d) {
 		const rows = d.attention.filter((u) =>
-			this.match(u.serial_no, u.item_code, u.work_order, u.workplace, u.workstation, u.by_name, u.job_card)
+			this.match(
+				u.serial_no,
+				u.item_code,
+				u.work_order,
+				u.workplace,
+				u.workstation,
+				u.by_name,
+				u.job_card
+			)
 		);
 		if (!rows.length) return "";
 		const state_color = { in_progress: "blue", measured: "purple", rejected: "red" };
@@ -553,7 +565,12 @@ class ProductionLineOverview {
 						<td>${
 							u.quality_inspection
 								? `${this.link("Quality Inspection", u.quality_inspection)} ${
-										u.qi_status ? this.pill(__(u.qi_status), u.qi_status === "Accepted" ? "green" : "red") : ""
+										u.qi_status
+											? this.pill(
+													__(u.qi_status),
+													u.qi_status === "Accepted" ? "green" : "red"
+											  )
+											: ""
 								  }`
 								: `<span class="text-muted">—</span>`
 						}</td>
@@ -646,7 +663,9 @@ class ProductionLineOverview {
 							w.operations
 								.map(
 									(o) =>
-										`<div>${frappe.utils.escape_html(o.operation || "")} <span class="text-muted small">${frappe.utils.escape_html(
+										`<div>${frappe.utils.escape_html(
+											o.operation || ""
+										)} <span class="text-muted small">${frappe.utils.escape_html(
 											o.workstation || ""
 										)}</span></div>`
 								)
@@ -658,22 +677,32 @@ class ProductionLineOverview {
 								.map(
 									(p) =>
 										`${this.link("Label Printer", p.label_printer)}${
-											p.is_default ? ` <span class="text-muted small">${__("default")}</span>` : ""
+											p.is_default
+												? ` <span class="text-muted small">${__("default")}</span>`
+												: ""
 										}`
 								)
 								.join("<br>") || dash
 						}</td>
 						<td>${w.workplace_script ? this.link("Workplace Script", w.workplace_script) : dash}
-							${
-								w.otdr_configuration
-									? `<div>${this.link("OTDR Configuration", w.otdr_configuration)}</div>`
-									: ""
-							}</td>
+							${w.otdr_configuration ? `<div>${this.link("OTDR Configuration", w.otdr_configuration)}</div>` : ""}</td>
 						<td>${
 							w.in_progress.length || w.measured.length
 								? [
-										...w.in_progress.map((s) => `${this.pill(__("In progress"), "blue")} ${this.link("Serial No", s)}`),
-										...w.measured.map((s) => `${this.pill(__("Measured"), "purple")} ${this.link("Serial No", s)}`),
+										...w.in_progress.map(
+											(s) =>
+												`${this.pill(__("In progress"), "blue")} ${this.link(
+													"Serial No",
+													s
+												)}`
+										),
+										...w.measured.map(
+											(s) =>
+												`${this.pill(__("Measured"), "purple")} ${this.link(
+													"Serial No",
+													s
+												)}`
+										),
 								  ].join("<br>")
 								: dash
 						}</td>
@@ -702,9 +731,9 @@ class ProductionLineOverview {
 		return `<div class="plo-bar">${PLO_STATES.filter(([k]) => units[k])
 			.map(
 				([k]) =>
-					`<span class="plo-st-${k}" style="width: ${(units[k] / total) * 100}%" title="${this.state_label(
-						k
-					)}: ${units[k]}"></span>`
+					`<span class="plo-st-${k}" style="width: ${
+						(units[k] / total) * 100
+					}%" title="${this.state_label(k)}: ${units[k]}"></span>`
 			)
 			.join("")}</div>`;
 	}

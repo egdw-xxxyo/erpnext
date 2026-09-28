@@ -14,8 +14,8 @@ Each `Production Line` removes both for the items on its plan:
   overflow Work Order on the spot, so running out is invisible to the bench.
 * `finish_unit` closes the unit's Job Card and posts its Manufacture entry for exactly that
   serial, so a finished unit reaches the finished-goods warehouse without desk work.
-* `close_stale_work_orders` stops earlier days' leftovers overnight, so the app cannot hand
-  out a unit from a Work Order nobody is working on any more.
+* `close_stale_work_orders` closes the day: units nobody started lose their cards and
+  serials, and each Daily Work Order shrinks to the units that were started.
 
 Nothing here knows what the line makes. `Line Type` is what a client asks for — the spool
 app calls `erpnext.manufacturing.spool_production`, which passes "Spool" — so a second kind
@@ -54,7 +54,6 @@ class ProductionLine(Document):
 		cleanup_enabled: DF.Check
 		cleanup_time: DF.Time | None
 		company: DF.Link | None
-		delete_unused_serials: DF.Check
 		enabled: DF.Check
 		fg_warehouse: DF.Link | None
 		last_cleanup_on: DF.Datetime | None
@@ -363,6 +362,9 @@ def _create_work_order(line, item_code, qty, reason="plan"):
 			"wip_warehouse": line.wip_warehouse,
 			"fg_warehouse": line.fg_warehouse,
 			"description": f"{line.name} ({reason})",
+			"production_line": line.name,
+			"line_order_type": "Daily",
+			"planned_qty": qty,
 		}
 	)
 	# Operations are pulled by a whitelisted method the desk form calls on BOM select; without
@@ -976,40 +978,34 @@ def finish_packed_units(serials, target_warehouse=None, employee=None, operation
 	}
 
 
-def close_stale_work_orders(line=None):
-	"""Close the day: stop the Work Orders opened before now so no stale unit is handed out.
+def close_stale_work_orders(line=None, force=False):
+	"""Close the day: keep only the units somebody started, so no stale unit is handed out.
 
-	Serial Nos are kept unless the line asks otherwise: a gap in the numbering is cheap, and
-	a nightly job that deletes records is the kind of thing that eventually deletes a real one.
+	A line's Work Orders are Daily: every card and serial of a unit nobody touched is deleted,
+	and Qty shrinks to the units that were started. Those finish at their own pace, and the
+	last one into stock completes the Work Order. A Work Order nobody touched at all is closed,
+	since its Qty cannot shrink to zero.
 	"""
 	cutoff = now_datetime()
 	lines_to_run = [frappe.get_doc("Production Line", line)] if line else _enabled_lines()
 	for line in lines_to_run:
-		if not line.cleanup_enabled:
-			continue
-
-		items = [row.item_code for row in _plan_rows(line)]
-		if not items:
-			frappe.db.set_value(
-				"Production Line",
-				line.name,
-				{"last_cleanup_on": cutoff, "last_cleanup_result": "nothing to do"},
-				update_modified=False,
-			)
+		if not line.cleanup_enabled and not force:
 			continue
 
 		work_orders = frappe.get_all(
 			"Work Order",
 			filters={
-				"production_item": ["in", items],
+				"production_line": line.name,
+				"line_order_type": "Daily",
 				"docstatus": 1,
 				"status": ["in", LIVE_WORK_ORDER_STATUSES],
 				"creation": ["<", cutoff],
 			},
 			pluck="name",
+			order_by="creation",
 		)
 
-		stopped, held = [], []
+		shrunk, closed, kept = [], [], []
 		for name in work_orders:
 			cards = frappe.get_all(
 				"Job Card",
@@ -1026,40 +1022,35 @@ def close_stale_work_orders(line=None):
 			}
 			started.discard(None)
 
-			# Only cards of units nobody ever touched.
-			untouched = [
-				c.name
-				for c in cards
-				if c.docstatus == 0
-				and c.status == FREE_JOB_CARD_STATUS
-				and not c.quality_inspection
-				and _first_serial(c.serial_no) not in started
-			]
+			untouched = [c for c in cards if _first_serial(c.serial_no) not in started]
 			for card in untouched:
-				frappe.delete_doc("Job Card", card, force=1, ignore_permissions=True)
-
-			# Someone is still on a unit, walked away from it, or finished one operation of it
-			# and not the next. Stopping the Work Order would block closing any of those cards,
-			# so leave it open and report. `next_unit` hands a measured unit back to be finished;
-			# the next operation's card waits for its own station.
-			in_progress = len([c for c in cards if c.docstatus == 0 and c.name not in untouched])
-			if in_progress:
-				held.append(f"{name} ({in_progress} in progress)")
-				continue
-
-			if line.delete_unused_serials:
-				_delete_unused_serials(name)
+				frappe.delete_doc("Job Card", card.name, force=1, ignore_permissions=True)
+			_delete_serials({_first_serial(c.serial_no) for c in untouched} - {None})
 
 			wo = frappe.get_doc("Work Order", name)
 			wo.flags.ignore_permissions = True
-			wo.update_status("Stopped")
-			stopped.append(f"{name} ({len(untouched)} cards)")
+			# A unit finished before an older cleanup deleted its cards is no longer among them,
+			# but it is still in `produced_qty`.
+			keep = max(len(started), cint(flt(wo.produced_qty) + flt(wo.process_loss_qty)))
+			if not keep:
+				wo.update_status("Closed")
+				wo.on_close_or_cancel()
+				closed.append(f"{name} ({len(untouched)} cards)")
+			elif keep < wo.qty:
+				old_qty = wo.qty
+				_shrink_work_order(wo, keep)
+				shrunk.append(f"{name} {cint(old_qty)}→{keep} ({len(untouched)} cards)")
+			else:
+				kept.append(f"{name} ({keep} started)")
+			frappe.db.commit()
 
 		lines = []
-		if stopped:
-			lines.append("stopped: " + "; ".join(stopped))
-		if held:
-			lines.append("left open: " + "; ".join(held))
+		if shrunk:
+			lines.append("shrunk: " + "; ".join(shrunk))
+		if closed:
+			lines.append("closed: " + "; ".join(closed))
+		if kept:
+			lines.append("all started: " + "; ".join(kept))
 		frappe.db.set_value(
 			"Production Line",
 			line.name,
@@ -1067,6 +1058,36 @@ def close_stale_work_orders(line=None):
 			update_modified=False,
 		)
 		frappe.db.commit()
+
+
+def _shrink_work_order(wo, qty):
+	"""Cut a submitted Work Order down to `qty` units, materials included.
+
+	`qty` is not allow_on_submit, so the form cannot do this. Materials are moved to WIP per
+	unit as it is finished, so nothing transferred for the dropped units is left behind.
+	"""
+	ratio = flt(qty) / flt(wo.qty)
+	frappe.db.set_value("Work Order", wo.name, "qty", qty, update_modified=False)
+	for row in wo.required_items:
+		frappe.db.set_value(
+			"Work Order Item",
+			row.name,
+			"required_qty",
+			flt(row.required_qty * ratio, row.precision("required_qty")),
+			update_modified=False,
+		)
+	wo.reload()
+	wo.flags.ignore_permissions = True
+	wo.update_status()
+	wo.update_planned_qty()
+
+
+@frappe.whitelist()
+def close_day(line):
+	"""Close a line's day now instead of waiting for Close Day At."""
+	frappe.only_for(("System Manager", "Manufacturing Manager"))
+	close_stale_work_orders(line=line, force=True)
+	return frappe.db.get_value("Production Line", line, "last_cleanup_result")
 
 
 def restore_route_cards(work_order):
@@ -1124,11 +1145,13 @@ def _first_serial(serial_no):
 	return lines[0].strip() if lines else None
 
 
-def _delete_unused_serials(work_order):
-	"""Serials this Work Order minted that never carried stock."""
+def _delete_serials(serials):
+	"""Serials of units nobody started — only while they never carried stock."""
+	if not serials:
+		return
 	serials = frappe.get_all(
 		"Serial No",
-		filters={"work_order": work_order, "status": ["!=", "Active"], "warehouse": ["is", "not set"]},
+		filters={"name": ["in", list(serials)], "status": ["!=", "Active"], "warehouse": ["is", "not set"]},
 		pluck="name",
 	)
 	for name in serials:

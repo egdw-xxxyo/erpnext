@@ -87,7 +87,6 @@ def _lines():
 			"overflow_qty",
 			"cleanup_enabled",
 			"cleanup_time",
-			"delete_unused_serials",
 			"last_run_on",
 			"last_result",
 			"last_cleanup_on",
@@ -118,7 +117,6 @@ def _lines():
 				"enabled": cint(row.enabled),
 				"manufacture_at_packing": cint(row.manufacture_at_packing),
 				"cleanup_enabled": cint(row.cleanup_enabled),
-				"delete_unused_serials": cint(row.delete_unused_serials),
 				"plan_time": str(row.plan_time) if row.plan_time else None,
 				"cleanup_time": str(row.cleanup_time) if row.cleanup_time else None,
 				"planned_today": bool(
@@ -151,7 +149,14 @@ def _workplaces(names):
 	rows = frappe.get_all(
 		"Workplace",
 		filters={"name": ["in", list(names)]},
-		fields=["name", "workplace_name", "short_name", "is_active", "workplace_script", "otdr_configuration"],
+		fields=[
+			"name",
+			"workplace_name",
+			"short_name",
+			"is_active",
+			"workplace_script",
+			"otdr_configuration",
+		],
 	)
 	operations = frappe.get_all(
 		"Workplace Operation",
@@ -402,11 +407,7 @@ def _attach_progress(lines, work_orders, units, workplaces):
 	"""Today's numbers per plan row, and the units each bench holds right now."""
 	for line in lines:
 		for row in line["plan"]:
-			wos = [
-				wo
-				for wo in work_orders
-				if wo["is_today"] and wo["production_item"] == row["item_code"]
-			]
+			wos = [wo for wo in work_orders if wo["is_today"] and wo["production_item"] == row["item_code"]]
 			row["work_orders"] = [wo["name"] for wo in wos]
 			row["overflow_work_orders"] = len([wo for wo in wos if wo["reason"] == "overflow"])
 			row["qty_today"] = sum(flt(wo["qty"]) for wo in wos)
@@ -508,9 +509,9 @@ def _issues(lines, workplaces, items, work_orders, attention, errors):
 			add(
 				"warning",
 				area_line,
-				_("Line {0} has no reject warehouse, rejected units are closed but not put into stock").format(
-					name
-				),
+				_(
+					"Line {0} has no reject warehouse, rejected units are closed but not put into stock"
+				).format(name),
 				"Production Line",
 				name,
 			)
@@ -611,7 +612,9 @@ def _issues(lines, workplaces, items, work_orders, attention, errors):
 				add(
 					"error",
 					area_plan,
-					_("BOM {0} has no operations, its Work Orders get no Job Cards").format(item["default_bom"]),
+					_("BOM {0} has no operations, its Work Orders get no Job Cards").format(
+						item["default_bom"]
+					),
 					"BOM",
 					item["default_bom"],
 				)
@@ -628,9 +631,9 @@ def _issues(lines, workplaces, items, work_orders, attention, errors):
 					add(
 						"warning",
 						area_plan,
-						_(
-							"Line {0} finishes units at packing, but BOM {1} has no operation {2}"
-						).format(name, item["default_bom"], PACKING_OPERATION),
+						_("Line {0} finishes units at packing, but BOM {1} has no operation {2}").format(
+							name, item["default_bom"], PACKING_OPERATION
+						),
 						"BOM",
 						item["default_bom"],
 					)
