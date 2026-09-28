@@ -396,6 +396,8 @@ def run_scan(scanner, data):
 	_impersonate(scanner.employee)
 
 	scan_log_row = _create_scan_log(scanner, data, state_proxy.name)
+	frappe.flags.scan_log_entry = scan_log_row
+	frappe.flags.scan_scanner = scanner.name
 
 	try:
 		from erpnext.devices.doctype.device_script.device_script import (

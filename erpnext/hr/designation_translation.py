@@ -2,13 +2,21 @@ import frappe
 
 
 def sync_employee_designation_name_en(doc, method=None):
-	if not doc.has_value_changed("designation_name_en"):
+	_sync_employee_field(doc, "designation", "designation_name_en")
+
+
+def sync_employee_department_name_en(doc, method=None):
+	_sync_employee_field(doc, "department", "department_name_en")
+
+
+def _sync_employee_field(doc, link_field, fieldname):
+	if not doc.has_value_changed(fieldname):
 		return
 
 	frappe.db.set_value(
 		"Employee",
-		{"designation": doc.name},
-		"designation_name_en",
-		doc.designation_name_en,
+		{link_field: doc.name},
+		fieldname,
+		doc.get(fieldname),
 		update_modified=False,
 	)

@@ -17,12 +17,12 @@ it means already and is left alone, which is also what makes a second run change
 
 import frappe
 
-from erpnext.technical_documentation.constants import (
-	DOCUMENT_DOCTYPE,
-	RELATION_ANNEX_TO,
-	RELATION_DOCTYPE,
-	RELATION_HAS_ANNEX,
-)
+from erpnext.technical_documentation.constants import DOCUMENT_DOCTYPE, RELATION_DOCTYPE
+
+# The names the relation types had when this patch was written; rename_package_relation_types
+# moves them to the current ones afterwards.
+RELATION_HAS_ANNEX = "Має додаток"
+RELATION_ANNEX_TO = "Додаток до"
 
 
 def execute():

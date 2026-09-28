@@ -73,17 +73,16 @@ function _render_job_preview(frm) {
 				return;
 			}
 			let PX_PER_MM = 3.78;
-			let scale = 3;
-			let cw = Math.round(data.width_mm * PX_PER_MM) * scale;
-			let ch = Math.round(data.height_mm * PX_PER_MM) * scale;
+			let scale = 1.5;
+			let cw = Math.round(data.width_mm * PX_PER_MM * scale);
 			$wrapper.html(`
 				<div style="padding:10px;">
 					<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
 						${data.width_mm} × ${data.height_mm} mm
 					</div>
-					<div style="display:inline-block; border:1px solid var(--border-color); background:#fff; border-radius:4px; overflow:hidden;">
+					<div style="display:inline-block; max-width:100%; border:1px solid var(--border-color); background:#fff; border-radius:4px; overflow:hidden;">
 						<img src="data:image/png;base64,${data.image_base64}"
-							style="width:${cw}px; height:${ch}px; display:block; image-rendering:pixelated;" />
+							style="width:${cw}px; max-width:100%; height:auto; display:block;" />
 					</div>
 				</div>
 			`);

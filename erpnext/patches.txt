@@ -550,6 +550,7 @@ erpnext.patches.v16_0.repair_technical_documentation_data
 erpnext.patches.v16_0.carry_nsn_onto_modifications
 erpnext.patches.v16_0.fill_modification_attribute_summary
 erpnext.patches.v16_0.fix_annex_relation_direction
+erpnext.patches.v16_0.rename_package_relation_types
 erpnext.patches.v16_0.clear_measured_attribute_step
 erpnext.patches.v16_0.flatten_specification
 erpnext.patches.v16_0.workplace_script_multiple_workplaces

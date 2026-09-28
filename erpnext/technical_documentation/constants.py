@@ -68,8 +68,8 @@ MODIFICATION_STATUSES = (
 
 RELATION_SUPERSEDES = "Замінює"
 RELATION_SUPERSEDED_BY = "Замінений документом"
-RELATION_HAS_ANNEX = "Має додаток"
-RELATION_ANNEX_TO = "Додаток до"
+RELATION_INCLUDES = "Включає до комплекту"
+RELATION_INCLUDED_IN = "Входить до комплекту"
 RELATION_RELATED_TO = "Повʼязаний з"
 RELATION_BASIS_FOR = "Є підставою для"
 RELATION_BASED_ON = "Розроблений на підставі"
@@ -80,8 +80,8 @@ RELATION_NEXT_EDITION = "Наступна редакція"
 RELATION_TYPES = (
 	RELATION_SUPERSEDES,
 	RELATION_SUPERSEDED_BY,
-	RELATION_HAS_ANNEX,
-	RELATION_ANNEX_TO,
+	RELATION_INCLUDES,
+	RELATION_INCLUDED_IN,
 	RELATION_RELATED_TO,
 	RELATION_BASIS_FOR,
 	RELATION_BASED_ON,
@@ -92,9 +92,13 @@ RELATION_TYPES = (
 
 # A relation is read as a sentence — the main document, the type, the related document — so
 # a type that only reads one way can only be recorded from one card. «Замінює» has had its
-# mirror «Замінений документом» from the start; «Має додаток» and «Є підставою для» are the
-# mirrors the vocabulary was missing, and without them a specification could not say what
-# belongs to it without stating the opposite of what was meant.
+# mirror «Замінений документом» from the start; «Включає до комплекту» and «Є підставою для»
+# are the mirrors the vocabulary was missing, and without them a specification could not say
+# what belongs to it without stating the opposite of what was meant.
+#
+# The package pair is named after the package rather than after annexes: completeness is
+# counted off these two types and no other, and «Має додаток» read as one relation among
+# ten, where nothing said that picking it — and only it — is what fills a required row.
 
 ATTACHMENT_SIGNATURE = "Підпис"
 ATTACHMENT_MEDOC_RECEIPT = "Квитанція M.E.Doc"

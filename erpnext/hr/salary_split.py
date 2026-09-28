@@ -132,7 +132,8 @@ def restrict_salary_editing(doc, method=None):
 
 	Вибірка та сама, що й у табелі та зарплатних документах (`erpnext.hr.team`), тож право
 	на оклад іде за правом вести людину, а не за роллю. Адміністратор лишається винятком:
-	без нього нікому було б виправити картку керівника, який пішов.
+	без нього нікому було б виправити картку керівника, який пішов. Менеджер з персоналу
+	також веде оклад будь-кого.
 	"""
 	from erpnext.hr.team import visible_employees
 
@@ -148,6 +149,9 @@ def restrict_salary_editing(doc, method=None):
 	]
 
 	if not changed:
+		return
+
+	if "HR Manager" in frappe.get_roles():
 		return
 
 	if doc.name in visible_employees(doc.company):
@@ -217,6 +221,7 @@ def apply_salary_to_employee(employee, official, cash, effective_from) -> bool:
 	doc.custom_official_salary = official
 	doc.custom_cash_salary = cash
 	doc.custom_salary_effective_from = effective_from
+	doc.flags.ignore_mandatory = True
 	doc.save()
 
 	return True

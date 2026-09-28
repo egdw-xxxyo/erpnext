@@ -2905,7 +2905,7 @@ Create Sales Invoice,Створіть рахунок-фактуру з прод�
 Create Sales Order,Створити замовлення на продаж
 Create Sales Orders to help you plan your work and deliver on-time,"Створіть замовлення з продажу, щоб допомогти спланувати роботу та доставити вчасно"
 Create Sample Retention Stock Entry,Створити запис складу зберігання зразків
-Create Stock Entry,Створити запис про запаси
+Create Stock Entry,Створити рух ТМЦ
 Create Supplier Quotation,Створіть котирування постачальників
 Create Tax Template,Створіть шаблон оподаткування
 Create Timesheet,Створення розкладу
@@ -5765,7 +5765,7 @@ Material,Матеріал
 Material Consumption,Матеріальне споживання
 Material Consumption for Manufacture,Матеріальний потік для виробництва
 Material Consumption is not set in Manufacturing Settings.,Масштабне споживання не встановлено в налаштуваннях виробництва.
-Material Issue,Матеріал Випуск
+Material Issue,Списання матеріалів
 Material Receipt,Матеріал Надходження
 Material Request,Замовлення матеріалів
 Material Request Date,Дата Замовлення матеріалів
@@ -8003,7 +8003,7 @@ Relation added,Звʼязок додано
 Release Date,Дата випуску
 Release date must be in the future,Дата виходу повинна бути в майбутньому
 Relieving Date,Дата звільнення
-Remaining,решті
+Remaining,Залишилось
 Remaining Amount,Залишкова сума
 Remaining Balance,Залишковий баланс
 Remark,Зауваження
@@ -13038,7 +13038,7 @@ Product Category,Категорія продукції
 Estimated Quantity,Орієнтовна кількість
 Estimated Customer Budget,Орієнтовний бюджет клієнта
 Lead Assessment,Оцінка Звернення
-Conversion Probability,Ймовірність переходу в Opportunity
+Conversion Probability,Ймовірність переходу в Пропозицію
 Next Action Control,Контроль наступних дій
 Next Action,Наступна дія
 Next Action Date,Дата наступної дії
@@ -13957,6 +13957,7 @@ Example,Приклад
 "Employee Document Type","Тип документа працівника"
 "Designation (English)","Посада eng"
 "Designation (Ukrainian)","Посада укр"
+"Department (English)","Відділ eng"
 "KP Code","Код КП"
 "Professional Title","Професійна назва роботи"
 "KP Code {0} with professional title {1} is not in the Classifier of Professions","Коду КП {0} з професійною назвою роботи {1} немає в Класифікаторі професій"
@@ -14439,7 +14440,8 @@ Mandatory documents,Обовʼязкових документів
 Modification Status,Статус модифікації
 No document refers to this one,На цей документ ніхто не посилається
 No requirement template selected,Шаблон комплектності не вибрано
-"Related but not declared an annex","Повʼязаний, але не оголошений додатком"
+"Related but not included in the package","Повʼязаний, але не включений до комплекту"
+Reads as,Читається так
 "{0} is a document this package requires — only the relation {1} puts it there","{0} — документ, якого вимагає комплектність; у комплект його поставить лише звʼязок «{1}»"
 Not codified,Не кодифіковано
 Referred to by,На цей документ посилаються
@@ -14502,8 +14504,6 @@ Technical Document Audit Entry,Запис журналу технічної до
 "Leave the table empty to let the modification hold any text.","Залиште таблицю порожньою, щоб модифікація могла містити будь-який текст."
 "Remove the relation to {0}?","Видалити звʼязок із {0}?"
 "Relation removed","Звʼязок видалено"
-"Reads as: this document — relation — the document below","Читається так: цей документ — звʼязок — документ нижче"
-"Reads as: the document below — relation — this document","Читається так: документ нижче — звʼязок — цей документ"
 Display Code,Шифр для виробів
 "Designation shown on Items: the Number Template override if one matches, else Specification Code.","Шифр, який бачать номенклатури: заміна з шаблону номера, якщо вона збігається, інакше код специфікації."
 ЄСКД specification this item belongs to,"Специфікація ЄСКД, до якої належить ця номенклатура"
@@ -14949,6 +14949,83 @@ Workplaces,Робочі місця
 "If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."
 "Two printers are set for purpose {0}","Для призначення {0} задано два принтери"
 "Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.","Які етикетки друкує цей принтер, напр. Package, Passed, Failed. Порожньо — будь-які."
+"Print Job {0} was not printed by this scanner","Завдання друку {0} надруковано не цим сканером"
+"Scan Log Entry","Запис журналу сканувань"
+"The scan whose script queued this label (Scanner Scan Log Entry)","Сканування, скрипт якого поставив цю етикетку в чергу (запис журналу сканувань)"
+Packing Progress,Прогрес пакування
+Attached,Прикріплено
+Over,Понад план,Packing Progress
+"Mobile App Settings","Налаштування мобільного застосунку"
+"Mobile App Release","Реліз мобільного застосунку"
+"Where the companion mobile apps get their builds from","Звідки мобільні застосунки отримують свої збірки"
+"A published build of a companion mobile app, with its APK mirrored onto this site","Опублікована збірка мобільного застосунку, APK якої скопійовано на цей сайт"
+"Instance","Екземпляр"
+"Shown on the phone when this site is set up from the login page QR (e.g. Prod, Dev). Empty falls back to the site's host name.","Показується на телефоні, коли сайт налаштовують через QR-код зі сторінки входу (напр. Prod, Dev). Якщо порожньо — використовується ім'я хоста сайту."
+"Absolute URL the phone should use for this site, including the port (e.g. http://172.16.51.10:8080). Set it when the site is reached on a non-default port: nginx forwards the Host header without one, so the login QR and APK links otherwise point at port 80.","Повна адреса, за якою телефон звертається до цього сайту, разом із портом (напр. http://172.16.51.10:8080). Вкажіть її, якщо сайт працює на нестандартному порту: nginx передає заголовок Host без порту, тож інакше QR-код входу та посилання на APK вказують на порт 80."
+"GitHub Releases","Релізи GitHub"
+"Poll GitHub For New Releases","Перевіряти нові релізи на GitHub"
+"Mirror the newest GitHub Release's APK onto this site once an hour","Раз на годину копіювати APK найновішого релізу GitHub на цей сайт"
+"Repository (owner/name)","Репозиторій (owner/name)"
+"GitHub Token","Токен GitHub"
+"Personal access token with read access to the repository. Falls back to github_token in site_config.json when empty.","Персональний токен доступу з правом читання репозиторію. Якщо порожньо — використовується github_token із site_config.json."
+"Compatibility","Сумісність"
+"Minimum Android App Version","Мінімальна версія Android-додатка"
+"Overrides the built-in minimum Android app version. Leave empty to use the version shipped with this app.","Замінює вбудовану мінімальну версію Android-додатка. Залиште порожнім, щоб використовувати версію, що постачається з цим застосунком."
+"Last Poll","Остання перевірка"
+"Latest Version","Остання версія"
+"Last Polled On","Час останньої перевірки"
+"Last Error","Остання помилка"
+"Version name as the app reports it, without a leading v (e.g. 0.4.10)","Назва версії, як її повідомляє застосунок, без початкової v (напр. 0.4.10)"
+"Git tag the build came from","Git-тег, з якого зібрано збірку"
+"Only active releases are offered to devices","Пристроям пропонуються лише активні релізи"
+"GitHub Asset ID","ID файлу на GitHub"
+"APK","APK"
+"The installable APK served to devices. Uploaded by the GitHub poller, or attached by hand.","APK для встановлення, який отримують пристрої. Завантажується автоматично з GitHub або прикріплюється вручну."
+"APK Size (Bytes)","Розмір APK (байти)"
+"GitHub repository or token is not configured","Не налаштовано репозиторій або токен GitHub"
+"Latest GitHub release has no tag","Останній реліз на GitHub не має тегу"
+"Release {0} has no .apk asset","Реліз {0} не містить файлу .apk"
+"Published On","Дата публікації"
+Engagement Channel Detail,Деталізація каналу
+The month for which the client has a purchase budget.,"Місяць, на який у замовника є бюджет на закупівлю."
+{0} belongs to the engagement channel {1},{0} належить до каналу залучення {1}
+Invalid Engagement Channel Detail,Некоректна деталізація каналу
+Lead Expense,Витрата по зверненню
+Lead Expense Type,Тип витрат
+Lead Expense Item,Позиція витрати
+Expense Type,Тип витрат
+Expense Kind,Вид витрати
+Expense Date,Дата витрати
+Money,Гроші
+Stock Entry Status,Статус руху ТМЦ
+Add Expense,Додати витрату
+No expenses yet,Витрат поки немає
+Not Submitted,Не проведено
+Save the Lead to add expenses.,"Збережіть звернення, щоб додати витрати."
+Expense Type {0} is disabled,Тип витрат {0} вимкнено
+Add at least one item to a materials expense,Додайте хоча б одну позицію до матеріальної витрати
+Row #{0}: {1} is not a stock item,Рядок #{0}: {1} не є складською позицією
+Row #{0}: quantity must be greater than zero,Рядок #{0}: кількість має бути більше нуля
+Expense {0} for Lead {1}: {2},Витрата {0} по зверненню {1}: {2}
+Awaiting Warehouse,Очікує складу
+Materials expense {0} for Lead {1} is waiting for a warehouse,Матеріальна витрата {0} по зверненню {1} очікує вибору складу
+A stock entry can only be created for a submitted materials expense,Рух ТМЦ можна створити лише для проведеної матеріальної витрати
+Has Draft,Є чернетка
+Partially Issued,Частково списано
+Fully Issued,Списано
+Partially Issued (Closed),Списано частково (закрито)
+Remainder Closed,Залишок закрито
+Issued Quantity,Списано
+Issued / Required,списано / потрібно
+Close Remainder,Закрити залишок
+Close the remainder of this expense? No more stock entries can be created for it.,Закрити залишок цієї витрати? Нові рухи ТМЦ для неї створити буде неможливо.
+The remainder of expense {0} is closed,Залишок витрати {0} закрито
+Nothing is left to issue for expense {0},За витратою {0} списувати більше нічого
+Submit or delete the draft stock entries of expense {0} first,Спершу проведіть або видаліть чернетки рухів ТМЦ витрати {0}
+Row #{0}: {1} is already listed,Рядок #{0}: {1} уже є у списку
+Row #{0}: {1} is not part of expense {2},Рядок #{0}: {1} немає у витраті {2}
+Only {0} of {1} is left to issue for expense {2},За витратою {2} залишилось списати лише {0} {1}
+A stock entry for expense {0} must be a Material Issue of company {1},Рух ТМЦ для витрати {0} має бути списанням матеріалів компанії {1}
 Payment Instruction URL,Посилання на платіжну інструкцію
 Payment instruction is missing,Відсутня
 Open payment instruction,Відкрити інструкцію

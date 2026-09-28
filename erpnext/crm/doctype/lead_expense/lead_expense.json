@@ -1,0 +1,225 @@
+{
+ "actions": [],
+ "autoname": "format:CRM-EXP-{YYYY}-{#####}",
+ "creation": "2026-09-24 20:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lead",
+  "military_unit",
+  "company",
+  "column_break_type",
+  "expense_date",
+  "expense_type",
+  "expense_kind",
+  "money_section",
+  "amount",
+  "currency",
+  "materials_section",
+  "items",
+  "issue_closed",
+  "stock_entry_status",
+  "description_section",
+  "description",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Lead",
+   "options": "Lead",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "lead.military_unit",
+   "fieldname": "military_unit",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Military Unit",
+   "options": "Military Unit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_type",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "expense_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expense Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expense_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Expense Type",
+   "options": "Lead Expense Type",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "expense_type.expense_kind",
+   "fieldname": "expense_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Expense Kind",
+   "options": "\nMoney\nMaterials",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.expense_kind==='Money'",
+   "fieldname": "money_section",
+   "fieldtype": "Section Break",
+   "label": "Money"
+  },
+  {
+   "depends_on": "eval:doc.expense_kind==='Money'",
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "mandatory_depends_on": "eval:doc.expense_kind==='Money'",
+   "non_negative": 1,
+   "options": "currency"
+  },
+  {
+   "depends_on": "eval:doc.expense_kind==='Money'",
+   "fetch_from": "company.default_currency",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.expense_kind==='Materials'",
+   "fieldname": "materials_section",
+   "fieldtype": "Section Break",
+   "label": "Materials"
+  },
+  {
+   "depends_on": "eval:doc.expense_kind==='Materials'",
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "mandatory_depends_on": "eval:doc.expense_kind==='Materials'",
+   "options": "Lead Expense Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "issue_closed",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Remainder Closed",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.stock_entry_status",
+   "fieldname": "stock_entry_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Stock Entry Status",
+   "no_copy": 1,
+   "options": "\nAwaiting Warehouse\nHas Draft\nPartially Issued\nFully Issued\nPartially Issued (Closed)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Lead Expense",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-25 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Lead Expense",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Stock User"
+  }
+ ],
+ "sort_field": "expense_date",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "expense_type",
+ "track_changes": 1
+}

@@ -12283,7 +12283,7 @@ msgstr "Створіть замовлення з продажу, щоб допо
 #: erpnext/stock/dashboard/item_dashboard.js:283
 #: erpnext/stock/doctype/material_request/material_request.js:500
 msgid "Create Stock Entry"
-msgstr "Створити запис про запаси"
+msgstr "Створити рух ТМЦ"
 
 #: erpnext/buying/doctype/request_for_quotation/request_for_quotation.js:184
 msgid "Create Supplier Quotation"
@@ -27829,7 +27829,7 @@ msgstr "Масштабне споживання не встановлено в �
 #: erpnext/stock/doctype/stock_entry/stock_entry.json
 #: erpnext/stock/doctype/stock_entry_type/stock_entry_type.json
 msgid "Material Issue"
-msgstr "Матеріал Випуск"
+msgstr "Списання матеріалів"
 
 #. Option for the 'Purpose' (Select) field in DocType 'Stock Entry'
 #. Option for the 'Purpose' (Select) field in DocType 'Stock Entry Type'
