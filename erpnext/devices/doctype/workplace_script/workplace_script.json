@@ -14,6 +14,11 @@
   "is_active",
   "column_break_2",
   "parent_script",
+  "section_printing",
+  "requires_printer",
+  "column_break_printing",
+  "printer_purpose",
+  "printer_label_template",
   "section_workplaces",
   "workplaces",
   "section_versions",
@@ -70,6 +75,39 @@
    "label": "Parent Script (Subflow Of)",
    "options": "Workplace Script",
    "description": "If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness."
+  },
+  {
+   "fieldname": "section_printing",
+   "fieldtype": "Section Break",
+   "label": "Printing",
+   "collapsible": 1,
+   "collapsible_depends_on": "requires_printer"
+  },
+  {
+   "fieldname": "requires_printer",
+   "fieldtype": "Check",
+   "label": "Requires Printer",
+   "default": "0",
+   "description": "Warn the operator when this flow is opened at a workplace whose printer is missing, disabled, offline or loaded with the wrong labels."
+  },
+  {
+   "fieldname": "column_break_printing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "printer_purpose",
+   "fieldtype": "Data",
+   "label": "Printer Purpose",
+   "depends_on": "requires_printer",
+   "description": "Workplace Printer purpose to use (e.g. Package). Empty — the default printer, or the only one."
+  },
+  {
+   "fieldname": "printer_label_template",
+   "fieldtype": "Link",
+   "label": "Label Template",
+   "options": "Label Template",
+   "depends_on": "requires_printer",
+   "description": "When set, the printer's loaded label size must match this template."
   },
   {
    "fieldname": "section_workplaces",
@@ -196,7 +234,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-16 00:00:00.000000",
+ "modified": "2026-09-28 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Workplace Script",
