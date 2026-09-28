@@ -23,8 +23,8 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
-   "label": "Scanner Overview",
-   "link_to": "scanner-overview",
+   "label": "Device Overview",
+   "link_to": "device-overview",
    "link_type": "Page",
    "show_arrow": 0,
    "type": "Link",
@@ -267,7 +267,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-09-28 18:00:00.000000",
+ "modified": "2026-09-29 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Devices",

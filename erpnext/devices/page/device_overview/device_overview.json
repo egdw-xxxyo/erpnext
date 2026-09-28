@@ -1,15 +1,15 @@
 {
  "content": null,
- "creation": "2026-09-28 17:00:00.000000",
+ "creation": "2026-09-29 10:00:00.000000",
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-09-28 17:00:00.000000",
+ "modified": "2026-09-29 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
- "name": "scanner-overview",
+ "name": "device-overview",
  "owner": "Administrator",
- "page_name": "scanner-overview",
+ "page_name": "device-overview",
  "roles": [
   {
    "role": "Device Manager"
@@ -28,5 +28,5 @@
  "standard": "Yes",
  "style": null,
  "system_page": 0,
- "title": "Scanner Overview"
+ "title": "Device Overview"
 }

@@ -1,4 +1,4 @@
-"""One read-only picture of the scanner setup: devices, benches, printers, scripts, commands.
+"""One read-only picture of the device setup: scanners, OTDR benches, printers, scripts, commands.
 
 Everything a supervisor would otherwise click through six DocTypes to piece together, plus
 the live part that is not in the database at all — each scanner's state frame and last
@@ -37,6 +37,7 @@ def get_overview():
 	workplaces = _workplaces()
 	libraries = _libraries()
 	scanners = _scanners(workplaces)
+	otdr = _otdr(workplaces)
 
 	for wp in workplaces:
 		wp["scanners"] = [s["name"] for s in scanners if s["workplace"] == wp["name"]]
@@ -58,7 +59,10 @@ def get_overview():
 		"libraries": libraries,
 		"commands": commands,
 		"packing_templates": templates,
-		"issues": _issues(scanners, workplaces, printers, scripts, commands, templates),
+		"otdr": otdr,
+		"issues": _sorted_issues(
+			_issues(scanners, workplaces, printers, scripts, commands, templates) + _otdr_issues(otdr)
+		),
 	}
 
 
@@ -188,7 +192,7 @@ def _state_label(script_name, state_name):
 
 
 def _snapshot(script_name):
-	cache = frappe.flags.setdefault("scanner_overview_snapshots", {})
+	cache = frappe.flags.setdefault("device_overview_snapshots", {})
 	if script_name not in cache:
 		try:
 			cache[script_name] = _resolve_default_snapshot(
@@ -202,7 +206,7 @@ def _snapshot(script_name):
 def _workplaces():
 	rows = frappe.get_all(
 		"Workplace",
-		fields=["name", "barcode", "is_active"],
+		fields=["name", "barcode", "is_active", "otdr_configuration"],
 		order_by="name asc",
 	)
 	printer_rows = frappe.get_all(
@@ -221,6 +225,7 @@ def _workplaces():
 				"is_active": cint(row.is_active),
 				"script": script,
 				"uses_default_script": not script,
+				"otdr_configuration": row.otdr_configuration,
 				"printers": [
 					{"label_printer": p.label_printer, "purpose": p.purpose, "is_default": cint(p.is_default)}
 					for p in printer_rows
@@ -383,6 +388,159 @@ def _packing_templates():
 		fields=["name", "barcode_id", "is_active", "label_template", "operation"],
 		order_by="name asc",
 	)
+
+
+OTDR_RECENT = 25
+
+
+def _otdr(workplaces):
+	since = frappe.utils.add_to_date(None, hours=-24)
+	counts = {}
+	for row in frappe.get_all(
+		"OTDR Measurement",
+		filters={"creation": [">=", since]},
+		fields=["workplace", "status", "verdict", {"COUNT": "*", "as": "n"}],
+		group_by="workplace, status, verdict",
+	):
+		bucket = "Error" if row.status == "Error" else (row.verdict or "Undetermined")
+		per = counts.setdefault(row.workplace, {})
+		per[bucket] = per.get(bucket, 0) + row.n
+
+	fields = [
+		"name",
+		"creation",
+		"measurement_type",
+		"workplace",
+		"employee",
+		"serial_no",
+		"item_code",
+		"verdict",
+		"status",
+		"loss_db",
+		"error_message",
+		"print_job",
+	]
+	last_names = [
+		r[0]
+		for r in frappe.db.sql(
+			"""
+			select m.name from `tabOTDR Measurement` m
+			join (
+				select workplace, max(creation) as creation from `tabOTDR Measurement`
+				where ifnull(workplace, '') != '' group by workplace
+			) last on last.workplace = m.workplace and last.creation = m.creation
+			"""
+		)
+	]
+	last_rows = frappe.get_all(
+		"OTDR Measurement", filters={"name": ["in", last_names or [""]]}, fields=fields
+	)
+	recent = frappe.get_all("OTDR Measurement", fields=fields, order_by="creation desc", limit=OTDR_RECENT)
+
+	employees = {r.employee for r in last_rows + recent if r.employee}
+	employee_names = dict(
+		frappe.get_all(
+			"Employee",
+			filters={"name": ["in", list(employees) or [""]]},
+			fields=["name", "employee_name"],
+			as_list=True,
+		)
+	)
+	for row in last_rows + recent:
+		row["employee_name"] = employee_names.get(row.employee)
+		row["error_message"] = (row.error_message or "")[:200]
+	last_by_workplace = {r.workplace: r for r in last_rows}
+
+	configs = frappe.get_all(
+		"OTDR Configuration",
+		fields=[
+			"name",
+			"device_filter",
+			"sync_folder",
+			"simple_sync",
+			"passed_label_template",
+			"failed_label_template",
+		],
+		order_by="name asc",
+	)
+	for config in configs:
+		config["simple_sync"] = cint(config.simple_sync)
+		config["workplaces"] = [w["name"] for w in workplaces if w["otdr_configuration"] == config.name]
+
+	stations = [
+		{
+			"workplace": w["name"],
+			"is_active": w["is_active"],
+			"configuration": w["otdr_configuration"],
+			"printers": [p["label_printer"] for p in w["printers"]],
+			"counts_24h": counts.get(w["name"], {}),
+			"last": last_by_workplace.get(w["name"]),
+		}
+		for w in workplaces
+		if w["otdr_configuration"] or w["name"] in last_by_workplace
+	]
+	return {"stations": stations, "configurations": configs, "recent": recent}
+
+
+def _otdr_issues(otdr):
+	issues = []
+
+	def add(level, message, doctype, name):
+		issues.append(
+			{"level": level, "area": _("OTDR"), "message": message, "doctype": doctype, "name": name}
+		)
+
+	for station in otdr["stations"]:
+		if not station["is_active"]:
+			continue
+		if station["configuration"] and not station["printers"]:
+			add(
+				"warning",
+				_("OTDR workplace {0} has no printer, measurement labels will not print").format(
+					station["workplace"]
+				),
+				"Workplace",
+				station["workplace"],
+			)
+		if not station["configuration"] and station["counts_24h"]:
+			add(
+				"info",
+				_("Workplace {0} measures without an OTDR Configuration and uses default settings").format(
+					station["workplace"]
+				),
+				"Workplace",
+				station["workplace"],
+			)
+		errors = station["counts_24h"].get("Error")
+		if errors:
+			add(
+				"warning",
+				_("Workplace {0}: {1} measurements failed to process in 24 hours").format(
+					station["workplace"], errors
+				),
+				"Workplace",
+				station["workplace"],
+			)
+
+	for config in otdr["configurations"]:
+		if not config["workplaces"]:
+			add(
+				"info",
+				_("OTDR Configuration {0} is not used by any workplace").format(config.name),
+				"OTDR Configuration",
+				config.name,
+			)
+			continue
+		if not config.passed_label_template or not config.failed_label_template:
+			add(
+				"warning",
+				_("OTDR Configuration {0} has no label template for passed or failed spools").format(
+					config.name
+				),
+				"OTDR Configuration",
+				config.name,
+			)
+	return issues
 
 
 def _issues(scanners, workplaces, printers, scripts, commands, templates):
@@ -583,6 +741,9 @@ def _issues(scanners, workplaces, printers, scripts, commands, templates):
 				c["name"],
 			)
 
-	order = {"error": 0, "warning": 1, "info": 2}
-	issues.sort(key=lambda i: order[i["level"]])
 	return issues
+
+
+def _sorted_issues(issues):
+	order = {"error": 0, "warning": 1, "info": 2}
+	return sorted(issues, key=lambda i: order[i["level"]])

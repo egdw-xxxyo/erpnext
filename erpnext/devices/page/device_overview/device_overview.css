@@ -1,15 +1,15 @@
-.scanner-overview {
+.device-overview {
 	padding: 4px 0 40px;
 }
 
-.scanner-overview .so-tabs {
+.device-overview .dvo-tabs {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
 	margin-bottom: 8px;
 }
 
-.scanner-overview .so-count {
+.device-overview .dvo-count {
 	margin-left: 4px;
 	padding: 0 6px;
 	border-radius: 8px;
@@ -18,22 +18,22 @@
 	font-size: 11px;
 }
 
-.scanner-overview .so-meta {
+.device-overview .dvo-meta {
 	font-size: 12px;
 	margin-bottom: 14px;
 }
 
-.scanner-overview .so-h {
+.device-overview .dvo-h {
 	margin: 24px 0 10px;
 }
 
-.scanner-overview .so-tiles {
+.device-overview .dvo-tiles {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 	gap: 12px;
 }
 
-.scanner-overview .so-tile {
+.device-overview .dvo-tile {
 	display: block;
 	padding: 14px 16px;
 	border: 1px solid var(--border-color);
@@ -43,31 +43,31 @@
 	text-decoration: none;
 }
 
-.scanner-overview .so-tile:hover {
+.device-overview .dvo-tile:hover {
 	border-color: var(--primary);
 	text-decoration: none;
 }
 
-.scanner-overview .so-tile-icon {
+.device-overview .dvo-tile-icon {
 	color: var(--text-muted);
 	font-size: 16px;
 }
 
-.scanner-overview .so-tile-value {
+.device-overview .dvo-tile-value {
 	font-size: 24px;
 	font-weight: 600;
 	margin-top: 4px;
 }
 
-.scanner-overview .so-tile-label {
+.device-overview .dvo-tile-label {
 	font-weight: 500;
 }
 
-.scanner-overview .so-tile-sub {
+.device-overview .dvo-tile-sub {
 	font-size: 12px;
 }
 
-.scanner-overview .so-flow {
+.device-overview .dvo-flow {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -79,17 +79,17 @@
 	font-size: 13px;
 }
 
-.scanner-overview .so-flow .fa-long-arrow-right {
+.device-overview .dvo-flow .fa-long-arrow-right {
 	color: var(--text-muted);
 }
 
-.scanner-overview .so-issues {
+.device-overview .dvo-issues {
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius-md);
 	overflow: hidden;
 }
 
-.scanner-overview .so-issue {
+.device-overview .dvo-issue {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
@@ -99,77 +99,77 @@
 	font-size: 13px;
 }
 
-.scanner-overview .so-issue:last-child {
+.device-overview .dvo-issue:last-child {
 	border-bottom: 0;
 }
 
-.scanner-overview .so-issue-level {
+.device-overview .dvo-issue-level {
 	font-weight: 600;
 	min-width: 90px;
 }
 
-.scanner-overview .so-issue-area {
+.device-overview .dvo-issue-area {
 	min-width: 110px;
 }
 
-.scanner-overview .so-issue-msg {
+.device-overview .dvo-issue-msg {
 	flex: 1;
 	min-width: 240px;
 }
 
-.scanner-overview .so-error .fa,
-.scanner-overview .so-error .so-issue-level {
+.device-overview .dvo-error .fa,
+.device-overview .dvo-error .dvo-issue-level {
 	color: var(--red-600);
 }
 
-.scanner-overview .so-warning .fa,
-.scanner-overview .so-warning .so-issue-level {
+.device-overview .dvo-warning .fa,
+.device-overview .dvo-warning .dvo-issue-level {
 	color: var(--orange-600);
 }
 
-.scanner-overview .so-info .fa,
-.scanner-overview .so-info .so-issue-level {
+.device-overview .dvo-info .fa,
+.device-overview .dvo-info .dvo-issue-level {
 	color: var(--blue-600);
 }
 
-.scanner-overview .so-ok {
+.device-overview .dvo-ok {
 	color: var(--green-600);
 }
 
-.scanner-overview .so-where {
+.device-overview .dvo-where {
 	display: grid;
 	gap: 4px;
 	font-size: 13px;
 }
 
-.scanner-overview .so-table-wrap {
+.device-overview .dvo-table-wrap {
 	overflow-x: auto;
 }
 
-.scanner-overview .so-table {
+.device-overview .dvo-table {
 	font-size: 13px;
 	background: var(--card-bg);
 }
 
-.scanner-overview .so-table th {
+.device-overview .dvo-table th {
 	white-space: nowrap;
 	color: var(--text-muted);
 	font-weight: 500;
 }
 
-.scanner-overview .so-table td {
+.device-overview .dvo-table td {
 	vertical-align: top;
 }
 
-.scanner-overview .so-muted {
+.device-overview .dvo-muted {
 	opacity: 0.6;
 }
 
-.scanner-overview .so-pill {
+.device-overview .dvo-pill {
 	margin-right: 4px;
 }
 
-.scanner-overview .so-ctx {
+.device-overview .dvo-ctx {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px 10px;
@@ -178,7 +178,7 @@
 	color: var(--text-muted);
 }
 
-.scanner-overview .so-dot {
+.device-overview .dvo-dot {
 	display: inline-block;
 	width: 8px;
 	height: 8px;
@@ -187,38 +187,38 @@
 	vertical-align: middle;
 }
 
-.scanner-overview .so-dot-green {
+.device-overview .dvo-dot-green {
 	background: var(--green-500);
 }
 
-.scanner-overview .so-dot-red {
+.device-overview .dvo-dot-red {
 	background: var(--red-500);
 }
 
-.scanner-overview .so-dot-orange {
+.device-overview .dvo-dot-orange {
 	background: var(--orange-500);
 }
 
-.scanner-overview .so-dot-gray {
+.device-overview .dvo-dot-gray {
 	background: var(--gray-400);
 }
 
-.scanner-overview .so-job {
+.device-overview .dvo-job {
 	display: inline-block;
 	margin-right: 6px;
 	font-size: 12px;
 }
 
-.scanner-overview .so-job-failed {
+.device-overview .dvo-job-failed {
 	color: var(--red-600);
 	font-weight: 600;
 }
 
-.scanner-overview .so-hint {
+.device-overview .dvo-hint {
 	margin-bottom: 10px;
 }
 
-.scanner-overview .so-card {
+.device-overview .dvo-card {
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius-md);
 	background: var(--card-bg);
@@ -226,7 +226,7 @@
 	padding: 12px 14px;
 }
 
-.scanner-overview .so-card-head {
+.device-overview .dvo-card-head {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -234,26 +234,26 @@
 	cursor: pointer;
 }
 
-.scanner-overview .so-card-right {
+.device-overview .dvo-card-right {
 	margin-left: auto;
 }
 
-.scanner-overview .so-card-sub {
+.device-overview .dvo-card-sub {
 	margin: 4px 0 8px 24px;
 }
 
-.scanner-overview .so-tree {
+.device-overview .dvo-tree {
 	margin-left: 10px;
 	border-left: 2px solid var(--border-color);
 }
 
-.scanner-overview .so-node {
+.device-overview .dvo-node {
 	position: relative;
 	padding: 6px 0 6px 18px;
 	font-size: 13px;
 }
 
-.scanner-overview .so-node::before {
+.device-overview .dvo-node::before {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -262,15 +262,15 @@
 	border-top: 2px solid var(--border-color);
 }
 
-.scanner-overview .so-trigger code {
+.device-overview .dvo-trigger code {
 	font-weight: 600;
 }
 
-.scanner-overview .so-states {
+.device-overview .dvo-states {
 	margin-top: 4px;
 }
 
-.scanner-overview .so-state {
+.device-overview .dvo-state {
 	display: inline-block;
 	margin: 2px 4px 2px 0;
 	padding: 1px 8px;
@@ -280,17 +280,17 @@
 	color: var(--text-muted);
 }
 
-.scanner-overview .so-state-initial {
+.device-overview .dvo-state-initial {
 	border-color: var(--blue-400);
 	color: var(--blue-600);
 }
 
-.scanner-overview .so-state-final {
+.device-overview .dvo-state-final {
 	border-color: var(--green-400);
 	color: var(--green-600);
 }
 
-.scanner-overview .so-details {
+.device-overview .dvo-details {
 	display: none;
 	margin-top: 10px;
 	padding-top: 10px;
@@ -298,23 +298,23 @@
 	font-size: 12px;
 }
 
-.scanner-overview .so-open .so-details {
+.device-overview .dvo-open .dvo-details {
 	display: block;
 }
 
-.scanner-overview .so-detail-grid {
+.device-overview .dvo-detail-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 	gap: 16px;
 }
 
-.scanner-overview .so-label {
+.device-overview .dvo-label {
 	margin: 6px 0 4px;
 	font-weight: 600;
 	color: var(--text-muted);
 }
 
-.scanner-overview .so-empty {
+.device-overview .dvo-empty {
 	padding: 30px 0;
 	text-align: center;
 }

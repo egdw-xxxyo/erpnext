@@ -1,31 +1,32 @@
-frappe.pages["scanner-overview"].on_page_load = function (wrapper) {
+frappe.pages["device-overview"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Scanner Overview"),
+		title: __("Device Overview"),
 		single_column: true,
 	});
-	wrapper.scanner_overview = new ScannerOverview(page);
+	wrapper.device_overview = new DeviceOverview(page);
 };
 
-frappe.pages["scanner-overview"].on_page_show = function (wrapper) {
-	wrapper.scanner_overview?.start_timer();
+frappe.pages["device-overview"].on_page_show = function (wrapper) {
+	wrapper.device_overview?.start_timer();
 };
 
-frappe.pages["scanner-overview"].on_page_hide = function (wrapper) {
-	wrapper.scanner_overview?.stop_timer();
+frappe.pages["device-overview"].on_page_hide = function (wrapper) {
+	wrapper.device_overview?.stop_timer();
 };
 
-const SO_REFRESH_SECONDS = 15;
-const SO_TABS = [
+const DVO_REFRESH_SECONDS = 15;
+const DVO_TABS = [
 	["summary", "fa fa-th-large", "Summary"],
 	["scanners", "fa fa-barcode", "Scanners"],
 	["workplaces", "fa fa-map-marker", "Workplaces"],
 	["scripts", "fa fa-sitemap", "Scripts and Flows"],
+	["otdr", "fa fa-signal", "OTDR"],
 	["printers", "fa fa-print", "Printers"],
 	["commands", "fa fa-terminal", "Commands"],
 ];
 
-class ScannerOverview {
+class DeviceOverview {
 	constructor(page) {
 		this.page = page;
 		this.data = null;
@@ -55,36 +56,36 @@ class ScannerOverview {
 		);
 
 		this.page.main.html(`
-			<div class="scanner-overview">
-				<div class="so-tabs"></div>
-				<div class="so-meta text-muted"></div>
-				<div class="so-body"></div>
+			<div class="device-overview">
+				<div class="dvo-tabs"></div>
+				<div class="dvo-meta text-muted"></div>
+				<div class="dvo-body"></div>
 			</div>
 		`);
-		this.$tabs = this.page.main.find(".so-tabs");
-		this.$meta = this.page.main.find(".so-meta");
-		this.$body = this.page.main.find(".so-body");
-		this.$tabs.on("click", ".so-tab", (e) => {
+		this.$tabs = this.page.main.find(".dvo-tabs");
+		this.$meta = this.page.main.find(".dvo-meta");
+		this.$body = this.page.main.find(".dvo-body");
+		this.$tabs.on("click", ".dvo-tab", (e) => {
 			this.tab = $(e.currentTarget).data("tab");
 			this.render();
 		});
-		this.$body.on("click", ".so-goto", (e) => {
+		this.$body.on("click", ".dvo-goto", (e) => {
 			e.preventDefault();
 			this.tab = $(e.currentTarget).data("tab");
 			this.render();
 		});
-		this.$body.on("click", ".so-check-printer", (e) =>
+		this.$body.on("click", ".dvo-check-printer", (e) =>
 			this.check_printer($(e.currentTarget).data("printer"))
 		);
-		this.$body.on("click", ".so-toggle", (e) =>
-			$(e.currentTarget).closest(".so-card").toggleClass("so-open")
+		this.$body.on("click", ".dvo-toggle", (e) =>
+			$(e.currentTarget).closest(".dvo-card").toggleClass("dvo-open")
 		);
 	}
 
 	start_timer() {
 		this.stop_timer();
 		if (!this.auto) return;
-		this.timer = setInterval(() => this.refresh(true), SO_REFRESH_SECONDS * 1000);
+		this.timer = setInterval(() => this.refresh(true), DVO_REFRESH_SECONDS * 1000);
 	}
 
 	stop_timer() {
@@ -107,7 +108,7 @@ class ScannerOverview {
 		this.loading = true;
 		frappe
 			.call({
-				method: "erpnext.devices.page.scanner_overview.scanner_overview.get_overview",
+				method: "erpnext.devices.page.device_overview.device_overview.get_overview",
 				freeze: !silent && !this.data,
 			})
 			.then((r) => {
@@ -156,15 +157,16 @@ class ScannerOverview {
 			scanners: d.scanners.length,
 			workplaces: d.workplaces.length,
 			scripts: d.scripts.filter((s) => !s.parent_script).length,
+			otdr: d.otdr.stations.length,
 			printers: d.printers.length,
 			commands: d.commands.length,
 		};
 		this.$tabs.html(
-			SO_TABS.map(
+			DVO_TABS.map(
 				([key, icon, label]) => `
-				<button class="btn btn-sm so-tab ${this.tab === key ? "btn-primary" : "btn-default"}" data-tab="${key}">
+				<button class="btn btn-sm dvo-tab ${this.tab === key ? "btn-primary" : "btn-default"}" data-tab="${key}">
 					<i class="${icon}"></i> ${__(label)}
-					${counts[key] !== "" ? `<span class="so-count">${counts[key]}</span>` : ""}
+					${counts[key] !== "" ? `<span class="dvo-count">${counts[key]}</span>` : ""}
 				</button>`
 			).join("")
 		);
@@ -174,7 +176,7 @@ class ScannerOverview {
 		if (!this.data) return;
 		this.$meta.html(
 			`${__("Updated")}: ${frappe.datetime.str_to_user(this.data.generated_at)} · ${
-				this.auto ? __("auto-refresh every {0} s", [SO_REFRESH_SECONDS]) : __("auto-refresh off")
+				this.auto ? __("auto-refresh every {0} s", [DVO_REFRESH_SECONDS]) : __("auto-refresh off")
 			}`
 		);
 	}
@@ -182,7 +184,7 @@ class ScannerOverview {
 	render_tab() {
 		if (!this.data) return;
 		const html = this[`render_${this.tab}`]();
-		this.$body.html(html || `<div class="text-muted so-empty">${__("Nothing found")}</div>`);
+		this.$body.html(html || `<div class="text-muted dvo-empty">${__("Nothing found")}</div>`);
 	}
 
 	match(...values) {
@@ -200,13 +202,18 @@ class ScannerOverview {
 		const failed = d.printers.reduce((n, p) => n + (p.jobs_24h.Failed || 0), 0);
 		const roots = d.scripts.filter((s) => !s.parent_script && s.is_active).length;
 		const flows = d.scripts.filter((s) => s.parent_script && s.is_active).length;
+		const otdr_24h = d.otdr.stations.reduce(
+			(n, st) => n + Object.values(st.counts_24h).reduce((a, b) => a + b, 0),
+			0
+		);
+		const otdr_failed = d.otdr.stations.reduce((n, st) => n + (st.counts_24h.Fail || 0), 0);
 
 		const tile = (tab, icon, value, label, sub) => `
-			<a class="so-tile so-goto" data-tab="${tab}" href="#">
-				<div class="so-tile-icon"><i class="${icon}"></i></div>
-				<div class="so-tile-value">${value}</div>
-				<div class="so-tile-label">${label}</div>
-				<div class="so-tile-sub text-muted">${sub}</div>
+			<a class="dvo-tile dvo-goto" data-tab="${tab}" href="#">
+				<div class="dvo-tile-icon"><i class="${icon}"></i></div>
+				<div class="dvo-tile-value">${value}</div>
+				<div class="dvo-tile-label">${label}</div>
+				<div class="dvo-tile-sub text-muted">${sub}</div>
 			</a>`;
 
 		const issues = d.issues.filter((i) => this.match(i.message, i.area, i.name));
@@ -218,7 +225,7 @@ class ScannerOverview {
 		const level_label = { error: __("Error"), warning: __("Warning"), info: __("Info") };
 
 		return `
-			<div class="so-tiles">
+			<div class="dvo-tiles">
 				${tile(
 					"scanners",
 					"fa fa-barcode",
@@ -241,9 +248,16 @@ class ScannerOverview {
 					__("Printers ready"),
 					__("{0} failed jobs in 24 h", [failed])
 				)}
+				${tile(
+					"otdr",
+					"fa fa-signal",
+					otdr_24h,
+					__("OTDR measurements in 24 h"),
+					__("{0} workplaces, {1} failed", [d.otdr.stations.length, otdr_failed])
+				)}
 				${tile("commands", "fa fa-terminal", d.commands.length, __("Commands"), __("CMD-… barcodes"))}
 			</div>
-			<div class="so-flow">
+			<div class="dvo-flow">
 				<span><i class="fa fa-barcode"></i> ${__("Scanner")}</span><i class="fa fa-long-arrow-right"></i>
 				<span><i class="fa fa-map-marker"></i> ${__("Workplace")}</span><i class="fa fa-long-arrow-right"></i>
 				<span><i class="fa fa-sitemap"></i> ${__("Script")} → ${__("Flow")} → ${__(
@@ -251,22 +265,24 @@ class ScannerOverview {
 		)}</span><i class="fa fa-long-arrow-right"></i>
 				<span><i class="fa fa-print"></i> ${__("Workplace printer")}</span>
 			</div>
-			<h5 class="so-h">${__("Setup checks")} <span class="text-muted">(${issues.length})</span></h5>
+			<h5 class="dvo-h">${__("Setup checks")} <span class="text-muted">(${issues.length})</span></h5>
 			${
 				issues.length
-					? `<div class="so-issues">${issues
+					? `<div class="dvo-issues">${issues
 							.map(
 								(i) => `
-						<div class="so-issue so-${i.level}">
+						<div class="dvo-issue dvo-${i.level}">
 							<i class="fa ${level_icon[i.level]}"></i>
-							<span class="so-issue-level">${level_label[i.level]}</span>
-							<span class="so-issue-area text-muted">${frappe.utils.escape_html(i.area)}</span>
-							<span class="so-issue-msg">${frappe.utils.escape_html(i.message)}</span>
-							${i.doctype ? `<span class="so-issue-link">${this.link(i.doctype, i.name, __("Go to"))}</span>` : ""}
+							<span class="dvo-issue-level">${level_label[i.level]}</span>
+							<span class="dvo-issue-area text-muted">${frappe.utils.escape_html(i.area)}</span>
+							<span class="dvo-issue-msg">${frappe.utils.escape_html(i.message)}</span>
+							${i.doctype ? `<span class="dvo-issue-link">${this.link(i.doctype, i.name, __("Go to"))}</span>` : ""}
 						</div>`
 							)
 							.join("")}</div>`
-					: `<div class="so-ok"><i class="fa fa-check-circle"></i> ${__("No problems found")}</div>`
+					: `<div class="dvo-ok"><i class="fa fa-check-circle"></i> ${__(
+							"No problems found"
+					  )}</div>`
 			}
 			${this.where_to_find()}
 		`;
@@ -279,14 +295,16 @@ class ScannerOverview {
 			["Workplace Script", __("Scripts: states, flows, versions, workplaces")],
 			["Device Script", __("Script libraries used as scripts.<name>")],
 			["Scanner Command", __("Commands: CMD-… barcodes, print a sheet via Actions → Print Labels")],
+			["OTDR Measurement", __("OTDR measurements: verdict, SOR file, quality inspection, label")],
+			["OTDR Configuration", __("OTDR: BLE device, sync settings, label templates")],
 			["Label Printer", __("Printers: IP, loaded labels, connection check")],
 			["Print Job", __("Print jobs: status, log, label preview")],
 			["Packing Template", __("Packing templates: PKG-… barcodes")],
 			["Scanner Configuration", __("Display size, message format, timeouts")],
 		];
 		return `
-			<h5 class="so-h">${__("Where to find")}</h5>
-			<div class="so-where">
+			<h5 class="dvo-h">${__("Where to find")}</h5>
+			<div class="dvo-where">
 				${rows
 					.map(
 						([dt, text]) => `
@@ -305,7 +323,7 @@ class ScannerOverview {
 		);
 		if (!rows.length) return "";
 		return `
-			<div class="so-table-wrap"><table class="table table-bordered so-table">
+			<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
 				<thead><tr>
 					<th>${__("Scanner")}</th><th>${__("Status")}</th><th>${__("Workplace")}</th>
 					<th>${__("Employee")}</th><th>${__("Current flow / state")}</th><th>${__("Last scan")}</th>
@@ -336,7 +354,7 @@ class ScannerOverview {
 			])}</span></div>
 				${
 					s.context
-						? `<div class="so-ctx">${Object.entries(s.context)
+						? `<div class="dvo-ctx">${Object.entries(s.context)
 								.map(
 									([k, v]) =>
 										`<span><b>${frappe.utils.escape_html(
@@ -395,7 +413,7 @@ class ScannerOverview {
 		if (!rows.length) return "";
 		const printers = Object.fromEntries(d.printers.map((p) => [p.name, p]));
 		return `
-			<div class="so-table-wrap"><table class="table table-bordered so-table">
+			<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
 				<thead><tr>
 					<th>${__("Workplace")}</th><th>${__("Barcode")}</th><th>${__("Script")}</th>
 					<th>${__("Printers")}</th><th>${__("Scanners")}</th>
@@ -403,7 +421,7 @@ class ScannerOverview {
 				<tbody>${rows
 					.map(
 						(w) => `
-					<tr class="${w.is_active ? "" : "so-muted"}">
+					<tr class="${w.is_active ? "" : "dvo-muted"}">
 						<td>${this.link("Workplace", w.name)}</td>
 						<td><code>${frappe.utils.escape_html(w.barcode || "—")}</code></td>
 						<td>${
@@ -494,8 +512,8 @@ class ScannerOverview {
 					.join("");
 
 				return `
-				<div class="so-card ${r.is_active ? "" : "so-muted"}">
-					<div class="so-card-head so-toggle">
+				<div class="dvo-card ${r.is_active ? "" : "dvo-muted"}">
+					<div class="dvo-card-head dvo-toggle">
 						<i class="fa fa-sitemap"></i>
 						<b>${frappe.utils.escape_html(r.name)}</b>
 						${r.is_active ? "" : this.pill(__("Inactive"), "gray")}
@@ -508,26 +526,26 @@ class ScannerOverview {
 								: ""
 						}
 						${busy[r.name] ? this.pill(__("In use: {0}", [busy[r.name].join(", ")]), "blue") : ""}
-						<span class="so-card-right text-muted small">${frappe.utils.escape_html(r.default_version || "")}
+						<span class="dvo-card-right text-muted small">${frappe.utils.escape_html(r.default_version || "")}
 							${this.link("Workplace Script", r.name, __("Go to"))}</span>
 					</div>
-					<div class="so-card-sub text-muted small">
+					<div class="dvo-card-sub text-muted small">
 						${__("Workplaces")}: ${
 					r.workplaces.length
 						? r.workplaces.map((w) => frappe.utils.escape_html(w)).join(", ")
 						: "—"
 				}
 					</div>
-					<div class="so-tree">
-						<div class="so-node so-root-states">${__("Main flow")}: ${this.states(r)}</div>
+					<div class="dvo-tree">
+						<div class="dvo-node dvo-root-states">${__("Main flow")}: ${this.states(r)}</div>
 						${flow_rows}
 					</div>
-					<div class="so-details">${this.script_details(r)}</div>
+					<div class="dvo-details">${this.script_details(r)}</div>
 				</div>`;
 			})
 			.join("");
 
-		return `<div class="text-muted small so-hint">${__(
+		return `<div class="text-muted small dvo-hint">${__(
 			"Click a script to see its states and transitions."
 		)}</div>${cards}`;
 	}
@@ -535,8 +553,8 @@ class ScannerOverview {
 	flow_row(flow, name, trigger, description, busy) {
 		const inactive = flow && !flow.is_active;
 		return `
-			<div class="so-node ${!flow || inactive ? "so-muted" : ""}">
-				<span class="so-trigger">${trigger}</span>
+			<div class="dvo-node ${!flow || inactive ? "dvo-muted" : ""}">
+				<span class="dvo-trigger">${trigger}</span>
 				<i class="fa fa-long-arrow-right text-muted"></i>
 				${
 					flow
@@ -548,7 +566,7 @@ class ScannerOverview {
 				${inactive ? this.pill(__("Inactive"), "gray") : ""}
 				${busy[name] ? this.pill(__("In use: {0}", [busy[name].join(", ")]), "blue") : ""}
 				${description ? `<span class="text-muted small">— ${frappe.utils.escape_html(description)}</span>` : ""}
-				${flow ? `<div class="so-states">${this.states(flow)}</div>` : ""}
+				${flow ? `<div class="dvo-states">${this.states(flow)}</div>` : ""}
 			</div>`;
 	}
 
@@ -556,8 +574,8 @@ class ScannerOverview {
 		if (!script.states.length) return `<span class="text-muted small">${__("no states")}</span>`;
 		return script.states
 			.map((s) => {
-				const cls = s.is_initial ? "so-state-initial" : s.is_final ? "so-state-final" : "";
-				return `<span class="so-state ${cls}" title="${frappe.utils.escape_html(
+				const cls = s.is_initial ? "dvo-state-initial" : s.is_final ? "dvo-state-final" : "";
+				return `<span class="dvo-state ${cls}" title="${frappe.utils.escape_html(
 					s.state
 				)}">${frappe.utils.escape_html(s.label || s.state)}</span>`;
 			})
@@ -581,12 +599,12 @@ class ScannerOverview {
 			? script.barcode_literals.map((b) => `<code>${frappe.utils.escape_html(b)}</code>`).join(" ")
 			: `<span class="text-muted">—</span>`;
 		return `
-			<div class="so-detail-grid">
-				<div><div class="so-label">${__("Transitions")}</div>${transitions}</div>
-				<div><div class="so-label">${__("Barcodes used in the code")}</div>${literals}
+			<div class="dvo-detail-grid">
+				<div><div class="dvo-label">${__("Transitions")}</div>${transitions}</div>
+				<div><div class="dvo-label">${__("Barcodes used in the code")}</div>${literals}
 					${
 						script.requires_printer
-							? `<div class="so-label">${__("Printer")}</div>${__(
+							? `<div class="dvo-label">${__("Printer")}</div>${__(
 									"Purpose"
 							  )}: ${frappe.utils.escape_html(script.printer_purpose || __("default"))}
 							${
@@ -602,6 +620,155 @@ class ScannerOverview {
 			</div>`;
 	}
 
+	// ------------------------------------------------------------------ otdr
+
+	render_otdr() {
+		const o = this.data.otdr;
+		const stations = o.stations.filter((st) =>
+			this.match(st.workplace, st.configuration, ...st.printers, st.last && st.last.employee_name)
+		);
+		const configs = o.configurations.filter((c) =>
+			this.match(
+				c.name,
+				c.device_filter,
+				c.passed_label_template,
+				c.failed_label_template,
+				...c.workplaces
+			)
+		);
+		const recent = o.recent.filter((m) =>
+			this.match(m.name, m.workplace, m.serial_no, m.item_code, m.employee_name, m.verdict, m.status)
+		);
+		if (!stations.length && !configs.length && !recent.length) return "";
+		const dash = `<span class="text-muted">—</span>`;
+
+		return `
+			<div class="dvo-hint text-muted small">${__(
+				"OTDR measurements come from the Android app. The workplace picks the OTDR Configuration and the label printer."
+			)}</div>
+			<h5 class="dvo-h">${__("Workplaces")}</h5>
+			${
+				stations.length
+					? `<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
+				<thead><tr>
+					<th>${__("Workplace")}</th><th>${__("OTDR Configuration")}</th><th>${__("Printers")}</th>
+					<th>${__("Measurements in 24 h")}</th><th>${__("Last measurement")}</th>
+				</tr></thead>
+				<tbody>${stations
+					.map(
+						(st) => `
+					<tr class="${st.is_active ? "" : "dvo-muted"}">
+						<td>${this.link("Workplace", st.workplace)}</td>
+						<td>${
+							st.configuration
+								? this.link("OTDR Configuration", st.configuration)
+								: `<span class="text-muted">${__("Default settings")}</span>`
+						}</td>
+						<td>${st.printers.map((p) => this.link("Label Printer", p)).join("<br>") || dash}</td>
+						<td>${this.otdr_counts(st.counts_24h) || dash}</td>
+						<td>${st.last ? this.otdr_last(st.last) : dash}</td>
+					</tr>`
+					)
+					.join("")}</tbody>
+			</table></div>`
+					: `<div class="text-muted">${__("Nothing found")}</div>`
+			}
+			<h5 class="dvo-h">${__("Configurations")}</h5>
+			${
+				configs.length
+					? `<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
+				<thead><tr>
+					<th>${__("OTDR Configuration")}</th><th>${__("Device filter")}</th><th>${__("Sync folder")}</th>
+					<th>${__("Label templates")}</th><th>${__("Workplaces")}</th>
+				</tr></thead>
+				<tbody>${configs
+					.map(
+						(c) => `
+					<tr class="${c.workplaces.length ? "" : "dvo-muted"}">
+						<td>${this.link("OTDR Configuration", c.name)}</td>
+						<td><code>${frappe.utils.escape_html(c.device_filter || "—")}</code></td>
+						<td><code>${frappe.utils.escape_html(c.sync_folder || "—")}</code>
+							${c.simple_sync ? ` ${this.pill(__("Simple sync"), "blue")}` : ""}</td>
+						<td>
+							<div>${this.pill(__("Pass"), "green")} ${
+							c.passed_label_template
+								? this.link("Label Template", c.passed_label_template)
+								: dash
+						}</div>
+							<div>${this.pill(__("Fail"), "red")} ${
+							c.failed_label_template
+								? this.link("Label Template", c.failed_label_template)
+								: dash
+						}</div>
+						</td>
+						<td>${c.workplaces.map((w) => this.link("Workplace", w)).join("<br>") || dash}</td>
+					</tr>`
+					)
+					.join("")}</tbody>
+			</table></div>`
+					: `<div class="text-muted">${__("Nothing found")}</div>`
+			}
+			<h5 class="dvo-h">${__("Recent measurements")}
+				<a class="small" href="${this.list_url("OTDR Measurement")}">${__("All")}</a></h5>
+			${
+				recent.length
+					? `<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
+				<thead><tr>
+					<th>${__("Measurement")}</th><th>${__("Workplace")}</th><th>${__("Employee")}</th>
+					<th>${__("Serial No")}</th><th>${__("Result")}</th><th>${__("Loss, dB")}</th>
+				</tr></thead>
+				<tbody>${recent
+					.map(
+						(m) => `
+					<tr>
+						<td>${this.link("OTDR Measurement", m.name)}
+							<div class="text-muted small">${frappe.utils.escape_html(
+								m.measurement_type || ""
+							)} · ${frappe.datetime.prettyDate(m.creation)}</div></td>
+						<td>${m.workplace ? this.link("Workplace", m.workplace) : dash}</td>
+						<td>${m.employee ? this.link("Employee", m.employee, m.employee_name || m.employee) : dash}</td>
+						<td>${m.serial_no ? this.link("Serial No", m.serial_no) : dash}
+							${m.item_code ? `<div class="text-muted small">${frappe.utils.escape_html(m.item_code)}</div>` : ""}</td>
+						<td>${this.otdr_result(m)}
+							${
+								m.error_message
+									? `<div class="small text-danger">${frappe.utils.escape_html(
+											m.error_message
+									  )}</div>`
+									: ""
+							}</td>
+						<td>${m.loss_db != null && m.loss_db !== 0 ? frappe.format(m.loss_db, { fieldtype: "Float" }) : dash}</td>
+					</tr>`
+					)
+					.join("")}</tbody>
+			</table></div>`
+					: `<div class="text-muted">${__("Nothing found")}</div>`
+			}`;
+	}
+
+	otdr_counts(counts) {
+		const color = { Pass: "green", Fail: "red", Undetermined: "orange", Error: "red" };
+		return ["Pass", "Fail", "Undetermined", "Error"]
+			.filter((k) => counts[k])
+			.map((k) => this.pill(`${__(k)}: ${counts[k]}`, color[k]))
+			.join(" ");
+	}
+
+	otdr_result(m) {
+		if (m.status === "Error") return this.pill(__("Error"), "red");
+		const color = { Pass: "green", Fail: "red" }[m.verdict] || "orange";
+		return this.pill(__(m.verdict || "Undetermined"), color);
+	}
+
+	otdr_last(m) {
+		return `
+			<div>${this.otdr_result(m)} ${this.link("OTDR Measurement", m.name)}
+			<span class="text-muted small">${frappe.datetime.prettyDate(m.creation)}</span></div>
+			<div class="text-muted small">${frappe.utils.escape_html(
+				[m.serial_no, m.employee_name].filter(Boolean).join(" · ")
+			)}</div>`;
+	}
+
 	// ------------------------------------------------------------------ printers
 
 	render_printers() {
@@ -610,7 +777,7 @@ class ScannerOverview {
 		);
 		if (!rows.length) return "";
 		return `
-			<div class="so-table-wrap"><table class="table table-bordered so-table">
+			<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
 				<thead><tr>
 					<th>${__("Printer")}</th><th>${__("Status")}</th><th>${__("Address")}</th><th>${__("Loaded labels")}</th>
 					<th>${__("Workplaces")}</th><th>${__("Print jobs in 24 h")}</th><th></th>
@@ -620,11 +787,11 @@ class ScannerOverview {
 						const jobs = Object.entries(p.jobs_24h)
 							.map(
 								([st, n]) =>
-									`<span class="so-job so-job-${st.toLowerCase()}">${__(st)}: ${n}</span>`
+									`<span class="dvo-job dvo-job-${st.toLowerCase()}">${__(st)}: ${n}</span>`
 							)
 							.join(" ");
 						return `
-					<tr class="${p.is_enabled ? "" : "so-muted"}">
+					<tr class="${p.is_enabled ? "" : "dvo-muted"}">
 						<td>${this.link("Label Printer", p.name)}<div class="text-muted small">${frappe.utils.escape_html(
 							p.printer_model || ""
 						)}</div></td>
@@ -647,7 +814,7 @@ class ScannerOverview {
 							`<span class="text-muted">—</span>`
 						}</td>
 						<td>${jobs || `<span class="text-muted">—</span>`}</td>
-						<td><button class="btn btn-xs btn-default so-check-printer" data-printer="${frappe.utils.escape_html(
+						<td><button class="btn btn-xs btn-default dvo-check-printer" data-printer="${frappe.utils.escape_html(
 							p.name
 						)}">
 							<i class="fa fa-plug"></i> ${__("Check connection")}</button></td>
@@ -670,13 +837,13 @@ class ScannerOverview {
 			library: __("handled in the library"),
 		};
 		return `
-			<div class="so-hint text-muted small">
+			<div class="dvo-hint text-muted small">
 				${__("Commands are separate barcodes. Print a sheet: open")}
 				<a href="${this.list_url("Scanner Command")}">${__("Scanner Command")}</a>,
 				${__("select commands, then Actions → Print Labels.")}
 				${__("CMD-RESET works in every script.")}
 			</div>
-			<div class="so-table-wrap"><table class="table table-bordered so-table">
+			<div class="dvo-table-wrap"><table class="table table-bordered dvo-table">
 				<thead><tr><th>${__("Barcode")}</th><th>${__("Command")}</th><th>${__("Used by")}</th></tr></thead>
 				<tbody>${rows
 					.map(
@@ -719,7 +886,7 @@ class ScannerOverview {
 	}
 
 	pill(text, color) {
-		return `<span class="indicator-pill ${color} so-pill">${frappe.utils.escape_html(text)}</span>`;
+		return `<span class="indicator-pill ${color} dvo-pill">${frappe.utils.escape_html(text)}</span>`;
 	}
 
 	printer_dot(p) {
@@ -727,7 +894,7 @@ class ScannerOverview {
 		if (p.is_enabled && p.last_status === "Ready") color = "green";
 		else if (p.is_enabled && ["Offline", "Connection Error"].includes(p.last_status)) color = "red";
 		else if (p.is_enabled && p.last_status) color = "orange";
-		return `<span class="so-dot so-dot-${color}"></span>`;
+		return `<span class="dvo-dot dvo-dot-${color}"></span>`;
 	}
 
 	ago(seconds) {
