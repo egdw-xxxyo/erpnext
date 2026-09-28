@@ -115,6 +115,9 @@ class WorkplaceScript(Document):
 		default_version: DF.Data | None
 		is_active: DF.Check
 		parent_script: DF.Link | None
+		printer_label_template: DF.Link | None
+		printer_purpose: DF.Data | None
+		requires_printer: DF.Check
 		script: DF.Code | None
 		script_name: DF.Data | None
 		context_fields: DF.Table[WorkplaceScriptContextField]
