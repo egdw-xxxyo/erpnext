@@ -15139,3 +15139,7 @@ A stock entry for expense {0} must be a Material Issue of company {1},Рух Т�
 "{0} min","{0} хв"
 "{0} s","{0} с"
 "{0} without own script","{0} без власного сценарію"
+"Scanner Setup","Налаштування сканерів"
+"Scan Test Case","Тестовий сценарій сканування"
+"Labels","Етикетки"
+"Mobile App","Мобільний застосунок"
