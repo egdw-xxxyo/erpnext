@@ -8,6 +8,13 @@ frappe.ui.form.on("Production Line", {
 			},
 			__("View")
 		);
+		frm.add_custom_button(
+			__("Production Line Overview"),
+			() => {
+				frappe.set_route("production-line-overview", { production_line: frm.doc.name });
+			},
+			__("View")
+		);
 	},
 	setup(frm) {
 		frm.set_query("workplace", "workplaces", function (doc) {

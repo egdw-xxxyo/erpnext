@@ -185,6 +185,7 @@ after_migrate = [
 	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.crm.crm_sidebar.add_chat_pages",
+	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
