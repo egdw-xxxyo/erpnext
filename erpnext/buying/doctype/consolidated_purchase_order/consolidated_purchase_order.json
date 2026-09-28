@@ -7,20 +7,22 @@
  "document_type": "Document",
  "engine": "InnoDB",
  "field_order": [
+  "approval_route_section",
+  "approval_route_html",
+  "details_section",
   "company",
-  "transaction_date",
-  "column_break_main",
-  "currency",
-  "request_initiator_html",
-  "request_initiator_user",
-  "lead_buyer_html",
-  "initiator_user",
   "material_request",
   "items_already_purchased",
   "prepaid_purchase_note",
   "set_supplier",
-  "approval_route_section",
-  "approval_route_html",
+  "column_break_main",
+  "transaction_date",
+  "currency",
+  "column_break_lead_buyer",
+  "request_initiator_html",
+  "request_initiator_user",
+  "lead_buyer_html",
+  "initiator_user",
   "material_request_comments_section",
   "material_request_comments_html",
   "items_section",
@@ -98,6 +100,10 @@
    "options": "User"
   },
   {
+   "fieldname": "column_break_lead_buyer",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "lead_buyer_html",
    "fieldtype": "HTML",
    "label": "Lead Buyer"
@@ -150,6 +156,10 @@
    "fieldname": "approval_route_html",
    "fieldtype": "HTML",
    "label": "Approval Route"
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break"
   },
   {
    "fieldname": "material_request_comments_section",
@@ -392,13 +402,18 @@
  "permissions": [
   {
    "create": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Закупівельник"
+  },
+  {
    "delete": 1,
-   "email": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Закупівельник",
-   "share": 1,
    "submit": 1,
    "write": 1
   },

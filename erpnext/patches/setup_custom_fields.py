@@ -16,6 +16,7 @@ from erpnext.stock.responsible_employee import (
 
 def execute():
 	setup_todo_deadline()
+	setup_payment_instruction_list_link()
 	create_workflow_states()
 	create_workflow_actions()
 	create_workflow()
@@ -88,6 +89,29 @@ def execute():
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_payment_instruction_list_link():
+	"""Store the linked instruction URL so Payment Request lists can open it directly."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Payment Request",
+				"fieldname": "custom_payment_instruction_url",
+				"fieldtype": "Data",
+				"label": "Payment Instruction URL",
+				"insert_after": "custom_fiscal_receipt_status",
+				"read_only": 1,
+				"hidden": 1,
+				"no_copy": 1,
+			},
+		]
+	)
+	frappe.clear_cache(doctype="Payment Request")
+
+	from erpnext.accounts.payment_fiscal_receipt import sync_existing_fiscal_receipt_statuses
+
+	sync_existing_fiscal_receipt_statuses()
 
 
 def setup_todo_deadline():

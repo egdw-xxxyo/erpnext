@@ -240,6 +240,20 @@ PERMISSION_FIELDS = (
 	"email",
 )
 
+READ_ONLY_PERMISSIONS = ("select", "read", "report", "print")
+BUYER_CREATE_PERMISSIONS = (*READ_ONLY_PERMISSIONS, "create")
+BUYER_OWNER_PERMISSIONS = (
+	"select",
+	"read",
+	"write",
+	"delete",
+	"submit",
+	"cancel",
+	"amend",
+	"report",
+	"print",
+)
+
 DOCTYPE_PERMISSIONS = {
 	"Material Request": {
 		MATERIAL_REQUEST_INITIATOR_ROLE: (
@@ -252,46 +266,70 @@ DOCTYPE_PERMISSIONS = {
 			"report",
 			"print",
 		),
-		BUYER_ROLE: ("select", "read", "report", "print"),
+		BUYER_ROLE: READ_ONLY_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
 	},
 	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE: {
-		BUYER_ROLE: (
-			"select",
-			"read",
-			"write",
-			"create",
-			"delete",
-			"submit",
-			"cancel",
-			"amend",
-			"report",
-			"print",
-		),
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
 		DEPARTMENT_HEAD_ROLE: ("select", "read", "write", "report", "print"),
 		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
 		TREASURER_ROLE: ("select", "read", "report", "print"),
 		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
 	},
 	"Purchase Order": {
-		BUYER_ROLE: (
-			"select",
-			"read",
-			"write",
-			"create",
-			"delete",
-			"submit",
-			"cancel",
-			"amend",
-			"report",
-			"print",
-		),
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
 		TREASURER_ROLE: ("select", "read", "report", "print"),
 		WAREHOUSE_MANAGER_ROLE: ("select", "read", "report", "print"),
 	},
 	"Purchase Invoice": {
-		BUYER_ROLE: ("select", "read", "write", "create", "submit", "report", "print"),
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
 		TREASURER_ROLE: ("select", "read", "report", "print"),
 	},
+	"Supplier": {
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
+	},
+	"Bank Account": {
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
+	},
+	"Bank": {
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
+	},
+	"Payment Request": {
+		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: ("select", "read", "write", "report", "print"),
+		FINAL_APPROVER_ROLE: ("select", "read", "write", "report", "print"),
+	},
+	"Purchase Receipt": {
+		BUYER_ROLE: READ_ONLY_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
+	},
+	"Payment Entry": {
+		BUYER_ROLE: READ_ONLY_PERMISSIONS,
+		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
+		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
+	},
+}
+
+BUYER_OWNED_DOCTYPES = {
+	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+	"Purchase Order",
+	"Purchase Invoice",
+	"Supplier",
+	"Bank Account",
+	"Bank",
+	"Payment Request",
 }
 
 
@@ -312,6 +350,8 @@ def sync_procurement_workflow():
 	frappe.clear_cache(doctype="Material Request")
 	frappe.clear_cache(doctype=CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
 	frappe.clear_cache(doctype="Purchase Order")
+	for doctype in DOCTYPE_PERMISSIONS:
+		frappe.clear_cache(doctype=doctype)
 
 
 def _ensure_roles():
@@ -343,21 +383,63 @@ def _ensure_role_profiles():
 
 
 def _ensure_permissions():
+	for doctype in DOCTYPE_PERMISSIONS:
+		_restore_standard_permissions(doctype)
+
 	for doctype, role_permissions in DOCTYPE_PERMISSIONS.items():
 		for role, enabled_permissions in role_permissions.items():
-			filters = {"parent": doctype, "role": role, "permlevel": 0}
-			name = frappe.db.get_value("Custom DocPerm", filters, "name")
-			if name:
-				doc = frappe.get_doc("Custom DocPerm", name)
-			else:
-				doc = frappe.new_doc("Custom DocPerm")
-				doc.parent = doctype
-				doc.role = role
-				doc.permlevel = 0
-			doc.if_owner = 0
-			for permission in PERMISSION_FIELDS:
-				doc.set(permission, int(permission in enabled_permissions))
-			_save(doc)
+			_ensure_permission_row(doctype, role, enabled_permissions, if_owner=0)
+
+	for doctype in BUYER_OWNED_DOCTYPES:
+		_ensure_permission_row(doctype, BUYER_ROLE, BUYER_OWNER_PERMISSIONS, if_owner=1)
+
+
+def _ensure_permission_row(doctype, role, enabled_permissions, if_owner):
+	filters = {
+		"parent": doctype,
+		"role": role,
+		"permlevel": 0,
+		"if_owner": if_owner,
+	}
+	name = frappe.db.get_value("Custom DocPerm", filters, "name")
+	if name:
+		doc = frappe.get_doc("Custom DocPerm", name)
+	else:
+		doc = frappe.new_doc("Custom DocPerm")
+		doc.parent = doctype
+		doc.parenttype = "DocType"
+		doc.parentfield = "permissions"
+		doc.role = role
+		doc.permlevel = 0
+		doc.if_owner = if_owner
+
+	for permission in PERMISSION_FIELDS:
+		doc.set(permission, int(permission in enabled_permissions))
+	_save(doc)
+
+
+def _restore_standard_permissions(doctype):
+	"""Copy standard rows before Custom DocPerm replaces the complete permission block."""
+	standard_permissions = frappe.get_all("DocPerm", fields="*", filters={"parent": doctype})
+	existing_permissions = {
+		(row.role, row.permlevel, row.if_owner)
+		for row in frappe.get_all(
+			"Custom DocPerm",
+			fields=["role", "permlevel", "if_owner"],
+			filters={"parent": doctype},
+		)
+	}
+	for standard_permission in standard_permissions:
+		permission_key = (
+			standard_permission.role,
+			standard_permission.permlevel,
+			standard_permission.if_owner,
+		)
+		if permission_key in existing_permissions:
+			continue
+		custom_permission = frappe.new_doc("Custom DocPerm")
+		custom_permission.update(standard_permission)
+		custom_permission.insert(ignore_permissions=True)
 
 
 def _remove_obsolete_purchase_order_permissions():

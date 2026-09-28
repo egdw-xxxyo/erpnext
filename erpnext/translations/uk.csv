@@ -14949,3 +14949,6 @@ Workplaces,Робочі місця
 "If set, this script is a subflow invoked by the parent. Subflows have no Workplaces and are not subject to per-workplace uniqueness.","Якщо встановлено, цей скрипт є підпотоком, який викликає батьківський скрипт. Підпотоки не мають робочих місць і не підлягають перевірці унікальності за робочим місцем."
 "Two printers are set for purpose {0}","Для призначення {0} задано два принтери"
 "Which labels this printer takes, e.g. Package, Passed, Failed. Empty means any.","Які етикетки друкує цей принтер, напр. Package, Passed, Failed. Порожньо — будь-які."
+Payment Instruction URL,Посилання на платіжну інструкцію
+Payment instruction is missing,Відсутня
+Open payment instruction,Відкрити інструкцію

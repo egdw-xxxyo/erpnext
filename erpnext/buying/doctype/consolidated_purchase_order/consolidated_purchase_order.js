@@ -672,7 +672,10 @@ function render_supplier_contacts(frm) {
 	const suppliers = get_order_suppliers(frm).filter(Boolean);
 	frm.set_df_property("supplier_contacts_section", "hidden", suppliers.length ? 0 : 1);
 	frm.set_df_property("supplier_contacts_html", "hidden", suppliers.length ? 0 : 1);
-	if (!suppliers.length) return;
+	if (!suppliers.length) {
+		frm.__supplier_contacts_expanded = false;
+		return;
+	}
 
 	frappe
 		.call({
@@ -711,9 +714,9 @@ function render_supplier_contacts(frm) {
 			const layout_section = (frm.layout?.sections || []).find(
 				(row) => row.df.fieldname === "supplier_contacts_section"
 			);
-			if (!frm.__supplier_contacts_collapsed && layout_section) {
-				layout_section.collapse(true);
-				frm.__supplier_contacts_collapsed = true;
+			if (!frm.__supplier_contacts_expanded && layout_section) {
+				layout_section.collapse(false);
+				frm.__supplier_contacts_expanded = true;
 			}
 		});
 }
