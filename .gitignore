@@ -43,3 +43,5 @@ bin/
 
 # Claude Code scheduled-task lock (per-session runtime state)
 .claude/scheduled_tasks.lock
+.mirror.env
+.mirror/

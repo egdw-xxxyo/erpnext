@@ -1,0 +1,130 @@
+#!/bin/bash
+# Mirror sidecar: everything the standby host does over SSH to main runs here,
+# so the mirror host needs nothing but docker. Started by
+# docker-compose.mirror-replica.yml (tunnel, loop) and by `./deploy mirror`
+# through `docker compose run` for one-off steps.
+set -euo pipefail
+
+SSH_TARGET="${MIRROR_PRIMARY_SSH:?MIRROR_PRIMARY_SSH is not set}"
+REPO="${MIRROR_PRIMARY_REPO:?MIRROR_PRIMARY_REPO is not set}"
+DB_PORT="${MIRROR_PRIMARY_DB_PORT:-3307}"
+INTERVAL="${MIRROR_FILES_INTERVAL:-300}"
+STATE_DIR=/mirror
+SITES=/home/frappe/frappe-bench/sites
+SITE=frontend
+BACKUP_DIR="$SITES/$SITE/private/backups"
+FRAPPE_UID=1000
+
+mkdir -p /root/.ssh
+install -m 600 /run/mirror/id_key /root/.ssh/id_mirror
+
+SSH_OPTS=(
+  -i /root/.ssh/id_mirror
+  -o BatchMode=yes
+  -o ConnectTimeout=10
+  -o StrictHostKeyChecking=accept-new
+  -o UserKnownHostsFile="$STATE_DIR/known_hosts"
+  -o ServerAliveInterval=15
+  -o ServerAliveCountMax=3
+)
+RSYNC_OPTS=(
+  -a --numeric-ids
+  --exclude 'PJ-*.png'
+  -e "ssh ${SSH_OPTS[*]}"
+  --rsync-path="$REPO/deploy mirror rsync-server"
+)
+
+log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
+remote() { ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "$@"; }
+
+write_state() {
+  printf '%s\n' "$2" > "$STATE_DIR/$1.tmp"
+  mv -f "$STATE_DIR/$1.tmp" "$STATE_DIR/$1"
+}
+
+state() { cat "$STATE_DIR/state" 2>/dev/null || echo standby; }
+
+ensure_dirs() {
+  mkdir -p "$SITES/$SITE/public/files" "$SITES/$SITE/private/files" "$BACKUP_DIR"
+  chown "$FRAPPE_UID:$FRAPPE_UID" "$SITES/$SITE" "$SITES/$SITE/public" "$SITES/$SITE/private" \
+    "$SITES/$SITE/public/files" "$SITES/$SITE/private/files" "$BACKUP_DIR"
+}
+
+pull_files() {
+  ensure_dirs
+  local d
+  for d in public/files private/files; do
+    rsync "${RSYNC_OPTS[@]}" --delete "$SSH_TARGET:$SITES/$SITE/$d/" "$SITES/$SITE/$d/"
+  done
+  write_state files-ok "$(date +%s)"
+}
+
+push_files() {
+  local d
+  for d in public/files private/files; do
+    rsync "${RSYNC_OPTS[@]}" "$SITES/$SITE/$d/" "$SSH_TARGET:$SITES/$SITE/$d/"
+  done
+}
+
+record_primary_commit() {
+  local commit
+  commit=$(remote "git -C '$REPO' rev-parse HEAD")
+  [ -n "$commit" ] && write_state primary-commit "$commit"
+}
+
+loop() {
+  local fenced=0
+  log "mirror loop started (state=$(state), interval=${INTERVAL}s)"
+  while true; do
+    if [ "$(state)" = "active" ]; then
+      if remote "'$REPO/deploy' mirror fence" >/dev/null 2>&1; then
+        [ "$fenced" = "1" ] || log "main is reachable again: fenced it (app stopped on main)"
+        fenced=1
+      else
+        fenced=0
+      fi
+      sleep 30
+      continue
+    fi
+    fenced=0
+    if pull_files; then
+      record_primary_commit || log "WARNING: could not read main's commit"
+    else
+      log "WARNING: file sync from main failed"
+    fi
+    sleep "$INTERVAL"
+  done
+}
+
+case "${1:-}" in
+  tunnel)
+    export AUTOSSH_GATETIME=0
+    exec autossh -M 0 -N "${SSH_OPTS[@]}" -o ExitOnForwardFailure=yes \
+      -L "0.0.0.0:3306:127.0.0.1:$DB_PORT" "$SSH_TARGET"
+    ;;
+  loop) loop ;;
+  reachable) remote true ;;
+  dump) remote "'$REPO/deploy' mirror dump" ;;
+  pull-config)
+    ensure_dirs
+    rsync "${RSYNC_OPTS[@]}" "$SSH_TARGET:$SITES/$SITE/site_config.json" "$SITES/$SITE/site_config.json"
+    ;;
+  site-config) cat "$SITES/$SITE/site_config.json" ;;
+  pull-files) pull_files ;;
+  push-files) push_files ;;
+  push-backup)
+    NAME="${2:?usage: mirror push-backup <name>}"
+    rsync "${RSYNC_OPTS[@]}" "$BACKUP_DIR/$NAME-database.sql.gz" "$SSH_TARGET:$BACKUP_DIR/"
+    ;;
+  primary-commit) record_primary_commit ;;
+  fence) remote "'$REPO/deploy' mirror fence" ;;
+  unfence) remote "'$REPO/deploy' mirror unfence" ;;
+  restore)
+    NAME="${2:?usage: mirror restore <name>}"
+    remote "'$REPO/deploy' restore '$NAME' --yes"
+    ;;
+  *)
+    echo "usage: mirror {tunnel|loop|reachable|dump|pull-config|site-config|pull-files|push-files|push-backup <name>|primary-commit|fence|unfence|restore <name>}" >&2
+    exit 1
+    ;;
+esac

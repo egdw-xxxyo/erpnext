@@ -1,0 +1,42 @@
+# Standby mirror host (MIRROR_ROLE=replica in .mirror.env).
+# db replicates main's site database through mirror-tunnel; mirror-files keeps
+# attachments in step and, once the mirror is active, fences main as soon as
+# it comes back. The ERPNext app containers stay stopped until
+# `./deploy mirror start`. See docs/mirror-standby.md.
+x-mirror-tools: &mirror-tools
+  image: erp-mirror-tools:1
+  build: ./tools/mirror
+  networks:
+    - frappe_network
+  restart: unless-stopped
+  environment:
+    MIRROR_PRIMARY_SSH: ${MIRROR_PRIMARY_SSH:?set MIRROR_PRIMARY_SSH in .mirror.env}
+    MIRROR_PRIMARY_REPO: ${MIRROR_PRIMARY_REPO:?set MIRROR_PRIMARY_REPO in .mirror.env}
+    MIRROR_PRIMARY_DB_PORT: ${MIRROR_PRIMARY_DB_PORT:-3307}
+    MIRROR_FILES_INTERVAL: ${MIRROR_FILES_INTERVAL:-300}
+
+services:
+  db:
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed # Temporary fix for MariaDB 10.6
+      - --server-id=2
+      - --relay-log=relay-bin
+      - --replicate-wild-ignore-table=mysql.%
+
+  mirror-tunnel:
+    <<: *mirror-tools
+    command: [mirror, tunnel]
+    volumes:
+      - ${MIRROR_PRIMARY_SSH_KEY:?set MIRROR_PRIMARY_SSH_KEY in .mirror.env}:/run/mirror/id_key:ro
+      - ${MIRROR_DIR}:/mirror
+
+  mirror-files:
+    <<: *mirror-tools
+    command: [mirror, loop]
+    volumes:
+      - ${MIRROR_PRIMARY_SSH_KEY:?set MIRROR_PRIMARY_SSH_KEY in .mirror.env}:/run/mirror/id_key:ro
+      - ${MIRROR_DIR}:/mirror
+      - sites:/home/frappe/frappe-bench/sites
