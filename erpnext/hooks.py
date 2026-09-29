@@ -110,6 +110,8 @@ permission_query_conditions = {
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_query_conditions",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_query_conditions",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
+	# Disabled label templates are soft-deleted: gone from lists and pickers, still printable by name.
+	"Label Template": "erpnext.devices.doctype.label_template.label_template.get_permission_query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
