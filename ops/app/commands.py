@@ -142,6 +142,49 @@ COMMANDS: dict[str, Command] = {
 		destructive=True,
 		needs_clean_tree=True,
 	),
+	"apply-site-config": Command(
+		key="apply-site-config",
+		label="Apply site config",
+		description="Push site-config.json into the running site now (./deploy apply-config) instead of at the next deploy.",
+		build=lambda _: "./deploy apply-config",
+	),
+	"mirror-primary-setup": Command(
+		key="mirror-primary-setup",
+		label="Prepare main for a mirror",
+		description="Create the replication account. Run a deploy first so the database starts with a binary log.",
+		build=lambda _: "./deploy mirror primary-setup",
+	),
+	"mirror-setup": Command(
+		key="mirror-setup",
+		label="Set up mirror",
+		description="Copy main's database and attachments to this host and start replicating. Replaces this host's database.",
+		build=lambda _: "./deploy mirror setup",
+		destructive=True,
+	),
+	"mirror-sync-code": Command(
+		key="mirror-sync-code",
+		label="Sync code from main",
+		description="Check out the commit main runs and build the image. Run after every release on main.",
+		build=lambda _: "./deploy mirror sync-code",
+		needs_clean_tree=True,
+	),
+	"mirror-start": Command(
+		key="mirror-start",
+		label="Take over (start mirror)",
+		description="Detach from main and serve users from this host. Refused while main is reachable, unless forced.",
+		build=lambda p: "./deploy mirror start --force"
+		if p["force"] == "--force"
+		else "./deploy mirror start",
+		params={"force": lambda v: "--force" if v == "on" else ""},
+		destructive=True,
+	),
+	"mirror-failback": Command(
+		key="mirror-failback",
+		label="Fail back to main",
+		description="Replace main's database and files with this mirror's, then return the mirror to standby.",
+		build=lambda _: "./deploy mirror failback --yes",
+		destructive=True,
+	),
 	"ops-rebuild": Command(
 		key="ops-rebuild",
 		label="Rebuild dashboard",

@@ -832,6 +832,13 @@ PY
     mirror_command "${@:2}"
     ;;
 
+  apply-config)
+    mirror_guard apply-config
+    apply_site_config
+    dc exec -T backend bench --site "$SITE" clear-cache
+    echo "Site config applied."
+    ;;
+
   setup-prod)
     echo "production" > "$DEPLOY_ENV_FILE"
     echo "Environment set to production. Destructive commands (nuke, destroy) are now disabled."

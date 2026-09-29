@@ -3,6 +3,16 @@
 {% block content %}
 
 <div class="grid">
+	<section class="card wide" id="panel-site-config-settings"
+	         hx-get="/settings/site-config" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Site config</h2><p class="muted">loading…</p>
+	</section>
+
+	<section class="card wide" id="panel-mirror-settings"
+	         hx-get="/settings/mirror" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Standby mirror</h2><p class="muted">loading…</p>
+	</section>
+
 	<section class="card wide" id="panel-ftp-settings"
 	         hx-get="/settings/ftp" hx-trigger="load" hx-swap="innerHTML">
 		<h2>FTP backup target</h2><p class="muted">loading…</p>
