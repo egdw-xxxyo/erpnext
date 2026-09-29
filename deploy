@@ -545,9 +545,9 @@ ensure_extra_apps() {
     say "==> Ensuring $app is installed on site..."
     dc exec -T backend bash -c "grep -qx '$app' /home/frappe/frappe-bench/sites/apps.txt || echo $app >> /home/frappe/frappe-bench/sites/apps.txt"
     if [ "$DEPLOY_SILENT" = "1" ]; then
-      dc exec -T backend bench --site frontend install-app "$app" --force >/dev/null 2>&1 || true
+      dc exec -T backend bench --site frontend install-app "$app" >/dev/null 2>&1 || true
     else
-      dc exec -T backend bench --site frontend install-app "$app" --force 2>&1 | grep -v "^Updating DocTypes\|already installed"
+      dc exec -T backend bench --site frontend install-app "$app" 2>&1 | grep -v "^Updating DocTypes\|already installed"
     fi
   done
   for app in $(extra_apps_disabled); do
