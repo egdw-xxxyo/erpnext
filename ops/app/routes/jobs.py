@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
+from .. import audit, progress, stats
 from .. import jobs as jobs_mod
-from .. import progress, stats
 from ..config import settings
-from ..deps import SessionDep
+from ..deps import SessionDep, client_ip, require_csrf
 from ..sessions import Session
 from ..templating import templates
 
 router = APIRouter(prefix="/jobs")
+
+CsrfSessionDep = Annotated[Session, Depends(require_csrf)]
 
 HEARTBEAT_SECONDS = 15
 # A line still unterminated after this long (a prompt, a progress bar with no
@@ -62,6 +66,39 @@ async def job_status(job_id: str, session: SessionDep):
 	if not job_id.isalnum():
 		raise HTTPException(status_code=400, detail="bad job id")
 	return await asyncio.to_thread(jobs_mod.status, session.conn, job_id)
+
+
+@router.post("/{job_id}/stop", response_class=HTMLResponse)
+async def job_stop(job_id: str, request: Request, session: CsrfSessionDep):
+	"""Stop a running job. The open console sees its stream end and redraws as `stopped`."""
+	if not job_id.isalnum():
+		raise HTTPException(status_code=400, detail="bad job id")
+	try:
+		await asyncio.to_thread(jobs_mod.stop, session.conn, job_id, session.username)
+		result, message = "stopped", "Stopped."
+	except jobs_mod.JobNotRunning:
+		result, message = "not-running", "The job had already finished."
+	except jobs_mod.JobStopDenied:
+		result = "denied"
+		message = "Not allowed: the job runs as another host user. Stop it from that account."
+	except Exception as exc:
+		result, message = "error", f"Could not stop the job: {exc}"
+
+	await asyncio.to_thread(
+		audit.write,
+		session.conn,
+		user=session.username,
+		client_ip=client_ip(request),
+		action="stop-job",
+		args={},
+		job_id=job_id,
+		result=result,
+	)
+	stats.jobs_cache.invalidate()
+	css = "muted" if result == "stopped" else "bad-text"
+	return HTMLResponse(
+		f'<span class="small {css}" data-stop-result="{result}">{html.escape(message)}</span>'
+	)
 
 
 def _console_text(raw: bytes) -> str:

@@ -63,6 +63,16 @@ very deploy they belong to, and the audit file's ownership corroborates the
 username in each line — ops has no host credentials of its own to forge one
 with. `jobs.py`'s sweep deletes artifacts older than 14 days.
 
+**Stopping a job.** The console and the "a job is running" banner have a Stop
+button (`POST /jobs/<id>/stop`, audited as `stop-job`). The job runs under
+`setsid`, so its pid is its process group: `STOP_SCRIPT` sends TERM to the whole
+group, KILL after ten seconds, then writes `.state = stopped` and `.exit = 143`,
+because the wrapper dies before it can. That releases the job lock. Two things
+survive a stop: a process that called `setsid` itself, and anything a
+`docker exec` started inside a container (docker keeps it running when its
+client dies). A job started by another host user cannot be signalled from this
+session and the button says so.
+
 **In the container, `/data/ops.db`** (volume `ops-data`, SQLite + WAL) — state
 that belongs to the dashboard:
 

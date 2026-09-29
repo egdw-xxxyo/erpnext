@@ -131,7 +131,7 @@ def parse(lines, job_state: str | None = None) -> dict:
 
 	# A job that died mid-step leaves that step at "running" forever. The job's
 	# own state is the only thing that knows better.
-	if job_state in {"failed", "crashed", "rejected"}:
+	if job_state in {"failed", "crashed", "rejected", "stopped"}:
 		for step in steps:
 			if step.get("state") == "running":
 				step["state"] = "failed"
