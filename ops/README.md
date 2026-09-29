@@ -39,6 +39,9 @@ in for that). Never set it on a shared host.
 | `app/prefs.py` | tiny plaintext KV store (currently: the pre-deploy safety-backup toggle) |
 | `app/git_keys.py` | encrypted-at-rest per-ops-user git SSH deploy key |
 | `app/git_ssh.py` | stages that key on the host and wraps `update-repo`/`switch-branch` with `GIT_SSH_COMMAND` |
+| `app/host_files.py` | read / atomically replace a config file in the repo on the host |
+| `app/site_config.py` | typed editor for `site-config.json` |
+| `app/mirror_config.py` | typed editor for `.mirror.env` (standby mirror) |
 | `app/routes/` | dashboard, panels, actions, jobs (SSE), settings (FTP targets), git_key_settings, schedule, remote_backups |
 
 ## Where state lives

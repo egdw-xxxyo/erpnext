@@ -99,11 +99,16 @@ extra_apps_disabled() {
   python3 -c "import json; print(' '.join(a['name'] for a in json.load(open('$DIR/apps.json')) if not a.get('enabled')))"
 }
 
+# Standby mirror: .mirror.env, MIRROR_COMPOSE_FILE, `./deploy mirror`.
+. "$DIR/tools/mirror.sh"
+
 dc() {
+  local files=(-f "$DIR/docker-compose.yml")
+  [ -n "$MIRROR_COMPOSE_FILE" ] && files+=(-f "$MIRROR_COMPOSE_FILE")
   if docker compose version &>/dev/null; then
-    docker compose -p docker -f "$DIR/docker-compose.yml" "$@"
+    docker compose -p docker "${files[@]}" "$@"
   else
-    docker-compose -p docker -f "$DIR/docker-compose.yml" "$@"
+    docker-compose -p docker "${files[@]}" "$@"
   fi
 }
 
@@ -674,6 +679,7 @@ case "${1:-}" in
     ;;
 
   init)
+    mirror_guard init
     build_image
 
     say "==> Starting ERPNext..."
@@ -712,6 +718,7 @@ PY
     ;;
 
   start)
+    mirror_guard start
     dc up -d
     say "==> Waiting for configurator to finish..."
     dc wait configurator 2>/dev/null || sleep 5
@@ -733,6 +740,7 @@ PY
     ;;
 
   build)
+    mirror_guard build
     SILENT=0
     SKIP_OPS=0
     FOLLOW_LOGS=0
@@ -778,6 +786,7 @@ PY
     ;;
 
   migrate)
+    mirror_guard migrate
     SILENT=0
     SKIP_OPS=0
     for arg in "$@"; do
@@ -817,6 +826,17 @@ PY
     dc down -v
     ops_dc down 2>/dev/null || true
     echo "Stopped and removed all data."
+    ;;
+
+  mirror)
+    mirror_command "${@:2}"
+    ;;
+
+  apply-config)
+    mirror_guard apply-config
+    apply_site_config
+    dc exec -T backend bench --site "$SITE" clear-cache
+    echo "Site config applied."
     ;;
 
   setup-prod)
@@ -944,6 +964,7 @@ PY
       exit 1
     fi
 
+    [ "$MIRROR_ROLE" = "replica" ] && mirror_guard restore
     echo "!! RESTORE DESTROYS THE CURRENT DATABASE AND FILES OF SITE '$SITE' ON '$DEPLOY_ENV'."
     echo "!! Backup: $NAME"
     if [ "$CONFIRM" != "1" ]; then

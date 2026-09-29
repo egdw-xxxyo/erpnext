@@ -1,0 +1,62 @@
+<h2>Site config</h2>
+
+{% if saved %}
+<div class="alert small">Saved to <code>site-config.json</code>. Applied on the next deploy, or now with "Apply site config".</div>
+{% endif %}
+{% if error %}<div class="alert error small">{{ error }}</div>{% endif %}
+
+<p class="muted small">
+	<code>site-config.json</code> in the repo: every deploy writes these keys into the site's config.
+	Clearing a field removes it from the file but not from the running site; turning a flag off writes 0.
+	Reference: <code>docs/site-config.md</code>.
+</p>
+
+<form hx-post="/settings/site-config" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#panel-site-config-settings" hx-swap="innerHTML" class="action">
+	{% for k in keys %}
+	{% set value = config.get(k.key) %}
+	{% if k.kind == 'bool' %}
+	<label class="inline-label">
+		<input type="checkbox" name="{{ k.key }}" {% if value %}checked{% endif %}> {{ k.label }}
+		<code class="muted small">{{ k.key }}</code>
+	</label>
+	{% else %}
+	<label>{{ k.label }} <code class="muted small">{{ k.key }}</code>
+		{% if k.kind == 'select' %}
+		<select name="{{ k.key }}">
+			{% for opt in k.options %}
+			<option value="{{ opt }}" {% if (value|string if value is not none else '') == opt %}selected{% endif %}>{{ opt or '— not set —' }}</option>
+			{% endfor %}
+		</select>
+		{% elif k.kind == 'secret' %}
+		<input name="{{ k.key }}" type="password" autocomplete="new-password"
+		       placeholder="{{ '•••••••• set — leave blank to keep' if value else '' }}">
+		{% if value %}
+		<span class="inline-label small"><input type="checkbox" name="{{ k.key }}__clear"> remove</span>
+		{% endif %}
+		{% else %}
+		<input name="{{ k.key }}" value="{{ value if value is not none else '' }}"
+		       {% if k.kind == 'int' %}inputmode="numeric"{% endif %} spellcheck="false">
+		{% endif %}
+	</label>
+	{% endif %}
+	{% if k.help %}<p class="muted small">{{ k.help }}</p>{% endif %}
+	{% endfor %}
+
+	<label>Other keys (JSON object, kept as is)
+		<textarea name="extra" rows="8" class="mono" spellcheck="false" placeholder='{ "key": "value" }'>{{ extra }}</textarea>
+	</label>
+
+	<button type="submit" class="primary">Save</button>
+</form>
+
+{% set cmd = commands['apply-site-config'] %}
+<form class="action"
+      hx-post="/actions/apply-site-config"
+      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#console-slot" hx-swap="innerHTML"
+      hx-on::after-request="document.getElementById('console-host').hidden = false">
+	<div class="action-head"><b>{{ cmd.label }}</b></div>
+	<p class="muted small">{{ cmd.description }}</p>
+	<button type="submit" class="primary">Run</button>
+</form>

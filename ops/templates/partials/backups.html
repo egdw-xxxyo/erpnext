@@ -20,7 +20,7 @@
 		{% if current_schedule %}
 		<b>{{ current_schedule.frequency }}{% if current_schedule.frequency == 'weekly' %} (weekday {{ current_schedule.weekday }}){% endif %} at {{ current_schedule.time }}</b>
 		<em>host time</em>
-		{% else %}<b class="muted">not scheduled — see Configuration</b>{% endif %}</div>
+		{% else %}<b class="muted">not scheduled — see <a href="/ftp">FTP backup</a></b>{% endif %}</div>
 	<div><span>Retained</span><b>{{ rows|length }} / {{ settings.backup_keep }}</b></div>
 	<div><span>Free space</span><b>{{ data.backup_avail|human_bytes }}</b></div>
 </div>

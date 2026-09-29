@@ -1,0 +1,17 @@
+# Main server of a standby mirror (MIRROR_ROLE=primary in .mirror.env).
+# Adds the binary log the mirror replicates from and publishes MariaDB on the
+# host loopback only: the mirror reaches it through its own SSH tunnel, never
+# over the LAN. See docs/mirror-standby.md.
+services:
+  db:
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed # Temporary fix for MariaDB 10.6
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --expire-logs-days=2
+    ports:
+      - "127.0.0.1:${MIRROR_PRIMARY_DB_PORT:-3307}:3306"
