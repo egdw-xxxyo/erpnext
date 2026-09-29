@@ -899,7 +899,9 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 	packing operation simply has no card — `card: False`, and it is still manufactured.
 
 	Never raises for one bad unit: the box is already built and labelled by the time this
-	runs, so every serial reports its own outcome.
+	runs, so every serial reports its own outcome. A unit that fails is rolled back to where
+	it started — a packing card left submitted without its Manufacture entry (or with the
+	Work Order never told) is a unit nothing can finish afterwards.
 	"""
 	result = {
 		"serial_no": serial_no,
@@ -913,6 +915,8 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 		result["error"] = _("Serial No is required")
 		return result
 
+	save_point = "finish_packed_unit"
+	frappe.db.savepoint(save_point)
 	try:
 		# A rejected unit was finished at the bench, cards and stock included. If one reaches
 		# the packing station anyway, say so instead of posting it into the packed warehouse.
@@ -956,9 +960,20 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 
 		result["stock_entry"] = _post_manufacture(bench_card, serial_no, target_warehouse=target_warehouse)
 	except Exception as e:
-		result["error"] = str(e)
+		frappe.db.rollback(save_point=save_point)
+		result.update(card_closed=False, stock_entry=None, error=_error_text(e))
+		frappe.log_error(
+			title=f"Production Line: could not finish packed unit {serial_no}",
+			message=frappe.get_traceback(),
+		)
 
 	return result
+
+
+def _error_text(e):
+	"""An exception as one line for a scanner display. `frappe.PermissionError` raised by
+	`Document.check_permission` carries no message at all, and an empty error reads as success."""
+	return str(e).strip() or _("{0} (no message)").format(type(e).__name__)
 
 
 def finish_packed_units(serials, target_warehouse=None, employee=None, operation=None):
@@ -1158,3 +1173,74 @@ def _delete_serials(serials):
 		if frappe.db.exists("Stock Ledger Entry", {"serial_no": name}):
 			continue
 		frappe.delete_doc("Serial No", name, force=1, ignore_permissions=True)
+
+
+def _stranded_packed_units(line, work_order=None):
+	"""Units packed but never put into stock: the packing card is submitted, the unit is not.
+
+	Left behind while `JobCard.update_work_order_data` saved the Work Order without
+	`ignore_permissions`: a packing operator without write access on Work Order got the card
+	marked submitted, and `finish_packed_unit` swallowed the empty `PermissionError` before
+	the Work Order was told or the Manufacture entry was posted.
+	"""
+	filters = {"production_line": line, "docstatus": 1}
+	if work_order:
+		filters["name"] = work_order
+	work_orders = frappe.get_all("Work Order", filters=filters, pluck="name")
+	if not work_orders:
+		return []
+
+	return frappe.db.sql(
+		"""SELECT pc.name AS packing_card, pc.serial_no, pc.work_order
+			 FROM `tabJob Card` pc
+			 JOIN `tabSerial No` sn ON sn.name = pc.serial_no
+			WHERE pc.work_order IN %(work_orders)s
+			  AND pc.operation = %(packing)s
+			  AND pc.docstatus = 1
+			  AND IFNULL(sn.warehouse, '') = ''
+			  AND NOT EXISTS (
+				SELECT 1 FROM `tabJob Card` bc
+				  JOIN `tabStock Entry` se ON se.name = bc.auto_stock_entry AND se.docstatus = 1
+				 WHERE bc.serial_no = pc.serial_no
+			  )
+			ORDER BY pc.work_order, pc.serial_no""",
+		{"work_orders": tuple(work_orders), "packing": PACKING_OPERATION},
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def repair_packed_units(line, work_order=None, dry_run=1):
+	"""Finish into stock the units whose packing card closed without a Manufacture entry.
+
+	Per unit: tell the Work Order the packing operation is done (the part that failed), then
+	post the Manufacture entry from the bench card, exactly as `finish_packed_unit` would have.
+	Idempotent — a repaired unit is in stock and drops out of the search. `dry_run` only lists.
+	"""
+	frappe.only_for(("System Manager", "Manufacturing Manager"))
+	rows = _stranded_packed_units(line, work_order=work_order)
+	if cint(dry_run):
+		return {"found": len(rows), "units": rows}
+
+	done, failed = [], []
+	for row in rows:
+		save_point = "repair_packed_unit"
+		frappe.db.savepoint(save_point)
+		try:
+			if _rejected_inspection(row.serial_no):
+				failed.append(f"{row.serial_no}: {_('failed quality inspection')}")
+				continue
+			packing_card = frappe.get_doc("Job Card", row.packing_card)
+			packing_card.update_work_order()
+			packing_card.set_transferred_qty()
+			bench_card = _bench_card(row.serial_no)
+			if not bench_card:
+				failed.append(f"{row.serial_no}: {_('no closed Job Card to finish')}")
+				continue
+			done.append(f"{row.serial_no}: {_post_manufacture(bench_card, row.serial_no)}")
+			frappe.db.commit()
+		except Exception as e:
+			frappe.db.rollback(save_point=save_point)
+			failed.append(f"{row.serial_no}: {_error_text(e)}")
+
+	return {"found": len(rows), "repaired": done, "failed": failed}

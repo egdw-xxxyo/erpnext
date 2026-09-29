@@ -15240,3 +15240,6 @@ A stock entry for expense {0} must be a Material Issue of company {1},Рух Т�
 "Daily: closing the line's day deletes the units nobody started and shrinks Qty to the started ones.","Щоденний: закриття дня лінії видаляє одиниці, які ніхто не почав, і зменшує кількість до розпочатих."
 "Close Day","Закрити день"
 "Units nobody started lose their Job Cards and Serial Nos, and each Work Order of the line shrinks to the units that were started. Continue?","Одиниці, які ніхто не почав, втратять карти завдань і серійні номери, а кожен наряд лінії зменшиться до розпочатих одиниць. Продовжити?"
+"{0} (no message)","{0} (без повідомлення)"
+"failed quality inspection","не пройшла перевірку якості"
+"no closed Job Card to finish","немає закритої карти завдань для виготовлення"
