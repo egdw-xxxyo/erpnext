@@ -263,11 +263,11 @@ def job_pending(job_id: str) -> bool:
 
 # ---- archived job logs -------------------------------------------------------
 
-#: Kept from the head and the tail of an oversized log. A docker build is
-#: hundreds of thousands of lines of layer chatter in the middle; what anyone
-#: ever reads back is how it started and how it died.
-LOG_HEAD_BYTES = 128 * 1024
-LOG_TAIL_BYTES = 4 * 1024 * 1024
+#: Kept from the head and the tail of an oversized log. This copy is only
+#: read once the host has swept its own file (14 days); until then the
+#: console streams the complete host log. Deploy logs compress ~5x.
+LOG_HEAD_BYTES = 256 * 1024
+LOG_TAIL_BYTES = 16 * 1024 * 1024
 
 
 def clip_log(text: str) -> tuple[str, int, bool]:

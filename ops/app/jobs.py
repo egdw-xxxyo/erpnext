@@ -333,22 +333,6 @@ def archived_log(job_id: str) -> str | None:
 		return None
 
 
-def ensure_archived(conn: HostConnection, job_id: str) -> str | None:
-	"""The log of a finished run, from the database — archiving it first if it
-	is not there yet (runs that ended before this existed, or whose archive
-	pass failed). None means neither copy is reachable and the caller should
-	fall back to the host file."""
-	body = archived_log(job_id)
-	if body is not None:
-		return body
-	try:
-		_archive_log(conn, job_id)
-	except Exception as exc:
-		print(f"[ops] WARNING: could not archive log of {job_id} on demand: {exc}", flush=True)
-		return None
-	return archived_log(job_id)
-
-
 def sweep(conn: HostConnection) -> None:
 	try:
 		conn.run(_render(SWEEP_SCRIPT, "-"), timeout=30)
