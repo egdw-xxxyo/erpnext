@@ -570,39 +570,40 @@ install_extra_apps() {
 run_deploy() {
   local SILENT="${1:-0}"
 
-  local out="/dev/stdout"
-  local err="/dev/stderr"
+  # Step output goes to fd 3. Never `> /dev/stdout`: when stdout is the ops job
+  # log, Linux reopens that file with O_TRUNC and wipes everything before it.
   if [ "$SILENT" = "1" ]; then
-    out="/dev/null"
-    err="/dev/null"
+    exec 3>/dev/null
+  else
+    exec 3>&1
   fi
 
   ops_step containers start "Recreating containers"
   say "==> Recreating containers with new image..."
-  dc up -d > "$out" 2>&1
+  dc up -d >&3 2>&1
 
   say "==> Waiting for configurator to finish..."
-  dc wait configurator > "$out" 2>&1 || sleep 5
+  dc wait configurator >&3 2>&1 || sleep 5
   ops_step containers ok "Containers running"
 
   ops_step assets start "Syncing built assets"
-  sync_built_assets > "$out" 2>&1
+  sync_built_assets >&3 2>&1
   ops_step assets ok "Assets synced"
 
   ops_step config start "Applying site config"
   say "==> Applying site config..."
-  apply_site_config > "$out" 2>&1
+  apply_site_config >&3 2>&1
 
-  wait_for_db > "$out" 2>&1
+  wait_for_db >&3 2>&1
 
-  strip_extra_apps > "$out" 2>&1
+  strip_extra_apps >&3 2>&1
   ops_step config ok "Site config applied"
 
   # Workers hold a metadata lock on tabDocType, which starves the ALTER TABLE in
   # frappe.patches.v16_0.switch_default_sort_order until it dies with a lock wait
   # timeout and takes the whole migration with it. Quiesce them first.
   say "==> Stopping workers for migrate..."
-  dc stop scheduler queue-short queue-long websocket > "$out" 2>&1 || true
+  dc stop scheduler queue-short queue-long websocket >&3 2>&1 || true
 
   ops_step migrate start "Running bench migrate"
   say "==> Running bench migrate..."
@@ -621,14 +622,14 @@ run_deploy() {
   rm -f "$migrate_log"
 
   say "==> Starting workers..."
-  dc start scheduler queue-short queue-long websocket > "$out" 2>&1 || true
+  dc start scheduler queue-short queue-long websocket >&3 2>&1 || true
 
   # nginx resolves the `websocket` upstream once, when it loads its config. The
   # stop/start above hands that container a new IP, so the frontend keeps proxying
   # /socket.io to an address nobody listens on: every realtime connection 502s and
   # the chat silently falls back to polling. Reload nginx so it resolves again.
   say "==> Reloading frontend (websocket upstream IP changed)..."
-  dc restart frontend > "$out" 2>&1 || true
+  dc restart frontend >&3 2>&1 || true
 
   ops_step custom-fields start "Applying custom fields"
   say "==> Running setup_custom_fields..."
@@ -647,7 +648,7 @@ run_deploy() {
   rm -f "$scf_log"
 
   say "==> Clearing cache..."
-  dc exec -T backend bench --site frontend clear-cache > "$out" 2>&1
+  dc exec -T backend bench --site frontend clear-cache >&3 2>&1
 
   # Advisory only: lists DocTypes that exist solely in this site's database
   # (created through the desk UI, custom=1) and never reach git or the image.
@@ -662,7 +663,7 @@ run_deploy() {
   ops_step manifest ok "Asset manifest OK"
 
   ops_step extra-apps start "Installing extra apps"
-  install_extra_apps > "$out" 2>&1
+  install_extra_apps >&3 2>&1
   ops_step extra-apps ok "Extra apps installed"
 
   echo "Done. http://localhost:8080"
