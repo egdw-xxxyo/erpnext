@@ -6,6 +6,8 @@ import frappe
 from frappe import _
 from frappe.utils import now_datetime
 
+from erpnext.devices.script_references import load_refs
+
 # ---------------------------------------------------------------------------
 # Logger — injected into script event as e.logger
 # ---------------------------------------------------------------------------
@@ -662,7 +664,11 @@ def _resolve_scan(data):
 def _build_scripts_namespace(scanner_scripts):
 	scripts = frappe._dict()
 	for ss in scanner_scripts:
-		ns = {"frappe": frappe, "json": json}
+		ns = {
+			"frappe": frappe,
+			"json": json,
+			"refs": load_refs("Device Script", ss.get("name") or ss.script_name),
+		}
 		exec(ss.script, ns)
 		key = ss.script_name.lower().replace(" ", "_").replace("-", "_")
 		scripts[key] = frappe._dict(ns)
@@ -675,7 +681,13 @@ def _execute_workplace_script(workplace_script, event, scripts):
 	)
 
 	ws_snap = _resolve_default_snapshot(workplace_script)
-	ws_ns = {"frappe": frappe, "json": json, "scripts": scripts}
+	ws_ns = {
+		"frappe": frappe,
+		"json": json,
+		"scripts": scripts,
+		"refs": load_refs("Workplace Script", workplace_script.name),
+		"script_name": workplace_script.name,
+	}
 	exec(ws_snap.get("script", "") or "", ws_ns)
 
 	handler = ws_ns.get("on_scan")

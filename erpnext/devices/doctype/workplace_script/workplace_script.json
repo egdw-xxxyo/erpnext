@@ -40,7 +40,9 @@
   "subflow_entries",
   "tab_variables",
   "section_context_fields",
-  "context_fields"
+  "context_fields",
+  "section_references",
+  "script_references"
  ],
  "fields": [
   {
@@ -230,11 +232,23 @@
    "fieldtype": "Table",
    "label": "Context Fields",
    "options": "Workplace Script Context Field"
+  },
+  {
+   "fieldname": "section_references",
+   "fieldtype": "Section Break",
+   "label": "References",
+   "description": "Documents the script names — label templates, packing templates, operations. Read as refs.<key>. A rename of the document updates the row, so the script keeps working. Not versioned and never shown in the mobile app."
+  },
+  {
+   "fieldname": "script_references",
+   "fieldtype": "Table",
+   "label": "References",
+   "options": "Script Reference"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-28 16:00:00.000000",
+ "modified": "2026-09-29 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Workplace Script",

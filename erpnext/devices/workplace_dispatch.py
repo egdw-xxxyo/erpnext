@@ -142,10 +142,17 @@ def dispatch_measurement(workplace, employee=None, **event_fields):
 		from erpnext.devices.doctype.workplace_script.workplace_script import (
 			_resolve_default_snapshot,
 		)
+		from erpnext.devices.script_references import load_refs
 
 		doc = frappe.get_cached_doc("Workplace Script", script.name)
 		snap = _resolve_default_snapshot(doc)
-		ns = {"frappe": frappe, "json": json, "scripts": _scanner_scripts()}
+		ns = {
+			"frappe": frappe,
+			"json": json,
+			"scripts": _scanner_scripts(),
+			"refs": load_refs("Workplace Script", script.name),
+			"script_name": script.name,
+		}
 		exec(snap.get("script", "") or "", ns)
 
 		handler = ns.get("on_measurement")
