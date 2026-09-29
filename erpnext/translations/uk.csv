@@ -15251,3 +15251,12 @@ A stock entry for expense {0} must be a Material Issue of company {1},Рух Т�
 "{0}: reference «{1}» is not declared in the References table","{0}: посилання «{1}» не оголошено в таблиці «Посилання»"
 "Reference key «{0}» must be a Python name: letters, digits, underscores","Ключ посилання «{0}» має бути іменем Python: латинські літери, цифри, підкреслення"
 "Reference key «{0}» is declared twice","Ключ посилання «{0}» оголошено двічі"
+Link a help page,Прив'язати сторінку довідки
+The help page is not published or you do not have access to it.,Сторінку довідки не опубліковано або у вас немає до неї доступу.
+Open Page,Відкрити сторінку
+Change Help Page,Змінити сторінку довідки
+Help Page for {0},Сторінка довідки для {0}
+Wiki Page or URL,Сторінка вікі або посилання
+Pick a wiki page or paste any link. Leave empty to remove the help page.,"Оберіть сторінку вікі або вставте будь-яке посилання. Залиште порожнім, щоб прибрати довідку."
+Help page saved,Сторінку довідки збережено
+Not Published,Не опубліковано

@@ -22,7 +22,11 @@ add_to_apps_screen = [
 
 develop_version = "15.x.x-develop"
 
-app_include_js = ["erpnext.bundle.js", "/assets/erpnext/js/custom/todo_planner.js"]
+app_include_js = [
+	"erpnext.bundle.js",
+	"/assets/erpnext/js/custom/todo_planner.js",
+	"/assets/erpnext/js/custom/doc_help.js",
+]
 app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
