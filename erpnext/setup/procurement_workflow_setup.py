@@ -13,6 +13,18 @@ PURCHASE_RECEIPT_TTN_FIELDS = (
 )
 
 CUSTOM_FIELDS = {
+	"Bank": [
+		{
+			"fieldname": "custom_nbu_code",
+			"fieldtype": "Data",
+			"label": "NBU Bank Code",
+			"insert_after": "swift_number",
+			"allow_in_quick_entry": 1,
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"unique": 1,
+		},
+	],
 	"Buying Settings": [
 		{
 			"fieldname": "custom_procurement_approval_section",
@@ -219,6 +231,28 @@ CUSTOM_FIELDS = {
 			"insert_after": "bill_date",
 		},
 		{
+			"fieldname": "custom_supplier_requisites_validation_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Details Verification",
+			"insert_after": "custom_supplier_invoice_files_html",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_validation_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Details Verification",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_section",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_manual_confirmation",
+			"fieldtype": "Check",
+			"label": "Supplier details checked manually",
+			"default": "0",
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_html",
+		},
+		{
 			"fieldname": "custom_paid_outside_company",
 			"fieldtype": "Check",
 			"label": "Payer",
@@ -246,6 +280,54 @@ CUSTOM_FIELDS = {
 			"no_copy": 1,
 			"depends_on": "eval:doc.custom_paid_outside_company",
 			"insert_after": "custom_external_payer",
+		},
+	],
+	"Payment Request": [
+		{
+			"fieldname": "custom_supplier_requisites_validation_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Details Verification",
+			"insert_after": "iban",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_validation_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Details Verification",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_section",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_manual_confirmation",
+			"fieldtype": "Check",
+			"label": "Supplier details checked manually",
+			"default": "0",
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_html",
+		},
+	],
+	"Payment Entry": [
+		{
+			"fieldname": "custom_supplier_requisites_validation_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Details Verification",
+			"insert_after": "custom_supplier_invoice_files_html",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_validation_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Details Verification",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_section",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_manual_confirmation",
+			"fieldtype": "Check",
+			"label": "Supplier details checked manually",
+			"default": "0",
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_html",
 		},
 	],
 }

@@ -15026,3 +15026,50 @@ Row #{0}: {1} is already listed,Рядок #{0}: {1} уже є у списку
 Row #{0}: {1} is not part of expense {2},Рядок #{0}: {1} немає у витраті {2}
 Only {0} of {1} is left to issue for expense {2},За витратою {2} залишилось списати лише {0} {1}
 A stock entry for expense {0} must be a Material Issue of company {1},Рух ТМЦ для витрати {0} має бути списанням матеріалів компанії {1}
+Supplier Details Verification,Перевірка реквізитів постачальника
+Supplier details checked manually,Реквізити постачальника перевірено вручну
+Supplier details in the invoice PDF require manual verification. {0},Реквізити постачальника у PDF рахунку потребують ручної перевірки. {0}
+Supplier details verification is not supported for {0}.,Перевірка реквізитів постачальника не підтримується для {0}.
+PDF verification requires the 'pdfplumber' library to be installed.,Для перевірки PDF має бути встановлена бібліотека «pdfplumber».
+{0}: not specified in the supplier record. Check manually.,{0}: не вказано в картці постачальника. Перевірте вручну.
+{0}: could not be read from the PDF. Check manually.,{0}: не вдалося зчитати з PDF. Перевірте вручну.
+{0}: matches the supplier record.,{0}: збігається з карткою постачальника.
+{0}: does not match the supplier record. Check manually.,{0}: не збігається з карткою постачальника. Перевірте вручну.
+Checking supplier details...,Перевіряємо реквізити постачальника…
+Supplier details could not be checked.,Не вдалося перевірити реквізити постачальника.
+Checked PDF,Перевірений PDF
+Match found in PDF,Збіг знайдено у PDF
+Multiple values,Знайдено кілька значень
+Update supplier details from PDF,Оновити реквізити постачальника з PDF
+Check the source PDF before updating the supplier,Перевірте вихідний PDF перед оновленням постачальника
+Select the value that should be saved in the supplier record.,Виберіть значення, яке потрібно зберегти в картці постачальника.
+NBU Bank Code,Код банку НБУ
+Update supplier,Оновити постачальника
+Select at least one value to update.,Виберіть щонайменше одне значення для оновлення.
+Updating supplier details...,Оновлення реквізитів постачальника...
+Supplier details updated,Реквізити постачальника оновлено
+Bank found by NBU code,Банк знайдено за кодом НБУ
+The bank was not found by the code from the IBAN. Select an existing bank or create a new one and specify this NBU code.,Банк не знайдено за кодом з IBAN. Виберіть наявний банк або створіть новий і зазначте цей код НБУ.
+Supplier details verification is not available for this document.,Перевірка реквізитів постачальника недоступна для цього документа.
+Supplier details can only be updated from a Purchase Invoice.,Реквізити постачальника можна оновити лише з вхідного рахунку-фактури.
+EDRPOU Code cannot be updated because the supplier or the PDF indicates an individual entrepreneur.,Код ЄДРПОУ не можна оновити, оскільки картка постачальника або PDF вказує на фізичну особу-підприємця.
+{0} is already specified in the supplier record and cannot be replaced from the PDF.,{0} уже зазначено в картці постачальника й не може бути замінено з PDF.
+The selected value was not found in the attached PDF. Refresh the document and try again.,Вибране значення не знайдено у прикріпленому PDF. Оновіть документ і спробуйте ще раз.
+IBAN {0} is already linked to another bank account.,IBAN {0} уже пов’язаний з іншим банківським рахунком.
+Select a bank before creating the supplier bank account.,Виберіть банк перед створенням банківського рахунку постачальника.
+"The selected bank has NBU code {0}, but the IBAN contains code {1}.","Вибраний банк має код НБУ {0}, але IBAN містить код {1}."
+{0}: not specified in the supplier record. Values found in PDF: {1}. Select the correct value or check manually.,{0}: не зазначено в картці постачальника. У PDF знайдено значення: {1}. Виберіть правильне значення або перевірте вручну.
+"{0}: multiple values were found in the PDF ({1}); {2} matches the supplier record. Check manually.","{0}: у PDF знайдено кілька значень ({1}); {2} збігається з карткою постачальника. Перевірте вручну."
+Not applicable,Не застосовується
+All applicable supplier details match the attached PDF.,Усі застосовні реквізити постачальника збігаються з прикріпленим PDF.
+EDRPOU Code: not applicable to an individual entrepreneur. Values found in the PDF may belong to the recipient or another party and will not be saved to the supplier record.,Код ЄДРПОУ: не застосовується до фізичної особи-підприємця. Значення з PDF може належати отримувачу або іншій стороні й не буде збережене в картці постачальника.
+No supplier invoice PDF was found.,PDF рахунку постачальника не знайдено.
+Detail,Реквізит
+Supplier record,Картка постачальника
+PDF value,Значення у PDF
+Matches,Збігається
+Does not match,Не збігається
+Could not read,Не вдалося зчитати
+Some supplier details do not match the attached PDF. Review the highlighted explanations before submitting the document.,Деякі реквізити постачальника не збігаються з прикріпленим PDF. Перед проведенням документа перегляньте виділені пояснення.
+The PDF could not be checked completely. Review the highlighted explanations before submitting the document.,Не вдалося повністю перевірити PDF. Перед проведенням документа перегляньте виділені пояснення.
+All supplier details match the attached PDF.,Усі реквізити постачальника збігаються з прикріпленим PDF.

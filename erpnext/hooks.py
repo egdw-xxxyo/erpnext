@@ -62,6 +62,7 @@ doctype_js = {
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 	],
+	"Payment Request": "public/js/procurement_supplier_invoice_files.js",
 	"Payment Entry": "public/js/procurement_supplier_invoice_files.js",
 	"Delivery Note": "public/js/responsible_employee.js",
 	"Sales Invoice": "public/js/responsible_employee.js",
@@ -616,6 +617,7 @@ doc_events = {
 		"on_trash": "erpnext.regional.check_deletion_permission",
 	},
 	"Purchase Invoice": {
+		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
@@ -628,6 +630,7 @@ doc_events = {
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Payment Request": {
+		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
 			"erpnext.accounts.payment_procurement_route.set_procurement_approval_route",
 			"erpnext.accounts.payment_workflow_reason.validate_required_reason",
@@ -720,6 +723,7 @@ doc_events = {
 	},
 	"Payment Entry": {
 		"on_trash": "erpnext.regional.check_deletion_permission",
+		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
 		"before_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
 		"on_update": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
