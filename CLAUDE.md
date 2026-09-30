@@ -113,6 +113,32 @@ If you believe a different command is required, stop and ask the user before run
 
 Example (chat bubble launcher): `erpnext/public/js/chat_bubble.js` `CB_LAUNCH` uses `fa fa-whatsapp` / `fa fa-users` / `fa fa-file-text-o`.
 
+## Showing a person, number or document: `erpnext.entity` (MANDATORY)
+
+Anywhere custom desk UI shows *who* or *what* — a user, a WhatsApp business number, a
+customer, a chat — render it with the shared entity chip in `erpnext/public/js/entity.js`
+(bundled in `erpnext.bundle.js`): picture (or initials / icon) + name + optional second
+line, linked to where the thing lives. Never hand-roll `<img>` + name markup, and never
+show a bare name where other pages show an avatar.
+
+```js
+erpnext.entity.user("jane@x.com", { size: 24 })             // avatar + full name → User form
+erpnext.entity.user({ user, full_name, user_image }, { size: 32, sub: user })
+erpnext.entity.number(account_row, { size: 28 })            // WhatsApp number → its card
+erpnext.entity.html({ name, sub, image, icon, key, route: ["Form", "Customer", name] })
+erpnext.entity.list(people, erpnext.entity.user, { size: 18 })   // several, or "—"
+erpnext.entity.avatar_html({ name, key, image, icon }, 40)  // just the circle
+```
+
+- Server payloads that feed a chip carry the picture: `user_image` for users,
+  `profile_image` for WhatsApp numbers (see `erpnext.crm.whatsapp_access`).
+- New kinds of things (customer, item, workplace…) get their own helper **in
+  `entity.js`**, next to `user` / `number`, so every page links them the same way.
+- The chip is a real `<a href>`: a clickable row around it must ignore clicks inside
+  `a.ent-link` (e.g. `$(e.target).closest("a[href]")`).
+- Chat avatars (`erpnext.chat_render.avatar_html`) and `erpnext.chat_info` already
+  delegate to it.
+
 ## MCP server (`mcp-server/`)
 
 Source, build and reconnect steps live in `mcp-server/CLAUDE.md` (loaded when working there). `.mcp.json` is gitignored and per machine — never commit it.

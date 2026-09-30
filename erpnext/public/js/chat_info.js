@@ -35,8 +35,6 @@ erpnext.chat_info = {
 		if (document.getElementById("chat-info-styles-v2")) return;
 		const css = `
 		.ci-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
-		.ci-head-avatar{flex:none;width:52px;height:52px;border-radius:50%;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text-muted);overflow:hidden;font-size:18px;}
-		.ci-head-avatar img{width:100%;height:100%;object-fit:cover;}
 		.ci-head-main{min-width:0;flex:1;}
 		.ci-title{font-weight:600;font-size:var(--text-lg);word-break:break-word;}
 		.ci-subtitle{color:var(--text-muted);font-size:var(--text-sm);}
@@ -52,8 +50,6 @@ erpnext.chat_info = {
 		.ci-row-sub{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.ci-row-action{cursor:pointer;color:var(--text-muted);}
 		.ci-row-action:hover{color:var(--primary);}
-		.ci-avatar{flex:none;width:30px;height:30px;border-radius:50%;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-muted);overflow:hidden;}
-		.ci-avatar img{width:100%;height:100%;object-fit:cover;}
 		.ci-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;}
 		.ci-media{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--bg-light-gray);}
 		.ci-media .chat-img,.ci-media .chat-img img{width:100%;height:100%;max-width:none;object-fit:cover;}
@@ -90,13 +86,14 @@ erpnext.chat_info = {
 		const files = data.files || [];
 		const links = data.links || [];
 
-		const avatar = data.avatar
-			? `<img src="${esc(data.avatar)}">`
-			: esc((data.avatar_text || data.title || "?").trim().charAt(0).toUpperCase());
+		const avatar = erpnext.entity.avatar_html(
+			{ name: data.avatar_text || data.title, key: data.avatar_key || data.title, image: data.avatar },
+			52
+		);
 
 		$body.empty().append(`
 			<div class="ci-head">
-				<div class="ci-head-avatar">${avatar}</div>
+				${avatar}
 				<div class="ci-head-main">
 					<div class="ci-title"></div>
 					<div class="ci-subtitle"></div>
@@ -162,12 +159,13 @@ erpnext.chat_info = {
 	render_people($pane, people, data) {
 		if (!people.length) return $pane.append(`<div class="ci-empty">${__("No participants")}</div>`);
 		for (const p of people) {
-			const av = p.image
-				? `<img src="${esc(p.image)}">`
-				: esc((p.name || p.user || "?").trim().charAt(0).toUpperCase());
+			const av = erpnext.entity.avatar_html(
+				{ name: p.name || p.user, key: p.user || p.name, image: p.image },
+				30
+			);
 			const $row = $(`
 				<div class="ci-row">
-					<div class="ci-avatar">${av}</div>
+					${av}
 					<div class="ci-row-main">
 						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>

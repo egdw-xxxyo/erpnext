@@ -312,8 +312,9 @@ class WhatsAppOverview {
 		return a.display_phone_number || `${__("Phone ID")}: ${a.phone_id || "—"}`;
 	}
 
+	// People and numbers render through the shared entity chip (erpnext/public/js/entity.js).
 	number_avatar(a, size) {
-		return erpnext.chat_render.avatar_html(
+		return erpnext.entity.avatar_html(
 			a.profile_image
 				? { image: a.profile_image }
 				: { name: this.number_title(a), key: a.name, icon: "fa fa-whatsapp" },
@@ -321,24 +322,21 @@ class WhatsAppOverview {
 		);
 	}
 
-	person_avatar(p, size) {
-		return erpnext.chat_render.avatar_html(
-			{ name: p.full_name || p.user, key: p.user, image: p.user_image },
-			size
-		);
+	account(name) {
+		const all = [...((this.data && this.data.accounts) || []), ...(this.card ? [this.card.number] : [])];
+		return all.find((a) => a.name === name) || { name, label: name };
+	}
+
+	number_chip(a, size, opts) {
+		return erpnext.entity.number(a, Object.assign({ size }, opts));
+	}
+
+	person(p, size, opts) {
+		return erpnext.entity.user(p, Object.assign({ size }, opts));
 	}
 
 	people(list) {
-		if (!list || !list.length) return `<span class="text-muted">—</span>`;
-		return `<span class="wao-people">${list
-			.map(
-				(p) =>
-					`<span class="wao-person" title="${this.esc(p.full_name || p.user)}">${this.person_avatar(
-						p,
-						22
-					)}<span>${this.esc(p.full_name || p.user)}</span></span>`
-			)
-			.join("")}</span>`;
+		return erpnext.entity.list(list, erpnext.entity.user, { size: 22 });
 	}
 
 	status_pill(acc) {
@@ -432,10 +430,8 @@ class WhatsAppOverview {
 		return `
 			<div class="wao-card wao-card-link" data-number="${this.esc(a.name)}" title="${__("Open number card")}">
 				<div class="wao-card-head">
-					${this.number_avatar(a, 48)}
 					<div class="wao-card-title">
-						<div class="wao-number">${this.esc(this.number_title(a))}</div>
-						<div class="wao-card-phone">${this.esc(this.number_line(a))}</div>
+						${this.number_chip(a, 48, { class: "wao-ent-lg" })}
 						${a.about ? `<div class="text-muted wao-card-sub">${this.esc(a.about)}</div>` : ""}
 					</div>
 					${this.status_pill(a)}
@@ -476,10 +472,7 @@ class WhatsAppOverview {
 				(a) => `
 				<tr class="wao-row-link" data-number="${this.esc(a.name)}">
 					<td>
-						<div class="wao-who">${this.number_avatar(a, 32)}<div>
-							<div class="wao-number">${this.esc(this.number_title(a))}</div>
-							<div class="text-muted wao-small">${this.esc(this.number_line(a))}</div>
-						</div></div>
+						${this.number_chip(a, 32)}
 					</td>
 					<td>${this.status_pill(a)}${
 					a.is_default_outgoing
@@ -574,8 +567,7 @@ class WhatsAppOverview {
 					.map(
 						(p) => `
 					<div class="wao-member" data-user="${esc(p.user)}">
-						${this.person_avatar(p, 32)}
-						<div class="wao-member-name">${esc(p.full_name)}<div class="text-muted wao-small">${esc(p.user)}</div></div>
+						<div class="wao-member-name">${this.person(p, 32, { sub: p.user })}</div>
 						<select class="form-control input-xs wao-member-access">
 							<option value="Responsible" ${access === "Responsible" ? "selected" : ""}>${__("Responsible")}</option>
 							<option value="Spectator" ${access === "Spectator" ? "selected" : ""}>${__("Spectator")}</option>
@@ -780,7 +772,7 @@ class WhatsAppOverview {
 			frappe.confirm(
 				__("Take number {0} away from {1}?", [
 					this.esc(this.number_title(this.card.number)),
-					this.esc($row.find(".wao-member-name").contents().first().text()),
+					this.esc($row.find(".ent-name").first().text()),
 				]),
 				() => set_access($row.data("user"), "")
 			);
@@ -840,9 +832,10 @@ class WhatsAppOverview {
 			e.numbers
 				.map(
 					(n) =>
-						`<div class="wao-row-number"><a href="#" data-number="${this.esc(
-							n.whatsapp_account
-						)}">${this.esc(n.label)}</a>${this.access_pill(n.access)}</div>`
+						`<div class="wao-row-number">${this.number_chip(
+							this.account(n.whatsapp_account),
+							20
+						)}${this.access_pill(n.access)}</div>`
 				)
 				.join("") ||
 			`<span class="text-muted">${
@@ -861,10 +854,7 @@ class WhatsAppOverview {
 			.map(
 				(e) => `
 				<tr data-user="${this.esc(e.user)}" data-name="${this.esc(e.full_name)}">
-					<td><div class="wao-who">${this.person_avatar(e, 32)}<div>
-						<div class="wao-number">${this.esc(e.full_name)}</div>
-						<div class="text-muted wao-small">${this.esc(e.user)}</div>
-					</div></div></td>
+					<td>${this.person(e, 32, { sub: e.user })}</td>
 					<td>${level(e)}</td>
 					<td>${numbers(e)}</td>
 					<td class="wao-num">${e.replies}</td>
@@ -976,7 +966,7 @@ class WhatsAppOverview {
 							  )}" data-account="${this.esc(p.whatsapp_account)}">${this.esc(p.title)}</a>`
 							: this.esc(p.title)
 					}<div class="text-muted wao-small">+${this.esc(p.phone)}</div></td>
-					<td><a href="#" data-number="${this.esc(p.whatsapp_account)}">${this.esc(p.number_label)}</a></td>
+					<td>${this.number_chip(this.account(p.whatsapp_account), 20)}</td>
 					<td class="wao-preview">${this.esc(p.preview)}</td>
 					<td class="wao-num">${p.count}</td>
 					<td>${frappe.datetime.str_to_user(p.since)}</td>

@@ -51,8 +51,10 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 	}
 
 	// The list is grouped under a header per business number: photo, name and number.
+	// The list is grouped under a header per business number: the number (photo, name,
+	// number) and who answers it, both as entity chips.
 	list_groups(chats) {
-		const esc = frappe.utils.escape_html;
+		const E = erpnext.entity;
 		const by = {};
 		chats.forEach((c) => (by[c.account] = by[c.account] || []).push(c));
 		const order = this.numbers().map((n) => n.name);
@@ -61,18 +63,14 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			.filter((k) => by[k])
 			.map((k) => {
 				const n = this.number(k) || { name: k, label: k };
-				const title = n.verified_name || n.account_name || n.name;
 				const unread = by[k].reduce((sum, c) => sum + (c.unread || 0), 0);
 				return {
 					chats: by[k],
-					html: `<div class="cv-group-head">${erpnext.chat_render.avatar_html(
-						n.profile_image
-							? { image: n.profile_image }
-							: { name: title, key: n.name, icon: "fa fa-whatsapp" },
-						28
-					)}<div class="cv-group-title"><div>${esc(title)}</div><div class="cv-group-sub">${esc(
-						n.display_phone_number || n.label || ""
-					)}</div></div>${
+					html: `<div class="cv-group-head"><div class="cv-group-title">${E.number(n, {
+						size: 28,
+					})}<div class="cv-group-people">${__("Responsible")}: ${E.list(n.responsible, E.user, {
+						size: 18,
+					})}</div></div>${
 						unread ? `<span class="cv-badge">${unread > 99 ? "99+" : unread}</span>` : ""
 					}</div>`,
 				};
@@ -558,7 +556,12 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		const people = [{ name: info.title, subtitle: `+${info.phone}`, user: info.phone }];
 		if (info.contact) people.push({ name: info.contact, subtitle: __("Contact") });
 		for (const m of info.managers || [])
-			people.push({ name: m.full_name || m.user, subtitle: __("Responsible") });
+			people.push({
+				name: m.full_name || m.user,
+				user: m.user,
+				image: m.user_image,
+				subtitle: __("Responsible"),
+			});
 		const to_items = (rows) =>
 			(rows || []).map((e) => ({
 				title: e.label || e.name,
@@ -614,7 +617,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			(ctx.linked || []).map((e) => ent(e, !read_only)).join("") ||
 			`<div class="text-muted" style="font-size:var(--text-sm);">${__("None")}</div>`;
 		const derived = (ctx.derived || []).map((e) => ent(e, false)).join("");
-		const managers = (ctx.managers || []).map((m) => esc(m.full_name || m.user)).join(", ");
+		const E = erpnext.entity;
 		const actions = read_only
 			? ""
 			: `<div class="cv-side-actions">
@@ -637,30 +640,24 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			</div>`;
 		$el.html(`
 			<h6>${__("WhatsApp number")}</h6>
-			<div class="cv-ent cv-number-ent" style="justify-content:flex-start;gap:10px;"${
-				frappe.boot.whatsapp_manager ? ` data-account="${esc(ctx.whatsapp_account)}"` : ""
-			}>${erpnext.chat_render.avatar_html(
-			ctx.number_image
-				? { image: ctx.number_image }
-				: { name: ctx.account_name, key: ctx.whatsapp_account, icon: "fa fa-whatsapp" },
-			32
-		)}<span class="cv-ent-main">${esc(ctx.number_label || "")}<div class="cv-ent-sub">${esc(
-			ctx.verified_name || ctx.account_name || ""
-		)}${read_only ? " · " + __("read only") : ""}</div></span></div>
+			<div class="cv-side-ent">${E.number(
+				{
+					name: ctx.whatsapp_account,
+					verified_name: ctx.verified_name,
+					account_name: ctx.account_name,
+					display_phone_number: ctx.number_label,
+					profile_image: ctx.number_image,
+				},
+				{ size: 32 }
+			)}${read_only ? `<span class="text-muted cv-side-note">${__("read only")}</span>` : ""}</div>
 			${actions}
 			<h6>${__("Linked Documents")}</h6>
 			<div>${linked}</div>
 			${derived ? `<h6>${__("Related (by contact)")}</h6><div>${derived}</div>` : ""}
 			<h6>${__("Responsible")}</h6>
-			<div class="text-muted" style="font-size:var(--text-sm);">${managers || __("None")}</div>
+			<div class="cv-side-people">${E.list(ctx.managers, E.user, { size: 24 })}</div>
 		`);
 		const rerender = () => this.render_side(chat, $el, view);
-		$el.find(".cv-number-ent[data-account]")
-			.css("cursor", "pointer")
-			.attr("title", __("Open number card"))
-			.on("click", (e) =>
-				frappe.set_route("whatsapp-overview", "number", $(e.currentTarget).attr("data-account"))
-			);
 		$el.find(".cv-ent-main[data-dt]").on("click", (e) =>
 			frappe.set_route("Form", $(e.currentTarget).attr("data-dt"), $(e.currentTarget).attr("data-nm"))
 		);

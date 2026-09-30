@@ -89,47 +89,10 @@ frappe.provide("erpnext.chat_render");
 		return text;
 	};
 
-	R.initials = function (name) {
-		const parts = String(name || "?")
-			.replace(/[^\p{L}\p{N} ]/gu, "")
-			.trim()
-			.split(/\s+/)
-			.filter(Boolean);
-		if (!parts.length) return "#";
-		return ((parts[0][0] || "") + (parts.length > 1 ? parts[1][0] : "")).toUpperCase();
-	};
-
-	// Stable colour per conversation, so the same chat keeps its avatar colour.
-	R.avatar_color = function (key) {
-		const palette = [
-			"#e17076",
-			"#7bc862",
-			"#e5ca77",
-			"#65aadd",
-			"#a695e7",
-			"#ee7aae",
-			"#6ec9cb",
-			"#faa774",
-		];
-		let h = 0;
-		for (const ch of String(key || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-		return palette[h % palette.length];
-	};
-
-	// {name, key, image, icon}: a photo, an icon (group / document chat) or initials.
-	R.avatar_html = function (a, size) {
-		a = a || {};
-		const dim = size
-			? `width:${size}px;height:${size}px;line-height:${size}px;font-size:${Math.round(size / 2.9)}px;`
-			: "";
-		if (a.image) {
-			return `<div class="cv-avatar" style="${dim}"><img src="${esc(a.image)}" alt=""></div>`;
-		}
-		const inner = a.icon ? `<i class="${esc(a.icon)}"></i>` : esc(R.initials(a.name));
-		return `<div class="cv-avatar" style="background:${R.avatar_color(
-			a.key || a.name
-		)};${dim}">${inner}</div>`;
-	};
+	// Avatars are the shared entity component's (erpnext/public/js/entity.js).
+	R.initials = (name) => erpnext.entity.initials(name);
+	R.avatar_color = (key) => erpnext.entity.avatar_color(key);
+	R.avatar_html = (a, size) => erpnext.entity.avatar_html(a, size);
 
 	R.local = function (dt) {
 		return moment.tz(dt, frappe.sys_defaults.time_zone || "UTC").local();

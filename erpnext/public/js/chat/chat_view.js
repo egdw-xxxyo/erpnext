@@ -218,8 +218,15 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-group-head:first-child{margin-top:4px;}
 		[data-theme="dark"] .cv-group-head{background:var(--gray-800,#2c3035);}
 		.cv-group-head .cv-avatar{flex:none;}
-		.cv-group-title{flex:1;min-width:0;line-height:1.25;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-		.cv-group-sub{font-weight:500;font-size:12px;color:var(--text-muted);}
+		.cv-group-people{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:4px;
+			font-weight:400;font-size:12px;color:var(--text-muted);}
+		.cv-group-people .ent{font-size:12px;color:var(--text-color);}
+		.cv-side-ent{display:flex;align-items:center;gap:8px;padding:2px 0 8px;font-size:13px;}
+		.cv-side-note{font-size:12px;}
+		.cv-side-people{font-size:13px;margin-bottom:8px;}
+		.cv-side-people .ent-list{display:flex;flex-direction:column;gap:6px;}
+		.cv-group-title{flex:1;min-width:0;}
+		.cv-group-title > .ent{font-size:13px;}
 		.cv-page{display:flex;height:calc(100vh - 120px);min-height:420px;margin:12px 20px 0;border:1px solid var(--border-color);
 			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
 		.cv-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}

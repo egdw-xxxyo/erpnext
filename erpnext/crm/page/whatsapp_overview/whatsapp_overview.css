@@ -222,28 +222,6 @@
 	color: var(--text-color);
 }
 
-.whatsapp-overview .wao-people {
-	display: inline-flex;
-	flex-wrap: wrap;
-	gap: 6px 12px;
-}
-
-.whatsapp-overview .wao-person {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.whatsapp-overview .wao-who {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-
-.whatsapp-overview .wao-row-number {
-	white-space: nowrap;
-}
-
 .whatsapp-overview .wao-toolbar {
 	display: flex;
 	flex-wrap: wrap;
@@ -451,4 +429,21 @@
 	.whatsapp-overview {
 		padding: 12px 16px 40px;
 	}
+}
+
+.whatsapp-overview .wao-ent-lg .ent-name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.whatsapp-overview .wao-ent-lg .ent-sub {
+	font-size: 13px;
+	color: var(--text-color);
+}
+
+.whatsapp-overview .wao-row-number {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 4px;
 }

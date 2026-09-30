@@ -118,12 +118,7 @@ def users_for_account(account):
 
 
 def responsible_users(account):
-	return frappe.get_all(
-		"WhatsApp Number Access",
-		filters={"whatsapp_account": account, "access": RESPONSIBLE},
-		fields=["user", "full_name"],
-		order_by="full_name asc",
-	)
+	return responsible_people().get(account, [])
 
 
 def account_labels():
@@ -148,10 +143,39 @@ def account_labels():
 	return out
 
 
+def responsible_people():
+	"""{account: [{user, full_name, user_image}]} — who answers each number."""
+	if not frappe.db.table_exists("WhatsApp Number Access"):
+		return {}
+	rows = frappe.db.sql(
+		"""
+		select a.whatsapp_account, a.user, u.full_name, u.user_image
+		from `tabWhatsApp Number Access` a
+		join `tabUser` u on u.name = a.user and u.enabled = 1
+		where a.access = %s
+		order by u.full_name
+		""",
+		RESPONSIBLE,
+		as_dict=True,
+	)
+	out = {}
+	for r in rows:
+		out.setdefault(r.whatsapp_account, []).append(
+			{"user": r.user, "full_name": r.full_name or r.user, "user_image": r.user_image}
+		)
+	return out
+
+
 def _numbers(accounts, read_only):
 	labels = account_labels()
+	people = responsible_people()
 	return [
-		dict(labels.get(name, {"label": name}), name=name, read_only=read_only)
+		dict(
+			labels.get(name, {"label": name}),
+			name=name,
+			read_only=read_only,
+			responsible=people.get(name, []),
+		)
 		for name in all_accounts()
 		if name in accounts
 	]
