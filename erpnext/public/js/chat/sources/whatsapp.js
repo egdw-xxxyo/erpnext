@@ -81,6 +81,11 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		return this.chats.find((c) => c.id === id);
 	}
 
+	// The customer's page: every chat with them, their name and photo in ERP.
+	open_profile(chat) {
+		if (chat && chat.phone) frappe.set_route("whatsapp-person", chat.phone);
+	}
+
 	// ------------------------------------------------------------------ list
 
 	async load_list() {
@@ -99,7 +104,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				via: label,
 				// The pages group chats by number; the bubble's flat list shows it per row.
 				show_via: this.numbers().length > 1,
-				avatar: { name: c.title || c.phone, key: c.phone },
+				avatar: { name: c.title || c.phone, key: c.phone, image: c.image },
 				preview: R.preview_text({ content_type: c.preview_content_type, text: c.preview }),
 				preview_icon: R.media_icon(c.preview_content_type),
 				time: c.last_message_on,
@@ -553,7 +558,19 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			creation: f.creation,
 			url: f.attach,
 		}));
-		const people = [{ name: info.title, subtitle: `+${info.phone}`, user: info.phone }];
+		const open_person = () => {
+			dialog.hide();
+			this.open_profile(chat);
+		};
+		const people = [
+			{
+				name: info.title,
+				subtitle: `+${info.phone}`,
+				user: info.phone,
+				image: chat.avatar && chat.avatar.image,
+				on_click: open_person,
+			},
+		];
 		if (info.contact) people.push({ name: info.contact, subtitle: __("Contact") });
 		for (const m of info.managers || [])
 			people.push({
@@ -570,6 +587,9 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			}));
 		const dialog = erpnext.chat_info.show({
 			title: info.title,
+			avatar: chat.avatar && chat.avatar.image,
+			avatar_key: info.phone,
+			on_title_click: open_person,
 			subtitle: `+${info.phone} · ${__("via {0}", [info.number_label])}`,
 			actions: [
 				{

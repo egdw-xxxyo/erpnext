@@ -574,6 +574,13 @@ erpnext.chat_view.ChatView = class ChatView {
 		});
 		if (s.show_info)
 			this.$header.find(".cv-header-main, .cv-info-btn").on("click", () => s.show_info(chat, this));
+		if (s.open_profile)
+			this.$header
+				.children(".cv-avatar")
+				.first()
+				.css("cursor", "pointer")
+				.attr("title", __("Open profile"))
+				.on("click", () => s.open_profile(chat, this));
 		this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
 	}
 

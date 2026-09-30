@@ -105,6 +105,13 @@ erpnext.chat_info = {
 		`);
 		$body.find(".ci-title").text(data.title || __("Chat"));
 		$body.find(".ci-subtitle").text(data.subtitle || "");
+		if (data.on_title_click) {
+			$body
+				.find(".ci-head")
+				.css("cursor", "pointer")
+				.attr("title", __("Open profile"))
+				.on("click", () => data.on_title_click());
+		}
 
 		const $actions = $body.find(".ci-actions");
 		for (const a of data.actions || []) {
@@ -175,6 +182,13 @@ erpnext.chat_info = {
 			`);
 			$row.find(".ci-row-title").text(p.name + (p.is_me ? ` (${__("you")})` : ""));
 			$row.find(".ci-row-sub").text(p.subtitle || p.user || "");
+			if (p.on_click) {
+				$row.css("cursor", "pointer")
+					.attr("title", __("Open profile"))
+					.on("click", (e) => {
+						if (!$(e.target).closest(".ci-row-action").length) p.on_click();
+					});
+			}
 			if (p.on_remove) {
 				$row.find(".ci-row-action")
 					.show()

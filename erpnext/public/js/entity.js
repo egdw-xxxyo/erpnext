@@ -7,6 +7,7 @@
 //   erpnext.entity.user("jane@x.com" | {user, full_name, user_image}, opts)
 //   erpnext.entity.number({name, verified_name, account_name, display_phone_number,
 //                          profile_image}, opts)          // WhatsApp business number
+//   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
 //   erpnext.entity.list(items, renderer, opts)            // several, wrapped, or "—"
 //   erpnext.entity.avatar_html({name, key, image, icon}, size)
 //
@@ -114,6 +115,21 @@ frappe.provide("erpnext.entity");
 				image: n.profile_image,
 				icon: n.profile_image ? null : "fa fa-whatsapp",
 				route: frappe.boot.whatsapp_manager ? ["whatsapp-overview", "number", n.name] : null,
+			},
+			opts
+		);
+	};
+
+	// A customer behind a WhatsApp number: {phone, name, image} → their person page.
+	E.wa_person = function (p, opts) {
+		if (!p || !p.phone) return "";
+		return E.html(
+			{
+				name: p.name || `+${p.phone}`,
+				sub: p.name ? `+${p.phone}` : "",
+				key: p.phone,
+				image: p.image,
+				route: ["whatsapp-person", p.phone],
 			},
 			opts
 		);

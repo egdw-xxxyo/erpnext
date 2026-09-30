@@ -134,11 +134,24 @@ class WhatsAppOverview {
 			if (chat) this.open_chats(account, { chat });
 		});
 		this.$body.on("click", "[data-number]", (e) => {
-			const $inner = $(e.target).closest("a[href], button, select, .wao-open-chat");
+			const $inner = $(e.target).closest("a[href], button, select, .wao-open-chat, details");
 			if ($inner.length && $inner[0] !== e.currentTarget) return;
 			e.preventDefault();
 			frappe.set_route("whatsapp-overview", "number", $(e.currentTarget).attr("data-number"));
 		});
+		// "toggle" does not bubble: listen in the capture phase.
+		this.$body[0].addEventListener(
+			"toggle",
+			(e) => {
+				if (!e.target.matches || !e.target.matches("details.wao-recent")) return;
+				try {
+					localStorage.setItem(e.target.dataset.key, e.target.open ? "1" : "0");
+				} catch (err) {
+					// Remembering the fold is a convenience only.
+				}
+			},
+			true
+		);
 		this.bind_number_actions();
 		this.bind_employee_actions();
 	}
@@ -458,7 +471,45 @@ class WhatsAppOverview {
 						  )}</div>`
 						: ""
 				}
+				${this.recent_chats(a)}
 			</div>`;
+	}
+
+	// Numbers the user answers or spectates list their latest chats, one click away.
+	recent_chats(a) {
+		const list = a.recent_chats || [];
+		if (!a.my_access || !list.length) return "";
+		const E = erpnext.entity;
+		const R = erpnext.chat_render;
+		const rows = list
+			.map(
+				(c) => `
+				<div class="wao-recent-row">
+					${E.html({
+						name: c.title,
+						sub: R.preview_text({ content_type: c.content_type, text: c.preview }),
+						key: c.phone,
+						image: c.image,
+						href: `${E.url([c.page])}?chat=${encodeURIComponent(c.chat)}`,
+						size: 28,
+					})}
+					<span class="text-muted wao-small">${
+						c.last_message_on ? frappe.datetime.comment_when(c.last_message_on, true) : ""
+					}</span>
+				</div>`
+			)
+			.join("");
+		const key = `wao_recent_${a.name}`;
+		let open = false;
+		try {
+			open = localStorage.getItem(key) === "1";
+		} catch (e) {
+			open = false;
+		}
+		return `<details class="wao-recent" data-key="${this.esc(key)}" ${open ? "open" : ""}>
+			<summary>${__("Latest chats")} <span class="wao-count">${list.length}</span></summary>
+			${rows}
+		</details>`;
 	}
 
 	// ------------------------------------------------------------------ numbers

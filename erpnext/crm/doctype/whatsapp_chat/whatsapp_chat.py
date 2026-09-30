@@ -120,11 +120,17 @@ def sync_chat_from_message(doc):
 		if contact:
 			chat.contact = contact
 
-	# Title preference: contact full name > incoming profile_name > number.
+	# Title preference: the name the team gave (erpnext.crm.whatsapp_person) > contact
+	# full name > incoming profile_name > number.
+	from erpnext.crm.whatsapp_person import people_for
+
+	custom_name = (people_for([number]).get(number) or {}).get("custom_name")
 	contact_name = None
 	if chat.contact:
 		contact_name = frappe.db.get_value("Contact", chat.contact, "full_name")
-	if contact_name:
+	if custom_name:
+		chat.title = custom_name
+	elif contact_name:
 		chat.title = contact_name
 	elif not chat.title or chat.title == number:
 		chat.title = doc.get("profile_name") or number

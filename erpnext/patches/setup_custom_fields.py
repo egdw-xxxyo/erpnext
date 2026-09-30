@@ -65,6 +65,7 @@ def execute():
 	create_quotation_approval_workflow()
 	setup_quotation_approval_permissions()
 	create_custom_fields_on_whatsapp_message()
+	create_custom_fields_on_whatsapp_profiles()
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
 	create_call_sign_fields()
@@ -1733,10 +1734,37 @@ def create_custom_fields_on_whatsapp_message():
 	_create_custom_fields(fields)
 
 
+def create_custom_fields_on_whatsapp_profiles():
+	"""The customer behind a WhatsApp number (erpnext.crm.whatsapp_person): the name and
+	photo we give them in ERP, over the name WhatsApp reports (`profile_name`)."""
+	if not frappe.db.exists("DocType", "WhatsApp Profiles"):
+		return
+	_create_custom_fields(
+		[
+			{
+				"dt": "WhatsApp Profiles",
+				"fieldname": "custom_name",
+				"label": "Name in ERP",
+				"fieldtype": "Data",
+				"insert_after": "profile_name",
+			},
+			{
+				"dt": "WhatsApp Profiles",
+				"fieldname": "image",
+				"label": "Photo",
+				"fieldtype": "Attach Image",
+				"insert_after": "custom_name",
+			},
+		]
+	)
+
+
 def setup_whatsapp_user_role():
 	"""Dedicated role that grants access to WhatsApp: the Chat Center page, the chat
 	bubble, the phone-field icon and the form panel all key off read/create on
 	WhatsApp Message (see whatsapp_chat._require_wa_access)."""
+	from frappe.permissions import setup_custom_perms
+
 	role = "WhatsApp User"
 	for name in (role, "WhatsApp Manager"):
 		if not frappe.db.exists("Role", name):
@@ -1755,12 +1783,18 @@ def setup_whatsapp_user_role():
 	}
 	# Managers follow every number read-only on the monitor page; writing still needs
 	# Responsible on the number (erpnext.crm.whatsapp_access).
-	grants = [(role, perms), ("WhatsApp Manager", {dt: {"read": 1} for dt in perms})]
+	grants = [
+		(role, {**perms, "WhatsApp Profiles": {"read": 1}}),
+		("WhatsApp Manager", {dt: {"read": 1} for dt in [*perms, "WhatsApp Profiles"]}),
+	]
 	for grant_role, grant in grants:
 		for doctype, rights in grant.items():
 			if not frappe.db.exists("DocType", doctype):
 				print(f"  Skipped perms, DocType missing: {doctype}")
 				continue
+			# The first Custom DocPerm replaces the standard ones; copy those first so
+			# System Manager keeps its rights.
+			setup_custom_perms(doctype)
 			existing = frappe.db.exists(
 				"Custom DocPerm", {"parent": doctype, "role": grant_role, "permlevel": 0}
 			)

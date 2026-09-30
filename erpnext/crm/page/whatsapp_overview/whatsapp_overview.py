@@ -106,8 +106,13 @@ def _collect(period):
 	for p in pending:
 		pending_by_account[p["whatsapp_account"]].append(p)
 
+	mine = wa_access.access_by_account()
+	recent = _recent_chats([a["name"] for a in accounts if a["name"] in mine], mine)
+
 	for acc in accounts:
 		name = acc["name"]
+		acc["my_access"] = mine.get(name)
+		acc["recent_chats"] = recent.get(name, [])
 		rows = [a for a in access if a.whatsapp_account == name]
 		acc_chats = [c for c in chats if c.whatsapp_account == name]
 		replies = turns_by_account.get(name, [])
@@ -159,6 +164,42 @@ def _accounts(labels):
 	for row in frappe.get_all("WhatsApp Account", fields=fields, order_by="creation asc"):
 		info = labels.get(row.name, {})
 		out.append(dict(row, label=info.get("label") or row.name))
+	return out
+
+
+RECENT_CHATS = 5
+
+
+def _recent_chats(accounts, mine):
+	"""The latest chats of the numbers the user answers or spectates, for the cards."""
+	from erpnext.crm.whatsapp_person import people_for
+
+	out = {}
+	for account in accounts:
+		rows = frappe.get_all(
+			"WhatsApp Chat",
+			filters={"whatsapp_account": account},
+			fields=["name", "phone", "title", "last_message_on", "last_preview", "last_content_type"],
+			order_by="last_message_on desc",
+			limit=RECENT_CHATS,
+		)
+		people = people_for([r.phone for r in rows])
+		page = (
+			"whatsapp-chat-center" if mine.get(account) == wa_access.RESPONSIBLE else "whatsapp-chat-monitor"
+		)
+		out[account] = [
+			{
+				"chat": r.name,
+				"phone": r.phone,
+				"title": r.title or r.phone,
+				"image": (people.get(r.phone) or {}).get("image"),
+				"last_message_on": str(r.last_message_on) if r.last_message_on else None,
+				"preview": frappe.utils.strip_html(r.last_preview or "")[:120],
+				"content_type": r.last_content_type,
+				"page": page,
+			}
+			for r in rows
+		]
 	return out
 
 

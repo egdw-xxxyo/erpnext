@@ -152,7 +152,10 @@ def get_chats(account=None, mode="work"):
 	# fields are filled in once, on first read.
 	backfill_previews(chats)
 
+	from erpnext.crm.whatsapp_person import people_for
+
 	labels = wa_access.account_labels()
+	people = people_for([c["phone"] for c in chats])
 	unread = _unread_counts([c["name"] for c in chats])
 	states = frappe.get_all(
 		"WhatsApp Chat Read",
@@ -170,6 +173,7 @@ def get_chats(account=None, mode="work"):
 			c["title"] = c["phone"]
 		c["number_label"] = labels.get(c["whatsapp_account"], {}).get("label") or c["whatsapp_account"]
 		c["read_only"] = 1 if watch else 0
+		c["image"] = (people.get(c["phone"]) or {}).get("image")
 		c["unread"] = unread.get(c["name"], 0)
 		c["muted"] = 1 if c["name"] in muted else 0
 		c["my_last_read"] = cursor.get(c["name"])
