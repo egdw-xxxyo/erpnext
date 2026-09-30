@@ -110,7 +110,15 @@ def _may_view(source, file_url):
 	if source == "whatsapp":
 		if not frappe.has_permission("WhatsApp Message", "read"):
 			return False
-		return bool(frappe.db.exists("WhatsApp Message", {"attach": file_url}))
+		from erpnext.crm.whatsapp_access import accounts_for
+
+		accounts = list(accounts_for())
+		return bool(
+			accounts
+			and frappe.db.exists(
+				"WhatsApp Message", {"attach": file_url, "whatsapp_account": ["in", accounts]}
+			)
+		)
 
 	if source == "chat":
 		thread = frappe.db.get_value("Chat Message", {"attach": file_url}, "thread")

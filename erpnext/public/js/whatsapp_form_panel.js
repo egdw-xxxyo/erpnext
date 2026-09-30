@@ -50,6 +50,8 @@ erpnext.whatsapp.render_panel = async function (frm) {
 		}[ct]);
 
 	const sys_tz = frappe.sys_defaults.time_zone || "UTC";
+	// Messages can come from several business numbers — then each says which one.
+	const several = new Set(msgs.map((m) => m.number_label)).size > 1;
 	const bubbles = msgs
 		.map((m) => {
 			const out = m.type === "Outgoing";
@@ -61,7 +63,8 @@ erpnext.whatsapp.render_panel = async function (frm) {
 			} else {
 				body = caption || `<i>(${__("no text")})</i>`;
 			}
-			const time = moment.tz(m.creation, sys_tz).local().format("DD.MM HH:mm");
+			let time = moment.tz(m.creation, sys_tz).local().format("DD.MM HH:mm");
+			if (several && m.number_label) time += ` · ${frappe.utils.escape_html(m.number_label)}`;
 			return `<div class="wa-fp-bubble ${out ? "wa-fp-out" : "wa-fp-in"}">
 				<span class="wa-fp-body">${body}</span>
 				<div class="wa-fp-meta">${time}</div>

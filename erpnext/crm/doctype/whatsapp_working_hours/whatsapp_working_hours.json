@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "creation": "2026-09-30 18:00:00.000000",
+ "editable_grid": 1,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "weekday",
+  "start_time",
+  "end_time"
+ ],
+ "fields": [
+  {
+   "fieldname": "weekday",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Weekday",
+   "options": "Monday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "End Time",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "WhatsApp Working Hours",
+ "owner": "Administrator",
+ "istable": 1,
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

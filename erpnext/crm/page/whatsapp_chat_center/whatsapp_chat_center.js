@@ -133,22 +133,22 @@ function day_label(m) {
 class WhatsAppChat {
 	constructor(page) {
 		this.page = page;
-		this.active = null; // active conversation number
-		this.account = null; // default outgoing WhatsApp Account
-		this.conversations = {}; // number -> {number, name, last, messages:[]}
-		this.manager = null; // manager filter
+		this.active = null; // active conversation (WhatsApp Chat name)
+		// The business numbers this user sees: [{name, label, access, read_only}].
+		this.numbers = frappe.boot.whatsapp_accounts || [];
+		this.conversations = {}; // chat name -> {id, number, name, account, messages:[]}
+		this.account_filter = null; // business number filter
 		this.context = null; // context of the open chat
 		this.reply_to = null; // {message_id, preview} when composing a reply
 		this.make_layout();
-		this.load_managers();
-		this.load_account().then(() => this.refresh());
+		this.refresh();
 		// realtime push from server on new/updated WhatsApp Message
 		// Incoming messages ring (unless the conversation is muted); everything else just
 		// refreshes.
 		this.on_rt = (d) => {
 			console.log("[chat] page realtime event", d);
-			if (d && d.type === "Incoming" && d.number) {
-				const c = this.conversations[d.number];
+			if (d && d.type === "Incoming" && d.chat) {
+				const c = this.conversations[d.chat];
 				console.log("[chat] page incoming ring", {
 					number: d.number,
 					conv_found: !!c,
@@ -168,9 +168,12 @@ class WhatsAppChat {
 			frappe.realtime.off("whatsapp_message", this.on_rt);
 			frappe.realtime.off("whatsapp_read", this.on_rt);
 		});
-		// deep-link: /app/whatsapp-chat-center?phone=380...
-		const phone = frappe.utils.get_url_arg("phone");
-		if (phone) this.pending_open = phone;
+		// deep-links: /app/whatsapp-chat-center?chat=<chat> or ?phone=380...
+		const chat = frappe.route_options?.chat || frappe.utils.get_url_arg("chat");
+		const phone = frappe.route_options?.phone || frappe.utils.get_url_arg("phone");
+		frappe.route_options = null;
+		if (chat) this.pending_chat = chat;
+		else if (phone) this.pending_phone = phone;
 	}
 
 	make_layout() {
@@ -185,8 +188,8 @@ class WhatsAppChat {
 							</div>
 							<button class="wa-ico wa-new-chat" title="${__("New chat")}"><i class="fa fa-pencil-square-o"></i></button>
 						</div>
-						<select class="form-control input-xs wa-manager-filter">
-							<option value="">${__("All managers")}</option>
+						<select class="form-control input-xs wa-number-filter" style="display:none;">
+							<option value="">${__("All numbers")}</option>
 						</select>
 					</div>
 					<div class="wa-conv-list"></div>
@@ -199,6 +202,9 @@ class WhatsAppChat {
 					<div class="wa-scroll-fab" title="${__(
 						"Scroll to latest"
 					)}"><i class="fa fa-chevron-down"></i><span class="wa-fab-badge" style="display:none;"></span></div>
+					<div class="wa-readonly-bar" style="display:none;">
+						<i class="fa fa-eye"></i> ${__("Read only — you are a spectator of this number")}
+					</div>
 					<div class="wa-compose-wrap" style="display:none;">
 						<div class="wa-reply-bar" style="display:none;">
 							<i class="fa fa-reply wa-reply-icon"></i>
@@ -231,7 +237,9 @@ class WhatsAppChat {
 		this.$input = this.page.main.find(".wa-compose textarea");
 		this.$replyBar = this.page.main.find(".wa-reply-bar");
 		this.$search = this.page.main.find(".wa-search-input");
-		this.$manager = this.page.main.find(".wa-manager-filter");
+		this.$numberFilter = this.page.main.find(".wa-number-filter");
+		this.$readonly = this.page.main.find(".wa-readonly-bar");
+		this.fill_number_filter();
 		this.$context = this.page.main.find(".wa-context");
 		this.$fab = this.page.main.find(".wa-scroll-fab");
 		this.$fab.on("click", () => this.jump_to_latest());
@@ -251,7 +259,7 @@ class WhatsAppChat {
 		});
 		this.$input.on("input", () => this.autosize());
 		this.$search.on("input", () => this.render_list());
-		this.$manager.on("change", () => this.apply_manager_filter());
+		this.$numberFilter.on("change", () => this.apply_number_filter());
 		this.$thread.on("scroll", () => {
 			if (this.$thread.scrollTop() < 40) this.load_older();
 			this.update_read_progress();
@@ -262,7 +270,7 @@ class WhatsAppChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("wa-chat-styles-v7")) return;
+		if (document.getElementById("wa-chat-styles-v8")) return;
 		const css = `
 		.wa-chat{--wa-out:#effdde;--wa-out-text:#111;--wa-in:var(--card-bg);--wa-thread-bg:#e6ebee;--wa-accent:#3390ec;
 			--wa-tick:#4fae4e;display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);
@@ -283,7 +291,13 @@ class WhatsAppChat {
 		.wa-search-box{flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;height:36px;border-radius:18px;
 			background:var(--control-bg);color:var(--text-muted);}
 		.wa-search-box input{flex:1;min-width:0;border:none;background:none;outline:none;color:var(--text-color);font-size:var(--text-md);}
-		.wa-manager-filter{border-radius:18px;}
+		.wa-number-filter{border-radius:18px;}
+		.wa-conv .wa-via{flex:none;font-size:10px;color:var(--text-muted);border:1px solid var(--border-color);border-radius:8px;padding:0 5px;white-space:nowrap;}
+		.wa-conv.active .wa-via{color:#fff;border-color:rgba(255,255,255,.6);}
+		.wa-thread-header .wa-header-via{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:0 6px;border-radius:8px;
+			background:var(--bg-light-gray);color:var(--text-color);font-size:11px;}
+		.wa-thread-header .wa-header-via .fa-whatsapp{color:#25d366;}
+		.wa-readonly-bar{background:var(--card-bg);border-top:1px solid var(--border-color);padding:12px 16px;color:var(--text-muted);text-align:center;font-size:13px;}
 		.wa-conv-list{overflow-y:auto;flex:1;padding:0 6px 6px;}
 		.wa-conv{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;cursor:pointer;}
 		.wa-conv:hover{background:var(--bg-light-gray);}
@@ -392,7 +406,7 @@ class WhatsAppChat {
 		@media (max-width:1200px){.wa-context{display:none;}}
 		@media (max-width:768px){.wa-sidebar{width:220px;}.wa-thread{padding:10px;}}
 		`;
-		$(`<style id="wa-chat-styles-v7">${css}</style>`).appendTo(document.head);
+		$(`<style id="wa-chat-styles-v8">${css}</style>`).appendTo(document.head);
 	}
 
 	// One row while the text fits, then grow; the mic turns into Send once there is text.
@@ -406,33 +420,26 @@ class WhatsAppChat {
 		this.page.main.find(".wa-mic").toggle(!has_text);
 	}
 
-	async load_account() {
-		const r = await frappe.db.get_list("WhatsApp Account", {
-			filters: { is_default_outgoing: 1 },
-			fields: ["name"],
-			limit: 1,
-		});
-		if (r.length) this.account = r[0].name;
-	}
-
-	async load_managers() {
-		try {
-			const managers = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_managers");
-			for (const m of managers) {
-				this.$manager.append(
-					`<option value="${frappe.utils.escape_html(m.name)}">${frappe.utils.escape_html(
-						m.full_name || m.name
-					)}</option>`
-				);
-			}
-		} catch (e) {
-			// non-fatal
+	fill_number_filter() {
+		if (this.numbers.length < 2) return;
+		for (const n of this.numbers) {
+			this.$numberFilter.append(
+				`<option value="${frappe.utils.escape_html(n.name)}">${frappe.utils.escape_html(
+					n.label
+				)}</option>`
+			);
 		}
+		this.$numberFilter.show();
 	}
 
-	async apply_manager_filter() {
-		this.manager = this.$manager.val() || null;
+	async apply_number_filter() {
+		this.account_filter = this.$numberFilter.val() || null;
 		await this.refresh(true);
+	}
+
+	number_label(account) {
+		const n = this.numbers.find((x) => x.name === account);
+		return (n && n.label) || account || "";
 	}
 
 	// Reload the conversation list (cheap — one row per dialog) and top up the open
@@ -440,14 +447,18 @@ class WhatsAppChat {
 	// itself is never bulk-loaded; see load_page / load_older.
 	async refresh(silent) {
 		const chats = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chats", {
-			manager: this.manager || null,
+			account: this.account_filter || null,
 		});
 
 		const next = {};
 		for (const c of chats) {
-			const prev = this.conversations[c.phone] || {};
-			next[c.phone] = {
+			const prev = this.conversations[c.name] || {};
+			next[c.name] = {
+				id: c.name,
 				number: c.phone,
+				account: c.whatsapp_account,
+				number_label: c.number_label,
+				read_only: !!c.read_only,
 				name: c.title || prev.name || c.phone,
 				preview: c.preview,
 				preview_content_type: c.preview_content_type,
@@ -464,22 +475,22 @@ class WhatsAppChat {
 		}
 		// Keep an open but empty conversation (new chat / deep-link to a number with no
 		// messages yet) alive across the rebuild above so it doesn't vanish on poll.
-		if (this.active && !next[this.active]) {
-			next[this.active] = this.conversations[this.active] || {
-				number: this.active,
-				name: this.active,
-				messages: [],
-			};
+		if (this.active && !next[this.active] && this.conversations[this.active]) {
+			next[this.active] = this.conversations[this.active];
 		}
 		this.conversations = next;
 		this.render_list();
 
 		if (this.active) await this.load_new(!silent);
 
-		if (this.pending_open) {
-			const p = this.ensure_conv(this.pending_open);
-			this.pending_open = null;
-			if (p) this.open(p);
+		if (this.pending_chat) {
+			const chat = this.pending_chat;
+			this.pending_chat = null;
+			if (this.conversations[chat]) this.open(chat);
+		} else if (this.pending_phone) {
+			const phone = this.pending_phone;
+			this.pending_phone = null;
+			this.open_phone(phone);
 		}
 	}
 
@@ -488,7 +499,7 @@ class WhatsAppChat {
 		const c = this.conversations[this.active];
 		if (!c) return;
 		const msgs = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_messages", {
-			phone: this.active,
+			chat: this.active,
 			limit: PAGE_SIZE,
 		});
 		c.messages = msgs;
@@ -531,7 +542,7 @@ class WhatsAppChat {
 		this.loading_older = true;
 		try {
 			const older = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_messages", {
-				phone: this.active,
+				chat: this.active,
 				before: c.messages[0].creation,
 				limit: PAGE_SIZE,
 			});
@@ -573,7 +584,7 @@ class WhatsAppChat {
 		// rows change status (sent → delivered → failed) after they were loaded.
 		const tail = c.messages.slice(-STATUS_TAIL);
 		const fresh = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_messages", {
-			phone: this.active,
+			chat: this.active,
 			after: tail[0].creation,
 			limit: 200,
 		});
@@ -610,7 +621,7 @@ class WhatsAppChat {
 		const c = this.conversations[number];
 		try {
 			const res = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.mark_read", {
-				phone: number,
+				chat: number,
 				upto: upto || null,
 			});
 			const cursor = (res && res.last_read_on) || upto || frappe.datetime.now_datetime();
@@ -682,26 +693,78 @@ class WhatsAppChat {
 		this.update_fab();
 	}
 
-	// Normalize to a digits-only number and make sure a conversation entry exists.
-	ensure_conv(raw) {
-		const number = String(raw || "").replace(/\D/g, "");
-		if (!number) return null;
-		if (!this.conversations[number]) {
-			this.conversations[number] = { number, name: number, messages: [] };
-		}
-		return number;
+	// Deep-link / phone icon: open the newest chat with this customer among my numbers,
+	// or start one (asking which number to write from when there is a choice).
+	async open_phone(raw) {
+		const phone = String(raw || "").replace(/\D/g, "");
+		if (!phone) return;
+		const existing = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.find_chats", {
+			phone,
+		});
+		const known = existing.find((c) => this.conversations[c.name]);
+		if (known) return this.open(known.name);
+		this.start_chat(phone);
 	}
 
-	// Open (or create) a conversation for an arbitrary number, e.g. from the New chat button.
-	open_new(raw) {
-		const number = this.ensure_conv(raw);
-		if (!number) return;
-		this.render_list();
-		this.open(number);
+	writable_numbers() {
+		return this.numbers.filter((n) => !n.read_only);
+	}
+
+	// Ask for the business number when the user answers more than one.
+	pick_number(title, callback, extra_fields) {
+		const writable = this.writable_numbers();
+		if (!writable.length) {
+			frappe.msgprint(
+				__("You can only read chats — no WhatsApp number is assigned to you as responsible.")
+			);
+			return;
+		}
+		const fields = [...(extra_fields || [])];
+		// Plain-string options: frappe.prompt does not bind {value, label} Select options.
+		const by_label = {};
+		writable.forEach((n) => (by_label[n.label] = n.name));
+		if (writable.length > 1) {
+			const current = writable.find((n) => n.name === this.account_filter) || writable[0];
+			fields.push({
+				fieldname: "number",
+				fieldtype: "Select",
+				label: __("Write from number"),
+				reqd: 1,
+				options: writable.map((n) => n.label).join("\n"),
+				default: current.label,
+			});
+		}
+		if (!fields.length) return callback({ account: writable[0].name });
+		frappe.prompt(
+			fields,
+			(v) => callback({ ...v, account: by_label[v.number] || writable[0].name }),
+			title,
+			__("Start")
+		);
+	}
+
+	start_chat(phone) {
+		this.pick_number(__("New chat with +{0}", [phone]), async ({ account }) => {
+			const chat = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.start_chat", {
+				phone,
+				account,
+			});
+			this.pending_chat = chat;
+			await this.refresh(true);
+		});
 	}
 
 	new_chat_prompt() {
-		frappe.prompt(
+		this.pick_number(
+			__("New chat"),
+			async ({ phone, account }) => {
+				const chat = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.start_chat", {
+					phone,
+					account,
+				});
+				this.pending_chat = chat;
+				await this.refresh(true);
+			},
 			[
 				{
 					fieldname: "phone",
@@ -710,10 +773,7 @@ class WhatsAppChat {
 					reqd: 1,
 					description: __("Include country code, e.g. 380XXXXXXXXX"),
 				},
-			],
-			({ phone }) => this.open_new(phone),
-			__("New chat"),
-			__("Start")
+			]
 		);
 	}
 
@@ -722,7 +782,11 @@ class WhatsAppChat {
 		let convs = Object.values(this.conversations);
 		convs = convs
 			.filter(
-				(c) => !q || c.number.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q)
+				(c) =>
+					!q ||
+					c.number.toLowerCase().includes(q) ||
+					(c.name || "").toLowerCase().includes(q) ||
+					(c.number_label || "").toLowerCase().includes(q)
 			)
 			.sort((a, b) => (b.last_message_on || "").localeCompare(a.last_message_on || ""));
 
@@ -743,8 +807,15 @@ class WhatsAppChat {
 				  }</span>`
 				: "";
 			const muted = c.muted ? `<i class="fa fa-bell-slash-o"></i>` : "";
+			// With several numbers, tag each row with the number it runs on.
+			const via =
+				this.numbers.length > 1 && !this.account_filter
+					? `<span class="wa-via" title="${__("WhatsApp number")}">${frappe.utils.escape_html(
+							c.number_label || ""
+					  )}</span>`
+					: "";
 			const $el = $(`
-				<div class="wa-conv ${c.number === this.active ? "active" : ""} ${c.unread ? "wa-unread" : ""}">
+				<div class="wa-conv ${c.id === this.active ? "active" : ""} ${c.unread ? "wa-unread" : ""}">
 					${avatar_html(c.name, c.number)}
 					<div class="wa-conv-main">
 						<div class="wa-name"><span class="wa-title">${frappe.utils.escape_html(
@@ -752,11 +823,11 @@ class WhatsAppChat {
 						)}</span>${muted}<span class="wa-time">${list_time(c.last_message_on)}</span></div>
 						<div class="wa-conv-sub"><span class="wa-last">${media_icon(
 							c.preview_content_type
-						)}${preview}</span>${badge}</div>
+						)}${preview}</span>${via}${badge}</div>
 					</div>
 				</div>
 			`);
-			$el.on("click", () => this.open(c.number));
+			$el.on("click", () => this.open(c.id));
 			this.$list.append($el);
 		}
 	}
@@ -770,7 +841,9 @@ class WhatsAppChat {
 		this.read_cursor = (c && c.my_last_read) || null;
 		this.render_list();
 		this.$thread.empty();
-		this.$compose.show();
+		const read_only = !!(c && c.read_only);
+		this.$compose.toggle(!read_only);
+		this.$readonly.toggle(read_only);
 		this.render_header(number);
 		this.load_context(number);
 		this.load_page();
@@ -867,8 +940,13 @@ class WhatsAppChat {
 			let fail_html = "";
 			if (failed && m.content_type !== "reaction") {
 				const reason = frappe.utils.escape_html(m.status_error || __("Message failed to send"));
+				const resend = c.read_only
+					? ""
+					: `<span class="wa-resend" title="${__("Resend")}"><i class="fa fa-repeat"></i> ${__(
+							"Resend"
+					  )}</span>`;
 				fail_html = `<div class="wa-fail"><i class="fa fa-exclamation-triangle"></i> ${reason}
-					<span class="wa-resend" title="${__("Resend")}"><i class="fa fa-repeat"></i> ${__("Resend")}</span></div>`;
+					${resend}</div>`;
 			}
 
 			// Reply quote.
@@ -895,9 +973,12 @@ class WhatsAppChat {
 						"React"
 				  )}"><i class="fa fa-smile-o"></i></span>`
 				: "";
-			const actions = `<div class="wa-bubble-actions">${react_btn}<span class="wa-act wa-do-reply" title="${__(
-				"Reply"
-			)}"><i class="fa fa-reply"></i></span></div>`;
+			// Spectators read only: no reply / react / resend on their side.
+			const actions = c.read_only
+				? ""
+				: `<div class="wa-bubble-actions">${react_btn}<span class="wa-act wa-do-reply" title="${__(
+						"Reply"
+				  )}"><i class="fa fa-reply"></i></span></div>`;
 
 			const $b = $(
 				`<div class="wa-bubble ${out ? "wa-out" : "wa-in"} ${
@@ -938,7 +1019,7 @@ class WhatsAppChat {
 		try {
 			if (MEDIA_TYPES.includes(m.content_type) && m.attach) {
 				await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_media", {
-					phone: this.active,
+					chat: this.active,
 					attach: m.attach,
 					content_type: m.content_type,
 					caption: (m.message || "").replace(/<[^>]*>/g, "").trim(),
@@ -950,7 +1031,7 @@ class WhatsAppChat {
 					return;
 				}
 				await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_text", {
-					phone: this.active,
+					chat: this.active,
 					message: text,
 				});
 			}
@@ -999,7 +1080,7 @@ class WhatsAppChat {
 	async send_reaction(message_id, emoji) {
 		try {
 			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_reaction", {
-				phone: this.active,
+				chat: this.active,
 				message_id,
 				emoji,
 			});
@@ -1022,7 +1103,7 @@ class WhatsAppChat {
 				frappe.dom.freeze(__("Sending..."));
 				try {
 					await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_media", {
-						phone: this.active,
+						chat: this.active,
 						attach: file.file_url,
 						content_type,
 						caption: (this.$input.val() || "").trim(),
@@ -1052,7 +1133,7 @@ class WhatsAppChat {
 		try {
 			const url = await erpnext.chat_media.upload_audio(rec.blob, rec.ext);
 			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_media", {
-				phone: this.active,
+				chat: this.active,
 				attach: url,
 				content_type: "audio",
 				caption: "",
@@ -1159,7 +1240,7 @@ class WhatsAppChat {
 		frappe.dom.freeze(__("Sending..."));
 		try {
 			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_template", {
-				phone: this.active,
+				chat: this.active,
 				template,
 				body_params: body_params ? JSON.stringify(body_params) : null,
 			});
@@ -1175,7 +1256,7 @@ class WhatsAppChat {
 	// Header: the title opens the chat overview, the bell mutes the conversation.
 	render_header(number) {
 		const c = this.conversations[number] || { number, name: number };
-		this.$header.html(`${avatar_html(c.name, number, 38)}
+		this.$header.html(`${avatar_html(c.name, c.number, 38)}
 			<div class="wa-header-main" title="${__("Chat info")}">
 				<div class="wa-header-title"></div>
 				<div class="wa-header-sub"></div>
@@ -1183,7 +1264,17 @@ class WhatsAppChat {
 			${erpnext.chat_sound.button_html(c.muted)}
 			<span class="chat-mute-btn wa-info-btn" title="${__("Chat info")}"><i class="fa fa-info-circle"></i></span>`);
 		this.$header.find(".wa-header-title").text(c.name);
-		this.$header.find(".wa-header-sub").text(c.name === number ? __("WhatsApp") : `+${number}`);
+		// Which business number this conversation runs on — the one replies go out from.
+		this.$header
+			.find(".wa-header-sub")
+			.text(c.name === c.number ? __("WhatsApp") : `+${c.number}`)
+			.append(
+				$(`<span class="wa-header-via" title="${__("You write from this number")}">
+					<i class="fa fa-whatsapp"></i><span></span></span>`)
+			);
+		this.$header
+			.find(".wa-header-via span")
+			.text(__("via {0}", [c.number_label || this.number_label(c.account)]));
 		this.$header.find(".wa-header-main, .wa-info-btn").on("click", () => this.show_info());
 		this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute(number));
 	}
@@ -1196,7 +1287,7 @@ class WhatsAppChat {
 		this.render_header(number);
 		try {
 			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.set_muted", {
-				phone: number,
+				chat: number,
 				muted,
 			});
 		} catch (e) {
@@ -1215,7 +1306,7 @@ class WhatsAppChat {
 		if (!this.active) return;
 		console.log("[chat] page show_info (conversation name pressed)", { phone: this.active });
 		const info = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chat_overview", {
-			phone: this.active,
+			chat: this.active,
 		});
 
 		const media = info.media.map((m) => ({
@@ -1244,7 +1335,7 @@ class WhatsAppChat {
 		const people = [
 			{
 				name: info.title,
-				subtitle: info.phone,
+				subtitle: `+${info.phone}`,
 				user: info.phone,
 			},
 		];
@@ -1255,7 +1346,7 @@ class WhatsAppChat {
 			});
 		}
 		for (const m of info.managers || []) {
-			people.push({ name: m.full_name || m.user, subtitle: __("Manager") });
+			people.push({ name: m.full_name || m.user, subtitle: __("Responsible") });
 		}
 
 		const to_items = (rows) =>
@@ -1267,7 +1358,7 @@ class WhatsAppChat {
 
 		const dialog = erpnext.chat_info.show({
 			title: info.title,
-			subtitle: info.phone,
+			subtitle: `+${info.phone} · ${__("via {0}", [info.number_label])}`,
 			actions: [
 				{
 					label: info.muted ? __("Unmute chat") : __("Mute chat"),
@@ -1294,7 +1385,7 @@ class WhatsAppChat {
 		try {
 			this.context = await frappe.xcall(
 				"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_chat_context",
-				{ phone: number }
+				{ chat: number }
 			);
 		} catch (e) {
 			this.$context.html(`<div class="text-muted">${__("Could not load context")}</div>`);
@@ -1318,20 +1409,18 @@ class WhatsAppChat {
 			</div>`;
 		};
 
+		const read_only = !!ctx.read_only;
 		const linked =
-			(ctx.linked || []).map((e) => ent(e, true)).join("") ||
+			(ctx.linked || []).map((e) => ent(e, !read_only)).join("") ||
 			`<div class="text-muted" style="font-size:var(--text-sm);">${__("None")}</div>`;
 		const derived = (ctx.derived || []).map((e) => ent(e, false)).join("");
 		const managerNames = (ctx.managers || [])
 			.map((m) => frappe.utils.escape_html(m.full_name || m.user))
 			.join(", ");
-
-		this.$context.html(`
-			<div class="wa-context-actions">
+		const actions = read_only
+			? ""
+			: `<div class="wa-context-actions">
 				<button class="btn btn-xs btn-default wa-link-btn"><i class="fa fa-link"></i>${__("Link Document")}</button>
-				<button class="btn btn-xs btn-default wa-managers-btn"><i class="fa fa-user-plus"></i>${__(
-					"Managers"
-				)}</button>
 			</div>
 			<h6>${__("Create from Chat")}</h6>
 			<div class="wa-context-actions">
@@ -1341,11 +1430,20 @@ class WhatsAppChat {
 				<button class="btn btn-xs btn-default wa-new-todo"><i class="fa fa-check-square-o"></i>${__("Task")}</button>
 				<button class="btn btn-xs btn-default wa-new-note"><i class="fa fa-sticky-note-o"></i>${__("Note")}</button>
 				<button class="btn btn-xs btn-default wa-new-event"><i class="fa fa-calendar"></i>${__("Event")}</button>
-			</div>
+			</div>`;
+
+		this.$context.html(`
+			<h6>${__("WhatsApp number")}</h6>
+			<div class="wa-ent"><span class="wa-ent-plain"><i class="fa fa-whatsapp" style="color:#25d366"></i> ${frappe.utils.escape_html(
+				ctx.number_label || ""
+			)}<div class="wa-ent-dt">${frappe.utils.escape_html(ctx.account_name || "")}${
+			read_only ? " · " + __("read only") : ""
+		}</div></span></div>
+			${actions}
 			<h6>${__("Linked Documents")}</h6>
 			<div class="wa-linked">${linked}</div>
 			${derived ? `<h6>${__("Related (by contact)")}</h6><div class="wa-derived">${derived}</div>` : ""}
-			<h6>${__("Assigned Managers")}</h6>
+			<h6>${__("Responsible")}</h6>
 			<div class="text-muted" style="font-size:var(--text-sm);">${managerNames || __("None")}</div>
 		`);
 
@@ -1356,14 +1454,13 @@ class WhatsAppChat {
 		this.$context.find(".wa-unlink").on("click", async (e) => {
 			const $c = $(e.currentTarget).closest(".wa-ent");
 			this.context = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.unlink_entity", {
-				phone: number,
+				chat: number,
 				link_doctype: $c.data("dt"),
 				link_name: $c.data("nm"),
 			});
 			this.render_context(number);
 		});
 		this.$context.find(".wa-link-btn").on("click", () => this.link_dialog(number));
-		this.$context.find(".wa-managers-btn").on("click", () => this.managers_dialog(number));
 		this.$context.find(".wa-new-opp").on("click", () => this.create_opportunity(number));
 		this.$context.find(".wa-new-todo").on("click", () => this.create_todo(number));
 		this.$context.find(".wa-new-note").on("click", () => this.create_note(number));
@@ -1379,7 +1476,7 @@ class WhatsAppChat {
 		try {
 			const res = await frappe.xcall(
 				"erpnext.crm.page.whatsapp_chat.whatsapp_chat.create_opportunity",
-				{ phone: number }
+				{ chat: number }
 			);
 			await this.load_context(number);
 			this._goto(res);
@@ -1393,7 +1490,7 @@ class WhatsAppChat {
 			[{ fieldname: "description", fieldtype: "Small Text", label: __("Task"), reqd: 1 }],
 			async (v) => {
 				const res = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.create_todo", {
-					phone: number,
+					chat: number,
 					description: v.description,
 				});
 				this._goto(res);
@@ -1411,7 +1508,7 @@ class WhatsAppChat {
 			],
 			async (v) => {
 				const res = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.create_note", {
-					phone: number,
+					chat: number,
 					title: v.title,
 					content: v.content,
 				});
@@ -1430,7 +1527,7 @@ class WhatsAppChat {
 			],
 			async (v) => {
 				const res = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.create_event", {
-					phone: number,
+					chat: number,
 					subject: v.subject,
 					starts_on: v.starts_on,
 				});
@@ -1464,41 +1561,13 @@ class WhatsAppChat {
 			primary_action: async (v) => {
 				this.context = await frappe.xcall(
 					"erpnext.crm.page.whatsapp_chat.whatsapp_chat.link_entity",
-					{ phone: number, link_doctype: v.link_doctype, link_name: v.link_name }
+					{ chat: number, link_doctype: v.link_doctype, link_name: v.link_name }
 				);
 				d.hide();
 				this.render_context(number);
 			},
 		});
 		d.show();
-	}
-
-	async managers_dialog(number) {
-		const managers = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_managers");
-		const current = (this.context?.managers || []).map((m) => m.user);
-		const d = new frappe.ui.Dialog({
-			title: __("Assigned Managers"),
-			fields: [
-				{
-					fieldname: "users",
-					fieldtype: "MultiSelectList",
-					label: __("Managers"),
-					get_data: () =>
-						managers.map((m) => ({ value: m.name, description: m.full_name || m.name })),
-				},
-			],
-			primary_action_label: __("Save"),
-			primary_action: async (v) => {
-				this.context = await frappe.xcall(
-					"erpnext.crm.page.whatsapp_chat.whatsapp_chat.set_managers",
-					{ phone: number, users: JSON.stringify(v.users || []) }
-				);
-				d.hide();
-				this.render_context(number);
-			},
-		});
-		d.show();
-		d.set_value("users", current);
 	}
 
 	async send() {
@@ -1510,7 +1579,7 @@ class WhatsAppChat {
 		this.set_reply(null);
 		try {
 			await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.send_text", {
-				phone: this.active,
+				chat: this.active,
 				message: text,
 				reply_to_message_id: reply_id,
 			});

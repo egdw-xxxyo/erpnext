@@ -555,3 +555,4 @@ erpnext.patches.v16_0.clear_measured_attribute_step
 erpnext.patches.v16_0.flatten_specification
 erpnext.patches.v16_0.workplace_script_multiple_workplaces
 erpnext.patches.v16_0.drop_scanner_overview_page
+erpnext.patches.v16_0.whatsapp_chat_per_number

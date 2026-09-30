@@ -54,7 +54,9 @@ function cb_page_allowed(page) {
 erpnext.whatsapp.can_use = function () {
 	return (
 		(frappe.boot?.user?.can_read || []).includes("WhatsApp Message") &&
-		cb_page_allowed("whatsapp-chat-center")
+		cb_page_allowed("whatsapp-chat-center") &&
+		// Chats are reached through a business number the user is assigned to.
+		(frappe.boot?.whatsapp_accounts || []).length > 0
 	);
 };
 
@@ -245,9 +247,15 @@ class WhatsAppSource {
 
 	async load_list() {
 		const chats = await frappe.xcall(`${WA_API}.get_chats`);
+		// With several business numbers every row says which one it runs on.
+		const several = (frappe.boot?.whatsapp_accounts || []).length > 1;
 		this.chats = chats.map((c) => ({
-			id: c.phone,
+			id: c.name,
 			title: c.title || c.phone,
+			via: c.number_label,
+			show_via: several,
+			read_only: !!c.read_only,
+			read_only_reason: c.read_only ? __("Read only — you are a spectator of this number") : null,
 			preview: c.preview,
 			time: c.last_message_on,
 			unread: c.unread || 0,
@@ -257,7 +265,7 @@ class WhatsAppSource {
 	}
 
 	async load_messages(id) {
-		const msgs = await frappe.xcall(`${WA_API}.get_recent_messages`, { phone: id, limit: 20 });
+		const msgs = await frappe.xcall(`${WA_API}.get_messages`, { chat: id, limit: 20 });
 		return msgs.map((m) => ({
 			out: m.type === "Outgoing",
 			time: m.creation,
@@ -273,18 +281,18 @@ class WhatsAppSource {
 		const chat = this.chats.find((c) => c.id === id);
 		if (chat) chat.unread = 0;
 		try {
-			await frappe.xcall(`${WA_API}.mark_read`, { phone: id });
+			await frappe.xcall(`${WA_API}.mark_read`, { chat: id });
 		} catch (e) {
 			// non-fatal — the badge reappears on the next poll
 		}
 	}
 
 	set_muted(id, muted) {
-		return frappe.xcall(`${WA_API}.set_muted`, { phone: id, muted });
+		return frappe.xcall(`${WA_API}.set_muted`, { chat: id, muted });
 	}
 
 	send(id, text) {
-		return frappe.xcall(`${WA_API}.send_text`, { phone: id, message: text });
+		return frappe.xcall(`${WA_API}.send_text`, { chat: id, message: text });
 	}
 
 	// Pick a file, upload it, and send it as a media message — same content-type
@@ -301,7 +309,7 @@ class WhatsAppSource {
 					if (!["image", "video", "audio"].includes(ct)) ct = "document";
 					try {
 						await frappe.xcall(`${WA_API}.send_media`, {
-							phone: id,
+							chat: id,
 							attach: file.file_url,
 							content_type: ct,
 							caption: caption || null,
@@ -320,7 +328,7 @@ class WhatsAppSource {
 	async send_voice(id, rec) {
 		const url = await erpnext.chat_media.upload_audio(rec.blob, rec.ext);
 		await frappe.xcall(`${WA_API}.send_media`, {
-			phone: id,
+			chat: id,
 			attach: url,
 			content_type: "audio",
 			caption: null,
@@ -328,7 +336,7 @@ class WhatsAppSource {
 	}
 
 	route_for(id) {
-		return id ? `${this.page_route}?phone=${encodeURIComponent(id)}` : this.page_route;
+		return id ? `${this.page_route}?chat=${encodeURIComponent(id)}` : this.page_route;
 	}
 }
 
@@ -682,10 +690,8 @@ class ChatBubble {
 		let chat = null;
 		let info = null;
 		if (d.type === "Incoming" && d.number) {
-			// WhatsApp: {name, number, type}
-			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find(
-				(c) => c.id === d.number
-			);
+			// WhatsApp: {name, chat, number, type}
+			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find((c) => c.id === d.chat);
 			if (window.__chat_debug)
 				console.log("[chat] ring: whatsapp incoming", {
 					number: d.number,
@@ -695,8 +701,10 @@ class ChatBubble {
 			info = {
 				title: (chat && chat.title) || d.number,
 				body: erpnext.chat_sound.message_body(d.content_type, d.preview),
-				tag: "wa-" + d.number,
-				route: `whatsapp-chat-center?phone=${encodeURIComponent(d.number)}`,
+				tag: "wa-" + (d.chat || d.number),
+				route: d.chat
+					? `whatsapp-chat-center?chat=${encodeURIComponent(d.chat)}`
+					: `whatsapp-chat-center?phone=${encodeURIComponent(d.number)}`,
 			};
 		} else if (d.sender && d.sender !== frappe.session.user && d.thread) {
 			// Employee Chat: a full message payload
@@ -813,9 +821,10 @@ class ChatBubble {
 			this.$compose.hide();
 			this.$readonly
 				.text(
-					ChatBubble.is_packed(chat)
-						? __("This chat is in the deep archive — its messages are being unpacked")
-						: __("This chat is archived — new messages are not allowed")
+					chat.read_only_reason ||
+						(ChatBubble.is_packed(chat)
+							? __("This chat is in the deep archive — its messages are being unpacked")
+							: __("This chat is archived — new messages are not allowed"))
 				)
 				.show();
 		} else {
@@ -845,6 +854,8 @@ class ChatBubble {
 			background:#075e54;color:#fff;}
 		.cb-title{flex:1;font-weight:600;font-size:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 		.cb-head .cb-act{cursor:pointer;opacity:.85;font-size:15px;line-height:1;padding:2px 4px;}
+		.cb-title-via{display:block;font-size:10px;font-weight:400;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+		.cb-via{display:inline-block;margin-right:4px;padding:0 4px;border:1px solid var(--border-color);border-radius:6px;font-size:9px;color:var(--text-muted);vertical-align:1px;}
 		.cb-head .cb-act:hover{opacity:1;}
 		.cb-head .cb-act.cb-disabled{opacity:.35;cursor:default;}
 		.cb-deep-chip{flex:none;display:inline-flex;align-items:center;gap:3px;padding:0 6px;border-radius:9px;
@@ -1236,9 +1247,15 @@ class ChatBubble {
 		const unread = c.unread
 			? `<span class="cb-count show">${c.unread > 99 ? "99+" : c.unread}</span>`
 			: "";
+		const via =
+			c.show_via && c.via
+				? `<span class="cb-via" title="${__("WhatsApp number")}">${frappe.utils.escape_html(
+						c.via
+				  )}</span>`
+				: "";
 		return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(c.id)}">
 			<div class="cb-name"><span>${name}</span><span class="cb-time">${unread}${cb_fmt_time(c.time)}</span></div>
-			<div class="cb-prev">${prev || __("(no text)")}</div>
+			<div class="cb-prev">${via}${prev || __("(no text)")}</div>
 		</div>`;
 	}
 
@@ -1274,6 +1291,14 @@ class ChatBubble {
 		this.render_tabs();
 		const chat = (this.source.chats || []).find((c) => c.id === id);
 		this.$title.text(chat ? chat.title : id);
+		// WhatsApp: the business number replies go out from.
+		if (chat && chat.via) {
+			this.$title.append(
+				$(`<span class="cb-title-via"><i class="fa fa-whatsapp"></i> </span>`).append(
+					document.createTextNode(__("via {0}", [chat.via]))
+				)
+			);
+		}
 		this.render_mute_toggle();
 		this.$back.show();
 		this.render_composer(chat);

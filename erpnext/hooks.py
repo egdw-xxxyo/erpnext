@@ -116,6 +116,9 @@ permission_query_conditions = {
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
 	# Disabled label templates are soft-deleted: gone from lists and pickers, still printable by name.
 	"Label Template": "erpnext.devices.doctype.label_template.label_template.get_permission_query_conditions",
+	# WhatsApp chats and messages are visible only on the numbers the user is assigned to.
+	"WhatsApp Chat": "erpnext.crm.whatsapp_access.chat_query_conditions",
+	"WhatsApp Message": "erpnext.crm.whatsapp_access.message_query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -171,6 +174,8 @@ has_permission = {
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_has_permission",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_has_permission",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
+	"WhatsApp Chat": "erpnext.crm.whatsapp_access.has_permission",
+	"WhatsApp Message": "erpnext.crm.whatsapp_access.has_permission",
 }
 
 welcome_email = "erpnext.setup.utils.welcome_email"
@@ -1084,6 +1089,7 @@ extend_bootinfo = [
 	"erpnext.support.doctype.service_level_agreement.service_level_agreement.add_sla_doctypes",
 	"erpnext.startup.boot.bootinfo",
 	"erpnext.startup.instance_env.add_instance_env",
+	"erpnext.crm.whatsapp_access.boot_session",
 ]
 
 
