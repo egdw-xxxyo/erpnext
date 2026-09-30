@@ -46,7 +46,13 @@ def notify_new_message(doc, method=None):
 	except Exception:
 		frappe.log_error(title="WhatsApp Chat sync failed", message=frappe.get_traceback())
 
-	payload = {"name": doc.name, "number": number, "type": doc.get("type")}
+	payload = {
+		"name": doc.name,
+		"number": number,
+		"type": doc.get("type"),
+		"content_type": doc.get("content_type"),
+		"preview": frappe.utils.strip_html(doc.get("message") or "")[:120],
+	}
 	# Fan out only to users who may read WhatsApp Messages — a global broadcast would
 	# leak customer numbers to every logged-in desk user.
 	for user in _users_with_wa_access():

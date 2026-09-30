@@ -57,9 +57,9 @@ erpnext.chat_info = {
 		.ci-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;}
 		.ci-media{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--bg-light-gray);}
 		.ci-media .chat-img,.ci-media .chat-img img{width:100%;height:100%;max-width:none;object-fit:cover;}
-		.ci-media-fallback{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;cursor:pointer;}
+		.ci-media-fallback{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:var(--text-muted);}
 		.ci-empty{color:var(--text-muted);font-size:var(--text-sm);padding:14px 4px;text-align:center;}
-		.ci-file-icon{flex:none;font-size:18px;}
+		.ci-file-icon{flex:none;font-size:16px;width:20px;text-align:center;color:var(--text-muted);}
 		.ci-setting{align-items:flex-start;padding:10px 4px;}
 		.ci-setting .ci-row-title{white-space:normal;font-weight:600;}
 		.ci-setting .ci-setting-desc{white-space:normal;}
@@ -198,7 +198,9 @@ erpnext.chat_info = {
 		for (const m of media) {
 			const $cell = $(`<div class="ci-media">${m.html || ""}</div>`);
 			if (!m.html) {
-				$cell.html(`<div class="ci-media-fallback">${m.icon || "📄"}</div>`);
+				$cell.html(
+					`<div class="ci-media-fallback">${m.icon || '<i class="fa fa-file-o"></i>'}</div>`
+				);
 			}
 			if (m.on_click) $cell.on("click", () => m.on_click());
 			$cell.attr("title", [m.sender_name, when(m.creation), m.caption].filter(Boolean).join(" · "));
@@ -212,7 +214,7 @@ erpnext.chat_info = {
 		for (const f of files) {
 			const $row = $(`
 				<div class="ci-row">
-					<div class="ci-file-icon">📎</div>
+					<div class="ci-file-icon"><i class="fa fa-paperclip"></i></div>
 					<div class="ci-row-main">
 						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>
@@ -233,7 +235,7 @@ erpnext.chat_info = {
 
 	render_links($pane, links) {
 		if (!links.length) return $pane.append(`<div class="ci-empty">${__("No links yet")}</div>`);
-		const kind_icon = { document: "📄", report: "📊", list: "🗂️", page: "🔗" };
+		const kind_icon = { document: "file-text-o", report: "bar-chart", list: "list-ul", page: "link" };
 		for (const l of links) {
 			const $row = $(`
 				<div class="ci-row">
@@ -242,10 +244,12 @@ erpnext.chat_info = {
 						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>
 					</div>
-					<div class="ci-row-action" title="${__("Open")}" style="display:none;">↗</div>
+					<div class="ci-row-action" title="${__(
+						"Open"
+					)}" style="display:none;"><i class="fa fa-external-link"></i></div>
 				</div>
 			`);
-			$row.find(".ci-file-icon").text(kind_icon[l.kind] || "🔗");
+			$row.find(".ci-file-icon").html(`<i class="fa fa-${kind_icon[l.kind] || "link"}"></i>`);
 
 			// A shared card shows its title and, when we know the source message, jumps to
 			// it on click. A bare pasted URL keeps the old behaviour (the title is a link).

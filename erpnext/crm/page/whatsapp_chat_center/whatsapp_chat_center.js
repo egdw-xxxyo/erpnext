@@ -53,15 +53,81 @@ function mime_to_content_type(type, file_name) {
 	return erpnext.chat_media.detect_type(type, file_name);
 }
 
-// Short labelled icon for a non-text message (list preview + form panel).
+// Short label for a non-text message (list preview + reply quote). Plain text — it is
+// escaped by its callers; the matching icon comes from media_icon.
 function media_label(content_type) {
 	return {
-		image: "📷 " + __("Photo"),
-		video: "🎬 " + __("Video"),
-		audio: "🎤 " + __("Audio"),
-		document: "📎 " + __("Document"),
-		sticker: "🩷 " + __("Sticker"),
+		image: __("Photo"),
+		video: __("Video"),
+		audio: __("Audio"),
+		document: __("Document"),
+		sticker: __("Sticker"),
 	}[content_type];
+}
+
+function media_icon(content_type) {
+	const icon = {
+		image: "camera",
+		video: "video-camera",
+		audio: "microphone",
+		document: "file-o",
+		sticker: "smile-o",
+	}[content_type];
+	return icon ? `<i class="fa fa-${icon}"></i> ` : "";
+}
+
+// Delivery ticks for an outgoing message, Telegram/WhatsApp style.
+function status_icon(status) {
+	const st = (status || "").toLowerCase();
+	const label = frappe.utils.escape_html(__(status || ""));
+	if (st === "failed") return `<i class="fa fa-exclamation-circle wa-st-failed" title="${label}"></i>`;
+	if (st === "read")
+		return `<span class="wa-ticks wa-st-read" title="${label}"><i class="fa fa-check"></i><i class="fa fa-check"></i></span>`;
+	if (st === "delivered")
+		return `<span class="wa-ticks" title="${label}"><i class="fa fa-check"></i><i class="fa fa-check"></i></span>`;
+	if (st === "sent" || st === "success") return `<i class="fa fa-check" title="${label}"></i>`;
+	return `<i class="fa fa-clock-o" title="${label}"></i>`;
+}
+
+function initials(name) {
+	const parts = String(name || "?")
+		.replace(/[^\p{L}\p{N} ]/gu, "")
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean);
+	if (!parts.length) return "#";
+	return ((parts[0][0] || "") + (parts.length > 1 ? parts[1][0] : "")).toUpperCase();
+}
+
+// Stable pastel per conversation, so the same chat keeps its avatar colour.
+function avatar_color(key) {
+	const palette = ["#e17076", "#7bc862", "#e5ca77", "#65aadd", "#a695e7", "#ee7aae", "#6ec9cb", "#faa774"];
+	let h = 0;
+	for (const ch of String(key || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+	return palette[h % palette.length];
+}
+
+function avatar_html(name, key, size) {
+	return `<div class="wa-avatar" style="background:${avatar_color(key)};${
+		size ? `width:${size}px;height:${size}px;line-height:${size}px;` : ""
+	}">${frappe.utils.escape_html(initials(name))}</div>`;
+}
+
+// List timestamp: time for today, weekday within a week, date otherwise.
+function list_time(dt) {
+	if (!dt) return "";
+	const m = moment.tz(dt, frappe.sys_defaults.time_zone || "UTC").local();
+	const now = moment();
+	if (m.isSame(now, "day")) return m.format("HH:mm");
+	if (now.diff(m, "days") < 7) return m.format("ddd");
+	return m.format("DD.MM.YY");
+}
+
+function day_label(m) {
+	const now = moment();
+	if (m.isSame(now, "day")) return __("Today");
+	if (m.isSame(now.clone().subtract(1, "day"), "day")) return __("Yesterday");
+	return m.format(m.isSame(now, "year") ? "D MMMM" : "D MMMM YYYY");
 }
 
 class WhatsAppChat {
@@ -112,11 +178,14 @@ class WhatsAppChat {
 			<div class="wa-chat">
 				<div class="wa-sidebar">
 					<div class="wa-search">
-						<button class="btn btn-primary btn-xs wa-new-chat" style="width:100%;margin-bottom:6px;">+ ${__(
-							"New chat"
-						)}</button>
-						<input type="text" class="form-control input-xs wa-search-input" placeholder="${__("Search number or name")}">
-						<select class="form-control input-xs wa-manager-filter" style="margin-top:6px;">
+						<div class="wa-search-row">
+							<div class="wa-search-box">
+								<i class="fa fa-search"></i>
+								<input type="text" class="wa-search-input" placeholder="${__("Search number or name")}">
+							</div>
+							<button class="wa-ico wa-new-chat" title="${__("New chat")}"><i class="fa fa-pencil-square-o"></i></button>
+						</div>
+						<select class="form-control input-xs wa-manager-filter">
 							<option value="">${__("All managers")}</option>
 						</select>
 					</div>
@@ -124,22 +193,27 @@ class WhatsAppChat {
 				</div>
 				<div class="wa-thread-wrap">
 					<div class="wa-thread-header text-muted">${__("Select a conversation")}</div>
-					<div class="wa-thread"></div>
+					<div class="wa-thread">
+						<div class="wa-thread-empty"><i class="fa fa-whatsapp"></i><div>${__("Select a conversation")}</div></div>
+					</div>
 					<div class="wa-scroll-fab" title="${__(
 						"Scroll to latest"
-					)}">⬇<span class="wa-fab-badge" style="display:none;"></span></div>
+					)}"><i class="fa fa-chevron-down"></i><span class="wa-fab-badge" style="display:none;"></span></div>
 					<div class="wa-compose-wrap" style="display:none;">
 						<div class="wa-reply-bar" style="display:none;">
+							<i class="fa fa-reply wa-reply-icon"></i>
 							<div class="wa-reply-bar-text"></div>
-							<span class="wa-reply-cancel" title="${__("Cancel reply")}">&times;</span>
+							<span class="wa-reply-cancel" title="${__("Cancel reply")}"><i class="fa fa-times"></i></span>
 						</div>
 						<div class="wa-compose">
-							<button class="btn btn-default btn-sm wa-attach" title="${__("Attach file")}">📎</button>
-							<button class="btn btn-default btn-sm wa-mic" title="${__("Record voice message")}">🎤</button>
-							<button class="btn btn-default btn-sm wa-emoji" title="${__("Add emoji")}">😊</button>
-							<button class="btn btn-default btn-sm wa-template" title="${__("Send template")}">📋</button>
-							<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
-							<button class="btn btn-primary btn-sm wa-send">${__("Send")}</button>
+							<button class="wa-ico wa-attach" title="${__("Attach file")}"><i class="fa fa-paperclip"></i></button>
+							<button class="wa-ico wa-template" title="${__("Send template")}"><i class="fa fa-file-text-o"></i></button>
+							<textarea rows="1" placeholder="${__("Type a message")}"></textarea>
+							<button class="wa-ico wa-emoji" title="${__("Add emoji")}"><i class="fa fa-smile-o"></i></button>
+							<button class="wa-ico wa-mic" title="${__("Record voice message")}"><i class="fa fa-microphone"></i></button>
+							<button class="wa-ico wa-send" title="${__(
+								"Send"
+							)}" style="display:none;"><i class="fa fa-paper-plane"></i></button>
 						</div>
 					</div>
 				</div>
@@ -175,6 +249,7 @@ class WhatsAppChat {
 				this.send();
 			}
 		});
+		this.$input.on("input", () => this.autosize());
 		this.$search.on("input", () => this.render_list());
 		this.$manager.on("change", () => this.apply_manager_filter());
 		this.$thread.on("scroll", () => {
@@ -187,81 +262,148 @@ class WhatsAppChat {
 	inject_styles() {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("wa-chat-styles-v6")) return;
+		if (document.getElementById("wa-chat-styles-v7")) return;
 		const css = `
-		.wa-chat{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);border-radius:var(--border-radius-md);overflow:hidden;background:var(--card-bg);}
-		.wa-sidebar{width:280px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
-		.wa-search{padding:8px;border-bottom:1px solid var(--border-color);}
-		.wa-conv-list{overflow-y:auto;flex:1;}
-		.wa-conv{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-color);}
+		.wa-chat{--wa-out:#effdde;--wa-out-text:#111;--wa-in:var(--card-bg);--wa-thread-bg:#e6ebee;--wa-accent:#3390ec;
+			--wa-tick:#4fae4e;display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);
+			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
+		[data-theme="dark"] .wa-chat{--wa-out:#2b5278;--wa-out-text:#fff;--wa-in:#182533;--wa-thread-bg:#0e1621;
+			--wa-accent:#5eb5f7;--wa-tick:#5eb5f7;}
+		.wa-ico{flex:none;width:36px;height:36px;padding:0;border:none;background:none;border-radius:50%;
+			color:var(--text-muted);font-size:19px;line-height:36px;text-align:center;cursor:pointer;
+			transition:background .15s,color .15s;}
+		.wa-ico:hover{background:var(--bg-light-gray);color:var(--text-color);}
+		.wa-ico:focus{outline:none;}
+		.wa-send,.wa-send:hover{color:var(--wa-accent);}
+		.wa-avatar{flex:none;width:44px;height:44px;border-radius:50%;color:#fff;font-weight:600;font-size:15px;
+			line-height:44px;text-align:center;user-select:none;}
+		.wa-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
+		.wa-search{padding:10px;display:flex;flex-direction:column;gap:6px;}
+		.wa-search-row{display:flex;align-items:center;gap:4px;}
+		.wa-search-box{flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;height:36px;border-radius:18px;
+			background:var(--control-bg);color:var(--text-muted);}
+		.wa-search-box input{flex:1;min-width:0;border:none;background:none;outline:none;color:var(--text-color);font-size:var(--text-md);}
+		.wa-manager-filter{border-radius:18px;}
+		.wa-conv-list{overflow-y:auto;flex:1;padding:0 6px 6px;}
+		.wa-conv{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;cursor:pointer;}
 		.wa-conv:hover{background:var(--bg-light-gray);}
-		.wa-conv.active{background:var(--bg-blue);}
-		.wa-conv .wa-name{font-weight:600;font-size:var(--text-md);display:flex;align-items:center;justify-content:space-between;gap:6px;}
-		.wa-conv .wa-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.wa-badge{flex:none;background:var(--primary);color:#fff;border-radius:10px;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;padding:0 5px;}
-		.wa-conv.wa-unread .wa-last{color:var(--text-color);font-weight:600;}
-		.wa-conv .wa-last{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-		.wa-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
-		.wa-thread-header{padding:12px;border-bottom:1px solid var(--border-color);font-weight:600;}
-		.wa-thread{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg-gray);display:flex;flex-direction:column;gap:3px;position:relative;}
-		.wa-new-divider{align-self:stretch;display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--red-500,#e24c4c);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-		.wa-new-divider::before,.wa-new-divider::after{content:"";flex:1;height:1px;background:var(--red-500,#e24c4c);opacity:.5;}
-		.wa-scroll-fab{position:absolute;right:16px;bottom:80px;z-index:5;width:40px;height:40px;border-radius:50%;background:var(--card-bg);border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:18px;color:var(--text-color);}
-		.wa-scroll-fab:hover{background:var(--bg-light-gray);}
+		.wa-conv.active{background:var(--wa-accent);color:#fff;}
+		.wa-conv.active .wa-last,.wa-conv.active .wa-time{color:rgba(255,255,255,.85);}
+		.wa-conv.active .wa-badge{background:#fff;color:var(--wa-accent);}
+		.wa-conv-main{flex:1;min-width:0;}
+		.wa-conv .wa-name{font-weight:600;font-size:var(--text-md);display:flex;align-items:baseline;gap:6px;}
+		.wa-conv .wa-name .wa-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.wa-conv .wa-name .fa-bell-slash-o{font-size:11px;opacity:.6;}
+		.wa-time{flex:none;font-weight:400;font-size:11px;color:var(--text-muted);}
+		.wa-conv-sub{display:flex;align-items:center;gap:6px;margin-top:2px;}
+		.wa-conv .wa-last{flex:1;color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+		.wa-badge{flex:none;background:var(--wa-accent);color:#fff;border-radius:11px;min-width:22px;height:22px;line-height:22px;
+			text-align:center;font-size:12px;font-weight:600;padding:0 6px;}
+		.wa-badge.wa-muted{background:var(--gray-500,#a0a8b0);}
+		.wa-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--wa-thread-bg);}
+		.wa-thread-header{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:56px;
+			border-bottom:1px solid var(--border-color);background:var(--card-bg);}
+		.wa-thread-header .wa-header-main{flex:1;min-width:0;cursor:pointer;}
+		.wa-thread-header .wa-header-title{font-weight:600;font-size:var(--text-md);color:var(--text-color);
+			overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.wa-thread-header .wa-header-sub{font-size:var(--text-sm);color:var(--text-muted);}
+		.wa-thread-header .wa-header-main:hover .wa-header-title{color:var(--wa-accent);}
+		.wa-thread{flex:1;overflow-y:auto;padding:12px 8%;display:flex;flex-direction:column;gap:4px;position:relative;}
+		.wa-thread-empty{margin:auto;text-align:center;color:var(--text-muted);}
+		.wa-thread-empty .fa{font-size:48px;opacity:.35;margin-bottom:8px;}
+		.wa-day{align-self:center;margin:10px 0 6px;padding:3px 12px;border-radius:14px;font-size:12px;font-weight:600;
+			background:rgba(0,0,0,.18);color:#fff;position:sticky;top:4px;z-index:2;}
+		.wa-new-divider{align-self:stretch;display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--wa-accent);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+		.wa-new-divider::before,.wa-new-divider::after{content:"";flex:1;height:1px;background:var(--wa-accent);opacity:.5;}
+		.wa-scroll-fab{position:absolute;right:20px;bottom:84px;z-index:5;width:44px;height:44px;border-radius:50%;background:var(--card-bg);
+			box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);}
+		.wa-scroll-fab:hover{color:var(--text-color);}
 		.wa-scroll-fab.show{display:flex;}
-		.wa-scroll-fab .wa-fab-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);color:#fff;font-size:10px;line-height:18px;text-align:center;font-weight:600;}
-		.wa-bubble{position:relative;width:fit-content;max-width:65%;padding:5px 9px 3px;border-radius:8px;font-size:13px;line-height:1.35;text-align:left;word-break:break-word;}
+		.wa-scroll-fab .wa-fab-badge{position:absolute;top:-6px;right:-4px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--wa-accent);color:#fff;font-size:11px;line-height:20px;text-align:center;font-weight:600;}
+		.wa-bubble{position:relative;width:fit-content;max-width:min(70%,560px);padding:6px 10px 6px 11px;border-radius:14px;font-size:14px;
+			line-height:1.4;text-align:left;word-break:break-word;box-shadow:0 1px 1px rgba(0,0,0,.12);}
 		.wa-body{white-space:pre-wrap;}
-		.wa-in{align-self:flex-start;background:var(--card-bg);border:1px solid var(--border-color);}
-		.wa-out{align-self:flex-end;background:#d9fdd3;color:#111;}
-		.wa-meta{font-size:10px;color:var(--text-muted);margin-top:1px;text-align:right;opacity:.7;}
-		.wa-media .chat-img,.wa-media .chat-img img{max-width:220px;}
-		.wa-media video{max-width:240px;border-radius:6px;display:block;}
-		.wa-media audio{width:240px;max-width:100%;display:block;}
-		.wa-media.wa-sticker img{max-width:130px;}
-		.wa-doc{display:inline-flex;align-items:center;gap:6px;color:inherit;text-decoration:underline;}
+		.wa-bubble::after{content:"";display:table;clear:both;}
+		.wa-body a{color:var(--wa-accent);text-decoration:underline;}
+		.wa-in{align-self:flex-start;background:var(--wa-in);color:var(--text-color);border-bottom-left-radius:4px;}
+		.wa-out{align-self:flex-end;background:var(--wa-out);color:var(--wa-out-text);border-bottom-right-radius:4px;}
+		.wa-meta{float:right;display:inline-flex;align-items:center;gap:4px;margin:6px 0 -4px 10px;font-size:11px;line-height:1;
+			color:var(--text-muted);white-space:nowrap;user-select:none;}
+		.wa-out .wa-meta{color:var(--wa-tick);}
+		.wa-out .wa-meta .wa-time-txt{color:var(--text-muted);}
+		[data-theme="dark"] .wa-out .wa-meta .wa-time-txt{color:rgba(255,255,255,.6);}
+		.wa-ticks{display:inline-flex;}
+		.wa-ticks .fa + .fa{margin-left:-6px;}
+		.wa-st-failed{color:var(--red-500,#e24c4c);}
+		.wa-media{margin:-2px -6px 2px -7px;}
+		.wa-media .chat-img,.wa-media .chat-img img{max-width:320px;border-radius:10px;}
+		.wa-media video{max-width:320px;border-radius:10px;display:block;}
+		.wa-media audio{width:260px;max-width:100%;display:block;}
+		.wa-media.wa-sticker img{max-width:140px;}
+		.wa-bubble:has(.wa-sticker){background:none;box-shadow:none;}
+		.wa-doc{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none;}
+		.wa-doc .wa-doc-icon{flex:none;width:40px;height:40px;border-radius:50%;background:var(--wa-accent);color:#fff;
+			display:flex;align-items:center;justify-content:center;font-size:17px;}
+		.wa-doc .wa-doc-name{font-weight:600;word-break:break-all;}
+		.wa-doc:hover .wa-doc-name{text-decoration:underline;}
 		.wa-caption{white-space:pre-wrap;margin-top:4px;}
-		.wa-quote{border-left:3px solid var(--primary);padding:2px 6px;margin-bottom:4px;background:rgba(0,0,0,.05);border-radius:4px;font-size:11px;opacity:.85;}
-		.wa-quote .wa-quote-author{font-weight:600;}
-		.wa-bubble-failed{border:1px solid #e24c4c;}
-		.wa-fail{margin-top:4px;font-size:11px;color:#c0392b;background:rgba(226,76,76,.08);border-radius:4px;padding:3px 6px;white-space:pre-wrap;}
-		.wa-resend{display:inline-block;margin-left:6px;cursor:pointer;font-weight:600;color:#c0392b;text-decoration:underline;white-space:nowrap;}
-		.wa-resend:hover{color:#e24c4c;}
-		.wa-reactions{position:absolute;bottom:-11px;right:6px;display:flex;gap:2px;}
-		.wa-bubble:has(.wa-reactions){margin-bottom:12px;}
-		.wa-react-badge{background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:0 4px;font-size:11px;line-height:16px;box-shadow:0 1px 2px rgba(0,0,0,.15);}
-		.wa-bubble-actions{position:absolute;top:-10px;display:none;gap:2px;}
-		.wa-in .wa-bubble-actions{right:4px;}
-		.wa-out .wa-bubble-actions{left:4px;}
+		.wa-quote{border-left:3px solid var(--wa-accent);padding:3px 8px;margin-bottom:4px;background:rgba(51,144,236,.1);border-radius:4px 8px 8px 4px;font-size:12px;}
+		.wa-quote .wa-quote-author{font-weight:600;color:var(--wa-accent);}
+		.wa-bubble-failed{box-shadow:0 0 0 1px var(--red-500,#e24c4c);}
+		.wa-fail{clear:both;margin-top:6px;font-size:12px;color:var(--red-600,#c0392b);background:rgba(226,76,76,.08);border-radius:6px;padding:4px 8px;white-space:pre-wrap;}
+		.wa-resend{display:inline-block;margin-left:6px;cursor:pointer;font-weight:600;white-space:nowrap;}
+		.wa-resend:hover{text-decoration:underline;}
+		.wa-reactions{position:absolute;bottom:-12px;right:8px;display:flex;gap:2px;}
+		.wa-bubble:has(.wa-reactions){margin-bottom:14px;}
+		.wa-react-badge{background:var(--card-bg);border-radius:10px;padding:0 5px;font-size:12px;line-height:18px;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+		.wa-bubble-actions{position:absolute;top:50%;transform:translateY(-50%);display:none;gap:4px;}
+		.wa-in .wa-bubble-actions{left:100%;padding-left:6px;}
+		.wa-out .wa-bubble-actions{right:100%;padding-right:6px;}
 		.wa-bubble:hover .wa-bubble-actions{display:flex;}
-		.wa-act{cursor:pointer;background:var(--card-bg);border:1px solid var(--border-color);border-radius:50%;width:22px;height:22px;line-height:20px;text-align:center;font-size:12px;}
-		.wa-act:hover{background:var(--bg-light-gray);}
-		.wa-react-pop{position:absolute;z-index:10;background:var(--card-bg);border:1px solid var(--border-color);border-radius:16px;padding:3px 6px;display:flex;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);}
-		.wa-react-pop span{cursor:pointer;font-size:16px;}
-		.wa-react-pop span:hover{transform:scale(1.25);}
-		.wa-emoji-pop{position:absolute;z-index:20;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;padding:6px;display:grid;grid-template-columns:repeat(6,1fr);gap:2px;box-shadow:0 2px 8px rgba(0,0,0,.2);}
-		.wa-emoji-pop span{cursor:pointer;font-size:18px;padding:2px;text-align:center;border-radius:4px;}
+		.wa-act{cursor:pointer;background:var(--card-bg);border-radius:50%;width:28px;height:28px;line-height:28px;text-align:center;
+			font-size:13px;color:var(--text-muted);box-shadow:0 1px 3px rgba(0,0,0,.2);}
+		.wa-act:hover{color:var(--wa-accent);}
+		.wa-react-pop{position:absolute;z-index:1050;background:var(--card-bg);border-radius:20px;padding:4px 8px;display:flex;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);}
+		.wa-react-pop span{cursor:pointer;font-size:20px;transition:transform .1s;}
+		.wa-react-pop span:hover{transform:scale(1.3);}
+		.wa-emoji-pop{position:absolute;z-index:1050;background:var(--card-bg);border-radius:12px;padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:2px;box-shadow:0 4px 16px rgba(0,0,0,.2);}
+		.wa-emoji-pop span{cursor:pointer;font-size:20px;padding:4px;text-align:center;border-radius:6px;}
 		.wa-emoji-pop span:hover{background:var(--bg-light-gray);}
-		.wa-reply-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-top:1px solid var(--border-color);background:var(--bg-light-gray);font-size:12px;}
-		.wa-reply-bar-text{border-left:3px solid var(--primary);padding-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
-		.wa-reply-cancel{cursor:pointer;color:var(--text-muted);margin-left:8px;font-size:16px;}
-		.wa-reply-cancel:hover{color:var(--red-500);}
-		.wa-compose{display:flex;gap:6px;padding:10px;border-top:1px solid var(--border-color);align-items:flex-end;}
-		.wa-compose textarea{resize:none;flex:1;}
-		.wa-attach,.wa-emoji{flex:none;}
-		.wa-context{width:280px;border-left:1px solid var(--border-color);overflow-y:auto;padding:12px;}
-		.wa-context h6{margin:12px 0 6px;font-size:var(--text-sm);text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em;}
-		.wa-ent{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px;margin-bottom:5px;font-size:var(--text-sm);}
+		.wa-compose-wrap{background:var(--card-bg);border-top:1px solid var(--border-color);}
+		.wa-reply-bar{display:flex;align-items:center;gap:10px;padding:6px 14px 0;font-size:13px;}
+		.wa-reply-icon{color:var(--wa-accent);font-size:16px;}
+		.wa-reply-bar-text{border-left:2px solid var(--wa-accent);padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+		.wa-reply-cancel{cursor:pointer;color:var(--text-muted);font-size:15px;padding:4px;}
+		.wa-reply-cancel:hover{color:var(--text-color);}
+		.wa-compose{display:flex;gap:2px;padding:8px 10px;align-items:flex-end;}
+		.wa-compose textarea{flex:1;min-width:0;resize:none;border:none;outline:none;box-shadow:none;background:none;
+			color:var(--text-color);font-size:14px;line-height:20px;padding:8px 6px;max-height:180px;overflow-y:auto;}
+		.wa-context{width:280px;border-left:1px solid var(--border-color);overflow-y:auto;padding:14px;}
+		.wa-context h6{margin:16px 0 6px;font-size:var(--text-xs,11px);text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;}
+		.wa-ent{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;margin-bottom:4px;
+			font-size:var(--text-sm);background:var(--bg-light-gray);}
 		.wa-ent .wa-ent-main{cursor:pointer;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.wa-ent .wa-ent-main:hover{color:var(--primary);}
+		.wa-ent .wa-ent-main:hover{color:var(--wa-accent);}
 		.wa-ent .wa-ent-dt{color:var(--text-muted);font-size:10px;}
 		.wa-ent .wa-unlink{cursor:pointer;color:var(--text-muted);margin-left:6px;}
 		.wa-ent .wa-unlink:hover{color:var(--red-500);}
 		.wa-context-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
-		.wa-thread-header .wa-header-title{cursor:pointer;}
-		.wa-thread-header .wa-header-title:hover{text-decoration:underline;}
+		.wa-context-actions .btn .fa{margin-right:4px;color:var(--text-muted);}
+		@media (max-width:1200px){.wa-context{display:none;}}
+		@media (max-width:768px){.wa-sidebar{width:220px;}.wa-thread{padding:10px;}}
 		`;
-		$(`<style id="wa-chat-styles-v6">${css}</style>`).appendTo(document.head);
+		$(`<style id="wa-chat-styles-v7">${css}</style>`).appendTo(document.head);
+	}
+
+	// One row while the text fits, then grow; the mic turns into Send once there is text.
+	autosize() {
+		const el = this.$input[0];
+		if (!el) return;
+		el.style.height = "auto";
+		el.style.height = el.scrollHeight + "px";
+		const has_text = !!(this.$input.val() || "").trim();
+		this.page.main.find(".wa-send").toggle(has_text);
+		this.page.main.find(".wa-mic").toggle(!has_text);
 	}
 
 	async load_account() {
@@ -595,11 +737,23 @@ class WhatsAppChat {
 			const preview = frappe.utils
 				.escape_html(this.preview_text({ content_type: c.preview_content_type, message: c.preview }))
 				.slice(0, 40);
-			const badge = c.unread ? `<span class="wa-badge">${c.unread > 99 ? "99+" : c.unread}</span>` : "";
+			const badge = c.unread
+				? `<span class="wa-badge ${c.muted ? "wa-muted" : ""}">${
+						c.unread > 99 ? "99+" : c.unread
+				  }</span>`
+				: "";
+			const muted = c.muted ? `<i class="fa fa-bell-slash-o"></i>` : "";
 			const $el = $(`
 				<div class="wa-conv ${c.number === this.active ? "active" : ""} ${c.unread ? "wa-unread" : ""}">
-					<div class="wa-name"><span>${frappe.utils.escape_html(c.name)}</span>${badge}</div>
-					<div class="wa-last">${preview}</div>
+					${avatar_html(c.name, c.number)}
+					<div class="wa-conv-main">
+						<div class="wa-name"><span class="wa-title">${frappe.utils.escape_html(
+							c.name
+						)}</span>${muted}<span class="wa-time">${list_time(c.last_message_on)}</span></div>
+						<div class="wa-conv-sub"><span class="wa-last">${media_icon(
+							c.preview_content_type
+						)}${preview}</span>${badge}</div>
+					</div>
 				</div>
 			`);
 			$el.on("click", () => this.open(c.number));
@@ -658,12 +812,14 @@ class WhatsAppChat {
 				const fname = frappe.utils.escape_html(
 					decodeURIComponent(m.attach.split("/").pop() || __("Document"))
 				);
-				return `<a class="wa-doc" href="${url}" target="_blank" download>📎 ${fname}</a>${cap_html}`;
+				return `<a class="wa-doc" href="${url}" target="_blank" download><span class="wa-doc-icon"><i class="fa fa-file-o"></i></span><span class="wa-doc-name">${fname}</span></a>${cap_html}`;
 			}
 		}
 		// Unresolved media (attach missing) or text.
 		if (MEDIA_TYPES.includes(ct))
-			return `<i>${frappe.utils.escape_html(media_label(ct) || __("Media"))}</i>${cap_html}`;
+			return `<i>${media_icon(ct)}${frappe.utils.escape_html(
+				media_label(ct) || __("Media")
+			)}</i>${cap_html}`;
 		return caption
 			? `<span class="wa-body">${frappe.utils.escape_html(caption)}</span>`
 			: `<i>(${__("no text")})</i>`;
@@ -687,23 +843,32 @@ class WhatsAppChat {
 		}
 
 		const sys_tz = frappe.sys_defaults.time_zone || "UTC";
+		let last_day = null;
 		for (const m of c.messages) {
 			if (m.content_type === "reaction") continue; // rendered as badges, not bubbles
+			const local = moment.tz(m.creation, sys_tz).local();
+			const day = local.format("YYYY-MM-DD");
+			if (day !== last_day) {
+				last_day = day;
+				this.$thread.append(
+					`<div class="wa-day">${frappe.utils.escape_html(day_label(local))}</div>`
+				);
+			}
 			// "New messages" divider, anchored at the first message that was unread on open.
 			if (this.new_divider_before && m.name === this.new_divider_before) {
 				this.$thread.append(`<div class="wa-new-divider">${__("New messages")}</div>`);
 			}
 			const out = m.type === "Outgoing";
-			const time = moment.tz(m.creation, sys_tz).local().format("HH:mm");
+			const time = local.format("HH:mm");
 			const failed = out && (m.status || "").toLowerCase() === "failed";
-			const status = out ? ` · ${frappe.utils.escape_html(m.status || "")}` : "";
+			const status = out ? status_icon(m.status) : "";
 
 			// Failure notice + Resend for outgoing messages Meta rejected.
 			let fail_html = "";
 			if (failed && m.content_type !== "reaction") {
 				const reason = frappe.utils.escape_html(m.status_error || __("Message failed to send"));
-				fail_html = `<div class="wa-fail">⚠ ${reason}
-					<span class="wa-resend" title="${__("Resend")}">↻ ${__("Resend")}</span></div>`;
+				fail_html = `<div class="wa-fail"><i class="fa fa-exclamation-triangle"></i> ${reason}
+					<span class="wa-resend" title="${__("Resend")}"><i class="fa fa-repeat"></i> ${__("Resend")}</span></div>`;
 			}
 
 			// Reply quote.
@@ -726,18 +891,22 @@ class WhatsAppChat {
 
 			// Hover actions (react needs a message_id to target).
 			const react_btn = m.message_id
-				? `<span class="wa-act wa-do-react" title="${__("React")}">😊</span>`
+				? `<span class="wa-act wa-do-react" title="${__(
+						"React"
+				  )}"><i class="fa fa-smile-o"></i></span>`
 				: "";
 			const actions = `<div class="wa-bubble-actions">${react_btn}<span class="wa-act wa-do-reply" title="${__(
 				"Reply"
-			)}">↩</span></div>`;
+			)}"><i class="fa fa-reply"></i></span></div>`;
 
 			const $b = $(
-				`<div class="wa-bubble ${out ? "wa-out" : "wa-in"}" data-mid="${frappe.utils.escape_html(
+				`<div class="wa-bubble ${out ? "wa-out" : "wa-in"} ${
+					failed ? "wa-bubble-failed" : ""
+				}" data-mid="${frappe.utils.escape_html(
 					m.message_id || ""
-				)} ${failed ? "wa-bubble-failed" : ""}">${actions}${quote}${this.render_body(
+				)}">${actions}${quote}${this.render_body(
 					m
-				)}<div class="wa-meta">${time}${status}</div>${fail_html}${react_html}</div>`
+				)}<span class="wa-meta"><span class="wa-time-txt">${time}</span>${status}</span>${fail_html}${react_html}</div>`
 			);
 			$b.data("msg", m);
 			this.$thread.append($b);
@@ -860,6 +1029,7 @@ class WhatsAppChat {
 						reply_to_message_id: this.reply_to ? this.reply_to.message_id : null,
 					});
 					this.$input.val("");
+					this.autosize();
 					this.set_reply(null);
 					await this.refresh();
 					this.render_thread(true);
@@ -906,13 +1076,14 @@ class WhatsAppChat {
 		);
 		$("body").append($pop);
 		const off = $(e.currentTarget).offset();
-		$pop.css({ top: off.top - 160, left: off.left });
+		$pop.css({ top: off.top - $pop.outerHeight() - 8, left: off.left + 36 - $pop.outerWidth() });
 		$pop.find("span").on("click", (ev) => {
 			const el = this.$input[0];
 			const emoji = $(ev.currentTarget).text();
 			const start = el.selectionStart || 0;
 			const val = this.$input.val();
 			this.$input.val(val.slice(0, start) + emoji + val.slice(el.selectionEnd || start));
+			this.autosize();
 			$pop.remove();
 			el.focus();
 			el.selectionStart = el.selectionEnd = start + emoji.length;
@@ -1004,12 +1175,16 @@ class WhatsAppChat {
 	// Header: the title opens the chat overview, the bell mutes the conversation.
 	render_header(number) {
 		const c = this.conversations[number] || { number, name: number };
-		this.$header.html(`<span class="wa-header-title"></span>${erpnext.chat_sound.button_html(c.muted)}`);
-		this.$header
-			.find(".wa-header-title")
-			.text(c.name === number ? number : `${c.name} · ${number}`)
-			.attr("title", __("Chat info"))
-			.on("click", () => this.show_info());
+		this.$header.html(`${avatar_html(c.name, number, 38)}
+			<div class="wa-header-main" title="${__("Chat info")}">
+				<div class="wa-header-title"></div>
+				<div class="wa-header-sub"></div>
+			</div>
+			${erpnext.chat_sound.button_html(c.muted)}
+			<span class="chat-mute-btn wa-info-btn" title="${__("Chat info")}"><i class="fa fa-info-circle"></i></span>`);
+		this.$header.find(".wa-header-title").text(c.name);
+		this.$header.find(".wa-header-sub").text(c.name === number ? __("WhatsApp") : `+${number}`);
+		this.$header.find(".wa-header-main, .wa-info-btn").on("click", () => this.show_info());
 		this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute(number));
 	}
 
@@ -1051,7 +1226,7 @@ class WhatsAppChat {
 				m.content_type === "image" || m.content_type === "sticker"
 					? erpnext.chat_media.image_html(m.attach)
 					: null,
-			icon: m.content_type === "video" ? "🎬" : "🎵",
+			icon: `<i class="fa fa-${m.content_type === "video" ? "video-camera" : "music"}"></i>`,
 			on_click:
 				m.content_type === "image" || m.content_type === "sticker"
 					? null
@@ -1131,7 +1306,9 @@ class WhatsAppChat {
 	render_context(number) {
 		const ctx = this.context || { linked: [], derived: [], managers: [] };
 		const ent = (e, removable) => {
-			const unlink = removable ? `<span class="wa-unlink" title="${__("Unlink")}">&times;</span>` : "";
+			const unlink = removable
+				? `<span class="wa-unlink" title="${__("Unlink")}"><i class="fa fa-times"></i></span>`
+				: "";
 			return `<div class="wa-ent" data-dt="${frappe.utils.escape_html(
 				e.doctype
 			)}" data-nm="${frappe.utils.escape_html(e.name)}">
@@ -1151,15 +1328,19 @@ class WhatsAppChat {
 
 		this.$context.html(`
 			<div class="wa-context-actions">
-				<button class="btn btn-xs btn-default wa-link-btn">${__("Link Document")}</button>
-				<button class="btn btn-xs btn-default wa-managers-btn">${__("Managers")}</button>
+				<button class="btn btn-xs btn-default wa-link-btn"><i class="fa fa-link"></i>${__("Link Document")}</button>
+				<button class="btn btn-xs btn-default wa-managers-btn"><i class="fa fa-user-plus"></i>${__(
+					"Managers"
+				)}</button>
 			</div>
 			<h6>${__("Create from Chat")}</h6>
 			<div class="wa-context-actions">
-				<button class="btn btn-xs btn-default wa-new-opp">${__("Opportunity")}</button>
-				<button class="btn btn-xs btn-default wa-new-todo">${__("Task")}</button>
-				<button class="btn btn-xs btn-default wa-new-note">${__("Note")}</button>
-				<button class="btn btn-xs btn-default wa-new-event">${__("Event")}</button>
+				<button class="btn btn-xs btn-default wa-new-opp"><i class="fa fa-handshake-o"></i>${__(
+					"Opportunity"
+				)}</button>
+				<button class="btn btn-xs btn-default wa-new-todo"><i class="fa fa-check-square-o"></i>${__("Task")}</button>
+				<button class="btn btn-xs btn-default wa-new-note"><i class="fa fa-sticky-note-o"></i>${__("Note")}</button>
+				<button class="btn btn-xs btn-default wa-new-event"><i class="fa fa-calendar"></i>${__("Event")}</button>
 			</div>
 			<h6>${__("Linked Documents")}</h6>
 			<div class="wa-linked">${linked}</div>
@@ -1324,6 +1505,7 @@ class WhatsAppChat {
 		const text = (this.$input.val() || "").trim();
 		if (!text || !this.active) return;
 		this.$input.val("");
+		this.autosize();
 		const reply_id = this.reply_to ? this.reply_to.message_id : null;
 		this.set_reply(null);
 		try {
@@ -1337,6 +1519,7 @@ class WhatsAppChat {
 		} catch (e) {
 			frappe.msgprint(__("Failed to send message"));
 			this.$input.val(text);
+			this.autosize();
 		}
 	}
 }

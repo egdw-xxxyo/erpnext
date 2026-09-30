@@ -680,6 +680,7 @@ class ChatBubble {
 	ring(d) {
 		if (!d) return;
 		let chat = null;
+		let info = null;
 		if (d.type === "Incoming" && d.number) {
 			// WhatsApp: {name, number, type}
 			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find(
@@ -691,6 +692,12 @@ class ChatBubble {
 					chat_found: !!chat,
 					muted: chat && chat.muted,
 				});
+			info = {
+				title: (chat && chat.title) || d.number,
+				body: erpnext.chat_sound.message_body(d.content_type, d.preview),
+				tag: "wa-" + d.number,
+				route: `whatsapp-chat-center?phone=${encodeURIComponent(d.number)}`,
+			};
 		} else if (d.sender && d.sender !== frappe.session.user && d.thread) {
 			// Employee Chat: a full message payload
 			chat = (this.sources.find((s) => s.key === "employee")?.chats || []).find(
@@ -703,12 +710,19 @@ class ChatBubble {
 					chat_found: !!chat,
 					muted: chat && chat.muted,
 				});
+			const title = (chat && chat.title) || __("Employee Chat");
+			info = {
+				title: d.sender_name && d.sender_name !== title ? `${d.sender_name} · ${title}` : title,
+				body: erpnext.chat_sound.message_body(d.content_type, d.message, d.is_encrypted),
+				tag: "ec-" + d.thread,
+				route: `employee-chat?thread=${encodeURIComponent(d.thread)}`,
+			};
 		} else {
 			if (window.__chat_debug)
 				console.log("[chat] ring: event ignored (not an incoming/foreign message)", d);
 			return;
 		}
-		erpnext.chat_sound.play(chat && chat.muted);
+		erpnext.chat_sound.play(chat && chat.muted, info);
 	}
 
 	render_sound_toggle() {
