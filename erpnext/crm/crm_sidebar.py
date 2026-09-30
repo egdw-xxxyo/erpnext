@@ -1,4 +1,4 @@
-"""Our chat pages in the stock CRM sidebar. See `erpnext.setup.sidebar_links`."""
+"""Our chat pages (and the WhatsApp overview / access pages) in the stock CRM sidebar. See `erpnext.setup.sidebar_links`."""
 
 from erpnext.setup.sidebar_links import add_links
 
@@ -11,6 +11,18 @@ LINKS = (
 		"link_to": "whatsapp-chat-center",
 		"link_type": "Page",
 		"icon": "message-circle",
+	},
+	{
+		"label": "WhatsApp Overview",
+		"link_to": "whatsapp-overview",
+		"link_type": "Page",
+		"icon": "layout-dashboard",
+	},
+	{
+		"label": "WhatsApp Access",
+		"link_to": "whatsapp-access",
+		"link_type": "Page",
+		"icon": "users",
 	},
 )
 

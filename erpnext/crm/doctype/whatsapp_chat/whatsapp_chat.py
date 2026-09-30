@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_datetime
 
@@ -11,7 +12,19 @@ PREVIEW_LENGTH = 200
 
 class WhatsAppChat(Document):
 	def validate(self):
+		self._validate_unique_per_number()
 		self._prune_dead_links()
+
+	def _validate_unique_per_number(self):
+		"""One chat per customer per business number."""
+		filters = {"whatsapp_account": self.whatsapp_account, "phone": self.phone}
+		if self.name:
+			filters["name"] = ["!=", self.name]
+		duplicate = frappe.db.exists("WhatsApp Chat", filters)
+		if duplicate:
+			frappe.throw(
+				_("A chat with {0} on this WhatsApp number already exists: {1}").format(self.phone, duplicate)
+			)
 
 	def _prune_dead_links(self):
 		"""Drop link rows whose target document no longer exists, so a deleted
@@ -41,21 +54,58 @@ def _peer_number(doc):
 	return doc.get("to")
 
 
+def find_chat(account, phone):
+	return frappe.db.get_value("WhatsApp Chat", {"whatsapp_account": account, "phone": phone}, "name")
+
+
+def get_or_create_chat(account, phone):
+	"""The chat for `phone` on business number `account`, created empty if missing."""
+	name = find_chat(account, phone)
+	if name:
+		return frappe.get_doc("WhatsApp Chat", name)
+	chat = frappe.new_doc("WhatsApp Chat")
+	chat.whatsapp_account = account
+	chat.phone = phone
+	chat.chat_type = "Personal"
+	chat.title = phone
+	_resolve_contact(chat)
+	chat.insert(ignore_permissions=True)
+	return chat
+
+
+def _resolve_contact(chat):
+	if chat.contact:
+		return
+	try:
+		from frappe.contacts.doctype.contact.contact import get_contact_with_phone_number
+
+		contact = get_contact_with_phone_number(chat.phone)
+	except Exception:
+		contact = None
+	if contact:
+		chat.contact = contact
+		title = frappe.db.get_value("Contact", contact, "full_name")
+		if title:
+			chat.title = title
+
+
 def sync_chat_from_message(doc):
-	"""Upsert a WhatsApp Chat for the message's peer number, resolve its Contact,
-	seed identity links (Contact + its Lead/Customer) and bump last_message_on.
+	"""Upsert the WhatsApp Chat for the message's (business number, peer number), resolve
+	its Contact, seed identity links (Contact + its Lead/Customer) and bump last_message_on.
 
 	Cheap and idempotent — safe to run on every message insert/update.
 	"""
 	number = _peer_number(doc)
-	if not number:
+	account = doc.get("whatsapp_account")
+	if not number or not account:
 		return None
 
-	name = frappe.db.exists("WhatsApp Chat", {"phone": number})
+	name = find_chat(account, number)
 	if name:
 		chat = frappe.get_doc("WhatsApp Chat", name)
 	else:
 		chat = frappe.new_doc("WhatsApp Chat")
+		chat.whatsapp_account = account
 		chat.phone = number
 		chat.chat_type = "Personal"
 
@@ -76,7 +126,7 @@ def sync_chat_from_message(doc):
 		contact_name = frappe.db.get_value("Contact", chat.contact, "full_name")
 	if contact_name:
 		chat.title = contact_name
-	elif not chat.title:
+	elif not chat.title or chat.title == number:
 		chat.title = doc.get("profile_name") or number
 
 	# Seed identity links: the Contact itself + its linked Lead/Customer.
@@ -112,6 +162,7 @@ def backfill_previews(chats):
 		if needs_preview:
 			last = frappe.get_all(
 				"WhatsApp Message",
+				filters={"whatsapp_account": chat.get("whatsapp_account")},
 				or_filters=[
 					["WhatsApp Message", "from", "=", chat["phone"]],
 					["WhatsApp Message", "to", "=", chat["phone"]],
@@ -130,6 +181,7 @@ def backfill_previews(chats):
 			profile = frappe.get_all(
 				"WhatsApp Message",
 				filters=[
+					["WhatsApp Message", "whatsapp_account", "=", chat.get("whatsapp_account")],
 					["WhatsApp Message", "from", "=", chat["phone"]],
 					["WhatsApp Message", "type", "=", "Incoming"],
 					["WhatsApp Message", "profile_name", "is", "set"],
@@ -148,3 +200,7 @@ def backfill_previews(chats):
 
 	if touched:
 		frappe.db.commit()
+
+
+def on_doctype_update():
+	frappe.db.add_index("WhatsApp Chat", ["whatsapp_account", "phone"])

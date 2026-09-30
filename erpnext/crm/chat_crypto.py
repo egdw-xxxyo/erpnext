@@ -198,9 +198,9 @@ def revoke_device(name):
 def _assert_thread_member(thread, thread_doctype):
 	"""Only a participant may read or hand out that thread's wrapped keys."""
 	if thread_doctype == "WhatsApp Chat":
-		from erpnext.crm.page.whatsapp_chat.whatsapp_chat import _require_wa_access
+		from erpnext.crm.whatsapp_access import require_chat
 
-		_require_wa_access()
+		require_chat(thread)
 		return
 
 	from erpnext.crm.page.employee_chat.employee_chat import _require_participant

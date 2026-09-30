@@ -5,7 +5,7 @@ frappe.ui.form.on("WhatsApp Chat", {
 	refresh(frm) {
 		if (frm.is_new()) return;
 		frm.add_custom_button(__("Open Chat"), () => {
-			window.location.href = `/app/whatsapp-chat-center?phone=${encodeURIComponent(frm.doc.phone)}`;
+			window.location.href = `/app/whatsapp-chat-center?chat=${encodeURIComponent(frm.doc.name)}`;
 		}).addClass("btn-primary");
 	},
 });

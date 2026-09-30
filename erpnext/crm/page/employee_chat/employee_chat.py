@@ -637,9 +637,10 @@ def open_document_thread(reference_doctype: str, reference_name: str):
 
 
 @frappe.whitelist()
-def get_messages(thread: str, before: str | None = None, limit: int = 50):
+def get_messages(thread: str, before: str | None = None, limit: int = 50, after: str | None = None):
 	"""Keyset-paginated message history (oldest-first in the returned batch). Pass the
-	`creation` of the oldest loaded message as `before` to page backwards."""
+	`creation` of the oldest loaded message as `before` to page backwards, or of a recent
+	one as `after` to fetch what arrived (or changed) since."""
 	doc = _require_participant(thread)
 	# A deep-archived chat holds nothing until it is unpacked; hand back an empty history so the
 	# client draws the archive banner instead of an empty conversation.
@@ -652,6 +653,8 @@ def get_messages(thread: str, before: str | None = None, limit: int = 50):
 	filters = [["Chat Message", "thread", "=", thread]]
 	if before:
 		filters.append(["Chat Message", "creation", "<", before])
+	if after:
+		filters.append(["Chat Message", "creation", ">=", after])
 
 	rows = frappe.db.get_all(
 		"Chat Message",
@@ -671,10 +674,11 @@ def get_messages(thread: str, before: str | None = None, limit: int = 50):
 			"enc_version",
 			"creation",
 		],
-		order_by="creation desc",
+		order_by="creation asc" if after else "creation desc",
 		limit=int(limit),
 	)
-	rows.reverse()
+	if not after:
+		rows.reverse()
 	name_cache = {}
 	return _annotate_removed([_message_payload(r, name_cache) for r in rows])
 
