@@ -149,9 +149,13 @@ def sync_chat_from_message(doc):
 
 	reopen_conversation(chat, doc)
 
-	chat.last_message_on = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
-	chat.last_preview = (doc.get("message") or "")[:PREVIEW_LENGTH]
-	chat.last_content_type = doc.get("content_type")
+	# on_update runs for older messages too (status, downloaded media): only the newest
+	# message moves the chat's time and preview.
+	created = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
+	if not chat.last_message_on or created >= get_datetime(chat.last_message_on):
+		chat.last_message_on = created
+		chat.last_preview = (doc.get("message") or "")[:PREVIEW_LENGTH]
+		chat.last_content_type = doc.get("content_type")
 
 	chat.save(ignore_permissions=True)
 	return chat.name
