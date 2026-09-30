@@ -373,16 +373,20 @@ def _ensure_roles():
 
 def _ensure_role_profiles():
 	for profile_name, roles in ROLE_PROFILES.items():
-		if frappe.db.exists("Role Profile", profile_name):
+		is_new = not frappe.db.exists("Role Profile", profile_name)
+		if not is_new:
 			doc = frappe.get_doc("Role Profile", profile_name)
 		else:
 			doc = frappe.new_doc("Role Profile")
 			doc.role_profile = profile_name
+		changed = is_new
 		existing_roles = {row.role for row in doc.get("roles") or []}
 		for role in roles:
 			if role not in existing_roles:
 				doc.append("roles", {"role": role})
-		_save(doc)
+				changed = True
+		if changed:
+			_save(doc)
 
 
 def _ensure_permissions():
@@ -486,17 +490,24 @@ def _ensure_procurement_assignment_rules():
 		else:
 			doc = frappe.get_doc("Assignment Rule", spec["name"])
 
-		doc.document_type = spec["document_type"]
-		doc.priority = spec["priority"]
-		# Assignment lifecycle is handled explicitly so completed stages can close
-		# their ToDos without sending a misleading assignment-removal notification.
-		doc.disabled = 1
-		doc.description = spec["description"]
-		doc.assign_condition = spec["condition"]
-		doc.unassign_condition = spec["unassign_condition"]
-		doc.close_condition = spec["close_condition"]
-		doc.rule = spec.get("rule", "Round Robin")
-		doc.field = spec.get("field")
+		changed = is_new
+		values = {
+			"document_type": spec["document_type"],
+			"priority": spec["priority"],
+			# Assignment lifecycle is handled explicitly so completed stages can close
+			# their ToDos without sending a misleading assignment-removal notification.
+			"disabled": 1,
+			"description": spec["description"],
+			"assign_condition": spec["condition"],
+			"unassign_condition": spec["unassign_condition"],
+			"close_condition": spec["close_condition"],
+			"rule": spec.get("rule", "Round Robin"),
+			"field": spec.get("field"),
+		}
+		for fieldname, value in values.items():
+			if doc.get(fieldname) != value:
+				doc.set(fieldname, value)
+				changed = True
 		# Assignees configured in Desk are operational data. Seed one valid user only
 		# when a rule is first created and never overwrite later administrator changes.
 		if is_new and doc.rule == "Round Robin":
@@ -507,8 +518,11 @@ def _ensure_procurement_assignment_rules():
 					for user in _get_default_role_users(spec["role"], role_profile=spec.get("role_profile"))
 				],
 			)
-		doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
-		_save(doc)
+		if [row.day for row in doc.get("assignment_days") or []] != list(ALL_ASSIGNMENT_DAYS):
+			doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
+			changed = True
+		if changed:
+			_save(doc)
 
 
 def _get_default_role_users(role, role_profile=None):
@@ -559,23 +573,47 @@ def _ensure_workflow_actions():
 def _ensure_workflow():
 	if frappe.db.exists("Workflow", LEGACY_WORKFLOW_NAME):
 		legacy_workflow = frappe.get_doc("Workflow", LEGACY_WORKFLOW_NAME)
-		legacy_workflow.is_active = 0
-		_save(legacy_workflow)
+		if legacy_workflow.is_active:
+			legacy_workflow.is_active = 0
+			_save(legacy_workflow)
 
-	if frappe.db.exists("Workflow", WORKFLOW_NAME):
+	is_new = not frappe.db.exists("Workflow", WORKFLOW_NAME)
+	if not is_new:
 		doc = frappe.get_doc("Workflow", WORKFLOW_NAME)
 	else:
 		doc = frappe.new_doc("Workflow")
 		doc.workflow_name = WORKFLOW_NAME
 
-	doc.document_type = CONSOLIDATED_PURCHASE_ORDER_DOCTYPE
-	doc.is_active = 1
-	doc.override_status = 0
-	doc.send_email_alert = 0
-	doc.workflow_state_field = "workflow_state"
-	doc.set("states", list(WORKFLOW_DOCUMENT_STATES))
-	doc.set("transitions", list(WORKFLOW_TRANSITIONS))
-	_save(doc)
+	changed = is_new
+	values = {
+		"document_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		"is_active": 1,
+		"override_status": 0,
+		"send_email_alert": 0,
+		"workflow_state_field": "workflow_state",
+	}
+	for fieldname, value in values.items():
+		if doc.get(fieldname) != value:
+			doc.set(fieldname, value)
+			changed = True
+	if not _child_table_matches(doc.get("states"), WORKFLOW_DOCUMENT_STATES):
+		doc.set("states", list(WORKFLOW_DOCUMENT_STATES))
+		changed = True
+	if not _child_table_matches(doc.get("transitions"), WORKFLOW_TRANSITIONS):
+		doc.set("transitions", list(WORKFLOW_TRANSITIONS))
+		changed = True
+	if changed:
+		_save(doc)
+
+
+def _child_table_matches(current_rows, expected_rows):
+	current_rows = current_rows or []
+	if len(current_rows) != len(expected_rows):
+		return False
+	return all(
+		all(current.get(fieldname) == value for fieldname, value in expected.items())
+		for current, expected in zip(current_rows, expected_rows, strict=True)
+	)
 
 
 def _save(doc):
