@@ -117,15 +117,10 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 					: null,
 				search_text: `${c.phone} ${label}`,
 				list_badge_html: "",
+				// The business number is the list group this chat sits in; the header keeps
+				// to the customer.
 				header_sub:
-					(c.title && c.title !== c.phone
-						? `+${frappe.utils.escape_html(c.phone)}`
-						: __("WhatsApp")) +
-					`<span class="cv-chip" title="${
-						this.watch ? __("WhatsApp number") : __("You write from this number")
-					}"><i class="fa fa-whatsapp"></i>${frappe.utils.escape_html(
-						__("via {0}", [label])
-					)}</span>`,
+					c.title && c.title !== c.phone ? `+${frappe.utils.escape_html(c.phone)}` : __("WhatsApp"),
 			};
 		});
 		return this.chats;
@@ -590,7 +585,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			avatar: chat.avatar && chat.avatar.image,
 			avatar_key: info.phone,
 			on_title_click: open_person,
-			subtitle: `+${info.phone} · ${__("via {0}", [info.number_label])}`,
+			subtitle: `+${info.phone}`,
 			actions: [
 				{
 					label: info.muted ? __("Unmute chat") : __("Mute chat"),
@@ -659,17 +654,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				)}</button>
 			</div>`;
 		$el.html(`
-			<h6>${__("WhatsApp number")}</h6>
-			<div class="cv-side-ent">${E.number(
-				{
-					name: ctx.whatsapp_account,
-					verified_name: ctx.verified_name,
-					account_name: ctx.account_name,
-					display_phone_number: ctx.number_label,
-					profile_image: ctx.number_image,
-				},
-				{ size: 32 }
-			)}${read_only ? `<span class="text-muted cv-side-note">${__("read only")}</span>` : ""}</div>
+			${read_only ? `<div class="text-muted cv-side-note">${__("read only")}</div>` : ""}
 			${actions}
 			<h6>${__("Linked Documents")}</h6>
 			<div>${linked}</div>
