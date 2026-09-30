@@ -18,10 +18,12 @@
   "column_break_main",
   "transaction_date",
   "currency",
+  "set_schedule_date",
   "column_break_lead_buyer",
   "request_initiator_html",
   "request_initiator_user",
   "lead_buyer_html",
+  "set_warehouse",
   "initiator_user",
   "material_request_comments_section",
   "material_request_comments_html",
@@ -147,6 +149,17 @@
    "fieldtype": "Link",
    "label": "Set Supplier",
    "options": "Supplier"
+  },
+  {
+   "fieldname": "set_schedule_date",
+   "fieldtype": "Date",
+   "label": "Required By"
+  },
+  {
+   "fieldname": "set_warehouse",
+   "fieldtype": "Link",
+   "label": "Target Warehouse",
+   "options": "Warehouse"
   },
   {
    "fieldname": "approval_route_section",

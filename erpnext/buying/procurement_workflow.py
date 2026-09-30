@@ -255,6 +255,9 @@ BUYER_OWNER_PERMISSIONS = (
 )
 
 DOCTYPE_PERMISSIONS = {
+	"Employee": {
+		BUYER_ROLE: READ_ONLY_PERMISSIONS,
+	},
 	"Material Request": {
 		MATERIAL_REQUEST_INITIATOR_ROLE: (
 			"select",
