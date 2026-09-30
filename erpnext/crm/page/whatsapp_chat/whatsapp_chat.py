@@ -265,6 +265,14 @@ def mark_read(chat, upto=None):
 
 	_set_chat_state(chat, {"last_read_on": ts})
 
+	# The customer sees blue ticks only when someone who answers the number has read it;
+	# a spectator reading along leaves the messages unread on their side.
+	chat_doc = frappe.get_doc("WhatsApp Chat", chat)
+	if wa_access.can_access(chat_doc.whatsapp_account, write=True):
+		from erpnext.crm.whatsapp_meta import queue_read_receipt
+
+		queue_read_receipt(chat_doc, upto=ts)
+
 	# Other tabs of the same user (chat page, chat bubble) drop their badge at once.
 	frappe.publish_realtime(
 		event="whatsapp_read",
@@ -273,6 +281,30 @@ def mark_read(chat, upto=None):
 		after_commit=True,
 	)
 	return {"last_read_on": str(ts)}
+
+
+# Meta keeps "typing…" up to 25 s after one indicator; re-sending sooner is wasted calls.
+META_TYPING_TTL = 20
+
+
+@frappe.whitelist()
+def notify_typing(chat):
+	"""A manager is typing: colleagues on the same number see who, and the customer sees
+	"typing…" (which, on Meta's side, also marks their messages read)."""
+	chat = wa_access.require_chat(chat, write=True)
+	me = frappe.session.user
+	payload = {"chat": chat.name, "user": me, "full_name": frappe.utils.get_fullname(me)}
+	for user in wa_access.users_for_account(chat.whatsapp_account):
+		if user != me:
+			frappe.publish_realtime(event="whatsapp_typing", message=payload, user=user)
+
+	key = f"whatsapp_typing:{chat.name}"
+	if frappe.cache.get_value(key):
+		return
+	frappe.cache.set_value(key, 1, expires_in_sec=META_TYPING_TTL)
+	from erpnext.crm.whatsapp_meta import queue_read_receipt
+
+	queue_read_receipt(chat, typing=True)
 
 
 def _number_info(chat):
@@ -540,6 +572,7 @@ MESSAGE_FIELDS = [
 	"message_id",
 	"reply_to_message_id",
 	"is_reply",
+	"owner",
 ]
 
 
@@ -585,6 +618,14 @@ def get_messages(chat, before=None, after=None, limit=50):
 	# A number messaging itself would match both branches.
 	seen = set()
 	rows = [r for r in rows if not (r["name"] in seen or seen.add(r["name"]))]
+
+	# Several managers answer one number: outgoing messages say who sent them.
+	names = {}
+	for r in rows:
+		if r["type"] == "Outgoing":
+			if r["owner"] not in names:
+				names[r["owner"]] = frappe.utils.get_fullname(r["owner"])
+			r["sender_name"] = names[r["owner"]]
 
 	if not after:
 		rows.reverse()

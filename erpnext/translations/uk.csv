@@ -15388,3 +15388,7 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Working hours for WhatsApp reply statistics","Робочі години для статистики відповідей у WhatsApp"
 "Days off excluded from reply-time statistics. Empty: the default company's holiday list.","Вихідні дні, що не враховуються в статистиці відповідей. Порожньо — список вихідних типової компанії."
 "Reply times and waiting times in the WhatsApp Overview count only these hours.","Час відповіді й очікування в Огляді WhatsApp рахується лише в ці години."
+"This chat is read only","Цей чат лише для перегляду"
+"Go to replied message","Перейти до повідомлення, на яке відповіли"
+"Open WhatsApp Message","Відкрити повідомлення WhatsApp"
+"{0} is typing…","{0} друкує…"
