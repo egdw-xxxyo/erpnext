@@ -39,6 +39,12 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		frm.set_query("related_supplier", "items", (doc, cdt, cdn) =>
 			get_supplier_pair_query(locals[cdt][cdn].supplier, "related_supplier")
 		);
+		frm.set_query("set_warehouse", () => ({
+			filters: {
+				company: frm.doc.company,
+				is_group: 0,
+			},
+		}));
 	},
 
 	refresh(frm) {
@@ -205,10 +211,15 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 	},
 
 	set_supplier(frm) {
-		if (!frm.doc.set_supplier) return;
-		(frm.doc.items || []).forEach((row) => {
-			frappe.model.set_value(row.doctype, row.name, "supplier", frm.doc.set_supplier);
-		});
+		set_value_for_all_consolidated_items(frm, "set_supplier", "supplier");
+	},
+
+	set_schedule_date(frm) {
+		set_value_for_all_consolidated_items(frm, "set_schedule_date", "schedule_date");
+	},
+
+	set_warehouse(frm) {
+		set_value_for_all_consolidated_items(frm, "set_warehouse", "warehouse");
 	},
 
 	render_purchase_orders(frm) {
@@ -456,8 +467,14 @@ function set_procurement_status_indicator(frm) {
 
 frappe.ui.form.on("Consolidated Purchase Order Item", {
 	items_add(frm, cdt, cdn) {
-		if (frm.doc.set_supplier) {
-			frappe.model.set_value(cdt, cdn, "supplier", frm.doc.set_supplier);
+		for (const [parent_field, child_field] of [
+			["set_supplier", "supplier"],
+			["set_schedule_date", "schedule_date"],
+			["set_warehouse", "warehouse"],
+		]) {
+			if (frm.doc[parent_field]) {
+				frappe.model.set_value(cdt, cdn, child_field, frm.doc[parent_field]);
+			}
 		}
 		frm.trigger("render_supplier_contacts");
 	},
@@ -474,6 +491,14 @@ frappe.ui.form.on("Consolidated Purchase Order Item", {
 		calculate_consolidated_item(frm, cdt, cdn);
 	},
 });
+
+function set_value_for_all_consolidated_items(frm, parent_field, child_field) {
+	const value = frm.doc[parent_field];
+	if (!value) return;
+	(frm.doc.items || []).forEach((row) => {
+		frappe.model.set_value(row.doctype, row.name, child_field, value);
+	});
+}
 
 frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
 	invoice_pdf(frm, cdt, cdn) {
@@ -672,7 +697,10 @@ function render_supplier_contacts(frm) {
 	const suppliers = get_order_suppliers(frm).filter(Boolean);
 	frm.set_df_property("supplier_contacts_section", "hidden", suppliers.length ? 0 : 1);
 	frm.set_df_property("supplier_contacts_html", "hidden", suppliers.length ? 0 : 1);
-	if (!suppliers.length) return;
+	if (!suppliers.length) {
+		frm.__supplier_contacts_expanded = false;
+		return;
+	}
 
 	frappe
 		.call({
@@ -711,9 +739,9 @@ function render_supplier_contacts(frm) {
 			const layout_section = (frm.layout?.sections || []).find(
 				(row) => row.df.fieldname === "supplier_contacts_section"
 			);
-			if (!frm.__supplier_contacts_collapsed && layout_section) {
-				layout_section.collapse(true);
-				frm.__supplier_contacts_collapsed = true;
+			if (!frm.__supplier_contacts_expanded && layout_section) {
+				layout_section.collapse(false);
+				frm.__supplier_contacts_expanded = true;
 			}
 		});
 }

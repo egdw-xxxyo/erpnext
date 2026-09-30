@@ -36,12 +36,28 @@ from erpnext.buying.procurement_automation import (
 	notify_procurement_receipt,
 	sync_all_current_assignee_names,
 )
-from erpnext.buying.procurement_workflow import _remove_obsolete_purchase_order_permissions
+from erpnext.buying.procurement_workflow import (
+	BUYER_ROLE,
+	DOCTYPE_PERMISSIONS,
+	READ_ONLY_PERMISSIONS,
+	_remove_obsolete_purchase_order_permissions,
+)
 from erpnext.buying.procurement_workflow_reason import _apply_creator_department_approval
 from erpnext.setup.procurement_workflow_setup import CUSTOM_FIELDS
 
 
 class TestProcurementAutomation(FrappeTestCase):
+	def test_buyer_can_read_employees(self):
+		self.assertEqual(DOCTYPE_PERMISSIONS["Employee"][BUYER_ROLE], READ_ONLY_PERMISSIONS)
+
+	def test_purchase_invoice_has_responsible_employee_bulk_and_item_fields(self):
+		parent_fields = {field["fieldname"]: field for field in CUSTOM_FIELDS["Purchase Invoice"]}
+		item_fields = {field["fieldname"]: field for field in CUSTOM_FIELDS["Purchase Invoice Item"]}
+
+		self.assertEqual(parent_fields["custom_set_responsible_employee"]["options"], "Employee")
+		self.assertEqual(parent_fields["custom_set_responsible_employee"]["insert_after"], "due_date")
+		self.assertEqual(item_fields["responsible_employee"]["in_list_view"], 1)
+
 	@patch("erpnext.buying.procurement_assignment.frappe.msgprint")
 	@patch(
 		"erpnext.buying.procurement_assignment.frappe.get_cached_value",

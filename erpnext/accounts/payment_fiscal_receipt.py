@@ -7,6 +7,7 @@ PAYMENT_ENTRY_DOCTYPE = "Payment Entry"
 PAYMENT_REQUEST_DOCTYPE = "Payment Request"
 RECEIPT_FIELD = "custom_fiscal_receipt"
 RECEIPT_STATUS_FIELD = "custom_fiscal_receipt_status"
+RECEIPT_URL_FIELD = "custom_payment_instruction_url"
 RECEIPT_ADDED = "Додано"
 RECEIPT_MISSING = "Відсутній"
 RECEIPT_PARTIAL = "Частково"
@@ -57,32 +58,46 @@ frappe.ui.form.on("Payment Entry", {
 
 LIST_CLIENT_SCRIPT = r"""
 const paymentEntryListSettings = frappe.listview_settings["Payment Entry"] || {};
+paymentEntryListSettings.add_fields = Array.from(new Set([
+	...(paymentEntryListSettings.add_fields || []),
+	"custom_fiscal_receipt",
+]));
 paymentEntryListSettings.formatters = paymentEntryListSettings.formatters || {};
-paymentEntryListSettings.formatters.custom_fiscal_receipt_status = function (value) {
-	const receiptStatus = value || "Відсутній";
-	const colour = receiptStatus === "Додано" ? "green" : "gray";
-	const escapedStatus = frappe.utils.escape_html(receiptStatus);
-	return `
-		<span class="filterable indicator-pill ${colour} ellipsis"
-			data-filter="custom_fiscal_receipt_status,=,${escapedStatus}">
-			<span class="ellipsis">${__(receiptStatus)}</span>
-		</span>`;
+paymentEntryListSettings.formatters.custom_fiscal_receipt_status = function (value, df, doc) {
+	const instructionUrl = doc?.custom_fiscal_receipt;
+	if (!instructionUrl) {
+		return `<span class="indicator-pill gray ellipsis"><span class="ellipsis">${__(
+			"Payment instruction is missing"
+		)}</span></span>`;
+	}
+	const escapedUrl = frappe.utils.escape_html(instructionUrl);
+	return `<a class="indicator-pill green ellipsis" href="${escapedUrl}" target="_blank"
+		onclick="event.stopPropagation()"
+		rel="noopener noreferrer" title="${__("Open payment instruction")}">
+		<span class="ellipsis">${__("Open payment instruction")}</span></a>`;
 };
 frappe.listview_settings["Payment Entry"] = paymentEntryListSettings;
 """.strip()
 
 PAYMENT_REQUEST_LIST_CLIENT_SCRIPT = r"""
 const paymentRequestListSettings = frappe.listview_settings["Payment Request"] || {};
+paymentRequestListSettings.add_fields = Array.from(new Set([
+	...(paymentRequestListSettings.add_fields || []),
+	"custom_payment_instruction_url",
+]));
 paymentRequestListSettings.formatters = paymentRequestListSettings.formatters || {};
-paymentRequestListSettings.formatters.custom_fiscal_receipt_status = function (value) {
-	const receiptStatus = value || "Відсутній";
-	const colour = receiptStatus === "Додано" ? "green" : receiptStatus === "Частково" ? "orange" : "gray";
-	const escapedStatus = frappe.utils.escape_html(receiptStatus);
-	return `
-		<span class="filterable indicator-pill ${colour} ellipsis"
-			data-filter="custom_fiscal_receipt_status,=,${escapedStatus}">
-			<span class="ellipsis">${__(receiptStatus)}</span>
-		</span>`;
+paymentRequestListSettings.formatters.custom_fiscal_receipt_status = function (value, df, doc) {
+	const instructionUrl = doc?.custom_payment_instruction_url;
+	if (!instructionUrl) {
+		return `<span class="indicator-pill gray ellipsis"><span class="ellipsis">${__(
+			"Payment instruction is missing"
+		)}</span></span>`;
+	}
+	const escapedUrl = frappe.utils.escape_html(instructionUrl);
+	return `<a class="indicator-pill green ellipsis" href="${escapedUrl}" target="_blank"
+		onclick="event.stopPropagation()"
+		rel="noopener noreferrer" title="${__("Open payment instruction")}">
+		<span class="ellipsis">${__("Open payment instruction")}</span></a>`;
 };
 frappe.listview_settings["Payment Request"] = paymentRequestListSettings;
 """.strip()
@@ -150,6 +165,32 @@ def _get_linked_payment_requests(payment_entry):
 
 
 def _update_payment_request_receipt_status(payment_request):
+	payment_entries = set(
+		frappe.get_all(
+			"Payment Entry Reference",
+			filters={
+				"payment_request": payment_request,
+				"parenttype": PAYMENT_ENTRY_DOCTYPE,
+				"docstatus": 1,
+			},
+			pluck="parent",
+		)
+	)
+	receipt_rows = (
+		frappe.get_all(
+			PAYMENT_ENTRY_DOCTYPE,
+			filters={
+				"name": ["in", payment_entries],
+				"docstatus": 1,
+				RECEIPT_FIELD: ["is", "set"],
+			},
+			fields=[RECEIPT_FIELD],
+			order_by="modified desc",
+		)
+		if payment_entries
+		else []
+	)
+	receipt_url = receipt_rows[0].get(RECEIPT_FIELD) if receipt_rows else ""
 	payment_request_status = frappe.db.get_value(
 		PAYMENT_REQUEST_DOCTYPE,
 		payment_request,
@@ -158,29 +199,7 @@ def _update_payment_request_receipt_status(payment_request):
 	if payment_request_status != "Paid":
 		status = ""
 	else:
-		payment_entries = set(
-			frappe.get_all(
-				"Payment Entry Reference",
-				filters={
-					"payment_request": payment_request,
-					"parenttype": PAYMENT_ENTRY_DOCTYPE,
-					"docstatus": 1,
-				},
-				pluck="parent",
-			)
-		)
-		receipt_count = (
-			frappe.db.count(
-				PAYMENT_ENTRY_DOCTYPE,
-				{
-					"name": ["in", payment_entries],
-					"docstatus": 1,
-					RECEIPT_FIELD: ["is", "set"],
-				},
-			)
-			if payment_entries
-			else 0
-		)
+		receipt_count = len(receipt_rows)
 		if not receipt_count:
 			status = RECEIPT_MISSING
 		elif receipt_count == len(payment_entries):
@@ -188,13 +207,10 @@ def _update_payment_request_receipt_status(payment_request):
 		else:
 			status = RECEIPT_PARTIAL
 
-	frappe.db.set_value(
-		PAYMENT_REQUEST_DOCTYPE,
-		payment_request,
-		RECEIPT_STATUS_FIELD,
-		status,
-		update_modified=False,
-	)
+	values = {RECEIPT_STATUS_FIELD: status}
+	if frappe.db.has_column(PAYMENT_REQUEST_DOCTYPE, RECEIPT_URL_FIELD):
+		values[RECEIPT_URL_FIELD] = receipt_url
+	frappe.db.set_value(PAYMENT_REQUEST_DOCTYPE, payment_request, values, update_modified=False)
 
 
 def _validate_file_extension(file_url):

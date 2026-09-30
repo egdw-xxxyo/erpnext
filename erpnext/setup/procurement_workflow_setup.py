@@ -199,7 +199,28 @@ CUSTOM_FIELDS = {
 			"insert_after": "material_request_item",
 		},
 	],
+	"Purchase Invoice Item": [
+		{
+			"fieldname": "responsible_employee",
+			"fieldtype": "Link",
+			"label": "Target Responsible Employee",
+			"options": "Employee",
+			"insert_after": "warehouse",
+			"in_list_view": 1,
+			"columns": 2,
+			"ignore_user_permissions": 1,
+		},
+	],
 	"Purchase Invoice": [
+		{
+			"fieldname": "custom_set_responsible_employee",
+			"fieldtype": "Link",
+			"label": "Target Responsible Employee",
+			"options": "Employee",
+			"ignore_user_permissions": 1,
+			"no_copy": 1,
+			"insert_after": "due_date",
+		},
 		{
 			"fieldname": "custom_consolidated_purchase_order",
 			"fieldtype": "Link",
