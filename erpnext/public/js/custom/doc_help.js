@@ -57,8 +57,10 @@ erpnext.doc_help.show = async function (doctype) {
 	}
 
 	const $content = $(`<div class="doc-help-content"></div>`).html(help.html);
+	$content.children("h1").first().remove();
 	$content.find("a[href]").attr({ target: "_blank", rel: "noopener" });
 	dialog.fields_dict.content.$wrapper.empty().append($content);
+	dialog.$wrapper.addClass("doc-help-dialog");
 	dialog.show();
 };
 
@@ -109,6 +111,8 @@ frappe.views.ListView.prototype.setup_page_head = function () {
 
 frappe.dom.set_style(`
 	.doc-help-btn--empty { opacity: 0.45; }
+	.doc-help-dialog .modal-dialog { margin-top: 24px; margin-bottom: 24px; }
+	.doc-help-dialog .modal-body { max-height: calc(100vh - 180px); overflow-y: auto; }
 	.doc-help-content { font-size: var(--text-base); line-height: 1.6; }
 	.doc-help-content img, .doc-help-content video { max-width: 100%; height: auto; }
 	.doc-help-content pre { white-space: pre-wrap; }
