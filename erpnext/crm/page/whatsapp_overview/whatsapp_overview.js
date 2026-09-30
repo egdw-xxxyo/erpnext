@@ -79,7 +79,9 @@ class WhatsAppOverview {
 	make() {
 		this.page.set_primary_action(__("Refresh"), () => this.refresh(), "refresh");
 		this.page.add_inner_button(__("Auto-refresh"), () => this.toggle_auto());
-		this.page.add_inner_button(__("Chats"), () => frappe.set_route("whatsapp-chat-center"));
+		this.page.add_inner_button(__("WhatsApp Chat Monitor"), () =>
+			frappe.set_route("whatsapp-chat-monitor")
+		);
 		this.period_field = this.page.add_field({
 			fieldname: "period",
 			fieldtype: "Select",
@@ -128,7 +130,8 @@ class WhatsAppOverview {
 		this.$body.on("click", ".wao-open-chat", (e) => {
 			e.preventDefault();
 			const chat = $(e.currentTarget).data("chat");
-			if (chat) frappe.set_route("whatsapp-chat-center", { chat });
+			const account = $(e.currentTarget).data("account") || this.number;
+			if (chat) frappe.set_route(this.chat_page(account), { chat });
 		});
 		this.$body.on("click", "[data-number]", (e) => {
 			const $inner = $(e.target).closest("a[href], button, select, .wao-open-chat");
@@ -138,6 +141,13 @@ class WhatsAppOverview {
 		});
 		this.bind_number_actions();
 		this.bind_employee_actions();
+	}
+
+	// A chat opens where the user can act on it: the WhatsApp Chat page for numbers they
+	// answer, the read-only monitor for the rest.
+	chat_page(account) {
+		const mine = (frappe.boot.whatsapp_accounts || []).some((n) => n.name === account);
+		return mine ? "whatsapp-chat-center" : "whatsapp-chat-monitor";
 	}
 
 	// /app/whatsapp-overview → tabs; /app/whatsapp-overview/number/<account> → number card.
@@ -564,7 +574,9 @@ class WhatsAppOverview {
 				.map(
 					(p) => `
 				<div class="wao-pending-row">
-					<a href="#" class="wao-open-chat" data-chat="${esc(p.chat || "")}">${esc(p.title)}</a>
+					<a href="#" class="wao-open-chat" data-chat="${esc(p.chat || "")}" data-account="${esc(
+						p.whatsapp_account
+					)}">${esc(p.title)}</a>
 					<span class="text-muted wao-small wao-preview">${esc(p.preview)}</span>
 					<span class="wao-wait">${wao_duration(p.waiting)}</span>
 				</div>`
@@ -705,7 +717,7 @@ class WhatsAppOverview {
 			frappe.set_route("whatsapp-overview");
 		});
 		this.$body.on("click", ".wao-chats", () =>
-			frappe.set_route("whatsapp-chat-center", { number: account() })
+			frappe.set_route(this.chat_page(account()), { number: account() })
 		);
 		this.$body.on("click", ".wao-account", () => frappe.set_route("Form", "WhatsApp Account", account()));
 		this.$body.on("click", ".wao-sync", () =>
@@ -928,9 +940,9 @@ class WhatsAppOverview {
 				<tr>
 					<td>${
 						p.chat
-							? `<a href="#" class="wao-open-chat" data-chat="${this.esc(p.chat)}">${this.esc(
-									p.title
-							  )}</a>`
+							? `<a href="#" class="wao-open-chat" data-chat="${this.esc(
+									p.chat
+							  )}" data-account="${this.esc(p.whatsapp_account)}">${this.esc(p.title)}</a>`
 							: this.esc(p.title)
 					}<div class="text-muted wao-small">+${this.esc(p.phone)}</div></td>
 					<td><a href="#" data-number="${this.esc(p.whatsapp_account)}">${this.esc(p.number_label)}</a></td>

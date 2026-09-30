@@ -10,6 +10,9 @@ frappe.pages["whatsapp-chat-center"].on_page_load = function (wrapper) {
 	if (frappe.boot.whatsapp_manager) {
 		page.add_menu_item(__("WhatsApp Overview"), () => frappe.set_route("whatsapp-overview"));
 	}
+	if ((frappe.boot.whatsapp_watch || []).length) {
+		page.add_menu_item(__("WhatsApp Chat Monitor"), () => frappe.set_route("whatsapp-chat-monitor"));
+	}
 	wrapper.chat_view = new erpnext.chat_view.ChatView(page, new erpnext.chat_sources.WhatsApp());
 };
 

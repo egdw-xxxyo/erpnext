@@ -1,15 +1,16 @@
 """Who may see and answer which WhatsApp chats.
 
-Chats belong to a business number (WhatsApp Account). A user reaches a chat only
-through a `WhatsApp Number Access` row for that number: `Responsible` reads and
-writes, `Spectator` only reads. System Manager reaches every number with full
-rights.
+Chats belong to a business number (WhatsApp Account). A `WhatsApp Number Access`
+row gives a user a number: `Responsible` answers its chats on the WhatsApp Chat page;
+`Spectator` follows them read-only on the WhatsApp Chat Monitor page. Nobody writes to
+a number without being Responsible for it — not a System Manager either.
 
 Who works with WhatsApp at all is a role: `WhatsApp User` chats on the numbers they
 are given, `WhatsApp Manager` also opens the WhatsApp Overview, edits the numbers'
-cards and gives people access. A manager still sees only the chats of their own
-numbers. The same rule backs the chat API, desk list queries, form permission
-checks and the realtime fan-out, so no path shows a chat its number hides.
+cards, gives people access and follows every number on the monitor page (System
+Manager counts as a manager). The same rule backs the chat API, desk list queries,
+form permission checks and the realtime fan-out, so no path shows a chat its number
+hides.
 """
 
 import frappe
@@ -58,16 +59,28 @@ def all_accounts():
 
 
 def access_by_account(user=None):
-	"""{account: access} for the user; System Manager gets Responsible on every number."""
+	"""{account: access} from the user's own access rows."""
 	user = user or frappe.session.user
-	if is_admin(user):
-		return {name: RESPONSIBLE for name in all_accounts()}
 	return dict(_access_map().get(user, {}))
 
 
+def work_accounts(user=None):
+	"""Numbers the user answers: Responsible rows."""
+	return {a for a, access in access_by_account(user).items() if access == RESPONSIBLE}
+
+
+def watch_accounts(user=None):
+	"""Numbers the user follows read-only: every number for a manager, else Spectator rows."""
+	user = user or frappe.session.user
+	if is_manager(user):
+		return set(all_accounts())
+	return {a for a, access in access_by_account(user).items() if access == SPECTATOR}
+
+
 def accounts_for(user=None, write=False):
-	rights = access_by_account(user)
-	return {a for a, access in rights.items() if not write or access == RESPONSIBLE}
+	if write:
+		return work_accounts(user)
+	return work_accounts(user) | watch_accounts(user)
 
 
 def can_access(account, write=False, user=None):
@@ -91,10 +104,14 @@ def require_chat(chat, write=False):
 
 
 def users_for_account(account):
-	"""Enabled users who can see chats of `account`: its access rows plus System Managers."""
+	"""Enabled users who can see chats of `account`: its access rows plus managers."""
 	users = {user for user, rights in _access_map().items() if account in rights}
 	users |= set(
-		frappe.get_all("Has Role", filters={"parenttype": "User", "role": ADMIN_ROLE}, pluck="parent")
+		frappe.get_all(
+			"Has Role",
+			filters={"parenttype": "User", "role": ["in", [ADMIN_ROLE, MANAGER_ROLE]]},
+			pluck="parent",
+		)
 	)
 	users.add("Administrator")
 	return set(frappe.get_all("User", filters={"enabled": 1, "name": ["in", list(users)]}, pluck="name"))
@@ -131,13 +148,23 @@ def account_labels():
 	return out
 
 
-def my_accounts():
-	"""The current user's numbers with labels and access, for the desk (boot + pages)."""
+def _numbers(accounts, read_only):
 	labels = account_labels()
 	return [
-		dict(labels.get(name, {"label": name}), name=name, access=access, read_only=access != RESPONSIBLE)
-		for name, access in access_by_account().items()
+		dict(labels.get(name, {"label": name}), name=name, read_only=read_only)
+		for name in all_accounts()
+		if name in accounts
 	]
+
+
+def my_accounts():
+	"""Numbers the current user answers, with labels — the WhatsApp Chat page and bubble."""
+	return _numbers(work_accounts(), False)
+
+
+def my_watch_accounts():
+	"""Numbers the current user follows on the monitor page (read only)."""
+	return _numbers(watch_accounts(), True)
 
 
 def boot_session(bootinfo):
@@ -145,9 +172,11 @@ def boot_session(bootinfo):
 		return
 	try:
 		bootinfo.whatsapp_accounts = my_accounts()
+		bootinfo.whatsapp_watch = my_watch_accounts()
 		bootinfo.whatsapp_manager = 1 if is_manager() else 0
 	except Exception:
 		bootinfo.whatsapp_accounts = []
+		bootinfo.whatsapp_watch = []
 		bootinfo.whatsapp_manager = 0
 
 

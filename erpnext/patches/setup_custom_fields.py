@@ -1753,26 +1753,32 @@ def setup_whatsapp_user_role():
 		"WhatsApp Message": {"read": 1, "create": 1, "write": 1},
 		"WhatsApp Chat": {"read": 1, "create": 1, "write": 1},
 	}
-	for doctype, rights in perms.items():
-		if not frappe.db.exists("DocType", doctype):
-			print(f"  Skipped perms, DocType missing: {doctype}")
-			continue
-		existing = frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0})
-		if existing:
-			print(f"  Custom DocPerm exists: {doctype} / {role}")
-			continue
-		frappe.get_doc(
-			{
-				"doctype": "Custom DocPerm",
-				"parent": doctype,
-				"parenttype": "DocType",
-				"parentfield": "permissions",
-				"role": role,
-				"permlevel": 0,
-				**rights,
-			}
-		).insert(ignore_permissions=True)
-		print(f"  Created Custom DocPerm: {doctype} / {role}")
+	# Managers follow every number read-only on the monitor page; writing still needs
+	# Responsible on the number (erpnext.crm.whatsapp_access).
+	grants = [(role, perms), ("WhatsApp Manager", {dt: {"read": 1} for dt in perms})]
+	for grant_role, grant in grants:
+		for doctype, rights in grant.items():
+			if not frappe.db.exists("DocType", doctype):
+				print(f"  Skipped perms, DocType missing: {doctype}")
+				continue
+			existing = frappe.db.exists(
+				"Custom DocPerm", {"parent": doctype, "role": grant_role, "permlevel": 0}
+			)
+			if existing:
+				print(f"  Custom DocPerm exists: {doctype} / {grant_role}")
+				continue
+			frappe.get_doc(
+				{
+					"doctype": "Custom DocPerm",
+					"parent": doctype,
+					"parenttype": "DocType",
+					"parentfield": "permissions",
+					"role": grant_role,
+					"permlevel": 0,
+					**rights,
+				}
+			).insert(ignore_permissions=True)
+			print(f"  Created Custom DocPerm: {doctype} / {grant_role}")
 
 	# WhatsApp access is granted by the dedicated role only — drop the broad Sales
 	# grants that predate it.

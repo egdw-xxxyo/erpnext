@@ -13,6 +13,12 @@ LINKS = (
 		"icon": "message-circle",
 	},
 	{
+		"label": "WhatsApp Chat Monitor",
+		"link_to": "whatsapp-chat-monitor",
+		"link_type": "Page",
+		"icon": "eye",
+	},
+	{
 		"label": "WhatsApp Overview",
 		"link_to": "whatsapp-overview",
 		"link_type": "Page",

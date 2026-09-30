@@ -15439,3 +15439,8 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "{0} does not work with WhatsApp yet. Add them on the Employees tab first.","{0} ще не працює з WhatsApp. Спершу додайте на вкладці «Працівники»."
 "{0} is not an active desk user","{0} не є активним користувачем системи"
 "{0} replies, {1} people answered","{0} відповідей, відповідали {1} людей"
+"WhatsApp Chat Monitor","Перегляд чатів WhatsApp"
+"No WhatsApp numbers to follow","Немає номерів WhatsApp для перегляду"
+"You answer no WhatsApp number. Chats you follow are on the WhatsApp Chat Monitor page.","Ви не відповідаєте за жоден номер WhatsApp. Чати, які ви переглядаєте, — на сторінці «Перегляд чатів WhatsApp»."
+"You answer no WhatsApp number yet","Ви ще не відповідаєте за жоден номер WhatsApp"
+"Read only — reply on the WhatsApp Chat page if you answer this number","Лише перегляд — відповідати можна на сторінці «WhatsApp чат», якщо ви відповідальний за цей номер"

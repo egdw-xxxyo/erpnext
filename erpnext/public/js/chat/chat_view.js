@@ -212,6 +212,11 @@ erpnext.chat_view.ChatView = class ChatView {
 	inject_styles() {
 		if (document.getElementById("cv-page-styles-v1")) return;
 		const css = `
+		.cv-group-head{display:flex;align-items:center;gap:10px;padding:10px 12px 6px;position:sticky;top:0;z-index:1;
+			background:var(--card-bg);border-bottom:1px solid var(--border-color);font-weight:600;font-size:13px;}
+		.cv-group-head .cv-avatar{flex:none;}
+		.cv-group-title{flex:1;min-width:0;line-height:1.25;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+		.cv-group-sub{font-weight:400;font-size:12px;color:var(--text-muted);}
 		.cv-page{display:flex;height:calc(100vh - 120px);min-height:420px;margin:12px 20px 0;border:1px solid var(--border-color);
 			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
 		.cv-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
@@ -422,7 +427,13 @@ erpnext.chat_view.ChatView = class ChatView {
 			);
 			return;
 		}
-		let html = active.map((c) => this.conv_html(c)).join("");
+		// A source may split the list into groups under a header (WhatsApp: per number).
+		let html = this.source.list_groups
+			? this.source
+					.list_groups(active)
+					.map((g) => g.html + g.chats.map((c) => this.conv_html(c)).join(""))
+					.join("")
+			: active.map((c) => this.conv_html(c)).join("");
 		if (archived.length) {
 			// Archived chats keep receiving messages, so the collapsed header carries their unread.
 			const unread = archived.reduce((n, c) => n + (c.unread || 0), 0);

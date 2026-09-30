@@ -1,6 +1,7 @@
-// WhatsApp as a chat source: the WhatsApp Chat page and the chat bubble both talk to
-// WhatsApp through this class. Chats belong to a business number; the user sees the
-// numbers they are assigned to, read-only on the ones they only watch.
+// WhatsApp as a chat source: the WhatsApp Chat page, the chat bubble and the WhatsApp
+// Chat Monitor talk to WhatsApp through this class. Chats belong to a business number.
+// In "work" mode the user sees the numbers they answer (Responsible); in "watch" mode
+// (monitor page) the numbers they follow, read only — every number for a manager.
 
 frappe.provide("erpnext.chat_sources");
 
@@ -8,16 +9,23 @@ const WA_API = "erpnext.crm.page.whatsapp_chat.whatsapp_chat";
 const WA_LINKABLE = ["Lead", "Contact", "Customer", "Opportunity", "Quotation", "Sales Order"];
 
 erpnext.chat_sources.WhatsApp = class WhatsAppSource {
-	constructor() {
+	constructor(opts) {
+		this.mode = (opts && opts.mode) || "work";
+		this.watch = this.mode === "watch";
 		this.key = "whatsapp";
 		this.label = __("WhatsApp");
-		this.page_route = "/app/whatsapp-chat-center";
+		this.page_route = this.watch ? "/app/whatsapp-chat-monitor" : "/app/whatsapp-chat-center";
 		this.media_source = "whatsapp";
 		this.search_placeholder = __("Search number or name");
 		this.realtime_events = ["whatsapp_message", "whatsapp_read"];
 		this.side_panel = true;
 		this.chats = [];
 		this.account_filter = null;
+		this.list_empty_text = this.watch
+			? __("No WhatsApp numbers to follow")
+			: (frappe.boot.whatsapp_watch || []).length
+			? __("You answer no WhatsApp number. Chats you follow are on the WhatsApp Chat Monitor page.")
+			: __("You answer no WhatsApp number yet");
 		// Only people who answer a number can start a chat from it.
 		if (!this.writable_numbers().length) this.new_chat = null;
 	}
@@ -26,13 +34,47 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		return erpnext.whatsapp.can_use();
 	}
 
-	// The business numbers this user sees: [{name, label, access, read_only}].
+	// The business numbers of this mode: [{name, label, display_phone_number,
+	// verified_name, profile_image, read_only}].
 	numbers() {
-		return frappe.boot.whatsapp_accounts || [];
+		return (this.watch ? frappe.boot.whatsapp_watch : frappe.boot.whatsapp_accounts) || [];
 	}
 
 	writable_numbers() {
-		return this.numbers().filter((n) => !n.read_only);
+		return this.watch ? [] : this.numbers().filter((n) => !n.read_only);
+	}
+
+	number(name) {
+		return this.numbers().find((n) => n.name === name);
+	}
+
+	// The list is grouped under a header per business number: photo, name and number.
+	list_groups(chats) {
+		const esc = frappe.utils.escape_html;
+		const by = {};
+		chats.forEach((c) => (by[c.account] = by[c.account] || []).push(c));
+		const order = this.numbers().map((n) => n.name);
+		Object.keys(by).forEach((k) => !order.includes(k) && order.push(k));
+		return order
+			.filter((k) => by[k])
+			.map((k) => {
+				const n = this.number(k) || { name: k, label: k };
+				const title = n.verified_name || n.account_name || n.name;
+				const unread = by[k].reduce((sum, c) => sum + (c.unread || 0), 0);
+				return {
+					chats: by[k],
+					html: `<div class="cv-group-head">${erpnext.chat_render.avatar_html(
+						n.profile_image
+							? { image: n.profile_image }
+							: { name: title, key: n.name, icon: "fa fa-whatsapp" },
+						28
+					)}<div class="cv-group-title"><div>${esc(title)}</div><div class="cv-group-sub">${esc(
+						n.display_phone_number || n.label || ""
+					)}</div></div>${
+						unread ? `<span class="cv-badge">${unread > 99 ? "99+" : unread}</span>` : ""
+					}</div>`,
+				};
+			});
 	}
 
 	find(id) {
@@ -42,9 +84,11 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 	// ------------------------------------------------------------------ list
 
 	async load_list() {
-		const rows = await frappe.xcall(`${WA_API}.get_chats`, { account: this.account_filter || null });
+		const rows = await frappe.xcall(`${WA_API}.get_chats`, {
+			account: this.account_filter || null,
+			mode: this.mode,
+		});
 		const R = erpnext.chat_render;
-		const several = this.numbers().length > 1 && !this.account_filter;
 		this.chats = rows.map((c) => {
 			const label = c.number_label || "";
 			return {
@@ -53,7 +97,8 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				phone: c.phone,
 				account: c.whatsapp_account,
 				via: label,
-				show_via: several,
+				// The pages group chats by number; the bubble's flat list shows it per row.
+				show_via: this.numbers().length > 1,
 				avatar: { name: c.title || c.phone, key: c.phone },
 				preview: R.preview_text({ content_type: c.preview_content_type, text: c.preview }),
 				preview_icon: R.media_icon(c.preview_content_type),
@@ -62,20 +107,18 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				muted: c.muted || 0,
 				my_last_read: c.my_last_read,
 				read_only: !!c.read_only,
-				read_only_reason: c.read_only ? __("Read only — you are a spectator of this number") : null,
+				read_only_reason: c.read_only
+					? __("Read only — reply on the WhatsApp Chat page if you answer this number")
+					: null,
 				search_text: `${c.phone} ${label}`,
-				list_badge_html: several
-					? `<span class="cv-via" title="${__("WhatsApp number")}">${frappe.utils.escape_html(
-							label
-					  )}</span>`
-					: "",
+				list_badge_html: "",
 				header_sub:
 					(c.title && c.title !== c.phone
 						? `+${frappe.utils.escape_html(c.phone)}`
 						: __("WhatsApp")) +
-					`<span class="cv-chip" title="${__(
-						"You write from this number"
-					)}"><i class="fa fa-whatsapp"></i>${frappe.utils.escape_html(
+					`<span class="cv-chip" title="${
+						this.watch ? __("WhatsApp number") : __("You write from this number")
+					}"><i class="fa fa-whatsapp"></i>${frappe.utils.escape_html(
 						__("via {0}", [label])
 					)}</span>`,
 			};
@@ -408,7 +451,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		const me = frappe.session.user;
 		return {
 			whatsapp_message: (d) => {
-				if (d && d.type === "Incoming") {
+				if (d && d.type === "Incoming" && !this.watch && this.number(d.whatsapp_account)) {
 					const c = view.chats[d.chat];
 					erpnext.chat_sound.play(c && c.muted);
 				}
@@ -555,7 +598,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		}
 		if (view.active !== chat.id) return;
 		const esc = frappe.utils.escape_html;
-		const read_only = !!ctx.read_only;
+		const read_only = !!ctx.read_only || this.watch;
 		const ent = (e, removable) => `<div class="cv-ent">
 			<span class="cv-ent-main" data-dt="${esc(e.doctype)}" data-nm="${esc(e.name)}">${esc(
 			e.label

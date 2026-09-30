@@ -113,7 +113,10 @@ class ChatBubble {
 		let chat = null;
 		let info = null;
 		if (d.type === "Incoming" && d.number) {
-			// WhatsApp: {name, chat, number, type}
+			// WhatsApp: {name, chat, number, type, whatsapp_account}. Managers and spectators
+			// get every message of the numbers they follow; only the ones they answer ring.
+			const mine = (frappe.boot.whatsapp_accounts || []).some((n) => n.name === d.whatsapp_account);
+			if (!mine) return;
 			chat = (this.sources.find((s) => s.key === "whatsapp")?.chats || []).find((c) => c.id === d.chat);
 			if (window.__chat_debug)
 				console.log("[chat] ring: whatsapp incoming", {

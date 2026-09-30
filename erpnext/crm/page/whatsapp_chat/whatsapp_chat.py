@@ -116,14 +116,16 @@ def _ensure_chats():
 
 
 @frappe.whitelist()
-def get_chats(account=None):
-	"""The conversation list across the caller's business numbers, optionally one number."""
+def get_chats(account=None, mode="work"):
+	"""The conversation list, optionally of one number. `work` (WhatsApp Chat page, bubble)
+	lists the numbers the caller answers; `watch` (WhatsApp Chat Monitor) the numbers
+	they follow read-only — all of them for a manager."""
 	_require_wa_access()
 	_ensure_chats()
 
-	rights = wa_access.access_by_account()
-	accounts = [account] if account else list(rights)
-	accounts = [a for a in accounts if a in rights]
+	watch = mode == "watch"
+	allowed = wa_access.watch_accounts() if watch else wa_access.work_accounts()
+	accounts = [a for a in ([account] if account else allowed) if a in allowed]
 	if not accounts:
 		return []
 
@@ -167,7 +169,7 @@ def get_chats(account=None):
 		if not c.get("title"):
 			c["title"] = c["phone"]
 		c["number_label"] = labels.get(c["whatsapp_account"], {}).get("label") or c["whatsapp_account"]
-		c["read_only"] = 0 if rights.get(c["whatsapp_account"]) == wa_access.RESPONSIBLE else 1
+		c["read_only"] = 1 if watch else 0
 		c["unread"] = unread.get(c["name"], 0)
 		c["muted"] = 1 if c["name"] in muted else 0
 		c["my_last_read"] = cursor.get(c["name"])
@@ -176,9 +178,9 @@ def get_chats(account=None):
 
 @frappe.whitelist()
 def get_my_numbers():
-	"""The caller's business numbers with their labels and access level."""
+	"""The numbers the caller answers and the ones they follow, with their labels."""
 	_require_wa_access()
-	return wa_access.my_accounts()
+	return {"work": wa_access.my_accounts(), "watch": wa_access.my_watch_accounts()}
 
 
 # Unread counting only looks this far back: a conversation nobody ever opened would
