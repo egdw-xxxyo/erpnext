@@ -241,6 +241,15 @@ PERMISSION_FIELDS = (
 )
 
 DOCTYPE_PERMISSIONS = {
+	"Supplier": {
+		BUYER_ROLE: ("select", "read", "write", "create", "delete", "report", "print"),
+	},
+	"Bank Account": {
+		BUYER_ROLE: ("select", "read", "write", "create", "delete", "report", "print"),
+	},
+	"Bank": {
+		BUYER_ROLE: ("select", "read", "write", "create", "delete", "report", "print"),
+	},
 	"Material Request": {
 		MATERIAL_REQUEST_INITIATOR_ROLE: (
 			"select",
@@ -312,6 +321,9 @@ def sync_procurement_workflow():
 	frappe.clear_cache(doctype="Material Request")
 	frappe.clear_cache(doctype=CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
 	frappe.clear_cache(doctype="Purchase Order")
+	frappe.clear_cache(doctype="Supplier")
+	frappe.clear_cache(doctype="Bank Account")
+	frappe.clear_cache(doctype="Bank")
 
 
 def _ensure_roles():
@@ -346,9 +358,14 @@ def _ensure_permissions():
 	for doctype, role_permissions in DOCTYPE_PERMISSIONS.items():
 		for role, enabled_permissions in role_permissions.items():
 			filters = {"parent": doctype, "role": role, "permlevel": 0}
-			name = frappe.db.get_value("Custom DocPerm", filters, "name")
-			if name:
-				doc = frappe.get_doc("Custom DocPerm", name)
+			names = frappe.get_all(
+				"Custom DocPerm",
+				filters=filters,
+				pluck="name",
+				order_by="creation asc",
+			)
+			if names:
+				doc = frappe.get_doc("Custom DocPerm", names[0])
 			else:
 				doc = frappe.new_doc("Custom DocPerm")
 				doc.parent = doctype
@@ -358,6 +375,8 @@ def _ensure_permissions():
 			for permission in PERMISSION_FIELDS:
 				doc.set(permission, int(permission in enabled_permissions))
 			_save(doc)
+			for duplicate_name in names[1:]:
+				frappe.delete_doc("Custom DocPerm", duplicate_name, force=True, ignore_permissions=True)
 
 
 def _remove_obsolete_purchase_order_permissions():

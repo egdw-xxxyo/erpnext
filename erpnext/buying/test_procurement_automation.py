@@ -36,12 +36,23 @@ from erpnext.buying.procurement_automation import (
 	notify_procurement_receipt,
 	sync_all_current_assignee_names,
 )
-from erpnext.buying.procurement_workflow import _remove_obsolete_purchase_order_permissions
+from erpnext.buying.procurement_workflow import (
+	BUYER_ROLE,
+	DOCTYPE_PERMISSIONS,
+	_remove_obsolete_purchase_order_permissions,
+)
 from erpnext.buying.procurement_workflow_reason import _apply_creator_department_approval
 from erpnext.setup.procurement_workflow_setup import CUSTOM_FIELDS
 
 
 class TestProcurementAutomation(FrappeTestCase):
+	def test_buyer_can_manage_supplier_and_bank_master_data(self):
+		required_permissions = {"select", "read", "write", "create", "delete"}
+
+		for doctype in ("Supplier", "Bank Account", "Bank"):
+			with self.subTest(doctype=doctype):
+				self.assertTrue(required_permissions.issubset(DOCTYPE_PERMISSIONS[doctype][BUYER_ROLE]))
+
 	@patch("erpnext.buying.procurement_assignment.frappe.msgprint")
 	@patch(
 		"erpnext.buying.procurement_assignment.frappe.get_cached_value",
