@@ -17,7 +17,11 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		this.page_route = this.watch ? "/app/whatsapp-chat-monitor" : "/app/whatsapp-chat-center";
 		this.media_source = "whatsapp";
 		this.search_placeholder = __("Search number or name");
-		this.realtime_events = ["whatsapp_message", "whatsapp_read"];
+		this.realtime_events = ["whatsapp_message", "whatsapp_read", "whatsapp_chat_state"];
+		// Chats finished and quiet for a week, or moved there by hand, fold into a collapsed
+		// group under their number.
+		this.archive_label = __("Obsolete");
+		this.archive_hint = __("Finished more than 7 days ago or moved here by hand");
 		this.side_panel = true;
 		this.chats = [];
 		this.account_filter = null;
@@ -50,7 +54,6 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		return this.numbers().find((n) => n.name === name);
 	}
 
-	// The list is grouped under a header per business number: photo, name and number.
 	// The list is grouped under a header per business number: the number (photo, name,
 	// number) and who answers it, both as entity chips.
 	list_groups(chats) {
@@ -65,6 +68,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				const n = this.number(k) || { name: k, label: k };
 				const unread = by[k].reduce((sum, c) => sum + (c.unread || 0), 0);
 				return {
+					key: k,
 					chats: by[k],
 					html: `<div class="cv-group-head"><div class="cv-group-title">${E.number(n, {
 						size: 28,
@@ -112,6 +116,8 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				muted: c.muted || 0,
 				my_last_read: c.my_last_read,
 				read_only: !!c.read_only,
+				is_finished: !!c.finished,
+				is_archived: !!c.obsolete,
 				read_only_reason: c.read_only
 					? __("Read only — reply on the WhatsApp Chat page if you answer this number")
 					: null,
@@ -430,17 +436,6 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		];
 	}
 
-	menu_items(m) {
-		if (!frappe.user.has_role("System Manager")) return [];
-		return [
-			{
-				icon: "fa fa-external-link",
-				label: __("Open WhatsApp Message"),
-				action: () => frappe.set_route("Form", "WhatsApp Message", m.id),
-			},
-		];
-	}
-
 	route_for(id) {
 		return id ? `${this.page_route}?chat=${encodeURIComponent(id)}` : this.page_route;
 	}
@@ -459,6 +454,15 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				view.refresh_list_soon();
 			},
 			whatsapp_read: () => view.refresh_list_soon(),
+			whatsapp_chat_state: (d) => {
+				const c = d && view.chats[d.chat];
+				if (c) {
+					c.is_finished = !!d.finished;
+					c.is_archived = !!d.obsolete;
+					view.render_list();
+					if (d.chat === view.active) view.render_side();
+				}
+			},
 			whatsapp_typing: (d) => {
 				if (!d || d.chat !== view.active || d.user === me) return;
 				view.show_typing(__("{0} is typing…", [d.full_name || d.user]));
@@ -654,6 +658,7 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 				)}</button>
 			</div>`;
 		$el.html(`
+			<div class="cv-side-body">
 			${read_only ? `<div class="text-muted cv-side-note">${__("read only")}</div>` : ""}
 			${actions}
 			<h6>${__("Linked Documents")}</h6>
@@ -661,6 +666,8 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			${derived ? `<h6>${__("Related (by contact)")}</h6><div>${derived}</div>` : ""}
 			<h6>${__("Responsible")}</h6>
 			<div class="cv-side-people">${E.list(ctx.managers, E.user, { size: 24 })}</div>
+			</div>
+			${this.conversation_html(ctx.conversation || {}, read_only)}
 		`);
 		const rerender = () => this.render_side(chat, $el, view);
 		$el.find(".cv-ent-main[data-dt]").on("click", (e) =>
@@ -676,9 +683,72 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			rerender();
 		});
 		$el.find(".cv-link-btn").on("click", () => this.link_dialog(chat, rerender));
+		$el.find("[data-conv]").on("click", (e) =>
+			this.set_conversation(chat, view, $(e.currentTarget).attr("data-conv"))
+		);
 		$el.find("[data-create]").on("click", (e) =>
 			this.create(chat, $(e.currentTarget).attr("data-create"), rerender)
 		);
+	}
+
+	// The bottom of the side panel: is the conversation over? A finished chat turns grey
+	// in the list; the customer's next message opens it again.
+	conversation_html(conv, read_only) {
+		const E = erpnext.entity;
+		const status = conv.finished
+			? `<div class="cv-conv-state cv-conv-done"><i class="fa fa-check-circle"></i> ${__(
+					"Conversation finished"
+			  )}${
+					conv.finished_on
+						? ` <span class="text-muted">${frappe.datetime.comment_when(conv.finished_on)}</span>`
+						: ""
+			  }${
+					conv.finished_by
+						? `<div class="cv-conv-by">${E.user(
+								{ user: conv.finished_by, full_name: conv.finished_by_name },
+								{ size: 18 }
+						  )}</div>`
+						: ""
+			  }</div>`
+			: `<div class="cv-conv-state"><i class="fa fa-comments-o"></i> ${__(
+					"Conversation in progress"
+			  )}</div>`;
+		const obsolete = conv.archived
+			? `<div class="text-muted cv-side-note"><i class="fa fa-archive"></i> ${__(
+					"Moved to obsolete"
+			  )}</div>`
+			: "";
+		if (read_only) return `<div class="cv-side-foot">${status}${obsolete}</div>`;
+		const main = conv.finished
+			? `<button class="btn btn-sm btn-default cv-conv-main-btn" data-conv="reopen"><i class="fa fa-undo"></i> ${__(
+					"Reopen conversation"
+			  )}</button>`
+			: `<button class="btn btn-sm btn-primary cv-conv-main-btn" data-conv="finish"><i class="fa fa-check"></i> ${__(
+					"Mark conversation finished"
+			  )}</button>`;
+		const move = conv.obsolete
+			? `<button class="btn btn-sm btn-default" data-conv="restore" title="${__(
+					"Back to active chats"
+			  )}"><i class="fa fa-inbox"></i></button>`
+			: `<button class="btn btn-sm btn-default" data-conv="obsolete" title="${__(
+					"Move to obsolete"
+			  )}"><i class="fa fa-archive"></i></button>`;
+		return `<div class="cv-side-foot">${status}${obsolete}<div class="cv-conv-actions">${main}${move}</div></div>`;
+	}
+
+	async set_conversation(chat, view, action) {
+		const [method, args, done] = {
+			finish: ["set_finished", { finished: 1 }, __("Conversation finished")],
+			reopen: ["set_finished", { finished: 0 }, __("Conversation reopened")],
+			obsolete: ["set_obsolete", { obsolete: 1 }, __("Chat moved to obsolete")],
+			restore: ["set_obsolete", { obsolete: 0 }, __("Chat is back among active chats")],
+		}[action];
+		const state = await frappe.xcall(`${WA_API}.${method}`, { chat: chat.id, ...args });
+		chat.is_finished = !!state.finished;
+		chat.is_archived = !!state.obsolete;
+		view.render_list();
+		view.render_side();
+		frappe.show_alert({ message: done, indicator: "green" });
 	}
 
 	link_dialog(chat, done) {

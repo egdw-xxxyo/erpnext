@@ -29,7 +29,7 @@ const WAO_TABS = [
 	["summary", "fa fa-th-large", "Summary"],
 	["numbers", "fa fa-phone", "Numbers"],
 	["employees", "fa fa-users", "Employees"],
-	["pending", "fa fa-hourglass-half", "Pending replies"],
+	["progress", "fa fa-comments-o", "Conversations in progress"],
 	["settings", "fa fa-cog", "Settings"],
 ];
 const WAO_PERIODS = [
@@ -274,7 +274,7 @@ class WhatsAppOverview {
 			summary: "",
 			numbers: d.accounts.length,
 			employees: d.employees.filter((e) => e.level).length,
-			pending: d.pending.length,
+			progress: d.in_progress.length,
 			settings: "",
 		};
 		this.$tabs.html(
@@ -399,11 +399,13 @@ class WhatsAppOverview {
 					__("{0} chats in total", [d.accounts.reduce((n, a) => n + a.chats_total, 0)])
 				)}
 				${tile(
-					"pending",
-					"fa fa-hourglass-half",
-					d.pending.length,
-					__("Waiting for a reply"),
-					oldest !== null ? __("oldest waits {0}", [wao_duration(oldest)]) : __("nobody is waiting")
+					"progress",
+					"fa fa-comments-o",
+					d.in_progress.length,
+					__("Conversations in progress"),
+					oldest !== null
+						? __("{0} wait for a reply, oldest {1}", [d.pending.length, wao_duration(oldest)])
+						: __("nobody is waiting")
 				)}
 				${tile(
 					"employees",
@@ -493,6 +495,7 @@ class WhatsAppOverview {
 						href: `${E.url([c.page])}?chat=${encodeURIComponent(c.chat)}`,
 						size: 28,
 					})}
+					${this.state_badge(c.state)}
 					<span class="text-muted wao-small">${
 						c.last_message_on ? frappe.datetime.comment_when(c.last_message_on, true) : ""
 					}</span>
@@ -510,6 +513,23 @@ class WhatsAppOverview {
 			<summary>${__("Latest chats")} <span class="wao-count">${list.length}</span></summary>
 			${rows}
 		</details>`;
+	}
+
+	state_badge(state) {
+		const [color, label] = {
+			finished: ["green", __("Finished")],
+			obsolete: ["gray", __("Obsolete")],
+			progress: ["orange", __("In progress")],
+		}[state || "progress"];
+		return `<span class="indicator-pill ${color} wao-state">${label}</span>`;
+	}
+
+	// A conversation in progress: who, on which number, what was said last and whether the
+	// customer is waiting for us.
+	progress_status(c) {
+		return c.waiting !== null && c.waiting !== undefined
+			? `<span class="wao-wait">${__("waits {0}", [wao_duration(c.waiting)])}</span>`
+			: `<span class="text-muted wao-small">${__("answered")}</span>`;
 	}
 
 	// ------------------------------------------------------------------ numbers
@@ -639,7 +659,7 @@ class WhatsAppOverview {
 		};
 
 		const pending =
-			c.pending
+			(c.in_progress || [])
 				.map(
 					(p) => `
 				<div class="wao-pending-row">
@@ -647,12 +667,12 @@ class WhatsAppOverview {
 						p.whatsapp_account
 					)}">${esc(p.title)}</a>
 					<span class="text-muted wao-small wao-preview">${esc(p.preview)}</span>
-					<span class="wao-wait">${wao_duration(p.waiting)}</span>
+					${this.progress_status(p)}
 				</div>`
 				)
 				.join("") ||
 			`<div class="wao-ok"><i class="fa fa-check-circle"></i> ${__(
-				"Every customer got a reply"
+				"Every conversation is finished"
 			)}</div>`;
 
 		this.$body.html(`
@@ -741,7 +761,7 @@ class WhatsAppOverview {
 							</div>
 						</div>
 						<div class="wao-panel">
-							<h6>${__("Waiting for a reply")}</h6>
+							<h6>${__("Conversations in progress")}</h6>
 							${pending}
 						</div>
 					</div>
@@ -1002,45 +1022,53 @@ class WhatsAppOverview {
 		});
 	}
 
-	// ------------------------------------------------------------------ pending
+	// ------------------------------------------------------------------ in progress
 
-	render_pending(d) {
-		const rows = d.pending
+	render_progress(d) {
+		const E = erpnext.entity;
+		const R = erpnext.chat_render;
+		const rows = d.in_progress
 			.filter((p) => this.match(p.title, p.phone, p.number_label, p.preview))
 			.map(
 				(p) => `
 				<tr>
-					<td>${
-						p.chat
-							? `<a href="#" class="wao-open-chat" data-chat="${this.esc(
-									p.chat
-							  )}" data-account="${this.esc(p.whatsapp_account)}">${this.esc(p.title)}</a>`
-							: this.esc(p.title)
-					}<div class="text-muted wao-small">+${this.esc(p.phone)}</div></td>
+					<td><a href="#" class="wao-open-chat" data-chat="${this.esc(p.chat)}" data-account="${this.esc(
+					p.whatsapp_account
+				)}">${E.avatar_html({ name: p.title, key: p.phone, image: p.image }, 24)} ${this.esc(
+					p.title
+				)}</a><div class="text-muted wao-small">+${this.esc(p.phone)}</div></td>
 					<td>${this.number_chip(this.account(p.whatsapp_account), 20)}</td>
-					<td class="wao-preview">${this.esc(p.preview)}</td>
-					<td class="wao-num">${p.count}</td>
-					<td>${frappe.datetime.str_to_user(p.since)}</td>
-					<td class="wao-num wao-wait">${wao_duration(p.waiting)}<div class="text-muted wao-small">${__(
-					"{0} in total",
-					[wao_duration(p.waiting_total)]
+					<td class="wao-preview">${this.esc(
+						R.preview_text({ content_type: p.content_type, text: p.preview })
+					)}<div class="text-muted wao-small">${frappe.datetime.comment_when(
+					p.last_message_on
 				)}</div></td>
+					<td class="wao-num">${
+						p.waiting !== null
+							? `<span class="wao-wait">${wao_duration(
+									p.waiting
+							  )}</span><div class="text-muted wao-small">${__("{0} unanswered", [
+									p.count,
+							  ])}</div>`
+							: `<span class="text-muted">${__("answered")}</span>`
+					}</td>
 				</tr>`
 			)
 			.join("");
 		if (!rows) {
 			return `<div class="wao-ok"><i class="fa fa-check-circle"></i> ${__(
-				"Every customer got a reply"
+				"Every conversation is finished"
 			)}</div>`;
 		}
 		return `
+			<div class="text-muted wao-small wao-hint">${__(
+				"Conversations nobody marked finished. The customer's next message opens a finished one again."
+			)}</div>
 			<div class="wao-table-wrap"><table class="table table-bordered wao-table">
 				<thead><tr>
 					<th>${__("Chat")}</th>
 					<th>${__("Number")}</th>
 					<th>${__("Last message")}</th>
-					<th>${__("Unanswered")}</th>
-					<th>${__("Waiting since")}</th>
 					<th>${__("Waiting (working hours)")}</th>
 				</tr></thead>
 				<tbody>${rows}</tbody>

@@ -4,10 +4,12 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_datetime
+from frappe.utils import add_days, get_datetime
 
 # The chat list only renders a one-line preview; storing more just bloats the row.
 PREVIEW_LENGTH = 200
+# A finished conversation drops into the list's obsolete group after this many quiet days.
+OBSOLETE_AFTER_DAYS = 7
 
 
 class WhatsAppChat(Document):
@@ -145,12 +147,45 @@ def sync_chat_from_message(doc):
 		):
 			chat.add_link(row.link_doctype, row.link_name)
 
+	reopen_conversation(chat, doc)
+
 	chat.last_message_on = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
 	chat.last_preview = (doc.get("message") or "")[:PREVIEW_LENGTH]
 	chat.last_content_type = doc.get("content_type")
 
 	chat.save(ignore_permissions=True)
 	return chat.name
+
+
+def reopen_conversation(chat, doc):
+	"""A finished conversation is open again once the customer writes; an obsolete one comes
+	back to the active list on any new message. Reactions don't count, and neither do
+	status updates of messages sent before the mark (on_update runs for those too)."""
+	if doc.get("content_type") == "reaction":
+		return
+	created = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
+
+	def newer(mark):
+		return not mark or created > get_datetime(mark)
+
+	if chat.get("finished") and doc.get("type") == "Incoming" and newer(chat.get("finished_on")):
+		chat.finished = 0
+		chat.finished_on = None
+		chat.finished_by = None
+	if chat.get("archived") and newer(chat.get("archived_on")):
+		chat.archived = 0
+		chat.archived_on = None
+
+
+def is_obsolete(chat, now=None):
+	"""Obsolete chats sit in the collapsed group of the list: moved there by hand, or
+	finished and quiet for OBSOLETE_AFTER_DAYS."""
+	if chat.get("archived"):
+		return True
+	if not chat.get("finished") or not chat.get("last_message_on"):
+		return False
+	now = now or frappe.utils.now_datetime()
+	return get_datetime(chat.get("last_message_on")) < add_days(now, -OBSOLETE_AFTER_DAYS)
 
 
 def backfill_previews(chats):

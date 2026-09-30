@@ -177,9 +177,9 @@ erpnext.chat_view.ChatView = class ChatView {
 			this.tab = $(e.currentTarget).attr("data-tab");
 			this.render_list();
 		});
-		this.$list.on("click", ".cv-arch-head", () => {
-			this.arch_open = !this.arch_open;
-			localStorage.setItem(`cv_arch_open_${s.key}`, this.arch_open ? "1" : "0");
+		this.$list.on("click", ".cv-arch-head", (e) => {
+			const group = $(e.currentTarget).attr("data-group") || "";
+			this.set_arch_open(group, !this.is_arch_open(group));
 			this.render_list();
 		});
 		this.$list.on("click", ".cv-conv", (e) => this.open($(e.currentTarget).attr("data-id")));
@@ -268,6 +268,21 @@ erpnext.chat_view.ChatView = class ChatView {
 			font-size:var(--text-sm);font-weight:600;color:var(--text-muted);}
 		.cv-arch-head:hover{background:var(--bg-light-gray);color:var(--text-color);}
 		.cv-arch-head .cv-badge{margin-left:auto;}
+		.cv-arch-group{margin:2px 0 4px 12px;}
+		.cv-conv.cv-finished:not(.active){opacity:.55;}
+		.cv-conv.cv-finished:not(.active):hover{opacity:.85;}
+		.cv-done-mark{color:var(--green-500,#38a169);opacity:1 !important;}
+		.cv-conv.active .cv-done-mark{color:#fff;}
+		.cv-side{display:flex;flex-direction:column;}
+		.cv-side-foot{margin:auto -14px -14px;padding:12px 14px;border-top:1px solid var(--border-color);
+			background:var(--card-bg);position:sticky;bottom:-14px;}
+		.cv-conv-state{font-size:13px;font-weight:600;margin-bottom:8px;}
+		.cv-conv-state .fa{color:var(--text-muted);margin-right:4px;}
+		.cv-conv-done .fa-check-circle{color:var(--green-500,#38a169);}
+		.cv-conv-state .text-muted{font-weight:400;}
+		.cv-conv-by{margin-top:6px;font-weight:400;}
+		.cv-conv-actions{display:flex;gap:6px;}
+		.cv-conv-main-btn{flex:1;}
 		.cv-list-empty{padding:12px;color:var(--text-muted);}
 		.cv-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--cv-thread-bg);}
 		.cv-header{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:56px;
@@ -409,14 +424,17 @@ erpnext.chat_view.ChatView = class ChatView {
 			: "";
 		const muted = c.muted ? `<i class="fa fa-bell-slash-o"></i>` : "";
 		const preview = esc((c.preview || "").replace(/<[^>]*>/g, "").slice(0, 80));
-		return `<div class="cv-conv ${c.id === this.active ? "active" : ""} ${
-			c.unread ? "cv-unread" : ""
+		const done = c.is_finished
+			? `<i class="fa fa-check-circle cv-done-mark" title="${__("Conversation finished")}"></i>`
+			: "";
+		return `<div class="cv-conv ${c.id === this.active ? "active" : ""} ${c.unread ? "cv-unread" : ""} ${
+			c.is_finished ? "cv-finished" : ""
 		}" data-id="${esc(c.id)}">
 			${R.avatar_html(c.avatar || { name: c.title, key: c.id })}
 			<div class="cv-conv-main">
 				<div class="cv-name">${c.title_prefix_html || ""}<span class="cv-title">${esc(
 			c.title
-		)}</span>${muted}<span class="cv-list-time">${R.list_time(c.time)}</span></div>
+		)}</span>${done}${muted}<span class="cv-list-time">${R.list_time(c.time)}</span></div>
 				<div class="cv-conv-sub"><span class="cv-last">${c.preview_icon || ""}${
 			preview || `<i>${__("No messages yet")}</i>`
 		}</span>${c.list_badge_html || ""}${badge}</div>
@@ -437,24 +455,62 @@ erpnext.chat_view.ChatView = class ChatView {
 			);
 			return;
 		}
-		// A source may split the list into groups under a header (WhatsApp: per number).
-		let html = this.source.list_groups
+		// A source may split the list into groups under a header (WhatsApp: per number);
+		// each group then folds its own archived chats.
+		const html = this.source.list_groups
 			? this.source
-					.list_groups(active)
-					.map((g) => g.html + g.chats.map((c) => this.conv_html(c)).join(""))
+					.list_groups(list)
+					.map((g) => {
+						const own = g.chats.filter((c) => c.is_archived);
+						const rest = g.chats.filter((c) => !c.is_archived);
+						return (
+							g.html +
+							rest.map((c) => this.conv_html(c)).join("") +
+							this.archive_html(own, g.key)
+						);
+					})
 					.join("")
-			: active.map((c) => this.conv_html(c)).join("");
-		if (archived.length) {
-			// Archived chats keep receiving messages, so the collapsed header carries their unread.
-			const unread = archived.reduce((n, c) => n + (c.unread || 0), 0);
-			html += `<div class="cv-arch-head"><i class="fa fa-caret-${
-				this.arch_open ? "down" : "right"
-			}"></i>
-				<i class="fa fa-archive"></i><span>${__("Archived")}</span>
-				${unread ? `<span class="cv-badge">${unread > 99 ? "99+" : unread}</span>` : ""}</div>`;
-			if (this.arch_open) html += archived.map((c) => this.conv_html(c)).join("");
-		}
+			: active.map((c) => this.conv_html(c)).join("") + this.archive_html(archived, "");
 		this.$list.html(html);
+	}
+
+	// Archived chats keep receiving messages, so the collapsed header carries their unread.
+	archive_html(chats, group) {
+		if (!chats.length) return "";
+		const esc = frappe.utils.escape_html;
+		const open = this.is_arch_open(group || "");
+		const unread = chats.reduce((n, c) => n + (c.unread || 0), 0);
+		const s = this.source;
+		return `<div class="cv-arch-head${group ? " cv-arch-group" : ""}" data-group="${esc(
+			group || ""
+		)}" title="${esc(s.archive_hint || "")}"><i class="fa fa-caret-${open ? "down" : "right"}"></i>
+			<i class="fa fa-archive"></i><span>${esc(s.archive_label || __("Archived"))}</span>
+			<span class="text-muted">${chats.length}</span>
+			${unread ? `<span class="cv-badge">${unread > 99 ? "99+" : unread}</span>` : ""}</div>${
+			open ? chats.map((c) => this.conv_html(c)).join("") : ""
+		}`;
+	}
+
+	arch_key(group) {
+		return `cv_arch_open_${this.source.key}${group ? "_" + group : ""}`;
+	}
+
+	is_arch_open(group) {
+		if (!group) return this.arch_open;
+		try {
+			return localStorage.getItem(this.arch_key(group)) === "1";
+		} catch (e) {
+			return false;
+		}
+	}
+
+	set_arch_open(group, open) {
+		if (!group) this.arch_open = open;
+		try {
+			localStorage.setItem(this.arch_key(group), open ? "1" : "0");
+		} catch (e) {
+			// Private mode: the state lives until the next render only.
+		}
 	}
 
 	// ------------------------------------------------------------------ open

@@ -303,6 +303,8 @@ class ChatBubble {
 			display:flex;align-items:center;gap:5px;flex:none;}
 		.cb-conv .cb-prev{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.cb-conv.unread .cb-prev{color:var(--text-color);font-weight:600;}
+		.cb-conv.cb-finished{opacity:.55;}
+		.cb-conv .cb-done{color:var(--green-500,#38a169);margin-left:4px;font-size:11px;}
 		.cb-thread{padding:10px;min-height:100%;}
 		.cb-empty{padding:24px 12px;text-align:center;color:var(--text-muted);font-size:var(--text-sm);}
 		.cb-arch-head{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;
@@ -669,8 +671,15 @@ class ChatBubble {
 						c.via
 				  )}</span>`
 				: "";
-		return `<div class="cb-conv ${c.unread ? "unread" : ""}" data-id="${frappe.utils.escape_html(c.id)}">
-			<div class="cb-name"><span>${name}</span><span class="cb-time">${unread}${cb_fmt_time(c.time)}</span></div>
+		const done = c.is_finished
+			? `<i class="fa fa-check-circle cb-done" title="${__("Conversation finished")}"></i>`
+			: "";
+		return `<div class="cb-conv ${c.unread ? "unread" : ""} ${
+			c.is_finished ? "cb-finished" : ""
+		}" data-id="${frappe.utils.escape_html(c.id)}">
+			<div class="cb-name"><span>${name}${done}</span><span class="cb-time">${unread}${cb_fmt_time(
+			c.time
+		)}</span></div>
 			<div class="cb-prev">${via}${prev || __("(no text)")}</div>
 		</div>`;
 	}

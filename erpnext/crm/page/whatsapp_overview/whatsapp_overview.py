@@ -61,7 +61,18 @@ def _collect(period):
 	)
 	chats = frappe.get_all(
 		"WhatsApp Chat",
-		fields=["name", "whatsapp_account", "phone", "title", "creation", "last_message_on", "last_preview"],
+		fields=[
+			"name",
+			"whatsapp_account",
+			"phone",
+			"title",
+			"creation",
+			"last_message_on",
+			"last_preview",
+			"last_content_type",
+			"finished",
+			"archived",
+		],
 	)
 	chat_by_key = {(c.whatsapp_account, c.phone): c for c in chats}
 
@@ -143,6 +154,7 @@ def _collect(period):
 		"accounts": accounts,
 		"employees": _employees(access, labels, turns_by_user, user_sent, user_last, pending_by_account),
 		"pending": pending,
+		"in_progress": _in_progress(chats, pending, labels),
 		"schedule": {"hours": schedule.describe(), "holiday_list": schedule.holiday_list},
 	}
 
@@ -179,7 +191,16 @@ def _recent_chats(accounts, mine):
 		rows = frappe.get_all(
 			"WhatsApp Chat",
 			filters={"whatsapp_account": account},
-			fields=["name", "phone", "title", "last_message_on", "last_preview", "last_content_type"],
+			fields=[
+				"name",
+				"phone",
+				"title",
+				"last_message_on",
+				"last_preview",
+				"last_content_type",
+				"finished",
+				"archived",
+			],
 			order_by="last_message_on desc",
 			limit=RECENT_CHATS,
 		)
@@ -196,10 +217,52 @@ def _recent_chats(accounts, mine):
 				"last_message_on": str(r.last_message_on) if r.last_message_on else None,
 				"preview": frappe.utils.strip_html(r.last_preview or "")[:120],
 				"content_type": r.last_content_type,
+				"state": _conversation_state(r),
 				"page": page,
 			}
 			for r in rows
 		]
+	return out
+
+
+def _conversation_state(chat):
+	"""finished / obsolete / progress — the badge a chat carries on the cards."""
+	from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import is_obsolete
+
+	if chat.get("finished"):
+		return "obsolete" if is_obsolete(chat) else "finished"
+	return "obsolete" if chat.get("archived") else "progress"
+
+
+def _in_progress(chats, pending, labels):
+	"""Conversations nobody marked finished (and not moved to obsolete): the ones a
+	customer is waiting in first, longest wait on top, then the rest by last message."""
+	from erpnext.crm.whatsapp_person import people_for
+
+	waiting = {p["chat"]: p for p in pending if p["chat"]}
+	rows = [c for c in chats if c.last_message_on and not c.finished and not c.archived]
+	people = people_for([c.phone for c in rows])
+	out = []
+	for c in rows:
+		p = waiting.get(c.name)
+		out.append(
+			{
+				"chat": c.name,
+				"title": c.title or c.phone,
+				"phone": c.phone,
+				"image": (people.get(c.phone) or {}).get("image"),
+				"whatsapp_account": c.whatsapp_account,
+				"number_label": labels.get(c.whatsapp_account, {}).get("label") or c.whatsapp_account,
+				"last_message_on": str(c.last_message_on),
+				"preview": frappe.utils.strip_html(c.last_preview or "")[:120],
+				"content_type": c.last_content_type,
+				"waiting": p["waiting"] if p else None,
+				"since": p["since"] if p else None,
+				"count": p["count"] if p else 0,
+			}
+		)
+	out.sort(key=lambda r: r["last_message_on"], reverse=True)
+	out.sort(key=lambda r: r["waiting"] if r["waiting"] is not None else -1, reverse=True)
 	return out
 
 
@@ -365,6 +428,7 @@ def get_number(account, period="30"):
 	return {
 		"number": number,
 		"pending": [p for p in data["pending"] if p["whatsapp_account"] == account],
+		"in_progress": [c for c in data["in_progress"] if c["whatsapp_account"] == account],
 		"my_access": mine.access if mine else None,
 		"can_edit_account": 1 if wa_access.is_admin() else 0,
 		"period": str(period),

@@ -18,6 +18,13 @@
   "last_message_on",
   "last_preview",
   "last_content_type",
+  "conversation_section",
+  "finished",
+  "finished_on",
+  "finished_by",
+  "column_break_conversation",
+  "archived",
+  "archived_on",
   "links_section",
   "links"
  ],
@@ -89,6 +96,56 @@
    "read_only": 1
   },
   {
+   "fieldname": "conversation_section",
+   "fieldtype": "Section Break",
+   "label": "Conversation"
+  },
+  {
+   "default": "0",
+   "description": "Set when the team closes the conversation; the customer's next message clears it.",
+   "fieldname": "finished",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Finished",
+   "read_only": 1
+  },
+  {
+   "depends_on": "finished",
+   "fieldname": "finished_on",
+   "fieldtype": "Datetime",
+   "label": "Finished On",
+   "read_only": 1
+  },
+  {
+   "depends_on": "finished",
+   "fieldname": "finished_by",
+   "fieldtype": "Link",
+   "label": "Finished By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_conversation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Moved to the obsolete group of the chat list; any new message brings it back.",
+   "fieldname": "archived",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Obsolete",
+   "read_only": 1
+  },
+  {
+   "depends_on": "archived",
+   "fieldname": "archived_on",
+   "fieldtype": "Datetime",
+   "label": "Obsolete Since",
+   "read_only": 1
+  },
+  {
    "fieldname": "links_section",
    "fieldtype": "Section Break",
    "label": "Linked Documents"
@@ -102,7 +159,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-30 18:00:00.000000",
+ "modified": "2026-09-30 22:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "WhatsApp Chat",

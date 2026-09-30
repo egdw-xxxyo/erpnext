@@ -3,7 +3,7 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, now, nowdate
+from frappe.utils import add_days, now, now_datetime, nowdate
 
 from erpnext.crm import whatsapp_access as wa_access
 
@@ -141,11 +141,13 @@ def get_chats(account=None, mode="work"):
 			"last_message_on",
 			"last_preview",
 			"last_content_type",
+			"finished",
+			"archived",
 		],
 		order_by="last_message_on desc",
 	)
 
-	from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import backfill_previews
+	from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import backfill_previews, is_obsolete
 
 	# The preview is denormalised onto the chat by sync_chat_from_message(), so the
 	# list costs one query instead of one per conversation. Rows that predate those
@@ -163,6 +165,7 @@ def get_chats(account=None, mode="work"):
 		fields=["chat", "muted", "last_read_on"],
 	)
 	muted = {s.chat for s in states if s.muted}
+	now_dt = now_datetime()
 	# The client needs its own read cursor to place the "New messages" divider and scroll
 	# to the first unread message on open.
 	cursor = {s.chat: str(s.last_read_on) if s.last_read_on else None for s in states}
@@ -177,6 +180,7 @@ def get_chats(account=None, mode="work"):
 		c["unread"] = unread.get(c["name"], 0)
 		c["muted"] = 1 if c["name"] in muted else 0
 		c["my_last_read"] = cursor.get(c["name"])
+		c["obsolete"] = 1 if is_obsolete(c, now_dt) else 0
 	return chats
 
 
@@ -252,6 +256,66 @@ def set_muted(chat, muted):
 	muted = 1 if int(muted or 0) else 0
 	_set_chat_state(chat, {"muted": muted})
 	return {"muted": muted}
+
+
+def conversation_state(chat):
+	"""Finished / obsolete marks of a chat, for the side panel and the list."""
+	from erpnext.crm.doctype.whatsapp_chat.whatsapp_chat import is_obsolete
+
+	row = frappe.db.get_value(
+		"WhatsApp Chat",
+		chat,
+		["finished", "finished_on", "finished_by", "archived", "archived_on", "last_message_on"],
+		as_dict=True,
+	)
+	return {
+		"finished": row.finished or 0,
+		"finished_on": str(row.finished_on) if row.finished_on else None,
+		"finished_by": row.finished_by,
+		"finished_by_name": frappe.utils.get_fullname(row.finished_by) if row.finished_by else None,
+		"archived": row.archived or 0,
+		"obsolete": 1 if is_obsolete(row) else 0,
+	}
+
+
+def _set_conversation(chat, values):
+	frappe.db.set_value("WhatsApp Chat", chat.name, values, update_modified=False)
+	state = conversation_state(chat.name)
+	for user in wa_access.users_for_account(chat.whatsapp_account):
+		frappe.publish_realtime(
+			event="whatsapp_chat_state",
+			message={"chat": chat.name, "whatsapp_account": chat.whatsapp_account, **state},
+			user=user,
+			after_commit=True,
+		)
+	return state
+
+
+@frappe.whitelist()
+def set_finished(chat, finished=1):
+	"""Mark the conversation finished (the issue is resolved) or open it again. The
+	customer's next message opens it by itself."""
+	chat = wa_access.require_chat(chat, write=True)
+	if int(finished or 0):
+		values = {"finished": 1, "finished_on": now(), "finished_by": frappe.session.user}
+	else:
+		values = {"finished": 0, "finished_on": None, "finished_by": None}
+	return _set_conversation(chat, values)
+
+
+@frappe.whitelist()
+def set_obsolete(chat, obsolete=1):
+	"""Move the chat to the collapsed obsolete group of the list, or back. Any new message
+	brings it back by itself."""
+	chat = wa_access.require_chat(chat, write=True)
+	if int(obsolete or 0):
+		values = {"archived": 1, "archived_on": now()}
+	else:
+		values = {"archived": 0, "archived_on": None}
+		# A finished chat that went quiet long ago would stay in the group otherwise.
+		if chat.finished:
+			values.update({"finished": 0, "finished_on": None, "finished_by": None})
+	return _set_conversation(chat, values)
 
 
 @frappe.whitelist()
@@ -351,7 +415,13 @@ def get_chat_context(chat):
 					seen.add(key)
 					derived.append({"doctype": doctype, "name": rec, "label": rec})
 
-	return {"contact": chat.contact, "linked": linked, "derived": derived, **_number_info(chat)}
+	return {
+		"contact": chat.contact,
+		"linked": linked,
+		"derived": derived,
+		"conversation": conversation_state(chat.name),
+		**_number_info(chat),
+	}
 
 
 @frappe.whitelist()

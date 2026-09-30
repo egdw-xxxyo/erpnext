@@ -473,3 +473,12 @@
 .whatsapp-overview .wao-recent-row .ent {
 	flex: 1;
 }
+
+.whatsapp-overview .wao-state {
+	flex: none;
+	font-size: 11px;
+}
+
+.whatsapp-overview .wao-hint {
+	margin-bottom: 8px;
+}
