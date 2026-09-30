@@ -547,7 +547,9 @@ ensure_extra_apps() {
     if [ "$DEPLOY_SILENT" = "1" ]; then
       dc exec -T backend bench --site frontend install-app "$app" >/dev/null 2>&1 || true
     else
-      dc exec -T backend bench --site frontend install-app "$app" 2>&1 | grep -v "^Updating DocTypes\|already installed"
+      # grep exits 1 when it filters out every line ("already installed" is the only
+      # output for an installed app) and set -e would abort the whole deploy.
+      dc exec -T backend bench --site frontend install-app "$app" 2>&1 | grep -v "^Updating DocTypes" || true
     fi
   done
   for app in $(extra_apps_disabled); do
