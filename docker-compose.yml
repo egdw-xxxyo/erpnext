@@ -237,7 +237,43 @@ services:
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
 
+  # HTTPS for devices on the VPN. Only starts when the "tls" compose profile is
+  # active — the deploy script enables it when .tls.env has TLS_DOMAIN. The cert
+  # comes from Let's Encrypt via Cloudflare DNS-01, so the host needs outbound
+  # internet but no inbound exposure. Router: tools/traefik/dynamic.yml.
+  traefik:
+    image: traefik:v3.3
+    profiles:
+      - tls
+    networks:
+      - frappe_network
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command:
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.transport.respondingTimeouts.readTimeout=600s
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:-}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.le.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      - --log.level=INFO
+    environment:
+      TLS_DOMAIN: ${TLS_DOMAIN:-}
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:-}
+    volumes:
+      - ./tools/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik-acme:/letsencrypt
+    ports:
+      - "${TLS_HTTP_PORT:-80}:80"
+      - "${TLS_HTTPS_PORT:-443}:443"
+
 volumes:
+  traefik-acme:
   db-data:
   redis-queue-data:
   sites:

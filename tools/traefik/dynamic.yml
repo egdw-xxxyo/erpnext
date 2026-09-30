@@ -1,0 +1,20 @@
+# Traefik dynamic config for the "tls" compose profile (see docker-compose.yml).
+# TLS_DOMAIN comes from .tls.env; Traefik renders the Go template on load.
+http:
+  routers:
+    erp:
+      rule: 'Host(`{{ env "TLS_DOMAIN" }}`)'
+      entryPoints:
+        - websecure
+      service: erp
+      tls:
+        certResolver: le
+        domains:
+          - main: '{{ env "TLS_DOMAIN" }}'
+
+  services:
+    erp:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: http://frontend:8080
