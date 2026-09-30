@@ -20,6 +20,8 @@
   "versions",
   "section_script",
   "script",
+  "section_references",
+  "script_references",
   "section_help",
   "help_html"
  ],
@@ -98,6 +100,18 @@
    "reqd": 1
   },
   {
+   "fieldname": "section_references",
+   "fieldtype": "Section Break",
+   "label": "References",
+   "description": "Documents the script names — label templates, packing templates, operations. Read as refs.<key>. A rename of the document updates the row, so the script keeps working. Not versioned and never shown in the mobile app."
+  },
+  {
+   "fieldname": "script_references",
+   "fieldtype": "Table",
+   "label": "References",
+   "options": "Script Reference"
+  },
+  {
    "fieldname": "section_help",
    "fieldtype": "Section Break",
    "label": "API Reference",
@@ -111,7 +125,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-29 00:00:00.000000",
+ "modified": "2026-09-29 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Device Script",

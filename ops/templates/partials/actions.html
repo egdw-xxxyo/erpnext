@@ -15,6 +15,13 @@
 	        hx-vals='{"label": {{ running[0].label|tojson }}}' hx-target="#console-slot" hx-swap="innerHTML">
 		<i class="fa fa-terminal"></i> open its console
 	</button>
+	<button type="button" class="danger small" data-console-stop
+	        hx-post="/jobs/{{ running[0].id }}/stop" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	        hx-target="next [data-console-stop-result]" hx-swap="innerHTML"
+	        hx-confirm="Stop {{ running[0].label|e }} on {{ settings.env_label|upper }}? The whole command is killed where it is: a deploy can stop halfway (image built but not started, migrate cut off). Anything a docker exec started inside a container keeps running.">
+		<i class="fa fa-stop"></i> Stop
+	</button>
+	<span data-console-stop-result></span>
 	{% with job = running[0] %}{% include "partials/job_progress.html" %}{% endwith %}
 </div>
 {% endif %}

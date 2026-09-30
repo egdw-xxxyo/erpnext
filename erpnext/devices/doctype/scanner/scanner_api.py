@@ -3,7 +3,10 @@ import json
 import time
 
 import frappe
+from frappe import _
 from frappe.utils import now_datetime
+
+from erpnext.devices.script_references import load_refs
 
 # ---------------------------------------------------------------------------
 # Logger — injected into script event as e.logger
@@ -320,6 +323,45 @@ def _enter_subflow(state_proxy, target_subflow, root_script=None):
 	return None
 
 
+def _active_subflow_after(state_proxy):
+	if state_proxy._cleared:
+		return None
+	if state_proxy._next is not None:
+		return state_proxy._next.get("subflow")
+	return state_proxy.subflow
+
+
+def _with_printer_warning(result, scanner, state_proxy, root_script, flow_before, logger):
+	"""Append a printer warning when this scan opened a flow that prints and the bench cannot.
+
+	Checked only when the active flow or the workplace changed, so the operator hears about a
+	missing or dead printer at the moment they pick the flow — not after packing a whole box —
+	and ordinary scans inside a flow pay nothing for it. Warns, never blocks: the flow may have
+	steps that do not print, and the printer may be fixed before the label is due.
+	"""
+	from erpnext.devices.printer_resolution import script_printer_problems
+
+	if scanner.workplace != flow_before[1]:
+		root = _get_workplace_script(scanner.workplace)
+		root_script = root.name if root else None
+	script_after = _active_subflow_after(state_proxy) or root_script
+	if (script_after, scanner.workplace) == flow_before or not script_after:
+		return result
+
+	problems = script_printer_problems(script_after, scanner.workplace, probe=True)
+	if not problems:
+		return result
+
+	logger.warn(f"printer check {script_after}@{scanner.workplace}: {problems[0]['message']}")
+	warning = "\n".join([_("⚠ Printer:"), problems[0]["short"]])
+	result = dict(result)
+	if result.get("templateData") is not None:
+		result["templateData"] = f"{result['templateData']}\n{warning}"
+	elif result.get("message") is not None:
+		result["message"] = f"{result['message']}\n{warning}"
+	return result
+
+
 # ---------------------------------------------------------------------------
 # Public endpoint
 # ---------------------------------------------------------------------------
@@ -392,6 +434,7 @@ def run_scan(scanner, data):
 		return _resp(success=False, error="No Workplace Script configured")
 
 	state_proxy.seed_defaults(workplace_script.name)
+	flow_before = (state_proxy.subflow or workplace_script.name, scanner.workplace)
 
 	_impersonate(scanner.employee)
 
@@ -431,6 +474,9 @@ def run_scan(scanner, data):
 		_persist_state(scanner.name, state_proxy, state_timeout)
 
 		if result:
+			result = _with_printer_warning(
+				result, scanner, state_proxy, workplace_script.name, flow_before, logger
+			)
 			message = result.get("message")
 			if result.get("templateData") is not None:
 				message = _apply_message_template(scanner, data, result.get("templateData"))
@@ -618,7 +664,11 @@ def _resolve_scan(data):
 def _build_scripts_namespace(scanner_scripts):
 	scripts = frappe._dict()
 	for ss in scanner_scripts:
-		ns = {"frappe": frappe, "json": json}
+		ns = {
+			"frappe": frappe,
+			"json": json,
+			"refs": load_refs("Device Script", ss.get("name") or ss.script_name),
+		}
 		exec(ss.script, ns)
 		key = ss.script_name.lower().replace(" ", "_").replace("-", "_")
 		scripts[key] = frappe._dict(ns)
@@ -631,7 +681,13 @@ def _execute_workplace_script(workplace_script, event, scripts):
 	)
 
 	ws_snap = _resolve_default_snapshot(workplace_script)
-	ws_ns = {"frappe": frappe, "json": json, "scripts": scripts}
+	ws_ns = {
+		"frappe": frappe,
+		"json": json,
+		"scripts": scripts,
+		"refs": load_refs("Workplace Script", workplace_script.name),
+		"script_name": workplace_script.name,
+	}
 	exec(ws_snap.get("script", "") or "", ws_ns)
 
 	handler = ws_ns.get("on_scan")

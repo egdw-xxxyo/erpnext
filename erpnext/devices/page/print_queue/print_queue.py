@@ -134,7 +134,7 @@ def _resolve_scan_single(doctype, value):
 def get_template_doctypes(doctype, txt, searchfield, start, page_len, filters):
 	doctypes = frappe.get_all(
 		"Label Template",
-		filters={"reference_doctype": ["is", "set"]},
+		filters={"reference_doctype": ["is", "set"], "disabled": 0},
 		fields=["reference_doctype"],
 		distinct=True,
 	)

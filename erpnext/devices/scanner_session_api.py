@@ -431,7 +431,14 @@ def _state_commands(script_name, state):
 	return commands
 
 
-def _flows(root_script, active_subflow):
+def _printer_warnings(script_name, workplace, probe=False):
+	"""What would stop this flow printing at this bench — messages for the app's banner."""
+	from erpnext.devices.printer_resolution import script_printer_problems
+
+	return [p["message"] for p in script_printer_problems(script_name, workplace, probe=probe)]
+
+
+def _flows(root_script, active_subflow, workplace=None):
 	"""The flows this scanner can be in: the root script itself, plus its subflows.
 
 	A subflow is normally entered by scanning its command barcode (`subflow_entries`), so
@@ -458,6 +465,7 @@ def _flows(root_script, active_subflow):
 			"is_active": 0 if active_subflow else 1,
 			"trigger": None,
 			"initial_state": _subflow_initial_state(root_script),
+			"printer_warnings": _printer_warnings(root_script, workplace),
 		}
 	]
 	for name in frappe.get_all(
@@ -474,6 +482,7 @@ def _flows(root_script, active_subflow):
 				"is_active": 1 if name == active_subflow else 0,
 				"trigger": triggers.get(name),
 				"initial_state": _subflow_initial_state(name),
+				"printer_warnings": _printer_warnings(name, workplace),
 			}
 		)
 	return out
@@ -484,8 +493,12 @@ def _flows(root_script, active_subflow):
 # ---------------------------------------------------------------------------
 
 
-def _read_session(scanner_row):
-	"""The whole screen's worth of state for one scanner, in one dict."""
+def _read_session(scanner_row, probe_printer=False):
+	"""The whole screen's worth of state for one scanner, in one dict.
+
+	`probe_printer` also pings the active flow's printer; only the flow switch asks for it,
+	because a dead printer costs a few seconds of TCP timeout.
+	"""
 	timeout = _state_timeout(scanner_row)
 	frame = _load_state(scanner_row.name, timeout) or {}
 
@@ -579,7 +592,12 @@ def _read_session(scanner_row):
 		"rev": frame.get("rev"),
 		"updated_at": updated_at,
 		"state_timeout": timeout,
-		"flows": _flows(root_script, subflow),
+		"flows": _flows(root_script, subflow, scanner_row.get("workplace")),
+		"printer_warnings": _printer_warnings(
+			active_script, scanner_row.get("workplace"), probe=probe_printer
+		)
+		if active_script
+		else [],
 		"commands": _state_commands(active_script, frame.get("state")),
 		"expires_in": max(int(timeout - (time.time() - updated_at)), 0) if updated_at else None,
 		"context_fields": fields,
@@ -946,7 +964,11 @@ def set_scanner_flow(scanner=None, flow=None):
 	if not flow or flow == root_script:
 		_clear_state(row.name)
 	else:
-		allowed = {f["name"] for f in _flows(root_script, frame.get("subflow")) if not f["is_root"]}
+		allowed = {
+			f["name"]
+			for f in _flows(root_script, frame.get("subflow"), row.get("workplace"))
+			if not f["is_root"]
+		}
 		if flow not in allowed:
 			frappe.throw(_("{0} is not a flow of {1}").format(flow, root_script))
 		initial = _subflow_initial_state(flow)
@@ -958,7 +980,7 @@ def set_scanner_flow(scanner=None, flow=None):
 			timeout,
 		)
 
-	session = _read_session(row)
+	session = _read_session(row, probe_printer=True)
 	_publish_session_update(row.name, session)
 	return session
 

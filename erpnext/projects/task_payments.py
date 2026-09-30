@@ -26,12 +26,14 @@ frappe.ui.form.on("Task", {
 			payments_create_request(frm);
 		}, __("Create"));
 
-		frm.add_custom_button(__("Material Request"), () => {
-			frappe.new_doc("Material Request", {
-				material_request_type: "Material Transfer",
-				custom_task: frm.doc.name,
-			});
-		}, __("Create"));
+		if (frappe.model.can_create("Material Request")) {
+			frm.add_custom_button(__("Material Request"), () => {
+				frappe.new_doc("Material Request", {
+					material_request_type: "Material Transfer",
+					custom_task: frm.doc.name,
+				});
+			}, __("Create"));
+		}
 
 		payments_render_overview(frm);
 	},
@@ -215,7 +217,7 @@ function payments_setup_dependency_grid(frm) {
 			if (taskColumn?.static_area && row.doc?.task) {
 				const taskName = row.doc.task;
 				const taskLink = $(`<a class="payments-task-link" href="/app/task/${encodeURIComponent(taskName)}"></a>`)
-					.text(taskName)
+					.text(row.doc.subject || frappe.utils.get_link_title("Task", taskName) || taskName)
 					.on("click", (event) => {
 						event.preventDefault();
 						event.stopImmediatePropagation();
@@ -443,6 +445,9 @@ def _get_task_currency(task):
 
 
 def _get_material_requests(task):
+	if not frappe.has_permission("Material Request", "read"):
+		return []
+
 	requests = frappe.get_list(
 		"Material Request",
 		filters={"custom_task": task, "docstatus": ["<", 2]},

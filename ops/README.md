@@ -39,6 +39,9 @@ in for that). Never set it on a shared host.
 | `app/prefs.py` | tiny plaintext KV store (currently: the pre-deploy safety-backup toggle) |
 | `app/git_keys.py` | encrypted-at-rest per-ops-user git SSH deploy key |
 | `app/git_ssh.py` | stages that key on the host and wraps `update-repo`/`switch-branch` with `GIT_SSH_COMMAND` |
+| `app/host_files.py` | read / atomically replace a config file in the repo on the host |
+| `app/site_config.py` | typed editor for `site-config.json` |
+| `app/mirror_config.py` | typed editor for `.mirror.env` (standby mirror) |
 | `app/routes/` | dashboard, panels, actions, jobs (SSE), settings (FTP targets), git_key_settings, schedule, remote_backups |
 
 ## Where state lives
@@ -59,6 +62,16 @@ These are the source of truth. They survive this container being rebuilt by the
 very deploy they belong to, and the audit file's ownership corroborates the
 username in each line — ops has no host credentials of its own to forge one
 with. `jobs.py`'s sweep deletes artifacts older than 14 days.
+
+**Stopping a job.** The console and the "a job is running" banner have a Stop
+button (`POST /jobs/<id>/stop`, audited as `stop-job`). The job runs under
+`setsid`, so its pid is its process group: `STOP_SCRIPT` sends TERM to the whole
+group, KILL after ten seconds, then writes `.state = stopped` and `.exit = 143`,
+because the wrapper dies before it can. That releases the job lock. Two things
+survive a stop: a process that called `setsid` itself, and anything a
+`docker exec` started inside a container (docker keeps it running when its
+client dies). A job started by another host user cannot be signalled from this
+session and the button says so.
 
 **In the container, `/data/ops.db`** (volume `ops-data`, SQLite + WAL) — state
 that belongs to the dashboard:

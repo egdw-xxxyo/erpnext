@@ -232,6 +232,9 @@
 					stateEl.textContent = payload.state || "finished";
 					stateEl.className = "pill " + (payload.state === "success" ? "good" : "bad");
 				}
+				wrap.querySelectorAll("[data-console-stop]").forEach(function (button) {
+					button.remove();
+				});
 				// Without this the browser reconnects forever once the job ends.
 				source.close();
 				state.source = null;

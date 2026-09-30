@@ -3,6 +3,8 @@ import json
 import frappe
 from frappe.model.document import Document
 
+from erpnext.devices.script_references import validate_refs
+
 
 def _capture_working_copy(doc):
 	return {"script": doc.script or ""}
@@ -28,14 +30,18 @@ class DeviceScript(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.devices.doctype.script_reference.script_reference import ScriptReference
+
 		default_version: DF.Data | None
 		is_active: DF.Check
 		script: DF.Code | None
+		script_references: DF.Table[ScriptReference]
 		script_name: DF.Data | None
 		script_type: DF.Literal["Scanner"]
 		viewing_version: DF.Data | None
 
 	def validate(self):
+		validate_refs(self)
 		if not self.script_type:
 			self.script_type = "Scanner"
 
@@ -89,6 +95,7 @@ def get_active_scripts(script_type: str = "Scanner"):
 		out.append(
 			frappe._dict(
 				{
+					"name": doc.name,
 					"script_name": doc.script_name,
 					"script_type": doc.script_type,
 					"script": snap.get("script", "") or "",

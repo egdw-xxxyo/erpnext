@@ -4,6 +4,15 @@
 		<span class="pill" data-console-state>{{ (state.state if state else 'starting') }}</span>
 		<span class="muted small" data-console-phase></span>
 		<span class="spacer"></span>
+		{% if not state or state.state == 'running' %}
+		<button type="button" class="danger small" data-console-stop
+		        hx-post="/jobs/{{ job_id }}/stop" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+		        hx-target="next [data-console-stop-result]" hx-swap="innerHTML"
+		        hx-confirm="Stop {{ (label or 'this job')|e }} on {{ settings.env_label|upper }}? The whole command is killed where it is: a deploy can stop halfway (image built but not started, migrate cut off). Anything a docker exec started inside a container keeps running.">
+			<i class="fa fa-stop"></i> Stop
+		</button>
+		<span data-console-stop-result></span>
+		{% endif %}
 		<label class="inline-label"><input type="checkbox" data-console-follow checked> follow</label>
 	</div>
 	{% if timeline and timeline.steps %}

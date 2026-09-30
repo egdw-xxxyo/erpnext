@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Standby mirror{% endblock %}
+{% block content %}
+
+<div class="grid">
+	<section class="card wide" id="panel-mirror-settings"
+	         hx-get="/settings/mirror" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Standby mirror</h2><p class="muted">loading…</p>
+	</section>
+</div>
+
+{% endblock %}

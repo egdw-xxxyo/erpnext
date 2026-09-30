@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Site config{% endblock %}
+{% block content %}
+
+<div class="grid">
+	<section class="card wide" id="panel-site-config-settings"
+	         hx-get="/settings/site-config" hx-trigger="load" hx-swap="innerHTML">
+		<h2>Site config</h2><p class="muted">loading…</p>
+	</section>
+</div>
+
+{% endblock %}

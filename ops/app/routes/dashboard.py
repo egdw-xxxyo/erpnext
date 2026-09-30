@@ -59,6 +59,21 @@ async def configuration_page(request: Request, session: SessionDep):
 	return _page(request, session, "configuration", "configuration.html", {})
 
 
+@router.get("/site-config", response_class=HTMLResponse)
+async def site_config_page(request: Request, session: SessionDep):
+	return _page(request, session, "site-config", "site_config.html", {})
+
+
+@router.get("/mirror", response_class=HTMLResponse)
+async def mirror_page(request: Request, session: SessionDep):
+	return _page(request, session, "mirror", "mirror.html", {})
+
+
+@router.get("/ftp", response_class=HTMLResponse)
+async def ftp_page(request: Request, session: SessionDep):
+	return _page(request, session, "ftp", "ftp.html", {})
+
+
 @router.get("/information", response_class=HTMLResponse)
 async def information_page(request: Request, session: SessionDep):
 	records = await asyncio.to_thread(audit.tail, session.conn, 200)

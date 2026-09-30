@@ -22,7 +22,11 @@ add_to_apps_screen = [
 
 develop_version = "15.x.x-develop"
 
-app_include_js = ["erpnext.bundle.js", "/assets/erpnext/js/custom/todo_planner.js"]
+app_include_js = [
+	"erpnext.bundle.js",
+	"/assets/erpnext/js/custom/todo_planner.js",
+	"/assets/erpnext/js/custom/doc_help.js",
+]
 app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
@@ -110,6 +114,8 @@ permission_query_conditions = {
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_query_conditions",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_query_conditions",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
+	# Disabled label templates are soft-deleted: gone from lists and pickers, still printable by name.
+	"Label Template": "erpnext.devices.doctype.label_template.label_template.get_permission_query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -184,6 +190,8 @@ after_migrate = [
 	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
 	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
+	"erpnext.crm.crm_sidebar.add_chat_pages",
+	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"

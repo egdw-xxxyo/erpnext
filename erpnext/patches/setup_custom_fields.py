@@ -547,8 +547,65 @@ def create_custom_fields_on_work_order():
 			"insert_after": "has_serial_no",
 			"depends_on": "has_serial_no",
 		},
+		{
+			"dt": "Work Order",
+			"fieldname": "production_line",
+			"fieldtype": "Link",
+			"options": "Production Line",
+			"label": "Production Line",
+			"insert_after": "serial_nos_html",
+			"read_only": 1,
+			"in_standard_filter": 1,
+		},
+		{
+			"dt": "Work Order",
+			"fieldname": "line_order_type",
+			"fieldtype": "Select",
+			"options": "\nDaily",
+			"label": "Line Order Type",
+			"insert_after": "production_line",
+			"depends_on": "production_line",
+			"read_only": 1,
+			"description": "Daily: closing the line's day deletes the units nobody started and shrinks Qty to the started ones.",
+		},
+		{
+			"dt": "Work Order",
+			"fieldname": "planned_qty",
+			"fieldtype": "Int",
+			"label": "Planned Qty",
+			"insert_after": "line_order_type",
+			"depends_on": "production_line",
+			"read_only": 1,
+			"no_copy": 1,
+		},
 	]
 	_create_custom_fields(fields)
+	backfill_production_line_work_orders()
+
+
+def backfill_production_line_work_orders():
+	"""Tag the Work Orders a line opened before they carried a link back to it.
+
+	`_create_work_order` wrote only `"<line> (plan|overflow)"` into the description, so that is
+	the one trace left of which line owns them.
+	"""
+	for line in frappe.get_all("Production Line", pluck="name"):
+		for reason in ("plan", "overflow"):
+			names = frappe.get_all(
+				"Work Order",
+				filters={"description": f"{line} ({reason})", "production_line": ["is", "not set"]},
+				pluck="name",
+			)
+			for name in names:
+				qty = frappe.db.get_value("Work Order", name, "qty")
+				frappe.db.set_value(
+					"Work Order",
+					name,
+					{"production_line": line, "line_order_type": "Daily", "planned_qty": qty},
+					update_modified=False,
+				)
+			if names:
+				print(f"  Tagged {len(names)} {reason} Work Orders with line {line}")
 
 
 def create_custom_fields_on_employee():
