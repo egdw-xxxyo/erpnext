@@ -4,6 +4,12 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequest
+from erpnext.accounts.payment_workflow_automation import (
+	ALL_ASSIGNMENT_DAYS as PAYMENT_ASSIGNMENT_DAYS,
+)
+from erpnext.accounts.payment_workflow_automation import (
+	_ensure_assignment_rule as ensure_payment_assignment_rule,
+)
 from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
 	ConsolidatedPurchaseOrder,
 	_get_material_request_summaries,
@@ -35,11 +41,15 @@ from erpnext.buying.procurement_automation import (
 	notify_procurement_approval,
 	notify_procurement_receipt,
 	sync_all_current_assignee_names,
+	sync_procurement_stage_assignment,
 )
 from erpnext.buying.procurement_workflow import (
+	ALL_ASSIGNMENT_DAYS,
 	BUYER_ROLE,
 	DOCTYPE_PERMISSIONS,
+	PROCUREMENT_ASSIGNMENT_RULES,
 	READ_ONLY_PERMISSIONS,
+	_ensure_procurement_assignment_rules,
 	_remove_obsolete_purchase_order_permissions,
 )
 from erpnext.buying.procurement_workflow_reason import _apply_creator_department_approval
@@ -49,6 +59,72 @@ from erpnext.setup.procurement_workflow_setup import CUSTOM_FIELDS
 class TestProcurementAutomation(FrappeTestCase):
 	def test_buyer_can_read_employees(self):
 		self.assertEqual(DOCTYPE_PERMISSIONS["Employee"][BUYER_ROLE], READ_ONLY_PERMISSIONS)
+
+	@patch("erpnext.accounts.payment_workflow_automation._save")
+	@patch("erpnext.accounts.payment_workflow_automation.frappe.get_doc")
+	@patch("erpnext.accounts.payment_workflow_automation.frappe.db.exists", return_value=True)
+	def test_unchanged_payment_assignment_rule_is_not_saved(self, _exists, get_doc, save):
+		spec = {
+			"name": "Payments: test rule",
+			"priority": 10,
+			"condition": "workflow_state == 'Чернетка'",
+			"unassign_condition": "workflow_state != 'Чернетка'",
+			"rule": "Round Robin",
+			"description": "Test",
+		}
+		values = {
+			"document_type": "Payment Request",
+			"priority": 10,
+			"disabled": 1,
+			"description": "Test",
+			"assign_condition": spec["condition"],
+			"unassign_condition": spec["unassign_condition"],
+			"close_condition": "workflow_state in ('Погоджено', 'Відхилено')",
+			"rule": "Round Robin",
+			"field": None,
+			"due_date_based_on": "custom_requested_payment_date",
+			"assignment_days": [frappe._dict(day=day) for day in PAYMENT_ASSIGNMENT_DAYS],
+		}
+		doc = MagicMock()
+		doc.get.side_effect = values.get
+		get_doc.return_value = doc
+
+		ensure_payment_assignment_rule(spec)
+
+		save.assert_not_called()
+
+	@patch("erpnext.buying.procurement_workflow._save")
+	@patch("erpnext.buying.procurement_workflow.frappe.get_doc")
+	@patch("erpnext.buying.procurement_workflow.frappe.db.exists", return_value=True)
+	def test_unchanged_assignment_rule_is_not_saved(self, _exists, get_doc, save):
+		spec = PROCUREMENT_ASSIGNMENT_RULES[0]
+		values = {
+			"document_type": spec["document_type"],
+			"priority": spec["priority"],
+			"disabled": 1,
+			"description": spec["description"],
+			"assign_condition": spec["condition"],
+			"unassign_condition": spec["unassign_condition"],
+			"close_condition": spec["close_condition"],
+			"rule": spec.get("rule", "Round Robin"),
+			"field": spec.get("field"),
+			"assignment_days": [frappe._dict(day=day) for day in ALL_ASSIGNMENT_DAYS],
+		}
+		doc = MagicMock(rule=values["rule"])
+		doc.get.side_effect = values.get
+		get_doc.return_value = doc
+
+		with patch("erpnext.buying.procurement_workflow.PROCUREMENT_ASSIGNMENT_RULES", (spec,)):
+			_ensure_procurement_assignment_rules()
+
+		save.assert_not_called()
+
+	def test_buyer_can_manage_supplier_and_bank_master_data(self):
+		required_permissions = {"select", "read", "write", "create", "delete"}
+
+		for doctype in ("Supplier", "Bank Account", "Bank"):
+			with self.subTest(doctype=doctype):
+				self.assertTrue(required_permissions.issubset(DOCTYPE_PERMISSIONS[doctype][BUYER_ROLE]))
 
 	def test_purchase_invoice_has_responsible_employee_bulk_and_item_fields(self):
 		parent_fields = {field["fieldname"]: field for field in CUSTOM_FIELDS["Purchase Invoice"]}
@@ -646,6 +722,15 @@ class TestProcurementAutomation(FrappeTestCase):
 		notify_procurement_approval(doc, ["head@example.invalid"], text)
 		enqueue.assert_called_once()
 
+		doc.flags.clear()
+		doc.get_doc_before_save.return_value = None
+		notify_procurement_approval(doc, ["head@example.invalid"], text)
+		self.assertEqual(enqueue.call_count, 2)
+		self.assertEqual(
+			enqueue.call_args.kwargs["dedupe_on"],
+			["document_type", "document_name", "subject"],
+		)
+
 	@patch("frappe.desk.form.assign_to.notify_assignment")
 	@patch("erpnext.buying.procurement_automation.frappe.get_doc")
 	@patch("erpnext.buying.procurement_automation.frappe.get_all")
@@ -661,3 +746,19 @@ class TestProcurementAutomation(FrappeTestCase):
 		self.assertEqual(todo.status, "Closed")
 		todo.save.assert_called_once_with(ignore_permissions=True)
 		notify_assignment.assert_not_called()
+
+	@patch("erpnext.buying.procurement_automation.add_assignment")
+	@patch("erpnext.buying.procurement_automation._close_assignments_silently")
+	@patch(
+		"erpnext.buying.procurement_automation._has_active_consolidated_purchase_order",
+		return_value=True,
+	)
+	def test_material_request_assignment_is_not_recreated_after_consolidation(
+		self, _has_consolidated_order, close_assignments, add_assignment
+	):
+		doc = frappe._dict(doctype="Material Request", name="MAT-MR-TEST")
+
+		sync_procurement_stage_assignment(doc)
+
+		close_assignments.assert_called_once()
+		add_assignment.assert_not_called()

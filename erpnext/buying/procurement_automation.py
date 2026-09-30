@@ -478,6 +478,19 @@ def sync_procurement_stage_assignment(doc, method=None):
 	if doc.doctype not in {MATERIAL_REQUEST_DOCTYPE, CONSOLIDATED_PURCHASE_ORDER_DOCTYPE}:
 		return
 
+	if doc.doctype == MATERIAL_REQUEST_DOCTYPE and _has_active_consolidated_purchase_order(doc.name):
+		_close_assignments_silently(
+			MATERIAL_REQUEST_DOCTYPE,
+			doc.name,
+			filters={
+				"reference_type": MATERIAL_REQUEST_DOCTYPE,
+				"reference_name": doc.name,
+				"assignment_rule": MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
+				"status": "Open",
+			},
+		)
+		return
+
 	if doc.doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
 		_close_linked_material_request_assignments(doc)
 
@@ -564,6 +577,13 @@ def notify_procurement_approval(doc, users, description):
 	doc.flags.procurement_approval_notified = doc.workflow_state
 	buyer = doc.get("initiator_user") or doc.owner
 	buyer_name = frappe.get_cached_value("User", buyer, "full_name") or buyer
+	dedupe_on = None
+	if not previous:
+		# Backfills load existing documents without a previous version. Avoid sending
+		# the same stage alert after every migration while preserving alerts when a
+		# user later moves the document back into this stage.
+		dedupe_on = ["document_type", "document_name", "subject"]
+	kwargs = {"dedupe_on": dedupe_on} if dedupe_on else {}
 	enqueue_create_notification(
 		users,
 		{
@@ -577,6 +597,7 @@ def notify_procurement_approval(doc, users, description):
 			),
 			"email_content": description,
 		},
+		**kwargs,
 	)
 	for user in users:
 		sync_procurement_participants_for_reference(doc.doctype, doc.name, additional_user=user)
@@ -611,6 +632,27 @@ def _get_procurement_assignment_user(rule, spec, doc):
 	if user and frappe.db.get_value("User", user, "enabled"):
 		return user
 	return "Administrator" if frappe.db.get_value("User", "Administrator", "enabled") else None
+
+
+def _has_active_consolidated_purchase_order(material_request):
+	if frappe.db.exists(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		{"material_request": material_request, "docstatus": ["<", 2]},
+	):
+		return True
+
+	parents = frappe.get_all(
+		"Consolidated Purchase Order Item",
+		filters={"material_request": material_request},
+		pluck="parent",
+	)
+	return bool(
+		parents
+		and frappe.db.exists(
+			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			{"name": ["in", list(set(parents))], "docstatus": ["<", 2]},
+		)
+	)
 
 
 def _close_linked_material_request_assignments(doc):

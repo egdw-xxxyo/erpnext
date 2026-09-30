@@ -104,28 +104,39 @@ def _ensure_assignment_rule(spec, default_user="Administrator"):
 		doc = frappe.new_doc("Assignment Rule")
 		doc.name = spec["name"]
 
-	doc.document_type = PAYMENT_REQUEST_DOCTYPE
-	doc.priority = spec["priority"]
-	# We keep Assignment Rules as Desk-managed routing configuration, but apply them
-	# ourselves so leaving a stage closes its ToDo without a misleading cancellation alert.
-	doc.disabled = 1
-	doc.description = spec["description"]
-	doc.assign_condition = spec["condition"]
-	doc.unassign_condition = spec["unassign_condition"]
-	doc.close_condition = "workflow_state in ('Погоджено', 'Відхилено')"
-	doc.rule = spec.get("rule", "Round Robin")
-	doc.field = spec.get("field")
-	doc.due_date_based_on = "custom_requested_payment_date"
+	changed = is_new
+	values = {
+		"document_type": PAYMENT_REQUEST_DOCTYPE,
+		"priority": spec["priority"],
+		# We keep Assignment Rules as Desk-managed routing configuration, but apply them
+		# ourselves so leaving a stage closes its ToDo without a misleading cancellation alert.
+		"disabled": 1,
+		"description": spec["description"],
+		"assign_condition": spec["condition"],
+		"unassign_condition": spec["unassign_condition"],
+		"close_condition": "workflow_state in ('Погоджено', 'Відхилено')",
+		"rule": spec.get("rule", "Round Robin"),
+		"field": spec.get("field"),
+		"due_date_based_on": "custom_requested_payment_date",
+	}
+	for fieldname, value in values.items():
+		if doc.get(fieldname) != value:
+			doc.set(fieldname, value)
+			changed = True
 	# Users configured in Desk are production data. Seed a valid fallback only on
 	# first creation and never replace administrators' later choices on deploy.
 	if is_new:
 		doc.set("users", [{"user": default_user}] if spec.get("user") else [])
-	doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
-	_save(doc)
+	if [row.day for row in doc.get("assignment_days") or []] != list(ALL_ASSIGNMENT_DAYS):
+		doc.set("assignment_days", [{"day": day} for day in ALL_ASSIGNMENT_DAYS])
+		changed = True
+	if changed:
+		_save(doc)
 
 
 def _ensure_notification():
-	if frappe.db.exists("Notification", NOTIFICATION_NAME):
+	is_new = not frappe.db.exists("Notification", NOTIFICATION_NAME)
+	if not is_new:
 		doc = frappe.get_doc("Notification", NOTIFICATION_NAME)
 	else:
 		doc = frappe.new_doc("Notification")
@@ -133,20 +144,30 @@ def _ensure_notification():
 
 	# A newly created assignment already produces the useful System Notification.
 	# The former stage-change notification duplicated it for every assignee.
-	doc.enabled = 0
-	doc.channel = "System Notification"
-	doc.document_type = PAYMENT_REQUEST_DOCTYPE
-	doc.event = "Value Change"
-	doc.value_changed = "workflow_state"
-	doc.condition = (
-		"doc.workflow_state in ('Перевірка підрозділу', 'Фінальне погодження', "
-		"'Перевірка казначейства', 'Потребує доопрацювання')"
-	)
-	doc.send_to_all_assignees = 1
-	doc.subject = _("Request {{ doc.name }}: {{ doc.workflow_state }}")
-	doc.message = _("Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>.")
-	doc.set("recipients", [])
-	_save(doc)
+	changed = is_new
+	values = {
+		"enabled": 0,
+		"channel": "System Notification",
+		"document_type": PAYMENT_REQUEST_DOCTYPE,
+		"event": "Value Change",
+		"value_changed": "workflow_state",
+		"condition": (
+			"doc.workflow_state in ('Перевірка підрозділу', 'Фінальне погодження', "
+			"'Перевірка казначейства', 'Потребує доопрацювання')"
+		),
+		"send_to_all_assignees": 1,
+		"subject": _("Request {{ doc.name }}: {{ doc.workflow_state }}"),
+		"message": _("Payment Request <b>{{ doc.name }}</b> moved to stage <b>{{ doc.workflow_state }}</b>."),
+	}
+	for fieldname, value in values.items():
+		if doc.get(fieldname) != value:
+			doc.set(fieldname, value)
+			changed = True
+	if doc.get("recipients"):
+		doc.set("recipients", [])
+		changed = True
+	if changed:
+		_save(doc)
 
 
 def sync_payment_request_assignment(doc, method=None):
