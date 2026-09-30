@@ -3,7 +3,12 @@
 Chats belong to a business number (WhatsApp Account). A user reaches a chat only
 through a `WhatsApp Number Access` row for that number: `Responsible` reads and
 writes, `Spectator` only reads. System Manager reaches every number with full
-rights. The same rule backs the chat API, desk list queries, form permission
+rights.
+
+Who works with WhatsApp at all is a role: `WhatsApp User` chats on the numbers they
+are given, `WhatsApp Manager` also opens the WhatsApp Overview, edits the numbers'
+cards and gives people access. A manager still sees only the chats of their own
+numbers. The same rule backs the chat API, desk list queries, form permission
 checks and the realtime fan-out, so no path shows a chat its number hides.
 """
 
@@ -11,6 +16,8 @@ import frappe
 from frappe import _
 
 ADMIN_ROLE = "System Manager"
+CHAT_ROLE = "WhatsApp User"
+MANAGER_ROLE = "WhatsApp Manager"
 RESPONSIBLE = "Responsible"
 SPECTATOR = "Spectator"
 CACHE_KEY = "whatsapp_access_map"
@@ -32,6 +39,16 @@ def _access_map():
 def is_admin(user=None):
 	user = user or frappe.session.user
 	return user == "Administrator" or ADMIN_ROLE in frappe.get_roles(user)
+
+
+def is_manager(user=None):
+	user = user or frappe.session.user
+	return is_admin(user) or MANAGER_ROLE in frappe.get_roles(user)
+
+
+def require_manager():
+	if not is_manager():
+		frappe.throw(_("Only WhatsApp managers can do this"), frappe.PermissionError)
 
 
 def all_accounts():
@@ -98,7 +115,7 @@ def account_labels():
 		return {}
 	fields = ["name", "account_name"]
 	meta = frappe.get_meta("WhatsApp Account")
-	for f in ("display_phone_number", "verified_name"):
+	for f in ("display_phone_number", "verified_name", "profile_image"):
 		if meta.has_field(f):
 			fields.append(f)
 	out = {}
@@ -108,6 +125,7 @@ def account_labels():
 			"label": number or row.account_name or row.name,
 			"display_phone_number": number,
 			"verified_name": row.get("verified_name"),
+			"profile_image": row.get("profile_image"),
 			"account_name": row.account_name or row.name,
 		}
 	return out
@@ -127,8 +145,10 @@ def boot_session(bootinfo):
 		return
 	try:
 		bootinfo.whatsapp_accounts = my_accounts()
+		bootinfo.whatsapp_manager = 1 if is_manager() else 0
 	except Exception:
 		bootinfo.whatsapp_accounts = []
+		bootinfo.whatsapp_manager = 0
 
 
 # ---------------------------------------------------------------------------

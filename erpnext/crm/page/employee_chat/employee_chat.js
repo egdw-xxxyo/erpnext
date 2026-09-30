@@ -21,6 +21,7 @@ frappe.pages["employee-chat"].on_page_load = function (wrapper) {
 frappe.pages["employee-chat"].on_page_show = function (wrapper) {
 	const view = wrapper.chat_view;
 	if (!view) return;
+	view.fit_height();
 	const ro = frappe.route_options || {};
 	if (ro.thread || frappe.utils.get_url_arg("thread")) {
 		frappe.route_options = null;

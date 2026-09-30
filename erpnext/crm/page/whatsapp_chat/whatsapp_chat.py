@@ -315,6 +315,8 @@ def _number_info(chat):
 		"whatsapp_account": chat.whatsapp_account,
 		"number_label": label.get("label") or chat.whatsapp_account,
 		"account_name": label.get("account_name") or chat.whatsapp_account,
+		"verified_name": label.get("verified_name"),
+		"number_image": label.get("profile_image"),
 		"read_only": 0 if wa_access.can_access(chat.whatsapp_account, write=True) else 1,
 		"managers": wa_access.responsible_users(chat.whatsapp_account),
 	}
@@ -463,6 +465,9 @@ def get_chat_overview(chat, limit=200):
 		"managers": context.get("managers", []),
 		"number_label": context.get("number_label"),
 		"account_name": context.get("account_name"),
+		"verified_name": context.get("verified_name"),
+		"number_image": context.get("number_image"),
+		"whatsapp_account": chat.whatsapp_account,
 		"read_only": context.get("read_only"),
 		"linked": context.get("linked", []),
 		"derived": context.get("derived", []),

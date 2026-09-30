@@ -1,29 +1,54 @@
 """One picture of the WhatsApp setup: business numbers, who answers them, and how fast.
 
-Reply and waiting times are counted in working hours (see erpnext.crm.whatsapp_stats).
-Reads only.
+Also where WhatsApp managers configure it: each number opens a card (Meta business
+profile, notes, who answers and who watches it) and the Employees tab decides who works
+with WhatsApp at all. Reply and waiting times are counted in working hours (see
+erpnext.crm.whatsapp_stats).
 """
 
 from collections import defaultdict
 
 import frappe
+from frappe import _
 from frappe.utils import add_days, get_datetime, now_datetime, nowdate
 
 from erpnext.crm import whatsapp_access as wa_access
 from erpnext.crm import whatsapp_stats as stats
 
-VIEW_ROLES = ("System Manager", "Sales Manager")
 PERIODS = {"today": 0, "7": 7, "30": 30, "90": 90}
 # A pending chat older than this is abandoned, not waiting — it stays out of the list.
 PENDING_WINDOW_DAYS = 90
+PROFILE_FIELDS = (
+	"display_phone_number",
+	"verified_name",
+	"profile_image",
+	"about",
+	"description",
+	"email",
+	"websites",
+	"address",
+	"vertical",
+	"quality_rating",
+	"messaging_limit",
+	"profile_synced_on",
+)
+EMPLOYEE = "Employee"
+MANAGER = "Manager"
+ADMIN = "Admin"
+# How long to wait before trying again to load a number's profile Meta did not return.
+SYNC_RETRY_SECONDS = 3600
 
 
 @frappe.whitelist()
 def get_overview(period="7"):
-	frappe.only_for(VIEW_ROLES)
+	wa_access.require_manager()
 	if not frappe.db.table_exists("WhatsApp Account"):
 		return {"installed": False}
+	_sync_new_numbers()
+	return _collect(period)
 
+
+def _collect(period):
 	days = PERIODS.get(str(period), 7)
 	start = get_datetime(add_days(nowdate(), -days))
 	now = now_datetime()
@@ -111,7 +136,7 @@ def get_overview(period="7"):
 		"generated_at": frappe.utils.now(),
 		"period": str(period),
 		"accounts": accounts,
-		"managers": _managers(access, labels, turns_by_user, user_sent, user_last, pending_by_account),
+		"employees": _employees(access, labels, turns_by_user, user_sent, user_last, pending_by_account),
 		"pending": pending,
 		"schedule": {"hours": schedule.describe(), "holiday_list": schedule.holiday_list},
 	}
@@ -127,20 +152,32 @@ def _accounts(labels):
 		"business_id",
 		"is_default_incoming",
 		"is_default_outgoing",
+		*PROFILE_FIELDS,
 	]
 	fields = [f for f in fields if f == "name" or meta.has_field(f)]
 	out = []
 	for row in frappe.get_all("WhatsApp Account", fields=fields, order_by="creation asc"):
 		info = labels.get(row.name, {})
-		out.append(
-			dict(
-				row,
-				label=info.get("label") or row.name,
-				display_phone_number=info.get("display_phone_number"),
-				verified_name=info.get("verified_name"),
-			)
-		)
+		out.append(dict(row, label=info.get("label") or row.name))
 	return out
+
+
+def _sync_new_numbers():
+	"""Load the Meta profile of numbers that never had it (added before the card existed,
+	or created without a token); at most once an hour per number."""
+	if not frappe.get_meta("WhatsApp Account").has_field("profile_synced_on"):
+		return
+	for name in frappe.get_all(
+		"WhatsApp Account", filters={"profile_synced_on": ["is", "not set"]}, pluck="name"
+	):
+		key = f"whatsapp_profile_sync_tried:{name}"
+		if frappe.cache.get_value(key):
+			continue
+		frappe.cache.set_value(key, 1, expires_in_sec=SYNC_RETRY_SECONDS)
+		try:
+			frappe.get_doc("WhatsApp Account", name).save_number_info()
+		except Exception:
+			frappe.log_error(title="WhatsApp number profile sync failed", message=frappe.get_traceback())
 
 
 def _person(row):
@@ -192,42 +229,188 @@ def _pending(chat_by_key, labels, schedule, now):
 	return out
 
 
-def _managers(access, labels, turns_by_user, user_sent, user_last, pending_by_account):
-	people = {}
+def _employees(access, labels, turns_by_user, user_sent, user_last, pending_by_account):
+	"""Everyone who works with WhatsApp: holders of the chat or manager role, people with a
+	number, and whoever answered a customer in the period (e.g. a System Manager)."""
+	numbers = defaultdict(list)
 	for row in access:
-		p = people.setdefault(
-			row.user, {"user": row.user, "full_name": row.full_name or row.user, "numbers": []}
-		)
-		p["numbers"].append(
+		numbers[row.user].append(
 			{
 				"whatsapp_account": row.whatsapp_account,
 				"label": labels.get(row.whatsapp_account, {}).get("label") or row.whatsapp_account,
 				"access": row.access,
 			}
 		)
-	# Whoever answered without an access row (e.g. a System Manager) still shows up.
-	for user in set(turns_by_user) | set(user_sent):
-		if user and user not in people and user not in ("Guest",):
-			people[user] = {
-				"user": user,
-				"full_name": frappe.utils.get_fullname(user),
-				"numbers": [],
-			}
+	roles = defaultdict(set)
+	for row in frappe.get_all(
+		"Has Role",
+		filters={
+			"parenttype": "User",
+			"role": ["in", [wa_access.CHAT_ROLE, wa_access.MANAGER_ROLE, wa_access.ADMIN_ROLE]],
+		},
+		fields=["parent", "role"],
+	):
+		roles[row.parent].add(row.role)
+
+	candidates = {u for u, r in roles.items() if r - {wa_access.ADMIN_ROLE}}
+	candidates |= set(numbers) | set(turns_by_user) | set(user_sent)
+	candidates -= {None, "", "Guest"}
+	users = frappe.get_all(
+		"User",
+		filters={"name": ["in", list(candidates) or [""]], "enabled": 1},
+		fields=["name", "full_name", "user_image"],
+	)
 
 	out = []
-	for p in people.values():
-		replies = turns_by_user.get(p["user"], [])
-		responsible = [n["whatsapp_account"] for n in p["numbers"] if n["access"] == wa_access.RESPONSIBLE]
-		p.update(
+	for u in users:
+		replies = turns_by_user.get(u.name, [])
+		mine = numbers.get(u.name, [])
+		responsible = [n["whatsapp_account"] for n in mine if n["access"] == wa_access.RESPONSIBLE]
+		out.append(
 			{
+				"user": u.name,
+				"full_name": u.full_name or u.name,
+				"user_image": u.user_image,
+				"level": _level(u.name, roles.get(u.name, set())),
+				"numbers": mine,
 				"replies": len(replies),
 				"avg_reply": stats.average(replies),
 				"median_reply": stats.median(replies),
-				"messages_sent": user_sent.get(p["user"], 0),
-				"last_activity": str(user_last[p["user"]]) if p["user"] in user_last else None,
+				"messages_sent": user_sent.get(u.name, 0),
+				"last_activity": str(user_last[u.name]) if u.name in user_last else None,
 				"pending": sum(len(pending_by_account.get(a, [])) for a in responsible),
 			}
 		)
-		out.append(p)
-	out.sort(key=lambda p: (-p["replies"], p["full_name"] or ""))
+	order = {ADMIN: 0, MANAGER: 1, EMPLOYEE: 2, "": 3}
+	out.sort(key=lambda p: (order[p["level"]], (p["full_name"] or "").lower()))
 	return out
+
+
+def _level(user, roles):
+	if user == "Administrator" or wa_access.ADMIN_ROLE in roles:
+		return ADMIN
+	if wa_access.MANAGER_ROLE in roles:
+		return MANAGER
+	if wa_access.CHAT_ROLE in roles:
+		return EMPLOYEE
+	return ""
+
+
+# ---------------------------------------------------------------------------
+# Number card
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def get_number(account, period="30"):
+	"""One business number: its Meta profile, notes, people and figures for the period."""
+	wa_access.require_manager()
+	if not frappe.db.exists("WhatsApp Account", account):
+		frappe.throw(_("WhatsApp number {0} not found").format(account), frappe.DoesNotExistError)
+	data = _collect(period)
+	number = next(a for a in data["accounts"] if a["name"] == account)
+	if frappe.get_meta("WhatsApp Account").has_field("notes"):
+		number["notes"] = frappe.db.get_value("WhatsApp Account", account, "notes")
+	people = {
+		row.user: row
+		for row in frappe.get_all(
+			"WhatsApp Number Access", filters={"whatsapp_account": account}, fields=["user", "access"]
+		)
+	}
+	employees = data["employees"]
+	number["people"] = [dict(e, access=people[e["user"]].access) for e in employees if e["user"] in people]
+	return {
+		"number": number,
+		"pending": [p for p in data["pending"] if p["whatsapp_account"] == account],
+		# Who can be given this number: WhatsApp employees without a row on it.
+		"candidates": [
+			{"user": e["user"], "full_name": e["full_name"], "level": e["level"]}
+			for e in employees
+			if e["level"] in (EMPLOYEE, MANAGER) and e["user"] not in people
+		],
+		"can_edit_account": 1 if wa_access.is_admin() else 0,
+		"period": str(period),
+		"generated_at": frappe.utils.now(),
+	}
+
+
+@frappe.whitelist()
+def sync_number(account, period="30"):
+	wa_access.require_manager()
+	doc = frappe.get_doc("WhatsApp Account", account)
+	doc.save_number_info()
+	return get_number(account, period)
+
+
+@frappe.whitelist()
+def save_notes(account, notes=None):
+	wa_access.require_manager()
+	frappe.db.set_value("WhatsApp Account", account, "notes", notes or "")
+
+
+@frappe.whitelist()
+def set_number_access(account, user, access=None):
+	"""Make `user` Responsible or Spectator on a number; empty `access` takes it away."""
+	wa_access.require_manager()
+	if not frappe.db.exists("WhatsApp Account", account):
+		frappe.throw(_("WhatsApp number {0} not found").format(account), frappe.DoesNotExistError)
+	if access and access not in (wa_access.RESPONSIBLE, wa_access.SPECTATOR):
+		frappe.throw(_("Unknown access level: {0}").format(access))
+
+	name = frappe.db.get_value("WhatsApp Number Access", {"user": user, "whatsapp_account": account})
+	if not access:
+		if name:
+			frappe.delete_doc("WhatsApp Number Access", name, ignore_permissions=True)
+	else:
+		if not _level(user, set(frappe.get_roles(user))):
+			frappe.throw(
+				_("{0} does not work with WhatsApp yet. Add them on the Employees tab first.").format(
+					frappe.utils.get_fullname(user)
+				)
+			)
+		if name:
+			frappe.db.set_value("WhatsApp Number Access", name, "access", access)
+		else:
+			frappe.get_doc(
+				{
+					"doctype": "WhatsApp Number Access",
+					"whatsapp_account": account,
+					"user": user,
+					"access": access,
+				}
+			).insert(ignore_permissions=True)
+	frappe.cache.delete_value(wa_access.CACHE_KEY)
+
+
+# ---------------------------------------------------------------------------
+# Employees
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def set_employee(user, level=None):
+	"""Employee chats on the numbers given to them; Manager also configures WhatsApp here.
+	No level takes WhatsApp away: both roles and every number."""
+	wa_access.require_manager()
+	level = level or ""
+	if level not in ("", EMPLOYEE, MANAGER):
+		frappe.throw(_("Unknown WhatsApp level: {0}").format(level))
+	if not frappe.db.get_value("User", {"name": user, "enabled": 1, "user_type": "System User"}):
+		frappe.throw(_("{0} is not an active desk user").format(user))
+	if user == frappe.session.user and not wa_access.is_admin():
+		frappe.throw(_("You cannot change your own WhatsApp level"))
+
+	doc = frappe.get_doc("User", user)
+	doc.flags.ignore_permissions = True
+	add = {EMPLOYEE: [wa_access.CHAT_ROLE], MANAGER: [wa_access.CHAT_ROLE, wa_access.MANAGER_ROLE]}.get(
+		level, []
+	)
+	drop = [r for r in (wa_access.CHAT_ROLE, wa_access.MANAGER_ROLE) if r not in add]
+	current = set(frappe.get_roles(user))
+	if drop and current & set(drop):
+		doc.remove_roles(*drop)
+	if add and set(add) - current:
+		doc.add_roles(*add)
+	if not level:
+		frappe.db.delete("WhatsApp Number Access", {"user": user})
+		frappe.cache.delete_value(wa_access.CACHE_KEY)

@@ -1738,15 +1738,16 @@ def setup_whatsapp_user_role():
 	bubble, the phone-field icon and the form panel all key off read/create on
 	WhatsApp Message (see whatsapp_chat._require_wa_access)."""
 	role = "WhatsApp User"
-	if not frappe.db.exists("Role", role):
-		frappe.get_doc(
-			{
-				"doctype": "Role",
-				"role_name": role,
-				"desk_access": 1,
-			}
-		).insert(ignore_permissions=True)
-		print(f"  Created Role: {role}")
+	for name in (role, "WhatsApp Manager"):
+		if not frappe.db.exists("Role", name):
+			frappe.get_doc(
+				{
+					"doctype": "Role",
+					"role_name": name,
+					"desk_access": 1,
+				}
+			).insert(ignore_permissions=True)
+			print(f"  Created Role: {name}")
 
 	perms = {
 		"WhatsApp Message": {"read": 1, "create": 1, "write": 1},

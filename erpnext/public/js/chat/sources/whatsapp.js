@@ -99,7 +99,8 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 	}
 
 	bind_sidebar_tools($el, view) {
-		$el.find(".cv-number-filter").on("change", (e) => {
+		this.$number_filter = $el.find(".cv-number-filter");
+		this.$number_filter.on("change", (e) => {
 			this.account_filter = $(e.currentTarget).val() || null;
 			view.refresh(true);
 		});
@@ -107,8 +108,16 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 
 	// ------------------------------------------------------------------ opening
 
-	// Deep links: ?chat=<chat> or ?phone=380… (phone icon, CRM form panel).
+	// Deep links: ?chat=<chat>, ?phone=380… (phone icon, CRM form panel) or
+	// ?number=<account> (the number card in WhatsApp Overview) to filter the list.
 	open_request(view, ro) {
+		const number = ro.number || frappe.utils.get_url_arg("number");
+		if (number && this.numbers().some((n) => n.name === number)) {
+			this.account_filter = number;
+			this.$number_filter?.val(number);
+			view.refresh(true);
+			return true;
+		}
 		const chat = ro.chat || frappe.utils.get_url_arg("chat");
 		if (chat) {
 			if (view.chats[chat]) view.open(chat);
@@ -583,11 +592,16 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			</div>`;
 		$el.html(`
 			<h6>${__("WhatsApp number")}</h6>
-			<div class="cv-ent"><span class="cv-ent-main"><i class="fa fa-whatsapp" style="color:#25d366"></i> ${esc(
-				ctx.number_label || ""
-			)}<div class="cv-ent-sub">${esc(ctx.account_name || "")}${
-			read_only ? " · " + __("read only") : ""
-		}</div></span></div>
+			<div class="cv-ent cv-number-ent" style="justify-content:flex-start;gap:10px;"${
+				frappe.boot.whatsapp_manager ? ` data-account="${esc(ctx.whatsapp_account)}"` : ""
+			}>${erpnext.chat_render.avatar_html(
+			ctx.number_image
+				? { image: ctx.number_image }
+				: { name: ctx.account_name, key: ctx.whatsapp_account, icon: "fa fa-whatsapp" },
+			32
+		)}<span class="cv-ent-main">${esc(ctx.number_label || "")}<div class="cv-ent-sub">${esc(
+			ctx.verified_name || ctx.account_name || ""
+		)}${read_only ? " · " + __("read only") : ""}</div></span></div>
 			${actions}
 			<h6>${__("Linked Documents")}</h6>
 			<div>${linked}</div>
@@ -596,6 +610,12 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 			<div class="text-muted" style="font-size:var(--text-sm);">${managers || __("None")}</div>
 		`);
 		const rerender = () => this.render_side(chat, $el, view);
+		$el.find(".cv-number-ent[data-account]")
+			.css("cursor", "pointer")
+			.attr("title", __("Open number card"))
+			.on("click", (e) =>
+				frappe.set_route("whatsapp-overview", "number", $(e.currentTarget).attr("data-account"))
+			);
 		$el.find(".cv-ent-main[data-dt]").on("click", (e) =>
 			frappe.set_route("Form", $(e.currentTarget).attr("data-dt"), $(e.currentTarget).attr("data-nm"))
 		);

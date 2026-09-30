@@ -1,6 +1,6 @@
 {
  "actions": [],
- "creation": "2026-09-30 18:00:00.000000",
+ "creation": "2026-09-30 20:00:00.000000",
  "description": "Working hours for WhatsApp reply statistics",
  "editable_grid": 1,
  "doctype": "DocType",
@@ -27,7 +27,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-30 18:00:00.000000",
+ "modified": "2026-09-30 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "WhatsApp Chat Settings",
@@ -52,7 +52,7 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Sales Manager",
+   "role": "WhatsApp Manager",
    "share": 1,
    "write": 1
   }

@@ -7,9 +7,8 @@ frappe.pages["whatsapp-chat-center"].on_page_load = function (wrapper) {
 		title: __("WhatsApp Chat"),
 		single_column: true,
 	});
-	if (frappe.user.has_role(["Sales Manager", "System Manager"])) {
+	if (frappe.boot.whatsapp_manager) {
 		page.add_menu_item(__("WhatsApp Overview"), () => frappe.set_route("whatsapp-overview"));
-		page.add_menu_item(__("WhatsApp Access"), () => frappe.set_route("whatsapp-access"));
 	}
 	wrapper.chat_view = new erpnext.chat_view.ChatView(page, new erpnext.chat_sources.WhatsApp());
 };
@@ -18,8 +17,10 @@ frappe.pages["whatsapp-chat-center"].on_page_load = function (wrapper) {
 frappe.pages["whatsapp-chat-center"].on_page_show = function (wrapper) {
 	const view = wrapper.chat_view;
 	if (!view) return;
+	view.fit_height();
 	const ro = frappe.route_options || {};
-	if (ro.chat || ro.phone || frappe.utils.get_url_arg("chat") || frappe.utils.get_url_arg("phone")) {
+	const arg = (key) => ro[key] || frappe.utils.get_url_arg(key);
+	if (arg("chat") || arg("phone") || arg("number")) {
 		frappe.route_options = null;
 		view.route_to(ro);
 	}

@@ -56,7 +56,10 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.bind_realtime();
 
 		this.poll = setInterval(() => this.refresh(true), 30000);
+		this.on_resize = frappe.utils.debounce(() => this.fit_height(), 100);
+		$(window).on("resize", this.on_resize);
 		$(this.page.wrapper).on("remove", () => this.destroy());
+		setTimeout(() => this.fit_height(), 0);
 
 		const ro = frappe.route_options || {};
 		frappe.route_options = null;
@@ -64,7 +67,17 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.refresh();
 	}
 
+	// Fill the window down to a small bottom gap, whatever the desk header above it
+	// measures (it differs between v15, v16 and a page with a filter bar).
+	fit_height() {
+		const el = this.page.main.find(".cv-page")[0];
+		if (!el || !el.offsetParent) return;
+		const top = el.getBoundingClientRect().top + window.scrollY;
+		el.style.height = `${Math.max(420, window.innerHeight - top - 16)}px`;
+	}
+
 	destroy() {
+		$(window).off("resize", this.on_resize);
 		clearInterval(this.poll);
 		for (const [event, handler] of Object.entries(this.rt_handlers || {}))
 			frappe.realtime.off(event, handler);
@@ -199,7 +212,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	inject_styles() {
 		if (document.getElementById("cv-page-styles-v1")) return;
 		const css = `
-		.cv-page{display:flex;height:calc(100vh - 160px);border:1px solid var(--border-color);
+		.cv-page{display:flex;height:calc(100vh - 120px);min-height:420px;margin:12px 20px 0;border:1px solid var(--border-color);
 			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
 		.cv-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
 		.cv-search{padding:10px;display:flex;flex-direction:column;gap:6px;}
