@@ -317,17 +317,14 @@ def get_number(account, period="30"):
 			"WhatsApp Number Access", filters={"whatsapp_account": account}, fields=["user", "access"]
 		)
 	}
-	employees = data["employees"]
-	number["people"] = [dict(e, access=people[e["user"]].access) for e in employees if e["user"] in people]
+	number["people"] = [
+		dict(e, access=people[e["user"]].access) for e in data["employees"] if e["user"] in people
+	]
+	mine = people.get(frappe.session.user)
 	return {
 		"number": number,
 		"pending": [p for p in data["pending"] if p["whatsapp_account"] == account],
-		# Who can be given this number: WhatsApp employees without a row on it.
-		"candidates": [
-			{"user": e["user"], "full_name": e["full_name"], "level": e["level"]}
-			for e in employees
-			if e["level"] in (EMPLOYEE, MANAGER) and e["user"] not in people
-		],
+		"my_access": mine.access if mine else None,
 		"can_edit_account": 1 if wa_access.is_admin() else 0,
 		"period": str(period),
 		"generated_at": frappe.utils.now(),
@@ -350,7 +347,10 @@ def save_notes(account, notes=None):
 
 @frappe.whitelist()
 def set_number_access(account, user, access=None):
-	"""Make `user` Responsible or Spectator on a number; empty `access` takes it away."""
+	"""Make `user` Responsible or Spectator on a number; empty `access` takes it away.
+	Giving a number also gives the WhatsApp User role, without which the chat pages
+	stay hidden. Returns the caller's own numbers, which change when they edit
+	themselves."""
 	wa_access.require_manager()
 	if not frappe.db.exists("WhatsApp Account", account):
 		frappe.throw(_("WhatsApp number {0} not found").format(account), frappe.DoesNotExistError)
@@ -362,12 +362,8 @@ def set_number_access(account, user, access=None):
 		if name:
 			frappe.delete_doc("WhatsApp Number Access", name, ignore_permissions=True)
 	else:
-		if not _level(user, set(frappe.get_roles(user))):
-			frappe.throw(
-				_("{0} does not work with WhatsApp yet. Add them on the Employees tab first.").format(
-					frappe.utils.get_fullname(user)
-				)
-			)
+		if not frappe.db.get_value("User", {"name": user, "enabled": 1, "user_type": "System User"}):
+			frappe.throw(_("{0} is not an active desk user").format(user))
 		if name:
 			frappe.db.set_value("WhatsApp Number Access", name, "access", access)
 		else:
@@ -379,7 +375,29 @@ def set_number_access(account, user, access=None):
 					"access": access,
 				}
 			).insert(ignore_permissions=True)
+		if not _level(user, set(frappe.get_roles(user))):
+			doc = frappe.get_doc("User", user)
+			doc.flags.ignore_permissions = True
+			doc.add_roles(wa_access.CHAT_ROLE)
 	frappe.cache.delete_value(wa_access.CACHE_KEY)
+	return _my_numbers()
+
+
+@frappe.whitelist()
+def toggle_spectate(account):
+	"""A manager starts or stops spectating a number (it shows on their monitor page)."""
+	wa_access.require_manager()
+	user = frappe.session.user
+	current = frappe.db.get_value(
+		"WhatsApp Number Access", {"user": user, "whatsapp_account": account}, "access"
+	)
+	if current == wa_access.RESPONSIBLE:
+		frappe.throw(_("You answer this number; its chats are on the WhatsApp Chat page"))
+	return set_number_access(account, user, None if current else wa_access.SPECTATOR)
+
+
+def _my_numbers():
+	return {"work": wa_access.my_accounts(), "watch": wa_access.my_watch_accounts()}
 
 
 # ---------------------------------------------------------------------------

@@ -392,10 +392,14 @@
 
 .whatsapp-overview .wao-group-head {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	gap: 8px;
 	margin-bottom: 6px;
 	font-weight: 500;
+}
+
+.whatsapp-overview .wao-group-head .wao-member-add {
+	margin-left: auto;
 }
 
 .whatsapp-overview .wao-member {

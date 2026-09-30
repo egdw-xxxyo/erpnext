@@ -119,7 +119,7 @@ def _ensure_chats():
 def get_chats(account=None, mode="work"):
 	"""The conversation list, optionally of one number. `work` (WhatsApp Chat page, bubble)
 	lists the numbers the caller answers; `watch` (WhatsApp Chat Monitor) the numbers
-	they follow read-only — all of them for a manager."""
+	they spectate, read-only."""
 	_require_wa_access()
 	_ensure_chats()
 

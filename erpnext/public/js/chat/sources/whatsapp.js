@@ -22,7 +22,9 @@ erpnext.chat_sources.WhatsApp = class WhatsAppSource {
 		this.chats = [];
 		this.account_filter = null;
 		this.list_empty_text = this.watch
-			? __("No WhatsApp numbers to follow")
+			? __(
+					"You spectate no WhatsApp number. A manager can make you a spectator on the number's card in WhatsApp Overview."
+			  )
 			: (frappe.boot.whatsapp_watch || []).length
 			? __("You answer no WhatsApp number. Chats you follow are on the WhatsApp Chat Monitor page.")
 			: __("You answer no WhatsApp number yet");

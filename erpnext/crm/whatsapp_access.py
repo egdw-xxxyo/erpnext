@@ -7,8 +7,9 @@ a number without being Responsible for it — not a System Manager either.
 
 Who works with WhatsApp at all is a role: `WhatsApp User` chats on the numbers they
 are given, `WhatsApp Manager` also opens the WhatsApp Overview, edits the numbers'
-cards, gives people access and follows every number on the monitor page (System
-Manager counts as a manager). The same rule backs the chat API, desk list queries,
+cards and gives people access — including making themselves a spectator of a number
+(System Manager counts as a manager). Managers read any chat on request (overview
+links, desk forms), but the monitor lists only the numbers they spectate. The same rule backs the chat API, desk list queries,
 form permission checks and the realtime fan-out, so no path shows a chat its number
 hides.
 """
@@ -70,16 +71,15 @@ def work_accounts(user=None):
 
 
 def watch_accounts(user=None):
-	"""Numbers the user follows read-only: every number for a manager, else Spectator rows."""
-	user = user or frappe.session.user
-	if is_manager(user):
-		return set(all_accounts())
+	"""Numbers the user follows on the monitor page: their Spectator rows."""
 	return {a for a, access in access_by_account(user).items() if access == SPECTATOR}
 
 
 def accounts_for(user=None, write=False):
 	if write:
 		return work_accounts(user)
+	if is_manager(user):
+		return set(all_accounts())
 	return work_accounts(user) | watch_accounts(user)
 
 

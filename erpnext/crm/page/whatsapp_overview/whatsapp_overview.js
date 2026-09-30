@@ -131,7 +131,7 @@ class WhatsAppOverview {
 			e.preventDefault();
 			const chat = $(e.currentTarget).data("chat");
 			const account = $(e.currentTarget).data("account") || this.number;
-			if (chat) frappe.set_route(this.chat_page(account), { chat });
+			if (chat) this.open_chats(account, { chat });
 		});
 		this.$body.on("click", "[data-number]", (e) => {
 			const $inner = $(e.target).closest("a[href], button, select, .wao-open-chat");
@@ -143,11 +143,31 @@ class WhatsAppOverview {
 		this.bind_employee_actions();
 	}
 
-	// A chat opens where the user can act on it: the WhatsApp Chat page for numbers they
-	// answer, the read-only monitor for the rest.
-	chat_page(account) {
-		const mine = (frappe.boot.whatsapp_accounts || []).some((n) => n.name === account);
-		return mine ? "whatsapp-chat-center" : "whatsapp-chat-monitor";
+	// Chats open where the user can act on them: the WhatsApp Chat page for numbers they
+	// answer, the read-only monitor for numbers they spectate. Other numbers are offered
+	// to spectate first — the monitor lists only spectated numbers.
+	open_chats(account, route_options) {
+		const has = (list) => (list || []).some((n) => n.name === account);
+		if (has(frappe.boot.whatsapp_accounts))
+			return frappe.set_route("whatsapp-chat-center", route_options);
+		if (has(frappe.boot.whatsapp_watch)) return frappe.set_route("whatsapp-chat-monitor", route_options);
+		frappe.confirm(__("You do not follow this number yet. Spectate it to read its chats?"), () =>
+			this.toggle_spectate(account).then(() => frappe.set_route("whatsapp-chat-monitor", route_options))
+		);
+	}
+
+	toggle_spectate(account) {
+		return frappe
+			.call({ method: `${WAO_API}.toggle_spectate`, args: { account } })
+			.then((r) => this.apply_my_numbers(r.message));
+	}
+
+	// The chat pages read the user's numbers from boot; keep it current after a change.
+	apply_my_numbers(mine) {
+		if (!mine) return;
+		frappe.boot.whatsapp_accounts = mine.work;
+		frappe.boot.whatsapp_watch = mine.watch;
+		this.refresh(true);
 	}
 
 	// /app/whatsapp-overview → tabs; /app/whatsapp-overview/number/<account> → number card.
@@ -566,7 +586,13 @@ class WhatsAppOverview {
 					</div>`
 					)
 					.join("") || `<div class="text-muted wao-small">${__("Nobody")}</div>`;
-			return `<div class="wao-group"><div class="wao-group-head">${title}<span class="text-muted wao-small">${hint}</span></div>${rows}</div>`;
+			return `<div class="wao-group">
+				<div class="wao-group-head">
+					<span>${title}</span><span class="text-muted wao-small">${hint}</span>
+					<button class="btn btn-xs btn-default wao-member-add" data-access="${access}">
+						<i class="fa fa-plus"></i> ${access === "Responsible" ? __("Add responsible") : __("Add spectator")}
+					</button>
+				</div>${rows}</div>`;
 		};
 
 		const pending =
@@ -599,6 +625,15 @@ class WhatsAppOverview {
 					</div>
 					<div class="wao-hero-actions">
 						<button class="btn btn-sm btn-primary wao-chats"><i class="fa fa-comments"></i> ${__("Chats")}</button>
+						${
+							c.my_access === "Responsible"
+								? ""
+								: `<button class="btn btn-sm btn-default wao-spectate"><i class="fa fa-eye${
+										c.my_access ? "-slash" : ""
+								  }"></i> ${
+										c.my_access ? __("Stop spectating") : __("Spectate number")
+								  }</button>`
+						}
 						<button class="btn btn-sm btn-default wao-sync"><i class="fa fa-refresh"></i> ${__("Sync from Meta")}</button>
 						${
 							c.can_edit_account
@@ -637,12 +672,7 @@ class WhatsAppOverview {
 					</div>
 					<div class="wao-col">
 						<div class="wao-panel">
-							<div class="wao-panel-head">
-								<h6>${__("People")}</h6>
-								<button class="btn btn-xs btn-default wao-member-add"><i class="fa fa-user-plus"></i> ${__(
-									"Add person"
-								)}</button>
-							</div>
+							<h6>${__("People")}</h6>
 							${group("Responsible", __("Responsible"), __("answer customers"))}
 							${group("Spectator", __("Spectators"), __("read only"))}
 						</div>
@@ -709,16 +739,15 @@ class WhatsAppOverview {
 					method: `${WAO_API}.set_number_access`,
 					args: { account: account(), user, access: access || "" },
 				})
-				.then(() => this.refresh(true));
+				.then((r) => this.apply_my_numbers(r.message));
 
 		this.$body.on("click", ".wao-back", (e) => {
 			e.preventDefault();
 			this.tab = "numbers";
 			frappe.set_route("whatsapp-overview");
 		});
-		this.$body.on("click", ".wao-chats", () =>
-			frappe.set_route(this.chat_page(account()), { number: account() })
-		);
+		this.$body.on("click", ".wao-chats", () => this.open_chats(account(), { number: account() }));
+		this.$body.on("click", ".wao-spectate", () => this.toggle_spectate(account()));
 		this.$body.on("click", ".wao-account", () => frappe.set_route("Form", "WhatsApp Account", account()));
 		this.$body.on("click", ".wao-sync", () =>
 			frappe
@@ -756,47 +785,49 @@ class WhatsAppOverview {
 				() => set_access($row.data("user"), "")
 			);
 		});
-		this.$body.on("click", ".wao-member-add", () => this.add_person_dialog(set_access));
+		this.$body.on("click", ".wao-member-add", (e) =>
+			this.add_person_dialog($(e.currentTarget).attr("data-access"), set_access)
+		);
 	}
 
-	add_person_dialog(set_access) {
-		const candidates = (this.card && this.card.candidates) || [];
-		if (!candidates.length) {
-			frappe.msgprint(
-				__(
-					"Everyone who works with WhatsApp already has this number. Add more people on the Employees tab."
-				)
-			);
-			return;
-		}
-		const by_label = {};
-		candidates.forEach((c) => (by_label[`${c.full_name} (${c.user})`] = c.user));
+	// Anyone active on the desk can be given a number; they get WhatsApp access with it.
+	add_person_dialog(access, set_access) {
+		const taken = (this.card.number.people || []).map((p) => p.user);
 		const d = new frappe.ui.Dialog({
-			title: __("Add person to {0}", [this.number_title(this.card.number)]),
+			title:
+				access === "Responsible"
+					? __("Add responsible for {0}", [this.number_title(this.card.number)])
+					: __("Add spectator of {0}", [this.number_title(this.card.number)]),
 			fields: [
 				{
-					fieldname: "person",
-					fieldtype: "Select",
-					label: __("Employee"),
-					options: Object.keys(by_label),
+					fieldname: "user",
+					fieldtype: "Link",
+					options: "User",
+					label: __("User"),
 					reqd: 1,
+					get_query: () => ({
+						filters: {
+							enabled: 1,
+							user_type: "System User",
+							...(taken.length ? { name: ["not in", taken] } : {}),
+						},
+					}),
 				},
 				{
-					fieldname: "access",
-					fieldtype: "Select",
-					label: __("Access"),
-					options: [
-						{ value: "Responsible", label: __("Responsible — answers customers") },
-						{ value: "Spectator", label: __("Spectator — read only") },
-					],
-					default: "Responsible",
-					reqd: 1,
+					fieldtype: "HTML",
+					options: `<div class="text-muted small">${
+						access === "Responsible"
+							? __("Answers customers of this number on the WhatsApp Chat page.")
+							: __(
+									"Reads chats of this number on the WhatsApp Chat Monitor page, without answering."
+							  )
+					}</div>`,
 				},
 			],
 			primary_action_label: __("Add"),
 			primary_action: (v) => {
 				d.hide();
-				set_access(by_label[v.person], v.access);
+				set_access(v.user, access);
 			},
 		});
 		d.show();
