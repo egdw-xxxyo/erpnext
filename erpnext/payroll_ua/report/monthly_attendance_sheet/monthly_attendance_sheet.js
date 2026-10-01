@@ -262,6 +262,8 @@ function style_days() {
 		.${table_class} .dt-scrollable { overflow-x: hidden !important; }
 		/* the track is drawn even when nothing is being dragged, so that there is
 		   something to aim at; the thumb darkens under the cursor */
+		.${table_class} { --marks-bottom-space: 40px; }
+		body:has(> .cb-launcher) .${table_class} { --marks-bottom-space: 104px; }
 		.${table_class} .attendance-marks-scrollbar { position: relative; height: 14px;
 			margin-top: 6px; border: 1px solid var(--border-color); border-radius: 7px;
 			background-color: var(--control-bg, var(--fg-color)); }
@@ -296,7 +298,9 @@ function move_scrollbar() {
 		// the box is a new element after every run, so it is looked up rather than held
 		window.addEventListener("resize", () => {
 			const current = report.querySelector(".dt-scrollable");
-			if (current) paint_scrollbar(strip, current);
+			if (!current) return;
+			fit_table(current);
+			paint_scrollbar(strip, current);
 		});
 	}
 
@@ -314,7 +318,17 @@ function move_scrollbar() {
 		});
 	}
 
-	paint_scrollbar(strip, body);
+	requestAnimationFrame(() => {
+		fit_table(body);
+		paint_scrollbar(strip, body);
+	});
+}
+
+function fit_table(body) {
+	const scroller = document.querySelector(".main-section") || document.scrollingElement;
+	const top = body.getBoundingClientRect().top + scroller.scrollTop;
+
+	body.style.height = `max(240px, calc(${window.innerHeight - top}px - var(--marks-bottom-space)))`;
 }
 
 // the thumb, sized and placed by how much of itself the table is showing
