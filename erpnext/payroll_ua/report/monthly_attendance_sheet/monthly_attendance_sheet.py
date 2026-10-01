@@ -27,7 +27,7 @@ from erpnext.payroll_ua.attendance_marks import (
 from erpnext.payroll_ua.doctype.attendance_sheet_approval.attendance_sheet_approval import (
 	get_approved_periods,
 )
-from erpnext.payroll_ua.employee_names import get_full_name, order_by_full_name
+from erpnext.payroll_ua.employee_names import full_name_column, get_full_name, order_by_full_name
 
 Filters = frappe._dict
 
@@ -303,7 +303,7 @@ def get_unsubmitted_rows(filters: Filters) -> list[dict]:
 			Employee.designation,
 			Employee.branch,
 			Employee.grade,
-			(Manager.employee_name).as_("manager_name"),
+			full_name_column(Manager).as_("manager_name"),
 		)
 		.where(
 			(Employee.company.isin(filters.companies))
@@ -541,7 +541,7 @@ def get_employee_related_details(filters: Filters) -> tuple[dict, list]:
 			Employee.last_name,
 			Employee.first_name,
 			Employee.middle_name,
-			(Manager.employee_name).as_("manager_name"),
+			full_name_column(Manager).as_("manager_name"),
 			Employee.designation,
 			Employee.grade,
 			Employee.department,
@@ -567,7 +567,7 @@ def get_employee_related_details(filters: Filters) -> tuple[dict, list]:
 	if group_by:
 		# the manager's name is a column of the joined side, and a bare name in the order
 		# by is read as a column of the employee — or, worse, as either of the two
-		column = Manager.employee_name if group_by == "manager_name" else Employee[group_by]
+		column = full_name_column(Manager) if group_by == "manager_name" else Employee[group_by]
 		query = query.orderby(column)
 
 	employee_details = order_by_full_name(query, Employee).run(as_dict=True)
