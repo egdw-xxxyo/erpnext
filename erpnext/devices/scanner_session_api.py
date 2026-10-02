@@ -994,8 +994,6 @@ def run_scanner_command(scanner=None, command=None):
 	through `run_scan` — same script, same frame, same scan log — and the refreshed session
 	comes back so the screen redraws from what actually happened.
 	"""
-	from erpnext.devices.doctype.scanner.scanner_api import run_scan
-
 	row = _assert_scanner_mine(scanner)
 	command = (command or "").strip()
 	if not command:
@@ -1008,11 +1006,35 @@ def run_scanner_command(scanner=None, command=None):
 	if command not in offered:
 		frappe.throw(_("{0} is not available at this step").format(command))
 
+	return _scan_as(row, command)
+
+
+@frappe.whitelist(methods=["POST"])
+def send_scan(scanner=None, data=None):
+	"""Scan a code with the phone's camera instead of the handheld.
+
+	Unlike a command button this takes any barcode — an item, a serial, a Job Card — because
+	that is what the device itself would read off the label. It is still the caller's own
+	scanner (`_assert_scanner_mine`) and still `run_scan`, so the phone can do exactly what
+	holding the handheld would let it do, and it lands in the same scan log.
+	"""
+	row = _assert_scanner_mine(scanner)
+	data = (data or "").strip()
+	if not data:
+		frappe.throw(_("Scan data is required"))
+
+	return _scan_as(row, data)
+
+
+def _scan_as(row, data):
+	"""Run `data` through the scanner's script and hand back the reply with the new session."""
+	from erpnext.devices.doctype.scanner.scanner_api import run_scan
+
 	# `run_scan` impersonates the scanner's employee, exactly as a device scan does. The
 	# caller is that employee anyway (`_assert_scanner_mine`), but restore the whole session,
 	# not just the user: `set_user` empties it, and saving that back logs the phone out.
 	with preserved_session():
-		result = run_scan(frappe.get_doc("Scanner", row.name), command)
+		result = run_scan(frappe.get_doc("Scanner", row.name), data)
 
 	session = _read_session(_scanner_row(row.name))
 	_publish_session_update(row.name, session)
