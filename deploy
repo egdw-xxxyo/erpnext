@@ -69,6 +69,19 @@ detect_host_lan_ip() {
   ip route get 8.8.8.8 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}'
 }
 
+# HTTPS via Traefik (optional, per-host). When .tls.env has TLS_DOMAIN, enable
+# the "tls" compose profile and advertise the https URL to devices (scanner
+# config barcodes, provisioning QR). http://<ip>:8080 stays up alongside it.
+if [ -f "$DIR/.tls.env" ]; then
+  set -a; . "$DIR/.tls.env"; set +a
+  if [ -n "${TLS_DOMAIN:-}" ]; then
+    export COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}tls"
+    if [ -z "${PUBLIC_SERVER_URL:-}" ]; then
+      export PUBLIC_SERVER_URL="https://${TLS_DOMAIN}"
+    fi
+  fi
+fi
+
 if [ -z "${PUBLIC_SERVER_URL:-}" ]; then
   HOST_LAN_IP=$(detect_host_lan_ip)
   if [ -n "$HOST_LAN_IP" ]; then
@@ -358,6 +371,10 @@ instance_env() {
 
 apply_site_config() {
   dc exec -T backend bench --site frontend set-config instance_env "$(instance_env)"
+  # get_url() (emails, print links, file URLs) follows host_name.
+  if [ -n "${TLS_DOMAIN:-}" ]; then
+    dc exec -T backend bench --site frontend set-config host_name "https://${TLS_DOMAIN}"
+  fi
   SITE_CONFIG="$DIR/site-config.json"
   if [ ! -f "$SITE_CONFIG" ]; then
     return

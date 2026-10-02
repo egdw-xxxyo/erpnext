@@ -36,6 +36,7 @@ apps.json
 graphify-out/
 raw/
 .tunnel.env*
+.tls.env
 .envrc
 bin/
 .ops.env
