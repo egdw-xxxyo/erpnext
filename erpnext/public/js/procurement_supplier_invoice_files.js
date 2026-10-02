@@ -6,6 +6,7 @@ const supplierRequisitesValidationMethod =
 	"erpnext.accounts.supplier_requisites_validation.get_supplier_requisites_validation";
 const updateSupplierRequisitesMethod =
 	"erpnext.accounts.supplier_requisites_validation.update_supplier_requisites_from_pdf";
+const ibanBankSuggestionMethod = "erpnext.accounts.supplier_requisites_validation.get_iban_bank_suggestion";
 const supplierRequisitesValidationField = "custom_supplier_requisites_validation_html";
 const supplierRequisitesValidationSection = "custom_supplier_requisites_validation_section";
 const supplierRequisitesManualConfirmation = "custom_supplier_requisites_manual_confirmation";
@@ -179,6 +180,7 @@ function render_supplier_requisites_validation(frm) {
 			place_supplier_requisites_validation_last(frm);
 			render_supplier_requisite_field_indicators(frm, result);
 			bind_supplier_requisites_actions(frm, result);
+			maybe_show_manual_supplier_requisites_dialog(frm, result);
 		},
 		error() {
 			if (frm.__supplier_requisites_validation_request_id !== requestId) return;
@@ -211,18 +213,32 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate) 
 		<i class="fa ${summary.icon}" aria-hidden="true"></i>
 		<span>${summary.message}</span>
 	</div>`;
-	if (!showChecksTable) return summaryHtml;
+	const fileLinks = build_supplier_pdf_links(result.files || []);
+	const detectedChecks = get_supplier_requisites_update_checks(result, false);
+	const canUpdateSupplier =
+		allowSupplierUpdate && result.allow_supplier_update && detectedChecks.length > 0;
+	const canEnterSupplierManually = allowSupplierUpdate && result.allow_manual_supplier_update;
+	const actionsHtml = [
+		canUpdateSupplier
+			? `<button type="button" class="btn btn-default btn-sm supplier-requisites-update-supplier">
+				${__("Update supplier details from PDF")}
+			</button>`
+			: "",
+		canEnterSupplierManually
+			? `<button type="button" class="btn btn-primary btn-sm supplier-requisites-enter-manually">
+				${__("Enter supplier details manually")}
+			</button>`
+			: "",
+	]
+		.filter(Boolean)
+		.join(" ");
+	const filesHtml = fileLinks
+		? `<div class="mb-3"><strong>${__("Checked PDF")}:</strong> ${fileLinks}</div>`
+		: `<div class="text-muted mb-3">${__("No supplier invoice PDF was found.")}</div>`;
+	if (!showChecksTable) {
+		return `${summaryHtml}${filesHtml}${actionsHtml ? `<div class="mt-3">${actionsHtml}</div>` : ""}`;
+	}
 
-	const fileLinks = (result.files || [])
-		.map(
-			(file) =>
-				`<a href="${frappe.utils.escape_html(
-					file.file_url || ""
-				)}" target="_blank" rel="noopener noreferrer">${frappe.utils.escape_html(
-					file.file_name || __("Supplier Invoice PDF")
-				)}</a>`
-		)
-		.join(", ");
 	const rows = (result.checks || [])
 		.map((check) => {
 			const status = get_supplier_requisites_status(check.status);
@@ -242,19 +258,9 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate) 
 		})
 		.join("");
 
-	const canUpdateSupplier =
-		allowSupplierUpdate &&
-		result.allow_supplier_update &&
-		(result.checks || []).some(
-			(check) => check.status === "missing_reference" && (check.detected || []).length
-		);
 	return `
 		${summaryHtml}
-		${
-			fileLinks
-				? `<div class="mb-3"><strong>${__("Checked PDF")}:</strong> ${fileLinks}</div>`
-				: `<div class="text-muted mb-3">${__("No supplier invoice PDF was found.")}</div>`
-		}
+		${filesHtml}
 		<div class="table-responsive">
 			<table class="table table-bordered table-sm supplier-requisites-validation-table">
 				<thead><tr>
@@ -266,30 +272,47 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate) 
 				<tbody>${rows}</tbody>
 			</table>
 		</div>
-		${
-			canUpdateSupplier
-				? `<div class="mt-3"><button type="button" class="btn btn-default btn-sm supplier-requisites-update-supplier">
-					${__("Update supplier details from PDF")}
-				</button></div>`
-				: ""
-		}`;
+		${actionsHtml ? `<div class="mt-3">${actionsHtml}</div>` : ""}`;
 }
 
 function bind_supplier_requisites_actions(frm, result) {
-	frm.get_field(supplierRequisitesValidationField)
-		?.$wrapper?.find(".supplier-requisites-update-supplier")
+	const wrapper = frm.get_field(supplierRequisitesValidationField)?.$wrapper;
+	wrapper
+		?.find(".supplier-requisites-update-supplier")
 		.off("click.supplier-requisites")
-		.on("click.supplier-requisites", () => show_supplier_requisites_update_dialog(frm, result));
+		.on("click.supplier-requisites", () =>
+			show_supplier_requisites_update_dialog(frm, result, { manualEntry: false })
+		);
+	wrapper
+		?.find(".supplier-requisites-enter-manually")
+		.off("click.supplier-requisites")
+		.on("click.supplier-requisites", () =>
+			show_supplier_requisites_update_dialog(frm, result, { manualEntry: true })
+		);
 }
 
-function show_supplier_requisites_update_dialog(frm, result) {
-	if (frm.doctype !== "Purchase Invoice" || !result.allow_supplier_update) return;
-	const missingChecks = (result.checks || []).filter(
-		(check) => check.status === "missing_reference" && (check.detected || []).length
-	);
-	if (!missingChecks.length) return;
+function get_supplier_requisites_update_checks(result, manualEntry) {
+	return (result.checks || [])
+		.map((check) => {
+			if (manualEntry) {
+				return check.status === "missing_reference" && !(check.detected || []).length
+					? { ...check, selectable_values: [] }
+					: null;
+			}
+			const existing = new Set(check.expected || []);
+			const selectableValues = (check.detected || []).filter((value) => !existing.has(value));
+			const canFillMissing = check.status === "missing_reference" && selectableValues.length;
+			const canAddIban =
+				check.key === "iban" &&
+				["mismatched", "ambiguous"].includes(check.status) &&
+				selectableValues.length;
+			return canFillMissing || canAddIban ? { ...check, selectable_values: selectableValues } : null;
+		})
+		.filter(Boolean);
+}
 
-	const fileLinks = (result.files || [])
+function build_supplier_pdf_links(files) {
+	return files
 		.map(
 			(file) =>
 				`<a href="${frappe.utils.escape_html(
@@ -299,6 +322,32 @@ function show_supplier_requisites_update_dialog(frm, result) {
 				)}</a>`
 		)
 		.join(", ");
+}
+
+function maybe_show_manual_supplier_requisites_dialog(frm, result) {
+	if (
+		frm.doctype !== "Purchase Invoice" ||
+		frm.doc.docstatus !== 0 ||
+		!result.allow_manual_supplier_update
+	) {
+		return;
+	}
+	const dialogKey = JSON.stringify({
+		supplier: result.supplier,
+		files: (result.files || []).map((file) => file.file_url).sort(),
+	});
+	if (frm.__manual_supplier_requisites_dialog_key === dialogKey) return;
+	frm.__manual_supplier_requisites_dialog_key = dialogKey;
+	show_supplier_requisites_update_dialog(frm, result, { manualEntry: true });
+}
+
+function show_supplier_requisites_update_dialog(frm, result, { manualEntry = false } = {}) {
+	if (frm.doctype !== "Purchase Invoice" || !result.allow_supplier_update) return;
+	if (manualEntry && !result.allow_manual_supplier_update) return;
+	const updateChecks = get_supplier_requisites_update_checks(result, manualEntry);
+	if (!updateChecks.length) return;
+
+	const fileLinks = build_supplier_pdf_links(result.files || []);
 	const fields = [
 		{
 			fieldname: "pdf_files",
@@ -309,21 +358,25 @@ function show_supplier_requisites_update_dialog(frm, result) {
 		},
 	];
 
-	missingChecks.forEach((check) => {
+	updateChecks.forEach((check) => {
 		fields.push({
 			fieldname: check.key,
-			fieldtype: "Select",
+			fieldtype: manualEntry ? "Data" : "Select",
 			label: __(check.label),
-			options: ["", ...(check.detected || [])],
-			description: __("Select the value that should be saved in the supplier record."),
+			options: manualEntry ? undefined : ["", ...(check.selectable_values || [])],
+			description: manualEntry
+				? __("Enter the value after checking the attached PDF.")
+				: check.key === "iban" && (check.expected || []).length
+				? __("Select an additional IBAN to add to the supplier.")
+				: __("Select the value that should be saved in the supplier record."),
 		});
 	});
 
-	const hasIban = missingChecks.some((check) => check.key === "iban");
+	const hasIban = updateChecks.some((check) => check.key === "iban");
 	let dialog;
 	if (hasIban) {
 		const ibanField = fields.find((field) => field.fieldname === "iban");
-		ibanField.onchange = () => update_bank_suggestion(dialog, result);
+		ibanField.onchange = () => update_bank_suggestion(frm, dialog, result);
 		fields.push(
 			{
 				fieldname: "bank_code",
@@ -343,7 +396,7 @@ function show_supplier_requisites_update_dialog(frm, result) {
 	}
 
 	dialog = new frappe.ui.Dialog({
-		title: __("Update supplier details from PDF"),
+		title: manualEntry ? __("Enter supplier details manually") : __("Update supplier details from PDF"),
 		fields,
 		primary_action_label: __("Update supplier"),
 		primary_action: async (values) => {
@@ -352,6 +405,7 @@ function show_supplier_requisites_update_dialog(frm, result) {
 					.filter((key) => values[key])
 					.map((key) => [key, values[key]])
 			);
+			if (manualEntry) selected.manual_entry = 1;
 			if (!selected.tax_id && !selected.edrpou && !selected.iban) {
 				frappe.msgprint(__("Select at least one value to update."));
 				return;
@@ -371,16 +425,31 @@ function show_supplier_requisites_update_dialog(frm, result) {
 	dialog.show();
 }
 
-function update_bank_suggestion(dialog, result) {
+async function update_bank_suggestion(frm, dialog, result) {
 	if (!dialog) return;
-	const iban = dialog.get_value("iban");
-	const suggestion = (result.iban_bank_suggestions || {})[iban] || {};
+	const rawIban = dialog.get_value("iban") || "";
+	const iban = rawIban.toUpperCase().replace(/[^A-Z0-9]/g, "");
+	if (rawIban && rawIban !== iban) dialog.set_value("iban", iban);
+	let suggestion = (result.iban_bank_suggestions || {})[iban] || {};
+	if (iban && /^UA\d{27}$/.test(iban) && !suggestion.bank_code) {
+		const response = await frappe.call({
+			method: ibanBankSuggestionMethod,
+			args: { doc: frm.doc, iban },
+		});
+		suggestion = response.message || {};
+	}
 	dialog.set_value("bank_code", suggestion.bank_code || "");
 	dialog.set_value("bank", suggestion.bank || "");
 	const help = dialog.get_field("bank_help");
 	if (!help) return;
 	if (!iban) {
 		help.$wrapper.empty();
+	} else if (!/^UA\d{27}$/.test(iban)) {
+		help.$wrapper.html(
+			`<div class="alert alert-info">${__(
+				"Enter a complete Ukrainian IBAN to identify the bank."
+			)}</div>`
+		);
 	} else if (suggestion.bank) {
 		help.$wrapper.html(
 			`<div class="alert alert-success">${__(

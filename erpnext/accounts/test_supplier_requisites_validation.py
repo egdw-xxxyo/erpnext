@@ -11,6 +11,7 @@ from erpnext.accounts.supplier_requisites_validation import (
 	_get_ukrainian_bank_code,
 	_looks_like_individual_entrepreneur,
 	_sync_bank_code_from_iban,
+	get_iban_bank_suggestion,
 	update_supplier_requisites_from_pdf,
 	validate_before_submit,
 	validate_supplier_requisites,
@@ -44,6 +45,105 @@ class TestSupplierRequisitesValidation(IntegrationTestCase):
 		supplier_doc.set.assert_called_once_with("tax_id", "1234567890")
 		supplier_doc.save.assert_called_once_with()
 		self.assertEqual(result["updated"], {"tax_id": "1234567890"})
+
+	@patch("erpnext.accounts.supplier_requisites_validation.validate_supplier_requisites")
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_doc")
+	def test_missing_supplier_details_can_be_entered_manually(self, get_doc, validate):
+		form_doc = MagicMock()
+		form_doc.doctype = "Purchase Invoice"
+		form_doc.is_new.return_value = False
+		supplier_doc = MagicMock(name="SUPPLIER-A")
+		supplier_doc.get.return_value = None
+		get_doc.side_effect = [form_doc, supplier_doc]
+		validate.return_value = {
+			"applicable": True,
+			"supplier": "SUPPLIER-A",
+			"allow_manual_supplier_update": True,
+			"checks": [
+				{"key": "tax_id", "status": "missing_reference", "detected": []},
+				{"key": "edrpou", "status": "missing_reference", "detected": []},
+				{"key": "iban", "status": "missing_reference", "detected": []},
+			],
+		}
+
+		result = update_supplier_requisites_from_pdf(
+			{},
+			{"manual_entry": 1, "tax_id": "1234567890"},
+		)
+
+		supplier_doc.set.assert_called_once_with("tax_id", "1234567890")
+		supplier_doc.save.assert_called_once_with()
+		self.assertEqual(result["updated"], {"tax_id": "1234567890"})
+
+	@patch("erpnext.accounts.supplier_requisites_validation.validate_supplier_requisites")
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_doc")
+	def test_manual_entry_is_rejected_when_pdf_details_were_detected(self, get_doc, validate):
+		form_doc = MagicMock()
+		form_doc.doctype = "Purchase Invoice"
+		form_doc.is_new.return_value = False
+		get_doc.return_value = form_doc
+		validate.return_value = {
+			"applicable": True,
+			"supplier": "SUPPLIER-A",
+			"allow_manual_supplier_update": False,
+			"checks": [],
+		}
+
+		with self.assertRaises(frappe.ValidationError):
+			update_supplier_requisites_from_pdf(
+				{},
+				{"manual_entry": 1, "tax_id": "1234567890"},
+			)
+
+	@patch("erpnext.accounts.supplier_requisites_validation._ensure_supplier_bank_account")
+	@patch("erpnext.accounts.supplier_requisites_validation.validate_supplier_requisites")
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_doc")
+	def test_mismatched_pdf_iban_can_be_added_as_another_supplier_account(
+		self, get_doc, validate, ensure_bank_account
+	):
+		form_doc = MagicMock()
+		form_doc.doctype = "Purchase Invoice"
+		form_doc.is_new.return_value = False
+		supplier_doc = MagicMock(name="SUPPLIER-A")
+		supplier_doc.get.return_value = None
+		get_doc.side_effect = [form_doc, supplier_doc]
+		new_iban = "UA123456789012345678901234567"
+		validate.return_value = {
+			"applicable": True,
+			"supplier": "SUPPLIER-A",
+			"allow_manual_supplier_update": False,
+			"checks": [
+				{"key": "tax_id", "status": "matched", "detected": ["1234567890"]},
+				{"key": "edrpou", "status": "matched", "detected": ["12345678"]},
+				{"key": "iban", "status": "mismatched", "detected": [new_iban]},
+			],
+		}
+		ensure_bank_account.return_value = "SUPPLIER-A-567"
+
+		result = update_supplier_requisites_from_pdf(
+			{},
+			{"iban": new_iban, "bank": "TEST BANK"},
+		)
+
+		ensure_bank_account.assert_called_once_with(supplier_doc, new_iban, "TEST BANK")
+		self.assertEqual(result["updated"], {"iban": new_iban})
+		self.assertEqual(result["bank_account"], "SUPPLIER-A-567")
+
+	@patch("erpnext.accounts.supplier_requisites_validation._get_iban_bank_suggestions")
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_doc")
+	def test_bank_can_be_suggested_for_manually_entered_iban(self, get_doc, get_suggestions):
+		form_doc = MagicMock()
+		form_doc.doctype = "Purchase Invoice"
+		form_doc.is_new.return_value = False
+		get_doc.return_value = form_doc
+		iban = "UA123456789012345678901234567"
+		get_suggestions.return_value = {iban: {"bank_code": "345678", "bank": "TEST BANK"}}
+
+		result = get_iban_bank_suggestion({}, iban)
+
+		form_doc.check_permission.assert_called_once_with("read")
+		get_suggestions.assert_called_once_with([iban])
+		self.assertEqual(result, {"bank_code": "345678", "bank": "TEST BANK"})
 
 	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_doc")
 	def test_supplier_cannot_be_updated_from_payment_request(self, get_doc):
@@ -225,6 +325,66 @@ class TestSupplierRequisitesValidation(IntegrationTestCase):
 
 		self.assertFalse(result["has_detected_requisites"])
 		self.assertTrue(result["requires_manual_confirmation"])
+		self.assertFalse(result["allow_manual_supplier_update"])
+
+	@patch("erpnext.accounts.supplier_requisites_validation._get_expected_values")
+	@patch("erpnext.accounts.supplier_requisites_validation._extract_pdf_text")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_invoice_file_groups")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_validation_context")
+	def test_irrelevant_pdf_allows_manual_entry_for_missing_supplier_details(
+		self, get_context, get_file_groups, extract_text, get_expected_values
+	):
+		get_context.return_value = {
+			"supplier": "SUPPLIER-A",
+			"supplier_type": "Company",
+			"bank_accounts": [],
+		}
+		get_file_groups.return_value = [
+			{
+				"supplier": "SUPPLIER-A",
+				"files": [{"file_name": "scan.pdf", "file_url": "/files/scan.pdf"}],
+			}
+		]
+		extract_text.return_value = ""
+		get_expected_values.return_value = {"tax_id": [], "edrpou": [], "iban": []}
+
+		result = validate_supplier_requisites(frappe._dict(doctype="Purchase Invoice"))
+
+		self.assertFalse(result["has_detected_requisites"])
+		self.assertTrue(result["allow_manual_supplier_update"])
+		self.assertEqual(
+			[check["key"] for check in result["checks"] if check["status"] == "missing_reference"],
+			["tax_id", "edrpou", "iban"],
+		)
+
+	@patch("erpnext.accounts.supplier_requisites_validation._get_expected_values")
+	@patch("erpnext.accounts.supplier_requisites_validation._extract_pdf_text")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_invoice_file_groups")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_validation_context")
+	def test_partially_detected_pdf_allows_manual_entry_for_other_missing_details(
+		self, get_context, get_file_groups, extract_text, get_expected_values
+	):
+		get_context.return_value = {
+			"supplier": "SUPPLIER-A",
+			"supplier_type": "Company",
+			"bank_accounts": [],
+		}
+		get_file_groups.return_value = [
+			{
+				"supplier": "SUPPLIER-A",
+				"files": [{"file_name": "invoice.pdf", "file_url": "/files/invoice.pdf"}],
+			}
+		]
+		extract_text.return_value = "ІПН 1234567890"
+		get_expected_values.return_value = {"tax_id": [], "edrpou": [], "iban": []}
+
+		result = validate_supplier_requisites(frappe._dict(doctype="Purchase Invoice"))
+
+		self.assertTrue(result["has_detected_requisites"])
+		self.assertTrue(result["allow_manual_supplier_update"])
+		self.assertEqual(result["checks"][0]["detected"], ["1234567890"])
+		self.assertEqual(result["checks"][1]["detected"], [])
+		self.assertEqual(result["checks"][2]["detected"], [])
 
 	@patch("erpnext.accounts.supplier_requisites_validation._get_expected_values")
 	@patch("erpnext.accounts.supplier_requisites_validation._extract_pdf_text")

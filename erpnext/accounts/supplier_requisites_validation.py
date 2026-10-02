@@ -49,6 +49,14 @@ def update_supplier_requisites_from_pdf(doc, values):
 	result = validate_supplier_requisites(doc)
 	if not result["applicable"]:
 		frappe.throw(_("Supplier details verification is not available for this document."))
+	manual_entry = bool(frappe.utils.cint(values.get("manual_entry")))
+	if manual_entry and not result.get("allow_manual_supplier_update"):
+		frappe.throw(
+			_(
+				"Manual entry is only available for supplier details that are missing from both the supplier record and the PDF."
+			),
+			title=_("Supplier Details Verification"),
+		)
 
 	checks = {check["key"]: check for check in result["checks"]}
 	supplier_doc = frappe.get_doc("Supplier", result["supplier"])
@@ -58,13 +66,17 @@ def update_supplier_requisites_from_pdf(doc, values):
 		selected = _digits(values.get(key))
 		if not selected:
 			continue
+		_validate_requisite_format(key, selected)
 		if checks.get(key, {}).get("status") == "not_applicable":
 			frappe.throw(
 				_(
 					"EDRPOU Code cannot be updated because the supplier or the PDF indicates an individual entrepreneur."
 				)
 			)
-		_validate_detected_selection(checks.get(key), selected)
+		if manual_entry:
+			_validate_manual_selection(checks.get(key))
+		else:
+			_validate_detected_selection(checks.get(key), selected)
 		if supplier_doc.get(fieldname) and _digits(supplier_doc.get(fieldname)) != selected:
 			frappe.throw(
 				_(
@@ -80,11 +92,26 @@ def update_supplier_requisites_from_pdf(doc, values):
 	bank_account = None
 	iban = _normalize_iban(values.get("iban"))
 	if iban:
-		_validate_detected_selection(checks.get("iban"), iban)
+		_validate_requisite_format("iban", iban)
+		if manual_entry:
+			_validate_manual_selection(checks.get("iban"))
+		else:
+			_validate_detected_selection(checks.get("iban"), iban)
 		bank_account = _ensure_supplier_bank_account(supplier_doc, iban, values.get("bank"))
 		updated["iban"] = iban
 
 	return {"updated": updated, "bank_account": bank_account}
+
+
+@frappe.whitelist()
+def get_iban_bank_suggestion(doc, iban):
+	doc = frappe.get_doc(frappe.parse_json(doc))
+	_check_document_permission(doc)
+	if doc.doctype != SUPPLIER_UPDATE_DOCTYPE:
+		frappe.throw(_("Bank suggestions are only available from a Purchase Invoice."))
+	iban = _normalize_iban(iban)
+	_validate_requisite_format("iban", iban)
+	return _get_iban_bank_suggestions([iban])[iban]
 
 
 def validate_before_submit(doc, method=None):
@@ -158,13 +185,20 @@ def validate_supplier_requisites(doc):
 					),
 				)
 
+	has_detected_requisites = any(check.get("detected") for check in checks)
+	allow_manual_supplier_update = bool(
+		doc.doctype == SUPPLIER_UPDATE_DOCTYPE
+		and files
+		and any(check["status"] == "missing_reference" and not check.get("detected") for check in checks)
+	)
 	return {
 		"applicable": True,
 		"supplier": context["supplier"],
 		"allow_supplier_update": doc.doctype == SUPPLIER_UPDATE_DOCTYPE,
+		"allow_manual_supplier_update": allow_manual_supplier_update,
 		"files": files,
 		"checks": checks,
-		"has_detected_requisites": any(check.get("detected") for check in checks),
+		"has_detected_requisites": has_detected_requisites,
 		"read_errors": read_errors,
 		"iban_bank_suggestions": _get_iban_bank_suggestions(
 			next((check["detected"] for check in checks if check["key"] == "iban"), [])
@@ -215,6 +249,29 @@ def _validate_detected_selection(check, selected):
 		frappe.throw(
 			_("The selected value was not found in the attached PDF. Refresh the document and try again.")
 		)
+
+
+def _validate_manual_selection(check):
+	if not check or check.get("status") != "missing_reference" or check.get("detected"):
+		frappe.throw(
+			_("This supplier detail cannot be entered manually for the current PDF verification result.")
+		)
+
+
+def _validate_requisite_format(key, value):
+	if key in SUPPLIER_FIELD_BY_CHECK:
+		lengths = CHECK_DEFINITIONS[key]["lengths"]
+		if len(value) in lengths:
+			return
+		frappe.throw(
+			_("{0} must contain {1} digits.").format(
+				_(CHECK_DEFINITIONS[key]["label"]),
+				"/".join(str(length) for length in lengths),
+			)
+		)
+	if key == "iban" and re.fullmatch(r"UA\d{27}", value):
+		return
+	frappe.throw(_("Enter a valid Ukrainian IBAN containing 29 characters."))
 
 
 def _ensure_supplier_bank_account(supplier_doc, iban, bank):

@@ -15073,3 +15073,12 @@ Could not read,Не вдалося зчитати
 Some supplier details do not match the attached PDF. Review the highlighted explanations before submitting the document.,Деякі реквізити постачальника не збігаються з прикріпленим PDF. Перед проведенням документа перегляньте виділені пояснення.
 The PDF could not be checked completely. Review the highlighted explanations before submitting the document.,Не вдалося повністю перевірити PDF. Перед проведенням документа перегляньте виділені пояснення.
 All supplier details match the attached PDF.,Усі реквізити постачальника збігаються з прикріпленим PDF.
+"Manual entry is only available for supplier details that are missing from both the supplier record and the PDF.","Ручне введення доступне лише для реквізитів, відсутніх і в картці постачальника, і в PDF."
+Bank suggestions are only available from a Purchase Invoice.,Підбір банку доступний лише з вхідного рахунку-фактури.
+This supplier detail cannot be entered manually for the current PDF verification result.,Цей реквізит постачальника не можна ввести вручну за поточного результату перевірки PDF.
+{0} must contain {1} digits.,{0} має містити {1} цифр.
+Enter a valid Ukrainian IBAN containing 29 characters.,Введіть коректний український IBAN із 29 символів.
+Enter supplier details manually,Ввести реквізити постачальника вручну
+Enter the value after checking the attached PDF.,Введіть значення після перевірки прикріпленого PDF.
+Select an additional IBAN to add to the supplier.,Виберіть додатковий IBAN для додавання постачальнику.
+Enter a complete Ukrainian IBAN to identify the bank.,Введіть повний український IBAN для визначення банку.
