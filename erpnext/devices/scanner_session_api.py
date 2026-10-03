@@ -1017,13 +1017,18 @@ def send_scan(scanner=None, data=None):
 	that is what the device itself would read off the label. It is still the caller's own
 	scanner (`_assert_scanner_mine`) and still `run_scan`, so the phone can do exactly what
 	holding the handheld would let it do, and it lands in the same scan log.
+
+	`data` may also be a list of codes: they go to the script together as one scan
+	(see `run_scan`), not one after another.
 	"""
+	from erpnext.devices.doctype.scanner.scanner_api import parse_scan_data
+
 	row = _assert_scanner_mine(scanner)
-	data = (data or "").strip()
-	if not data:
+	codes = parse_scan_data(data)
+	if not codes:
 		frappe.throw(_("Scan data is required"))
 
-	return _scan_as(row, data)
+	return _scan_as(row, codes)
 
 
 def _scan_as(row, data):

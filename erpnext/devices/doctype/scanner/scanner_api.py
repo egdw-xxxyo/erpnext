@@ -377,7 +377,7 @@ def _publish_after_scan(scanner, scan_log_row):
 
 @frappe.whitelist(allow_guest=True)
 def handle_scan(scanner_key=None, data=None):
-	if not scanner_key or not data:
+	if not scanner_key or not parse_scan_data(data):
 		frappe.response["http_status_code"] = 400
 		return _resp(success=False, error="scanner_key and data are required")
 
@@ -389,6 +389,44 @@ def handle_scan(scanner_key=None, data=None):
 	return run_scan(scanner, data)
 
 
+MULTIPLE_SCAN_TYPE = "multiple"
+
+
+def parse_scan_data(data):
+	"""The codes in one scan request, as a list of non-empty strings.
+
+	`data` is one code (what every device sends) or several at once: a list from a JSON body,
+	or a JSON array in a query string (`data=["A","B"]`). Text that only looks like an array
+	but is not a list of plain values stays one code, so no real barcode is ever split.
+	"""
+	if isinstance(data, str) and data.strip().startswith("["):
+		try:
+			parsed = json.loads(data)
+		except ValueError:
+			parsed = None
+		if isinstance(parsed, list) and all(isinstance(c, str | int | float) for c in parsed):
+			data = parsed
+
+	if isinstance(data, list | tuple):
+		return [str(c).strip() for c in data if c is not None and str(c).strip()]
+
+	text = str(data or "").strip()
+	return [text] if text else []
+
+
+def _resolved_scan(data):
+	scan_type, scan_ctx = _resolve_scan(data)
+	return frappe._dict(
+		{
+			"data": data,
+			"scan_type": scan_type,
+			"doc": scan_ctx.get("doc"),
+			"item_code": scan_ctx.get("item_code"),
+			"barcode": scan_ctx.get("barcode"),
+		}
+	)
+
+
 def run_scan(scanner, data):
 	"""Everything a scan does, once the device behind it is known.
 
@@ -396,11 +434,17 @@ def run_scan(scanner, data):
 	operator's behalf: a button is the same barcode, and it must go through the same script,
 	the same state frame and the same scan log — otherwise the two ways of running a flow
 	would start to disagree.
+
+	Several codes in one request (`parse_scan_data`) are one scan, not a loop: the script runs
+	once with `e.scan_type == "multiple"`, `e.data` the list of codes and `e.scans` each code
+	resolved on its own, so it can act on all of them together. A single code behaves exactly
+	as before; `e.scans` then holds just that code, so a script may iterate either way.
 	"""
 	t_start = time.perf_counter()
 
 	_touch_last_active(scanner.name)
-	data = (data or "").strip()
+	codes = parse_scan_data(data)
+	data = codes[0] if len(codes) == 1 else "\n".join(codes)
 
 	state_timeout = scanner.get_state_timeout()
 	state_dict = _load_state(scanner.name, state_timeout)
@@ -408,14 +452,21 @@ def run_scan(scanner, data):
 	logger = ScriptLogger()
 
 	t_resolve_start = time.perf_counter()
-	scan_type, scan_ctx = _resolve_scan(data)
+	scans = [_resolved_scan(code) for code in codes]
+	if len(scans) == 1:
+		scan = scans[0]
+		scan_type = scan.scan_type
+		scan_ctx = {"doc": scan.doc, "item_code": scan.item_code, "barcode": scan.barcode}
+	else:
+		scan_type, scan_ctx = MULTIPLE_SCAN_TYPE, {}
 	resolve_ms = int((time.perf_counter() - t_resolve_start) * 1000)
 
 	workplace_doc = frappe.get_doc("Workplace", scanner.workplace) if scanner.workplace else None
 
 	event = ScanEvent(
 		{
-			"data": data,
+			"data": data if len(codes) == 1 else codes,
+			"scans": scans,
 			"scan_type": scan_type,
 			"doc": scan_ctx.get("doc"),
 			"item_code": scan_ctx.get("item_code"),
