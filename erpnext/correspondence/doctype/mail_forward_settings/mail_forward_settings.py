@@ -11,9 +11,11 @@ from erpnext.correspondence.imap_folders import (
 	parse_list_response,
 	select_folders,
 )
+from erpnext.correspondence.imap_uids import FolderState, parse_status
 
 FOLDER_FIELDS = ("folder_name", "append_to", "uidvalidity", "uidnext")
 ERROR_LIMIT = 2000
+SYNC_JOB = "erpnext.correspondence.doctype.mail_forward_settings.mail_forward_settings.sync_new_mailboxes"
 
 
 class MailForwardSettings(Document):
@@ -26,6 +28,8 @@ class MailForwardSettings(Document):
 			apply_defaults(row.email_account, WATCHED)
 		if self.sender_account:
 			apply_defaults(self.sender_account, SENDER)
+		if any(not row.last_folder_sync for row in self.mailboxes):
+			frappe.enqueue(SYNC_JOB, job_id=SYNC_JOB, deduplicate=True, enqueue_after_commit=True)
 
 	def validate_mailboxes(self):
 		accounts = [row.email_account for row in self.mailboxes]
@@ -62,10 +66,15 @@ def validate_watched_account(name: str):
 		frappe.throw(_("Email Account {0} must receive mail over IMAP").format(name))
 
 
-def fetch_folders(account) -> list:
+def open_server(account):
 	server = account.get_incoming_server(in_receive=True, email_sync_rule="ALL")
 	if not server or not getattr(server, "imap", None):
 		frappe.throw(_("Could not connect to {0}").format(account.email_id))
+	return server
+
+
+def fetch_folders(account) -> list:
+	server = open_server(account)
 	try:
 		status, entries = server.imap.list()
 	finally:
@@ -75,15 +84,33 @@ def fetch_folders(account) -> list:
 	return parse_list_response(entries)
 
 
+def folder_state(server, name: str) -> FolderState | None:
+	status, data = server.imap.status(f'"{name}"', "(UIDVALIDITY UIDNEXT)")
+	return parse_status(data[0]) if status == "OK" and data and data[0] else None
+
+
+def fetch_states(account, names: list[str]) -> dict[str, FolderState]:
+	if not names:
+		return {}
+	server = open_server(account)
+	try:
+		states = {name: folder_state(server, name) for name in names}
+	finally:
+		server.logout()
+	return {name: state for name, state in states.items() if state and state.uidnext}
+
+
+def with_starting_point(row: dict, state: FolderState | None) -> dict:
+	return {**row, "uidvalidity": state.uidvalidity, "uidnext": str(state.uidnext)} if state else row
+
+
 def apply_folders(account, wanted: list[str]) -> bool:
-	existing = {folder_key(row.folder_name): row for row in account.imap_folder}
-	rows = [
-		{field: existing[folder_key(name)].get(field) for field in FOLDER_FIELDS}
-		if folder_key(name) in existing
-		else {"folder_name": name}
-		for name in wanted
-	]
-	if [row.folder_name for row in account.imap_folder] == [row["folder_name"] for row in rows]:
+	current = [{field: row.get(field) for field in FOLDER_FIELDS} for row in account.imap_folder]
+	existing = {folder_key(row["folder_name"]): row for row in current}
+	kept = [existing.get(folder_key(name), {"folder_name": name}) for name in wanted]
+	states = fetch_states(account, [row["folder_name"] for row in kept if not row.get("uidvalidity")])
+	rows = [with_starting_point(row, states.get(row["folder_name"])) for row in kept]
+	if rows == current:
 		return False
 	account.set("imap_folder", rows)
 	account.flags.ignore_validate = True
@@ -93,7 +120,11 @@ def apply_folders(account, wanted: list[str]) -> bool:
 
 def sync_mailbox(row) -> bool:
 	account = frappe.get_doc("Email Account", row.email_account)
-	wanted = select_folders(fetch_folders(account), row.folder_mode)
+	wanted = (
+		[folder.folder_name for folder in account.imap_folder]
+		if row.folder_mode == MANUAL
+		else select_folders(fetch_folders(account), row.folder_mode)
+	)
 	if not wanted:
 		frappe.throw(_("No folders to read were found in {0}").format(account.email_id))
 	return apply_folders(account, wanted)
@@ -124,7 +155,12 @@ def sync_row(row) -> str | None:
 
 def sync_all_mailboxes() -> dict[str, str | None]:
 	settings = frappe.get_single("Mail Forward Settings")
-	return {row.email_account: sync_row(row) for row in settings.mailboxes if row.folder_mode != MANUAL}
+	return {row.email_account: sync_row(row) for row in settings.mailboxes}
+
+
+def sync_new_mailboxes() -> dict[str, str | None]:
+	settings = frappe.get_single("Mail Forward Settings")
+	return {row.email_account: sync_row(row) for row in settings.mailboxes if not row.last_folder_sync}
 
 
 @frappe.whitelist()

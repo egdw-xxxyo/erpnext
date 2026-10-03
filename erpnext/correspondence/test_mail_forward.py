@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import frappe
@@ -6,6 +7,7 @@ from frappe.utils import add_days, now_datetime
 
 from erpnext.correspondence.doctype.mail_forward_settings import mail_forward_settings
 from erpnext.correspondence.imap_folders import parse_list_response
+from erpnext.correspondence.imap_uids import FolderState
 from erpnext.correspondence.mail_forward import forward_communication, sync_delivery_status
 
 WATCHED = "_Test Watched Mailbox"
@@ -201,7 +203,8 @@ class TestMailForward(FrappeTestCase):
 			return account.get_onload().get("mail_forwarding")
 
 		self.assertEqual(profile(WATCHED)["role"], "Watched")
-		self.assertIn("email_sync_option", profile(WATCHED)["hidden"])
+		self.assertIn("email_sync_option", profile(WATCHED)["locked"])
+		self.assertEqual(profile(WATCHED)["hidden"], ("initial_sync_count",))
 		self.assertEqual(profile(SENDER)["role"], "Sender")
 		make_account("_Test Unrelated", "unrelated@kalheon.test", enable_outgoing=1)
 		self.assertIsNone(profile("_Test Unrelated"))
@@ -260,6 +263,19 @@ def fake_fetch(account):
 	return SERVER_FOLDERS
 
 
+def fake_states(account, names):
+	return {name: FolderState("5", 40) for name in names}
+
+
+@contextmanager
+def fake_server():
+	with (
+		patch.object(mail_forward_settings, "fetch_folders", fake_fetch),
+		patch.object(mail_forward_settings, "fetch_states", fake_states),
+	):
+		yield
+
+
 class TestFolderSync(FrappeTestCase):
 	def setUp(self):
 		make_account(
@@ -293,22 +309,23 @@ class TestFolderSync(FrappeTestCase):
 		frappe.db.rollback()
 
 	def test_user_folders_are_added_and_known_ones_keep_their_sync_state(self):
-		with patch.object(mail_forward_settings, "fetch_folders", fake_fetch):
+		with fake_server():
 			results = mail_forward_settings.sync_all_mailboxes()
 		folders = frappe.get_doc("Email Account", WATCHED).imap_folder
 		self.assertEqual([row.folder_name for row in folders], ["INBOX", "Banks", "&BBEEMAQ9BDoEOA-"])
 		self.assertEqual((folders[0].uidvalidity, folders[0].uidnext), ("77", "1200"))
+		self.assertEqual({(row.uidvalidity, row.uidnext) for row in folders[1:]}, {("5", "40")})
 		self.assertIsNone(results[WATCHED])
 		self.assertIn("server down", results[SECOND])
 
 	def test_sync_now_reports_readable_folder_names(self):
-		with patch.object(mail_forward_settings, "fetch_folders", fake_fetch):
+		with fake_server():
 			results = {row["email_account"]: row for row in mail_forward_settings.sync_folders_now()}
 		self.assertEqual(results[WATCHED]["folders"], ["INBOX", "Banks", "Банки"])
 		self.assertTrue(results[SECOND]["error"])
 
 	def test_a_failing_mailbox_keeps_its_folders_and_records_the_error(self):
-		with patch.object(mail_forward_settings, "fetch_folders", fake_fetch):
+		with fake_server():
 			mail_forward_settings.sync_all_mailboxes()
 		self.assertEqual(
 			[row.folder_name for row in frappe.get_doc("Email Account", SECOND).imap_folder], ["INBOX"]
@@ -320,3 +337,34 @@ class TestFolderSync(FrappeTestCase):
 		)[0]
 		self.assertIn("server down", row.folder_sync_error)
 		self.assertTrue(row.last_folder_sync)
+
+	def test_manual_mailbox_keeps_its_folders_and_gets_a_starting_point(self):
+		frappe.db.set_value("Mail Forward Mailbox", {"email_account": WATCHED}, "folder_mode", "Manual")
+		self.set_inbox(None, None)
+		with fake_server():
+			mail_forward_settings.sync_all_mailboxes()
+		folders = frappe.get_doc("Email Account", WATCHED).imap_folder
+		self.assertEqual(
+			[(row.folder_name, row.uidvalidity, row.uidnext) for row in folders], [("INBOX", "5", "40")]
+		)
+
+	def test_only_new_mailboxes_are_synced_after_saving(self):
+		frappe.db.set_value(
+			"Mail Forward Mailbox", {"email_account": WATCHED}, "last_folder_sync", now_datetime()
+		)
+		with fake_server():
+			results = mail_forward_settings.sync_new_mailboxes()
+		self.assertEqual(list(results), [SECOND])
+
+	def test_adding_a_mailbox_queues_its_folder_sync(self):
+		with patch.object(mail_forward_settings.frappe, "enqueue") as enqueue:
+			frappe.get_single("Mail Forward Settings").save(ignore_permissions=True)
+		enqueue.assert_called_once()
+		self.assertEqual(enqueue.call_args.args[0], mail_forward_settings.SYNC_JOB)
+
+	def set_inbox(self, uidvalidity, uidnext):
+		frappe.db.set_value(
+			"IMAP Folder",
+			{"parent": WATCHED, "folder_name": "INBOX"},
+			{"uidvalidity": uidvalidity, "uidnext": uidnext},
+		)

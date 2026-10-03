@@ -1,5 +1,6 @@
 import imaplib
 import re
+from datetime import date, datetime
 from unittest.mock import patch
 
 import frappe
@@ -9,6 +10,7 @@ from erpnext.correspondence.email_account import ForwardingEmailAccount
 from erpnext.correspondence.test_mail_forward import WATCHED, make_account
 
 OTHER = "_Test Unwatched Mailbox"
+ARRIVED = date(2026, 10, 2)
 
 
 def raw_mail(folder: str, uid: int) -> bytes:
@@ -24,10 +26,12 @@ class FakeImap:
 		folders: dict[str, tuple[str, list[int]]],
 		broken: frozenset = frozenset(),
 		unreadable: frozenset = frozenset(),
+		arrived: dict | None = None,
 	):
 		self.folders = folders
 		self.broken = broken
 		self.unreadable = unreadable
+		self.arrived = arrived or {}
 		self.selected = None
 		self.calls = []
 
@@ -44,15 +48,20 @@ class FakeImap:
 		self.calls.append((command, *args))
 		uids = self.folders[self.selected][1]
 		if command == "search":
-			start = int(re.search(r"UID (\d+):\*", args[1])[1])
-			found = [uid for uid in uids if uid >= start] or uids[-1:]
-			return "OK", [" ".join(map(str, found)).encode()]
+			return "OK", [" ".join(map(str, self.search(uids, args[1]))).encode()]
 		uid = int(args[0])
 		if (self.selected, uid) in self.broken:
 			raise imaplib.IMAP4.abort("connection lost")
 		if uid not in uids or (self.selected, uid) in self.unreadable:
 			return "NO", [None]
 		return "OK", [(f"1 (UID {uid} BODY[] {{10}}".encode(), raw_mail(self.selected, uid)), b")"]
+
+	def search(self, uids: list[int], criteria: str) -> list[int]:
+		if criteria.startswith("SINCE "):
+			since = datetime.strptime(criteria[6:], "%d-%b-%Y").date()
+			return [uid for uid in uids if self.arrived.get((self.selected, uid), ARRIVED) >= since]
+		start = int(re.search(r"UID (\d+):\*", criteria)[1])
+		return [uid for uid in uids if uid >= start] or uids[-1:]
 
 	def logout(self):
 		self.calls.append(("logout",))
@@ -94,6 +103,16 @@ class TestFolderUids(FrappeTestCase):
 			account.save_folder_progress()
 		return [mail.subject for mail in mails]
 
+	def set_folder(self, folder_name: str, uidvalidity, uidnext):
+		frappe.db.set_value(
+			"IMAP Folder",
+			{"parent": WATCHED, "folder_name": folder_name},
+			{"uidvalidity": uidvalidity, "uidnext": uidnext},
+		)
+
+	def mailbox(self, field: str):
+		return frappe.db.get_value("Mail Forward Mailbox", {"email_account": WATCHED}, field)
+
 	def stored(self):
 		return {
 			row.folder_name: (row.uidvalidity, row.uidnext)
@@ -113,10 +132,28 @@ class TestFolderUids(FrappeTestCase):
 		self.assertFalse([call for call in imap.calls if call[0] == "fetch"])
 		self.assertEqual(self.stored(), {"INBOX": ("7", "500"), "Banks": ("3", "10")})
 
-	def test_new_or_reset_folder_reads_only_the_backlog(self):
-		imap = FakeImap({"INBOX": ("8", [50, 250, 260]), "Banks": ("3", [])})
+	def test_new_folder_skips_the_mail_already_there(self):
+		self.set_folder("Banks", None, None)
+		imap = FakeImap({"INBOX": ("7", [500]), "Banks": ("3", [8, 9, 10])})
+		self.assertEqual(self.pull(imap), ["INBOX 500"])
+		self.assertEqual(self.stored()["Banks"], ("3", "11"))
+		imap.folders["Banks"] = ("3", [8, 9, 10, 11])
+		self.assertEqual(self.pull(imap), ["Banks 11"])
+
+	def test_renumbered_folder_rereads_mail_since_the_last_check(self):
+		frappe.db.set_value(
+			"Mail Forward Mailbox", {"email_account": WATCHED}, "last_mail_check", "2026-10-02 10:00:00"
+		)
+		arrived = {("INBOX", 50): date(2026, 9, 1), ("INBOX", 250): date(2026, 10, 1)}
+		imap = FakeImap({"INBOX": ("8", [50, 250, 260]), "Banks": ("3", [])}, arrived=arrived)
 		self.assertEqual(self.pull(imap), ["INBOX 250", "INBOX 260"])
 		self.assertEqual(self.stored()["INBOX"], ("8", "261"))
+		self.assertIn(("search", None, "SINCE 01-Oct-2026"), imap.calls)
+
+	def test_a_pass_records_when_the_mail_was_checked(self):
+		self.assertIsNone(self.mailbox("last_mail_check"))
+		self.pull(FakeImap({"INBOX": ("7", [499]), "Banks": ("3", [9])}))
+		self.assertIsNotNone(self.mailbox("last_mail_check"))
 
 	def test_lost_connection_keeps_the_counter_at_the_last_read_mail(self):
 		imap = FakeImap({"INBOX": ("7", [500, 501, 502]), "Banks": ("3", [10])}, frozenset({("INBOX", 501)}))

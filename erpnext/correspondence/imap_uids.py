@@ -1,12 +1,19 @@
 import re
+from datetime import date, timedelta
 from typing import NamedTuple
 
 BATCH_SIZE = 100
+IMAP_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 
 class FolderState(NamedTuple):
 	uidvalidity: str
 	uidnext: int
+
+
+class ReadPlan(NamedTuple):
+	criteria: str
+	start: int
 
 
 def status_value(text: str, key: str) -> int:
@@ -24,10 +31,28 @@ def stored_uid(value) -> int:
 	return int(text) if text.isdigit() else 0
 
 
-def first_uid(stored_validity, stored_next, server: FolderState, backlog: int) -> int:
+def imap_date(day: date) -> str:
+	return f"{day.day:02d}-{IMAP_MONTHS[day.month - 1]}-{day.year}"
+
+
+def uid_plan(start: int) -> ReadPlan:
+	return ReadPlan(f"UID {start}:*", start)
+
+
+def read_plan(
+	stored_validity, stored_next, server: FolderState, reread_since: date | None
+) -> ReadPlan | None:
+	if not server.uidnext:
+		return None
 	if str(stored_validity or "") == server.uidvalidity and stored_uid(stored_next):
-		return stored_uid(stored_next)
-	return max(1, server.uidnext - backlog)
+		return uid_plan(stored_uid(stored_next))
+	if stored_validity and reread_since:
+		return ReadPlan(f"SINCE {imap_date(reread_since - timedelta(days=1))}", 1)
+	return uid_plan(server.uidnext)
+
+
+def progress_start(plan: ReadPlan, uids: list[int], server: FolderState) -> int:
+	return uids[0] if uids else max(plan.start, server.uidnext)
 
 
 def new_uids(search_response: bytes | None, start: int, limit: int = BATCH_SIZE) -> list[int]:

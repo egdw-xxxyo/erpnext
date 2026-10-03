@@ -16,10 +16,11 @@ DEFAULTS = {
 	},
 	SENDER: {"track_email_status": 0, "send_unsubscribe_message": 0},
 }
-HIDDEN = {
-	WATCHED: (*DEFAULTS[WATCHED], "initial_sync_count", "append_to"),
+LOCKED = {
+	WATCHED: (*DEFAULTS[WATCHED], "append_to"),
 	SENDER: tuple(DEFAULTS[SENDER]),
 }
+HIDDEN = {WATCHED: ("initial_sync_count",), SENDER: ()}
 
 
 def forwarding_role(name: str | None) -> str | None:
@@ -53,4 +54,4 @@ def apply_defaults(name: str, role: str) -> list[str]:
 
 def form_profile(name: str | None) -> dict | None:
 	role = forwarding_role(name)
-	return {"role": role, "hidden": HIDDEN[role]} if role else None
+	return {"role": role, "locked": LOCKED[role], "hidden": HIDDEN[role]} if role else None
