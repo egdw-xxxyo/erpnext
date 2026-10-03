@@ -1,0 +1,37 @@
+<div style="font-size: 13px; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px;">
+	<div style="margin-bottom: 6px;">{{ _("Forwarded message") }}</div>
+	<table style="border-collapse: collapse;">
+		<tr>
+			<td style="padding: 1px 12px 1px 0; color: #888;">{{ _("From") }}:</td>
+			<td>{% if sender_name and sender_name != sender %}{{ sender_name | e }} &lt;{{ sender | e }}&gt;{% else %}{{ sender | e }}{% endif %}</td>
+		</tr>
+		{% if date %}
+		<tr>
+			<td style="padding: 1px 12px 1px 0; color: #888;">{{ _("Date") }}:</td>
+			<td>{{ date | e }}</td>
+		</tr>
+		{% endif %}
+		{% if to %}
+		<tr>
+			<td style="padding: 1px 12px 1px 0; color: #888;">{{ _("To") }}:</td>
+			<td>{{ to | e }}</td>
+		</tr>
+		{% endif %}
+		{% if cc %}
+		<tr>
+			<td style="padding: 1px 12px 1px 0; color: #888;">{{ _("CC") }}:</td>
+			<td>{{ cc | e }}</td>
+		</tr>
+		{% endif %}
+		<tr>
+			<td style="padding: 1px 12px 1px 0; color: #888;">{{ _("Subject") }}:</td>
+			<td>{{ (subject or "") | e }}</td>
+		</tr>
+	</table>
+</div>
+<div>{{ body }}</div>
+{% if footer %}
+<div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 12px; color: #888;">
+	<em>{{ footer | e }}</em>
+</div>
+{% endif %}

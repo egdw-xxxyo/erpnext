@@ -611,6 +611,7 @@ doc_events = {
 		"after_insert": [
 			"erpnext.crm.utils.link_communications_with_prospect",
 			"erpnext.crm.utils.update_modified_timestamp",
+			"erpnext.correspondence.mail_forward.on_communication_insert",
 		],
 	},
 	"Event": {
@@ -839,6 +840,7 @@ scheduler_events = {
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
+		"erpnext.correspondence.doctype.mail_forward_settings.mail_forward_settings.sync_all_mailboxes",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [

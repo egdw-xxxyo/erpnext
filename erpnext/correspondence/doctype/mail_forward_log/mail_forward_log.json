@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-10-02 00:00:00.000000",
+ "description": "One row per copy sent or skipped. Also what stops a message from being forwarded twice",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "recipient",
+  "email",
+  "email_queue",
+  "column_break_message",
+  "email_account",
+  "communication",
+  "sender",
+  "subject",
+  "details_section",
+  "rules",
+  "note",
+  "message_id",
+  "dedupe_key"
+ ],
+ "fields": [
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Queued\nSkipped\nFailed",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "recipient",
+   "fieldtype": "Link",
+   "options": "Mail Forward Recipient",
+   "label": "Recipient",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Sent To",
+   "read_only": 1
+  },
+  {
+   "fieldname": "email_queue",
+   "fieldtype": "Link",
+   "options": "Email Queue",
+   "label": "Email Queue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_message",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email_account",
+   "fieldtype": "Link",
+   "options": "Email Account",
+   "label": "Mailbox",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "communication",
+   "fieldtype": "Link",
+   "options": "Communication",
+   "label": "Communication",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Data",
+   "label": "Sender",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "length": 1000,
+   "label": "Subject",
+   "read_only": 1
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rules",
+   "fieldtype": "Small Text",
+   "label": "Matched Rules",
+   "read_only": 1
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "message_id",
+   "fieldtype": "Data",
+   "length": 1000,
+   "label": "Message ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dedupe_key",
+   "fieldtype": "Data",
+   "label": "Dedupe Key",
+   "unique": 1,
+   "hidden": 1,
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Correspondence",
+ "name": "Mail Forward Log",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "subject",
+ "track_changes": 0
+}
