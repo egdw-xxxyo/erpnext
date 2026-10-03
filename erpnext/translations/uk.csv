@@ -15565,3 +15565,4 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Recipient not found","Адресата не знайдено"
 "Recipient is disabled","Адресата вимкнено"
 "Recipient has no email","В адресата немає email"
+"Unable to fetch email","Не вдалося отримати лист"
