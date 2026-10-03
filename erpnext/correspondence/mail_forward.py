@@ -3,6 +3,7 @@ import html
 import frappe
 from frappe import _
 from frappe.utils import format_datetime, get_datetime, is_html
+from frappe.utils.jinja import get_template
 
 from erpnext.correspondence.mail_routing import dedupe_key, parse_patterns, plan_copies, route
 
@@ -192,8 +193,7 @@ def body_html(content: str | None) -> str:
 
 
 def render_copy(comm, settings, mailbox_address: str) -> str:
-	return frappe.render_template(
-		TEMPLATE,
+	return get_template(TEMPLATE).render(
 		{
 			"sender_name": comm.sender_full_name,
 			"sender": comm.sender,

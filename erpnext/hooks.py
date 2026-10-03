@@ -87,8 +87,11 @@ page_js = {"print": "public/js/print.js"}
 override_doctype_class = {
 	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
 	"Attendance": "erpnext.payroll_ua.overrides.attendance.Attendance",
-	"Email Account": "erpnext.correspondence.email_account.ForwardingEmailAccount",
 	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
+}
+
+extend_doctype_class = {
+	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
 }
 
 override_whitelisted_methods = {

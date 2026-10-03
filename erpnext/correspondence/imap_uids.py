@@ -56,7 +56,8 @@ def progress_start(plan: ReadPlan, uids: list[int], server: FolderState) -> int:
 
 
 def new_uids(search_response: bytes | None, start: int, limit: int = BATCH_SIZE) -> list[int]:
-	return sorted(uid for uid in map(int, (search_response or b"").split()) if uid >= start)[:limit]
+	uids = (int(uid) for uid in (search_response or b"").split())
+	return sorted(uid for uid in uids if uid >= start)[:limit]
 
 
 def parse_fetch(data: list | None) -> tuple[bytes | None, str]:

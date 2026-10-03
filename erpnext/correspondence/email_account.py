@@ -140,4 +140,4 @@ class ForwardingEmailAccount(EmailAccount):
 				self.flags.mail_check_started,
 				update_modified=False,
 			)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: frappe-semgrep-rules.rules.frappe-manual-commit

@@ -48,7 +48,7 @@ class FakeImap:
 		self.calls.append((command, *args))
 		uids = self.folders[self.selected][1]
 		if command == "search":
-			return "OK", [" ".join(map(str, self.search(uids, args[1]))).encode()]
+			return "OK", [" ".join(str(uid) for uid in self.search(uids, args[1])).encode()]
 		uid = int(args[0])
 		if (self.selected, uid) in self.broken:
 			raise imaplib.IMAP4.abort("connection lost")

@@ -86,7 +86,8 @@ def parse_list_entry(entry: bytes | tuple) -> Folder | None:
 
 
 def parse_list_response(entries: Iterable[bytes | tuple | None]) -> list[Folder]:
-	return [folder for folder in map(parse_list_entry, filter(None, entries)) if folder]
+	folders = (parse_list_entry(entry) for entry in entries if entry)
+	return [folder for folder in folders if folder]
 
 
 def display_name(folder: Folder) -> str:
