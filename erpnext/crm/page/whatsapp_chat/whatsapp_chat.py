@@ -743,9 +743,10 @@ def send_text(chat, message, reply_to_message_id=None):
 	return _insert_outgoing(chat, fields)
 
 
-# Audio containers Meta's Cloud API accepts as-is. Anything else (notably webm, which is
-# all Chrome's MediaRecorder can produce) is transcoded to ogg/opus before sending.
-META_AUDIO_EXT = {"aac", "m4a", "mp4", "amr", "mp3", "mpeg", "ogg", "opus"}
+# Audio containers Meta's Cloud API accepts as-is. Anything else is transcoded to ogg/opus
+# before sending: webm, and mp4/m4a — MediaRecorder writes fragmented MP4, which Meta
+# rejects with 131053 ("uploaded as audio/mp4, however ... application/octet-stream").
+META_AUDIO_EXT = {"aac", "amr", "mp3", "mpeg", "ogg", "opus"}
 
 
 def _ensure_whatsapp_audio(attach):

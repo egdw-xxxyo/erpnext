@@ -125,8 +125,8 @@ erpnext.chat_media = {
 	// elapsed time, Send (stop) and Cancel; resolves with {blob, mime, ext} or null if
 	// the user cancels or the mic is unavailable. Callers upload + send the blob.
 	//
-	// The container is picked to be WhatsApp-friendly when the browser can (ogg/opus,
-	// mp4); Chrome only offers webm, which the server transcodes for WhatsApp.
+	// ogg/opus goes to WhatsApp as-is; the mp4 and webm that browsers record are
+	// transcoded by the server (see _ensure_whatsapp_audio).
 	async record_audio() {
 		if (!navigator.mediaDevices || !window.MediaRecorder) {
 			// Browsers expose the microphone only on HTTPS (or localhost). Over plain HTTP
