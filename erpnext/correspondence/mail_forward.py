@@ -10,6 +10,7 @@ FORWARD_JOB = "erpnext.correspondence.mail_forward.forward_communication"
 SETTINGS = "Mail Forward Settings"
 TEMPLATE = "templates/emails/mail_forward_copy.html"
 NOTE_LIMIT = 2000
+QUEUE_OUTCOMES = {"Sent": "Sent", "Error": "Failed"}
 
 
 def watched_mailbox(settings, email_account: str | None):
@@ -148,6 +149,32 @@ def deliver(log, comm, settings, mailbox_address: str):
 		frappe.log_error(
 			title=_("Mail forward failed"), reference_doctype="Mail Forward Log", reference_name=log.name
 		)
+
+
+def sync_delivery_status():
+	logs = frappe.get_all(
+		"Mail Forward Log",
+		filters={"status": "Queued", "email_queue": ["is", "set"]},
+		fields=["name", "email_queue"],
+	)
+	queues = {
+		queue.name: queue
+		for queue in frappe.get_all(
+			"Email Queue",
+			filters={
+				"name": ["in", [log.email_queue for log in logs] or [""]],
+				"status": ["in", list(QUEUE_OUTCOMES)],
+			},
+			fields=["name", "status", "error"],
+		)
+	}
+	for log in logs:
+		if queue := queues.get(log.email_queue):
+			frappe.db.set_value(
+				"Mail Forward Log",
+				log.name,
+				{"status": QUEUE_OUTCOMES[queue.status], "note": (queue.error or "")[-NOTE_LIMIT:] or None},
+			)
 
 
 def attached_files(communication: str) -> list[str]:

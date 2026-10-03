@@ -7,19 +7,30 @@ from frappe.email.doctype.email_account.email_account import EmailAccount
 from frappe.email.receive import InboundMail
 from frappe.utils import cint
 
+from erpnext.correspondence.forwarding_accounts import (
+	WATCHED,
+	form_profile,
+	forwarding_role,
+	pending_changes,
+)
 from erpnext.correspondence.imap_uids import FolderState, first_uid, new_uids, parse_fetch, parse_status
 
 
 class ForwardingEmailAccount(EmailAccount):
+	def onload(self):
+		self.set_onload("mail_forwarding", form_profile(self.name))
+
+	def validate(self):
+		self.update(pending_changes(self, forwarding_role(self.name)))
+		super().validate()
+
 	def reads_folders_by_uid(self) -> bool:
 		return bool(
 			self.enable_incoming
 			and self.use_imap
 			and self.email_sync_option == "ALL"
 			and self.service != "Frappe Mail"
-			and frappe.db.exists(
-				"Mail Forward Mailbox", {"parenttype": "Mail Forward Settings", "email_account": self.name}
-			)
+			and forwarding_role(self.name) == WATCHED
 		)
 
 	def receive(self):

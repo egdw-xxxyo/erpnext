@@ -6,7 +6,7 @@ from frappe.utils import add_days, now_datetime
 
 from erpnext.correspondence.doctype.mail_forward_settings import mail_forward_settings
 from erpnext.correspondence.imap_folders import parse_list_response
-from erpnext.correspondence.mail_forward import forward_communication
+from erpnext.correspondence.mail_forward import forward_communication, sync_delivery_status
 
 WATCHED = "_Test Watched Mailbox"
 SENDER = "_Test Forward Sender"
@@ -168,16 +168,72 @@ class TestMailForward(FrappeTestCase):
 	def test_rule_matching_an_own_address_is_refused(self):
 		self.assertRaises(frappe.ValidationError, make_rule, "Loop", "@kalheon.test", ["_FIN"])
 
-	def test_mailbox_marking_mail_as_read_is_refused(self):
-		frappe.db.set_value("Email Account", WATCHED, "email_sync_option", "UNSEEN")
-		settings = frappe.get_single("Mail Forward Settings")
-		self.assertRaises(frappe.ValidationError, settings.save)
+	def test_watched_mailbox_is_switched_to_safe_settings(self):
+		frappe.db.set_value(
+			"Email Account",
+			WATCHED,
+			{"email_sync_option": "UNSEEN", "create_contact": 1, "enable_auto_reply": 1},
+		)
+		frappe.get_single("Mail Forward Settings").save()
+		self.assertEqual(
+			frappe.db.get_value(
+				"Email Account", WATCHED, ["email_sync_option", "create_contact", "enable_auto_reply"]
+			),
+			("ALL", 0, 0),
+		)
+
+	def test_watched_mailbox_cannot_be_switched_back_to_unseen(self):
+		account = frappe.get_doc("Email Account", WATCHED)
+		account.email_sync_option = "UNSEEN"
+		account.save()
+		self.assertEqual(frappe.db.get_value("Email Account", WATCHED, "email_sync_option"), "ALL")
+
+	def test_sender_account_sends_without_tracking(self):
+		self.assertEqual(
+			frappe.db.get_value("Email Account", SENDER, ["track_email_status", "send_unsubscribe_message"]),
+			(0, 0),
+		)
+
+	def test_forwarding_accounts_carry_their_form_profile(self):
+		def profile(name):
+			account = frappe.get_doc("Email Account", name)
+			account.run_method("onload")
+			return account.get_onload().get("mail_forwarding")
+
+		self.assertEqual(profile(WATCHED)["role"], "Watched")
+		self.assertIn("email_sync_option", profile(WATCHED)["hidden"])
+		self.assertEqual(profile(SENDER)["role"], "Sender")
+		make_account("_Test Unrelated", "unrelated@kalheon.test", enable_outgoing=1)
+		self.assertIsNone(profile("_Test Unrelated"))
 
 	def test_sender_sharing_the_watched_address_is_refused(self):
 		make_account("_Test Watched SMTP", "Watched@Kalheon.test", enable_outgoing=1)
 		settings = frappe.get_single("Mail Forward Settings")
 		settings.sender_account = "_Test Watched SMTP"
 		self.assertRaises(frappe.ValidationError, settings.save)
+
+	def test_delivery_outcome_comes_from_the_email_queue(self):
+		comm = receive("judge@court.test", "<m8@court.test>")
+		forward_communication(comm.name)
+		fin, hr = (log for log in logs_for(comm) if log.status == "Queued")
+		frappe.db.set_value("Email Queue", fin.email_queue, "status", "Sent")
+		frappe.db.set_value(
+			"Email Queue", hr.email_queue, {"status": "Error", "error": "550 mailbox unavailable"}
+		)
+		sync_delivery_status()
+		logs = {log.recipient: log for log in logs_for(comm)}
+		self.assertEqual(
+			{code: log.status for code, log in logs.items()},
+			{"_EMPTY": "Skipped", "_FIN": "Sent", "_HR": "Failed"},
+		)
+		self.assertIsNone(logs["_FIN"].note)
+		self.assertEqual(logs["_HR"].note, "550 mailbox unavailable")
+
+	def test_mail_still_in_the_queue_stays_queued(self):
+		comm = receive("manager@bank.test", "<m9@bank.test>")
+		forward_communication(comm.name)
+		sync_delivery_status()
+		self.assertEqual([log.status for log in logs_for(comm)], ["Queued"])
 
 	def test_disabled_forwarding_does_nothing(self):
 		frappe.db.set_single_value("Mail Forward Settings", "enabled", 0)

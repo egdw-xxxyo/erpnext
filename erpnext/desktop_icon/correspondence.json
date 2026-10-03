@@ -1,0 +1,25 @@
+{
+ "app": "erpnext",
+ "creation": "2026-10-03 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "email",
+ "icon_type": "Link",
+ "idx": 1,
+ "label": "Correspondence",
+ "link_to": "Correspondence",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-10-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Correspondence",
+ "owner": "Administrator",
+ "parent_icon": "ERPNext",
+ "restrict_removal": 0,
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "standard": 1
+}

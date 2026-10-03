@@ -26,7 +26,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Queued\nSkipped\nFailed",
+   "options": "Queued\nSent\nSkipped\nFailed",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "read_only": 1
@@ -120,7 +120,7 @@
  ],
  "in_create": 1,
  "links": [],
- "modified": "2026-10-02 00:00:00.000000",
+ "modified": "2026-10-03 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Correspondence",
  "name": "Mail Forward Log",

@@ -48,6 +48,7 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	"Email Account": "public/js/custom/email_account.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
 	"Lead": "public/js/custom/lead.js",
@@ -819,6 +820,7 @@ scheduler_events = {
 	"cron": {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
+			"erpnext.correspondence.mail_forward.sync_delivery_status",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",

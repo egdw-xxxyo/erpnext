@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
+from erpnext.correspondence.forwarding_accounts import SENDER, WATCHED, apply_defaults
 from erpnext.correspondence.imap_folders import (
 	MANUAL,
 	decode_modified_utf7,
@@ -19,6 +20,12 @@ class MailForwardSettings(Document):
 	def validate(self):
 		self.validate_mailboxes()
 		self.validate_sender_account()
+
+	def on_update(self):
+		for row in self.mailboxes:
+			apply_defaults(row.email_account, WATCHED)
+		if self.sender_account:
+			apply_defaults(self.sender_account, SENDER)
 
 	def validate_mailboxes(self):
 		accounts = [row.email_account for row in self.mailboxes]
@@ -50,17 +57,9 @@ def account_address(name: str | None) -> str:
 
 
 def validate_watched_account(name: str):
-	account = frappe.db.get_value(
-		"Email Account", name, ["enable_incoming", "use_imap", "email_sync_option"], as_dict=True
-	)
+	account = frappe.db.get_value("Email Account", name, ["enable_incoming", "use_imap"], as_dict=True)
 	if not (account and account.enable_incoming and account.use_imap):
 		frappe.throw(_("Email Account {0} must receive mail over IMAP").format(name))
-	if account.email_sync_option != "ALL":
-		frappe.throw(
-			_(
-				"Email Account {0} must use the sync option ALL: with UNSEEN every pulled message is marked as read"
-			).format(name)
-		)
 
 
 def fetch_folders(account) -> list:

@@ -1,0 +1,158 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"cr_hdr_sc\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"cr_sc_0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Mail Forward Log\", \"col\": 3}}, {\"id\": \"cr_sc_1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Mail Forward Rule\", \"col\": 3}}, {\"id\": \"cr_sc_2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Mail Forward Recipient\", \"col\": 3}}, {\"id\": \"cr_sc_3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Mail Forward Settings\", \"col\": 3}}, {\"id\": \"cr_spacer\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cr_hdr_cards\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Reports &amp; Masters</b></span>\", \"col\": 12}}, {\"id\": \"cr_card_0\", \"type\": \"card\", \"data\": {\"card_name\": \"Forwarding\", \"col\": 4}}, {\"id\": \"cr_card_1\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}, {\"id\": \"cr_card_2\", \"type\": \"card\", \"data\": {\"card_name\": \"Mail\", \"col\": 4}}]",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "mail",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Correspondence",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Forwarding",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mail Forward Rule",
+   "link_count": 0,
+   "link_to": "Mail Forward Rule",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mail Forward Recipient",
+   "link_count": 0,
+   "link_to": "Mail Forward Recipient",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mail Forward Log",
+   "link_count": 0,
+   "link_to": "Mail Forward Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Setup",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mail Forward Settings",
+   "link_count": 0,
+   "link_to": "Mail Forward Settings",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Email Account",
+   "link_count": 0,
+   "link_to": "Email Account",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mail",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Communication",
+   "link_count": 0,
+   "link_to": "Communication",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Email Queue",
+   "link_count": 0,
+   "link_to": "Email Queue",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Correspondence",
+ "name": "Correspondence",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 21.0,
+ "shortcuts": [
+  {
+   "label": "Mail Forward Log",
+   "link_to": "Mail Forward Log",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Mail Forward Rule",
+   "link_to": "Mail Forward Rule",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Mail Forward Recipient",
+   "link_to": "Mail Forward Recipient",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Mail Forward Settings",
+   "link_to": "Mail Forward Settings",
+   "type": "DocType"
+  }
+ ],
+ "title": "Correspondence"
+}
