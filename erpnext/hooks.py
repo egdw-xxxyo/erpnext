@@ -48,6 +48,7 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	"Email Account": "public/js/custom/email_account.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
 	"Lead": "public/js/custom/lead.js",
@@ -87,6 +88,10 @@ override_doctype_class = {
 	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
 	"Attendance": "erpnext.payroll_ua.overrides.attendance.Attendance",
 	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
+}
+
+extend_doctype_class = {
+	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
 }
 
 override_whitelisted_methods = {
@@ -611,6 +616,7 @@ doc_events = {
 		"after_insert": [
 			"erpnext.crm.utils.link_communications_with_prospect",
 			"erpnext.crm.utils.update_modified_timestamp",
+			"erpnext.correspondence.mail_forward.on_communication_insert",
 		],
 	},
 	"Event": {
@@ -817,6 +823,7 @@ scheduler_events = {
 	"cron": {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
+			"erpnext.correspondence.mail_forward.sync_delivery_status",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
@@ -839,6 +846,7 @@ scheduler_events = {
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
+		"erpnext.correspondence.doctype.mail_forward_settings.mail_forward_settings.sync_all_mailboxes",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [

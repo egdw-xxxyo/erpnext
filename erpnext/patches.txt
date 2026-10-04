@@ -557,3 +557,4 @@ erpnext.patches.v16_0.workplace_script_multiple_workplaces
 erpnext.patches.v16_0.drop_scanner_overview_page
 erpnext.patches.v16_0.whatsapp_chat_per_number
 erpnext.patches.v16_0.whatsapp_managers_role
+erpnext.patches.v16_0.setup_mail_forwarding

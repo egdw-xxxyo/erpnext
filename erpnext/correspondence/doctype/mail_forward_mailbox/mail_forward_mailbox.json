@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "email_account",
+  "folder_mode",
+  "forward_since",
+  "last_folder_sync",
+  "last_mail_check",
+  "folder_sync_error"
+ ],
+ "fields": [
+  {
+   "fieldname": "email_account",
+   "fieldtype": "Link",
+   "options": "Email Account",
+   "label": "Email Account",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Must read over IMAP with sync option ALL, so the mailbox is opened read-only and nothing gets marked as read"
+  },
+  {
+   "fieldname": "folder_mode",
+   "fieldtype": "Select",
+   "label": "Folders",
+   "options": "All Folders\nGmail All Mail\nManual",
+   "default": "All Folders",
+   "in_list_view": 1,
+   "description": "All Folders: Inbox and every user folder, without Spam, Sent, Drafts and Trash. Gmail All Mail: the one Gmail folder that holds every label. Manual: keep the folder list of the Email Account as it is"
+  },
+  {
+   "fieldname": "forward_since",
+   "fieldtype": "Datetime",
+   "label": "Forward Mail Received After",
+   "in_list_view": 1,
+   "description": "Set when the mailbox is added. Mail that was already in the mailbox is not read; only mail arriving later is forwarded"
+  },
+  {
+   "fieldname": "last_folder_sync",
+   "fieldtype": "Datetime",
+   "label": "Folders Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_mail_check",
+   "fieldtype": "Datetime",
+   "label": "Mail Checked On",
+   "read_only": 1,
+   "description": "If the mail server renumbers a folder, mail that arrived since this day is read again; mail already received is not duplicated"
+  },
+  {
+   "fieldname": "folder_sync_error",
+   "fieldtype": "Small Text",
+   "label": "Folder Sync Error",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-04 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Correspondence",
+ "name": "Mail Forward Mailbox",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
