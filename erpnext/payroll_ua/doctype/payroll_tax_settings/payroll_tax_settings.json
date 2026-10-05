@@ -14,7 +14,11 @@
   "column_break_employer",
   "ssc_disability_rate",
   "section_break_reservation",
-  "minimum_reservation_salary"
+  "minimum_wage",
+  "reservation_wage_multiplier",
+  "minimum_reservation_salary",
+  "column_break_reservation",
+  "minimum_average_reservation_salary"
  ],
  "fields": [
   {
@@ -73,17 +77,41 @@
    "label": "Reservation (Бронювання)"
   },
   {
-   "default": "26000",
-   "description": "The minimum official salary an employee must be paid to qualify for military service reservation. The salary documents warn about anybody below it.",
+   "default": "8647",
+   "description": "The statutory minimum wage. The reservation thresholds are multiples of it. Sick pay is capped by 20 minimum wages a month, and by one when the insurance tenure is under 6 months; an average taken from the salary is never below it.",
+   "fieldname": "minimum_wage",
+   "fieldtype": "Currency",
+   "label": "Minimum Wage"
+  },
+  {
+   "default": "3",
+   "description": "How many minimum wages a reserved employee must be paid, and the company on average: 3 by Cabinet Resolution No. 76 (from 1 September 2026), 2.5 for the frontline territories.",
+   "fieldname": "reservation_wage_multiplier",
+   "fieldtype": "Float",
+   "label": "Reservation: Minimum Wages",
+   "precision": "1"
+  },
+  {
+   "description": "Leave empty: the minimum is the minimum wage multiplied by the number above. Fill in only to override the calculated amount.",
    "fieldname": "minimum_reservation_salary",
    "fieldtype": "Currency",
-   "label": "Minimum Salary for Reservation"
+   "label": "Minimum Salary for Reservation (Override)"
+  },
+  {
+   "fieldname": "column_break_reservation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Leave empty: by law the company average must reach the same minimum as a reserved employee. Fill in only to override.",
+   "fieldname": "minimum_average_reservation_salary",
+   "fieldtype": "Currency",
+   "label": "Minimum Company Average Salary (Override)"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-29 13:30:00.000000",
+ "modified": "2026-10-05 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Tax Settings",

@@ -39,6 +39,7 @@ def execute():
 	create_salary_split_fields()
 	create_salary_tax_components()
 	create_disability_fields()
+	create_average_pay_fields()
 	create_identity_fields()
 	create_employee_overview_photo_field()
 	create_employee_subordinates_fields()
@@ -627,22 +628,29 @@ def create_salary_split_fields():
 	fields = [
 		{
 			"dt": "Employee",
+			"fieldname": "custom_total_salary",
+			"fieldtype": "Currency",
+			"label": "Total Salary",
+			"options": "salary_currency",
+			"insert_after": "salary_information",
+			"description": "What the employee gets in hand: the amount accrued to the card plus the cash part.",
+		},
+		{
+			"dt": "Employee",
 			"fieldname": "custom_official_salary",
 			"fieldtype": "Currency",
 			"label": "Official Salary",
 			"options": "salary_currency",
-			"insert_after": "ctc",
+			"insert_after": "custom_total_salary",
 			"description": "The amount accrued officially, before taxes.",
 		},
 		{
 			"dt": "Employee",
-			"fieldname": "custom_official_salary_net",
-			"fieldtype": "Currency",
-			"label": "Accrued to the Card",
-			"options": "salary_currency",
-			"insert_after": "custom_official_salary",
-			"read_only": 1,
-			"description": "Calculated: the official salary less PIT 18% and military levy 5%, so 77% of it. The employer pays SSC 22% on top of the official salary — that is not withheld from the employee.",
+			"fieldname": "custom_reservation_salary",
+			"fieldtype": "Check",
+			"label": "Salary Must Meet the Reservation Minimum",
+			"insert_after": "custom_cash_salary",
+			"description": "The official salary of this employee must not be below the minimum for military service reservation from the Payroll Tax Settings. The salary documents warn only about the employees marked here.",
 		},
 		{
 			"dt": "Employee",
@@ -650,16 +658,88 @@ def create_salary_split_fields():
 			"fieldtype": "Currency",
 			"label": "Mgmt. Salary",
 			"options": "salary_currency",
-			"insert_after": "custom_official_salary_net",
-			"description": "Paid from the cash desk and not taxed. Together with the official part it makes up the full salary.",
+			"insert_after": "custom_official_salary",
+			"read_only": 1,
+			"description": "Calculated: the total salary less the amount accrued to the card. Paid from the cash desk and not taxed.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_official_bonus",
+			"fieldtype": "Currency",
+			"label": "Official Bonus",
+			"options": "salary_currency",
+			"insert_after": "custom_reservation_salary",
+			"description": "A one-month addition that counts as official salary without changing the Official Salary field. The amount in hand stays the same: what the bonus adds to the card is taken off the cash part of that month.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_official_bonus_month",
+			"fieldtype": "Date",
+			"label": "Official Bonus Month",
+			"insert_after": "custom_official_bonus",
+			"depends_on": "eval:doc.custom_official_bonus",
+			"description": "The bonus applies to this month only; from the next month the salary is back to the Official Salary.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_official_salary_net",
+			"fieldtype": "Currency",
+			"label": "Accrued to the Card",
+			"options": "salary_currency",
+			"insert_after": "custom_official_bonus_month",
+			"read_only": 1,
+			"description": "Calculated: the official salary less PIT 18% and military levy 5%, so 77% of it. The employer pays SSC 22% on top of the official salary — that is not withheld from the employee.",
 		},
 		{
 			"dt": "Employee",
 			"fieldname": "custom_salary_effective_from",
 			"fieldtype": "Date",
 			"label": "Salary Effective From",
-			"insert_after": "custom_cash_salary",
+			"insert_after": "custom_official_salary_net",
 			"description": "The Salary Structure Assignment is created from this date. Defaults to the first day of the current month.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_employment_rate",
+			"fieldtype": "Float",
+			"precision": "2",
+			"label": "Employment Rate",
+			"insert_after": "employment_type",
+			"depends_on": "eval:doc.employment_type == 'Part-time'",
+			"description": "From 0 to 1: the share of a full working day and of the salary. 0.5 — half a day and half the salary; 0.2 — one fifth. The salary fields keep the full-time amounts. Empty means a full rate.",
+		},
+		{
+			"dt": "Salary Structure Assignment",
+			"fieldname": "custom_employment_rate",
+			"fieldtype": "Float",
+			"precision": "2",
+			"label": "Employment Rate",
+			"insert_after": "variable",
+			"read_only": 1,
+		},
+		{
+			"dt": "Salary Structure Assignment",
+			"fieldname": "custom_plain_official",
+			"fieldtype": "Currency",
+			"label": "Full-Time Official Salary",
+			"insert_after": "custom_employment_rate",
+			"read_only": 1,
+		},
+		{
+			"dt": "Salary Structure Assignment",
+			"fieldname": "custom_plain_cash",
+			"fieldtype": "Currency",
+			"label": "Full-Time Cash Salary",
+			"insert_after": "custom_plain_official",
+			"read_only": 1,
+		},
+		{
+			"dt": "Salary Structure Assignment",
+			"fieldname": "custom_official_bonus",
+			"fieldtype": "Currency",
+			"label": "Official Bonus",
+			"insert_after": "custom_plain_cash",
+			"read_only": 1,
 		},
 		{
 			"dt": "Additional Salary",
@@ -672,7 +752,57 @@ def create_salary_split_fields():
 	]
 	_create_custom_fields(fields)
 	_update_field_texts(fields)
+	_update_field_layout(fields)
 	_make_ctc_read_only()
+	_backfill_total_salary()
+
+
+def create_average_pay_fields():
+	"""Страховий стаж і заробіток до ERP — з них рахуються лікарняні й відпускні за середньою."""
+	fields = [
+		{
+			"dt": "Employee",
+			"fieldname": "custom_average_pay_section",
+			"fieldtype": "Section Break",
+			"label": "Vacation and Sick Pay",
+			"insert_after": "custom_salary_effective_from",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_insurance_years",
+			"fieldtype": "Int",
+			"label": "Insurance Tenure Before Joining (Years)",
+			"insert_after": "custom_average_pay_section",
+			"description": "The tenure earned before this company. The time worked here is added automatically; the total sets the sick pay percent: under 3 years — 50%, 3 to 5 — 60%, 5 to 8 — 70%, over 8 — 100%.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_insurance_months",
+			"fieldtype": "Int",
+			"label": "Insurance Tenure Before Joining (Months)",
+			"insert_after": "custom_insurance_years",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_sick_pay_in_full",
+			"fieldtype": "Check",
+			"label": "Sick Pay at 100%",
+			"insert_after": "custom_insurance_months",
+			"description": "A privileged category (a war veteran and the like): sick pay is 100% whatever the tenure.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_opening_earnings",
+			"fieldtype": "Table",
+			"label": "Earnings Before ERP",
+			"options": "Employee Opening Earning",
+			"insert_after": "custom_sick_pay_in_full",
+			"description": "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.",
+		},
+	]
+	_create_custom_fields(fields)
+	_update_field_texts(fields)
 
 
 def create_identity_fields():
@@ -733,6 +863,20 @@ def create_salary_tax_components():
 	from erpnext.hr import payroll_tax
 
 	payroll_tax.ensure_components()
+	_clear_default_reservation_minimum()
+
+
+def _clear_default_reservation_minimum():
+	"""26 000 стояло в налаштуваннях як типове значення поля, а не як чиєсь рішення. Тепер
+	мінімум рахується з мінімальної зарплати (3 × 8 647 = 25 941), тож типове прибираємо —
+	суму, вписану руками, не чіпаємо."""
+	from frappe.utils import flt
+
+	if flt(frappe.db.get_single_value("Payroll Tax Settings", "minimum_reservation_salary")) != 26000:
+		return
+
+	frappe.db.set_single_value("Payroll Tax Settings", "minimum_reservation_salary", 0)
+	print("  Cleared the default Payroll Tax Settings.minimum_reservation_salary (26000)")
 
 
 def _update_field_texts(fields):
@@ -750,6 +894,53 @@ def _update_field_texts(fields):
 		if values and (not current or any(current.get(key) != value for key, value in values.items())):
 			frappe.db.set_value("Custom Field", name, values)
 			print(f"  Updated Custom Field text: {f['dt']}.{f['fieldname']}")
+
+
+def _update_field_layout(fields):
+	"""Порядок полів і «лише читання» теж міняються вже після створення поля — як і тексти,
+	`_create_custom_fields` їх не чіпає."""
+	changed = set()
+
+	for f in fields:
+		name = frappe.db.exists("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]})
+
+		if not name:
+			continue
+
+		values = {"insert_after": f.get("insert_after"), "read_only": f.get("read_only", 0)}
+		current = frappe.db.get_value("Custom Field", name, list(values), as_dict=True)
+
+		if any((current.get(key) or 0) != (value or 0) for key, value in values.items()):
+			frappe.db.set_value("Custom Field", name, values)
+			changed.add(f["dt"])
+			print(f"  Updated Custom Field layout: {f['dt']}.{f['fieldname']}")
+
+	for doctype in changed:
+		frappe.clear_cache(doctype=doctype)
+
+
+def _backfill_total_salary():
+	"""Картки, заведені до появи «Разом ЗП»: сума на руки = на картку + готівка."""
+	from frappe.utils import flt
+
+	from erpnext.hr import payroll_tax
+
+	if not frappe.db.has_column("Employee", "custom_total_salary"):
+		return
+
+	employees = frappe.get_all(
+		"Employee",
+		or_filters={"custom_official_salary": [">", 0], "custom_cash_salary": [">", 0]},
+		fields=["name", "custom_total_salary", "custom_official_salary", "custom_cash_salary"],
+	)
+	employees = [employee for employee in employees if not flt(employee.custom_total_salary)]
+
+	for employee in employees:
+		total = flt(payroll_tax.net(employee.custom_official_salary) + flt(employee.custom_cash_salary), 2)
+		frappe.db.set_value("Employee", employee.name, "custom_total_salary", total, update_modified=False)
+
+	if employees:
+		print(f"  Backfilled Employee.custom_total_salary: {len(employees)}")
 
 
 def _make_ctc_read_only():
@@ -803,6 +994,7 @@ EMPLOYEE_OVERVIEW_MOVES = (
 	("kp_job_title", "kp_code"),
 	("employment_type", "grade"),
 	("user_id", "employment_type"),
+	("custom_employment_rate", "employment_type"),
 	("does_not_fill_attendance_sheet", "user_id"),
 	("subordinates_section", "does_not_fill_attendance_sheet"),
 	("subordinates_html", "subordinates_section"),
@@ -893,8 +1085,23 @@ def create_employee_documents_fields():
 	)
 
 
+# Оклад: сума на руки, офіційна частина й готівка — поспіль, далі все, що їх уточнює. Порядок
+# картки тримає Property Setter `field_order`, тож самого `insert_after` полю не досить.
+EMPLOYEE_SALARY_MOVES = (
+	("custom_total_salary", "salary_information"),
+	("custom_official_salary", "custom_total_salary"),
+	("custom_cash_salary", "custom_official_salary"),
+	("custom_reservation_salary", "custom_cash_salary"),
+	("custom_official_bonus", "custom_reservation_salary"),
+	("custom_official_bonus_month", "custom_official_bonus"),
+	("custom_official_salary_net", "custom_official_bonus_month"),
+	("custom_salary_effective_from", "custom_official_salary_net"),
+	("ctc", "custom_salary_effective_from"),
+)
+
+
 def arrange_employee_overview_fields():
-	_arrange_field_order("Employee", EMPLOYEE_OVERVIEW_MOVES)
+	_arrange_field_order("Employee", EMPLOYEE_OVERVIEW_MOVES + EMPLOYEE_SALARY_MOVES)
 
 
 def _arrange_field_order(doctype, moves):

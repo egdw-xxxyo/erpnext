@@ -12,6 +12,7 @@
   "tax_id",
   "department",
   "manager",
+  "employment_rate",
   "column_break_days",
   "paid_days",
   "credited_days",
@@ -57,6 +58,17 @@
   "cash_deduction",
   "debt_carried",
   "debt_forward",
+  "section_break_leave_pay",
+  "official_days",
+  "vacation_days",
+  "vacation_average",
+  "vacation_pay",
+  "column_break_leave_pay",
+  "sick_calendar_days",
+  "sick_average",
+  "sick_percent",
+  "sick_pay",
+  "sick_pay_fund",
   "section_break_status",
   "outstanding",
   "paid",
@@ -104,6 +116,15 @@
    "fieldtype": "Link",
    "label": "Manager",
    "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "description": "Part-time employment: the share of the full-time salary this employee is paid.",
+   "fieldname": "employment_rate",
+   "fieldtype": "Float",
+   "label": "Employment Rate",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -407,6 +428,72 @@
    "precision": "2"
   },
   {
+   "fieldname": "section_break_leave_pay",
+   "fieldtype": "Section Break",
+   "label": "Vacation and Sick Pay",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "official_days",
+   "fieldtype": "Float",
+   "label": "Days Paid by Salary",
+   "read_only": 1,
+   "description": "Working days paid at the official daily rate — without vacation and sick days, which are paid by the average wage."
+  },
+  {
+   "fieldname": "vacation_days",
+   "fieldtype": "Int",
+   "label": "Vacation Calendar Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vacation_average",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage (Vacation)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vacation_pay",
+   "fieldtype": "Currency",
+   "label": "Vacation Pay",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_leave_pay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sick_calendar_days",
+   "fieldtype": "Int",
+   "label": "Sick Calendar Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sick_average",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage (Sick)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sick_percent",
+   "fieldtype": "Percent",
+   "label": "Sick Pay Percent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sick_pay",
+   "fieldtype": "Currency",
+   "label": "Sick Pay (Employer)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sick_pay_fund",
+   "fieldtype": "Currency",
+   "label": "Sick Pay (Pension Fund)",
+   "read_only": 1,
+   "description": "From the sixth day of a sick case — paid by the Pension Fund, not by the company. For reference."
+  },
+  {
    "fieldname": "section_break_status",
    "fieldtype": "Section Break"
   },
@@ -470,7 +557,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-29 14:30:00.000000",
+ "modified": "2026-10-05 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Sheet Item",

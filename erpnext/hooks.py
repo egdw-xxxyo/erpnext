@@ -778,6 +778,7 @@ doc_events = {
 			"erpnext.hr.payroll_tax.warn_missing_certificate",
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
+			"erpnext.hr.average_pay.validate_opening_earnings",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
 		],

@@ -10,14 +10,19 @@
   "employee_name",
   "department",
   "manager",
+  "employment_rate",
+  "reservation_required",
   "section_break_current",
   "current_official",
   "current_cash",
+  "current_bonus",
   "column_break_current",
   "current_total",
+  "accrued_last_month",
   "section_break_new",
   "new_official",
   "new_cash",
+  "new_bonus",
   "column_break_new",
   "new_total",
   "change_amount",
@@ -61,6 +66,23 @@
    "read_only": 1
   },
   {
+   "default": "1",
+   "description": "Part-time employment: the share of the full-time salary this employee is paid.",
+   "fieldname": "employment_rate",
+   "fieldtype": "Float",
+   "label": "Employment Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "employee.custom_reservation_salary",
+   "fieldname": "reservation_required",
+   "fieldtype": "Check",
+   "label": "Salary for Reservation",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_break_current",
    "fieldtype": "Section Break",
    "label": "Current Salary"
@@ -79,6 +101,12 @@
    "read_only": 1
   },
   {
+   "fieldname": "current_bonus",
+   "fieldtype": "Currency",
+   "label": "Current Official Bonus",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_current",
    "fieldtype": "Column Break"
   },
@@ -86,6 +114,13 @@
    "fieldname": "current_total",
    "fieldtype": "Currency",
    "label": "Current Total Salary",
+   "read_only": 1
+  },
+  {
+   "description": "The official salary actually accrued for the last calendar month — the number the reservation rules check.",
+   "fieldname": "accrued_last_month",
+   "fieldtype": "Currency",
+   "label": "Accrued Last Month",
    "read_only": 1
   },
   {
@@ -104,6 +139,12 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "New Cash Salary"
+  },
+  {
+   "description": "For this month only. Counts as official salary without changing it; the cash part of the month shrinks so the amount in hand stays the same.",
+   "fieldname": "new_bonus",
+   "fieldtype": "Currency",
+   "label": "Official Bonus"
   },
   {
    "fieldname": "column_break_new",
@@ -142,7 +183,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-10-05 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Salary Change Item",

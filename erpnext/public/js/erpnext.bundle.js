@@ -34,6 +34,7 @@ import "./utils/grid_editor";
 import "./utils/employee_preview";
 import "./payroll/payroll_sheet_view";
 import "./utils/attendance_details";
+import "./utils/leave_pay";
 import "./utils/package_list_table";
 import "./telephony";
 import "./templates/call_link.html";

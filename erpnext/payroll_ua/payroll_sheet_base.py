@@ -43,6 +43,18 @@ REQUIRES_BONUS_APPROVAL = False
 CARD = "card"
 CASH = "cash"
 
+LEAVE_PAY_FIELDS = (
+	"official_days",
+	"vacation_days",
+	"vacation_pay",
+	"vacation_average",
+	"sick_calendar_days",
+	"sick_pay",
+	"sick_pay_fund",
+	"sick_average",
+	"sick_percent",
+)
+
 
 class PayrollSheetBase(Document):
 	"""Половина, яку платить документ, задається спадкоємцем — усе інше в них спільне."""
@@ -169,6 +181,10 @@ class PayrollSheetBase(Document):
 					"tax_id": entry.tax_id,
 					"department": entry.department,
 					"manager": entry.manager,
+					"employment_rate": flt(entry.get("employment_rate")) or 1,
+					# Відпускні й лікарняні за середньою вже сидять у `earned_official` — ці
+					# поля лише розкладають його і годують середню наступних місяців.
+					**{field: entry.get(field) for field in LEAVE_PAY_FIELDS},
 					"paid_days": flt(entry.paid_days, 2),
 					"credited_days": flt(entry.credited_days, 2),
 					"total_working_days": flt(entry.month_working_days, 2),

@@ -367,6 +367,7 @@ def row_values(row) -> dict:
 			"tax_id",
 			"department",
 			"manager",
+			"employment_rate",
 			"official_salary",
 			"cash_salary",
 			"month_working_days",
@@ -384,6 +385,15 @@ def row_values(row) -> dict:
 			"shortfall_hours",
 			"working_hours",
 			"daily_rate",
+			"official_days",
+			"vacation_days",
+			"vacation_pay",
+			"vacation_average",
+			"sick_calendar_days",
+			"sick_pay",
+			"sick_pay_fund",
+			"sick_average",
+			"sick_percent",
 		)
 	}
 	# Нарахований аванс і той, що йде на картку: різниця між ними — ПДФО і військовий збір.

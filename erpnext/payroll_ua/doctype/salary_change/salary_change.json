@@ -25,6 +25,11 @@
   "total_new",
   "column_break_total_4",
   "total_change",
+  "column_break_total_5",
+  "average_accrued",
+  "average_accrued_month",
+  "column_break_total_6",
+  "average_salary",
   "section_break_employees",
   "employees_preview",
   "employees"
@@ -139,6 +144,35 @@
    "read_only": 1
   },
   {
+   "fieldname": "column_break_total_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "What the law looks at: the official salary accrued to the whole company for the last calendar month, divided by the number of employees it was accrued to.",
+   "fieldname": "average_accrued",
+   "fieldtype": "Currency",
+   "label": "Company Average Accrued Salary (Last Month)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "average_accrued_month",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Average Accrued Month",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_total_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "average_salary",
+   "fieldtype": "Currency",
+   "label": "Company Average Salary (Forecast)",
+   "read_only": 1,
+   "description": "What the average becomes in the month of this change: the employees listed here with their new salaries, everybody else with the salary in force."
+  },
+  {
    "fieldname": "section_break_employees",
    "fieldtype": "Section Break"
   },
@@ -156,7 +190,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-10-05 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Salary Change",

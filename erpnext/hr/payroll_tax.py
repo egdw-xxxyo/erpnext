@@ -43,9 +43,13 @@ SSC_ABBR = "ESV"
 
 DISABILITY_GROUPS = ("I", "I А", "I Б", "II", "III")
 
-# Мінімальна офіційна зарплата для бронювання від мобілізації. Суму задає постанова
-# Кабміну, тож у коді вона лише запасна — жива лежить у налаштуваннях.
-RESERVATION_MINIMUM = 26000.0
+# Мінімальна зарплата — запасне число, живе лежить у налаштуваннях: її щороку міняє бюджет.
+MINIMUM_WAGE = 8647.0
+
+# Бронювання (постанова КМУ № 76 зі змінами № 692 від 30.05.2026): і зарплата заброньованого,
+# і середня зарплата критично важливого підприємства — не менше трьох мінімальних. Для
+# прифронтових територій множник 2,5 — він теж лежить у налаштуваннях.
+RESERVATION_WAGES = 3.0
 
 
 def rate(fieldname, fallback) -> float:
@@ -59,15 +63,43 @@ def rate(fieldname, fallback) -> float:
 	return flt(value) / 100 if value else fallback
 
 
-def reservation_minimum() -> float:
-	"""Мінімальна офіційна зарплата, з якою працівника можна забронювати."""
+def _setting(fieldname):
 	try:
-		value = frappe.db.get_single_value(SETTINGS, "minimum_reservation_salary")
+		return frappe.db.get_single_value(SETTINGS, fieldname)
 	except Exception:
-		# Міграція, на якій DocType ще не створений, не має валити нарахування.
-		value = None
+		# Міграція, на якій DocType чи поле ще не створені, не має валити нарахування.
+		return None
 
-	return flt(value) or RESERVATION_MINIMUM
+
+def minimum_wage() -> float:
+	return flt(_setting("minimum_wage")) or MINIMUM_WAGE
+
+
+def reservation_minimum() -> float:
+	"""Мінімальна офіційна зарплата, з якою працівника можна забронювати.
+
+	За законом це кратне мінімальної зарплати, тож рахується з неї й само йде за бюджетом.
+	Сума, вписана в налаштування руками, важить більше — на випадок, коли постанова вже
+	змінилася, а множник ще ні.
+	"""
+	override = flt(_setting("minimum_reservation_salary"))
+
+	if override:
+		return override
+
+	return flt(minimum_wage() * (flt(_setting("reservation_wage_multiplier")) or RESERVATION_WAGES), 2)
+
+
+def reservation_average_minimum() -> float:
+	"""Мінімальна середня зарплата підприємства для критичності; не задана — той самий
+	мінімум, що й для заброньованого (закон ставить їх однаковими)."""
+	return flt(_setting("minimum_average_reservation_salary")) or reservation_minimum()
+
+
+@frappe.whitelist()
+def get_reservation_thresholds() -> dict:
+	"""Пороги бронювання для форм — рахуються на сервері, щоб форма не повторювала правило."""
+	return {"minimum": reservation_minimum(), "average_minimum": reservation_average_minimum()}
 
 
 def ssc_rate(employee=None) -> float:

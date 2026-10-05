@@ -108,9 +108,13 @@ function render_preview(frm) {
 		// attendance is not a column of its own: the name carries the warning, and both the
 		// name and the days next to it open the whole month of that employee
 		name_suffix: (row) =>
-			row.attendance_approved
+			// неповна зайнятість: оклад у рядку вже помножений на ставку — значок каже чому
+			(flt(row.employment_rate) && flt(row.employment_rate) !== 1
+				? `<span class="employee-preview-badge">${__("Rate {0}", [flt(row.employment_rate)])}</span>`
+				: "") +
+			(row.attendance_approved
 				? ""
-				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
+				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`),
 		columns: [
 			{ label: __("Tax Number (RNOKPP)"), value: (row) => row.tax_id || "—" },
 			{
@@ -184,6 +188,11 @@ function salary_lines(row) {
 	if (unpaid > 0) {
 		lines.splice(1, 0, [__("Unpaid Days"), `− ${number(unpaid)}`]);
 	}
+
+	// Відпускні й лікарняні сидять усередині нарахованого — розкладаємо, з чого воно склалося.
+	const accrued = lines.findIndex((line) => line[0] === __("Advance Accrued"));
+
+	lines.splice(accrued, 0, ...erpnext.utils.leave_pay.lines(row));
 
 	// Готівкою аванс не платиться — рядок з'являється лише тоді, коли суму вписали руками.
 	if (flt(row.advance_cash)) {
