@@ -91,14 +91,16 @@
   {
    "fieldname": "section_break_totals",
    "fieldtype": "Section Break",
-   "label": "Totals"
+   "label": "Totals",
+   "hidden": 1
   },
   {
    "default": "0",
    "fieldname": "total_employees",
    "fieldtype": "Int",
    "label": "Employees",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "column_break_total_1",
@@ -109,7 +111,8 @@
    "fieldname": "employees_changed",
    "fieldtype": "Int",
    "label": "Salaries Changed",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "column_break_total_2",
@@ -119,19 +122,22 @@
    "fieldname": "total_current",
    "fieldtype": "Currency",
    "label": "Current Salary",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "total_new",
    "fieldtype": "Currency",
    "label": "New Salary",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "total_change",
    "fieldtype": "Currency",
    "label": "Change",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "section_break_average",
@@ -181,7 +187,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-05 20:00:00.000000",
+ "modified": "2026-10-05 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Salary Change",

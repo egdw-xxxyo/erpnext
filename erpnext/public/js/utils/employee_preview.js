@@ -72,6 +72,8 @@ function empty_html() {
 	return `<div class="text-muted" style="padding: 12px;">${__("No employee matches this search.")}</div>`;
 }
 
+// Одна таблиця на всіх, підрозділи — рядками-заголовками: окрема таблиця на кожен підрозділ
+// рахувала ширину колонок сама, і колонки сусідніх підрозділів не стояли одна під одною.
 function groups_html(rows, options, revealed) {
 	const groups = {};
 
@@ -82,18 +84,6 @@ function groups_html(rows, options, revealed) {
 
 	return `
 		<div class="employee-preview">
-			${Object.keys(groups)
-				.sort()
-				.map((group) => group_html(group, groups[group], options, revealed))
-				.join("")}
-		</div>
-	`;
-}
-
-function group_html(group, rows, options, revealed) {
-	return `
-		<div class="employee-preview-group">
-			<div class="employee-preview-title">${frappe.utils.escape_html(group)}</div>
 			<table class="table table-bordered employee-preview-table">
 				<thead>
 					<tr>
@@ -104,10 +94,26 @@ function group_html(group, rows, options, revealed) {
 					</tr>
 				</thead>
 				<tbody>
-					${rows.map((row) => row_html(row, options, revealed)).join("")}
+					${Object.keys(groups)
+						.sort()
+						.map((group) => group_html(group, groups[group], options, revealed))
+						.join("")}
 				</tbody>
 			</table>
 		</div>
+	`;
+}
+
+function column_count(options) {
+	return 1 + (options.status_column ? 1 : 0) + options.columns.length + (has_secret(options) ? 1 : 0);
+}
+
+function group_html(group, rows, options, revealed) {
+	return `
+		<tr class="employee-preview-title">
+			<td colspan="${column_count(options)}">${frappe.utils.escape_html(group)}</td>
+		</tr>
+		${rows.map((row) => row_html(row, options, revealed)).join("")}
 	`;
 }
 
@@ -276,7 +282,7 @@ function number(value) {
 function styles() {
 	return `
 		<style>
-			.employee-preview { display: grid; gap: 14px; }
+			.employee-preview { overflow-x: auto; }
 			.employee-preview-toolbar {
 				margin-bottom: 10px;
 				display: flex;
@@ -285,11 +291,10 @@ function styles() {
 			}
 			.employee-preview-toolbar .employee-preview-search { max-width: 360px; }
 			.employee-preview-filter { margin: 0; font-weight: normal; white-space: nowrap; }
-			.employee-preview-title {
-				padding: 8px 10px;
-				background: var(--fg-color, #f8f9fa);
-				border: 1px solid var(--border-color, #ddd);
-				border-bottom: 0;
+			.employee-preview-table .employee-preview-title td {
+				padding: 10px 7px 6px;
+				background: var(--subtle-fg, #f3f3f3);
+				font-size: 13px;
 				font-weight: 700;
 			}
 			.employee-preview-table { margin: 0; }
