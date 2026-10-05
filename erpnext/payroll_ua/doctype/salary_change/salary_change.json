@@ -17,15 +17,13 @@
   "reservation_minimum",
   "section_break_totals",
   "total_employees",
-  "column_break_total_1",
   "employees_changed",
   "column_break_total_2",
   "total_current",
-  "column_break_total_3",
   "total_new",
-  "column_break_total_4",
+  "column_break_total_1",
   "total_change",
-  "column_break_total_5",
+  "section_break_average",
   "average_accrued",
   "average_accrued_month",
   "column_break_total_6",
@@ -124,18 +122,10 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_total_3",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "total_new",
    "fieldtype": "Currency",
    "label": "New Salary",
    "read_only": 1
-  },
-  {
-   "fieldname": "column_break_total_4",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "total_change",
@@ -144,8 +134,9 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_total_5",
-   "fieldtype": "Column Break"
+   "fieldname": "section_break_average",
+   "fieldtype": "Section Break",
+   "label": "Company Average Salary"
   },
   {
    "description": "What the law looks at: the official salary accrued to the whole company for the last calendar month, divided by the number of employees it was accrued to.",
@@ -190,7 +181,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-05 00:00:00.000000",
+ "modified": "2026-10-05 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Salary Change",

@@ -183,7 +183,7 @@ function show_average_warning(frm) {
 	// Факт: що нараховано за останній календарний місяць — саме це перевіряє закон.
 	let accrued = __("Accrued for {0}: the law compares this number with the minimum of {1}.", [
 		month,
-		format_currency(minimum),
+		money(minimum),
 	]);
 
 	if (!frm.doc.average_accrued_month) {
@@ -194,7 +194,7 @@ function show_average_warning(frm) {
 		accrued = warning(
 			__(
 				"Accrued for {0} is below the minimum company average of {1} — the critical status is at risk.",
-				[month, format_currency(minimum)]
+				[month, money(minimum)]
 			)
 		);
 	}
@@ -207,9 +207,7 @@ function show_average_warning(frm) {
 		"description",
 		below(frm.doc.average_salary)
 			? warning(
-					__("Below the minimum company average salary for reservation of {0}.", [
-						format_currency(minimum),
-					])
+					__("Below the minimum company average salary for reservation of {0}.", [money(minimum)])
 			  )
 			: ""
 	);
@@ -237,8 +235,8 @@ function show_reservation_mismatch(frm) {
 
 	frm.dashboard.add_comment(
 		__("The document keeps the reservation minimum of {0}, and the settings now have {1}.", [
-			format_currency(saved),
-			format_currency(current),
+			money(saved),
+			money(current),
 		]),
 		"orange",
 		true
@@ -305,7 +303,7 @@ function show_reservation_warning(frm) {
 		frm.dashboard.add_comment(
 			__("{0} employees were accrued less than the reservation minimum of {1} last month: {2}", [
 				accrued.length,
-				format_currency(reservation_minimum(frm)),
+				money(reservation_minimum(frm)),
 				accrued
 					.slice(0, 20)
 					.map((row) => frappe.utils.escape_html(row.employee_name || row.employee))
@@ -321,7 +319,7 @@ function show_reservation_warning(frm) {
 	frm.dashboard.add_comment(
 		__("{0} employees stay below the reservation minimum of {1} — they cannot be reserved.", [
 			below.length,
-			format_currency(reservation_minimum(frm)),
+			money(reservation_minimum(frm)),
 		]),
 		"orange",
 		true
@@ -632,7 +630,7 @@ function open_bulk_dialog(frm) {
 				fieldtype: "HTML",
 				options: `<p class="text-muted">${__(
 					"The official salary of the employees marked for reservation is set to {0} — the minimum for it. Anybody already above it stays as they are.",
-					[format_currency(minimum)]
+					[money(minimum)]
 				)}</p>`,
 				depends_on: "eval:doc.mode === 'minimum'",
 			},
@@ -716,7 +714,7 @@ function warn_below_minimum(frm, minimum) {
 	if (!below.length) {
 		frappe.show_alert({
 			message: __("Every employee marked for reservation is at or above the minimum of {0}.", [
-				format_currency(minimum),
+				money(minimum),
 			]),
 			indicator: "green",
 		});
@@ -728,7 +726,7 @@ function warn_below_minimum(frm, minimum) {
 		indicator: "orange",
 		message: __("{0} employees stay below {1}: {2}", [
 			below.length,
-			format_currency(minimum),
+			money(minimum),
 			below
 				.slice(0, 20)
 				.map((row) => frappe.utils.escape_html(row.employee_name || row.employee))
@@ -752,7 +750,7 @@ function confirm_approval(frm) {
 	const note = below.length
 		? `<br><br>${__("{0} of them stay below the reservation minimum of {1}.", [
 				below.length,
-				format_currency(reservation_minimum(frm)),
+				money(reservation_minimum(frm)),
 		  ])}`
 		: "";
 

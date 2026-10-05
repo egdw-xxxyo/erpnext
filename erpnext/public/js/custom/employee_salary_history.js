@@ -38,7 +38,7 @@ function render(frm, history) {
 	if (!history.length) return;
 
 	const date = (value) => (value ? frappe.format(value, { fieldtype: "Date" }) : "…");
-	const money = (value) => format_currency(flt(value), frappe.defaults.get_default("currency"));
+	const money = (value) => format_currency(flt(value), frappe.defaults.get_default("currency"), 2);
 
 	const rows = history
 		.slice()
@@ -195,7 +195,7 @@ function employment_rate(frm) {
 function show_paid_at_rate(frm, rate) {
 	if (!frm.fields_dict.custom_employment_rate) return;
 
-	const money = (value) => format_currency(flt(flt(value) * rate, 2), frm.doc.salary_currency);
+	const money = (value) => format_currency(flt(flt(value) * rate, 2), frm.doc.salary_currency, 2);
 
 	frm.set_df_property(
 		"custom_employment_rate",
@@ -234,8 +234,8 @@ function show_accrued_warning(frm, minimum) {
 							"Accrued for {0}: {1} — below the reservation minimum of {2}.",
 							[
 								frappe.datetime.str_to_user(accrued.month).slice(3),
-								format_currency(accrued.amount, frm.doc.salary_currency),
-								format_currency(minimum, frm.doc.salary_currency),
+								format_currency(accrued.amount, frm.doc.salary_currency, 2),
+								format_currency(minimum, frm.doc.salary_currency, 2),
 							]
 					  )}</span>`
 					: ""
