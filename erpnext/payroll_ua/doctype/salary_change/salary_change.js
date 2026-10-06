@@ -413,9 +413,9 @@ function render_preview(frm) {
 			{ label: __("Current Total Salary (In Hand)"), value: (row) => money(row.current_in_hand) },
 			{ label: __("Current Official Salary"), value: (row) => money(row.current_official) },
 			{ label: __("Current Cash Salary"), value: (row) => money(row.current_cash) },
-			{ label: __("Total Salary"), value: (row) => money(row.new_in_hand), bold: true },
-			{ label: __("Official Salary"), value: (row) => money(row.new_official) },
-			{ label: __("Mgmt. Salary"), value: (row) => money(row.new_cash) },
+			{ label: __("New Total Salary (In Hand)"), value: (row) => money(row.new_in_hand), bold: true },
+			{ label: __("New Official Salary"), value: (row) => money(row.new_official) },
+			{ label: __("New Cash Salary"), value: (row) => money(row.new_cash) },
 			{ label: __("Official Bonus"), value: (row) => (flt(row.new_bonus) ? money(row.new_bonus) : "") },
 			{ label: __("Change"), value: (row) => delta(row) },
 		],
@@ -567,9 +567,9 @@ function salary_lines(frm, row) {
 		[__("Current Total Salary (In Hand)"), money(row.current_in_hand)],
 		[__("Current Official Salary"), money(row.current_official)],
 		[__("Current Cash Salary"), money(row.current_cash)],
-		[__("Total Salary"), `<b>${money(row.new_in_hand)}</b>`],
-		[__("Official Salary"), money(row.new_official)],
-		[__("Mgmt. Salary"), money(row.new_cash)],
+		[__("New Total Salary (In Hand)"), `<b>${money(row.new_in_hand)}</b>`],
+		[__("New Official Salary"), money(row.new_official)],
+		[__("New Cash Salary"), money(row.new_cash)],
 	];
 
 	if (flt(row.new_bonus)) {
