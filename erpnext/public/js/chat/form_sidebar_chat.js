@@ -30,6 +30,7 @@ class FormSidebarChat {
 		this.active = null;
 		this.ref = null;
 		this.expanded = false;
+		this.no_banner = true;
 		this.make_dom();
 	}
 
@@ -214,9 +215,24 @@ FSC_BORROWED.forEach((m) => {
 		st.$badge.text(count > 99 ? "99+" : count).toggle(count > 0);
 	};
 
+	const TAB_KEY = "fsc_tab";
+
+	function saved_tab() {
+		try {
+			return localStorage.getItem(TAB_KEY) === "chat" ? "chat" : "info";
+		} catch (e) {
+			return "info";
+		}
+	}
+
 	FS.select_tab = function (frm, tab) {
 		const st = frm.__fsc;
 		if (!st) return;
+		try {
+			localStorage.setItem(TAB_KEY, tab);
+		} catch (e) {
+			// storage unavailable: tab simply is not remembered
+		}
 		st.tab = tab;
 		st.$tabs.find(".fsc-tab").removeClass("active");
 		st.$tabs.find(`.fsc-tab[data-tab="${tab}"]`).addClass("active");
@@ -244,8 +260,9 @@ FSC_BORROWED.forEach((m) => {
 		if (st && sidebar.find(".fsc-tabs").length) {
 			if (st.chat.ref && st.chat.ref !== frm.docname) {
 				st.chat.reset();
-				if (st.tab === "chat") st.chat.open();
 			}
+			if (st.tab !== saved_tab()) FS.select_tab(frm, saved_tab());
+			else if (st.tab === "chat" && !st.chat.active) st.chat.open();
 			FS.update_badge(frm);
 			return;
 		}
@@ -271,6 +288,7 @@ FSC_BORROWED.forEach((m) => {
 			chat: new FormSidebarChat(frm, source, $pane),
 		};
 		$tabs.on("click", ".fsc-tab", (e) => FS.select_tab(frm, $(e.currentTarget).attr("data-tab")));
+		if (saved_tab() === "chat") FS.select_tab(frm, "chat");
 		FS.update_badge(frm);
 	}
 

@@ -707,7 +707,7 @@ class ChatBubble {
 			parts.push(R.bubble_html(m, { author }));
 		}
 
-		const banner = chat && chat.reference_doctype ? R.reference_banner_html(chat) : "";
+		const banner = chat && chat.reference_doctype && !this.no_banner ? R.reference_banner_html(chat) : "";
 		this.$body.html(
 			`<div class="cv-root cv-compact cv-thread cb-thread">${banner}${
 				parts.join("") || `<div class="cb-empty">${__("No messages yet")}</div>`
