@@ -63,6 +63,7 @@ import "./chat/sources/employee.js";
 import "./whatsapp_form_panel.js";
 import "./whatsapp_phone_icon.js";
 import "./chat_bubble.js";
+import "./chat/form_sidebar_chat.js";
 import "./send_to_chat.js";
 import "./deal_documents_panel.js";
 import "./quotation_negotiation.js";

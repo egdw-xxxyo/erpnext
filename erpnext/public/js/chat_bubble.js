@@ -71,13 +71,11 @@ function cb_fmt_time(dt) {
 
 // --- Bubble widget ---------------------------------------------------------
 
-// Launcher buttons, left→right. `document` is virtual: it drives the employee
-// source into the single Document thread of whatever form is open (see
-// open_document_chat), and only shows while a saved form is on screen.
+// Launcher buttons, left→right. The chat about the open document lives in the form sidebar
+// (see chat/form_sidebar_chat.js).
 const CB_LAUNCH = {
 	whatsapp: { icon: "fa fa-whatsapp", color: "#25d366", title: __("WhatsApp") },
 	employee: { icon: "fa fa-users", color: "#2490ef", title: __("Employee Chat") },
-	document: { icon: "fa fa-file-text-o", color: "#6c7680", title: __("Chat about this document") },
 };
 
 class ChatBubble {
@@ -339,19 +337,14 @@ class ChatBubble {
 	}
 
 	make_dom() {
-		// One round launcher per category, right→left: document (nearest = whatsapp).
 		const keys = this.sources.map((s) => s.key);
-		this.has_employee = keys.includes("employee");
-		const btns = ["document", "employee", "whatsapp"]
-			.filter((k) => (k === "document" ? this.has_employee : keys.includes(k)))
+		const btns = ["employee", "whatsapp"]
+			.filter((k) => keys.includes(k))
 			.map((k) => {
 				const m = CB_LAUNCH[k];
-				// The document button rides the employee source but starts hidden;
-				// update_document_button reveals it only on a saved form.
-				const hide = k === "document" ? "display:none;" : "";
 				return `<button class="cb-fab cb-fab-${k}" data-key="${k}" title="${frappe.utils.escape_html(
 					m.title
-				)}" style="background:${m.color};${hide}">
+				)}" style="background:${m.color};">
 					<i class="${m.icon}"></i><span class="cb-badge"></span>
 				</button>`;
 			})
@@ -403,46 +396,18 @@ class ChatBubble {
 		this.$compose = this.$panel.find(".cb-compose");
 		this.$readonly = this.$panel.find(".cb-readonly");
 		this.$input = this.$compose.find("textarea");
-		this.update_document_button();
 	}
 
-	// The launcher key currently driving the open panel ("whatsapp"/"employee"/"document").
+	// The launcher key currently driving the open panel ("whatsapp"/"employee").
 	set_active_fab(key) {
 		this.active_key = key;
 		this.$launcher.find(".cb-fab").removeClass("cb-active");
 		if (key) this.$launcher.find(`.cb-fab[data-key="${key}"]`).addClass("cb-active");
 	}
 
-	// {doctype, name} of the saved form on screen, else null.
-	doc_ref() {
-		const frm = window.cur_frm;
-		if (!frm || !frm.doc || frm.is_new() || !frm.doc.name) return null;
-		if ((frappe.get_route() || [])[0] !== "Form") return null;
-		return { doctype: frm.doctype, name: frm.docname };
-	}
-
-	// Employee-chat thread already opened for the current form, if any.
-	doc_thread() {
-		const ref = this.doc_ref();
-		if (!ref) return null;
-		const emp = this.sources.find((s) => s.key === "employee");
-		return (emp?.chats || []).find(
-			(c) => c.reference_doctype === ref.doctype && c.reference_name === ref.name
-		);
-	}
-
-	// Reveal the document launcher button only while a saved form is open.
-	update_document_button() {
-		const $btn = this.$launcher.find(`.cb-fab[data-key="document"]`);
-		if (!$btn.length) return;
-		$btn.toggle(!!this.doc_ref());
-	}
-
 	bind_events() {
 		this.$launcher.on("click", ".cb-fab", (e) => {
-			const key = $(e.currentTarget).attr("data-key");
-			if (key === "document") this.open_document_chat();
-			else this.open_source(key);
+			this.open_source($(e.currentTarget).attr("data-key"));
 		});
 		this.$panel.find(".cb-close").on("click", () => this.toggle(false));
 		this.$back.on("click", () => this.show_list());
@@ -497,40 +462,6 @@ class ChatBubble {
 		this.$panel.addClass("open");
 		this.show_list();
 		this.refresh();
-	}
-
-	// Open (creating on first use) the single Document thread for the current form,
-	// inside the employee source. Its unread badge lives on the document button.
-	async open_document_chat() {
-		const ref = this.doc_ref();
-		const emp = this.sources.find((s) => s.key === "employee");
-		if (!ref || !emp) return;
-		this.source = emp;
-		this.active = null;
-		this.set_active_fab("document");
-		this.open = true;
-		this.$panel.addClass("open");
-		this.$title.text(__("Chat about this document"));
-		this.$tabs.removeClass("show").empty();
-		this.$back.hide();
-		this.$mute.hide();
-		this.$readonly.hide();
-		this.$compose.hide();
-		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
-		let name;
-		try {
-			const res = await frappe.xcall(`${EC_API}.open_document_thread`, {
-				reference_doctype: ref.doctype,
-				reference_name: ref.name,
-			});
-			name = res.name;
-		} catch (e) {
-			this.$body.html(`<div class="cb-empty">${__("Failed to open chat")}</div>`);
-			return;
-		}
-		await emp.load_list();
-		this.render_badges();
-		this.open_thread(name);
 	}
 
 	goto_page() {
@@ -597,12 +528,8 @@ class ChatBubble {
 			const count = (s.chats || []).reduce((n, c) => n + (c.unread || 0), 0);
 			set(s.key, count);
 		});
-		// Document button reflects just the current form's thread.
-		if (this.has_employee) {
-			const dt = this.doc_thread();
-			set("document", dt ? dt.unread || 0 : 0);
-		}
 		this.render_tab_counts();
+		erpnext.form_sidebar_chat?.sync();
 	}
 
 	show_list() {
@@ -968,6 +895,8 @@ class ChatBubble {
 	}
 }
 
+erpnext.ChatBubble = ChatBubble;
+
 erpnext.whatsapp.init_bubble = function () {
 	if (erpnext.whatsapp.bubble) return;
 	if (!frappe.session || frappe.session.user === "Guest") return;
@@ -981,13 +910,6 @@ erpnext.whatsapp.init_bubble = function () {
 	erpnext.whatsapp.bubble = new ChatBubble(sources);
 	erpnext.whatsapp.toggle_bubble_visibility();
 	frappe.router?.on("change", () => erpnext.whatsapp.toggle_bubble_visibility());
-	// A form finishes loading after the route change; refresh the document button then.
-	$(document).on("form-refresh", () => {
-		const b = erpnext.whatsapp.bubble;
-		if (!b) return;
-		b.update_document_button();
-		b.render_badges();
-	});
 };
 
 // Hide the bubble on the full chat pages themselves.
@@ -998,7 +920,6 @@ erpnext.whatsapp.toggle_bubble_visibility = function () {
 	const on_chat_page = route.includes("whatsapp-chat-center") || route.includes("employee-chat");
 	b.$launcher.toggle(!on_chat_page);
 	if (on_chat_page) b.toggle(false);
-	b.update_document_button();
 	b.render_badges();
 };
 

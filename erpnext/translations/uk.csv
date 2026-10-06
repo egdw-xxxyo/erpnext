@@ -15656,3 +15656,6 @@ Company Average Salary,Середня зарплата компанії,
 "The official salary a reserved employee must get. Empty — the reservation is not checked.","Офіційна зарплата, яку має отримувати заброньований працівник. Порожньо — бронювання не перевіряється."
 "The average official salary the company must reach. Empty — the same amount as the minimum salary for reservation.","Середня офіційна зарплата, якої має сягати підприємство. Порожньо — та сама сума, що й мінімальна зарплата для бронювання."
 "New Total Salary (In Hand)","Нова Разом ЗП"
+"Expand","Розгорнути"
+"Minimise","Згорнути"
+"Sidebar","Бічна панель"
