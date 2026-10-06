@@ -18,7 +18,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_months, flt, formatdate, get_first_day, get_last_day, getdate, nowdate
 
-from erpnext.hr.payroll_tax import reservation_average_minimum, reservation_minimum
+from erpnext.hr.payroll_tax import net, reservation_average_minimum, reservation_minimum
 from erpnext.hr.salary_split import (
 	apply_salary_to_employee,
 	base_salary_parts_on,
@@ -143,6 +143,7 @@ class SalaryChange(Document):
 				row.employee, self.effective_from
 			)
 			row.current_total = flt(row.current_official) + flt(row.current_cash)
+			row.current_in_hand = in_hand(row.current_official, row.current_cash)
 			card = cards.get(row.employee) or frappe._dict()
 			row.reservation_required = card.get("custom_reservation_salary") or 0
 			# Новий оклад піде в картку, тож і ставка тут — з картки, а не з минулого місяця.
@@ -160,10 +161,22 @@ class SalaryChange(Document):
 			if flt(row.new_bonus) < 0:
 				frappe.throw(_("Official Bonus cannot be negative."))
 
+			# Готівка — те, що лишається від «Разом ЗП» після нарахованого на картку: менше
+			# нуля вона буває, лише коли офіційна частина сама вже більша за суму на руки.
+			if flt(row.new_cash) < 0:
+				frappe.throw(
+					_(
+						"Row {0} ({1}): Total Salary cannot be less than the amount accrued to the card ({2})."
+					).format(row.idx, row.employee_name or row.employee, net(row.new_official)),
+					title=_("Total Salary Is Too Low"),
+				)
+
 			row.new_total = flt(row.new_official) + flt(row.new_cash)
-			row.change_amount = flt(row.new_total - row.current_total, 2)
+			row.new_in_hand = in_hand(row.new_official, row.new_cash)
+			# Зміну видно в тому, що людина отримає на руки — так про оклад і домовляються.
+			row.change_amount = flt(row.new_in_hand - row.current_in_hand, 2)
 			row.change_percent = (
-				flt(row.change_amount / row.current_total * 100, 2) if row.current_total else 0
+				flt(row.change_amount / row.current_in_hand * 100, 2) if row.current_in_hand else 0
 			)
 
 	def set_totals(self):
@@ -278,6 +291,11 @@ class SalaryChange(Document):
 		self.save()
 
 		return applied
+
+
+def in_hand(official, cash) -> float:
+	"""«Разом ЗП» — як у картці працівника: нараховане на картку плюс готівка."""
+	return flt(net(official) + flt(cash), 2)
 
 
 def paid_official(row) -> float:
@@ -468,10 +486,12 @@ def get_month_employees(company: str, effective_from, employees: list[str] | Non
 				"current_cash": cash,
 				"current_bonus": bonus,
 				"current_total": official + cash,
+				"current_in_hand": in_hand(official, cash),
 				"new_official": official,
 				"new_cash": cash,
 				"new_bonus": bonus,
 				"new_total": official + cash,
+				"new_in_hand": in_hand(official, cash),
 			}
 		)
 

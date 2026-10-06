@@ -68,23 +68,51 @@ function set_default_month(frm) {
 	);
 }
 
+// Як у картці працівника: вводять «Разом ЗП» і офіційну частину, а готівка — те, що лишається
+// від суми на руки після нарахованого на картку.
 frappe.ui.form.on("Salary Change Item", {
-	new_official: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
-	new_cash: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
+	new_in_hand: (frm, cdt, cdn) => update_row(frm, cdt, cdn, true),
+	new_official: (frm, cdt, cdn) => update_row(frm, cdt, cdn, true),
 	new_bonus: (frm, cdt, cdn) => update_row(frm, cdt, cdn),
 });
+
+// Ставки утримань приходять разом із порогами бронювання; до того рахуємо за законними.
+let withheld_cached = { pit: 0.18, levy: 0.05 };
+
+// Нараховане на картку — офіційна сума без ПДФО й військового збору, з тим самим
+// округленням, що й на сервері.
+function card_net(official) {
+	const gross = flt(official, 2);
+
+	return flt(gross - flt(gross * withheld_cached.pit, 2) - flt(gross * withheld_cached.levy, 2), 2);
+}
+
+function in_hand(official, cash) {
+	return flt(card_net(official) + flt(cash), 2);
+}
+
+// Готівка з «Разом ЗП»: сума на руки лишається, змінюється лише те, що видається з каси.
+function cash_from_in_hand(row) {
+	row.new_cash = flt(flt(row.new_in_hand) - card_net(row.new_official), 2);
+}
 
 // The same arithmetic the server runs on validate, so the row answers while the accountant
 // is still typing instead of after a save.
 function calculate_row(row) {
 	row.current_total = flt(row.current_official) + flt(row.current_cash);
+	row.current_in_hand = in_hand(row.current_official, row.current_cash);
 	row.new_total = flt(row.new_official) + flt(row.new_cash);
-	row.change_amount = flt(row.new_total - row.current_total, 2);
-	row.change_percent = row.current_total ? flt((row.change_amount / row.current_total) * 100, 2) : 0;
+	row.new_in_hand = in_hand(row.new_official, row.new_cash);
+	row.change_amount = flt(row.new_in_hand - row.current_in_hand, 2);
+	row.change_percent = row.current_in_hand ? flt((row.change_amount / row.current_in_hand) * 100, 2) : 0;
 }
 
-function update_row(frm, cdt, cdn) {
-	calculate_row(locals[cdt][cdn]);
+function update_row(frm, cdt, cdn, recalculate_cash = false) {
+	const row = locals[cdt][cdn];
+
+	if (recalculate_cash) cash_from_in_hand(row);
+
+	calculate_row(row);
 	frm.refresh_field("employees");
 	refresh_view(frm);
 }
@@ -129,6 +157,10 @@ function load_reservation_minimum(frm) {
 
 		reservation_cached = flt(thresholds.minimum) || null;
 		average_cached = flt(thresholds.average_minimum) || null;
+
+		if (thresholds.pit_rate !== undefined) {
+			withheld_cached = { pit: flt(thresholds.pit_rate), levy: flt(thresholds.military_levy_rate) };
+		}
 		show_average_warning(frm);
 
 		return reservation_minimum(frm);
@@ -351,7 +383,11 @@ function render_preview(frm) {
 		table: "employees",
 		group_by: (row) => row.department || __("No Department"),
 		open: (row) => show_details(frm, row),
-		warn: (row) => !flt(row.new_total) || below_minimum(frm, row) || accrued_below(frm, row),
+		warn: (row) =>
+			!flt(row.new_total) ||
+			flt(row.new_cash) < 0 ||
+			below_minimum(frm, row) ||
+			accrued_below(frm, row),
 		name_suffix: (row) => {
 			const badges = [rate_badge(row)];
 
@@ -374,12 +410,13 @@ function render_preview(frm) {
 		},
 		filter: { label: __("Changed only"), test: (row) => changed(row) },
 		columns: [
+			{ label: __("Current Total Salary (In Hand)"), value: (row) => money(row.current_in_hand) },
 			{ label: __("Current Official Salary"), value: (row) => money(row.current_official) },
 			{ label: __("Current Cash Salary"), value: (row) => money(row.current_cash) },
-			{ label: __("New Official Salary"), value: (row) => money(row.new_official) },
-			{ label: __("New Cash Salary"), value: (row) => money(row.new_cash) },
+			{ label: __("Total Salary"), value: (row) => money(row.new_in_hand), bold: true },
+			{ label: __("Official Salary"), value: (row) => money(row.new_official) },
+			{ label: __("Mgmt. Salary"), value: (row) => money(row.new_cash) },
 			{ label: __("Official Bonus"), value: (row) => (flt(row.new_bonus) ? money(row.new_bonus) : "") },
-			{ label: __("New Total Salary"), value: (row) => money(row.new_total), bold: true },
 			{ label: __("Change"), value: (row) => delta(row) },
 		],
 	});
@@ -408,16 +445,31 @@ function show_details(frm, row) {
 	// розгортати окремо.
 	const minimum = reservation_minimum(frm);
 	const reserved = cint(row.reservation_required);
-	const dialog = new frappe.ui.Dialog({
+	// `let`, not `const`: the field handlers fire while the dialog is still being built.
+	let dialog = null;
+	dialog = new frappe.ui.Dialog({
 		title: row.employee_name || row.employee,
 		fields: [
 			{ fieldtype: "HTML", fieldname: "details" },
 			{ fieldtype: "Section Break", label: __("New Salary") },
 			{
 				fieldtype: "Currency",
+				fieldname: "new_in_hand",
+				label: __("Total Salary"),
+				description: __(
+					"What the employee gets in hand: the amount accrued to the card plus the cash part."
+				),
+				default: flt(row.new_in_hand),
+				onchange: () => update_dialog_cash(dialog),
+			},
+			{ fieldtype: "Column Break" },
+			{
+				fieldtype: "Currency",
 				fieldname: "new_official",
-				label: __("New Official Salary"),
+				label: __("Official Salary"),
+				description: __("The amount accrued officially, before taxes."),
 				default: flt(row.new_official),
+				onchange: () => update_dialog_cash(dialog),
 			},
 			{
 				// Перший спосіб закрити бронювання: підняти сам оклад — назавжди.
@@ -434,10 +486,14 @@ function show_details(frm, row) {
 			{
 				fieldtype: "Currency",
 				fieldname: "new_cash",
-				label: __("New Cash Salary"),
+				label: __("Mgmt. Salary"),
+				description: __(
+					"Calculated: the total salary less the amount accrued to the card. Paid from the cash desk and not taxed."
+				),
+				read_only: 1,
 				default: flt(row.new_cash),
 			},
-			{ fieldtype: "Column Break" },
+			{ fieldtype: "Section Break" },
 			{
 				fieldtype: "Currency",
 				fieldname: "new_bonus",
@@ -462,11 +518,28 @@ function show_details(frm, row) {
 		],
 		primary_action_label: __("Save"),
 		primary_action(values) {
-			frappe.model.set_value(row.doctype, row.name, {
+			const cash = flt(flt(values.new_in_hand) - card_net(values.new_official), 2);
+
+			if (cash < 0) {
+				frappe.msgprint({
+					title: __("Total Salary Is Too Low"),
+					indicator: "red",
+					message: __("Total Salary cannot be less than the amount accrued to the card ({0}).", [
+						money(card_net(values.new_official)),
+					]),
+				});
+				return;
+			}
+
+			// Готівку пишемо напряму: обробник рядка перерахував би її ще раз із недописаної суми.
+			Object.assign(row, {
 				new_official: flt(values.new_official),
-				new_cash: flt(values.new_cash),
+				new_cash: cash,
 				new_bonus: flt(values.new_bonus),
 			});
+			calculate_row(row);
+			frm.dirty();
+			frm.refresh_field("employees");
 			refresh_view(frm);
 			dialog.hide();
 		},
@@ -479,14 +552,24 @@ function show_details(frm, row) {
 	erpnext.utils.attendance_details.mount_calendar(dialog, row, settings);
 }
 
+function update_dialog_cash(dialog) {
+	if (!dialog) return;
+
+	dialog.set_value(
+		"new_cash",
+		flt(flt(dialog.get_value("new_in_hand")) - card_net(dialog.get_value("new_official")), 2)
+	);
+}
+
 function salary_lines(frm, row) {
 	const minimum = reservation_minimum(frm);
 	const lines = [
+		[__("Current Total Salary (In Hand)"), money(row.current_in_hand)],
 		[__("Current Official Salary"), money(row.current_official)],
 		[__("Current Cash Salary"), money(row.current_cash)],
-		[__("New Official Salary"), money(row.new_official)],
-		[__("New Cash Salary"), money(row.new_cash)],
-		[__("New Total Salary"), `<b>${money(row.new_total)}</b>`],
+		[__("Total Salary"), `<b>${money(row.new_in_hand)}</b>`],
+		[__("Official Salary"), money(row.new_official)],
+		[__("Mgmt. Salary"), money(row.new_cash)],
 	];
 
 	if (flt(row.new_bonus)) {
@@ -594,7 +677,7 @@ function open_bulk_dialog(frm) {
 				label: __("Which Salary"),
 				options: [
 					{ value: "official", label: __("Official Salary") },
-					{ value: "cash", label: __("Cash Salary") },
+					{ value: "in_hand", label: __("Total Salary") },
 					{ value: "both", label: __("Both Halves") },
 					{ value: "bonus", label: __("Official Bonus") },
 				],
@@ -662,16 +745,19 @@ function open_bulk_dialog(frm) {
 // Which fields of the row this fill touches.
 function target_fields(part) {
 	if (part === "official") return ["new_official"];
-	if (part === "cash") return ["new_cash"];
+	if (part === "in_hand") return ["new_in_hand"];
 	if (part === "bonus") return ["new_bonus"];
 
 	return ["new_official", "new_cash"];
 }
 
 function current_field(fieldname) {
-	return { new_official: "current_official", new_cash: "current_cash", new_bonus: "current_bonus" }[
-		fieldname
-	];
+	return {
+		new_official: "current_official",
+		new_cash: "current_cash",
+		new_bonus: "current_bonus",
+		new_in_hand: "current_in_hand",
+	}[fieldname];
 }
 
 function fill_rows(frm, values, minimum) {
@@ -683,6 +769,8 @@ function fill_rows(frm, values, minimum) {
 
 	(frm.doc.employees || []).forEach((row) => {
 		if (values.changed_only && !changed(row)) return;
+
+		calculate_row(row);
 
 		fields.forEach((fieldname) => {
 			if (values.mode === "percent") {
@@ -699,6 +787,13 @@ function fill_rows(frm, values, minimum) {
 				}
 			}
 		});
+
+		// Обидві половини разом рухають і суму на руки; одна з них лише ділить ту саму
+		// «Разом ЗП» по-іншому, як у картці. Готівка нижче нуля не йде: тоді росте сума на руки.
+		if (values.part !== "both" || to_minimum) {
+			cash_from_in_hand(row);
+			row.new_cash = Math.max(row.new_cash, 0);
+		}
 
 		calculate_row(row);
 	});

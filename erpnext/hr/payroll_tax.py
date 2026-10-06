@@ -47,8 +47,8 @@ DISABILITY_GROUPS = ("I", "I А", "I Б", "II", "III")
 MINIMUM_WAGE = 8647.0
 
 # Бронювання (постанова КМУ № 76 зі змінами № 692 від 30.05.2026): і зарплата заброньованого,
-# і середня зарплата критично важливого підприємства — не менше трьох мінімальних. Для
-# прифронтових територій множник 2,5 — він теж лежить у налаштуваннях.
+# і середня зарплата критично важливого підприємства — не менше трьох мінімальних. Інший
+# поріг (прифронтові території — 2,5) вписується в налаштуваннях готовою сумою.
 RESERVATION_WAGES = 3.0
 
 
@@ -87,7 +87,7 @@ def reservation_minimum() -> float:
 	if override:
 		return override
 
-	return flt(minimum_wage() * (flt(_setting("reservation_wage_multiplier")) or RESERVATION_WAGES), 2)
+	return flt(minimum_wage() * RESERVATION_WAGES, 2)
 
 
 def reservation_average_minimum() -> float:
@@ -99,7 +99,13 @@ def reservation_average_minimum() -> float:
 @frappe.whitelist()
 def get_reservation_thresholds() -> dict:
 	"""Пороги бронювання для форм — рахуються на сервері, щоб форма не повторювала правило."""
-	return {"minimum": reservation_minimum(), "average_minimum": reservation_average_minimum()}
+	return {
+		"minimum": reservation_minimum(),
+		"average_minimum": reservation_average_minimum(),
+		# Форми рахують «на картку» самі, поки людина друкує: ставки утримань ідуть звідси.
+		"pit_rate": rate("pit_rate", PIT_RATE),
+		"military_levy_rate": rate("military_levy_rate", MILITARY_RATE),
+	}
 
 
 def ssc_rate(employee=None) -> float:

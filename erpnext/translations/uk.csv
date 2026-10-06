@@ -15631,10 +15631,8 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Earnings Before ERP: the sick pay cannot exceed the earnings of the month.","Заробіток до ERP: лікарняні не можуть перевищувати заробіток місяця."
 "Below the minimum company average salary for reservation of {0}.","Нижче за мінімальну середню зарплату компанії для бронювання {0}."
 "The statutory minimum wage. The reservation thresholds are multiples of it. Sick pay is capped by 20 minimum wages a month, and by one when the insurance tenure is under 6 months; an average taken from the salary is never below it.","Законодавча мінімальна зарплата. Пороги бронювання — кратні їй. Лікарняні обмежуються 20 мінімальними зарплатами на місяць, а за страхового стажу до 6 місяців — однією; середня, узята з окладу, не буває нижчою за неї."
-"Reservation: Minimum Wages","Бронювання: мінімальних зарплат"
-"How many minimum wages a reserved employee must be paid, and the company on average: 3 by Cabinet Resolution No. 76 (from 1 September 2026), 2.5 for the frontline territories.","Скільки мінімальних зарплат має отримувати заброньований працівник і підприємство в середньому: 3 за постановою КМУ № 76 (з 1 вересня 2026 року), 2,5 — для прифронтових територій."
 "Minimum Salary for Reservation (Override)","Мінімальна зарплата для бронювання (вручну)"
-"Leave empty: the minimum is the minimum wage multiplied by the number above. Fill in only to override the calculated amount.","Лишіть порожнім: мінімум — це мінімальна зарплата, помножена на число вище. Заповнюйте лише щоб замінити розраховану суму."
+"Leave empty: the minimum is three minimum wages (Resolution No. 76). Fill in only to override the calculated amount, e.g. 2.5 minimum wages for frontline territories.","Лишіть порожнім: мінімум — три мінімальні зарплати (постанова № 76). Заповнюйте лише щоб замінити розраховану суму, наприклад 2,5 мінімальної зарплати для прифронтових територій."
 "Minimum Company Average Salary (Override)","Мінімальна середня зарплата підприємства (вручну)"
 "Leave empty: by law the company average must reach the same minimum as a reserved employee. Fill in only to override.","Лишіть порожнім: за законом середня по підприємству має сягати того самого мінімуму, що й у заброньованого. Заповнюйте лише щоб замінити."
 "Company Average Accrued Salary (Last Month)","Середня нарахована ЗП компанії (минулий місяць)"
@@ -15655,3 +15653,5 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Monthly Cycle","Місячний цикл"
 "Monthly Attendance Sheet","Місячний табель"
 Company Average Salary,Середня зарплата компанії,
+"Current Total Salary (In Hand)","Чинна «Разом ЗП»"
+"Row {0} ({1}): Total Salary cannot be less than the amount accrued to the card ({2}).","Рядок {0} ({1}): «Разом ЗП» не може бути меншою за суму, нараховану на картку ({2})."

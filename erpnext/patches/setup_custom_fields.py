@@ -632,6 +632,7 @@ def create_salary_split_fields():
 			"fieldtype": "Currency",
 			"label": "Total Salary",
 			"options": "salary_currency",
+			"precision": "2",
 			"insert_after": "salary_information",
 			"description": "What the employee gets in hand: the amount accrued to the card plus the cash part.",
 		},
@@ -641,6 +642,7 @@ def create_salary_split_fields():
 			"fieldtype": "Currency",
 			"label": "Official Salary",
 			"options": "salary_currency",
+			"precision": "2",
 			"insert_after": "custom_total_salary",
 			"description": "The amount accrued officially, before taxes.",
 		},
@@ -658,6 +660,7 @@ def create_salary_split_fields():
 			"fieldtype": "Currency",
 			"label": "Mgmt. Salary",
 			"options": "salary_currency",
+			"precision": "2",
 			"insert_after": "custom_official_salary",
 			"read_only": 1,
 			"description": "Calculated: the total salary less the amount accrued to the card. Paid from the cash desk and not taxed.",
@@ -668,6 +671,7 @@ def create_salary_split_fields():
 			"fieldtype": "Currency",
 			"label": "Official Bonus",
 			"options": "salary_currency",
+			"precision": "2",
 			"insert_after": "custom_reservation_salary",
 			"description": "A one-month addition that counts as official salary without changing the Official Salary field. The amount in hand stays the same: what the bonus adds to the card is taken off the cash part of that month.",
 		},
@@ -686,6 +690,7 @@ def create_salary_split_fields():
 			"fieldtype": "Currency",
 			"label": "Accrued to the Card",
 			"options": "salary_currency",
+			"precision": "2",
 			"insert_after": "custom_official_bonus_month",
 			"read_only": 1,
 			"description": "Calculated: the official salary less PIT 18% and military levy 5%, so 77% of it. The employer pays SSC 22% on top of the official salary — that is not withheld from the employee.",
@@ -864,6 +869,7 @@ def create_salary_tax_components():
 
 	payroll_tax.ensure_components()
 	_clear_default_reservation_minimum()
+	_default_minimum_wage()
 
 
 def _clear_default_reservation_minimum():
@@ -872,11 +878,30 @@ def _clear_default_reservation_minimum():
 	суму, вписану руками, не чіпаємо."""
 	from frappe.utils import flt
 
+	# Мінімальна зарплата вписується в налаштування разом із цим прибиранням: коли вона вже є,
+	# 26 000 у полі — чиєсь рішення, і повторний деплой його не стирає.
+	if flt(frappe.db.get_single_value("Payroll Tax Settings", "minimum_wage")):
+		return
+
 	if flt(frappe.db.get_single_value("Payroll Tax Settings", "minimum_reservation_salary")) != 26000:
 		return
 
 	frappe.db.set_single_value("Payroll Tax Settings", "minimum_reservation_salary", 0)
 	print("  Cleared the default Payroll Tax Settings.minimum_reservation_salary (26000)")
+
+
+def _default_minimum_wage():
+	"""Порожня мінімальна зарплата в налаштуваннях показувалась нулем, хоч рахувалось від
+	8 647: вписуємо законне число, щоб форма показувала те, з чого рахує."""
+	from frappe.utils import flt
+
+	from erpnext.hr.payroll_tax import MINIMUM_WAGE
+
+	if flt(frappe.db.get_single_value("Payroll Tax Settings", "minimum_wage")):
+		return
+
+	frappe.db.set_single_value("Payroll Tax Settings", "minimum_wage", MINIMUM_WAGE)
+	print(f"  Set Payroll Tax Settings.minimum_wage to {MINIMUM_WAGE}")
 
 
 def _update_field_texts(fields):
@@ -907,7 +932,11 @@ def _update_field_layout(fields):
 		if not name:
 			continue
 
-		values = {"insert_after": f.get("insert_after"), "read_only": f.get("read_only", 0)}
+		values = {
+			"insert_after": f.get("insert_after"),
+			"read_only": f.get("read_only", 0),
+			"precision": f.get("precision", ""),
+		}
 		current = frappe.db.get_value("Custom Field", name, list(values), as_dict=True)
 
 		if any((current.get(key) or 0) != (value or 0) for key, value in values.items()):

@@ -15,7 +15,6 @@
   "ssc_disability_rate",
   "section_break_reservation",
   "minimum_wage",
-  "reservation_wage_multiplier",
   "minimum_reservation_salary",
   "column_break_reservation",
   "minimum_average_reservation_salary"
@@ -81,21 +80,15 @@
    "description": "The statutory minimum wage. The reservation thresholds are multiples of it. Sick pay is capped by 20 minimum wages a month, and by one when the insurance tenure is under 6 months; an average taken from the salary is never below it.",
    "fieldname": "minimum_wage",
    "fieldtype": "Currency",
-   "label": "Minimum Wage"
+   "label": "Minimum Wage",
+   "precision": "2"
   },
   {
-   "default": "3",
-   "description": "How many minimum wages a reserved employee must be paid, and the company on average: 3 by Cabinet Resolution No. 76 (from 1 September 2026), 2.5 for the frontline territories.",
-   "fieldname": "reservation_wage_multiplier",
-   "fieldtype": "Float",
-   "label": "Reservation: Minimum Wages",
-   "precision": "1"
-  },
-  {
-   "description": "Leave empty: the minimum is the minimum wage multiplied by the number above. Fill in only to override the calculated amount.",
+   "description": "Leave empty: the minimum is three minimum wages (Resolution No. 76). Fill in only to override the calculated amount, e.g. 2.5 minimum wages for frontline territories.",
    "fieldname": "minimum_reservation_salary",
    "fieldtype": "Currency",
-   "label": "Minimum Salary for Reservation (Override)"
+   "label": "Minimum Salary for Reservation (Override)",
+   "precision": "2"
   },
   {
    "fieldname": "column_break_reservation",
@@ -105,13 +98,14 @@
    "description": "Leave empty: by law the company average must reach the same minimum as a reserved employee. Fill in only to override.",
    "fieldname": "minimum_average_reservation_salary",
    "fieldtype": "Currency",
-   "label": "Minimum Company Average Salary (Override)"
+   "label": "Minimum Company Average Salary (Override)",
+   "precision": "2"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-05 00:00:00.000000",
+ "modified": "2026-10-06 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Tax Settings",

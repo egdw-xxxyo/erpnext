@@ -13,6 +13,7 @@
   "employment_rate",
   "reservation_required",
   "section_break_current",
+  "current_in_hand",
   "current_official",
   "current_cash",
   "current_bonus",
@@ -20,6 +21,7 @@
   "current_total",
   "accrued_last_month",
   "section_break_new",
+  "new_in_hand",
   "new_official",
   "new_cash",
   "new_bonus",
@@ -88,23 +90,32 @@
    "label": "Current Salary"
   },
   {
+   "fieldname": "current_in_hand",
+   "fieldtype": "Currency",
+   "label": "Current Total Salary (In Hand)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
    "fieldname": "current_official",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Current Official Salary",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "current_cash",
    "fieldtype": "Currency",
    "label": "Current Cash Salary",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "current_bonus",
    "fieldtype": "Currency",
    "label": "Current Official Bonus",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "column_break_current",
@@ -114,14 +125,17 @@
    "fieldname": "current_total",
    "fieldtype": "Currency",
    "label": "Current Total Salary",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2",
+   "hidden": 1
   },
   {
    "description": "The official salary actually accrued for the last calendar month — the number the reservation rules check.",
    "fieldname": "accrued_last_month",
    "fieldtype": "Currency",
    "label": "Accrued Last Month",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "section_break_new",
@@ -129,22 +143,37 @@
    "label": "New Salary"
   },
   {
+   "fieldname": "new_in_hand",
+   "fieldtype": "Currency",
+   "label": "Total Salary",
+   "precision": "2",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "What the employee gets in hand: the amount accrued to the card plus the cash part."
+  },
+  {
    "fieldname": "new_official",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "New Official Salary"
+   "label": "Official Salary",
+   "precision": "2",
+   "description": "The amount accrued officially, before taxes."
   },
   {
    "fieldname": "new_cash",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "New Cash Salary"
+   "label": "Mgmt. Salary",
+   "precision": "2",
+   "read_only": 1,
+   "description": "Calculated: the total salary less the amount accrued to the card. Paid from the cash desk and not taxed."
   },
   {
    "description": "For this month only. Counts as official salary without changing it; the cash part of the month shrinks so the amount in hand stays the same.",
    "fieldname": "new_bonus",
    "fieldtype": "Currency",
-   "label": "Official Bonus"
+   "label": "Official Bonus",
+   "precision": "2"
   },
   {
    "fieldname": "column_break_new",
@@ -153,15 +182,17 @@
   {
    "fieldname": "new_total",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "New Total Salary",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2",
+   "hidden": 1
   },
   {
    "fieldname": "change_amount",
    "fieldtype": "Currency",
    "label": "Change",
-   "read_only": 1
+   "read_only": 1,
+   "precision": "2"
   },
   {
    "fieldname": "change_percent",
@@ -183,7 +214,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-05 00:00:00.000000",
+ "modified": "2026-10-06 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Salary Change Item",
