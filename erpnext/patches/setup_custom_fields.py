@@ -868,26 +868,7 @@ def create_salary_tax_components():
 	from erpnext.hr import payroll_tax
 
 	payroll_tax.ensure_components()
-	_clear_default_reservation_minimum()
 	_default_minimum_wage()
-
-
-def _clear_default_reservation_minimum():
-	"""26 000 стояло в налаштуваннях як типове значення поля, а не як чиєсь рішення. Тепер
-	мінімум рахується з мінімальної зарплати (3 × 8 647 = 25 941), тож типове прибираємо —
-	суму, вписану руками, не чіпаємо."""
-	from frappe.utils import flt
-
-	# Мінімальна зарплата вписується в налаштування разом із цим прибиранням: коли вона вже є,
-	# 26 000 у полі — чиєсь рішення, і повторний деплой його не стирає.
-	if flt(frappe.db.get_single_value("Payroll Tax Settings", "minimum_wage")):
-		return
-
-	if flt(frappe.db.get_single_value("Payroll Tax Settings", "minimum_reservation_salary")) != 26000:
-		return
-
-	frappe.db.set_single_value("Payroll Tax Settings", "minimum_reservation_salary", 0)
-	print("  Cleared the default Payroll Tax Settings.minimum_reservation_salary (26000)")
 
 
 def _default_minimum_wage():
