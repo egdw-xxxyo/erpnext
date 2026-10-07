@@ -4,7 +4,7 @@ from urllib.parse import unquote, urlsplit
 import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
-from frappe.utils import escape_html, flt, get_link_to_form, nowdate
+from frappe.utils import escape_html, flt, nowdate
 
 from erpnext.buying.procurement_assignment import _add as add_assignment
 from erpnext.buying.procurement_workflow import (
@@ -50,6 +50,13 @@ PROCUREMENT_STATUS_PRIORITY = {
 	"Очікуються видаткові накладні": 4,
 	PROCUREMENT_COMPLETED: 5,
 }
+
+
+def get_relative_link_to_form(doctype, name, label=None):
+	from urllib.parse import quote
+
+	href = f"/desk/{quote(frappe.scrub(doctype).replace('_', '-'))}/{quote(str(name))}"
+	return f'<a href="{href}">{label or escape_html(name)}</a>'
 
 
 def require_buyer_role():
@@ -294,7 +301,7 @@ def on_purchase_order_insert(doc, method=None):
 		return
 
 	actor = _current_actor()
-	order_link = get_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
+	order_link = get_relative_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
 	for material_request in material_requests:
 		request_doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
 		if _has_fully_reserved_material_request(request_doc):
@@ -307,7 +314,8 @@ def on_purchase_order_insert(doc, method=None):
 		)
 
 	request_links = ", ".join(
-		get_link_to_form(MATERIAL_REQUEST_DOCTYPE, name, escape_html(name)) for name in material_requests
+		get_relative_link_to_form(MATERIAL_REQUEST_DOCTYPE, name, escape_html(name))
+		for name in material_requests
 	)
 	doc.add_comment(
 		"Comment",
