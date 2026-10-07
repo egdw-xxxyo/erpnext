@@ -14,7 +14,7 @@ never site-wide.
 
 import json
 import re
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 import frappe
 from frappe import _
@@ -293,7 +293,7 @@ def _reference_card(doc):
 	if not doc.reference_removed:
 		card = _document_card(doc.reference_doctype, doc.reference_name)
 		if card:
-			card["url"] = frappe.utils.get_url_to_form(doc.reference_doctype, doc.reference_name)
+			card["url"] = f"/desk/{frappe.scrub(doc.reference_doctype).replace("_", "-")}/{quote(doc.reference_name)}"
 			return card
 	return {
 		"kind": "document",

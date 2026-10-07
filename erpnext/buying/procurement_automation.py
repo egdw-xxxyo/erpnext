@@ -4,7 +4,7 @@ from urllib.parse import unquote, urlsplit
 import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
-from frappe.utils import escape_html, flt, get_link_to_form, nowdate
+from frappe.utils import escape_html, flt, nowdate
 
 from erpnext.buying.procurement_assignment import _add as add_assignment
 from erpnext.buying.procurement_workflow import (
@@ -49,6 +49,13 @@ PROCUREMENT_STATUS_PRIORITY = {
 	PROCUREMENT_AWAITING_RECEIPT: 3,
 	PROCUREMENT_COMPLETED: 4,
 }
+
+
+def get_relative_link_to_form(doctype, name, label=None):
+	from urllib.parse import quote
+
+	href = f"/desk/{quote(frappe.scrub(doctype).replace('_', '-'))}/{quote(str(name))}"
+	return f'<a href="{href}">{label or escape_html(name)}</a>'
 
 
 def require_buyer_role():
@@ -152,8 +159,8 @@ def validate_material_requests_available(material_requests, exclude=None):
 					"Material Request {0} is already linked to active consolidated order {1}. "
 					"A new consolidated order can be created only after the existing one is rejected."
 				).format(
-					get_link_to_form(MATERIAL_REQUEST_DOCTYPE, material_request),
-					get_link_to_form(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, existing),
+					get_relative_link_to_form(MATERIAL_REQUEST_DOCTYPE, material_request),
+					get_relative_link_to_form(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, existing),
 				),
 				title=_("Consolidated order already exists"),
 			)
@@ -296,7 +303,7 @@ def on_purchase_order_insert(doc, method=None):
 		return
 
 	actor = _current_actor()
-	order_link = get_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
+	order_link = get_relative_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
 	for material_request in material_requests:
 		_close_assignments_silently(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
@@ -308,7 +315,7 @@ def on_purchase_order_insert(doc, method=None):
 		)
 
 	request_links = ", ".join(
-		get_link_to_form(MATERIAL_REQUEST_DOCTYPE, name, escape_html(name)) for name in material_requests
+		get_relative_link_to_form(MATERIAL_REQUEST_DOCTYPE, name, escape_html(name)) for name in material_requests
 	)
 	doc.add_comment(
 		"Comment",
