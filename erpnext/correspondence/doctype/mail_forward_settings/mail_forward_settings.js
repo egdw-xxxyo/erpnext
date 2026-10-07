@@ -1,4 +1,7 @@
 frappe.ui.form.on("Mail Forward Settings", {
+	setup(frm) {
+		frm.get_docfield("enabled_since").hide_timezone = 1;
+	},
 	refresh(frm) {
 		frm.add_custom_button(__("Sync Folders Now"), () =>
 			frappe.call({
