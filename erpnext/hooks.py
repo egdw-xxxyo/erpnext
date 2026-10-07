@@ -95,6 +95,7 @@ override_doctype_class = {
 }
 
 extend_doctype_class = {
+	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
 }
 
