@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
-from erpnext.correspondence.forwarding_accounts import SENDER, WATCHED, apply_defaults
+from erpnext.correspondence.forwarding_accounts import MANAGER_ROLE, SENDER, WATCHED, apply_defaults
 from erpnext.correspondence.imap_folders import (
 	MANUAL,
 	decode_modified_utf7,
@@ -165,7 +165,7 @@ def sync_new_mailboxes() -> dict[str, str | None]:
 
 @frappe.whitelist()
 def sync_folders_now():
-	frappe.only_for("System Manager")
+	frappe.only_for(["System Manager", MANAGER_ROLE])
 	results = sync_all_mailboxes()
 	return [
 		{
