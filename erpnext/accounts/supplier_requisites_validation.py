@@ -86,6 +86,9 @@ def update_supplier_requisites_from_pdf(doc, values):
 		supplier_doc.set(fieldname, selected)
 		updated[key] = selected
 
+	if "is_vat_payer" in values:
+		supplier_doc.custom_is_vat_payer = frappe.utils.cint(values["is_vat_payer"])
+		updated["is_vat_payer"] = supplier_doc.custom_is_vat_payer
 	if updated:
 		supplier_doc.save()
 
@@ -195,6 +198,9 @@ def validate_supplier_requisites(doc):
 		"applicable": True,
 		"supplier": context["supplier"],
 		"allow_supplier_update": doc.doctype == SUPPLIER_UPDATE_DOCTYPE,
+		"is_vat_payer": frappe.utils.cint(
+			frappe.db.get_value("Supplier", context["supplier"], "custom_is_vat_payer")
+		),
 		"allow_manual_supplier_update": allow_manual_supplier_update,
 		"files": files,
 		"checks": checks,

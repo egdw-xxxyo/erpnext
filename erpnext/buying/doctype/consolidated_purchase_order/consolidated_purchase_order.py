@@ -69,9 +69,11 @@ class ConsolidatedPurchaseOrder(Document):
 			)
 
 		if self._delivery_notes_changed(before):
-			if frappe.session.user != before.owner:
+			from erpnext.buying.procurement_document_details import can_add_delivery_note
+
+			if not can_add_delivery_note(before):
 				frappe.throw(
-					_("Only the creator of this consolidated order can change delivery notes."),
+					_("Only the creator, lead buyer or treasurer can change delivery notes."),
 					title=_("Not Permitted"),
 				)
 			self._validate_delivery_notes()

@@ -621,6 +621,7 @@ doc_events = {
 	"Purchase Invoice": {
 		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
+			"erpnext.buying.procurement_document_details.sync_supplier_vat",
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
 			"erpnext.buying.procurement_automation.set_purchase_invoice_external_payment_details",
@@ -634,6 +635,7 @@ doc_events = {
 	"Payment Request": {
 		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
+			"erpnext.buying.procurement_document_details.sync_supplier_vat",
 			"erpnext.accounts.payment_procurement_route.set_procurement_approval_route",
 			"erpnext.accounts.payment_workflow_reason.validate_required_reason",
 			"erpnext.projects.task_payments.set_payment_request_task",
@@ -662,6 +664,7 @@ doc_events = {
 		],
 	},
 	"Purchase Order": {
+		"validate": "erpnext.buying.procurement_document_details.sync_order_details",
 		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
@@ -669,6 +672,8 @@ doc_events = {
 		"validate": "erpnext.buying.procurement_final_approval.validate_final_approver_settings"
 	},
 	"Consolidated Purchase Order": {
+		"on_update": "erpnext.buying.procurement_document_details.sync_order_details",
+		"on_update_after_submit": "erpnext.buying.procurement_document_details.sync_order_details",
 		"after_insert": [
 			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
 			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
@@ -732,7 +737,10 @@ doc_events = {
 	"Payment Entry": {
 		"on_trash": "erpnext.regional.check_deletion_permission",
 		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
-		"validate": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+		"validate": [
+			"erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+			"erpnext.buying.procurement_document_details.sync_supplier_vat",
+		],
 		"before_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
 		"on_update": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 		"on_submit": [

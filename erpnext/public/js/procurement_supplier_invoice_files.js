@@ -12,7 +12,7 @@ const supplierRequisitesValidationSection = "custom_supplier_requisites_validati
 const supplierRequisitesManualConfirmation = "custom_supplier_requisites_manual_confirmation";
 const supplierRequisiteFields = {
 	"Purchase Invoice": { tax_id: "tax_id", edrpou: "edrpou" },
-	"Payment Request": { iban: "iban" },
+	"Payment Request": { tax_id: "custom_party_tax_id", edrpou: "custom_party_edrpou", iban: "iban" },
 	"Payment Entry": {
 		tax_id: "custom_party_tax_id",
 		edrpou: "custom_party_edrpou",
@@ -23,10 +23,12 @@ const supplierRequisiteFields = {
 frappe.ui.form.on("Purchase Invoice", {
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
+		render_supplier_vat(frm);
 		render_supplier_invoice_files(frm);
 		render_supplier_requisites_validation(frm);
 	},
 	supplier(frm) {
+		render_supplier_vat(frm);
 		reset_supplier_requisites_confirmation(frm);
 		render_supplier_invoice_files(frm);
 		render_supplier_requisites_validation(frm);
@@ -41,12 +43,15 @@ frappe.ui.form.on("Purchase Invoice", {
 frappe.ui.form.on("Payment Request", {
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
+		render_supplier_vat(frm);
 		render_supplier_requisites_validation(frm);
 	},
 	party_type(frm) {
+		render_supplier_vat(frm);
 		reset_and_render_supplier_requisites_validation(frm);
 	},
 	party(frm) {
+		render_supplier_vat(frm);
 		reset_and_render_supplier_requisites_validation(frm);
 	},
 	reference_doctype(frm) {
@@ -63,16 +68,19 @@ frappe.ui.form.on("Payment Request", {
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
+		render_supplier_vat(frm);
 		render_supplier_invoice_files(frm);
 		render_supplier_payment_details(frm);
 		render_supplier_requisites_validation(frm);
 	},
 	party_type(frm) {
+		render_supplier_vat(frm);
 		reset_supplier_requisites_confirmation(frm);
 		render_supplier_payment_details(frm);
 		render_supplier_requisites_validation(frm);
 	},
 	party(frm) {
+		render_supplier_vat(frm);
 		reset_supplier_requisites_confirmation(frm);
 		render_supplier_payment_details(frm);
 		render_supplier_requisites_validation(frm);
@@ -372,6 +380,12 @@ function show_supplier_requisites_update_dialog(frm, result, { manualEntry = fal
 		});
 	});
 
+	fields.push({
+		fieldname: "is_vat_payer",
+		fieldtype: "Check",
+		label: __("VAT Payer"),
+		default: result.is_vat_payer || 0,
+	});
 	const hasIban = updateChecks.some((check) => check.key === "iban");
 	let dialog;
 	if (hasIban) {
@@ -405,8 +419,14 @@ function show_supplier_requisites_update_dialog(frm, result, { manualEntry = fal
 					.filter((key) => values[key])
 					.map((key) => [key, values[key]])
 			);
+			selected.is_vat_payer = cint(values.is_vat_payer);
 			if (manualEntry) selected.manual_entry = 1;
-			if (!selected.tax_id && !selected.edrpou && !selected.iban) {
+			if (
+				!selected.tax_id &&
+				!selected.edrpou &&
+				!selected.iban &&
+				selected.is_vat_payer === cint(result.is_vat_payer)
+			) {
 				frappe.msgprint(__("Select at least one value to update."));
 				return;
 			}
@@ -467,6 +487,7 @@ async function update_bank_suggestion(frm, dialog, result) {
 
 async function apply_supplier_requisites_update(frm, response) {
 	const updated = response.updated || {};
+	if ("is_vat_payer" in updated) await frm.set_value("custom_supplier_is_vat_payer", updated.is_vat_payer);
 	for (const key of ["tax_id", "edrpou"]) {
 		const fieldname = supplierRequisiteFields[frm.doctype]?.[key];
 		if (updated[key] && fieldname && frm.fields_dict[fieldname]) {
@@ -783,4 +804,27 @@ function add_supplier_detail_copy_button(frm, fieldname) {
 	`)
 		.appendTo(display)
 		.on("click", () => frappe.utils.copy_to_clipboard(value));
+}
+
+async function render_supplier_vat(frm) {
+	const supplier =
+		frm.doctype === "Purchase Invoice"
+			? frm.doc.supplier
+			: frm.doc.party_type === "Supplier"
+			? frm.doc.party
+			: null;
+	const requestId = (frm.__supplier_vat_request_id || 0) + 1;
+	frm.__supplier_vat_request_id = requestId;
+	const response = supplier
+		? await frappe.db.get_value("Supplier", supplier, ["custom_is_vat_payer", "tax_id", "edrpou"])
+		: { message: {} };
+	if (requestId !== frm.__supplier_vat_request_id) return;
+	frm.doc.custom_supplier_is_vat_payer = cint(response.message?.custom_is_vat_payer);
+	frm.refresh_field("custom_supplier_is_vat_payer");
+	if (frm.doctype === "Payment Request") {
+		for (const key of ["tax_id", "edrpou"]) {
+			frm.doc[`custom_party_${key}`] = response.message?.[key] || "";
+			frm.refresh_field(`custom_party_${key}`);
+		}
+	}
 }

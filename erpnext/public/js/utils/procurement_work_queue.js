@@ -6,6 +6,7 @@ erpnext.buying.get_procurement_status_color = (status) =>
 		Погодження: "orange",
 		"Очікує оплату": "blue",
 		"Очікує надходження": "purple",
+		"Очікуються видаткові накладні": "yellow",
 		Завершено: "green",
 	}[status] || "gray");
 

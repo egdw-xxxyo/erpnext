@@ -47,7 +47,8 @@ PROCUREMENT_STATUS_PRIORITY = {
 	PROCUREMENT_APPROVAL: 1,
 	PROCUREMENT_AWAITING_PAYMENT: 2,
 	PROCUREMENT_AWAITING_RECEIPT: 3,
-	PROCUREMENT_COMPLETED: 4,
+	"Очікуються видаткові накладні": 4,
+	PROCUREMENT_COMPLETED: 5,
 }
 
 
@@ -692,12 +693,7 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 	)
 
 	receipt_summary = receipt_summary or _get_invoice_receipt_summary(source_name)
-	consolidated = frappe.db.get_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		source_name,
-		["docstatus", "workflow_state", "items_already_purchased"],
-		as_dict=True,
-	)
+	consolidated = frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name)
 	terminal = consolidated.docstatus == 2 or consolidated.workflow_state == "Відхилено"
 	externally_paid = bool(consolidated.items_already_purchased and consolidated.docstatus == 1)
 	all_payments_verified = bool(
@@ -715,6 +711,7 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 		payment_complete=externally_paid or all_payments_submitted,
 		fiscal_receipt_complete=externally_paid or all_payments_verified,
 		purchase_receipt_complete=purchase_receipt_complete,
+		warehouse_receipt_complete=bool(receipt_summary.get("warehouse_receipt_complete")),
 	)
 	_set_procurement_status(
 		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
@@ -829,9 +826,24 @@ def _sync_material_request_completion(material_request):
 
 
 def _get_consolidated_procurement_status(
-	consolidated, *, terminal, payment_complete, fiscal_receipt_complete, purchase_receipt_complete
+	consolidated,
+	*,
+	terminal,
+	payment_complete,
+	fiscal_receipt_complete,
+	purchase_receipt_complete,
+	warehouse_receipt_complete=False,
 ):
-	if terminal or (fiscal_receipt_complete and purchase_receipt_complete):
+	if terminal:
+		return PROCUREMENT_COMPLETED
+	if payment_complete and warehouse_receipt_complete:
+		suppliers = {row.supplier for row in consolidated.items if row.supplier}
+		attached = {
+			row.supplier for row in consolidated.get("delivery_notes") or [] if row.delivery_note_file
+		}
+		if suppliers - attached:
+			return "Очікуються видаткові накладні"
+	if fiscal_receipt_complete and purchase_receipt_complete:
 		return PROCUREMENT_COMPLETED
 	if consolidated.docstatus != 1:
 		if consolidated.workflow_state in {"Чернетка", "Потребує доопрацювання"}:

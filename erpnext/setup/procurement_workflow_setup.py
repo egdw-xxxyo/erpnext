@@ -83,7 +83,7 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_procurement_completion_status",
 			"fieldtype": "Select",
 			"label": "Procurement Status",
-			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nОчікуються видаткові накладні\nЗавершено",
 			"default": "Підготовка",
 			"read_only": 1,
 			"no_copy": 1,
@@ -160,7 +160,7 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_procurement_completion_status",
 			"fieldtype": "Select",
 			"label": "Procurement Status",
-			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nОчікуються видаткові накладні\nЗавершено",
 			"default": "Підготовка",
 			"read_only": 1,
 			"no_copy": 1,
@@ -538,7 +538,10 @@ function render_consolidated_purchase_orders(frm) {
 
 def after_migrate():
 	sync_procurement_custom_fields()
+	from erpnext.buying.procurement_document_details import backfill_order_details
+	from erpnext.patches.setup_custom_fields import setup_procurement_document_details
 
+	setup_procurement_document_details()
 
 	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
 		sync_all_consolidated_purchase_order_progress,
@@ -558,6 +561,7 @@ def after_migrate():
 
 	sync_procurement_workflow()
 	_sync_consolidated_procurement_users()
+	backfill_order_details()
 	apply_rules_to_existing_procurement_documents()
 	sync_all_current_assignee_names()
 	sync_existing_approval_thresholds()
@@ -717,6 +721,7 @@ def _sync_consolidated_purchase_order_list_view():
 		{"fieldname": "procurement_completion_status", "label": "Status"},
 		{"fieldname": "transaction_date", "label": "Date"},
 		{"fieldname": "payment_receipts_progress", "label": "Payment"},
+		{"fieldname": "custom_has_delivery_note", "label": "Procurement Delivery Note"},
 		{"fieldname": "grand_total", "label": "Grand Total"},
 	]
 
@@ -727,7 +732,7 @@ def _sync_consolidated_purchase_order_list_view():
 		doc.name = "Consolidated Purchase Order"
 
 	doc.fields = json.dumps(fields)
-	doc.total_fields = "7"
+	doc.total_fields = "8"
 	_save(doc)
 
 
