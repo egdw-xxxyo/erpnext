@@ -10,7 +10,7 @@
  "label": "Correspondence",
  "link_to": "Correspondence",
  "link_type": "Workspace Sidebar",
- "modified": "2026-10-03 00:00:00.000000",
+ "modified": "2026-10-07 00:00:00.000000",
  "modified_by": "Administrator",
  "name": "Correspondence",
  "owner": "Administrator",
@@ -19,6 +19,9 @@
  "roles": [
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Correspondence Manager"
   }
  ],
  "standard": 1

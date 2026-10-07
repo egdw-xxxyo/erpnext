@@ -3,12 +3,17 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
-from frappe.utils import add_days, now_datetime
+from frappe.utils import add_days, add_to_date, get_datetime, now_datetime
 
 from erpnext.correspondence.doctype.mail_forward_settings import mail_forward_settings
 from erpnext.correspondence.imap_folders import parse_list_response
 from erpnext.correspondence.imap_uids import FolderState
-from erpnext.correspondence.mail_forward import forward_communication, sync_delivery_status
+from erpnext.correspondence.mail_forward import (
+	PROCESSED_FIELD,
+	check_forwarding_health,
+	forward_communication,
+	sync_delivery_status,
+)
 
 WATCHED = "_Test Watched Mailbox"
 SENDER = "_Test Forward Sender"
@@ -87,7 +92,7 @@ def logs_for(comm):
 	)
 
 
-class TestMailForward(FrappeTestCase):
+class MailForwardCase(FrappeTestCase):
 	def setUp(self):
 		make_account(
 			WATCHED,
@@ -122,6 +127,8 @@ class TestMailForward(FrappeTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
+
+class TestMailForward(MailForwardCase):
 	def test_known_sender_gets_one_copy_per_address_with_attachments(self):
 		comm = receive("manager@bank.test", "<m1@bank.test>")
 		forward_communication(comm.name)
@@ -243,6 +250,154 @@ class TestMailForward(FrappeTestCase):
 		comm = receive("manager@bank.test", "<m7@bank.test>")
 		forward_communication(comm.name)
 		self.assertEqual(logs_for(comm), [])
+
+
+def arrived(comm, hours_ago: int):
+	frappe.db.set_value(
+		"Communication",
+		comm.name,
+		"creation",
+		add_to_date(now_datetime(), hours=-hours_ago),
+		update_modified=False,
+	)
+
+
+def make_manager(email: str):
+	frappe.delete_doc("User", email, force=True, ignore_missing=True)
+	return frappe.get_doc(
+		{
+			"doctype": "User",
+			"email": email,
+			"first_name": "Mail",
+			"send_welcome_email": 0,
+			"roles": [{"role": "Correspondence Manager"}],
+		}
+	).insert(ignore_permissions=True)
+
+
+def alerts_for(user: str):
+	return frappe.get_all(
+		"Notification Log",
+		filters={"for_user": user, "document_type": "Mail Forward Settings"},
+		fields=["subject", "link", "type"],
+	)
+
+
+class TestMailForwardHealth(MailForwardCase):
+	def setUp(self):
+		super().setUp()
+		frappe.db.set_single_value("Mail Forward Settings", "enabled_since", add_days(now_datetime(), -2))
+		frappe.db.set_single_value(
+			"Mail Forward Settings", "last_health_check", add_to_date(now_datetime(), hours=-1)
+		)
+
+	def processed(self, comm):
+		return frappe.db.get_value("Communication", comm.name, PROCESSED_FIELD)
+
+	def test_mail_without_copies_is_still_marked_processed(self):
+		comm = receive("friend@example.test", "<h1@example.test>")
+		forward_communication(comm.name)
+		self.assertEqual(self.processed(comm), 1)
+
+	def test_lost_mail_is_forwarded_by_the_hourly_check(self):
+		comm = receive("manager@bank.test", "<h2@bank.test>")
+		arrived(comm, 2)
+		check_forwarding_health()
+		self.assertEqual([log.email for log in logs_for(comm)], ["fin@kalheon.test"])
+		self.assertEqual(self.processed(comm), 1)
+
+	def test_mail_younger_than_an_hour_is_left_to_its_own_job(self):
+		comm = receive("manager@bank.test", "<h3@bank.test>")
+		check_forwarding_health()
+		self.assertEqual(logs_for(comm), [])
+
+	def test_mail_older_than_the_window_is_not_picked_up(self):
+		frappe.db.set_single_value("Mail Forward Settings", "enabled_since", add_days(now_datetime(), -10))
+		comm = receive("manager@bank.test", "<h4@bank.test>")
+		arrived(comm, 24 * 4)
+		check_forwarding_health()
+		self.assertEqual(logs_for(comm), [])
+
+	def test_mail_from_before_forwarding_was_enabled_is_not_picked_up(self):
+		frappe.db.set_single_value("Mail Forward Settings", "enabled_since", now_datetime())
+		comm = receive("manager@bank.test", "<h5@bank.test>")
+		arrived(comm, 2)
+		check_forwarding_health()
+		self.assertEqual(logs_for(comm), [])
+
+	def test_a_rule_added_later_does_not_resend_processed_mail(self):
+		comm = receive("clerk@later.test", "<h6@later.test>")
+		forward_communication(comm.name)
+		arrived(comm, 2)
+		make_rule("Later", "@later.test", ["_FIN"])
+		check_forwarding_health()
+		self.assertEqual(logs_for(comm), [])
+
+	def test_an_email_filled_in_later_does_not_resend_processed_mail(self):
+		comm = receive("judge@court.test", "<h7@court.test>")
+		forward_communication(comm.name)
+		arrived(comm, 2)
+		frappe.db.set_value("Mail Forward Recipient", "_EMPTY", "email", "empty@kalheon.test")
+		check_forwarding_health()
+		self.assertNotIn("empty@kalheon.test", [log.email for log in logs_for(comm)])
+
+	def test_disabled_forwarding_picks_nothing_up(self):
+		frappe.db.set_single_value("Mail Forward Settings", "enabled", 0)
+		comm = receive("manager@bank.test", "<h8@bank.test>")
+		arrived(comm, 2)
+		check_forwarding_health()
+		self.assertEqual(logs_for(comm), [])
+
+	def test_turning_forwarding_on_moves_the_boundary_to_now(self):
+		settings = frappe.get_single("Mail Forward Settings")
+		settings.enabled = 0
+		settings.save(ignore_permissions=True)
+		settings.enabled = 1
+		settings.save(ignore_permissions=True)
+		self.assertGreater(get_datetime(settings.enabled_since), add_to_date(now_datetime(), minutes=-1))
+
+	def test_saving_enabled_settings_keeps_the_boundary(self):
+		since = add_days(now_datetime(), -2).replace(microsecond=0)
+		frappe.db.set_single_value("Mail Forward Settings", "enabled_since", since)
+		settings = frappe.get_single("Mail Forward Settings")
+		settings.save(ignore_permissions=True)
+		self.assertEqual(get_datetime(settings.enabled_since), since)
+
+	def test_failures_are_reported_once_to_managers(self):
+		manager = make_manager("_mail-manager@kalheon.test")
+		comm = receive("manager@bank.test", "<h9@bank.test>")
+		forward_communication(comm.name)
+		frappe.db.set_value("Mail Forward Log", {"communication": comm.name}, "status", "Failed")
+		check_forwarding_health()
+		alerts = alerts_for(manager.name)
+		self.assertEqual(len(alerts), 1)
+		self.assertEqual(alerts[0].type, "Alert")
+		self.assertIn("Copies that failed to send: 1", alerts[0].subject)
+		self.assertEqual(alerts[0].link, "/desk/mail-forward-log")
+		check_forwarding_health()
+		self.assertEqual(len(alerts_for(manager.name)), 1)
+
+	def test_a_mailbox_turned_off_is_reported_every_hour(self):
+		manager = make_manager("_mail-off@kalheon.test")
+		frappe.db.set_value("Email Account", WATCHED, "enable_incoming", 0)
+		check_forwarding_health()
+		check_forwarding_health()
+		alerts = alerts_for(manager.name)
+		self.assertEqual(len(alerts), 2)
+		self.assertIn("Mail accounts that are turned off or missing: 1", alerts[0].subject)
+		self.assertEqual(alerts[0].link, "/desk/mail-forward-settings")
+
+	def test_a_sender_without_outgoing_mail_is_reported(self):
+		manager = make_manager("_mail-sender@kalheon.test")
+		frappe.db.set_value("Email Account", SENDER, "enable_outgoing", 0)
+		check_forwarding_health()
+		self.assertIn("Mail accounts that are turned off or missing: 1", alerts_for(manager.name)[0].subject)
+
+	def test_quiet_hour_sends_no_alert(self):
+		manager = make_manager("_mail-quiet@kalheon.test")
+		frappe.db.set_single_value("Mail Forward Settings", "last_health_check", now_datetime())
+		check_forwarding_health()
+		self.assertEqual(alerts_for(manager.name), [])
 
 
 SECOND = "_Test Second Mailbox"
