@@ -47,7 +47,8 @@ PROCUREMENT_STATUS_PRIORITY = {
 	PROCUREMENT_APPROVAL: 1,
 	PROCUREMENT_AWAITING_PAYMENT: 2,
 	PROCUREMENT_AWAITING_RECEIPT: 3,
-	PROCUREMENT_COMPLETED: 4,
+	"Очікуються видаткові накладні": 4,
+	PROCUREMENT_COMPLETED: 5,
 }
 
 
@@ -149,20 +150,17 @@ def validate_material_request_purchase_receipts(doc, method=None):
 
 
 def validate_material_requests_available(material_requests, exclude=None):
-	for material_request in set(material_requests or []):
-		if not material_request:
+	from erpnext.buying.procurement_order_reuse import get_material_request_remaining
+
+	for name in set(material_requests or []):
+		if not name:
 			continue
-		existing = get_active_consolidated_purchase_order(material_request, exclude=exclude)
-		if existing:
+		source = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, name)
+		source.check_permission("read")
+		remaining = get_material_request_remaining(source, exclude=exclude)
+		if not any(row.remaining_qty > 0.000001 for row in remaining.values()):
 			frappe.throw(
-				_(
-					"Material Request {0} is already linked to active consolidated order {1}. "
-					"A new consolidated order can be created only after the existing one is rejected."
-				).format(
-					get_relative_link_to_form(MATERIAL_REQUEST_DOCTYPE, material_request),
-					get_relative_link_to_form(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, existing),
-				),
-				title=_("Consolidated order already exists"),
+				_("All items in this Material Request are already covered by active consolidated orders.")
 			)
 
 
@@ -305,17 +303,19 @@ def on_purchase_order_insert(doc, method=None):
 	actor = _current_actor()
 	order_link = get_relative_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
 	for material_request in material_requests:
-		_close_assignments_silently(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
+		if _has_fully_reserved_material_request(request_doc):
+			_close_assignments_silently(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc.add_comment(
 			"Comment",
-			text=_(
-				"{0} created {1} based on this Material Request and completed its processing by the buyer."
-			).format(f"<b>{escape_html(actor)}</b>", order_link),
+			text=_("{0} created {1} based on this Material Request.").format(
+				f"<b>{escape_html(actor)}</b>", order_link
+			),
 		)
 
 	request_links = ", ".join(
-		get_relative_link_to_form(MATERIAL_REQUEST_DOCTYPE, name, escape_html(name)) for name in material_requests
+		get_relative_link_to_form(MATERIAL_REQUEST_DOCTYPE, name, escape_html(name))
+		for name in material_requests
 	)
 	doc.add_comment(
 		"Comment",
@@ -485,7 +485,7 @@ def sync_procurement_stage_assignment(doc, method=None):
 	if doc.doctype not in {MATERIAL_REQUEST_DOCTYPE, CONSOLIDATED_PURCHASE_ORDER_DOCTYPE}:
 		return
 
-	if doc.doctype == MATERIAL_REQUEST_DOCTYPE and _has_active_consolidated_purchase_order(doc.name):
+	if doc.doctype == MATERIAL_REQUEST_DOCTYPE and _has_fully_reserved_material_request(doc):
 		_close_assignments_silently(
 			MATERIAL_REQUEST_DOCTYPE,
 			doc.name,
@@ -641,6 +641,14 @@ def _get_procurement_assignment_user(rule, spec, doc):
 	return "Administrator" if frappe.db.get_value("User", "Administrator", "enabled") else None
 
 
+def _has_fully_reserved_material_request(doc):
+	if not _has_active_consolidated_purchase_order(doc.name):
+		return False
+	from erpnext.buying.procurement_order_reuse import get_material_request_remaining
+
+	return not any(row.remaining_qty > 0.000001 for row in get_material_request_remaining(doc).values())
+
+
 def _has_active_consolidated_purchase_order(material_request):
 	if frappe.db.exists(
 		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
@@ -667,6 +675,10 @@ def _close_linked_material_request_assignments(doc):
 	if doc.get("material_request"):
 		material_requests.add(doc.material_request)
 	for material_request in material_requests:
+		if not _has_fully_reserved_material_request(
+			frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
+		):
+			continue
 		_close_assignments_silently(
 			MATERIAL_REQUEST_DOCTYPE,
 			material_request,
@@ -689,12 +701,7 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 	)
 
 	receipt_summary = receipt_summary or _get_invoice_receipt_summary(source_name)
-	consolidated = frappe.db.get_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		source_name,
-		["docstatus", "workflow_state", "items_already_purchased"],
-		as_dict=True,
-	)
+	consolidated = frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, source_name)
 	terminal = consolidated.docstatus == 2 or consolidated.workflow_state == "Відхилено"
 	externally_paid = bool(consolidated.items_already_purchased and consolidated.docstatus == 1)
 	all_payments_verified = bool(
@@ -712,6 +719,7 @@ def sync_procurement_completion_status(source_name, receipt_summary=None):
 		payment_complete=externally_paid or all_payments_submitted,
 		fiscal_receipt_complete=externally_paid or all_payments_verified,
 		purchase_receipt_complete=purchase_receipt_complete,
+		warehouse_receipt_complete=bool(receipt_summary.get("warehouse_receipt_complete")),
 	)
 	_set_procurement_status(
 		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
@@ -777,6 +785,16 @@ def _sync_material_request_completion(material_request):
 	if request.docstatus == 2 or request.status == "Stopped":
 		_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, PROCUREMENT_COMPLETED)
 		return
+	from erpnext.buying.procurement_order_reuse import get_material_request_remaining
+
+	if any(
+		row.remaining_qty > 0.000001
+		for row in get_material_request_remaining(
+			frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
+		).values()
+	):
+		_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, PROCUREMENT_PREPARATION)
+		return
 
 	consolidated_names = set(
 		frappe.get_all(
@@ -816,9 +834,24 @@ def _sync_material_request_completion(material_request):
 
 
 def _get_consolidated_procurement_status(
-	consolidated, *, terminal, payment_complete, fiscal_receipt_complete, purchase_receipt_complete
+	consolidated,
+	*,
+	terminal,
+	payment_complete,
+	fiscal_receipt_complete,
+	purchase_receipt_complete,
+	warehouse_receipt_complete=False,
 ):
-	if terminal or (fiscal_receipt_complete and purchase_receipt_complete):
+	if terminal:
+		return PROCUREMENT_COMPLETED
+	if payment_complete and warehouse_receipt_complete:
+		suppliers = {row.supplier for row in consolidated.items if row.supplier}
+		attached = {
+			row.supplier for row in consolidated.get("delivery_notes") or [] if row.delivery_note_file
+		}
+		if suppliers - attached:
+			return "Очікуються видаткові накладні"
+	if fiscal_receipt_complete and purchase_receipt_complete:
 		return PROCUREMENT_COMPLETED
 	if consolidated.docstatus != 1:
 		if consolidated.workflow_state in {"Чернетка", "Потребує доопрацювання"}:
@@ -1037,6 +1070,9 @@ def _current_actor():
 
 
 def _make_consolidated_order(mapped_order, source_name):
+	from erpnext.buying.procurement_order_reuse import limit_mapped_request_items
+
+	limit_mapped_request_items(mapped_order, source_name)
 	source_request = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
 	source_items = {row.name: row for row in source_request.items}
 	consolidated = frappe.new_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)

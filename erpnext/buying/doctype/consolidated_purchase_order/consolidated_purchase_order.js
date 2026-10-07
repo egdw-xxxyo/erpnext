@@ -63,6 +63,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 			});
 		}
 		set_delivery_notes_editability(frm);
+		setup_delivery_note_action(frm);
 		set_table_row_number_labels(frm);
 		setTimeout(() => set_table_row_number_labels(frm), 100);
 		frm.trigger("render_approval_route");
@@ -297,7 +298,7 @@ function render_approval_route(frm, field, route_data) {
 	const purchase_receipt_complete = Boolean(route_data.purchase_receipt_complete);
 	const missing_delivery_note_suppliers = route_data.missing_delivery_note_suppliers || [];
 	const final_approval_count = cint(route_data.final_approval_count);
-	const final_approval_required = cint(route_data.final_approval_required) || 2;
+	const final_approval_required = cint(route_data.final_approval_required);
 	const final_approval_automatic = Boolean(route_data.final_approval_automatic);
 	const stages = [
 		{ key: "preparation", title: __("Preparation"), role: __("Buyer"), icon: "edit" },
@@ -583,7 +584,8 @@ function get_material_request_names(frm) {
 function set_delivery_notes_editability(frm) {
 	const can_edit =
 		frm.doc.docstatus === 1 &&
-		frm.doc.owner === frappe.session.user &&
+		[frm.doc.owner, frm.doc.initiator_user].includes(frappe.session.user) &&
+		frappe.user_roles.includes("Закупівельник") &&
 		frm.doc.procurement_completion_status !== "Завершено";
 	frm.set_df_property("delivery_notes", "read_only", can_edit ? 0 : 1);
 }
@@ -850,4 +852,59 @@ function render_user_link(user) {
 	const user_id = user.user || "";
 	const label = user.full_name || user_id;
 	return `<a href="/app/user/${encodeURIComponent(user_id)}">${frappe.utils.escape_html(label)}</a>`;
+}
+
+function setup_delivery_note_action(frm) {
+	const section = (frm.layout?.sections || []).find((row) => row.df.fieldname === "delivery_notes_section");
+	if (
+		(frm.doc.delivery_notes || []).some((row) => row.delivery_note_file) &&
+		frm.__expanded_delivery_notes !== frm.doc.name
+	) {
+		section?.collapse(false);
+		frm.__expanded_delivery_notes = frm.doc.name;
+	}
+	const roles = frappe.user_roles || [];
+	const allowed =
+		frappe.session.user === "Administrator" ||
+		roles.includes("Payments: Казначей") ||
+		(roles.includes("Закупівельник") &&
+			[frm.doc.owner, frm.doc.initiator_user].includes(frappe.session.user));
+	if (!allowed || frm.doc.docstatus !== 1 || frm.doc.procurement_completion_status === "Завершено") return;
+	frm.add_custom_button(__("Attach delivery note"), () => {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Attach delivery note"),
+			fields: [
+				{
+					fieldname: "supplier",
+					fieldtype: "Link",
+					options: "Supplier",
+					label: __("Supplier"),
+					reqd: 1,
+					get_query: () => ({ filters: { name: ["in", get_order_suppliers(frm)] } }),
+				},
+				{
+					fieldname: "file_url",
+					fieldtype: "Attach",
+					label: __("Supplier Delivery Notes"),
+					reqd: 1,
+					options: {
+						restrictions: { allowed_file_types: [".pdf", ".zip"] },
+						allow_web_link: false,
+					},
+				},
+			],
+			primary_action_label: __("Attach"),
+			primary_action: async (values) => {
+				await frappe.call({
+					method: "erpnext.buying.procurement_document_details.add_delivery_note",
+					args: { name: frm.doc.name, ...values },
+					freeze: true,
+				});
+				dialog.hide();
+				frm.__expanded_delivery_notes = null;
+				await frm.reload_doc();
+			},
+		});
+		dialog.show();
+	});
 }

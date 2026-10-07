@@ -293,7 +293,9 @@ def _reference_card(doc):
 	if not doc.reference_removed:
 		card = _document_card(doc.reference_doctype, doc.reference_name)
 		if card:
-			card["url"] = f"/desk/{frappe.scrub(doc.reference_doctype).replace("_", "-")}/{quote(doc.reference_name)}"
+			card[
+				"url"
+			] = f"/desk/{frappe.scrub(doc.reference_doctype).replace("_", "-")}/{quote(doc.reference_name)}"
 			return card
 	return {
 		"kind": "document",

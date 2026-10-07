@@ -1,5 +1,8 @@
 frappe.listview_settings["Consolidated Purchase Order"] = {
 	add_fields: [
+		"custom_has_delivery_note",
+		"custom_delivery_note_supplier_count",
+		"custom_delivery_note_supplier_total",
 		"payment_receipts_progress",
 		"payment_receipt_count",
 		"payment_invoice_count",
@@ -14,6 +17,18 @@ frappe.listview_settings["Consolidated Purchase Order"] = {
 		});
 	},
 	formatters: {
+		custom_has_delivery_note(value, df, doc) {
+			const attached = cint(doc.custom_delivery_note_supplier_count);
+			const total = cint(doc.custom_delivery_note_supplier_total);
+			const partial = attached > 0 && attached < total;
+			const color = partial ? "yellow" : attached ? "green" : "gray";
+			const label = partial
+				? `${__("Partially attached")} (${attached}/${total})`
+				: attached
+				? __("Attached")
+				: __("Not attached");
+			return `<span class="indicator-pill ${color}">${frappe.utils.escape_html(label)}</span>`;
+		},
 		procurement_completion_status(value) {
 			return erpnext.buying.format_procurement_status(value);
 		},

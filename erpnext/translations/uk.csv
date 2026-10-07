@@ -9643,7 +9643,7 @@ Supplier Address,Адреса постачальника
 Supplier Address Details,Деталі адреси постачальника
 Supplier Addresses And Contacts,Адреса та контактні дані постачальника
 Supplier Contact,Контакти постачальника
-Supplier Delivery Note,Постачання доставки постачальника
+Supplier Delivery Note,Видаткова накладна
 Supplier Details,Постачальник: Подробиці
 Supplier Group,Група постачальників
 Supplier Group Item,Товар за групою постачальників
@@ -13574,11 +13574,11 @@ No rows to calculate.,Немає рядків для підрахунку.
 "Salaries Changed","Змінено окладів"
 "Current Salary","Чинний оклад"
 "New Salary","Новий оклад"
-"Current Official Salary","Чинна Оф. ЗП"
-"Current Cash Salary","Чинна Упр. ЗП"
+"Current Official Salary","Чинний офіційний оклад"
+"Current Cash Salary","Чинний оклад готівкою"
 "Current Total Salary","Чинний оклад разом"
-"New Official Salary","Нова Оф. ЗП"
-"New Cash Salary","Нова Упр. ЗП"
+"New Official Salary","Новий офіційний оклад"
+"New Cash Salary","Новий оклад готівкою"
 "New Total Salary","Новий оклад разом"
 "Change %","Зміна, %"
 "Changed","Змінено"
@@ -13920,14 +13920,15 @@ Example,Приклад
 "The bench that makes this item. Its allowed operations decide which Job Cards the app may hand out.","Робоче місце, що виготовляє цей товар. Його дозволені операції визначають, які карти завдань може видавати застосунок."
 "How many units to open Work Orders for each day. Running out is not an error — an overflow Work Order is created on demand.","На скільки одиниць щодня відкривати наряди. Якщо їх забракне — це не помилка: додатковий наряд створюється на вимогу."
 "How many units an overflow Work Order covers when the day's plan runs out mid-shift. Small is safer: unused units are wasted serial numbers.","Скільки одиниць покриває додатковий наряд, коли денний план вичерпано посеред зміни. Менше — безпечніше: невикористані одиниці — це втрачені серійні номери."
-"Close the day at the time below: units nobody started lose their Job Cards and Serial Nos, and each Work Order shrinks to the units that were started, so the app does not hand out a stale unit tomorrow.","Закривати день у вказаний нижче час: одиниці, які ніхто не почав, втрачають карти завдань і серійні номери, а кожен наряд зменшується до розпочатих одиниць, щоб завтра застосунок не видав застарілу одиницю."
+"Close the day at the time below: delete the Job Cards nobody took and stop the day's Work Orders, so the app does not hand out a stale unit tomorrow.","Закривати день у вказаний нижче час: видаляти карти завдань, яких ніхто не взяв, і зупиняти наряди дня, щоб завтра застосунок не видав застарілу одиницю."
 "Plan At","Планувати о"
 "When the day's Work Orders are opened. Until then the app hands out only what is left from earlier Work Orders, or opens an overflow one.","Коли відкриваються наряди дня. До цього часу застосунок видає лише залишки з попередніх нарядів або відкриває додатковий."
 "Close Day At","Закривати день о"
-"When the day is closed: Work Orders opened before this moment keep only their started units; one nobody started is closed. Must be later than the plan time.","Коли закривається день: наряди, відкриті до цього моменту, зберігають лише розпочаті одиниці; наряд, який ніхто не почав, закривається. Має бути пізніше за час планування."
+"When the day is closed: Job Cards nobody took are deleted and the Work Orders opened before this moment are stopped. Must be later than the plan time.","Коли закривається день: карти завдань, яких ніхто не взяв, видаляються, а наряди, відкриті до цього моменту, зупиняються. Має бути пізніше за час планування."
 "Day Last Closed On","День востаннє закрито"
 "Day Close Result","Результат закриття дня"
 "Close Day At must be later than Plan At","Час закриття дня має бути пізнішим за час планування"
+"Also delete the Serial Nos that were never produced. Off by default: deleting a serial is irreversible, and leaving it costs only a gap in the numbering.","Також видаляти серійні номери, які так і не були виготовлені. Типово вимкнено: видалення незворотне, а залишений номер коштує лише пропуску в нумерації."
 "No enabled production line of type {0} plans item {1}","Жодна увімкнена виробнича лінія типу {0} не планує товар {1}"
 "Row {0}: item {1} at workplace {2} is already planned on production line {3}","Рядок {0}: товар {1} на робочому місці {2} уже заплановано на виробничій лінії {3}"
 "{0} has not passed quality inspection yet","{0} ще не пройшов перевірку якості"
@@ -13935,6 +13936,7 @@ Example,Приклад
 "Daily Qty","Денна кількість"
 "Overflow Qty","Кількість на дозамовлення"
 "Close Stale Work Orders","Закривати застарілі наряди"
+"Delete Unused Serial Nos","Видаляти невикористані серійні номери"
 "Last Run On","Останній запуск"
 "Last Result","Результат останнього запуску"
 "WIP Warehouse","Склад \"В роботі\""
@@ -15659,3 +15661,109 @@ Company Average Salary,Середня зарплата компанії,
 "Expand","Розгорнути"
 "Minimise","Згорнути"
 "Sidebar","Бічна панель"
+Supplier Details Verification,Перевірка реквізитів постачальника
+Supplier details checked manually,Реквізити постачальника перевірено вручну
+Supplier details in the invoice PDF require manual verification. {0},Реквізити постачальника у PDF рахунку потребують ручної перевірки. {0}
+Supplier details verification is not supported for {0}.,Перевірка реквізитів постачальника не підтримується для {0}.
+PDF verification requires the 'pdfplumber' library to be installed.,Для перевірки PDF має бути встановлена бібліотека «pdfplumber».
+{0}: not specified in the supplier record. Check manually.,{0}: не вказано в картці постачальника. Перевірте вручну.
+{0}: could not be read from the PDF. Check manually.,{0}: не вдалося зчитати з PDF. Перевірте вручну.
+{0}: matches the supplier record.,{0}: збігається з карткою постачальника.
+{0}: does not match the supplier record. Check manually.,{0}: не збігається з карткою постачальника. Перевірте вручну.
+Checking supplier details...,Перевіряємо реквізити постачальника…
+Supplier details could not be checked.,Не вдалося перевірити реквізити постачальника.
+Checked PDF,Перевірений PDF
+Match found in PDF,Збіг знайдено у PDF
+Multiple values,Знайдено кілька значень
+Update supplier details from PDF,Оновити реквізити постачальника з PDF
+Check the source PDF before updating the supplier,Перевірте вихідний PDF перед оновленням постачальника
+Select the value that should be saved in the supplier record.,Виберіть значення, яке потрібно зберегти в картці постачальника.
+NBU Bank Code,Код банку НБУ
+Update supplier,Оновити постачальника
+Select at least one value to update.,Виберіть щонайменше одне значення для оновлення.
+Updating supplier details...,Оновлення реквізитів постачальника...
+Supplier details updated,Реквізити постачальника оновлено
+Bank found by NBU code,Банк знайдено за кодом НБУ
+The bank was not found by the code from the IBAN. Select an existing bank or create a new one and specify this NBU code.,Банк не знайдено за кодом з IBAN. Виберіть наявний банк або створіть новий і зазначте цей код НБУ.
+Supplier details verification is not available for this document.,Перевірка реквізитів постачальника недоступна для цього документа.
+Supplier details can only be updated from a Purchase Invoice.,Реквізити постачальника можна оновити лише з вхідного рахунку-фактури.
+EDRPOU Code cannot be updated because the supplier or the PDF indicates an individual entrepreneur.,Код ЄДРПОУ не можна оновити, оскільки картка постачальника або PDF вказує на фізичну особу-підприємця.
+{0} is already specified in the supplier record and cannot be replaced from the PDF.,{0} уже зазначено в картці постачальника й не може бути замінено з PDF.
+The selected value was not found in the attached PDF. Refresh the document and try again.,Вибране значення не знайдено у прикріпленому PDF. Оновіть документ і спробуйте ще раз.
+IBAN {0} is already linked to another bank account.,IBAN {0} уже пов’язаний з іншим банківським рахунком.
+Select a bank before creating the supplier bank account.,Виберіть банк перед створенням банківського рахунку постачальника.
+"The selected bank has NBU code {0}, but the IBAN contains code {1}.","Вибраний банк має код НБУ {0}, але IBAN містить код {1}."
+{0}: not specified in the supplier record. Values found in PDF: {1}. Select the correct value or check manually.,{0}: не зазначено в картці постачальника. У PDF знайдено значення: {1}. Виберіть правильне значення або перевірте вручну.
+"{0}: multiple values were found in the PDF ({1}); {2} matches the supplier record. Check manually.","{0}: у PDF знайдено кілька значень ({1}); {2} збігається з карткою постачальника. Перевірте вручну."
+Not applicable,Не застосовується
+All applicable supplier details match the attached PDF.,Усі застосовні реквізити постачальника збігаються з прикріпленим PDF.
+EDRPOU Code: not applicable to an individual entrepreneur. Values found in the PDF may belong to the recipient or another party and will not be saved to the supplier record.,Код ЄДРПОУ: не застосовується до фізичної особи-підприємця. Значення з PDF може належати отримувачу або іншій стороні й не буде збережене в картці постачальника.
+No supplier invoice PDF was found.,PDF рахунку постачальника не знайдено.
+Detail,Реквізит
+Supplier record,Картка постачальника
+PDF value,Значення у PDF
+Matches,Збігається
+Does not match,Не збігається
+Could not read,Не вдалося зчитати
+Some supplier details do not match the attached PDF. Review the highlighted explanations before submitting the document.,Деякі реквізити постачальника не збігаються з прикріпленим PDF. Перед проведенням документа перегляньте виділені пояснення.
+The PDF could not be checked completely. Review the highlighted explanations before submitting the document.,Не вдалося повністю перевірити PDF. Перед проведенням документа перегляньте виділені пояснення.
+All supplier details match the attached PDF.,Усі реквізити постачальника збігаються з прикріпленим PDF.
+"Manual entry is only available for supplier details that are missing from both the supplier record and the PDF.","Ручне введення доступне лише для реквізитів, відсутніх і в картці постачальника, і в PDF."
+Bank suggestions are only available from a Purchase Invoice.,Підбір банку доступний лише з вхідного рахунку-фактури.
+This supplier detail cannot be entered manually for the current PDF verification result.,Цей реквізит постачальника не можна ввести вручну за поточного результату перевірки PDF.
+{0} must contain {1} digits.,{0} має містити {1} цифр.
+Enter a valid Ukrainian IBAN containing 29 characters.,Введіть коректний український IBAN із 29 символів.
+Enter supplier details manually,Ввести реквізити постачальника вручну
+Enter the value after checking the attached PDF.,Введіть значення після перевірки прикріпленого PDF.
+Select an additional IBAN to add to the supplier.,Виберіть додатковий IBAN для додавання постачальнику.
+Enter a complete Ukrainian IBAN to identify the bank.,Введіть повний український IBAN для визначення банку.
+CEO Approvers,Фінальні погоджувачі (CEO)
+Procurement Final Approver,Фінальний погоджувач закупівлі
+Approver,Погоджувач
+Procurement Links,Зв’язки закупівлі
+Save the document to view its links.,"Збережіть документ, щоб переглянути його зв’язки."
+No linked documents available.,Пов’язані документи відсутні або недоступні.
+"Configure at least one active, enabled CEO approver with the Final Approver role in Buying Settings. Active approvers must be unique.",У налаштуваннях закупівель додайте щонайменше одного активного CEO з роллю фінального погоджувача. Активні погоджувачі не повинні повторюватися.
+"Active CEO approvers must be unique, enabled users with the Final Approver role.",Активні CEO мають бути увімкненими користувачами з роллю фінального погоджувача та не повинні повторюватися.
+CEO approval {0}/{1} recorded. The document is waiting for the remaining approvers.,Зафіксовано погодження CEO {0}/{1}. Документ очікує на решту погоджувачів.
+All CEO approvers recorded for this document must approve before it can advance.,"Для переходу далі потрібне погодження всіх CEO, зафіксованих для цього документа."
+Perform final approval of consolidated purchase order {0}.,Виконайте фінальне погодження зведеного замовлення {0}.
+Procurement Document Links,Зв’язки
+Repeat order,Повторити замовлення
+"Create a new draft with these items? The initiator, supplier invoices and document links will not be copied.","Створити нову чернетку з цими позиціями? Користувач-ініціатор, рахунки постачальників і зв’язки з документами не копіюватимуться."
+Create another consolidated purchase order,Створити ще одне зведене замовлення на придбання
+No conversion factor is configured for item {0} and UOM {1}.,Для товару {0} та одиниці виміру {1} не налаштовано коефіцієнт перерахунку.
+Material Request {0} must be a submitted purchase request.,Замовлення матеріалів {0} має бути поданим замовленням на закупівлю.
+Row {0}: Select the matching original Material Request item.,Рядок {0}: виберіть відповідну вихідну позицію замовлення матеріалів.
+"Material Request {0}, item {1}: only {2} remains available for this consolidated order.","Замовлення матеріалів {0}, товар {1}: для цього зведеного замовлення доступний залишок лише {2}."
+All items in this Material Request are already covered by active consolidated orders.,Усі позиції цього замовлення матеріалів уже включено до активних зведених замовлень.
+{0} created {1} based on this Material Request.,{0} створив(ла) {1} на основі цього замовлення матеріалів.
+Save your changes before repeating this order.,Збережіть зміни перед повторенням цього замовлення.
+
+VAT Payer,Платник ПДВ
+Delivery Note Attached,Видаткову накладну прикріплено
+Not attached,Відсутня
+Attach delivery note,Прикріпити видаткову накладну
+Not permitted to add delivery notes to this order.,Немає права додавати видаткові накладні до цього замовлення.
+Upload a file for this order.,Завантажте файл для цього замовлення.
+"Only the creator, lead buyer or treasurer can change delivery notes.","Змінювати видаткові накладні може лише автор, ведучий закупівельник або казначей."
+
+Only System Manager can link existing purchase receipts.,Прив’язувати наявні прихідні накладні може лише системний менеджер.
+"Select a submitted, open Purchase Order.","Виберіть проведене замовлення на придбання, яке не закрите й не призупинене."
+Select receipt rows to link.,Виберіть рядки прихідних накладних для прив’язки.
+The receipt must match the supplier and company and must not be linked to another order.,Накладна має відповідати постачальнику й компанії та не бути прив’язана до іншого замовлення.
+Receipt rows no longer match the selected order. Refresh the candidates.,Рядки накладної не відповідають вибраному замовленню. Оновіть список кандидатів.
+The selected receipts exceed the outstanding order quantity.,Вибрані накладні перевищують залишок кількості замовлення.
+Linked to Purchase Order {0} by System Manager.,Системний менеджер прив’язав до замовлення на придбання {0}.
+Linked existing Purchase Receipts: {0},Прив’язано наявні прихідні накладні: {0}
+Link existing purchase receipts,Прив’язати прихідні накладні
+No matching unlinked purchase receipts found.,Відповідних неприв’язаних прихідних накладних не знайдено.
+Select rows from one or several receipts. Only references will change; stock will not be received again.,Виберіть рядки однієї або кількох накладних. Зміняться лише посилання; повторного оприбуткування не буде.
+Order row,Рядок замовлення
+Select an order row for each receipt row.,Виберіть рядок замовлення для кожного рядка накладної.
+Link the selected receipt rows to this order?,Прив’язати вибрані рядки накладних до цього замовлення?
+Coverage by order row,Покриття за рядками замовлення
+Suppliers with Delivery Notes,Постачальники з видатковими накладними
+Procurement Delivery Note,Видаткова накладна
+Delivery Note Supplier Count,Кількість постачальників для видаткових накладних
+Partially attached,Частково

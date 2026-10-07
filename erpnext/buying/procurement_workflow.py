@@ -5,6 +5,7 @@ LEGACY_WORKFLOW_NAME = "Закупівлі: погодження замовле�
 WORKFLOW_NAME = "Закупівлі: погодження зведеного замовлення на придбання"
 
 MATERIAL_REQUEST_INITIATOR_ROLE = "Закупівлі: Ініціатор замовлень матеріалів"
+MATERIAL_REQUEST_PREPARER_ROLE = "Закупівлі: Підготовка замовлень матеріалів"
 BUYER_ROLE = "Закупівельник"
 BUYER_ROLE_PROFILE = "Закупівлі: профіль закупівельника"
 PAYMENT_INITIATOR_ROLE = "Payments: Ініціатор"
@@ -182,7 +183,7 @@ WORKFLOW_TRANSITIONS = (
 		"action": "Погодити",
 		"next_state": "Погоджено",
 		"allowed": FINAL_APPROVER_ROLE,
-		"allow_self_approval": 0,
+		"allow_self_approval": 1,
 	},
 	{
 		"state": "Перевірка підрозділу",
@@ -259,6 +260,7 @@ DOCTYPE_PERMISSIONS = {
 		BUYER_ROLE: READ_ONLY_PERMISSIONS,
 	},
 	"Material Request": {
+		MATERIAL_REQUEST_PREPARER_ROLE: ("select", "read", "create", "write", "delete", "print"),
 		MATERIAL_REQUEST_INITIATOR_ROLE: (
 			"select",
 			"read",
@@ -294,17 +296,17 @@ DOCTYPE_PERMISSIONS = {
 		TREASURER_ROLE: ("select", "read", "report", "print"),
 	},
 	"Supplier": {
-		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		BUYER_ROLE: ("select", "read", "write", "create", "delete", "report", "print"),
 		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
 		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
 	},
 	"Bank Account": {
-		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		BUYER_ROLE: ("select", "read", "write", "create", "delete", "report", "print"),
 		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
 		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
 	},
 	"Bank": {
-		BUYER_ROLE: BUYER_CREATE_PERMISSIONS,
+		BUYER_ROLE: ("select", "read", "write", "create", "delete", "report", "print"),
 		DEPARTMENT_HEAD_ROLE: READ_ONLY_PERMISSIONS,
 		FINAL_APPROVER_ROLE: READ_ONLY_PERMISSIONS,
 	},
@@ -329,11 +331,22 @@ BUYER_OWNED_DOCTYPES = {
 	CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 	"Purchase Order",
 	"Purchase Invoice",
-	"Supplier",
-	"Bank Account",
-	"Bank",
 	"Payment Request",
 }
+
+
+for _master in (
+	"Item",
+	"Item Group",
+	"UOM",
+	"Warehouse",
+	"Company",
+	"Project",
+	"Cost Center",
+	"Employee",
+	"User",
+):
+	DOCTYPE_PERMISSIONS.setdefault(_master, {})[MATERIAL_REQUEST_PREPARER_ROLE] = ("select", "read")
 
 
 def sync_procurement_workflow():
@@ -358,7 +371,7 @@ def sync_procurement_workflow():
 
 
 def _ensure_roles():
-	for role_name in (MATERIAL_REQUEST_INITIATOR_ROLE, BUYER_ROLE):
+	for role_name in (MATERIAL_REQUEST_INITIATOR_ROLE, MATERIAL_REQUEST_PREPARER_ROLE, BUYER_ROLE):
 		if frappe.db.exists("Role", role_name):
 			continue
 		frappe.get_doc(
@@ -390,12 +403,16 @@ def _ensure_role_profiles():
 
 
 def _ensure_permissions():
+	from frappe.permissions import setup_custom_perms
+
 	for doctype in DOCTYPE_PERMISSIONS:
 		_restore_standard_permissions(doctype)
 
 	for doctype, role_permissions in DOCTYPE_PERMISSIONS.items():
+		setup_custom_perms(doctype)
 		for role, enabled_permissions in role_permissions.items():
-			_ensure_permission_row(doctype, role, enabled_permissions, if_owner=0)
+			if_owner = int(role == MATERIAL_REQUEST_PREPARER_ROLE and doctype == "Material Request")
+			_ensure_permission_row(doctype, role, enabled_permissions, if_owner=if_owner)
 
 	for doctype in BUYER_OWNED_DOCTYPES:
 		_ensure_permission_row(doctype, BUYER_ROLE, BUYER_OWNER_PERMISSIONS, if_owner=1)
@@ -408,7 +425,8 @@ def _ensure_permission_row(doctype, role, enabled_permissions, if_owner):
 		"permlevel": 0,
 		"if_owner": if_owner,
 	}
-	name = frappe.db.get_value("Custom DocPerm", filters, "name")
+	names = frappe.get_all("Custom DocPerm", filters=filters, pluck="name", order_by="creation asc")
+	name = names[0] if names else None
 	if name:
 		doc = frappe.get_doc("Custom DocPerm", name)
 	else:
@@ -420,9 +438,16 @@ def _ensure_permission_row(doctype, role, enabled_permissions, if_owner):
 		doc.permlevel = 0
 		doc.if_owner = if_owner
 
+	changed = not name
 	for permission in PERMISSION_FIELDS:
-		doc.set(permission, int(permission in enabled_permissions))
-	_save(doc)
+		value = int(permission in enabled_permissions)
+		if doc.get(permission) != value:
+			doc.set(permission, value)
+			changed = True
+	if changed:
+		_save(doc)
+	for duplicate in names[1:]:
+		frappe.delete_doc("Custom DocPerm", duplicate, force=True, ignore_permissions=True)
 
 
 def _restore_standard_permissions(doctype):

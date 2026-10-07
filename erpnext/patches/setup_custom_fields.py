@@ -16,6 +16,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_procurement_document_details()
 	setup_todo_deadline()
 	setup_payment_instruction_list_link()
 	create_workflow_states()
@@ -3928,3 +3929,174 @@ def _ensure_tax_account(company, parent, account_name):
 	print(f"  Created account: {doc.name}")
 
 	return doc.name
+
+
+PROCUREMENT_REVIEW_FIELDS = {
+	"Buying Settings": [
+		{
+			"fieldname": "custom_final_approvers",
+			"fieldtype": "Table",
+			"label": "CEO Approvers",
+			"options": "Procurement Final Approver",
+			"insert_after": "custom_ceo_approval_threshold",
+		},
+		{
+			"fieldname": "custom_final_approvers_initialized",
+			"fieldtype": "Check",
+			"hidden": 1,
+			"read_only": 1,
+			"insert_after": "custom_final_approvers",
+		},
+	],
+	"Consolidated Purchase Order": [
+		{
+			"fieldname": "custom_final_approvers_snapshot",
+			"fieldtype": "Long Text",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "final_approval_count",
+		},
+		{
+			"fieldname": "custom_final_approved_users",
+			"fieldtype": "Long Text",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_final_approvers_snapshot",
+		},
+		{
+			"fieldname": "custom_procurement_links_tab",
+			"fieldtype": "Tab Break",
+			"label": "Procurement Document Links",
+			"insert_after": "amended_from",
+		},
+		{
+			"fieldname": "custom_procurement_links",
+			"fieldtype": "HTML",
+			"label": "Procurement Links",
+			"insert_after": "custom_procurement_links_tab",
+		},
+	],
+}
+
+
+def setup_procurement_document_details():
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+
+	fields = {
+		"Supplier": [
+			{
+				"fieldname": "custom_is_vat_payer",
+				"fieldtype": "Check",
+				"label": "VAT Payer",
+				"insert_after": "tax_id",
+				"default": "0",
+			}
+		],
+		"Consolidated Purchase Order": [
+			{
+				"fieldname": "custom_has_delivery_note",
+				"fieldtype": "Check",
+				"label": "Procurement Delivery Note",
+				"read_only": 1,
+				"allow_on_submit": 1,
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"insert_after": "company",
+				"hidden": 1,
+				"no_copy": 1,
+			},
+			*[
+				{
+					"fieldname": fieldname,
+					"fieldtype": "Int",
+					"label": label,
+					"read_only": 1,
+					"allow_on_submit": 1,
+					"hidden": 1,
+					"no_copy": 1,
+					"insert_after": "custom_has_delivery_note",
+				}
+				for fieldname, label in (
+					("custom_delivery_note_supplier_count", "Suppliers with Delivery Notes"),
+					("custom_delivery_note_supplier_total", "Delivery Note Supplier Count"),
+				)
+			],
+		],
+		"Purchase Order": [
+			{
+				"fieldname": "custom_request_initiator_user",
+				"fieldtype": "Link",
+				"options": "User",
+				"label": "Initiator User",
+				"read_only": 1,
+				"in_standard_filter": 1,
+				"insert_after": "supplier_name",
+				"no_copy": 1,
+			}
+		],
+	}
+	for doctype, anchor in (
+		("Purchase Invoice", "edrpou"),
+		("Payment Request", "custom_party_edrpou"),
+		("Payment Entry", "custom_party_edrpou"),
+	):
+		fields[doctype] = [
+			{
+				"fieldname": "custom_supplier_is_vat_payer",
+				"fieldtype": "Check",
+				"label": "VAT Payer",
+				"read_only": 1,
+				"allow_on_submit": 1,
+				"insert_after": anchor,
+				"depends_on": "eval:doc.supplier"
+				if doctype == "Purchase Invoice"
+				else "eval:doc.party_type == 'Supplier'",
+			}
+		]
+	fields["Payment Request"] = [
+		{
+			"fieldname": "custom_party_tax_id",
+			"fieldtype": "Data",
+			"label": "Tax ID",
+			"read_only": 1,
+			"insert_after": "party_name",
+			"depends_on": "eval:doc.party_type == 'Supplier'",
+		},
+		{
+			"fieldname": "custom_party_edrpou",
+			"fieldtype": "Data",
+			"label": "EDRPOU Code",
+			"read_only": 1,
+			"insert_after": "custom_party_tax_id",
+			"depends_on": "eval:doc.party_type == 'Supplier'",
+		},
+	] + fields["Payment Request"]
+	create_custom_fields(fields)
+	filters = {
+		"doc_type": "Consolidated Purchase Order",
+		"field_name": "request_initiator_user",
+		"property": "in_standard_filter",
+	}
+	if frappe.db.get_value("Property Setter", filters, "value") != "1":
+		make_property_setter(
+			"Consolidated Purchase Order", "request_initiator_user", "in_standard_filter", "1", "Check"
+		)
+
+	filters = {
+		"doc_type": "Consolidated Purchase Order",
+		"field_name": "delivery_notes_section",
+		"property": "collapsible_depends_on",
+	}
+	value = "eval:doc.delivery_notes && doc.delivery_notes.length > 0"
+	if frappe.db.get_value("Property Setter", filters, "value") != value:
+		make_property_setter(
+			"Consolidated Purchase Order", "delivery_notes_section", "collapsible_depends_on", value, "Data"
+		)
+
+	for fieldname in ("advance_payment_status", "advance_paid"):
+		filters = {"doc_type": "Purchase Order", "field_name": fieldname, "property": "report_hide"}
+		if frappe.db.get_value("Property Setter", filters, "value") != "1":
+			make_property_setter("Purchase Order", fieldname, "report_hide", "1", "Check")

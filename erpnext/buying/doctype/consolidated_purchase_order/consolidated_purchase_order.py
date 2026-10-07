@@ -50,12 +50,9 @@ class ConsolidatedPurchaseOrder(Document):
 			)
 
 	def _validate_material_request_uniqueness(self):
-		if not self.is_new():
-			return
-		from erpnext.buying.procurement_automation import validate_material_requests_available
+		from erpnext.buying.procurement_order_reuse import validate_consolidated_request_quantities
 
-		material_requests = {row.material_request for row in self.items if row.material_request}
-		validate_material_requests_available(material_requests, exclude=self.name)
+		validate_consolidated_request_quantities(self)
 
 	def on_submit(self):
 		self.create_purchase_orders()
@@ -72,9 +69,11 @@ class ConsolidatedPurchaseOrder(Document):
 			)
 
 		if self._delivery_notes_changed(before):
-			if frappe.session.user != before.owner:
+			from erpnext.buying.procurement_document_details import can_add_delivery_note
+
+			if not can_add_delivery_note(before):
 				frappe.throw(
-					_("Only the creator of this consolidated order can change delivery notes."),
+					_("Only the creator, lead buyer or treasurer can change delivery notes."),
 					title=_("Not Permitted"),
 				)
 			self._validate_delivery_notes()
@@ -110,7 +109,11 @@ class ConsolidatedPurchaseOrder(Document):
 	def _set_ceo_approval_threshold(self):
 		from erpnext.buying.procurement_final_approval import get_approval_threshold
 
-		self.ceo_approval_threshold = get_approval_threshold()
+		previous = self.get_doc_before_save()
+		if previous and previous.workflow_state in {"Фінальне погодження", "Погоджено", "Проведено"}:
+			self.ceo_approval_threshold = previous.ceo_approval_threshold
+		else:
+			self.ceo_approval_threshold = get_approval_threshold()
 
 	def _set_material_request(self):
 		material_requests = {row.material_request for row in self.items if row.material_request}
@@ -138,7 +141,9 @@ class ConsolidatedPurchaseOrder(Document):
 			]
 			self.request_initiator_user = initiators[0] if initiators else None
 
-		if not self.request_initiator_user:
+		if not self.request_initiator_user and (
+			self.docstatus != 0 or self.workflow_state not in {None, "Чернетка", "Потребує доопрацювання"}
+		):
 			frappe.throw(_("Select the initiator user for this consolidated order."))
 
 	def _set_prepaid_purchase_note(self):
@@ -601,9 +606,9 @@ def get_purchase_order_summary(source_name: str):
 @frappe.whitelist()
 def get_approval_route_summary(source_name: str):
 	from erpnext.buying.procurement_final_approval import (
-		REQUIRED_FINAL_APPROVALS,
 		get_approval_threshold,
-		get_configured_final_approvers,
+		get_document_approved_users,
+		get_document_final_approvers,
 		is_automatic_final_approval,
 	)
 
@@ -646,9 +651,7 @@ def get_approval_route_summary(source_name: str):
 		order_by="creation asc",
 	)
 	current_assignees = [_get_user_summary(user) for user in dict.fromkeys(current_assignees) if user]
-	final_approved_users = [
-		_get_user_summary(user) for user in (doc.final_approved_by_1, doc.final_approved_by_2) if user
-	]
+	final_approved_users = [_get_user_summary(user) for user in get_document_approved_users(doc)]
 	external_payer = (
 		material_requests[0].created_by if doc.items_already_purchased and material_requests else None
 	)
@@ -658,11 +661,11 @@ def get_approval_route_summary(source_name: str):
 		"stage_actors": stage_actors,
 		"current_assignees": current_assignees,
 		"final_approval_count": cint(doc.final_approval_count),
-		"final_approval_required": REQUIRED_FINAL_APPROVALS,
+		"final_approval_required": len(get_document_final_approvers(doc)),
 		"final_approved_users": final_approved_users,
-		"final_approvers": [_get_user_summary(user) for user in get_configured_final_approvers(throw=False)],
+		"final_approvers": [_get_user_summary(user) for user in get_document_final_approvers(doc)],
 		"final_approval_automatic": is_automatic_final_approval(doc),
-		"final_approval_threshold": get_approval_threshold(),
+		"final_approval_threshold": doc.ceo_approval_threshold or get_approval_threshold(),
 		"external_payment": bool(doc.items_already_purchased),
 		"external_payer": external_payer,
 		**_get_invoice_receipt_summary(source_name),

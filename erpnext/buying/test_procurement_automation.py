@@ -246,15 +246,13 @@ class TestProcurementAutomation(FrappeTestCase):
 				custom_procurement_comment="<p>Потрібно терміново</p><script>alert(1)</script>",
 			)
 		]
-		doc = frappe._dict(
-			items=[frappe._dict(material_request="MAT-MR-TEST")], material_request="MAT-MR-TEST"
-		)
+		doc = MagicMock(items=[frappe._dict(material_request="MAT-MR-TEST")], material_request="MAT-MR-TEST")
 
 		result = _get_material_request_summaries(doc)
 
 		self.assertIn("Потрібно терміново", result[0].procurement_comment)
 		self.assertNotIn("<script", result[0].procurement_comment)
-		self.assertEqual(result[0].created_by.full_name, "Замовник Матеріалів")
+		self.assertEqual(result[0].created_by["full_name"], "Замовник Матеріалів")
 
 	@patch("erpnext.buying.doctype.supplier.supplier.frappe.get_all")
 	@patch("erpnext.buying.doctype.supplier.supplier.frappe.get_doc")
@@ -750,10 +748,10 @@ class TestProcurementAutomation(FrappeTestCase):
 	@patch("erpnext.buying.procurement_automation.add_assignment")
 	@patch("erpnext.buying.procurement_automation._close_assignments_silently")
 	@patch(
-		"erpnext.buying.procurement_automation._has_active_consolidated_purchase_order",
+		"erpnext.buying.procurement_automation._has_fully_reserved_material_request",
 		return_value=True,
 	)
-	def test_material_request_assignment_is_not_recreated_after_consolidation(
+	def test_material_request_assignment_is_not_recreated_after_full_consolidation(
 		self, _has_consolidated_order, close_assignments, add_assignment
 	):
 		doc = frappe._dict(doctype="Material Request", name="MAT-MR-TEST")

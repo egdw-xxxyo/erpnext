@@ -13,6 +13,18 @@ PURCHASE_RECEIPT_TTN_FIELDS = (
 )
 
 CUSTOM_FIELDS = {
+	"Bank": [
+		{
+			"fieldname": "custom_nbu_code",
+			"fieldtype": "Data",
+			"label": "NBU Bank Code",
+			"insert_after": "swift_number",
+			"allow_in_quick_entry": 1,
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"unique": 1,
+		},
+	],
 	"Buying Settings": [
 		{
 			"fieldname": "custom_procurement_approval_section",
@@ -32,11 +44,13 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_final_approver_1",
 			"fieldtype": "Link",
 			"label": "CEO Approver 1",
+			"hidden": 1,
 			"options": "User",
 			"insert_after": "custom_ceo_approval_threshold",
 		},
 		{
 			"fieldname": "custom_procurement_approval_column",
+			"hidden": 1,
 			"fieldtype": "Column Break",
 			"insert_after": "custom_final_approver_1",
 		},
@@ -44,6 +58,7 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_final_approver_2",
 			"fieldtype": "Link",
 			"label": "CEO Approver 2",
+			"hidden": 1,
 			"options": "User",
 			"insert_after": "custom_procurement_approval_column",
 		},
@@ -68,7 +83,7 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_procurement_completion_status",
 			"fieldtype": "Select",
 			"label": "Procurement Status",
-			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nОчікуються видаткові накладні\nЗавершено",
 			"default": "Підготовка",
 			"read_only": 1,
 			"no_copy": 1,
@@ -145,7 +160,7 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_procurement_completion_status",
 			"fieldtype": "Select",
 			"label": "Procurement Status",
-			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nЗавершено",
+			"options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nОчікуються видаткові накладні\nЗавершено",
 			"default": "Підготовка",
 			"read_only": 1,
 			"no_copy": 1,
@@ -240,6 +255,28 @@ CUSTOM_FIELDS = {
 			"insert_after": "bill_date",
 		},
 		{
+			"fieldname": "custom_supplier_requisites_validation_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Details Verification",
+			"insert_after": "custom_supplier_invoice_files_html",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_validation_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Details Verification",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_section",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_manual_confirmation",
+			"fieldtype": "Check",
+			"label": "Supplier details checked manually",
+			"default": "0",
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_html",
+		},
+		{
 			"fieldname": "custom_paid_outside_company",
 			"fieldtype": "Check",
 			"label": "Payer",
@@ -267,6 +304,54 @@ CUSTOM_FIELDS = {
 			"no_copy": 1,
 			"depends_on": "eval:doc.custom_paid_outside_company",
 			"insert_after": "custom_external_payer",
+		},
+	],
+	"Payment Request": [
+		{
+			"fieldname": "custom_supplier_requisites_validation_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Details Verification",
+			"insert_after": "iban",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_validation_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Details Verification",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_section",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_manual_confirmation",
+			"fieldtype": "Check",
+			"label": "Supplier details checked manually",
+			"default": "0",
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_html",
+		},
+	],
+	"Payment Entry": [
+		{
+			"fieldname": "custom_supplier_requisites_validation_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Details Verification",
+			"insert_after": "custom_supplier_invoice_files_html",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_validation_html",
+			"fieldtype": "HTML",
+			"label": "Supplier Details Verification",
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_section",
+		},
+		{
+			"fieldname": "custom_supplier_requisites_manual_confirmation",
+			"fieldtype": "Check",
+			"label": "Supplier details checked manually",
+			"default": "0",
+			"no_copy": 1,
+			"insert_after": "custom_supplier_requisites_validation_html",
 		},
 	],
 }
@@ -350,7 +435,7 @@ frappe.ui.form.on("Material Request", {
 		configure_purchase_receipts_grid(frm);
 		setTimeout(() => configure_purchase_receipts_grid(frm), 100);
 		render_consolidated_purchase_orders(frm);
-		if (frappe.user_roles.includes("Закупівельник")) {
+		if (frappe.session.user === "Administrator" || frappe.user_roles.includes("Закупівельник")) {
 			restrict_duplicate_consolidated_order(frm);
 			return;
 		}
@@ -416,16 +501,20 @@ function get_purchase_receipt_file_name(fileUrl) {
 
 function restrict_duplicate_consolidated_order(frm) {
 	if (frm.doc.docstatus !== 1 || frm.doc.material_request_type !== "Purchase") return;
-	frappe
-		.call({
-			method: "erpnext.buying.procurement_automation.get_existing_consolidated_purchase_order",
-			args: { source_name: frm.doc.name },
-		})
-		.then((response) => {
-			if (!response.message) return;
-			frm.remove_custom_button(__("Purchase Order"), __("Create"));
-		});
+	frappe.call({
+		method: "erpnext.buying.procurement_order_reuse.get_material_request_coverage",
+		args: { source_name: frm.doc.name },
+	}).then((response) => {
+		frm.remove_custom_button(__("Purchase Order"), __("Create"));
+		if (!response.message?.has_remaining) return;
+		const label = response.message.has_existing ? __("Create another consolidated purchase order") : __("Consolidated Purchase Order");
+		frm.add_custom_button(label, () => frappe.model.open_mapped_doc({
+			method: "erpnext.buying.procurement_automation.make_purchase_order",
+			frm,
+		}), __("Create"));
+	});
 }
+
 
 function render_consolidated_purchase_orders(frm) {
 	const field = frm.get_field("custom_consolidated_purchase_orders_html");
@@ -470,6 +559,10 @@ function render_consolidated_purchase_orders(frm) {
 
 def after_migrate():
 	sync_procurement_custom_fields()
+	from erpnext.buying.procurement_document_details import backfill_order_details
+	from erpnext.patches.setup_custom_fields import setup_procurement_document_details
+
+	setup_procurement_document_details()
 
 	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
 		sync_all_consolidated_purchase_order_progress,
@@ -481,6 +574,7 @@ def after_migrate():
 		sync_existing_purchase_invoice_external_payment_details,
 	)
 	from erpnext.buying.procurement_final_approval import (
+		migrate_final_approver_settings,
 		sync_existing_approval_thresholds,
 		sync_existing_final_approval_documents,
 	)
@@ -488,10 +582,12 @@ def after_migrate():
 
 	sync_procurement_workflow()
 	_sync_consolidated_procurement_users()
+	backfill_order_details()
 	apply_rules_to_existing_procurement_documents()
 	sync_all_current_assignee_names()
 	sync_existing_approval_thresholds()
 	sync_existing_final_approval_documents()
+	migrate_final_approver_settings()
 	sync_existing_purchase_invoice_external_payment_details()
 	sync_all_consolidated_purchase_order_progress()
 	sync_all_procurement_participants()
@@ -511,7 +607,10 @@ def after_migrate():
 
 def sync_procurement_custom_fields():
 	_remove_legacy_purchase_invoice_supplier_files_section()
+	from erpnext.patches.setup_custom_fields import PROCUREMENT_REVIEW_FIELDS
+
 	create_custom_fields(CUSTOM_FIELDS, update=True)
+	create_custom_fields(PROCUREMENT_REVIEW_FIELDS, update=True)
 	_remove_purchase_receipt_ttn_fields()
 
 
@@ -563,7 +662,7 @@ def _sync_consolidated_procurement_users():
 
 	orders = frappe.get_all(
 		"Consolidated Purchase Order",
-		fields=["name", "owner", "initiator_user", "request_initiator_user"],
+		fields=["name", "owner", "initiator_user", "request_initiator_user", "docstatus", "workflow_state"],
 	)
 	for order in orders:
 		lead_buyer = order.initiator_user or order.owner
@@ -585,7 +684,9 @@ def _sync_consolidated_procurement_users():
 			)
 			if requests:
 				request_initiator = requests[0].custom_procurement_initiator_user or requests[0].owner
-		request_initiator = request_initiator or order.owner
+		# A repeated draft deliberately has no initiator until the buyer selects one.
+		if order.docstatus != 0 or order.workflow_state not in {None, "Чернетка", "Потребує доопрацювання"}:
+			request_initiator = request_initiator or order.owner
 		frappe.db.set_value(
 			"Consolidated Purchase Order",
 			order.name,
@@ -600,8 +701,9 @@ def _sync_consolidated_procurement_users():
 def _sync_client_scripts():
 	if frappe.db.exists("Client Script", LEGACY_CLIENT_SCRIPT_NAME):
 		legacy_script = frappe.get_doc("Client Script", LEGACY_CLIENT_SCRIPT_NAME)
-		legacy_script.enabled = 0
-		legacy_script.save(ignore_permissions=True)
+		if legacy_script.enabled:
+			legacy_script.enabled = 0
+			_save(legacy_script)
 
 	_ensure_client_script(CLIENT_SCRIPT_NAME, "Consolidated Purchase Order", CLIENT_SCRIPT)
 	_ensure_client_script(
@@ -640,6 +742,7 @@ def _sync_consolidated_purchase_order_list_view():
 		{"fieldname": "procurement_completion_status", "label": "Status"},
 		{"fieldname": "transaction_date", "label": "Date"},
 		{"fieldname": "payment_receipts_progress", "label": "Payment"},
+		{"fieldname": "custom_has_delivery_note", "label": "Procurement Delivery Note"},
 		{"fieldname": "grand_total", "label": "Grand Total"},
 	]
 
@@ -650,7 +753,7 @@ def _sync_consolidated_purchase_order_list_view():
 		doc.name = "Consolidated Purchase Order"
 
 	doc.fields = json.dumps(fields)
-	doc.total_fields = "7"
+	doc.total_fields = "8"
 	_save(doc)
 
 
@@ -666,7 +769,7 @@ def _ensure_property_setter(fieldname, property_name, value, property_type):
 		doc.value = value
 		doc.property_type = property_type
 		doc.is_system_generated = 1
-		doc.save(ignore_permissions=True)
+		_save(doc)
 		return
 	make_property_setter("Consolidated Purchase Order", fieldname, property_name, value, property_type)
 
@@ -675,4 +778,7 @@ def _save(doc):
 	if doc.is_new():
 		doc.insert(ignore_permissions=True)
 	else:
-		doc.save(ignore_permissions=True)
+		# Compare against storage before invoking hooks on existing configuration.
+		stored = frappe.get_doc(doc.doctype, doc.name)
+		if doc.as_dict() != stored.as_dict():
+			doc.save(ignore_permissions=True)

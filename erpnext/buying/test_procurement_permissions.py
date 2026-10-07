@@ -28,6 +28,11 @@ class TestProcurementPermissions(TestCase):
 	def test_buyer_mutating_permissions_are_limited_to_owned_procurement_documents(self):
 		for doctype in BUYER_OWNED_DOCTYPES:
 			self.assertEqual(DOCTYPE_PERMISSIONS[doctype][BUYER_ROLE], BUYER_CREATE_PERMISSIONS)
+		for doctype in ("Supplier", "Bank Account", "Bank"):
+			self.assertNotIn(doctype, BUYER_OWNED_DOCTYPES)
+			self.assertTrue(
+				{"read", "create", "write", "delete"}.issubset(DOCTYPE_PERMISSIONS[doctype][BUYER_ROLE])
+			)
 		self.assertIn("write", BUYER_OWNER_PERMISSIONS)
 		self.assertIn("delete", BUYER_OWNER_PERMISSIONS)
 		self.assertNotIn("write", BUYER_CREATE_PERMISSIONS)

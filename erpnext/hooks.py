@@ -41,6 +41,9 @@ web_include_icons = [
 ]
 
 doctype_js = {
+	"Purchase Order": "public/js/procurement_receipt_linking.js",
+	"Consolidated Purchase Order": "public/js/procurement_links.js",
+	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",
 	"Job Card": "public/js/custom/job_card.js",
 	"Communication": "public/js/communication.js",
@@ -67,6 +70,7 @@ doctype_js = {
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 	],
+	"Payment Request": "public/js/procurement_supplier_invoice_files.js",
 	"Payment Entry": "public/js/procurement_supplier_invoice_files.js",
 	"Delivery Note": "public/js/responsible_employee.js",
 	"Sales Invoice": "public/js/responsible_employee.js",
@@ -635,7 +639,9 @@ doc_events = {
 		"on_trash": "erpnext.regional.check_deletion_permission",
 	},
 	"Purchase Invoice": {
+		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
+			"erpnext.buying.procurement_document_details.sync_supplier_vat",
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",
 			"erpnext.buying.procurement_automation.set_purchase_invoice_external_payment_details",
@@ -647,7 +653,9 @@ doc_events = {
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Payment Request": {
+		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
+			"erpnext.buying.procurement_document_details.sync_supplier_vat",
 			"erpnext.accounts.payment_procurement_route.set_procurement_approval_route",
 			"erpnext.accounts.payment_workflow_reason.validate_required_reason",
 			"erpnext.projects.task_payments.set_payment_request_task",
@@ -676,15 +684,24 @@ doc_events = {
 		],
 	},
 	"Purchase Order": {
+		"validate": "erpnext.buying.procurement_document_details.sync_order_details",
 		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
+	"Buying Settings": {
+		"validate": "erpnext.buying.procurement_final_approval.validate_final_approver_settings"
+	},
 	"Consolidated Purchase Order": {
+		"on_update": "erpnext.buying.procurement_document_details.sync_order_details",
+		"on_update_after_submit": "erpnext.buying.procurement_document_details.sync_order_details",
 		"after_insert": [
 			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
 			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
 		],
-		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
+		"validate": [
+			"erpnext.buying.procurement_workflow_reason.validate_required_reason",
+			"erpnext.buying.procurement_final_approval.capture_final_approvers",
+		],
 		# Manage buyer ToDos and send approval-stage alerts without assigning
 		# ToDos to the department head or the configured CEO approvers.
 		"on_change": [
@@ -739,7 +756,11 @@ doc_events = {
 	},
 	"Payment Entry": {
 		"on_trash": "erpnext.regional.check_deletion_permission",
-		"validate": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
+		"validate": [
+			"erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
+			"erpnext.buying.procurement_document_details.sync_supplier_vat",
+		],
 		"before_update_after_submit": "erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
 		"on_update": "erpnext.accounts.payment_fiscal_receipt.sync_payment_entry_receipt",
 		"on_submit": [

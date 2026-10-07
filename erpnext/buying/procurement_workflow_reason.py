@@ -18,6 +18,7 @@ def apply_workflow(doc: str | dict, action: str):
 	from erpnext.buying.procurement_final_approval import (
 		FINAL_APPROVAL_STATE,
 		close_final_approval_assignments,
+		get_document_final_approvers,
 		record_final_approval,
 		reset_final_approvals,
 	)
@@ -32,11 +33,12 @@ def apply_workflow(doc: str | dict, action: str):
 
 	if current_doc.workflow_state == FINAL_APPROVAL_STATE and action == "Погодити":
 		approval_count = record_final_approval(current_doc)
-		if approval_count < 2:
+		required = len(get_document_final_approvers(frappe.get_doc(current_doc.doctype, current_doc.name)))
+		if approval_count < required:
 			frappe.msgprint(
-				_("CEO approval {0}/2 recorded. The document is waiting for the second CEO.").format(
-					approval_count
-				),
+				_(
+					"CEO approval {0}/{1} recorded. The document is waiting for the remaining approvers."
+				).format(approval_count, required),
 				alert=True,
 				indicator="orange",
 			)

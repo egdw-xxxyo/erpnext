@@ -6,6 +6,7 @@ erpnext.buying.get_procurement_status_color = (status) =>
 		Погодження: "orange",
 		"Очікує оплату": "blue",
 		"Очікує надходження": "purple",
+		"Очікуються видаткові накладні": "yellow",
 		Завершено: "green",
 	}[status] || "gray");
 
@@ -22,6 +23,17 @@ erpnext.buying.apply_procurement_work_queue_filters = (listview, options) => {
 		return;
 	}
 	listview.__procurement_work_queue_filters_applied = true;
+	// A links card opens an explicit document selection. Work-queue defaults must
+	// not replace that selection with the user's entire procurement queue.
+	const route_filters = {
+		...Object.fromEntries(new URLSearchParams(window.location.search)),
+		...(frappe.route_options || {}),
+	};
+	if (
+		Object.keys(route_filters).some((field) => frappe.meta.get_doctype_for_field(listview.doctype, field))
+	) {
+		return;
+	}
 
 	const participant = frappe.session.user;
 	const filters = [
