@@ -869,6 +869,7 @@ scheduler_events = {
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
 		"erpnext.correspondence.doctype.mail_forward_settings.mail_forward_settings.sync_all_mailboxes",
+		"erpnext.correspondence.mail_forward.check_forwarding_health",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [

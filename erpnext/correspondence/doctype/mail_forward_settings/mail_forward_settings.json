@@ -6,11 +6,13 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
+  "enabled_since",
   "sender_account",
   "column_break_main",
   "footer_note",
   "mailboxes_section",
-  "mailboxes"
+  "mailboxes",
+  "last_health_check"
  ],
  "fields": [
   {
@@ -19,6 +21,14 @@
    "label": "Enabled",
    "default": "0",
    "description": "Turn forwarding on once the recipients' addresses and the sender account are filled in"
+  },
+  {
+   "fieldname": "enabled_since",
+   "fieldtype": "Datetime",
+   "label": "Forwarding Enabled Since",
+   "read_only": 1,
+   "depends_on": "enabled",
+   "description": "Set when forwarding is turned on. The hourly check only picks up mail that arrived after this moment"
   },
   {
    "fieldname": "sender_account",
@@ -48,11 +58,18 @@
    "fieldtype": "Table",
    "options": "Mail Forward Mailbox",
    "label": "Mailboxes"
+  },
+  {
+   "fieldname": "last_health_check",
+   "fieldtype": "Datetime",
+   "label": "Last Health Check",
+   "hidden": 1,
+   "read_only": 1
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-07 00:00:00.000000",
+ "modified": "2026-10-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Correspondence",
  "name": "Mail Forward Settings",
