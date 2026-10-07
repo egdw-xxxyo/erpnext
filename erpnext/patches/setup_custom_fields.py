@@ -3756,3 +3756,8 @@ def setup_procurement_document_details():
 		make_property_setter(
 			"Consolidated Purchase Order", "delivery_notes_section", "collapsible_depends_on", value, "Data"
 		)
+
+	for fieldname in ("advance_payment_status", "advance_paid"):
+		filters = {"doc_type": "Purchase Order", "field_name": fieldname, "property": "report_hide"}
+		if frappe.db.get_value("Property Setter", filters, "value") != "1":
+			make_property_setter("Purchase Order", fieldname, "report_hide", "1", "Check")
