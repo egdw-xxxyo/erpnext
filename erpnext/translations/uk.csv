@@ -9643,7 +9643,7 @@ Supplier Address,Адреса постачальника
 Supplier Address Details,Деталі адреси постачальника
 Supplier Addresses And Contacts,Адреса та контактні дані постачальника
 Supplier Contact,Контакти постачальника
-Supplier Delivery Note,Постачання доставки постачальника
+Supplier Delivery Note,Видаткова накладна
 Supplier Details,Постачальник: Подробиці
 Supplier Group,Група постачальників
 Supplier Group Item,Товар за групою постачальників
@@ -15082,3 +15082,53 @@ Enter supplier details manually,Ввести реквізити постачал
 Enter the value after checking the attached PDF.,Введіть значення після перевірки прикріпленого PDF.
 Select an additional IBAN to add to the supplier.,Виберіть додатковий IBAN для додавання постачальнику.
 Enter a complete Ukrainian IBAN to identify the bank.,Введіть повний український IBAN для визначення банку.
+CEO Approvers,Фінальні погоджувачі (CEO)
+Procurement Final Approver,Фінальний погоджувач закупівлі
+Approver,Погоджувач
+Procurement Links,Зв’язки закупівлі
+Save the document to view its links.,"Збережіть документ, щоб переглянути його зв’язки."
+No linked documents available.,Пов’язані документи відсутні або недоступні.
+"Configure at least one active, enabled CEO approver with the Final Approver role in Buying Settings. Active approvers must be unique.",У налаштуваннях закупівель додайте щонайменше одного активного CEO з роллю фінального погоджувача. Активні погоджувачі не повинні повторюватися.
+"Active CEO approvers must be unique, enabled users with the Final Approver role.",Активні CEO мають бути увімкненими користувачами з роллю фінального погоджувача та не повинні повторюватися.
+CEO approval {0}/{1} recorded. The document is waiting for the remaining approvers.,Зафіксовано погодження CEO {0}/{1}. Документ очікує на решту погоджувачів.
+All CEO approvers recorded for this document must approve before it can advance.,"Для переходу далі потрібне погодження всіх CEO, зафіксованих для цього документа."
+Perform final approval of consolidated purchase order {0}.,Виконайте фінальне погодження зведеного замовлення {0}.
+Procurement Document Links,Зв’язки
+Repeat order,Повторити замовлення
+"Create a new draft with these items? The initiator, supplier invoices and document links will not be copied.","Створити нову чернетку з цими позиціями? Користувач-ініціатор, рахунки постачальників і зв’язки з документами не копіюватимуться."
+Create another consolidated purchase order,Створити ще одне зведене замовлення на придбання
+No conversion factor is configured for item {0} and UOM {1}.,Для товару {0} та одиниці виміру {1} не налаштовано коефіцієнт перерахунку.
+Material Request {0} must be a submitted purchase request.,Замовлення матеріалів {0} має бути поданим замовленням на закупівлю.
+Row {0}: Select the matching original Material Request item.,Рядок {0}: виберіть відповідну вихідну позицію замовлення матеріалів.
+"Material Request {0}, item {1}: only {2} remains available for this consolidated order.","Замовлення матеріалів {0}, товар {1}: для цього зведеного замовлення доступний залишок лише {2}."
+All items in this Material Request are already covered by active consolidated orders.,Усі позиції цього замовлення матеріалів уже включено до активних зведених замовлень.
+{0} created {1} based on this Material Request.,{0} створив(ла) {1} на основі цього замовлення матеріалів.
+Save your changes before repeating this order.,Збережіть зміни перед повторенням цього замовлення.
+
+VAT Payer,Платник ПДВ
+Delivery Note Attached,Видаткову накладну прикріплено
+Not attached,Відсутня
+Attach delivery note,Прикріпити видаткову накладну
+Not permitted to add delivery notes to this order.,Немає права додавати видаткові накладні до цього замовлення.
+Upload a file for this order.,Завантажте файл для цього замовлення.
+"Only the creator, lead buyer or treasurer can change delivery notes.","Змінювати видаткові накладні може лише автор, ведучий закупівельник або казначей."
+
+Only System Manager can link existing purchase receipts.,Прив’язувати наявні прихідні накладні може лише системний менеджер.
+"Select a submitted, open Purchase Order.","Виберіть проведене замовлення на придбання, яке не закрите й не призупинене."
+Select receipt rows to link.,Виберіть рядки прихідних накладних для прив’язки.
+The receipt must match the supplier and company and must not be linked to another order.,Накладна має відповідати постачальнику й компанії та не бути прив’язана до іншого замовлення.
+Receipt rows no longer match the selected order. Refresh the candidates.,Рядки накладної не відповідають вибраному замовленню. Оновіть список кандидатів.
+The selected receipts exceed the outstanding order quantity.,Вибрані накладні перевищують залишок кількості замовлення.
+Linked to Purchase Order {0} by System Manager.,Системний менеджер прив’язав до замовлення на придбання {0}.
+Linked existing Purchase Receipts: {0},Прив’язано наявні прихідні накладні: {0}
+Link existing purchase receipts,Прив’язати прихідні накладні
+No matching unlinked purchase receipts found.,Відповідних неприв’язаних прихідних накладних не знайдено.
+Select rows from one or several receipts. Only references will change; stock will not be received again.,Виберіть рядки однієї або кількох накладних. Зміняться лише посилання; повторного оприбуткування не буде.
+Order row,Рядок замовлення
+Select an order row for each receipt row.,Виберіть рядок замовлення для кожного рядка накладної.
+Link the selected receipt rows to this order?,Прив’язати вибрані рядки накладних до цього замовлення?
+Coverage by order row,Покриття за рядками замовлення
+Suppliers with Delivery Notes,Постачальники з видатковими накладними
+Procurement Delivery Note,Видаткова накладна
+Delivery Note Supplier Count,Кількість постачальників для видаткових накладних
+Partially attached,Частково

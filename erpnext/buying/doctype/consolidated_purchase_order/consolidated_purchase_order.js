@@ -286,7 +286,7 @@ function render_approval_route(frm, field, route_data) {
 	const purchase_receipt_complete = Boolean(route_data.purchase_receipt_complete);
 	const missing_delivery_note_suppliers = route_data.missing_delivery_note_suppliers || [];
 	const final_approval_count = cint(route_data.final_approval_count);
-	const final_approval_required = cint(route_data.final_approval_required) || 2;
+	const final_approval_required = cint(route_data.final_approval_required);
 	const final_approval_automatic = Boolean(route_data.final_approval_automatic);
 	const stages = [
 		{ key: "preparation", title: __("Preparation"), role: __("Buyer"), icon: "edit" },

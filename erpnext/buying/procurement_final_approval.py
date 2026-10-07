@@ -1,16 +1,19 @@
+import json
+
 import frappe
 from frappe import _
-from frappe.utils import escape_html, flt
+from frappe.utils import cint, escape_html, flt
 
 from erpnext.buying.procurement_workflow import CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME
 
 CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
 FINAL_APPROVAL_STATE = "Фінальне погодження"
 FINAL_APPROVER_ROLE = "Payments: Фінальний погоджувач"
-REQUIRED_FINAL_APPROVALS = 2
 DEFAULT_APPROVAL_THRESHOLD = 15000
 APPROVER_SETTING_FIELDS = ("custom_final_approver_1", "custom_final_approver_2")
 APPROVAL_USER_FIELDS = ("final_approved_by_1", "final_approved_by_2")
+SNAPSHOT_FIELD = "custom_final_approvers_snapshot"
+VOTES_FIELD = "custom_final_approved_users"
 
 
 def get_approval_threshold():
@@ -21,103 +24,169 @@ def get_approval_threshold():
 
 
 def is_automatic_final_approval(doc):
-	return flt(doc.grand_total) < get_approval_threshold()
+	return flt(doc.grand_total) < flt(doc.get("ceo_approval_threshold") or get_approval_threshold())
+
+
+def _legacy_approvers(settings):
+	return list(
+		dict.fromkeys(settings.get(field) for field in APPROVER_SETTING_FIELDS if settings.get(field))
+	)
 
 
 def get_configured_final_approvers(throw=True):
 	settings = frappe.get_single("Buying Settings")
-	approvers = list(
-		dict.fromkeys(settings.get(field) for field in APPROVER_SETTING_FIELDS if settings.get(field))
-	)
-	valid_approvers = [
-		user
-		for user in approvers
-		if frappe.db.get_value("User", user, "enabled")
-		and frappe.db.exists("Has Role", {"parent": user, "role": FINAL_APPROVER_ROLE})
-	]
-	if throw and len(valid_approvers) != REQUIRED_FINAL_APPROVALS:
+	if settings.get("custom_final_approvers_initialized") or settings.get("custom_final_approvers"):
+		users = [row.approver for row in settings.get("custom_final_approvers") or [] if cint(row.active)]
+	else:
+		users = _legacy_approvers(settings)
+	approvers = list(dict.fromkeys(users))
+	valid = [user for user in approvers if _is_valid_approver(user)]
+	if throw and (not valid or len(valid) != len(users)):
 		frappe.throw(
-			_("Configure two enabled CEO approvers with the Final Approver role in Buying Settings."),
+			_(
+				"Configure at least one active, enabled CEO approver with the Final Approver role in Buying Settings. Active approvers must be unique."
+			),
 			title=_("CEO approvers are not configured"),
 		)
-	return valid_approvers
+	return valid
+
+
+def _is_valid_approver(user):
+	return bool(
+		user
+		and frappe.db.get_value("User", user, "enabled")
+		and frappe.db.exists("Has Role", {"parent": user, "role": FINAL_APPROVER_ROLE})
+	)
+
+
+def validate_final_approver_settings(doc, method=None):
+	users = []
+	for row in doc.get("custom_final_approvers") or []:
+		if not cint(row.active):
+			continue
+		if row.approver in users or not _is_valid_approver(row.approver):
+			frappe.throw(
+				_("Active CEO approvers must be unique, enabled users with the Final Approver role.")
+			)
+		users.append(row.approver)
+	doc.custom_final_approvers_initialized = 1
+
+
+def _read_users(value):
+	return list(dict.fromkeys(frappe.parse_json(value) or []))
+
+
+def get_document_final_approvers(doc):
+	if doc.get(SNAPSHOT_FIELD) is not None and doc.get(SNAPSHOT_FIELD) != "":
+		return _read_users(doc.get(SNAPSHOT_FIELD))
+	return get_configured_final_approvers(throw=False)
+
+
+def get_document_approved_users(doc):
+	users = (
+		_read_users(doc.get(VOTES_FIELD))
+		if doc.get(VOTES_FIELD)
+		else [doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)]
+	)
+	approvers = get_document_final_approvers(doc)
+	return [user for user in dict.fromkeys(users) if user in approvers]
+
+
+def capture_final_approvers(doc, method=None):
+	"""Freeze each approval cycle on entry, preserving server-owned votes on ordinary saves."""
+	previous = doc.get_doc_before_save()
+	if previous:
+		for field in (SNAPSHOT_FIELD, VOTES_FIELD, *APPROVAL_USER_FIELDS, "final_approval_count"):
+			doc.set(field, previous.get(field))
+	elif doc.is_new():
+		for field in (SNAPSHOT_FIELD, VOTES_FIELD, *APPROVAL_USER_FIELDS):
+			doc.set(field, None)
+		doc.final_approval_count = 0
+	entering = doc.workflow_state == FINAL_APPROVAL_STATE and (
+		not previous or previous.workflow_state != FINAL_APPROVAL_STATE
+	)
+	if (
+		previous
+		and previous.workflow_state == FINAL_APPROVAL_STATE
+		and doc.workflow_state == "Погоджено"
+		and not is_automatic_final_approval(previous)
+	):
+		approvers = get_document_final_approvers(previous)
+		if (
+			not previous.get(SNAPSHOT_FIELD)
+			or not approvers
+			or set(get_document_approved_users(previous)) != set(approvers)
+		):
+			frappe.throw(
+				_("All CEO approvers recorded for this document must approve before it can advance.")
+			)
+	if entering:
+		approvers = [] if is_automatic_final_approval(doc) else get_configured_final_approvers()
+		doc.set(SNAPSHOT_FIELD, json.dumps(approvers))
+		doc.set(VOTES_FIELD, "[]")
+		for field in APPROVAL_USER_FIELDS:
+			doc.set(field, None)
+		doc.final_approval_count = 0
+
+
+def _write_vote(doc, user, update_modified):
+	approved = get_document_approved_users(doc)
+	approved.append(user)
+	values = {VOTES_FIELD: json.dumps(approved), "final_approval_count": len(approved)}
+	# Retain the two legacy slots for existing integrations and historical reports.
+	values.update(
+		{
+			field: approved[index] if index < len(approved) else None
+			for index, field in enumerate(APPROVAL_USER_FIELDS)
+		}
+	)
+	for field, value in values.items():
+		doc.set(field, value)
+	frappe.db.set_value(doc.doctype, doc.name, values, update_modified=update_modified)
+	_close_user_assignment(doc.name, user)
+	return len(approved)
 
 
 def record_final_approval(doc):
-	# Serialize the two votes so simultaneous approvals cannot both occupy the
-	# first slot and leave the document stuck at 1/2.
+	# Lock the document so concurrent approvals cannot overwrite another user's vote.
 	doc = frappe.get_doc(doc.doctype, doc.name, for_update=True)
 	doc.check_permission("write")
 	if doc.workflow_state != FINAL_APPROVAL_STATE:
 		frappe.throw(_("The document is not at the final approval stage."))
 	if is_automatic_final_approval(doc):
 		frappe.throw(_("This purchase does not require manual CEO approval."))
-
-	approvers = get_configured_final_approvers()
+	approvers = get_document_final_approvers(doc)
 	user = frappe.session.user
-	if user not in approvers:
+	if not doc.get(SNAPSHOT_FIELD) or user not in approvers:
 		frappe.throw(_("Only a configured CEO approver can approve this purchase."))
-
-	approved_users = [doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)]
-	if user in approved_users:
+	if user in get_document_approved_users(doc):
+		if len(get_document_approved_users(doc)) == len(approvers):
+			return len(approvers)
 		frappe.throw(_("You have already approved this purchase."))
-
-	fieldname = APPROVAL_USER_FIELDS[len(approved_users)]
-	approved_users.append(user)
-	frappe.db.set_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		doc.name,
-		{
-			fieldname: user,
-			"final_approval_count": len(approved_users),
-		},
-		update_modified=True,
-	)
-	_close_user_assignment(doc.name, user)
-
+	count = _write_vote(doc, user, update_modified=True)
 	actor = frappe.get_cached_value("User", user, "full_name") or user
 	doc.add_comment(
 		"Comment",
 		text=_("{0} recorded CEO approval {1}/{2}.").format(
-			f"<b>{escape_html(actor)}</b>", len(approved_users), REQUIRED_FINAL_APPROVALS
+			f"<b>{escape_html(actor)}</b>", count, len(approvers)
 		),
 	)
-	return len(approved_users)
+	return count
 
 
 def record_creator_final_approval(doc, method=None):
-	"""Count a configured CEO creator as having approved when the final stage starts."""
 	if doc.workflow_state != FINAL_APPROVAL_STATE or is_automatic_final_approval(doc):
 		return
-
+	approvers = get_document_final_approvers(doc)
 	creator = doc.owner
-	if creator not in get_configured_final_approvers(throw=False):
+	if not doc.get(SNAPSHOT_FIELD) or creator not in approvers or creator in get_document_approved_users(doc):
 		return
-
-	approved_users = [doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)]
-	if creator in approved_users or len(approved_users) >= REQUIRED_FINAL_APPROVALS:
-		return
-
-	fieldname = APPROVAL_USER_FIELDS[len(approved_users)]
-	approved_users.append(creator)
-	doc.set(fieldname, creator)
-	doc.final_approval_count = len(approved_users)
-	frappe.db.set_value(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		doc.name,
-		{
-			fieldname: creator,
-			"final_approval_count": len(approved_users),
-		},
-		update_modified=False,
-	)
-	_close_user_assignment(doc.name, creator)
-
+	count = _write_vote(doc, creator, update_modified=False)
 	actor = frappe.get_cached_value("User", creator, "full_name") or creator
 	doc.add_comment(
 		"Comment",
 		text=_("{0} recorded CEO approval {1}/{2} as the document creator.").format(
-			f"<b>{escape_html(actor)}</b>", len(approved_users), REQUIRED_FINAL_APPROVALS
+			f"<b>{escape_html(actor)}</b>", count, len(approvers)
 		),
 		comment_email=creator,
 		comment_by=actor,
@@ -131,6 +200,8 @@ def reset_final_approvals(docname):
 		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 		docname,
 		{
+			SNAPSHOT_FIELD: None,
+			VOTES_FIELD: None,
 			"final_approved_by_1": None,
 			"final_approved_by_2": None,
 			"final_approval_count": 0,
@@ -141,47 +212,67 @@ def reset_final_approvals(docname):
 
 
 def sync_final_approval_assignments(doc, method=None):
-	# Keep the hook name for compatibility; approvers now receive alerts only.
 	close_final_approval_assignments(doc.name)
 	if doc.workflow_state != FINAL_APPROVAL_STATE or is_automatic_final_approval(doc):
 		return
-
-	approvers = get_configured_final_approvers(throw=False)
-	if len(approvers) != REQUIRED_FINAL_APPROVALS:
-		return
-	approved_users = {doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)}
-	users_to_assign = [user for user in approvers if user not in approved_users]
-	if not users_to_assign:
-		return
+	users = [
+		user for user in get_document_final_approvers(doc) if user not in get_document_approved_users(doc)
+	]
 	from erpnext.buying.procurement_automation import notify_procurement_approval
 
 	notify_procurement_approval(
-		doc,
-		users_to_assign,
-		f"Виконати фінальне погодження зведеного замовлення {doc.name}.",
+		doc, users, _("Perform final approval of consolidated purchase order {0}.").format(doc.name)
 	)
 
 
-def sync_existing_final_approval_documents():
-	"""Migrate open documents to the threshold-based route and assign manual CEO reviews."""
-	from frappe.model.workflow import apply_workflow as core_apply_workflow
+def migrate_final_approver_settings():
+	"""Seed the list once; intentionally emptied lists must stay empty on later migrations."""
+	settings = frappe.get_single("Buying Settings")
+	if settings.get("custom_final_approvers_initialized"):
+		return
+	if not settings.get("custom_final_approvers"):
+		for user in _legacy_approvers(settings):
+			settings.append("custom_final_approvers", {"approver": user, "active": 1})
+	settings.custom_final_approvers_initialized = 1
+	# Schema backfill, not a user edit: avoid validation and operational save hooks.
+	settings.update_single(settings.get_valid_dict())
+	for row in settings.get("custom_final_approvers") or []:
+		if row.is_new():
+			row.db_insert()
+	frappe.clear_cache(doctype="Buying Settings")
 
-	for name in frappe.get_all(
-		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-		filters={"workflow_state": FINAL_APPROVAL_STATE, "docstatus": 0},
-		pluck="name",
-	):
+
+def sync_existing_final_approval_documents():
+	"""Freeze legacy reviews once, without transitions, notifications or assignment hooks."""
+	settings = frappe.get_single("Buying Settings")
+	legacy = _legacy_approvers(settings)
+	for name in frappe.get_all(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, pluck="name"):
 		doc = frappe.get_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, name)
-		if is_automatic_final_approval(doc):
-			result = core_apply_workflow(doc, "Погодити")
-			result.add_comment("Comment", text=_("CEO approval was completed automatically by threshold."))
-		else:
-			sync_final_approval_assignments(doc)
+		if doc.get(SNAPSHOT_FIELD) or (
+			doc.workflow_state != FINAL_APPROVAL_STATE and not doc.final_approval_count
+		):
+			continue
+		votes = list(dict.fromkeys(doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)))
+		approvers = list(dict.fromkeys([*legacy, *votes])) or get_configured_final_approvers(throw=False)
+		frappe.db.set_value(
+			doc.doctype,
+			doc.name,
+			{
+				SNAPSHOT_FIELD: json.dumps(approvers),
+				VOTES_FIELD: json.dumps(votes),
+				"final_approval_count": len(votes),
+			},
+			update_modified=False,
+		)
 
 
 def sync_existing_approval_thresholds():
 	threshold = get_approval_threshold()
-	for name in frappe.get_all(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, pluck="name"):
+	for name in frappe.get_all(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		filters={"workflow_state": ["in", ["Чернетка", "Потребує доопрацювання", "Перевірка підрозділу"]]},
+		pluck="name",
+	):
 		frappe.db.set_value(
 			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 			name,
@@ -194,32 +285,23 @@ def sync_existing_approval_thresholds():
 def close_final_approval_assignments(docname, method=None):
 	if hasattr(docname, "name"):
 		docname = docname.name
-	for todo_name in frappe.get_all(
-		"ToDo",
-		filters={
-			"reference_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
-			"reference_name": docname,
-			"assignment_rule": CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
-			"status": "Open",
-		},
-		pluck="name",
-	):
-		todo = frappe.get_doc("ToDo", todo_name)
-		todo.status = "Closed"
-		todo.save(ignore_permissions=True)
+	_close_assignments(docname, {"assignment_rule": CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME})
 
 
 def _close_user_assignment(docname, user):
-	for todo_name in frappe.get_all(
-		"ToDo",
+	_close_assignments(docname, {"allocated_to": user})
+
+
+def _close_assignments(docname, extra_filters):
+	from erpnext.buying.procurement_automation import _close_assignments_silently
+
+	_close_assignments_silently(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		docname,
 		filters={
 			"reference_type": CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
 			"reference_name": docname,
-			"allocated_to": user,
 			"status": "Open",
+			**extra_filters,
 		},
-		pluck="name",
-	):
-		todo = frappe.get_doc("ToDo", todo_name)
-		todo.status = "Closed"
-		todo.save(ignore_permissions=True)
+	)

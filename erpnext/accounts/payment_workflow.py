@@ -307,14 +307,16 @@ def sync_workflow_configuration():
 
 def _ensure_role_profiles():
 	for profile_name, roles in ROLE_PROFILES.items():
-		if frappe.db.exists("Role Profile", profile_name):
+		is_new = not frappe.db.exists("Role Profile", profile_name)
+		if not is_new:
 			doc = frappe.get_doc("Role Profile", profile_name)
 		else:
 			doc = frappe.new_doc("Role Profile")
 			doc.role_profile = profile_name
 
-		doc.set("roles", [{"role": role} for role in roles])
-		_save(doc)
+		if is_new or [row.role for row in doc.get("roles") or []] != list(roles):
+			doc.set("roles", [{"role": role} for role in roles])
+			_save(doc)
 
 
 def _ensure_payment_permissions():
@@ -364,22 +366,45 @@ def _ensure_workflow_actions():
 
 
 def _ensure_workflow():
-	if frappe.db.exists("Workflow", WORKFLOW_NAME):
+	is_new = not frappe.db.exists("Workflow", WORKFLOW_NAME)
+	if not is_new:
 		doc = frappe.get_doc("Workflow", WORKFLOW_NAME)
 	else:
 		doc = frappe.new_doc("Workflow")
 		doc.workflow_name = WORKFLOW_NAME
 
-	doc.document_type = "Payment Request"
-	doc.is_active = 1
+	changed = is_new
 	# Keep ERPNext's payment status as the primary list indicator. The workflow
 	# stage is shown separately through the workflow_state list-view property.
-	doc.override_status = 1
-	doc.send_email_alert = 0
-	doc.workflow_state_field = "workflow_state"
-	doc.set("states", list(WORKFLOW_DOCUMENT_STATES))
-	doc.set("transitions", list(WORKFLOW_TRANSITIONS))
-	_save(doc)
+	values = {
+		"document_type": "Payment Request",
+		"is_active": 1,
+		"override_status": 1,
+		"send_email_alert": 0,
+		"workflow_state_field": "workflow_state",
+	}
+	for fieldname, value in values.items():
+		if doc.get(fieldname) != value:
+			doc.set(fieldname, value)
+			changed = True
+	if not _child_table_matches(doc.get("states"), WORKFLOW_DOCUMENT_STATES):
+		doc.set("states", list(WORKFLOW_DOCUMENT_STATES))
+		changed = True
+	if not _child_table_matches(doc.get("transitions"), WORKFLOW_TRANSITIONS):
+		doc.set("transitions", list(WORKFLOW_TRANSITIONS))
+		changed = True
+	if changed:
+		_save(doc)
+
+
+def _child_table_matches(current_rows, expected_rows):
+	current_rows = current_rows or []
+	if len(current_rows) != len(expected_rows):
+		return False
+	return all(
+		all(current.get(fieldname) == value for fieldname, value in expected.items())
+		for current, expected in zip(current_rows, expected_rows, strict=True)
+	)
 
 
 def _save(doc):

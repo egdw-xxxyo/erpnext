@@ -3589,3 +3589,53 @@ def _ensure_tax_account(company, parent, account_name):
 	print(f"  Created account: {doc.name}")
 
 	return doc.name
+
+
+PROCUREMENT_REVIEW_FIELDS = {
+	"Buying Settings": [
+		{
+			"fieldname": "custom_final_approvers",
+			"fieldtype": "Table",
+			"label": "CEO Approvers",
+			"options": "Procurement Final Approver",
+			"insert_after": "custom_ceo_approval_threshold",
+		},
+		{
+			"fieldname": "custom_final_approvers_initialized",
+			"fieldtype": "Check",
+			"hidden": 1,
+			"read_only": 1,
+			"insert_after": "custom_final_approvers",
+		},
+	],
+	"Consolidated Purchase Order": [
+		{
+			"fieldname": "custom_final_approvers_snapshot",
+			"fieldtype": "Long Text",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "final_approval_count",
+		},
+		{
+			"fieldname": "custom_final_approved_users",
+			"fieldtype": "Long Text",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+			"insert_after": "custom_final_approvers_snapshot",
+		},
+		{
+			"fieldname": "custom_procurement_links_tab",
+			"fieldtype": "Tab Break",
+			"label": "Procurement Document Links",
+			"insert_after": "amended_from",
+		},
+		{
+			"fieldname": "custom_procurement_links",
+			"fieldtype": "HTML",
+			"label": "Procurement Links",
+			"insert_after": "custom_procurement_links_tab",
+		},
+	],
+}

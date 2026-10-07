@@ -44,11 +44,13 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_final_approver_1",
 			"fieldtype": "Link",
 			"label": "CEO Approver 1",
+			"hidden": 1,
 			"options": "User",
 			"insert_after": "custom_ceo_approval_threshold",
 		},
 		{
 			"fieldname": "custom_procurement_approval_column",
+			"hidden": 1,
 			"fieldtype": "Column Break",
 			"insert_after": "custom_final_approver_1",
 		},
@@ -56,6 +58,7 @@ CUSTOM_FIELDS = {
 			"fieldname": "custom_final_approver_2",
 			"fieldtype": "Link",
 			"label": "CEO Approver 2",
+			"hidden": 1,
 			"options": "User",
 			"insert_after": "custom_procurement_approval_column",
 		},
@@ -411,7 +414,7 @@ frappe.ui.form.on("Material Request", {
 		configure_purchase_receipts_grid(frm);
 		setTimeout(() => configure_purchase_receipts_grid(frm), 100);
 		render_consolidated_purchase_orders(frm);
-		if (frappe.user_roles.includes("Закупівельник")) {
+		if (frappe.session.user === "Administrator" || frappe.user_roles.includes("Закупівельник")) {
 			restrict_duplicate_consolidated_order(frm);
 			return;
 		}
@@ -477,16 +480,20 @@ function get_purchase_receipt_file_name(fileUrl) {
 
 function restrict_duplicate_consolidated_order(frm) {
 	if (frm.doc.docstatus !== 1 || frm.doc.material_request_type !== "Purchase") return;
-	frappe
-		.call({
-			method: "erpnext.buying.procurement_automation.get_existing_consolidated_purchase_order",
-			args: { source_name: frm.doc.name },
-		})
-		.then((response) => {
-			if (!response.message) return;
-			frm.remove_custom_button(__("Purchase Order"), __("Create"));
-		});
+	frappe.call({
+		method: "erpnext.buying.procurement_order_reuse.get_material_request_coverage",
+		args: { source_name: frm.doc.name },
+	}).then((response) => {
+		frm.remove_custom_button(__("Purchase Order"), __("Create"));
+		if (!response.message?.has_remaining) return;
+		const label = response.message.has_existing ? __("Create another consolidated purchase order") : __("Consolidated Purchase Order");
+		frm.add_custom_button(label, () => frappe.model.open_mapped_doc({
+			method: "erpnext.buying.procurement_automation.make_purchase_order",
+			frm,
+		}), __("Create"));
+	});
 }
+
 
 function render_consolidated_purchase_orders(frm) {
 	const field = frm.get_field("custom_consolidated_purchase_orders_html");
@@ -532,6 +539,7 @@ function render_consolidated_purchase_orders(frm) {
 def after_migrate():
 	sync_procurement_custom_fields()
 
+
 	from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
 		sync_all_consolidated_purchase_order_progress,
 	)
@@ -542,6 +550,7 @@ def after_migrate():
 		sync_existing_purchase_invoice_external_payment_details,
 	)
 	from erpnext.buying.procurement_final_approval import (
+		migrate_final_approver_settings,
 		sync_existing_approval_thresholds,
 		sync_existing_final_approval_documents,
 	)
@@ -553,6 +562,7 @@ def after_migrate():
 	sync_all_current_assignee_names()
 	sync_existing_approval_thresholds()
 	sync_existing_final_approval_documents()
+	migrate_final_approver_settings()
 	sync_existing_purchase_invoice_external_payment_details()
 	sync_all_consolidated_purchase_order_progress()
 	sync_all_procurement_participants()
@@ -572,7 +582,10 @@ def after_migrate():
 
 def sync_procurement_custom_fields():
 	_remove_legacy_purchase_invoice_supplier_files_section()
+	from erpnext.patches.setup_custom_fields import PROCUREMENT_REVIEW_FIELDS
+
 	create_custom_fields(CUSTOM_FIELDS, update=True)
+	create_custom_fields(PROCUREMENT_REVIEW_FIELDS, update=True)
 	_remove_purchase_receipt_ttn_fields()
 
 
@@ -624,7 +637,7 @@ def _sync_consolidated_procurement_users():
 
 	orders = frappe.get_all(
 		"Consolidated Purchase Order",
-		fields=["name", "owner", "initiator_user", "request_initiator_user"],
+		fields=["name", "owner", "initiator_user", "request_initiator_user", "docstatus", "workflow_state"],
 	)
 	for order in orders:
 		lead_buyer = order.initiator_user or order.owner
@@ -646,7 +659,9 @@ def _sync_consolidated_procurement_users():
 			)
 			if requests:
 				request_initiator = requests[0].custom_procurement_initiator_user or requests[0].owner
-		request_initiator = request_initiator or order.owner
+		# A repeated draft deliberately has no initiator until the buyer selects one.
+		if order.docstatus != 0 or order.workflow_state not in {None, "Чернетка", "Потребує доопрацювання"}:
+			request_initiator = request_initiator or order.owner
 		frappe.db.set_value(
 			"Consolidated Purchase Order",
 			order.name,
@@ -661,8 +676,9 @@ def _sync_consolidated_procurement_users():
 def _sync_client_scripts():
 	if frappe.db.exists("Client Script", LEGACY_CLIENT_SCRIPT_NAME):
 		legacy_script = frappe.get_doc("Client Script", LEGACY_CLIENT_SCRIPT_NAME)
-		legacy_script.enabled = 0
-		legacy_script.save(ignore_permissions=True)
+		if legacy_script.enabled:
+			legacy_script.enabled = 0
+			_save(legacy_script)
 
 	_ensure_client_script(CLIENT_SCRIPT_NAME, "Consolidated Purchase Order", CLIENT_SCRIPT)
 	_ensure_client_script(
@@ -727,7 +743,7 @@ def _ensure_property_setter(fieldname, property_name, value, property_type):
 		doc.value = value
 		doc.property_type = property_type
 		doc.is_system_generated = 1
-		doc.save(ignore_permissions=True)
+		_save(doc)
 		return
 	make_property_setter("Consolidated Purchase Order", fieldname, property_name, value, property_type)
 
@@ -736,4 +752,7 @@ def _save(doc):
 	if doc.is_new():
 		doc.insert(ignore_permissions=True)
 	else:
-		doc.save(ignore_permissions=True)
+		# Compare against storage before invoking hooks on existing configuration.
+		stored = frappe.get_doc(doc.doctype, doc.name)
+		if doc.as_dict() != stored.as_dict():
+			doc.save(ignore_permissions=True)

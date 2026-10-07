@@ -37,6 +37,8 @@ web_include_icons = [
 ]
 
 doctype_js = {
+	"Consolidated Purchase Order": "public/js/procurement_links.js",
+	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",
 	"Job Card": "public/js/custom/job_card.js",
 	"Communication": "public/js/communication.js",
@@ -663,12 +665,18 @@ doc_events = {
 		"after_insert": "erpnext.buying.procurement_automation.on_purchase_order_insert",
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
+	"Buying Settings": {
+		"validate": "erpnext.buying.procurement_final_approval.validate_final_approver_settings"
+	},
 	"Consolidated Purchase Order": {
 		"after_insert": [
 			"erpnext.buying.procurement_automation.sync_procurement_document_participants",
 			"erpnext.buying.procurement_automation.sync_procurement_stage_assignment",
 		],
-		"validate": "erpnext.buying.procurement_workflow_reason.validate_required_reason",
+		"validate": [
+			"erpnext.buying.procurement_workflow_reason.validate_required_reason",
+			"erpnext.buying.procurement_final_approval.capture_final_approvers",
+		],
 		# Manage buyer ToDos and send approval-stage alerts without assigning
 		# ToDos to the department head or the configured CEO approvers.
 		"on_change": [

@@ -142,20 +142,17 @@ def validate_material_request_purchase_receipts(doc, method=None):
 
 
 def validate_material_requests_available(material_requests, exclude=None):
-	for material_request in set(material_requests or []):
-		if not material_request:
+	from erpnext.buying.procurement_order_reuse import get_material_request_remaining
+
+	for name in set(material_requests or []):
+		if not name:
 			continue
-		existing = get_active_consolidated_purchase_order(material_request, exclude=exclude)
-		if existing:
+		source = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, name)
+		source.check_permission("read")
+		remaining = get_material_request_remaining(source, exclude=exclude)
+		if not any(row.remaining_qty > 0.000001 for row in remaining.values()):
 			frappe.throw(
-				_(
-					"Material Request {0} is already linked to active consolidated order {1}. "
-					"A new consolidated order can be created only after the existing one is rejected."
-				).format(
-					get_link_to_form(MATERIAL_REQUEST_DOCTYPE, material_request),
-					get_link_to_form(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE, existing),
-				),
-				title=_("Consolidated order already exists"),
+				_("All items in this Material Request are already covered by active consolidated orders.")
 			)
 
 
@@ -298,13 +295,14 @@ def on_purchase_order_insert(doc, method=None):
 	actor = _current_actor()
 	order_link = get_link_to_form(PURCHASE_ORDER_DOCTYPE, doc.name, escape_html(doc.name))
 	for material_request in material_requests:
-		_close_assignments_silently(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
+		if _has_fully_reserved_material_request(request_doc):
+			_close_assignments_silently(MATERIAL_REQUEST_DOCTYPE, material_request)
 		request_doc.add_comment(
 			"Comment",
-			text=_(
-				"{0} created {1} based on this Material Request and completed its processing by the buyer."
-			).format(f"<b>{escape_html(actor)}</b>", order_link),
+			text=_("{0} created {1} based on this Material Request.").format(
+				f"<b>{escape_html(actor)}</b>", order_link
+			),
 		)
 
 	request_links = ", ".join(
@@ -478,6 +476,19 @@ def sync_procurement_stage_assignment(doc, method=None):
 	if doc.doctype not in {MATERIAL_REQUEST_DOCTYPE, CONSOLIDATED_PURCHASE_ORDER_DOCTYPE}:
 		return
 
+	if doc.doctype == MATERIAL_REQUEST_DOCTYPE and _has_fully_reserved_material_request(doc):
+		_close_assignments_silently(
+			MATERIAL_REQUEST_DOCTYPE,
+			doc.name,
+			filters={
+				"reference_type": MATERIAL_REQUEST_DOCTYPE,
+				"reference_name": doc.name,
+				"assignment_rule": MATERIAL_REQUEST_BUYER_ASSIGNMENT_RULE_NAME,
+				"status": "Open",
+			},
+		)
+		return
+
 	if doc.doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
 		_close_linked_material_request_assignments(doc)
 
@@ -564,6 +575,13 @@ def notify_procurement_approval(doc, users, description):
 	doc.flags.procurement_approval_notified = doc.workflow_state
 	buyer = doc.get("initiator_user") or doc.owner
 	buyer_name = frappe.get_cached_value("User", buyer, "full_name") or buyer
+	dedupe_on = None
+	if not previous:
+		# Backfills load existing documents without a previous version. Avoid sending
+		# the same stage alert after every migration while preserving alerts when a
+		# user later moves the document back into this stage.
+		dedupe_on = ["document_type", "document_name", "subject"]
+	kwargs = {"dedupe_on": dedupe_on} if dedupe_on else {}
 	enqueue_create_notification(
 		users,
 		{
@@ -577,6 +595,7 @@ def notify_procurement_approval(doc, users, description):
 			),
 			"email_content": description,
 		},
+		**kwargs,
 	)
 	for user in users:
 		sync_procurement_participants_for_reference(doc.doctype, doc.name, additional_user=user)
@@ -613,11 +632,44 @@ def _get_procurement_assignment_user(rule, spec, doc):
 	return "Administrator" if frappe.db.get_value("User", "Administrator", "enabled") else None
 
 
+def _has_fully_reserved_material_request(doc):
+	if not _has_active_consolidated_purchase_order(doc.name):
+		return False
+	from erpnext.buying.procurement_order_reuse import get_material_request_remaining
+
+	return not any(row.remaining_qty > 0.000001 for row in get_material_request_remaining(doc).values())
+
+
+def _has_active_consolidated_purchase_order(material_request):
+	if frappe.db.exists(
+		CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+		{"material_request": material_request, "docstatus": ["<", 2]},
+	):
+		return True
+
+	parents = frappe.get_all(
+		"Consolidated Purchase Order Item",
+		filters={"material_request": material_request},
+		pluck="parent",
+	)
+	return bool(
+		parents
+		and frappe.db.exists(
+			CONSOLIDATED_PURCHASE_ORDER_DOCTYPE,
+			{"name": ["in", list(set(parents))], "docstatus": ["<", 2]},
+		)
+	)
+
+
 def _close_linked_material_request_assignments(doc):
 	material_requests = {row.material_request for row in doc.items if row.material_request}
 	if doc.get("material_request"):
 		material_requests.add(doc.material_request)
 	for material_request in material_requests:
+		if not _has_fully_reserved_material_request(
+			frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
+		):
+			continue
 		_close_assignments_silently(
 			MATERIAL_REQUEST_DOCTYPE,
 			material_request,
@@ -727,6 +779,16 @@ def _sync_material_request_completion(material_request):
 	)
 	if request.docstatus == 2 or request.status == "Stopped":
 		_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, PROCUREMENT_COMPLETED)
+		return
+	from erpnext.buying.procurement_order_reuse import get_material_request_remaining
+
+	if any(
+		row.remaining_qty > 0.000001
+		for row in get_material_request_remaining(
+			frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, material_request)
+		).values()
+	):
+		_set_procurement_status(MATERIAL_REQUEST_DOCTYPE, material_request, PROCUREMENT_PREPARATION)
 		return
 
 	consolidated_names = set(
@@ -988,6 +1050,9 @@ def _current_actor():
 
 
 def _make_consolidated_order(mapped_order, source_name):
+	from erpnext.buying.procurement_order_reuse import limit_mapped_request_items
+
+	limit_mapped_request_items(mapped_order, source_name)
 	source_request = frappe.get_doc(MATERIAL_REQUEST_DOCTYPE, source_name)
 	source_items = {row.name: row for row in source_request.items}
 	consolidated = frappe.new_doc(CONSOLIDATED_PURCHASE_ORDER_DOCTYPE)
