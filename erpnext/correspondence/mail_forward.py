@@ -264,10 +264,24 @@ def reconcile_lost_mail(settings, now) -> list[str]:
 	return lost
 
 
+def account_is_off(name: str | None, *flags: str) -> bool:
+	values = frappe.db.get_value("Email Account", name, list(flags), as_dict=True) if name else None
+	return not (values and all(values.get(flag) for flag in flags))
+
+
+def accounts_off(settings) -> int:
+	mailboxes = [row.email_account for row in settings.mailboxes]
+	sender = [settings.sender_account] if settings.enabled else []
+	return sum(account_is_off(name, "enable_incoming", "use_imap") for name in mailboxes) + sum(
+		account_is_off(name, "enable_outgoing") for name in sender
+	)
+
+
 def count_problems(settings, since, lost: list[str]) -> dict[str, int]:
 	mailboxes = [row.email_account for row in settings.mailboxes]
 	accounts = [*mailboxes, settings.sender_account] if settings.sender_account else mailboxes
 	return {
+		"accounts": accounts_off(settings),
 		"lost": len(lost),
 		"failed": frappe.db.count("Mail Forward Log", {"status": "Failed", "modified": [">", since]}),
 		"unhandled": frappe.db.count(
@@ -299,6 +313,7 @@ def count_problems(settings, since, lost: list[str]) -> dict[str, int]:
 
 def problem_labels() -> dict[str, str]:
 	return {
+		"accounts": _("Mail accounts that are turned off or missing: {0}"),
 		"lost": _("Mail picked up by the hourly check after its forwarding job was lost: {0}"),
 		"failed": _("Copies that failed to send: {0}"),
 		"unhandled": _("Messages the mailbox could not read: {0}"),

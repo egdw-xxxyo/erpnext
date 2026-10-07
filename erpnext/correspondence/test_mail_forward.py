@@ -377,6 +377,22 @@ class TestMailForwardHealth(MailForwardCase):
 		check_forwarding_health()
 		self.assertEqual(len(alerts_for(manager.name)), 1)
 
+	def test_a_mailbox_turned_off_is_reported_every_hour(self):
+		manager = make_manager("_mail-off@kalheon.test")
+		frappe.db.set_value("Email Account", WATCHED, "enable_incoming", 0)
+		check_forwarding_health()
+		check_forwarding_health()
+		alerts = alerts_for(manager.name)
+		self.assertEqual(len(alerts), 2)
+		self.assertIn("Mail accounts that are turned off or missing: 1", alerts[0].subject)
+		self.assertEqual(alerts[0].link, "/desk/mail-forward-settings")
+
+	def test_a_sender_without_outgoing_mail_is_reported(self):
+		manager = make_manager("_mail-sender@kalheon.test")
+		frappe.db.set_value("Email Account", SENDER, "enable_outgoing", 0)
+		check_forwarding_health()
+		self.assertIn("Mail accounts that are turned off or missing: 1", alerts_for(manager.name)[0].subject)
+
 	def test_quiet_hour_sends_no_alert(self):
 		manager = make_manager("_mail-quiet@kalheon.test")
 		frappe.db.set_single_value("Mail Forward Settings", "last_health_check", now_datetime())

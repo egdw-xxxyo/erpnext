@@ -15522,6 +15522,7 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Messages the mailbox could not read: {0}","Листи, які не вдалося прочитати зі скриньки: {0}"
 "Errors while reading or forwarding mail: {0}","Помилки під час читання чи пересилання пошти: {0}"
 "Mailboxes whose folder sync failed: {0}","Скриньки з помилкою синхронізації папок: {0}"
+"Mail accounts that are turned off or missing: {0}","Облікові записи пошти вимкнено або видалено: {0}"
 "Mail Forward Mailbox","Скринька для пересилання"
 "Mail Forward Recipient","Адресат пересилання"
 "Mail Forward Rule","Правило пересилання"
