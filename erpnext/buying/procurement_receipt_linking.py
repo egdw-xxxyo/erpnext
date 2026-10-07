@@ -44,7 +44,7 @@ def _matches(source, target):
 
 
 @frappe.whitelist()
-def get_candidates(order_name):
+def get_candidates(order_name: str):
 	_require_manager()
 	order = frappe.get_doc("Purchase Order", order_name)
 	_validate_order(order)
@@ -109,7 +109,7 @@ def get_candidates(order_name):
 
 
 @frappe.whitelist(methods=["POST"])
-def link_receipts(order_name, mappings):
+def link_receipts(order_name: str, mappings: str | list[dict]):
 	_require_manager()
 	mappings = frappe.parse_json(mappings) or []
 	if not mappings or len(mappings) > 200:

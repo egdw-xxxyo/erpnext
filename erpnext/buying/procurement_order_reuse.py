@@ -90,7 +90,7 @@ def get_material_request_remaining(source, exclude=None, lock=False):
 
 
 @frappe.whitelist()
-def get_material_request_coverage(source_name):
+def get_material_request_coverage(source_name: str):
 	source = frappe.get_doc("Material Request", source_name)
 	source.check_permission("read")
 	items = get_material_request_remaining(source)
@@ -161,7 +161,7 @@ def limit_mapped_request_items(mapped_order, source_name):
 
 
 @frappe.whitelist()
-def repeat_consolidated_order(source_name):
+def repeat_consolidated_order(source_name: str):
 	require_buyer_role()
 	source = frappe.get_doc("Consolidated Purchase Order", source_name)
 	source.check_permission("read")

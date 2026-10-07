@@ -30,14 +30,14 @@ CHECK_DEFINITIONS = {
 
 
 @frappe.whitelist()
-def get_supplier_requisites_validation(doc):
+def get_supplier_requisites_validation(doc: str | dict):
 	doc = frappe.get_doc(frappe.parse_json(doc))
 	_check_document_permission(doc)
 	return validate_supplier_requisites(doc)
 
 
 @frappe.whitelist(methods=["POST"])
-def update_supplier_requisites_from_pdf(doc, values):
+def update_supplier_requisites_from_pdf(doc: str | dict, values: str | dict):
 	doc = frappe.get_doc(frappe.parse_json(doc))
 	_check_document_permission(doc)
 	if doc.doctype != SUPPLIER_UPDATE_DOCTYPE:
@@ -107,7 +107,7 @@ def update_supplier_requisites_from_pdf(doc, values):
 
 
 @frappe.whitelist()
-def get_iban_bank_suggestion(doc, iban):
+def get_iban_bank_suggestion(doc: str | dict, iban: str):
 	doc = frappe.get_doc(frappe.parse_json(doc))
 	_check_document_permission(doc)
 	if doc.doctype != SUPPLIER_UPDATE_DOCTYPE:

@@ -2,7 +2,7 @@ import frappe
 
 
 @frappe.whitelist()
-def get_procurement_links(source_name):
+def get_procurement_links(source_name: str):
 	"""Traverse document references, then filter every displayed group by read permissions."""
 	doc = frappe.get_doc("Consolidated Purchase Order", source_name)
 	doc.check_permission("read")
@@ -92,7 +92,9 @@ def _visible_documents(doctype, names):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def get_final_approver_users(doctype, txt, searchfield, start, page_len, filters):
+def get_final_approver_users(
+	doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: str | dict | None
+):
 	from erpnext.buying.procurement_final_approval import FINAL_APPROVER_ROLE
 
 	if not frappe.has_permission("Buying Settings", "write"):

@@ -17,7 +17,7 @@ def can_add_delivery_note(doc):
 
 
 @frappe.whitelist(methods=["POST"])
-def add_delivery_note(name, supplier, file_url):
+def add_delivery_note(name: str, supplier: str, file_url: str):
 	# This endpoint permits only an append to the delivery-note table. It does not
 	# grant the treasurer general write access to the procurement document.
 	doc = frappe.get_doc(CPO, name, for_update=True)
