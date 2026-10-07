@@ -123,9 +123,13 @@ function render_preview(frm) {
 		// attendance is not a column of its own: the name carries the warning, and the worked
 		// time next to it opens the whole month of that employee
 		name_suffix: (row) =>
-			row.attendance_approved
+			// неповна зайнятість: оклад у рядку вже помножений на ставку — значок каже чому
+			(flt(row.employment_rate) && flt(row.employment_rate) !== 1
+				? `<span class="employee-preview-badge">${__("Rate {0}", [flt(row.employment_rate)])}</span>`
+				: "") +
+			(row.attendance_approved
 				? ""
-				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`,
+				: `<span class="employee-preview-badge warn">${__("No attendance sheet")}</span>`),
 		visible: visible_employees,
 		columns: [
 			{

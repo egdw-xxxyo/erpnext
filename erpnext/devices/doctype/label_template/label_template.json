@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "template_name",
+  "disabled",
   "template_type",
   "reference_doctype",
   "source_field",
@@ -34,6 +35,13 @@
    "label": "Template Name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "default": "0",
+   "description": "Disabled templates are hidden from every list and picker. Existing links and reprints keep working.",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
   },
   {
    "depends_on": "eval:doc.template_type=='From DocType'",
@@ -156,7 +164,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-20 18:00:00.000000",
+ "modified": "2026-09-29 12:30:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Label Template",

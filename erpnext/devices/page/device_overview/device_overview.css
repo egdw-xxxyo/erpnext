@@ -1,0 +1,320 @@
+.device-overview {
+	padding: 16px 20px 40px;
+}
+
+.device-overview .dvo-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+
+.device-overview .dvo-count {
+	margin-left: 4px;
+	padding: 0 6px;
+	border-radius: 8px;
+	background: var(--bg-gray);
+	color: var(--text-color);
+	font-size: 11px;
+}
+
+.device-overview .dvo-meta {
+	font-size: 12px;
+	margin-bottom: 14px;
+}
+
+.device-overview .dvo-h {
+	margin: 24px 0 10px;
+}
+
+.device-overview .dvo-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 12px;
+}
+
+.device-overview .dvo-tile {
+	display: block;
+	padding: 14px 16px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+	color: var(--text-color);
+	text-decoration: none;
+}
+
+.device-overview .dvo-tile:hover {
+	border-color: var(--primary);
+	text-decoration: none;
+}
+
+.device-overview .dvo-tile-icon {
+	color: var(--text-muted);
+	font-size: 16px;
+}
+
+.device-overview .dvo-tile-value {
+	font-size: 24px;
+	font-weight: 600;
+	margin-top: 4px;
+}
+
+.device-overview .dvo-tile-label {
+	font-weight: 500;
+}
+
+.device-overview .dvo-tile-sub {
+	font-size: 12px;
+}
+
+.device-overview .dvo-flow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 16px;
+	padding: 10px 14px;
+	border-radius: var(--border-radius-md);
+	background: var(--subtle-fg);
+	font-size: 13px;
+}
+
+.device-overview .dvo-flow .fa-long-arrow-right {
+	color: var(--text-muted);
+}
+
+.device-overview .dvo-issues {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	overflow: hidden;
+}
+
+.device-overview .dvo-issue {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 13px;
+}
+
+.device-overview .dvo-issue:last-child {
+	border-bottom: 0;
+}
+
+.device-overview .dvo-issue-level {
+	font-weight: 600;
+	min-width: 90px;
+}
+
+.device-overview .dvo-issue-area {
+	min-width: 110px;
+}
+
+.device-overview .dvo-issue-msg {
+	flex: 1;
+	min-width: 240px;
+}
+
+.device-overview .dvo-error .fa,
+.device-overview .dvo-error .dvo-issue-level {
+	color: var(--red-600);
+}
+
+.device-overview .dvo-warning .fa,
+.device-overview .dvo-warning .dvo-issue-level {
+	color: var(--orange-600);
+}
+
+.device-overview .dvo-info .fa,
+.device-overview .dvo-info .dvo-issue-level {
+	color: var(--blue-600);
+}
+
+.device-overview .dvo-ok {
+	color: var(--green-600);
+}
+
+.device-overview .dvo-where {
+	display: grid;
+	gap: 4px;
+	font-size: 13px;
+}
+
+.device-overview .dvo-table-wrap {
+	overflow-x: auto;
+}
+
+.device-overview .dvo-table {
+	font-size: 13px;
+	background: var(--card-bg);
+}
+
+.device-overview .dvo-table th {
+	white-space: nowrap;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.device-overview .dvo-table td {
+	vertical-align: top;
+}
+
+.device-overview .dvo-muted {
+	opacity: 0.6;
+}
+
+.device-overview .dvo-pill {
+	margin-right: 4px;
+}
+
+.device-overview .dvo-ctx {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.device-overview .dvo-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	margin-right: 2px;
+	vertical-align: middle;
+}
+
+.device-overview .dvo-dot-green {
+	background: var(--green-500);
+}
+
+.device-overview .dvo-dot-red {
+	background: var(--red-500);
+}
+
+.device-overview .dvo-dot-orange {
+	background: var(--orange-500);
+}
+
+.device-overview .dvo-dot-gray {
+	background: var(--gray-400);
+}
+
+.device-overview .dvo-job {
+	display: inline-block;
+	margin-right: 6px;
+	font-size: 12px;
+}
+
+.device-overview .dvo-job-failed {
+	color: var(--red-600);
+	font-weight: 600;
+}
+
+.device-overview .dvo-hint {
+	margin-bottom: 10px;
+}
+
+.device-overview .dvo-card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+	margin-bottom: 12px;
+	padding: 12px 14px;
+}
+
+.device-overview .dvo-card-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+}
+
+.device-overview .dvo-card-right {
+	margin-left: auto;
+}
+
+.device-overview .dvo-card-sub {
+	margin: 4px 0 8px 24px;
+}
+
+.device-overview .dvo-tree {
+	margin-left: 10px;
+	border-left: 2px solid var(--border-color);
+}
+
+.device-overview .dvo-node {
+	position: relative;
+	padding: 6px 0 6px 18px;
+	font-size: 13px;
+}
+
+.device-overview .dvo-node::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 16px;
+	width: 12px;
+	border-top: 2px solid var(--border-color);
+}
+
+.device-overview .dvo-trigger code {
+	font-weight: 600;
+}
+
+.device-overview .dvo-states {
+	margin-top: 4px;
+}
+
+.device-overview .dvo-state {
+	display: inline-block;
+	margin: 2px 4px 2px 0;
+	padding: 1px 8px;
+	border-radius: 10px;
+	border: 1px solid var(--border-color);
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.device-overview .dvo-state-initial {
+	border-color: var(--blue-400);
+	color: var(--blue-600);
+}
+
+.device-overview .dvo-state-final {
+	border-color: var(--green-400);
+	color: var(--green-600);
+}
+
+.device-overview .dvo-details {
+	display: none;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px dashed var(--border-color);
+	font-size: 12px;
+}
+
+.device-overview .dvo-open .dvo-details {
+	display: block;
+}
+
+.device-overview .dvo-detail-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 16px;
+}
+
+.device-overview .dvo-label {
+	margin: 6px 0 4px;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.device-overview .dvo-empty {
+	padding: 30px 0;
+	text-align: center;
+}

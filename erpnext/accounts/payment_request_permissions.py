@@ -2,7 +2,9 @@ import frappe
 
 PAYMENTS_INITIATOR_ROLE = "Payments: Ініціатор"
 PAYMENTS_DEPARTMENT_HEAD_ROLE = "Payments: Керівник підрозділу"
+BUYER_ROLE = "Закупівельник"
 PAYMENTS_FULL_VISIBILITY_ROLES = {
+	PAYMENTS_DEPARTMENT_HEAD_ROLE,
 	"Payments: Казначей",
 	"Payments: Фінальний погоджувач",
 	"Payments: Аудитор",
@@ -20,11 +22,8 @@ def get_permission_query_conditions(user=None, doctype=None):
 		return ""
 
 	conditions = []
-	if PAYMENTS_INITIATOR_ROLE in roles or PAYMENTS_DEPARTMENT_HEAD_ROLE in roles:
+	if PAYMENTS_INITIATOR_ROLE in roles or BUYER_ROLE in roles:
 		conditions.extend((_owner_condition(user), _open_assignment_condition(user)))
-
-	if PAYMENTS_DEPARTMENT_HEAD_ROLE in roles:
-		conditions.append(_department_head_participation_condition(user))
 
 	if not conditions:
 		return "1=0"
@@ -42,13 +41,10 @@ def has_permission(doc, ptype=None, user=None, debug=False):
 	if roles & PAYMENTS_FULL_VISIBILITY_ROLES:
 		return True
 
-	if PAYMENTS_INITIATOR_ROLE not in roles and PAYMENTS_DEPARTMENT_HEAD_ROLE not in roles:
+	if PAYMENTS_INITIATOR_ROLE not in roles and BUYER_ROLE not in roles:
 		return False
 
 	if doc.owner == user or _is_openly_assigned(doc.name, user):
-		return True
-
-	if PAYMENTS_DEPARTMENT_HEAD_ROLE in roles and _did_department_head_participate(doc.name, user):
 		return True
 
 	return False
@@ -69,19 +65,6 @@ def _open_assignment_condition(user):
 	)"""
 
 
-def _department_head_participation_condition(user):
-	escaped_user = frappe.db.escape(user)
-	escaped_role = frappe.db.escape(PAYMENTS_DEPARTMENT_HEAD_ROLE)
-	return f"""exists (
-		select 1 from `tabWorkflow Action`
-		where `tabWorkflow Action`.`reference_doctype` = 'Payment Request'
-			and `tabWorkflow Action`.`reference_name` = `tabPayment Request`.`name`
-			and `tabWorkflow Action`.`status` = 'Completed'
-			and `tabWorkflow Action`.`completed_by` = {escaped_user}
-			and `tabWorkflow Action`.`completed_by_role` = {escaped_role}
-	)"""
-
-
 def _is_openly_assigned(payment_request, user):
 	return bool(
 		frappe.db.exists(
@@ -91,21 +74,6 @@ def _is_openly_assigned(payment_request, user):
 				"reference_name": payment_request,
 				"allocated_to": user,
 				"status": "Open",
-			},
-		)
-	)
-
-
-def _did_department_head_participate(payment_request, user):
-	return bool(
-		frappe.db.exists(
-			"Workflow Action",
-			{
-				"reference_doctype": "Payment Request",
-				"reference_name": payment_request,
-				"status": "Completed",
-				"completed_by": user,
-				"completed_by_role": PAYMENTS_DEPARTMENT_HEAD_ROLE,
 			},
 		)
 	)

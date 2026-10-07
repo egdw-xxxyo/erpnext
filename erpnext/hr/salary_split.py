@@ -22,7 +22,7 @@ import datetime
 
 import frappe
 from frappe import _
-from frappe.utils import flt, get_first_day, getdate, money_in_words, nowdate, rounded
+from frappe.utils import add_months, flt, get_first_day, getdate, money_in_words, nowdate, rounded
 
 from erpnext.hr import payroll_tax
 
@@ -48,16 +48,11 @@ def _sync_assignment(doc):
 
 	official = flt(doc.get("custom_official_salary"))
 	cash = flt(doc.get("custom_cash_salary"))
-	total = official + cash
 
-	if not total:
+	if not (official + cash):
 		return
 
-	effective = getdate(doc.get("custom_salary_effective_from") or get_first_day(nowdate()))
-
-	if doc.date_of_joining and effective < getdate(doc.date_of_joining):
-		effective = getdate(doc.date_of_joining)
-
+	effective = _effective_from(doc)
 	structure = STRUCTURE_BY_COMPANY.format(company=doc.company)
 
 	if frappe.db.get_value("Salary Structure", structure, "is_active") != "Yes":
@@ -68,21 +63,95 @@ def _sync_assignment(doc):
 		)
 		return
 
-	existing = frappe.db.get_value(
+	# Картка тримає оклад повної ставки, а призначення — те, що людина справді заробляє:
+	# при неповній зайнятості обидві частини множаться на ставку. Далі аванс, відомість і
+	# листок читають призначення й нічого про ставку знати не мусять.
+	rate = employment_rate(doc)
+	paid_official = flt(official * rate, 2)
+	paid_cash = flt(cash * rate, 2)
+	total = paid_official + paid_cash
+	plain = {
+		"custom_plain_official": official,
+		"custom_plain_cash": cash,
+		"custom_employment_rate": rate,
+		"custom_official_bonus": 0,
+	}
+
+	# Дата → (base, variable, довідкові поля). Оклад із картки діє з `effective`; офіційна
+	# доплата живе рівно місяць, тож на її місяць стає окреме призначення, а з наступного —
+	# знову оклад.
+	wanted = {effective: (total, paid_official, plain)}
+	period = bonus_period(doc, effective)
+
+	if period:
+		start, following, bonus = period
+		wanted[start] = (
+			paid_official + bonus + cash_with_bonus(paid_official, paid_cash, bonus),
+			paid_official + bonus,
+			{**plain, "custom_official_bonus": bonus},
+		)
+		wanted[following] = (total, paid_official, plain)
+
+	# Картка — джерело правди від `effective` і далі: пізніші призначення лишилися від знятої
+	# чи перенесеної доплати або від попередньої ставки, тож вертаються до окладу з картки.
+	# Інакше, скажімо, людина на пів ставки з наступного місяця знову отримала б повний оклад.
+	later = frappe.get_all(
 		"Salary Structure Assignment",
-		{"employee": doc.name, "from_date": effective, "docstatus": 1},
-		["name", "base", "variable"],
-		as_dict=True,
+		filters={"employee": doc.name, "docstatus": 1, "from_date": (">", effective)},
+		pluck="from_date",
 	)
 
-	if existing and flt(existing.base) == total and flt(existing.variable) == official:
+	for from_date in later:
+		wanted.setdefault(getdate(from_date), (total, paid_official, plain))
+
+	for from_date in sorted(wanted):
+		_ensure_assignment(doc, structure, from_date, *wanted[from_date])
+
+	# CTC оновлюємо лише разом із призначенням, щоб картка не показувала суму,
+	# за якою насправді ніхто не рахує зарплату.
+	if flt(doc.ctc) != total:
+		doc.db_set("ctc", total, update_modified=False)
+
+
+# Довідкові поля призначення: оклад повної ставки, ставка й доплата. Суми для розрахунку —
+# `base` і `variable`; ці поля лише дають розкласти їх назад (див. `base_salary_parts_on`).
+ASSIGNMENT_META = (
+	"custom_plain_official",
+	"custom_plain_cash",
+	"custom_employment_rate",
+	"custom_official_bonus",
+)
+
+
+def _ensure_assignment(doc, structure, from_date, base, variable, meta):
+	"""Подане призначення структури на дату з рівно такими сумами — або нічого, якщо місяць
+	уже порахований."""
+	existing = frappe.db.get_value(
+		"Salary Structure Assignment",
+		{"employee": doc.name, "from_date": from_date, "docstatus": 1},
+		["name", "base", "variable", *ASSIGNMENT_META],
+		as_dict=True,
+	)
+	# Призначення, створені до появи ставки й доплати, довідкових полів не мають — і поки
+	# людина на повній ставці без доплати, вони й не потрібні.
+	needs_meta = flt(meta["custom_employment_rate"]) != 1 or flt(meta["custom_official_bonus"])
+
+	if (
+		existing
+		and flt(existing.base) == flt(base)
+		and flt(existing.variable) == flt(variable)
+		and (
+			all(flt(existing.get(field)) == flt(meta[field]) for field in ASSIGNMENT_META)
+			or not (needs_meta or flt(existing.custom_employment_rate))
+		)
+	):
 		return
 
-	if _has_submitted_slip(doc.name, effective):
+	if _has_submitted_slip(doc.name, from_date):
 		frappe.msgprint(
 			_(
 				"Salary is already processed for the period starting {0}, the assignment was left untouched."
-			).format(frappe.format(effective, {"fieldtype": "Date"})),
+			).format(frappe.format(from_date, {"fieldtype": "Date"})),
 			indicator="orange",
 			alert=True,
 		)
@@ -96,35 +165,184 @@ def _sync_assignment(doc):
 			"doctype": "Salary Structure Assignment",
 			"employee": doc.name,
 			"salary_structure": structure,
-			"from_date": effective,
+			"from_date": from_date,
 			"company": doc.company,
 			"currency": doc.get("salary_currency")
 			or frappe.get_cached_value("Company", doc.company, "default_currency"),
-			"base": total,
-			"variable": official,
+			"base": base,
+			"variable": variable,
+			**meta,
 		}
 	)
 	assignment.insert(ignore_permissions=True)
 	assignment.submit()
 
-	# CTC оновлюємо лише разом із призначенням, щоб картка не показувала суму,
-	# за якою насправді ніхто не рахує зарплату.
-	if flt(doc.ctc) != total:
-		doc.db_set("ctc", total, update_modified=False)
+
+# Тип зайнятості, при якому діє ставка: людина працює частину дня й отримує частину окладу.
+PART_TIME = "Part-time"
+
+
+def employment_rate(doc) -> float:
+	"""Ставка зайнятості: 0.5 — пів дня й половина окладу. Усім, крім неповної зайнятості, — 1;
+	порожня ставка теж означає повну."""
+	if doc.get("employment_type") != PART_TIME:
+		return 1.0
+
+	rate = flt(doc.get("custom_employment_rate"), 2)
+
+	return rate if 0 < rate <= 1 else 1.0
+
+
+def employment_rate_on(employee, on_date) -> float:
+	"""Ставка, з якою рахувався оклад на дату — з чинного призначення, а не з картки: картка
+	знає лише сьогоднішню."""
+	rate = frappe.db.get_value(
+		"Salary Structure Assignment",
+		{"employee": employee, "docstatus": 1, "from_date": ["<=", getdate(on_date)]},
+		"custom_employment_rate",
+		order_by="from_date desc",
+	)
+
+	return flt(rate) or 1.0
+
+
+def _validate_employment_rate(doc):
+	if doc.get("employment_type") != PART_TIME:
+		return
+
+	rate = flt(doc.get("custom_employment_rate"), 2)
+
+	if rate < 0 or rate > 1:
+		frappe.throw(_("Employment Rate must be between 0 and 1."))
+
+	doc.custom_employment_rate = rate
+
+
+def _effective_from(doc):
+	"""З якої дати діє оклад із картки: не раніше дня прийняття."""
+	effective = getdate(doc.get("custom_salary_effective_from") or get_first_day(nowdate()))
+
+	if doc.get("date_of_joining") and effective < getdate(doc.get("date_of_joining")):
+		effective = getdate(doc.get("date_of_joining"))
+
+	return effective
+
+
+def bonus_period(doc, effective=None):
+	"""Місяць офіційної доплати: (з якої дати, перше число наступного місяця, сума) або None.
+
+	Доплата рахується як офіційна зарплата, але поле «Оф. ЗП» не міняє й діє один місяць.
+	Місяць, раніший за дату окладу в картці, уже минув разом зі старим окладом — така доплата
+	лишається в картці лише як запис і нічого не перераховує.
+	"""
+	bonus = flt(doc.get("custom_official_bonus"))
+	month = doc.get("custom_official_bonus_month")
+
+	if not bonus or not month:
+		return None
+
+	effective = effective or _effective_from(doc)
+	start = getdate(month).replace(day=1)
+
+	if start < effective.replace(day=1):
+		return None
+
+	return max(start, effective), getdate(add_months(start, 1)), bonus
+
+
+def cash_with_bonus(official, cash, bonus) -> float:
+	"""Готівка в місяці доплати: на руки людина отримує стільки ж, тож усе, що доплата
+	додала на картку, знімається з готівки."""
+	shift = payroll_tax.net(flt(official) + flt(bonus)) - payroll_tax.net(official)
+
+	return max(flt(flt(cash) - shift, 2), 0)
 
 
 def set_card_amount(doc, method=None):
-	"""Employee.validate: скільки з офіційної суми дійде до картки.
+	"""Employee.validate: скільки з офіційної суми дійде до картки і скільки лишається готівкою.
 
-	Поле довідкове й тільки для читання: рахувати 77% в голові — зайвий привід помилитися,
-	а зберігати ще одну суму, яку хтось може поправити руками, ми не хочемо.
+	Домовляються з людиною про суму на руки, тож вводять її («Разом ЗП») та офіційну частину,
+	а готівка — те, чого бракує до суми на руки після того, як офіційна дійшла до картки.
+	Обидва розраховані поля тільки для читання: рахувати 77% в голові — зайвий привід помилитися.
 	"""
-	doc.custom_official_salary_net = payroll_tax.net(doc.get("custom_official_salary"))
+	net = payroll_tax.net(doc.get("custom_official_salary"))
+	doc.custom_official_salary_net = net
+	_set_bonus_month(doc)
+	_validate_employment_rate(doc)
+	_warn_below_reservation(doc)
+
+	total = flt(doc.get("custom_total_salary"))
+
+	if not total:
+		# Картка без суми на руки (заведена раніше або через API) — виводимо її з двох частин.
+		doc.custom_total_salary = flt(net + flt(doc.get("custom_cash_salary")), 2)
+		return
+
+	cash = flt(total - net, 2)
+
+	if cash < 0:
+		frappe.throw(
+			_("Total Salary cannot be less than the amount accrued to the card ({0}).").format(
+				frappe.format_value(net, {"fieldtype": "Currency"})
+			),
+			title=_("Total Salary Is Too Low"),
+		)
+
+	doc.custom_cash_salary = cash
+
+
+def _set_bonus_month(doc):
+	"""Доплата завжди прив'язана до місяця: без нього — до поточного або до місяця окладу."""
+	bonus = flt(doc.get("custom_official_bonus"))
+
+	if bonus < 0:
+		frappe.throw(_("Official Bonus cannot be negative."))
+
+	if not bonus:
+		doc.custom_official_bonus_month = None
+		return
+
+	month = doc.get("custom_official_bonus_month") or max(getdate(nowdate()), _effective_from(doc))
+	doc.custom_official_bonus_month = getdate(month).replace(day=1)
+
+
+def _warn_below_reservation(doc):
+	"""Попереджаємо лише про тих, кому оклад має відповідати мінімуму бронювання."""
+	if not doc.get("custom_reservation_salary") or frappe.flags.in_migrate or frappe.flags.in_patch:
+		return
+
+	minimum = payroll_tax.reservation_minimum()
+	# Бронюють за тим, що справді нараховано, — при неповній зайнятості це частина окладу.
+	official = flt(flt(doc.get("custom_official_salary")) * employment_rate(doc), 2)
+	period = bonus_period(doc)
+
+	# Доплата рятує бронювання лише у своєму місяці — минула вже не рахується.
+	if period and period[1] > getdate(nowdate()):
+		official += period[2]
+
+	if official >= minimum:
+		return
+
+	frappe.msgprint(
+		_(
+			"The official salary is below the reservation minimum of {0} — the employee cannot be reserved."
+		).format(frappe.format_value(minimum, {"fieldtype": "Currency"})),
+		indicator="orange",
+		alert=True,
+	)
 
 
 # Поля картки, які тримають оклад: їх міняє лише керівник працівника (або «Зміна окладу»,
 # яка від його імені й затверджується).
-SALARY_FIELDS = ("custom_official_salary", "custom_cash_salary", "custom_salary_effective_from")
+SALARY_FIELDS = (
+	"custom_total_salary",
+	"custom_official_salary",
+	"custom_cash_salary",
+	"custom_salary_effective_from",
+	"custom_official_bonus",
+	"custom_official_bonus_month",
+	"custom_employment_rate",
+)
 
 
 def restrict_salary_editing(doc, method=None):
@@ -201,8 +419,40 @@ def salary_parts_on(employee, on_date) -> tuple:
 	return flt(official), flt(cash)
 
 
-def apply_salary_to_employee(employee, official, cash, effective_from) -> bool:
+def base_salary_parts_on(employee, on_date) -> tuple:
+	"""Оклад повної ставки без доплати на дату: (офіційна, готівкова, доплата цього місяця).
+
+	Призначення структури тримає вже помножене на ставку, а в місяці доплати — ще й доплату
+	всередині офіційної суми та зменшену готівку. Документ, який міняє оклад, має бачити
+	вихідні числа — інакше разова доплата чи пів ставки тихо стали б постійним окладом.
+	"""
+	assignment = frappe.db.get_value(
+		"Salary Structure Assignment",
+		{"employee": employee, "docstatus": 1, "from_date": ["<=", getdate(on_date)]},
+		["base", "variable", *ASSIGNMENT_META],
+		order_by="from_date desc",
+		as_dict=True,
+	)
+
+	if not assignment:
+		official, cash = salary_parts_on(employee, on_date)
+		return official, cash, 0.0
+
+	# Довідкових полів немає в призначеннях, створених раніше: там повна ставка без доплати.
+	if not flt(assignment.custom_employment_rate):
+		return flt(assignment.variable), flt(assignment.base) - flt(assignment.variable), 0.0
+
+	return (
+		flt(assignment.custom_plain_official),
+		flt(assignment.custom_plain_cash),
+		flt(assignment.custom_official_bonus),
+	)
+
+
+def apply_salary_to_employee(employee, official, cash, effective_from, bonus=None) -> bool:
 	"""Кладе оклад у картку працівника; звідти хук `on_update` створює призначення структури.
+
+	`bonus` — офіційна доплата на місяць `effective_from`; `None` лишає доплату в картці як є.
 
 	Повертає False, якщо в картці вже стоїть рівно те саме — щоб повторне затвердження не
 	перестворювало призначення.
@@ -210,17 +460,29 @@ def apply_salary_to_employee(employee, official, cash, effective_from) -> bool:
 	doc = frappe.get_doc("Employee", employee)
 	official, cash = flt(official), flt(cash)
 	effective_from = getdate(effective_from)
+	bonus_month = effective_from.replace(day=1)
+	same_bonus = bonus is None or (
+		flt(doc.get("custom_official_bonus")) == flt(bonus)
+		and (not flt(bonus) or getdate(doc.get("custom_official_bonus_month") or "1900-01-01") == bonus_month)
+	)
 
 	if (
 		flt(doc.get("custom_official_salary")) == official
 		and flt(doc.get("custom_cash_salary")) == cash
 		and getdate(doc.get("custom_salary_effective_from") or "1900-01-01") == effective_from
+		and same_bonus
 	):
 		return False
 
+	doc.custom_total_salary = flt(payroll_tax.net(official) + cash, 2)
 	doc.custom_official_salary = official
 	doc.custom_cash_salary = cash
 	doc.custom_salary_effective_from = effective_from
+
+	if bonus is not None:
+		doc.custom_official_bonus = flt(bonus)
+		doc.custom_official_bonus_month = bonus_month if flt(bonus) else None
+
 	doc.flags.ignore_mandatory = True
 	doc.save()
 

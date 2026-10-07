@@ -1,0 +1,124 @@
+<h2>Standby mirror</h2>
+
+{% if saved %}<div class="alert small">Saved to <code>.mirror.env</code>.</div>{% endif %}
+{% if error %}<div class="alert error small">{{ error }}</div>{% endif %}
+
+<p class="muted small">
+	A second machine keeps a live copy of main's database and attachments and can serve users while
+	main is unreachable. Only one side takes writes; failback copies the mirror's data back over main.
+	Runbook: <code>docs/mirror-standby.md</code>.
+</p>
+
+{% if role == 'replica' and state == 'active' %}
+<div class="alert error small">
+	<b>This mirror is serving users</b> — main is fenced. When main is reachable again, run "Fail back to main".
+</div>
+{% elif role %}
+<p><span class="pill ok">{{ roles[role] }}</span>
+	{% if role == 'replica' %}<span class="pill good">{{ state }}</span>{% endif %}</p>
+{% endif %}
+
+<form hx-post="/settings/mirror" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+      hx-target="#panel-mirror-settings" hx-swap="innerHTML" class="action">
+	<label class="inline-label">
+		<input type="checkbox" name="enabled" {% if role %}checked{% endif %}> Mirror enabled on this host
+	</label>
+
+	<label>This host is
+		<select name="role">
+			<option value="">—</option>
+			{% for value, label in roles.items() %}
+			<option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>
+			{% endfor %}
+		</select>
+	</label>
+
+	<h3 class="small">Both hosts</h3>
+	{% for f in fields if 'primary' in f.roles %}
+	<label>{{ f.label }}
+		{% if f.secret %}
+		<input name="{{ f.key }}" type="password" autocomplete="new-password"
+		       placeholder="{{ '•••••••• set — leave blank to keep' if values.get(f.key) else '' }}">
+		{% else %}
+		<input name="{{ f.key }}" value="{{ values.get(f.key, '') }}" placeholder="{{ f.default }}" spellcheck="false">
+		{% endif %}
+		{% if f.help %}<span class="muted small">{{ f.help }}</span>{% endif %}
+	</label>
+	{% endfor %}
+
+	<h3 class="small">Standby mirror only</h3>
+	{% for f in fields if 'primary' not in f.roles %}
+	<label>{{ f.label }}
+		<input name="{{ f.key }}" value="{{ values.get(f.key, '') }}" placeholder="{{ f.default }}" spellcheck="false">
+		{% if f.help %}<span class="muted small">{{ f.help }}</span>{% endif %}
+	</label>
+	{% endfor %}
+
+	<p class="muted small">
+		On the main server, changing these takes effect on the next deploy (the database restarts with a binary log).
+	</p>
+	<button type="submit" class="primary">Save</button>
+</form>
+
+{% if role == 'replica' %}
+<div class="action-row">
+	<button class="small" hx-post="/settings/mirror/keygen" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	        hx-target="#panel-mirror-settings" hx-swap="innerHTML">
+		<i class="fa fa-key"></i> Generate key
+	</button>
+	<button class="small" hx-post="/settings/mirror/test" hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	        hx-target="#panel-mirror-settings" hx-swap="innerHTML">
+		<i class="fa fa-plug"></i> Test connection to main
+	</button>
+</div>
+{% endif %}
+
+{% if public_key %}
+<div class="alert small">
+	Add this line to <code>~/.ssh/authorized_keys</code> of the SSH login on the main server:
+	<pre class="mono">{{ public_key }}</pre>
+</div>
+{% endif %}
+{% if test_ok %}<div class="alert small">{{ test_ok }}</div>{% endif %}
+{% if test_error %}<div class="alert error small">Test failed: <span class="mono">{{ test_error }}</span></div>{% endif %}
+
+{% if role %}
+{% if role == 'primary' %}
+	{% set keys = ['mirror-primary-setup'] %}
+{% elif state == 'active' %}
+	{% set keys = ['mirror-failback'] %}
+{% else %}
+	{% set keys = ['mirror-setup', 'mirror-sync-code', 'mirror-start'] %}
+{% endif %}
+<div class="actions">
+	{% for key in keys %}
+	{% set cmd = commands[key] %}
+	<form class="action"
+	      hx-post="/actions/{{ key }}"
+	      hx-headers='{"x-csrf-token": "{{ session.csrf }}"}'
+	      hx-target="#console-slot"
+	      hx-swap="innerHTML"
+	      {% if cmd.destructive %}hx-confirm="{{ cmd.label }} on {{ settings.env_label|upper }}? {{ cmd.description }}"{% endif %}
+	      hx-on::after-request="document.getElementById('console-host').hidden = false">
+		<div class="action-head">
+			<b>{{ cmd.label }}</b>
+			{% if cmd.destructive %}<span class="pill danger-pill">changes the system</span>{% endif %}
+		</div>
+		<p class="muted small">{{ cmd.description }}</p>
+		{% if key == 'mirror-start' %}
+		<label class="inline-label">
+			<input type="checkbox" name="force"> Force (main is reachable but broken, or code differs)
+		</label>
+		{% endif %}
+		<button type="submit" class="{{ 'danger' if cmd.destructive else 'primary' }}">Run</button>
+	</form>
+	{% endfor %}
+</div>
+
+{% if status %}
+<details>
+	<summary class="small">Status</summary>
+	<pre class="mono small">{{ status }}</pre>
+</details>
+{% endif %}
+{% endif %}

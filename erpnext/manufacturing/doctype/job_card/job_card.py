@@ -1119,6 +1119,7 @@ class JobCard(Document):
 					data.hour_rate = flt(workstation_hour_rate)
 
 		wo.flags.ignore_validate_update_after_submit = True
+		wo.flags.ignore_permissions = True
 		wo.update_operation_status()
 		wo.calculate_operating_cost()
 		wo.set_actual_dates()

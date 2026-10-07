@@ -26,8 +26,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, date_diff, flt, get_last_day, getdate
 
-from erpnext.hr import payroll_tax
-from erpnext.hr.salary_split import salary_parts_on
+from erpnext.hr import average_pay, payroll_tax
+from erpnext.hr.salary_split import employment_rate_on, salary_parts_on
 
 ADVANCE_COMPONENT = "Аванс"
 ADVANCE_CARD = "Аванс на картку"
@@ -125,6 +125,9 @@ def plan_advance(
 			"date_of_joining",
 			"relieving_date",
 			"custom_tax_id",
+			"custom_insurance_years",
+			"custom_insurance_months",
+			"custom_sick_pay_in_full",
 		],
 		order_by="department asc, employee_name asc",
 	)
@@ -133,6 +136,20 @@ def plan_advance(
 	absences = absence_days([employee.name for employee in employees], period_start, cutoff)
 	day_hours = standard_day_hours()
 	holiday_dates = {}
+	holiday_lists = {employee.name: _holiday_list(employee, company) for employee in employees}
+	# Відпустка й лікарняний офіційної половини платяться за середньою зарплатою, а не за
+	# окладом: звідси їхні календарні дні (див. `erpnext.hr.average_pay`).
+	leaves = average_pay.absence_calendar(
+		[employee.name for employee in employees],
+		period_start,
+		cutoff,
+		lambda name: _holiday_dates(
+			holiday_lists.get(name),
+			add_days(period_start, -average_pay.LOOKBACK_DAYS),
+			period_end,
+			holiday_dates,
+		),
+	)
 	rows = []
 
 	for employee in employees:
@@ -179,6 +196,18 @@ def plan_advance(
 
 		rate_official = flt(official) / month_days if month_days else 0
 		rate_cash = flt(cash) / month_days if month_days else 0
+		leave = average_pay.leave_pay(
+			employee,
+			first,
+			last,
+			_holiday_dates(holidays, first, last, holiday_dates),
+			leaves.get(employee.name),
+		)
+		# Офіційна половина: оклад — лише за дні, коли людина не була у відпустці чи на
+		# лікарняному; ті дні вже оплачені за середньою. Лікарняний понад дні роботодавця
+		# платить Пенсійний фонд, тож у виплату компанії він не входить зовсім.
+		official_days = flt(max(planned_days - leave.working_days, 0), 2)
+		advance_official = flt(rate_official * official_days + leave.vacation_pay + leave.sick_pay, 2)
 
 		rows.append(
 			frappe._dict(
@@ -188,6 +217,8 @@ def plan_advance(
 				manager=employee.reports_to,
 				official_salary=flt(official),
 				cash_salary=flt(cash),
+				# Оклад уже помножений на ставку — вона тут лише пояснює, чому він менший.
+				employment_rate=employment_rate_on(employee.name, period_end),
 				month_working_days=month_days,
 				planned_days=planned_days,
 				planned_hours=flt(planned_days * day_hours, 2),
@@ -215,9 +246,19 @@ def plan_advance(
 				# Аванс має власну базу днів, тож і власні суми: остаточний розрахунок далі
 				# рахується за табелем і сам зніме те, що людина не відпрацювала.
 				advance_days=advance_days,
-				advance_official=flt(rate_official * advance_days, 2),
-				advance_official_net=payroll_tax.net(rate_official * advance_days),
+				advance_official=advance_official,
+				advance_official_net=payroll_tax.net(advance_official),
+				# Готівкова половина закону не знає: платить ці дні як і раніше, за окладом.
 				advance_cash=flt(rate_cash * advance_days, 2),
+				official_days=official_days,
+				vacation_days=leave.vacation_days,
+				vacation_pay=leave.vacation_pay,
+				vacation_average=leave.vacation_average,
+				sick_calendar_days=leave.sick_calendar_days,
+				sick_pay=leave.sick_pay,
+				sick_pay_fund=leave.sick_pay_fund,
+				sick_average=leave.sick_average,
+				sick_percent=leave.sick_percent,
 			)
 		)
 

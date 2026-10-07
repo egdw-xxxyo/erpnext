@@ -17,6 +17,7 @@ class LabelTemplate(Document):
 		from frappe.types import DF
 
 		description: DF.SmallText | None
+		disabled: DF.Check
 		html_template: DF.Code | None
 		label_size: DF.Link | None
 		preview_data: DF.Code | None
@@ -33,6 +34,10 @@ class LabelTemplate(Document):
 		jobs = frappe.get_all("Print Job", filters={"label_template": self.name}, pluck="name")
 		for job_name in jobs:
 			frappe.delete_doc("Print Job", job_name, force=True, delete_permanently=True)
+
+
+def get_permission_query_conditions(user=None):
+	return "ifnull(`tabLabel Template`.`disabled`, 0) = 0"
 
 
 def _get_label_size_data(label_size_name):
@@ -96,7 +101,7 @@ def get_templates_for_barcode_type(barcode_type):
 	"""Return label templates configured for a specific barcode type."""
 	return frappe.get_all(
 		"Label Template",
-		filters={"barcode_type": barcode_type},
+		filters={"barcode_type": barcode_type, "disabled": 0},
 		fields=["name as label_template", "label_size"],
 	)
 

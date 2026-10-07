@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "field:phone",
+ "autoname": "hash",
  "creation": "2026-07-18 00:00:00.000000",
  "default_view": "List",
  "doctype": "DocType",
@@ -9,6 +9,7 @@
  "engine": "InnoDB",
  "field_order": [
   "details_tab",
+  "whatsapp_account",
   "phone",
   "contact",
   "title",
@@ -17,8 +18,13 @@
   "last_message_on",
   "last_preview",
   "last_content_type",
-  "managers_section",
-  "assigned_managers",
+  "conversation_section",
+  "finished",
+  "finished_on",
+  "finished_by",
+  "column_break_conversation",
+  "archived",
+  "archived_on",
   "links_section",
   "links"
  ],
@@ -29,13 +35,22 @@
    "label": "Details"
   },
   {
+   "fieldname": "whatsapp_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "WhatsApp Account",
+   "options": "WhatsApp Account",
+   "reqd": 1
+  },
+  {
    "fieldname": "phone",
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Phone",
    "reqd": 1,
-   "unique": 1
+   "search_index": 1
   },
   {
    "fieldname": "contact",
@@ -81,15 +96,54 @@
    "read_only": 1
   },
   {
-   "fieldname": "managers_section",
+   "fieldname": "conversation_section",
    "fieldtype": "Section Break",
-   "label": "Assigned Managers"
+   "label": "Conversation"
   },
   {
-   "fieldname": "assigned_managers",
-   "fieldtype": "Table",
-   "label": "Assigned Managers",
-   "options": "WhatsApp Chat Manager"
+   "default": "0",
+   "description": "Set when the team closes the conversation; the customer's next message clears it.",
+   "fieldname": "finished",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Finished",
+   "read_only": 1
+  },
+  {
+   "depends_on": "finished",
+   "fieldname": "finished_on",
+   "fieldtype": "Datetime",
+   "label": "Finished On",
+   "read_only": 1
+  },
+  {
+   "depends_on": "finished",
+   "fieldname": "finished_by",
+   "fieldtype": "Link",
+   "label": "Finished By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_conversation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Moved to the obsolete group of the chat list; any new message brings it back.",
+   "fieldname": "archived",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Obsolete",
+   "read_only": 1
+  },
+  {
+   "depends_on": "archived",
+   "fieldname": "archived_on",
+   "fieldtype": "Datetime",
+   "label": "Obsolete Since",
+   "read_only": 1
   },
   {
    "fieldname": "links_section",
@@ -105,11 +159,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-18 00:00:00.000000",
+ "modified": "2026-09-30 22:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "WhatsApp Chat",
- "naming_rule": "By fieldname",
+ "naming_rule": "Random",
  "owner": "Administrator",
  "permissions": [
   {
@@ -150,5 +204,8 @@
  ],
  "sort_field": "last_message_on",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "title",
+ "show_title_field_in_link": 1,
+ "search_fields": "phone,whatsapp_account"
 }

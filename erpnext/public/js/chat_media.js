@@ -125,10 +125,21 @@ erpnext.chat_media = {
 	// elapsed time, Send (stop) and Cancel; resolves with {blob, mime, ext} or null if
 	// the user cancels or the mic is unavailable. Callers upload + send the blob.
 	//
-	// The container is picked to be WhatsApp-friendly when the browser can (ogg/opus,
-	// mp4); Chrome only offers webm, which the server transcodes for WhatsApp.
+	// ogg/opus goes to WhatsApp as-is; the mp4 and webm that browsers record are
+	// transcoded by the server (see _ensure_whatsapp_audio).
 	async record_audio() {
 		if (!navigator.mediaDevices || !window.MediaRecorder) {
+			// Browsers expose the microphone only on HTTPS (or localhost). Over plain HTTP
+			// fall back to an audio file: phones open their voice recorder for it.
+			if (!window.isSecureContext) {
+				frappe.show_alert({
+					message: __(
+						"The microphone works only over HTTPS. Choose or record an audio file instead."
+					),
+					indicator: "orange",
+				});
+				return await this.pick_audio_file();
+			}
 			frappe.msgprint(__("Voice recording is not supported in this browser"));
 			return null;
 		}
@@ -198,6 +209,24 @@ erpnext.chat_media = {
 				rec.stop();
 			});
 			rec.start();
+		});
+	},
+
+	// Pick an audio file (or record one with the phone's recorder via `capture`); resolves
+	// with the same {blob, mime, ext} shape as record_audio, or null when nothing was picked.
+	pick_audio_file() {
+		return new Promise((resolve) => {
+			const $input = $('<input type="file" accept="audio/*" capture style="display:none">').appendTo(
+				document.body
+			);
+			$input.on("change", () => {
+				const f = $input[0].files && $input[0].files[0];
+				$input.remove();
+				if (!f) return resolve(null);
+				const ext = (f.name.split(".").pop() || "ogg").toLowerCase();
+				resolve({ blob: f, mime: f.type || "audio/" + ext, ext });
+			});
+			$input.trigger("click");
 		});
 	},
 

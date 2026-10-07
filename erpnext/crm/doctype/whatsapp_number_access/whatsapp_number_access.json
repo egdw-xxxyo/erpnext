@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "creation": "2026-09-30 20:00:00.000000",
+ "autoname": "format:{whatsapp_account}::{user}",
+ "description": "Who handles (Responsible) or watches read-only (Spectator) the chats of a business WhatsApp number",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "whatsapp_account",
+  "user",
+  "full_name",
+  "access"
+ ],
+ "fields": [
+  {
+   "fieldname": "whatsapp_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "WhatsApp Account",
+   "options": "WhatsApp Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "fetch_from": "user.full_name",
+   "label": "Full Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "access",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Access",
+   "options": "Responsible\nSpectator",
+   "default": "Responsible",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "WhatsApp Number Access",
+ "owner": "Administrator",
+ "naming_rule": "Expression",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "WhatsApp Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "title_field": "full_name",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

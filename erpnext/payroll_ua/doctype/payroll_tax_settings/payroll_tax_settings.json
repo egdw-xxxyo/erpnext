@@ -13,8 +13,12 @@
   "ssc_rate",
   "column_break_employer",
   "ssc_disability_rate",
+  "section_break_average_pay",
+  "minimum_wage",
   "section_break_reservation",
-  "minimum_reservation_salary"
+  "minimum_reservation_salary",
+  "column_break_reservation",
+  "minimum_average_reservation_salary"
  ],
  "fields": [
   {
@@ -68,22 +72,46 @@
    "reqd": 1
   },
   {
+   "fieldname": "section_break_average_pay",
+   "fieldtype": "Section Break",
+   "label": "Vacation and Sick Pay"
+  },
+  {
+   "default": "8647",
+   "description": "The statutory minimum wage. Sick pay is capped by 20 minimum wages a month, and by one when the insurance tenure is under 6 months; an average taken from the salary is never below it.",
+   "fieldname": "minimum_wage",
+   "fieldtype": "Currency",
+   "label": "Minimum Wage",
+   "precision": "2"
+  },
+  {
    "fieldname": "section_break_reservation",
    "fieldtype": "Section Break",
    "label": "Reservation (Бронювання)"
   },
   {
-   "default": "26000",
-   "description": "The minimum official salary an employee must be paid to qualify for military service reservation. The salary documents warn about anybody below it.",
+   "description": "The official salary a reserved employee must get. Empty — the reservation is not checked.",
    "fieldname": "minimum_reservation_salary",
    "fieldtype": "Currency",
-   "label": "Minimum Salary for Reservation"
+   "label": "Minimum Salary for Reservation",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_reservation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The average official salary the company must reach. Empty — the same amount as the minimum salary for reservation.",
+   "fieldname": "minimum_average_reservation_salary",
+   "fieldtype": "Currency",
+   "label": "Minimum Company Average Salary for Reservation",
+   "precision": "2"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-29 13:30:00.000000",
+ "modified": "2026-10-06 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Tax Settings",

@@ -17,7 +17,7 @@
 		<td class="mono">{{ j.user }}</td>
 		<td>{{ j.started|human_time }} <em class="muted">{{ j.started|ago }}</em></td>
 		<td>
-			<span class="pill {{ {'success':'good','running':'ok','failed':'bad','crashed':'bad','rejected':'muted-pill'}.get(j.state,'muted-pill') }}">
+			<span class="pill {{ {'success':'good','running':'ok','failed':'bad','crashed':'bad','stopped':'bad','rejected':'muted-pill'}.get(j.state,'muted-pill') }}">
 				{{ j.state }}{% if j.exit not in (None, '', '0') %} ({{ j.exit }}){% endif %}
 			</span>
 		</td>

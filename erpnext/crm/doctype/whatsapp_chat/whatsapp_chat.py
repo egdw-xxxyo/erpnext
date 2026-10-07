@@ -2,16 +2,31 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_datetime
+from frappe.utils import add_days, get_datetime
 
 # The chat list only renders a one-line preview; storing more just bloats the row.
 PREVIEW_LENGTH = 200
+# A finished conversation drops into the list's obsolete group after this many quiet days.
+OBSOLETE_AFTER_DAYS = 7
 
 
 class WhatsAppChat(Document):
 	def validate(self):
+		self._validate_unique_per_number()
 		self._prune_dead_links()
+
+	def _validate_unique_per_number(self):
+		"""One chat per customer per business number."""
+		filters = {"whatsapp_account": self.whatsapp_account, "phone": self.phone}
+		if self.name:
+			filters["name"] = ["!=", self.name]
+		duplicate = frappe.db.exists("WhatsApp Chat", filters)
+		if duplicate:
+			frappe.throw(
+				_("A chat with {0} on this WhatsApp number already exists: {1}").format(self.phone, duplicate)
+			)
 
 	def _prune_dead_links(self):
 		"""Drop link rows whose target document no longer exists, so a deleted
@@ -41,21 +56,58 @@ def _peer_number(doc):
 	return doc.get("to")
 
 
+def find_chat(account, phone):
+	return frappe.db.get_value("WhatsApp Chat", {"whatsapp_account": account, "phone": phone}, "name")
+
+
+def get_or_create_chat(account, phone):
+	"""The chat for `phone` on business number `account`, created empty if missing."""
+	name = find_chat(account, phone)
+	if name:
+		return frappe.get_doc("WhatsApp Chat", name)
+	chat = frappe.new_doc("WhatsApp Chat")
+	chat.whatsapp_account = account
+	chat.phone = phone
+	chat.chat_type = "Personal"
+	chat.title = phone
+	_resolve_contact(chat)
+	chat.insert(ignore_permissions=True)
+	return chat
+
+
+def _resolve_contact(chat):
+	if chat.contact:
+		return
+	try:
+		from frappe.contacts.doctype.contact.contact import get_contact_with_phone_number
+
+		contact = get_contact_with_phone_number(chat.phone)
+	except Exception:
+		contact = None
+	if contact:
+		chat.contact = contact
+		title = frappe.db.get_value("Contact", contact, "full_name")
+		if title:
+			chat.title = title
+
+
 def sync_chat_from_message(doc):
-	"""Upsert a WhatsApp Chat for the message's peer number, resolve its Contact,
-	seed identity links (Contact + its Lead/Customer) and bump last_message_on.
+	"""Upsert the WhatsApp Chat for the message's (business number, peer number), resolve
+	its Contact, seed identity links (Contact + its Lead/Customer) and bump last_message_on.
 
 	Cheap and idempotent — safe to run on every message insert/update.
 	"""
 	number = _peer_number(doc)
-	if not number:
+	account = doc.get("whatsapp_account")
+	if not number or not account:
 		return None
 
-	name = frappe.db.exists("WhatsApp Chat", {"phone": number})
+	name = find_chat(account, number)
 	if name:
 		chat = frappe.get_doc("WhatsApp Chat", name)
 	else:
 		chat = frappe.new_doc("WhatsApp Chat")
+		chat.whatsapp_account = account
 		chat.phone = number
 		chat.chat_type = "Personal"
 
@@ -70,13 +122,19 @@ def sync_chat_from_message(doc):
 		if contact:
 			chat.contact = contact
 
-	# Title preference: contact full name > incoming profile_name > number.
+	# Title preference: the name the team gave (erpnext.crm.whatsapp_person) > contact
+	# full name > incoming profile_name > number.
+	from erpnext.crm.whatsapp_person import people_for
+
+	custom_name = (people_for([number]).get(number) or {}).get("custom_name")
 	contact_name = None
 	if chat.contact:
 		contact_name = frappe.db.get_value("Contact", chat.contact, "full_name")
-	if contact_name:
+	if custom_name:
+		chat.title = custom_name
+	elif contact_name:
 		chat.title = contact_name
-	elif not chat.title:
+	elif not chat.title or chat.title == number:
 		chat.title = doc.get("profile_name") or number
 
 	# Seed identity links: the Contact itself + its linked Lead/Customer.
@@ -89,12 +147,49 @@ def sync_chat_from_message(doc):
 		):
 			chat.add_link(row.link_doctype, row.link_name)
 
-	chat.last_message_on = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
-	chat.last_preview = (doc.get("message") or "")[:PREVIEW_LENGTH]
-	chat.last_content_type = doc.get("content_type")
+	reopen_conversation(chat, doc)
+
+	# on_update runs for older messages too (status, downloaded media): only the newest
+	# message moves the chat's time and preview.
+	created = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
+	if not chat.last_message_on or created >= get_datetime(chat.last_message_on):
+		chat.last_message_on = created
+		chat.last_preview = (doc.get("message") or "")[:PREVIEW_LENGTH]
+		chat.last_content_type = doc.get("content_type")
 
 	chat.save(ignore_permissions=True)
 	return chat.name
+
+
+def reopen_conversation(chat, doc):
+	"""A finished conversation is open again once the customer writes; an obsolete one comes
+	back to the active list on any new message. Reactions don't count, and neither do
+	status updates of messages sent before the mark (on_update runs for those too)."""
+	if doc.get("content_type") == "reaction":
+		return
+	created = get_datetime(doc.get("creation")) or frappe.utils.now_datetime()
+
+	def newer(mark):
+		return not mark or created > get_datetime(mark)
+
+	if chat.get("finished") and doc.get("type") == "Incoming" and newer(chat.get("finished_on")):
+		chat.finished = 0
+		chat.finished_on = None
+		chat.finished_by = None
+	if chat.get("archived") and newer(chat.get("archived_on")):
+		chat.archived = 0
+		chat.archived_on = None
+
+
+def is_obsolete(chat, now=None):
+	"""Obsolete chats sit in the collapsed group of the list: moved there by hand, or
+	finished and quiet for OBSOLETE_AFTER_DAYS."""
+	if chat.get("archived"):
+		return True
+	if not chat.get("finished") or not chat.get("last_message_on"):
+		return False
+	now = now or frappe.utils.now_datetime()
+	return get_datetime(chat.get("last_message_on")) < add_days(now, -OBSOLETE_AFTER_DAYS)
 
 
 def backfill_previews(chats):
@@ -112,6 +207,7 @@ def backfill_previews(chats):
 		if needs_preview:
 			last = frappe.get_all(
 				"WhatsApp Message",
+				filters={"whatsapp_account": chat.get("whatsapp_account")},
 				or_filters=[
 					["WhatsApp Message", "from", "=", chat["phone"]],
 					["WhatsApp Message", "to", "=", chat["phone"]],
@@ -130,6 +226,7 @@ def backfill_previews(chats):
 			profile = frappe.get_all(
 				"WhatsApp Message",
 				filters=[
+					["WhatsApp Message", "whatsapp_account", "=", chat.get("whatsapp_account")],
 					["WhatsApp Message", "from", "=", chat["phone"]],
 					["WhatsApp Message", "type", "=", "Incoming"],
 					["WhatsApp Message", "profile_name", "is", "set"],
@@ -148,3 +245,7 @@ def backfill_previews(chats):
 
 	if touched:
 		frappe.db.commit()
+
+
+def on_doctype_update():
+	frappe.db.add_index("WhatsApp Chat", ["whatsapp_account", "phone"])

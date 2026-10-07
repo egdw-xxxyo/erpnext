@@ -36,6 +36,7 @@ apps.json
 graphify-out/
 raw/
 .tunnel.env*
+.tls.env
 .envrc
 bin/
 .ops.env
@@ -43,3 +44,5 @@ bin/
 
 # Claude Code scheduled-task lock (per-session runtime state)
 .claude/scheduled_tasks.lock
+.mirror.env
+.mirror/

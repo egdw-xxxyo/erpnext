@@ -27,6 +27,7 @@ from erpnext.payroll_ua.attendance_marks import (
 from erpnext.payroll_ua.doctype.attendance_sheet_approval.attendance_sheet_approval import (
 	get_approved_periods,
 )
+from erpnext.payroll_ua.employee_names import full_name_column, get_full_name, order_by_full_name
 
 Filters = frappe._dict
 
@@ -295,24 +296,31 @@ def get_unsubmitted_rows(filters: Filters) -> list[dict]:
 		.select(
 			(Employee.name).as_("employee"),
 			Employee.employee_name,
+			Employee.last_name,
+			Employee.first_name,
+			Employee.middle_name,
 			Employee.department,
 			Employee.designation,
 			Employee.branch,
 			Employee.grade,
-			(Manager.employee_name).as_("manager_name"),
+			full_name_column(Manager).as_("manager_name"),
 		)
 		.where(
 			(Employee.company.isin(filters.companies))
 			& (Employee.status == "Active")
 			& (Employee.date_of_joining <= getdate(dates_in_period[-1]))
 		)
-		.orderby(Employee.employee_name)
 	)
+	query = order_by_full_name(query, Employee)
 
 	if filters.employee:
 		query = query.where(Employee.name == filters.employee)
 
-	return [row for row in query.run(as_dict=True) if row.employee not in filters.approved_periods]
+	return [
+		{**row, "employee_name": get_full_name(row)}
+		for row in query.run(as_dict=True)
+		if row.employee not in filters.approved_periods
+	]
 
 
 def get_columns_for_days(filters: Filters) -> list[dict]:
@@ -530,7 +538,10 @@ def get_employee_related_details(filters: Filters) -> tuple[dict, list]:
 		.select(
 			Employee.name,
 			Employee.employee_name,
-			(Manager.employee_name).as_("manager_name"),
+			Employee.last_name,
+			Employee.first_name,
+			Employee.middle_name,
+			full_name_column(Manager).as_("manager_name"),
 			Employee.designation,
 			Employee.grade,
 			Employee.department,
@@ -556,10 +567,10 @@ def get_employee_related_details(filters: Filters) -> tuple[dict, list]:
 	if group_by:
 		# the manager's name is a column of the joined side, and a bare name in the order
 		# by is read as a column of the employee — or, worse, as either of the two
-		column = Manager.employee_name if group_by == "manager_name" else Employee[group_by]
+		column = full_name_column(Manager) if group_by == "manager_name" else Employee[group_by]
 		query = query.orderby(column)
 
-	employee_details = query.run(as_dict=True)
+	employee_details = order_by_full_name(query, Employee).run(as_dict=True)
 
 	group_by_param_values = []
 	emp_map = {}
@@ -633,7 +644,7 @@ def get_rows(
 			if not any(totals.values()):
 				continue
 
-			records.append({"employee": employee, "employee_name": details.employee_name, **totals})
+			records.append({"employee": employee, "employee_name": get_full_name(details), **totals})
 		else:
 			employee_attendance = attendance_map.get(employee)
 			if not employee_attendance:
@@ -644,7 +655,7 @@ def get_rows(
 			)
 			# set employee details in the first row
 			for record in attendance_for_employee:
-				record.update({"employee": employee, "employee_name": details.employee_name})
+				record.update({"employee": employee, "employee_name": get_full_name(details)})
 
 			records.extend(attendance_for_employee)
 

@@ -20,6 +20,7 @@ from erpnext.payroll_ua.doctype.attendance_sheet_approval.attendance_sheet_appro
 	get_approval_for,
 	validate_not_approved,
 )
+from erpnext.payroll_ua.employee_names import NAME_PARTS, get_full_name
 
 MAX_PERIOD_DAYS = 90
 
@@ -157,13 +158,14 @@ def fetch_employees(filters: dict, company: str | None = None) -> dict[str, dict
 		fields=[
 			"name",
 			"employee_name",
+			*NAME_PARTS,
 			"company",
 			"holiday_list",
 			"date_of_joining",
 			"relieving_date",
 			"does_not_fill_attendance_sheet",
 		],
-		order_by="employee_name",
+		order_by=", ".join(NAME_PARTS),
 		ignore_permissions=True,
 	)
 
@@ -238,7 +240,7 @@ def build_sheet(company: str, from_date, to_date) -> dict:
 	rows = [
 		{
 			"employee": employee,
-			"employee_name": details.employee_name,
+			"employee_name": get_full_name(details),
 			"days": {
 				cstr(d): get_cell(
 					employee,

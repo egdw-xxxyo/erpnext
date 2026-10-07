@@ -173,9 +173,20 @@ function render_preview(frm) {
 				return `<span class="employee-preview-badge warn">${__("No salary set")}</span>`;
 			}
 
-			return payment_blockers(row)
-				.map((text) => `<span class="employee-preview-badge warn">${text}</span>`)
-				.join("");
+			// неповна зайнятість: оклад у рядку вже помножений на ставку — значок каже чому
+			const rate =
+				flt(row.employment_rate) && flt(row.employment_rate) !== 1
+					? `<span class="employee-preview-badge">${__("Rate {0}", [
+							flt(row.employment_rate),
+					  ])}</span>`
+					: "";
+
+			return (
+				rate +
+				payment_blockers(row)
+					.map((text) => `<span class="employee-preview-badge warn">${text}</span>`)
+					.join("")
+			);
 		},
 		filter: { label: __("Unpaid only"), test: (row) => !row.paid },
 		columns: [
@@ -457,6 +468,8 @@ function show_payout(frm, row) {
 		[__("Working Days in Month"), number(row.total_working_days)],
 		[__("Daily Rate"), money(official_rate(row))],
 		[__("Paid Days"), `<b>${days(row.paid_days)}</b>`],
+		// Відпускні й лікарняні сидять усередині нарахованого — розкладаємо, з чого воно склалося.
+		...erpnext.utils.leave_pay.lines(row),
 		[__("Off. Accrued"), money(flt(row.earned_official))],
 	];
 

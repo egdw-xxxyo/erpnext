@@ -54,6 +54,10 @@ erpnext.responsible_employee.apply = function (frm, cdt, cdn) {
 
 	erpnext.responsible_employee.defaults(frm.doc.company).then((defaults) => {
 		if (!defaults.warehouse) return;
+		const preferred_employee =
+			row.parenttype === "Purchase Invoice" && frm.doc.custom_set_responsible_employee
+				? frm.doc.custom_set_responsible_employee
+				: defaults.employee;
 
 		for (const [warehouse_field, dimension_field] of pairs) {
 			if (!frappe.meta.has_field(cdt, dimension_field)) continue;
@@ -63,12 +67,22 @@ erpnext.responsible_employee.apply = function (frm, cdt, cdn) {
 				if (row[dimension_field]) frappe.model.set_value(cdt, cdn, dimension_field, "");
 				continue;
 			}
-			if (row[dimension_field] || !defaults.employee) continue;
+			if (row[dimension_field] || !preferred_employee) continue;
 
-			frappe.model.set_value(cdt, cdn, dimension_field, defaults.employee);
+			frappe.model.set_value(cdt, cdn, dimension_field, preferred_employee);
 		}
 	});
 };
+
+frappe.ui.form.on("Purchase Invoice", {
+	custom_set_responsible_employee(frm) {
+		const employee = frm.doc.custom_set_responsible_employee;
+		if (!employee) return;
+		(frm.doc.items || []).forEach((row) => {
+			frappe.model.set_value(row.doctype, row.name, "responsible_employee", employee);
+		});
+	},
+});
 
 // child-table handlers are global, so register them once no matter how many parent
 // doctypes pull this file in

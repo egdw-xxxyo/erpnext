@@ -98,7 +98,9 @@ EXIT=$(cat "$J.exit" 2>/dev/null)
 PID=$(cat "$J.pid" 2>/dev/null)
 STATE=$(cat "$J.state" 2>/dev/null)
 SIZE=$(stat -c %s "$J.log" 2>/dev/null || echo 0)
-if [ -n "$EXIT" ]; then
+if [ -n "$EXIT" ] && [ "$STATE" = "stopped" ]; then
+  S=stopped
+elif [ -n "$EXIT" ]; then
   [ "$EXIT" = "0" ] && S=success || S=failed
 elif [ "$STATE" = "rejected" ]; then
   S=rejected
@@ -108,6 +110,35 @@ else
   S=crashed
 fi
 printf '{"id":"@ID@","state":"%s","exit":"%s","pid":"%s","log_size":%s}\n' "$S" "$EXIT" "$PID" "${SIZE:-0}"
+"""
+
+STOP_SCRIPT = r"""
+cd @REPO@ 2>/dev/null || exit 90
+J=".ops-jobs/@ID@"
+[ -f "$J.meta" ] || { echo missing; exit 0; }
+[ -f "$J.exit" ] && { echo finished; exit 0; }
+PID=$(cat "$J.pid" 2>/dev/null)
+if [ -z "$PID" ] || ! kill -0 "$PID" 2>/dev/null; then echo finished; exit 0; fi
+# The job was started with setsid, so its pid is also its process group: one
+# signal to the group reaches the wrapper, ./deploy and every child it forked.
+# A process that called setsid itself (a daemon) is outside the group, and so
+# is anything a `docker exec` started inside a container — docker keeps that
+# running when its client dies.
+kill -TERM -- "-$PID" 2>/dev/null || { echo denied; exit 0; }
+echo stopped > "$J.state"
+printf "%s\n" "[OPS] $(date -u +%Y-%m-%dT%H:%M:%SZ) job fail stopped by @USER@" | tee -a "$J.progress" >> "$J.log"
+for _ in $(seq 1 100); do kill -0 "$PID" 2>/dev/null || break; sleep 0.1; done
+if kill -0 "$PID" 2>/dev/null; then
+  kill -KILL -- "-$PID" 2>/dev/null
+  sleep 0.5
+fi
+# The wrapper dies with the group before it can record an exit code.
+if [ ! -f "$J.exit" ]; then
+  echo "STOPPED by @USER@" >> "$J.log"
+  echo "DEPLOY_EXIT=143" >> "$J.log"
+  echo 143 > "$J.exit"
+fi
+echo stopped
 """
 
 SWEEP_SCRIPT = r"""
@@ -196,7 +227,7 @@ def launch(conn: HostConnection, action: str, command: str, label: str, username
 
 #: A run recorded as finished in the index is never touched again, so the
 #: [OPS] markers of a run outlive the 14-day sweep of .ops-jobs/.
-TERMINAL_STATES = {"success", "failed", "crashed", "rejected"}
+TERMINAL_STATES = {"success", "failed", "crashed", "rejected", "stopped"}
 
 
 def _index_start(job_id: str, action: str, label: str, username: str, args: dict) -> None:
@@ -270,6 +301,34 @@ def status(conn: HostConnection, job_id: str) -> dict:
 	return state
 
 
+class JobNotRunning(Exception):
+	"""The job already finished, or never existed."""
+
+
+class JobStopDenied(Exception):
+	"""The job belongs to another host user; this session's SSH user cannot signal it."""
+
+
+def stop(conn: HostConnection, job_id: str, username: str) -> dict:
+	"""Stop a running job: TERM its whole process group, KILL after ten seconds.
+
+	Recorded as state `stopped` with exit 143, so it reads as neither a success nor
+	a crash, and the lock is released with the wrapper that held it.
+	"""
+	if not job_id.isalnum():
+		raise ValueError("bad job id")
+	who = re.sub(r"[^A-Za-z0-9_.@-]", "", username) or "unknown"
+	result = conn.run(_render(STOP_SCRIPT, job_id, USER=who), timeout=30)
+	outcome = result.text.splitlines()[-1] if result.text else ""
+	if outcome in {"finished", "missing"}:
+		raise JobNotRunning(job_id)
+	if outcome == "denied":
+		raise JobStopDenied(job_id)
+	if outcome != "stopped":
+		raise RuntimeError(f"could not stop job: rc={result.rc} {result.err.strip()[:200]}")
+	return status(conn, job_id)
+
+
 def _status_from_index(job_id: str) -> dict | None:
 	try:
 		row = store.job_run_get(job_id)
@@ -331,22 +390,6 @@ def archived_log(job_id: str) -> str | None:
 	except Exception as exc:
 		print(f"[ops] WARNING: could not read archived log of {job_id}: {exc}", flush=True)
 		return None
-
-
-def ensure_archived(conn: HostConnection, job_id: str) -> str | None:
-	"""The log of a finished run, from the database — archiving it first if it
-	is not there yet (runs that ended before this existed, or whose archive
-	pass failed). None means neither copy is reachable and the caller should
-	fall back to the host file."""
-	body = archived_log(job_id)
-	if body is not None:
-		return body
-	try:
-		_archive_log(conn, job_id)
-	except Exception as exc:
-		print(f"[ops] WARNING: could not archive log of {job_id} on demand: {exc}", flush=True)
-		return None
-	return archived_log(job_id)
 
 
 def sweep(conn: HostConnection) -> None:

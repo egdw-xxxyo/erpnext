@@ -41,8 +41,9 @@ def on_scan(e):
 ### Event object (e) properties
 | Property | Type | Description |
 |---|---|---|
-| `e.data` | str | Raw scanned string |
-| `e.scan_type` | str | "workplace", "employee", "job_card", "serial_no", "item", "unknown" |
+| `e.data` | str / list | Raw scanned string; list of codes when several were sent at once |
+| `e.scan_type` | str | "workplace", "employee", "job_card", "serial_no", "item", "unknown", "multiple" (several codes in one request) |
+| `e.scans` | list | Every code resolved on its own (`data`, `scan_type`, `doc`, `item_code`, `barcode`); one entry for a single scan |
 | `e.doc` | Document | Resolved Frappe document or None |
 | `e.item_code` | str | Item code (for serial_no and item scans) |
 | `e.barcode` | str | Original barcode (if resolved via Item Barcode) |

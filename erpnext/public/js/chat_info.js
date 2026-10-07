@@ -35,8 +35,6 @@ erpnext.chat_info = {
 		if (document.getElementById("chat-info-styles-v2")) return;
 		const css = `
 		.ci-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
-		.ci-head-avatar{flex:none;width:52px;height:52px;border-radius:50%;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text-muted);overflow:hidden;font-size:18px;}
-		.ci-head-avatar img{width:100%;height:100%;object-fit:cover;}
 		.ci-head-main{min-width:0;flex:1;}
 		.ci-title{font-weight:600;font-size:var(--text-lg);word-break:break-word;}
 		.ci-subtitle{color:var(--text-muted);font-size:var(--text-sm);}
@@ -52,14 +50,12 @@ erpnext.chat_info = {
 		.ci-row-sub{color:var(--text-muted);font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 		.ci-row-action{cursor:pointer;color:var(--text-muted);}
 		.ci-row-action:hover{color:var(--primary);}
-		.ci-avatar{flex:none;width:30px;height:30px;border-radius:50%;background:var(--bg-light-gray);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-muted);overflow:hidden;}
-		.ci-avatar img{width:100%;height:100%;object-fit:cover;}
 		.ci-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;}
 		.ci-media{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--bg-light-gray);}
 		.ci-media .chat-img,.ci-media .chat-img img{width:100%;height:100%;max-width:none;object-fit:cover;}
-		.ci-media-fallback{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;cursor:pointer;}
+		.ci-media-fallback{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:var(--text-muted);}
 		.ci-empty{color:var(--text-muted);font-size:var(--text-sm);padding:14px 4px;text-align:center;}
-		.ci-file-icon{flex:none;font-size:18px;}
+		.ci-file-icon{flex:none;font-size:16px;width:20px;text-align:center;color:var(--text-muted);}
 		.ci-setting{align-items:flex-start;padding:10px 4px;}
 		.ci-setting .ci-row-title{white-space:normal;font-weight:600;}
 		.ci-setting .ci-setting-desc{white-space:normal;}
@@ -90,13 +86,14 @@ erpnext.chat_info = {
 		const files = data.files || [];
 		const links = data.links || [];
 
-		const avatar = data.avatar
-			? `<img src="${esc(data.avatar)}">`
-			: esc((data.avatar_text || data.title || "?").trim().charAt(0).toUpperCase());
+		const avatar = erpnext.entity.avatar_html(
+			{ name: data.avatar_text || data.title, key: data.avatar_key || data.title, image: data.avatar },
+			52
+		);
 
 		$body.empty().append(`
 			<div class="ci-head">
-				<div class="ci-head-avatar">${avatar}</div>
+				${avatar}
 				<div class="ci-head-main">
 					<div class="ci-title"></div>
 					<div class="ci-subtitle"></div>
@@ -108,6 +105,13 @@ erpnext.chat_info = {
 		`);
 		$body.find(".ci-title").text(data.title || __("Chat"));
 		$body.find(".ci-subtitle").text(data.subtitle || "");
+		if (data.on_title_click) {
+			$body
+				.find(".ci-head")
+				.css("cursor", "pointer")
+				.attr("title", __("Open profile"))
+				.on("click", () => data.on_title_click());
+		}
 
 		const $actions = $body.find(".ci-actions");
 		for (const a of data.actions || []) {
@@ -162,12 +166,13 @@ erpnext.chat_info = {
 	render_people($pane, people, data) {
 		if (!people.length) return $pane.append(`<div class="ci-empty">${__("No participants")}</div>`);
 		for (const p of people) {
-			const av = p.image
-				? `<img src="${esc(p.image)}">`
-				: esc((p.name || p.user || "?").trim().charAt(0).toUpperCase());
+			const av = erpnext.entity.avatar_html(
+				{ name: p.name || p.user, key: p.user || p.name, image: p.image },
+				30
+			);
 			const $row = $(`
 				<div class="ci-row">
-					<div class="ci-avatar">${av}</div>
+					${av}
 					<div class="ci-row-main">
 						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>
@@ -177,6 +182,13 @@ erpnext.chat_info = {
 			`);
 			$row.find(".ci-row-title").text(p.name + (p.is_me ? ` (${__("you")})` : ""));
 			$row.find(".ci-row-sub").text(p.subtitle || p.user || "");
+			if (p.on_click) {
+				$row.css("cursor", "pointer")
+					.attr("title", __("Open profile"))
+					.on("click", (e) => {
+						if (!$(e.target).closest(".ci-row-action").length) p.on_click();
+					});
+			}
 			if (p.on_remove) {
 				$row.find(".ci-row-action")
 					.show()
@@ -198,7 +210,9 @@ erpnext.chat_info = {
 		for (const m of media) {
 			const $cell = $(`<div class="ci-media">${m.html || ""}</div>`);
 			if (!m.html) {
-				$cell.html(`<div class="ci-media-fallback">${m.icon || "📄"}</div>`);
+				$cell.html(
+					`<div class="ci-media-fallback">${m.icon || '<i class="fa fa-file-o"></i>'}</div>`
+				);
 			}
 			if (m.on_click) $cell.on("click", () => m.on_click());
 			$cell.attr("title", [m.sender_name, when(m.creation), m.caption].filter(Boolean).join(" · "));
@@ -212,7 +226,7 @@ erpnext.chat_info = {
 		for (const f of files) {
 			const $row = $(`
 				<div class="ci-row">
-					<div class="ci-file-icon">📎</div>
+					<div class="ci-file-icon"><i class="fa fa-paperclip"></i></div>
 					<div class="ci-row-main">
 						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>
@@ -233,7 +247,7 @@ erpnext.chat_info = {
 
 	render_links($pane, links) {
 		if (!links.length) return $pane.append(`<div class="ci-empty">${__("No links yet")}</div>`);
-		const kind_icon = { document: "📄", report: "📊", list: "🗂️", page: "🔗" };
+		const kind_icon = { document: "file-text-o", report: "bar-chart", list: "list-ul", page: "link" };
 		for (const l of links) {
 			const $row = $(`
 				<div class="ci-row">
@@ -242,10 +256,12 @@ erpnext.chat_info = {
 						<div class="ci-row-title"></div>
 						<div class="ci-row-sub"></div>
 					</div>
-					<div class="ci-row-action" title="${__("Open")}" style="display:none;">↗</div>
+					<div class="ci-row-action" title="${__(
+						"Open"
+					)}" style="display:none;"><i class="fa fa-external-link"></i></div>
 				</div>
 			`);
-			$row.find(".ci-file-icon").text(kind_icon[l.kind] || "🔗");
+			$row.find(".ci-file-icon").html(`<i class="fa fa-${kind_icon[l.kind] || "link"}"></i>`);
 
 			// A shared card shows its title and, when we know the source message, jumps to
 			// it on click. A bare pasted URL keeps the old behaviour (the title is a link).

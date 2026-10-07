@@ -431,7 +431,14 @@ def _state_commands(script_name, state):
 	return commands
 
 
-def _flows(root_script, active_subflow):
+def _printer_warnings(script_name, workplace, probe=False):
+	"""What would stop this flow printing at this bench — messages for the app's banner."""
+	from erpnext.devices.printer_resolution import script_printer_problems
+
+	return [p["message"] for p in script_printer_problems(script_name, workplace, probe=probe)]
+
+
+def _flows(root_script, active_subflow, workplace=None):
 	"""The flows this scanner can be in: the root script itself, plus its subflows.
 
 	A subflow is normally entered by scanning its command barcode (`subflow_entries`), so
@@ -458,6 +465,7 @@ def _flows(root_script, active_subflow):
 			"is_active": 0 if active_subflow else 1,
 			"trigger": None,
 			"initial_state": _subflow_initial_state(root_script),
+			"printer_warnings": _printer_warnings(root_script, workplace),
 		}
 	]
 	for name in frappe.get_all(
@@ -474,6 +482,7 @@ def _flows(root_script, active_subflow):
 				"is_active": 1 if name == active_subflow else 0,
 				"trigger": triggers.get(name),
 				"initial_state": _subflow_initial_state(name),
+				"printer_warnings": _printer_warnings(name, workplace),
 			}
 		)
 	return out
@@ -484,8 +493,12 @@ def _flows(root_script, active_subflow):
 # ---------------------------------------------------------------------------
 
 
-def _read_session(scanner_row):
-	"""The whole screen's worth of state for one scanner, in one dict."""
+def _read_session(scanner_row, probe_printer=False):
+	"""The whole screen's worth of state for one scanner, in one dict.
+
+	`probe_printer` also pings the active flow's printer; only the flow switch asks for it,
+	because a dead printer costs a few seconds of TCP timeout.
+	"""
 	timeout = _state_timeout(scanner_row)
 	frame = _load_state(scanner_row.name, timeout) or {}
 
@@ -579,7 +592,12 @@ def _read_session(scanner_row):
 		"rev": frame.get("rev"),
 		"updated_at": updated_at,
 		"state_timeout": timeout,
-		"flows": _flows(root_script, subflow),
+		"flows": _flows(root_script, subflow, scanner_row.get("workplace")),
+		"printer_warnings": _printer_warnings(
+			active_script, scanner_row.get("workplace"), probe=probe_printer
+		)
+		if active_script
+		else [],
 		"commands": _state_commands(active_script, frame.get("state")),
 		"expires_in": max(int(timeout - (time.time() - updated_at)), 0) if updated_at else None,
 		"context_fields": fields,
@@ -946,7 +964,11 @@ def set_scanner_flow(scanner=None, flow=None):
 	if not flow or flow == root_script:
 		_clear_state(row.name)
 	else:
-		allowed = {f["name"] for f in _flows(root_script, frame.get("subflow")) if not f["is_root"]}
+		allowed = {
+			f["name"]
+			for f in _flows(root_script, frame.get("subflow"), row.get("workplace"))
+			if not f["is_root"]
+		}
 		if flow not in allowed:
 			frappe.throw(_("{0} is not a flow of {1}").format(flow, root_script))
 		initial = _subflow_initial_state(flow)
@@ -958,7 +980,7 @@ def set_scanner_flow(scanner=None, flow=None):
 			timeout,
 		)
 
-	session = _read_session(row)
+	session = _read_session(row, probe_printer=True)
 	_publish_session_update(row.name, session)
 	return session
 
@@ -972,8 +994,6 @@ def run_scanner_command(scanner=None, command=None):
 	through `run_scan` — same script, same frame, same scan log — and the refreshed session
 	comes back so the screen redraws from what actually happened.
 	"""
-	from erpnext.devices.doctype.scanner.scanner_api import run_scan
-
 	row = _assert_scanner_mine(scanner)
 	command = (command or "").strip()
 	if not command:
@@ -986,11 +1006,40 @@ def run_scanner_command(scanner=None, command=None):
 	if command not in offered:
 		frappe.throw(_("{0} is not available at this step").format(command))
 
+	return _scan_as(row, command)
+
+
+@frappe.whitelist(methods=["POST"])
+def send_scan(scanner=None, data=None):
+	"""Scan a code with the phone's camera instead of the handheld.
+
+	Unlike a command button this takes any barcode — an item, a serial, a Job Card — because
+	that is what the device itself would read off the label. It is still the caller's own
+	scanner (`_assert_scanner_mine`) and still `run_scan`, so the phone can do exactly what
+	holding the handheld would let it do, and it lands in the same scan log.
+
+	`data` may also be a list of codes: they go to the script together as one scan
+	(see `run_scan`), not one after another.
+	"""
+	from erpnext.devices.doctype.scanner.scanner_api import parse_scan_data
+
+	row = _assert_scanner_mine(scanner)
+	codes = parse_scan_data(data)
+	if not codes:
+		frappe.throw(_("Scan data is required"))
+
+	return _scan_as(row, codes)
+
+
+def _scan_as(row, data):
+	"""Run `data` through the scanner's script and hand back the reply with the new session."""
+	from erpnext.devices.doctype.scanner.scanner_api import run_scan
+
 	# `run_scan` impersonates the scanner's employee, exactly as a device scan does. The
 	# caller is that employee anyway (`_assert_scanner_mine`), but restore the whole session,
 	# not just the user: `set_user` empties it, and saving that back logs the phone out.
 	with preserved_session():
-		result = run_scan(frappe.get_doc("Scanner", row.name), command)
+		result = run_scan(frappe.get_doc("Scanner", row.name), data)
 
 	session = _read_session(_scanner_row(row.name))
 	_publish_session_update(row.name, session)

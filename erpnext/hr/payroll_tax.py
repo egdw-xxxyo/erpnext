@@ -43,9 +43,8 @@ SSC_ABBR = "ESV"
 
 DISABILITY_GROUPS = ("I", "I А", "I Б", "II", "III")
 
-# Мінімальна офіційна зарплата для бронювання від мобілізації. Суму задає постанова
-# Кабміну, тож у коді вона лише запасна — жива лежить у налаштуваннях.
-RESERVATION_MINIMUM = 26000.0
+# Мінімальна зарплата — запасне число, живе лежить у налаштуваннях: її щороку міняє бюджет.
+MINIMUM_WAGE = 8647.0
 
 
 def rate(fieldname, fallback) -> float:
@@ -59,15 +58,40 @@ def rate(fieldname, fallback) -> float:
 	return flt(value) / 100 if value else fallback
 
 
-def reservation_minimum() -> float:
-	"""Мінімальна офіційна зарплата, з якою працівника можна забронювати."""
+def _setting(fieldname):
 	try:
-		value = frappe.db.get_single_value(SETTINGS, "minimum_reservation_salary")
+		return frappe.db.get_single_value(SETTINGS, fieldname)
 	except Exception:
-		# Міграція, на якій DocType ще не створений, не має валити нарахування.
-		value = None
+		# Міграція, на якій DocType чи поле ще не створені, не має валити нарахування.
+		return None
 
-	return flt(value) or RESERVATION_MINIMUM
+
+def minimum_wage() -> float:
+	return flt(_setting("minimum_wage")) or MINIMUM_WAGE
+
+
+def reservation_minimum() -> float:
+	"""Мінімальна офіційна зарплата, з якою працівника можна забронювати — число з
+	налаштувань, як його вписали. Порожнє означає, що бронювання не перевіряється."""
+	return flt(_setting("minimum_reservation_salary"))
+
+
+def reservation_average_minimum() -> float:
+	"""Мінімальна середня зарплата підприємства для критичності; не задана — той самий
+	мінімум, що й для заброньованого (закон ставить їх однаковими)."""
+	return flt(_setting("minimum_average_reservation_salary")) or reservation_minimum()
+
+
+@frappe.whitelist()
+def get_reservation_thresholds() -> dict:
+	"""Пороги бронювання для форм — рахуються на сервері, щоб форма не повторювала правило."""
+	return {
+		"minimum": reservation_minimum(),
+		"average_minimum": reservation_average_minimum(),
+		# Форми рахують «на картку» самі, поки людина друкує: ставки утримань ідуть звідси.
+		"pit_rate": rate("pit_rate", PIT_RATE),
+		"military_levy_rate": rate("military_levy_rate", MILITARY_RATE),
+	}
 
 
 def ssc_rate(employee=None) -> float:

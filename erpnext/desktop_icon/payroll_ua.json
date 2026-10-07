@@ -1,0 +1,31 @@
+{
+ "app": "erpnext",
+ "creation": "2026-10-05 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "dollar-sign",
+ "icon_type": "Link",
+ "idx": 9,
+ "label": "Payroll UA",
+ "link_to": "Payroll UA",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-10-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Payroll UA",
+ "owner": "Administrator",
+ "parent_icon": "Accounting",
+ "restrict_removal": 0,
+ "roles": [
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "standard": 1
+}

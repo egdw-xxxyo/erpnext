@@ -213,7 +213,9 @@ for meta_path in sorted(glob.glob(".ops-jobs/*.meta")):
             return ""
 
     exit_code, pid, state_file = read("exit"), read("pid"), read("state")
-    if exit_code != "":
+    if exit_code != "" and state_file == "stopped":
+        state = "stopped"
+    elif exit_code != "":
         state = "success" if exit_code == "0" else "failed"
     elif state_file == "rejected":
         state = "rejected"
@@ -417,6 +419,10 @@ class JobsCache:
 		jobs = [j for j in self._data.get("jobs") or [] if j.get("id") != row.get("id")]
 		self._data["jobs"] = [row, *jobs][:20]
 		return self._snapshot()
+
+	def invalidate(self) -> None:
+		"""Make the next read go to the host: a job's state changed outside a launch."""
+		self._fetched_at = 0.0
 
 	def _snapshot(self) -> dict[str, Any]:
 		data = dict(self._data)

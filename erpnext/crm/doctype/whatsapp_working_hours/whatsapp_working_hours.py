@@ -4,5 +4,5 @@
 from frappe.model.document import Document
 
 
-class WhatsAppChatManager(Document):
+class WhatsAppWorkingHours(Document):
 	pass

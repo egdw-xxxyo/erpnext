@@ -67,7 +67,7 @@ function html(row, options) {
 		${styles()}
 		<div class="attendance-details">
 			${attendance}
-			${section_html(__("Salary"), table_html(settings.salary || []))}
+			${settings.skip_salary ? "" : section_html(__("Salary"), table_html(settings.salary || []))}
 			${settings.payout ? section_html(__("Taxes and Payout"), table_html(settings.payout)) : ""}
 			${note_html(settings.note)}
 		</div>

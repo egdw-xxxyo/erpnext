@@ -1,0 +1,294 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"pu_hdr_sc\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"pu_sc_0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Attendance Sheet\", \"col\": 3}}, {\"id\": \"pu_sc_1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Salary Advance\", \"col\": 3}}, {\"id\": \"pu_sc_2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Salary Approval\", \"col\": 3}}, {\"id\": \"pu_sc_3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Payroll Sheet\", \"col\": 3}}, {\"id\": \"pu_sc_4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Management Payroll Sheet\", \"col\": 3}}, {\"id\": \"pu_sc_5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Salary Change\", \"col\": 3}}, {\"id\": \"pu_spacer\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"pu_hdr_cards\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Reports &amp; Masters</b></span>\", \"col\": 12}}, {\"id\": \"pu_card_0\", \"type\": \"card\", \"data\": {\"card_name\": \"Monthly Cycle\", \"col\": 4}}, {\"id\": \"pu_card_1\", \"type\": \"card\", \"data\": {\"card_name\": \"Employees\", \"col\": 4}}, {\"id\": \"pu_card_2\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"pu_card_3\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}]",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "dollar-sign",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Payroll UA",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Monthly Cycle",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Attendance Sheet Approval",
+   "link_count": 0,
+   "link_to": "Attendance Sheet Approval",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Advance",
+   "link_count": 0,
+   "link_to": "Salary Advance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Approval",
+   "link_count": 0,
+   "link_to": "Salary Approval",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Sheet",
+   "link_count": 0,
+   "link_to": "Payroll Sheet",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Management Payroll Sheet",
+   "link_count": 0,
+   "link_to": "Management Payroll Sheet",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employees",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee",
+   "link_count": 0,
+   "link_to": "Employee",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Change",
+   "link_count": 0,
+   "link_to": "Salary Change",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Attendance",
+   "link_count": 0,
+   "link_to": "Attendance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Leave Application",
+   "link_count": 0,
+   "link_to": "Leave Application",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Additional Salary",
+   "link_count": 0,
+   "link_to": "Additional Salary",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Monthly Attendance Sheet",
+   "link_count": 0,
+   "link_to": "Monthly Attendance Sheet",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Payroll by Department",
+   "link_count": 0,
+   "link_to": "Payroll by Department",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Salary History",
+   "link_count": 0,
+   "link_to": "Salary History",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Settings",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Tax Settings",
+   "link_count": 0,
+   "link_to": "Payroll Tax Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Structure Assignment",
+   "link_count": 0,
+   "link_to": "Salary Structure Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Component",
+   "link_count": 0,
+   "link_to": "Salary Component",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Holiday List",
+   "link_count": 0,
+   "link_to": "Holiday List",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Payroll UA",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 22.0,
+ "shortcuts": [
+  {
+   "label": "Attendance Sheet",
+   "link_to": "attendance-sheet",
+   "type": "Page"
+  },
+  {
+   "label": "Salary Advance",
+   "link_to": "Salary Advance",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Salary Approval",
+   "link_to": "Salary Approval",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Payroll Sheet",
+   "link_to": "Payroll Sheet",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Management Payroll Sheet",
+   "link_to": "Management Payroll Sheet",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Salary Change",
+   "link_to": "Salary Change",
+   "type": "DocType",
+   "doc_view": "List"
+  }
+ ],
+ "title": "Payroll UA"
+}

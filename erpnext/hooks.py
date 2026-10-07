@@ -22,7 +22,11 @@ add_to_apps_screen = [
 
 develop_version = "15.x.x-develop"
 
-app_include_js = ["erpnext.bundle.js", "/assets/erpnext/js/custom/todo_planner.js"]
+app_include_js = [
+	"erpnext.bundle.js",
+	"/assets/erpnext/js/custom/todo_planner.js",
+	"/assets/erpnext/js/custom/doc_help.js",
+]
 app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
@@ -47,6 +51,7 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	"Email Account": "public/js/custom/email_account.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
 	"Lead": "public/js/custom/lead.js",
@@ -89,6 +94,10 @@ override_doctype_class = {
 	"Leave Application": "erpnext.payroll_ua.overrides.leave_application.LeaveApplication",
 }
 
+extend_doctype_class = {
+	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
+}
+
 override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "erpnext.templates.utils.send_message",
 	"frappe.desk.form.assign_to.add": "erpnext.buying.procurement_assignment.add",
@@ -114,6 +123,11 @@ permission_query_conditions = {
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_query_conditions",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_query_conditions",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_query_conditions",
+	# Disabled label templates are soft-deleted: gone from lists and pickers, still printable by name.
+	"Label Template": "erpnext.devices.doctype.label_template.label_template.get_permission_query_conditions",
+	# WhatsApp chats and messages are visible only on the numbers the user is assigned to.
+	"WhatsApp Chat": "erpnext.crm.whatsapp_access.chat_query_conditions",
+	"WhatsApp Message": "erpnext.crm.whatsapp_access.message_query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -169,6 +183,8 @@ has_permission = {
 	"Technical Document Relation": "erpnext.technical_documentation.permissions.relation_has_permission",
 	"Product Modification": "erpnext.technical_documentation.permissions.modification_has_permission",
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
+	"WhatsApp Chat": "erpnext.crm.whatsapp_access.has_permission",
+	"WhatsApp Message": "erpnext.crm.whatsapp_access.has_permission",
 }
 
 welcome_email = "erpnext.setup.utils.welcome_email"
@@ -188,6 +204,8 @@ after_migrate = [
 	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
 	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
+	"erpnext.crm.crm_sidebar.add_chat_pages",
+	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -602,6 +620,7 @@ doc_events = {
 		"after_insert": [
 			"erpnext.crm.utils.link_communications_with_prospect",
 			"erpnext.crm.utils.update_modified_timestamp",
+			"erpnext.correspondence.mail_forward.on_communication_insert",
 		],
 	},
 	"Event": {
@@ -780,6 +799,7 @@ doc_events = {
 			"erpnext.hr.payroll_tax.warn_missing_certificate",
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
+			"erpnext.hr.average_pay.validate_opening_earnings",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
 		],
@@ -825,6 +845,7 @@ scheduler_events = {
 	"cron": {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
+			"erpnext.correspondence.mail_forward.sync_delivery_status",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
@@ -847,6 +868,7 @@ scheduler_events = {
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
+		"erpnext.correspondence.doctype.mail_forward_settings.mail_forward_settings.sync_all_mailboxes",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [
@@ -1097,6 +1119,7 @@ extend_bootinfo = [
 	"erpnext.support.doctype.service_level_agreement.service_level_agreement.add_sla_doctypes",
 	"erpnext.startup.boot.bootinfo",
 	"erpnext.startup.instance_env.add_instance_env",
+	"erpnext.crm.whatsapp_access.boot_session",
 ]
 
 

@@ -24,8 +24,9 @@
  * Workplace Script: per-workplace pipeline. Main `script` is a 2-line orchestrator that calls
  * `run_state(...)`. Each State row carries `on_enter_script` defining `def on_scan(e): ...`.
  * Inside that script: globals `frappe`, `scripts`, `e`. Available on `e`:
- *   - e.scan_type ∈ {workplace, employee, command, serial_no, item, job_card, packing_template, unknown}
+ *   - e.scan_type ∈ {workplace, employee, command, serial_no, item, job_card, packing_template, unknown, multiple}
  *   - e.doc, e.data, e.barcode, e.item_code
+ *   - e.scans — each code resolved on its own; several when one request carried a list of codes
  *   - e.scanner, e.workplace, e.employee
  *   - e.set_workplace(name), e.set_employee(name)
  *   - e.state.name, e.state.context
@@ -50,8 +51,11 @@ const STATE_SCRIPT_USAGE = `
 The state's script must define \`def on_scan(e)\`. Globals: frappe, scripts, e.
 
 Event:
-  e.scan_type ∈ {workplace, employee, command, serial_no, item, job_card, packing_template, unknown}
+  e.scan_type ∈ {workplace, employee, command, serial_no, item, job_card, packing_template, unknown, multiple}
   e.doc, e.data, e.barcode, e.item_code, e.scanner, e.workplace, e.employee
+  e.scans — list of {data, scan_type, doc, item_code, barcode}, one per code. A request with several
+            codes runs the script ONCE with e.scan_type == "multiple" and e.data = list of codes;
+            a single code keeps the usual fields and e.scans = [that code].
   e.set_workplace(name), e.set_employee(name)
 
 State (Redis-backed, persists across scans):

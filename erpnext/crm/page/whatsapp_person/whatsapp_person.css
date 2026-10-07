@@ -1,0 +1,104 @@
+.whatsapp-person {
+	padding: 16px 20px 40px;
+}
+
+.whatsapp-person .wap-hero {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 20px;
+	padding: 20px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	background: var(--card-bg);
+}
+
+.whatsapp-person .wap-hero-main {
+	flex: 1;
+	min-width: 220px;
+}
+
+.whatsapp-person .wap-name {
+	font-size: 22px;
+	font-weight: 600;
+}
+
+.whatsapp-person .wap-phone {
+	font-size: 16px;
+	margin-top: 2px;
+}
+
+.whatsapp-person .wap-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.whatsapp-person .wap-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 12px;
+	margin-top: 12px;
+}
+
+.whatsapp-person .wap-panel {
+	padding: 14px 16px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+	min-width: 0;
+}
+
+.whatsapp-person .wap-panel h6 {
+	margin: 0 0 10px;
+}
+
+.whatsapp-person .wap-fact {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	border-top: 1px solid var(--border-color);
+	font-size: 13px;
+}
+
+.whatsapp-person .wap-fact:first-of-type {
+	border-top: none;
+}
+
+.whatsapp-person .wap-chat {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 0;
+	border-top: 1px solid var(--border-color);
+	font-size: 13px;
+}
+
+.whatsapp-person .wap-chat:first-of-type {
+	border-top: none;
+}
+
+.whatsapp-person .wap-chat-main {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.whatsapp-person .wap-small {
+	font-size: 12px;
+}
+
+.whatsapp-person .wap-links .ent-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+@media (max-width: 768px) {
+	.whatsapp-person {
+		padding: 12px 16px 40px;
+	}
+}

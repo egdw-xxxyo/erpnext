@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "creation": "2026-09-30 20:00:00.000000",
+ "description": "Working hours for WhatsApp reply statistics",
+ "editable_grid": 1,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "holiday_list",
+  "working_hours"
+ ],
+ "fields": [
+  {
+   "fieldname": "holiday_list",
+   "fieldtype": "Link",
+   "label": "Holiday List",
+   "options": "Holiday List",
+   "description": "Days off excluded from reply-time statistics. Empty: the default company's holiday list."
+  },
+  {
+   "fieldname": "working_hours",
+   "fieldtype": "Table",
+   "label": "Working Hours",
+   "options": "WhatsApp Working Hours",
+   "description": "Reply times and waiting times in the WhatsApp Overview count only these hours."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "WhatsApp Chat Settings",
+ "owner": "Administrator",
+ "issingle": 1,
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "WhatsApp Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

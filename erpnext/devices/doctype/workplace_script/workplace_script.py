@@ -4,6 +4,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from erpnext.devices.script_references import load_refs, validate_refs
+
 
 class StateMachineError(Exception):
 	pass
@@ -105,6 +107,7 @@ class WorkplaceScript(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.devices.doctype.script_reference.script_reference import ScriptReference
 		from erpnext.devices.doctype.workplace_script_context_field.workplace_script_context_field import (
 			WorkplaceScriptContextField,
 		)
@@ -115,13 +118,18 @@ class WorkplaceScript(Document):
 		default_version: DF.Data | None
 		is_active: DF.Check
 		parent_script: DF.Link | None
+		printer_label_template: DF.Link | None
+		printer_purpose: DF.Data | None
+		requires_printer: DF.Check
 		script: DF.Code | None
 		script_name: DF.Data | None
+		script_references: DF.Table[ScriptReference]
 		context_fields: DF.Table[WorkplaceScriptContextField]
 		viewing_version: DF.Data | None
 		workplaces: DF.Table[WorkplaceScriptWorkplace]
 
 	def validate(self):
+		validate_refs(self)
 		if self.parent_script:
 			if self.workplaces:
 				frappe.throw(_("Subflow scripts (with Parent Script) must not have Workplaces assigned"))
@@ -407,7 +415,13 @@ def run_state(script_name, e, scripts=None, handler="on_scan"):
 	e.state = guard
 
 	try:
-		ns = {"frappe": frappe, "scripts": scripts, "e": e}
+		ns = {
+			"frappe": frappe,
+			"scripts": scripts,
+			"e": e,
+			"refs": load_refs("Workplace Script", script_name),
+			"script_name": script_name,
+		}
 		exec(code, ns)
 
 		fn = ns.get(handler)

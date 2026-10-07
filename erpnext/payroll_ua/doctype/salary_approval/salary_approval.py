@@ -15,7 +15,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, get_last_day, getdate
 
 from erpnext.hr.salary_advance import attendance_summary, payroll_date_for
-from erpnext.hr.salary_split import salary_parts_on
+from erpnext.hr.salary_split import employment_rate_on, salary_parts_on
 from erpnext.hr.team import visible_employees
 
 ALLOWANCE_COMPONENT = "Надбавка"
@@ -86,6 +86,7 @@ class SalaryApproval(Document):
 			# Оклад — не введення, а база премії: беремо той, що діяв у цьому місяці, тож
 			# затверджена наперед зміна окладу не зачіпає премію за вже закритий місяць.
 			row.official_salary, row.cash_salary = salary_parts_on(row.employee, end)
+			row.employment_rate = employment_rate_on(row.employee, end)
 
 	def visible_employees(self):
 		"""Рядки табеля цього керівника за цей місяць — та сама вибірка, що й на сторінці
@@ -299,6 +300,7 @@ def get_month_employees(company: str, effective_from, employees: list[str] | Non
 				"manager": employee.reports_to,
 				"official_salary": official,
 				"cash_salary": cash,
+				"employment_rate": employment_rate_on(employee.name, end),
 				"attendance_approved": 1 if covered.get(employee.name) else 0,
 				"attendance_note": "" if covered.get(employee.name) else missing_attendance_note(),
 			}

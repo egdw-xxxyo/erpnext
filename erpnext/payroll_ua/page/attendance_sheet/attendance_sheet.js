@@ -263,7 +263,10 @@ class AttendanceSheet {
 		const table = this.$table[0];
 		const top = table.getBoundingClientRect().top + window.scrollY;
 
-		this.$table.css("max-height", `${Math.max(window.innerHeight - top - 40, 240)}px`);
+		this.$table.css(
+			"max-height",
+			`max(240px, calc(${window.innerHeight - top}px - var(--sheet-bottom-space)))`
+		);
 
 		this.paint_scrollbar();
 	}
@@ -1281,7 +1284,8 @@ function inject_styles() {
 	const style = document.createElement("style");
 	style.id = STYLE_ID;
 	style.textContent = `
-		.attendance-sheet-container { padding: 15px 0; }
+		.attendance-sheet-container { padding: 15px; --sheet-bottom-space: 40px; }
+		body:has(> .cb-launcher) .attendance-sheet-container { --sheet-bottom-space: 104px; }
 		/* the table scrolls the rows itself, which is what the sticky header and the
 		   sticky name column stay put in. Sideways it is scrolled from the strip below
 		   it: hidden overflow still scrolls under a script, and it keeps the bar out of
@@ -1326,7 +1330,8 @@ function inject_styles() {
 		table.attendance-sheet td.employee a { color: var(--text-color); }
 		table.attendance-sheet td.employee a:hover { color: var(--text-color);
 			text-decoration: underline; }
-		table.attendance-sheet td.day { min-width: 46px; cursor: pointer; }
+		table.attendance-sheet td.day { min-width: 46px; cursor: pointer;
+			height: calc(13px + 1.5em + 1.5 * var(--text-xs)); }
 		table.attendance-sheet th.day, table.attendance-sheet td.day,
 		table.attendance-sheet th.number, table.attendance-sheet td.number {
 			border-right: 1px solid var(--border-color); }

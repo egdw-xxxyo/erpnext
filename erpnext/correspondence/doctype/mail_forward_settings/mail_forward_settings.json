@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "creation": "2026-10-02 00:00:00.000000",
+ "description": "Forward copies of mail from known senders to the people responsible for them",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "sender_account",
+  "column_break_main",
+  "footer_note",
+  "mailboxes_section",
+  "mailboxes"
+ ],
+ "fields": [
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "0",
+   "description": "Turn forwarding on once the recipients' addresses and the sender account are filled in"
+  },
+  {
+   "fieldname": "sender_account",
+   "fieldtype": "Link",
+   "options": "Email Account",
+   "label": "Send Copies From",
+   "description": "A separate technical account with outgoing mail enabled. Never the watched mailbox itself: copies would land in its Sent folder"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "footer_note",
+   "fieldtype": "Small Text",
+   "label": "Note at the End of Each Copy",
+   "default": "Автоматична копія листа, що надійшов на {mailbox}. Офіційна обробка — за процедурою реєстрації кореспонденції.",
+   "description": "{mailbox} is replaced with the address of the mailbox the message arrived at"
+  },
+  {
+   "fieldname": "mailboxes_section",
+   "fieldtype": "Section Break",
+   "label": "Watched Mailboxes"
+  },
+  {
+   "fieldname": "mailboxes",
+   "fieldtype": "Table",
+   "options": "Mail Forward Mailbox",
+   "label": "Mailboxes"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Correspondence",
+ "name": "Mail Forward Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
