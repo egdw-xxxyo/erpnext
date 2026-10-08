@@ -915,6 +915,8 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 		result["error"] = _("Serial No is required")
 		return result
 
+	_lock_work_order_of(serial_no)
+
 	save_point = "finish_packed_unit"
 	frappe.db.savepoint(save_point)
 	try:
@@ -968,6 +970,22 @@ def finish_packed_unit(serial_no, target_warehouse=None, employee=None, operatio
 		)
 
 	return result
+
+
+def _lock_work_order_of(serial_no):
+	"""Serialise packers of one Work Order and give the unit a fresh database snapshot.
+
+	Boxes of the same Work Order are packed at several benches at once, and every submitted
+	packing card saves the Work Order. Under REPEATABLE READ the request's snapshot is older
+	than a neighbour's commit, so `wo.save()` read stale data and raised `TimestampMismatchError`
+	for the whole box. Committing ends that snapshot; the row lock makes the next packer wait
+	for this unit instead of racing it.
+	"""
+	work_order = frappe.db.get_value("Serial No", serial_no, "work_order") if serial_no else None
+	if not work_order:
+		return
+	frappe.db.commit()
+	frappe.db.get_value("Work Order", work_order, "name", for_update=True)
 
 
 def _error_text(e):
