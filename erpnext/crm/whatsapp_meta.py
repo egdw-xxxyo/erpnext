@@ -11,12 +11,15 @@ import json
 
 import frappe
 from frappe.integrations.utils import make_post_request
+from frappe_whatsapp.utils import mock
 
 READ = "marked as read"
 
 
 def _post(account_name, payload):
 	account = frappe.get_doc("WhatsApp Account", account_name)
+	if mock.is_mock(account):
+		return mock.graph_post(account, payload)
 	token = account.get_password("token", raise_exception=False)
 	if not (token and account.url and account.version and account.phone_id):
 		return None

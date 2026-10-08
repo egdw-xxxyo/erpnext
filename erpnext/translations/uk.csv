@@ -15779,3 +15779,16 @@ Suppliers with Delivery Notes,Постачальники з видатковим
 Procurement Delivery Note,Видаткова накладна
 Delivery Note Supplier Count,Кількість постачальників для видаткових накладних
 Partially attached,Частково
+"Attach","Прикріпити"
+"Profile name","Ім'я профілю"
+"Mock Mode","Режим імітації"
+"WhatsApp Mock","Імітація WhatsApp"
+"WhatsApp Mock is not available on production","Імітація WhatsApp недоступна на продакшні"
+"Mock Mode cannot be enabled on production","Режим імітації не можна вмикати на продакшні"
+"{0} is not in Mock Mode","{0} не в режимі імітації"
+"File {0} not found","Файл {0} не знайдено"
+"Pick a chat or start a new one","Оберіть чат або створіть новий"
+"Message as the customer","Повідомлення від імені клієнта"
+"Replying… (message as the customer)","Відповідь… (повідомлення від імені клієнта)"
+"No WhatsApp Account is in Mock Mode. Tick Mock Mode on an account first.","Жоден акаунт WhatsApp не в режимі імітації. Спочатку увімкніть «Режим імітації» в акаунті."
+"Dev/test sites only: nothing is sent to Meta, messages are simulated and customers are played from the WhatsApp Mock page. Ignored on production.","Лише для dev/test: нічого не надсилається в Meta, повідомлення імітуються, а клієнти розігруються на сторінці «Імітація WhatsApp». На продакшні ігнорується."
