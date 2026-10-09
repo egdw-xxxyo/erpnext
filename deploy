@@ -205,7 +205,60 @@ wait_for_backend() {
   echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
 }
 
+# Space policy: a deploy leaves nothing behind. Before the build we drop what
+# earlier builds left and refuse to start on a disk that cannot hold the new
+# image (a full disk takes redis down with it). After a good deploy the
+# superseded image goes too, so there is no rollback image — that is the point.
+# Only the newest DEPLOY_CACHE_KEEP of build cache survives: the apt/pip base
+# layers are worth keeping, everything after the apps clone is rebuilt anyway.
+DEPLOY_CACHE_KEEP="${DEPLOY_CACHE_KEEP:-3GB}"
+DEPLOY_MIN_FREE_GB="${DEPLOY_MIN_FREE_GB:-8}"
+
+# `--keep-storage` was renamed `--reserved-space` in Docker 29; older hosts only know the former.
+prune_build_cache() {
+  docker builder prune -f --reserved-space "$DEPLOY_CACHE_KEEP" >/dev/null 2>&1 \
+    || docker builder prune -f --keep-storage "$DEPLOY_CACHE_KEEP" >/dev/null 2>&1 \
+    || docker builder prune -f >/dev/null 2>&1 \
+    || true
+}
+
+ensure_space_for_build() {
+  say "==> Dropping leftovers of earlier builds..."
+  docker image prune -f >/dev/null 2>&1 || true
+  prune_build_cache
+
+  local root free
+  root=$(docker info -f '{{.DockerRootDir}}' 2>/dev/null)
+  [ -n "$root" ] || root=/
+  free=$(df -P -BG "$root" 2>/dev/null | awk 'NR==2 {gsub("G", "", $4); print $4}')
+  if [ -n "$free" ] && [ "$free" -lt "$DEPLOY_MIN_FREE_GB" ]; then
+    echo "ERROR: only ${free}G free on $root and a build needs ${DEPLOY_MIN_FREE_GB}G." >&2
+    echo "       Free space first (./deploy space-hard-clean, old backups), or lower DEPLOY_MIN_FREE_GB." >&2
+    return 1
+  fi
+}
+
+reclaim_after_deploy() {
+  say "==> Removing superseded images and build leftovers..."
+  # Only older images of our own repository: `image prune -a` would also take
+  # unused images of any other project sharing this Docker. `rmi` refuses an
+  # image a container still uses, which is exactly what we want here.
+  local repo current id
+  repo="${IMAGE_NAME%%:*}"
+  current=$(docker image inspect -f '{{.Id}}' "$IMAGE_NAME" 2>/dev/null || true)
+  if [ -n "$current" ]; then
+    docker image ls --no-trunc --format '{{.ID}} {{.Repository}}' 2>/dev/null \
+      | awk -v repo="$repo" -v current="$current" '$2 == repo && $1 != current {print $1}' \
+      | sort -u \
+      | while read -r id; do docker rmi "$id" >/dev/null 2>&1 || true; done
+  fi
+  docker image prune -f >/dev/null 2>&1 || true
+  prune_build_cache
+}
+
 build_image() {
+  ensure_space_for_build || return 1
+
   # Hash the remote HEAD of every app in apps.json so the Docker clone layer is
   # invalidated whenever any fork moves (otherwise the clone is cached forever and
   # fork pushes never reach the image). Empty/offline -> stable 0, layer stays cached.
@@ -227,7 +280,7 @@ build_image() {
   DOCKER_BUILDKIT=1 docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
     --build-arg "APPS_CACHE_BUST=$apps_bust" \
     "${ssh_args[@]}" \
-    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || return 1
+    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || { prune_build_cache; return 1; }
   say "==> Pruning dangling images..."
   docker image prune -f --filter "dangling=true" >/dev/null
 }
@@ -791,6 +844,7 @@ PY
     fi
     ops_step image ok "Image built"
     run_deploy "$SILENT"
+    reclaim_after_deploy
     # Outside run_deploy on purpose: inside, --silent routes stdout to /dev/null
     # and an ops failure would be invisible.
     if [ "$SKIP_OPS" != "1" ]; then
@@ -833,6 +887,7 @@ PY
     fi
     ops_step image ok "Image built"
     run_deploy "$SILENT"
+    reclaim_after_deploy
     if [ "$SKIP_OPS" != "1" ]; then
       ops_step ops start "Restarting ops dashboard"
       ops_up
