@@ -30,6 +30,7 @@ def execute():
 	create_custom_field_on_serial_no()
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
+	create_consumption_source_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
@@ -528,6 +529,51 @@ def create_spool_lineage_fields():
 			"read_only": 1,
 			"in_standard_filter": 1,
 			"description": "Постачальник партії волокна",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_consumption_source_fields():
+	"""What a consumption Stock Entry was posted for.
+
+	`erpnext.manufacturing.consumption.consume` stamps the entry with the document it was
+	posted for, so a second call for the same document finds the first entry instead of issuing
+	the consumables twice, and cancelling the document can cancel the entry.
+	"""
+	fields = [
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_recipe",
+			"fieldtype": "Link",
+			"options": "Consumption Recipe",
+			"label": "Рецепт списання",
+			"insert_after": "stock_entry_type",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_source_doctype",
+			"fieldtype": "Link",
+			"options": "DocType",
+			"label": "Тип документа-джерела списання",
+			"insert_after": "consumption_recipe",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "consumption_recipe",
+		},
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_source_name",
+			"fieldtype": "Dynamic Link",
+			"options": "consumption_source_doctype",
+			"label": "Документ-джерело списання",
+			"insert_after": "consumption_source_doctype",
+			"read_only": 1,
+			"no_copy": 1,
+			"search_index": 1,
+			"depends_on": "consumption_recipe",
 		},
 	]
 	_create_custom_fields(fields)

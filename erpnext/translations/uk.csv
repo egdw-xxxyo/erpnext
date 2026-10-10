@@ -15808,3 +15808,7 @@ Partially attached,Частково
 "Row {0}: {1} {2} is not valid: {3}","Рядок {0}: {1} {2} некоректне: {3}"
 "{0} is not a whole number","{0} не є цілим числом"
 "Enter at least one quantity greater than zero","Вкажіть хоча б одну кількість більшу за нуль"
+"{0} is not a valid way to handle a shortage","{0} не є допустимим способом обробки нестачі"
+"Consumption Recipe {0} is not active","Рецепт списання {0} неактивний"
+"Item {0} has no source warehouse in the recipe and none was given","Для позиції {0} у рецепті не вказано склад, і інший не передано"
+"Not enough stock to issue the consumables; {0} is kept as a draft","Недостатньо залишків для списання витратних матеріалів; {0} збережено як чернетку"

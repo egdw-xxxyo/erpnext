@@ -596,6 +596,8 @@ doc_events = {
 		"on_cancel": [
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+			# a consumption issued for this entry goes back with it
+			"erpnext.manufacturing.consumption.cancel_for_source",
 		],
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",

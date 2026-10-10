@@ -17,6 +17,8 @@ from frappe import _
 from frappe.utils import cint, flt
 from frappe.utils.safe_exec import safe_eval
 
+from erpnext.stock.stock_ledger import NegativeStockError
+
 FORMULA_HELPERS = {"ceil": math.ceil, "floor": math.floor, "min": min, "max": max, "abs": abs}
 SAMPLE_VARIABLES = {"units": 1, "qty": 1}
 MAX_PREVIEW_VALUES = 12
@@ -108,3 +110,117 @@ def preview(items, values):
 			entry["qty"][quantity] = entry["qty"].get(quantity, 0) + row["qty"]
 
 	return {"values": quantities, "rows": list(table.values())}
+
+
+def find_consumption(source_doctype, source_name):
+	"""Name of the live (draft or submitted) consumption entry posted for a document, if any."""
+	return frappe.db.get_value(
+		"Stock Entry",
+		{
+			"consumption_source_doctype": source_doctype,
+			"consumption_source_name": source_name,
+			"docstatus": ["<", 2],
+		},
+		"name",
+	)
+
+
+def consume(
+	recipe,
+	variables,
+	source_doctype,
+	source_name,
+	warehouse=None,
+	posting_date=None,
+	on_shortage="block",
+):
+	"""Issue what `recipe` consumes for `variables` as one Material Issue.
+
+	Idempotent per source document: a second call returns the entry the first one posted, so
+	a retried or double-clicked step cannot issue the consumables twice. Returns `None` when
+	the recipe comes to nothing for these variables.
+
+	`on_shortage` decides what a lack of stock does: "block" raises and leaves nothing behind;
+	"draft" keeps the entry as a draft for someone to complete once the stock is there, so the
+	step that called is not stopped.
+	"""
+	if on_shortage not in ("block", "draft"):
+		frappe.throw(_("{0} is not a valid way to handle a shortage").format(on_shortage))
+
+	existing = find_consumption(source_doctype, source_name)
+	if existing:
+		return frappe.get_doc("Stock Entry", existing)
+
+	recipe_doc = frappe.get_doc("Consumption Recipe", recipe)
+	if not recipe_doc.is_active:
+		frappe.throw(_("Consumption Recipe {0} is not active").format(recipe))
+
+	rows = compute(recipe_doc.items, variables)
+	if not rows:
+		return None
+
+	for row in rows:
+		row["s_warehouse"] = row.pop("source_warehouse") or warehouse
+		if not row["s_warehouse"]:
+			frappe.throw(
+				_("Item {0} has no source warehouse in the recipe and none was given").format(
+					row["item_code"]
+				)
+			)
+
+	from erpnext.stock.get_item_details import get_conversion_factor
+
+	frappe.db.savepoint("consume_insert")
+	entry = frappe.new_doc("Stock Entry")
+	entry.stock_entry_type = "Material Issue"
+	entry.purpose = "Material Issue"
+	entry.company = frappe.get_cached_value("Warehouse", rows[0]["s_warehouse"], "company")
+	if posting_date:
+		entry.posting_date = posting_date
+		entry.set_posting_time = 1
+	entry.consumption_recipe = recipe
+	entry.consumption_source_doctype = source_doctype
+	entry.consumption_source_name = source_name
+	for row in rows:
+		entry.append(
+			"items",
+			{
+				"item_code": row["item_code"],
+				"qty": row["qty"],
+				"uom": row["uom"],
+				"conversion_factor": get_conversion_factor(row["item_code"], row["uom"])["conversion_factor"]
+				if row["uom"]
+				else 1,
+				"s_warehouse": row["s_warehouse"],
+				"description": row["notes"],
+			},
+		)
+	entry.insert()
+
+	frappe.db.savepoint("consume_submit")
+	try:
+		entry.submit()
+	except NegativeStockError:
+		if on_shortage == "block":
+			frappe.db.rollback(save_point="consume_insert")
+			raise
+		frappe.db.rollback(save_point="consume_submit")
+		entry.reload()
+		frappe.msgprint(
+			_("Not enough stock to issue the consumables; {0} is kept as a draft").format(entry.name),
+			indicator="orange",
+			alert=True,
+		)
+	return entry
+
+
+def cancel_for_source(doc, method=None):
+	"""`doc_events` hook: the consumption posted for a document goes back when the document does."""
+	name = find_consumption(doc.doctype, doc.name)
+	if not name:
+		return
+	entry = frappe.get_doc("Stock Entry", name)
+	if entry.docstatus == 1:
+		entry.cancel()
+	else:
+		frappe.delete_doc("Stock Entry", name, force=True)
