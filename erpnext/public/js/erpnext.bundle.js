@@ -52,6 +52,7 @@ import "./financial_statements.js";
 import "./sales_trends_filters.js";
 import "./purchase_trends_filters.js";
 import "./entity.js";
+import "./consumption_table.js";
 import "./chat_crypto.js";
 import "./chat_media.js";
 import "./chat_info.js";

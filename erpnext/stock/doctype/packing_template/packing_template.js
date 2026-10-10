@@ -5,6 +5,15 @@ frappe.ui.form.on("Packing Template", {
 	refresh: function (frm) {
 		setup_barcode(frm);
 		setup_print_labels(frm);
+		show_consumption(frm);
+	},
+
+	consumption_recipe: function (frm) {
+		show_consumption(frm);
+	},
+
+	expected_qty: function (frm) {
+		show_consumption(frm);
 	},
 
 	barcode_id: function (frm) {
@@ -64,5 +73,23 @@ function setup_print_labels(frm) {
 				});
 			});
 		},
+	});
+}
+
+function show_consumption(frm) {
+	const wrapper = frm.fields_dict.consumption_preview.$wrapper;
+	if (!frm.doc.consumption_recipe) {
+		wrapper.html("");
+		return;
+	}
+	const box = Math.max(cint(frm.doc.expected_qty), 1);
+	const values = Array.from({ length: Math.min(box, 12) }, (_v, i) => i + 1);
+	if (!values.includes(box)) values.push(box);
+	wrapper.html(`<p class="text-muted">${__("Units in the box")}</p>`);
+	const table = $("<div></div>").appendTo(wrapper);
+	erpnext.consumption.show(table, {
+		recipe: frm.doc.consumption_recipe,
+		values: values.join(","),
+		highlight: box,
 	});
 }

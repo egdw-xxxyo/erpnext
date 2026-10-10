@@ -15812,3 +15812,6 @@ Partially attached,Частково
 "Consumption Recipe {0} is not active","Рецепт списання {0} неактивний"
 "Item {0} has no source warehouse in the recipe and none was given","Для позиції {0} у рецепті не вказано склад, і інший не передано"
 "Not enough stock to issue the consumables; {0} is kept as a draft","Недостатньо залишків для списання витратних матеріалів; {0} збережено як чернетку"
+Units in the box,Одиниць у коробці
+Consumption by units in the box,Списання за кількістю одиниць у коробці
+"What is written off when a box is packed with this template. The last box of an order may hold fewer units, so the table below shows every count up to the box size.","Що списується, коли коробка пакується за цим шаблоном. В останній коробці замовлення може бути менше одиниць, тому таблиця нижче показує кожну кількість до розміру коробки."

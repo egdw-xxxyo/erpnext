@@ -224,3 +224,25 @@ def cancel_for_source(doc, method=None):
 		entry.cancel()
 	else:
 		frappe.delete_doc("Stock Entry", name, force=True)
+
+
+@frappe.whitelist()
+def preview_recipe(recipe, values):
+	"""`preview` for a saved recipe, for forms that only point at one."""
+	frappe.has_permission("Consumption Recipe", "read", doc=recipe, throw=True)
+	items = frappe.get_all(
+		"Consumption Recipe Item",
+		filters={"parent": recipe, "parenttype": "Consumption Recipe"},
+		fields=[
+			"item_code",
+			"item_name",
+			"uom",
+			"qty_formula",
+			"condition",
+			"source_warehouse",
+			"notes",
+			"idx",
+		],
+		order_by="idx",
+	)
+	return preview(items, values)
