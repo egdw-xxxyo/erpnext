@@ -105,7 +105,9 @@ class ProductionLine(Document):
 				frappe.throw(_("Workplace {0} is listed more than once").format(row.workplace))
 			seen.add(row.workplace)
 
-		allowed = {row.workplace for row in self.workplaces if row.enabled}
+		self._validate_target_warehouses()
+
+		allowed = {row.workplace for row in self.workplaces if row.enabled and _produces_units(row)}
 		if not allowed:
 			return
 
@@ -118,6 +120,22 @@ class ProductionLine(Document):
 				frappe.throw(
 					_("Row {0}: workplace {1} is not one of this line's workplaces").format(
 						row.idx, row.workplace
+					)
+				)
+
+	def _validate_target_warehouses(self):
+		for row in self.workplaces:
+			if not row.target_warehouse:
+				continue
+			warehouse = frappe.get_cached_value(
+				"Warehouse", row.target_warehouse, ["company", "is_group"], as_dict=True
+			)
+			if warehouse.is_group:
+				frappe.throw(_("Row {0}: {1} is a group warehouse").format(row.idx, row.target_warehouse))
+			if self.company and warehouse.company != self.company:
+				frappe.throw(
+					_("Row {0}: warehouse {1} belongs to {2}, not to {3}").format(
+						row.idx, row.target_warehouse, warehouse.company, self.company
 					)
 				)
 
@@ -223,6 +241,11 @@ def _line_for(line_type, item_code, workplace=None):
 	frappe.throw(_("No enabled production line of type {0} plans item {1}").format(_(line_type), item_code))
 
 
+def _produces_units(row):
+	"""Rows saved before roles existed have none, and were all benches that start units."""
+	return (row.role or "Production") == "Production"
+
+
 def line_workplaces(line_type=None, production_line=None):
 	"""The benches the enabled lines run at — what a client's workplace picker may offer.
 
@@ -237,9 +260,43 @@ def line_workplaces(line_type=None, production_line=None):
 	names = []
 	for line in lines:
 		for row in line.workplaces:
-			if row.enabled and row.workplace and row.workplace not in names:
+			if row.enabled and row.workplace and _produces_units(row) and row.workplace not in names:
 				names.append(row.workplace)
 	return names
+
+
+@frappe.whitelist()
+def workplace_overview(line):
+	"""What each workplace of a line is and does, for the table on the line's form."""
+	frappe.has_permission("Production Line", "read", doc=line, throw=True)
+	rows = []
+	for row in frappe.get_doc("Production Line", line).workplaces:
+		workplace = (
+			frappe.db.get_value("Workplace", row.workplace, ["workplace_script", "is_active"], as_dict=True)
+			or {}
+		)
+		operations = frappe.get_all(
+			"Workplace Operation",
+			filters={"parent": row.workplace, "parenttype": "Workplace"},
+			fields=["operation", "workstation"],
+			order_by="idx",
+		)
+		rows.append(
+			{
+				"workplace": row.workplace,
+				"enabled": cint(row.enabled) and cint(workplace.get("is_active", 1)),
+				"role": row.role or "Production",
+				"operations": [
+					{"operation": op.operation, "workstation": op.workstation} for op in operations
+				],
+				"script": workplace.get("workplace_script"),
+				"employees": frappe.db.count(
+					"Workplace Employee", {"parent": row.workplace, "parenttype": "Workplace"}
+				),
+				"target_warehouse": row.target_warehouse,
+			}
+		)
+	return rows
 
 
 @frappe.whitelist()

@@ -21,6 +21,7 @@
   "manufacture_at_packing",
   "workplace_section",
   "workplaces",
+  "workplace_overview",
   "plan_section",
   "plan_time",
   "plan",
@@ -127,6 +128,11 @@
    "fieldtype": "Table",
    "label": "Workplaces",
    "options": "Production Line Workplace"
+  },
+  {
+   "fieldname": "workplace_overview",
+   "fieldtype": "HTML",
+   "label": "Workplace Overview"
   },
   {
    "fieldname": "plan_section",

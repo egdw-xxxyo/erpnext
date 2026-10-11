@@ -8,6 +8,7 @@
 //   erpnext.entity.number({name, verified_name, account_name, display_phone_number,
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
+//   erpnext.entity.workplace("Packing" | {name, sub}, opts)  // production workplace → its form
 //   erpnext.entity.list(items, renderer, opts)            // several, wrapped, or "—"
 //   erpnext.entity.avatar_html({name, key, image, icon}, size)
 //
@@ -130,6 +131,22 @@ frappe.provide("erpnext.entity");
 				key: p.phone,
 				image: p.image,
 				route: ["whatsapp-person", p.phone],
+			},
+			opts
+		);
+	};
+
+	// A production workplace: icon + name, linked to its form.
+	E.workplace = function (w, opts) {
+		if (!w) return "";
+		const name = typeof w === "string" ? w : w.name;
+		return E.html(
+			{
+				name,
+				sub: (typeof w === "object" && w.sub) || "",
+				key: name,
+				icon: "fa fa-cogs",
+				route: ["Form", "Workplace", name],
 			},
 			opts
 		);
