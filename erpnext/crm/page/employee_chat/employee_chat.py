@@ -1617,6 +1617,8 @@ def _send_fcm_push(tokens, title, body, data):
 		batch = tokens[i : i + 500]
 		message = messaging.MulticastMessage(
 			notification=messaging.Notification(title=title, body=body),
+			# default (normal) priority waits for a Doze maintenance window — minutes on an idle phone
+			android=messaging.AndroidConfig(priority="high"),
 			data={k: str(v) for k, v in data.items()},
 			tokens=batch,
 		)
