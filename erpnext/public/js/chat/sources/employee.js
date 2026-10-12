@@ -646,9 +646,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		return `<span class="cv-chip" title="${deep.badge_hint()}"><i class="fa fa-archive"></i> ${deep.badge()}</span>`;
 	}
 
-	// Archiving is open to anyone in the chat; removing and the deep archive are role-gated
-	// server-side and only offered on an archived chat. A chat pinned out of the lifecycle
-	// hides the buttons the server would refuse anyway.
+	// Archiving itself lives in the chat info dialog. Removing and the deep archive are
+	// role-gated server-side and only offered on an archived chat.
 	header_actions(chat, view) {
 		view = view || this.view;
 		const deep = erpnext.chat_deep_archive;
@@ -671,16 +670,6 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 				title: blocked ? deep.busy_hint() : deep.leave_hint(),
 				disabled: blocked,
 				on_click: () => this.leave_deep(chat, view),
-			});
-		}
-		const no_archive = chat.disable_archive && !chat.is_archived;
-		if (!chat.is_deep_archived && !no_archive) {
-			out.push({
-				icon: `fa fa-${chat.is_archived ? "inbox" : "archive"}`,
-				title: chat.is_archived
-					? __("Return the chat to the active list — everyone in it sees it there again.")
-					: __("Move the chat to the Archive section for everyone. It keeps all its messages."),
-				on_click: () => this.toggle_archive(chat, view),
 			});
 		}
 		if (
