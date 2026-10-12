@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from .. import ftp, schedule, stats
+from .. import space_tree as space_tree_mod
 from ..commands import COMMANDS
 from ..config import settings
 from ..deps import SessionDep
@@ -36,6 +37,21 @@ PANELS = {
 # Panels that show job state; they get the live job list merged in, which the
 # heavy host snapshot no longer carries.
 JOB_PANELS = {"actions", "jobs", "backups"}
+
+
+@router.get("/space-tree", response_class=HTMLResponse)
+async def space_tree(request: Request, session: SessionDep, path: str = "/", parent: int = 0):
+	if not space_tree_mod.valid_path(path):
+		raise HTTPException(status_code=400, detail="invalid path")
+	force = request.query_params.get("force") == "1"
+	tree = await space_tree_mod.space_tree.get(session.conn, path, force=force)
+	context = {
+		"tree": tree,
+		"path": path,
+		"parent_bytes": parent or tree.get("total") or 0,
+		"root": path == "/",
+	}
+	return templates.TemplateResponse(request, "partials/space_tree.html", context)
 
 
 @router.get("/{name}", response_class=HTMLResponse)

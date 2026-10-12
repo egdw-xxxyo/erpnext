@@ -294,3 +294,16 @@ pre.console {
 	.console-pane { position: static; flex: 1 1 100%; width: auto; height: 60vh; border-left: none; border-top: 1px solid var(--line); }
 }
 .busy-icon { margin-right: 6px; }
+
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree .tree-kids { margin-left: 22px; }
+.tree summary, .tree .tree-leaf {
+	display: grid; grid-template-columns: 120px 80px 50px 1fr; gap: 8px; align-items: center;
+	padding: 2px 0; cursor: default;
+}
+.tree summary { cursor: pointer; }
+.tree .tree-bar { display: block; height: 8px; background: #1b2230; border-radius: 2px; overflow: hidden; }
+.tree .tree-bar i { display: block; height: 100%; background: #2d5a8a; }
+.tree .tree-size { text-align: right; }
+.tree .tree-pct { text-align: right; }
+.tree .tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

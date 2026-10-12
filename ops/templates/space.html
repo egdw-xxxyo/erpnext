@@ -37,6 +37,24 @@
 		</button>
 	</section>
 
+	<section class="card wide">
+		<h2>Space analysis</h2>
+		<p class="muted small">
+			Tree view of where the disk is used (like <code>ncdu</code>). Open a folder to scan it.
+			Read-only; sizes are cached for 10 minutes.
+		</p>
+		<div class="row">
+			<input type="text" id="space-path" name="path" value="/" class="mono" size="30">
+			<button type="button" class="primary"
+			        hx-get="/panels/space-tree" hx-include="#space-path"
+			        hx-target="#space-tree" hx-swap="innerHTML">Analyse</button>
+			<button type="button"
+			        hx-get="/panels/space-tree?force=1" hx-include="#space-path"
+			        hx-target="#space-tree" hx-swap="innerHTML">Rescan</button>
+		</div>
+		<div id="space-tree"></div>
+	</section>
+
 	<section class="card wide" id="panel-disk"
 	         hx-get="/panels/disk" hx-trigger="load, every 60s" hx-swap="innerHTML">
 		<h2>Disk</h2><p class="muted">loading…</p>
