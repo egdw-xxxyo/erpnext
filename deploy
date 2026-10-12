@@ -238,6 +238,29 @@ ensure_space_for_build() {
   fi
 }
 
+# Lean builds, opt-in per host: `touch .deploy-lean` (a dev box with a small disk).
+# A normal build holds the old image, the new image and the build cache at once, which
+# needs about 20G free. A lean build stops the stack, removes the old image and all build
+# cache first, so only the new image has to fit. The site is down for the length of the
+# build, and a failed build leaves it down (there is no old image to start) — fix and rerun.
+# Databases and files live in volumes and are never touched.
+lean_build() {
+  [ -f "$DIR/.deploy-lean" ]
+}
+
+free_everything_for_build() {
+  say "==> Lean build: stopping the stack and removing the old image and all build cache..."
+  dc down --remove-orphans >/dev/null 2>&1 || true
+  local repo
+  repo="${IMAGE_NAME%%:*}"
+  docker image ls --no-trunc --format '{{.ID}} {{.Repository}}' 2>/dev/null \
+    | awk -v repo="$repo" '$2 == repo {print $1}' \
+    | sort -u \
+    | while read -r id; do docker rmi -f "$id" >/dev/null 2>&1 || true; done
+  docker image prune -f >/dev/null 2>&1 || true
+  docker builder prune -af >/dev/null 2>&1 || true
+}
+
 reclaim_after_deploy() {
   say "==> Removing superseded images and build leftovers..."
   # Only older images of our own repository: `image prune -a` would also take
@@ -257,6 +280,9 @@ reclaim_after_deploy() {
 }
 
 build_image() {
+  if lean_build; then
+    free_everything_for_build
+  fi
   ensure_space_for_build || return 1
 
   # Hash the remote HEAD of every app in apps.json so the Docker clone layer is

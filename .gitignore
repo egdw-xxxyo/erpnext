@@ -26,6 +26,7 @@ erpnext/www/banking.html
 
 .docker/
 .deploy-env
+.deploy-lean
 .mcp.json
 .agents/
 snapshots/
