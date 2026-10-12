@@ -354,6 +354,11 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 				time: r.creation,
 				author: r.sender_name || r.sender,
 				author_key: r.sender,
+				avatar: {
+					name: r.sender_name || r.sender,
+					key: r.sender,
+					image: (frappe.user_info(r.sender) || {}).image,
+				},
 				content_type: r.content_type,
 				text: r.message || "",
 				attach: r.attach,
@@ -422,6 +427,11 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			time: r.creation,
 			text: r.message || "",
 		}));
+	}
+
+	// Shared chats show who is talking; in a direct chat the header already says it.
+	show_avatars(chat) {
+		return !!chat && chat.thread_type !== "Direct";
 	}
 
 	show_authors(chat) {

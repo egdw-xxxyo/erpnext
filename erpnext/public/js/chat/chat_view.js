@@ -18,6 +18,7 @@
 //   fetch(chat, {before, after, limit}) -> raw rows oldest-first
 //   build(raw, chat) -> normalized messages (see chat_render.js)
 //   show_authors?(chat) -> "in" | "out" | "all" | false
+//   show_avatars?(chat) -> bool    senders' pictures beside incoming messages (shared chats)
 //   header_actions?(chat) -> [{icon, title, disabled?, on_click}]
 //   header_badges_html?(chat)
 //   compose_buttons?(chat) -> [{icon, title, on_click}]
@@ -257,7 +258,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	inject_styles() {
-		if (document.getElementById("cv-page-styles-v4")) return;
+		if (document.getElementById("cv-page-styles-v5")) return;
 		const css = `
 		.cv-group-head{display:flex;align-items:center;gap:10px;margin:12px 8px 6px;padding:8px 12px 8px 20px;
 			position:sticky;top:0;z-index:1;border-radius:10px;background:var(--gray-200,#e2e6e9);
@@ -279,6 +280,8 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-page.cv-embedded{height:100%;min-height:0;margin:0;border:none;border-radius:0;}
 		.cv-embedded .cv-sidebar,.cv-embedded .cv-side{display:none;}
 		.cv-embedded .cv-thread{padding:10px;}
+		.cv-embedded .cv-with-avatar{margin-left:32px;}
+		.cv-embedded .cv-bubble-avatar{left:-32px;}
 		.cv-embedded .cv-fab{right:12px;bottom:70px;width:36px;height:36px;}
 		.cv-searching .cv-sidebar > :not(.cv-msearch){display:none;}
 		.cv-msearch{flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -401,7 +404,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		@media (max-width:1200px){.cv-side{display:none;}}
 		@media (max-width:768px){.cv-sidebar{width:220px;}.cv-thread{padding:10px;}}
 		`;
-		$(`<style id="cv-page-styles-v4">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-page-styles-v5">${css}</style>`).appendTo(document.head);
 	}
 
 	// ------------------------------------------------------------------ list
@@ -836,6 +839,25 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.messages = this.source.build(this.raw, this.chat());
 		this.msg_by_id = {};
 		for (const m of this.messages) this.msg_by_id[m.id] = m;
+		this.mark_groups();
+	}
+
+	// Consecutive messages of one sender, on one day and without a long pause between them,
+	// read as one group: the name once on top, the picture once at the bottom.
+	mark_groups() {
+		const key = (m) => `${m.out ? "o" : "i"}|${m.author_key || m.author || ""}`;
+		const together = (a, b) =>
+			!!a &&
+			!!b &&
+			key(a) === key(b) &&
+			this.day_of(a) === this.day_of(b) &&
+			Math.abs(erpnext.chat_render.local(b.time).diff(erpnext.chat_render.local(a.time), "minutes")) <=
+				10;
+		const msgs = this.messages;
+		msgs.forEach((m, i) => {
+			m.g_first = !together(msgs[i - 1], m);
+			m.g_last = !together(m, msgs[i + 1]);
+		});
 	}
 
 	async load_page() {
@@ -949,7 +971,15 @@ erpnext.chat_view.ChatView = class ChatView {
 	bubble(m) {
 		const mode = this.author_mode();
 		const author = mode === "all" || (mode === "in" && !m.out) || (mode === "out" && m.out);
-		return erpnext.chat_render.bubble_html(m, { author, actions: true });
+		const s = this.source;
+		return erpnext.chat_render.bubble_html(m, {
+			author: author && m.g_first,
+			actions: true,
+			first: m.g_first,
+			last: m.g_last,
+			avatar: !m.out && !!s.show_avatars && s.show_avatars(this.chat()),
+			avatar_size: this.embedded ? 26 : 30,
+		});
 	}
 
 	day_of(m) {

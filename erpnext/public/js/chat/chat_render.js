@@ -391,9 +391,26 @@ frappe.provide("erpnext.chat_render");
 				  )}</div>`
 				: "";
 
-		return `<div class="cv-bubble ${out ? "cv-out" : "cv-in"}${
-			failed ? " cv-bubble-failed" : ""
-		}" data-id="${esc(m.id)}">${actions}${author}${R.quote_html(m)}${R.body_html(
+		// Consecutive messages of one sender form a group (opts.first / opts.last mark its
+		// ends): they sit closer together, and where senders have pictures (opts.avatar)
+		// the picture stands once, beside the last message of the group.
+		const group =
+			opts.first === undefined
+				? ""
+				: ` cv-g${opts.first ? " cv-g-first" : ""}${opts.last ? " cv-g-last" : ""}`;
+		const picture =
+			opts.avatar && opts.last !== false
+				? `<span class="cv-bubble-avatar">${R.avatar_html(
+						m.avatar || { name: m.author, key: m.author_key || m.author },
+						opts.avatar_size || 30
+				  )}</span>`
+				: "";
+
+		return `<div class="cv-bubble ${out ? "cv-out" : "cv-in"}${group}${
+			opts.avatar ? " cv-with-avatar" : ""
+		}${failed ? " cv-bubble-failed" : ""}" data-id="${esc(
+			m.id
+		)}">${picture}${actions}${author}${R.quote_html(m)}${R.body_html(
 			m
 		)}<span class="cv-meta"><span class="cv-time">${time}</span>${
 			out || m.read_info
@@ -504,7 +521,7 @@ frappe.provide("erpnext.chat_render");
 	R.inject_styles = function () {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("cv-styles-v2")) return;
+		if (document.getElementById("cv-styles-v3")) return;
 		const css = `
 		.cv-root{--cv-out:#effdde;--cv-out-text:#111;--cv-in:var(--card-bg);--cv-thread-bg:#e6ebee;--cv-accent:#3390ec;
 			--cv-tick:#4fae4e;}
@@ -560,7 +577,16 @@ frappe.provide("erpnext.chat_render");
 		.cv-author{font-size:12px;font-weight:600;margin-bottom:2px;}
 		.cv-meta{float:right;display:inline-flex;align-items:center;gap:4px;margin:6px 0 -4px 10px;font-size:11px;line-height:1;
 			color:var(--text-muted);white-space:nowrap;user-select:none;}
-		.cv-out .cv-meta{color:var(--cv-tick);}
+		[data-theme="dark"] .cv-out .cv-meta{color:rgba(255,255,255,.6);}
+		.cv-meta .cv-st-read{color:var(--cv-tick);}
+		.cv-g{margin-top:-2px;}
+		.cv-g.cv-g-first{margin-top:6px;}
+		.cv-in.cv-g:not(.cv-g-first){border-top-left-radius:5px;}
+		.cv-in.cv-g:not(.cv-g-last){border-bottom-left-radius:5px;}
+		.cv-out.cv-g:not(.cv-g-first){border-top-right-radius:5px;}
+		.cv-out.cv-g:not(.cv-g-last){border-bottom-right-radius:5px;}
+		.cv-with-avatar{margin-left:38px;}
+		.cv-bubble-avatar{position:absolute;left:-38px;bottom:0;line-height:0;}
 		.cv-out .cv-meta .cv-time{color:var(--text-muted);}
 		[data-theme="dark"] .cv-out .cv-meta .cv-time{color:rgba(255,255,255,.6);}
 		.cv-ticks{display:inline-flex;}
@@ -662,6 +688,6 @@ frappe.provide("erpnext.chat_render");
 		.cv-compact .cv-card{max-width:230px;}
 		.cv-compact .cv-day{font-size:11px;margin:6px 0 4px;}
 		`;
-		$(`<style id="cv-styles-v2">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-styles-v3">${css}</style>`).appendTo(document.head);
 	};
 })(erpnext.chat_render);
