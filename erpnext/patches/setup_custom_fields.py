@@ -3,6 +3,7 @@
 Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 Or via bench console and calling execute() manually.
 """
+
 import json
 from functools import reduce
 
@@ -31,6 +32,7 @@ def execute():
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
 	create_consumption_source_fields()
+	create_unit_route_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
@@ -574,6 +576,35 @@ def create_consumption_source_fields():
 			"no_copy": 1,
 			"search_index": 1,
 			"depends_on": "consumption_recipe",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_unit_route_fields():
+	"""Which BOM operation puts the unit into stock, and where each step lands it.
+
+	Read by `erpnext.manufacturing.unit_route`. The operations listed after the marked one are
+	performed on a unit that is already in stock, so they are left out of the Work Order.
+	"""
+	fields = [
+		{
+			"dt": "BOM Operation",
+			"fieldname": "enters_stock",
+			"fieldtype": "Check",
+			"label": "Одиниця на складі після цього кроку",
+			"insert_after": "operation",
+			"in_list_view": 1,
+			"description": "Кроки нижче виконуються над одиницею, що вже на складі, і не входять до Work Order",
+		},
+		{
+			"dt": "BOM Operation",
+			"fieldname": "unit_target_warehouse",
+			"fieldtype": "Link",
+			"options": "Warehouse",
+			"label": "Склад після кроку",
+			"insert_after": "enters_stock",
+			"description": "Порожньо — склад береться з робочого місця, а якщо й там порожньо, не змінюється",
 		},
 	]
 	_create_custom_fields(fields)

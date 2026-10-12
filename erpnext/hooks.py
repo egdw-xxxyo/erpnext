@@ -602,6 +602,9 @@ doc_events = {
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 	},
+	# the route of a unit: which BOM step puts it into stock, and the steps after that
+	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
+	"Work Order": {"before_validate": "erpnext.manufacturing.unit_route.drop_after_stock_operations"},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices
 	"Notification Log": {

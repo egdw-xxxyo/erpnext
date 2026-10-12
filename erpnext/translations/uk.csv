@@ -15824,3 +15824,4 @@ Workplace Overview,Огляд робочих місць
 "Where the unit goes once the operation at this workplace is done. Empty: the warehouse does not change.","Куди потрапляє одиниця після завершення операції на цьому робочому місці. Порожньо: склад не змінюється."
 "Row {0}: {1} is a group warehouse","Рядок {0}: {1} є груповим складом"
 "Row {0}: warehouse {1} belongs to {2}, not to {3}","Рядок {0}: склад {1} належить {2}, а не {3}"
+"Only one operation can put the unit into stock, but rows {0} are all marked","Лише одна операція може класти одиницю на склад, а позначено рядки {0}"
