@@ -54,6 +54,12 @@ async def space_tree(request: Request, session: SessionDep, path: str = "/", par
 	return templates.TemplateResponse(request, "partials/space_tree.html", context)
 
 
+@router.get("/sudo-check", response_class=HTMLResponse)
+async def sudo_check(request: Request, session: SessionDep):
+	rows = await sudo_rules.check(session.conn)
+	return templates.TemplateResponse(request, "partials/sudo_check.html", {"rows": rows})
+
+
 @router.get("/{name}", response_class=HTMLResponse)
 async def panel(name: str, request: Request, session: SessionDep):
 	template = PANELS.get(name)
