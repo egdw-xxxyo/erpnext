@@ -16,6 +16,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_company_requisites()
 	setup_supplier_item_matching()
 	setup_procurement_document_details()
 	setup_todo_deadline()
@@ -102,6 +103,20 @@ def execute():
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
+	)
+
+
+def setup_company_requisites():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Company",
+				"fieldname": "custom_edrpou",
+				"label": "EDRPOU Code",
+				"fieldtype": "Data",
+				"insert_after": "tax_id",
+			}
+		]
 	)
 
 

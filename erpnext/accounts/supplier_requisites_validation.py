@@ -170,11 +170,15 @@ def validate_supplier_requisites(doc):
 
 	text = "\n".join(file["text"] for file in file_texts if file["text"].strip())
 	expected = _get_expected_values(context)
-	checks = [_compare_value(key, expected.get(key) or [], text) for key in ("tax_id", "edrpou", "iban")]
+	excluded = _get_company_requisites(context.get("company"))
+	checks = [
+		_compare_value(key, expected.get(key) or [], text, excluded.get(key) or [])
+		for key in ("tax_id", "edrpou", "iban")
+	]
 	_apply_supplier_type_rules(checks, context, expected, text)
 	for check in checks:
 		check["matched_files"] = _get_matching_files(
-			check["key"], expected.get(check["key"]) or [], file_texts
+			check["key"], expected.get(check["key"]) or [], file_texts, excluded.get(check["key"]) or []
 		)
 
 	if not files or not text:
@@ -242,11 +246,12 @@ def _looks_like_individual_entrepreneur(text):
 	return any(re.search(pattern, text or "", flags=re.IGNORECASE) for pattern in patterns)
 
 
-def _get_matching_files(key, expected_values, file_texts):
+def _get_matching_files(key, expected_values, file_texts, excluded_values=()):
 	return [
 		{"file_name": file.get("file_name"), "file_url": file.get("file_url")}
 		for file in file_texts
-		if _compare_value(key, expected_values, file["text"])["status"] in {"matched", "ambiguous"}
+		if _compare_value(key, expected_values, file["text"], excluded_values)["status"]
+		in {"matched", "ambiguous"}
 	]
 
 
@@ -384,6 +389,7 @@ def _get_validation_context(doc):
 	supplier_type = frappe.db.get_value("Supplier", supplier, "supplier_type")
 	return {
 		"supplier": supplier,
+		"company": doc.get("company"),
 		"supplier_type": supplier_type,
 		"bank_accounts": _get_expected_bank_accounts(doc, supplier),
 	}
@@ -474,11 +480,34 @@ def _extract_pdf_text(file_url):
 		return "\n".join((page.extract_text() or "") for page in pdf.pages[:50])
 
 
-def _compare_value(key, expected_values, text):
+def _get_company_requisites(company):
+	"""Exclude the buyer's configured details, including historical company bank accounts."""
+	if not company:
+		return {}
+	company_doc = frappe.get_cached_doc("Company", company)
+	accounts = frappe.get_all(
+		"Bank Account",
+		filters={"company": company, "is_company_account": 1},
+		fields=["iban", "bank_account_no"],
+	)
+	return {
+		"tax_id": {_digits(company_doc.get("tax_id"))} - {""},
+		"edrpou": {_digits(company_doc.get("custom_edrpou"))} - {""},
+		"iban": {
+			iban
+			for account in accounts
+			for value in (account.get("iban"), account.get("bank_account_no"))
+			if re.fullmatch(r"UA\d{27}", iban := _normalize_iban(value))
+		},
+	}
+
+
+def _compare_value(key, expected_values, text, excluded_values=()):
 	definition = CHECK_DEFINITIONS[key]
 	label = definition["label"]
 	expected_values = list(dict.fromkeys(value for value in expected_values if value))
 	detected = _extract_detected_values(key, text, definition, expected_values)
+	detected = [value for value in detected if value not in excluded_values]
 	if not expected_values:
 		return {
 			"key": key,
