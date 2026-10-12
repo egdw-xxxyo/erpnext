@@ -40,6 +40,8 @@ web_include_icons = [
 	"/assets/erpnext/icons/pos-icons.svg",
 ]
 
+after_request = ["erpnext.access_control.denial.attach_denial_context"]
+
 doctype_js = {
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
 	"Consolidated Purchase Order": "public/js/procurement_links.js",
@@ -51,6 +53,7 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	"Role": "public/js/custom/role.js",
 	"Email Account": "public/js/custom/email_account.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",

@@ -91,6 +91,7 @@ def execute():
 	create_responsible_employee_dimension()
 	setup_group_access_fields()
 	setup_group_access_role()
+	setup_access_manager_role()
 	setup_project_access_permissions()
 	setup_serial_no_write_for_stock_user()
 	create_callmebot_fields()
@@ -4100,3 +4101,12 @@ def setup_procurement_document_details():
 		filters = {"doc_type": "Purchase Order", "field_name": fieldname, "property": "report_hide"}
 		if frappe.db.get_value("Property Setter", filters, "value") != "1":
 			make_property_setter("Purchase Order", fieldname, "report_hide", "1", "Check")
+
+
+def setup_access_manager_role():
+	role = "Access Manager"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Role: {role}")
