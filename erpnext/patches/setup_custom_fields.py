@@ -16,6 +16,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_supplier_item_matching()
 	setup_procurement_document_details()
 	setup_todo_deadline()
 	setup_payment_instruction_list_link()
@@ -101,6 +102,22 @@ def execute():
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
+	)
+
+
+def setup_supplier_item_matching():
+	"""Only add metadata; never save procurement documents or backfill assignments."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Item Supplier",
+				"fieldname": "custom_supplier_item_name",
+				"label": "Supplier Item Name",
+				"fieldtype": "Data",
+				"insert_after": "supplier_part_no",
+				"in_list_view": 1,
+			}
+		]
 	)
 
 

@@ -42,7 +42,10 @@ web_include_icons = [
 
 doctype_js = {
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
-	"Consolidated Purchase Order": "public/js/procurement_links.js",
+	"Consolidated Purchase Order": [
+		"public/js/procurement_links.js",
+		"public/js/custom/procurement_supplier_item_matching.js",
+	],
 	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",
 	"Job Card": "public/js/custom/job_card.js",

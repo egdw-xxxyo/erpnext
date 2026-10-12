@@ -15767,3 +15767,62 @@ Suppliers with Delivery Notes,Постачальники з видатковим
 Procurement Delivery Note,Видаткова накладна
 Delivery Note Supplier Count,Кількість постачальників для видаткових накладних
 Partially attached,Частково
+Supplier Item Alias,Відповідність товару постачальника
+Supplier Item Name,Назва у постачальника
+Confirmed By,Підтвердив
+Match supplier item names,Зіставити назви товарів постачальника
+Save the order and supplier invoices before matching items.,Збережіть замовлення та рахунки постачальників перед зіставленням позицій.
+Select supplier invoice,Виберіть рахунок постачальника
+Read invoice items,Прочитати позиції рахунку
+Reading invoice items...,Зчитування позицій рахунку...
+Confirm supplier item names,Підтвердження назв товарів постачальника
+Save confirmed matches,Зберегти підтверджені відповідності
+Choose an order item for every checked invoice row.,Виберіть позицію замовлення для кожного позначеного рядка рахунку.
+Select invoice rows and their matching order items.,Позначте рядки рахунку та виберіть відповідні позиції замовлення.
+Saved {0} new matches; {1} were already saved.,Збережено {0} нових відповідностей; {1} вже були збережені.
+Open PDF,Відкрити PDF
+Check the PDF and tick only confirmed matches. Order quantities and prices will not change.,Звіртеся з PDF та позначте лише підтверджені відповідності. Кількість і ціни замовлення не зміняться.
+Could not read the invoice item table. A text PDF with name and quantity columns is required. No matches were saved.,Не вдалося прочитати таблицю позицій рахунку. Потрібен текстовий PDF із колонками назви та кількості. Відповідності не збережено.
+"PDF extraction may miss or merge rows. Verify names, units and VAT basis against the PDF; quantity and price are only hints.","Під час читання PDF рядки можуть пропускатися чи об'єднуватися. Звірте назви, одиниці та врахування ПДВ з PDF; кількість і ціна є лише підказками."
+Matching hints,Підказки зіставлення
+Select an order item,Виберіть позицію замовлення
+Page {0},Сторінка {0}
+Saved supplier match,Збережена відповідність постачальника
+Similar name,Схожа назва
+Same quantity,Однакова кількість
+Same price,Однакова ціна
+Same unit,Однакова одиниця
+Only the buyer responsible for this order can confirm supplier item names.,Підтверджувати назви товарів постачальника може лише закупівельник цього замовлення.
+Cannot match items from a cancelled order.,Не можна зіставляти позиції скасованого замовлення.
+Select a saved supplier invoice from this order.,Виберіть збережений рахунок постачальника з цього замовлення.
+Select a PDF invoice.,Виберіть рахунок у форматі PDF.
+The invoice or order items changed. Open the matching window again.,Рахунок або позиції замовлення змінилися. Відкрийте вікно зіставлення ще раз.
+The supplier item name or part number is too long to save. Check the PDF layout.,Назва або артикул постачальника задовгі для збереження. Перевірте структуру PDF.
+Cannot save a supplier match for a disabled Item.,Не можна зберегти відповідність для вимкненої номенклатури.
+This supplier name and part number are already linked to another Item.,Ця назва й артикул постачальника вже пов'язані з іншою номенклатурою.
+This supplier part number is already linked to another Item.,Цей артикул постачальника вже пов'язаний з іншою номенклатурою.
+Select a PDF smaller than 10 MB.,Виберіть PDF розміром до 10 МБ.
+Select a PDF with no more than 50 pages.,Виберіть PDF із не більш ніж 50 сторінками.
+Select a PDF with no more than 200 item rows.,Виберіть PDF із не більш ніж 200 рядками позицій.
+Supplier article,Артикул постачальника
+Order item,Позиція ЗЗНП
+Prefill from PDF,Презаповнити з PDF
+PDF prefill is only available in an editable draft.,Презаповнення з PDF доступне лише в чернетці з можливістю редагування.
+Select an enabled purchase Item without variants.,Виберіть активну закупівельну номенклатуру без шаблону варіантів.
+Select our Items manually. Only Items and the invoice supplier will be added; enter quantity and price in the order. Existing rows will remain.,Виберіть нашу номенклатуру вручну. Додадуться лише товари та постачальник рахунку; кількість і ціну введіть у замовленні. Наявні рядки залишаться.
+Invoice items,Позиції рахунку
+PDF quantity,Кількість у PDF
+PDF price,Ціна у PDF
+Add selected items,Додати вибрані позиції
+Tick invoice rows and select our Item for each one.,Позначте рядки рахунку та виберіть нашу номенклатуру для кожного з них.
+The order changed. Open the PDF prefill again.,Замовлення змінилося. Відкрийте презаповнення з PDF ще раз.
+"Items were added to the draft. Enter their quantities and prices, check the remaining fields, then save the order.","Позиції додано до чернетки. Введіть кількість і ціни, перевірте решту полів та збережіть замовлення."
+
+Select a supplier invoice from this draft.,Виберіть рахунок постачальника з цієї чернетки.
+
+Saved supplier names and articles preselect our Items. Check the matches; choose unknown or ambiguous Items manually. Existing order rows will remain.,Збережені назви й артикули постачальника автоматично підставляють нашу номенклатуру. Перевірте відповідності; невідомі або неоднозначні позиції виберіть вручну. Наявні рядки замовлення залишаться.
+Prefill quantity and price from PDF,Презаповнити кількість і ціну з PDF
+"Verify quantities, units, prices and VAT against the PDF before saving the order.","Перед збереженням замовлення звірте кількість, одиниці виміру, ціни та ПДВ з PDF."
+"Items were added to the draft. Verify quantities, units, prices and VAT against the PDF before saving.","Позиції додано до чернетки. Перед збереженням звірте кількість, одиниці виміру, ціни та ПДВ з PDF."
+Some PDF quantities or prices could not be read. Fill the missing values manually.,Деякі значення кількості або ціни в PDF не вдалося прочитати. Заповніть їх вручну.
+Select all,Вибрати все
