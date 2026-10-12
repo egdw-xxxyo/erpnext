@@ -37,6 +37,7 @@ def execute():
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
 	seed_firmware_additional_attribute()
+	seed_packing_additional_attribute()
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
@@ -3636,6 +3637,37 @@ def seed_firmware_additional_attribute():
 			}
 		).insert(ignore_permissions=True)
 		print(f"  Created Additional Attribute Value: {attribute} / {value}")
+
+
+def seed_packing_additional_attribute():
+	"""Seed the «Упаковка» attribute that `erpnext.manufacturing.packing` writes on packed serials.
+
+	A note for the scanner and the serial's history (which box, how many in it); the warehouse,
+	not this attribute, decides whether a unit can be sold."""
+	if not frappe.db.exists("DocType", "Additional Attribute"):
+		return
+
+	attribute = "Упаковка"
+	if not frappe.db.exists("Additional Attribute", attribute):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute",
+				"attribute_name": attribute,
+				"description": "Ставиться при закритті коробки; склад, а не цей атрибут, вирішує чи можна продавати",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute: {attribute}")
+
+	if not frappe.db.exists("Additional Attribute Value", {"attribute": attribute, "value": "Упаковано"}):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute Value",
+				"attribute": attribute,
+				"value": "Упаковано",
+				"abbr": "PK",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute Value: {attribute} / Упаковано")
 
 
 def add_serial_attributes_shortcut():

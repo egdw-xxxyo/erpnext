@@ -598,12 +598,16 @@ doc_events = {
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 			# a consumption issued for this entry goes back with it
 			"erpnext.manufacturing.consumption.cancel_for_source",
+			# a packing transfer's «Упаковка» note on the serials goes back with it
+			"erpnext.manufacturing.packing.unpack_on_cancel",
 		],
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 	},
 	# the route of a unit: which BOM step puts it into stock, and the steps after that
 	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
+	# a unit waiting for packing is stock but not sellable
+	"Delivery Note": {"before_submit": "erpnext.manufacturing.packing.block_unpacked_delivery"},
 	"Work Order": {"before_validate": "erpnext.manufacturing.unit_route.drop_after_stock_operations"},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices

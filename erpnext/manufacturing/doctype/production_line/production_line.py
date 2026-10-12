@@ -741,7 +741,11 @@ def finish_unit(job_card):
 	if deferred:
 		stock_entry = None
 	elif not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
-		stock_entry = _post_manufacture(card, serial_no)
+		from erpnext.manufacturing.packing import landing_warehouse
+
+		# A BOM that marks the step entering stock and names a warehouse for it lands the unit
+		# there — staging, until a box is closed around it.
+		stock_entry = _post_manufacture(card, serial_no, target_warehouse=landing_warehouse(card.bom_no))
 
 	frappe.db.commit()
 	return {
