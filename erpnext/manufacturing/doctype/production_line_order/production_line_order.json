@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Production Line Order",
+ "field_order": [
+  "item_code",
+  "workplace",
+  "qty",
+  "produced_qty",
+  "work_order"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Workplace",
+   "options": "Workplace",
+   "reqd": 1,
+   "description": "The bench that makes this item. Its allowed operations decide which Job Cards the app may hand out."
+  },
+  {
+   "columns": 1,
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty",
+   "reqd": 1,
+   "non_negative": 1,
+   "description": "How many units to make. Fixed once the Work Order is released."
+  },
+  {
+   "columns": 1,
+   "fieldname": "produced_qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Produced",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Work Order",
+   "options": "Work Order",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "modified": "2026-10-12 12:00:00.000000"
+}

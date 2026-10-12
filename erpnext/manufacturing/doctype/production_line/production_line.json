@@ -7,6 +7,7 @@
  "editable_grid": 0,
  "engine": "InnoDB",
  "field_order": [
+  "main_tab",
   "line_name",
   "line_type",
   "column_break_main",
@@ -22,6 +23,10 @@
   "workplace_section",
   "workplaces",
   "workplace_overview",
+  "planning_tab",
+  "planning_mode",
+  "orders_section",
+  "orders",
   "plan_section",
   "plan_time",
   "plan",
@@ -137,7 +142,8 @@
   {
    "fieldname": "plan_section",
    "fieldtype": "Section Break",
-   "label": "Daily Plan"
+   "label": "Daily Plan",
+   "depends_on": "eval:doc.planning_mode!='Manual Planning'"
   },
   {
    "default": "07:00:00",
@@ -150,13 +156,15 @@
   {
    "fieldname": "plan",
    "fieldtype": "Table",
+   "hide_label": 1,
    "label": "Plan",
    "options": "Production Line Item"
   },
   {
    "fieldname": "overflow_section",
    "fieldtype": "Section Break",
-   "label": "Overflow"
+   "label": "Overflow",
+   "depends_on": "eval:doc.planning_mode!='Manual Planning'"
   },
   {
    "default": "5",
@@ -168,7 +176,8 @@
   {
    "fieldname": "cleanup_section",
    "fieldtype": "Section Break",
-   "label": "End of Day"
+   "label": "End of Day",
+   "depends_on": "eval:doc.planning_mode!='Manual Planning'"
   },
   {
    "default": "1",
@@ -194,7 +203,8 @@
    "collapsible": 1,
    "fieldname": "status_section",
    "fieldtype": "Section Break",
-   "label": "Last Run"
+   "label": "Last Run",
+   "depends_on": "eval:doc.planning_mode!='Manual Planning'"
   },
   {
    "fieldname": "last_run_on",
@@ -227,11 +237,41 @@
    "label": "Day Close Result",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "main_tab",
+   "fieldtype": "Tab Break",
+   "label": "Line"
+  },
+  {
+   "fieldname": "planning_tab",
+   "fieldtype": "Tab Break",
+   "label": "Planning"
+  },
+  {
+   "fieldname": "planning_mode",
+   "fieldtype": "Select",
+   "label": "Planning",
+   "options": "Daily Planning\nManual Planning",
+   "default": "Daily Planning",
+   "description": "Daily: Work Orders are opened every day from the plan, an overflow one is opened when the plan runs out, and units nobody started are closed in the evening. Manual: the manager adds orders below and releases them; nothing is opened or closed automatically, and when an order is made the bench has nothing more to take."
+  },
+  {
+   "fieldname": "orders_section",
+   "fieldtype": "Section Break",
+   "label": "Orders",
+   "depends_on": "eval:doc.planning_mode=='Manual Planning'"
+  },
+  {
+   "fieldname": "orders",
+   "fieldtype": "Table",
+   "label": "Orders",
+   "options": "Production Line Order"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-29 12:00:00.000000",
+ "modified": "2026-10-12 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Line",

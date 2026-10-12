@@ -15835,3 +15835,17 @@ Workplace Overview,Огляд робочих місць
 "{0} pcs","{0} шт."
 "Not packed yet, cannot be delivered: {0}","Ще не упаковано, відвантажити не можна: {0}"
 "Units waiting for packing","Одиниці, що чекають пакування"
+Line,Лінія
+Daily Planning,Щоденне планування
+Manual Planning,Ручне планування
+Release Orders,Запустити замовлення
+Release Order,Запустити замовлення
+Production Line Order,Замовлення виробничої лінії
+"Daily: Work Orders are opened every day from the plan, an overflow one is opened when the plan runs out, and units nobody started are closed in the evening. Manual: the manager adds orders below and releases them; nothing is opened or closed automatically, and when an order is made the bench has nothing more to take.","Щодня: Work Order відкриваються щодня за планом, коли план вичерпано — відкривається додатковий, а невзяті одиниці закриваються ввечері. Вручну: менеджер додає замовлення нижче й запускає їх; нічого не відкривається і не закривається автоматично, а коли замовлення виготовлено, робоче місце більше нічого не бере."
+"How many units to make. Fixed once the Work Order is released.","Скільки одиниць виготовити. Після запуску Work Order змінити не можна."
+Row {0}: Qty must be greater than zero,Рядок {0}: кількість має бути більшою за нуль
+"Row {0}: the Work Order is already released, its Qty can no longer change","Рядок {0}: Work Order уже запущено, його кількість більше не змінюється"
+Production line {0} plans daily, it has no orders to release,Виробнича лінія {0} планує щодня, замовлень для запуску немає
+Production line {0} is disabled,Виробнича лінія {0} вимкнена
+"Nothing is left to make for {0} on line {1}: every released order is done. Release another order.","Для {0} на лінії {1} більше нічого виготовляти: усі запущені замовлення виконано. Запустіть нове замовлення."
+"Open a Work Order for each of the {0} order(s) that have none? Serial Nos and Job Cards are created now.","Відкрити Work Order для кожного з {0} замовлень, у яких його ще немає? Серійні номери й Job Card створюються зараз."

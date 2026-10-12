@@ -47,6 +47,9 @@ class ProductionLine(Document):
 		from erpnext.manufacturing.doctype.production_line_item.production_line_item import (
 			ProductionLineItem,
 		)
+		from erpnext.manufacturing.doctype.production_line_order.production_line_order import (
+			ProductionLineOrder,
+		)
 		from erpnext.manufacturing.doctype.production_line_workplace.production_line_workplace import (
 			ProductionLineWorkplace,
 		)
@@ -63,8 +66,10 @@ class ProductionLine(Document):
 		line_name: DF.Data
 		line_type: DF.Literal["Spool"]
 		manufacture_at_packing: DF.Check
+		orders: DF.Table[ProductionLineOrder]
 		overflow_qty: DF.Int
 		plan: DF.Table[ProductionLineItem]
+		planning_mode: DF.Literal["Daily Planning", "Manual Planning"]
 		plan_time: DF.Time
 		reject_warehouse: DF.Link | None
 		source_warehouse: DF.Link | None
@@ -78,11 +83,14 @@ class ProductionLine(Document):
 			if row.daily_qty < 0:
 				frappe.throw(_("Daily Qty cannot be negative (row {0})").format(row.idx))
 
+		self._validate_orders()
+
 		# Both times fall on the same calendar day: closing the day stops every Work Order
 		# opened before it, so a close that came before the plan would stop the day's own
 		# Work Orders the moment they were opened.
 		if (
-			self.cleanup_enabled
+			not self.is_manual
+			and self.cleanup_enabled
 			and self.plan_time
 			and self.cleanup_time
 			and _moment(self.cleanup_time) <= _moment(self.plan_time)
@@ -92,6 +100,42 @@ class ProductionLine(Document):
 		if self.enabled:
 			self._validate_items_not_on_other_lines()
 			self._validate_workplaces_not_on_other_lines()
+
+	@property
+	def is_manual(self):
+		return self.planning_mode == "Manual Planning"
+
+	def onload(self):
+		"""How much of each released order is made, read live so the form never shows a stale count."""
+		for row in self.get("orders") or []:
+			if row.work_order:
+				row.produced_qty = cint(frappe.db.get_value("Work Order", row.work_order, "produced_qty"))
+
+	def _validate_orders(self):
+		"""Orders of a manual line: a released order is a Work Order, so its quantity is fixed."""
+		released = {}
+		if not self.is_new():
+			released = {
+				row.name: row.qty
+				for row in frappe.get_all(
+					"Production Line Order",
+					filters={
+						"parent": self.name,
+						"parenttype": "Production Line",
+						"work_order": ["is", "set"],
+					},
+					fields=["name", "qty"],
+				)
+			}
+		for row in self.orders:
+			if cint(row.qty) <= 0:
+				frappe.throw(_("Row {0}: Qty must be greater than zero").format(row.idx))
+			if row.name in released and cint(released[row.name]) != cint(row.qty):
+				frappe.throw(
+					_("Row {0}: the Work Order is already released, its Qty can no longer change").format(
+						row.idx
+					)
+				)
 
 	def _validate_workplaces(self):
 		"""The line's benches, and the plan rows that must stay inside them.
@@ -111,8 +155,8 @@ class ProductionLine(Document):
 		if not allowed:
 			return
 
-		for row in self.plan:
-			if not row.enabled:
+		for row in self._plan_table():
+			if not row.get("enabled", 1):
 				continue
 			if not row.workplace:
 				frappe.throw(_("Row {0}: Workplace is required").format(row.idx))
@@ -122,6 +166,9 @@ class ProductionLine(Document):
 						row.idx, row.workplace
 					)
 				)
+
+	def _plan_table(self):
+		return self.orders if self.is_manual else self.plan
 
 	def _validate_target_warehouses(self):
 		for row in self.workplaces:
@@ -175,6 +222,8 @@ class ProductionLine(Document):
 		find a line's Work Orders by item. Two lines planning the same item at the same bench
 		would each count the other's Work Order as their own.
 		"""
+		if self.is_manual:
+			return
 		for row in self.plan:
 			if not row.enabled:
 				continue
@@ -210,8 +259,8 @@ def _enabled_lines(line_type=None):
 
 def _plan_rows(line, workplace=None, item_code=None):
 	rows = []
-	for row in line.plan:
-		if not row.enabled:
+	for row in line.orders if line.planning_mode == "Manual Planning" else line.plan:
+		if not row.get("enabled", 1):
 			continue
 		if workplace and row.workplace and row.workplace != workplace:
 			continue
@@ -396,7 +445,7 @@ def _unfinished_job_cards(item_code=None, workplace=None, limit=20):
 	]
 
 
-def _create_work_order(line, item_code, qty, reason="plan"):
+def _create_work_order(line, item_code, qty, reason="plan", order_type="Daily"):
 	"""Submit a Work Order, which is what mints the serials and the per-unit Job Cards."""
 	qty = cint(qty)
 	if qty <= 0:
@@ -420,7 +469,7 @@ def _create_work_order(line, item_code, qty, reason="plan"):
 			"fg_warehouse": line.fg_warehouse,
 			"description": f"{line.name} ({reason})",
 			"production_line": line.name,
-			"line_order_type": "Daily",
+			"line_order_type": order_type,
 			"planned_qty": qty,
 		}
 	)
@@ -473,6 +522,8 @@ def run_schedule():
 	"""Scheduler tick: open or close the day on every line whose time has come."""
 	now = now_datetime()
 	for line in _enabled_lines():
+		if line.planning_mode == "Manual Planning":
+			continue
 		if _due(line.plan_time, line.last_run_on, now):
 			ensure_daily_work_orders(line=line.name)
 		if line.cleanup_enabled and _due(line.cleanup_time, line.last_cleanup_on, now):
@@ -487,6 +538,8 @@ def ensure_daily_work_orders(line=None):
 	"""
 	lines_to_run = [frappe.get_doc("Production Line", line)] if line else _enabled_lines()
 	for line in lines_to_run:
+		if line.planning_mode == "Manual Planning":
+			continue
 		created, skipped, failed = [], [], []
 
 		for row in _plan_rows(line):
@@ -529,23 +582,58 @@ def ensure_daily_work_orders(line=None):
 		frappe.db.commit()
 
 
+@frappe.whitelist()
+def release_orders(line):
+	"""Open a Work Order for every order of a manual line that has none yet.
+
+	Done by the manager on purpose: a manual line opens, closes and tops up nothing by itself.
+	"""
+	frappe.only_for(("System Manager", "Manufacturing Manager"))
+	doc = frappe.get_doc("Production Line", line)
+	if not doc.is_manual:
+		frappe.throw(_("Production line {0} plans daily, it has no orders to release").format(line))
+	if not doc.enabled:
+		frappe.throw(_("Production line {0} is disabled").format(line))
+
+	released = []
+	for row in doc.orders:
+		if row.work_order or not row.get("item_code") or cint(row.qty) <= 0:
+			continue
+		wo = _create_work_order(doc, row.item_code, row.qty, reason="manual", order_type="Manual")
+		frappe.db.set_value(row.doctype, row.name, "work_order", wo.name, update_modified=False)
+		released.append(f"{row.item_code}: {wo.name} x{row.qty}")
+	frappe.clear_document_cache("Production Line", line)
+	frappe.db.commit()
+	return released
+
+
 def get_plan(line_type, workplace=None):
 	"""What this bench is supposed to make today, and how much of it is left."""
 	items = []
 	for line in _enabled_lines(line_type):
+		manual = line.planning_mode == "Manual Planning"
+		listed = {}
 		for row in _plan_rows(line, workplace=workplace):
+			if manual:
+				# Several orders for one item are one line of the bench's plan.
+				key = (row.item_code, row.workplace)
+				if key in listed:
+					listed[key]["daily_qty"] += cint(row.qty)
+					continue
 			free = _free_job_cards(row.item_code, workplace=row.workplace or workplace, limit=100)
-			items.append(
-				{
-					"production_line": line.name,
-					"item_code": row.item_code,
-					"item_name": frappe.db.get_value("Item", row.item_code, "item_name"),
-					"workplace": row.workplace,
-					"daily_qty": row.daily_qty,
-					"overflow_qty": line.overflow_qty,
-					"remaining": len(free),
-				}
-			)
+			entry = {
+				"production_line": line.name,
+				"item_code": row.item_code,
+				"item_name": frappe.db.get_value("Item", row.item_code, "item_name"),
+				"workplace": row.workplace,
+				"daily_qty": cint(row.qty) if manual else row.daily_qty,
+				"overflow_qty": 0 if manual else line.overflow_qty,
+				"planning_mode": line.planning_mode or "Daily Planning",
+				"remaining": len(free),
+			}
+			items.append(entry)
+			if manual:
+				listed[(row.item_code, row.workplace)] = entry
 
 	return {"enabled": bool(items), "items": items}
 
@@ -578,6 +666,13 @@ def next_unit(line_type, workplace=None, item_code=None):
 
 	free = _free_job_cards(item_code, workplace=workplace, limit=1)
 	overflow = None
+
+	if not free and line.planning_mode == "Manual Planning":
+		frappe.throw(
+			_(
+				"Nothing is left to make for {0} on line {1}: every released order is done. Release another order."
+			).format(item_code, line.name)
+		)
 
 	if not free:
 		overflow = _create_work_order(line, item_code, line.overflow_qty or 1, reason="overflow")
@@ -1083,6 +1178,8 @@ def close_stale_work_orders(line=None, force=False):
 	cutoff = now_datetime()
 	lines_to_run = [frappe.get_doc("Production Line", line)] if line else _enabled_lines()
 	for line in lines_to_run:
+		if line.planning_mode == "Manual Planning":
+			continue
 		if not line.cleanup_enabled and not force:
 			continue
 

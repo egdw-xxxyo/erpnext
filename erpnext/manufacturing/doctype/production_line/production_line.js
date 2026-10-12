@@ -16,6 +16,15 @@ frappe.ui.form.on("Production Line", {
 			},
 			__("View")
 		);
+		if (frm.doc.planning_mode == "Manual Planning") {
+			const waiting = (frm.doc.orders || []).filter((row) => !row.work_order).length;
+			if (waiting) {
+				frm.add_custom_button(__("Release Orders"), () => frm.trigger("release_orders")).addClass(
+					"btn-primary"
+				);
+			}
+			return;
+		}
 		frm.add_custom_button(__("Close Day"), () => {
 			frappe.confirm(
 				__(
@@ -36,6 +45,32 @@ frappe.ui.form.on("Production Line", {
 					})
 			);
 		});
+	},
+	planning_mode(frm) {
+		frm.refresh();
+	},
+	release_orders(frm) {
+		const release = () =>
+			frappe.call({
+				method: "erpnext.manufacturing.doctype.production_line.production_line.release_orders",
+				args: { line: frm.doc.name },
+				freeze: true,
+				callback: (r) => {
+					frappe.msgprint({
+						title: __("Release Orders"),
+						message: (r.message || []).map((line) => frappe.utils.escape_html(line)).join("<br>"),
+					});
+					frm.reload_doc();
+				},
+			});
+		const waiting = (frm.doc.orders || []).filter((row) => !row.work_order).length;
+		frappe.confirm(
+			__(
+				"Open a Work Order for each of the {0} order(s) that have none? Serial Nos and Job Cards are created now.",
+				[waiting]
+			),
+			() => (frm.is_dirty() ? frm.save().then(release) : release())
+		);
 	},
 	show_workplaces(frm) {
 		const wrapper = frm.fields_dict.workplace_overview.$wrapper;
@@ -101,12 +136,14 @@ frappe.ui.form.on("Production Line", {
 			return { filters: { is_active: 1, name: ["not in", picked] } };
 		});
 
-		frm.set_query("workplace", "plan", function (doc) {
+		const bench_query = function (doc) {
 			const allowed = (doc.workplaces || [])
 				.filter((row) => row.enabled && row.workplace && (row.role || "Production") == "Production")
 				.map((row) => row.workplace);
 			if (!allowed.length) return { filters: { is_active: 1 } };
 			return { filters: { name: ["in", allowed] } };
-		});
+		};
+		frm.set_query("workplace", "plan", bench_query);
+		frm.set_query("workplace", "orders", bench_query);
 	},
 });
