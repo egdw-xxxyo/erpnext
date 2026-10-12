@@ -5,8 +5,17 @@
 {% if root %}
 <p class="muted small">
 	<b>{{ path }}</b> — {{ tree.total|human_bytes }}, scanned {{ tree._fetched_at|ago }}.
-	Directories the ops user cannot read count as 0. Other mounts are skipped.
+	Other mounts are skipped.
 </p>
+{% endif %}
+{% if tree.denied %}
+<div class="alert warn small">
+	{{ tree.denied }} path(s) unreadable by the ops user — sizes are understated
+	(typically <code>/var/lib/docker</code>). Passwordless sudo for <code>du</code> on the host
+	makes this scan complete.
+</div>
+{% elif root and tree.elevated %}
+<p class="muted small">Scanned with sudo — all paths counted.</p>
 {% endif %}
 <ul class="tree">
 	{% for r in tree.rows %}

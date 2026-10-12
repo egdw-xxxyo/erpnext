@@ -23,10 +23,15 @@ _SAFE_PATH = re.compile(r"^/[A-Za-z0-9_./ @+:,=~-]*$")
 SCRIPT = r"""
 P=@PATH@
 [ -d "$P" ] || exit 91
-du -xak --max-depth=1 -- "$P" 2>/dev/null | while IFS=$'\t' read -r s p; do
+S=""
+sudo -n true 2>/dev/null && S="sudo -n"
+E=$(mktemp)
+$S du -xak --max-depth=1 -- "$P" 2>"$E" | while IFS=$'\t' read -r s p; do
   if [ -d "$p" ] && [ ! -L "$p" ]; then t=d; else t=f; fi
   printf '%s\t%s\t%s\n' "$s" "$t" "$p"
 done
+printf 'ERR\t%s\t%s\n' "$(grep -c 'Permission denied' "$E")" "${S:-user}"
+rm -f "$E"
 """
 
 
@@ -37,8 +42,14 @@ def valid_path(path: str) -> bool:
 def _parse(out: str, path: str) -> dict[str, Any]:
 	total = 0
 	rows: list[dict[str, Any]] = []
+	denied = 0
+	elevated = False
 	for line in out.splitlines():
 		parts = line.split("\t", 2)
+		if parts[0] == "ERR" and len(parts) == 3:
+			denied = int(parts[1]) if parts[1].isdigit() else 0
+			elevated = parts[2] != "user"
+			continue
 		if len(parts) != 3 or not parts[0].isdigit():
 			continue
 		size = int(parts[0]) * 1024
@@ -49,7 +60,13 @@ def _parse(out: str, path: str) -> dict[str, Any]:
 			{"bytes": size, "dir": parts[1] == "d", "path": parts[2], "name": parts[2].rsplit("/", 1)[-1]}
 		)
 	rows.sort(key=lambda r: r["bytes"], reverse=True)
-	return {"total": total, "rows": rows[:MAX_ROWS], "hidden": max(len(rows) - MAX_ROWS, 0)}
+	return {
+		"total": total,
+		"rows": rows[:MAX_ROWS],
+		"hidden": max(len(rows) - MAX_ROWS, 0),
+		"denied": denied,
+		"elevated": elevated,
+	}
 
 
 class SpaceTreeCache:
