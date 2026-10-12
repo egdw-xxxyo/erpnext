@@ -11,11 +11,11 @@
 {% if tree.denied %}
 <div class="alert warn small">
 	{{ tree.denied }} path(s) unreadable by the ops user — sizes are understated
-	(typically <code>/var/lib/docker</code>). Passwordless sudo for <code>du</code> on the host
-	makes this scan complete.
+	(typically <code>/var/lib/docker</code>). The host has neither passwordless sudo nor a running
+	backend container to read them through.
 </div>
 {% elif root and tree.elevated %}
-<p class="muted small">Scanned with sudo — all paths counted.</p>
+<p class="muted small">Scanned as root ({{ "docker, read-only" if tree.mode == "docker" else "sudo" }}) — all paths counted.</p>
 {% endif %}
 <ul class="tree">
 	{% for r in tree.rows %}

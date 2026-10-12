@@ -12,6 +12,7 @@ import shlex
 import time
 from typing import Any
 
+from .config import settings
 from .ssh import HostConnection
 
 TREE_TTL = 600.0
@@ -23,14 +24,30 @@ _SAFE_PATH = re.compile(r"^/[A-Za-z0-9_./ @+:,=~-]*$")
 SCRIPT = r"""
 P=@PATH@
 [ -d "$P" ] || exit 91
-S=""
-sudo -n true 2>/dev/null && S="sudo -n"
 E=$(mktemp)
-$S du -xak --max-depth=1 -- "$P" 2>"$E" | while IFS=$'\t' read -r s p; do
+MODE=user
+if sudo -n true 2>/dev/null; then
+  MODE=sudo
+else
+  IMG=$(docker compose -p @PROJECT@ -f @REPO@/docker-compose.yml ps -q backend 2>/dev/null | head -1 \
+    | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null)
+  [ -n "$IMG" ] && MODE=docker
+fi
+scan() {
+  case $MODE in
+    sudo) sudo -n du -xak --max-depth=1 -- "$P" 2>"$E" ;;
+    docker)
+      docker run --rm --user 0 --network none --entrypoint du -v /:/host:ro "$IMG" \
+        -xak --max-depth=1 -- "/host$P" 2>"$E" | sed -E 's#\t/host#\t#; s#\t$#\t/#'
+      ;;
+    *) du -xak --max-depth=1 -- "$P" 2>"$E" ;;
+  esac
+}
+scan | while IFS=$'\t' read -r s p; do
   if [ -d "$p" ] && [ ! -L "$p" ]; then t=d; else t=f; fi
   printf '%s\t%s\t%s\n' "$s" "$t" "$p"
 done
-printf 'ERR\t%s\t%s\n' "$(grep -c 'Permission denied' "$E")" "${S:-user}"
+printf 'ERR\t%s\t%s\n' "$(grep -c 'Permission denied' "$E")" "$MODE"
 rm -f "$E"
 """
 
@@ -44,11 +61,13 @@ def _parse(out: str, path: str) -> dict[str, Any]:
 	rows: list[dict[str, Any]] = []
 	denied = 0
 	elevated = False
+	mode = "user"
 	for line in out.splitlines():
 		parts = line.split("\t", 2)
 		if parts[0] == "ERR" and len(parts) == 3:
 			denied = int(parts[1]) if parts[1].isdigit() else 0
-			elevated = parts[2] != "user"
+			mode = parts[2]
+			elevated = parts[2] in ("sudo", "docker")
 			continue
 		if len(parts) != 3 or not parts[0].isdigit():
 			continue
@@ -66,7 +85,16 @@ def _parse(out: str, path: str) -> dict[str, Any]:
 		"hidden": max(len(rows) - MAX_ROWS, 0),
 		"denied": denied,
 		"elevated": elevated,
+		"mode": mode,
 	}
+
+
+def _render(path: str) -> str:
+	return (
+		SCRIPT.replace("@PATH@", shlex.quote(path))
+		.replace("@PROJECT@", shlex.quote(settings.compose_project))
+		.replace("@REPO@", shlex.quote(settings.repo_path))
+	)
 
 
 class SpaceTreeCache:
@@ -79,9 +107,7 @@ class SpaceTreeCache:
 			hit = self._data.get(path)
 			if not force and hit and time.time() - hit[0] < TREE_TTL:
 				return dict(hit[1], _fetched_at=hit[0])
-			result = await asyncio.to_thread(
-				conn.run, SCRIPT.replace("@PATH@", shlex.quote(path)), SCAN_TIMEOUT
-			)
+			result = await asyncio.to_thread(conn.run, _render(path), SCAN_TIMEOUT)
 			if result.rc == 91:
 				return {
 					"error": f"{path} is not a directory on the host",
