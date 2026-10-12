@@ -16,6 +16,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_procurement_item_likes()
 	setup_company_requisites()
 	setup_supplier_item_matching()
 	setup_procurement_document_details()
@@ -103,6 +104,24 @@ def execute():
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
+	)
+
+
+def setup_procurement_item_likes():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Consolidated Purchase Order Item",
+				"fieldname": "custom_item_liked",
+				"label": "Liked",
+				"fieldtype": "Check",
+				"insert_after": "item_code",
+				"default": "0",
+				"hidden": 1,
+				"allow_on_submit": 1,
+				"no_copy": 1,
+			}
+		]
 	)
 
 

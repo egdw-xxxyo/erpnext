@@ -1,5 +1,8 @@
 frappe.ui.form.on("Consolidated Purchase Order", {
 	setup(frm) {
+		$(frm.wrapper).on("grid-row-render.item-likes", (event, grid_row) => {
+			if (grid_row.grid.df.fieldname === "items") render_item_like(frm, grid_row);
+		});
 		frm.page.wrapper.css("--page-max-width", "1280px");
 		frappe.meta.get_docfield(
 			"Consolidated Purchase Supplier Invoice",
@@ -48,6 +51,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 	},
 
 	refresh(frm) {
+		render_item_like_header(frm);
 		set_procurement_status_indicator(frm);
 		setTimeout(() => set_procurement_status_indicator(frm), 0);
 		frm.fields_dict.supplier_invoices.grid.update_docfield_property("invoice_pdf", "options", {
@@ -273,6 +277,68 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 			});
 	},
 });
+
+function append_item_like_column(row) {
+	return $("<div class='col grid-static-col cpo-item-like-column'></div>")
+		.attr(
+			"style",
+			"flex:0 0 32px;max-width:32px;display:flex;align-items:center;justify-content:center;padding:0!important;"
+		)
+		.appendTo(row);
+}
+
+function render_item_like_header(frm) {
+	const header = frm.fields_dict.items?.grid?.header_row;
+	const row = header?.row;
+	header?.configure_columns_button?.css({
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	});
+	if (!row || row.children(".cpo-item-like-column").length) return;
+	append_item_like_column(row)
+		.attr("title", __("Liked"))
+		.append("<i class='fa fa-heart-o' aria-hidden='true'></i>");
+}
+
+function render_item_like(frm, grid_row) {
+	const row = grid_row.doc;
+	render_item_like_header(frm);
+	grid_row.open_form_button?.parent().css({
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	});
+	grid_row.row.children(".cpo-item-like-column").remove();
+	grid_row.row.find(".cpo-item-like").remove();
+	const cell = append_item_like_column(grid_row.row);
+	const liked = cint(row.custom_item_liked) === 1;
+	const button = $("<button type='button' class='btn btn-link btn-xs cpo-item-like'></button>")
+		.attr({ "aria-label": liked ? __("Unlike") : __("Like"), "aria-pressed": String(liked) })
+		.attr("title", liked ? __("Unlike") : __("Like"))
+		.css({ color: liked ? "#000" : "var(--text-color)", padding: "0 6px" })
+		.append($("<i aria-hidden='true'></i>").addClass(liked ? "fa fa-heart" : "fa fa-heart-o"))
+		.prop("disabled", !frm.perm.some((perm) => perm.write))
+		.appendTo(cell);
+	button.on("click", async (event) => {
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		button.prop("disabled", true);
+		try {
+			if (frm.is_new() || row.__islocal) {
+				await frappe.model.set_value(row.doctype, row.name, "custom_item_liked", liked ? 0 : 1);
+			} else {
+				const response = await frappe.call({
+					method: "erpnext.buying.procurement_item_likes.set_item_like",
+					args: { order_name: frm.doc.name, item_name: row.name, liked: !liked },
+				});
+				row.custom_item_liked = response.message;
+			}
+		} finally {
+			render_item_like(frm, grid_row);
+		}
+	});
+}
 
 function get_missing_supplier_invoice_warning(suppliers) {
 	const supplier_names = suppliers

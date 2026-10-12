@@ -15826,3 +15826,8 @@ Prefill quantity and price from PDF,Презаповнити кількість 
 "Items were added to the draft. Verify quantities, units, prices and VAT against the PDF before saving.","Позиції додано до чернетки. Перед збереженням звірте кількість, одиниці виміру, ціни та ПДВ з PDF."
 Some PDF quantities or prices could not be read. Fill the missing values manually.,Деякі значення кількості або ціни в PDF не вдалося прочитати. Заповніть їх вручну.
 Select all,Вибрати все
+
+Liked,Вподобано
+Like,Вподобати
+Unlike,Зняти вподобання
+The item does not belong to this consolidated order.,Позиція не належить до цього зведеного замовлення.
