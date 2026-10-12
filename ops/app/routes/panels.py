@@ -40,13 +40,19 @@ JOB_PANELS = {"actions", "jobs", "backups"}
 
 
 @router.get("/space-tree", response_class=HTMLResponse)
-async def space_tree(request: Request, session: SessionDep, path: str = "/", parent: int = 0):
+async def space_tree(request: Request, session: SessionDep, path: str = "/", parent: int = 0, all: int = 0):
 	if not space_tree_mod.valid_path(path):
 		raise HTTPException(status_code=400, detail="invalid path")
 	force = request.query_params.get("force") == "1"
 	tree = await space_tree_mod.space_tree.get(session.conn, path, force=force)
+	min_bytes = 0 if all else space_tree_mod.MIN_BYTES
+	shown = [row for row in tree.get("rows", []) if row["bytes"] >= min_bytes]
 	context = {
 		"tree": tree,
+		"shown": shown,
+		"small": len(tree.get("rows", [])) - len(shown),
+		"show_all": bool(all),
+		"min_bytes": space_tree_mod.MIN_BYTES,
 		"path": path,
 		"parent_bytes": parent or tree.get("total") or 0,
 		"root": path == "/",

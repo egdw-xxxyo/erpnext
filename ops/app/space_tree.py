@@ -17,6 +17,7 @@ from .ssh import HostConnection
 
 TREE_TTL = 600.0
 MAX_ROWS = 200
+MIN_BYTES = 1024 * 1024
 SCAN_TIMEOUT = 300
 
 _SAFE_PATH = re.compile(r"^/[A-Za-z0-9_./ @+:,=~-]*$")
