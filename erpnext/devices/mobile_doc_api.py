@@ -56,10 +56,11 @@ WORKFLOW_STYLE_COLORS = {
 	"Danger": "red",
 	"Inverse": "gray",
 }
+# First match wins, so the qualifier decides: "Partially Ordered" and "Unpaid" are not green.
 STATUS_COLORS = (
-	("green", ("completed", "paid", "received", "delivered", "approved", "ordered", "closed", "active")),
 	("red", ("cancel", "reject", "overdue", "lost", "failed", "stopped", "expired")),
 	("orange", ("pending", "partial", "open", "to ", "hold", "progress", "unpaid", "draft")),
+	("green", ("completed", "paid", "received", "delivered", "approved", "ordered", "closed", "active")),
 )
 
 
@@ -112,13 +113,13 @@ def _plain(value) -> str:
 	return text[:MAX_TEXT]
 
 
-def _important(df, meta, status_field) -> bool:
+def _important(df, meta) -> bool:
 	return bool(
 		df.reqd
 		or df.in_list_view
 		or df.in_standard_filter
 		or df.bold
-		or df.fieldname in (meta.title_field, status_field, "status")
+		or df.fieldname in (meta.title_field, "status")
 	)
 
 
@@ -205,8 +206,7 @@ def _table(df, doc) -> dict | None:
 def _body(doc, meta, full: bool):
 	"""Sections and tables in form order. Compact mode keeps the fields the doctype itself
 	marks as important and one table; whatever it leaves out raises `has_more`."""
-	workflow = get_workflow_name(meta.name)
-	status_field = get_workflow_state_field(workflow) if workflow else None
+	header_field = _status_fieldname(doc, meta)
 
 	sections, tables, skipped_tables = [], [], []
 	current = {"label": "", "fields": []}
@@ -231,12 +231,13 @@ def _body(doc, meta, full: bool):
 				skipped_tables.append(table)
 			continue
 
-		if df.fieldtype in SKIPPED_FIELDTYPES:
+		# The header already carries the status, and a naming series tells a reader nothing.
+		if df.fieldtype in SKIPPED_FIELDTYPES or df.fieldname in (header_field, "naming_series"):
 			continue
 		entry = _field(df, doc)
 		if not entry:
 			continue
-		if full or _important(df, meta, status_field):
+		if full or _important(df, meta):
 			current["fields"].append(entry)
 		else:
 			has_more = True
@@ -249,21 +250,29 @@ def _body(doc, meta, full: bool):
 	return sections, tables, has_more or bool(skipped_tables)
 
 
+def _status_fieldname(doc, meta) -> str | None:
+	"""Field the header's status comes from: the workflow state when set, else `status`."""
+	workflow = get_workflow_name(meta.name)
+	state_field = get_workflow_state_field(workflow) if workflow else None
+	if state_field and doc.get(state_field):
+		return state_field
+	if meta.has_field("status") and doc.get("status"):
+		return "status"
+	return None
+
+
 def _status(doc, meta) -> dict:
 	"""The one word the form's indicator pill shows: workflow state, else `status`, else
 	docstatus."""
-	workflow = get_workflow_name(meta.name)
-	if workflow:
-		state = doc.get(get_workflow_state_field(workflow))
-		if state:
-			style = frappe.db.get_value("Workflow State", state, "style")
-			return {"label": _(state), "color": WORKFLOW_STYLE_COLORS.get(style, "gray")}
-
-	status = doc.get("status") if meta.has_field("status") else None
-	if status:
-		lowered = cstr(status).lower()
+	fieldname = _status_fieldname(doc, meta)
+	value = cstr(doc.get(fieldname)) if fieldname else ""
+	if fieldname and fieldname != "status":
+		style = frappe.db.get_value("Workflow State", value, "style")
+		return {"label": _(value), "color": WORKFLOW_STYLE_COLORS.get(style, "gray")}
+	if fieldname:
+		lowered = value.lower()
 		color = next((c for c, words in STATUS_COLORS if any(w in lowered for w in words)), "gray")
-		return {"label": _(cstr(status)), "color": color}
+		return {"label": _(value), "color": color}
 
 	if meta.is_submittable:
 		label, color = DOCSTATUS_LABELS.get(cint(doc.docstatus), DOCSTATUS_LABELS[0])
