@@ -742,7 +742,8 @@ class ChatBubble {
 		}
 		let msgs = [];
 		try {
-			msgs = await source.load_messages(id, null, packed_chat);
+			const limit = this.thread_limit ? this.thread_limit(packed_chat) : null;
+			msgs = await source.load_messages(id, limit, packed_chat);
 		} catch (e) {
 			this.$body.html(`<div class="cb-empty">${__("Could not load messages")}</div>`);
 			return;
@@ -754,8 +755,10 @@ class ChatBubble {
 		// including this one — reacts to with a refresh() that re-enters load_thread. Marking
 		// unconditionally on every refresh therefore feedback-loops at socket speed. Gating on
 		// unread breaks it: after the first mark the count is 0, so the echo can't re-arm it.
+		// A host that reads on its own terms (the form's chat tab: only once the user has
+		// clicked into the chat, and then as far as they scrolled) sets `manual_read`.
 		const chat = this.chat_by_id(id);
-		if (chat && chat.unread) {
+		if (chat && chat.unread && !this.manual_read) {
 			if (window.__chat_debug)
 				console.log("[chat] load_thread: marking read (unread=" + chat.unread + ")", { id });
 			await source.mark_read(chat);
@@ -795,6 +798,7 @@ class ChatBubble {
 		});
 		// Lazy-load previews, lightbox, "show more" and encrypted downloads.
 		R.bind(this.$body.find(".cb-thread"), source.media_source);
+		if (this.after_thread_render) return this.after_thread_render(chat, msgs);
 		this.$body.scrollTop(this.$body[0].scrollHeight);
 	}
 

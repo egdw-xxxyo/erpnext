@@ -34,6 +34,13 @@ class FormSidebarChat {
 		// The thread as the server described it on open: the only copy while the user reads a
 		// chat they are not a participant of (it is not in their list then).
 		this.local_chat = null;
+		// Nothing is marked read just because the form was opened: the user has to click into
+		// the chat (`engaged`), and from then on the read cursor follows what they scrolled to.
+		this.manual_read = true;
+		this.engaged = false;
+		this.msgs = [];
+		this.positioned = null;
+		this.at_bottom = true;
 		this.expanded = false;
 		this.no_banner = true;
 		this.make_dom();
@@ -47,6 +54,7 @@ class FormSidebarChat {
 				<div class="cb-readonly" style="display:none;">${__(
 					"This chat is archived — new messages are not allowed"
 				)}</div>
+				<div class="fsc-unread-veil" style="display:none;"><span></span></div>
 				<div class="cb-compose" style="display:none;">
 					<button class="cb-ico cb-attach" title="${__("Attach file")}"><i class="fa fa-paperclip"></i></button>
 					<button class="cb-ico cb-mic" title="${__("Record voice message")}"><i class="fa fa-microphone"></i></button>
@@ -60,7 +68,19 @@ class FormSidebarChat {
 		this.$readonly = this.$root.find(".cb-readonly");
 		this.$input = this.$compose.find("textarea");
 		this.$head = this.$root.find(".fsc-head");
+		this.$veil = this.$root.find(".fsc-unread-veil");
 		this.render_chat_head();
+		this.$veil.on("click", () => this.engage());
+		// Any click inside the chat (the composer included) counts as taking it up.
+		this.$root.on("mousedown", () => this.engage());
+		this.$body.on(
+			"scroll",
+			frappe.utils.throttle(() => {
+				const el = this.$body[0];
+				this.at_bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+				this.update_read_progress();
+			}, 150)
+		);
 
 		this.$root.find(".cb-send").on("click", () => this.send());
 		this.$root.find(".cb-attach").on("click", () => this.attach_media());
@@ -109,6 +129,12 @@ class FormSidebarChat {
 				compact: true,
 				trailing: [toggle],
 			});
+			if (chat.unread) {
+				$('<span class="fsc-unread"></span>')
+					.text(chat.unread > 99 ? "99+" : chat.unread)
+					.attr("title", __("Unread messages"))
+					.insertAfter(this.$head.find(".cv-header-main"));
+			}
 			return;
 		}
 		this.$head
@@ -123,6 +149,96 @@ class FormSidebarChat {
 			.on("click", toggle.on_click);
 	}
 
+	// --- reading ------------------------------------------------------------------
+
+	// Enough history to reach the first unread message.
+	thread_limit(chat) {
+		return Math.min(200, Math.max(20, ((chat && chat.unread) || 0) + 10));
+	}
+
+	is_unread(m, chat) {
+		return !m.out && (!chat.my_last_read || m.time > chat.my_last_read);
+	}
+
+	bubble_of(id) {
+		return this.$body.find(".cv-bubble[data-id]").filter((_i, n) => $(n).attr("data-id") === id)[0];
+	}
+
+	// Bubble hook, after every (re)render of the thread: mark where the unread part starts,
+	// put the view there the first time, and veil the chat until the user takes it up.
+	after_thread_render(chat, msgs) {
+		this.msgs = msgs || [];
+		const first = chat && chat.unread ? this.msgs.find((m) => this.is_unread(m, chat)) : null;
+		const el = first && this.bubble_of(first.id);
+		if (el) $(`<div class="cv-new-divider">${__("New messages")}</div>`).insertBefore(el);
+
+		const body = this.$body[0];
+		if (this.positioned !== this.active) {
+			this.positioned = this.active;
+			if (el) body.scrollTop += el.getBoundingClientRect().top - body.getBoundingClientRect().top - 40;
+			else body.scrollTop = body.scrollHeight;
+			this.at_bottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+		} else if (this.at_bottom && (this.engaged || !el)) {
+			body.scrollTop = body.scrollHeight;
+		}
+		this.render_unread();
+		this.update_read_progress();
+	}
+
+	render_unread() {
+		const chat = this.active ? this.chat() : null;
+		const count = (chat && chat.unread) || 0;
+		this.$veil
+			.toggle(count > 0 && !this.engaged)
+			.find("span")
+			.text(
+				count === 1
+					? __("1 new message — click to read")
+					: __("{0} new messages — click to read", [count > 99 ? "99+" : count])
+			);
+		this.render_chat_head();
+	}
+
+	engage() {
+		if (this.engaged) return;
+		this.engaged = true;
+		this.$veil.hide();
+		this.update_read_progress();
+	}
+
+	// Move the read cursor to the newest incoming message that has been fully on screen.
+	async update_read_progress() {
+		const chat = this.active ? this.chat() : null;
+		if (!this.engaged || !chat || !chat.unread || this.marking) return;
+		const bottom = this.$body[0].getBoundingClientRect().bottom + 4;
+		let seen = null;
+		for (const m of this.msgs) {
+			if (!this.is_unread(m, chat)) continue;
+			const el = this.bubble_of(m.id);
+			if (!el || el.getBoundingClientRect().bottom > bottom) break;
+			seen = m;
+		}
+		if (!seen) return;
+		this.marking = true;
+		try {
+			await this.source.mark_read(chat, seen.time);
+		} catch (e) {
+			return;
+		} finally {
+			this.marking = false;
+		}
+		chat.my_last_read = seen.time;
+		chat.unread = this.msgs.filter((m) => this.is_unread(m, chat)).length;
+		this.render_unread();
+		// The launcher badge counts the same chats; the sync it triggers must not re-render us.
+		const bubble = erpnext.whatsapp.bubble;
+		if (bubble) {
+			erpnext.form_sidebar_chat.quiet = true;
+			bubble.render_badges();
+			erpnext.form_sidebar_chat.quiet = false;
+		}
+	}
+
 	// Bubble hooks used by the borrowed methods.
 	render_mute_toggle() {
 		this.render_chat_head();
@@ -134,6 +250,8 @@ class FormSidebarChat {
 	// Writing in a chat you were only reading joins it: pick up the membership straight away.
 	async send() {
 		const chat = this.chat();
+		// Your own message is always shown, wherever the thread was scrolled to.
+		this.at_bottom = true;
 		await erpnext.ChatBubble.prototype.send.call(this);
 		if (chat && chat.is_member === false) this.refresh();
 	}
@@ -188,6 +306,8 @@ class FormSidebarChat {
 		if (this.ref === ref && this.active) return this.refresh();
 		this.ref = ref;
 		this.active = null;
+		this.engaged = false;
+		this.positioned = null;
 		this.auto_unpacked = null;
 		this.$readonly.hide();
 		this.$compose.hide();
@@ -213,6 +333,10 @@ class FormSidebarChat {
 		this.ref = null;
 		this.active = null;
 		this.local_chat = null;
+		this.engaged = false;
+		this.positioned = null;
+		this.msgs = [];
+		this.$veil.hide();
 		this.render_chat_head();
 		clearInterval(this.archive_poll);
 		if (this.expanded) this.set_expanded(false);
@@ -246,8 +370,15 @@ FSC_BORROWED.forEach((m) => {
 		.fsc-badge{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);
 			color:#fff;font-size:10px;line-height:17px;font-weight:600;text-align:center;display:none;}
 		.fsc-pane-chat{display:none;}
-		.fsc-root{display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:320px;
+		.fsc-root{position:relative;display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:320px;
 			background:var(--card-bg);}
+		.fsc-unread{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;
+			background:var(--red-500,#e24c4c);color:#fff;font-size:11px;line-height:20px;font-weight:600;text-align:center;}
+		.fsc-unread-veil{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;
+			padding:16px;cursor:pointer;background:rgba(255,255,255,.55);}
+		[data-theme="dark"] .fsc-unread-veil{background:rgba(0,0,0,.45);}
+		.fsc-unread-veil span{padding:8px 16px;border-radius:18px;background:var(--primary,#2490ef);color:#fff;
+			font-size:var(--text-sm);font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);}
 		.fsc-head{flex:none;}
 		.fsc-root .cb-body{flex:1;overflow-y:auto;}
 		.fsc-backdrop{position:fixed;inset:0;z-index:1034;background:rgba(0,0,0,.35);}
@@ -301,6 +432,8 @@ FSC_BORROWED.forEach((m) => {
 		st.tab = tab;
 		st.$tabs.find(".fsc-tab").removeClass("active");
 		st.$tabs.find(`.fsc-tab[data-tab="${tab}"]`).addClass("active");
+		// Leaving the chat tab puts it down: coming back, new messages wait for a click again.
+		if (tab !== "chat") st.chat.engaged = false;
 		st.$info.toggle(tab === "info");
 		st.$pane.toggle(tab === "chat");
 		if (tab === "chat") st.chat.open();
@@ -310,7 +443,7 @@ FSC_BORROWED.forEach((m) => {
 	// Called by the bubble after every list refresh (realtime, poll): keep badge and open thread live.
 	FS.sync = function () {
 		const frm = window.cur_frm;
-		if (!frm || !frm.__fsc) return;
+		if (!frm || !frm.__fsc || FS.quiet) return;
 		if (is_active(frm) && frm.__fsc.chat.active) frm.__fsc.chat.refresh();
 		else FS.update_badge(frm);
 	};
