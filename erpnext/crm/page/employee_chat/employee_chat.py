@@ -198,7 +198,7 @@ def _default_group_title(users):
 
 
 def _user_name(user):
-	return frappe.db.get_value("User", user, "full_name") or user
+	return frappe.db.get_value("User", user, "full_name", cache=True) or user
 
 
 def _preview_text(content_type, message, attach, is_encrypted=False, link_title=None):
@@ -595,6 +595,9 @@ def _thread_row(t, me, last_read, can_purge):
 		filters={"parenttype": "Chat Thread", "parent": t["name"]},
 		fields=["user", "employee_name", "role", "last_read_on", "muted"],
 	)
+	for p in parts:
+		# Not everyone has an Employee record; a participant is never shown as a bare login.
+		p.employee_name = p.employee_name or _user_name(p.user)
 	t["participants"] = parts
 	mine = next((p for p in parts if p.user == me), None)
 	t["is_member"] = 1 if mine else 0

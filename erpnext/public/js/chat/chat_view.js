@@ -154,9 +154,7 @@ erpnext.chat_view.ChatView = class ChatView {
 							<textarea rows="1" placeholder="${__("Type a message")}"></textarea>
 							<button class="cv-ico cv-emoji" title="${__("Add emoji")}"><i class="fa fa-smile-o"></i></button>
 							<button class="cv-ico cv-mic" title="${__("Record voice message")}"><i class="fa fa-microphone"></i></button>
-							<button class="cv-ico cv-send" title="${__(
-								"Send"
-							)}" style="display:none;"><i class="fa fa-paper-plane"></i></button>
+							<button class="cv-ico cv-send" title="${__("Send")}"><i class="fa fa-paper-plane"></i></button>
 						</div>
 					</div>
 				</div>
@@ -231,7 +229,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	inject_styles() {
-		if (document.getElementById("cv-page-styles-v2")) return;
+		if (document.getElementById("cv-page-styles-v3")) return;
 		const css = `
 		.cv-group-head{display:flex;align-items:center;gap:10px;margin:12px 8px 6px;padding:8px 12px 8px 20px;
 			position:sticky;top:0;z-index:1;border-radius:10px;background:var(--gray-200,#e2e6e9);
@@ -331,7 +329,12 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-compose{display:flex;gap:2px;padding:8px 10px;align-items:flex-end;}
 		.cv-extra-tools{display:contents;}
 		.cv-compose textarea{flex:1;min-width:0;resize:none;border:none;outline:none;box-shadow:none;background:none;
-			color:var(--text-color);font-size:14px;line-height:20px;padding:8px 6px;max-height:180px;overflow-y:auto;}
+			color:var(--text-color);font-size:14px;line-height:20px;padding:8px 6px;max-height:180px;overflow-y:hidden;}
+		.cv-compose textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+		.cv-embedded .cv-compose{padding:4px 6px;gap:0;}
+		.cv-embedded .cv-compose textarea{font-size:13px;line-height:18px;padding:6px 4px;max-height:120px;}
+		.cv-embedded .cv-compose .cv-ico{width:30px;height:30px;line-height:30px;font-size:16px;}
+		.cv-embedded .cv-ref-banner{display:none;}
 		.cv-side{width:280px;border-left:1px solid var(--border-color);overflow-y:auto;padding:14px;}
 		.cv-side h6{margin:16px 0 6px;font-size:var(--text-xs,11px);text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;}
 		.cv-side h6:first-child{margin-top:0;}
@@ -348,7 +351,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		@media (max-width:1200px){.cv-side{display:none;}}
 		@media (max-width:768px){.cv-sidebar{width:220px;}.cv-thread{padding:10px;}}
 		`;
-		$(`<style id="cv-page-styles-v2">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-page-styles-v3">${css}</style>`).appendTo(document.head);
 	}
 
 	// ------------------------------------------------------------------ list
@@ -648,6 +651,7 @@ erpnext.chat_view.ChatView = class ChatView {
 				.join("")
 		);
 		this.$tools.find(".cv-ico").on("click", (e) => buttons[$(e.currentTarget).data("i")].on_click(this));
+		this.autosize();
 	}
 
 	render_side() {
@@ -1047,11 +1051,12 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	autosize() {
 		const el = this.$input[0];
+		// Measured while hidden, the empty box would get a height of nothing.
+		if (!el.offsetParent) return;
 		el.style.height = "auto";
 		el.style.height = el.scrollHeight + "px";
-		const has_text = !!(this.$input.val() || "").trim();
-		this.page.main.find(".cv-send").toggle(has_text);
-		this.page.main.find(".cv-mic").toggle(!has_text);
+		// A scrollbar only once the text outgrows the box.
+		el.style.overflowY = el.scrollHeight > el.clientHeight + 2 ? "auto" : "hidden";
 	}
 
 	set_reply(reply) {
