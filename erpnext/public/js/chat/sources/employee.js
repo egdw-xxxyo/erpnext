@@ -335,8 +335,6 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 
 	build(rows, chat) {
 		const read_only = !!(chat && chat.read_only);
-		let last_out = null;
-		for (const r of rows) if (r.sender === this.me) last_out = r.name;
 		const seen_upto = chat && chat.thread_type === "Direct" ? chat.other_last_read : null;
 		// Group and document chats: every outgoing message tells how far it has been read.
 		const readers =
@@ -368,20 +366,23 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 				can_react: !read_only,
 				can_reply: !read_only,
 			};
-			// Direct chats show whether the other person has read our latest message.
-			if (out && chat && chat.thread_type === "Direct" && r.name === last_out) {
+			// Direct chats: has the other person read it. Chats with several readers: every
+			// message, someone else's too, tells how many of the others have read it.
+			if (out && chat && chat.thread_type === "Direct") {
 				m.status = seen_upto && seen_upto >= r.creation ? "seen" : "sent";
-			}
-			if (out && readers.length) {
-				const n = readers.filter((p) => EmployeeChatSource.has_read(p, r)).length;
-				m.status = n === 0 ? "sent" : n === readers.length ? "seen" : "partial";
-				m.status_title =
-					n === 0
-						? __("Nobody has read it yet")
-						: n === readers.length
-						? __("Read by everyone")
-						: __("Read by {0} of {1}", [n, readers.length]);
-				m.read_info = true;
+			} else if (readers.length) {
+				const audience = readers.filter((p) => p.user !== r.sender);
+				const n = audience.filter((p) => EmployeeChatSource.has_read(p, r)).length;
+				if (audience.length) {
+					m.status = n === 0 ? "sent" : n === audience.length ? "seen" : "partial";
+					m.status_title =
+						n === 0
+							? __("Nobody has read it yet")
+							: n === audience.length
+							? __("Read by everyone")
+							: __("Read by {0} of {1}", [n, audience.length]);
+					m.read_info = true;
+				}
 			}
 			if (r.reply_preview) {
 				m.quote = { author: r.reply_preview.sender_name || "", text: r.reply_preview.text || "" };
@@ -399,7 +400,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 	read_info(m, chat) {
 		const out = { read: [], unread: [] };
 		for (const p of (chat && chat.participants) || []) {
-			if (p.user === this.me) continue;
+			// The author wrote it and the viewer is looking at it: neither is a reader to report.
+			if (p.user === this.me || p.user === m.raw.sender) continue;
 			(EmployeeChatSource.has_read(p, m.raw) ? out.read : out.unread).push(p);
 		}
 		return out;

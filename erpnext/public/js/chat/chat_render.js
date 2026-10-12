@@ -396,7 +396,7 @@ frappe.provide("erpnext.chat_render");
 		}" data-id="${esc(m.id)}">${actions}${author}${R.quote_html(m)}${R.body_html(
 			m
 		)}<span class="cv-meta"><span class="cv-time">${time}</span>${
-			out
+			out || m.read_info
 				? m.read_info
 					? `<span class="cv-read-info" role="button" tabindex="0">${R.status_icon(
 							m.status,
