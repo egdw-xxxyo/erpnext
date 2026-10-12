@@ -15890,3 +15890,7 @@ Production line {0} is disabled,Виробнича лінія {0} вимкнен
 "Search for messages","Шукайте повідомлення"
 "{0} messages found","Знайдено повідомлень: {0}"
 "No messages found","Повідомлень не знайдено"
+"Unknown document type {0}","Невідомий тип документа {0}"
+"{0} cannot be opened on its own","{0} не можна відкрити окремо"
+"Yes","Так"
+"Submitted","Проведено"
