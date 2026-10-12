@@ -8,6 +8,9 @@
 	Other mounts are skipped.
 </p>
 {% endif %}
+{% if tree.message %}
+<div class="alert error small">Scan reported: <code>{{ tree.message }}</code></div>
+{% endif %}
 {% if tree.denied %}
 <div class="alert warn small">
 	{{ tree.denied }} path(s) unreadable by the ops user — sizes are understated

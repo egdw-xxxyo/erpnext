@@ -26,7 +26,7 @@ P=@PATH@
 [ -d "$P" ] || exit 91
 E=$(mktemp)
 MODE=user
-if sudo -n true 2>/dev/null; then
+if sudo -n -l -- /usr/bin/du >/dev/null 2>&1; then
   MODE=sudo
 else
   IMG=$(docker compose -p @PROJECT@ -f @REPO@/docker-compose.yml ps -q backend 2>/dev/null | head -1 \
@@ -35,7 +35,7 @@ else
 fi
 scan() {
   case $MODE in
-    sudo) sudo -n du -xak --max-depth=1 -- "$P" 2>"$E" ;;
+    sudo) sudo -n /usr/bin/du -xak --max-depth=1 -- "$P" 2>"$E" ;;
     docker)
       docker run --rm --user 0 --network none --entrypoint du -v /:/host:ro "$IMG" \
         -xak --max-depth=1 -- "/host$P" 2>"$E" | sed -E 's#\t/host#\t#; s#\t$#\t/#'
@@ -48,6 +48,7 @@ scan | while IFS=$'\t' read -r s p; do
   printf '%s\t%s\t%s\n' "$s" "$t" "$p"
 done
 printf 'ERR\t%s\t%s\n' "$(grep -c 'Permission denied' "$E")" "$MODE"
+printf 'MSG\t%s\t\n' "$(grep -v 'Permission denied' "$E" | head -3 | tr '\n\t' '  ')"
 rm -f "$E"
 """
 
@@ -60,10 +61,14 @@ def _parse(out: str, path: str) -> dict[str, Any]:
 	total = 0
 	rows: list[dict[str, Any]] = []
 	denied = 0
+	message = ""
 	elevated = False
 	mode = "user"
 	for line in out.splitlines():
 		parts = line.split("\t", 2)
+		if parts[0] == "MSG":
+			message = parts[1].strip()
+			continue
 		if parts[0] == "ERR" and len(parts) == 3:
 			denied = int(parts[1]) if parts[1].isdigit() else 0
 			mode = parts[2]
@@ -86,6 +91,7 @@ def _parse(out: str, path: str) -> dict[str, Any]:
 		"denied": denied,
 		"elevated": elevated,
 		"mode": mode,
+		"message": message,
 	}
 
 
