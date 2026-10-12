@@ -561,3 +561,4 @@ erpnext.patches.v16_0.setup_mail_forwarding
 erpnext.patches.v16_0.correspondence_manager_role
 erpnext.patches.v16_0.mail_forward_reconciliation
 erpnext.patches.v16_0.employee_full_name_order
+erpnext.patches.v16_0.chat_thread_kinds

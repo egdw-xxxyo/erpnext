@@ -193,6 +193,15 @@ erpnext.chat_info = {
 						if (!$(e.target).closest(".ci-row-action").length) p.on_click();
 					});
 			}
+			for (const act of p.actions || []) {
+				$(`<div class="ci-row-action"><i class="${act.icon}"></i></div>`)
+					.attr("title", act.title || "")
+					.on("click", (e) => {
+						e.stopPropagation();
+						act.on_click();
+					})
+					.insertBefore($row.find(".ci-row-action").last());
+			}
 			if (p.on_remove) {
 				$row.find(".ci-row-action")
 					.show()

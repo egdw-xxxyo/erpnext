@@ -31,9 +31,11 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		// "@" mentions in the composer, and the page's thread header in the bubble and form tab.
 		this.mentions = true;
 		this.shared_header = true;
-		// Two lists behind one launcher: person-to-person threads, and threads about a record.
+		// Three lists behind one launcher: one chat per person, named groups, and threads
+		// about a record.
 		this.tabs = [
 			{ key: "employee", label: __("Employees") },
+			{ key: "group", label: __("Groups") },
 			{ key: "entity", label: __("Entities") },
 		];
 	}
@@ -58,7 +60,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 
 	tab_of(chat) {
 		if (typeof chat === "string") chat = this.find(chat);
-		return EmployeeChatSource.is_entity(chat) ? "entity" : "employee";
+		if (EmployeeChatSource.is_entity(chat)) return "entity";
+		return chat && chat.thread_type === "Group" ? "group" : "employee";
 	}
 
 	chats_for_tab(tab) {
@@ -124,7 +127,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 	}
 
 	avatar(t) {
-		if (t.thread_type === "Group") return { name: t.display_title, key: t.name, icon: "fa fa-users" };
+		if (t.thread_type === "Group")
+			return { name: t.display_title, key: t.name, icon: "fa fa-users", image: t.image };
 		if (t.thread_type === "Document")
 			return { name: t.display_title, key: t.name, icon: "fa fa-file-text-o" };
 		const info = t.other_user ? frappe.user_info(t.other_user) : null;
@@ -145,8 +149,10 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 
 	// ------------------------------------------------------------------ opening
 
+	// The Groups tab starts a group; everywhere else a chat with one person.
 	new_chat(view) {
-		this.new_chat_dialog(view);
+		if (view && view.tab === "group") this.new_group_dialog(view);
+		else this.new_chat_dialog(view);
 	}
 
 	// Ask for the key before loading: with it the bubbles render decrypted straight away,
@@ -995,10 +1001,32 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			user: p.user,
 			image: p.image,
 			is_me: p.is_me,
-			badge: p.is_assignee ? __("Assignee") : null,
-			subtitle: [p.user, is_group && p.role === "Admin" ? __("Admin") : null]
-				.filter(Boolean)
-				.join(" · "),
+			badge: p.is_assignee ? __("Assignee") : is_group && p.role === "Admin" ? __("Admin") : null,
+			subtitle: p.user,
+			actions:
+				can_admin && !p.is_me
+					? [
+							{
+								icon: p.role === "Admin" ? "fa fa-user" : "fa fa-shield",
+								title:
+									p.role === "Admin"
+										? __("Take the admin rights back")
+										: __(
+												"Make an admin: they can rename the chat, change its picture and manage people."
+										  ),
+								on_click: async () => {
+									await frappe.xcall(`${EC_API}.set_participant_role`, {
+										thread: chat.id,
+										user: p.user,
+										role: p.role === "Admin" ? "Member" : "Admin",
+									});
+									dialog.hide();
+									await view.refresh(true);
+									this.show_info(view.chats[chat.id] || chat, view);
+								},
+							},
+					  ]
+					: null,
 			on_remove:
 				can_admin && !p.is_me
 					? async () => {
@@ -1127,6 +1155,29 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			});
 		}
 
+		if (can_admin) {
+			const set_image = async (image) => {
+				await frappe.xcall(`${EC_API}.set_thread_image`, { thread: chat.id, image });
+				dialog.hide();
+				await view.refresh(true);
+				view.render_header();
+				this.show_info(view.chats[chat.id] || chat, view);
+			};
+			actions.push({
+				label: info.image ? __("Change picture") : __("Set picture"),
+				on_click: () => {
+					new frappe.ui.FileUploader({
+						folder: "Home/Attachments",
+						restrictions: { allowed_file_types: ["image/*"], max_number_of_files: 1 },
+						on_success: (file) => set_image(file.file_url),
+					});
+				},
+			});
+			if (info.image) {
+				actions.push({ label: __("Remove picture"), on_click: () => set_image(null) });
+			}
+		}
+
 		// Archive policy: a chat manager's decision about the whole conversation.
 		const settings = info.can_purge
 			? [
@@ -1154,6 +1205,7 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 
 		dialog = erpnext.chat_info.show({
 			title: info.display_title,
+			avatar: is_group ? info.image : null,
 			subtitle: [
 				is_document ? __("Document chat") : is_group ? __("Group chat") : __("Direct chat"),
 				info.is_secret ? __("Secret") : null,
@@ -1215,6 +1267,38 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		return false;
 	}
 
+	secret_field() {
+		return {
+			fieldname: "is_secret",
+			fieldtype: "Check",
+			label: __("Secret chat (end-to-end encrypted)"),
+			description: __(
+				"Only the participants can read it. Everyone must have secret chats enabled, and the history is lost if the passphrase is forgotten."
+			),
+		};
+	}
+
+	// Create (or, for a chat with one person, reopen) a thread and show it.
+	async start_thread(view, d, people, args, is_secret) {
+		if (is_secret) {
+			if (this.secret_blockers(people)) return;
+			if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
+			// The thread key is generated here and wrapped per participant — the server
+			// only ever files the wrapped copies.
+			const { wrapped } = await erpnext.chat_crypto.new_thread_key(people.concat([this.me]));
+			args.is_secret = 1;
+			args.thread_keys = JSON.stringify(wrapped);
+		}
+		d.hide();
+		const res = await frappe.xcall(`${EC_API}.create_thread`, {
+			participant_users: JSON.stringify(people),
+			...args,
+		});
+		view.open_new(res.name);
+	}
+
+	// A chat with one person: there is one per pair, so picking someone you already talk to
+	// opens that chat.
 	new_chat_dialog(view) {
 		const d = new frappe.ui.Dialog({
 			title: __("New chat"),
@@ -1230,42 +1314,40 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 						);
 					}
 				}),
-				{
-					fieldname: "title",
-					fieldtype: "Data",
-					label: __("Group name"),
-					description: __("Only used when chatting with more than one person"),
-				},
-				{
-					fieldname: "is_secret",
-					fieldtype: "Check",
-					label: __("Secret chat (end-to-end encrypted)"),
-					description: __(
-						"Only the participants can read it. Everyone must have secret chats enabled, and the history is lost if the passphrase is forgotten."
-					),
-				},
+				this.secret_field(),
 			],
 			primary_action_label: __("Start"),
-			primary_action: async (v) => {
+			primary_action: (v) => {
 				const people = v.people || [];
 				if (!people.length) return;
-				const args = {
-					participant_users: JSON.stringify(people),
-					thread_type: people.length > 1 ? "Group" : "Direct",
-					title: v.title || null,
-				};
-				if (v.is_secret) {
-					if (this.secret_blockers(people)) return;
-					if (!(await erpnext.chat_crypto.ensure_unlocked())) return;
-					// The thread key is generated here and wrapped per participant — the server
-					// only ever files the wrapped copies.
-					const { wrapped } = await erpnext.chat_crypto.new_thread_key(people.concat([this.me]));
-					args.is_secret = 1;
-					args.thread_keys = JSON.stringify(wrapped);
+				if (people.length > 1) {
+					frappe.msgprint(
+						__("A chat is with one person. To talk to several people, create a group chat.")
+					);
+					return;
 				}
-				d.hide();
-				const res = await frappe.xcall(`${EC_API}.create_thread`, args);
-				view.open_new(res.name);
+				return this.start_thread(view, d, people, { thread_type: "Direct" }, v.is_secret);
+			},
+		});
+		d.set_df_property("people", "label", __("Person"));
+		d.show();
+	}
+
+	// A group always has a name; several groups may share the people and even the name.
+	new_group_dialog(view) {
+		const d = new frappe.ui.Dialog({
+			title: __("New group chat"),
+			fields: [
+				{ fieldname: "title", fieldtype: "Data", label: __("Group name"), reqd: 1 },
+				this.people_field(null),
+				this.secret_field(),
+			],
+			primary_action_label: __("Create"),
+			primary_action: (v) => {
+				const people = v.people || [];
+				const title = (v.title || "").trim();
+				if (!people.length || !title) return;
+				return this.start_thread(view, d, people, { thread_type: "Group", title }, v.is_secret);
 			},
 		});
 		d.show();

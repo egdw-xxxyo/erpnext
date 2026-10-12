@@ -193,6 +193,10 @@ def _may_read_reference(thread_doc, user):
 	)
 
 
+def _default_group_title(users):
+	return ", ".join(_user_name(u) for u in users)[:140]
+
+
 def _user_name(user):
 	return frappe.db.get_value("User", user, "full_name") or user
 
@@ -561,6 +565,7 @@ _THREAD_FIELDS = [
 	"name",
 	"thread_type",
 	"title",
+	"image",
 	"is_secret",
 	"last_message_on",
 	"last_message_preview",
@@ -682,6 +687,9 @@ def create_thread(
 
 	if thread_type == "Direct" and len(users) != 2:
 		thread_type = "Group"
+	if thread_type == "Group":
+		# A group always has a name; a client that sent none gets one made of its people.
+		title = (title or "").strip() or _default_group_title(users)
 
 	if is_secret:
 		from erpnext.crm import chat_crypto
@@ -1437,6 +1445,7 @@ def get_thread_info(thread: str, limit: int = 200):
 		"can_leave": 1 if (me_row and doc.thread_type == "Document" and me not in assignees) else 0,
 		"muted": me_row.muted if me_row else 0,
 		"title": doc.title,
+		"image": doc.image,
 		"display_title": display_title,
 		"is_secret": doc.is_secret,
 		"participants": participants,
@@ -1464,10 +1473,55 @@ def rename_thread(thread: str, title: str):
 	if doc.thread_type != "Group":
 		frappe.throw(_("Only a group chat can be renamed"))
 	_require_admin(doc)
-	doc.title = (title or "").strip() or None
+	title = (title or "").strip()
+	if not title:
+		frappe.throw(_("A group chat needs a name"))
+	doc.title = title
 	doc.save(ignore_permissions=True)
 	_fanout(doc, "chat_message", {"thread": thread, "system": True})
 	return {"title": doc.title}
+
+
+@frappe.whitelist()
+def set_thread_image(thread: str, image: str | None = None):
+	"""Set or clear the picture of a group chat (admins only). `image` is the url of a file
+	the caller has just uploaded; it is filed under the thread like any other chat file."""
+	doc = _require_participant(thread)
+	if doc.thread_type != "Group":
+		frappe.throw(_("Only a group chat can have a picture"))
+	_require_admin(doc)
+	image = (image or "").strip() or None
+	if image:
+		if not image.startswith(("/files/", "/private/files/")):
+			frappe.throw(_("Upload the picture first"))
+		link_attachment_to_thread(image, thread)
+	doc.image = image
+	doc.save(ignore_permissions=True)
+	_fanout(doc, "chat_message", {"thread": thread, "system": True})
+	return {"image": doc.image}
+
+
+@frappe.whitelist()
+def set_participant_role(thread: str, user: str, role: str):
+	"""Make a participant of a group an admin, or take that back (admins only). A group is
+	never left without an admin."""
+	doc = _require_participant(thread)
+	if doc.thread_type != "Group":
+		frappe.throw(_("Only a group chat has admins"))
+	_require_admin(doc)
+	if role not in ("Admin", "Member"):
+		frappe.throw(_("Unknown role"))
+	row = next((p for p in doc.participants if p.user == user), None)
+	if not row:
+		frappe.throw(_("{0} is not in this chat").format(_user_name(user)))
+	if row.role == role:
+		return {"role": role}
+	if role == "Member" and not any(p.role == "Admin" and p.user != user for p in doc.participants):
+		frappe.throw(_("A group chat needs at least one admin"))
+	row.role = role
+	doc.save(ignore_permissions=True)
+	_fanout(doc, "chat_message", {"thread": thread, "system": True})
+	return {"role": role}
 
 
 @frappe.whitelist()
@@ -1802,7 +1856,10 @@ def remove_participant(thread: str, user: str):
 	if doc.thread_type != "Group":
 		frappe.throw(_("Can only remove people from a group chat"))
 	_require_admin(doc)
-	doc.participants = [p for p in doc.participants if p.user != user]
+	rest = [p for p in doc.participants if p.user != user]
+	if not any(p.role == "Admin" for p in rest):
+		frappe.throw(_("A group chat needs at least one admin"))
+	doc.participants = rest
 	doc.save(ignore_permissions=True)
 	if doc.is_secret:
 		from erpnext.crm import chat_crypto

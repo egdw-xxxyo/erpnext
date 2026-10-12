@@ -143,3 +143,41 @@ class TestDocumentChat(ERPNextTestSuite):
 		self.assertEqual(chat._mention_rank("example", values), 2)
 		self.assertEqual(chat._mention_rank("tren", values), 3)
 		self.assertEqual(chat._mention_rank("zzz", values), 4)
+
+
+class TestChatKinds(ERPNextTestSuite):
+	def setUp(self):
+		frappe.set_user("Administrator")
+		for email in (WRITER, READER, ASSIGNEE):
+			make_user(email, ["System Manager"])
+		frappe.set_user(WRITER)
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+
+	def test_one_direct_chat_per_pair_and_nobody_can_be_added(self):
+		first = chat.create_thread([READER])
+		again = chat.create_thread([READER])
+		self.assertEqual(first["name"], again["name"])
+		self.assertTrue(again["existing"])
+		self.assertRaises(frappe.ValidationError, chat.add_participant, first["name"], ASSIGNEE)
+
+	def test_groups_are_named_and_may_repeat(self):
+		one = chat.create_thread([READER], thread_type="Group", title="Team")
+		two = chat.create_thread([READER], thread_type="Group", title="Team")
+		self.assertNotEqual(one["name"], two["name"])
+		unnamed = chat.create_thread([READER, ASSIGNEE])
+		self.assertTrue(frappe.db.get_value("Chat Thread", unnamed["name"], "title"))
+		self.assertRaises(frappe.ValidationError, chat.rename_thread, one["name"], " ")
+
+	def test_admin_rights_are_granted_by_an_admin(self):
+		thread = chat.create_thread([READER, ASSIGNEE], thread_type="Group", title="Team")["name"]
+		frappe.set_user(READER)
+		self.assertRaises(frappe.PermissionError, chat.set_participant_role, thread, ASSIGNEE, "Admin")
+		frappe.set_user(WRITER)
+		chat.set_participant_role(thread, READER, "Admin")
+		frappe.set_user(READER)
+		chat.rename_thread(thread, "Renamed")
+		chat.set_participant_role(thread, WRITER, "Member")
+		# The last admin cannot be demoted.
+		self.assertRaises(frappe.ValidationError, chat.set_participant_role, thread, READER, "Member")
