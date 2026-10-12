@@ -14,4 +14,4 @@ class ProductionLineOrder(Document):
 		produced_qty: DF.Int
 		qty: DF.Int
 		work_order: DF.Link | None
-		workplace: DF.Link
+		workplace: DF.Link | None

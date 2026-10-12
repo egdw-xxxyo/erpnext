@@ -38,8 +38,7 @@
    "in_list_view": 1,
    "label": "Workplace",
    "options": "Workplace",
-   "reqd": 1,
-   "description": "The bench that makes this item. Its allowed operations decide which Job Cards the app may hand out."
+   "description": "Leave empty for any bench of the line. Fill in to hand the order's units out only at one bench."
   },
   {
    "columns": 1,

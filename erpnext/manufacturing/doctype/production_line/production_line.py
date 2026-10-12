@@ -159,6 +159,8 @@ class ProductionLine(Document):
 			if not row.get("enabled", 1):
 				continue
 			if not row.workplace:
+				if self.is_manual:
+					continue
 				frappe.throw(_("Row {0}: Workplace is required").format(row.idx))
 			if row.workplace not in allowed:
 				frappe.throw(

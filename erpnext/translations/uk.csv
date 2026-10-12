@@ -15849,3 +15849,4 @@ Production line {0} plans daily, it has no orders to release,Виробнича 
 Production line {0} is disabled,Виробнича лінія {0} вимкнена
 "Nothing is left to make for {0} on line {1}: every released order is done. Release another order.","Для {0} на лінії {1} більше нічого виготовляти: усі запущені замовлення виконано. Запустіть нове замовлення."
 "Open a Work Order for each of the {0} order(s) that have none? Serial Nos and Job Cards are created now.","Відкрити Work Order для кожного з {0} замовлень, у яких його ще немає? Серійні номери й Job Card створюються зараз."
+"Leave empty for any bench of the line. Fill in to hand the order's units out only at one bench.","Залиште порожнім для будь-якого робочого місця лінії. Заповніть, щоб одиниці замовлення видавалися лише на одному місці."
