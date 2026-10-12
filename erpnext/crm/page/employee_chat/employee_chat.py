@@ -1256,7 +1256,7 @@ def _mutate_reaction(message, emoji, add):
 	thread = frappe.db.get_value("Chat Message", message, "thread")
 	if not thread:
 		frappe.throw(_("Message not found"))
-	doc = _require_writable(_require_participant(thread))
+	doc = _require_writable(_require_read_thread(thread))
 	me = frappe.session.user
 
 	raw = frappe.db.get_value("Chat Message", message, "reactions")

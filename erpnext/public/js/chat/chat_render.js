@@ -406,7 +406,7 @@ frappe.provide("erpnext.chat_render");
 	// The header of an open conversation, the same on the chat pages, in the chat bubble and in
 	// a form's chat tab: avatar, title, second line, the source's actions, mute and chat info.
 	// `view` is whatever owns the thread (ChatView or an adapter with the same methods).
-	// opts: {size, compact, trailing: [{icon, title, disabled?, on_click}]}. Returns the
+	// opts: {size, compact, after_title_html, trailing: [{icon, title, disabled?, on_click}]}. Returns the
 	// second-line element, which the owner may overwrite (typing indicator).
 	R.render_header = function ($el, chat, source, view, opts) {
 		opts = opts || {};
@@ -424,6 +424,7 @@ frappe.provide("erpnext.chat_render");
 				<div class="cv-header-title"></div>
 				<div class="cv-header-sub"></div>
 			</div>
+			${opts.after_title_html || ""}
 			${s.header_badges_html ? s.header_badges_html(chat) : ""}
 			${actions
 				.map(

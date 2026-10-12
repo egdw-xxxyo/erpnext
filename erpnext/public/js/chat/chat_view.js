@@ -26,6 +26,14 @@
 //   mark_read(chat, upto) -> {last_read_on}, set_muted(chat, muted), notify_typing?(chat)
 //   show_info?(chat, view), side_panel?, render_side?(chat, $el, view)
 //   realtime?(view) -> {event: handler}
+//
+// Embedded mode (`opts.embedded`): the same thread — header, messages, reply, reactions,
+// emoji, composer — without the conversation list, mounted into any container; `page` is
+// then just {main: $container}. The host opens a chat with `view.open(id)`. Extra opts:
+//   header?() -> options for chat_render.render_header (size, compact, trailing, after_title_html)
+//   manual_read?   nothing is marked read until the host sets `view.engaged = true`
+//   on_change?(view)   the list was reloaded or the unread count moved
+//   on_forget?(id)     the open chat left the user's list
 
 frappe.provide("erpnext.chat_view");
 
@@ -49,6 +57,8 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.tab = source.tabs ? source.tabs[0].key : null;
 		this.arch_open = localStorage.getItem(`cv_arch_open_${source.key}`) === "1";
 		this.typing_sent_at = 0;
+		this.embedded = !!this.opts.embedded;
+		this.engaged = !this.opts.manual_read;
 
 		erpnext.chat_render.inject_styles();
 		this.inject_styles();
@@ -58,6 +68,11 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.poll = setInterval(() => this.refresh(true), 30000);
 		this.on_resize = frappe.utils.debounce(() => this.fit_height(), 100);
 		$(window).on("resize", this.on_resize);
+		if (this.embedded) {
+			// The host sizes the container and opens the chat; routes are none of our business.
+			this.refresh();
+			return;
+		}
 		$(this.page.wrapper).on("remove", () => this.destroy());
 		setTimeout(() => this.fit_height(), 0);
 
@@ -70,6 +85,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	// Fill the window down to a small bottom gap, whatever the desk header above it
 	// measures (it differs between v15, v16 and a page with a filter bar).
 	fit_height() {
+		if (this.embedded) return;
 		const el = this.page.main.find(".cv-page")[0];
 		if (!el || !el.offsetParent) return;
 		const top = el.getBoundingClientRect().top + window.scrollY;
@@ -93,7 +109,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	make_layout() {
 		const s = this.source;
 		this.page.main.html(`
-			<div class="cv-root cv-page">
+			<div class="cv-root cv-page${this.opts.embedded ? " cv-embedded cv-compact" : ""}">
 				<div class="cv-sidebar">
 					<div class="cv-search">
 						<div class="cv-search-row">
@@ -215,7 +231,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	inject_styles() {
-		if (document.getElementById("cv-page-styles-v1")) return;
+		if (document.getElementById("cv-page-styles-v2")) return;
 		const css = `
 		.cv-group-head{display:flex;align-items:center;gap:10px;margin:12px 8px 6px;padding:8px 12px 8px 20px;
 			position:sticky;top:0;z-index:1;border-radius:10px;background:var(--gray-200,#e2e6e9);
@@ -234,6 +250,10 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-group-title > .ent{font-size:13px;}
 		.cv-page{display:flex;height:calc(100vh - 120px);min-height:420px;margin:12px 20px 0;border:1px solid var(--border-color);
 			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
+		.cv-page.cv-embedded{height:100%;min-height:0;margin:0;border:none;border-radius:0;}
+		.cv-embedded .cv-sidebar,.cv-embedded .cv-side{display:none;}
+		.cv-embedded .cv-thread{padding:10px;}
+		.cv-embedded .cv-fab{right:12px;bottom:70px;width:36px;height:36px;}
 		.cv-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
 		.cv-search{padding:10px;display:flex;flex-direction:column;gap:6px;}
 		.cv-search-row{display:flex;align-items:center;gap:4px;}
@@ -328,7 +348,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		@media (max-width:1200px){.cv-side{display:none;}}
 		@media (max-width:768px){.cv-sidebar{width:220px;}.cv-thread{padding:10px;}}
 		`;
-		$(`<style id="cv-page-styles-v1">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-page-styles-v2">${css}</style>`).appendTo(document.head);
 	}
 
 	// ------------------------------------------------------------------ list
@@ -353,7 +373,12 @@ erpnext.chat_view.ChatView = class ChatView {
 			this.render_composer();
 			if (!this.placeholder_active) await this.load_new(!silent);
 		}
+		this.changed();
 		this.handle_pending_route();
+	}
+
+	changed() {
+		if (this.opts.on_change) this.opts.on_change(this);
 	}
 
 	// Deep links wait for the first list load — the chat has to be known to open it.
@@ -566,19 +591,25 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	forget(id) {
 		delete this.chats[id];
-		if (this.active === id) {
-			this.active = null;
-			this.$thread.html(
-				`<div class="cv-empty"><i class="fa fa-comments-o"></i><div>${__(
-					"Select a conversation"
-				)}</div></div>`
-			);
-			this.$header.html(`<span class="text-muted">${__("Select a conversation")}</span>`);
-			this.$compose.hide();
-			this.$readonly.hide();
-			this.$side.html("");
-		}
+		if (this.opts.on_forget) return this.opts.on_forget(id);
+		if (this.active === id) this.clear();
 		this.render_list();
+	}
+
+	// Nothing open: back to the "select a conversation" state.
+	clear() {
+		this.active = null;
+		this.close_popovers();
+		this.set_reply(null);
+		this.$thread.html(
+			`<div class="cv-empty"><i class="fa fa-comments-o"></i><div>${__(
+				"Select a conversation"
+			)}</div></div>`
+		);
+		this.$header.html(`<span class="text-muted">${__("Select a conversation")}</span>`);
+		this.$compose.hide();
+		this.$readonly.hide();
+		this.$side.html("");
 	}
 
 	// ------------------------------------------------------------------ header / composer / side
@@ -586,7 +617,13 @@ erpnext.chat_view.ChatView = class ChatView {
 	render_header() {
 		const chat = this.chat();
 		if (!chat) return;
-		this.$sub = erpnext.chat_render.render_header(this.$header, chat, this.source, this);
+		this.$sub = erpnext.chat_render.render_header(
+			this.$header,
+			chat,
+			this.source,
+			this,
+			this.opts.header ? this.opts.header(chat) : undefined
+		);
 	}
 
 	render_composer() {
@@ -899,7 +936,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	// Progressive read-on-scroll: an unread incoming message whose top scrolled into view
 	// counts as seen. The cursor only moves forward; one server call per scroll gesture.
 	update_read_progress() {
-		if (!this.active || this.placeholder_active) return;
+		if (!this.active || this.placeholder_active || !this.engaged) return;
 		const el = this.$thread[0];
 		const bottom_edge = el.scrollTop + el.clientHeight;
 		let newest = this.read_cursor || "";
@@ -939,6 +976,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		chat.unread = this.messages.filter((m) => m.incoming && (!cursor || m.time > cursor)).length;
 		this.render_list();
 		this.update_fab();
+		this.changed();
 	}
 
 	update_fab() {
@@ -955,6 +993,7 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	jump_to_latest() {
 		this.$thread.scrollTop(this.$thread[0].scrollHeight);
+		this.engaged = true;
 		this.mark_read(this.chat());
 		this.update_fab();
 	}
