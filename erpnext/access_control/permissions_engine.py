@@ -33,6 +33,16 @@ def _rights(doctype: str, ptype_map: dict | None = None) -> list[str]:
 	)
 
 
+def doctype_rights(doctype: str) -> list[str]:
+	meta = frappe.get_meta(doctype)
+	return rules.applicable_rights(_rights(doctype), bool(meta.is_submittable), bool(meta.allow_import))
+
+
+def doctype_rows(doctype: str) -> tuple:
+	data = _effective_rows_by_doctype(doctypes=[doctype]).get(doctype)
+	return data["rows"] if data else ()
+
+
 def _custom_parents() -> frozenset[str]:
 	return frozenset(frappe.get_all("Custom DocPerm", pluck="parent", distinct=True))
 
@@ -353,54 +363,92 @@ def _report_usable(reports: list[dict], roles) -> list[dict]:
 	]
 
 
-def role_delta(user: str, role: str) -> dict:
-	current = frappe.get_roles(user)
-	if role in current:
-		return {"user": user, "role": role, "already_has": True}
-	after = [*current, role]
-	grants = role_grants(role)
-	touched = [entry["doctype"] for entry in grants["doctypes"]]
-	by_doctype = _effective_rows_by_doctype(doctypes=touched, roles=after)
-	info = _doctype_info(touched)
-	doctypes = [
+PSEUDO_ROLES = ("All", "Guest", "Desk User")
+WORKFLOW_KEYS = {
+	"transitions": itemgetter("workflow", "state", "action"),
+	"editable_states": itemgetter("workflow", "state"),
+}
+LISTED_KEYS = ("pages", "reports", "workspaces", "notifications")
+
+
+def _listed_for_roles(roles) -> dict:
+	return {
+		"pages": _pages_for_roles(roles),
+		"reports": _reports_for_roles(roles),
+		"workspaces": _workspaces_for_roles(roles),
+		"workflow": _workflow_for_roles(roles),
+		"notifications": _notifications_for_roles(roles),
+	}
+
+
+def _listed_gain(before: dict, after: dict) -> dict:
+	by_name = itemgetter("name")
+	return {
+		**{key: _minus(after[key], before[key], by_name) for key in LISTED_KEYS},
+		"workflow": {
+			key: _minus(after["workflow"][key], before["workflow"][key], getter)
+			for key, getter in WORKFLOW_KEYS.items()
+		},
+	}
+
+
+def _doctype_changes(by_doctype: dict, info: dict, before, after) -> list[dict]:
+	entries = (
 		_doctype_entry(
 			doctype,
 			info.get(doctype),
 			data["source"],
 			rules.access_delta(
-				rules.access_map(data["rows"], current, data["rights"]),
+				rules.access_map(data["rows"], before, data["rights"]),
 				rules.access_map(data["rows"], after, data["rights"]),
 			),
 		)
 		for doctype, data in sorted(by_doctype.items())
-	]
-	workflow_now = _workflow_for_roles(current)
-	by_name = itemgetter("name")
+	)
+	return [entry for entry in entries if entry["access"]]
+
+
+def _visible(roles) -> list[str]:
+	return [role for role in roles if role not in PSEUDO_ROLES]
+
+
+def roles_delta(user: str, after_roles) -> dict:
+	current = frappe.get_roles(user)
+	after = list(dict.fromkeys([*after_roles, *(role for role in current if role in PSEUDO_ROLES)]))
+	gained_roles = sorted(set(after) - set(current))
+	lost_roles = sorted(set(current) - set(after))
+	changed = [*gained_roles, *lost_roles]
+	touched = list(_effective_rows_by_doctype(roles=changed)) if changed else []
+	by_doctype = _effective_rows_by_doctype(doctypes=touched, roles=sorted({*current, *after}))
+	info = _doctype_info(touched)
+	listed_now = _listed_for_roles(current)
+	listed_after = _listed_for_roles(after)
+	gained = _listed_gain(listed_now, listed_after)
 	return {
 		"user": user,
+		"current_roles": _visible(current),
+		"gained_roles": _visible(gained_roles),
+		"lost_roles": _visible(lost_roles),
+		"doctypes": _doctype_changes(by_doctype, info, current, after),
+		"inert_doctypes": sorted({doctype for role in gained_roles for doctype in _inert_doctypes(role)}),
+		**gained,
+		"reports": _report_usable(gained["reports"], after),
+		"lost": {
+			"doctypes": _doctype_changes(by_doctype, info, after, current),
+			**_listed_gain(listed_after, listed_now),
+		},
+	}
+
+
+def role_delta(user: str, role: str) -> dict:
+	current = frappe.get_roles(user)
+	if role in current:
+		return {"user": user, "role": role, "already_has": True}
+	return {
+		**roles_delta(user, [*current, role]),
 		"role": role,
 		"already_has": False,
-		"current_roles": [r for r in current if r not in ("All", "Guest", "Desk User")],
-		"doctypes": [entry for entry in doctypes if entry["access"]],
-		"inert_doctypes": grants["inert_doctypes"],
-		"pages": _minus(grants["pages"], _pages_for_roles(current), by_name),
-		"reports": _report_usable(_minus(grants["reports"], _reports_for_roles(current), by_name), after),
-		"workspaces": _minus(grants["workspaces"], _workspaces_for_roles(current), by_name),
-		"workflow": {
-			"transitions": _minus(
-				grants["workflow"]["transitions"],
-				workflow_now["transitions"],
-				itemgetter("workflow", "state", "action"),
-			),
-			"editable_states": _minus(
-				grants["workflow"]["editable_states"],
-				workflow_now["editable_states"],
-				itemgetter("workflow", "state"),
-			),
-		},
-		"notifications": _minus(grants["notifications"], _notifications_for_roles(current), by_name),
-		"users": grants["users"],
-		"role_profiles": grants["role_profiles"],
+		**_role_holders(role),
 	}
 
 
@@ -445,7 +493,9 @@ def explain(
 	roles = frappe.get_roles(user)
 	level0 = rules.access_map(rows, roles, rights).get(0, {})
 	doc = frappe.get_doc(doctype, name) if name else None
+	messages = len(frappe.local.message_log)
 	allowed = has_permission(doctype, ptype, doc=doc, user=user, print_logs=False, debug=debug)
+	del frappe.local.message_log[messages:]
 	debug_log = _pop_debug_log() if debug else []
 	facts = {
 		"scope": level0.get(ptype),

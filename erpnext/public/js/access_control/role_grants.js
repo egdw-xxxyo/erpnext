@@ -97,19 +97,28 @@ erpnext.access_control.list_html = (title, items, render) =>
 
 erpnext.access_control.render_grants = (data) => {
 	const esc = frappe.utils.escape_html;
-	const inert = data.inert_doctypes.length
+	const inert = (data.inert_doctypes || []).length
 		? `<div class="alert alert-warning">
-			${__(
-				"The role is listed in the standard permissions of these document types, but their permissions are customized without it, so it gives nothing there:"
-			)}
+			${
+				data.role === undefined
+					? __(
+							"These roles are listed in the standard permissions of these document types, but their permissions are customized without them, so they give nothing there:"
+					  )
+					: __(
+							"The role is listed in the standard permissions of these document types, but their permissions are customized without it, so it gives nothing there:"
+					  )
+			}
 			<b>${data.inert_doctypes.map((doctype) => esc(__(doctype))).join(", ")}</b>
 		</div>`
 		: "";
-	const holders = `<p class="text-muted">${__("Users with this role: {0}", [data.users])}${
-		data.role_profiles.length
-			? ` · ${__("Role profiles: {0}", [data.role_profiles.map(esc).join(", ")])}`
-			: ""
-	}</p>`;
+	const holders =
+		data.users === undefined
+			? ""
+			: `<p class="text-muted">${__("Users with this role: {0}", [data.users])}${
+					data.role_profiles.length
+						? ` · ${__("Role profiles: {0}", [data.role_profiles.map(esc).join(", ")])}`
+						: ""
+			  }</p>`;
 	const reports = erpnext.access_control.list_html(__("Reports"), data.reports, (report) => {
 		const unusable =
 			report.usable === false

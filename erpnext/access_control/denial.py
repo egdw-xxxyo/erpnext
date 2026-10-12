@@ -7,7 +7,12 @@ from frappe.utils import strip_html
 
 from erpnext.access_control import denial_rules
 from erpnext.access_control import permission_rules as rules
-from erpnext.access_control.permissions_engine import _public_explanation, explain, is_access_manager
+from erpnext.access_control.permissions_engine import (
+	_public_explanation,
+	doctype_rights,
+	explain,
+	is_access_manager,
+)
 
 PSEUDO_ROLES = ("All", "Guest", "Desk User")
 
@@ -167,23 +172,39 @@ def _context(value) -> dict:
 	return resolve(context) or {"kind": "other"}
 
 
+REQUESTER_HIDDEN = ("granting_roles", "user_roles", "source", "workflow")
+
+
 @frappe.whitelist()
 def get_denial(context=None) -> dict:
 	context = _context(context)
 	user = frappe.session.user
 	return {
 		"context": context,
-		"user_roles": visible_roles(frappe.get_roles(user)),
 		"pending": pending_request(user, context),
 		"has_managers": bool(access_managers(exclude=user)),
 		"can_request": user != "Administrator",
-		**describe(context, user),
+		"rights": doctype_rights(context["doctype"]) if context.get("kind") == "doctype" else [],
+		**{key: value for key, value in describe(context, user).items() if key not in REQUESTER_HIDDEN},
 	}
+
+
+def _requested_rights(context: dict, rights) -> str | None:
+	if context.get("kind") != "doctype":
+		return None
+	extra = frappe.parse_json(rights) if rights else []
+	if not isinstance(extra, list):
+		frappe.throw(_("Invalid list of rights"))
+	return ",".join(rules.requested_rights(context.get("ptype"), extra, doctype_rights(context["doctype"])))
 
 
 @frappe.whitelist()
 def create_request(
-	context=None, reason: str | None = None, route: str | None = None, message: str | None = None
+	context=None,
+	reason: str | None = None,
+	route: str | None = None,
+	message: str | None = None,
+	rights=None,
 ):
 	context = _context(context)
 	if not (reason or "").strip():
@@ -192,6 +213,7 @@ def create_request(
 		{
 			"doctype": "Access Request",
 			**request_fields(context),
+			"ptypes": _requested_rights(context, rights),
 			"reason": reason.strip(),
 			"route": (route or "")[:1000],
 			"method": (context.get("method") or "")[:140],

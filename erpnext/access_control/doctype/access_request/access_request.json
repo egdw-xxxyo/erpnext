@@ -15,6 +15,7 @@
   "reference_doctype",
   "reference_name",
   "ptype",
+  "ptypes",
   "page",
   "report",
   "request_section",
@@ -26,13 +27,20 @@
   "decision_section",
   "resolution",
   "granted_role",
+  "granted_role_profile",
   "role_profile_change",
   "share_rights",
+  "approved_rights",
   "user_permission",
+  "grant_log",
   "column_break_decision",
   "decided_by",
   "decided_on",
   "decision_note",
+  "revoke_section",
+  "revoked_by",
+  "revoked_on",
+  "revoke_note",
   "audit_section",
   "diagnosis",
   "impact"
@@ -65,7 +73,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Pending\nApproved\nRejected\nCancelled",
+   "options": "Pending\nApproved\nRejected\nCancelled\nRevoked",
    "default": "Pending",
    "in_list_view": 1,
    "in_standard_filter": 1,
@@ -81,7 +89,8 @@
    "label": "Request Type",
    "options": "Document Type\nPage\nReport\nOther",
    "in_standard_filter": 1,
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "reference_doctype",
@@ -106,6 +115,13 @@
    "fieldtype": "Data",
    "label": "Permission",
    "depends_on": "eval:doc.request_type=='Document Type'",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ptypes",
+   "fieldtype": "Small Text",
+   "label": "Requested Rights",
+   "depends_on": "ptypes",
    "read_only": 1
   },
   {
@@ -168,8 +184,8 @@
   {
    "fieldname": "resolution",
    "fieldtype": "Select",
-   "label": "Resolution",
-   "options": "\nRole\nShare\nUser Permission",
+   "label": "Grant Method",
+   "options": "\nRole\nRole Right\nRole Profile\nDocument Share\nUser Permission",
    "read_only": 1
   },
   {
@@ -177,7 +193,15 @@
    "fieldtype": "Link",
    "options": "Role",
    "label": "Granted Role",
-   "depends_on": "eval:doc.resolution=='Role'",
+   "depends_on": "eval:['Role','Role Right'].includes(doc.resolution)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "granted_role_profile",
+   "fieldtype": "Link",
+   "options": "Role Profile",
+   "label": "Granted Role Profile",
+   "depends_on": "eval:doc.resolution=='Role Profile'",
    "read_only": 1
   },
   {
@@ -191,7 +215,14 @@
    "fieldname": "share_rights",
    "fieldtype": "Data",
    "label": "Shared Rights",
-   "depends_on": "eval:doc.resolution=='Share'",
+   "depends_on": "eval:doc.resolution=='Document Share'",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_rights",
+   "fieldtype": "Small Text",
+   "label": "Approved Rights",
+   "depends_on": "approved_rights",
    "read_only": 1
   },
   {
@@ -201,6 +232,14 @@
    "label": "User Permission",
    "depends_on": "eval:doc.resolution=='User Permission'",
    "read_only": 1
+  },
+  {
+   "fieldname": "grant_log",
+   "fieldtype": "Code",
+   "label": "Grant Log",
+   "options": "JSON",
+   "read_only": 1,
+   "depends_on": "grant_log"
   },
   {
    "fieldname": "column_break_decision",
@@ -223,6 +262,31 @@
    "fieldname": "decision_note",
    "fieldtype": "Small Text",
    "label": "Decision Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "revoke_section",
+   "fieldtype": "Section Break",
+   "label": "Revoke",
+   "depends_on": "eval:doc.status=='Revoked'"
+  },
+  {
+   "fieldname": "revoked_by",
+   "fieldtype": "Link",
+   "label": "Revoked By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "revoked_on",
+   "fieldtype": "Datetime",
+   "label": "Revoked On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "revoke_note",
+   "fieldtype": "Small Text",
+   "label": "Revoke Note",
    "read_only": 1
   },
   {
@@ -251,7 +315,7 @@
  ],
  "in_create": 1,
  "links": [],
- "modified": "2026-10-12 00:00:00.000000",
+ "modified": "2026-10-12 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Control",
  "name": "Access Request",

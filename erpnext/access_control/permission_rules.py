@@ -175,16 +175,87 @@ def workflow_options(transitions: Iterable[Mapping], state: str | None, roles: I
 	]
 
 
-NEVER_GRANTED_ROLES = frozenset(
-	{"Administrator", "System Manager", "Access Manager", "All", "Guest", "Desk User"}
-)
+PRIVILEGED_ROLES = frozenset({"Administrator", "System Manager", "Access Manager"})
+NEVER_GRANTED_ROLES = PRIVILEGED_ROLES | {"All", "Guest", "Desk User"}
+PROFILE_MODES = ("add", "replace")
 
 SHARE_RIGHTS = ("read", "write", "submit", "share")
 SHAREABLE_PTYPES = frozenset({"read", "write", "submit", "share", "print", "email", "select"})
 
 
+PROTECTED_MODULES = frozenset({"Core", "Custom", "Desk", "Integrations", "Automation"})
+
+
 def is_grantable(role: str) -> bool:
 	return bool(role) and role not in NEVER_GRANTED_ROLES
+
+
+def role_right_unavailable(is_doctype_request: bool, doctype: str | None, module: str | None) -> str | None:
+	if not is_doctype_request:
+		return "not_doctype"
+	if doctype in SENSITIVE_DOCTYPES or module in PROTECTED_MODULES:
+		return "protected_doctype"
+	return None
+
+
+def role_right_refusal(role: str | None, approver_roles: Iterable[str]) -> str | None:
+	held = frozenset(approver_roles)
+	if not is_grantable(role):
+		return "never_granted"
+	if role in held and "System Manager" not in held:
+		return "own_role"
+	return None
+
+
+def held_rights(rows: Iterable[Mapping], role: str) -> frozenset[str]:
+	return frozenset(
+		right
+		for row in rows
+		if row["role"] == role and row["permlevel"] == 0 and not row["if_owner"]
+		for right in row["rights"]
+	)
+
+
+def rights_to_add(rows: Iterable[Mapping], role: str, wanted: Iterable[str]) -> list[str]:
+	held = held_rights(rows, role)
+	return [right for right in dict.fromkeys(wanted) if right not in held]
+
+
+def role_grant_log(role: str, profiles: Sequence[str], profile_action: str | None) -> dict:
+	linked = bool(profiles) and profile_action != "unlink"
+	return {
+		"role": role,
+		"profile": (profile_action or "").removeprefix("profile:") if linked else None,
+		"unlinked": list(profiles) if profiles and profile_action == "unlink" else [],
+	}
+
+
+REVOCABLE = ("Role", "Role Right", "Document Share", "User Permission")
+
+
+def is_revocable(resolution: str | None, log: Mapping | None) -> bool:
+	if not log or resolution not in REVOCABLE:
+		return False
+	return not (resolution == "Role" and log.get("profile"))
+
+
+def roles_after_revoke(resolution: str, log: Mapping, current: Iterable[str]) -> list[str] | None:
+	if resolution != "Role":
+		return None
+	return [role for role in current if role != log["role"]]
+
+
+def same_rows(left: Iterable[Mapping], right: Iterable[Mapping]) -> bool:
+	def signature(rows):
+		return frozenset(
+			(row["role"], row["permlevel"], row["if_owner"], row["rights"]) for row in rows if row["rights"]
+		)
+
+	return signature(left) == signature(right)
+
+
+def rows_with_rights(rows: Iterable[Mapping], role: str, rights: Iterable[str]) -> tuple[dict, ...]:
+	return (*rows, {"role": role, "permlevel": 0, "if_owner": False, "rights": frozenset(rights)})
 
 
 def delta_size(delta: Mapping) -> int:
@@ -204,7 +275,7 @@ def delta_size(delta: Mapping) -> int:
 def rank_candidates(candidates: Iterable[Mapping]) -> list[dict]:
 	return sorted(
 		(dict(candidate) for candidate in candidates),
-		key=lambda candidate: (candidate["size"], candidate["role"]),
+		key=lambda candidate: (len(candidate.get("missing") or ()), candidate["size"], candidate["role"]),
 	)
 
 
@@ -225,3 +296,87 @@ def user_permission_candidates(
 			if value and doctype in allowed and value not in set(allowed[doctype])
 		}.values()
 	)
+
+
+def share_unavailable(has_document: bool, ptype: str) -> str | None:
+	if not has_document:
+		return "no_document"
+	return None if share_rights_for(ptype) else "not_shareable"
+
+
+def user_permission_unavailable(
+	has_document: bool, links: Iterable[tuple[str, str]], allowed: Mapping[str, Iterable[str]]
+) -> str | None:
+	if not has_document:
+		return "no_document"
+	links = list(links)
+	if user_permission_candidates(links, allowed):
+		return None
+	restricted = any(value and doctype in allowed for doctype, value in links)
+	return "already_allowed" if restricted else "no_restrictions"
+
+
+def is_offerable_profile(profile_roles: Iterable[str], granting: Iterable[str]) -> bool:
+	roles = set(profile_roles)
+	return bool(roles & set(granting)) and not roles & PRIVILEGED_ROLES
+
+
+def roles_after_profile(
+	mode: str, current_profiles: Iterable[Iterable[str]], profile_roles: Iterable[str]
+) -> list[str]:
+	kept = () if mode == "replace" else (role for roles in current_profiles for role in roles)
+	return sorted({*kept, *profile_roles})
+
+
+def rank_profiles(candidates: Iterable[Mapping]) -> list[dict]:
+	return sorted(
+		(dict(candidate) for candidate in candidates),
+		key=lambda candidate: (
+			len(candidate.get("missing") or ()),
+			len(candidate["lost_roles"]),
+			candidate["size"],
+			candidate["profile"],
+		),
+	)
+
+
+SUBMIT_RIGHTS = frozenset({"submit", "cancel", "amend"})
+SHARE_IMPLIED = {"print": "read", "email": "read"}
+
+
+def applicable_rights(rights: Iterable[str], is_submittable: bool, allow_import: bool) -> list[str]:
+	skipped = {"select", *(() if is_submittable else SUBMIT_RIGHTS), *(() if allow_import else ("import",))}
+	return [right for right in rights if right not in skipped]
+
+
+def requested_rights(ptype: str | None, extra: Iterable[str], applicable: Sequence[str]) -> list[str]:
+	required = ("read", ptype or "read")
+	chosen = {*required, *(right for right in extra if right in applicable)}
+	return list(dict.fromkeys([*(right for right in applicable if right in chosen), *required]))
+
+
+def chosen_rights(applicable: Sequence[str], chosen: Iterable[str] | None, fallback: list[str]) -> list[str]:
+	picked = set(chosen or ())
+	return [right for right in applicable if right in picked] or fallback
+
+
+def coverage(rows: Iterable[Mapping], roles: Iterable[str], rights: Sequence[str]) -> dict[str, str]:
+	return dict(access_map(rows, roles, rights).get(0, {}))
+
+
+def share_coverage(current: Mapping[str, str], shared: Iterable[str]) -> dict[str, str]:
+	shared = set(shared)
+	given = {right: ALL for right in shared} | {
+		right: ALL for right, base in SHARE_IMPLIED.items() if base in shared
+	}
+	return {**current, **given}
+
+
+def missing_rights(covered: Mapping[str, str], wanted: Iterable[str]) -> list[str]:
+	return [right for right in wanted if not covered.get(right)]
+
+
+def merge_granting(maps: Iterable[Mapping[str, str]]) -> dict[str, str]:
+	maps = list(maps)
+	roles = dict.fromkeys(role for granting in maps for role in granting)
+	return {role: ALL if any(granting.get(role) == ALL for granting in maps) else OWNER for role in roles}

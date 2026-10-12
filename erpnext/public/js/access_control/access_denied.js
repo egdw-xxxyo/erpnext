@@ -69,11 +69,22 @@ erpnext.access_control.route_context = (route) => {
 	return view ? { kind: "page_or_doctype", slug: view } : { kind: "other" };
 };
 
+erpnext.access_control.with_route_name = (context) => {
+	const [view, doctype, name] = frappe.get_route();
+	return context.kind === "doctype" &&
+		!context.name &&
+		view === "Form" &&
+		doctype === context.doctype &&
+		name
+		? { ...context, name }
+		: context;
+};
+
 erpnext.access_control.capture = (r) => {
 	const state = erpnext.access_control.denial;
 	if (state.dialog && state.dialog.display) return;
 	state.pending = {
-		context: r._access_denied || { kind: "other" },
+		context: erpnext.access_control.with_route_name(r._access_denied || { kind: "other" }),
 		message: erpnext.access_control.server_message(r),
 		re_route: false,
 	};
@@ -166,16 +177,6 @@ erpnext.access_control.denial_html = (info, message) => {
 						.join("")}</ul>`
 				: ""
 		}
-		${
-			info.context.kind === "other"
-				? ""
-				: `<p><span class="text-muted">${__(
-						"Access is given by roles"
-				  )}:</span> ${erpnext.access_control.granting_html(info.granting_roles)}</p>`
-		}
-		<p><span class="text-muted">${__("Your roles")}:</span> ${erpnext.access_control.roles_html(
-		info.user_roles
-	)}</p>
 		${message && info.context.kind === "other" ? `<div class="text-muted small ac-message">${message}</div>` : ""}
 		${pending}
 		${no_managers}
@@ -195,6 +196,23 @@ erpnext.access_control.denial_dialog = (info, message, re_route) => {
 		fields: [
 			{ fieldtype: "HTML", fieldname: "info" },
 			{
+				fieldtype: "MultiCheck",
+				fieldname: "rights",
+				label: __("Which rights do you need?"),
+				columns: 4,
+				sort_options: false,
+				hidden: !can_ask || !(info.rights || []).length,
+				description: __("{0} and {1} are always included", [
+					erpnext.access_control.RIGHT_LABELS.read,
+					erpnext.access_control.action_label(info.context),
+				]),
+				options: (info.rights || []).map((right) => ({
+					label: erpnext.access_control.RIGHT_LABELS[right] || __(frappe.unscrub(right)),
+					value: right,
+					checked: right === "read" || right === (info.context.ptype || "read"),
+				})),
+			},
+			{
 				fieldtype: "Small Text",
 				fieldname: "reason",
 				label: __("Why do you need this access?"),
@@ -212,7 +230,7 @@ erpnext.access_control.denial_dialog = (info, message, re_route) => {
 	if (info.allowed) {
 		dialog.set_primary_action(__("Reload"), () => window.location.reload());
 	} else if (can_ask) {
-		dialog.set_primary_action(__("Request access"), ({ reason }) => {
+		dialog.set_primary_action(__("Request access"), ({ reason, rights }) => {
 			if (!(reason || "").trim()) {
 				frappe.msgprint(__("Please describe why you need access"));
 				return;
@@ -223,6 +241,7 @@ erpnext.access_control.denial_dialog = (info, message, re_route) => {
 					reason,
 					route: frappe.get_route_str(),
 					message,
+					rights: rights || [],
 				})
 				.then(({ name }) => {
 					dialog.hide();
@@ -288,10 +307,14 @@ erpnext.access_control.listen_decisions = () =>
 			});
 			return;
 		}
+		const title = frappe.utils.escape_html(data.title);
 		frappe.show_alert(
 			{
-				message: __("Your access request {0} was rejected", [frappe.utils.escape_html(data.title)]),
-				indicator: "red",
+				message:
+					data.status === "Revoked"
+						? __("Access from your request {0} was revoked", [title])
+						: __("Your access request {0} was rejected", [title]),
+				indicator: data.status === "Revoked" ? "orange" : "red",
 			},
 			10
 		);

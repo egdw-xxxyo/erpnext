@@ -5,21 +5,42 @@ from erpnext.access_control.permission_rules import (
 	OWNER,
 	access_delta,
 	access_map,
+	applicable_rights,
+	chosen_rights,
+	coverage,
 	delta_size,
 	diagnose,
 	docstatus_hints,
 	effective_rows,
 	granting_roles,
+	held_rights,
 	inert_roles,
 	is_grantable,
+	is_offerable_profile,
+	is_revocable,
 	is_sensitive,
+	merge_granting,
+	missing_rights,
 	normalize_rows,
 	page_roles,
 	rank_candidates,
+	rank_profiles,
 	report_roles,
+	requested_rights,
+	rights_to_add,
 	risky_rights,
+	role_grant_log,
+	role_right_refusal,
+	role_right_unavailable,
+	roles_after_profile,
+	roles_after_revoke,
+	rows_with_rights,
+	same_rows,
+	share_coverage,
 	share_rights_for,
+	share_unavailable,
 	user_permission_candidates,
+	user_permission_unavailable,
 	workflow_options,
 )
 
@@ -249,3 +270,160 @@ class TestGranting(unittest.TestCase):
 		self.assertEqual(
 			user_permission_candidates(links, allowed), [{"allow": "Company", "for_value": "Beta"}]
 		)
+
+	def test_share_unavailable_reasons(self):
+		self.assertEqual(share_unavailable(False, "read"), "no_document")
+		self.assertEqual(share_unavailable(True, "delete"), "not_shareable")
+		self.assertIsNone(share_unavailable(True, "write"))
+
+	def test_user_permission_unavailable_reasons(self):
+		links = [("Company", "Alpha"), ("Warehouse", None)]
+		self.assertEqual(user_permission_unavailable(False, links, {}), "no_document")
+		self.assertEqual(user_permission_unavailable(True, links, {}), "no_restrictions")
+		self.assertEqual(user_permission_unavailable(True, links, {"Company": ["Alpha"]}), "already_allowed")
+		self.assertIsNone(user_permission_unavailable(True, links, {"Company": ["Beta"]}))
+
+	def test_profile_is_offered_only_when_it_grants_and_is_not_privileged(self):
+		self.assertTrue(is_offerable_profile(["Accounts User", "Sales User"], {"Accounts User": ALL}))
+		self.assertFalse(is_offerable_profile(["Sales User"], {"Accounts User": ALL}))
+		self.assertFalse(is_offerable_profile(["Accounts User", "System Manager"], {"Accounts User": ALL}))
+
+	def test_roles_after_profile_add_keeps_current_profiles(self):
+		current = [["Sales User"], ["Stock User", "Sales User"]]
+		self.assertEqual(
+			roles_after_profile("add", current, ["Accounts User"]),
+			["Accounts User", "Sales User", "Stock User"],
+		)
+		self.assertEqual(roles_after_profile("replace", current, ["Accounts User"]), ["Accounts User"])
+		self.assertEqual(roles_after_profile("add", [], ["Accounts User"]), ["Accounts User"])
+
+	def test_profiles_rank_losses_first_then_size(self):
+		ranked = rank_profiles(
+			[
+				{"profile": "Wide", "size": 30, "lost_roles": []},
+				{"profile": "Lossy", "size": 2, "lost_roles": ["Sales User"]},
+				{"profile": "Narrow", "size": 5, "lost_roles": []},
+			]
+		)
+		self.assertEqual([candidate["profile"] for candidate in ranked], ["Narrow", "Wide", "Lossy"])
+
+	def test_applicable_rights_drop_submit_and_import_when_not_supported(self):
+		rights = ["select", "read", "write", "submit", "cancel", "amend", "import", "export"]
+		self.assertEqual(applicable_rights(rights, False, False), ["read", "write", "export"])
+		self.assertEqual(applicable_rights(rights, True, True), rights[1:])
+
+	def test_requested_rights_always_include_read_and_denied_right(self):
+		applicable = ["read", "write", "create", "delete", "export"]
+		self.assertEqual(
+			requested_rights("delete", ["export", "bogus"], applicable), ["read", "delete", "export"]
+		)
+		self.assertEqual(requested_rights(None, [], applicable), ["read"])
+		self.assertEqual(requested_rights("select", [], applicable), ["read", "select"])
+
+	def test_chosen_rights_keep_applicable_order_and_fall_back_when_empty(self):
+		applicable = ["read", "write", "create", "delete"]
+		self.assertEqual(chosen_rights(applicable, ["delete", "read", "bogus"], ["read"]), ["read", "delete"])
+		self.assertEqual(chosen_rights(applicable, [], ["read", "write"]), ["read", "write"])
+		self.assertEqual(chosen_rights(applicable, None, ["read"]), ["read"])
+
+	def test_coverage_and_missing_rights(self):
+		rows = [
+			{"role": "A", "permlevel": 0, "if_owner": 0, "rights": ("read", "write")},
+			{"role": "B", "permlevel": 0, "if_owner": 1, "rights": ("delete",)},
+		]
+		covered = coverage(rows, ["A", "B"], ["read", "write", "delete", "export"])
+		self.assertEqual(covered, {"read": ALL, "write": ALL, "delete": OWNER})
+		self.assertEqual(missing_rights(covered, ["read", "delete", "export"]), ["export"])
+
+	def test_share_coverage_adds_shared_and_implied_rights(self):
+		covered = share_coverage({"read": OWNER, "export": ALL}, ["read", "write"])
+		self.assertEqual(covered, {"read": ALL, "write": ALL, "print": ALL, "email": ALL, "export": ALL})
+
+	def test_candidates_covering_everything_rank_first(self):
+		ranked = rank_candidates(
+			[
+				{"role": "Narrow", "size": 1, "missing": ["write"]},
+				{"role": "Wide", "size": 9, "missing": []},
+			]
+		)
+		self.assertEqual([candidate["role"] for candidate in ranked], ["Wide", "Narrow"])
+
+	def test_merge_granting_prefers_full_scope(self):
+		merged = merge_granting([{"A": OWNER, "B": ALL}, {"A": ALL, "C": OWNER}])
+		self.assertEqual(merged, {"A": ALL, "B": ALL, "C": OWNER})
+
+
+class TestRoleRight(unittest.TestCase):
+	rows = (
+		{"role": "A", "permlevel": 0, "if_owner": False, "rights": frozenset({"read", "write"})},
+		{"role": "A", "permlevel": 0, "if_owner": True, "rights": frozenset({"delete"})},
+		{"role": "A", "permlevel": 1, "if_owner": False, "rights": frozenset({"read", "write"})},
+		{"role": "B", "permlevel": 0, "if_owner": False, "rights": frozenset({"read"})},
+	)
+
+	def test_unavailable_outside_doctype_requests_and_on_protected_doctypes(self):
+		self.assertEqual(role_right_unavailable(False, None, None), "not_doctype")
+		self.assertEqual(role_right_unavailable(True, "User", "Core"), "protected_doctype")
+		self.assertEqual(role_right_unavailable(True, "Server Script", "Core"), "protected_doctype")
+		self.assertEqual(role_right_unavailable(True, "Client Script", "Custom"), "protected_doctype")
+		self.assertIsNone(role_right_unavailable(True, "Purchase Invoice", "Accounts"))
+
+	def test_refusal_blocks_privileged_roles_and_own_roles_of_non_system_managers(self):
+		self.assertEqual(role_right_refusal("All", ["Access Manager"]), "never_granted")
+		self.assertEqual(role_right_refusal("System Manager", ["System Manager"]), "never_granted")
+		self.assertEqual(role_right_refusal("Sales User", ["Access Manager", "Sales User"]), "own_role")
+		self.assertIsNone(role_right_refusal("Sales User", ["System Manager", "Sales User"]))
+		self.assertIsNone(role_right_refusal("Sales User", ["Access Manager"]))
+
+	def test_held_rights_count_only_level_zero_rows_for_all_documents(self):
+		self.assertEqual(held_rights(self.rows, "A"), {"read", "write"})
+		self.assertEqual(held_rights(self.rows, "C"), frozenset())
+
+	def test_rights_to_add_skip_what_the_role_already_gives(self):
+		self.assertEqual(
+			rights_to_add(self.rows, "A", ["read", "delete", "print", "delete"]), ["delete", "print"]
+		)
+		self.assertEqual(rights_to_add(self.rows, "A", ["read", "write"]), [])
+
+	def test_rows_with_rights_extend_coverage_for_the_role(self):
+		after = rows_with_rights(self.rows, "B", ["write", "print"])
+		self.assertEqual(
+			coverage(after, ["B"], ["read", "write", "print", "delete"]),
+			{"read": ALL, "write": ALL, "print": ALL},
+		)
+
+	def test_same_rows_ignore_order_and_empty_rows(self):
+		empty = {"role": "C", "permlevel": 0, "if_owner": False, "rights": frozenset()}
+		self.assertTrue(same_rows(self.rows, (*reversed(self.rows), empty)))
+		self.assertFalse(same_rows(self.rows, rows_with_rights(self.rows, "B", ["write"])))
+
+
+class TestRevoke(unittest.TestCase):
+	def test_role_grant_log_records_how_the_role_was_added(self):
+		self.assertEqual(role_grant_log("R", [], None), {"role": "R", "profile": None, "unlinked": []})
+		self.assertEqual(
+			role_grant_log("R", ["P", "Q"], "profile:Q"), {"role": "R", "profile": "Q", "unlinked": []}
+		)
+		self.assertEqual(
+			role_grant_log("R", ["P", "Q"], "unlink"), {"role": "R", "profile": None, "unlinked": ["P", "Q"]}
+		)
+
+	def test_revoking_a_role_drops_only_that_role(self):
+		self.assertEqual(roles_after_revoke("Role", {"role": "B"}, ["A", "B", "C"]), ["A", "C"])
+
+	def test_changes_to_role_profiles_cannot_be_revoked(self):
+		self.assertFalse(is_revocable("Role Profile", {"profile": "P"}))
+		self.assertFalse(is_revocable("Role", {"role": "R", "profile": "P", "unlinked": []}))
+
+	def test_direct_grants_can_be_revoked(self):
+		self.assertTrue(is_revocable("Role", {"role": "R", "profile": None, "unlinked": ["P"]}))
+		for resolution in ("Role Right", "Document Share", "User Permission"):
+			self.assertTrue(is_revocable(resolution, {"any": 1}))
+
+	def test_nothing_to_revoke_without_a_log(self):
+		self.assertFalse(is_revocable("Document Share", None))
+		self.assertFalse(is_revocable(None, {"any": 1}))
+
+	def test_other_resolutions_do_not_change_roles(self):
+		for resolution in ("Document Share", "User Permission", "Role Right"):
+			self.assertIsNone(roles_after_revoke(resolution, {}, ["A"]))
