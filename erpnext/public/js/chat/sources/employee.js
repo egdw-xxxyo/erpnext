@@ -28,6 +28,9 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		];
 		this.me = frappe.session.user;
 		this.chats = [];
+		// "@" mentions in the composer, and the page's thread header in the bubble and form tab.
+		this.mentions = true;
+		this.shared_header = true;
 		// Two lists behind one launcher: person-to-person threads, and threads about a record.
 		this.tabs = [
 			{ key: "employee", label: __("Employees") },
@@ -68,53 +71,56 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		const threads = await frappe.xcall(`${EC_API}.get_threads`);
 		const old = {};
 		for (const c of this.chats) old[c.id] = c;
-		this.chats = threads.map((t) => {
-			const prev = old[t.name] || {};
-			const chat = {
-				id: t.name,
-				raw: t,
-				title: t.display_title || t.title || t.name,
-				thread_type: t.thread_type,
-				participants: t.participants || [],
-				other_user: t.other_user,
-				avatar: this.avatar(t),
-				preview: t.last_message_preview || "",
-				time: t.last_message_on,
-				unread: t.unread || 0,
-				muted: t.muted || 0,
-				my_last_read: t.my_last_read,
-				is_secret: !!t.is_secret,
-				title_prefix_html: t.is_secret
-					? `<i class="fa fa-lock" title="${__("Secret chat")}"></i> `
-					: "",
-				reference_doctype: t.reference_doctype,
-				reference_name: t.reference_name,
-				reference_label: t.reference_label,
-				reference_removed: t.reference_removed,
-				is_archived: !!t.is_archived,
-				is_deep_archived: !!t.is_deep_archived,
-				disable_archive: t.disable_archive,
-				disable_deep_archive: t.disable_deep_archive,
-				// Keep a live archive job's progress across list reloads.
-				deep_archive: Object.assign({}, t.deep_archive || {}, prev.deep_archive_live || {}),
-				read_only: !!t.read_only,
-				can_purge: t.can_purge,
-				other_last_read: prev.other_last_read,
-			};
-			chat.read_only_reason = EmployeeChatSource.is_packed(chat)
-				? __("This chat is in the deep archive — its messages are being unpacked")
-				: __("This chat is archived — new messages are not allowed");
-			chat.list_badge_html = chat.is_deep_archived
-				? `<i class="fa fa-archive" style="color:var(--text-muted)" title="${erpnext.chat_deep_archive.badge_hint()}"></i>`
-				: "";
-			chat.header_sub = this.header_sub(chat);
-			if (t.thread_type === "Direct") {
-				const other = (t.participants || []).find((p) => p.user !== this.me);
-				chat.other_last_read = other ? other.last_read_on : null;
-			}
-			return chat;
-		});
+		this.chats = threads.map((t) => this.shape(t, old[t.name]));
 		return this.chats;
+	}
+
+	// A thread row from the server (get_threads / open_document_thread) as a chat.
+	shape(t, prev) {
+		prev = prev || {};
+		const chat = {
+			id: t.name,
+			raw: t,
+			title: t.display_title || t.title || t.name,
+			thread_type: t.thread_type,
+			// False only for a record's chat the user reads without taking part in it.
+			is_member: t.is_member === undefined ? true : !!t.is_member,
+			participants: t.participants || [],
+			other_user: t.other_user,
+			avatar: this.avatar(t),
+			preview: t.last_message_preview || "",
+			time: t.last_message_on,
+			unread: t.unread || 0,
+			muted: t.muted || 0,
+			my_last_read: t.my_last_read,
+			is_secret: !!t.is_secret,
+			title_prefix_html: t.is_secret ? `<i class="fa fa-lock" title="${__("Secret chat")}"></i> ` : "",
+			reference_doctype: t.reference_doctype,
+			reference_name: t.reference_name,
+			reference_label: t.reference_label,
+			reference_removed: t.reference_removed,
+			is_archived: !!t.is_archived,
+			is_deep_archived: !!t.is_deep_archived,
+			disable_archive: t.disable_archive,
+			disable_deep_archive: t.disable_deep_archive,
+			// Keep a live archive job's progress across list reloads.
+			deep_archive: Object.assign({}, t.deep_archive || {}, prev.deep_archive_live || {}),
+			read_only: !!t.read_only,
+			can_purge: t.can_purge,
+			other_last_read: prev.other_last_read,
+		};
+		chat.read_only_reason = EmployeeChatSource.is_packed(chat)
+			? __("This chat is in the deep archive — its messages are being unpacked")
+			: __("This chat is archived — new messages are not allowed");
+		chat.list_badge_html = chat.is_deep_archived
+			? `<i class="fa fa-archive" style="color:var(--text-muted)" title="${erpnext.chat_deep_archive.badge_hint()}"></i>`
+			: "";
+		chat.header_sub = this.header_sub(chat);
+		if (t.thread_type === "Direct") {
+			const other = (t.participants || []).find((p) => p.user !== this.me);
+			chat.other_last_read = other ? other.last_read_on : null;
+		}
+		return chat;
 	}
 
 	avatar(t) {
@@ -128,7 +134,11 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 	header_sub(chat) {
 		const esc = frappe.utils.escape_html;
 		if (chat.thread_type === "Document")
-			return esc(`${__(chat.reference_doctype)} · ${chat.reference_name}`);
+			return esc(
+				`${__(chat.reference_doctype)} · ${chat.reference_name} · ${__("{0} participants", [
+					chat.participants.length,
+				])}`
+			);
 		if (chat.thread_type === "Group") return esc(__("{0} participants", [chat.participants.length]));
 		return esc(chat.other_user || __("Direct chat"));
 	}
@@ -339,6 +349,7 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 				text: r.message || "",
 				attach: r.attach,
 				link_data: r.link_data,
+				entities: r.entities || [],
 				is_encrypted: !!r.is_encrypted,
 				dec: r._dec || null,
 				dec_failed: !!r._dec_failed,
@@ -362,8 +373,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		return chat && chat.thread_type !== "Direct" ? "in" : false;
 	}
 
-	async load_messages(id, limit) {
-		const chat = this.find(id);
+	async load_messages(id, limit, chat) {
+		chat = this.find(id) || chat;
 		if (!chat) return [];
 		return this.build(await this.fetch(chat, { limit: limit || 20 }), chat);
 	}
@@ -382,7 +393,7 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		return row;
 	}
 
-	async send_text(chat, text, reply) {
+	async send_text(chat, text, reply, extra) {
 		if (chat.is_secret && !(await erpnext.chat_crypto.ensure_unlocked())) throw new Error("locked");
 		// A message that is nothing but a desk URL becomes a rich link card.
 		let card = null;
@@ -397,6 +408,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		const reply_to = reply ? reply.id : null;
 		if (card) return this.send_card(chat, card, reply_to);
 		const args = chat.is_secret ? await this.encrypted_args(chat, { text }) : { message: text };
+		const entities = (extra && extra.entities) || [];
+		if (!chat.is_secret && entities.length) args.entities = JSON.stringify(entities);
 		return this.post(chat, { reply_to, ...args });
 	}
 
@@ -630,8 +643,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 	// Archiving is open to anyone in the chat; removing and the deep archive are role-gated
 	// server-side and only offered on an archived chat. A chat pinned out of the lifecycle
 	// hides the buttons the server would refuse anyway.
-	header_actions(chat) {
-		const view = this.view;
+	header_actions(chat, view) {
+		view = view || this.view;
 		const deep = erpnext.chat_deep_archive;
 		const out = [];
 		if (chat.is_secret && !erpnext.chat_crypto.is_unlocked()) {
@@ -974,6 +987,7 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		}
 
 		const is_group = info.thread_type === "Group";
+		const is_document = info.thread_type === "Document";
 		const me = (info.participants || []).find((p) => p.is_me);
 		const can_admin = is_group && me && me.role === "Admin";
 		const people = info.participants.map((p) => ({
@@ -981,7 +995,10 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			user: p.user,
 			image: p.image,
 			is_me: p.is_me,
-			subtitle: [p.user, p.role === "Admin" ? __("Admin") : null].filter(Boolean).join(" · "),
+			badge: p.is_assignee ? __("Assignee") : null,
+			subtitle: [p.user, is_group && p.role === "Admin" ? __("Admin") : null]
+				.filter(Boolean)
+				.join(" · "),
 			on_remove:
 				can_admin && !p.is_me
 					? async () => {
@@ -997,8 +1014,9 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		}));
 
 		const deep = erpnext.chat_deep_archive;
-		const actions = [
-			{
+		const actions = [];
+		if (info.is_member) {
+			actions.push({
 				label: info.muted ? __("Unmute chat") : __("Mute chat"),
 				hint: info.muted
 					? __("Play the notification sound for this chat again.")
@@ -1007,8 +1025,31 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 					await view.toggle_mute();
 					dialog.hide();
 				},
-			},
-		];
+			});
+		}
+		if (info.can_leave) {
+			actions.push({
+				label: __("Leave chat"),
+				hint: __(
+					"Stop following this chat: it leaves your list and no longer notifies you. You can still read it from the document."
+				),
+				on_click: () => {
+					frappe.confirm(
+						__("Leave this chat? It will be removed from your chat list."),
+						async () => {
+							try {
+								await frappe.xcall(`${EC_API}.leave_thread`, { thread: chat.id });
+							} catch (e) {
+								return;
+							}
+							dialog.hide();
+							view.forget(chat.id);
+							frappe.show_alert({ message: __("You left the chat"), indicator: "blue" });
+						}
+					);
+				},
+			});
+		}
 		const packed = (info.deep_archive || {}).status;
 		if (!info.is_deep_archived && !(info.disable_archive && !info.is_archived)) {
 			actions.push({
@@ -1114,7 +1155,7 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		dialog = erpnext.chat_info.show({
 			title: info.display_title,
 			subtitle: [
-				is_group ? __("Group chat") : __("Direct chat"),
+				is_document ? __("Document chat") : is_group ? __("Group chat") : __("Direct chat"),
 				info.is_secret ? __("Secret") : null,
 				__("{0} participants", [info.participants.length]),
 			]
@@ -1127,12 +1168,13 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			links,
 			actions,
 			settings,
-			on_add_person: can_admin
-				? () => {
-						dialog.hide();
-						this.add_people_dialog(chat, view);
-				  }
-				: null,
+			on_add_person:
+				can_admin || info.can_add
+					? () => {
+							dialog.hide();
+							this.add_people_dialog(chat, view);
+					  }
+					: null,
 		});
 	}
 
@@ -1232,7 +1274,7 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 	// In a secret group the thread key is re-wrapped for the newcomer here — the server
 	// cannot do it, it never holds the key.
 	add_people_dialog(chat, view) {
-		if (chat.thread_type !== "Group") return;
+		if (chat.thread_type !== "Group" && chat.thread_type !== "Document") return;
 		const present = new Set((chat.participants || []).map((p) => p.user));
 		const d = new frappe.ui.Dialog({
 			title: __("Add people"),
@@ -1249,17 +1291,21 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 					wrapped = await erpnext.chat_crypto.wrap_for_users(key, people);
 				}
 				d.hide();
-				for (const user of people) {
-					const thread_key = wrapped.find((w) => w.user === user);
-					await frappe.xcall(`${EC_API}.add_participant`, {
-						thread: chat.id,
-						user,
-						thread_key: thread_key ? JSON.stringify(thread_key) : null,
-					});
+				try {
+					for (const user of people) {
+						const thread_key = wrapped.find((w) => w.user === user);
+						await frappe.xcall(`${EC_API}.add_participant`, {
+							thread: chat.id,
+							user,
+							thread_key: thread_key ? JSON.stringify(thread_key) : null,
+						});
+					}
+				} catch (e) {
+					// The server said who could not be added; the ones before them are in.
 				}
 				await view.refresh(true);
 				view.render_header();
-				this.show_info(view.chats[chat.id], view);
+				this.show_info(view.chats[chat.id] || chat, view);
 			},
 		});
 		d.show();

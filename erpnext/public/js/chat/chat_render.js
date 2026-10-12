@@ -159,6 +159,25 @@ frappe.provide("erpnext.chat_render");
 		return out + esc(src.slice(last));
 	};
 
+	// Text with its entities — document links laid over it as {offset, length, doctype, name}
+	// (a link to a person is a mention). The gaps between them are linkified as usual.
+	R.rich = function (text, entities) {
+		const src = String(text || "");
+		let out = "";
+		let last = 0;
+		for (const e of entities || []) {
+			if (e.offset < last || e.offset + e.length > src.length) continue;
+			out += R.linkify(src.slice(last, e.offset));
+			out += erpnext.entity.doc_link({
+				doctype: e.doctype,
+				name: e.name,
+				label: src.slice(e.offset, e.offset + e.length),
+			});
+			last = e.offset + e.length;
+		}
+		return out + R.linkify(src.slice(last));
+	};
+
 	R.is_long = function (text) {
 		const t = text || "";
 		return t.length > 600 || t.split("\n").length > 12;
@@ -167,8 +186,8 @@ frappe.provide("erpnext.chat_render");
 	// A wall of text would push every other message off the screen. Long bodies are
 	// clipped to a preview with a toggle; the full text stays in the DOM so Ctrl+F and
 	// copying still see all of it.
-	R.text_html = function (text, cls) {
-		const html = R.linkify(text);
+	R.text_html = function (text, cls, entities) {
+		const html = R.rich(text, entities);
 		if (!R.is_long(text)) return `<span class="${cls}">${html}</span>`;
 		return `<div class="${cls} cv-clampable cv-clamp">${html}</div><span class="cv-more">${__(
 			"Show more"
@@ -301,7 +320,9 @@ frappe.provide("erpnext.chat_render");
 		if (R.MEDIA_TYPES.includes(ct)) {
 			return `<i>${R.media_icon(ct)}${esc(R.media_label(ct) || __("Media"))}</i>${cap}`;
 		}
-		return caption ? R.text_html(caption, "cv-body") : `<i>(${__("no text")})</i>`;
+		// Entity offsets point into the stored text; they are void once tags were stripped from it.
+		const entities = caption === m.text ? m.entities : null;
+		return caption ? R.text_html(caption, "cv-body", entities) : `<i>(${__("no text")})</i>`;
 	};
 
 	R.reactions_html = function (m) {
@@ -380,6 +401,63 @@ frappe.provide("erpnext.chat_render");
 
 	// Wire the parts of rendered bubbles that work on their own: lazy media, show-more
 	// toggles and encrypted downloads. Interactive actions are bound by the chat view.
+	// --- thread header --------------------------------------------------------------
+
+	// The header of an open conversation, the same on the chat pages, in the chat bubble and in
+	// a form's chat tab: avatar, title, second line, the source's actions, mute and chat info.
+	// `view` is whatever owns the thread (ChatView or an adapter with the same methods).
+	// opts: {size, compact, trailing: [{icon, title, disabled?, on_click}]}. Returns the
+	// second-line element, which the owner may overwrite (typing indicator).
+	R.render_header = function ($el, chat, source, view, opts) {
+		opts = opts || {};
+		const s = source;
+		const actions = ((s.header_actions ? s.header_actions(chat, view) : []) || []).concat(
+			opts.trailing || []
+		);
+		// Muting is a participant's setting; someone only reading a record's chat has none.
+		const can_mute = s.set_muted && chat.is_member !== false;
+		$el.addClass("cv-header").toggleClass("cv-header-compact", !!opts.compact).html(`${R.avatar_html(
+			chat.avatar || { name: chat.title, key: chat.id },
+			opts.size || 38
+		)}
+			<div class="cv-header-main" title="${__("Chat info")}">
+				<div class="cv-header-title"></div>
+				<div class="cv-header-sub"></div>
+			</div>
+			${s.header_badges_html ? s.header_badges_html(chat) : ""}
+			${actions
+				.map(
+					(a, i) =>
+						`<button class="cv-ico cv-hact${
+							a.disabled ? " cv-disabled" : ""
+						}" data-i="${i}" title="${esc(a.title || "")}"><i class="${a.icon}"></i></button>`
+				)
+				.join("")}
+			${can_mute ? erpnext.chat_sound.button_html(chat.muted) : ""}
+			${
+				s.show_info
+					? `<button class="cv-ico cv-info-btn" title="${__(
+							"Chat info"
+					  )}"><i class="fa fa-info-circle"></i></button>`
+					: ""
+			}`);
+		$el.find(".cv-header-title").html(`${chat.title_prefix_html || ""}${esc(chat.title)}`);
+		const $sub = $el.find(".cv-header-sub").html(chat.header_sub || "");
+		$el.find(".cv-hact").on("click", (e) => {
+			const a = actions[$(e.currentTarget).data("i")];
+			if (a && !a.disabled) a.on_click();
+		});
+		if (s.show_info) $el.find(".cv-header-main, .cv-info-btn").on("click", () => s.show_info(chat, view));
+		if (s.open_profile)
+			$el.children(".cv-avatar")
+				.first()
+				.css("cursor", "pointer")
+				.attr("title", __("Open profile"))
+				.on("click", () => s.open_profile(chat, view));
+		$el.find(".chat-mute-btn").on("click", () => view.toggle_mute());
+		return $sub;
+	};
+
 	R.bind = function ($root, media_source) {
 		if (media_source) erpnext.chat_media.bind($root, media_source);
 		$root.off("click.cvmore").on("click.cvmore", ".cv-more", (e) => {
@@ -432,6 +510,22 @@ frappe.provide("erpnext.chat_render");
 		.cv-ico:hover{background:var(--bg-light-gray);color:var(--text-color);}
 		.cv-ico:focus{outline:none;}
 		.cv-ico.cv-disabled{opacity:.35;cursor:default;}
+		.cv-header{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:56px;
+			border-bottom:1px solid var(--border-color);background:var(--card-bg);color:var(--text-color);}
+		.cv-header-main{flex:1;min-width:0;cursor:pointer;}
+		.cv-header-title{font-weight:600;font-size:var(--text-md);color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cv-header-main:hover .cv-header-title{color:var(--cv-accent,var(--primary));}
+		.cv-header-sub{font-size:var(--text-sm);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cv-header-sub .cv-typing-sub{color:var(--cv-accent,var(--primary));}
+		.cv-chip{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:0 6px;border-radius:8px;
+			background:var(--bg-light-gray);color:var(--text-color);font-size:11px;font-weight:500;}
+		.cv-chip .fa-whatsapp{color:#25d366;}
+		.cv-header .cv-ico{width:32px;height:32px;line-height:32px;font-size:16px;}
+		.cv-header-compact{gap:8px;padding:6px 8px;min-height:0;}
+		.cv-header-compact .cv-header-title{font-size:var(--text-sm);}
+		.cv-header-compact .cv-header-sub{font-size:11px;}
+		.cv-header-compact .cv-ico{width:26px;height:26px;line-height:26px;font-size:14px;}
+		.cv-header-compact .chat-mute-btn{margin-left:0;width:26px;height:26px;font-size:14px;}
 		.cv-send,.cv-send:hover{color:var(--cv-accent);}
 		.cv-tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;color:#fff;font-size:10px;font-weight:600;
 			line-height:16px;vertical-align:middle;}

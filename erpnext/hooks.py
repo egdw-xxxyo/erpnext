@@ -724,7 +724,11 @@ doc_events = {
 	},
 	"ToDo": {
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
-		"on_update": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_update": [
+			"erpnext.buying.procurement_automation.sync_current_assignees",
+			# an assignee always belongs to the chat of the record they are assigned to
+			"erpnext.crm.chat_members.on_todo_change",
+		],
 		"on_trash": "erpnext.buying.procurement_automation.sync_current_assignees",
 	},
 	"Task": {

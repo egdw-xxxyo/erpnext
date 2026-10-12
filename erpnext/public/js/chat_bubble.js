@@ -164,8 +164,70 @@ class ChatBubble {
 			.attr("title", on ? __("Notification sound is on") : __("Notification sound is off"));
 	}
 
+	chat_by_id(id) {
+		return (this.source.chats || []).find((c) => c.id === id);
+	}
+
+	// What a chat source expects of the view that owns a thread (ChatView on the chat pages),
+	// for the shared header and the chat info dialog.
+	view_adapter() {
+		const host = this;
+		return {
+			get active() {
+				return host.active;
+			},
+			get chats() {
+				const map = {};
+				for (const c of host.source.chats || []) map[c.id] = c;
+				const open = host.chat();
+				if (open) map[open.id] = open;
+				return map;
+			},
+			$thread: host.$body,
+			chat: () => host.chat(),
+			refresh: () => host.refresh(),
+			reopen: () => host.load_thread(host.active),
+			forget: (id) => host.forget_chat(id),
+			toggle_mute: () => host.toggle_mute(),
+			jump_to_message: (name) => host.jump_to_message(name),
+			render_header: () => host.render_chat_head(),
+			render_composer: () => host.render_composer(host.chat()),
+			render_placeholder: () => host.render_deep_archive(host.chat()),
+			render_list: () => {},
+		};
+	}
+
+	// The chat pages' thread header, under the title bar while a thread is open.
+	render_chat_head() {
+		const chat = this.active ? this.chat() : null;
+		if (!chat || !this.source.shared_header) return this.$chat_head.hide().empty();
+		erpnext.chat_render.render_header(this.$chat_head.show(), chat, this.source, this.view_adapter(), {
+			size: 30,
+			compact: true,
+		});
+	}
+
+	// The chat is gone from this user's list (they left it, or it was removed).
+	forget_chat(id) {
+		if (this.active === id) this.show_list();
+		this.refresh();
+	}
+
+	jump_to_message(name) {
+		const el = this.$body.find(".cv-bubble[data-id]").filter((_i, n) => $(n).attr("data-id") === name)[0];
+		if (el) el.scrollIntoView({ block: "center" });
+	}
+
 	// The per-conversation mute is only meaningful with a thread open.
 	render_mute_toggle() {
+		if (this.source.shared_header) {
+			// The shared header carries mute, the archive badge and its actions itself.
+			this.$mute.hide();
+			this.$deep_chip.hide();
+			this.$undeep.hide();
+			return this.render_chat_head();
+		}
+		this.$chat_head.hide().empty();
 		const chat = this.active ? (this.source.chats || []).find((c) => c.id === this.active) : null;
 		this.render_deep_state(chat);
 		if (!chat || !this.source.set_muted) return this.$mute.hide();
@@ -219,7 +281,7 @@ class ChatBubble {
 	}
 
 	async toggle_mute() {
-		const chat = (this.source.chats || []).find((c) => c.id === this.active);
+		const chat = this.chat();
 		if (!chat || !this.source.set_muted) return;
 		const muted = chat.muted ? 0 : 1;
 		chat.muted = muted;
@@ -284,6 +346,7 @@ class ChatBubble {
 		.cb-head .cb-act.cb-disabled{opacity:.35;cursor:default;}
 		.cb-deep-chip{flex:none;display:inline-flex;align-items:center;gap:3px;padding:0 6px;border-radius:9px;
 			background:rgba(255,255,255,.18);font-size:10px;font-weight:600;line-height:16px;}
+		.cb-chat-head{flex:none;}
 		.cb-tabs{display:none;border-bottom:1px solid var(--border-color);background:var(--card-bg);}
 		.cb-panel .cb-tabs.show{display:flex;}
 		.cb-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;
@@ -366,6 +429,7 @@ class ChatBubble {
 					<span class="cb-act cb-open-page" title="${__("Open full page")}"><i class="fa fa-expand"></i></span>
 					<span class="cb-act cb-close" title="${__("Close")}"><i class="fa fa-times"></i></span>
 				</div>
+				<div class="cb-chat-head" style="display:none;"></div>
 				<div class="cb-tabs"></div>
 				<div class="cb-body"></div>
 				<div class="cb-readonly" style="display:none;">${__(
@@ -386,6 +450,7 @@ class ChatBubble {
 		this.$body = this.$panel.find(".cb-body");
 		this.$tabs = this.$panel.find(".cb-tabs");
 		this.$title = this.$panel.find(".cb-title");
+		this.$chat_head = this.$panel.find(".cb-chat-head");
 		this.$back = this.$panel.find(".cb-back");
 		this.$mute = this.$panel.find(".cb-mute");
 		this.$deep_chip = this.$panel.find(".cb-deep-chip");
@@ -425,7 +490,12 @@ class ChatBubble {
 		this.$panel.find(".cb-send").on("click", () => this.send());
 		this.$panel.find(".cb-attach").on("click", () => this.attach_media());
 		this.$panel.find(".cb-mic").on("click", () => this.record_voice());
+		this.mention = erpnext.chat_mention.attach(this.$input, {
+			enabled: () => erpnext.chat_mention.allowed(this.source, this.chat()),
+			thread: () => this.active,
+		});
 		this.$input.on("keydown", (e) => {
+			if (this.mention.handle_key(e)) return;
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				this.send();
@@ -505,6 +575,7 @@ class ChatBubble {
 		}
 		if (this.active) {
 			const chat = (this.source.chats || []).find((c) => c.id === this.active);
+			this.render_mute_toggle();
 			this.render_composer(chat);
 			this.load_thread(this.active);
 		} else {
@@ -535,6 +606,7 @@ class ChatBubble {
 	show_list() {
 		this.active = null;
 		if (this.$mute) this.$mute.hide();
+		if (this.$chat_head) this.$chat_head.hide().empty();
 		clearInterval(this.archive_poll);
 		this.$back.hide();
 		this.$readonly.hide();
@@ -642,7 +714,8 @@ class ChatBubble {
 		if (this.source.tab_of) this.tab = this.source.tab_of(id);
 		this.render_tabs();
 		const chat = (this.source.chats || []).find((c) => c.id === id);
-		this.$title.text(chat ? chat.title : id);
+		// With the shared header below, the bar names the source instead of repeating the chat.
+		this.$title.text(this.source.shared_header ? this.source.label : chat ? chat.title : id);
 		// WhatsApp: the business number replies go out from.
 		if (chat && chat.via) {
 			this.$title.append(
@@ -662,14 +735,14 @@ class ChatBubble {
 
 	async load_thread(id) {
 		const source = this.source;
-		const packed_chat = (source.chats || []).find((c) => c.id === id);
+		const packed_chat = this.chat_by_id(id);
 		if (ChatBubble.is_packed(packed_chat)) {
 			this.render_deep_archive(packed_chat);
 			return;
 		}
 		let msgs = [];
 		try {
-			msgs = await source.load_messages(id);
+			msgs = await source.load_messages(id, null, packed_chat);
 		} catch (e) {
 			this.$body.html(`<div class="cb-empty">${__("Could not load messages")}</div>`);
 			return;
@@ -681,7 +754,7 @@ class ChatBubble {
 		// including this one — reacts to with a refresh() that re-enters load_thread. Marking
 		// unconditionally on every refresh therefore feedback-loops at socket speed. Gating on
 		// unread breaks it: after the first mark the count is 0, so the echo can't re-arm it.
-		const chat = (source.chats || []).find((c) => c.id === id);
+		const chat = this.chat_by_id(id);
 		if (chat && chat.unread) {
 			if (window.__chat_debug)
 				console.log("[chat] load_thread: marking read (unread=" + chat.unread + ")", { id });
@@ -837,7 +910,7 @@ class ChatBubble {
 
 	// Keep the composer one line tall while it fits, so the icons stay on the text baseline.
 	chat() {
-		return (this.source.chats || []).find((c) => c.id === this.active);
+		return this.chat_by_id(this.active);
 	}
 
 	autosize() {
@@ -883,10 +956,11 @@ class ChatBubble {
 	async send() {
 		const text = (this.$input.val() || "").trim();
 		if (!text || !this.active) return;
+		const entities = this.mention ? this.mention.take(text) : [];
 		this.$input.val("");
 		this.autosize();
 		try {
-			await this.source.send_text(this.chat(), text, null);
+			await this.source.send_text(this.chat(), text, null, { entities });
 		} catch (e) {
 			this.$input.val(text);
 			return;

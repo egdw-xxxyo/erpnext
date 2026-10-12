@@ -32,7 +32,7 @@ erpnext.chat_info = {
 	human_size,
 
 	inject_styles() {
-		if (document.getElementById("chat-info-styles-v2")) return;
+		if (document.getElementById("chat-info-styles-v3")) return;
 		const css = `
 		.ci-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
 		.ci-head-main{min-width:0;flex:1;}
@@ -61,9 +61,11 @@ erpnext.chat_info = {
 		.ci-setting .ci-setting-desc{white-space:normal;}
 		.ci-switch{flex:none;margin:2px 0 0;}
 		.ci-switch input{width:16px;height:16px;cursor:pointer;}
-		.ci-section-label{font-size:var(--text-sm);text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em;margin:12px 0 4px;}
+		.ci-badge{display:inline-block;margin-left:8px;padding:0 7px;border-radius:9px;background:var(--bg-light-gray);
+			color:var(--text-muted);font-size:11px;font-weight:600;line-height:18px;vertical-align:1px;}
+				.ci-section-label{font-size:var(--text-sm);text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em;margin:12px 0 4px;}
 		`;
-		$(`<style id="chat-info-styles-v2">${css}</style>`).appendTo(document.head);
+		$(`<style id="chat-info-styles-v3">${css}</style>`).appendTo(document.head);
 	},
 
 	// data: {title, subtitle, avatar, avatar_text, source, people:[], media:[], files:[],
@@ -181,6 +183,8 @@ erpnext.chat_info = {
 				</div>
 			`);
 			$row.find(".ci-row-title").text(p.name + (p.is_me ? ` (${__("you")})` : ""));
+			if (p.badge)
+				$('<span class="ci-badge"></span>').text(p.badge).appendTo($row.find(".ci-row-title"));
 			$row.find(".ci-row-sub").text(p.subtitle || p.user || "");
 			if (p.on_click) {
 				$row.css("cursor", "pointer")

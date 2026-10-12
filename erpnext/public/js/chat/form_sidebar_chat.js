@@ -18,8 +18,10 @@ const FSC_BORROWED = [
 	"autosize",
 	"record_voice",
 	"attach_media",
-	"send",
 	"chat",
+	"toggle_mute",
+	"view_adapter",
+	"jump_to_message",
 ];
 
 class FormSidebarChat {
@@ -29,6 +31,9 @@ class FormSidebarChat {
 		this.$pane = $pane;
 		this.active = null;
 		this.ref = null;
+		// The thread as the server described it on open: the only copy while the user reads a
+		// chat they are not a participant of (it is not in their list then).
+		this.local_chat = null;
 		this.expanded = false;
 		this.no_banner = true;
 		this.make_dom();
@@ -37,10 +42,7 @@ class FormSidebarChat {
 	make_dom() {
 		this.$root = $(`
 			<div class="fsc-root">
-				<div class="fsc-head">
-					<span class="fsc-title">${__("Chat about this document")}</span>
-					<span class="fsc-act fsc-toggle" title="${__("Expand")}"><i class="fa fa-expand"></i></span>
-				</div>
+				<div class="fsc-head"></div>
 				<div class="cb-body"></div>
 				<div class="cb-readonly" style="display:none;">${__(
 					"This chat is archived — new messages are not allowed"
@@ -57,13 +59,18 @@ class FormSidebarChat {
 		this.$compose = this.$root.find(".cb-compose");
 		this.$readonly = this.$root.find(".cb-readonly");
 		this.$input = this.$compose.find("textarea");
-		this.$toggle = this.$root.find(".fsc-toggle");
+		this.$head = this.$root.find(".fsc-head");
+		this.render_chat_head();
 
 		this.$root.find(".cb-send").on("click", () => this.send());
 		this.$root.find(".cb-attach").on("click", () => this.attach_media());
 		this.$root.find(".cb-mic").on("click", () => this.record_voice());
-		this.$toggle.on("click", () => this.set_expanded(!this.expanded));
+		this.mention = erpnext.chat_mention.attach(this.$input, {
+			enabled: () => erpnext.chat_mention.allowed(this.source, this.chat()),
+			thread: () => this.active,
+		});
 		this.$input.on("keydown", (e) => {
+			if (this.mention.handle_key(e)) return;
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				this.send();
@@ -83,32 +90,94 @@ class FormSidebarChat {
 			if (this.$backdrop) this.$backdrop.remove();
 			this.$root.removeClass("fsc-expanded").appendTo(this.$pane);
 		}
-		this.$toggle
-			.attr("title", state ? __("Minimise") : __("Expand"))
-			.html(`<i class="fa fa-${state ? "compress" : "expand"}"></i>`);
+		this.render_chat_head();
 		this.autosize();
 		this.$body.scrollTop(this.$body[0].scrollHeight);
 	}
 
+	// The same thread header as on the chat pages, plus the expand / minimise toggle.
+	render_chat_head() {
+		const toggle = {
+			icon: `fa fa-${this.expanded ? "compress" : "expand"}`,
+			title: this.expanded ? __("Minimise") : __("Expand"),
+			on_click: () => this.set_expanded(!this.expanded),
+		};
+		const chat = this.active ? this.chat() : null;
+		if (chat) {
+			erpnext.chat_render.render_header(this.$head, chat, this.source, this.view_adapter(), {
+				size: 30,
+				compact: true,
+				trailing: [toggle],
+			});
+			return;
+		}
+		this.$head
+			.addClass("cv-header cv-header-compact")
+			.html(
+				`<div class="cv-header-main" style="cursor:default;"><div class="cv-header-title">${__(
+					"Chat about this document"
+				)}</div></div>
+				<button class="cv-ico" title="${toggle.title}"><i class="${toggle.icon}"></i></button>`
+			)
+			.find(".cv-ico")
+			.on("click", toggle.on_click);
+	}
+
 	// Bubble hooks used by the borrowed methods.
-	render_mute_toggle() {}
+	render_mute_toggle() {
+		this.render_chat_head();
+	}
 	render_badges() {
 		erpnext.form_sidebar_chat.update_badge(this.frm);
+	}
+
+	// Writing in a chat you were only reading joins it: pick up the membership straight away.
+	async send() {
+		const chat = this.chat();
+		await erpnext.ChatBubble.prototype.send.call(this);
+		if (chat && chat.is_member === false) this.refresh();
+	}
+
+	// The user's own list first; a chat they only read lives in `local_chat`.
+	chat_by_id(id) {
+		const listed = (this.source.chats || []).find((c) => c.id === id);
+		if (listed) return listed;
+		return this.local_chat && this.local_chat.id === id ? this.local_chat : undefined;
+	}
+
+	// The chat left this user's list (they left it) or is gone (removed): open it afresh.
+	forget_chat() {
+		const ref = this.ref;
+		this.reset();
+		if (ref === this.frm.docname) this.open();
+	}
+
+	// Ask the server for the record's thread, creating it on first use. Opening does not join.
+	async fetch_thread() {
+		const res = await frappe.xcall(`${FSC_API}.open_document_thread`, {
+			reference_doctype: this.frm.doctype,
+			reference_name: this.frm.docname,
+		});
+		this.local_chat = this.source.shape(res.thread, this.local_chat);
+		return res.name;
 	}
 
 	async refresh() {
 		try {
 			await this.source.load_list();
+			// Not a participant: nothing in the list to refresh from, re-read the thread itself.
+			if (this.active && !(this.source.chats || []).some((c) => c.id === this.active)) {
+				const ref = this.ref;
+				const name = await this.fetch_thread();
+				if (this.ref !== ref) return;
+				this.active = name;
+			}
 		} catch (e) {
 			return;
 		}
 		erpnext.form_sidebar_chat.update_badge(this.frm);
 		if (!this.active) return;
-		if (!(this.source.chats || []).some((c) => c.id === this.active)) {
-			this.active = null;
-			this.$body.html(`<div class="cb-empty">${__("Failed to open chat")}</div>`);
-			return;
-		}
+		this.render_chat_head();
 		this.render_composer(this.chat());
 		this.load_thread(this.active);
 	}
@@ -125,11 +194,7 @@ class FormSidebarChat {
 		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
 		let name;
 		try {
-			const res = await frappe.xcall(`${FSC_API}.open_document_thread`, {
-				reference_doctype: this.frm.doctype,
-				reference_name: ref,
-			});
-			name = res.name;
+			name = await this.fetch_thread();
 			await this.source.load_list();
 		} catch (e) {
 			if (this.ref === ref) this.$body.html(`<div class="cb-empty">${__("Failed to open chat")}</div>`);
@@ -138,6 +203,7 @@ class FormSidebarChat {
 		if (this.ref !== ref) return;
 		this.active = name;
 		erpnext.form_sidebar_chat.update_badge(this.frm);
+		this.render_chat_head();
 		this.render_composer(this.chat());
 		this.autosize();
 		this.load_thread(name);
@@ -146,6 +212,8 @@ class FormSidebarChat {
 	reset() {
 		this.ref = null;
 		this.active = null;
+		this.local_chat = null;
+		this.render_chat_head();
 		clearInterval(this.archive_poll);
 		if (this.expanded) this.set_expanded(false);
 		this.$body.empty();
@@ -180,10 +248,7 @@ FSC_BORROWED.forEach((m) => {
 		.fsc-pane-chat{display:none;}
 		.fsc-root{display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:320px;
 			background:var(--card-bg);}
-		.fsc-head{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border-color);}
-		.fsc-title{flex:1;font-weight:600;font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.fsc-act{cursor:pointer;color:var(--text-muted);padding:2px 4px;}
-		.fsc-act:hover{color:var(--text-color);}
+		.fsc-head{flex:none;}
 		.fsc-root .cb-body{flex:1;overflow-y:auto;}
 		.fsc-backdrop{position:fixed;inset:0;z-index:1034;background:rgba(0,0,0,.35);}
 		.fsc-root.fsc-expanded{position:fixed;z-index:1035;right:50%;bottom:50%;transform:translate(50%,50%);

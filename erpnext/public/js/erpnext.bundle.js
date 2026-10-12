@@ -58,6 +58,7 @@ import "./chat_media.js";
 import "./chat_info.js";
 import "./chat_sound.js";
 import "./chat/chat_render.js";
+import "./chat/chat_mention.js";
 import "./chat/chat_view.js";
 import "./chat/sources/whatsapp.js";
 import "./chat/sources/employee.js";

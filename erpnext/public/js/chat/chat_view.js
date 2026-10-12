@@ -190,7 +190,12 @@ erpnext.chat_view.ChatView = class ChatView {
 		$m.find(".cv-mic").on("click", () => this.record_voice());
 		$m.find(".cv-emoji").on("click", (e) => this.emoji_picker(e));
 		this.$replyBar.find(".cv-reply-cancel").on("click", () => this.set_reply(null));
+		this.mention = erpnext.chat_mention.attach(this.$input, {
+			enabled: () => erpnext.chat_mention.allowed(this.source, this.chat()),
+			thread: () => this.active,
+		});
 		this.$input.on("keydown", (e) => {
+			if (this.mention.handle_key(e)) return;
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				this.send();
@@ -285,17 +290,6 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-conv-main-btn{flex:1;}
 		.cv-list-empty{padding:12px;color:var(--text-muted);}
 		.cv-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--cv-thread-bg);}
-		.cv-header{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:56px;
-			border-bottom:1px solid var(--border-color);background:var(--card-bg);}
-		.cv-header-main{flex:1;min-width:0;cursor:pointer;}
-		.cv-header-title{font-weight:600;font-size:var(--text-md);color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.cv-header-main:hover .cv-header-title{color:var(--cv-accent);}
-		.cv-header-sub{font-size:var(--text-sm);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.cv-header-sub .cv-typing-sub{color:var(--cv-accent);}
-		.cv-chip{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:0 6px;border-radius:8px;
-			background:var(--bg-light-gray);color:var(--text-color);font-size:11px;font-weight:500;}
-		.cv-chip .fa-whatsapp{color:#25d366;}
-		.cv-header .cv-ico{width:32px;height:32px;line-height:32px;font-size:16px;}
 		.cv-thread{flex:1;overflow-y:auto;padding:12px 8%;position:relative;}
 		.cv-empty{margin:auto;text-align:center;color:var(--text-muted);}
 		.cv-empty .fa{font-size:48px;opacity:.35;margin-bottom:8px;}
@@ -592,52 +586,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	render_header() {
 		const chat = this.chat();
 		if (!chat) return;
-		const R = erpnext.chat_render;
-		const s = this.source;
-		const actions = (s.header_actions ? s.header_actions(chat) : []) || [];
-		this.$header.html(`${R.avatar_html(chat.avatar || { name: chat.title, key: chat.id }, 38)}
-			<div class="cv-header-main" title="${__("Chat info")}">
-				<div class="cv-header-title"></div>
-				<div class="cv-header-sub"></div>
-			</div>
-			${s.header_badges_html ? s.header_badges_html(chat) : ""}
-			${actions
-				.map(
-					(a, i) =>
-						`<button class="cv-ico cv-hact${
-							a.disabled ? " cv-disabled" : ""
-						}" data-i="${i}" title="${frappe.utils.escape_html(a.title || "")}"><i class="${
-							a.icon
-						}"></i></button>`
-				)
-				.join("")}
-			${erpnext.chat_sound.button_html(chat.muted)}
-			${
-				s.show_info
-					? `<button class="cv-ico cv-info-btn" title="${__(
-							"Chat info"
-					  )}"><i class="fa fa-info-circle"></i></button>`
-					: ""
-			}`);
-		this.$header
-			.find(".cv-header-title")
-			.html(`${chat.title_prefix_html || ""}${frappe.utils.escape_html(chat.title)}`);
-		this.$sub = this.$header.find(".cv-header-sub");
-		this.$sub.html(chat.header_sub || "");
-		this.$header.find(".cv-hact").on("click", (e) => {
-			const a = actions[$(e.currentTarget).data("i")];
-			if (a && !a.disabled) a.on_click();
-		});
-		if (s.show_info)
-			this.$header.find(".cv-header-main, .cv-info-btn").on("click", () => s.show_info(chat, this));
-		if (s.open_profile)
-			this.$header
-				.children(".cv-avatar")
-				.first()
-				.css("cursor", "pointer")
-				.attr("title", __("Open profile"))
-				.on("click", () => s.open_profile(chat, this));
-		this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
+		this.$sub = erpnext.chat_render.render_header(this.$header, chat, this.source, this);
 	}
 
 	render_composer() {
@@ -1112,8 +1061,9 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.$input.val("");
 		this.autosize();
 		const reply = this.take_reply();
+		const entities = this.mention.take(text);
 		return this.run_send(
-			() => this.source.send_text(chat, text, reply),
+			() => this.source.send_text(chat, text, reply, { entities }),
 			__("Failed to send message"),
 			text
 		);

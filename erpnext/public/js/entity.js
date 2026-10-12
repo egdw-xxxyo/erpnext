@@ -9,6 +9,7 @@
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
 //   erpnext.entity.workplace("Packing" | {name, sub}, opts)  // production workplace → its form
+//   erpnext.entity.doc_link({doctype, name, label})       // inline link to any record, inside text
 //   erpnext.entity.list(items, renderer, opts)            // several, wrapped, or "—"
 //   erpnext.entity.avatar_html({name, key, image, icon}, size)
 //
@@ -152,14 +153,23 @@ frappe.provide("erpnext.entity");
 		);
 	};
 
+	// A record named inside running text (a chat mention, a referenced document): an inline
+	// link to its form, whatever the doctype.
+	E.doc_link = function (d) {
+		E.inject_styles();
+		return `<a class="ent-link ent-doc" href="${esc(E.url(["Form", d.doctype, d.name]))}" title="${esc(
+			`${__(d.doctype)}: ${d.name}`
+		)}" data-doctype="${esc(d.doctype)}" data-name="${esc(d.name)}">${esc(d.label || d.name)}</a>`;
+	};
+
 	E.list = function (items, render, opts) {
 		if (!items || !items.length) return `<span class="text-muted">—</span>`;
 		return `<span class="ent-list">${items.map((i) => render(i, opts)).join("")}</span>`;
 	};
 
 	E.inject_styles = function () {
-		if (document.getElementById("ent-styles-v1")) return;
-		$(`<style id="ent-styles-v1">
+		if (document.getElementById("ent-styles-v2")) return;
+		$(`<style id="ent-styles-v2">
 			.ent-avatar{display:inline-block;flex:none;border-radius:50%;color:#fff;font-weight:600;
 				text-align:center;overflow:hidden;user-select:none;vertical-align:middle;}
 			.ent-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -170,6 +180,9 @@ frappe.provide("erpnext.entity");
 			.ent-sub{font-size:0.85em;color:var(--text-muted);font-weight:400;}
 			.ent-link:hover{text-decoration:none;}
 			.ent-link:hover .ent-name{text-decoration:underline;}
+			.ent-doc{color:inherit;font-weight:600;padding:0 3px;border-radius:4px;
+				background:rgba(127,127,127,.18);}
+			.ent-doc:hover{color:inherit;text-decoration:underline;}
 			.ent-list{display:inline-flex;flex-wrap:wrap;gap:6px 14px;vertical-align:middle;}
 		</style>`).appendTo(document.head);
 	};
