@@ -11,7 +11,7 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from .. import ftp, schedule, stats
+from .. import ftp, schedule, stats, sudo_rules
 from .. import space_tree as space_tree_mod
 from ..commands import COMMANDS
 from ..config import settings
