@@ -15879,3 +15879,8 @@ Production line {0} is disabled,Виробнича лінія {0} вимкнен
 "Unread messages","Непрочитані повідомлення"
 "1 new message — click to read","1 нове повідомлення — натисніть, щоб прочитати"
 "{0} new messages — click to read","Нових повідомлень: {0} — натисніть, щоб прочитати"
+"Have read","Прочитали"
+"Not read yet","Ще не прочитали"
+"Nobody has read it yet","Ще ніхто не прочитав"
+"Read by everyone","Прочитали всі"
+"Read by {0} of {1}","Прочитали {0} з {1}"

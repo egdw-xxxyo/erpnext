@@ -338,6 +338,11 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		let last_out = null;
 		for (const r of rows) if (r.sender === this.me) last_out = r.name;
 		const seen_upto = chat && chat.thread_type === "Direct" ? chat.other_last_read : null;
+		// Group and document chats: every outgoing message tells how far it has been read.
+		const readers =
+			chat && chat.thread_type !== "Direct"
+				? (chat.participants || []).filter((p) => p.user !== this.me)
+				: [];
 		return rows.map((r) => {
 			const out = r.sender === this.me;
 			const reactions = Object.entries(r.reactions || {})
@@ -367,12 +372,37 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			if (out && chat && chat.thread_type === "Direct" && r.name === last_out) {
 				m.status = seen_upto && seen_upto >= r.creation ? "seen" : "sent";
 			}
+			if (out && readers.length) {
+				const n = readers.filter((p) => EmployeeChatSource.has_read(p, r)).length;
+				m.status = n === 0 ? "sent" : n === readers.length ? "seen" : "partial";
+				m.status_title =
+					n === 0
+						? __("Nobody has read it yet")
+						: n === readers.length
+						? __("Read by everyone")
+						: __("Read by {0} of {1}", [n, readers.length]);
+				m.read_info = true;
+			}
 			if (r.reply_preview) {
 				m.quote = { author: r.reply_preview.sender_name || "", text: r.reply_preview.text || "" };
 				m.reply_target = r.reply_preview.name;
 			}
 			return m;
 		});
+	}
+
+	static has_read(participant, row) {
+		return !!participant.last_read_on && String(participant.last_read_on) >= String(row.creation);
+	}
+
+	// Who has read a message and who has not, from the participants' read cursors.
+	read_info(m, chat) {
+		const out = { read: [], unread: [] };
+		for (const p of (chat && chat.participants) || []) {
+			if (p.user === this.me) continue;
+			(EmployeeChatSource.has_read(p, m.raw) ? out.read : out.unread).push(p);
+		}
+		return out;
 	}
 
 	show_authors(chat) {
@@ -838,6 +868,8 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 			chat_seen: (d) => {
 				if (!d || d.thread !== view.active || d.user === this.me) return;
 				view.chat().other_last_read = d.last_read_on;
+				const reader = (view.chat().participants || []).find((p) => p.user === d.user);
+				if (reader) reader.last_read_on = d.last_read_on;
 				view.rebuild();
 				view.render_thread(false);
 			},

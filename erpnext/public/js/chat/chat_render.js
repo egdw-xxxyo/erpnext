@@ -131,14 +131,15 @@ frappe.provide("erpnext.chat_render");
 	};
 
 	// Delivery state of an outgoing message: pending → sent → delivered → read, or failed.
-	R.status_icon = function (status) {
+	// In a chat with several readers "partial" means some of them have read it, "seen" all.
+	R.status_icon = function (status, title) {
 		const st = (status || "").toLowerCase();
 		if (!st) return "";
-		const label = esc(__(status));
+		const label = esc(title || __(status));
 		if (st === "failed") return `<i class="fa fa-exclamation-circle cv-st-failed" title="${label}"></i>`;
 		if (st === "read" || st === "seen")
 			return `<span class="cv-ticks cv-st-read" title="${label}"><i class="fa fa-check"></i><i class="fa fa-check"></i></span>`;
-		if (st === "delivered")
+		if (st === "delivered" || st === "partial")
 			return `<span class="cv-ticks" title="${label}"><i class="fa fa-check"></i><i class="fa fa-check"></i></span>`;
 		if (st === "sent" || st === "success") return `<i class="fa fa-check" title="${label}"></i>`;
 		return `<i class="fa fa-clock-o" title="${label}"></i>`;
@@ -395,7 +396,14 @@ frappe.provide("erpnext.chat_render");
 		}" data-id="${esc(m.id)}">${actions}${author}${R.quote_html(m)}${R.body_html(
 			m
 		)}<span class="cv-meta"><span class="cv-time">${time}</span>${
-			out ? R.status_icon(m.status) : ""
+			out
+				? m.read_info
+					? `<span class="cv-read-info" role="button" tabindex="0">${R.status_icon(
+							m.status,
+							m.status_title
+					  )}</span>`
+					: R.status_icon(m.status, m.status_title)
+				: ""
 		}</span>${fail}${R.reactions_html(m)}</div>`;
 	};
 
@@ -496,7 +504,7 @@ frappe.provide("erpnext.chat_render");
 	R.inject_styles = function () {
 		erpnext.chat_media.inject_styles();
 		erpnext.chat_sound.inject_styles();
-		if (document.getElementById("cv-styles-v1")) return;
+		if (document.getElementById("cv-styles-v2")) return;
 		const css = `
 		.cv-root{--cv-out:#effdde;--cv-out-text:#111;--cv-in:var(--card-bg);--cv-thread-bg:#e6ebee;--cv-accent:#3390ec;
 			--cv-tick:#4fae4e;}
@@ -556,6 +564,15 @@ frappe.provide("erpnext.chat_render");
 		.cv-out .cv-meta .cv-time{color:var(--text-muted);}
 		[data-theme="dark"] .cv-out .cv-meta .cv-time{color:rgba(255,255,255,.6);}
 		.cv-ticks{display:inline-flex;}
+		.cv-read-info{cursor:pointer;display:inline-flex;align-items:center;padding:0 2px;border-radius:4px;}
+		.cv-read-info:hover{background:rgba(127,127,127,.2);}
+		.cb-thread .cv-read-info{cursor:default;background:none;}
+		.cv-read-pop{border-radius:10px;padding:8px 10px;min-width:210px;max-width:300px;max-height:320px;
+			overflow-y:auto;font-size:13px;}
+		.cv-read-label{margin:2px 0 4px;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;
+			letter-spacing:.03em;}
+		.cv-read-sec + .cv-read-sec{margin-top:8px;padding-top:6px;border-top:1px solid var(--border-color);}
+		.cv-read-row{padding:3px 0;}
 		.cv-ticks .fa + .fa{margin-left:-6px;}
 		.cv-st-failed{color:var(--red-500,#e24c4c);}
 		.cv-media{margin:-2px -6px 2px -7px;}
@@ -645,6 +662,6 @@ frappe.provide("erpnext.chat_render");
 		.cv-compact .cv-card{max-width:230px;}
 		.cv-compact .cv-day{font-size:11px;margin:6px 0 4px;}
 		`;
-		$(`<style id="cv-styles-v1">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-styles-v2">${css}</style>`).appendTo(document.head);
 	};
 })(erpnext.chat_render);

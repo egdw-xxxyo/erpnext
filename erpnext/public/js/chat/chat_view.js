@@ -907,6 +907,7 @@ erpnext.chat_view.ChatView = class ChatView {
 			if (m && this.source.react && !this.chat().read_only)
 				this.react(m, $(e.currentTarget).attr("data-emoji"));
 		});
+		$t.on("click", ".cv-read-info", (e) => this.read_popover(e));
 		$t.on("click", ".cv-resend", (e) => this.resend(this.msg_of(e.currentTarget)));
 		$t.on("click", ".cv-quote[data-target]", (e) =>
 			this.jump_to_message($(e.currentTarget).attr("data-target"))
@@ -1198,6 +1199,37 @@ erpnext.chat_view.ChatView = class ChatView {
 			});
 		}, 0);
 		return $pop;
+	}
+
+	// Who has read an outgoing message (chats with several readers).
+	read_popover(e) {
+		e.stopPropagation();
+		const m = this.msg_of(e.currentTarget);
+		if (!m || !this.source.read_info) return;
+		const info = this.source.read_info(m, this.chat());
+		const section = (label, icon, people) =>
+			people.length
+				? `<div class="cv-read-sec"><div class="cv-read-label"><i class="fa fa-${icon}"></i> ${frappe.utils.escape_html(
+						label
+				  )} · ${people.length}</div>${people
+						.map(
+							(p) =>
+								`<div class="cv-read-row">${erpnext.entity.user(
+									{ user: p.user, full_name: p.employee_name },
+									{ size: 22 }
+								)}</div>`
+						)
+						.join("")}</div>`
+				: "";
+		this.popover(
+			`<div class="cv-read-pop">${section(__("Have read"), "check", info.read)}${section(
+				__("Not read yet"),
+				"clock-o",
+				info.unread
+			)}</div>`,
+			e.currentTarget,
+			"above"
+		);
 	}
 
 	react_popover(e) {
