@@ -821,6 +821,34 @@ def get_messages(thread: str, before: str | None = None, limit: int = 50, after:
 
 
 @frappe.whitelist()
+def search_messages(thread: str, txt: str, limit: int = 100):
+	"""Messages of one chat whose text contains `txt`, newest first. A secret chat cannot be
+	searched here — the server only holds ciphertext — and a packed one has no rows."""
+	doc = _require_read_thread(thread)
+	txt = (txt or "").strip()
+	if len(txt) < 2 or doc.is_secret:
+		return []
+	if doc.is_deep_archived and doc.deep_archive_status != "Restored":
+		return []
+	like = "%" + txt.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+	rows = frappe.db.get_all(
+		"Chat Message",
+		filters=[
+			["Chat Message", "thread", "=", thread],
+			["Chat Message", "is_encrypted", "=", 0],
+			["Chat Message", "message", "like", like],
+		],
+		fields=["name", "sender", "content_type", "message", "creation"],
+		order_by="creation desc",
+		limit=min(cint(limit) or 100, 200),
+	)
+	for row in rows:
+		row["sender_name"] = _user_name(row["sender"]) if row["sender"] else ""
+		row["creation"] = str(row["creation"])
+	return rows
+
+
+@frappe.whitelist()
 def send_message(
 	thread: str,
 	message: str | None = None,

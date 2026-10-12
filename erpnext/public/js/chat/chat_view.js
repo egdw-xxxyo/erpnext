@@ -25,6 +25,7 @@
 //   react?(chat, msg, emoji), resend?(chat, msg), menu_items?(msg, chat) -> [{icon, label, action}]
 //   mark_read(chat, upto) -> {last_read_on}, set_muted(chat, muted), notify_typing?(chat)
 //   show_info?(chat, view), side_panel?, render_side?(chat, $el, view)
+//   can_search?(chat), search?(chat, txt) -> [{id, author, author_key, time, text}]   (search in a chat)
 //   realtime?(view) -> {event: handler}
 //
 // Embedded mode (`opts.embedded`): the same thread — header, messages, reply, reactions,
@@ -131,6 +132,18 @@ erpnext.chat_view.ChatView = class ChatView {
 					</div>
 					<div class="cv-tabs"></div>
 					<div class="cv-list"></div>
+					<div class="cv-msearch" style="display:none;">
+						<div class="cv-search-row cv-msearch-top">
+							<div class="cv-search-box">
+								<i class="fa fa-search"></i>
+								<input type="text" class="cv-msearch-input" placeholder="${__("Search messages")}">
+							</div>
+							<button class="cv-ico cv-msearch-close" title="${__("Close")}"><i class="fa fa-times"></i></button>
+						</div>
+						<div class="cv-msearch-scope"></div>
+						<div class="cv-msearch-count"></div>
+						<div class="cv-msearch-list"></div>
+					</div>
 				</div>
 				<div class="cv-thread-wrap">
 					<div class="cv-header"><span class="text-muted">${__("Select a conversation")}</span></div>
@@ -184,6 +197,21 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.$tools = $m.find(".cv-extra-tools");
 		this.$side = $m.find(".cv-side");
 
+		this.$msearch = $m.find(".cv-msearch");
+		this.$msearch_input = $m.find(".cv-msearch-input");
+		$m.find(".cv-msearch-close").on("click", () => this.close_search());
+		this.run_search = frappe.utils.debounce(() => this.search_messages(), 250);
+		this.$msearch_input.on("input", () => this.run_search());
+		this.$msearch_input.on("keydown", (e) => {
+			if (e.key === "Escape") this.close_search();
+		});
+		this.$msearch.on("click", ".cv-hit", (e) => {
+			const id = $(e.currentTarget).attr("data-id");
+			// The embedded view has one column: get the results out of the way of the message.
+			if (this.embedded) this.close_search();
+			this.jump_to_message(id);
+		});
+
 		if (s.bind_sidebar_tools) s.bind_sidebar_tools($m.find(".cv-sidebar-tools"), this);
 		$m.find(".cv-new-chat").on("click", () => s.new_chat(this));
 		this.$search.on("input", () => this.render_list());
@@ -229,7 +257,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	inject_styles() {
-		if (document.getElementById("cv-page-styles-v3")) return;
+		if (document.getElementById("cv-page-styles-v4")) return;
 		const css = `
 		.cv-group-head{display:flex;align-items:center;gap:10px;margin:12px 8px 6px;padding:8px 12px 8px 20px;
 			position:sticky;top:0;z-index:1;border-radius:10px;background:var(--gray-200,#e2e6e9);
@@ -252,6 +280,28 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-embedded .cv-sidebar,.cv-embedded .cv-side{display:none;}
 		.cv-embedded .cv-thread{padding:10px;}
 		.cv-embedded .cv-fab{right:12px;bottom:70px;width:36px;height:36px;}
+		.cv-searching .cv-sidebar > :not(.cv-msearch){display:none;}
+		.cv-msearch{flex:1;min-height:0;display:flex;flex-direction:column;}
+		.cv-msearch-top{padding:10px;}
+		.cv-msearch-scope{display:flex;align-items:center;gap:8px;padding:6px 12px;font-weight:600;font-size:13px;
+			border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color);}
+		.cv-msearch-in{font-weight:400;color:var(--text-muted);white-space:nowrap;}
+		.cv-msearch-count{padding:6px 12px;color:var(--text-muted);font-size:12px;}
+		.cv-msearch-count:empty{display:none;}
+		.cv-msearch-list{flex:1;overflow-y:auto;}
+		.cv-msearch-empty{padding:48px 12px;text-align:center;color:var(--text-muted);}
+		.cv-msearch-empty .fa{font-size:34px;margin-bottom:10px;opacity:.5;}
+		.cv-hit{display:flex;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;}
+		.cv-hit:hover{background:var(--bg-light-gray);}
+		.cv-hit-main{flex:1;min-width:0;}
+		.cv-hit-top{display:flex;justify-content:space-between;gap:8px;}
+		.cv-hit-author{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cv-hit-time{flex:none;color:var(--text-muted);font-size:11px;}
+		.cv-hit-text{color:var(--text-muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cv-hit-text mark{padding:0;background:none;color:var(--cv-accent);font-weight:600;}
+		.cv-embedded.cv-searching .cv-sidebar{display:flex;position:absolute;inset:0;z-index:7;width:auto;border:none;
+			background:var(--card-bg);}
+		.cv-embedded.cv-searching{position:relative;}
 		.cv-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
 		.cv-search{padding:10px;display:flex;flex-direction:column;gap:6px;}
 		.cv-search-row{display:flex;align-items:center;gap:4px;}
@@ -351,7 +401,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		@media (max-width:1200px){.cv-side{display:none;}}
 		@media (max-width:768px){.cv-sidebar{width:220px;}.cv-thread{padding:10px;}}
 		`;
-		$(`<style id="cv-page-styles-v3">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-page-styles-v4">${css}</style>`).appendTo(document.head);
 	}
 
 	// ------------------------------------------------------------------ list
@@ -545,6 +595,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		const chat = this.chats[id];
 		if (!chat) return;
 		const s = this.source;
+		if (this.searching && this.active !== id) this.close_search();
 		this.active = id;
 		if (s.tabs && s.tab_of) this.tab = s.tab_of(chat);
 		this.set_reply(null);
@@ -601,6 +652,7 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	// Nothing open: back to the "select a conversation" state.
 	clear() {
+		if (this.searching) this.close_search();
 		this.active = null;
 		this.close_popovers();
 		this.set_reply(null);
@@ -620,12 +672,108 @@ erpnext.chat_view.ChatView = class ChatView {
 	render_header() {
 		const chat = this.chat();
 		if (!chat) return;
-		this.$sub = erpnext.chat_render.render_header(
-			this.$header,
-			chat,
-			this.source,
-			this,
-			this.opts.header ? this.opts.header(chat) : undefined
+		const opts = Object.assign({}, this.opts.header ? this.opts.header(chat) : {});
+		const s = this.source;
+		if (s.search && (!s.can_search || s.can_search(chat))) {
+			opts.trailing = [
+				{
+					icon: "fa fa-search",
+					title: __("Search in this chat"),
+					on_click: () => this.open_search(),
+				},
+			].concat(opts.trailing || []);
+		}
+		this.$sub = erpnext.chat_render.render_header(this.$header, chat, s, this, opts);
+	}
+
+	// ------------------------------------------------------------------ search in a chat
+
+	// The conversation list gives way to a search of the open chat; a hit jumps to its message.
+	open_search() {
+		const chat = this.chat();
+		if (!chat) return;
+		this.searching = true;
+		this.$root.addClass("cv-searching");
+		this.$msearch.show();
+		this.$msearch
+			.find(".cv-msearch-scope")
+			.html(
+				`<span class="cv-msearch-in">${__("Search messages in")}</span>${erpnext.entity.html(
+					Object.assign({ name: chat.title, key: chat.id }, chat.avatar || {}),
+					{ size: 24 }
+				)}`
+			);
+		this.$msearch_input.val("").trigger("focus");
+		this.render_hits(null);
+	}
+
+	close_search() {
+		this.searching = false;
+		this.search_seq = (this.search_seq || 0) + 1;
+		this.$root.removeClass("cv-searching");
+		this.$msearch.hide();
+	}
+
+	async search_messages() {
+		const chat = this.chat();
+		const txt = (this.$msearch_input.val() || "").trim();
+		const seq = (this.search_seq = (this.search_seq || 0) + 1);
+		if (!this.searching || !chat) return;
+		if (txt.length < 2) return this.render_hits(null);
+		let hits = [];
+		try {
+			hits = await this.source.search(chat, txt);
+		} catch (e) {
+			hits = [];
+		}
+		if (seq !== this.search_seq) return;
+		this.render_hits(hits, txt);
+	}
+
+	// A line of the message around the first match, the match itself highlighted.
+	hit_snippet(text, txt) {
+		const esc = frappe.utils.escape_html;
+		const flat = String(text || "").replace(/\s+/g, " ");
+		const at = flat.toLowerCase().indexOf(txt.toLowerCase());
+		if (at < 0) return esc(flat.slice(0, 90));
+		const from = Math.max(0, at - 24);
+		return (
+			(from ? "…" : "") +
+			esc(flat.slice(from, at)) +
+			`<mark>${esc(flat.slice(at, at + txt.length))}</mark>` +
+			esc(flat.slice(at + txt.length, at + txt.length + 70))
+		);
+	}
+
+	render_hits(hits, txt) {
+		const R = erpnext.chat_render;
+		const esc = frappe.utils.escape_html;
+		const $count = this.$msearch.find(".cv-msearch-count");
+		const $list = this.$msearch.find(".cv-msearch-list");
+		if (!hits) {
+			$count.text("");
+			$list.html(
+				`<div class="cv-msearch-empty"><i class="fa fa-search"></i><div>${__(
+					"Search for messages"
+				)}</div></div>`
+			);
+			return;
+		}
+		$count.text(hits.length ? __("{0} messages found", [hits.length]) : __("No messages found"));
+		$list.html(
+			hits
+				.map((h) => {
+					const info = (h.author_key && frappe.user_info(h.author_key)) || {};
+					return `<div class="cv-hit" data-id="${esc(h.id)}">
+						${R.avatar_html({ name: h.author, key: h.author_key || h.author, image: info.image }, 36)}
+						<div class="cv-hit-main">
+							<div class="cv-hit-top"><span class="cv-hit-author">${esc(h.author)}</span>
+								<span class="cv-hit-time">${esc(R.local(h.time).format("DD.MM.YYYY"))}</span></div>
+							<div class="cv-hit-text">${this.hit_snippet(h.text, txt)}</div>
+						</div>
+					</div>`;
+				})
+				.join("")
 		);
 	}
 

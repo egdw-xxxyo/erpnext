@@ -407,6 +407,23 @@ erpnext.chat_sources.Employee = class EmployeeChatSource {
 		return out;
 	}
 
+	// Search inside one chat. Secret chats hold ciphertext only, so there is nothing to ask
+	// the server for.
+	can_search(chat) {
+		return !!chat && !chat.is_secret;
+	}
+
+	async search(chat, txt) {
+		const rows = await frappe.xcall(`${EC_API}.search_messages`, { thread: chat.id, txt });
+		return rows.map((r) => ({
+			id: r.name,
+			author: r.sender_name || r.sender,
+			author_key: r.sender,
+			time: r.creation,
+			text: r.message || "",
+		}));
+	}
+
 	show_authors(chat) {
 		return chat && chat.thread_type !== "Direct" ? "in" : false;
 	}

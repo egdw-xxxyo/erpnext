@@ -119,6 +119,17 @@ class TestDocumentChat(ERPNextTestSuite):
 			frappe.ValidationError, chat.send_message, thread, message=text, entities=json.dumps(outsider)
 		)
 
+	def test_search_finds_messages_of_this_chat_only(self):
+		thread = self.open_as(WRITER)["name"]
+		chat.send_message(thread, message="Привіт, 100% готово")
+		chat.send_message(thread, message="інше")
+		self.assertEqual(len(chat.search_messages(thread, "привіт")), 1)
+		self.assertEqual(len(chat.search_messages(thread, "100%")), 1)
+		# A wildcard is searched for literally.
+		self.assertEqual(chat.search_messages(thread, "%%"), [])
+		frappe.set_user(OUTSIDER)
+		self.assertRaises(frappe.PermissionError, chat.search_messages, thread, "привіт")
+
 	def test_entities_are_kept_inside_the_text(self):
 		text = "@a and @b"
 		rows = [
