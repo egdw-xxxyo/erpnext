@@ -1,5 +1,23 @@
 # Near-zero-downtime midday deploy (`./deploy live`)
 
+## Status (2026-10-13) — implementation resumed, full A + B + C
+
+Read this section first: the design below is unchanged, but the repo moved since 18 Sept.
+
+| # | Drift | Adaptation |
+|---|---|---|
+| D1 | The space policy was inverted: `reclaim_after_deploy` deleted every superseded image ("no rollback image — that is the point") | `image_gc` keeps what `.env` pins + the moving tag + anything a container references. **Retention is 2 release tags (active + previous), not 3** |
+| D2 | Lean build mode (`.deploy-lean`) removes the old image before building | Lean hosts keep no previous image and `./deploy live` / `rollback` refuse to run there |
+| D3 | `dc()` builds a `files` array and appends the mirror overlay | The green overlay is appended to the same array |
+| D4 | Standby mirror (`tools/mirror.sh`) | `live` / `rollback` call `mirror_guard` like `build`; the replica keeps using `mirror sync-code` |
+| D5 | Traefik TLS profile and cloudflared both route to `frontend:8080` | Nothing to change: the frontend is never recreated on the live path. Both ingress paths go into the probe run |
+| D6 | `before_migrate` exists and `after_migrate` has six entries | G9 diffs both hooks against the deployed sha instead of a hardcoded list |
+| D7 | `setup_custom_fields.py` has 16 global `frappe.clear_cache()` calls | Same `execute_quiet()` approach, audit all 16 |
+| D8 | `.docker/` is gitignored | Committed files live in `tools/nginx/` and `tools/assets/` (next to `tools/traefik/`), not `.docker/nginx/` and `.docker/assets/` |
+| D9 | Every `deploy:NNN` reference below is stale | Find by function name |
+
+Progress: **A1 done** (release tags, `.env`, `image_gc`). Next: A4, A2, A3, A5/A6, then B, then C.
+
 ## Context
 
 Every release goes out through `./deploy build`, which takes the site down for minutes, forcing deploys into
