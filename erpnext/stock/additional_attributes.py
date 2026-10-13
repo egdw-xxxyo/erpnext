@@ -152,15 +152,18 @@ def _insert_row(parenttype, parent, idx, row):
 
 
 def _last_row_idx(parenttype, parents):
-	return {
-		d.parent: d.idx or 0
-		for d in frappe.get_all(
-			ROW_DOCTYPE,
-			filters={"parenttype": parenttype, "parent": ("in", parents)},
-			fields=["parent", "max(idx) as idx"],
-			group_by="parent",
-		)
-	}
+	if not parents:
+		return {}
+	rows = frappe.db.sql(
+		f"""
+		select parent, max(idx)
+		from `tab{ROW_DOCTYPE}`
+		where parenttype = %s and parent in ({", ".join(["%s"] * len(parents))})
+		group by parent
+		""",
+		(parenttype, *parents),
+	)
+	return {parent: idx or 0 for parent, idx in rows}
 
 
 def apply_attributes_to_serials(serial_nos, rows):

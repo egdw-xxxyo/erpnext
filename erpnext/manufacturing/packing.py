@@ -21,6 +21,8 @@ from erpnext.stock.additional_attributes import ROW_DOCTYPE, apply_attributes_to
 
 ATTRIBUTE = "Упаковка"
 VALUE = "Упаковано"
+# The name of the Additional Attribute Value record: `<attribute>: <value>`.
+VALUE_NAME = f"{ATTRIBUTE}: {VALUE}"
 
 
 def _after_stock_steps(bom):
@@ -216,7 +218,7 @@ def pack_box(
 		waiting,
 		[
 			frappe._dict(
-				attribute=ATTRIBUTE, value=VALUE, notes=_note(box_no, box_total, units_per_box, entry)
+				attribute=ATTRIBUTE, value=VALUE_NAME, notes=_note(box_no, box_total, units_per_box, entry)
 			)
 		],
 	)
