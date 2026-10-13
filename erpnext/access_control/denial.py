@@ -207,14 +207,12 @@ def create_request(
 	rights=None,
 ):
 	context = _context(context)
-	if not (reason or "").strip():
-		frappe.throw(_("Please describe why you need access"))
 	doc = frappe.get_doc(
 		{
 			"doctype": "Access Request",
 			**request_fields(context),
 			"ptypes": _requested_rights(context, rights),
-			"reason": reason.strip(),
+			"reason": (reason or "").strip() or None,
 			"route": (route or "")[:1000],
 			"method": (context.get("method") or "")[:140],
 			"message": strip_html(message or "")[:2000],

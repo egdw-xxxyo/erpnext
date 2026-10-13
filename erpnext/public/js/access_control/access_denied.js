@@ -201,6 +201,7 @@ erpnext.access_control.denial_dialog = (info, message, re_route) => {
 				label: __("Which rights do you need?"),
 				columns: 4,
 				sort_options: false,
+				select_all: 1,
 				hidden: !can_ask || !(info.rights || []).length,
 				description: __("{0} and {1} are always included", [
 					erpnext.access_control.RIGHT_LABELS.read,
@@ -231,10 +232,6 @@ erpnext.access_control.denial_dialog = (info, message, re_route) => {
 		dialog.set_primary_action(__("Reload"), () => window.location.reload());
 	} else if (can_ask) {
 		dialog.set_primary_action(__("Request access"), ({ reason, rights }) => {
-			if (!(reason || "").trim()) {
-				frappe.msgprint(__("Please describe why you need access"));
-				return;
-			}
 			frappe
 				.xcall("erpnext.access_control.denial.create_request", {
 					context: info.context,

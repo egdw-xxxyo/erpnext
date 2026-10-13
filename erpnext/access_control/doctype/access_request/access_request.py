@@ -67,7 +67,7 @@ class AccessRequest(Document):
 		notify(
 			access_managers(exclude=self.user),
 			self,
-			_("{0} requests access: {1}").format(self.full_name or self.user, self.title),
+			_("{0} requests access: {1}").format(self.user_full_name or self.user, self.title),
 		)
 
 	def make_title(self) -> str:
@@ -227,20 +227,28 @@ def _role_candidates(doc, granting: dict, roles, context: dict | None) -> dict:
 	}
 
 
+def _link_values(row) -> list[tuple[str, str]]:
+	return [
+		(field.options, row.get(field.fieldname))
+		for field in frappe.get_meta(row.doctype).get_link_fields()
+		if field.options and not field.ignore_user_permissions
+	]
+
+
 def _user_permission_inputs(doc) -> tuple[list, dict]:
 	target = _reference_doc(doc)
 	if not target:
 		return [], {}
 	allowed = {
-		allow: [entry.get("doc") for entry in entries]
+		allow: rules.allowed_values(entries, doc.reference_doctype)
 		for allow, entries in get_user_permissions(doc.user).items()
 	}
-	meta = frappe.get_meta(doc.reference_doctype)
 	links = [
 		(doc.reference_doctype, target.name),
-		*((field.options, target.get(field.fieldname)) for field in meta.get_link_fields() if field.options),
+		*_link_values(target),
+		*(link for row in target.get_all_children() for link in _link_values(row)),
 	]
-	return links, allowed
+	return links, {allow: values for allow, values in allowed.items() if values}
 
 
 def _user_permission_candidates(doc) -> list[dict]:
@@ -273,14 +281,17 @@ def _roles_by_profile() -> dict[str, list[str]]:
 	}
 
 
-def _roles_after_profile(user: str, profile: str, mode: str, by_profile: dict | None = None) -> list[str]:
+def _roles_after_profile(
+	user: str, profiles: list[str], mode: str, by_profile: dict | None = None
+) -> list[str]:
 	by_profile = by_profile or _roles_by_profile()
 	current = [by_profile.get(name, []) for name in _current_profiles(user)]
-	return rules.roles_after_profile(mode, current, by_profile.get(profile, []))
+	chosen = [role for profile in profiles for role in by_profile.get(profile, [])]
+	return rules.roles_after_profile(mode, current, chosen)
 
 
-def _profile_delta(user: str, profile: str, mode: str, by_profile: dict | None = None) -> dict:
-	return roles_delta(user, _roles_after_profile(user, profile, mode, by_profile))
+def _profile_delta(user: str, profiles: list[str], mode: str, by_profile: dict | None = None) -> dict:
+	return roles_delta(user, _roles_after_profile(user, profiles, mode, by_profile))
 
 
 def _profile_candidates(doc, granting: dict, context: dict | None) -> list[dict]:
@@ -301,11 +312,11 @@ def _profile_candidates(doc, granting: dict, context: dict | None) -> list[dict]
 			"users": frappe.db.count("User Role Profile", {"parenttype": "User", "role_profile": profile}),
 			**_coverage_fields(
 				context,
-				_with_pseudo(_roles_after_profile(doc.user, profile, "add", by_profile), current_roles),
+				_with_pseudo(_roles_after_profile(doc.user, [profile], "add", by_profile), current_roles),
 			),
 		}
 		for profile in offered[:MAX_CANDIDATES]
-		for delta in (_profile_delta(doc.user, profile, "add", by_profile),)
+		for delta in (_profile_delta(doc.user, [profile], "add", by_profile),)
 	)
 
 
@@ -341,7 +352,7 @@ def get_approval_options(name: str) -> dict:
 	return {
 		"name": doc.name,
 		"user": doc.user,
-		"full_name": doc.full_name,
+		"full_name": doc.user_full_name,
 		"user_enabled": bool(frappe.db.get_value("User", doc.user, "enabled")),
 		"own_request": doc.user == frappe.session.user,
 		"user_roles": visible_roles(roles),
@@ -372,16 +383,17 @@ def _save_role_profile(profile_doc, roles: list[str]):
 	frappe.db.after_rollback.add(lambda: file_lock.delete_lock(signature))
 
 
-def _apply_role(user, role: str, profile_action: str | None) -> str | None:
+def _apply_roles(user, roles: list[str], profile_action: str | None) -> str | None:
 	profiles = [row.role_profile for row in user.role_profiles]
 	user.flags.ignore_permissions = True
 	if not profiles:
-		user.add_roles(role)
+		user.add_roles(*roles)
 		return None
 	if profile_action == "unlink":
 		user.role_profiles = []
 		user.role_profile_name = None
-		user.append("roles", {"role": role})
+		for role in roles:
+			user.append("roles", {"role": role})
 		user.save(ignore_permissions=True)
 		return _("Role profiles {0} were unlinked, the user keeps their roles directly").format(
 			", ".join(profiles)
@@ -390,49 +402,69 @@ def _apply_role(user, role: str, profile_action: str | None) -> str | None:
 	if not profile_action or profile not in profiles:
 		frappe.throw(_("Choose what to do with the user's role profile"))
 	profile_doc = frappe.get_doc("Role Profile", profile)
-	_save_role_profile(profile_doc, [*(row.role for row in profile_doc.roles), role])
+	_save_role_profile(profile_doc, [*(row.role for row in profile_doc.roles), *roles])
 	user.reload()
 	user.save(ignore_permissions=True)
 	holders = frappe.db.count("User Role Profile", {"parenttype": "User", "role_profile": profile})
-	return _("Role {0} was added to role profile {1}, users with this profile: {2}").format(
-		role, profile, holders
+	return _("Roles {0} were added to role profile {1}, users with this profile: {2}").format(
+		", ".join(map(_, roles)), profile, holders
 	)
 
 
-def _grant_role(doc, role: str | None = None, profile_action: str | None = None, **_kwargs) -> dict:
-	if not rules.is_grantable(role):
-		frappe.throw(_("Role {0} cannot be granted through an access request").format(role))
-	if not frappe.db.exists("Role", {"name": role, "disabled": 0}):
-		frappe.throw(_("Role {0} not found").format(role))
-	if role in frappe.get_roles(doc.user):
-		frappe.throw(_("User {0} already has role {1}").format(doc.user, role))
-	impact = role_delta(doc.user, role)
+def _chosen(values) -> list:
+	parsed = frappe.parse_json(values) if isinstance(values, str) else values
+	if not isinstance(parsed, list):
+		return []
+	return [value for index, value in enumerate(parsed) if value not in parsed[:index]]
+
+
+def _grant_role(doc, roles=None, profile_action: str | None = None, **_kwargs) -> dict:
+	roles = _chosen(roles)
+	if not roles:
+		frappe.throw(_("Choose at least one role"))
+	held = frappe.get_roles(doc.user)
+	for role in roles:
+		if not rules.is_grantable(role):
+			frappe.throw(_("Role {0} cannot be granted through an access request").format(role))
+		if not frappe.db.exists("Role", {"name": role, "disabled": 0}):
+			frappe.throw(_("Role {0} not found").format(role))
+		if role in held:
+			frappe.throw(_("User {0} already has role {1}").format(doc.user, role))
+	impact = roles_delta(doc.user, [*held, *roles])
 	user = frappe.get_doc("User", doc.user)
-	log = rules.role_grant_log(role, [row.role_profile for row in user.role_profiles], profile_action)
-	profile_change = _apply_role(user, role, profile_action)
-	if not frappe.db.exists("Has Role", {"parenttype": "User", "parent": doc.user, "role": role}):
-		frappe.throw(_("Role {0} was not saved for user {1}").format(role, doc.user))
+	log = rules.role_grant_log(roles, [row.role_profile for row in user.role_profiles], profile_action)
+	profile_change = _apply_roles(user, roles, profile_action)
+	saved = set(frappe.get_all("Has Role", filters={"parenttype": "User", "parent": doc.user}, pluck="role"))
+	if missing := [role for role in roles if role not in saved]:
+		frappe.throw(_("Roles {0} were not saved for user {1}").format(", ".join(missing), doc.user))
 	return {
-		"granted_role": role,
+		"granted_roles": ", ".join(roles),
 		"role_profile_change": profile_change,
 		"impact": as_json(impact),
 		"grant_log": as_json(log),
 	}
 
 
-def _grant_profile(doc, profile: str | None = None, profile_mode: str | None = None, **_kwargs) -> dict:
+def _grant_profile(doc, profiles=None, profile_mode: str | None = None, **_kwargs) -> dict:
+	profiles = _chosen(profiles)
+	if not profiles:
+		frappe.throw(_("Choose at least one role profile"))
 	context = _rights_context(doc)
-	granting = _granting(_situation(doc), context)
-	if profile not in {candidate["profile"] for candidate in _profile_candidates(doc, granting, context)}:
-		frappe.throw(_("Role profile {0} cannot be assigned through this request").format(profile))
+	offered = {
+		candidate["profile"]
+		for candidate in _profile_candidates(doc, _granting(_situation(doc), context), context)
+	}
+	for profile in profiles:
+		if profile not in offered:
+			frappe.throw(_("Role profile {0} cannot be assigned through this request").format(profile))
 	current = _current_profiles(doc.user)
 	mode = profile_mode if current else "add"
 	if mode not in rules.PROFILE_MODES:
 		frappe.throw(_("Choose what to do with the user's current role profiles"))
-	impact = _profile_delta(doc.user, profile, mode)
+	impact = _profile_delta(doc.user, profiles, mode)
 	user = frappe.get_doc("User", doc.user)
 	log = {
-		"profile": profile,
+		"profiles": profiles,
 		"mode": mode,
 		"previous_profiles": current,
 		"previous_roles": [row.role for row in user.roles],
@@ -440,11 +472,13 @@ def _grant_profile(doc, profile: str | None = None, profile_mode: str | None = N
 	user.role_profile_name = None
 	if mode == "replace":
 		user.role_profiles = []
-	user.append("role_profiles", {"role_profile": profile})
+	for profile in profiles:
+		user.append("role_profiles", {"role_profile": profile})
 	user.save(ignore_permissions=True)
 	held = set(frappe.get_all("Has Role", filters={"parenttype": "User", "parent": doc.user}, pluck="role"))
-	if not set(_roles_by_profile().get(profile, [])) <= held:
-		frappe.throw(_("Role profile {0} was not applied to user {1}").format(profile, doc.user))
+	by_profile = _roles_by_profile()
+	if missing := [profile for profile in profiles if not set(by_profile.get(profile, [])) <= held]:
+		frappe.throw(_("Role profiles {0} were not applied to user {1}").format(", ".join(missing), doc.user))
 	change = [
 		_("Replaced role profiles: {0}").format(", ".join(current))
 		if mode == "replace" and current
@@ -454,7 +488,7 @@ def _grant_profile(doc, profile: str | None = None, profile_mode: str | None = N
 		else None,
 	]
 	return {
-		"granted_role_profile": profile,
+		"granted_role_profiles": ", ".join(profiles),
 		"role_profile_change": "\n".join(filter(None, change)) or None,
 		"impact": as_json(impact),
 		"grant_log": as_json(log),
@@ -484,22 +518,32 @@ def _grant_share(doc, share_rights=None, **_kwargs) -> dict:
 	}
 
 
-def _grant_user_permission(doc, allow: str | None = None, for_value: str | None = None, **_kwargs) -> dict:
-	if {"allow": allow, "for_value": for_value} not in _user_permission_candidates(doc):
+def _grant_user_permission(doc, user_permissions=None, **_kwargs) -> dict:
+	chosen = [
+		{"allow": entry.get("allow"), "for_value": entry.get("for_value")}
+		for entry in _chosen(user_permissions)
+		if isinstance(entry, dict)
+	]
+	if not chosen:
+		frappe.throw(_("Choose at least one value to allow"))
+	offered = _user_permission_candidates(doc)
+	if any(entry not in offered for entry in chosen):
 		frappe.throw(_("This User Permission does not widen the user's existing restrictions"))
-	permission = frappe.get_doc(
+	granted = [
 		{
-			"doctype": "User Permission",
-			"user": doc.user,
-			"allow": allow,
-			"for_value": for_value,
-			"apply_to_all_doctypes": 1,
+			**entry,
+			"user_permission": frappe.get_doc(
+				{"doctype": "User Permission", "user": doc.user, "apply_to_all_doctypes": 1, **entry}
+			)
+			.insert(ignore_permissions=True)
+			.name,
 		}
-	).insert(ignore_permissions=True)
+		for entry in chosen
+	]
 	return {
-		"user_permission": permission.name,
-		"impact": as_json({"user_permission": {"allow": allow, "for_value": for_value}}),
-		"grant_log": as_json({"user_permission": permission.name, "allow": allow, "for_value": for_value}),
+		"granted_values": "\n".join(f"{_(entry['allow'])}: {entry['for_value']}" for entry in chosen),
+		"impact": as_json({"user_permissions": chosen}),
+		"grant_log": as_json({"user_permissions": granted}),
 	}
 
 
@@ -611,7 +655,7 @@ def _grant_role_right(doc, role: str | None = None, rights=None, **_kwargs) -> d
 	holders = _role_holders(role)
 	change = _add_role_rights(doc.reference_doctype, role, plan["add"])
 	return {
-		"granted_role": role,
+		"granted_roles": role,
 		"grant_log": as_json(change),
 		"impact": as_json({**change, **holders}),
 	}
@@ -668,12 +712,12 @@ def approve(
 	name: str,
 	resolution: str,
 	role: str | None = None,
+	roles=None,
 	profile_action: str | None = None,
 	share_rights=None,
-	allow: str | None = None,
-	for_value: str | None = None,
+	user_permissions=None,
 	note: str | None = None,
-	profile: str | None = None,
+	profiles=None,
 	profile_mode: str | None = None,
 	rights=None,
 ):
@@ -687,12 +731,12 @@ def approve(
 	changes = GRANTS[resolution](
 		doc,
 		role=role,
+		roles=roles,
 		profile_action=profile_action,
-		profile=profile,
+		profiles=profiles,
 		profile_mode=profile_mode,
 		share_rights=share_rights,
-		allow=allow,
-		for_value=for_value,
+		user_permissions=user_permissions,
 		rights=rights,
 	)
 	_decide(
@@ -731,7 +775,7 @@ def get_candidates(name: str, rights: str | list | None = None) -> dict:
 
 
 @frappe.whitelist()
-def get_coverage(name: str, role: str | None = None, profile: str | None = None, mode: str = "add") -> dict:
+def get_coverage(name: str, roles=None, profiles=None, mode: str = "add") -> dict:
 	doc = _load_pending(name)
 	context = _rights_context(doc)
 	if not context:
@@ -739,22 +783,30 @@ def get_coverage(name: str, role: str | None = None, profile: str | None = None,
 	if mode not in rules.PROFILE_MODES:
 		frappe.throw(_("Choose what to do with the user's current role profiles"))
 	current = frappe.get_roles(doc.user)
+	profiles = _chosen(profiles)
 	after = (
-		_with_pseudo(_roles_after_profile(doc.user, profile, mode), current)
-		if profile
-		else [*current, *([role] if role else [])]
+		_with_pseudo(_roles_after_profile(doc.user, profiles, mode), current)
+		if profiles
+		else [*current, *_chosen(roles)]
 	)
 	return rules.coverage(context["rows"], after, context["rights"])
 
 
 @frappe.whitelist()
-def get_profile_delta(name: str, profile: str, mode: str = "add") -> dict:
+def get_roles_delta(name: str, roles=None) -> dict:
+	doc = _load_pending(name)
+	return roles_delta(doc.user, [*frappe.get_roles(doc.user), *_chosen(roles)])
+
+
+@frappe.whitelist()
+def get_profile_delta(name: str, profiles=None, mode: str = "add") -> dict:
 	doc = _load_pending(name)
 	if mode not in rules.PROFILE_MODES:
 		frappe.throw(_("Choose what to do with the user's current role profiles"))
-	if not frappe.db.exists("Role Profile", profile):
-		frappe.throw(_("Role profile {0} not found").format(profile), frappe.DoesNotExistError)
-	return _profile_delta(doc.user, profile, mode)
+	profiles = _chosen(profiles)
+	if missing := [profile for profile in profiles if not frappe.db.exists("Role Profile", profile)]:
+		frappe.throw(_("Role profile {0} not found").format(", ".join(missing)), frappe.DoesNotExistError)
+	return _profile_delta(doc.user, profiles, mode)
 
 
 @frappe.whitelist()
@@ -768,7 +820,7 @@ def reject(name: str, note: str | None = None):
 def _revert_role(doc, log: dict):
 	user = frappe.get_doc("User", doc.user)
 	user.flags.ignore_permissions = True
-	user.remove_roles(log["role"])
+	user.remove_roles(*log["roles"])
 
 
 def _revert_share(doc, log: dict):
@@ -786,9 +838,11 @@ def _revert_share(doc, log: dict):
 
 
 def _revert_user_permission(doc, log: dict):
-	if frappe.db.exists("User Permission", log["user_permission"]):
-		frappe.delete_doc("User Permission", log["user_permission"], ignore_permissions=True, force=True)
-	doc.user_permission = None
+	for entry in log["user_permissions"]:
+		if frappe.db.exists("User Permission", entry["user_permission"]):
+			frappe.delete_doc(
+				"User Permission", entry["user_permission"], ignore_permissions=True, force=True
+			)
 
 
 REVERTS = {

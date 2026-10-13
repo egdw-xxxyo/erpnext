@@ -5,6 +5,7 @@ from erpnext.access_control.permission_rules import (
 	OWNER,
 	access_delta,
 	access_map,
+	allowed_values,
 	applicable_rights,
 	chosen_rights,
 	coverage,
@@ -399,24 +400,27 @@ class TestRoleRight(unittest.TestCase):
 
 
 class TestRevoke(unittest.TestCase):
-	def test_role_grant_log_records_how_the_role_was_added(self):
-		self.assertEqual(role_grant_log("R", [], None), {"role": "R", "profile": None, "unlinked": []})
+	def test_role_grant_log_records_how_the_roles_were_added(self):
 		self.assertEqual(
-			role_grant_log("R", ["P", "Q"], "profile:Q"), {"role": "R", "profile": "Q", "unlinked": []}
+			role_grant_log(["R", "S"], [], None), {"roles": ["R", "S"], "profile": None, "unlinked": []}
 		)
 		self.assertEqual(
-			role_grant_log("R", ["P", "Q"], "unlink"), {"role": "R", "profile": None, "unlinked": ["P", "Q"]}
+			role_grant_log(["R"], ["P", "Q"], "profile:Q"), {"roles": ["R"], "profile": "Q", "unlinked": []}
+		)
+		self.assertEqual(
+			role_grant_log(["R"], ["P", "Q"], "unlink"),
+			{"roles": ["R"], "profile": None, "unlinked": ["P", "Q"]},
 		)
 
-	def test_revoking_a_role_drops_only_that_role(self):
-		self.assertEqual(roles_after_revoke("Role", {"role": "B"}, ["A", "B", "C"]), ["A", "C"])
+	def test_revoking_roles_drops_only_those_roles(self):
+		self.assertEqual(roles_after_revoke("Role", {"roles": ["B", "D"]}, ["A", "B", "C", "D"]), ["A", "C"])
 
 	def test_changes_to_role_profiles_cannot_be_revoked(self):
 		self.assertFalse(is_revocable("Role Profile", {"profile": "P"}))
-		self.assertFalse(is_revocable("Role", {"role": "R", "profile": "P", "unlinked": []}))
+		self.assertFalse(is_revocable("Role", {"roles": ["R"], "profile": "P", "unlinked": []}))
 
 	def test_direct_grants_can_be_revoked(self):
-		self.assertTrue(is_revocable("Role", {"role": "R", "profile": None, "unlinked": ["P"]}))
+		self.assertTrue(is_revocable("Role", {"roles": ["R"], "profile": None, "unlinked": ["P"]}))
 		for resolution in ("Role Right", "Document Share", "User Permission"):
 			self.assertTrue(is_revocable(resolution, {"any": 1}))
 
@@ -427,3 +431,13 @@ class TestRevoke(unittest.TestCase):
 	def test_other_resolutions_do_not_change_roles(self):
 		for resolution in ("Document Share", "User Permission", "Role Right"):
 			self.assertIsNone(roles_after_revoke(resolution, {}, ["A"]))
+
+
+class TestAllowedValues(unittest.TestCase):
+	def test_values_limited_to_other_doctypes_are_not_allowed_here(self):
+		entries = [
+			{"doc": "Main"},
+			{"doc": "Shop", "applicable_for": "Sales Invoice"},
+			{"doc": "Depot", "applicable_for": "Stock Entry"},
+		]
+		self.assertEqual(allowed_values(entries, "Stock Entry"), ["Main", "Depot"])

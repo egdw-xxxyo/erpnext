@@ -8,7 +8,7 @@
  "field_order": [
   "title",
   "user",
-  "full_name",
+  "user_full_name",
   "status",
   "column_break_subject",
   "request_type",
@@ -26,19 +26,21 @@
   "method",
   "decision_section",
   "resolution",
-  "granted_role",
-  "granted_role_profile",
+  "granted_roles",
+  "granted_role_profiles",
   "role_profile_change",
   "share_rights",
   "approved_rights",
-  "user_permission",
+  "granted_values",
   "grant_log",
   "column_break_decision",
   "decided_by",
+  "decided_by_full_name",
   "decided_on",
   "decision_note",
   "revoke_section",
   "revoked_by",
+  "revoked_by_full_name",
   "revoked_on",
   "revoke_note",
   "audit_section",
@@ -63,7 +65,7 @@
    "read_only": 1
   },
   {
-   "fieldname": "full_name",
+   "fieldname": "user_full_name",
    "fieldtype": "Data",
    "label": "Full Name",
    "fetch_from": "user.full_name",
@@ -149,7 +151,6 @@
    "fieldname": "reason",
    "fieldtype": "Small Text",
    "label": "Reason",
-   "reqd": 1,
    "set_only_once": 1
   },
   {
@@ -189,18 +190,16 @@
    "read_only": 1
   },
   {
-   "fieldname": "granted_role",
-   "fieldtype": "Link",
-   "options": "Role",
-   "label": "Granted Role",
+   "fieldname": "granted_roles",
+   "fieldtype": "Small Text",
+   "label": "Granted Roles",
    "depends_on": "eval:['Role','Role Right'].includes(doc.resolution)",
    "read_only": 1
   },
   {
-   "fieldname": "granted_role_profile",
-   "fieldtype": "Link",
-   "options": "Role Profile",
-   "label": "Granted Role Profile",
+   "fieldname": "granted_role_profiles",
+   "fieldtype": "Small Text",
+   "label": "Granted Role Profiles",
    "depends_on": "eval:doc.resolution=='Role Profile'",
    "read_only": 1
   },
@@ -226,10 +225,9 @@
    "read_only": 1
   },
   {
-   "fieldname": "user_permission",
-   "fieldtype": "Link",
-   "options": "User Permission",
-   "label": "User Permission",
+   "fieldname": "granted_values",
+   "fieldtype": "Small Text",
+   "label": "Allowed Values",
    "depends_on": "eval:doc.resolution=='User Permission'",
    "read_only": 1
   },
@@ -251,6 +249,14 @@
    "options": "User",
    "label": "Decided By",
    "read_only": 1
+  },
+  {
+   "fieldname": "decided_by_full_name",
+   "fieldtype": "Data",
+   "label": "Decided By Name",
+   "fetch_from": "decided_by.full_name",
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "decided_on",
@@ -276,6 +282,14 @@
    "label": "Revoked By",
    "options": "User",
    "read_only": 1
+  },
+  {
+   "fieldname": "revoked_by_full_name",
+   "fieldtype": "Data",
+   "label": "Revoked By Name",
+   "fetch_from": "revoked_by.full_name",
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "revoked_on",
@@ -315,7 +329,7 @@
  ],
  "in_create": 1,
  "links": [],
- "modified": "2026-10-12 19:00:00.000000",
+ "modified": "2026-10-13 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Control",
  "name": "Access Request",

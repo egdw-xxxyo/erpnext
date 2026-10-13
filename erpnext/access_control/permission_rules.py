@@ -221,10 +221,10 @@ def rights_to_add(rows: Iterable[Mapping], role: str, wanted: Iterable[str]) -> 
 	return [right for right in dict.fromkeys(wanted) if right not in held]
 
 
-def role_grant_log(role: str, profiles: Sequence[str], profile_action: str | None) -> dict:
+def role_grant_log(roles: Sequence[str], profiles: Sequence[str], profile_action: str | None) -> dict:
 	linked = bool(profiles) and profile_action != "unlink"
 	return {
-		"role": role,
+		"roles": list(roles),
 		"profile": (profile_action or "").removeprefix("profile:") if linked else None,
 		"unlinked": list(profiles) if profiles and profile_action == "unlink" else [],
 	}
@@ -242,7 +242,8 @@ def is_revocable(resolution: str | None, log: Mapping | None) -> bool:
 def roles_after_revoke(resolution: str, log: Mapping, current: Iterable[str]) -> list[str] | None:
 	if resolution != "Role":
 		return None
-	return [role for role in current if role != log["role"]]
+	revoked = set(log["roles"])
+	return [role for role in current if role not in revoked]
 
 
 def same_rows(left: Iterable[Mapping], right: Iterable[Mapping]) -> bool:
@@ -284,6 +285,14 @@ def share_rights_for(ptype: str) -> tuple[str, ...] | None:
 		return None
 	right = ptype if ptype in SHARE_RIGHTS else "read"
 	return tuple(dict.fromkeys(("read", right)))
+
+
+def allowed_values(entries: Iterable[Mapping], doctype: str) -> list[str]:
+	return [
+		entry["doc"]
+		for entry in entries
+		if not entry.get("applicable_for") or entry["applicable_for"] == doctype
+	]
 
 
 def user_permission_candidates(

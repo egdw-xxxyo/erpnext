@@ -15818,7 +15818,6 @@ Partially attached,Частково
 "Only Access Manager or System Manager can check access of other users","Перевіряти доступ інших користувачів може лише Менеджер доступів або Системний менеджер"
 "Access Manager","Менеджер доступів"
 "Invalid access context","Невірний контекст доступу"
-"Please describe why you need access","Опишіть, навіщо вам потрібен доступ"
 "{0} requests access: {1}","{0} просить доступ: {1}"
 "Page {0}","Сторінка {0}"
 "Other access","Інший доступ"
@@ -15850,13 +15849,9 @@ Partially attached,Частково
 "Access is given by roles","Доступ дають ролі"
 "+{0} new rights","+{0} нових прав"
 "holders: {0}","мають: {0}"
-"Add the role to profile {0} (users: {1})","Додати роль до профілю {0} (користувачів: {1})"
 "Unlink role profiles, keep the roles directly","Відв'язати профілі ролей, залишити ролі напряму"
 "The user gets these rights on this document only","Користувач отримає ці права лише на цей документ"
-"The user can work with documents of this value as well, in every document type that uses it","Користувач зможе працювати і з документами з цим значенням, у всіх типах документів, що його використовують"
 "Choose a role","Оберіть роль"
-"The user already has this role","Користувач уже має цю роль"
-"The role is added to role profile {0}, so every user with this profile gets it too","Роль буде додано до профілю ролей {0}, тож її отримає кожен користувач із цим профілем"
 "Approve request {0}","Схвалити запит {0}"
 "Grant by","Спосіб надання"
 "Sorted from the smallest extra access","Від найменшого додаткового доступу"
@@ -15898,7 +15893,6 @@ Partially attached,Частково
 "Access Request","Запит на доступ"
 "A user's request for access, with the decision and what it granted","Запит користувача на доступ із рішенням і тим, що було надано"
 "Decision","Рішення"
-"Granted Role","Надана роль"
 "Role Profile Change","Зміна профілю ролей"
 "Shared Rights","Права спільного доступу"
 "Decided By","Вирішив"
@@ -15931,7 +15925,6 @@ Role profile {0} was not applied to user {1},Профіль ролей {0} не 
 Replaced role profiles: {0},Замінено профілі ролей: {0}
 Removed roles: {0},Знято ролі: {0}
 Role profile {0} not found,Профіль ролей {0} не знайдено
-Granted Role Profile,Призначений профіль ролей
 lacks: {0},бракує: {0}
 covers all chosen,покриває все обране
 Not covered: {0},Не покрито: {0}
@@ -15993,9 +15986,26 @@ Open access to this document only,Відкрити доступ лише до ц
 Allow the value (user permission),Дозволити значення (дозвіл користувача)
 A role profile change cannot be revoked from the request later,Зміну профілю ролей потім не можна буде відкликати із запиту
 "Access was given through a role profile change, it cannot be revoked from the request","Доступ надано через зміну профілю ролей, відкликати його із запиту не можна"
-The user loses role {0},Користувач втратить роль {0}
 Role profiles unlinked at approval ({0}) are not linked back,"Профілі, відв'язані під час погодження ({0}), назад не прив'язуються"
 Sharing of {0} goes back to the rights the user had before the request,"Спільний доступ до {0} повернеться до прав, які користувач мав до запиту"
 Sharing of {0} with the user is removed,Спільний доступ користувача до {0} буде прибрано
 User Permission {0} = {1} is removed,Дозвіл користувача {0} = {1} буде видалено
 Request {0} has no change that can be revoked,"У запиті {0} немає зміни, яку можна відкликати"
+Decided By Name,Ім'я того хто вирішив
+Revoked By Name,Ім'я того хто відкликав
+Allow values,Дозволити значення
+Values of this document the user is not allowed to work with yet,"Значення цього документа, з якими користувачу ще не дозволено працювати"
+Add the roles to profile {0} (users: {1}),Додати ролі до профілю {0} (користувачів: {1})
+The user loses roles: {0},Користувач втратить ролі: {0}
+"The user can work with documents of these values as well, in every document type that uses them","Користувач зможе працювати і з документами з цими значеннями, у всіх типах документів, що їх використовують"
+"The roles are added to role profile {0}, so every user with this profile gets them too","Ролі буде додано до профілю ролей {0}, тож їх отримає кожен користувач із цим профілем"
+"Roles {0} were added to role profile {1}, users with this profile: {2}","Ролі {0} додано до профілю ролей {1}, користувачів із цим профілем: {2}"
+Choose at least one role,Оберіть хоча б одну роль
+Roles {0} were not saved for user {1},Ролі {0} не збереглися для користувача {1}
+Choose at least one role profile,Оберіть хоча б один профіль ролей
+Role profiles {0} were not applied to user {1},Профілі ролей {0} не застосувалися до користувача {1}
+Choose at least one value to allow,"Оберіть хоча б одне значення, яке треба дозволити"
+Granted Roles,Видані ролі
+Granted Role Profiles,Видані профілі ролей
+Allowed Values,Дозволені значення
+Chosen: {0},Обрано: {0}

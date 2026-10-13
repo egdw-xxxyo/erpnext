@@ -75,7 +75,7 @@ erpnext.access_control.situation_html = (frm, options) => {
 			? `<a href="${link}" target="_blank"><b>${esc(frm.doc.title || "")}</b></a>`
 			: `<b>${esc(frm.doc.title || "")}</b>`
 	}</p>
-		<p><span class="text-muted">${__("Reason")}:</span> ${esc(frm.doc.reason || "")}</p>
+		${frm.doc.reason ? `<p><span class="text-muted">${__("Reason")}:</span> ${esc(frm.doc.reason)}</p>` : ""}
 		${blockers}
 		${hints ? `<ul class="ac-list text-muted">${hints}</ul>` : ""}
 		${workflow}
@@ -165,16 +165,118 @@ erpnext.access_control.by_coverage = (candidates, wanted) =>
 		}))
 		.sort((a, b) => a.missing.length - b.missing.length || a.index - b.index);
 
+erpnext.access_control.PICK_LISTS = {
+	role_list: {
+		label: () => __("Roles"),
+		help: () => __("Sorted by the chosen rights first, then from the smallest extra access"),
+	},
+	profile_list: {
+		label: () => __("Role Profiles"),
+		help: () => __("Profiles that give this access, sorted from the smallest change"),
+	},
+};
+
+erpnext.access_control.picked = (dialog, fieldname) => dialog.fields_dict[fieldname].get_value() || [];
+
+erpnext.access_control.describe_pick = (control) => {
+	const help = erpnext.access_control.PICK_LISTS[control.df.fieldname].help();
+	const chosen = control._options
+		.filter((option) => control.values.includes(option.value))
+		.map((option) => option.label);
+	control.df.description = chosen.length
+		? `<span class="text-body">${__("Chosen: {0}", [chosen.join(", ")])}</span><br>${help}`
+		: help;
+	control.set_description(control.df.description);
+};
+
+erpnext.access_control.watch_pick_list = (dialog, fieldname, on_change) => {
+	const control = dialog.fields_dict[fieldname];
+	control.$list_wrapper.find(".select-all-options").remove();
+	const update_status = control.update_status.bind(control);
+	control.update_status = () => {
+		update_status();
+		erpnext.access_control.describe_pick(control);
+		on_change();
+	};
+};
+
+erpnext.access_control.set_pick_list = (dialog, fieldname, items, selected) => {
+	const control = dialog.fields_dict[fieldname];
+	const values = selected.filter((value) => items.some((item) => item.value === value));
+	control.df.options = items;
+	control._options = items;
+	control.values = values;
+	control._selected_values = items.filter((item) => values.includes(item.value));
+	control.update_status();
+	erpnext.access_control.describe_pick(control);
+};
+
+erpnext.access_control.pick_list_field = (fieldname, resolution) => ({
+	fieldtype: "MultiSelectList",
+	fieldname,
+	label: erpnext.access_control.PICK_LISTS[fieldname].label(),
+	description: erpnext.access_control.PICK_LISTS[fieldname].help(),
+	depends_on: `eval:doc.resolution==='${resolution}'`,
+});
+
+erpnext.access_control.CHECK_LISTS = {
+	value_list: {
+		title: () => __("Allow values"),
+		description: () => __("Values of this document the user is not allowed to work with yet"),
+	},
+};
+
+erpnext.access_control.check_list_html = (fieldname, items, selected) => {
+	const esc = frappe.utils.escape_html;
+	const spec = erpnext.access_control.CHECK_LISTS[fieldname];
+	const rows = items.length
+		? items
+				.map(
+					({ value, label }) => `<div class="checkbox"><label>
+						<input type="checkbox" value="${esc(value)}" ${selected.includes(value) ? "checked" : ""}>
+						<span class="label-area">${esc(label)}</span>
+					</label></div>`
+				)
+				.join("")
+		: `<p class="text-muted">—</p>`;
+	return `<div class="form-group">
+		<label class="control-label">${spec.title()}</label>
+		${rows}
+		<p class="help-box small text-muted">${spec.description()}</p>
+	</div>`;
+};
+
+erpnext.access_control.checked_values = (dialog, fieldname) =>
+	dialog.fields_dict[fieldname].$wrapper
+		.find("input:checked")
+		.map((_, input) => input.value)
+		.get();
+
+erpnext.access_control.render_check_list = (dialog, fieldname, items, selected) =>
+	dialog.fields_dict[fieldname].$wrapper.html(
+		erpnext.access_control.check_list_html(
+			fieldname,
+			items,
+			selected.filter((value) => items.some((item) => item.value === value))
+		)
+	);
+
 erpnext.access_control.role_select_options = (pool, wanted) =>
 	erpnext.access_control.by_coverage(pool.candidates, wanted).map(({ candidate, missing }) => ({
 		value: candidate.role,
-		label: erpnext.access_control.candidate_label(candidate, missing, wanted),
+		label: frappe.utils.escape_html(__(candidate.role)),
+		description: frappe.utils.escape_html(
+			erpnext.access_control.candidate_details(candidate, missing, wanted)
+		),
 	}));
 
 erpnext.access_control.profile_select_options = (pool, wanted) =>
 	erpnext.access_control.by_coverage(pool.profile_candidates, wanted).map(({ candidate, missing }) => ({
 		value: candidate.profile,
-		label: erpnext.access_control.profile_candidate_label(candidate, missing, wanted),
+		label: frappe.utils.escape_html(candidate.profile),
+		description: frappe.utils.escape_html(
+			erpnext.access_control.profile_candidate_details(candidate, missing, wanted)
+		),
 	}));
 
 erpnext.access_control.share_coverage = (current, shared) => ({
@@ -239,12 +341,14 @@ erpnext.access_control.render_coverage = (dialog, options) => {
 erpnext.access_control.coverage_args = (dialog, options) => {
 	const resolution = dialog.get_value("resolution");
 	if (resolution === "Role") {
-		const role = erpnext.access_control.chosen_role(dialog);
-		return role ? { role } : null;
+		const roles = erpnext.access_control.picked(dialog, "role_list");
+		return roles.length ? { roles } : null;
 	}
 	if (resolution === "Role Profile") {
-		const profile = dialog.get_value("profile");
-		return profile ? { profile, mode: erpnext.access_control.profile_mode(dialog, options) } : null;
+		const profiles = erpnext.access_control.picked(dialog, "profile_list");
+		return profiles.length
+			? { profiles, mode: erpnext.access_control.profile_mode(dialog, options) }
+			: null;
 	}
 	return null;
 };
@@ -263,21 +367,20 @@ erpnext.access_control.fetch_coverage = (dialog, options) => {
 	});
 };
 
-erpnext.access_control.update_select = (dialog, fieldname, select_options) =>
-	dialog.set_df_property(fieldname, "options", select_options);
-
 erpnext.access_control.relabel_candidates = (dialog, options) => {
 	const wanted = erpnext.access_control.wanted_rights(dialog, options);
 	const pool = dialog.pool || options;
-	erpnext.access_control.update_select(
+	erpnext.access_control.set_pick_list(
 		dialog,
-		"role",
-		erpnext.access_control.role_select_options(pool, wanted)
+		"role_list",
+		erpnext.access_control.role_select_options(pool, wanted),
+		erpnext.access_control.picked(dialog, "role_list")
 	);
-	erpnext.access_control.update_select(
+	erpnext.access_control.set_pick_list(
 		dialog,
-		"profile",
-		erpnext.access_control.profile_select_options(pool, wanted)
+		"profile_list",
+		erpnext.access_control.profile_select_options(pool, wanted),
+		erpnext.access_control.picked(dialog, "profile_list")
 	);
 };
 
@@ -332,9 +435,8 @@ erpnext.access_control.approval_warnings = (dialog, options, values) => {
 	].filter(Boolean);
 };
 
-erpnext.access_control.candidate_label = (candidate, missing = [], wanted = []) =>
+erpnext.access_control.candidate_details = (candidate, missing = [], wanted = []) =>
 	[
-		__(candidate.role),
 		erpnext.access_control.coverage_note(missing, wanted),
 		__("+{0} new rights", [candidate.size]),
 		candidate.scope === "owner" ? __("own only") : null,
@@ -343,9 +445,8 @@ erpnext.access_control.candidate_label = (candidate, missing = [], wanted = []) 
 		.filter(Boolean)
 		.join(" · ");
 
-erpnext.access_control.profile_candidate_label = (candidate, missing = [], wanted = []) =>
+erpnext.access_control.profile_candidate_details = (candidate, missing = [], wanted = []) =>
 	[
-		candidate.profile,
 		erpnext.access_control.coverage_note(missing, wanted),
 		__("+{0} new rights", [candidate.size]),
 		candidate.lost_roles.length ? __("removes {0} roles", [candidate.lost_roles.length]) : null,
@@ -425,15 +526,17 @@ erpnext.access_control.profile_impact_html = (delta) => {
 };
 
 erpnext.access_control.profile_impact = (dialog, options, wrapper) => {
-	const profile = dialog.get_value("profile");
+	const profiles = erpnext.access_control.picked(dialog, "profile_list");
 	const mode = erpnext.access_control.profile_mode(dialog, options);
-	if (!profile) {
+	if (!profiles.length) {
 		wrapper.html(`<p class="text-muted">${__("Choose a role profile")}</p>`);
 		return;
 	}
 	wrapper.html(`<p class="text-muted">${__("Loading...")}</p>`);
-	frappe.xcall(`${AR_METHOD}.get_profile_delta`, { name: options.name, profile, mode }).then((delta) => {
-		if (dialog.get_value("profile") !== profile) return;
+	const key = JSON.stringify([profiles, mode]);
+	dialog.profile_key = key;
+	frappe.xcall(`${AR_METHOD}.get_profile_delta`, { name: options.name, profiles, mode }).then((delta) => {
+		if (dialog.profile_key !== key) return;
 		dialog.current_delta = delta;
 		wrapper.html(erpnext.access_control.STYLE + erpnext.access_control.profile_impact_html(delta));
 		erpnext.access_control.bind_tabs(wrapper);
@@ -445,14 +548,11 @@ erpnext.access_control.profile_options = (profiles) =>
 		? [
 				...profiles.map((profile) => ({
 					value: `profile:${profile.name}`,
-					label: __("Add the role to profile {0} (users: {1})", [profile.name, profile.users]),
+					label: __("Add the roles to profile {0} (users: {1})", [profile.name, profile.users]),
 				})),
 				{ value: "unlink", label: __("Unlink role profiles, keep the roles directly") },
 		  ]
 		: [];
-
-erpnext.access_control.chosen_role = (dialog) =>
-	dialog.get_value(dialog.get_value("resolution") === "Role Right" ? "right_role" : "role");
 
 erpnext.access_control.role_right_html = (preview, doctype) => {
 	const esc = frappe.utils.escape_html;
@@ -483,7 +583,7 @@ erpnext.access_control.role_right_html = (preview, doctype) => {
 };
 
 erpnext.access_control.role_right_impact = (dialog, options, wrapper) => {
-	const role = erpnext.access_control.chosen_role(dialog);
+	const role = dialog.get_value("right_role");
 	dialog.role_right_preview = null;
 	if (!role) {
 		wrapper.html(`<p class="text-muted">${__("Choose a role")}</p>`);
@@ -527,7 +627,7 @@ erpnext.access_control.revoke_summary = (frm, preview) => {
 			),
 		Role: () =>
 			[
-				__("The user loses role {0}", [bold(__(log.role))]),
+				__("The user loses roles: {0}", [log.roles.map((role) => bold(__(role))).join(", ")]),
 				log.unlinked.length
 					? __("Role profiles unlinked at approval ({0}) are not linked back", [
 							log.unlinked.map(esc).join(", "),
@@ -541,7 +641,11 @@ erpnext.access_control.revoke_summary = (frm, preview) => {
 				? __("Sharing of {0} goes back to the rights the user had before the request", [target])
 				: __("Sharing of {0} with the user is removed", [target]),
 		"User Permission": () =>
-			__("User Permission {0} = {1} is removed", [bold(__(log.allow)), bold(log.for_value)]),
+			log.user_permissions
+				.map((entry) =>
+					__("User Permission {0} = {1} is removed", [bold(__(entry.allow)), bold(entry.for_value)])
+				)
+				.join("<br>"),
 	};
 	return `<div class="alert alert-warning">${summaries[preview.resolution]()}</div>`;
 };
@@ -623,7 +727,7 @@ erpnext.access_control.refresh_impact = (dialog, options) => {
 	if (resolution === "User Permission") {
 		wrapper.html(
 			`<p>${__(
-				"The user can work with documents of this value as well, in every document type that uses it"
+				"The user can work with documents of these values as well, in every document type that uses them"
 			)}</p>`
 		);
 		return;
@@ -636,47 +740,40 @@ erpnext.access_control.refresh_impact = (dialog, options) => {
 		erpnext.access_control.role_right_impact(dialog, options, wrapper);
 		return;
 	}
-	const role = erpnext.access_control.chosen_role(dialog);
-	if (!role) {
+	const roles = erpnext.access_control.picked(dialog, "role_list");
+	if (!roles.length) {
 		wrapper.html(`<p class="text-muted">${__("Choose a role")}</p>`);
 		return;
 	}
 	wrapper.html(`<p class="text-muted">${__("Loading...")}</p>`);
-	frappe
-		.xcall("erpnext.access_control.permissions_engine.get_role_delta", {
-			user: options.user,
-			role,
-		})
-		.then((delta) => {
-			if (erpnext.access_control.chosen_role(dialog) !== role) return;
-			if (delta.already_has) {
-				wrapper.html(`<div class="alert alert-info">${__("The user already has this role")}</div>`);
-				return;
-			}
-			dialog.current_delta = delta;
-			const profile = dialog.get_value("profile_action") || "";
-			const profile_note = profile.startsWith("profile:")
-				? `<div class="alert alert-warning">${__(
-						"The role is added to role profile {0}, so every user with this profile gets it too",
-						[frappe.utils.escape_html(profile.slice("profile:".length))]
-				  )}</div>`
-				: "";
-			wrapper.html(
-				erpnext.access_control.STYLE + profile_note + erpnext.access_control.render_grants(delta)
-			);
-		});
+	const key = JSON.stringify(roles);
+	dialog.roles_key = key;
+	frappe.xcall(`${AR_METHOD}.get_roles_delta`, { name: options.name, roles }).then((delta) => {
+		if (dialog.roles_key !== key) return;
+		dialog.current_delta = delta;
+		const profile = dialog.get_value("profile_action") || "";
+		const profile_note = profile.startsWith("profile:")
+			? `<div class="alert alert-warning">${__(
+					"The roles are added to role profile {0}, so every user with this profile gets them too",
+					[frappe.utils.escape_html(profile.slice("profile:".length))]
+			  )}</div>`
+			: "";
+		wrapper.html(
+			erpnext.access_control.STYLE + profile_note + erpnext.access_control.render_grants(delta)
+		);
+	});
 };
 
-erpnext.access_control.IMPACT_FIELDS = [
-	"resolution",
-	"role",
-	"right_role",
-	"profile_action",
-	"share_rights",
-	"user_permission",
-	"profile",
-	"profile_mode",
-];
+erpnext.access_control.impact_state = (dialog) =>
+	JSON.stringify([
+		...["resolution", "right_role", "profile_action", "share_rights", "profile_mode"].map((fieldname) =>
+			dialog.get_value(fieldname)
+		),
+		...Object.keys(erpnext.access_control.PICK_LISTS).map((fieldname) =>
+			erpnext.access_control.picked(dialog, fieldname)
+		),
+		erpnext.access_control.checked_values(dialog, "value_list"),
+	]);
 
 erpnext.access_control.approve_dialog = (frm) =>
 	frappe.xcall(`${AR_METHOD}.get_approval_options`, { name: frm.doc.name }).then((options) => {
@@ -688,12 +785,14 @@ erpnext.access_control.approve_dialog = (frm) =>
 			options,
 			options.requested_rights
 		);
+		const values = options.user_permissions.map((candidate) => ({
+			value: JSON.stringify(candidate),
+			label: `${__(candidate.allow)}: ${candidate.for_value}`,
+		}));
 		let dialog = null;
 		const refresh = () => {
 			if (!dialog) return;
-			const key = JSON.stringify(
-				erpnext.access_control.IMPACT_FIELDS.map((fieldname) => dialog.get_value(fieldname))
-			);
+			const key = erpnext.access_control.impact_state(dialog);
 			if (key === dialog.impact_key) return;
 			dialog.impact_key = key;
 			erpnext.access_control.refresh_impact(dialog, options);
@@ -711,6 +810,8 @@ erpnext.access_control.approve_dialog = (frm) =>
 					label: __("Rights to grant"),
 					columns: 4,
 					sort_options: false,
+					select_all: 1,
+					on_change: () => dialog && erpnext.access_control.on_rights_change(dialog, options),
 					hidden: !options.rights.length,
 					description: __(
 						"Pre-filled with what the user asked for. Roles and profiles below follow this choice"
@@ -731,16 +832,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 					onchange: refresh,
 				},
 				{ fieldtype: "HTML", fieldname: "unavailable" },
-				{
-					fieldtype: "Select",
-					fieldname: "role",
-					label: __("Role"),
-					options: role_options,
-					default: role_options.length ? role_options[0].value : undefined,
-					description: __("Sorted by the chosen rights first, then from the smallest extra access"),
-					depends_on: "eval:doc.resolution==='Role'",
-					onchange: refresh,
-				},
+				erpnext.access_control.pick_list_field("role_list", "Role"),
 				{
 					fieldtype: "Select",
 					fieldname: "right_role",
@@ -783,26 +875,11 @@ erpnext.access_control.approve_dialog = (frm) =>
 					onchange: refresh,
 				},
 				{
-					fieldtype: "Select",
-					fieldname: "user_permission",
-					label: __("Allow value"),
-					options: options.user_permissions.map((candidate) => ({
-						value: JSON.stringify(candidate),
-						label: `${__(candidate.allow)}: ${candidate.for_value}`,
-					})),
+					fieldtype: "HTML",
+					fieldname: "value_list",
 					depends_on: "eval:doc.resolution==='User Permission'",
-					onchange: refresh,
 				},
-				{
-					fieldtype: "Select",
-					fieldname: "profile",
-					label: __("Role Profile"),
-					options: profile_select,
-					default: profile_select.length ? profile_select[0].value : undefined,
-					description: __("Profiles that give this access, sorted from the smallest change"),
-					depends_on: "eval:doc.resolution==='Role Profile'",
-					onchange: refresh,
-				},
+				erpnext.access_control.pick_list_field("profile_list", "Role Profile"),
 				{
 					fieldtype: "Select",
 					fieldname: "profile_mode",
@@ -821,18 +898,22 @@ erpnext.access_control.approve_dialog = (frm) =>
 			],
 			primary_action_label: __("Approve"),
 			primary_action(values) {
+				const picked = (fieldname) => erpnext.access_control.picked(dialog, fieldname);
 				const submit = () =>
 					frappe
 						.xcall(`${AR_METHOD}.approve`, {
 							name: frm.doc.name,
 							resolution: values.resolution,
-							role: erpnext.access_control.chosen_role(dialog),
+							role: values.right_role,
+							roles: picked("role_list"),
 							profile_action: values.profile_action,
-							profile: values.profile,
+							profiles: picked("profile_list"),
 							profile_mode: values.profile_mode,
 							share_rights: values.share_rights,
 							rights: options.rights.length ? values.rights || [] : undefined,
-							...(values.user_permission ? JSON.parse(values.user_permission) : {}),
+							user_permissions: erpnext.access_control
+								.checked_values(dialog, "value_list")
+								.map((value) => JSON.parse(value)),
 							note: values.note,
 						})
 						.then(() => {
@@ -854,6 +935,30 @@ erpnext.access_control.approve_dialog = (frm) =>
 		dialog.fields_dict.situation.$wrapper.html(
 			erpnext.access_control.STYLE + erpnext.access_control.situation_html(frm, options)
 		);
+		erpnext.access_control.set_pick_list(
+			dialog,
+			"role_list",
+			role_options,
+			role_options.slice(0, 1).map((option) => option.value)
+		);
+		erpnext.access_control.set_pick_list(
+			dialog,
+			"profile_list",
+			profile_select,
+			profile_select.slice(0, 1).map((option) => option.value)
+		);
+		Object.keys(erpnext.access_control.PICK_LISTS).forEach((fieldname) =>
+			erpnext.access_control.watch_pick_list(dialog, fieldname, refresh)
+		);
+		erpnext.access_control.render_check_list(
+			dialog,
+			"value_list",
+			values,
+			values.map((option) => option.value)
+		);
+		Object.keys(erpnext.access_control.CHECK_LISTS).forEach((fieldname) =>
+			dialog.fields_dict[fieldname].$wrapper.on("change", "input", refresh)
+		);
 		dialog.fields_dict.unavailable.$wrapper.html(
 			erpnext.access_control.unavailable_html(options.unavailable)
 		);
@@ -864,9 +969,6 @@ erpnext.access_control.approve_dialog = (frm) =>
 		dialog.refetch_candidates = frappe.utils.debounce(
 			() => erpnext.access_control.fetch_candidates(dialog, options),
 			400
-		);
-		dialog.fields_dict.rights.$wrapper.on("change", "input", () =>
-			erpnext.access_control.on_rights_change(dialog, options)
 		);
 		dialog.fields_dict.share_rights.$wrapper.on("change", "input", () =>
 			erpnext.access_control.render_coverage(dialog, options)
