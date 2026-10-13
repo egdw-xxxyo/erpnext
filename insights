@@ -100,13 +100,13 @@ ensure_workers() {
 
 fix_assets() {
   local FRONTEND_CID
-  FRONTEND_CID=$(dc ps -q frontend 2>/dev/null)
+  FRONTEND_CID=$(dc ps -q assets 2>/dev/null)
   if [ -z "$FRONTEND_CID" ]; then
-    echo "  WARNING: frontend container not running, skipping asset fix"
+    echo "  WARNING: assets container not running, skipping asset fix"
     return 0
   fi
 
-  echo "  -> Syncing all assets to frontend container..."
+  echo "  -> Syncing all assets to the assets container..."
   local ASSET_APPS="frappe erpnext insights"
   local ASSET_RM="rm -rf /home/frappe/frappe-bench/sites/assets/frappe /home/frappe/frappe-bench/sites/assets/erpnext /home/frappe/frappe-bench/sites/assets/insights"
   if docker exec docker-backend-1 test -d /home/frappe/frappe-bench/sites/assets/hrms 2>/dev/null; then

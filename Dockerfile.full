@@ -90,7 +90,16 @@ RUN mkdir -p /home/frappe/frappe-bench/sites \
 USER frappe
 WORKDIR /home/frappe/frappe-bench
 ENV NODE_OPTIONS=--max-old-space-size=3072
-RUN bench build --force
+# The build writes its manifest (assets.json) and the per-app links into
+# sites/assets. At runtime the sites volume is mounted over that path and the
+# image entrypoint points sites/assets at /home/frappe/frappe-bench/assets, which
+# still held the base image's manifest — naming bundles this build replaced.
+# Move the fresh tree there, the way the base image does for its own build, so a
+# container serves the right assets from the first request with no build at runtime.
+RUN bench build --force \
+    && rm -rf /home/frappe/frappe-bench/assets \
+    && cp -r /home/frappe/frappe-bench/sites/assets /home/frappe/frappe-bench/assets \
+    && rm -rf /home/frappe/frappe-bench/sites/assets
 
 # Last on purpose: the tag changes with every commit, and anywhere earlier it
 # would invalidate the asset build above.

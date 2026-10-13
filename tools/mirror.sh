@@ -11,7 +11,7 @@ fi
 MIRROR_ROLE="${MIRROR_ROLE:-}"
 MIRROR_DIR="$DIR/.mirror"
 MIRROR_TOOLS_IMAGE="erp-mirror-tools:1"
-MIRROR_APP_SERVICES="backend frontend websocket scheduler queue-short queue-long"
+MIRROR_APP_SERVICES="backend assets frontend websocket scheduler queue-short queue-long"
 export MIRROR_DIR
 
 case "$MIRROR_ROLE" in

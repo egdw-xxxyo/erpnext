@@ -14,6 +14,7 @@
 # Written by ./deploy (nginx_target_write):
 #   map $host $frappe_backend  { default "backend:8000"; }
 #   map $host $frappe_socketio { default "websocket:9000"; }
+#   map $host $frappe_assets   { default "assets:8080"; }
 # An exact file name, not a wildcard: a missing file has to fail `nginx -t`,
 # not leave the variables undefined for the first request to find out.
 include /etc/nginx/frappe-target/target.conf;
@@ -48,7 +49,23 @@ server {
 		deny all;
 	}
 
+	# Assets come from the release that is live, not from this container: its
+	# `assets` service serves the tree built into its own image. That is what
+	# lets this container outlive releases. A 404 there — another release's
+	# hashed bundle, asked for by a tab loaded before the deploy — and an asset
+	# server that is not answering both fall back to the shared union of recent
+	# releases (tools/nginx/publish_union.py).
 	location /assets {
+		proxy_http_version 1.1;
+		proxy_set_header Host $host;
+		proxy_connect_timeout 2s;
+		proxy_intercept_errors on;
+		error_page 404 502 504 = @assets_union;
+		proxy_pass http://$frappe_assets;
+	}
+
+	location @assets_union {
+		root /home/frappe/frappe-bench/sites/assets-union;
 		try_files $uri =404;
 	}
 

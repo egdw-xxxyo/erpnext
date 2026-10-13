@@ -42,6 +42,34 @@ services:
       PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
       GUNICORN_CMD_ARGS: --graceful-timeout=25
 
+  # Asset origin of the release: nginx over the asset tree built into the image.
+  # The frontend proxies /assets to it (tools/nginx).
+  assets:
+    image: *image_blue
+    networks:
+      - frappe_network
+    restart: unless-stopped
+    command:
+      - bash
+      - /opt/frappe-nginx/assets-entrypoint.sh
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - -o
+        - /dev/null
+        - -m
+        - "3"
+        - http://127.0.0.1:8080/nginx_status
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - ./tools/nginx:/opt/frappe-nginx:ro
+
   configurator:
     image: *image_blue
     networks:
