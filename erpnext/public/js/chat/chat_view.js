@@ -361,7 +361,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-conv-main-btn{flex:1;}
 		.cv-list-empty{padding:12px;color:var(--text-muted);}
 		.cv-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--cv-thread-bg);}
-		.cv-thread{flex:1;overflow-y:auto;padding:12px 8%;position:relative;}
+		.cv-thread{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 8%;position:relative;}
 		.cv-empty{margin:auto;text-align:center;color:var(--text-muted);}
 		.cv-empty .fa{font-size:48px;opacity:.35;margin-bottom:8px;}
 		.cv-fab{position:absolute;right:20px;bottom:84px;z-index:5;width:44px;height:44px;border-radius:50%;background:var(--card-bg);
@@ -1073,7 +1073,10 @@ erpnext.chat_view.ChatView = class ChatView {
 	bind_thread_events() {
 		const $t = this.$thread;
 		$t.on("click", ".cv-do-reply", (e) => this.reply_to_msg(this.msg_of(e.currentTarget)));
-		$t.on("click", ".cv-do-react", (e) => this.react_popover(e));
+		$t.on("click", ".cv-do-react", (e) => {
+			e.stopPropagation();
+			this.react_popover(e.currentTarget);
+		});
 		$t.on("click", ".cv-do-menu", (e) => {
 			e.stopPropagation();
 			this.message_menu(e.currentTarget);
@@ -1364,11 +1367,11 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	popover(html, anchor, place) {
+		const off = $(anchor).offset();
+		const anchor_height = $(anchor).outerHeight();
 		this.close_popovers();
 		const $pop = $(html).addClass("cv-pop").appendTo("body");
-		const off = $(anchor).offset();
-		const top =
-			place === "above" ? off.top - $pop.outerHeight() - 8 : off.top + $(anchor).outerHeight() + 4;
+		const top = place === "above" ? off.top - $pop.outerHeight() - 8 : off.top + anchor_height + 4;
 		let left = off.left;
 		const overflow = left + $pop.outerWidth() - $(window).width() + 8;
 		if (overflow > 0) left -= overflow;
@@ -1423,17 +1426,17 @@ erpnext.chat_view.ChatView = class ChatView {
 		);
 	}
 
-	react_popover(e) {
-		e.stopPropagation();
-		const m = this.msg_of(e.currentTarget);
+	react_popover(anchor) {
+		const m = this.msg_of(anchor);
 		if (!m) return;
 		const $pop = this.popover(
 			`<div class="cv-react-pop">${erpnext.chat_render.QUICK_REACTIONS.map(
 				(x) => `<span data-e="${x}">${x}</span>`
 			).join("")}</div>`,
-			e.currentTarget,
+			anchor,
 			"above"
 		);
+		$(anchor).closest(".cv-bubble").addClass("cv-menu-open");
 		$pop.find("span").on("click", (ev) => {
 			const emoji = $(ev.currentTarget).attr("data-e");
 			this.close_popovers();
@@ -1479,6 +1482,14 @@ erpnext.chat_view.ChatView = class ChatView {
 				},
 			},
 		];
+		if (m.can_react) {
+			items.push({
+				icon: "fa fa-smile-o",
+				label: __("React"),
+				keep_open: true,
+				action: () => this.react_popover(trigger),
+			});
+		}
 		if (m.can_reply && !chat.read_only) {
 			items.push({
 				icon: "fa fa-reply",
@@ -1508,7 +1519,8 @@ erpnext.chat_view.ChatView = class ChatView {
 		$(trigger).closest(".cv-bubble").addClass("cv-menu-open");
 		$pop.find(".cv-menu-item").on("click", (e) => {
 			const it = items[$(e.currentTarget).data("i")];
-			this.close_popovers();
+			e.stopPropagation();
+			if (!it.keep_open) this.close_popovers();
 			it.action();
 		});
 	}
