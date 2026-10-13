@@ -3822,6 +3822,9 @@ def _migrate_callmebot_keys_to_auth():
 		print(f"  Encrypted {len(rows)} CallMeBot API key(s) into __Auth")
 
 
+CALLMEBOT_HELP_ROUTE = "docs/whatsapp-notifications"
+
+
 def setup_callmebot_default_settings():
 	"""Initialize CallMeBot Settings Single DocType with standard privacy templates."""
 	if not frappe.db.exists("DocType", "CallMeBot Settings"):
@@ -3862,6 +3865,13 @@ def setup_callmebot_default_settings():
 					"include_link": 1,
 				},
 			)
+			modified = True
+
+		# the help page users are sent to when CallMeBot stops delivering; only where it is written
+		if not settings.get("help_url") and frappe.db.exists(
+			"Wiki Document", {"route": CALLMEBOT_HELP_ROUTE, "is_published": 1}
+		):
+			settings.help_url = f"/{CALLMEBOT_HELP_ROUTE}"
 			modified = True
 
 		if modified:
