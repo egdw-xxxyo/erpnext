@@ -466,12 +466,15 @@ def _notify_mentions(thread_doc, sender, users, preview):
 	if not users:
 		return
 	sender_name = frappe.bold(_user_name(sender))
+	# A record's chat is named by what the record is: "Task Fix the pump", not a bare title.
 	if thread_doc.thread_type == "Document":
 		title = thread_doc.reference_label or thread_doc.reference_name
+		where = f"{_(thread_doc.reference_doctype)} {frappe.bold(title)}" if title else ""
 	else:
 		title = thread_doc.title
+		where = frappe.bold(title) if title else ""
 	subject = (
-		_("{0} mentioned you in the chat {1}").format(sender_name, frappe.bold(title))
+		_("{0} mentioned you in the chat {1}").format(sender_name, where)
 		if title
 		else _("{0} mentioned you in a chat").format(sender_name)
 	)
