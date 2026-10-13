@@ -599,7 +599,13 @@ def _thread_row(t, me, last_read, can_purge):
 	)
 	# Someone with neither WhatsApp nor the mobile app only sees a message at the desk.
 	unreachable = without_channels([p.user for p in parts])
+	images = dict(
+		frappe.get_all(
+			"User", filters={"name": ["in", [p.user for p in parts]]}, fields=["name", "user_image"], as_list=True
+		)
+	)
 	for p in parts:
+		p.image = images.get(p.user)
 		# Not everyone has an Employee record; a participant is never shown as a bare login.
 		p.employee_name = p.employee_name or _user_name(p.user)
 		p.no_channels = 1 if p.user in unreachable else 0
