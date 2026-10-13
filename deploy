@@ -444,11 +444,16 @@ reclaim_after_deploy() {
 }
 
 # Points the stack at the image that was just built and remembers the release it
-# replaces. The frontend follows the release for as long as it serves the assets
-# baked into its own image.
+# replaces. The frontend is only nginx plus a config from the repo, so it stays
+# on the image it has — recreating it is what closes the :8080 listener — until
+# that image is older than the previous release and would be a third one to keep.
 release_pin() {
-  local running
+  local running frontend
   running=$(env_get ERPNEXT_IMAGE_BLUE)
+  frontend=$(env_get ERPNEXT_IMAGE_FRONTEND)
+  if lean_build || [ "$frontend" != "$running" ] || ! docker image inspect "$frontend" >/dev/null 2>&1; then
+    env_set ERPNEXT_IMAGE_FRONTEND "$RELEASE_IMAGE"
+  fi
   if lean_build; then
     env_set ERPNEXT_PREV_IMAGE "$RELEASE_IMAGE"
   elif [ -n "$running" ] && [ "$running" != "$RELEASE_IMAGE" ]; then
@@ -457,7 +462,6 @@ release_pin() {
   env_set ERPNEXT_IMAGE_BLUE "$RELEASE_IMAGE"
   env_set ERPNEXT_IMAGE_GREEN "$RELEASE_IMAGE"
   env_set ERPNEXT_IMAGE_WORKERS "$RELEASE_IMAGE"
-  env_set ERPNEXT_IMAGE_FRONTEND "$RELEASE_IMAGE"
 }
 
 build_image() {
