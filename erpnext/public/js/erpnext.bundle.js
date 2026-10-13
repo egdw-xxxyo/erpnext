@@ -71,5 +71,7 @@ import "./deal_documents_panel.js";
 import "./quotation_negotiation.js";
 import "./environment_badge.js";
 import "./sidebar_memory.js";
+import "./access_control/role_grants.js";
+import "./access_control/access_denied.js";
 
 // import { sum } from 'frappe/public/utils/util.js'
