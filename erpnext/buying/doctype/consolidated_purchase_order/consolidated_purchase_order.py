@@ -23,6 +23,9 @@ SERVER_MANAGED_PROGRESS_FIELDS = (
 
 class ConsolidatedPurchaseOrder(Document):
 	def validate(self):
+		from erpnext.buying.procurement_item_likes import preserve_item_likes
+
+		preserve_item_likes(self)
 		self._validate_locked_workflow_state()
 		self._set_company_currency()
 		self._set_ceo_approval_threshold()
