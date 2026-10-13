@@ -204,6 +204,7 @@ erpnext.chat_info = {
 			}
 			if (p.on_remove) {
 				$row.find(".ci-row-action")
+					.last()
 					.show()
 					.attr("title", __("Remove"))
 					.on("click", () => p.on_remove());
