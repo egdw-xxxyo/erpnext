@@ -27,6 +27,7 @@ from erpnext.manufacturing.doctype.production_line.production_line import (
 	_first_serial,
 	_moment,
 )
+from erpnext.manufacturing.packing import landing_warehouse, staging_warehouses
 
 VIEW_ROLES = ("Manufacturing Manager", "Manufacturing User", "System Manager")
 HISTORY_DAYS = 7
@@ -47,7 +48,8 @@ def get_overview():
 	serials = _serials([wo["name"] for wo in work_orders])
 	reject_warehouses = {line["reject_warehouse"] for line in lines if line["reject_warehouse"]}
 
-	units = _units(work_orders, cards, inspections, serials, reject_warehouses)
+	staging = staging_warehouses()
+	units = _units(work_orders, cards, inspections, serials, reject_warehouses, staging)
 	for wo in work_orders:
 		wo["units"] = _count(u["state"] for u in units if u["work_order"] == wo["name"])
 	_attach_progress(lines, work_orders, units, workplaces)
@@ -64,6 +66,7 @@ def get_overview():
 		"items": items,
 		"work_orders": work_orders,
 		"attention": attention,
+		"packing_jobs": _packing_jobs(),
 		"error_logs": errors,
 		"issues": _issues(lines, workplaces, items, work_orders, attention, errors),
 	}
@@ -339,8 +342,30 @@ def _serials(work_orders):
 	}
 
 
-def _units(work_orders, cards, inspections, serials, reject_warehouses):
-	"""One row per serial: which of its cards are where, and what that makes the unit."""
+def _packing_jobs():
+	"""Boxes being packed right now: the packing a unit goes through after it is in stock."""
+	jobs = frappe.get_all(
+		"Packing Job",
+		filters={"status": "In Progress"},
+		fields=["name", "production_line", "workplace", "employee", "started_on", "box_no", "box_total"],
+		order_by="started_on",
+	)
+	for job in jobs:
+		job["units"] = frappe.db.count(
+			"Packing Job Serial", {"parent": job["name"], "parenttype": "Packing Job"}
+		)
+		job["age"] = (
+			int(time_diff_in_seconds(now_datetime(), job["started_on"])) if job["started_on"] else None
+		)
+	return jobs
+
+
+def _units(work_orders, cards, inspections, serials, reject_warehouses, staging=frozenset()):
+	"""One row per serial: which of its cards are where, and what that makes the unit.
+
+	A unit lying in a staging warehouse is stock but still waits for packing; the warehouse, not
+	a card, says so.
+	"""
 	wo_by_name = {wo["name"]: wo for wo in work_orders}
 	by_serial = {}
 	for card in cards:
@@ -361,7 +386,7 @@ def _units(work_orders, cards, inspections, serials, reject_warehouses):
 		if rejected:
 			state = "rejected"
 		elif sn.warehouse and sn.warehouse not in reject_warehouses:
-			state = "in_stock"
+			state = "waiting_packing" if sn.warehouse in staging else "in_stock"
 		elif qi_card and qi_card.docstatus == 0:
 			state = "measured"
 		elif closed_cards and open_cards:
@@ -626,7 +651,11 @@ def _issues(lines, workplaces, items, work_orders, attention, errors):
 					"Item",
 					code,
 				)
-			if line["manufacture_at_packing"] and item["operations"]:
+			if (
+				line["manufacture_at_packing"]
+				and item["operations"]
+				and not landing_warehouse(item["default_bom"])
+			):
 				if PACKING_OPERATION not in [o["operation"] for o in item["operations"]]:
 					add(
 						"warning",

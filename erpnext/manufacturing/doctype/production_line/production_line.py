@@ -832,14 +832,17 @@ def finish_unit(job_card):
 	# `Stock Entry.check_if_operations_completed` refuses a Manufacture entry while any
 	# operation of the Work Order is still open, and packing is one of those operations.
 	line = _line_for_item(card.production_item)
-	deferred = bool(line and line.manufacture_at_packing)
+	# The BOM, not the line, says how this unit finishes: one that names a staging warehouse
+	# lands in stock now and is packed later, whatever the line's flag still says for the Work
+	# Orders opened on an older BOM.
+	from erpnext.manufacturing.packing import landing_warehouse
+
+	deferred = bool(line and line.manufacture_at_packing and not landing_warehouse(card.bom_no))
 
 	stock_entry = card.auto_stock_entry
 	if deferred:
 		stock_entry = None
 	elif not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
-		from erpnext.manufacturing.packing import landing_warehouse
-
 		# A BOM that marks the step entering stock and names a warehouse for it lands the unit
 		# there — staging, until a box is closed around it.
 		stock_entry = _post_manufacture(card, serial_no, target_warehouse=landing_warehouse(card.bom_no))
