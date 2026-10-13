@@ -11,6 +11,7 @@ configured (see `_send_fcm_push`) or for a user with no registered device.
 """
 
 import re
+from urllib.parse import parse_qs, urlparse
 
 import frappe
 from frappe.utils import strip_html_tags
@@ -30,6 +31,15 @@ def _notifications_muted(user: str) -> bool:
 	"""Respect the user's own desk notification switch; a missing row means default-on."""
 	enabled = frappe.db.get_value("Notification Settings", user, "enabled")
 	return enabled is not None and not enabled
+
+
+def _chat_thread(link: str | None) -> str:
+	"""The chat a notification links to (a mention in a chat that is not about a record), so a
+	tap on the push opens that conversation."""
+	parsed = urlparse(link or "")
+	if not parsed.path.endswith("/employee-chat"):
+		return ""
+	return (parse_qs(parsed.query).get("thread") or [""])[0]
 
 
 def on_notification_log(doc, method=None):
@@ -65,6 +75,7 @@ def on_notification_log(doc, method=None):
 				"notification": doc.name,
 				"doctype": doc.document_type or "",
 				"docname": doc.document_name or "",
+				"thread": _chat_thread(doc.link),
 			},
 		)
 	except Exception:

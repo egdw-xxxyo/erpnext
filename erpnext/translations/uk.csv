@@ -13452,6 +13452,23 @@ Additional Information for Status {0},Додаткова інформація д
 "Вас згадали у коментарі","Вас згадали у коментарі"
 "Вам надано доступ до документу","Вам надано доступ до документу"
 "Only System Managers can configure CallMeBot Settings.","Лише системні адміністратори (System Manager) можуть налаштовувати CallMeBot."
+"WhatsApp notifications are paused by CallMeBot. Send the word ""resume"" to the bot from your phone to turn them back on.","CallMeBot призупинив сповіщення у WhatsApp. Надішліть боту слово «resume» зі свого телефону, щоб увімкнути їх знову."
+"WhatsApp notifications are not delivered: the CallMeBot API key is no longer valid. Get a new key from the bot and save it in your Notification Settings.","Сповіщення у WhatsApp не доставляються: API-ключ CallMeBot більше не дійсний. Отримайте новий ключ у бота та збережіть його у своїх налаштуваннях сповіщень."
+"CallMeBot did not accept the message. Try again later.","CallMeBot не прийняв повідомлення. Спробуйте пізніше."
+"Send ""resume"" in WhatsApp","Надіслати «resume» у WhatsApp"
+"Open Notification Settings","Відкрити налаштування сповіщень"
+"How to restore WhatsApp notifications","Як відновити сповіщення у WhatsApp"
+"CallMeBot Status","Стан CallMeBot"
+"Invalid API Key","Недійсний API-ключ"
+"Result of the last message sent to WhatsApp","Результат останнього повідомлення, надісланого у WhatsApp"
+"CallMeBot Alerted On","Останнє попередження CallMeBot"
+"Help Page","Сторінка довідки"
+"Notification Channels","Канали сповіщень"
+"WhatsApp + Mobile App","WhatsApp + мобільний застосунок"
+"No Channel","Немає каналу"
+"Channels that reach the employee outside ERPNext: WhatsApp (CallMeBot) and mobile app push","Канали, якими сповіщення доходять до працівника поза ERPNext: WhatsApp (CallMeBot) і push у мобільному застосунку"
+"No notification channel configured","Канал сповіщень не налаштовано"
+"Wiki page or any link that explains how to restore WhatsApp notifications. Sent to a user whose CallMeBot account is paused or whose API key stopped working.","Сторінка вікі або будь-яке посилання з поясненням, як відновити сповіщення у WhatsApp. Надсилається користувачеві, чий обліковий запис CallMeBot призупинено або чий API-ключ перестав працювати."
 Calculate Totals,Підрахувати суми
 Rows,Рядків
 No rows to calculate.,Немає рядків для підрахунку.
@@ -16009,3 +16026,169 @@ Granted Roles,Видані ролі
 Granted Role Profiles,Видані профілі ролей
 Allowed Values,Дозволені значення
 Chosen: {0},Обрано: {0}
+"Consumption Recipe","Рецепт списання"
+"Consumption Recipe Item","Позиція рецепта списання"
+"What gets used up, and how much of it, as a function of how many units a step handles. Reusable: packing uses it today, manufacturing operations can use it later.","Що і скільки витрачається залежно від кількості одиниць на кроці. Рецепт універсальний: пакування використовує його вже зараз, операції виробництва зможуть пізніше."
+"Recipe Name","Назва рецепта"
+"Calculator","Калькулятор"
+"Test Quantities","Тестові кількості"
+"Quantities to try, separated by commas","Кількості для перевірки, через кому"
+"Calculate","Розрахувати"
+"Quantity Formula","Формула кількості"
+"Variables: units, qty. Example: units, ceil(units / 2)","Змінні: units, qty. Приклад: units, ceil(units / 2)"
+"Optional. The row applies only when this is true. Example: units >= 3","Необов'язково. Рядок діє, лише коли умова істинна. Приклад: units >= 3"
+"Optional. Empty means the warehouse of whoever uses the recipe.","Необов'язково. Порожнє означає склад того, хто використовує рецепт."
+"Add at least one item to the recipe","Додайте до рецепта хоча б одну позицію"
+"Row {0}: {1} {2} is not valid: {3}","Рядок {0}: {1} {2} некоректне: {3}"
+"{0} is not a whole number","{0} не є цілим числом"
+"Enter at least one quantity greater than zero","Вкажіть хоча б одну кількість більшу за нуль"
+"{0} is not a valid way to handle a shortage","{0} не є допустимим способом обробки нестачі"
+"Consumption Recipe {0} is not active","Рецепт списання {0} неактивний"
+"Item {0} has no source warehouse in the recipe and none was given","Для позиції {0} у рецепті не вказано склад, і інший не передано"
+"Not enough stock to issue the consumables; {0} is kept as a draft","Недостатньо залишків для списання витратних матеріалів; {0} збережено як чернетку"
+Units in the box,Одиниць у коробці
+Consumption by units in the box,Списання за кількістю одиниць у коробці
+"What is written off when a box is packed with this template. The last box of an order may hold fewer units, so the table below shows every count up to the box size.","Що списується, коли коробка пакується за цим шаблоном. В останній коробці замовлення може бути менше одиниць, тому таблиця нижче показує кожну кількість до розміру коробки."
+Quality Control,Контроль якості
+Warehouse After Operation,Склад після операції
+does not change,не змінюється
+Allowed Operations,Дозволені операції
+Workplace Overview,Огляд робочих місць
+"Production: units are started here and offered to the clients. The other roles are steps after production.","Виробництво: тут запускають одиниці, і клієнти пропонують це місце. Інші ролі — кроки після виробництва."
+"Where the unit goes once the operation at this workplace is done. Empty: the warehouse does not change.","Куди потрапляє одиниця після завершення операції на цьому робочому місці. Порожньо: склад не змінюється."
+"Row {0}: {1} is a group warehouse","Рядок {0}: {1} є груповим складом"
+"Row {0}: warehouse {1} belongs to {2}, not to {3}","Рядок {0}: склад {1} належить {2}, а не {3}"
+"Only one operation can put the unit into stock, but rows {0} are all marked","Лише одна операція може класти одиницю на склад, а позначено рядки {0}"
+"No serial numbers given","Серійні номери не вказано"
+"Unknown serial numbers: {0}","Невідомі серійні номери: {0}"
+"Not waiting for packing: {0}","Не очікують пакування: {0}"
+"no warehouse","немає складу"
+"No warehouse to pack into: give one or set it on the packing step of the BOM","Немає складу для пакування: вкажіть його або задайте на кроці пакування в BOM"
+"Box {0} of {1}","Коробка {0} з {1}"
+"Box {0}","Коробка {0}"
+"{0} pcs","{0} шт."
+"Not packed yet, cannot be delivered: {0}","Ще не упаковано, відвантажити не можна: {0}"
+"Units waiting for packing","Одиниці, що чекають пакування"
+Line,Лінія
+Daily Planning,Щоденне планування
+Manual Planning,Ручне планування
+Release Orders,Запустити замовлення
+Release Order,Запустити замовлення
+Production Line Order,Замовлення виробничої лінії
+"Daily: Work Orders are opened every day from the plan, an overflow one is opened when the plan runs out, and units nobody started are closed in the evening. Manual: the manager adds orders below and releases them; nothing is opened or closed automatically, and when an order is made the bench has nothing more to take.","Щодня: Work Order відкриваються щодня за планом, коли план вичерпано — відкривається додатковий, а невзяті одиниці закриваються ввечері. Вручну: менеджер додає замовлення нижче й запускає їх; нічого не відкривається і не закривається автоматично, а коли замовлення виготовлено, робоче місце більше нічого не бере."
+"How many units to make. Fixed once the Work Order is released.","Скільки одиниць виготовити. Після запуску Work Order змінити не можна."
+Row {0}: Qty must be greater than zero,Рядок {0}: кількість має бути більшою за нуль
+"Row {0}: the Work Order is already released, its Qty can no longer change","Рядок {0}: Work Order уже запущено, його кількість більше не змінюється"
+Production line {0} plans daily, it has no orders to release,Виробнича лінія {0} планує щодня, замовлень для запуску немає
+Production line {0} is disabled,Виробнича лінія {0} вимкнена
+"Nothing is left to make for {0} on line {1}: every released order is done. Release another order.","Для {0} на лінії {1} більше нічого виготовляти: усі запущені замовлення виконано. Запустіть нове замовлення."
+"Open a Work Order for each of the {0} order(s) that have none? Serial Nos and Job Cards are created now.","Відкрити Work Order для кожного з {0} замовлень, у яких його ще немає? Серійні номери й Job Card створюються зараз."
+"Leave empty for any bench of the line. Fill in to hand the order's units out only at one bench.","Залиште порожнім для будь-якого робочого місця лінії. Заповніть, щоб одиниці замовлення видавалися лише на одному місці."
+"{0} mentioned you in the chat {1}","{0} згадав(ла) вас у чаті {1}"
+"{0} mentioned you in a chat","{0} згадав(ла) вас у чаті"
+"{0} has no access to this document","{0} не має доступу до цього документа"
+"User {0} not found","Користувача {0} не знайдено"
+"Only a chat about a document can be left","Вийти можна лише з чату документа"
+"You are assigned to this document and cannot leave its chat","Ви призначені на цей документ і не можете вийти з його чату"
+"Assignee","Виконавець"
+"Leave chat","Вийти з чату"
+"Stop following this chat: it leaves your list and no longer notifies you. You can still read it from the document.","Перестати стежити за чатом: він зникне з вашого списку і більше не надсилатиме сповіщень. Читати його й далі можна з документа."
+"Leave this chat? It will be removed from your chat list.","Вийти з цього чату? Його буде прибрано з вашого списку чатів."
+"You left the chat","Ви вийшли з чату"
+"A group chat needs a name","Груповий чат повинен мати назву"
+"Only a group chat can have a picture","Зображення може мати лише груповий чат"
+"Upload the picture first","Спершу завантажте зображення"
+"Only a group chat has admins","Адміністратори є лише в груповому чаті"
+"Unknown role","Невідома роль"
+"{0} is not in this chat","{0} не є учасником цього чату"
+"A group chat needs at least one admin","У груповому чаті має бути принаймні один адміністратор"
+"A chat is with one person. To talk to several people, create a group chat.","Чат ведеться з однією людиною. Щоб спілкуватися з кількома, створіть груповий чат."
+"Person","Людина"
+"New group chat","Новий груповий чат"
+"Take the admin rights back","Забрати права адміністратора"
+"Make an admin: they can rename the chat, change its picture and manage people.","Зробити адміністратором: зможе перейменовувати чат, змінювати зображення та керувати учасниками."
+"Change picture","Змінити зображення"
+"Set picture","Встановити зображення"
+"Remove picture","Прибрати зображення"
+"Unread messages","Непрочитані повідомлення"
+"1 new message — click to read","1 нове повідомлення — натисніть, щоб прочитати"
+"{0} new messages — click to read","Нових повідомлень: {0} — натисніть, щоб прочитати"
+"Have read","Прочитали"
+"Not read yet","Ще не прочитали"
+"Nobody has read it yet","Ще ніхто не прочитав"
+"Read by everyone","Прочитали всі"
+"Read by {0} of {1}","Прочитали {0} з {1}"
+"Search messages","Пошук повідомлень"
+"Search in this chat","Пошук у цьому чаті"
+"Search messages in","Пошук повідомлень у"
+"Search for messages","Шукайте повідомлення"
+"{0} messages found","Знайдено повідомлень: {0}"
+"No messages found","Повідомлень не знайдено"
+"Unknown document type {0}","Невідомий тип документа {0}"
+"{0} cannot be opened on its own","{0} не можна відкрити окремо"
+"Yes","Так"
+"Submitted","Проведено"
+Supplier Item Alias,Відповідність товару постачальника
+Supplier Item Name,Назва у постачальника
+Confirmed By,Підтвердив
+Match supplier item names,Зіставити назви товарів постачальника
+Save the order and supplier invoices before matching items.,Збережіть замовлення та рахунки постачальників перед зіставленням позицій.
+Select supplier invoice,Виберіть рахунок постачальника
+Read invoice items,Прочитати позиції рахунку
+Reading invoice items...,Зчитування позицій рахунку...
+Confirm supplier item names,Підтвердження назв товарів постачальника
+Save confirmed matches,Зберегти підтверджені відповідності
+Choose an order item for every checked invoice row.,Виберіть позицію замовлення для кожного позначеного рядка рахунку.
+Select invoice rows and their matching order items.,Позначте рядки рахунку та виберіть відповідні позиції замовлення.
+Saved {0} new matches; {1} were already saved.,Збережено {0} нових відповідностей; {1} вже були збережені.
+Open PDF,Відкрити PDF
+Check the PDF and tick only confirmed matches. Order quantities and prices will not change.,Звіртеся з PDF та позначте лише підтверджені відповідності. Кількість і ціни замовлення не зміняться.
+Could not read the invoice item table. A text PDF with name and quantity columns is required. No matches were saved.,Не вдалося прочитати таблицю позицій рахунку. Потрібен текстовий PDF із колонками назви та кількості. Відповідності не збережено.
+"PDF extraction may miss or merge rows. Verify names, units and VAT basis against the PDF; quantity and price are only hints.","Під час читання PDF рядки можуть пропускатися чи об'єднуватися. Звірте назви, одиниці та врахування ПДВ з PDF; кількість і ціна є лише підказками."
+Matching hints,Підказки зіставлення
+Select an order item,Виберіть позицію замовлення
+Page {0},Сторінка {0}
+Saved supplier match,Збережена відповідність постачальника
+Similar name,Схожа назва
+Same quantity,Однакова кількість
+Same price,Однакова ціна
+Same unit,Однакова одиниця
+Only the buyer responsible for this order can confirm supplier item names.,Підтверджувати назви товарів постачальника може лише закупівельник цього замовлення.
+Cannot match items from a cancelled order.,Не можна зіставляти позиції скасованого замовлення.
+Select a saved supplier invoice from this order.,Виберіть збережений рахунок постачальника з цього замовлення.
+Select a PDF invoice.,Виберіть рахунок у форматі PDF.
+The invoice or order items changed. Open the matching window again.,Рахунок або позиції замовлення змінилися. Відкрийте вікно зіставлення ще раз.
+The supplier item name or part number is too long to save. Check the PDF layout.,Назва або артикул постачальника задовгі для збереження. Перевірте структуру PDF.
+Cannot save a supplier match for a disabled Item.,Не можна зберегти відповідність для вимкненої номенклатури.
+This supplier name and part number are already linked to another Item.,Ця назва й артикул постачальника вже пов'язані з іншою номенклатурою.
+This supplier part number is already linked to another Item.,Цей артикул постачальника вже пов'язаний з іншою номенклатурою.
+Select a PDF smaller than 10 MB.,Виберіть PDF розміром до 10 МБ.
+Select a PDF with no more than 50 pages.,Виберіть PDF із не більш ніж 50 сторінками.
+Select a PDF with no more than 200 item rows.,Виберіть PDF із не більш ніж 200 рядками позицій.
+Supplier article,Артикул постачальника
+Order item,Позиція ЗЗНП
+Prefill from PDF,Презаповнити з PDF
+PDF prefill is only available in an editable draft.,Презаповнення з PDF доступне лише в чернетці з можливістю редагування.
+Select an enabled purchase Item without variants.,Виберіть активну закупівельну номенклатуру без шаблону варіантів.
+Select our Items manually. Only Items and the invoice supplier will be added; enter quantity and price in the order. Existing rows will remain.,Виберіть нашу номенклатуру вручну. Додадуться лише товари та постачальник рахунку; кількість і ціну введіть у замовленні. Наявні рядки залишаться.
+Invoice items,Позиції рахунку
+PDF quantity,Кількість у PDF
+PDF price,Ціна у PDF
+Add selected items,Додати вибрані позиції
+Tick invoice rows and select our Item for each one.,Позначте рядки рахунку та виберіть нашу номенклатуру для кожного з них.
+The order changed. Open the PDF prefill again.,Замовлення змінилося. Відкрийте презаповнення з PDF ще раз.
+"Items were added to the draft. Enter their quantities and prices, check the remaining fields, then save the order.","Позиції додано до чернетки. Введіть кількість і ціни, перевірте решту полів та збережіть замовлення."
+
+Select a supplier invoice from this draft.,Виберіть рахунок постачальника з цієї чернетки.
+
+Saved supplier names and articles preselect our Items. Check the matches; choose unknown or ambiguous Items manually. Existing order rows will remain.,Збережені назви й артикули постачальника автоматично підставляють нашу номенклатуру. Перевірте відповідності; невідомі або неоднозначні позиції виберіть вручну. Наявні рядки замовлення залишаться.
+Prefill quantity and price from PDF,Презаповнити кількість і ціну з PDF
+"Verify quantities, units, prices and VAT against the PDF before saving the order.","Перед збереженням замовлення звірте кількість, одиниці виміру, ціни та ПДВ з PDF."
+"Items were added to the draft. Verify quantities, units, prices and VAT against the PDF before saving.","Позиції додано до чернетки. Перед збереженням звірте кількість, одиниці виміру, ціни та ПДВ з PDF."
+Some PDF quantities or prices could not be read. Fill the missing values manually.,Деякі значення кількості або ціни в PDF не вдалося прочитати. Заповніть їх вручну.
+Select all,Вибрати все
+
+Liked,Вподобано
+Like,Вподобати
+Unlike,Зняти вподобання
+The item does not belong to this consolidated order.,Позиція не належить до цього зведеного замовлення.

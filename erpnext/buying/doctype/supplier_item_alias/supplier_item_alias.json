@@ -1,0 +1,24 @@
+{
+ "doctype": "DocType",
+ "name": "Supplier Item Alias",
+ "module": "Buying",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "title_field": "supplier_item_name",
+ "search_fields": "supplier,supplier_item_name,supplier_part_no,item_code",
+ "track_changes": 1,
+ "field_order": ["supplier", "supplier_item_name", "supplier_part_no", "item_code", "source_order", "source_file", "confirmed_by"],
+ "fields": [
+  {"fieldname": "supplier", "label": "Supplier", "fieldtype": "Link", "options": "Supplier", "reqd": 1, "read_only": 1, "in_list_view": 1, "in_standard_filter": 1},
+  {"fieldname": "supplier_item_name", "label": "Supplier Item Name", "fieldtype": "Data", "reqd": 1, "read_only": 1, "in_list_view": 1},
+  {"fieldname": "supplier_part_no", "label": "Supplier Part Number", "fieldtype": "Data", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "item_code", "label": "Item Code", "fieldtype": "Link", "options": "Item", "reqd": 1, "read_only": 1, "in_list_view": 1},
+  {"fieldname": "source_order", "label": "Consolidated Purchase Order", "fieldtype": "Link", "options": "Consolidated Purchase Order", "read_only": 1},
+  {"fieldname": "source_file", "label": "Supplier Invoice PDF", "fieldtype": "Attach", "read_only": 1},
+  {"fieldname": "confirmed_by", "label": "Confirmed By", "fieldtype": "Link", "options": "User", "read_only": 1}
+ ],
+ "permissions": [
+  {"role": "System Manager", "read": 1, "select": 1, "report": 1, "delete": 1},
+  {"role": "Закупівельник", "read": 1, "select": 1, "report": 1}
+ ]
+}

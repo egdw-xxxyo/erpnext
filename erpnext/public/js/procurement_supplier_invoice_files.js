@@ -21,6 +21,9 @@ const supplierRequisiteFields = {
 };
 
 frappe.ui.form.on("Purchase Invoice", {
+	company(frm) {
+		reset_and_render_supplier_requisites_validation(frm);
+	},
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
 		render_supplier_vat(frm);
@@ -41,6 +44,9 @@ frappe.ui.form.on("Purchase Invoice", {
 });
 
 frappe.ui.form.on("Payment Request", {
+	company(frm) {
+		reset_and_render_supplier_requisites_validation(frm);
+	},
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
 		render_supplier_vat(frm);
@@ -66,6 +72,9 @@ frappe.ui.form.on("Payment Request", {
 });
 
 frappe.ui.form.on("Payment Entry", {
+	company(frm) {
+		reset_and_render_supplier_requisites_validation(frm);
+	},
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
 		render_supplier_vat(frm);

@@ -1,75 +1,80 @@
 // Form sidebar tabs: "Sidebar" (stock) | "Chat" (the single Document thread of the open record).
-// The thread view is the bubble's own (ChatBubble methods), mounted into the sidebar instead of the
-// floating popup. The chat can be expanded into a large popup and minimised back.
+// The thread is the chat pages' own view (erpnext.chat_view.ChatView in embedded mode), so it has
+// everything a chat has there. It can be expanded into a large popup and minimised back.
 
 frappe.provide("erpnext.form_sidebar_chat");
 
 const FSC_API = "erpnext.crm.page.employee_chat.employee_chat";
 
-// Thread-view methods borrowed from the bubble: they only need source/active/$body/$compose/
-// $readonly/$input and a few hooks stubbed below.
-const FSC_BORROWED = [
-	"load_thread",
-	"render_deep_archive",
-	"unpack",
-	"watch_archive",
-	"apply_archive_state",
-	"render_composer",
-	"autosize",
-	"record_voice",
-	"attach_media",
-	"send",
-	"chat",
-];
-
 class FormSidebarChat {
-	constructor(frm, source, $pane) {
+	constructor(frm, $pane) {
 		this.frm = frm;
-		this.source = source;
 		this.$pane = $pane;
-		this.active = null;
 		this.ref = null;
 		this.expanded = false;
-		this.no_banner = true;
+		this.drawn_unread = 0;
+		// Its own source: the view keeps its own list and realtime, apart from the bubble's.
+		this.source = new erpnext.chat_sources.Employee();
 		this.make_dom();
 	}
 
 	make_dom() {
 		this.$root = $(`
 			<div class="fsc-root">
-				<div class="fsc-head">
-					<span class="fsc-title">${__("Chat about this document")}</span>
-					<span class="fsc-act fsc-toggle" title="${__("Expand")}"><i class="fa fa-expand"></i></span>
-				</div>
-				<div class="cb-body"></div>
-				<div class="cb-readonly" style="display:none;">${__(
-					"This chat is archived — new messages are not allowed"
-				)}</div>
-				<div class="cb-compose" style="display:none;">
-					<button class="cb-ico cb-attach" title="${__("Attach file")}"><i class="fa fa-paperclip"></i></button>
-					<button class="cb-ico cb-mic" title="${__("Record voice message")}"><i class="fa fa-microphone"></i></button>
-					<textarea class="form-control" rows="1" placeholder="${__("Type a message")}"></textarea>
-					<button class="cb-ico cb-send" title="${__("Send")}"><i class="fa fa-paper-plane"></i></button>
-				</div>
+				<div class="fsc-view"></div>
+				<div class="fsc-unread-veil" style="display:none;"><span></span></div>
 			</div>
 		`).appendTo(this.$pane);
-		this.$body = this.$root.find(".cb-body");
-		this.$compose = this.$root.find(".cb-compose");
-		this.$readonly = this.$root.find(".cb-readonly");
-		this.$input = this.$compose.find("textarea");
-		this.$toggle = this.$root.find(".fsc-toggle");
-
-		this.$root.find(".cb-send").on("click", () => this.send());
-		this.$root.find(".cb-attach").on("click", () => this.attach_media());
-		this.$root.find(".cb-mic").on("click", () => this.record_voice());
-		this.$toggle.on("click", () => this.set_expanded(!this.expanded));
-		this.$input.on("keydown", (e) => {
-			if (e.key === "Enter" && !e.shiftKey) {
-				e.preventDefault();
-				this.send();
-			}
+		this.$veil = this.$root.find(".fsc-unread-veil");
+		// The chat pages' own thread view — reply, reactions, emoji, message menu and all —
+		// without the conversation list. Nothing is marked read just because the form was
+		// opened: the user has to click into the chat first (`engage`).
+		this.view = new erpnext.chat_view.ChatView({ main: this.$root.find(".fsc-view") }, this.source, {
+			embedded: true,
+			manual_read: true,
+			header: (chat) => ({
+				size: 30,
+				compact: true,
+				trailing: [this.toggle_action()],
+				after_title_html: chat.unread
+					? `<span class="fsc-unread" title="${__("Unread messages")}">${
+							chat.unread > 99 ? "99+" : chat.unread
+					  }</span>`
+					: "",
+			}),
+			on_change: () => this.render_unread(),
+			on_forget: () => this.reopen(),
 		});
-		this.$input.on("input", () => this.autosize());
+		// Any click inside the chat (the composer included) counts as taking it up.
+		this.$root.on("mousedown", () => this.engage());
+		this.render_idle("");
+	}
+
+	toggle_action() {
+		return {
+			icon: `fa fa-${this.expanded ? "compress" : "expand"}`,
+			title: this.expanded ? __("Minimise") : __("Expand"),
+			on_click: () => this.set_expanded(!this.expanded),
+		};
+	}
+
+	// No thread on screen (loading, failed): a plain title bar and a line of text.
+	render_idle(text) {
+		this.idle_text = text;
+		this.view.clear();
+		this.$veil.hide();
+		const toggle = this.toggle_action();
+		this.view.$header
+			.addClass("cv-header-compact")
+			.html(
+				`<div class="cv-header-main" style="cursor:default;"><div class="cv-header-title">${__(
+					"Chat about this document"
+				)}</div></div>
+				<button class="cv-ico" title="${toggle.title}"><i class="${toggle.icon}"></i></button>`
+			)
+			.find(".cv-ico")
+			.on("click", toggle.on_click);
+		this.view.$thread.html(`<div class="cv-empty">${frappe.utils.escape_html(text || "")}</div>`);
 	}
 
 	set_expanded(state) {
@@ -83,80 +88,94 @@ class FormSidebarChat {
 			if (this.$backdrop) this.$backdrop.remove();
 			this.$root.removeClass("fsc-expanded").appendTo(this.$pane);
 		}
-		this.$toggle
-			.attr("title", state ? __("Minimise") : __("Expand"))
-			.html(`<i class="fa fa-${state ? "compress" : "expand"}"></i>`);
-		this.autosize();
-		this.$body.scrollTop(this.$body[0].scrollHeight);
+		if (this.view.active) this.view.render_header();
+		else this.render_idle(this.idle_text);
 	}
 
-	// Bubble hooks used by the borrowed methods.
-	render_mute_toggle() {}
-	render_badges() {
-		erpnext.form_sidebar_chat.update_badge(this.frm);
+	// --- reading ------------------------------------------------------------------
+
+	// Until the user takes the chat up, new messages stay unread behind a veil that says how
+	// many there are; the header badge keeps counting down as they are scrolled into view.
+	render_unread() {
+		const chat = this.view.active ? this.view.chat() : null;
+		const count = (chat && chat.unread) || 0;
+		this.$veil
+			.toggle(count > 0 && !this.view.engaged)
+			.find("span")
+			.text(
+				count === 1
+					? __("1 new message — click to read")
+					: __("{0} new messages — click to read", [count > 99 ? "99+" : count])
+			);
+		if (count === this.drawn_unread) return;
+		this.drawn_unread = count;
+		if (chat) this.view.render_header();
+		// The launcher and the tab badge count the same chat from the bubble's own list.
+		if (erpnext.whatsapp.bubble) erpnext.whatsapp.bubble.refresh_soon();
 	}
 
-	async refresh() {
-		try {
-			await this.source.load_list();
-		} catch (e) {
-			return;
-		}
-		erpnext.form_sidebar_chat.update_badge(this.frm);
-		if (!this.active) return;
-		if (!(this.source.chats || []).some((c) => c.id === this.active)) {
-			this.active = null;
-			this.$body.html(`<div class="cb-empty">${__("Failed to open chat")}</div>`);
-			return;
-		}
-		this.render_composer(this.chat());
-		this.load_thread(this.active);
+	engage() {
+		if (this.view.engaged) return;
+		this.view.engaged = true;
+		this.$veil.hide();
+		this.view.update_read_progress();
 	}
 
-	// Open (creating on first use) the Document thread of the form's record.
+	// Put the chat down: new messages wait for a click again.
+	disengage() {
+		this.view.engaged = false;
+		this.render_unread();
+	}
+
+	// --- opening ------------------------------------------------------------------
+
+	// Open (creating on first use) the Document thread of the form's record. Opening does not
+	// join: a chat the user only reads is not in their list, so its row comes from the server
+	// here and is handed to the view.
 	async open() {
 		const ref = this.frm.docname;
-		if (this.ref === ref && this.active) return this.refresh();
+		if (this.ref === ref && this.view.active) return this.view.refresh(true);
 		this.ref = ref;
-		this.active = null;
-		this.auto_unpacked = null;
-		this.$readonly.hide();
-		this.$compose.hide();
-		this.$body.html(`<div class="cb-empty">${__("Loading")}...</div>`);
-		let name;
+		this.view.engaged = false;
+		this.render_idle(__("Loading") + "...");
+		let res;
 		try {
-			const res = await frappe.xcall(`${FSC_API}.open_document_thread`, {
+			res = await frappe.xcall(`${FSC_API}.open_document_thread`, {
 				reference_doctype: this.frm.doctype,
 				reference_name: ref,
 			});
-			name = res.name;
-			await this.source.load_list();
+			await this.view.refresh(true);
 		} catch (e) {
-			if (this.ref === ref) this.$body.html(`<div class="cb-empty">${__("Failed to open chat")}</div>`);
+			if (this.ref === ref) this.render_idle(__("Failed to open chat"));
 			return;
 		}
 		if (this.ref !== ref) return;
-		this.active = name;
-		erpnext.form_sidebar_chat.update_badge(this.frm);
-		this.render_composer(this.chat());
-		this.autosize();
-		this.load_thread(name);
+		if (!this.view.chats[res.name]) this.view.chats[res.name] = this.source.shape(res.thread);
+		await this.view.open(res.name);
+		this.render_unread();
+	}
+
+	// The chat left this user's list (they left it) or is gone (removed): open it afresh.
+	reopen() {
+		const same = this.ref === this.frm.docname;
+		this.reset();
+		if (same) this.open();
 	}
 
 	reset() {
 		this.ref = null;
-		this.active = null;
-		clearInterval(this.archive_poll);
+		this.drawn_unread = 0;
+		this.view.engaged = false;
 		if (this.expanded) this.set_expanded(false);
-		this.$body.empty();
+		this.render_idle("");
+	}
+
+	destroy() {
+		if (this.expanded) this.set_expanded(false);
+		this.view.destroy();
+		this.$root.remove();
 	}
 }
-
-FSC_BORROWED.forEach((m) => {
-	FormSidebarChat.prototype[m] = function (...args) {
-		return erpnext.ChatBubble.prototype[m].apply(this, args);
-	};
-});
 
 (function () {
 	const FS = erpnext.form_sidebar_chat;
@@ -167,7 +186,7 @@ FSC_BORROWED.forEach((m) => {
 	}
 
 	function inject_styles() {
-		if (document.getElementById("fsc-styles")) return;
+		if (document.getElementById("fsc-styles-v2")) return;
 		const css = `
 		.fsc-tabs{display:flex;border-bottom:1px solid var(--border-color);position:sticky;top:0;z-index:2;
 			background:var(--card-bg);}
@@ -178,19 +197,22 @@ FSC_BORROWED.forEach((m) => {
 		.fsc-badge{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--red-500,#e24c4c);
 			color:#fff;font-size:10px;line-height:17px;font-weight:600;text-align:center;display:none;}
 		.fsc-pane-chat{display:none;}
-		.fsc-root{display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:320px;
+		.fsc-root{position:relative;display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:320px;
 			background:var(--card-bg);}
-		.fsc-head{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border-color);}
-		.fsc-title{flex:1;font-weight:600;font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.fsc-act{cursor:pointer;color:var(--text-muted);padding:2px 4px;}
-		.fsc-act:hover{color:var(--text-color);}
-		.fsc-root .cb-body{flex:1;overflow-y:auto;}
+		.fsc-unread{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;
+			background:var(--red-500,#e24c4c);color:#fff;font-size:11px;line-height:20px;font-weight:600;text-align:center;}
+		.fsc-unread-veil{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;
+			padding:16px;cursor:pointer;background:rgba(255,255,255,.55);}
+		[data-theme="dark"] .fsc-unread-veil{background:rgba(0,0,0,.45);}
+		.fsc-unread-veil span{padding:8px 16px;border-radius:18px;background:var(--primary,#2490ef);color:#fff;
+			font-size:var(--text-sm);font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+		.fsc-view{flex:1;min-height:0;}
 		.fsc-backdrop{position:fixed;inset:0;z-index:1034;background:rgba(0,0,0,.35);}
 		.fsc-root.fsc-expanded{position:fixed;z-index:1035;right:50%;bottom:50%;transform:translate(50%,50%);
 			width:min(760px,94vw);height:min(86vh,900px);border:1px solid var(--border-color);
 			border-radius:var(--border-radius-md);box-shadow:0 8px 28px rgba(0,0,0,.3);overflow:hidden;}
 		`;
-		$(`<style id="fsc-styles">${css}</style>`).appendTo(document.head);
+		$(`<style id="fsc-styles-v2">${css}</style>`).appendTo(document.head);
 	}
 
 	function is_active(frm) {
@@ -236,18 +258,20 @@ FSC_BORROWED.forEach((m) => {
 		st.tab = tab;
 		st.$tabs.find(".fsc-tab").removeClass("active");
 		st.$tabs.find(`.fsc-tab[data-tab="${tab}"]`).addClass("active");
+		// Leaving the chat tab puts it down: coming back, new messages wait for a click again.
+		if (tab !== "chat") st.chat.disengage();
 		st.$info.toggle(tab === "info");
 		st.$pane.toggle(tab === "chat");
 		if (tab === "chat") st.chat.open();
 		FS.update_badge(frm);
 	};
 
-	// Called by the bubble after every list refresh (realtime, poll): keep badge and open thread live.
+	// Called by the bubble after every list refresh (realtime, poll): keep the tab badge live.
+	// The open thread looks after itself — it is a ChatView with its own realtime.
 	FS.sync = function () {
 		const frm = window.cur_frm;
 		if (!frm || !frm.__fsc) return;
-		if (is_active(frm) && frm.__fsc.chat.active) frm.__fsc.chat.refresh();
-		else FS.update_badge(frm);
+		FS.update_badge(frm);
 	};
 
 	function setup(frm) {
@@ -262,7 +286,7 @@ FSC_BORROWED.forEach((m) => {
 				st.chat.reset();
 			}
 			if (st.tab !== saved_tab()) FS.select_tab(frm, saved_tab());
-			else if (st.tab === "chat" && !st.chat.active) st.chat.open();
+			else if (st.tab === "chat" && !st.chat.view.active) st.chat.open();
 			FS.update_badge(frm);
 			return;
 		}
@@ -278,14 +302,14 @@ FSC_BORROWED.forEach((m) => {
 		`);
 		const $pane = $('<div class="fsc-pane-chat"></div>');
 		sidebar.append($tabs, $info, $pane);
-		if (st && st.chat) st.chat.reset();
+		if (st && st.chat) st.chat.destroy();
 		st = frm.__fsc = {
 			tab: "info",
 			$tabs,
 			$info,
 			$pane,
 			$badge: $tabs.find(".fsc-badge"),
-			chat: new FormSidebarChat(frm, source, $pane),
+			chat: new FormSidebarChat(frm, $pane),
 		};
 		$tabs.on("click", ".fsc-tab", (e) => FS.select_tab(frm, $(e.currentTarget).attr("data-tab")));
 		if (saved_tab() === "chat") FS.select_tab(frm, "chat");

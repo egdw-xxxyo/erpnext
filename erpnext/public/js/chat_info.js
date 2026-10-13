@@ -32,7 +32,7 @@ erpnext.chat_info = {
 	human_size,
 
 	inject_styles() {
-		if (document.getElementById("chat-info-styles-v2")) return;
+		if (document.getElementById("chat-info-styles-v4")) return;
 		const css = `
 		.ci-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
 		.ci-head-main{min-width:0;flex:1;}
@@ -61,9 +61,11 @@ erpnext.chat_info = {
 		.ci-setting .ci-setting-desc{white-space:normal;}
 		.ci-switch{flex:none;margin:2px 0 0;}
 		.ci-switch input{width:16px;height:16px;cursor:pointer;}
-		.ci-section-label{font-size:var(--text-sm);text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em;margin:12px 0 4px;}
+		.ci-badge{flex:none;display:inline-block;margin-left:8px;padding:0 7px;border-radius:9px;background:var(--bg-light-gray);
+			color:var(--text-muted);font-size:11px;font-weight:600;line-height:18px;vertical-align:1px;}
+				.ci-section-label{font-size:var(--text-sm);text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em;margin:12px 0 4px;}
 		`;
-		$(`<style id="chat-info-styles-v2">${css}</style>`).appendTo(document.head);
+		$(`<style id="chat-info-styles-v4">${css}</style>`).appendTo(document.head);
 	},
 
 	// data: {title, subtitle, avatar, avatar_text, source, people:[], media:[], files:[],
@@ -166,31 +168,43 @@ erpnext.chat_info = {
 	render_people($pane, people, data) {
 		if (!people.length) return $pane.append(`<div class="ci-empty">${__("No participants")}</div>`);
 		for (const p of people) {
-			const av = erpnext.entity.avatar_html(
-				{ name: p.name || p.user, key: p.user || p.name, image: p.image },
-				30
-			);
+			const label = p.name + (p.is_me ? ` (${__("you")})` : "");
+			const sub = p.subtitle || p.user || "";
+			// A desk user is shown with the shared user chip, linked to their card like on
+			// every other page; anyone else (a WhatsApp contact) is a plain avatar and name.
+			const who = p.user
+				? erpnext.entity.user(
+						{ user: p.user, full_name: label, user_image: p.image },
+						{ size: 30, sub }
+				  )
+				: erpnext.entity.html({ name: label, sub, key: p.name, image: p.image }, { size: 30 });
 			const $row = $(`
 				<div class="ci-row">
-					${av}
-					<div class="ci-row-main">
-						<div class="ci-row-title"></div>
-						<div class="ci-row-sub"></div>
-					</div>
+					<div class="ci-row-main">${who}</div>
 					<div class="ci-row-action" style="display:none;">&times;</div>
 				</div>
 			`);
-			$row.find(".ci-row-title").text(p.name + (p.is_me ? ` (${__("you")})` : ""));
-			$row.find(".ci-row-sub").text(p.subtitle || p.user || "");
+			if (p.badge)
+				$('<span class="ci-badge"></span>').text(p.badge).insertAfter($row.find(".ci-row-main"));
 			if (p.on_click) {
 				$row.css("cursor", "pointer")
 					.attr("title", __("Open profile"))
 					.on("click", (e) => {
-						if (!$(e.target).closest(".ci-row-action").length) p.on_click();
+						if (!$(e.target).closest(".ci-row-action, a.ent-link").length) p.on_click();
 					});
+			}
+			for (const act of p.actions || []) {
+				$(`<div class="ci-row-action"><i class="${act.icon}"></i></div>`)
+					.attr("title", act.title || "")
+					.on("click", (e) => {
+						e.stopPropagation();
+						act.on_click();
+					})
+					.insertBefore($row.find(".ci-row-action").last());
 			}
 			if (p.on_remove) {
 				$row.find(".ci-row-action")
+					.last()
 					.show()
 					.attr("title", __("Remove"))
 					.on("click", () => p.on_remove());

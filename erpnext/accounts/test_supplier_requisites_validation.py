@@ -7,6 +7,7 @@ from erpnext.accounts.supplier_requisites_validation import (
 	_apply_supplier_type_rules,
 	_compare_value,
 	_extract_ibans,
+	_get_company_requisites,
 	_get_invoice_file_groups,
 	_get_ukrainian_bank_code,
 	_looks_like_individual_entrepreneur,
@@ -19,6 +20,83 @@ from erpnext.accounts.supplier_requisites_validation import (
 
 
 class TestSupplierRequisitesValidation(IntegrationTestCase):
+	def test_buyer_details_do_not_make_supplier_details_ambiguous(self):
+		cases = (
+			("tax_id", "1234567890", "9999999999", "ІПН"),
+			("edrpou", "12345678", "99999999", "ЄДРПОУ"),
+			("iban", "UA123456789012345678901234567", "UA999999999999999999999999999", "IBAN"),
+		)
+		for key, supplier_value, company_value, label in cases:
+			with self.subTest(key=key):
+				text = f"{label} {supplier_value}\n{label} {company_value}"
+				check = _compare_value(key, [supplier_value], text, [company_value])
+				self.assertEqual(check["status"], "matched")
+				self.assertEqual(check["detected"], [supplier_value])
+				check = _compare_value(key, [], f"{label} {company_value}", [company_value])
+				self.assertEqual(check["detected"], [])
+				self.assertEqual(check["status"], "missing_reference")
+
+	def test_other_party_details_still_require_manual_verification(self):
+		check = _compare_value(
+			"tax_id", ["1234567890"], "ІПН 1234567890\nІПН 8888888888\nІПН 9999999999", ["9999999999"]
+		)
+		self.assertEqual(check["status"], "ambiguous")
+		self.assertEqual(check["detected"], ["1234567890", "8888888888"])
+
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_all")
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_cached_doc")
+	def test_company_requisites_use_only_selected_company_and_normalize_accounts(self, get_doc, get_all):
+		get_doc.return_value = frappe._dict(tax_id="123 456 7890", custom_edrpou="12 345 678")
+		get_all.return_value = [
+			frappe._dict(iban="ua12 3456789012345678901234567", bank_account_no="1234"),
+			frappe._dict(iban="", bank_account_no="UA999999999999999999999999999"),
+		]
+		self.assertEqual(
+			_get_company_requisites("COMPANY-A"),
+			{
+				"tax_id": {"1234567890"},
+				"edrpou": {"12345678"},
+				"iban": {"UA123456789012345678901234567", "UA999999999999999999999999999"},
+			},
+		)
+		get_doc.assert_called_once_with("Company", "COMPANY-A")
+		get_all.assert_called_once_with(
+			"Bank Account",
+			filters={"company": "COMPANY-A", "is_company_account": 1},
+			fields=["iban", "bank_account_no"],
+		)
+
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_cached_doc")
+	def test_no_company_has_no_exclusions(self, get_doc):
+		self.assertEqual(_get_company_requisites(None), {})
+		get_doc.assert_not_called()
+
+	@patch("erpnext.accounts.supplier_requisites_validation._get_company_requisites")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_expected_values")
+	@patch("erpnext.accounts.supplier_requisites_validation._extract_pdf_text")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_invoice_file_groups")
+	@patch("erpnext.accounts.supplier_requisites_validation._get_validation_context")
+	def test_validation_excludes_buyer_values_from_supplier_update_candidates(
+		self, get_context, get_files, extract_text, get_expected, get_company
+	):
+		get_context.return_value = {"supplier": "SUPPLIER-A", "company": "COMPANY-A"}
+		get_files.return_value = [{"supplier": "SUPPLIER-A", "files": [{"file_url": "/files/invoice.pdf"}]}]
+		get_expected.return_value = {"tax_id": [], "edrpou": [], "iban": []}
+		get_company.return_value = {
+			"tax_id": {"9999999999"},
+			"edrpou": {"99999999"},
+			"iban": {"UA999999999999999999999999999"},
+		}
+		extract_text.return_value = "ІПН 9999999999 ЄДРПОУ 99999999 IBAN UA999999999999999999999999999"
+		result = validate_supplier_requisites(frappe._dict(doctype="Purchase Invoice"))
+		get_company.assert_called_once_with("COMPANY-A")
+		self.assertFalse(result["has_detected_requisites"])
+		self.assertEqual(result["iban_bank_suggestions"], {})
+		self.assertTrue(result["allow_manual_supplier_update"])
+		for check in result["checks"]:
+			self.assertEqual(check["detected"], [])
+			self.assertEqual(check["matched_files"], [])
+
 	@patch("erpnext.accounts.supplier_requisites_validation.validate_supplier_requisites")
 	@patch("erpnext.accounts.supplier_requisites_validation.frappe.get_doc")
 	def test_detected_missing_tax_id_can_update_supplier(self, get_doc, validate):

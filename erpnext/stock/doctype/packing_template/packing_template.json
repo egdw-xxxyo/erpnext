@@ -19,6 +19,9 @@
   "label_template",
   "column_break_label",
   "label_copies",
+  "consumption_section",
+  "consumption_recipe",
+  "consumption_preview",
   "items_section",
   "items"
  ],
@@ -107,6 +110,23 @@
    "fieldtype": "Data",
    "label": "Barcode",
    "unique": 1
+  },
+  {
+   "fieldname": "consumption_section",
+   "fieldtype": "Section Break",
+   "label": "Consumables"
+  },
+  {
+   "fieldname": "consumption_recipe",
+   "fieldtype": "Link",
+   "label": "Consumption Recipe",
+   "options": "Consumption Recipe",
+   "description": "What is written off when a box is packed with this template. The last box of an order may hold fewer units, so the table below shows every count up to the box size."
+  },
+  {
+   "fieldname": "consumption_preview",
+   "fieldtype": "HTML",
+   "label": "Consumption by units in the box"
   },
   {
    "fieldname": "items_section",

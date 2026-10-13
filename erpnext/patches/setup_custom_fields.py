@@ -3,6 +3,7 @@
 Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 Or via bench console and calling execute() manually.
 """
+
 import json
 from functools import reduce
 
@@ -16,6 +17,9 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_procurement_item_likes()
+	setup_company_requisites()
+	setup_supplier_item_matching()
 	setup_procurement_document_details()
 	setup_todo_deadline()
 	setup_payment_instruction_list_link()
@@ -30,10 +34,13 @@ def execute():
 	create_custom_field_on_serial_no()
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
+	create_consumption_source_fields()
+	create_unit_route_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
 	seed_firmware_additional_attribute()
+	seed_packing_additional_attribute()
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
@@ -96,12 +103,61 @@ def execute():
 	setup_serial_no_write_for_stock_user()
 	create_callmebot_fields()
 	setup_callmebot_default_settings()
+	setup_employee_notification_channels()
 	setup_payroll_ua_workspace_card()
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
+	)
+
+
+def setup_procurement_item_likes():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Consolidated Purchase Order Item",
+				"fieldname": "custom_item_liked",
+				"label": "Liked",
+				"fieldtype": "Check",
+				"insert_after": "item_code",
+				"default": "0",
+				"hidden": 1,
+				"allow_on_submit": 1,
+				"no_copy": 1,
+			}
+		]
+	)
+
+
+def setup_company_requisites():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Company",
+				"fieldname": "custom_edrpou",
+				"label": "EDRPOU Code",
+				"fieldtype": "Data",
+				"insert_after": "tax_id",
+			}
+		]
+	)
+
+
+def setup_supplier_item_matching():
+	"""Only add metadata; never save procurement documents or backfill assignments."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Item Supplier",
+				"fieldname": "custom_supplier_item_name",
+				"label": "Supplier Item Name",
+				"fieldtype": "Data",
+				"insert_after": "supplier_part_no",
+				"in_list_view": 1,
+			}
+		]
 	)
 
 
@@ -534,6 +590,80 @@ def create_spool_lineage_fields():
 	_create_custom_fields(fields)
 
 
+def create_consumption_source_fields():
+	"""What a consumption Stock Entry was posted for.
+
+	`erpnext.manufacturing.consumption.consume` stamps the entry with the document it was
+	posted for, so a second call for the same document finds the first entry instead of issuing
+	the consumables twice, and cancelling the document can cancel the entry.
+	"""
+	fields = [
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_recipe",
+			"fieldtype": "Link",
+			"options": "Consumption Recipe",
+			"label": "Рецепт списання",
+			"insert_after": "stock_entry_type",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_source_doctype",
+			"fieldtype": "Link",
+			"options": "DocType",
+			"label": "Тип документа-джерела списання",
+			"insert_after": "consumption_recipe",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "consumption_recipe",
+		},
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_source_name",
+			"fieldtype": "Dynamic Link",
+			"options": "consumption_source_doctype",
+			"label": "Документ-джерело списання",
+			"insert_after": "consumption_source_doctype",
+			"read_only": 1,
+			"no_copy": 1,
+			"search_index": 1,
+			"depends_on": "consumption_recipe",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_unit_route_fields():
+	"""Which BOM operation puts the unit into stock, and where each step lands it.
+
+	Read by `erpnext.manufacturing.unit_route`. The operations listed after the marked one are
+	performed on a unit that is already in stock, so they are left out of the Work Order.
+	"""
+	fields = [
+		{
+			"dt": "BOM Operation",
+			"fieldname": "enters_stock",
+			"fieldtype": "Check",
+			"label": "Одиниця на складі після цього кроку",
+			"insert_after": "operation",
+			"in_list_view": 1,
+			"description": "Кроки нижче виконуються над одиницею, що вже на складі, і не входять до Work Order",
+		},
+		{
+			"dt": "BOM Operation",
+			"fieldname": "unit_target_warehouse",
+			"fieldtype": "Link",
+			"options": "Warehouse",
+			"label": "Склад після кроку",
+			"insert_after": "enters_stock",
+			"description": "Порожньо — склад береться з робочого місця, а якщо й там порожньо, не змінюється",
+		},
+	]
+	_create_custom_fields(fields)
+
+
 def remove_flight_test_status_from_serial_no():
 	cf = frappe.db.exists("Custom Field", {"dt": "Serial No", "fieldname": "flight_test_status"})
 	if cf:
@@ -565,12 +695,12 @@ def create_custom_fields_on_work_order():
 			"dt": "Work Order",
 			"fieldname": "line_order_type",
 			"fieldtype": "Select",
-			"options": "\nDaily",
+			"options": "\nDaily\nManual",
 			"label": "Line Order Type",
 			"insert_after": "production_line",
 			"depends_on": "production_line",
 			"read_only": 1,
-			"description": "Daily: closing the line's day deletes the units nobody started and shrinks Qty to the started ones.",
+			"description": "Daily: closing the line's day deletes the units nobody started and shrinks Qty to the started ones. Manual: released by the manager, never closed or topped up automatically.",
 		},
 		{
 			"dt": "Work Order",
@@ -3562,6 +3692,37 @@ def seed_firmware_additional_attribute():
 		print(f"  Created Additional Attribute Value: {attribute} / {value}")
 
 
+def seed_packing_additional_attribute():
+	"""Seed the «Упаковка» attribute that `erpnext.manufacturing.packing` writes on packed serials.
+
+	A note for the scanner and the serial's history (which box, how many in it); the warehouse,
+	not this attribute, decides whether a unit can be sold."""
+	if not frappe.db.exists("DocType", "Additional Attribute"):
+		return
+
+	attribute = "Упаковка"
+	if not frappe.db.exists("Additional Attribute", attribute):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute",
+				"attribute_name": attribute,
+				"description": "Ставиться при закритті коробки; склад, а не цей атрибут, вирішує чи можна продавати",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute: {attribute}")
+
+	if not frappe.db.exists("Additional Attribute Value", {"attribute": attribute, "value": "Упаковано"}):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute Value",
+				"attribute": attribute,
+				"value": "Упаковано",
+				"abbr": "PK",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute Value: {attribute} / Упаковано")
+
+
 def add_serial_attributes_shortcut():
 	"""Put the «Serial Attributes» page on the Stock workspace.
 
@@ -3659,6 +3820,28 @@ def create_callmebot_fields():
 			"no_copy": 1,
 			"description": "Key sent back by the bot after you activate it from your phone",
 		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_status",
+			"fieldtype": "Select",
+			"label": "CallMeBot Status",
+			"options": "\nActive\nPaused\nInvalid API Key",
+			"insert_after": "callmebot_api_key",
+			"depends_on": "eval:doc.callmebot_enabled && doc.callmebot_status",
+			"read_only": 1,
+			"no_copy": 1,
+			"description": "Result of the last message sent to WhatsApp",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_alerted_on",
+			"fieldtype": "Datetime",
+			"label": "CallMeBot Alerted On",
+			"insert_after": "callmebot_status",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+		},
 	]
 	_create_custom_fields(fields)
 	_migrate_callmebot_keys_to_auth()
@@ -3690,6 +3873,37 @@ def _migrate_callmebot_keys_to_auth():
 
 	if rows:
 		print(f"  Encrypted {len(rows)} CallMeBot API key(s) into __Auth")
+
+
+def setup_employee_notification_channels():
+	"""Which channels reach the employee away from the desk — WhatsApp (CallMeBot), mobile app.
+
+	A stored copy maintained by `erpnext.crm.notification_channels`, so the Employee list can
+	show and filter who has no channel at all."""
+	from erpnext.crm.notification_channels import LABELS, sync_all
+
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "notification_channels",
+				"fieldtype": "Select",
+				"label": "Notification Channels",
+				"options": "\n" + "\n".join(LABELS),
+				"insert_after": "user_id",
+				"read_only": 1,
+				"no_copy": 1,
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"depends_on": "eval:doc.user_id",
+				"description": "Channels that reach the employee outside ERPNext: WhatsApp (CallMeBot) and mobile app push",
+			},
+		]
+	)
+	sync_all()
+
+
+CALLMEBOT_HELP_ROUTE = "docs/whatsapp-notifications"
 
 
 def setup_callmebot_default_settings():
@@ -3732,6 +3946,13 @@ def setup_callmebot_default_settings():
 					"include_link": 1,
 				},
 			)
+			modified = True
+
+		# the help page users are sent to when CallMeBot stops delivering; only where it is written
+		if not settings.get("help_url") and frappe.db.exists(
+			"Wiki Document", {"route": CALLMEBOT_HELP_ROUTE, "is_published": 1}
+		):
+			settings.help_url = f"/{CALLMEBOT_HELP_ROUTE}"
 			modified = True
 
 		if modified:

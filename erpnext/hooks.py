@@ -44,7 +44,10 @@ after_request = ["erpnext.access_control.denial.attach_denial_context"]
 
 doctype_js = {
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
-	"Consolidated Purchase Order": "public/js/procurement_links.js",
+	"Consolidated Purchase Order": [
+		"public/js/procurement_links.js",
+		"public/js/custom/procurement_supplier_item_matching.js",
+	],
 	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",
 	"Job Card": "public/js/custom/job_card.js",
@@ -599,10 +602,19 @@ doc_events = {
 		"on_cancel": [
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+			# a consumption issued for this entry goes back with it
+			"erpnext.manufacturing.consumption.cancel_for_source",
+			# a packing transfer's «Упаковка» note on the serials goes back with it
+			"erpnext.manufacturing.packing.unpack_on_cancel",
 		],
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 	},
+	# the route of a unit: which BOM step puts it into stock, and the steps after that
+	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
+	# a unit waiting for packing is stock but not sellable
+	"Delivery Note": {"before_submit": "erpnext.manufacturing.packing.block_unpacked_delivery"},
+	"Work Order": {"before_validate": "erpnext.manufacturing.unit_route.drop_after_stock_operations"},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices
 	"Notification Log": {
@@ -610,6 +622,10 @@ doc_events = {
 			"erpnext.erpnext_integrations.callmebot.on_notification_log",
 			"erpnext.crm.notification_push.on_notification_log",
 		],
+	},
+	# which channels reach the user away from the desk, kept on their Employee
+	"Notification Settings": {
+		"on_update": "erpnext.crm.notification_channels.on_notification_settings_update",
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
@@ -718,7 +734,11 @@ doc_events = {
 	},
 	"ToDo": {
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
-		"on_update": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_update": [
+			"erpnext.buying.procurement_automation.sync_current_assignees",
+			# an assignee always belongs to the chat of the record they are assigned to
+			"erpnext.crm.chat_members.on_todo_change",
+		],
 		"on_trash": "erpnext.buying.procurement_automation.sync_current_assignees",
 	},
 	"Task": {
@@ -806,6 +826,7 @@ doc_events = {
 			"erpnext.hr.average_pay.validate_opening_earnings",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
+			"erpnext.crm.notification_channels.set_on_employee",
 		],
 		"on_update": [
 			"erpnext.hr.employee_period.clear_attendance_after_relieving",
@@ -869,6 +890,7 @@ scheduler_events = {
 		],
 	},
 	"hourly": [
+		"erpnext.crm.notification_channels.sync_all",
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",

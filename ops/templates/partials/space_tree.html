@@ -1,0 +1,67 @@
+{% if tree.error %}
+<div class="alert error small">{{ tree.error }}</div>
+{% else %}
+<div class="tree-wrap">
+{% set base = parent_bytes or tree.total or 1 %}
+{% if root %}
+<p class="muted small">
+	<b>{{ path }}</b> — {{ tree.total|human_bytes }}, scanned {{ tree._fetched_at|ago }}.
+	Other mounts are skipped.
+</p>
+{% endif %}
+{% if tree.message %}
+<div class="alert error small">Scan reported: <code>{{ tree.message }}</code></div>
+{% endif %}
+{% if tree.denied %}
+<div class="alert warn small">
+	{{ tree.denied }} path(s) unreadable by the ops user — sizes are understated
+	(typically <code>/var/lib/docker</code>). The host has neither passwordless sudo nor a running
+	backend container to read them through.
+</div>
+{% elif root and tree.elevated %}
+<p class="muted small">Scanned as root ({{ "docker, read-only" if tree.mode == "docker" else "sudo" }}) — all paths counted.</p>
+{% endif %}
+<ul class="tree">
+	{% for r in shown %}
+	{% set pct = (r.bytes * 100 / base)|round(1) if base else 0 %}
+	<li>
+		{% if r.dir %}
+		<details hx-get="/panels/space-tree?path={{ r.path|urlencode }}&parent={{ r.bytes }}{{ '&all=1' if show_all }}"
+		         hx-trigger="toggle once" hx-target="find .tree-kids" hx-swap="innerHTML">
+			<summary>
+				<span class="tree-bar"><i style="width: {{ [pct, 100]|min }}%"></i></span>
+				<span class="mono tree-size">{{ r.bytes|human_bytes }}</span>
+				<span class="tree-pct muted">{{ pct }}%</span>
+				<span class="tree-name"><i class="fa fa-folder-o"></i> {{ r.name }}</span>
+			</summary>
+			<div class="tree-kids"><p class="muted small">scanning…</p></div>
+		</details>
+		{% else %}
+		<div class="tree-leaf">
+			<span class="tree-bar"><i style="width: {{ [pct, 100]|min }}%"></i></span>
+			<span class="mono tree-size">{{ r.bytes|human_bytes }}</span>
+			<span class="tree-pct muted">{{ pct }}%</span>
+			<span class="tree-name"><i class="fa fa-file-o"></i> {{ r.name }}</span>
+		</div>
+		{% endif %}
+	</li>
+	{% else %}
+	<li class="muted small">{{ "empty or unreadable" if not small else "nothing of 1 MB or more" }}</li>
+	{% endfor %}
+	{% if tree.hidden %}<li class="muted small">… {{ tree.hidden }} smaller entries not shown</li>{% endif %}
+</ul>
+{% set again = "/panels/space-tree?path=" ~ (path|urlencode) ~ "&parent=" ~ (parent_bytes or 0) %}
+{% if small and not show_all %}
+<p class="muted small">
+	{{ small }} entr{{ "y" if small == 1 else "ies" }} smaller than {{ min_bytes|human_bytes }} hidden.
+	<button type="button" hx-get="{{ again }}&all=1"
+	        hx-target="closest .tree-wrap" hx-swap="outerHTML">Show all</button>
+</p>
+{% elif show_all %}
+<p class="muted small">
+	<button type="button" hx-get="{{ again }}"
+	        hx-target="closest .tree-wrap" hx-swap="outerHTML">Hide entries smaller than {{ min_bytes|human_bytes }}</button>
+</p>
+{% endif %}
+</div>
+{% endif %}

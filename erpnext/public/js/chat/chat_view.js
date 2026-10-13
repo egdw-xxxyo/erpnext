@@ -18,6 +18,7 @@
 //   fetch(chat, {before, after, limit}) -> raw rows oldest-first
 //   build(raw, chat) -> normalized messages (see chat_render.js)
 //   show_authors?(chat) -> "in" | "out" | "all" | false
+//   show_avatars?(chat) -> bool    senders' pictures beside incoming messages (shared chats)
 //   header_actions?(chat) -> [{icon, title, disabled?, on_click}]
 //   header_badges_html?(chat)
 //   compose_buttons?(chat) -> [{icon, title, on_click}]
@@ -25,7 +26,16 @@
 //   react?(chat, msg, emoji), resend?(chat, msg), menu_items?(msg, chat) -> [{icon, label, action}]
 //   mark_read(chat, upto) -> {last_read_on}, set_muted(chat, muted), notify_typing?(chat)
 //   show_info?(chat, view), side_panel?, render_side?(chat, $el, view)
+//   can_search?(chat), search?(chat, txt) -> [{id, author, author_key, time, text}]   (search in a chat)
 //   realtime?(view) -> {event: handler}
+//
+// Embedded mode (`opts.embedded`): the same thread — header, messages, reply, reactions,
+// emoji, composer — without the conversation list, mounted into any container; `page` is
+// then just {main: $container}. The host opens a chat with `view.open(id)`. Extra opts:
+//   header?() -> options for chat_render.render_header (size, compact, trailing, after_title_html)
+//   manual_read?   nothing is marked read until the host sets `view.engaged = true`
+//   on_change?(view)   the list was reloaded or the unread count moved
+//   on_forget?(id)     the open chat left the user's list
 
 frappe.provide("erpnext.chat_view");
 
@@ -49,6 +59,8 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.tab = source.tabs ? source.tabs[0].key : null;
 		this.arch_open = localStorage.getItem(`cv_arch_open_${source.key}`) === "1";
 		this.typing_sent_at = 0;
+		this.embedded = !!this.opts.embedded;
+		this.engaged = !this.opts.manual_read;
 
 		erpnext.chat_render.inject_styles();
 		this.inject_styles();
@@ -58,6 +70,11 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.poll = setInterval(() => this.refresh(true), 30000);
 		this.on_resize = frappe.utils.debounce(() => this.fit_height(), 100);
 		$(window).on("resize", this.on_resize);
+		if (this.embedded) {
+			// The host sizes the container and opens the chat; routes are none of our business.
+			this.refresh();
+			return;
+		}
 		$(this.page.wrapper).on("remove", () => this.destroy());
 		setTimeout(() => this.fit_height(), 0);
 
@@ -70,6 +87,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	// Fill the window down to a small bottom gap, whatever the desk header above it
 	// measures (it differs between v15, v16 and a page with a filter bar).
 	fit_height() {
+		if (this.embedded) return;
 		const el = this.page.main.find(".cv-page")[0];
 		if (!el || !el.offsetParent) return;
 		const top = el.getBoundingClientRect().top + window.scrollY;
@@ -93,7 +111,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	make_layout() {
 		const s = this.source;
 		this.page.main.html(`
-			<div class="cv-root cv-page">
+			<div class="cv-root cv-page${this.opts.embedded ? " cv-embedded cv-compact" : ""}">
 				<div class="cv-sidebar">
 					<div class="cv-search">
 						<div class="cv-search-row">
@@ -115,6 +133,18 @@ erpnext.chat_view.ChatView = class ChatView {
 					</div>
 					<div class="cv-tabs"></div>
 					<div class="cv-list"></div>
+					<div class="cv-msearch" style="display:none;">
+						<div class="cv-search-row cv-msearch-top">
+							<div class="cv-search-box">
+								<i class="fa fa-search"></i>
+								<input type="text" class="cv-msearch-input" placeholder="${__("Search messages")}">
+							</div>
+							<button class="cv-ico cv-msearch-close" title="${__("Close")}"><i class="fa fa-times"></i></button>
+						</div>
+						<div class="cv-msearch-scope"></div>
+						<div class="cv-msearch-count"></div>
+						<div class="cv-msearch-list"></div>
+					</div>
 				</div>
 				<div class="cv-thread-wrap">
 					<div class="cv-header"><span class="text-muted">${__("Select a conversation")}</span></div>
@@ -138,9 +168,7 @@ erpnext.chat_view.ChatView = class ChatView {
 							<textarea rows="1" placeholder="${__("Type a message")}"></textarea>
 							<button class="cv-ico cv-emoji" title="${__("Add emoji")}"><i class="fa fa-smile-o"></i></button>
 							<button class="cv-ico cv-mic" title="${__("Record voice message")}"><i class="fa fa-microphone"></i></button>
-							<button class="cv-ico cv-send" title="${__(
-								"Send"
-							)}" style="display:none;"><i class="fa fa-paper-plane"></i></button>
+							<button class="cv-ico cv-send" title="${__("Send")}"><i class="fa fa-paper-plane"></i></button>
 						</div>
 					</div>
 				</div>
@@ -170,6 +198,21 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.$tools = $m.find(".cv-extra-tools");
 		this.$side = $m.find(".cv-side");
 
+		this.$msearch = $m.find(".cv-msearch");
+		this.$msearch_input = $m.find(".cv-msearch-input");
+		$m.find(".cv-msearch-close").on("click", () => this.close_search());
+		this.run_search = frappe.utils.debounce(() => this.search_messages(), 250);
+		this.$msearch_input.on("input", () => this.run_search());
+		this.$msearch_input.on("keydown", (e) => {
+			if (e.key === "Escape") this.close_search();
+		});
+		this.$msearch.on("click", ".cv-hit", (e) => {
+			const id = $(e.currentTarget).attr("data-id");
+			// The embedded view has one column: get the results out of the way of the message.
+			if (this.embedded) this.close_search();
+			this.jump_to_message(id);
+		});
+
 		if (s.bind_sidebar_tools) s.bind_sidebar_tools($m.find(".cv-sidebar-tools"), this);
 		$m.find(".cv-new-chat").on("click", () => s.new_chat(this));
 		this.$search.on("input", () => this.render_list());
@@ -190,7 +233,12 @@ erpnext.chat_view.ChatView = class ChatView {
 		$m.find(".cv-mic").on("click", () => this.record_voice());
 		$m.find(".cv-emoji").on("click", (e) => this.emoji_picker(e));
 		this.$replyBar.find(".cv-reply-cancel").on("click", () => this.set_reply(null));
+		this.mention = erpnext.chat_mention.attach(this.$input, {
+			enabled: () => erpnext.chat_mention.allowed(this.source, this.chat()),
+			thread: () => this.active,
+		});
 		this.$input.on("keydown", (e) => {
+			if (this.mention.handle_key(e)) return;
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				this.send();
@@ -210,7 +258,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	inject_styles() {
-		if (document.getElementById("cv-page-styles-v1")) return;
+		if (document.getElementById("cv-page-styles-v5")) return;
 		const css = `
 		.cv-group-head{display:flex;align-items:center;gap:10px;margin:12px 8px 6px;padding:8px 12px 8px 20px;
 			position:sticky;top:0;z-index:1;border-radius:10px;background:var(--gray-200,#e2e6e9);
@@ -229,6 +277,34 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-group-title > .ent{font-size:13px;}
 		.cv-page{display:flex;height:calc(100vh - 120px);min-height:420px;margin:12px 20px 0;border:1px solid var(--border-color);
 			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
+		.cv-page.cv-embedded{height:100%;min-height:0;margin:0;border:none;border-radius:0;}
+		.cv-embedded .cv-sidebar,.cv-embedded .cv-side{display:none;}
+		.cv-embedded .cv-thread{padding:10px;}
+		.cv-embedded .cv-with-avatar{margin-left:32px;}
+		.cv-embedded .cv-bubble-avatar{left:-32px;}
+		.cv-embedded .cv-fab{right:12px;bottom:70px;width:36px;height:36px;}
+		.cv-searching .cv-sidebar > :not(.cv-msearch){display:none;}
+		.cv-msearch{flex:1;min-height:0;display:flex;flex-direction:column;}
+		.cv-msearch-top{padding:10px;}
+		.cv-msearch-scope{display:flex;align-items:center;gap:8px;padding:6px 12px;font-weight:600;font-size:13px;
+			border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color);}
+		.cv-msearch-in{font-weight:400;color:var(--text-muted);white-space:nowrap;}
+		.cv-msearch-count{padding:6px 12px;color:var(--text-muted);font-size:12px;}
+		.cv-msearch-count:empty{display:none;}
+		.cv-msearch-list{flex:1;overflow-y:auto;}
+		.cv-msearch-empty{padding:48px 12px;text-align:center;color:var(--text-muted);}
+		.cv-msearch-empty .fa{font-size:34px;margin-bottom:10px;opacity:.5;}
+		.cv-hit{display:flex;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;}
+		.cv-hit:hover{background:var(--bg-light-gray);}
+		.cv-hit-main{flex:1;min-width:0;}
+		.cv-hit-top{display:flex;justify-content:space-between;gap:8px;}
+		.cv-hit-author{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cv-hit-time{flex:none;color:var(--text-muted);font-size:11px;}
+		.cv-hit-text{color:var(--text-muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cv-hit-text mark{padding:0;background:none;color:var(--cv-accent);font-weight:600;}
+		.cv-embedded.cv-searching .cv-sidebar{display:flex;position:absolute;inset:0;z-index:7;width:auto;border:none;
+			background:var(--card-bg);}
+		.cv-embedded.cv-searching{position:relative;}
 		.cv-sidebar{width:300px;border-right:1px solid var(--border-color);display:flex;flex-direction:column;}
 		.cv-search{padding:10px;display:flex;flex-direction:column;gap:6px;}
 		.cv-search-row{display:flex;align-items:center;gap:4px;}
@@ -285,18 +361,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-conv-main-btn{flex:1;}
 		.cv-list-empty{padding:12px;color:var(--text-muted);}
 		.cv-thread-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--cv-thread-bg);}
-		.cv-header{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:56px;
-			border-bottom:1px solid var(--border-color);background:var(--card-bg);}
-		.cv-header-main{flex:1;min-width:0;cursor:pointer;}
-		.cv-header-title{font-weight:600;font-size:var(--text-md);color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.cv-header-main:hover .cv-header-title{color:var(--cv-accent);}
-		.cv-header-sub{font-size:var(--text-sm);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-		.cv-header-sub .cv-typing-sub{color:var(--cv-accent);}
-		.cv-chip{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:0 6px;border-radius:8px;
-			background:var(--bg-light-gray);color:var(--text-color);font-size:11px;font-weight:500;}
-		.cv-chip .fa-whatsapp{color:#25d366;}
-		.cv-header .cv-ico{width:32px;height:32px;line-height:32px;font-size:16px;}
-		.cv-thread{flex:1;overflow-y:auto;padding:12px 8%;position:relative;}
+		.cv-thread{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 8%;position:relative;}
 		.cv-empty{margin:auto;text-align:center;color:var(--text-muted);}
 		.cv-empty .fa{font-size:48px;opacity:.35;margin-bottom:8px;}
 		.cv-fab{position:absolute;right:20px;bottom:84px;z-index:5;width:44px;height:44px;border-radius:50%;background:var(--card-bg);
@@ -317,7 +382,12 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-compose{display:flex;gap:2px;padding:8px 10px;align-items:flex-end;}
 		.cv-extra-tools{display:contents;}
 		.cv-compose textarea{flex:1;min-width:0;resize:none;border:none;outline:none;box-shadow:none;background:none;
-			color:var(--text-color);font-size:14px;line-height:20px;padding:8px 6px;max-height:180px;overflow-y:auto;}
+			color:var(--text-color);font-size:14px;line-height:20px;padding:8px 6px;max-height:180px;overflow-y:hidden;}
+		.cv-compose textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+		.cv-embedded .cv-compose{padding:4px 6px;gap:0;}
+		.cv-embedded .cv-compose textarea{font-size:13px;line-height:18px;padding:6px 4px;max-height:120px;}
+		.cv-embedded .cv-compose .cv-ico{width:30px;height:30px;line-height:30px;font-size:16px;}
+		.cv-embedded .cv-ref-banner{display:none;}
 		.cv-side{width:280px;border-left:1px solid var(--border-color);overflow-y:auto;padding:14px;}
 		.cv-side h6{margin:16px 0 6px;font-size:var(--text-xs,11px);text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;}
 		.cv-side h6:first-child{margin-top:0;}
@@ -334,7 +404,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		@media (max-width:1200px){.cv-side{display:none;}}
 		@media (max-width:768px){.cv-sidebar{width:220px;}.cv-thread{padding:10px;}}
 		`;
-		$(`<style id="cv-page-styles-v1">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-page-styles-v5">${css}</style>`).appendTo(document.head);
 	}
 
 	// ------------------------------------------------------------------ list
@@ -359,7 +429,12 @@ erpnext.chat_view.ChatView = class ChatView {
 			this.render_composer();
 			if (!this.placeholder_active) await this.load_new(!silent);
 		}
+		this.changed();
 		this.handle_pending_route();
+	}
+
+	changed() {
+		if (this.opts.on_change) this.opts.on_change(this);
 	}
 
 	// Deep links wait for the first list load — the chat has to be known to open it.
@@ -523,6 +598,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		const chat = this.chats[id];
 		if (!chat) return;
 		const s = this.source;
+		if (this.searching && this.active !== id) this.close_search();
 		this.active = id;
 		if (s.tabs && s.tab_of) this.tab = s.tab_of(chat);
 		this.set_reply(null);
@@ -572,19 +648,26 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	forget(id) {
 		delete this.chats[id];
-		if (this.active === id) {
-			this.active = null;
-			this.$thread.html(
-				`<div class="cv-empty"><i class="fa fa-comments-o"></i><div>${__(
-					"Select a conversation"
-				)}</div></div>`
-			);
-			this.$header.html(`<span class="text-muted">${__("Select a conversation")}</span>`);
-			this.$compose.hide();
-			this.$readonly.hide();
-			this.$side.html("");
-		}
+		if (this.opts.on_forget) return this.opts.on_forget(id);
+		if (this.active === id) this.clear();
 		this.render_list();
+	}
+
+	// Nothing open: back to the "select a conversation" state.
+	clear() {
+		if (this.searching) this.close_search();
+		this.active = null;
+		this.close_popovers();
+		this.set_reply(null);
+		this.$thread.html(
+			`<div class="cv-empty"><i class="fa fa-comments-o"></i><div>${__(
+				"Select a conversation"
+			)}</div></div>`
+		);
+		this.$header.html(`<span class="text-muted">${__("Select a conversation")}</span>`);
+		this.$compose.hide();
+		this.$readonly.hide();
+		this.$side.html("");
 	}
 
 	// ------------------------------------------------------------------ header / composer / side
@@ -592,52 +675,109 @@ erpnext.chat_view.ChatView = class ChatView {
 	render_header() {
 		const chat = this.chat();
 		if (!chat) return;
-		const R = erpnext.chat_render;
+		const opts = Object.assign({}, this.opts.header ? this.opts.header(chat) : {});
 		const s = this.source;
-		const actions = (s.header_actions ? s.header_actions(chat) : []) || [];
-		this.$header.html(`${R.avatar_html(chat.avatar || { name: chat.title, key: chat.id }, 38)}
-			<div class="cv-header-main" title="${__("Chat info")}">
-				<div class="cv-header-title"></div>
-				<div class="cv-header-sub"></div>
-			</div>
-			${s.header_badges_html ? s.header_badges_html(chat) : ""}
-			${actions
-				.map(
-					(a, i) =>
-						`<button class="cv-ico cv-hact${
-							a.disabled ? " cv-disabled" : ""
-						}" data-i="${i}" title="${frappe.utils.escape_html(a.title || "")}"><i class="${
-							a.icon
-						}"></i></button>`
-				)
-				.join("")}
-			${erpnext.chat_sound.button_html(chat.muted)}
-			${
-				s.show_info
-					? `<button class="cv-ico cv-info-btn" title="${__(
-							"Chat info"
-					  )}"><i class="fa fa-info-circle"></i></button>`
-					: ""
-			}`);
-		this.$header
-			.find(".cv-header-title")
-			.html(`${chat.title_prefix_html || ""}${frappe.utils.escape_html(chat.title)}`);
-		this.$sub = this.$header.find(".cv-header-sub");
-		this.$sub.html(chat.header_sub || "");
-		this.$header.find(".cv-hact").on("click", (e) => {
-			const a = actions[$(e.currentTarget).data("i")];
-			if (a && !a.disabled) a.on_click();
-		});
-		if (s.show_info)
-			this.$header.find(".cv-header-main, .cv-info-btn").on("click", () => s.show_info(chat, this));
-		if (s.open_profile)
-			this.$header
-				.children(".cv-avatar")
-				.first()
-				.css("cursor", "pointer")
-				.attr("title", __("Open profile"))
-				.on("click", () => s.open_profile(chat, this));
-		this.$header.find(".chat-mute-btn").on("click", () => this.toggle_mute());
+		if (s.search && (!s.can_search || s.can_search(chat))) {
+			opts.trailing = [
+				{
+					icon: "fa fa-search",
+					title: __("Search in this chat"),
+					on_click: () => this.open_search(),
+				},
+			].concat(opts.trailing || []);
+		}
+		this.$sub = erpnext.chat_render.render_header(this.$header, chat, s, this, opts);
+	}
+
+	// ------------------------------------------------------------------ search in a chat
+
+	// The conversation list gives way to a search of the open chat; a hit jumps to its message.
+	open_search() {
+		const chat = this.chat();
+		if (!chat) return;
+		this.searching = true;
+		this.$root.addClass("cv-searching");
+		this.$msearch.show();
+		this.$msearch
+			.find(".cv-msearch-scope")
+			.html(
+				`<span class="cv-msearch-in">${__("Search messages in")}</span>${erpnext.entity.html(
+					Object.assign({ name: chat.title, key: chat.id }, chat.avatar || {}),
+					{ size: 24 }
+				)}`
+			);
+		this.$msearch_input.val("").trigger("focus");
+		this.render_hits(null);
+	}
+
+	close_search() {
+		this.searching = false;
+		this.search_seq = (this.search_seq || 0) + 1;
+		this.$root.removeClass("cv-searching");
+		this.$msearch.hide();
+	}
+
+	async search_messages() {
+		const chat = this.chat();
+		const txt = (this.$msearch_input.val() || "").trim();
+		const seq = (this.search_seq = (this.search_seq || 0) + 1);
+		if (!this.searching || !chat) return;
+		if (txt.length < 2) return this.render_hits(null);
+		let hits = [];
+		try {
+			hits = await this.source.search(chat, txt);
+		} catch (e) {
+			hits = [];
+		}
+		if (seq !== this.search_seq) return;
+		this.render_hits(hits, txt);
+	}
+
+	// A line of the message around the first match, the match itself highlighted.
+	hit_snippet(text, txt) {
+		const esc = frappe.utils.escape_html;
+		const flat = String(text || "").replace(/\s+/g, " ");
+		const at = flat.toLowerCase().indexOf(txt.toLowerCase());
+		if (at < 0) return esc(flat.slice(0, 90));
+		const from = Math.max(0, at - 24);
+		return (
+			(from ? "…" : "") +
+			esc(flat.slice(from, at)) +
+			`<mark>${esc(flat.slice(at, at + txt.length))}</mark>` +
+			esc(flat.slice(at + txt.length, at + txt.length + 70))
+		);
+	}
+
+	render_hits(hits, txt) {
+		const R = erpnext.chat_render;
+		const esc = frappe.utils.escape_html;
+		const $count = this.$msearch.find(".cv-msearch-count");
+		const $list = this.$msearch.find(".cv-msearch-list");
+		if (!hits) {
+			$count.text("");
+			$list.html(
+				`<div class="cv-msearch-empty"><i class="fa fa-search"></i><div>${__(
+					"Search for messages"
+				)}</div></div>`
+			);
+			return;
+		}
+		$count.text(hits.length ? __("{0} messages found", [hits.length]) : __("No messages found"));
+		$list.html(
+			hits
+				.map((h) => {
+					const info = (h.author_key && frappe.user_info(h.author_key)) || {};
+					return `<div class="cv-hit" data-id="${esc(h.id)}">
+						${R.avatar_html({ name: h.author, key: h.author_key || h.author, image: info.image }, 36)}
+						<div class="cv-hit-main">
+							<div class="cv-hit-top"><span class="cv-hit-author">${esc(h.author)}</span>
+								<span class="cv-hit-time">${esc(R.local(h.time).format("DD.MM.YYYY"))}</span></div>
+							<div class="cv-hit-text">${this.hit_snippet(h.text, txt)}</div>
+						</div>
+					</div>`;
+				})
+				.join("")
+		);
 	}
 
 	render_composer() {
@@ -662,6 +802,7 @@ erpnext.chat_view.ChatView = class ChatView {
 				.join("")
 		);
 		this.$tools.find(".cv-ico").on("click", (e) => buttons[$(e.currentTarget).data("i")].on_click(this));
+		this.autosize();
 	}
 
 	render_side() {
@@ -698,6 +839,25 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.messages = this.source.build(this.raw, this.chat());
 		this.msg_by_id = {};
 		for (const m of this.messages) this.msg_by_id[m.id] = m;
+		this.mark_groups();
+	}
+
+	// Consecutive messages of one sender, on one day and without a long pause between them,
+	// read as one group: the name once on top, the picture once at the bottom.
+	mark_groups() {
+		const key = (m) => `${m.out ? "o" : "i"}|${m.author_key || m.author || ""}`;
+		const together = (a, b) =>
+			!!a &&
+			!!b &&
+			key(a) === key(b) &&
+			this.day_of(a) === this.day_of(b) &&
+			Math.abs(erpnext.chat_render.local(b.time).diff(erpnext.chat_render.local(a.time), "minutes")) <=
+				10;
+		const msgs = this.messages;
+		msgs.forEach((m, i) => {
+			m.g_first = !together(msgs[i - 1], m);
+			m.g_last = !together(m, msgs[i + 1]);
+		});
 	}
 
 	async load_page() {
@@ -811,7 +971,15 @@ erpnext.chat_view.ChatView = class ChatView {
 	bubble(m) {
 		const mode = this.author_mode();
 		const author = mode === "all" || (mode === "in" && !m.out) || (mode === "out" && m.out);
-		return erpnext.chat_render.bubble_html(m, { author, actions: true });
+		const s = this.source;
+		return erpnext.chat_render.bubble_html(m, {
+			author: author && m.g_first,
+			actions: true,
+			first: m.g_first,
+			last: m.g_last,
+			avatar: !m.out && !!s.show_avatars && s.show_avatars(this.chat()),
+			avatar_size: this.embedded ? 26 : 30,
+		});
 	}
 
 	day_of(m) {
@@ -905,7 +1073,10 @@ erpnext.chat_view.ChatView = class ChatView {
 	bind_thread_events() {
 		const $t = this.$thread;
 		$t.on("click", ".cv-do-reply", (e) => this.reply_to_msg(this.msg_of(e.currentTarget)));
-		$t.on("click", ".cv-do-react", (e) => this.react_popover(e));
+		$t.on("click", ".cv-do-react", (e) => {
+			e.stopPropagation();
+			this.react_popover(e.currentTarget);
+		});
 		$t.on("click", ".cv-do-menu", (e) => {
 			e.stopPropagation();
 			this.message_menu(e.currentTarget);
@@ -921,6 +1092,7 @@ erpnext.chat_view.ChatView = class ChatView {
 			if (m && this.source.react && !this.chat().read_only)
 				this.react(m, $(e.currentTarget).attr("data-emoji"));
 		});
+		$t.on("click", ".cv-read-info", (e) => this.read_popover(e));
 		$t.on("click", ".cv-resend", (e) => this.resend(this.msg_of(e.currentTarget)));
 		$t.on("click", ".cv-quote[data-target]", (e) =>
 			this.jump_to_message($(e.currentTarget).attr("data-target"))
@@ -950,7 +1122,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	// Progressive read-on-scroll: an unread incoming message whose top scrolled into view
 	// counts as seen. The cursor only moves forward; one server call per scroll gesture.
 	update_read_progress() {
-		if (!this.active || this.placeholder_active) return;
+		if (!this.active || this.placeholder_active || !this.engaged) return;
 		const el = this.$thread[0];
 		const bottom_edge = el.scrollTop + el.clientHeight;
 		let newest = this.read_cursor || "";
@@ -990,6 +1162,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		chat.unread = this.messages.filter((m) => m.incoming && (!cursor || m.time > cursor)).length;
 		this.render_list();
 		this.update_fab();
+		this.changed();
 	}
 
 	update_fab() {
@@ -1006,6 +1179,7 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	jump_to_latest() {
 		this.$thread.scrollTop(this.$thread[0].scrollHeight);
+		this.engaged = true;
 		this.mark_read(this.chat());
 		this.update_fab();
 	}
@@ -1058,11 +1232,12 @@ erpnext.chat_view.ChatView = class ChatView {
 
 	autosize() {
 		const el = this.$input[0];
+		// Measured while hidden, the empty box would get a height of nothing.
+		if (!el.offsetParent) return;
 		el.style.height = "auto";
 		el.style.height = el.scrollHeight + "px";
-		const has_text = !!(this.$input.val() || "").trim();
-		this.page.main.find(".cv-send").toggle(has_text);
-		this.page.main.find(".cv-mic").toggle(!has_text);
+		// A scrollbar only once the text outgrows the box.
+		el.style.overflowY = el.scrollHeight > el.clientHeight + 2 ? "auto" : "hidden";
 	}
 
 	set_reply(reply) {
@@ -1112,8 +1287,9 @@ erpnext.chat_view.ChatView = class ChatView {
 		this.$input.val("");
 		this.autosize();
 		const reply = this.take_reply();
+		const entities = this.mention.take(text);
 		return this.run_send(
-			() => this.source.send_text(chat, text, reply),
+			() => this.source.send_text(chat, text, reply, { entities }),
 			__("Failed to send message"),
 			text
 		);
@@ -1191,11 +1367,11 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	popover(html, anchor, place) {
+		const off = $(anchor).offset();
+		const anchor_height = $(anchor).outerHeight();
 		this.close_popovers();
 		const $pop = $(html).addClass("cv-pop").appendTo("body");
-		const off = $(anchor).offset();
-		const top =
-			place === "above" ? off.top - $pop.outerHeight() - 8 : off.top + $(anchor).outerHeight() + 4;
+		const top = place === "above" ? off.top - $pop.outerHeight() - 8 : off.top + anchor_height + 4;
 		let left = off.left;
 		const overflow = left + $pop.outerWidth() - $(window).width() + 8;
 		if (overflow > 0) left -= overflow;
@@ -1211,17 +1387,56 @@ erpnext.chat_view.ChatView = class ChatView {
 		return $pop;
 	}
 
-	react_popover(e) {
+	// Who has read an outgoing message (chats with several readers).
+	read_popover(e) {
 		e.stopPropagation();
 		const m = this.msg_of(e.currentTarget);
+		if (!m || !this.source.read_info) return;
+		const info = this.source.read_info(m, this.chat());
+		// Someone who has not read it and has no WhatsApp or mobile push may not see it soon.
+		const section = (label, icon, people, warn) =>
+			people.length
+				? `<div class="cv-read-sec"><div class="cv-read-label"><i class="fa fa-${icon}"></i> ${frappe.utils.escape_html(
+						label
+				  )} · ${people.length}</div>${people
+						.map(
+							(p) =>
+								`<div class="cv-read-row">${erpnext.entity.user(
+									{ user: p.user, full_name: p.employee_name },
+									{ size: 22 }
+								)}${
+									warn && p.no_channels
+										? `<div class="cv-read-warn"><i class="fa fa-bell-slash"></i> ${__(
+												"No notification channel configured"
+										  )}</div>`
+										: ""
+								}</div>`
+						)
+						.join("")}</div>`
+				: "";
+		this.popover(
+			`<div class="cv-read-pop">${section(__("Have read"), "check", info.read)}${section(
+				__("Not read yet"),
+				"clock-o",
+				info.unread,
+				true
+			)}</div>`,
+			e.currentTarget,
+			"above"
+		);
+	}
+
+	react_popover(anchor) {
+		const m = this.msg_of(anchor);
 		if (!m) return;
 		const $pop = this.popover(
 			`<div class="cv-react-pop">${erpnext.chat_render.QUICK_REACTIONS.map(
 				(x) => `<span data-e="${x}">${x}</span>`
 			).join("")}</div>`,
-			e.currentTarget,
+			anchor,
 			"above"
 		);
+		$(anchor).closest(".cv-bubble").addClass("cv-menu-open");
 		$pop.find("span").on("click", (ev) => {
 			const emoji = $(ev.currentTarget).attr("data-e");
 			this.close_popovers();
@@ -1267,6 +1482,14 @@ erpnext.chat_view.ChatView = class ChatView {
 				},
 			},
 		];
+		if (m.can_react) {
+			items.push({
+				icon: "fa fa-smile-o",
+				label: __("React"),
+				keep_open: true,
+				action: () => this.react_popover(trigger),
+			});
+		}
 		if (m.can_reply && !chat.read_only) {
 			items.push({
 				icon: "fa fa-reply",
@@ -1296,7 +1519,8 @@ erpnext.chat_view.ChatView = class ChatView {
 		$(trigger).closest(".cv-bubble").addClass("cv-menu-open");
 		$pop.find(".cv-menu-item").on("click", (e) => {
 			const it = items[$(e.currentTarget).data("i")];
-			this.close_popovers();
+			e.stopPropagation();
+			if (!it.keep_open) this.close_popovers();
 			it.action();
 		});
 	}

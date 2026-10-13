@@ -1,0 +1,10 @@
+<table class="rows">
+	<tr><th>Command</th><th>Used by</th><th>Status</th></tr>
+	{% for r in rows %}
+	<tr>
+		<td class="mono">{{ r.rule.argv|join(' ') }}</td>
+		<td>{{ r.rule.used_by }}</td>
+		<td>{% if r.ok %}<span class="good">allowed</span>{% else %}<span class="warn">not allowed</span>{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>

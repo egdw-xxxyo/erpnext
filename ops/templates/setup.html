@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Setup{% endblock %}
+{% block content %}
+<div class="grid">
+	<section class="card wide">
+		<h2>Passwordless sudo</h2>
+		<p class="muted small">
+			Some actions need root on the host (reading <code>/var/lib/docker</code>, installing a
+			package, trimming the journal). The dashboard never asks for or stores a sudo password: it
+			calls <code>sudo -n</code>, which fails immediately instead of hanging when the host does
+			not allow the command. So the host has to allow exactly those commands, once, by an admin
+			who has sudo. The dashboard cannot do this itself — writing the file needs root.
+		</p>
+		<table class="rows">
+			<tr><th>Command</th><th>Used by</th><th>Why</th></tr>
+			{% for r in rules %}
+			<tr>
+				<td class="mono">{{ r.argv|join(' ') }}</td>
+				<td>{{ r.used_by }}</td>
+				<td class="muted">{{ r.why }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</section>
+
+	<section class="card wide">
+		<h2>1. Allow them on the host</h2>
+		<p class="muted small">
+			Log in to the host over SSH as a user that has sudo and run this. It is written for the
+			operator account you are logged in as (<code>{{ session.username }}</code>) and validated
+			with <code>visudo</code>, which refuses a broken file.
+		</p>
+		<pre class="console">{{ install_cmd }}</pre>
+		<p class="muted small">
+			Rules are exact argument lists on purpose — no wildcards. <code>apt-get *</code> or
+			<code>du *</code> would be a root shell. To remove access later:
+			<code>sudo rm {{ sudoers_file }}</code>.
+		</p>
+	</section>
+
+	<section class="card wide">
+		<h2>2. Check</h2>
+		<p class="muted small">
+			Asks sudo whether each command would be allowed (<code>sudo -n -l</code>); nothing is
+			executed.
+		</p>
+		<button type="button" class="primary"
+		        hx-get="/panels/sudo-check" hx-target="#sudo-check" hx-swap="innerHTML">Check now</button>
+		<div id="sudo-check"></div>
+	</section>
+
+	<section class="card wide">
+		<h2>Without sudo</h2>
+		<p class="muted small">
+			Space analysis still gets a complete scan if the host has a running backend container: it
+			falls back to <code>du</code> inside a read-only root container (the operator is already in
+			the docker group). The package install and journal trim have no such fallback.
+		</p>
+	</section>
+</div>
+{% endblock %}
