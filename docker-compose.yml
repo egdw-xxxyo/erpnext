@@ -176,6 +176,10 @@ services:
       retries: 3
       start_period: 20s
     environment:
+      # Bump when tools/nginx/entrypoint.sh changes how nginx is started: the
+      # next ./deploy build then recreates this container. Template changes do
+      # not need it — a reload applies them.
+      FRONTEND_START_REV: "2"
       FRAPPE_SITE_NAME_HEADER: frontend
       UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
       UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
@@ -249,7 +253,9 @@ services:
     networks:
       - frappe_network
     restart: unless-stopped
-    stop_grace_period: 60s
+    # `bench schedule` only enqueues and does not exit on SIGTERM; waiting longer
+    # just adds that long to every deploy.
+    stop_grace_period: 5s
     command:
       - bench
       - schedule

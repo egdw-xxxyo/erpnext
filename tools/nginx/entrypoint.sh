@@ -50,4 +50,8 @@ if [ "${1:-}" = "render" ]; then
 fi
 
 render
-exec nginx -g 'daemon off;'
+# worker_shutdown_timeout: after a reload, workers of the previous config would
+# otherwise live for as long as a websocket stays open, i.e. indefinitely, and a
+# cutover could never tell when the previous backend is idle. After 25s they
+# close what is left; socket.io reconnects on its own.
+exec nginx -g 'daemon off; worker_shutdown_timeout 25s;'

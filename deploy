@@ -1123,7 +1123,7 @@ cutover() {
   nginx_target_write "$1" "$2" "$3"
   nginx_reload >&3 2>&1 || return 1
   assets_cache_flush
-  nginx_wait_old_workers 60 || echo "WARNING: nginx workers of the previous config are still draining after 60s." >&2
+  nginx_wait_old_workers 40 || echo "WARNING: nginx workers of the previous config are still draining after 40s." >&2
 }
 
 # Puts image $1 behind nginx without dropping a request. Returns 1 when nothing

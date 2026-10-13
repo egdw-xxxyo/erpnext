@@ -1,6 +1,7 @@
 #!/bin/bash
 # Counts what users would see during a deploy. Start it before the deploy, stop
-# it (Ctrl-C) or let it run out after; it prints every failed request as it
+# it (Ctrl-C, or `kill` when it runs in the background — a background job does
+# not get SIGINT) or let it run out after; it prints every failed request as it
 # happens and a summary at the end. Exit status 0 only when nothing failed.
 #
 #   tools/deploy-probe.sh [base-url] [seconds]
