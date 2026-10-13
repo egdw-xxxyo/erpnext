@@ -1,0 +1,34 @@
+# The second ("green") copy of the services that answer requests. Always passed
+# to compose by ./deploy next to docker-compose.yml, so the services are known
+# and show up in `ps`, but behind a profile: a plain `up -d` never starts them.
+# `./deploy live` starts the colour that is not serving on the new release
+# image, switches nginx to it and stops the other one.
+#
+# `extends` keeps one definition of volumes, environment and command; only what
+# differs is stated here.
+services:
+  backend-green:
+    extends:
+      file: docker-compose.yml
+      service: backend
+    image: ${ERPNEXT_IMAGE_GREEN:-erpnext-uk:v16.31.1}
+    profiles:
+      - green
+
+  websocket-green:
+    extends:
+      file: docker-compose.yml
+      service: websocket
+    image: ${ERPNEXT_IMAGE_GREEN:-erpnext-uk:v16.31.1}
+    profiles:
+      - green
+    environment:
+      FRAPPE_BACKEND_URL: http://backend-green:8000
+
+  assets-green:
+    extends:
+      file: docker-compose.yml
+      service: assets
+    image: ${ERPNEXT_IMAGE_GREEN:-erpnext-uk:v16.31.1}
+    profiles:
+      - green
