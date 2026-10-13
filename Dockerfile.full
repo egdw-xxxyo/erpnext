@@ -11,15 +11,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Replace ERPNext source with ours ──────────────────────────────────
-# Only copy the erpnext/ package dir — keep the stock pyproject.toml from the
-# base image so the pinned dependency set of the release stays authoritative.
-COPY --chown=frappe:frappe erpnext/ /home/frappe/frappe-bench/apps/erpnext/erpnext/
-
-# ── Replace Frappe source with our fork ───────────────────────────────
-COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/frappe/
-# Frappe realtime JS lives outside the python package — overlay separately
-COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frappe/realtime/
+# ── Layer order ───────────────────────────────────────────────────────
+# Everything that does not change from one release to the next comes first, so two
+# release images share it on disk: the extra apps with their node_modules are ~6 GB,
+# and placed after `COPY erpnext/` they were rebuilt and stored again for every
+# commit. Our own source is copied last; a release then costs about 0.5 GB, which is
+# what lets a host keep the previous image for ./deploy rollback.
 
 # ── Extra pip dependencies (not in pyproject.toml) ────────────────────
 # firebase-admin is declared in erpnext's pyproject.toml, but this image keeps the
@@ -27,31 +24,9 @@ COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frapp
 # installed explicitly for employee_chat's FCM push to import.
 RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs firebase-admin
 
-# ── Install core apps in editable mode ────────────────────────────────
-# frappe's pyproject.toml pulls PyPika and gunicorn straight from GitHub
-# (git+https://...) — pip shells out to `git clone` for those, hitting the
-# same anonymous-git-upload-pack 401 as the apps.json clones below on hosts
-# GitHub has flagged. --mount=type=ssh forwards an ephemeral in-build
-# ssh-agent loaded with whatever key `deploy`'s --ssh default=... pointed at
-# (see GITHUB_SSH_KEY_FILE there) — never written to disk in the image. When
-# forwarded, a GIT_CONFIG_* insteadOf rewrite (scoped to this RUN's shell,
-# same reasoning) makes every https://github.com/ URL — including the one
-# buried in pip's git+https dependency spec — resolve over SSH instead.
-# required=false: silently absent on hosts that don't need it (e.g. not
-# behind GitHub's block), falls back to plain anonymous https.
-RUN --mount=type=ssh,id=default,required=false \
-    mkdir -p ~/.ssh && chmod 700 ~/.ssh \
-    && ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null; \
-    if ssh-add -l >/dev/null 2>&1; then \
-      export GIT_CONFIG_COUNT=1; \
-      export GIT_CONFIG_KEY_0="url.git@github.com:.insteadOf"; \
-      export GIT_CONFIG_VALUE_0="https://github.com/"; \
-    fi; true \
-    && cd /home/frappe/frappe-bench \
-    && ./env/bin/pip install -e apps/frappe \
-    && ./env/bin/pip install -e apps/erpnext
-
 # ── Extra apps from apps.json ─────────────────────────────────────────
+# Installed against the frappe and erpnext of the base image; ours are overlaid and
+# reinstalled below, so their pinned dependencies have the last word.
 # All apps are cloned regardless of "enabled" so bench uninstall-app can
 # run when an app is disabled (it needs the app code present). The
 # "enabled" flag only controls site install/uninstall in ./deploy.
@@ -79,6 +54,40 @@ RUN --mount=type=ssh,id=default,required=false \
          && echo "$name" >> /home/frappe/frappe-bench/sites/apps.txt \
          || exit 1; \
        done < /tmp/extra_apps.txt
+
+# ── Replace ERPNext source with ours ──────────────────────────────────
+# Only copy the erpnext/ package dir — keep the stock pyproject.toml from the
+# base image so the pinned dependency set of the release stays authoritative.
+COPY --chown=frappe:frappe erpnext/ /home/frappe/frappe-bench/apps/erpnext/erpnext/
+
+# ── Replace Frappe source with our fork ───────────────────────────────
+COPY --chown=frappe:frappe frappe/frappe/ /home/frappe/frappe-bench/apps/frappe/frappe/
+# Frappe realtime JS lives outside the python package — overlay separately
+COPY --chown=frappe:frappe frappe/realtime/ /home/frappe/frappe-bench/apps/frappe/realtime/
+
+# ── Install core apps in editable mode ────────────────────────────────
+# frappe's pyproject.toml pulls PyPika and gunicorn straight from GitHub
+# (git+https://...) — pip shells out to `git clone` for those, hitting the
+# same anonymous-git-upload-pack 401 as the apps.json clones below on hosts
+# GitHub has flagged. --mount=type=ssh forwards an ephemeral in-build
+# ssh-agent loaded with whatever key `deploy`'s --ssh default=... pointed at
+# (see GITHUB_SSH_KEY_FILE there) — never written to disk in the image. When
+# forwarded, a GIT_CONFIG_* insteadOf rewrite (scoped to this RUN's shell,
+# same reasoning) makes every https://github.com/ URL — including the one
+# buried in pip's git+https dependency spec — resolve over SSH instead.
+# required=false: silently absent on hosts that don't need it (e.g. not
+# behind GitHub's block), falls back to plain anonymous https.
+RUN --mount=type=ssh,id=default,required=false \
+    mkdir -p ~/.ssh && chmod 700 ~/.ssh \
+    && ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null; \
+    if ssh-add -l >/dev/null 2>&1; then \
+      export GIT_CONFIG_COUNT=1; \
+      export GIT_CONFIG_KEY_0="url.git@github.com:.insteadOf"; \
+      export GIT_CONFIG_VALUE_0="https://github.com/"; \
+    fi; true \
+    && cd /home/frappe/frappe-bench \
+    && ./env/bin/pip install -e apps/frappe \
+    && ./env/bin/pip install -e apps/erpnext
 
 # ── Dummy site config for HRMS frontend build (needs socketio_port) ──
 RUN mkdir -p /home/frappe/frappe-bench/sites \
