@@ -1,8 +1,14 @@
 name: docker
 
+# Which image each service runs comes from .env, written by ./deploy (see ENV_FILE
+# there). The defaults are the moving tag, so a host without .env behaves as before.
+x-images:
+  blue: &image_blue ${ERPNEXT_IMAGE_BLUE:-erpnext-uk:v16.31.1}
+  frontend: &image_frontend ${ERPNEXT_IMAGE_FRONTEND:-erpnext-uk:v16.31.1}
+
 services:
   backend:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:
@@ -19,7 +25,7 @@ services:
       PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
 
   configurator:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:
@@ -48,7 +54,7 @@ services:
       - logs:/home/frappe/frappe-bench/logs
 
   create-site:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:
@@ -103,7 +109,7 @@ services:
       - db-data:/var/lib/mysql
 
   frontend:
-    image: erpnext-uk:v16.31.1
+    image: *image_frontend
     networks:
       - frappe_network
     depends_on:
@@ -129,7 +135,7 @@ services:
       - "8080:8080"
 
   queue-long:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:
@@ -148,7 +154,7 @@ services:
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
 
   queue-short:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:
@@ -185,7 +191,7 @@ services:
         condition: on-failure
 
   scheduler:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:
@@ -199,7 +205,7 @@ services:
       - logs:/home/frappe/frappe-bench/logs
 
   websocket:
-    image: erpnext-uk:v16.31.1
+    image: *image_blue
     networks:
       - frappe_network
     deploy:

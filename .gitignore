@@ -27,6 +27,8 @@ erpnext/www/banking.html
 .docker/
 .deploy-env
 .deploy-lean
+.env
+.env.??????
 .mcp.json
 .agents/
 snapshots/

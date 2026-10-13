@@ -92,4 +92,9 @@ WORKDIR /home/frappe/frappe-bench
 ENV NODE_OPTIONS=--max-old-space-size=3072
 RUN bench build --force
 
+# Last on purpose: the tag changes with every commit, and anywhere earlier it
+# would invalidate the asset build above.
+ARG RELEASE_TAG=unknown
+ENV ERPNEXT_RELEASE=${RELEASE_TAG}
+
 USER frappe

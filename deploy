@@ -5,7 +5,52 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 # ops_step: [OPS] milestone markers the ops dashboard parses.
 . "$DIR/tools/ops-progress.sh"
 ERPNEXT_VERSION="v16.31.1"
-IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
+IMAGE_REPO="erpnext-uk"
+# Moving tag: always the newest build. ERPNEXT_VERSION is also the base-image
+# build arg, so it is not a release identifier — RELEASE_IMAGE is.
+IMAGE_NAME="$IMAGE_REPO:$ERPNEXT_VERSION"
+
+# One immutable tag per release, so two releases can exist side by side (the
+# running one and the one being rolled out, or the one to roll back to).
+release_tag() {
+  local tag
+  tag=$(git -C "$DIR" describe --tags --always --dirty 2>/dev/null | tr -c 'A-Za-z0-9._\n-' '-')
+  echo "${tag:-unknown}"
+}
+RELEASE_TAG="$(release_tag)"
+RELEASE_IMAGE="$IMAGE_REPO:${ERPNEXT_VERSION}-${RELEASE_TAG}"
+
+# Which image each service runs. Compose loads .env from the directory of its
+# first -f file on its own, so ./deploy, a bare `docker compose` typed by an
+# operator and the ops dashboard all read the same file. Per-host state, like
+# .deploy-env; every key has a default in docker-compose.yml, so a host without
+# the file starts exactly as before.
+ENV_FILE="$DIR/.env"
+
+env_get() {
+  [ -f "$ENV_FILE" ] || return 0
+  sed -n "s/^$1=//p" "$ENV_FILE" | tail -1
+}
+
+# Temp file + rename: a reader sees the old file or the new one, never half.
+env_set() {
+  local key="$1" value="$2" tmp
+  tmp=$(mktemp "$ENV_FILE.XXXXXX")
+  if [ -f "$ENV_FILE" ]; then
+    grep -v "^$key=" "$ENV_FILE" >"$tmp" || true
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$ENV_FILE"
+}
+
+env_ensure() {
+  local key
+  for key in ERPNEXT_IMAGE_BLUE ERPNEXT_IMAGE_GREEN ERPNEXT_IMAGE_FRONTEND ERPNEXT_PREV_IMAGE; do
+    [ -n "$(env_get "$key")" ] || env_set "$key" "$IMAGE_NAME"
+  done
+  [ -n "$(env_get ERPNEXT_ACTIVE_COLOR)" ] || env_set ERPNEXT_ACTIVE_COLOR blue
+}
 
 # Some host IPs get a 401 from GitHub on anonymous git-upload-pack even for
 # public repos (confirmed via GIT_TRACE — GET info/refs is fine, the actual
@@ -205,10 +250,11 @@ wait_for_backend() {
   echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
 }
 
-# Space policy: a deploy leaves nothing behind. Before the build we drop what
-# earlier builds left and refuse to start on a disk that cannot hold the new
-# image (a full disk takes redis down with it). After a good deploy the
-# superseded image goes too, so there is no rollback image — that is the point.
+# Space policy: a deploy leaves behind exactly one thing — the previous release
+# image, which is what a rollback starts. Before the build we drop what earlier
+# builds left and refuse to start on a disk that cannot hold the new image (a
+# full disk takes redis down with it). After a good deploy everything older than
+# the previous release goes; a lean host (.deploy-lean) keeps no previous image.
 # Only the newest DEPLOY_CACHE_KEEP of build cache survives: the apt/pip base
 # layers are worth keeping, everything after the apps clone is rebuilt anyway.
 DEPLOY_CACHE_KEEP="${DEPLOY_CACHE_KEEP:-3GB}"
@@ -261,22 +307,62 @@ free_everything_for_build() {
   docker builder prune -af >/dev/null 2>&1 || true
 }
 
+# Removes every image of our own repository except the ones .env pins (the
+# release each colour runs, the frontend's, the previous release), the moving
+# tag and whatever a container — running or stopped — was created from.
+# Only our repository: `image prune -a` would also take unused images of any
+# other project sharing this Docker, and the rollback image with them.
+image_gc() {
+  local keep="" ref id key
+  for key in ERPNEXT_IMAGE_BLUE ERPNEXT_IMAGE_GREEN ERPNEXT_IMAGE_FRONTEND ERPNEXT_PREV_IMAGE; do
+    ref=$(env_get "$key")
+    [ -n "$ref" ] || continue
+    id=$(docker image inspect -f '{{.Id}}' "$ref" 2>/dev/null || true)
+    [ -n "$id" ] && keep="$keep $id"
+  done
+  id=$(docker image inspect -f '{{.Id}}' "$IMAGE_NAME" 2>/dev/null || true)
+  [ -n "$id" ] && keep="$keep $id"
+  for ref in $(docker ps -aq 2>/dev/null); do
+    id=$(docker inspect -f '{{.Image}}' "$ref" 2>/dev/null || true)
+    [ -n "$id" ] && keep="$keep $id"
+  done
+  # Nothing resolved means docker did not answer; deleting on that would take everything.
+  [ -n "$keep" ] || return 0
+
+  docker image ls --no-trunc --format '{{.ID}} {{.Repository}} {{.Tag}}' 2>/dev/null \
+    | awk -v repo="$IMAGE_REPO" '$2 == repo' \
+    | while read -r id _repo tag; do
+        case " $keep " in *" $id "*) continue ;; esac
+        if [ "$tag" = "<none>" ]; then
+          docker rmi "$id" >/dev/null 2>&1 || true
+        else
+          docker rmi "$IMAGE_REPO:$tag" >/dev/null 2>&1 || true
+        fi
+      done
+}
+
 reclaim_after_deploy() {
   say "==> Removing superseded images and build leftovers..."
-  # Only older images of our own repository: `image prune -a` would also take
-  # unused images of any other project sharing this Docker. `rmi` refuses an
-  # image a container still uses, which is exactly what we want here.
-  local repo current id
-  repo="${IMAGE_NAME%%:*}"
-  current=$(docker image inspect -f '{{.Id}}' "$IMAGE_NAME" 2>/dev/null || true)
-  if [ -n "$current" ]; then
-    docker image ls --no-trunc --format '{{.ID}} {{.Repository}}' 2>/dev/null \
-      | awk -v repo="$repo" -v current="$current" '$2 == repo && $1 != current {print $1}' \
-      | sort -u \
-      | while read -r id; do docker rmi "$id" >/dev/null 2>&1 || true; done
-  fi
+  image_gc
   docker image prune -f >/dev/null 2>&1 || true
   prune_build_cache
+}
+
+# Points the stack at the image that was just built and remembers the release it
+# replaces. The frontend follows the release for as long as it serves the assets
+# baked into its own image.
+release_pin() {
+  local running
+  running=$(env_get ERPNEXT_IMAGE_BLUE)
+  if lean_build; then
+    env_set ERPNEXT_PREV_IMAGE "$RELEASE_IMAGE"
+  elif [ -n "$running" ] && [ "$running" != "$RELEASE_IMAGE" ]; then
+    env_set ERPNEXT_PREV_IMAGE "$running"
+  fi
+  env_set ERPNEXT_IMAGE_BLUE "$RELEASE_IMAGE"
+  env_set ERPNEXT_IMAGE_GREEN "$RELEASE_IMAGE"
+  env_set ERPNEXT_IMAGE_FRONTEND "$RELEASE_IMAGE"
+  env_set ERPNEXT_ACTIVE_COLOR blue
 }
 
 build_image() {
@@ -284,6 +370,15 @@ build_image() {
     free_everything_for_build
   fi
   ensure_space_for_build || return 1
+
+  # A host that predates release tags runs the moving tag, which the build below
+  # re-points at the new image. Give the running image a name of its own first,
+  # or the very first tagged release would have nothing to roll back to.
+  if ! lean_build && [ "$(env_get ERPNEXT_IMAGE_BLUE)" = "$IMAGE_NAME" ] \
+      && docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+    docker tag "$IMAGE_NAME" "$IMAGE_NAME-pre-release-tags"
+    env_set ERPNEXT_IMAGE_BLUE "$IMAGE_NAME-pre-release-tags"
+  fi
 
   # Hash the remote HEAD of every app in apps.json so the Docker clone layer is
   # invalidated whenever any fork moves (otherwise the clone is cached forever and
@@ -305,8 +400,10 @@ build_image() {
   fi
   DOCKER_BUILDKIT=1 docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
     --build-arg "APPS_CACHE_BUST=$apps_bust" \
+    --build-arg "RELEASE_TAG=$RELEASE_TAG" \
     "${ssh_args[@]}" \
-    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || { prune_build_cache; return 1; }
+    -t "$RELEASE_IMAGE" -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || { prune_build_cache; return 1; }
+  release_pin
   say "==> Pruning dangling images..."
   docker image prune -f --filter "dangling=true" >/dev/null
 }
@@ -767,6 +864,8 @@ run_deploy() {
   echo "Done. http://localhost:8080"
 }
 
+env_ensure
+
 case "${1:-}" in
   nuke)
     require_non_production "nuke"
@@ -970,18 +1069,19 @@ PY
     ;;
 
   space-hard-clean)
-    # Unlike space-clean, this removes every image not referenced by a
-    # running/stopped container — including old tagged erpnext-uk rollback
-    # images — and the full build cache, not just the unused slice. Matches
-    # exactly what `docker system df`'s "Reclaimable" column promises. Still
-    # no volume prune, still never touches backups or sites/.
-    say "==> Removing ALL unused Docker images (including tagged rollback images)..."
-    docker image prune -a -f
+    # Unlike space-clean, this also removes superseded erpnext-uk release
+    # images and the full build cache, not just the unused slice. The previous
+    # release image stays: it is what `./deploy rollback` starts, and a blanket
+    # `image prune -a` is exactly what used to destroy it. Still no volume
+    # prune, still never touches backups or sites/.
+    say "==> Removing superseded release images (the previous release is kept)..."
+    image_gc
+    docker image prune -f
     say "==> Pruning ALL Docker build cache (next build will be uncached, slower)..."
     docker builder prune -a -f
     say "==> Vacuuming systemd journal to 100M..."
     journalctl --vacuum-size=100M 2>&1 || echo "Skipped: no permission to vacuum the journal as this user."
-    echo "Hard clean complete. Rollback to the previous image is no longer possible."
+    echo "Hard clean complete. The previous release image was kept for rollback."
     ;;
 
   ops)
