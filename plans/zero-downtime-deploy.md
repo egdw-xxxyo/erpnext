@@ -1,22 +1,70 @@
 # Near-zero-downtime midday deploy (`./deploy live`)
 
-## Status (2026-10-13) — implementation resumed, full A + B + C
+## Status (2026-10-13) — implemented, verified on a local stand; not yet run on dev or prod
 
-Read this section first: the design below is unchanged, but the repo moved since 18 Sept.
+**Read this section first.** Everything below it is the original September design, kept for its
+reasoning. Three parts of it were replaced during implementation; where the two disagree, this
+section and the code are right.
 
-| # | Drift | Adaptation |
+### What was built
+
+| | |
+|---|---|
+| `./deploy live [--check-only]` | Release without a window, behind the pre-flight gate |
+| `./deploy rollback [--to <tag>]` | Previous release's code, same mechanism. Database untouched |
+| `tools/deploy-preflight.py` | The gate, G0-G11 |
+| `tools/deploy-probe.sh` | Counts failed requests across a deploy |
+| `tools/nginx/` | nginx template + entrypoint (frontend), asset server config + entrypoint, union publisher |
+| `docker-compose.green.yml` | The stand-in services, behind the `green` profile |
+| `.env` (per host) | Which image each service runs: `ERPNEXT_IMAGE_BLUE/GREEN/WORKERS/FRONTEND`, `ERPNEXT_PREV_IMAGE` |
+| `sites/.deployed-release.json` | What is deployed; the gate diffs against it |
+| Ops dashboard | "Check live deploy", "Deploy live (no window)", "Roll back" |
+
+### Where the implementation departs from the design below
+
+1. **Assets (replaces A3 and "discovery 1").** The 33 MB figure was `du` without following symlinks.
+   The served tree is 641 MB on our image, most of it unhashed `node_modules`, so copying it into
+   the volume per release was dropped. Instead each release serves its own assets: an `assets`
+   service (nginx from the release image) and the frontend proxies `/assets` to the live one. A
+   404 there falls back to `sites/assets-union`, the files of the last 3 releases minus
+   `node_modules` (~230 MB), which keeps tabs loaded before a deploy working. No frappe fork
+   change, no custom image entrypoint. Also: the image shipped the *base image's* manifest where
+   the entrypoint links `sites/assets` (23 of 43 bundles missing) and every deploy repaired it
+   with a full `bench build` in the live backend; `Dockerfile.full` now puts the right one there.
+2. **The stand-in is temporary (replaces B1 "colours alternate").** Backups, restore, the ops
+   dashboard, `./insights` and the mirror all address `backend`. So: green up on the new image ->
+   cut over -> recreate blue on the new image -> cut back -> green removed. Two cutovers, a
+   minute longer, and no other command knows about colours. A deploy always ends on
+   `backend`/`websocket`/`assets`.
+3. **Retention is 2 release images**, active + previous (was 3). Lean hosts (`.deploy-lean`) keep
+   none and cannot run `live`/`rollback`.
+4. Committed files live in `tools/nginx/` (`.docker/` is gitignored). The cutover target is
+   `.docker/nginx-target/target.conf`.
+5. `nginx -s reload` is asynchronous: the drain tracks the worker PIDs from before the reload, and
+   `worker_shutdown_timeout 25s` bounds it (an open websocket otherwise keeps an old worker alive
+   for good).
+6. G7 (image assets) runs right after the image is built instead of inside the gate; G9 diffs the
+   migrate hooks against the deployed commit instead of a fixed list.
+
+### Measured on the local stand (colima, probe at 5 rounds/s, 4 request classes)
+
+| Run | Failed requests | Notes |
 |---|---|---|
-| D1 | The space policy was inverted: `reclaim_after_deploy` deleted every superseded image ("no rollback image — that is the point") | `image_gc` keeps what `.env` pins + the moving tag + anything a container references. **Retention is 2 release tags (active + previous), not 3** |
-| D2 | Lean build mode (`.deploy-lean`) removes the old image before building | Lean hosts keep no previous image and `./deploy live` / `rollback` refuse to run there |
-| D3 | `dc()` builds a `files` array and appends the mirror overlay | The green overlay is appended to the same array |
-| D4 | Standby mirror (`tools/mirror.sh`) | `live` / `rollback` call `mirror_guard` like `build`; the replica keeps using `mirror sync-code` |
-| D5 | Traefik TLS profile and cloudflared both route to `frontend:8080` | Nothing to change: the frontend is never recreated on the live path. Both ingress paths go into the probe run |
-| D6 | `before_migrate` exists and `after_migrate` has six entries | G9 diffs both hooks against the deployed sha instead of a hardcoded list |
-| D7 | `setup_custom_fields.py` has 16 global `frappe.clear_cache()` calls | Same `execute_quiet()` approach, audit all 16 |
-| D8 | `.docker/` is gitignored | Committed files live in `tools/nginx/` and `tools/assets/` (next to `tools/traefik/`), not `.docker/nginx/` and `.docker/assets/` |
-| D9 | Every `deploy:NNN` reference below is stale | Find by function name |
+| `./deploy build`, before the frontend fix | 656 over 63 s | frontend recreated on every build |
+| `./deploy live` | 0, 0 slow | 2 cutovers; frontend container never recreated |
+| `./deploy rollback` | 0 of 809, 0 slow | 68 s; a bundle hash of the newer release kept resolving |
 
-Progress: **A1 done** (release tags, `.env`, `image_gc`). Next: A4, A2, A3, A5/A6, then B, then C.
+### Not done yet
+
+- Dev (172.16.105.103) and prod. Prod only after dev: probe from a third machine, three `live`
+  runs, a rollback, and the negative tests listed under Verification.
+- The first `./deploy build` on each host is a normal windowed deploy and is what installs all of
+  this (new frontend command, `assets` service, `.env`, the release record). `live` refuses until
+  that build has recorded a release.
+- The gate has only seen releases with no new patches. Mark the first real patch `ONLINE_SAFE`
+  deliberately and read what G2/G3 say about it.
+- A frontend on a `live`-only host keeps its old image, which is a third image on disk until the
+  next `./deploy build`.
 
 ## Context
 

@@ -1115,6 +1115,8 @@ assets_ready() {
 green_remove() {
   dcg stop $GREEN_SERVICES >/dev/null 2>&1 || true
   dcg rm -f $GREEN_SERVICES >/dev/null 2>&1 || true
+  # Nothing runs it any more: do not let it pin an image of its own.
+  env_set ERPNEXT_IMAGE_GREEN "$(env_get ERPNEXT_IMAGE_BLUE)"
 }
 
 # $1 backend, $2 socket.io, $3 assets — as host:port. Returns once no request
