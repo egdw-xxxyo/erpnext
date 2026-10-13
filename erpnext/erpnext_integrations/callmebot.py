@@ -349,6 +349,10 @@ def record_status(user: str, status: str, resume_url: str | None = None, alert: 
 		if values:
 			frappe.db.set_value("Notification Settings", user, values, update_modified=False)
 			frappe.clear_document_cache("Notification Settings", user)
+			if "callmebot_status" in values:
+				from erpnext.crm.notification_channels import sync_users
+
+				sync_users([user])
 	except Exception:
 		frappe.log_error(title="CallMeBot: failed to record status", message=frappe.get_traceback())
 

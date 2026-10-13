@@ -1390,7 +1390,8 @@ erpnext.chat_view.ChatView = class ChatView {
 		const m = this.msg_of(e.currentTarget);
 		if (!m || !this.source.read_info) return;
 		const info = this.source.read_info(m, this.chat());
-		const section = (label, icon, people) =>
+		// Someone who has not read it and has no WhatsApp or mobile push may not see it soon.
+		const section = (label, icon, people, warn) =>
 			people.length
 				? `<div class="cv-read-sec"><div class="cv-read-label"><i class="fa fa-${icon}"></i> ${frappe.utils.escape_html(
 						label
@@ -1400,7 +1401,13 @@ erpnext.chat_view.ChatView = class ChatView {
 								`<div class="cv-read-row">${erpnext.entity.user(
 									{ user: p.user, full_name: p.employee_name },
 									{ size: 22 }
-								)}</div>`
+								)}${
+									warn && p.no_channels
+										? `<div class="cv-read-warn"><i class="fa fa-bell-slash"></i> ${__(
+												"No notification channel configured"
+										  )}</div>`
+										: ""
+								}</div>`
 						)
 						.join("")}</div>`
 				: "";
@@ -1408,7 +1415,8 @@ erpnext.chat_view.ChatView = class ChatView {
 			`<div class="cv-read-pop">${section(__("Have read"), "check", info.read)}${section(
 				__("Not read yet"),
 				"clock-o",
-				info.unread
+				info.unread,
+				true
 			)}</div>`,
 			e.currentTarget,
 			"above"

@@ -599,6 +599,7 @@ frappe.provide("erpnext.chat_render");
 			letter-spacing:.03em;}
 		.cv-read-sec + .cv-read-sec{margin-top:8px;padding-top:6px;border-top:1px solid var(--border-color);}
 		.cv-read-row{padding:3px 0;}
+		.cv-read-warn{margin:1px 0 2px 30px;font-size:11px;color:var(--orange-600,#c05621);}
 		.cv-ticks .fa + .fa{margin-left:-6px;}
 		.cv-st-failed{color:var(--red-500,#e24c4c);}
 		.cv-media{margin:-2px -6px 2px -7px;}

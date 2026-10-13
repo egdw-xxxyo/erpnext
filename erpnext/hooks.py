@@ -617,6 +617,10 @@ doc_events = {
 			"erpnext.crm.notification_push.on_notification_log",
 		],
 	},
+	# which channels reach the user away from the desk, kept on their Employee
+	"Notification Settings": {
+		"on_update": "erpnext.crm.notification_channels.on_notification_settings_update",
+	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
 		"validate": "erpnext.setup.doctype.employee.employee.validate_employee_role",
@@ -816,6 +820,7 @@ doc_events = {
 			"erpnext.hr.average_pay.validate_opening_earnings",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
+			"erpnext.crm.notification_channels.set_on_employee",
 		],
 		"on_update": [
 			"erpnext.hr.employee_period.clear_attendance_after_relieving",
@@ -879,6 +884,7 @@ scheduler_events = {
 		],
 	},
 	"hourly": [
+		"erpnext.crm.notification_channels.sync_all",
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",

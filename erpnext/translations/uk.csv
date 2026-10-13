@@ -13463,6 +13463,11 @@ Additional Information for Status {0},Додаткова інформація д
 "Result of the last message sent to WhatsApp","Результат останнього повідомлення, надісланого у WhatsApp"
 "CallMeBot Alerted On","Останнє попередження CallMeBot"
 "Help Page","Сторінка довідки"
+"Notification Channels","Канали сповіщень"
+"WhatsApp + Mobile App","WhatsApp + мобільний застосунок"
+"No Channel","Немає каналу"
+"Channels that reach the employee outside ERPNext: WhatsApp (CallMeBot) and mobile app push","Канали, якими сповіщення доходять до працівника поза ERPNext: WhatsApp (CallMeBot) і push у мобільному застосунку"
+"No notification channel configured","Канал сповіщень не налаштовано"
 "Wiki page or any link that explains how to restore WhatsApp notifications. Sent to a user whose CallMeBot account is paused or whose API key stopped working.","Сторінка вікі або будь-яке посилання з поясненням, як відновити сповіщення у WhatsApp. Надсилається користувачеві, чий обліковий запис CallMeBot призупинено або чий API-ключ перестав працювати."
 Calculate Totals,Підрахувати суми
 Rows,Рядків

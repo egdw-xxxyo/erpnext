@@ -99,6 +99,7 @@ def execute():
 	setup_serial_no_write_for_stock_user()
 	create_callmebot_fields()
 	setup_callmebot_default_settings()
+	setup_employee_notification_channels()
 	setup_payroll_ua_workspace_card()
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
@@ -3820,6 +3821,34 @@ def _migrate_callmebot_keys_to_auth():
 
 	if rows:
 		print(f"  Encrypted {len(rows)} CallMeBot API key(s) into __Auth")
+
+
+def setup_employee_notification_channels():
+	"""Which channels reach the employee away from the desk — WhatsApp (CallMeBot), mobile app.
+
+	A stored copy maintained by `erpnext.crm.notification_channels`, so the Employee list can
+	show and filter who has no channel at all."""
+	from erpnext.crm.notification_channels import LABELS, sync_all
+
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "notification_channels",
+				"fieldtype": "Select",
+				"label": "Notification Channels",
+				"options": "\n" + "\n".join(LABELS),
+				"insert_after": "user_id",
+				"read_only": 1,
+				"no_copy": 1,
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"depends_on": "eval:doc.user_id",
+				"description": "Channels that reach the employee outside ERPNext: WhatsApp (CallMeBot) and mobile app push",
+			},
+		]
+	)
+	sync_all()
 
 
 CALLMEBOT_HELP_ROUTE = "docs/whatsapp-notifications"
