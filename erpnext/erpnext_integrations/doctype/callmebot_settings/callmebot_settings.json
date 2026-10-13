@@ -8,6 +8,7 @@
   "privacy_mode",
   "default_message",
   "include_link",
+  "help_url",
   "section_templates",
   "templates"
  ],
@@ -34,6 +35,12 @@
    "description": "Append the direct URL of the ERPNext document to the WhatsApp notification."
   },
   {
+   "description": "Wiki page or any link that explains how to restore WhatsApp notifications. Sent to a user whose CallMeBot account is paused or whose API key stopped working.",
+   "fieldname": "help_url",
+   "fieldtype": "Data",
+   "label": "Help Page"
+  },
+  {
    "fieldname": "section_templates",
    "fieldtype": "Section Break",
    "label": "Notification Templates",
@@ -48,7 +55,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-18 21:20:00.000000",
+ "modified": "2026-10-13 09:30:00.000000",
  "modified_by": "Administrator",
  "module": "ERPNext Integrations",
  "name": "CallMeBot Settings",

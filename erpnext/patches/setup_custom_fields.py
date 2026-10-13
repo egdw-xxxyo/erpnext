@@ -3767,6 +3767,28 @@ def create_callmebot_fields():
 			"no_copy": 1,
 			"description": "Key sent back by the bot after you activate it from your phone",
 		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_status",
+			"fieldtype": "Select",
+			"label": "CallMeBot Status",
+			"options": "\nActive\nPaused\nInvalid API Key",
+			"insert_after": "callmebot_api_key",
+			"depends_on": "eval:doc.callmebot_enabled && doc.callmebot_status",
+			"read_only": 1,
+			"no_copy": 1,
+			"description": "Result of the last message sent to WhatsApp",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_alerted_on",
+			"fieldtype": "Datetime",
+			"label": "CallMeBot Alerted On",
+			"insert_after": "callmebot_status",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+		},
 	]
 	_create_custom_fields(fields)
 	_migrate_callmebot_keys_to_auth()

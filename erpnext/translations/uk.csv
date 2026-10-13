@@ -13452,6 +13452,18 @@ Additional Information for Status {0},Додаткова інформація д
 "Вас згадали у коментарі","Вас згадали у коментарі"
 "Вам надано доступ до документу","Вам надано доступ до документу"
 "Only System Managers can configure CallMeBot Settings.","Лише системні адміністратори (System Manager) можуть налаштовувати CallMeBot."
+"WhatsApp notifications are paused by CallMeBot. Send the word ""resume"" to the bot from your phone to turn them back on.","CallMeBot призупинив сповіщення у WhatsApp. Надішліть боту слово «resume» зі свого телефону, щоб увімкнути їх знову."
+"WhatsApp notifications are not delivered: the CallMeBot API key is no longer valid. Get a new key from the bot and save it in your Notification Settings.","Сповіщення у WhatsApp не доставляються: API-ключ CallMeBot більше не дійсний. Отримайте новий ключ у бота та збережіть його у своїх налаштуваннях сповіщень."
+"CallMeBot did not accept the message. Try again later.","CallMeBot не прийняв повідомлення. Спробуйте пізніше."
+"Send ""resume"" in WhatsApp","Надіслати «resume» у WhatsApp"
+"Open Notification Settings","Відкрити налаштування сповіщень"
+"How to restore WhatsApp notifications","Як відновити сповіщення у WhatsApp"
+"CallMeBot Status","Стан CallMeBot"
+"Invalid API Key","Недійсний API-ключ"
+"Result of the last message sent to WhatsApp","Результат останнього повідомлення, надісланого у WhatsApp"
+"CallMeBot Alerted On","Останнє попередження CallMeBot"
+"Help Page","Сторінка довідки"
+"Wiki page or any link that explains how to restore WhatsApp notifications. Sent to a user whose CallMeBot account is paused or whose API key stopped working.","Сторінка вікі або будь-яке посилання з поясненням, як відновити сповіщення у WhatsApp. Надсилається користувачеві, чий обліковий запис CallMeBot призупинено або чий API-ключ перестав працювати."
 Calculate Totals,Підрахувати суми
 Rows,Рядків
 No rows to calculate.,Немає рядків для підрахунку.
