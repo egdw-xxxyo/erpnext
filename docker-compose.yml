@@ -124,15 +124,30 @@ services:
     image: *image_frontend
     networks:
       - frappe_network
-    depends_on:
-      - websocket
+    # No depends_on: nginx resolves its upstreams per request (tools/nginx), so
+    # it neither needs websocket to exist first nor gets recreated along with it.
     restart: unless-stopped
+    # Our own config render instead of the image's nginx-entrypoint.sh. Which
+    # backend it proxies to is in nginx-target/target.conf, written by ./deploy.
     command:
-      - nginx-entrypoint.sh
+      - bash
+      - /opt/frappe-nginx/entrypoint.sh
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - -o
+        - /dev/null
+        - -m
+        - "3"
+        - http://127.0.0.1:8080/nginx_status
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     environment:
-      BACKEND: backend:8000
       FRAPPE_SITE_NAME_HEADER: frontend
-      SOCKETIO: websocket:9000
       UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
       UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
       UPSTREAM_REAL_IP_RECURSIVE: "off"
@@ -141,6 +156,8 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
+      - ./tools/nginx:/opt/frappe-nginx:ro
+      - ./.docker/nginx-target:/etc/nginx/frappe-target:ro
     ports:
       - "8080:8080"
 

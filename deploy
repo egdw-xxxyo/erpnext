@@ -225,6 +225,59 @@ ops_up() {
   ) || echo "WARNING: ops dashboard failed to start (ERPNext deploy unaffected)."
 }
 
+# --- nginx target ------------------------------------------------------------
+# Which backend/websocket container the frontend proxies to. A directory, not a
+# file, is mounted into the container: a rename replaces the inode, and a
+# single-file bind mount would keep showing the old one.
+NGINX_TARGET_DIR="$DIR/.docker/nginx-target"
+
+nginx_target_write() {
+  local tmp
+  mkdir -p "$NGINX_TARGET_DIR"
+  tmp=$(mktemp "$NGINX_TARGET_DIR/target.XXXXXX")
+  printf 'map $host $frappe_backend  { default "%s"; }\nmap $host $frappe_socketio { default "%s"; }\n' \
+    "$1" "$2" >"$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$NGINX_TARGET_DIR/target.conf"
+}
+
+# The frontend refuses to start without the file, on purpose.
+nginx_target_ensure() {
+  [ -f "$NGINX_TARGET_DIR/target.conf" ] || nginx_target_write "backend:8000" "websocket:9000"
+}
+
+# Re-renders the config, tests it and reloads. A reload never closes the
+# listening socket: new workers take the new config, old ones finish what they
+# have. Never `dc restart frontend`. The reload itself is asynchronous — old
+# workers keep accepting for a moment — so the worker PIDs of before are noted
+# for nginx_wait_old_workers.
+nginx_reload() {
+  dc exec -T frontend bash -c '
+    set -e
+    for p in /proc/[0-9]*; do
+      if grep -qa "^nginx: worker" "$p/cmdline" 2>/dev/null; then echo "${p#/proc/}"; fi
+    done >/tmp/nginx-old-workers
+    bash /opt/frappe-nginx/entrypoint.sh render
+    nginx -s reload
+  '
+}
+
+# Returns once every worker that ran the previous config has exited, i.e. no
+# request is in flight to the previous target any more. $1 = seconds to wait.
+nginx_wait_old_workers() {
+  dc exec -T frontend bash -c '
+    for _ in $(seq 1 "$0"); do
+      alive=0
+      for pid in $(cat /tmp/nginx-old-workers 2>/dev/null); do
+        if grep -qa "^nginx: worker" "/proc/$pid/cmdline" 2>/dev/null; then alive=1; fi
+      done
+      [ "$alive" = 0 ] && exit 0
+      sleep 1
+    done
+    exit 1
+  ' "${1:-45}"
+}
+
 wait_for_db() {
   say "==> Waiting for MariaDB..."
   for i in $(seq 1 30); do
@@ -851,12 +904,12 @@ run_deploy() {
   say "==> Starting workers..."
   dc start scheduler queue-short queue-long websocket >&3 2>&1 || true
 
-  # nginx resolves the `websocket` upstream once, when it loads its config. The
-  # stop/start above hands that container a new IP, so the frontend keeps proxying
-  # /socket.io to an address nobody listens on: every realtime connection 502s and
-  # the chat silently falls back to polling. Reload nginx so it resolves again.
-  say "==> Reloading frontend (websocket upstream IP changed)..."
-  dc restart frontend >&3 2>&1 || true
+  # The windowed deploy always ends on the blue pair. nginx re-resolves container
+  # addresses on its own (tools/nginx), so the stop/start above needs no reload;
+  # this one only applies the target and any change to the config template.
+  say "==> Reloading nginx config..."
+  nginx_target_write "backend:8000" "websocket:9000"
+  nginx_reload >&3 2>&1 || echo "WARNING: nginx reload failed — check: docker compose logs frontend" >&2
 
   ops_step custom-fields start "Applying custom fields"
   say "==> Running setup_custom_fields..."
@@ -909,6 +962,7 @@ run_deploy() {
 }
 
 env_ensure
+nginx_target_ensure
 
 case "${1:-}" in
   nuke)
