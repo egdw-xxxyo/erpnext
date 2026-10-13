@@ -4331,3 +4331,20 @@ def setup_access_manager_role():
 			ignore_permissions=True
 		)
 		print(f"  Created Role: {role}")
+
+
+def execute_quiet():
+	"""execute() for a deploy that runs while users are on the site: the global cache flushes
+	scattered through the steps are collapsed into one at the end, scoped ones still run."""
+	clear_cache = frappe.clear_cache
+
+	def scoped_only(user=None, doctype=None):
+		if user or doctype:
+			clear_cache(user=user, doctype=doctype)
+
+	frappe.clear_cache = scoped_only
+	try:
+		execute()
+	finally:
+		frappe.clear_cache = clear_cache
+	clear_cache()
