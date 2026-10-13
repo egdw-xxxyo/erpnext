@@ -121,7 +121,14 @@ class Gate:
 	# -- G0 / G1 -----------------------------------------------------------------
 
 	def g0_clean_tagged(self):
-		dirty = git("status", "--porcelain").strip()
+		# Untracked files count only where the image build would pick them up: a host
+		# keeps backups of its own config next to the repo files, and those are not a release.
+		dirty = (
+			git("status", "--porcelain", "-uno").strip()
+			+ "\n"
+			+ git("status", "--porcelain", "--untracked-files=all", "--", "erpnext").strip()
+		).strip()
+		dirty = "\n".join(sorted(set(dirty.splitlines())))
 		tag = git("describe", "--tags", "--exact-match", "HEAD", check=False).strip()
 		if dirty:
 			self.report(
