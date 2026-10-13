@@ -11,9 +11,26 @@ services:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
+    # gunicorn gets 25s to finish in-flight requests on SIGTERM (start.sh has no
+    # knob for it, GUNICORN_CMD_ARGS does); compose waits 30s before SIGKILL.
+    stop_grace_period: 30s
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - -o
+        - /dev/null
+        - -m
+        - "5"
+        - -H
+        - "Host: frontend"
+        - http://127.0.0.1:8000/api/method/ping
+      interval: 10s
+      timeout: 6s
+      retries: 3
+      start_period: 120s
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
@@ -23,14 +40,13 @@ services:
       MYSQL_ROOT_PASSWORD: admin
       MARIADB_ROOT_PASSWORD: admin
       PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
+      GUNICORN_CMD_ARGS: --graceful-timeout=25
 
   configurator:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: none
+    restart: "no"
     entrypoint:
       - bash
       - -c
@@ -57,9 +73,7 @@ services:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: none
+    restart: "no"
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
@@ -94,9 +108,7 @@ services:
       test: mysqladmin ping -h localhost --password=admin
       interval: 1s
       retries: 20
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -114,9 +126,7 @@ services:
       - frappe_network
     depends_on:
       - websocket
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - nginx-entrypoint.sh
     environment:
@@ -138,9 +148,10 @@ services:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
+    # `bench worker` finishes its current job on SIGTERM; the 10s default killed
+    # long jobs mid-transaction on every deploy.
+    stop_grace_period: 300s
     command:
       - bench
       - worker
@@ -157,9 +168,10 @@ services:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
+    # `bench worker` finishes its current job on SIGTERM; the 10s default killed
+    # long jobs mid-transaction on every deploy.
+    stop_grace_period: 300s
     command:
       - bench
       - worker
@@ -176,9 +188,7 @@ services:
     image: redis:6.2-alpine
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     volumes:
       - redis-queue-data:/data
 
@@ -186,17 +196,14 @@ services:
     image: redis:6.2-alpine
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
 
   scheduler:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
+    stop_grace_period: 60s
     command:
       - bench
       - schedule
@@ -208,9 +215,8 @@ services:
     image: *image_blue
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
+    stop_grace_period: 15s
     command:
       - node
       - /home/frappe/frappe-bench/apps/frappe/socketio.js

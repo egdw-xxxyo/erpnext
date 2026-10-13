@@ -238,16 +238,48 @@ wait_for_db() {
   exit 1
 }
 
+# One real request through gunicorn. A 200 from frappe.ping means the image
+# imported, gunicorn accepts on :8000, the database answers and the site
+# resolves — none of which `bench doctor` or `import frappe` can tell.
+backend_probe() {
+  dc exec -T "$1" curl -fsS -o /dev/null -m 5 -H 'Host: frontend' \
+    http://127.0.0.1:8000/api/method/ping >/dev/null 2>&1
+}
+
+# Three answers in a row, so one lucky reply while the workers are still booting
+# does not pass. $2 = how many 2s rounds to wait (default 3 minutes).
+backend_ready() {
+  local service="${1:-backend}" rounds="${2:-90}" streak=0 _i
+  for _i in $(seq 1 "$rounds"); do
+    if backend_probe "$service"; then
+      streak=$((streak + 1))
+      [ "$streak" -ge 3 ] && return 0
+      sleep 1
+    else
+      streak=0
+      sleep 2
+    fi
+  done
+  return 1
+}
+
+# Both gunicorn workers (2 x 4 threads) import their share and fill their
+# caches on our requests instead of on the first user's.
+backend_warm() {
+  local service="${1:-backend}"
+  dc exec -T "$service" bash -c '
+    for _ in $(seq 1 24); do
+      curl -fsS -o /dev/null -m 10 -H "Host: frontend" http://127.0.0.1:8000/api/method/ping &
+    done
+    wait
+    curl -fsS -o /dev/null -m 30 -H "Host: frontend" http://127.0.0.1:8000/login
+  ' >/dev/null 2>&1 || true
+}
+
 wait_for_backend() {
   say "==> Waiting for backend..."
-  for i in $(seq 1 30); do
-    if dc exec -T backend bench --site frontend doctor 2>/dev/null | grep -q "OK" 2>/dev/null || \
-       dc exec -T backend python3 -c "import frappe" 2>/dev/null; then
-      return 0
-    fi
-    sleep 2
-  done
-  echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
+  backend_ready backend 60 && return 0
+  echo "WARNING: backend does not answer /api/method/ping after 2 minutes, proceeding anyway."
 }
 
 # Space policy: a deploy leaves behind exactly one thing — the previous release
@@ -860,6 +892,18 @@ run_deploy() {
   ops_step extra-apps start "Installing extra apps"
   install_extra_apps >&3 2>&1
   ops_step extra-apps ok "Extra apps installed"
+
+  # The deploy is only done when the new code answers a real request.
+  ops_step health start "Waiting for the backend to answer"
+  say "==> Waiting for the backend to answer..."
+  if ! backend_ready backend; then
+    ops_step health fail "Backend does not answer"
+    echo "!! The backend does not answer /api/method/ping — last 40 log lines:" >&2
+    dc logs --tail 40 backend >&2 || true
+    exit 1
+  fi
+  backend_warm backend
+  ops_step health ok "Backend answers"
 
   echo "Done. http://localhost:8080"
 }
