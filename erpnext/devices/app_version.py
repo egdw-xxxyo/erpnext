@@ -16,6 +16,8 @@ The clients version independently — do NOT assume the same number.
 
 import frappe
 
+# 0.9.0 is where a notification opens the document it is about (`mobile_doc_api`, the
+# `doctype` / `docname` of a push); an older build only marks the notification read.
 # 0.8.0 is where the scanner screen learned to scan with the phone's camera (`send_scan`):
 # a photo of a sheet, every code on it boxed, sent one after another. An older build has no
 # such button, so the operator is told to update rather than to look for it.
@@ -37,7 +39,7 @@ import frappe
 # ended up stranded out of stock with nothing pointing back at them.
 # Before that, 0.6.0 was the floor — where the spool stopped being scanned and started being
 # handed out by `spool_production.next_spool`.
-MIN_ANDROID_APP_VERSION = "0.8.0"
+MIN_ANDROID_APP_VERSION = "0.9.0"
 MIN_DESKTOP_APP_VERSION = "0.1.0"
 
 

@@ -18,7 +18,7 @@ from urllib.parse import quote, unquote, urlparse
 
 import frappe
 from frappe import _
-from frappe.utils import now
+from frappe.utils import cint, now
 
 URL_RE = re.compile(r"https?://[^\s<>\"']+")
 
@@ -141,19 +141,64 @@ def _assigned_users(reference_doctype, reference_name):
 
 
 def _notify_users(thread_doc, sender):
-	"""Who gets a realtime notification for a new message. Normally every participant; for a
-	Document thread only the participants assigned to the linked record — plus the sender, so
-	their own other tabs stay in sync. Non-assignees still see the message on open/poll, they
-	just aren't pinged."""
-	participants = set(_participant_users(thread_doc))
-	if thread_doc.thread_type != "Document":
-		return participants
-	assigned = _assigned_users(thread_doc.reference_doctype, thread_doc.reference_name)
-	return (participants & assigned) | {sender}
+	"""Who gets a realtime notification for a new message: every participant, plus the sender so
+	their own other tabs stay in sync. A Document thread is no different — its participant list
+	(assignees and whoever joined or was added) is the audience."""
+	return set(_participant_users(thread_doc)) | {sender}
+
+
+def _append_participant(thread_doc, user, role="Member"):
+	"""Add a participant row (not saved). Returns False when the user is already in."""
+	if not user or thread_doc.is_participant(user):
+		return False
+	emp = frappe.db.get_value("Employee", {"user_id": user}, ["name", "employee_name"], as_dict=True)
+	thread_doc.append(
+		"participants",
+		{
+			"user": user,
+			"employee": emp.name if emp else None,
+			"employee_name": emp.employee_name if emp else None,
+			"role": role,
+		},
+	)
+	return True
+
+
+def _thread_assignees(thread_doc):
+	if thread_doc.thread_type != "Document" or thread_doc.reference_removed:
+		return set()
+	return _assigned_users(thread_doc.reference_doctype, thread_doc.reference_name)
+
+
+def _sync_assignees(thread_doc):
+	"""Everyone assigned to the record belongs to its chat. Adds the missing ones (not saved)
+	and returns them; nobody is ever removed here — an unassigned person stays until they leave."""
+	added = []
+	for user in sorted(_thread_assignees(thread_doc)):
+		if thread_doc.is_participant(user) or not frappe.db.exists("User", {"name": user, "enabled": 1}):
+			continue
+		_append_participant(thread_doc, user)
+		added.append(user)
+	return added
+
+
+def _may_read_reference(thread_doc, user):
+	return bool(
+		thread_doc.reference_doctype
+		and thread_doc.reference_name
+		and not thread_doc.reference_removed
+		and frappe.has_permission(
+			thread_doc.reference_doctype, "read", doc=thread_doc.reference_name, user=user
+		)
+	)
+
+
+def _default_group_title(users):
+	return ", ".join(_user_name(u) for u in users)[:140]
 
 
 def _user_name(user):
-	return frappe.db.get_value("User", user, "full_name") or user
+	return frappe.db.get_value("User", user, "full_name", cache=True) or user
 
 
 def _preview_text(content_type, message, attach, is_encrypted=False, link_title=None):
@@ -362,6 +407,92 @@ def resolve_link(url: str):
 	return card
 
 
+MAX_ENTITIES = 20
+# Doctypes whose link in a message addresses a person — they are notified and, in a Document
+# thread, brought into the chat.
+_PERSON_DOCTYPES = ("Employee", "User")
+
+
+def _stored_entities(raw):
+	if not raw:
+		return []
+	try:
+		rows = json.loads(raw) if isinstance(raw, str) else raw
+	except (ValueError, TypeError):
+		return []
+	return rows if isinstance(rows, list) else []
+
+
+def _parse_entities(raw, message):
+	"""Sanitise the `entities` argument of send_message: document links laid over the text as
+	`{offset, length, doctype, name}`. Offsets count UTF-16 code units — the unit the browser
+	and the Android app index strings in — so the bounds are checked against that length."""
+	size = len((message or "").encode("utf-16-le")) // 2
+	rows = [r for r in _stored_entities(raw) if isinstance(r, dict)]
+	out = []
+	end = 0
+	for r in sorted(rows, key=lambda r: cint(r.get("offset"))):
+		offset, length = cint(r.get("offset")), cint(r.get("length"))
+		doctype, name = r.get("doctype"), r.get("name")
+		if length <= 0 or offset < end or offset + length > size:
+			continue
+		if not isinstance(doctype, str) or not isinstance(name, str):
+			continue
+		if not frappe.db.exists("DocType", doctype) or not frappe.db.exists(doctype, name):
+			continue
+		out.append({"offset": offset, "length": length, "doctype": doctype, "name": name})
+		end = offset + length
+		if len(out) >= MAX_ENTITIES:
+			break
+	return out
+
+
+def _mentioned_users(entities):
+	"""Users addressed by the person links of a message."""
+	users = {e["name"] for e in entities if e["doctype"] == "User"}
+	employees = [e["name"] for e in entities if e["doctype"] == "Employee"]
+	if employees:
+		users.update(
+			u for u in frappe.get_all("Employee", filters={"name": ["in", employees]}, pluck="user_id") if u
+		)
+	return users
+
+
+def _notify_mentions(thread_doc, sender, users, preview):
+	"""A desk notification per mentioned person; `notification_push` mirrors it to their phone.
+	Never allowed to fail the message that carries the mention."""
+	if not users:
+		return
+	sender_name = frappe.bold(_user_name(sender))
+	if thread_doc.thread_type == "Document":
+		title = thread_doc.reference_label or thread_doc.reference_name
+	else:
+		title = thread_doc.title
+	subject = (
+		_("{0} mentioned you in the chat {1}").format(sender_name, frappe.bold(title))
+		if title
+		else _("{0} mentioned you in a chat").format(sender_name)
+	)
+	about_record = thread_doc.thread_type == "Document" and not thread_doc.reference_removed
+	for user in users:
+		try:
+			frappe.get_doc(
+				{
+					"doctype": "Notification Log",
+					"for_user": user,
+					"from_user": sender,
+					"type": "Mention",
+					"subject": subject,
+					"email_content": frappe.utils.escape_html(preview),
+					"document_type": thread_doc.reference_doctype if about_record else None,
+					"document_name": thread_doc.reference_name if about_record else None,
+					"link": None if about_record else f"/app/employee-chat?thread={quote(thread_doc.name)}",
+				}
+			).insert(ignore_permissions=True)
+		except Exception:
+			frappe.log_error(title="Chat mention notification failed", message=frappe.get_traceback())
+
+
 def _message_payload(row, name_cache=None):
 	"""Shape a Chat Message row (dict or doc) into the payload the page renders."""
 	name_cache = name_cache if name_cache is not None else {}
@@ -417,6 +548,7 @@ def _message_payload(row, name_cache=None):
 		"reply_to": row.get("reply_to"),
 		"reply_preview": reply_preview,
 		"reactions": reactions,
+		"entities": _stored_entities(row.get("entities")),
 		"is_encrypted": row.get("is_encrypted") or 0,
 		"enc_iv": row.get("enc_iv"),
 		"enc_version": row.get("enc_version") or 0,
@@ -427,6 +559,81 @@ def _message_payload(row, name_cache=None):
 # ---------------------------------------------------------------------------
 # Threads
 # ---------------------------------------------------------------------------
+
+
+_THREAD_FIELDS = [
+	"name",
+	"thread_type",
+	"title",
+	"image",
+	"is_secret",
+	"last_message_on",
+	"last_message_preview",
+	"last_sender",
+	"reference_doctype",
+	"reference_name",
+	"reference_label",
+	"is_archived",
+	"reference_removed",
+	"disable_archive",
+	"disable_deep_archive",
+	"is_deep_archived",
+	"deep_archive_status",
+	"deep_archived_on",
+	"archived_message_count",
+	"archived_file_count",
+	"restore_progress",
+	"restore_expires_on",
+]
+
+
+def _thread_row(t, me, last_read, can_purge):
+	"""Decorate a Chat Thread row for the list: participants, title, the user's own read cursor
+	and unread count. `is_member` is 0 for a Document thread the user only reads."""
+	parts = frappe.get_all(
+		"Chat Participant",
+		filters={"parenttype": "Chat Thread", "parent": t["name"]},
+		fields=["user", "employee_name", "role", "last_read_on", "muted"],
+	)
+	for p in parts:
+		# Not everyone has an Employee record; a participant is never shown as a bare login.
+		p.employee_name = p.employee_name or _user_name(p.user)
+	t["participants"] = parts
+	mine = next((p for p in parts if p.user == me), None)
+	t["is_member"] = 1 if mine else 0
+	t["muted"] = mine.muted if mine else 0
+	# The client needs its own read cursor to place the "New messages" divider and
+	# scroll to the first unread message on open.
+	t["my_last_read"] = str(last_read) if last_read else None
+	others = [p for p in parts if p.user != me]
+	if t["thread_type"] == "Direct" and others:
+		o = others[0]
+		t["display_title"] = o.employee_name or _user_name(o.user)
+		t["other_user"] = o.user
+	elif t["thread_type"] == "Document":
+		t["display_title"] = t["reference_label"] or (
+			f"{t['reference_doctype']}: {t['reference_name']}"
+			if t["reference_doctype"]
+			else _("Document chat")
+		)
+		t["other_user"] = None
+	else:
+		t["display_title"] = t["title"] or ", ".join(p.employee_name or p.user for p in others)
+		t["other_user"] = None
+
+	t["unread"] = 0
+	if mine:
+		unread_filters = [
+			["Chat Message", "thread", "=", t["name"]],
+			["Chat Message", "sender", "!=", me],
+		]
+		if last_read:
+			unread_filters.append(["Chat Message", "creation", ">", last_read])
+		t["unread"] = frappe.db.count("Chat Message", unread_filters)
+	t["read_only"] = _is_read_only(t["thread_type"], t["is_archived"], t["is_deep_archived"])
+	t["can_purge"] = can_purge
+	t["deep_archive"] = _deep_archive_payload(t)
+	return t
 
 
 @frappe.whitelist()
@@ -446,29 +653,7 @@ def get_threads():
 	threads = frappe.get_all(
 		"Chat Thread",
 		filters={"name": ["in", list(last_read.keys())]},
-		fields=[
-			"name",
-			"thread_type",
-			"title",
-			"is_secret",
-			"last_message_on",
-			"last_message_preview",
-			"last_sender",
-			"reference_doctype",
-			"reference_name",
-			"reference_label",
-			"is_archived",
-			"reference_removed",
-			"disable_archive",
-			"disable_deep_archive",
-			"is_deep_archived",
-			"deep_archive_status",
-			"deep_archived_on",
-			"archived_message_count",
-			"archived_file_count",
-			"restore_progress",
-			"restore_expires_on",
-		],
+		fields=_THREAD_FIELDS,
 		order_by="last_message_on desc",
 	)
 
@@ -476,43 +661,7 @@ def get_threads():
 	can_purge = 1 if _may_purge() else 0
 
 	for t in threads:
-		parts = frappe.get_all(
-			"Chat Participant",
-			filters={"parenttype": "Chat Thread", "parent": t["name"]},
-			fields=["user", "employee_name", "role", "last_read_on", "muted"],
-		)
-		t["participants"] = parts
-		mine = next((p for p in parts if p.user == me), None)
-		t["muted"] = mine.muted if mine else 0
-		# The client needs its own read cursor to place the "New messages" divider and
-		# scroll to the first unread message on open.
-		t["my_last_read"] = str(last_read[t["name"]]) if last_read[t["name"]] else None
-		others = [p for p in parts if p.user != me]
-		if t["thread_type"] == "Direct" and others:
-			o = others[0]
-			t["display_title"] = o.employee_name or _user_name(o.user)
-			t["other_user"] = o.user
-		elif t["thread_type"] == "Document":
-			t["display_title"] = t["reference_label"] or (
-				f"{t['reference_doctype']}: {t['reference_name']}"
-				if t["reference_doctype"]
-				else _("Document chat")
-			)
-			t["other_user"] = None
-		else:
-			t["display_title"] = t["title"] or ", ".join(p.employee_name or p.user for p in others)
-			t["other_user"] = None
-
-		unread_filters = [
-			["Chat Message", "thread", "=", t["name"]],
-			["Chat Message", "sender", "!=", me],
-		]
-		if last_read[t["name"]]:
-			unread_filters.append(["Chat Message", "creation", ">", last_read[t["name"]]])
-		t["unread"] = frappe.db.count("Chat Message", unread_filters)
-		t["read_only"] = _is_read_only(t["thread_type"], t["is_archived"], t["is_deep_archived"])
-		t["can_purge"] = can_purge
-		t["deep_archive"] = _deep_archive_payload(t)
+		_thread_row(t, me, last_read[t["name"]], can_purge)
 
 	return threads
 
@@ -541,6 +690,9 @@ def create_thread(
 
 	if thread_type == "Direct" and len(users) != 2:
 		thread_type = "Group"
+	if thread_type == "Group":
+		# A group always has a name; a client that sent none gets one made of its people.
+		title = (title or "").strip() or _default_group_title(users)
 
 	if is_secret:
 		from erpnext.crm import chat_crypto
@@ -561,16 +713,7 @@ def create_thread(
 	doc.is_secret = is_secret
 	doc.title = title if thread_type == "Group" else None
 	for u in users:
-		emp = frappe.db.get_value("Employee", {"user_id": u}, ["name", "employee_name"], as_dict=True)
-		doc.append(
-			"participants",
-			{
-				"user": u,
-				"employee": emp.name if emp else None,
-				"employee_name": emp.employee_name if emp else None,
-				"role": "Admin" if u == me else "Member",
-			},
-		)
+		_append_participant(doc, u, "Admin" if u == me else "Member")
 	doc.insert(ignore_permissions=True)
 
 	if is_secret and thread_keys:
@@ -584,53 +727,44 @@ def create_thread(
 @frappe.whitelist()
 def open_document_thread(reference_doctype: str, reference_name: str):
 	"""Open (or create) the single canonical chat about a specific record. There is one
-	thread per record — everyone who opens it from the form joins the same conversation.
+	thread per record, readable by everyone who may read the record.
 
-	Returns the thread name; the caller routes the Employee Chat page to it."""
+	Opening does not join: the participants are the record's assignees plus whoever wrote in
+	the chat, was added or was mentioned. `thread` is the list row (same shape as
+	`get_threads`) so a reader who is not a participant can still render it."""
 	if not frappe.has_permission(reference_doctype, "read", doc=reference_name):
 		frappe.throw(_("You do not have access to this document"))
 
 	from erpnext.crm.doctype.chat_thread.chat_thread import document_dedup_key
 
 	me = frappe.session.user
-	emp = frappe.db.get_value("Employee", {"user_id": me}, ["name", "employee_name"], as_dict=True)
 	key = document_dedup_key(reference_doctype, reference_name)
 
 	existing = frappe.db.exists("Chat Thread", {"dedup_key": key})
 	if existing:
 		doc = frappe.get_doc("Chat Thread", existing)
-		if not doc.is_participant(me):
-			# Shared thread — anyone opening the record joins the conversation.
-			doc.append(
-				"participants",
-				{
-					"user": me,
-					"employee": emp.name if emp else None,
-					"employee_name": emp.employee_name if emp else None,
-					"role": "Member",
-				},
-			)
+		if _sync_assignees(doc):
 			doc.save(ignore_permissions=True)
-		return {"name": doc.name, "existing": True}
+	else:
+		card = _document_card(reference_doctype, reference_name)
+		doc = frappe.new_doc("Chat Thread")
+		doc.thread_type = "Document"
+		doc.is_secret = 0
+		doc.reference_doctype = reference_doctype
+		doc.reference_name = reference_name
+		doc.reference_label = (card or {}).get("title") or reference_name
+		_sync_assignees(doc)
+		doc.insert(ignore_permissions=True)
 
-	card = _document_card(reference_doctype, reference_name)
-	doc = frappe.new_doc("Chat Thread")
-	doc.thread_type = "Document"
-	doc.is_secret = 0
-	doc.reference_doctype = reference_doctype
-	doc.reference_name = reference_name
-	doc.reference_label = (card or {}).get("title") or reference_name
-	doc.append(
-		"participants",
-		{
-			"user": me,
-			"employee": emp.name if emp else None,
-			"employee_name": emp.employee_name if emp else None,
-			"role": "Admin",
-		},
-	)
-	doc.insert(ignore_permissions=True)
-	return {"name": doc.name, "existing": False}
+	mine = next((p for p in doc.participants if p.user == me), None)
+	row = frappe.get_all("Chat Thread", filters={"name": doc.name}, fields=_THREAD_FIELDS)[0]
+	_thread_row(row, me, mine.last_read_on if mine else None, 1 if _may_purge() else 0)
+	return {
+		"name": doc.name,
+		"existing": bool(existing),
+		"is_member": 1 if mine else 0,
+		"thread": row,
+	}
 
 
 # ---------------------------------------------------------------------------
@@ -643,7 +777,7 @@ def get_messages(thread: str, before: str | None = None, limit: int = 50, after:
 	"""Keyset-paginated message history (oldest-first in the returned batch). Pass the
 	`creation` of the oldest loaded message as `before` to page backwards, or of a recent
 	one as `after` to fetch what arrived (or changed) since."""
-	doc = _require_participant(thread)
+	doc = _require_read_thread(thread)
 	# A deep-archived chat holds nothing until it is unpacked; hand back an empty history so the
 	# client draws the archive banner instead of an empty conversation.
 	if doc.is_deep_archived:
@@ -671,6 +805,7 @@ def get_messages(thread: str, before: str | None = None, limit: int = 50, after:
 			"link_data",
 			"reply_to",
 			"reactions",
+			"entities",
 			"is_encrypted",
 			"enc_iv",
 			"enc_version",
@@ -686,6 +821,34 @@ def get_messages(thread: str, before: str | None = None, limit: int = 50, after:
 
 
 @frappe.whitelist()
+def search_messages(thread: str, txt: str, limit: int = 100):
+	"""Messages of one chat whose text contains `txt`, newest first. A secret chat cannot be
+	searched here — the server only holds ciphertext — and a packed one has no rows."""
+	doc = _require_read_thread(thread)
+	txt = (txt or "").strip()
+	if len(txt) < 2 or doc.is_secret:
+		return []
+	if doc.is_deep_archived and doc.deep_archive_status != "Restored":
+		return []
+	like = "%" + txt.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+	rows = frappe.db.get_all(
+		"Chat Message",
+		filters=[
+			["Chat Message", "thread", "=", thread],
+			["Chat Message", "is_encrypted", "=", 0],
+			["Chat Message", "message", "like", like],
+		],
+		fields=["name", "sender", "content_type", "message", "creation"],
+		order_by="creation desc",
+		limit=min(cint(limit) or 100, 200),
+	)
+	for row in rows:
+		row["sender_name"] = _user_name(row["sender"]) if row["sender"] else ""
+		row["creation"] = str(row["creation"])
+	return rows
+
+
+@frappe.whitelist()
 def send_message(
 	thread: str,
 	message: str | None = None,
@@ -696,6 +859,7 @@ def send_message(
 	is_encrypted: int = 0,
 	enc_iv: str | None = None,
 	extra_files: str | list | None = None,
+	entities: str | list | None = None,
 ):
 	"""Insert a message, update the thread's last-message metadata, and push it to every
 	participant's private room.
@@ -703,8 +867,12 @@ def send_message(
 	In a secret thread `message` must already be ciphertext produced in the sender's
 	browser. Plaintext is rejected outright rather than stored — a client-side bug must
 	not be able to leak a body into the database. A `link` card in a secret thread carries
-	its payload inside the encrypted `message`, so `link_data` stays empty there."""
-	doc = _require_writable(_require_participant(thread))
+	its payload inside the encrypted `message`, so `link_data` stays empty there.
+
+	`entities` are document links over the text. A link to a person is a mention: they are
+	notified, and in a Document thread they join the chat. Writing in a Document thread joins
+	the sender too."""
+	doc = _require_writable(_require_read_thread(thread))
 	is_encrypted = int(is_encrypted or 0)
 
 	link = _parse_link_data(link_data)
@@ -731,6 +899,23 @@ def send_message(
 			message = link["url"]
 
 	me = frappe.session.user
+	# The server cannot see a secret body, so it cannot vouch for offsets into it.
+	ents = [] if doc.is_secret or content_type != "text" else _parse_entities(entities, message)
+	mentioned = _mentioned_users(ents) - {me}
+	if doc.thread_type == "Document":
+		joined = bool(_sync_assignees(doc))
+		joined = _append_participant(doc, me) or joined
+		for user in sorted(mentioned):
+			if doc.is_participant(user):
+				continue
+			if not _may_read_reference(doc, user):
+				frappe.throw(_("{0} has no access to this document").format(_user_name(user)))
+			joined = _append_participant(doc, user) or joined
+		if joined:
+			doc.save(ignore_permissions=True)
+	else:
+		mentioned &= set(_participant_users(doc))
+
 	msg = frappe.get_doc(
 		{
 			"doctype": "Chat Message",
@@ -741,6 +926,7 @@ def send_message(
 			"attach": attach,
 			"link_data": json.dumps(link) if link else None,
 			"reply_to": reply_to,
+			"entities": json.dumps(ents) if ents else None,
 			"is_encrypted": is_encrypted,
 			"enc_iv": enc_iv,
 			"enc_version": 1 if is_encrypted else 0,
@@ -766,7 +952,9 @@ def send_message(
 	payload = _message_payload(msg.as_dict())
 	notify_users = _notify_users(doc, me)
 	_fanout(doc, "chat_message", payload, users=notify_users)
-	_push_new_message(doc, msg, me, notify_users)
+	# A mention has its own, more specific notification — one push per person, not two.
+	_push_new_message(doc, msg, me, notify_users - mentioned)
+	_notify_mentions(doc, me, mentioned, preview)
 	return payload
 
 
@@ -778,7 +966,7 @@ def mark_read(thread: str, upto: str | None = None):
 	by progressive read-on-scroll so messages still below the fold stay unread. The cursor
 	only ever moves forward, so an out-of-order call (e.g. scrolling back up) can't un-read
 	newer messages. With no `upto` the whole thread is marked read as of now."""
-	doc = _require_participant(thread)
+	doc = _require_read_thread(thread)
 	me = frappe.session.user
 	name = frappe.db.get_value(
 		"Chat Participant", {"parenttype": "Chat Thread", "parent": thread, "user": me}, "name"
@@ -808,7 +996,7 @@ def mark_read(thread: str, upto: str | None = None):
 def set_muted(thread: str, muted: int):
 	"""Mute/unmute a thread for the current user only — it silences the notification
 	sound, nothing else (the thread still updates and still counts as unread)."""
-	_require_participant(thread)
+	_require_read_thread(thread)
 	name = frappe.db.get_value(
 		"Chat Participant",
 		{"parenttype": "Chat Thread", "parent": thread, "user": frappe.session.user},
@@ -1099,7 +1287,7 @@ def _mutate_reaction(message, emoji, add):
 	thread = frappe.db.get_value("Chat Message", message, "thread")
 	if not thread:
 		frappe.throw(_("Message not found"))
-	doc = _require_writable(_require_participant(thread))
+	doc = _require_writable(_require_read_thread(thread))
 	me = frappe.session.user
 
 	raw = frappe.db.get_value("Chat Message", message, "reactions")
@@ -1126,7 +1314,7 @@ def _mutate_reaction(message, emoji, add):
 @frappe.whitelist()
 def typing(thread: str):
 	"""Ephemeral typing indicator — notify the other participants, no DB write."""
-	doc = _require_writable(_require_participant(thread))
+	doc = _require_writable(_require_read_thread(thread))
 	me = frappe.session.user
 	for user in _participant_users(doc):
 		if user != me:
@@ -1146,13 +1334,14 @@ def get_thread_info(thread: str, limit: int = 200):
 	In a secret thread the bodies are ciphertext, so nothing can be classified here:
 	the attachment rows and the recent text rows are shipped as-is and the browser
 	splits them once decrypted."""
-	doc = _require_participant(thread)
+	doc = _require_read_thread(thread)
 	if doc.deep_archive_status == "Restored":
 		from erpnext.crm import chat_archive
 
 		chat_archive.touch(thread)
 	limit = int(limit)
 	me = frappe.session.user
+	assignees = _thread_assignees(doc)
 
 	participants = []
 	for p in doc.participants:
@@ -1163,6 +1352,7 @@ def get_thread_info(thread: str, limit: int = 200):
 				"employee": p.employee,
 				"role": p.role,
 				"is_me": p.user == me,
+				"is_assignee": 1 if p.user in assignees else 0,
 				"image": frappe.db.get_value("User", p.user, "user_image"),
 			}
 		)
@@ -1281,8 +1471,12 @@ def get_thread_info(thread: str, limit: int = 200):
 	return {
 		"thread": thread,
 		"thread_type": doc.thread_type,
+		"is_member": 1 if me_row else 0,
+		"can_add": 1 if (me_row and doc.thread_type == "Document") else 0,
+		"can_leave": 1 if (me_row and doc.thread_type == "Document" and me not in assignees) else 0,
 		"muted": me_row.muted if me_row else 0,
 		"title": doc.title,
+		"image": doc.image,
 		"display_title": display_title,
 		"is_secret": doc.is_secret,
 		"participants": participants,
@@ -1310,10 +1504,55 @@ def rename_thread(thread: str, title: str):
 	if doc.thread_type != "Group":
 		frappe.throw(_("Only a group chat can be renamed"))
 	_require_admin(doc)
-	doc.title = (title or "").strip() or None
+	title = (title or "").strip()
+	if not title:
+		frappe.throw(_("A group chat needs a name"))
+	doc.title = title
 	doc.save(ignore_permissions=True)
 	_fanout(doc, "chat_message", {"thread": thread, "system": True})
 	return {"title": doc.title}
+
+
+@frappe.whitelist()
+def set_thread_image(thread: str, image: str | None = None):
+	"""Set or clear the picture of a group chat (admins only). `image` is the url of a file
+	the caller has just uploaded; it is filed under the thread like any other chat file."""
+	doc = _require_participant(thread)
+	if doc.thread_type != "Group":
+		frappe.throw(_("Only a group chat can have a picture"))
+	_require_admin(doc)
+	image = (image or "").strip() or None
+	if image:
+		if not image.startswith(("/files/", "/private/files/")):
+			frappe.throw(_("Upload the picture first"))
+		link_attachment_to_thread(image, thread)
+	doc.image = image
+	doc.save(ignore_permissions=True)
+	_fanout(doc, "chat_message", {"thread": thread, "system": True})
+	return {"image": doc.image}
+
+
+@frappe.whitelist()
+def set_participant_role(thread: str, user: str, role: str):
+	"""Make a participant of a group an admin, or take that back (admins only). A group is
+	never left without an admin."""
+	doc = _require_participant(thread)
+	if doc.thread_type != "Group":
+		frappe.throw(_("Only a group chat has admins"))
+	_require_admin(doc)
+	if role not in ("Admin", "Member"):
+		frappe.throw(_("Unknown role"))
+	row = next((p for p in doc.participants if p.user == user), None)
+	if not row:
+		frappe.throw(_("{0} is not in this chat").format(_user_name(user)))
+	if row.role == role:
+		return {"role": role}
+	if role == "Member" and not any(p.role == "Admin" and p.user != user for p in doc.participants):
+		frappe.throw(_("A group chat needs at least one admin"))
+	row.role = role
+	doc.save(ignore_permissions=True)
+	_fanout(doc, "chat_message", {"thread": thread, "system": True})
+	return {"role": role}
 
 
 @frappe.whitelist()
@@ -1463,6 +1702,8 @@ def _send_fcm_push(tokens, title, body, data):
 		batch = tokens[i : i + 500]
 		message = messaging.MulticastMessage(
 			notification=messaging.Notification(title=title, body=body),
+			# default (normal) priority waits for a Doze maintenance window — minutes on an idle phone
+			android=messaging.AndroidConfig(priority="high"),
 			data={k: str(v) for k, v in data.items()},
 			tokens=batch,
 		)
@@ -1493,13 +1734,20 @@ def _require_admin(thread_doc):
 
 @frappe.whitelist()
 def add_participant(thread: str, user: str, thread_key: str | dict | None = None):
-	"""Add someone to a group. In a secret group the caller's browser must also pass
+	"""Add someone to a group (admins) or to a record's chat (any participant — the newcomer
+	must be able to read the record). In a secret group the caller's browser must also pass
 	`thread_key` — the thread key re-wrapped for the newcomer. Without it they would join
 	a thread they cannot read."""
 	doc = _require_participant(thread)
-	if doc.thread_type != "Group":
+	if doc.thread_type == "Document":
+		if not frappe.db.exists("User", {"name": user, "enabled": 1}):
+			frappe.throw(_("User {0} not found").format(user))
+		if not _may_read_reference(doc, user):
+			frappe.throw(_("{0} has no access to this document").format(_user_name(user)))
+	elif doc.thread_type == "Group":
+		_require_admin(doc)
+	else:
 		frappe.throw(_("Can only add people to a group chat"))
-	_require_admin(doc)
 	if doc.is_participant(user):
 		return {"ok": True}
 
@@ -1514,19 +1762,123 @@ def add_participant(thread: str, user: str, thread_key: str | dict | None = None
 			thread_key = frappe.parse_json(thread_key)
 		chat_crypto.grant_thread_key(thread, [dict(thread_key, user=user)])
 
-	emp = frappe.db.get_value("Employee", {"user_id": user}, ["name", "employee_name"], as_dict=True)
-	doc.append(
-		"participants",
-		{
-			"user": user,
-			"employee": emp.name if emp else None,
-			"employee_name": emp.employee_name if emp else None,
-			"role": "Member",
-		},
-	)
+	_append_participant(doc, user)
 	doc.save(ignore_permissions=True)
 	_fanout(doc, "chat_message", {"thread": thread, "system": True})
 	return {"ok": True}
+
+
+@frappe.whitelist()
+def leave_thread(thread: str):
+	"""Step out of a record's chat: it disappears from the user's list and stops notifying
+	them. The history stays readable from the record for as long as they may read it. An
+	assignee cannot leave — being assigned is what puts them in the chat."""
+	doc = _require_participant(thread)
+	me = frappe.session.user
+	if doc.thread_type != "Document":
+		frappe.throw(_("Only a chat about a document can be left"))
+	if me in _thread_assignees(doc):
+		frappe.throw(_("You are assigned to this document and cannot leave its chat"))
+	doc.participants = [p for p in doc.participants if p.user != me]
+	doc.save(ignore_permissions=True)
+	_fanout(doc, "chat_message", {"thread": thread, "system": True}, users=[*_participant_users(doc), me])
+	return {"ok": True}
+
+
+def _mention_rank(query, values):
+	"""0 exact, 1 a field starts with the query, 2 a word inside a field does, 3 anywhere."""
+	best = 4
+	for value in values:
+		value = (value or "").lower()
+		if not value:
+			continue
+		if value == query:
+			return 0
+		if value.startswith(query):
+			best = min(best, 1)
+		elif any(w.startswith(query) for w in re.split(r"[\s.@_\-]+", value)):
+			best = min(best, 2)
+		elif query in value:
+			best = min(best, 3)
+	return best
+
+
+@frappe.whitelist()
+def search_mentions(txt: str | None = None, thread: str | None = None):
+	"""People for the `@` typeahead, best match first. Matches the login, the first, middle
+	and last name, the full name and the shortname; the people already in `thread` win ties.
+	An employee is linked as `Employee`, a login without one as `User`."""
+	me = frappe.session.user
+	query = (txt or "").strip().lower()
+	present = set(_participant_users(_require_read_thread(thread))) if thread else set()
+
+	users = {
+		u.name: u
+		for u in frappe.get_all(
+			"User",
+			filters={
+				"enabled": 1,
+				"user_type": "System User",
+				"name": ["not in", ["Administrator", "Guest", me]],
+			},
+			fields=["name", "full_name", "user_image"],
+		)
+	}
+	fields = ["name", "user_id", "employee_name", "first_name", "middle_name", "last_name", "department"]
+	has_shortname = frappe.db.has_column("Employee", "shortname")
+	if has_shortname:
+		fields.append("shortname")
+	fields.append("image")
+
+	rows = []
+	seen = set()
+	for e in frappe.get_all(
+		"Employee", filters={"status": "Active", "user_id": ["in", list(users)]}, fields=fields
+	):
+		if e.user_id in seen:
+			continue
+		seen.add(e.user_id)
+		shortname = e.get("shortname")
+		rows.append(
+			{
+				"doctype": "Employee",
+				"name": e.name,
+				"user": e.user_id,
+				"label": e.employee_name or users[e.user_id].full_name or e.user_id,
+				"sub": " · ".join(v for v in (shortname, e.department) if v),
+				"image": e.image or users[e.user_id].user_image,
+				"_match": [
+					e.user_id,
+					e.first_name,
+					e.middle_name,
+					e.last_name,
+					e.employee_name,
+					shortname,
+				],
+			}
+		)
+	for name, u in users.items():
+		if name in seen:
+			continue
+		rows.append(
+			{
+				"doctype": "User",
+				"name": name,
+				"user": name,
+				"label": u.full_name or name,
+				"sub": name,
+				"image": u.user_image,
+				"_match": [name, u.full_name],
+			}
+		)
+
+	ranked = []
+	for r in rows:
+		rank = _mention_rank(query, r.pop("_match")) if query else 3
+		if rank < 4:
+			ranked.append((rank, 0 if r["user"] in present else 1, r["label"].lower(), r))
+	ranked.sort(key=lambda x: x[:3])
+	return [r for *_key, r in ranked[:8]]
 
 
 @frappe.whitelist()
@@ -1535,7 +1887,10 @@ def remove_participant(thread: str, user: str):
 	if doc.thread_type != "Group":
 		frappe.throw(_("Can only remove people from a group chat"))
 	_require_admin(doc)
-	doc.participants = [p for p in doc.participants if p.user != user]
+	rest = [p for p in doc.participants if p.user != user]
+	if not any(p.role == "Admin" for p in rest):
+		frappe.throw(_("A group chat needs at least one admin"))
+	doc.participants = rest
 	doc.save(ignore_permissions=True)
 	if doc.is_secret:
 		from erpnext.crm import chat_crypto

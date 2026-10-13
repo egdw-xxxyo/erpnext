@@ -11,6 +11,7 @@
   "details_tab",
   "thread_type",
   "title",
+  "image",
   "is_secret",
   "dedup_key",
   "column_break_details",
@@ -66,6 +67,12 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Title"
+  },
+  {
+   "description": "Picture of a group chat. Direct chats show the other person, document chats an icon.",
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
   },
   {
    "default": "0",
@@ -286,7 +293,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-08-10 21:06:32.722215",
+ "modified": "2026-10-12 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Chat Thread",

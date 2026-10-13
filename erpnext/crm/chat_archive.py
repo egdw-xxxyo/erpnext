@@ -179,6 +179,7 @@ MESSAGE_COLUMNS = [
 	"link_data",
 	"reply_to",
 	"reactions",
+	"entities",
 	"is_encrypted",
 	"enc_iv",
 	"enc_version",

@@ -11,7 +11,3 @@ def get_full_name(employee: dict) -> str:
 def full_name_column(table):
 	parts = (NullIf(table[part], "") for part in NAME_PARTS)
 	return Coalesce(NullIf(Concat_ws(" ", *parts), ""), table.employee_name)
-
-
-def order_by_full_name(query, table):
-	return query.orderby(*(table[part] for part in NAME_PARTS))

@@ -12,10 +12,12 @@ erpnext.whatsapp.render_panel = async function (frm) {
 
 	let phone;
 	try {
-		phone = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.resolve_phone", {
-			doctype: frm.doctype,
-			docname: frm.doc.name,
-		});
+		phone = await frappe.xcall(
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.resolve_phone",
+			{ doctype: frm.doctype, docname: frm.doc.name },
+			"POST",
+			{ silent: true }
+		);
 	} catch (e) {
 		return;
 	}
@@ -31,10 +33,12 @@ erpnext.whatsapp.render_panel = async function (frm) {
 
 	let msgs = [];
 	try {
-		msgs = await frappe.xcall("erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_recent_messages", {
-			phone,
-			limit: 8,
-		});
+		msgs = await frappe.xcall(
+			"erpnext.crm.page.whatsapp_chat.whatsapp_chat.get_recent_messages",
+			{ phone, limit: 8 },
+			"POST",
+			{ silent: true }
+		);
 	} catch (e) {
 		return;
 	}

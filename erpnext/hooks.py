@@ -98,6 +98,7 @@ override_doctype_class = {
 }
 
 extend_doctype_class = {
+	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
 }
 
@@ -598,10 +599,19 @@ doc_events = {
 		"on_cancel": [
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+			# a consumption issued for this entry goes back with it
+			"erpnext.manufacturing.consumption.cancel_for_source",
+			# a packing transfer's «Упаковка» note on the serials goes back with it
+			"erpnext.manufacturing.packing.unpack_on_cancel",
 		],
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 	},
+	# the route of a unit: which BOM step puts it into stock, and the steps after that
+	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
+	# a unit waiting for packing is stock but not sellable
+	"Delivery Note": {"before_submit": "erpnext.manufacturing.packing.block_unpacked_delivery"},
+	"Work Order": {"before_validate": "erpnext.manufacturing.unit_route.drop_after_stock_operations"},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices
 	"Notification Log": {
@@ -717,7 +727,11 @@ doc_events = {
 	},
 	"ToDo": {
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
-		"on_update": "erpnext.buying.procurement_automation.sync_current_assignees",
+		"on_update": [
+			"erpnext.buying.procurement_automation.sync_current_assignees",
+			# an assignee always belongs to the chat of the record they are assigned to
+			"erpnext.crm.chat_members.on_todo_change",
+		],
 		"on_trash": "erpnext.buying.procurement_automation.sync_current_assignees",
 	},
 	"Task": {
@@ -872,6 +886,7 @@ scheduler_events = {
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",
 		"erpnext.correspondence.doctype.mail_forward_settings.mail_forward_settings.sync_all_mailboxes",
+		"erpnext.correspondence.mail_forward.check_forwarding_health",
 	],
 	"hourly_long": [],
 	"hourly_maintenance": [

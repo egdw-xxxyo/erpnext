@@ -11,6 +11,7 @@ from frappe.permissions import (
 from frappe.utils import cint, cstr, getdate, today, validate_email_address
 from frappe.utils.nestedset import NestedSet
 
+from erpnext.hr.employee_full_name import user_name_parts
 from erpnext.utilities.transaction_base import delete_events
 
 
@@ -222,14 +223,7 @@ class Employee(NestedSet):
 
 		# copy details like Fullname, DOB and Image to User
 		if self.employee_name and not (user.first_name and user.last_name):
-			employee_name = self.employee_name.split(" ")
-			if len(employee_name) >= 3:
-				user.last_name = " ".join(employee_name[2:])
-				user.middle_name = employee_name[1]
-			elif len(employee_name) == 2:
-				user.last_name = employee_name[1]
-
-			user.first_name = employee_name[0]
+			user.update(user_name_parts(self))
 
 		if self.date_of_birth:
 			user.birth_date = self.date_of_birth
@@ -443,24 +437,12 @@ def create_user(employee: str, email: str | None = None, create_user_permission:
 		frappe.throw(_("Email is required to create a user"))
 
 	email = validate_email_address(email, True)
-	employee_name = emp.employee_name.split(" ")
-	first_name = employee_name[0]
-	middle_name = last_name = ""
-
-	if len(employee_name) >= 3:
-		last_name = " ".join(employee_name[2:])
-		middle_name = employee_name[1]
-	elif len(employee_name) == 2:
-		last_name = employee_name[1]
-
 	user = frappe.new_doc("User")
 	user.update(
 		{
 			"email": email,
 			"enabled": 1,
-			"first_name": first_name,
-			"middle_name": middle_name,
-			"last_name": last_name,
+			**user_name_parts(emp),
 			"gender": emp.gender,
 			"birth_date": emp.date_of_birth,
 			"phone": emp.cell_number,

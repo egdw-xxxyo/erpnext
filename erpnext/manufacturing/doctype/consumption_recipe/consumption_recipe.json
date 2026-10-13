@@ -1,0 +1,112 @@
+{
+ "actions": [],
+ "autoname": "field:recipe_name",
+ "creation": "2026-10-09 00:00:00.000000",
+ "description": "What gets used up, and how much of it, as a function of how many units a step handles. Reusable: packing uses it today, manufacturing operations can use it later.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "recipe_name",
+  "is_active",
+  "description",
+  "items_section",
+  "items",
+  "calculator_section",
+  "preview_values",
+  "calculate",
+  "preview_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "recipe_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Recipe Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Consumables"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Consumption Recipe Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "calculator_section",
+   "fieldtype": "Section Break",
+   "label": "Calculator"
+  },
+  {
+   "default": "1, 2, 3, 4, 6",
+   "description": "Quantities to try, separated by commas",
+   "fieldname": "preview_values",
+   "fieldtype": "Data",
+   "label": "Test Quantities"
+  },
+  {
+   "fieldname": "calculate",
+   "fieldtype": "Button",
+   "label": "Calculate"
+  },
+  {
+   "fieldname": "preview_html",
+   "fieldtype": "HTML",
+   "label": "Result"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Consumption Recipe",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Stock User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "recipe_name",
+ "track_changes": 1
+}

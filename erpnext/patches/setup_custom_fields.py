@@ -3,6 +3,7 @@
 Run via: docker compose exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute
 Or via bench console and calling execute() manually.
 """
+
 import json
 from functools import reduce
 
@@ -33,10 +34,13 @@ def execute():
 	create_custom_field_on_serial_no()
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
+	create_consumption_source_fields()
+	create_unit_route_fields()
 	remove_flight_test_status_from_serial_no()
 	create_additional_attributes_on_serial_no()
 	create_additional_attributes_on_intake()
 	seed_firmware_additional_attribute()
+	seed_packing_additional_attribute()
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
@@ -584,6 +588,80 @@ def create_spool_lineage_fields():
 	_create_custom_fields(fields)
 
 
+def create_consumption_source_fields():
+	"""What a consumption Stock Entry was posted for.
+
+	`erpnext.manufacturing.consumption.consume` stamps the entry with the document it was
+	posted for, so a second call for the same document finds the first entry instead of issuing
+	the consumables twice, and cancelling the document can cancel the entry.
+	"""
+	fields = [
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_recipe",
+			"fieldtype": "Link",
+			"options": "Consumption Recipe",
+			"label": "Рецепт списання",
+			"insert_after": "stock_entry_type",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_source_doctype",
+			"fieldtype": "Link",
+			"options": "DocType",
+			"label": "Тип документа-джерела списання",
+			"insert_after": "consumption_recipe",
+			"read_only": 1,
+			"no_copy": 1,
+			"depends_on": "consumption_recipe",
+		},
+		{
+			"dt": "Stock Entry",
+			"fieldname": "consumption_source_name",
+			"fieldtype": "Dynamic Link",
+			"options": "consumption_source_doctype",
+			"label": "Документ-джерело списання",
+			"insert_after": "consumption_source_doctype",
+			"read_only": 1,
+			"no_copy": 1,
+			"search_index": 1,
+			"depends_on": "consumption_recipe",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_unit_route_fields():
+	"""Which BOM operation puts the unit into stock, and where each step lands it.
+
+	Read by `erpnext.manufacturing.unit_route`. The operations listed after the marked one are
+	performed on a unit that is already in stock, so they are left out of the Work Order.
+	"""
+	fields = [
+		{
+			"dt": "BOM Operation",
+			"fieldname": "enters_stock",
+			"fieldtype": "Check",
+			"label": "Одиниця на складі після цього кроку",
+			"insert_after": "operation",
+			"in_list_view": 1,
+			"description": "Кроки нижче виконуються над одиницею, що вже на складі, і не входять до Work Order",
+		},
+		{
+			"dt": "BOM Operation",
+			"fieldname": "unit_target_warehouse",
+			"fieldtype": "Link",
+			"options": "Warehouse",
+			"label": "Склад після кроку",
+			"insert_after": "enters_stock",
+			"description": "Порожньо — склад береться з робочого місця, а якщо й там порожньо, не змінюється",
+		},
+	]
+	_create_custom_fields(fields)
+
+
 def remove_flight_test_status_from_serial_no():
 	cf = frappe.db.exists("Custom Field", {"dt": "Serial No", "fieldname": "flight_test_status"})
 	if cf:
@@ -615,12 +693,12 @@ def create_custom_fields_on_work_order():
 			"dt": "Work Order",
 			"fieldname": "line_order_type",
 			"fieldtype": "Select",
-			"options": "\nDaily",
+			"options": "\nDaily\nManual",
 			"label": "Line Order Type",
 			"insert_after": "production_line",
 			"depends_on": "production_line",
 			"read_only": 1,
-			"description": "Daily: closing the line's day deletes the units nobody started and shrinks Qty to the started ones.",
+			"description": "Daily: closing the line's day deletes the units nobody started and shrinks Qty to the started ones. Manual: released by the manager, never closed or topped up automatically.",
 		},
 		{
 			"dt": "Work Order",
@@ -3610,6 +3688,37 @@ def seed_firmware_additional_attribute():
 			}
 		).insert(ignore_permissions=True)
 		print(f"  Created Additional Attribute Value: {attribute} / {value}")
+
+
+def seed_packing_additional_attribute():
+	"""Seed the «Упаковка» attribute that `erpnext.manufacturing.packing` writes on packed serials.
+
+	A note for the scanner and the serial's history (which box, how many in it); the warehouse,
+	not this attribute, decides whether a unit can be sold."""
+	if not frappe.db.exists("DocType", "Additional Attribute"):
+		return
+
+	attribute = "Упаковка"
+	if not frappe.db.exists("Additional Attribute", attribute):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute",
+				"attribute_name": attribute,
+				"description": "Ставиться при закритті коробки; склад, а не цей атрибут, вирішує чи можна продавати",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute: {attribute}")
+
+	if not frappe.db.exists("Additional Attribute Value", {"attribute": attribute, "value": "Упаковано"}):
+		frappe.get_doc(
+			{
+				"doctype": "Additional Attribute Value",
+				"attribute": attribute,
+				"value": "Упаковано",
+				"abbr": "PK",
+			}
+		).insert(ignore_permissions=True)
+		print(f"  Created Additional Attribute Value: {attribute} / Упаковано")
 
 
 def add_serial_attributes_shortcut():

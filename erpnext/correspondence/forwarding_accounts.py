@@ -4,6 +4,7 @@ from frappe import _
 SETTINGS = "Mail Forward Settings"
 WATCHED = "Watched"
 SENDER = "Sender"
+MANAGER_ROLE = "Correspondence Manager"
 
 DEFAULTS = {
 	WATCHED: {

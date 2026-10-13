@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
-from erpnext.correspondence.forwarding_accounts import SENDER, WATCHED, apply_defaults
+from erpnext.correspondence.forwarding_accounts import MANAGER_ROLE, SENDER, WATCHED, apply_defaults
 from erpnext.correspondence.imap_folders import (
 	MANUAL,
 	decode_modified_utf7,
@@ -22,6 +22,7 @@ class MailForwardSettings(Document):
 	def validate(self):
 		self.validate_mailboxes()
 		self.validate_sender_account()
+		self.set_enabled_since()
 
 	def on_update(self):
 		for row in self.mailboxes:
@@ -30,6 +31,11 @@ class MailForwardSettings(Document):
 			apply_defaults(self.sender_account, SENDER)
 		if any(not row.last_folder_sync for row in self.mailboxes):
 			frappe.enqueue(SYNC_JOB, job_id=SYNC_JOB, deduplicate=True, enqueue_after_commit=True)
+
+	def set_enabled_since(self):
+		before = self.get_doc_before_save()
+		if self.enabled and not (before and before.enabled and self.enabled_since):
+			self.enabled_since = now_datetime()
 
 	def validate_mailboxes(self):
 		accounts = [row.email_account for row in self.mailboxes]
@@ -165,7 +171,7 @@ def sync_new_mailboxes() -> dict[str, str | None]:
 
 @frappe.whitelist()
 def sync_folders_now():
-	frappe.only_for("System Manager")
+	frappe.only_for(["System Manager", MANAGER_ROLE])
 	results = sync_all_mailboxes()
 	return [
 		{

@@ -7,6 +7,9 @@
  "field_order": [
   "enabled",
   "workplace",
+  "role",
+  "target_warehouse",
+  "workplace_script",
   "workplace_name"
  ],
  "fields": [
@@ -20,7 +23,7 @@
    "label": "Enabled"
   },
   {
-   "columns": 4,
+   "columns": 2,
    "fieldname": "workplace",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -29,11 +32,37 @@
    "reqd": 1
   },
   {
-   "columns": 5,
+   "columns": 2,
+   "default": "Production",
+   "fieldname": "role",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Role",
+   "options": "Production\nQuality Control\nPackaging\nCompletion",
+   "description": "Production: units are started here and offered to the clients. The other roles are steps after production."
+  },
+  {
+   "columns": 3,
+   "fieldname": "target_warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Warehouse After Operation",
+   "options": "Warehouse",
+   "description": "Where the unit goes once the operation at this workplace is done. Empty: the warehouse does not change."
+  },
+  {
+   "columns": 2,
+   "fetch_from": "workplace.workplace_script",
+   "fieldname": "workplace_script",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Workplace Script",
+   "read_only": 1
+  },
+  {
    "fetch_from": "workplace.workplace_name",
    "fieldname": "workplace_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Workplace Name",
    "read_only": 1
   }
@@ -41,7 +70,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-09-17 00:00:00.000000",
+ "modified": "2026-10-11 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Line Workplace",

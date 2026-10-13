@@ -1,5 +1,7 @@
 """Our chat pages (and the WhatsApp overview) in the stock CRM sidebar. See `erpnext.setup.sidebar_links`."""
 
+import frappe
+
 from erpnext.setup.sidebar_links import add_links
 
 SIDEBAR = "CRM"
@@ -27,5 +29,14 @@ LINKS = (
 )
 
 
+MOCK_LINK = {
+	"label": "WhatsApp Mock",
+	"link_to": "whatsapp-mock",
+	"link_type": "Page",
+	"icon": "flask-conical",
+}
+
+
 def add_chat_pages():
-	add_links(SIDEBAR, INSERT_AFTER, LINKS)
+	links = LINKS if frappe.conf.get("instance_env") == "prod" else (*LINKS, MOCK_LINK)
+	add_links(SIDEBAR, INSERT_AFTER, links)

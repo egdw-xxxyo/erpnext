@@ -7,7 +7,7 @@ import asyncio
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
-from .. import audit, stats
+from .. import audit, stats, sudo_rules
 from ..commands import COMMANDS
 from ..config import settings
 from ..deps import SessionDep
@@ -78,3 +78,13 @@ async def ftp_page(request: Request, session: SessionDep):
 async def information_page(request: Request, session: SessionDep):
 	records = await asyncio.to_thread(audit.tail, session.conn, 200)
 	return _page(request, session, "information", "information.html", {}, {"records": records})
+
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_page(request: Request, session: SessionDep):
+	extra = {
+		"rules": sudo_rules.RULES,
+		"install_cmd": sudo_rules.install_command(session.username),
+		"sudoers_file": sudo_rules.SUDOERS_FILE,
+	}
+	return _page(request, session, "setup", "setup.html", {}, extra)
