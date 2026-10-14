@@ -316,6 +316,53 @@ def _link_filters(decl):
 	return parsed if isinstance(parsed, dict) else {}
 
 
+# A key a `link_filters` JSON may carry on top of plain field filters: "only Sales Orders that
+# still have room for a box". Plain filters cannot say it — it compares what was ordered with
+# what the packages already hold — so the picker resolves it into a list of names.
+ROOM_FOR_PACKING = "_room_for_packing"
+
+
+def _orders_with_room_for_packing():
+	"""Open submitted Sales Orders where some item is ordered in a larger quantity than it is packed."""
+	return frappe.db.sql_list(
+		"""
+		SELECT soi.parent
+		FROM `tabSales Order Item` soi
+		JOIN `tabSales Order` so ON so.name = soi.parent
+		WHERE so.docstatus = 1 AND so.status NOT IN ('Closed', 'Completed')
+		GROUP BY soi.parent, soi.item_code
+		HAVING SUM(soi.qty) > COALESCE((
+			SELECT SUM(pi.qty)
+			FROM `tabPackage Item` pi
+			JOIN `tabPackage` p ON p.name = pi.parent
+			WHERE p.sales_order = soi.parent
+				AND pi.item_code = soi.item_code
+				AND p.docstatus < 2
+				AND p.status != 'Cancelled'
+		), 0)
+		"""
+	)
+
+
+def _resolve_link_filters(doctype, filters):
+	"""`link_filters` with the special keys turned into plain filters `get_list` understands."""
+	filters = dict(filters)
+	if not cint(filters.pop(ROOM_FOR_PACKING, 0)):
+		return filters
+	if doctype != "Sales Order":
+		return filters
+	names = _orders_with_room_for_packing()
+	filters["name"] = ["in", names or [""]]
+	return filters
+
+
+def _names_of(name_filter):
+	"""The names a resolved `name` filter allows, whether it is one name or `["in", [...]]`."""
+	if isinstance(name_filter, list | tuple) and len(name_filter) == 2 and name_filter[0] == "in":
+		return set(name_filter[1])
+	return {name_filter} if isinstance(name_filter, str) else set()
+
+
 def _link_label(doctype, value):
 	"""`SO-0001 — ТОВ Ромашка`, so the app never needs per-doctype knowledge."""
 	try:
@@ -856,7 +903,7 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 		frappe.throw(_("Context field {0} has no options to pick from").format(key))
 
 	doctype = _link_doctype(decl)
-	filters = _link_filters(decl)
+	filters = _resolve_link_filters(doctype, _link_filters(decl))
 	limit = min(cint(limit) or 20, 50)
 
 	# A declaration may restrict the picker by name — one packing template for this bench —
@@ -1130,8 +1177,10 @@ def _coerce_value(decl, value):
 			frappe.throw(_("{0} {1} not found").format(_(doctype), value), frappe.DoesNotExistError)
 		# The same filters the picker applies, re-checked here: a client that skipped the
 		# picker must not be able to park a draft order on the scanner.
-		filters = _link_filters(decl)
+		filters = _resolve_link_filters(doctype, _link_filters(decl))
 		if filters:
+			if "name" in filters and value not in _names_of(filters["name"]):
+				frappe.throw(_("{0} {1} is not available for selection").format(_(doctype), value))
 			filters["name"] = value
 			if not frappe.db.get_all(doctype, filters=filters, limit_page_length=1):
 				frappe.throw(_("{0} {1} is not available for selection").format(_(doctype), value))
