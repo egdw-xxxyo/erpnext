@@ -476,3 +476,105 @@ def unpack_on_cancel(doc, method=None):
 		"Packing Job", filters={"stock_entry": doc.name, "status": "Done"}, pluck="name"
 	):
 		frappe.db.set_value("Packing Job", job, "status", "Cancelled")
+
+
+def return_target(serial):
+	"""Where an unpacked unit goes back to: its production line's WIP warehouse, else its BOM's landing one.
+
+	The line's WIP warehouse is the staging warehouse of the line, the same place the unit
+	waited in before it was packed.
+	"""
+	work_order = frappe.db.get_value("Serial No", serial, "work_order")
+	if not work_order:
+		return None
+	line, bom = frappe.db.get_value("Work Order", work_order, ["production_line", "bom_no"])
+	target = frappe.db.get_value("Production Line", line, "wip_warehouse") if line else None
+	return target or landing_warehouse(bom)
+
+
+def _packing_job_of(serial):
+	"""The newest finished Packing Job that packed this serial, with its live transfer."""
+	parents = frappe.get_all(
+		"Packing Job Serial",
+		filters={"parenttype": "Packing Job", "serial_no": serial},
+		pluck="parent",
+	)
+	jobs = frappe.get_all(
+		"Packing Job",
+		filters={"name": ["in", parents or [""]], "status": "Done", "stock_entry": ["is", "set"]},
+		fields=["name", "stock_entry"],
+		order_by="creation desc",
+	)
+	for job in jobs:
+		if frappe.db.get_value("Stock Entry", job.stock_entry, "docstatus") == 1:
+			return job
+	return None
+
+
+def return_units_to_staging(serials):
+	"""Put the units of an unpacked box back where they waited for packing.
+
+	A unit packed through a Packing Job goes back by cancelling that job's transfer: the
+	warehouse, the «Упаковка» note, the job and the consumables issued for the box all follow,
+	so the box can be packed again as if it never was. The transfer is cancelled only when the
+	job held no other units than these. A unit with no such job (packed before the jobs
+	existed) is moved back with a transfer of its own and its note is removed.
+
+	Returns `{"cancelled": [entries], "moved": n, "errors": [messages]}`.
+	"""
+	serials = _serial_list(serials)
+	result = {"cancelled": [], "moved": 0, "errors": []}
+	left = set(serials)
+
+	for serial in serials:
+		if serial not in left:
+			continue
+		job = _packing_job_of(serial)
+		if not job:
+			continue
+		held = set(frappe.get_all("Packing Job Serial", filters={"parent": job.name}, pluck="serial_no"))
+		if not held <= set(serials):
+			continue
+		try:
+			entry = frappe.get_doc("Stock Entry", job.stock_entry)
+			entry.flags.ignore_permissions = True
+			entry.cancel()
+			result["cancelled"].append(entry.name)
+			left -= held
+		except Exception as e:
+			result["errors"].append(f"{job.name}: {e}")
+
+	by_target = {}
+	for serial in sorted(left):
+		target = return_target(serial)
+		row = frappe.db.get_value("Serial No", serial, ["item_code", "warehouse"], as_dict=True)
+		if not target or not row or not row.warehouse or row.warehouse == target:
+			continue
+		by_target.setdefault(target, {})[serial] = row
+	for target, by_name in by_target.items():
+		try:
+			_transfer(list(by_name), by_name, target)
+			result["moved"] += len(by_name)
+			for name in frappe.get_all(
+				ROW_DOCTYPE,
+				filters={"parenttype": "Serial No", "parent": ["in", list(by_name)], "attribute": ATTRIBUTE},
+				pluck="name",
+			):
+				frappe.delete_doc(ROW_DOCTYPE, name, ignore_permissions=True, force=True)
+		except Exception as e:
+			result["errors"].append(f"{target}: {e}")
+	return result
+
+
+def unpack_to_staging(package_names, employee=None):
+	"""Unpack boxes and return their units to the line's staging warehouse.
+
+	`unpack_packages` frees the serials from the box; the units then go back where they
+	waited for packing, so they can be packed again at the completion workplace.
+	"""
+	from erpnext.stock.doctype.package.package import unpack_packages
+
+	result = unpack_packages(package_names, employee=employee)
+	serials = [s for done in result["unpacked"] for s in done["serials"]]
+	back = return_units_to_staging(serials) if serials else {"cancelled": [], "moved": 0, "errors": []}
+	return {**result, "returned": back}

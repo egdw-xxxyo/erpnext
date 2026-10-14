@@ -92,3 +92,61 @@ class TestPacking(ERPNextTestSuite):
 		with patch.object(frappe, "get_all", return_value=["Bench", "Other"]):
 			self.assertIsNone(packing._only_packaging_workplace("Line"))
 		self.assertIsNone(packing._only_packaging_workplace(None))
+
+
+class TestReturnToStaging(ERPNextTestSuite):
+	def test_return_target_is_the_lines_wip_warehouse(self):
+		def value(doctype, name, fields=None, *args, **kwargs):
+			if doctype == "Serial No":
+				return "WO-1"
+			if doctype == "Work Order":
+				return ("Line A", "BOM-1")
+			return "Wip - X"
+
+		with patch.object(packing.frappe.db, "get_value", side_effect=value):
+			self.assertEqual(packing.return_target("SN-1"), "Wip - X")
+
+	def test_return_target_falls_back_to_the_bom_landing(self):
+		def value(doctype, name, fields=None, *args, **kwargs):
+			if doctype == "Serial No":
+				return "WO-1"
+			if doctype == "Work Order":
+				return ("Line A", "BOM-1")
+			return None
+
+		with (
+			patch.object(packing.frappe.db, "get_value", side_effect=value),
+			patch.object(packing, "landing_warehouse", return_value="Staging - X"),
+		):
+			self.assertEqual(packing.return_target("SN-1"), "Staging - X")
+
+	def test_unit_without_a_work_order_has_no_return_target(self):
+		with patch.object(packing.frappe.db, "get_value", return_value=None):
+			self.assertIsNone(packing.return_target("SN-1"))
+
+	def test_a_box_is_returned_by_cancelling_its_transfer(self):
+		entry = frappe._dict(name="STE-1", flags=frappe._dict(), cancel=lambda: None)
+		with (
+			patch.object(
+				packing, "_packing_job_of", return_value=frappe._dict(name="PJ-1", stock_entry="STE-1")
+			),
+			patch.object(packing.frappe, "get_all", return_value=["SN-1", "SN-2"]),
+			patch.object(packing.frappe, "get_doc", return_value=entry),
+			patch.object(packing, "_transfer") as transfer,
+		):
+			result = packing.return_units_to_staging(["SN-1", "SN-2"])
+		self.assertEqual(result, {"cancelled": ["STE-1"], "moved": 0, "errors": []})
+		transfer.assert_not_called()
+
+	def test_a_job_with_other_units_is_not_cancelled(self):
+		with (
+			patch.object(
+				packing, "_packing_job_of", return_value=frappe._dict(name="PJ-1", stock_entry="STE-1")
+			),
+			patch.object(packing.frappe, "get_all", return_value=["SN-1", "SN-2", "SN-3"]),
+			patch.object(packing.frappe, "get_doc") as get_doc,
+			patch.object(packing, "return_target", return_value=None),
+		):
+			result = packing.return_units_to_staging(["SN-1", "SN-2"])
+		get_doc.assert_not_called()
+		self.assertEqual(result["cancelled"], [])
