@@ -16207,3 +16207,4 @@ Workplace {0} is not a packaging workplace of any production line,Робоче �
 "Packing Job {0} is {1}, not in progress","Задача упаковки {0}: {1}, а не в роботі"
 "Boxes being packed right now. The units are already in stock, in the staging warehouse.","Коробки, що пакуються просто зараз. Одиниці вже на складі, у проміжному складі комплектування."
 The default BOM names no staging warehouse,"BOM за замовчуванням не називає склад комплектування"
+"Waiting for packing","Чекає пакування"

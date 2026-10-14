@@ -66,6 +66,7 @@ def get_overview():
 		"items": items,
 		"work_orders": work_orders,
 		"attention": attention,
+		"waiting_packing": [u for u in units if u["state"] == "waiting_packing"],
 		"packing_jobs": _packing_jobs(),
 		"error_logs": errors,
 		"issues": _issues(lines, workplaces, items, work_orders, attention, errors),
