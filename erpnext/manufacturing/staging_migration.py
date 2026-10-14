@@ -45,9 +45,9 @@ def _deferred_units(line, item_code):
 	)
 	if not work_orders:
 		return []
-	return frappe.db.sql_list(
+	return frappe.db.sql(
 		"""
-		SELECT DISTINCT bc.serial_no
+		SELECT DISTINCT bc.serial_no, bc.work_order
 		  FROM `tabJob Card` bc
 		  JOIN `tabSerial No` sn ON sn.name = bc.serial_no
 		 WHERE bc.work_order IN %(work_orders)s
@@ -62,6 +62,7 @@ def _deferred_units(line, item_code):
 		 ORDER BY bc.serial_no
 		""",
 		{"work_orders": tuple(work_orders), "packing": PACKING_OPERATION},
+		as_dict=True,
 	)
 
 
@@ -69,7 +70,7 @@ def _unpacked_in_stock(item_code, skip_warehouses):
 	"""Units in stock that are in no live box and carry no «Упаковка» note."""
 	return frappe.db.sql(
 		"""
-		SELECT sn.name AS serial_no, sn.warehouse
+		SELECT sn.name AS serial_no, sn.warehouse, sn.work_order
 		  FROM `tabSerial No` sn
 		 WHERE sn.item_code = %(item)s
 		   AND sn.status = 'Active'
@@ -134,7 +135,10 @@ def migrate_unpacked_to_staging(line, dry_run=1, limit=100):
 			report["items"][item_code] = {"skipped": _("The default BOM names no staging warehouse")}
 			continue
 
-		deferred = [sn for sn in _deferred_units(line, item_code) if not _rejected_inspection(sn)]
+		deferred_rows = [
+			row for row in _deferred_units(line, item_code) if not _rejected_inspection(row.serial_no)
+		]
+		deferred = [row.serial_no for row in deferred_rows]
 		skip = {staging} | ({doc.reject_warehouse} if doc.reject_warehouse else set())
 		in_stock = _unpacked_in_stock(item_code, skip)
 		report["items"][item_code] = {
@@ -142,6 +146,9 @@ def migrate_unpacked_to_staging(line, dry_run=1, limit=100):
 			"deferred": len(deferred),
 			"in_stock": len(in_stock),
 			"in_stock_by_warehouse": _count_by(in_stock),
+			"deferred_by_work_order": _count_by(deferred_rows, "work_order"),
+			"in_stock_by_work_order": _count_by(in_stock, "work_order"),
+			"in_stock_in_boxes": _packed_in_stock(item_code),
 		}
 		if report["dry_run"]:
 			report["remaining"] += len(deferred) + len(in_stock)
@@ -186,8 +193,31 @@ def migrate_unpacked_to_staging(line, dry_run=1, limit=100):
 	return report
 
 
-def _count_by(rows):
+def _count_by(rows, key="warehouse"):
 	counts = {}
 	for row in rows:
-		counts[row.warehouse] = counts.get(row.warehouse, 0) + 1
+		name = row.get(key) or "-"
+		counts[name] = counts.get(name, 0) + 1
 	return counts
+
+
+def _packed_in_stock(item_code):
+	"""Units in stock that are in a live box or carry the «Упаковка» note — the part not to move."""
+	return frappe.db.sql(
+		"""
+		SELECT COUNT(*) FROM `tabSerial No` sn
+		 WHERE sn.item_code = %(item)s AND sn.status = 'Active' AND IFNULL(sn.warehouse, '') != ''
+		   AND (
+			EXISTS (
+				SELECT 1 FROM `tabPackage Item` pi
+				  JOIN `tabPackage` p ON p.name = pi.parent
+				 WHERE pi.serial_no = sn.name AND p.docstatus < 2 AND p.status NOT IN ('Cancelled', 'Unpacked')
+			)
+			OR EXISTS (
+				SELECT 1 FROM `tabAdditional Attribute Row` r
+				 WHERE r.parenttype = 'Serial No' AND r.parent = sn.name AND r.attribute = %(attribute)s
+			)
+		   )
+		""",
+		{"item": item_code, "attribute": ATTRIBUTE},
+	)[0][0]
