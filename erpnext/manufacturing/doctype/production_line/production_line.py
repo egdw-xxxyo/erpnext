@@ -835,17 +835,19 @@ def finish_unit(job_card):
 	# The BOM, not the line, says how this unit finishes: one that names a staging warehouse
 	# lands in stock now and is packed later, whatever the line's flag still says for the Work
 	# Orders opened on an older BOM.
-	from erpnext.manufacturing.packing import landing_warehouse
-
-	deferred = bool(line and line.manufacture_at_packing and not landing_warehouse(card.bom_no))
+	staging = _staging_for(card)
+	deferred = bool(line and line.manufacture_at_packing and not staging)
 
 	stock_entry = card.auto_stock_entry
 	if deferred:
 		stock_entry = None
 	elif not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
-		# A BOM that marks the step entering stock and names a warehouse for it lands the unit
-		# there — staging, until a box is closed around it.
-		stock_entry = _post_manufacture(card, serial_no, target_warehouse=landing_warehouse(card.bom_no))
+		if staging:
+			# A Work Order opened before the route changed still carries the packing card; the unit
+			# is going to staging, where packing is a separate job, so the card is not performed.
+			_close_remaining_cards(serial_no, skip=card.name)
+		# A unit lands in staging, until a box is closed around it.
+		stock_entry = _post_manufacture(card, serial_no, target_warehouse=staging)
 
 	frappe.db.commit()
 	return {
@@ -856,6 +858,22 @@ def finish_unit(job_card):
 		"manufacture_deferred": deferred,
 		"warehouse": frappe.db.get_value("Serial No", serial_no, "warehouse") if serial_no else None,
 	}
+
+
+def _staging_for(card):
+	"""The staging warehouse this unit lands in, or `None` when it finishes the old way.
+
+	Its own BOM decides first. A Work Order opened on an older BOM (one that still lists packing as an
+	operation) lands in staging too once the item's default BOM names one, so a line changes
+	route without waiting for every open Work Order to run out.
+	"""
+	from erpnext.manufacturing.packing import landing_warehouse
+
+	own = landing_warehouse(card.bom_no)
+	if own:
+		return own
+	default_bom = frappe.db.get_value("Item", card.production_item, "default_bom")
+	return landing_warehouse(default_bom)
 
 
 def _complete_job_card(card, rejected=False):
