@@ -1,4 +1,5 @@
-// Floating chat bubble shown on every desk page (bottom right).
+// Chat bubble shown on every desk page: its launchers sit in the desk sidebar above the
+// user, or float bottom right where there is no sidebar (mobile, pages that hide it).
 // One launcher per category: WhatsApp (customer threads) and Employee Chat (internal,
 // itself split into Employees / Entities tabs).
 // Click opens a compact popup: conversation list -> thread with quick reply,
@@ -390,6 +391,13 @@ class ChatBubble {
 		.cb-send{color:var(--primary,#2490ef);}
 		.cb-send:hover{background:var(--bg-light-gray);color:var(--primary,#2490ef);}
 		.cb-foot{padding:6px 8px;border-top:1px solid var(--border-color);}
+		.cb-launcher.cb-docked{position:static;flex-wrap:wrap;justify-content:center;gap:6px;padding:4px 0;}
+		.body-sidebar-container.expanded .cb-launcher.cb-docked{justify-content:flex-start;padding:4px 8px;}
+		.cb-docked .cb-fab{width:34px;height:34px;font-size:17px;line-height:34px;box-shadow:none;}
+		.cb-docked .cb-fab.cb-active{outline:2px solid var(--gray-500);outline-offset:2px;}
+		.cb-docked .cb-badge{top:-6px;right:-8px;min-width:18px;height:18px;padding:0 4px;font-size:10px;line-height:14px;}
+		.cb-panel.cb-docked{right:auto;left:62px;bottom:16px;height:min(600px,calc(100vh - 32px));}
+		body:has(.body-sidebar-container.expanded) .cb-panel.cb-docked{left:calc(var(--sidebar-width) + 12px);}
 		@media (max-width:600px){
 			.cb-panel{right:12px;left:12px;width:auto;bottom:84px;height:70vh;}
 			.cb-launcher{right:12px;bottom:16px;gap:8px;}
@@ -461,6 +469,15 @@ class ChatBubble {
 		this.$compose = this.$panel.find(".cb-compose");
 		this.$readonly = this.$panel.find(".cb-readonly");
 		this.$input = this.$compose.find("textarea");
+	}
+
+	// Into the desk sidebar, above the user, when it is on screen; otherwise float.
+	dock() {
+		const $user = $(".body-sidebar-container:visible .body-sidebar-bottom > .dropdown-navbar-user");
+		const docked = $user.length > 0 && window.innerWidth >= 768;
+		if (docked && !this.$launcher.next().is($user)) this.$launcher.insertBefore($user);
+		if (!docked && !this.$launcher.parent().is("body")) this.$launcher.appendTo(document.body);
+		this.$launcher.add(this.$panel).toggleClass("cb-docked", docked);
 	}
 
 	// The launcher key currently driving the open panel ("whatsapp"/"employee").
@@ -984,6 +1001,12 @@ erpnext.whatsapp.init_bubble = function () {
 	erpnext.whatsapp.bubble = new ChatBubble(sources);
 	erpnext.whatsapp.toggle_bubble_visibility();
 	frappe.router?.on("change", () => erpnext.whatsapp.toggle_bubble_visibility());
+	// The container shows or hides the sidebar right after page-change.
+	$(document).on("page-change", () => setTimeout(() => erpnext.whatsapp.bubble.dock()));
+	$(window).on(
+		"resize",
+		frappe.utils.debounce(() => erpnext.whatsapp.bubble.dock(), 200)
+	);
 };
 
 // Hide the bubble on the full chat pages themselves.
@@ -992,6 +1015,7 @@ erpnext.whatsapp.toggle_bubble_visibility = function () {
 	if (!b) return;
 	const route = (frappe.get_route() || []).join("/");
 	const on_chat_page = route.includes("whatsapp-chat-center") || route.includes("employee-chat");
+	b.dock();
 	b.$launcher.toggle(!on_chat_page);
 	if (on_chat_page) b.toggle(false);
 	b.render_badges();
