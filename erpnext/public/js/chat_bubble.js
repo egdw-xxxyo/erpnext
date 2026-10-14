@@ -391,11 +391,12 @@ class ChatBubble {
 		.cb-send{color:var(--primary,#2490ef);}
 		.cb-send:hover{background:var(--bg-light-gray);color:var(--primary,#2490ef);}
 		.cb-foot{padding:6px 8px;border-top:1px solid var(--border-color);}
-		.cb-launcher.cb-docked{position:static;flex-wrap:wrap;justify-content:center;gap:6px;padding:4px 0;}
-		.body-sidebar-container.expanded .cb-launcher.cb-docked{justify-content:flex-start;padding:4px 8px;}
-		.cb-docked .cb-fab{width:34px;height:34px;font-size:17px;line-height:34px;box-shadow:none;}
+		.cb-launcher.cb-docked{position:static;flex-wrap:wrap;justify-content:center;gap:6px;padding:0;}
+		.body-sidebar-container.expanded .cb-launcher.cb-docked{justify-content:flex-start;padding:0 8px;}
+		.cb-launcher.cb-docked + .dropdown-navbar-user{margin-top:4px !important;}
+		.cb-docked .cb-fab{width:28px;height:28px;font-size:15px;line-height:28px;box-shadow:none;}
 		.cb-docked .cb-fab.cb-active{outline:2px solid var(--gray-500);outline-offset:2px;}
-		.cb-docked .cb-badge{top:-6px;right:-8px;min-width:18px;height:18px;padding:0 4px;font-size:10px;line-height:14px;}
+		.cb-docked .cb-badge{top:-6px;right:-8px;min-width:16px;height:16px;padding:0 3px;font-size:9px;line-height:12px;}
 		.cb-panel.cb-docked{right:auto;left:62px;bottom:16px;height:min(600px,calc(100vh - 32px));}
 		body:has(.body-sidebar-container.expanded) .cb-panel.cb-docked{left:calc(var(--sidebar-width) + 12px);}
 		@media (max-width:600px){
