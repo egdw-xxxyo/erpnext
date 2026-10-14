@@ -49,7 +49,8 @@ def compute(items, variables):
 	"""
 	rows = []
 	for idx, row in enumerate(items, start=1):
-		row = frappe._dict(row.as_dict() if hasattr(row, "as_dict") else row)
+		# `frappe._dict` answers any attribute with None, so ask the type, not the instance.
+		row = frappe._dict(row.as_dict() if hasattr(type(row), "as_dict") else row)
 		try:
 			if row.condition and not evaluate(row.condition, variables):
 				continue

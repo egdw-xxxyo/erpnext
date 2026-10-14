@@ -20,6 +20,11 @@ class TestConsumptionRecipe(ERPNextTestSuite):
 		self.assertEqual([r["item_code"] for r in compute(rows, {"units": 2})], ["Box"])
 		self.assertEqual([r["item_code"] for r in compute(rows, {"units": 3})], ["Box", "Foam"])
 
+	def test_rows_may_be_plain_dicts(self):
+		rows = [{"item_code": "Box", "qty_formula": "units", "condition": "units > 1"}]
+		self.assertEqual(compute(rows, {"units": 1}), [])
+		self.assertEqual(compute(rows, {"units": 3})[0]["qty"], 3)
+
 	def test_rows_may_be_documents(self):
 		row = frappe.get_doc(
 			{"doctype": "Consumption Recipe Item", "item_code": "Box", "qty_formula": "units"}
