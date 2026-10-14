@@ -16214,3 +16214,5 @@ The default BOM names no staging warehouse,"BOM за замовчуванням 
 "No released orders in progress","Запущених замовлень у роботі немає"
 "No completed orders yet","Виконаних замовлень ще немає"
 "Order of Work Order {0} is released and cannot be removed","Замовлення з Work Order {0} запущено, його не можна видалити"
+Your user is not linked to an Employee,Ваш користувач не привʼязаний до Співробітника
+No free virtual scanner,Вільного віртуального сканера немає

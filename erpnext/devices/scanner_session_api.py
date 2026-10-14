@@ -31,12 +31,19 @@ from frappe.utils import cint, flt
 from erpnext.devices.doctype.scanner.scanner_api import (
 	_clear_state,
 	_get_workplace_script,
+	_last_active_key,
 	_load_state,
 	_save_state,
 	_subflow_initial_state,
+	_touch_last_active,
 	reset_frame,
 )
-from erpnext.devices.otdr_measurement_api import MANAGER_ROLES, _session_employee
+from erpnext.devices.otdr_measurement_api import (
+	MANAGER_ROLES,
+	_assert_workplace_allowed,
+	_session_employee,
+	get_workplaces,
+)
 from erpnext.devices.session_user import preserved_session
 
 REALTIME_EVENT = "scanner_session_update"
@@ -731,7 +738,15 @@ def get_my_scanners():
 	rows = frappe.get_all(
 		"Scanner",
 		filters={"employee": employee, "is_active": 1},
-		fields=["name", "scanner_name", "is_active", "workplace", "employee", "scanner_configuration"],
+		fields=[
+			"name",
+			"scanner_name",
+			"is_active",
+			"is_virtual",
+			"workplace",
+			"employee",
+			"scanner_configuration",
+		],
 		order_by="scanner_name asc",
 	)
 	return [
@@ -739,6 +754,7 @@ def get_my_scanners():
 			"name": row.name,
 			"label": row.scanner_name or row.name,
 			"workplace": row.workplace,
+			"is_virtual": cint(row.is_virtual),
 			"session": _read_session(row),
 		}
 		for row in rows
@@ -1113,6 +1129,111 @@ def reset_scanner_session(scanner=None):
 	session = _read_session(row)
 	_publish_session_update(row.name, session)
 	return session
+
+
+# ---------------------------------------------------------------------------
+# Claiming, workplace and release — what the badge and barcodes do on a handheld
+# ---------------------------------------------------------------------------
+
+
+def _drop_session(scanner_name):
+	"""Forget the frame and the idle clock; the next holder starts from nothing."""
+	_clear_state(scanner_name)
+	frappe.cache().delete_value(_last_active_key(scanner_name))
+
+
+@frappe.whitelist(methods=["GET"])
+def get_my_workplaces():
+	"""Workplaces the caller may point a scanner at: the measurement API's roster rule."""
+	return get_workplaces()
+
+
+@frappe.whitelist(methods=["POST"])
+def set_scanner_workplace(scanner=None, workplace=None):
+	"""What scanning a workplace barcode does, from the app.
+
+	The state is dropped: it belongs to the previous workplace's script and its states
+	mean nothing to the new one.
+	"""
+	row = _assert_scanner_mine(scanner)
+	if not workplace:
+		frappe.throw(_("Workplace is required"))
+
+	_assert_workplace_allowed(workplace, _session_employee())
+
+	if row.workplace != workplace:
+		frappe.db.set_value("Scanner", row.name, "workplace", workplace)
+		_clear_state(row.name)
+	_touch_last_active(row.name)
+
+	row = _scanner_row(row.name)
+	session = _read_session(row)
+	_publish_session_update(row.name, session)
+	return session
+
+
+@frappe.whitelist(methods=["POST"])
+def claim_virtual_scanner():
+	"""Hand the caller a free virtual scanner, or the one they already hold.
+
+	A virtual scanner is an ordinary Scanner whose "device" is the phone camera, so the
+	rest of the session API treats it like any other. The row is locked while it is
+	picked so two phones cannot walk away with the same one.
+	"""
+	employee = _session_employee()
+	if not employee:
+		frappe.throw(_("Your user is not linked to an Employee"), frappe.PermissionError)
+
+	mine = frappe.db.get_value(
+		"Scanner", {"employee": employee, "is_virtual": 1, "is_active": 1}, "name", order_by="name asc"
+	)
+	if mine:
+		return _claimed(mine)
+
+	free = frappe.db.sql(
+		"""select name from `tabScanner`
+		where is_virtual = 1 and is_active = 1 and ifnull(employee, '') = ''
+		order by name asc limit 1 for update""",
+	)
+	if not free:
+		frappe.throw(_("No free virtual scanner"))
+
+	name = free[0][0]
+	frappe.db.set_value("Scanner", name, {"employee": employee, "workplace": None})
+	_drop_session(name)
+	_touch_last_active(name)
+	return _claimed(name)
+
+
+def _claimed(scanner_name):
+	row = _scanner_row(scanner_name)
+	session = _read_session(row)
+	_publish_session_update(row.name, session)
+	return {
+		"name": row.name,
+		"label": row.scanner_name or row.name,
+		"workplace": row.workplace,
+		"is_virtual": 1,
+		"session": session,
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def forget_scanner(scanner=None):
+	"""Let go of the scanner: unassign it and reset its state.
+
+	The same outcome as the idle expiry, on demand. A physical scanner is claimed again by
+	scanning the badge on it; a virtual one goes back to the free pool.
+	"""
+	row = _assert_scanner_mine(scanner)
+	owner = _owner_user(row.name)
+
+	frappe.db.set_value("Scanner", row.name, {"employee": None, "workplace": None})
+	_drop_session(row.name)
+
+	row = _scanner_row(row.name)
+	_publish_session_update(row.name, _read_session(row), user=owner)
+	return {"name": row.name}
 
 
 # ---------------------------------------------------------------------------

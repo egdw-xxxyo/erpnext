@@ -11,6 +11,7 @@
   "scanner_name",
   "column_break_1",
   "is_active",
+  "is_virtual",
   "column_break_2",
   "scanner_configuration",
   "section_status",
@@ -41,6 +42,15 @@
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Активний"
+  },
+  {
+   "default": "0",
+   "description": "Не фізичний пристрій: оператор бере його в застосунку та сканує камерою телефону",
+   "fieldname": "is_virtual",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Віртуальний",
+   "search_index": 1
   },
   {
    "fieldname": "column_break_2",
@@ -114,7 +124,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-08 00:00:00.000000",
+ "modified": "2026-10-14 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Scanner",
