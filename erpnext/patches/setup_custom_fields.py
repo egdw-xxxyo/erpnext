@@ -107,6 +107,7 @@ def execute():
 	setup_payroll_ua_workspace_card()
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
+	allow_warehouse_rename()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -4366,3 +4367,20 @@ def execute_quiet():
 	finally:
 		frappe.clear_cache = clear_cache
 	clear_cache()
+
+
+def allow_warehouse_rename():
+	"""A warehouse made for one purpose gets a better name later; stock Warehouse forbids the rename."""
+	if frappe.get_meta("Warehouse").allow_rename:
+		return
+	frappe.make_property_setter(
+		{
+			"doctype": "Warehouse",
+			"doctype_or_field": "DocType",
+			"property": "allow_rename",
+			"value": "1",
+			"property_type": "Check",
+		},
+		validate_fields_for_doctype=False,
+	)
+	frappe.clear_cache(doctype="Warehouse")
