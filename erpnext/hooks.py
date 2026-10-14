@@ -213,6 +213,8 @@ after_migrate = [
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.crm.crm_sidebar.add_chat_pages",
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
+	"erpnext.setup.organization_sidebar.add_organization_links",
+	"erpnext.buying.buying_sidebar.add_buying_links",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
