@@ -112,11 +112,11 @@ class ProductionLine(Document):
 				row.produced_qty = cint(frappe.db.get_value("Work Order", row.work_order, "produced_qty"))
 
 	def _validate_orders(self):
-		"""Orders of a manual line: a released order is a Work Order, so its quantity is fixed."""
+		"""Orders of a manual line: a released order is a Work Order, so it is read-only for good."""
 		released = {}
 		if not self.is_new():
 			released = {
-				row.name: row.qty
+				row.name: row
 				for row in frappe.get_all(
 					"Production Line Order",
 					filters={
@@ -124,18 +124,30 @@ class ProductionLine(Document):
 						"parenttype": "Production Line",
 						"work_order": ["is", "set"],
 					},
-					fields=["name", "qty"],
+					fields=["name", "item_code", "workplace", "qty", "work_order"],
 				)
 			}
-		for row in self.orders:
-			if cint(row.qty) <= 0:
-				frappe.throw(_("Row {0}: Qty must be greater than zero").format(row.idx))
-			if row.name in released and cint(released[row.name]) != cint(row.qty):
+		now = {row.name: row for row in self.orders}
+		for name, old in released.items():
+			if name not in now:
 				frappe.throw(
-					_("Row {0}: the Work Order is already released, its Qty can no longer change").format(
+					_("Order of Work Order {0} is released and cannot be removed").format(old.work_order)
+				)
+			row = now[name]
+			if (
+				row.item_code != old.item_code
+				or (row.workplace or None) != (old.workplace or None)
+				or cint(row.qty) != cint(old.qty)
+				or (row.work_order or None) != old.work_order
+			):
+				frappe.throw(
+					_("Row {0}: the Work Order is already released, the order can no longer change").format(
 						row.idx
 					)
 				)
+		for row in self.orders:
+			if cint(row.qty) <= 0:
+				frappe.throw(_("Row {0}: Qty must be greater than zero").format(row.idx))
 
 	def _validate_workplaces(self):
 		"""The line's benches, and the plan rows that must stay inside them.
@@ -314,6 +326,49 @@ def line_workplaces(line_type=None, production_line=None):
 			if row.enabled and row.workplace and _produces_units(row) and row.workplace not in names:
 				names.append(row.workplace)
 	return names
+
+
+FINISHED_WORK_ORDER_STATUSES = ("Completed", "Stopped", "Closed", "Cancelled")
+
+
+@frappe.whitelist()
+def order_progress(line):
+	"""Released orders of a manual line with how far each Work Order has got: `{current, done}`."""
+	frappe.has_permission("Production Line", "read", doc=line, throw=True)
+	rows = frappe.get_all(
+		"Production Line Order",
+		filters={"parent": line, "parenttype": "Production Line", "work_order": ["is", "set"]},
+		fields=["item_code", "workplace", "qty", "work_order", "idx"],
+		order_by="idx asc",
+	)
+	work_orders = {
+		wo.name: wo
+		for wo in frappe.get_all(
+			"Work Order",
+			filters={"name": ["in", [r.work_order for r in rows] or [""]]},
+			fields=["name", "status", "qty", "produced_qty", "creation"],
+		)
+	}
+	out = {"current": [], "done": []}
+	for row in rows:
+		wo = work_orders.get(row.work_order)
+		if not wo:
+			continue
+		produced = cint(wo.produced_qty)
+		entry = {
+			"item_code": row.item_code,
+			"item_name": frappe.get_cached_value("Item", row.item_code, "item_name"),
+			"workplace": row.workplace,
+			"qty": cint(row.qty),
+			"produced_qty": produced,
+			"work_order": wo.name,
+			"status": wo.status,
+			"created": wo.creation,
+		}
+		done = wo.status in FINISHED_WORK_ORDER_STATUSES or produced >= cint(row.qty)
+		out["done" if done else "current"].append(entry)
+	out["done"].reverse()
+	return out
 
 
 @frappe.whitelist()

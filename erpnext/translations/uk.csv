@@ -16078,7 +16078,7 @@ Production Line Order,Замовлення виробничої лінії
 "Daily: Work Orders are opened every day from the plan, an overflow one is opened when the plan runs out, and units nobody started are closed in the evening. Manual: the manager adds orders below and releases them; nothing is opened or closed automatically, and when an order is made the bench has nothing more to take.","Щодня: Work Order відкриваються щодня за планом, коли план вичерпано — відкривається додатковий, а невзяті одиниці закриваються ввечері. Вручну: менеджер додає замовлення нижче й запускає їх; нічого не відкривається і не закривається автоматично, а коли замовлення виготовлено, робоче місце більше нічого не бере."
 "How many units to make. Fixed once the Work Order is released.","Скільки одиниць виготовити. Після запуску Work Order змінити не можна."
 Row {0}: Qty must be greater than zero,Рядок {0}: кількість має бути більшою за нуль
-"Row {0}: the Work Order is already released, its Qty can no longer change","Рядок {0}: Work Order уже запущено, його кількість більше не змінюється"
+"Row {0}: the Work Order is already released, the order can no longer change","Рядок {0}: Work Order уже запущено, замовлення більше не змінюється"
 Production line {0} plans daily, it has no orders to release,Виробнича лінія {0} планує щодня, замовлень для запуску немає
 Production line {0} is disabled,Виробнича лінія {0} вимкнена
 "Nothing is left to make for {0} on line {1}: every released order is done. Release another order.","Для {0} на лінії {1} більше нічого виготовляти: усі запущені замовлення виконано. Запустіть нове замовлення."
@@ -16208,3 +16208,9 @@ Workplace {0} is not a packaging workplace of any production line,Робоче �
 "Boxes being packed right now. The units are already in stock, in the staging warehouse.","Коробки, що пакуються просто зараз. Одиниці вже на складі, у проміжному складі комплектування."
 The default BOM names no staging warehouse,"BOM за замовчуванням не називає склад комплектування"
 "Waiting for packing","Чекає пакування"
+"Current Orders","Поточні замовлення"
+"Completed Orders","Виконані замовлення"
+"New Orders","Нові замовлення"
+"No released orders in progress","Запущених замовлень у роботі немає"
+"No completed orders yet","Виконаних замовлень ще немає"
+"Order of Work Order {0} is released and cannot be removed","Замовлення з Work Order {0} запущено, його не можна видалити"
