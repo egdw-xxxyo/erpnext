@@ -714,6 +714,7 @@ def create_custom_fields_on_work_order():
 		},
 	]
 	_create_custom_fields(fields)
+	_sync_field_properties("Work Order", "line_order_type", ("options", "description"), fields)
 	backfill_production_line_work_orders()
 
 
@@ -3451,6 +3452,23 @@ def _create_custom_fields(fields):
 		)
 		doc.insert(ignore_permissions=True)
 		print(f"  Created Custom Field: {f['dt']}.{f['fieldname']}")
+
+
+def _sync_field_properties(dt, fieldname, properties, fields):
+	"""Bring an existing Custom Field's `properties` in line with its definition in `fields`.
+
+	`_create_custom_fields` skips a field that exists, so a value added to a Select later never
+	reached sites that already had it.
+	"""
+	definition = next((f for f in fields if f["dt"] == dt and f["fieldname"] == fieldname), None)
+	name = frappe.db.exists("Custom Field", {"dt": dt, "fieldname": fieldname})
+	if not definition or not name:
+		return
+	for prop in properties:
+		if prop in definition and frappe.db.get_value("Custom Field", name, prop) != definition[prop]:
+			frappe.db.set_value("Custom Field", name, prop, definition[prop])
+			print(f"  Updated Custom Field {dt}.{fieldname}: {prop}")
+			frappe.clear_cache(doctype=dt)
 
 
 def setup_group_access_fields():

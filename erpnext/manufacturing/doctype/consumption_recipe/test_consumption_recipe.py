@@ -20,6 +20,12 @@ class TestConsumptionRecipe(ERPNextTestSuite):
 		self.assertEqual([r["item_code"] for r in compute(rows, {"units": 2})], ["Box"])
 		self.assertEqual([r["item_code"] for r in compute(rows, {"units": 3})], ["Box", "Foam"])
 
+	def test_rows_may_be_documents(self):
+		row = frappe.get_doc(
+			{"doctype": "Consumption Recipe Item", "item_code": "Box", "qty_formula": "units"}
+		)
+		self.assertEqual(compute([row], {"units": 3})[0]["qty"], 3)
+
 	def test_last_box_of_an_order_uses_the_remainder(self):
 		rows = [
 			{"item_code": "Box", "qty_formula": "1"},
