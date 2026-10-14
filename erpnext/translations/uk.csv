@@ -15186,7 +15186,7 @@ A stock entry for expense {0} must be a Material Issue of company {1},Рух Т�
 "{0} from earlier days","{0} з попередніх днів"
 "{0} in stock, {1} rejected","на складі: {0}, брак: {1}"
 "{0} left to hand out","ще можна видати: {0}"
-"{0} measured, not finished","{0} виміряно, не завершено"
+"{0} measured, not finished, {1} waiting for packing","{0} виміряно, не завершено, {1} чекає пакування"
 "{0} not planned today","{0} без плану на сьогодні"
 "{0} overflow","{0} додаткових"
 "{0} was measured but never finished, it is not in stock","{0} виміряно, але не завершено — його немає на складі"

@@ -273,8 +273,9 @@ class ProductionLineOverview {
 					"fa fa-cube",
 					units.in_progress + units.measured,
 					__("Units in work"),
-					__("{0} measured, not finished", [
+					__("{0} measured, not finished, {1} waiting for packing", [
 						d.attention.filter((u) => u.state === "measured").length,
+						units.waiting_packing,
 					])
 				)}
 				${tile(
