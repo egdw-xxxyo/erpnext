@@ -161,7 +161,38 @@ def pack_box(
 	employee=None,
 	job=None,
 ):
+	"""`pack_units` for a caller that has to hold the right to make Stock Entries."""
+	frappe.has_permission("Stock Entry", "create", throw=True)
+	return pack_units(
+		serials,
+		units_per_box=units_per_box,
+		box_no=box_no,
+		box_total=box_total,
+		target_warehouse=target_warehouse,
+		recipe=recipe,
+		consume_warehouse=consume_warehouse,
+		workplace=workplace,
+		employee=employee,
+		job=job,
+	)
+
+
+def pack_units(
+	serials,
+	units_per_box=None,
+	box_no=None,
+	box_total=None,
+	target_warehouse=None,
+	recipe=None,
+	consume_warehouse=None,
+	workplace=None,
+	employee=None,
+	job=None,
+):
 	"""Close one box: move its serials out of staging, issue its consumables, note the box.
+
+	Not whitelisted and not permission-checked: the scanner script calls it on behalf of a
+	packer who has no right to make Stock Entries of their own.
 
 	All or nothing, one transaction: a serial that is not waiting in staging stops the whole
 	box with a message naming it, because a half-packed box is worse than a refused one. A
@@ -169,8 +200,6 @@ def pack_box(
 
 	A shortage of consumables does not stop the packer: the issue is kept as a draft.
 	"""
-	frappe.has_permission("Stock Entry", "create", throw=True)
-
 	job_doc = _open_job(job) if job else None
 	serials = [row.serial_no for row in job_doc.serials] if job_doc else _serial_list(serials)
 	if not serials:
@@ -209,6 +238,9 @@ def pack_box(
 			result["job"] = job_doc.name
 		return result
 
+	line = line or _line_of(by_name[waiting[0]])
+	workplace = workplace or _only_packaging_workplace(line)
+
 	target = target_warehouse or _target_for(by_name[waiting[0]], workplace, line)
 	if not target:
 		frappe.throw(_("No warehouse to pack into: give one or set it on the packing step of the BOM"))
@@ -242,6 +274,24 @@ def pack_box(
 	)
 	result.update(packed=len(waiting), stock_entry=entry, job=job_doc.name)
 	return result
+
+
+def _line_of(serial):
+	if not serial.work_order:
+		return None
+	return frappe.db.get_value("Work Order", serial.work_order, "production_line")
+
+
+def _only_packaging_workplace(line):
+	"""The line's packaging workplace when it has exactly one — the job says where it was done."""
+	if not line:
+		return None
+	rows = frappe.get_all(
+		"Production Line Workplace",
+		filters={"parent": line, "parenttype": "Production Line", "enabled": 1, "role": "Packaging"},
+		pluck="workplace",
+	)
+	return rows[0] if len(rows) == 1 else None
 
 
 def _target_for(serial, workplace=None, line=None):
@@ -341,14 +391,27 @@ def _transfer(serials, by_name, target):
 def _consume(recipe, units, entry, warehouse):
 	from erpnext.manufacturing import consumption
 
-	return consumption.consume(
-		recipe,
-		{"units": units},
-		"Stock Entry",
-		entry,
-		warehouse=warehouse,
-		on_shortage="draft",
-	)
+	try:
+		return consumption.consume(
+			recipe,
+			{"units": units},
+			"Stock Entry",
+			entry,
+			warehouse=warehouse,
+			on_shortage="draft",
+		)
+	except frappe.ValidationError:
+		# A recipe that cannot be issued (no warehouse named, an inactive recipe) must not undo a
+		# box that is already packed and labelled: say so and leave a trace.
+		frappe.log_error(
+			title=f"Packing: consumables of {recipe} not issued for {entry}", message=frappe.get_traceback()
+		)
+		frappe.msgprint(
+			_("The consumables of {0} could not be issued, see the Error Log").format(recipe),
+			indicator="red",
+			alert=True,
+		)
+		return None
 
 
 def delivered_serials(doc):

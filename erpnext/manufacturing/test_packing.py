@@ -85,3 +85,10 @@ class TestPacking(ERPNextTestSuite):
 	def test_serial_list_accepts_json_and_lines(self):
 		self.assertEqual(packing._serial_list('["A", "B", "A"]'), ["A", "B"])
 		self.assertEqual(packing._serial_list("A\nB\n"), ["A", "B"])
+
+	def test_job_workplace_defaults_to_the_only_packaging_bench_of_the_line(self):
+		with patch.object(frappe, "get_all", return_value=["Bench"]):
+			self.assertEqual(packing._only_packaging_workplace("Line"), "Bench")
+		with patch.object(frappe, "get_all", return_value=["Bench", "Other"]):
+			self.assertIsNone(packing._only_packaging_workplace("Line"))
+		self.assertIsNone(packing._only_packaging_workplace(None))

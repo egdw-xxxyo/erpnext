@@ -170,6 +170,7 @@ def consume(
 
 	frappe.db.savepoint("consume_insert")
 	entry = frappe.new_doc("Stock Entry")
+	entry.flags.ignore_permissions = True
 	entry.stock_entry_type = "Material Issue"
 	entry.purpose = "Material Issue"
 	entry.company = frappe.get_cached_value("Warehouse", rows[0]["s_warehouse"], "company")
