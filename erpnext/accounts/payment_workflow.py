@@ -295,6 +295,45 @@ WORKFLOW_TRANSITIONS = (
 )
 
 
+def _invoice_approval_transitions():
+	transitions = []
+	for original in WORKFLOW_TRANSITIONS:
+		transition = dict(original)
+		if transition["state"] == "Перевірка підрозділу" and transition["action"] == "Погодити":
+			condition = transition.get("condition") or "True"
+			transition[
+				"condition"
+			] = f"({condition}) and (not doc.custom_payment_dynamic_approval or doc.grand_total >= doc.custom_payment_ceo_threshold)"
+			automatic = {
+				**original,
+				"next_state": "Перевірка казначейства",
+				"condition": f"({condition}) and doc.custom_payment_dynamic_approval and doc.grand_total < doc.custom_payment_ceo_threshold",
+			}
+			transitions.append(automatic)
+		if transition["state"] == "Фінальне погодження":
+			transition[
+				"condition"
+			] = "not doc.custom_payment_dynamic_approval or ('\"' + frappe.session.user + '\"') in (doc.custom_payment_ceo_approvers or '')"
+		if transition["state"] == "Перевірка казначейства" and transition["action"] == "Погодити":
+			transition["condition"] = STANDARD_ROUTE_CONDITION
+			transitions.append({**original, "condition": APPROVED_ROUTE_CONDITION, "allow_self_approval": 1})
+		transitions.append(transition)
+	transitions.append(
+		{
+			"state": "Чернетка",
+			"action": "Подати на перевірку казначейству",
+			"next_state": "Перевірка казначейства",
+			"allowed": "Payments: Казначей",
+			"allow_self_approval": 1,
+			"condition": APPROVED_ROUTE_CONDITION,
+		}
+	)
+	return tuple(transitions)
+
+
+WORKFLOW_TRANSITIONS = _invoice_approval_transitions()
+
+
 def sync_workflow_configuration():
 	_ensure_role_profiles()
 	_ensure_payment_permissions()

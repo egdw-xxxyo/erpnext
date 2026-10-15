@@ -15958,3 +15958,30 @@ Liked,Вподобано
 Like,Вподобати
 Unlike,Зняти вподобання
 The item does not belong to this consolidated order.,Позиція не належить до цього зведеного замовлення.
+Payment Approval History,Історія погодження оплати
+Invoice Approval Route,Маршрут погодження рахунку
+Recorded CEO Approvers,Зафіксовані CEO-погоджувачі
+Recorded CEO Approvals,Зафіксовані погодження CEO
+Automatic CEO Approval,Автоматичне погодження CEO
+Department Approval By,Погоджено керівником
+Treasury Approval By,Погоджено казначеєм
+Purchase initiator,Ініціатор закупівлі
+Payment initiator,Ініціатор оплати
+Invoice created by,Автор рахунку
+Payment and payment instruction,Оплата та платіжна інструкція
+Treasury Review,Перевірка казначейства
+Automatically approved,Погоджено автоматично
+Not recorded,Не зафіксовано
+Return the payment request for rework before changing its amount or source.,Поверніть запит на оплату на доопрацювання перед зміною суми або документа-підстави.
+All recorded CEO approvers must approve this payment request.,Запит на оплату мають погодити всі зафіксовані CEO-погоджувачі.
+The payment request is not awaiting CEO approval.,Запит на оплату не очікує погодження CEO.
+Only a recorded CEO approver can decide this payment request.,Рішення щодо цього запиту може прийняти лише зафіксований CEO-погоджувач.
+You have already approved this payment request.,Ви вже погодили цей запит на оплату.
+CEO approval recorded: {0}/{1}.,Зафіксовано погодження CEO: {0}/{1}.
+Unsupported payment route document.,Документ не підтримує цей маршрут погодження оплати.
+Select a submitted invoice with an unpaid balance.,Виберіть проведений рахунок із неоплаченим залишком.
+The payment request has not completed approval. Complete its approval before paying this invoice.,Запит на оплату ще не пройшов погодження. Завершіть його погодження перед оплатою цього рахунку.
+The payment request changed. Refresh the invoice and try again.,Запит на оплату змінився. Оновіть рахунок і спробуйте ще раз.
+Payment requests already exist for this invoice: {0}. Confirm the treasury review and submit them before creating the payment?,Для цього рахунку вже створено запити на оплату: {0}. Підтвердити перевірку казначейства та провести їх перед створенням оплати?
+Not yet completed,Очікує завершення
+Source Consolidated Purchase Order,Вихідне зведене замовлення на придбання

@@ -72,8 +72,12 @@ doctype_js = {
 	"Purchase Invoice": [
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
+		"public/js/invoice_payment_route.js",
 	],
-	"Payment Request": "public/js/procurement_supplier_invoice_files.js",
+	"Payment Request": [
+		"public/js/procurement_supplier_invoice_files.js",
+		"public/js/invoice_payment_route.js",
+	],
 	"Payment Entry": "public/js/procurement_supplier_invoice_files.js",
 	"Delivery Note": "public/js/responsible_employee.js",
 	"Sales Invoice": "public/js/responsible_employee.js",
@@ -652,6 +656,7 @@ doc_events = {
 		"on_trash": "erpnext.regional.check_deletion_permission",
 	},
 	"Purchase Invoice": {
+		"before_validate": "erpnext.accounts.invoice_payment_route.capture_source_history",
 		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
 			"erpnext.buying.procurement_document_details.sync_supplier_vat",
@@ -666,6 +671,11 @@ doc_events = {
 		"on_cancel": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 	},
 	"Payment Request": {
+		"before_validate": [
+			"erpnext.accounts.payment_request_approval.prepare_approval",
+			"erpnext.accounts.invoice_payment_route.capture_source_history",
+			"erpnext.accounts.supplier_requisites_validation.inherit_manual_confirmation",
+		],
 		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
 			"erpnext.buying.procurement_document_details.sync_supplier_vat",
@@ -772,8 +782,12 @@ doc_events = {
 		"on_cancel": "erpnext.stock.doctype.serial_no.inspection.clear_inspection_status_on_cancel",
 	},
 	"Payment Entry": {
+		"before_validate": "erpnext.accounts.supplier_requisites_validation.inherit_manual_confirmation",
 		"on_trash": "erpnext.regional.check_deletion_permission",
-		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
+		"before_submit": [
+			"erpnext.accounts.invoice_payment_route.validate_pending_requests",
+			"erpnext.accounts.supplier_requisites_validation.validate_before_submit",
+		],
 		"validate": [
 			"erpnext.accounts.payment_fiscal_receipt.validate_payment_entry_receipt",
 			"erpnext.buying.procurement_document_details.sync_supplier_vat",

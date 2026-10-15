@@ -17,6 +17,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_invoice_payment_routes()
 	setup_procurement_item_likes()
 	setup_company_requisites()
 	setup_supplier_item_matching()
@@ -109,6 +110,71 @@ def execute():
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_invoice_payment_routes():
+	fields = []
+	for doctype, after in (
+		("Purchase Invoice", "custom_supplier_invoice_files_html"),
+		("Payment Request", "custom_procurement_approved"),
+	):
+		fields.extend(
+			[
+				{
+					"dt": doctype,
+					"fieldname": "custom_payment_route_section",
+					"fieldtype": "Section Break",
+					"insert_after": after,
+				},
+				{
+					"dt": doctype,
+					"fieldname": "custom_payment_route_html",
+					"label": "Approval Route",
+					"fieldtype": "HTML",
+					"insert_after": "custom_payment_route_section",
+				},
+				{
+					"dt": doctype,
+					"fieldname": "custom_payment_route_snapshot",
+					"label": "Payment Approval History",
+					"fieldtype": "Long Text",
+					"hidden": 1,
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_payment_route_html",
+				},
+			]
+		)
+	for name, label, fieldtype, options in (
+		("custom_payment_dynamic_approval", "Invoice Approval Route", "Check", None),
+		("custom_payment_ceo_threshold", "CEO Approval Threshold", "Currency", None),
+		("custom_payment_ceo_approvers", "Recorded CEO Approvers", "Long Text", None),
+		("custom_payment_ceo_votes", "Recorded CEO Approvals", "Long Text", None),
+		("custom_payment_ceo_automatic", "Automatic CEO Approval", "Check", None),
+		("custom_payment_department_approved_by", "Department Approval By", "Link", "User"),
+		("custom_payment_treasury_approved_by", "Treasury Approval By", "Link", "User"),
+	):
+		fields.append(
+			{
+				"dt": "Payment Request",
+				"fieldname": name,
+				"label": label,
+				"fieldtype": fieldtype,
+				"options": options,
+				"hidden": 1,
+				"read_only": 1,
+				"no_copy": 1,
+				"allow_on_submit": 1,
+				"insert_after": "custom_payment_route_snapshot",
+			}
+		)
+	_create_custom_fields(fields)
+	# Move the route out of PDF validation on sites where it was already created.
+	for doctype in ("Purchase Invoice", "Payment Request"):
+		route_field = frappe.get_doc("Custom Field", f"{doctype}-custom_payment_route_html")
+		if route_field.insert_after != "custom_payment_route_section":
+			route_field.insert_after = "custom_payment_route_section"
+			route_field.save(ignore_permissions=True)
 
 
 def setup_procurement_item_likes():

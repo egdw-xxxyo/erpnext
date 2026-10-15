@@ -118,6 +118,7 @@ def get_iban_bank_suggestion(doc: str | dict, iban: str):
 
 
 def validate_before_submit(doc, method=None):
+	inherit_manual_confirmation(doc)
 	result = validate_supplier_requisites(doc)
 	if not result["applicable"] or not result["requires_manual_confirmation"]:
 		return
@@ -135,6 +136,44 @@ def validate_before_submit(doc, method=None):
 		),
 		title=_("Supplier Details Verification"),
 	)
+
+
+def inherit_manual_confirmation(doc, method=None):
+	if _has_verified_invoice_source(doc):
+		doc.set(MANUAL_CONFIRMATION_FIELD, 1)
+
+
+def _has_verified_invoice_source(doc):
+	if doc.doctype == "Payment Request":
+		if doc.get("party_type") != "Supplier" or doc.get("payment_request_type") != "Outward":
+			return False
+		references = [doc]
+	elif doc.doctype == "Payment Entry":
+		if doc.get("party_type") != "Supplier" or doc.get("payment_type") != "Pay":
+			return False
+		references = doc.get("references") or []
+	else:
+		return False
+	if not references:
+		return False
+	for row in references:
+		if row.get("reference_doctype") != "Purchase Invoice" or not row.get("reference_name"):
+			return False
+		invoice = frappe.db.get_value(
+			"Purchase Invoice",
+			row.get("reference_name"),
+			["docstatus", "supplier", "company", MANUAL_CONFIRMATION_FIELD],
+			as_dict=True,
+		)
+		if not (
+			invoice
+			and invoice.docstatus == 1
+			and invoice.get(MANUAL_CONFIRMATION_FIELD)
+			and invoice.supplier == doc.get("party")
+			and invoice.company == doc.get("company")
+		):
+			return False
+	return True
 
 
 def validate_supplier_requisites(doc):
@@ -199,6 +238,7 @@ def validate_supplier_requisites(doc):
 		and any(check["status"] == "missing_reference" and not check.get("detected") for check in checks)
 	)
 	return {
+		"manual_confirmation_inherited": _has_verified_invoice_source(doc),
 		"applicable": True,
 		"supplier": context["supplier"],
 		"allow_supplier_update": doc.doctype == SUPPLIER_UPDATE_DOCTYPE,

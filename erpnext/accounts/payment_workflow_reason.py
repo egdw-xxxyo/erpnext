@@ -94,6 +94,21 @@ def apply_workflow(doc: str | dict, action: str):
 		return apply_procurement_workflow(doc, action)
 	if payload.get("doctype") != PAYMENT_REQUEST_DOCTYPE:
 		return core_apply_workflow(doc, action)
+	from erpnext.accounts.payment_request_approval import (
+		FINAL,
+		check_final_decision,
+		record_vote,
+		uses_invoice_route,
+	)
+
+	current = frappe.get_doc(PAYMENT_REQUEST_DOCTYPE, payload.get("name"))
+	if current.workflow_state == FINAL and uses_invoice_route(current):
+		check_final_decision(current)
+		if action == "Погодити":
+			current, complete = record_vote(current)
+			if not complete:
+				return current
+			doc = current.as_dict()
 
 	reason = (payload.get(REASON_FIELD) or "").strip()
 	if action in REQUIRED_ACTIONS:

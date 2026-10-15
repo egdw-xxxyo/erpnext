@@ -192,6 +192,9 @@ function render_supplier_requisites_validation(frm) {
 		callback(response) {
 			if (frm.__supplier_requisites_validation_request_id !== requestId) return;
 			const result = response.message || {};
+			if (result.manual_confirmation_inherited && frm.doc.docstatus === 0) {
+				frm.set_value(supplierRequisitesManualConfirmation, 1);
+			}
 			set_supplier_requisites_visibility(frm, result);
 			field.$wrapper.html(build_supplier_requisites_validation_html(result, frm.doc.docstatus === 0));
 			place_supplier_requisites_validation_last(frm);
