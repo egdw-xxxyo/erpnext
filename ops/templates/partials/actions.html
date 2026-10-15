@@ -27,7 +27,7 @@
 {% endif %}
 
 <div class="actions">
-	{% for key in ['update-repo', 'backup', 'build', 'switch-branch', 'ops-rebuild'] %}
+	{% for key in ['update-repo', 'backup', 'live-check', 'live', 'build', 'rollback', 'switch-branch', 'ops-rebuild'] %}
 	{% set cmd = commands[key] %}
 	<form class="action"
 	      hx-post="/actions/{{ key }}"

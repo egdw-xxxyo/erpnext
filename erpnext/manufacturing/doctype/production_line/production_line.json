@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_rename": 1,
  "autoname": "field:line_name",
  "creation": "2026-09-13 00:00:00.000000",
  "description": "A continuously running line that is kept supplied with Work Orders, so nobody has to size one by hand each morning",
@@ -27,6 +28,10 @@
   "planning_mode",
   "orders_section",
   "orders",
+  "current_orders_section",
+  "current_orders",
+  "done_orders_section",
+  "done_orders",
   "plan_section",
   "plan_time",
   "plan",
@@ -259,14 +264,36 @@
   {
    "fieldname": "orders_section",
    "fieldtype": "Section Break",
-   "label": "Orders",
+   "label": "New Orders",
    "depends_on": "eval:doc.planning_mode=='Manual Planning'"
   },
   {
    "fieldname": "orders",
    "fieldtype": "Table",
-   "label": "Orders",
+   "label": "New Orders",
    "options": "Production Line Order"
+  },
+  {
+   "fieldname": "current_orders_section",
+   "fieldtype": "Section Break",
+   "label": "Current Orders",
+   "depends_on": "eval:doc.planning_mode=='Manual Planning'"
+  },
+  {
+   "fieldname": "current_orders",
+   "fieldtype": "HTML",
+   "label": "Current Orders"
+  },
+  {
+   "fieldname": "done_orders_section",
+   "fieldtype": "Section Break",
+   "label": "Completed Orders",
+   "depends_on": "eval:doc.planning_mode=='Manual Planning'"
+  },
+  {
+   "fieldname": "done_orders",
+   "fieldtype": "HTML",
+   "label": "Completed Orders"
   }
  ],
  "index_web_pages_for_search": 1,

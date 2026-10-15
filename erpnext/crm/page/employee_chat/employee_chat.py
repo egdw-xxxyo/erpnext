@@ -20,6 +20,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint, now
 
+from erpnext.crm.notification_channels import sync_users, without_channels
+
 URL_RE = re.compile(r"https?://[^\s<>\"']+")
 
 # Report-style desk routes: /app/query-report/<name> and /app/report/<name>.
@@ -464,12 +466,15 @@ def _notify_mentions(thread_doc, sender, users, preview):
 	if not users:
 		return
 	sender_name = frappe.bold(_user_name(sender))
+	# A record's chat is named by what the record is: "Task Fix the pump", not a bare title.
 	if thread_doc.thread_type == "Document":
 		title = thread_doc.reference_label or thread_doc.reference_name
+		where = f"{_(thread_doc.reference_doctype)} {frappe.bold(title)}" if title else ""
 	else:
 		title = thread_doc.title
+		where = frappe.bold(title) if title else ""
 	subject = (
-		_("{0} mentioned you in the chat {1}").format(sender_name, frappe.bold(title))
+		_("{0} mentioned you in the chat {1}").format(sender_name, where)
 		if title
 		else _("{0} mentioned you in a chat").format(sender_name)
 	)
@@ -595,9 +600,18 @@ def _thread_row(t, me, last_read, can_purge):
 		filters={"parenttype": "Chat Thread", "parent": t["name"]},
 		fields=["user", "employee_name", "role", "last_read_on", "muted"],
 	)
+	# Someone with neither WhatsApp nor the mobile app only sees a message at the desk.
+	unreachable = without_channels([p.user for p in parts])
+	images = dict(
+		frappe.get_all(
+			"User", filters={"name": ["in", [p.user for p in parts]]}, fields=["name", "user_image"], as_list=True
+		)
+	)
 	for p in parts:
+		p.image = images.get(p.user)
 		# Not everyone has an Employee record; a participant is never shown as a bare login.
 		p.employee_name = p.employee_name or _user_name(p.user)
+		p.no_channels = 1 if p.user in unreachable else 0
 	t["participants"] = parts
 	mine = next((p for p in parts if p.user == me), None)
 	t["is_member"] = 1 if mine else 0
@@ -1645,6 +1659,7 @@ def register_fcm_token(token: str, device_label: str | None = None, platform: st
 		frappe.get_doc({"doctype": "FCM Device Token", "token": token, **values}).insert(
 			ignore_permissions=True
 		)
+	sync_users([me])
 	return {"ok": True}
 
 
@@ -1653,7 +1668,9 @@ def unregister_fcm_token(token: str):
 	"""Best-effort cleanup on logout — stop pushing to a token the client no longer holds."""
 	token = (token or "").strip()
 	if token:
+		owner = frappe.db.get_value("FCM Device Token", {"token": token}, "user")
 		frappe.db.delete("FCM Device Token", {"token": token})
+		sync_users([owner])
 	return {"ok": True}
 
 

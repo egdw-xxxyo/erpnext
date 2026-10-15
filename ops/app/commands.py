@@ -81,6 +81,41 @@ COMMANDS: dict[str, Command] = {
 		),
 		destructive=True,
 	),
+	"live-check": Command(
+		key="live-check",
+		label="Check live deploy",
+		description=(
+			"Checks whether the current commit can be deployed without a window "
+			"(./deploy live --check-only). Changes nothing."
+		),
+		build=lambda _: "./deploy live --check-only",
+	),
+	"live": Command(
+		key="live",
+		label="Deploy live (no window)",
+		description=(
+			"Deploys under traffic with no downtime (./deploy live): the new release starts next to "
+			"the running one and nginx is switched over. Runs only when the release passes the "
+			"online-safety check; otherwise nothing is touched and Deploy (build) is the way."
+		),
+		build=lambda _: (
+			"./deploy backup --no-files && ./deploy live --no-ops"
+			if prefs.get("pre_deploy_backup", True)
+			else "./deploy live --no-ops"
+		),
+		destructive=True,
+		needs_clean_tree=True,
+	),
+	"rollback": Command(
+		key="rollback",
+		label="Roll back",
+		description=(
+			"Puts the previous release's code back with no downtime (./deploy rollback). The database "
+			"is NOT rolled back: migrations and data written since stay as they are."
+		),
+		build=lambda _: "./deploy rollback",
+		destructive=True,
+	),
 	"backup": Command(
 		key="backup",
 		label="Backup",
@@ -124,11 +159,10 @@ COMMANDS: dict[str, Command] = {
 		key="space-hard-clean",
 		label="Hard clean",
 		description=(
-			"Removes every Docker image and build cache layer not in active use, including the "
-			'previous release\'s tagged image — matches the full "Reclaimable" number shown per '
-			"row. Rollback to the previous image is no longer possible after this runs, and the "
-			"next build starts uncached (slower). Never touches backups, the site database, or "
-			"files inside sites/."
+			"Removes superseded ERPNext release images and the whole build cache. The previous "
+			"release's image is kept, so rollback still works; images of other projects are not "
+			"touched. The next build starts uncached (slower). Never touches backups, the site "
+			"database, or files inside sites/."
 		),
 		build=lambda _: "./deploy space-hard-clean",
 		destructive=True,

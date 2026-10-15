@@ -39,6 +39,8 @@ def _assert_workplace_allowed(workplace, employee):
 	"""
 	if not frappe.db.exists("Workplace", workplace):
 		frappe.throw(_("Workplace {0} not found").format(workplace), frappe.DoesNotExistError)
+	if not frappe.db.get_value("Workplace", workplace, "is_active"):
+		frappe.throw(_("Workplace {0} is inactive").format(workplace), frappe.ValidationError)
 
 	if any(role in frappe.get_roles() for role in MANAGER_ROLES):
 		return

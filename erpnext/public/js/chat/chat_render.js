@@ -599,6 +599,7 @@ frappe.provide("erpnext.chat_render");
 			letter-spacing:.03em;}
 		.cv-read-sec + .cv-read-sec{margin-top:8px;padding-top:6px;border-top:1px solid var(--border-color);}
 		.cv-read-row{padding:3px 0;}
+		.cv-read-warn{margin:1px 0 2px 30px;font-size:11px;color:var(--orange-600,#c05621);}
 		.cv-ticks .fa + .fa{margin-left:-6px;}
 		.cv-st-failed{color:var(--red-500,#e24c4c);}
 		.cv-media{margin:-2px -6px 2px -7px;}
@@ -635,11 +636,11 @@ frappe.provide("erpnext.chat_render");
 			box-shadow:0 1px 3px rgba(0,0,0,.2);}
 		.cv-react-badge.cv-mine{box-shadow:0 0 0 1px var(--cv-accent),0 1px 3px rgba(0,0,0,.2);}
 		.cv-react-count{margin-left:2px;font-size:11px;color:var(--text-muted);}
-		.cv-bubble-actions{position:absolute;top:50%;transform:translateY(-50%);display:none;gap:4px;}
-		.cv-in .cv-bubble-actions{left:100%;padding-left:6px;}
-		.cv-out .cv-bubble-actions{right:100%;padding-right:6px;}
-		.cv-bubble:hover .cv-bubble-actions,.cv-bubble.cv-menu-open .cv-bubble-actions{display:flex;}
-		.cv-act{cursor:pointer;background:var(--card-bg);border-radius:50%;width:28px;height:28px;line-height:28px;text-align:center;
+		.cv-bubble-actions{position:absolute;top:0;bottom:0;width:100vw;display:flex;align-items:center;gap:4px;}
+		.cv-in .cv-bubble-actions{left:100%;padding-left:6px;justify-content:flex-start;}
+		.cv-out .cv-bubble-actions{right:100%;padding-right:6px;justify-content:flex-end;}
+		.cv-bubble:hover .cv-act,.cv-bubble.cv-menu-open .cv-act{display:block;}
+		.cv-act{display:none;cursor:pointer;background:var(--card-bg);border-radius:50%;width:28px;height:28px;line-height:28px;text-align:center;
 			font-size:13px;color:var(--text-muted);box-shadow:0 1px 3px rgba(0,0,0,.2);}
 		.cv-act:hover,.cv-act:focus{color:var(--cv-accent);outline:none;}
 		.cv-bubble.cv-highlight{animation:cv-flash 1.6s ease-out;}
@@ -681,6 +682,7 @@ frappe.provide("erpnext.chat_render");
 		/* compact (chat bubble widget) */
 		.cv-compact .cv-bubble{max-width:84%;font-size:12.5px;padding:4px 8px 4px 9px;border-radius:12px;}
 		.cv-compact .cv-meta{font-size:10px;margin-top:4px;}
+		.cv-compact .cv-bubble .cv-do-react,.cv-compact .cv-bubble .cv-do-reply{display:none;}
 		.cv-compact .cv-author{font-size:11px;}
 		.cv-compact .cv-media .chat-img,.cv-compact .cv-media .chat-img img,.cv-compact .cv-media video{max-width:190px;}
 		.cv-compact .cv-media audio{width:200px;}

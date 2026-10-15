@@ -199,6 +199,10 @@ class FormSidebarChat {
 		.fsc-pane-chat{display:none;}
 		.fsc-root{position:relative;display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:320px;
 			background:var(--card-bg);}
+		.form-sidebar.fsc-chat-mode{display:flex;flex-direction:column;height:100%;}
+		.fsc-chat-mode > .fsc-tabs{flex:none;}
+		.fsc-chat-mode > .fsc-pane-chat{flex:1;min-height:0;flex-direction:column;}
+		.fsc-chat-mode > .fsc-pane-chat > .fsc-root:not(.fsc-expanded){flex:1;height:auto;}
 		.fsc-unread{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;
 			background:var(--red-500,#e24c4c);color:#fff;font-size:11px;line-height:20px;font-weight:600;text-align:center;}
 		.fsc-unread-veil{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;
@@ -261,7 +265,8 @@ class FormSidebarChat {
 		// Leaving the chat tab puts it down: coming back, new messages wait for a click again.
 		if (tab !== "chat") st.chat.disengage();
 		st.$info.toggle(tab === "info");
-		st.$pane.toggle(tab === "chat");
+		st.$pane.css("display", tab === "chat" ? "flex" : "none");
+		st.$sidebar.toggleClass("fsc-chat-mode", tab === "chat");
 		if (tab === "chat") st.chat.open();
 		FS.update_badge(frm);
 	};
@@ -305,6 +310,7 @@ class FormSidebarChat {
 		if (st && st.chat) st.chat.destroy();
 		st = frm.__fsc = {
 			tab: "info",
+			$sidebar: sidebar,
 			$tabs,
 			$info,
 			$pane,

@@ -5,7 +5,54 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 # ops_step: [OPS] milestone markers the ops dashboard parses.
 . "$DIR/tools/ops-progress.sh"
 ERPNEXT_VERSION="v16.31.1"
-IMAGE_NAME="erpnext-uk:$ERPNEXT_VERSION"
+IMAGE_REPO="erpnext-uk"
+# Moving tag: always the newest build. ERPNEXT_VERSION is also the base-image
+# build arg, so it is not a release identifier — RELEASE_IMAGE is.
+IMAGE_NAME="$IMAGE_REPO:$ERPNEXT_VERSION"
+
+# One immutable tag per release, so two releases can exist side by side (the
+# running one and the one being rolled out, or the one to roll back to).
+release_tag() {
+  local tag
+  tag=$(git -C "$DIR" describe --tags --always --dirty 2>/dev/null | tr -c 'A-Za-z0-9._\n-' '-')
+  echo "${tag:-unknown}"
+}
+RELEASE_TAG="$(release_tag)"
+RELEASE_IMAGE="$IMAGE_REPO:${ERPNEXT_VERSION}-${RELEASE_TAG}"
+
+# Which image each service runs. Compose loads .env from the directory of its
+# first -f file on its own, so ./deploy, a bare `docker compose` typed by an
+# operator and the ops dashboard all read the same file. Per-host state, like
+# .deploy-env; every key has a default in docker-compose.yml, so a host without
+# the file starts exactly as before.
+ENV_FILE="$DIR/.env"
+
+env_get() {
+  [ -f "$ENV_FILE" ] || return 0
+  sed -n "s/^$1=//p" "$ENV_FILE" | tail -1
+}
+
+# Temp file + rename: a reader sees the old file or the new one, never half.
+env_set() {
+  local key="$1" value="$2" tmp
+  tmp=$(mktemp "$ENV_FILE.XXXXXX")
+  if [ -f "$ENV_FILE" ]; then
+    grep -v "^$key=" "$ENV_FILE" >"$tmp" || true
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$ENV_FILE"
+}
+
+env_ensure() {
+  local key
+  local seed
+  # Workers were added later: an existing .env has them on whatever blue runs.
+  seed=$(env_get ERPNEXT_IMAGE_BLUE)
+  for key in ERPNEXT_IMAGE_BLUE ERPNEXT_IMAGE_GREEN ERPNEXT_IMAGE_WORKERS ERPNEXT_IMAGE_FRONTEND ERPNEXT_PREV_IMAGE; do
+    [ -n "$(env_get "$key")" ] || env_set "$key" "${seed:-$IMAGE_NAME}"
+  done
+}
 
 # Some host IPs get a 401 from GitHub on anonymous git-upload-pack even for
 # public repos (confirmed via GIT_TRACE — GET info/refs is fine, the actual
@@ -116,13 +163,21 @@ extra_apps_disabled() {
 . "$DIR/tools/mirror.sh"
 
 dc() {
-  local files=(-f "$DIR/docker-compose.yml")
+  local files=(-f "$DIR/docker-compose.yml" -f "$DIR/docker-compose.green.yml")
   [ -n "$MIRROR_COMPOSE_FILE" ] && files+=(-f "$MIRROR_COMPOSE_FILE")
   if docker compose version &>/dev/null; then
     docker compose -p docker "${files[@]}" "$@"
   else
     docker-compose -p docker "${files[@]}" "$@"
   fi
+}
+
+# The green stand-in services (docker-compose.green.yml) sit behind a profile so
+# a plain `dc up -d` never starts them. dcg is dc with that profile on: for the
+# rollout itself, and for stop/down, which must not leave a stand-in behind.
+GREEN_SERVICES="backend-green websocket-green assets-green"
+dcg() {
+  COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}green" dc "$@"
 }
 
 # --- Ops dashboard -----------------------------------------------------------
@@ -180,6 +235,59 @@ ops_up() {
   ) || echo "WARNING: ops dashboard failed to start (ERPNext deploy unaffected)."
 }
 
+# --- nginx target ------------------------------------------------------------
+# Which backend/websocket container the frontend proxies to. A directory, not a
+# file, is mounted into the container: a rename replaces the inode, and a
+# single-file bind mount would keep showing the old one.
+NGINX_TARGET_DIR="$DIR/.docker/nginx-target"
+
+nginx_target_write() {
+  local tmp
+  mkdir -p "$NGINX_TARGET_DIR"
+  tmp=$(mktemp "$NGINX_TARGET_DIR/target.XXXXXX")
+  printf 'map $host $frappe_backend  { default "%s"; }\nmap $host $frappe_socketio { default "%s"; }\nmap $host $frappe_assets   { default "%s"; }\n' \
+    "$1" "$2" "$3" >"$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$NGINX_TARGET_DIR/target.conf"
+}
+
+# The frontend refuses to start without the file, on purpose.
+nginx_target_ensure() {
+  grep -q frappe_assets "$NGINX_TARGET_DIR/target.conf" 2>/dev/null || nginx_target_write "backend:8000" "websocket:9000" "assets:8080"
+}
+
+# Re-renders the config, tests it and reloads. A reload never closes the
+# listening socket: new workers take the new config, old ones finish what they
+# have. Never `dc restart frontend`. The reload itself is asynchronous — old
+# workers keep accepting for a moment — so the worker PIDs of before are noted
+# for nginx_wait_old_workers.
+nginx_reload() {
+  dc exec -T frontend bash -c '
+    set -e
+    for p in /proc/[0-9]*; do
+      if grep -qa "^nginx: worker" "$p/cmdline" 2>/dev/null; then echo "${p#/proc/}"; fi
+    done >/tmp/nginx-old-workers
+    bash /opt/frappe-nginx/entrypoint.sh render
+    nginx -s reload
+  '
+}
+
+# Returns once every worker that ran the previous config has exited, i.e. no
+# request is in flight to the previous target any more. $1 = seconds to wait.
+nginx_wait_old_workers() {
+  dc exec -T frontend bash -c '
+    for _ in $(seq 1 "$0"); do
+      alive=0
+      for pid in $(cat /tmp/nginx-old-workers 2>/dev/null); do
+        if grep -qa "^nginx: worker" "/proc/$pid/cmdline" 2>/dev/null; then alive=1; fi
+      done
+      [ "$alive" = 0 ] && exit 0
+      sleep 1
+    done
+    exit 1
+  ' "${1:-45}"
+}
+
 wait_for_db() {
   say "==> Waiting for MariaDB..."
   for i in $(seq 1 30); do
@@ -193,22 +301,55 @@ wait_for_db() {
   exit 1
 }
 
-wait_for_backend() {
-  say "==> Waiting for backend..."
-  for i in $(seq 1 30); do
-    if dc exec -T backend bench --site frontend doctor 2>/dev/null | grep -q "OK" 2>/dev/null || \
-       dc exec -T backend python3 -c "import frappe" 2>/dev/null; then
-      return 0
-    fi
-    sleep 2
-  done
-  echo "WARNING: Backend may not be fully ready after 60s, proceeding anyway."
+# One real request through gunicorn. A 200 from frappe.ping means the image
+# imported, gunicorn accepts on :8000, the database answers and the site
+# resolves — none of which `bench doctor` or `import frappe` can tell.
+backend_probe() {
+  dcg exec -T "$1" curl -fsS -o /dev/null -m 5 -H 'Host: frontend' \
+    http://127.0.0.1:8000/api/method/ping >/dev/null 2>&1
 }
 
-# Space policy: a deploy leaves nothing behind. Before the build we drop what
-# earlier builds left and refuse to start on a disk that cannot hold the new
-# image (a full disk takes redis down with it). After a good deploy the
-# superseded image goes too, so there is no rollback image — that is the point.
+# Three answers in a row, so one lucky reply while the workers are still booting
+# does not pass. $2 = how many 2s rounds to wait (default 3 minutes).
+backend_ready() {
+  local service="${1:-backend}" rounds="${2:-90}" streak=0 _i
+  for _i in $(seq 1 "$rounds"); do
+    if backend_probe "$service"; then
+      streak=$((streak + 1))
+      [ "$streak" -ge 3 ] && return 0
+      sleep 1
+    else
+      streak=0
+      sleep 2
+    fi
+  done
+  return 1
+}
+
+# Both gunicorn workers (2 x 4 threads) import their share and fill their
+# caches on our requests instead of on the first user's.
+backend_warm() {
+  local service="${1:-backend}"
+  dcg exec -T "$service" bash -c '
+    for _ in $(seq 1 24); do
+      curl -fsS -o /dev/null -m 10 -H "Host: frontend" http://127.0.0.1:8000/api/method/ping &
+    done
+    wait
+    curl -fsS -o /dev/null -m 30 -H "Host: frontend" http://127.0.0.1:8000/login
+  ' >/dev/null 2>&1 || true
+}
+
+wait_for_backend() {
+  say "==> Waiting for backend..."
+  backend_ready backend 60 && return 0
+  echo "WARNING: backend does not answer /api/method/ping after 2 minutes, proceeding anyway."
+}
+
+# Space policy: a deploy leaves behind exactly one thing — the previous release
+# image, which is what a rollback starts. Before the build we drop what earlier
+# builds left and refuse to start on a disk that cannot hold the new image (a
+# full disk takes redis down with it). After a good deploy everything older than
+# the previous release goes; a lean host (.deploy-lean) keeps no previous image.
 # Only the newest DEPLOY_CACHE_KEEP of build cache survives: the apt/pip base
 # layers are worth keeping, everything after the apps clone is rebuilt anyway.
 DEPLOY_CACHE_KEEP="${DEPLOY_CACHE_KEEP:-3GB}"
@@ -250,7 +391,7 @@ lean_build() {
 
 free_everything_for_build() {
   say "==> Lean build: stopping the stack and removing the old image and all build cache..."
-  dc down --remove-orphans >/dev/null 2>&1 || true
+  dcg down --remove-orphans >/dev/null 2>&1 || true
   local repo
   repo="${IMAGE_NAME%%:*}"
   docker image ls --no-trunc --format '{{.ID}} {{.Repository}}' 2>/dev/null \
@@ -261,22 +402,66 @@ free_everything_for_build() {
   docker builder prune -af >/dev/null 2>&1 || true
 }
 
+# Removes every image of our own repository except the ones .env pins (the
+# release each colour runs, the frontend's, the previous release), the moving
+# tag and whatever a container — running or stopped — was created from.
+# Only our repository: `image prune -a` would also take unused images of any
+# other project sharing this Docker, and the rollback image with them.
+image_gc() {
+  local keep="" ref id key
+  for key in ERPNEXT_IMAGE_BLUE ERPNEXT_IMAGE_GREEN ERPNEXT_IMAGE_WORKERS ERPNEXT_IMAGE_FRONTEND ERPNEXT_PREV_IMAGE; do
+    ref=$(env_get "$key")
+    [ -n "$ref" ] || continue
+    id=$(docker image inspect -f '{{.Id}}' "$ref" 2>/dev/null || true)
+    [ -n "$id" ] && keep="$keep $id"
+  done
+  id=$(docker image inspect -f '{{.Id}}' "$IMAGE_NAME" 2>/dev/null || true)
+  [ -n "$id" ] && keep="$keep $id"
+  for ref in $(docker ps -aq 2>/dev/null); do
+    id=$(docker inspect -f '{{.Image}}' "$ref" 2>/dev/null || true)
+    [ -n "$id" ] && keep="$keep $id"
+  done
+  # Nothing resolved means docker did not answer; deleting on that would take everything.
+  [ -n "$keep" ] || return 0
+
+  docker image ls --no-trunc --format '{{.ID}} {{.Repository}} {{.Tag}}' 2>/dev/null \
+    | awk -v repo="$IMAGE_REPO" '$2 == repo' \
+    | while read -r id _repo tag; do
+        case " $keep " in *" $id "*) continue ;; esac
+        if [ "$tag" = "<none>" ]; then
+          docker rmi "$id" >/dev/null 2>&1 || true
+        else
+          docker rmi "$IMAGE_REPO:$tag" >/dev/null 2>&1 || true
+        fi
+      done
+}
+
 reclaim_after_deploy() {
   say "==> Removing superseded images and build leftovers..."
-  # Only older images of our own repository: `image prune -a` would also take
-  # unused images of any other project sharing this Docker. `rmi` refuses an
-  # image a container still uses, which is exactly what we want here.
-  local repo current id
-  repo="${IMAGE_NAME%%:*}"
-  current=$(docker image inspect -f '{{.Id}}' "$IMAGE_NAME" 2>/dev/null || true)
-  if [ -n "$current" ]; then
-    docker image ls --no-trunc --format '{{.ID}} {{.Repository}}' 2>/dev/null \
-      | awk -v repo="$repo" -v current="$current" '$2 == repo && $1 != current {print $1}' \
-      | sort -u \
-      | while read -r id; do docker rmi "$id" >/dev/null 2>&1 || true; done
-  fi
+  image_gc
   docker image prune -f >/dev/null 2>&1 || true
   prune_build_cache
+}
+
+# Points the stack at the image that was just built and remembers the release it
+# replaces. The frontend is only nginx plus a config from the repo, so it stays
+# on the image it has — recreating it is what closes the :8080 listener — until
+# that image is older than the previous release and would be a third one to keep.
+release_pin() {
+  local running frontend
+  running=$(env_get ERPNEXT_IMAGE_BLUE)
+  frontend=$(env_get ERPNEXT_IMAGE_FRONTEND)
+  if lean_build || [ "$frontend" != "$running" ] || ! docker image inspect "$frontend" >/dev/null 2>&1; then
+    env_set ERPNEXT_IMAGE_FRONTEND "$RELEASE_IMAGE"
+  fi
+  if lean_build; then
+    env_set ERPNEXT_PREV_IMAGE "$RELEASE_IMAGE"
+  elif [ -n "$running" ] && [ "$running" != "$RELEASE_IMAGE" ]; then
+    env_set ERPNEXT_PREV_IMAGE "$running"
+  fi
+  env_set ERPNEXT_IMAGE_BLUE "$RELEASE_IMAGE"
+  env_set ERPNEXT_IMAGE_GREEN "$RELEASE_IMAGE"
+  env_set ERPNEXT_IMAGE_WORKERS "$RELEASE_IMAGE"
 }
 
 build_image() {
@@ -284,6 +469,15 @@ build_image() {
     free_everything_for_build
   fi
   ensure_space_for_build || return 1
+
+  # A host that predates release tags runs the moving tag, which the build below
+  # re-points at the new image. Give the running image a name of its own first,
+  # or the very first tagged release would have nothing to roll back to.
+  if ! lean_build && [ "$(env_get ERPNEXT_IMAGE_BLUE)" = "$IMAGE_NAME" ] \
+      && docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+    docker tag "$IMAGE_NAME" "$IMAGE_NAME-pre-release-tags"
+    env_set ERPNEXT_IMAGE_BLUE "$IMAGE_NAME-pre-release-tags"
+  fi
 
   # Hash the remote HEAD of every app in apps.json so the Docker clone layer is
   # invalidated whenever any fork moves (otherwise the clone is cached forever and
@@ -305,8 +499,11 @@ build_image() {
   fi
   DOCKER_BUILDKIT=1 docker build --build-arg "ERPNEXT_VERSION=$ERPNEXT_VERSION" \
     --build-arg "APPS_CACHE_BUST=$apps_bust" \
+    --build-arg "RELEASE_TAG=$RELEASE_TAG" \
     "${ssh_args[@]}" \
-    -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || { prune_build_cache; return 1; }
+    -t "$RELEASE_IMAGE" -t "$IMAGE_NAME" -f "$DIR/Dockerfile.full" "$DIR" || { prune_build_cache; return 1; }
+  # `./deploy live` rolls the image out itself, service by service.
+  [ "${RELEASE_PIN:-1}" = "1" ] && release_pin
   say "==> Pruning dangling images..."
   docker image prune -f --filter "dangling=true" >/dev/null
 }
@@ -372,6 +569,7 @@ print(f\"{len(manifest)} bundles OK\")
     return 0
   fi
 
+  ASSETS_REBUILT=1
   say "==> Manifest is stale — running bench build (this takes a few minutes)..."
   if [ "$DEPLOY_SILENT" = "1" ]; then
     dc exec -T backend bench build >/dev/null 2>&1
@@ -381,12 +579,26 @@ print(f\"{len(manifest)} bundles OK\")
   say "==> Assets rebuilt."
 }
 
+assets_cache_flush() {
+  dc exec -T backend bench --site frontend console <<'PY' >/dev/null 2>&1 || true
+import frappe
+frappe.cache.delete_value("assets_json", shared=True)
+PY
+}
+
+# $1 = force: copy even when nothing was built at runtime (./deploy fix-assets).
 fix_assets() {
-  say "==> Syncing assets from backend to frontend container..."
-  FRONTEND_CID=$(dc ps -q frontend 2>/dev/null)
+  if [ "${ASSETS_REBUILT:-0}" != "1" ] && [ "${1:-}" != "force" ]; then
+    assets_cache_flush
+    return 0
+  fi
+  # Only matters for assets built at runtime (./insights, a manifest rebuild):
+  # what the image carries is already served by the `assets` container.
+  say "==> Syncing assets from backend to the assets container..."
+  FRONTEND_CID=$(dc ps -q assets 2>/dev/null)
   BACKEND_CID=$(dc ps -q backend 2>/dev/null)
   if [ -z "$FRONTEND_CID" ] || [ -z "$BACKEND_CID" ]; then
-    echo "WARNING: frontend or backend container not running, skipping asset sync"
+    echo "WARNING: assets or backend container not running, skipping asset sync"
     return 0
   fi
 
@@ -632,7 +844,15 @@ strip_extra_apps() {
       DELETE FROM \`tabInstalled Application\` WHERE app_name = 'insights';
     " 2>/dev/null || true
   fi
-  dc exec -T redis-cache redis-cli FLUSHALL 2>/dev/null || true
+  # Not FLUSHALL: that drops every user's boot info and all doctype meta at once
+  # for a change that only touches the installed-apps list.
+  dc exec -T backend bench --site frontend console <<'PY' >/dev/null 2>&1 || true
+import frappe
+frappe.cache.delete_value("installed_apps")
+frappe.cache.delete_value("all_apps")
+frappe.cache.delete_value("assets_json", shared=True)
+frappe.clear_cache()
+PY
 }
 
 ensure_extra_apps() {
@@ -700,8 +920,10 @@ run_deploy() {
   # Workers hold a metadata lock on tabDocType, which starves the ALTER TABLE in
   # frappe.patches.v16_0.switch_default_sort_order until it dies with a lock wait
   # timeout and takes the whole migration with it. Quiesce them first.
-  say "==> Stopping workers for migrate..."
-  dc stop scheduler queue-short queue-long websocket >&3 2>&1 || true
+  # Not websocket: it is node, holds no such lock, and stopping it only cuts
+  # every realtime connection for the length of the migrate.
+  say "==> Stopping workers for migrate (a running job gets up to 5 minutes to finish)..."
+  dc stop scheduler queue-short queue-long >&3 2>&1 || true
 
   ops_step migrate start "Running bench migrate"
   say "==> Running bench migrate..."
@@ -711,7 +933,7 @@ run_deploy() {
     ops_step migrate fail "bench migrate failed"
     echo "!! bench migrate FAILED — last 40 lines:" >&2
     tail -40 "$migrate_log" >&2
-    dc start scheduler queue-short queue-long websocket >/dev/null 2>&1 || true
+    dc start scheduler queue-short queue-long >/dev/null 2>&1 || true
     rm -f "$migrate_log"
     exit 1
   fi
@@ -720,14 +942,15 @@ run_deploy() {
   rm -f "$migrate_log"
 
   say "==> Starting workers..."
-  dc start scheduler queue-short queue-long websocket >&3 2>&1 || true
+  dc start scheduler queue-short queue-long >&3 2>&1 || true
 
-  # nginx resolves the `websocket` upstream once, when it loads its config. The
-  # stop/start above hands that container a new IP, so the frontend keeps proxying
-  # /socket.io to an address nobody listens on: every realtime connection 502s and
-  # the chat silently falls back to polling. Reload nginx so it resolves again.
-  say "==> Reloading frontend (websocket upstream IP changed)..."
-  dc restart frontend >&3 2>&1 || true
+  # The windowed deploy always ends on the blue pair. nginx re-resolves container
+  # addresses on its own (tools/nginx), so the stop/start above needs no reload;
+  # this one only applies the target and any change to the config template.
+  say "==> Reloading nginx config..."
+  nginx_target_write "backend:8000" "websocket:9000" "assets:8080"
+  nginx_reload >&3 2>&1 || echo "WARNING: nginx reload failed — check: docker compose logs frontend" >&2
+  green_remove
 
   ops_step custom-fields start "Applying custom fields"
   say "==> Running setup_custom_fields..."
@@ -735,14 +958,16 @@ run_deploy() {
   scf_log="$(mktemp)"
   if ! dc exec -T backend bench --site frontend execute erpnext.patches.setup_custom_fields.execute > "$scf_log" 2>&1; then
     ops_step custom-fields fail "setup_custom_fields failed"
-    # Not fatal — the site is already migrated — but never swallow it silently:
-    # a throw in here leaves every custom field of the release uncreated.
-    echo "!! setup_custom_fields FAILED — last 20 lines:" >&2
-    tail -20 "$scf_log" >&2
-  else
-    [ "$SILENT" = "1" ] || cat "$scf_log"
-    ops_step custom-fields ok "Custom fields applied"
+    # Fatal: a throw in here leaves every later custom field and setting of the
+    # release uncreated, and a deploy that reports success hides that for days.
+    # The script is idempotent — fix the cause and deploy again.
+    echo "!! setup_custom_fields FAILED — last 40 lines:" >&2
+    tail -40 "$scf_log" >&2
+    rm -f "$scf_log"
+    exit 1
   fi
+  [ "$SILENT" = "1" ] || cat "$scf_log"
+  ops_step custom-fields ok "Custom fields applied"
   rm -f "$scf_log"
 
   say "==> Clearing cache..."
@@ -764,14 +989,211 @@ run_deploy() {
   install_extra_apps >&3 2>&1
   ops_step extra-apps ok "Extra apps installed"
 
+  # The deploy is only done when the new code answers a real request.
+  ops_step health start "Waiting for the backend to answer"
+  say "==> Waiting for the backend to answer..."
+  if ! backend_ready backend; then
+    ops_step health fail "Backend does not answer"
+    echo "!! The backend does not answer /api/method/ping — last 40 log lines:" >&2
+    dc logs --tail 40 backend >&2 || true
+    exit 1
+  fi
+  backend_warm backend
+  ops_step health ok "Backend answers"
+
   echo "Done. http://localhost:8080"
 }
+
+# --- Rolling a release out under traffic (./deploy live, ./deploy rollback) ----
+# The new release starts next to the running one as a stand-in ("green"), nginx
+# is switched to it with a reload, the main containers are recreated on the new
+# image behind its back and nginx is switched back. Two cutovers, neither closes
+# a connection, and the deploy ends where every other command expects the site:
+# on `backend` / `websocket` / `assets`. Design: plans/zero-downtime-deploy.md.
+COMPOSE_PROJECT="docker"
+
+app_heads_json() {
+  [ -f "$DIR/apps.json" ] || { echo '{}'; return 0; }
+  python3 -c "import json;[print(a['name'],a['repo'],a['branch']) for a in json.load(open('$DIR/apps.json'))]" \
+    | while read -r name repo branch; do
+        echo "$name $(git $(git_ssh_rewrite_arg) ls-remote "$repo" "$branch" 2>/dev/null | awk 'NR==1 {print $1}')"
+      done \
+    | python3 -c "
+import json, sys
+heads = {}
+for line in sys.stdin.read().splitlines():
+    parts = line.split()
+    if parts:
+        heads[parts[0]] = parts[1] if len(parts) > 1 else ''
+print(json.dumps(heads))"
+}
+
+# What is deployed, kept in the sites volume next to the data it describes. The
+# pre-flight gate diffs the next release against it; the previous record stays
+# for a rollback.
+release_record() {
+  local image="$1" record
+  record=$(python3 -c "
+import hashlib, json, os, subprocess, sys, time
+repo, tag, image, heads = sys.argv[1:5]
+def sha(path):
+    try:
+        return hashlib.sha256(open(os.path.join(repo, path), 'rb').read()).hexdigest()
+    except OSError:
+        return ''
+def git(*args):
+    return subprocess.run(['git', '-C', *args], capture_output=True, text=True).stdout.strip()
+print(json.dumps({
+    'tag': tag,
+    'image': image,
+    'erpnext_sha': git(repo, 'rev-parse', 'HEAD'),
+    'frappe_sha': git(os.path.join(repo, 'frappe'), 'rev-parse', 'HEAD'),
+    'apps': json.loads(heads or '{}'),
+    'apps_json_sha': sha('apps.json'),
+    'site_config_sha': sha('site-config.json'),
+    'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+}, indent=1))" "$DIR" "$RELEASE_TAG" "$image" "$(app_heads_json)") || return 0
+  printf '%s\n' "$record" | dc exec -T backend bash -c '
+    cd /home/frappe/frappe-bench/sites
+    [ -f .deployed-release.json ] && cp .deployed-release.json .deployed-release.prev.json
+    cat >.deployed-release.json.tmp && mv .deployed-release.json.tmp .deployed-release.json
+  ' || echo "WARNING: could not record the deployed release (./deploy live will refuse until a build records it)." >&2
+}
+
+# Everything tools/deploy-preflight.py needs from the running site, as raw files.
+preflight_facts() {
+  local out="$1" db_name
+  dc exec -T backend cat /home/frappe/frappe-bench/sites/.deployed-release.json >"$out/deployed" 2>/dev/null || true
+  db_name=$(dc exec -T backend cat /home/frappe/frappe-bench/sites/frontend/site_config.json 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('db_name',''))" 2>/dev/null) || true
+  if [ -n "$db_name" ]; then
+    dc exec -T db mysql -uroot -padmin -N -B "$db_name" -e 'select patch from `tabPatch Log`' >"$out/patches" 2>/dev/null || true
+    dc exec -T db mysql -uroot -padmin -N -B -e "
+      select table_name, data_length + index_length, table_rows, row_format, engine
+      from information_schema.tables where table_schema = '$db_name'" >"$out/tables" 2>/dev/null || true
+  fi
+  dc exec -T backend bench --site frontend list-apps >"$out/apps" 2>/dev/null || true
+  app_heads_json >"$out/heads" 2>/dev/null || true
+  dc exec -T db df -B1 --output=avail /var/lib/mysql 2>/dev/null | tail -1 | tr -d ' \r' >"$out/free" || true
+  docker image inspect -f '{{.Size}}' "$(env_get ERPNEXT_IMAGE_BLUE)" >"$out/image" 2>/dev/null || true
+  if dc exec -T db mysqladmin ping --password=admin 2>/dev/null | grep -q alive; then echo 1; else echo 0; fi >"$out/db"
+  if lean_build; then echo 1; else echo 0; fi >"$out/lean"
+}
+
+# How many bundles the image's own manifest names that the image does not hold.
+image_assets_missing() {
+  docker run --rm --entrypoint python3 "$1" -c '
+import json, os
+base = "/home/frappe/frappe-bench/assets"
+manifest = json.load(open(os.path.join(base, "assets.json")))
+print(sum(1 for path in manifest.values()
+          if path.startswith("/assets/") and not os.path.exists(os.path.join(base, path[len("/assets/"):]))))
+' 2>/dev/null || echo unknown
+}
+
+# A throwaway container of the given image on the site's network and volumes,
+# under no service name: nginx cannot route a request to it. Not `compose run`,
+# which would add it to the DNS name of the service it borrows.
+migrator_run() {
+  local image="$1"
+  shift
+  docker run --rm --network "${COMPOSE_PROJECT}_frappe_network" \
+    -v "${COMPOSE_PROJECT}_sites:/home/frappe/frappe-bench/sites" \
+    -v "${COMPOSE_PROJECT}_logs:/home/frappe/frappe-bench/logs" \
+    --entrypoint bash "$image" -c "$*"
+}
+
+assets_ready() {
+  local _i
+  for _i in $(seq 1 60); do
+    dcg exec -T "$1" curl -fsS -o /dev/null -m 3 http://127.0.0.1:8080/nginx_status >/dev/null 2>&1 && return 0
+    sleep 2
+  done
+  return 1
+}
+
+green_remove() {
+  dcg stop $GREEN_SERVICES >/dev/null 2>&1 || true
+  dcg rm -f $GREEN_SERVICES >/dev/null 2>&1 || true
+  # Nothing runs it any more: do not let it pin an image of its own.
+  env_set ERPNEXT_IMAGE_GREEN "$(env_get ERPNEXT_IMAGE_BLUE)"
+}
+
+# $1 backend, $2 socket.io, $3 assets — as host:port. Returns once no request
+# is in flight to the previous targets.
+cutover() {
+  nginx_target_write "$1" "$2" "$3"
+  nginx_reload >&3 2>&1 || return 1
+  assets_cache_flush
+  nginx_wait_old_workers 40 || echo "WARNING: nginx workers of the previous config are still draining after 40s." >&2
+}
+
+# Puts image $1 behind nginx without dropping a request. Returns 1 when nothing
+# changed for users (the stand-in never took traffic), 2 when the site is left
+# running on the stand-in because the main containers would not come up.
+swap_release() {
+  local image="$1" previous
+  previous=$(env_get ERPNEXT_IMAGE_BLUE)
+
+  ops_step green start "Starting the stand-in on the new image"
+  say "==> Starting the stand-in (green) on $image..."
+  env_set ERPNEXT_IMAGE_GREEN "$image"
+  dcg up -d --no-deps $GREEN_SERVICES >&3 2>&1 || true
+  if ! backend_ready backend-green || ! assets_ready assets-green; then
+    ops_step green fail "The stand-in does not answer"
+    echo "!! The stand-in does not answer on $image — last 40 log lines. Nothing changed for users." >&2
+    dcg logs --tail 40 backend-green >&2 || true
+    green_remove
+    return 1
+  fi
+  backend_warm backend-green
+  ops_step green ok "Stand-in answers"
+
+  ops_step swap start "Switching traffic to the stand-in"
+  say "==> Switching traffic to the stand-in..."
+  if ! cutover "backend-green:8000" "websocket-green:9000" "assets-green:8080"; then
+    ops_step swap fail "nginx refused the new target"
+    nginx_target_write "backend:8000" "websocket:9000" "assets:8080"
+    green_remove
+    return 1
+  fi
+  ops_step swap ok "Stand-in serves"
+
+  ops_step blue start "Recreating the main containers on the new image"
+  say "==> Recreating backend, websocket and assets on $image..."
+  env_set ERPNEXT_IMAGE_BLUE "$image"
+  [ "$previous" != "$image" ] && env_set ERPNEXT_PREV_IMAGE "$previous"
+  dc up -d --no-deps backend websocket assets >&3 2>&1 || true
+  if ! backend_ready backend || ! assets_ready assets; then
+    ops_step blue fail "Main containers do not answer"
+    echo "!! backend/assets do not answer on $image — last 40 log lines." >&2
+    dc logs --tail 40 backend >&2 || true
+    echo "!! The site is UP and stays on the stand-in (backend-green). Do not run ./deploy stop." >&2
+    echo "!! Fix the cause, then: ./deploy rollback   (or ./deploy build in a window)." >&2
+    return 2
+  fi
+  backend_warm backend
+  ops_step blue ok "Main containers answer"
+
+  ops_step swap-back start "Switching traffic back"
+  say "==> Switching traffic back to the main containers..."
+  if ! cutover "backend:8000" "websocket:9000" "assets:8080"; then
+    ops_step swap-back fail "nginx refused the target"
+    echo "!! The site is UP and stays on the stand-in (backend-green)." >&2
+    return 2
+  fi
+  green_remove
+  ops_step swap-back ok "Main containers serve"
+}
+
+env_ensure
+nginx_target_ensure
 
 case "${1:-}" in
   nuke)
     require_non_production "nuke"
     say "==> Stopping containers and removing all data..."
-    dc down -v
+    dcg down -v
     # No -v: nuke resets ERPNext data, not the dashboard's known_hosts/lockout state.
     ops_dc down 2>/dev/null || true
     echo "All data has been removed."
@@ -834,7 +1256,7 @@ PY
     ;;
 
   stop)
-    dc stop
+    dcg stop
     ops_dc stop 2>/dev/null || true
     ;;
 
@@ -870,6 +1292,7 @@ PY
     fi
     ops_step image ok "Image built"
     run_deploy "$SILENT"
+    release_record "$RELEASE_IMAGE"
     reclaim_after_deploy
     # Outside run_deploy on purpose: inside, --silent routes stdout to /dev/null
     # and an ops failure would be invisible.
@@ -913,6 +1336,7 @@ PY
     fi
     ops_step image ok "Image built"
     run_deploy "$SILENT"
+    release_record "$RELEASE_IMAGE"
     reclaim_after_deploy
     if [ "$SKIP_OPS" != "1" ]; then
       ops_step ops start "Restarting ops dashboard"
@@ -922,9 +1346,172 @@ PY
     ops_step done ok "Deploy finished"
     ;;
 
+  live)
+    mirror_guard live
+    SILENT=0
+    SKIP_OPS=0
+    CHECK_ONLY=0
+    for arg in "$@"; do
+      case "$arg" in
+        --silent) SILENT=1 ;;
+        --no-ops) SKIP_OPS=1 ;;
+        --check-only) CHECK_ONLY=1 ;;
+      esac
+    done
+    DEPLOY_SILENT=$SILENT
+    if [ "$SILENT" = "1" ]; then exec 3>/dev/null; else exec 3>&1; fi
+
+    if ! backend_probe backend; then
+      echo "ERROR: the site is not answering — there is nothing to keep up. Use ./deploy build." >&2
+      exit 3
+    fi
+
+    # The gate decides whether this release may go out without a window: only
+    # when the running release keeps working on the migrated database, which is
+    # also what makes ./deploy rollback sufficient afterwards.
+    ops_step preflight start "Checking that the release is online-safe"
+    FACTS_DIR=$(mktemp -d)
+    trap 'rm -rf "$FACTS_DIR" "${BUILD_LOG:-}"' EXIT
+    preflight_facts "$FACTS_DIR"
+    if ! python3 "$DIR/tools/deploy-preflight.py" --facts "$FACTS_DIR"; then
+      ops_step preflight fail "Not online-safe — use the windowed deploy"
+      exit 3
+    fi
+    ops_step preflight ok "Release is online-safe"
+    [ "$CHECK_ONLY" = "1" ] && exit 0
+
+    if [ "$(env_get ERPNEXT_IMAGE_BLUE)" = "$RELEASE_IMAGE" ]; then
+      echo "Already running $RELEASE_IMAGE — nothing to deploy."
+      exit 0
+    fi
+
+    ops_step image start "Building image"
+    if [ "$SILENT" = "1" ]; then
+      BUILD_LOG=$(mktemp)
+      if ! RELEASE_PIN=0 build_image >"$BUILD_LOG" 2>&1; then
+        ops_step image fail "Image build failed"
+        echo "ERROR: docker build failed. Last 30 lines:"
+        tail -30 "$BUILD_LOG"
+        exit 1
+      fi
+    else
+      RELEASE_PIN=0 build_image
+    fi
+    MISSING=$(image_assets_missing "$RELEASE_IMAGE")
+    if [ "$MISSING" != "0" ]; then
+      ops_step image fail "Image assets incomplete"
+      echo "ERROR: the new image's asset manifest names $MISSING bundles the image does not contain. Nothing changed." >&2
+      exit 3
+    fi
+    ops_step image ok "Image built"
+
+    # Before the release publishes its own files: the one going out must stay.
+    dc exec -T assets python3 /opt/frappe-nginx/publish_union.py gc --keep 3 >&3 2>&1 || true
+
+    # Workers hold a metadata lock on tabDocType that starves the migration's
+    # ALTERs (see run_deploy). A stopped worker is not an outage: jobs wait in
+    # redis-queue and no user sees an error.
+    ops_step workers start "Pausing background workers"
+    say "==> Pausing workers (a running job gets up to 5 minutes to finish)..."
+    dc stop scheduler queue-short queue-long >&3 2>&1 || true
+    ops_step workers ok "Workers paused"
+
+    ops_step migrate start "Running bench migrate"
+    say "==> Running bench migrate from the new image, behind the running release..."
+    LIVE_LOG=$(mktemp)
+    if ! migrator_run "$RELEASE_IMAGE" "bench --site frontend migrate" >"$LIVE_LOG" 2>&1; then
+      ops_step migrate fail "bench migrate failed"
+      echo "!! bench migrate FAILED — last 40 lines:" >&2
+      tail -40 "$LIVE_LOG" >&2
+      echo "!! The site keeps running the previous release. The gate only lets additive changes through," >&2
+      echo "!! so the partly migrated database is fine for it; nothing is rolled back." >&2
+      dc start scheduler queue-short queue-long >/dev/null 2>&1 || true
+      rm -f "$LIVE_LOG"
+      exit 1
+    fi
+    ops_step migrate ok "Schema migrated"
+
+    ops_step custom-fields start "Applying custom fields"
+    say "==> Running setup_custom_fields..."
+    if ! migrator_run "$RELEASE_IMAGE" \
+        "bench --site frontend execute erpnext.patches.setup_custom_fields.execute_quiet" >"$LIVE_LOG" 2>&1; then
+      ops_step custom-fields fail "setup_custom_fields failed"
+      echo "!! setup_custom_fields FAILED — last 40 lines:" >&2
+      tail -40 "$LIVE_LOG" >&2
+      echo "!! The site keeps running the previous release." >&2
+      dc start scheduler queue-short queue-long >/dev/null 2>&1 || true
+      rm -f "$LIVE_LOG"
+      exit 1
+    fi
+    rm -f "$LIVE_LOG"
+    ops_step custom-fields ok "Custom fields applied"
+
+    say "==> Starting workers on the new image..."
+    env_set ERPNEXT_IMAGE_WORKERS "$RELEASE_IMAGE"
+    dc up -d --no-deps scheduler queue-short queue-long >&3 2>&1
+
+    swap_release "$RELEASE_IMAGE" || exit 1
+
+    release_record "$RELEASE_IMAGE"
+    reclaim_after_deploy
+    if [ "$SKIP_OPS" != "1" ]; then
+      ops_step ops start "Restarting ops dashboard"
+      ops_up
+      ops_step ops ok "Ops dashboard up"
+    fi
+    ops_step done ok "Deploy finished"
+    echo "Done, without a window. Previous release kept for: ./deploy rollback"
+    ;;
+
+  rollback)
+    mirror_guard rollback
+    SILENT=0
+    TARGET=""
+    shift
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --silent) SILENT=1 ;;
+        --to) TARGET="$IMAGE_REPO:${ERPNEXT_VERSION}-$2"; shift ;;
+      esac
+      shift
+    done
+    DEPLOY_SILENT=$SILENT
+    if [ "$SILENT" = "1" ]; then exec 3>/dev/null; else exec 3>&1; fi
+
+    CURRENT=$(env_get ERPNEXT_IMAGE_BLUE)
+    [ -n "$TARGET" ] || TARGET=$(env_get ERPNEXT_PREV_IMAGE)
+    if [ -z "$TARGET" ] || [ "$TARGET" = "$CURRENT" ]; then
+      echo "ERROR: there is no previous release to roll back to (running: $CURRENT)." >&2
+      exit 3
+    fi
+    if ! docker image inspect "$TARGET" >/dev/null 2>&1; then
+      echo "ERROR: image $TARGET is gone (a lean build keeps no previous image). Roll back with a build of that commit." >&2
+      exit 3
+    fi
+
+    # Code only. Migrations that ran, and whatever the newer release wrote, stay:
+    # the pre-flight gate only let that release out because the older code works
+    # on the newer schema.
+    ops_step rollback start "Rolling back to $TARGET"
+    echo "==> Rolling back $CURRENT -> $TARGET (code only; the database is not touched)"
+    swap_release "$TARGET" || exit 1
+    env_set ERPNEXT_IMAGE_WORKERS "$TARGET"
+    dc up -d --no-deps scheduler queue-short queue-long >&3 2>&1
+    dc exec -T backend bash -c '
+      cd /home/frappe/frappe-bench/sites
+      [ -f .deployed-release.prev.json ] || exit 0
+      cp .deployed-release.json .deployed-release.swap.json
+      mv .deployed-release.prev.json .deployed-release.json
+      mv .deployed-release.swap.json .deployed-release.prev.json
+    ' || true
+    ops_step rollback ok "Rolled back"
+    ops_step done ok "Rollback finished"
+    echo "Done. Running $TARGET; ./deploy rollback again returns to $CURRENT."
+    ;;
+
   destroy)
     require_non_production "destroy"
-    dc down -v
+    dcg down -v
     ops_dc down 2>/dev/null || true
     echo "Stopped and removed all data."
     ;;
@@ -951,7 +1538,7 @@ PY
     ;;
 
   fix-assets)
-    fix_assets
+    fix_assets force
     ;;
 
   space-clean)
@@ -970,18 +1557,19 @@ PY
     ;;
 
   space-hard-clean)
-    # Unlike space-clean, this removes every image not referenced by a
-    # running/stopped container — including old tagged erpnext-uk rollback
-    # images — and the full build cache, not just the unused slice. Matches
-    # exactly what `docker system df`'s "Reclaimable" column promises. Still
-    # no volume prune, still never touches backups or sites/.
-    say "==> Removing ALL unused Docker images (including tagged rollback images)..."
-    docker image prune -a -f
+    # Unlike space-clean, this also removes superseded erpnext-uk release
+    # images and the full build cache, not just the unused slice. The previous
+    # release image stays: it is what `./deploy rollback` starts, and a blanket
+    # `image prune -a` is exactly what used to destroy it. Still no volume
+    # prune, still never touches backups or sites/.
+    say "==> Removing superseded release images (the previous release is kept)..."
+    image_gc
+    docker image prune -f
     say "==> Pruning ALL Docker build cache (next build will be uncached, slower)..."
     docker builder prune -a -f
     say "==> Vacuuming systemd journal to 100M..."
     journalctl --vacuum-size=100M 2>&1 || echo "Skipped: no permission to vacuum the journal as this user."
-    echo "Hard clean complete. Rollback to the previous image is no longer possible."
+    echo "Hard clean complete. The previous release image was kept for rollback."
     ;;
 
   ops)
@@ -1276,6 +1864,8 @@ print('1' if any(e.get('name') == '$NEW_NAME' for e in entries) else '')
   *)
     echo "Environment: $DEPLOY_ENV"
     echo "Usage: ./deploy {init|start|stop|build|fix-assets|setup-prod|setup-dev}"
+    echo "       ./deploy live [--check-only] [--silent]   (deploy without a window, if the release is online-safe)"
+    echo "       ./deploy rollback [--to <release-tag>]    (previous release's code; the database is not touched)"
     echo "       ./deploy ops {up|down|rebuild|logs|status}"
     echo "       ./deploy backup [--no-files] [--keep=N] [--prune-only]"
     echo "       ./deploy restore {--list|<name> [--yes]}"

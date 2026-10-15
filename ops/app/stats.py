@@ -65,7 +65,7 @@ _DF_PARSER = _rows_parser("Type", "TotalCount", "Active", "Size", "Reclaimable")
 
 STATS_SCRIPT = r"""
 cd @REPO@ 2>/dev/null || exit 90
-DC="docker compose -p @PROJECT@ -f @REPO@/docker-compose.yml"
+DC="docker compose -p @PROJECT@ -f @REPO@/docker-compose.yml -f @REPO@/docker-compose.green.yml"
 BACKUP_DIR="/home/frappe/frappe-bench/sites/@SITE@/private/backups"
 
 echo '{'
@@ -268,7 +268,7 @@ echo '}'
 # explicit button, never on the polling path.
 DISK_DETAIL_SCRIPT = r"""
 cd @REPO@ 2>/dev/null || exit 90
-DC="docker compose -p @PROJECT@ -f @REPO@/docker-compose.yml"
+DC="docker compose -p @PROJECT@ -f @REPO@/docker-compose.yml -f @REPO@/docker-compose.green.yml"
 PJ=$($DC exec -T backend bash -c '
   cd sites/@SITE@/private/files 2>/dev/null || exit 0
   n=$(ls -1 PJ-*.png 2>/dev/null | wc -l)

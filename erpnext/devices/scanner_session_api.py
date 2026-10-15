@@ -31,12 +31,19 @@ from frappe.utils import cint, flt
 from erpnext.devices.doctype.scanner.scanner_api import (
 	_clear_state,
 	_get_workplace_script,
+	_last_active_key,
 	_load_state,
 	_save_state,
 	_subflow_initial_state,
+	_touch_last_active,
 	reset_frame,
 )
-from erpnext.devices.otdr_measurement_api import MANAGER_ROLES, _session_employee
+from erpnext.devices.otdr_measurement_api import (
+	MANAGER_ROLES,
+	_assert_workplace_allowed,
+	_session_employee,
+	get_workplaces,
+)
 from erpnext.devices.session_user import preserved_session
 
 REALTIME_EVENT = "scanner_session_update"
@@ -314,6 +321,53 @@ def _link_filters(decl):
 	except ValueError:
 		return {}
 	return parsed if isinstance(parsed, dict) else {}
+
+
+# A key a `link_filters` JSON may carry on top of plain field filters: "only Sales Orders that
+# still have room for a box". Plain filters cannot say it — it compares what was ordered with
+# what the packages already hold — so the picker resolves it into a list of names.
+ROOM_FOR_PACKING = "_room_for_packing"
+
+
+def _orders_with_room_for_packing():
+	"""Open submitted Sales Orders where some item is ordered in a larger quantity than it is packed."""
+	return frappe.db.sql_list(
+		"""
+		SELECT soi.parent
+		FROM `tabSales Order Item` soi
+		JOIN `tabSales Order` so ON so.name = soi.parent
+		WHERE so.docstatus = 1 AND so.status NOT IN ('Closed', 'Completed')
+		GROUP BY soi.parent, soi.item_code
+		HAVING SUM(soi.qty) > COALESCE((
+			SELECT SUM(pi.qty)
+			FROM `tabPackage Item` pi
+			JOIN `tabPackage` p ON p.name = pi.parent
+			WHERE p.sales_order = soi.parent
+				AND pi.item_code = soi.item_code
+				AND p.docstatus < 2
+				AND p.status != 'Cancelled'
+		), 0)
+		"""
+	)
+
+
+def _resolve_link_filters(doctype, filters):
+	"""`link_filters` with the special keys turned into plain filters `get_list` understands."""
+	filters = dict(filters)
+	if not cint(filters.pop(ROOM_FOR_PACKING, 0)):
+		return filters
+	if doctype != "Sales Order":
+		return filters
+	names = _orders_with_room_for_packing()
+	filters["name"] = ["in", names or [""]]
+	return filters
+
+
+def _names_of(name_filter):
+	"""The names a resolved `name` filter allows, whether it is one name or `["in", [...]]`."""
+	if isinstance(name_filter, list | tuple) and len(name_filter) == 2 and name_filter[0] == "in":
+		return set(name_filter[1])
+	return {name_filter} if isinstance(name_filter, str) else set()
 
 
 def _link_label(doctype, value):
@@ -684,7 +738,15 @@ def get_my_scanners():
 	rows = frappe.get_all(
 		"Scanner",
 		filters={"employee": employee, "is_active": 1},
-		fields=["name", "scanner_name", "is_active", "workplace", "employee", "scanner_configuration"],
+		fields=[
+			"name",
+			"scanner_name",
+			"is_active",
+			"is_virtual",
+			"workplace",
+			"employee",
+			"scanner_configuration",
+		],
 		order_by="scanner_name asc",
 	)
 	return [
@@ -692,6 +754,7 @@ def get_my_scanners():
 			"name": row.name,
 			"label": row.scanner_name or row.name,
 			"workplace": row.workplace,
+			"is_virtual": cint(row.is_virtual),
 			"session": _read_session(row),
 		}
 		for row in rows
@@ -856,7 +919,7 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 		frappe.throw(_("Context field {0} has no options to pick from").format(key))
 
 	doctype = _link_doctype(decl)
-	filters = _link_filters(decl)
+	filters = _resolve_link_filters(doctype, _link_filters(decl))
 	limit = min(cint(limit) or 20, 50)
 
 	# A declaration may restrict the picker by name — one packing template for this bench —
@@ -1069,6 +1132,111 @@ def reset_scanner_session(scanner=None):
 
 
 # ---------------------------------------------------------------------------
+# Claiming, workplace and release — what the badge and barcodes do on a handheld
+# ---------------------------------------------------------------------------
+
+
+def _drop_session(scanner_name):
+	"""Forget the frame and the idle clock; the next holder starts from nothing."""
+	_clear_state(scanner_name)
+	frappe.cache().delete_value(_last_active_key(scanner_name))
+
+
+@frappe.whitelist(methods=["GET"])
+def get_my_workplaces():
+	"""Workplaces the caller may point a scanner at: the measurement API's roster rule."""
+	return get_workplaces()
+
+
+@frappe.whitelist(methods=["POST"])
+def set_scanner_workplace(scanner=None, workplace=None):
+	"""What scanning a workplace barcode does, from the app.
+
+	The state is dropped: it belongs to the previous workplace's script and its states
+	mean nothing to the new one.
+	"""
+	row = _assert_scanner_mine(scanner)
+	if not workplace:
+		frappe.throw(_("Workplace is required"))
+
+	_assert_workplace_allowed(workplace, _session_employee())
+
+	if row.workplace != workplace:
+		frappe.db.set_value("Scanner", row.name, "workplace", workplace)
+		_clear_state(row.name)
+	_touch_last_active(row.name)
+
+	row = _scanner_row(row.name)
+	session = _read_session(row)
+	_publish_session_update(row.name, session)
+	return session
+
+
+@frappe.whitelist(methods=["POST"])
+def claim_virtual_scanner():
+	"""Hand the caller a free virtual scanner, or the one they already hold.
+
+	A virtual scanner is an ordinary Scanner whose "device" is the phone camera, so the
+	rest of the session API treats it like any other. The row is locked while it is
+	picked so two phones cannot walk away with the same one.
+	"""
+	employee = _session_employee()
+	if not employee:
+		frappe.throw(_("Your user is not linked to an Employee"), frappe.PermissionError)
+
+	mine = frappe.db.get_value(
+		"Scanner", {"employee": employee, "is_virtual": 1, "is_active": 1}, "name", order_by="name asc"
+	)
+	if mine:
+		return _claimed(mine)
+
+	free = frappe.db.sql(
+		"""select name from `tabScanner`
+		where is_virtual = 1 and is_active = 1 and ifnull(employee, '') = ''
+		order by name asc limit 1 for update""",
+	)
+	if not free:
+		frappe.throw(_("No free virtual scanner"))
+
+	name = free[0][0]
+	frappe.db.set_value("Scanner", name, {"employee": employee, "workplace": None})
+	_drop_session(name)
+	_touch_last_active(name)
+	return _claimed(name)
+
+
+def _claimed(scanner_name):
+	row = _scanner_row(scanner_name)
+	session = _read_session(row)
+	_publish_session_update(row.name, session)
+	return {
+		"name": row.name,
+		"label": row.scanner_name or row.name,
+		"workplace": row.workplace,
+		"is_virtual": 1,
+		"session": session,
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def forget_scanner(scanner=None):
+	"""Let go of the scanner: unassign it and reset its state.
+
+	The same outcome as the idle expiry, on demand. A physical scanner is claimed again by
+	scanning the badge on it; a virtual one goes back to the free pool.
+	"""
+	row = _assert_scanner_mine(scanner)
+	owner = _owner_user(row.name)
+
+	frappe.db.set_value("Scanner", row.name, {"employee": None, "workplace": None})
+	_drop_session(row.name)
+
+	row = _scanner_row(row.name)
+	_publish_session_update(row.name, _read_session(row), user=owner)
+	return {"name": row.name}
+
+
+# ---------------------------------------------------------------------------
 # Write-path helpers
 # ---------------------------------------------------------------------------
 
@@ -1130,8 +1298,10 @@ def _coerce_value(decl, value):
 			frappe.throw(_("{0} {1} not found").format(_(doctype), value), frappe.DoesNotExistError)
 		# The same filters the picker applies, re-checked here: a client that skipped the
 		# picker must not be able to park a draft order on the scanner.
-		filters = _link_filters(decl)
+		filters = _resolve_link_filters(doctype, _link_filters(decl))
 		if filters:
+			if "name" in filters and value not in _names_of(filters["name"]):
+				frappe.throw(_("{0} {1} is not available for selection").format(_(doctype), value))
 			filters["name"] = value
 			if not frappe.db.get_all(doctype, filters=filters, limit_page_length=1):
 				frappe.throw(_("{0} {1} is not available for selection").format(_(doctype), value))

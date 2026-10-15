@@ -99,13 +99,16 @@ def execute():
 	create_responsible_employee_dimension()
 	setup_group_access_fields()
 	setup_group_access_role()
+	setup_access_manager_role()
 	setup_project_access_permissions()
 	setup_serial_no_write_for_stock_user()
 	create_callmebot_fields()
 	setup_callmebot_default_settings()
+	setup_employee_notification_channels()
 	setup_payroll_ua_workspace_card()
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
+	allow_warehouse_rename()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -778,6 +781,7 @@ def create_custom_fields_on_work_order():
 		},
 	]
 	_create_custom_fields(fields)
+	_sync_field_properties("Work Order", "line_order_type", ("options", "description"), fields)
 	backfill_production_line_work_orders()
 
 
@@ -3517,6 +3521,23 @@ def _create_custom_fields(fields):
 		print(f"  Created Custom Field: {f['dt']}.{f['fieldname']}")
 
 
+def _sync_field_properties(dt, fieldname, properties, fields):
+	"""Bring an existing Custom Field's `properties` in line with its definition in `fields`.
+
+	`_create_custom_fields` skips a field that exists, so a value added to a Select later never
+	reached sites that already had it.
+	"""
+	definition = next((f for f in fields if f["dt"] == dt and f["fieldname"] == fieldname), None)
+	name = frappe.db.exists("Custom Field", {"dt": dt, "fieldname": fieldname})
+	if not definition or not name:
+		return
+	for prop in properties:
+		if prop in definition and frappe.db.get_value("Custom Field", name, prop) != definition[prop]:
+			frappe.db.set_value("Custom Field", name, prop, definition[prop])
+			print(f"  Updated Custom Field {dt}.{fieldname}: {prop}")
+			frappe.clear_cache(doctype=dt)
+
+
 def setup_group_access_fields():
 	"""Auto-sharing settings on Employee Group.
 
@@ -3884,6 +3905,28 @@ def create_callmebot_fields():
 			"no_copy": 1,
 			"description": "Key sent back by the bot after you activate it from your phone",
 		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_status",
+			"fieldtype": "Select",
+			"label": "CallMeBot Status",
+			"options": "\nActive\nPaused\nInvalid API Key",
+			"insert_after": "callmebot_api_key",
+			"depends_on": "eval:doc.callmebot_enabled && doc.callmebot_status",
+			"read_only": 1,
+			"no_copy": 1,
+			"description": "Result of the last message sent to WhatsApp",
+		},
+		{
+			"dt": "Notification Settings",
+			"fieldname": "callmebot_alerted_on",
+			"fieldtype": "Datetime",
+			"label": "CallMeBot Alerted On",
+			"insert_after": "callmebot_status",
+			"hidden": 1,
+			"read_only": 1,
+			"no_copy": 1,
+		},
 	]
 	_create_custom_fields(fields)
 	_migrate_callmebot_keys_to_auth()
@@ -3915,6 +3958,37 @@ def _migrate_callmebot_keys_to_auth():
 
 	if rows:
 		print(f"  Encrypted {len(rows)} CallMeBot API key(s) into __Auth")
+
+
+def setup_employee_notification_channels():
+	"""Which channels reach the employee away from the desk — WhatsApp (CallMeBot), mobile app.
+
+	A stored copy maintained by `erpnext.crm.notification_channels`, so the Employee list can
+	show and filter who has no channel at all."""
+	from erpnext.crm.notification_channels import LABELS, sync_all
+
+	_create_custom_fields(
+		[
+			{
+				"dt": "Employee",
+				"fieldname": "notification_channels",
+				"fieldtype": "Select",
+				"label": "Notification Channels",
+				"options": "\n" + "\n".join(LABELS),
+				"insert_after": "user_id",
+				"read_only": 1,
+				"no_copy": 1,
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"depends_on": "eval:doc.user_id",
+				"description": "Channels that reach the employee outside ERPNext: WhatsApp (CallMeBot) and mobile app push",
+			},
+		]
+	)
+	sync_all()
+
+
+CALLMEBOT_HELP_ROUTE = "docs/whatsapp-notifications"
 
 
 def setup_callmebot_default_settings():
@@ -3957,6 +4031,13 @@ def setup_callmebot_default_settings():
 					"include_link": 1,
 				},
 			)
+			modified = True
+
+		# the help page users are sent to when CallMeBot stops delivering; only where it is written
+		if not settings.get("help_url") and frappe.db.exists(
+			"Wiki Document", {"route": CALLMEBOT_HELP_ROUTE, "is_published": 1}
+		):
+			settings.help_url = f"/{CALLMEBOT_HELP_ROUTE}"
 			modified = True
 
 		if modified:
@@ -4401,3 +4482,46 @@ def setup_procurement_document_details():
 		filters = {"doc_type": "Purchase Order", "field_name": fieldname, "property": "report_hide"}
 		if frappe.db.get_value("Property Setter", filters, "value") != "1":
 			make_property_setter("Purchase Order", fieldname, "report_hide", "1", "Check")
+
+
+def setup_access_manager_role():
+	role = "Access Manager"
+	if not frappe.db.exists("Role", role):
+		frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
+			ignore_permissions=True
+		)
+		print(f"  Created Role: {role}")
+
+
+def execute_quiet():
+	"""execute() for a deploy that runs while users are on the site: the global cache flushes
+	scattered through the steps are collapsed into one at the end, scoped ones still run."""
+	clear_cache = frappe.clear_cache
+
+	def scoped_only(user=None, doctype=None):
+		if user or doctype:
+			clear_cache(user=user, doctype=doctype)
+
+	frappe.clear_cache = scoped_only
+	try:
+		execute()
+	finally:
+		frappe.clear_cache = clear_cache
+	clear_cache()
+
+
+def allow_warehouse_rename():
+	"""A warehouse made for one purpose gets a better name later; stock Warehouse forbids the rename."""
+	if frappe.get_meta("Warehouse").allow_rename:
+		return
+	frappe.make_property_setter(
+		{
+			"doctype": "Warehouse",
+			"doctype_or_field": "DocType",
+			"property": "allow_rename",
+			"value": "1",
+			"property_type": "Check",
+		},
+		validate_fields_for_doctype=False,
+	)
+	frappe.clear_cache(doctype="Warehouse")

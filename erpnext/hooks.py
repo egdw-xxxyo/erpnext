@@ -40,6 +40,8 @@ web_include_icons = [
 	"/assets/erpnext/icons/pos-icons.svg",
 ]
 
+after_request = ["erpnext.access_control.denial.attach_denial_context"]
+
 doctype_js = {
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
@@ -56,6 +58,7 @@ doctype_js = {
 	"Newsletter": "public/js/newsletter.js",
 	"Contact": "public/js/contact.js",
 	"Notification Settings": "public/js/custom/notification_settings.js",
+	"Role": "public/js/custom/role.js",
 	"Email Account": "public/js/custom/email_account.js",
 	# «Угода»: approval lock + the Sales Order fulfilment panel
 	"Quotation": "public/js/custom/quotation.js",
@@ -222,6 +225,8 @@ after_migrate = [
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.crm.crm_sidebar.add_chat_pages",
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
+	"erpnext.setup.organization_sidebar.add_organization_links",
+	"erpnext.buying.buying_sidebar.add_buying_links",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -632,6 +637,10 @@ doc_events = {
 			"erpnext.crm.notification_push.on_notification_log",
 		],
 	},
+	# which channels reach the user away from the desk, kept on their Employee
+	"Notification Settings": {
+		"on_update": "erpnext.crm.notification_channels.on_notification_settings_update",
+	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
 		"validate": "erpnext.setup.doctype.employee.employee.validate_employee_role",
@@ -841,6 +850,7 @@ doc_events = {
 			"erpnext.hr.average_pay.validate_opening_earnings",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
+			"erpnext.crm.notification_channels.set_on_employee",
 		],
 		"on_update": [
 			"erpnext.hr.employee_period.clear_attendance_after_relieving",
@@ -904,6 +914,7 @@ scheduler_events = {
 		],
 	},
 	"hourly": [
+		"erpnext.crm.notification_channels.sync_all",
 		"erpnext.projects.doctype.project.project.hourly_reminder",
 		"erpnext.devices.doctype.scanner.scanner.cleanup_scan_logs",
 		"erpnext.devices.doctype.mobile_app_release.mobile_app_release.poll_github_releases",

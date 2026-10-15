@@ -17,8 +17,6 @@ from frappe import _
 from frappe.utils import cint, flt
 from frappe.utils.safe_exec import safe_eval
 
-from erpnext.stock.stock_ledger import NegativeStockError
-
 FORMULA_HELPERS = {"ceil": math.ceil, "floor": math.floor, "min": min, "max": max, "abs": abs}
 SAMPLE_VARIABLES = {"units": 1, "qty": 1}
 MAX_PREVIEW_VALUES = 12
@@ -51,7 +49,8 @@ def compute(items, variables):
 	"""
 	rows = []
 	for idx, row in enumerate(items, start=1):
-		row = frappe._dict(row)
+		# `frappe._dict` answers any attribute with None, so ask the type, not the instance.
+		row = frappe._dict(row.as_dict() if hasattr(type(row), "as_dict") else row)
 		try:
 			if row.condition and not evaluate(row.condition, variables):
 				continue
@@ -172,6 +171,7 @@ def consume(
 
 	frappe.db.savepoint("consume_insert")
 	entry = frappe.new_doc("Stock Entry")
+	entry.flags.ignore_permissions = True
 	entry.stock_entry_type = "Material Issue"
 	entry.purpose = "Material Issue"
 	entry.company = frappe.get_cached_value("Warehouse", rows[0]["s_warehouse"], "company")
@@ -195,12 +195,31 @@ def consume(
 				"description": row["notes"],
 			},
 		)
-	entry.insert()
+	try:
+		entry.insert()
+	except frappe.ValidationError:
+		# An item with no valuation rate cannot even be drafted. When the step that called must
+		# not stop, say so and leave a trace instead of refusing the whole box.
+		if on_shortage == "block":
+			raise
+		frappe.db.rollback(save_point="consume_insert")
+		frappe.log_error(
+			title=f"Consumption of {recipe} for {source_doctype} {source_name} not issued",
+			message=frappe.get_traceback(),
+		)
+		frappe.msgprint(
+			_("The consumables of {0} could not be issued, see the Error Log").format(recipe),
+			indicator="red",
+			alert=True,
+		)
+		return None
 
 	frappe.db.savepoint("consume_submit")
 	try:
 		entry.submit()
-	except NegativeStockError:
+	except frappe.ValidationError:
+		# In "draft" mode a stock refusal of any kind (no stock, no valuation rate yet) keeps the
+		# entry for someone to complete, so the step that called is not stopped.
 		if on_shortage == "block":
 			frappe.db.rollback(save_point="consume_insert")
 			raise

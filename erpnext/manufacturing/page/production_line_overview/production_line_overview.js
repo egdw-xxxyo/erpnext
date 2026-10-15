@@ -168,6 +168,8 @@ class ProductionLineOverview {
 			workplaces: d.workplaces.filter((w) => benches.has(w.name)),
 			work_orders: d.work_orders.filter((wo) => wo.production_line === this.line),
 			attention: d.attention.filter((u) => u.production_line === this.line),
+			waiting_packing: (d.waiting_packing || []).filter((u) => u.production_line === this.line),
+			packing_jobs: (d.packing_jobs || []).filter((j) => j.production_line === this.line),
 			issues: d.issues.filter((i) => !i.name || names.has(i.name) || i.message.includes(this.line)),
 		};
 	}
@@ -185,7 +187,7 @@ class ProductionLineOverview {
 			summary: d.issues.filter((i) => i.level === "error").length || "",
 			lines: d.lines.length,
 			today: d.lines.reduce((n, l) => n + l.plan.filter((p) => p.enabled).length, 0),
-			units: d.attention.length,
+			units: d.attention.length + (d.waiting_packing || []).length + (d.packing_jobs || []).length,
 			work_orders: d.work_orders.filter((wo) => wo.is_live).length,
 			workplaces: d.workplaces.length,
 		};
@@ -272,8 +274,9 @@ class ProductionLineOverview {
 					"fa fa-cube",
 					units.in_progress + units.measured,
 					__("Units in work"),
-					__("{0} measured, not finished", [
+					__("{0} measured, not finished, {1} waiting for packing", [
 						d.attention.filter((u) => u.state === "measured").length,
+						units.waiting_packing,
 					])
 				)}
 				${tile(
@@ -518,6 +521,39 @@ class ProductionLineOverview {
 
 	// ------------------------------------------------------------------ units
 
+	packing_jobs_html(jobs) {
+		if (!jobs.length) return "";
+		const esc = frappe.utils.escape_html;
+		return `
+			<div class="plo-hint text-muted small">${__(
+				"Boxes being packed right now. The units are already in stock, in the staging warehouse."
+			)}</div>
+			<div class="plo-table-wrap"><table class="table table-bordered plo-table">
+				<thead><tr>
+					<th>${__("Packing Job")}</th><th>${__("Workplace")}</th>
+					<th class="text-right">${__("Units")}</th><th>${__("Since")}</th>
+				</tr></thead>
+				<tbody>${jobs
+					.map(
+						(j) => `
+					<tr>
+						<td>${this.link("Packing Job", j.name)}${
+							j.box_no
+								? `<div class="text-muted small">${__("Box {0}", [j.box_no])}${
+										j.box_total ? " / " + j.box_total : ""
+								  }</div>`
+								: ""
+						}</td>
+						<td>${j.workplace ? this.link("Workplace", j.workplace) : ""}
+							<div class="text-muted small">${esc(j.employee || "")}</div></td>
+						<td class="text-right">${j.units}</td>
+						<td>${j.age != null ? this.ago(j.age) : "—"}</td>
+					</tr>`
+					)
+					.join("")}</tbody>
+			</table></div>`;
+	}
+
 	render_units(d) {
 		const rows = d.attention.filter((u) =>
 			this.match(
@@ -530,9 +566,13 @@ class ProductionLineOverview {
 				u.job_card
 			)
 		);
-		if (!rows.length) return "";
+		const packing =
+			this.waiting_packing_html(d.waiting_packing || []) + this.packing_jobs_html(d.packing_jobs || []);
+		if (!rows.length) return packing;
 		const state_color = { in_progress: "blue", measured: "purple", rejected: "red" };
-		return `
+		return (
+			packing +
+			`
 			<div class="plo-hint text-muted small">${__(
 				"Units taken at a workplace and not finished yet, and units rejected today. A measured unit is handed back to the workplace before a new one."
 			)}</div>
@@ -576,6 +616,44 @@ class ProductionLineOverview {
 						}</td>
 						<td>${u.age != null ? this.ago(u.age) : "—"}
 							<div class="text-muted small">${frappe.utils.escape_html(u.by_name || "")}</div></td>
+					</tr>`
+					)
+					.join("")}</tbody>
+			</table></div>`
+		);
+	}
+
+	waiting_packing_html(units) {
+		const rows = units.filter((u) => this.match(u.serial_no, u.item_code, u.work_order, u.warehouse));
+		if (!rows.length) return "";
+		const by_warehouse = {};
+		rows.forEach((u) => {
+			const key = `${u.warehouse || ""}\u0000${u.item_code}`;
+			by_warehouse[key] = by_warehouse[key] || { warehouse: u.warehouse, item_code: u.item_code, n: 0 };
+			by_warehouse[key].n += 1;
+		});
+		return `
+			<div class="plo-hint"><b>${__("Waiting for packing")}: ${rows.length}</b></div>
+			<div class="plo-table-wrap"><table class="table table-bordered plo-table">
+				<thead><tr>
+					<th>${__("Warehouse")}</th><th>${__("Item")}</th><th>${__("Qty")}</th><th>${__("Work Order")}</th>
+				</tr></thead>
+				<tbody>${Object.values(by_warehouse)
+					.map(
+						(g) => `
+					<tr>
+						<td>${g.warehouse ? this.link("Warehouse", g.warehouse) : `<span class="text-muted">—</span>`}</td>
+						<td>${this.link("Item", g.item_code)}</td>
+						<td>${g.n}</td>
+						<td>${[
+							...new Set(
+								rows
+									.filter((u) => u.warehouse === g.warehouse && u.item_code === g.item_code)
+									.map((u) => u.work_order)
+							),
+						]
+							.map((wo) => this.link("Work Order", wo))
+							.join(", ")}</td>
 					</tr>`
 					)
 					.join("")}</tbody>

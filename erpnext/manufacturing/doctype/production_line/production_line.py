@@ -112,11 +112,11 @@ class ProductionLine(Document):
 				row.produced_qty = cint(frappe.db.get_value("Work Order", row.work_order, "produced_qty"))
 
 	def _validate_orders(self):
-		"""Orders of a manual line: a released order is a Work Order, so its quantity is fixed."""
+		"""Orders of a manual line: a released order is a Work Order, so it is read-only for good."""
 		released = {}
 		if not self.is_new():
 			released = {
-				row.name: row.qty
+				row.name: row
 				for row in frappe.get_all(
 					"Production Line Order",
 					filters={
@@ -124,18 +124,30 @@ class ProductionLine(Document):
 						"parenttype": "Production Line",
 						"work_order": ["is", "set"],
 					},
-					fields=["name", "qty"],
+					fields=["name", "item_code", "workplace", "qty", "work_order"],
 				)
 			}
-		for row in self.orders:
-			if cint(row.qty) <= 0:
-				frappe.throw(_("Row {0}: Qty must be greater than zero").format(row.idx))
-			if row.name in released and cint(released[row.name]) != cint(row.qty):
+		now = {row.name: row for row in self.orders}
+		for name, old in released.items():
+			if name not in now:
 				frappe.throw(
-					_("Row {0}: the Work Order is already released, its Qty can no longer change").format(
+					_("Order of Work Order {0} is released and cannot be removed").format(old.work_order)
+				)
+			row = now[name]
+			if (
+				row.item_code != old.item_code
+				or (row.workplace or None) != (old.workplace or None)
+				or cint(row.qty) != cint(old.qty)
+				or (row.work_order or None) != old.work_order
+			):
+				frappe.throw(
+					_("Row {0}: the Work Order is already released, the order can no longer change").format(
 						row.idx
 					)
 				)
+		for row in self.orders:
+			if cint(row.qty) <= 0:
+				frappe.throw(_("Row {0}: Qty must be greater than zero").format(row.idx))
 
 	def _validate_workplaces(self):
 		"""The line's benches, and the plan rows that must stay inside them.
@@ -314,6 +326,49 @@ def line_workplaces(line_type=None, production_line=None):
 			if row.enabled and row.workplace and _produces_units(row) and row.workplace not in names:
 				names.append(row.workplace)
 	return names
+
+
+FINISHED_WORK_ORDER_STATUSES = ("Completed", "Stopped", "Closed", "Cancelled")
+
+
+@frappe.whitelist()
+def order_progress(line):
+	"""Released orders of a manual line with how far each Work Order has got: `{current, done}`."""
+	frappe.has_permission("Production Line", "read", doc=line, throw=True)
+	rows = frappe.get_all(
+		"Production Line Order",
+		filters={"parent": line, "parenttype": "Production Line", "work_order": ["is", "set"]},
+		fields=["item_code", "workplace", "qty", "work_order", "idx"],
+		order_by="idx asc",
+	)
+	work_orders = {
+		wo.name: wo
+		for wo in frappe.get_all(
+			"Work Order",
+			filters={"name": ["in", [r.work_order for r in rows] or [""]]},
+			fields=["name", "status", "qty", "produced_qty", "creation"],
+		)
+	}
+	out = {"current": [], "done": []}
+	for row in rows:
+		wo = work_orders.get(row.work_order)
+		if not wo:
+			continue
+		produced = cint(wo.produced_qty)
+		entry = {
+			"item_code": row.item_code,
+			"item_name": frappe.get_cached_value("Item", row.item_code, "item_name"),
+			"workplace": row.workplace,
+			"qty": cint(row.qty),
+			"produced_qty": produced,
+			"work_order": wo.name,
+			"status": wo.status,
+			"created": wo.creation,
+		}
+		done = wo.status in FINISHED_WORK_ORDER_STATUSES or produced >= cint(row.qty)
+		out["done" if done else "current"].append(entry)
+	out["done"].reverse()
+	return out
 
 
 @frappe.whitelist()
@@ -832,17 +887,22 @@ def finish_unit(job_card):
 	# `Stock Entry.check_if_operations_completed` refuses a Manufacture entry while any
 	# operation of the Work Order is still open, and packing is one of those operations.
 	line = _line_for_item(card.production_item)
-	deferred = bool(line and line.manufacture_at_packing)
+	# The BOM, not the line, says how this unit finishes: one that names a staging warehouse
+	# lands in stock now and is packed later, whatever the line's flag still says for the Work
+	# Orders opened on an older BOM.
+	staging = _staging_for(card)
+	deferred = bool(line and line.manufacture_at_packing and not staging)
 
 	stock_entry = card.auto_stock_entry
 	if deferred:
 		stock_entry = None
 	elif not stock_entry or frappe.db.get_value("Stock Entry", stock_entry, "docstatus") != 1:
-		from erpnext.manufacturing.packing import landing_warehouse
-
-		# A BOM that marks the step entering stock and names a warehouse for it lands the unit
-		# there — staging, until a box is closed around it.
-		stock_entry = _post_manufacture(card, serial_no, target_warehouse=landing_warehouse(card.bom_no))
+		if staging:
+			# A Work Order opened before the route changed still carries the packing card; the unit
+			# is going to staging, where packing is a separate job, so the card is not performed.
+			_close_remaining_cards(serial_no, skip=card.name)
+		# A unit lands in staging, until a box is closed around it.
+		stock_entry = _post_manufacture(card, serial_no, target_warehouse=staging)
 
 	frappe.db.commit()
 	return {
@@ -853,6 +913,22 @@ def finish_unit(job_card):
 		"manufacture_deferred": deferred,
 		"warehouse": frappe.db.get_value("Serial No", serial_no, "warehouse") if serial_no else None,
 	}
+
+
+def _staging_for(card):
+	"""The staging warehouse this unit lands in, or `None` when it finishes the old way.
+
+	Its own BOM decides first. A Work Order opened on an older BOM (one that still lists packing as an
+	operation) lands in staging too once the item's default BOM names one, so a line changes
+	route without waiting for every open Work Order to run out.
+	"""
+	from erpnext.manufacturing.packing import landing_warehouse
+
+	own = landing_warehouse(card.bom_no)
+	if own:
+		return own
+	default_bom = frappe.db.get_value("Item", card.production_item, "default_bom")
+	return landing_warehouse(default_bom)
 
 
 def _complete_job_card(card, rejected=False):

@@ -13452,6 +13452,23 @@ Additional Information for Status {0},Додаткова інформація д
 "Вас згадали у коментарі","Вас згадали у коментарі"
 "Вам надано доступ до документу","Вам надано доступ до документу"
 "Only System Managers can configure CallMeBot Settings.","Лише системні адміністратори (System Manager) можуть налаштовувати CallMeBot."
+"WhatsApp notifications are paused by CallMeBot. Send the word ""resume"" to the bot from your phone to turn them back on.","CallMeBot призупинив сповіщення у WhatsApp. Надішліть боту слово «resume» зі свого телефону, щоб увімкнути їх знову."
+"WhatsApp notifications are not delivered: the CallMeBot API key is no longer valid. Get a new key from the bot and save it in your Notification Settings.","Сповіщення у WhatsApp не доставляються: API-ключ CallMeBot більше не дійсний. Отримайте новий ключ у бота та збережіть його у своїх налаштуваннях сповіщень."
+"CallMeBot did not accept the message. Try again later.","CallMeBot не прийняв повідомлення. Спробуйте пізніше."
+"Send ""resume"" in WhatsApp","Надіслати «resume» у WhatsApp"
+"Open Notification Settings","Відкрити налаштування сповіщень"
+"How to restore WhatsApp notifications","Як відновити сповіщення у WhatsApp"
+"CallMeBot Status","Стан CallMeBot"
+"Invalid API Key","Недійсний API-ключ"
+"Result of the last message sent to WhatsApp","Результат останнього повідомлення, надісланого у WhatsApp"
+"CallMeBot Alerted On","Останнє попередження CallMeBot"
+"Help Page","Сторінка довідки"
+"Notification Channels","Канали сповіщень"
+"WhatsApp + Mobile App","WhatsApp + мобільний застосунок"
+"No Channel","Немає каналу"
+"Channels that reach the employee outside ERPNext: WhatsApp (CallMeBot) and mobile app push","Канали, якими сповіщення доходять до працівника поза ERPNext: WhatsApp (CallMeBot) і push у мобільному застосунку"
+"No notification channel configured","Канал сповіщень не налаштовано"
+"Wiki page or any link that explains how to restore WhatsApp notifications. Sent to a user whose CallMeBot account is paused or whose API key stopped working.","Сторінка вікі або будь-яке посилання з поясненням, як відновити сповіщення у WhatsApp. Надсилається користувачеві, чий обліковий запис CallMeBot призупинено або чий API-ключ перестав працювати."
 Calculate Totals,Підрахувати суми
 Rows,Рядків
 No rows to calculate.,Немає рядків для підрахунку.
@@ -15169,7 +15186,7 @@ A stock entry for expense {0} must be a Material Issue of company {1},Рух Т�
 "{0} from earlier days","{0} з попередніх днів"
 "{0} in stock, {1} rejected","на складі: {0}, брак: {1}"
 "{0} left to hand out","ще можна видати: {0}"
-"{0} measured, not finished","{0} виміряно, не завершено"
+"{0} measured, not finished, {1} waiting for packing","{0} виміряно, не завершено, {1} чекає пакування"
 "{0} not planned today","{0} без плану на сьогодні"
 "{0} overflow","{0} додаткових"
 "{0} was measured but never finished, it is not in stock","{0} виміряно, але не завершено — його немає на складі"
@@ -15792,6 +15809,223 @@ Partially attached,Частково
 "Replying… (message as the customer)","Відповідь… (повідомлення від імені клієнта)"
 "No WhatsApp Account is in Mock Mode. Tick Mock Mode on an account first.","Жоден акаунт WhatsApp не в режимі імітації. Спочатку увімкніть «Режим імітації» в акаунті."
 "Dev/test sites only: nothing is sent to Meta, messages are simulated and customers are played from the WhatsApp Mock page. Ignored on production.","Лише для dev/test: нічого не надсилається в Meta, повідомлення імітуються, а клієнти розігруються на сторінці «Імітація WhatsApp». На продакшні ігнорується."
+"own only","лише свої"
+"Field level {0}","Рівень полів {0}"
+"Sensitive","Чутливе"
+"Permissions of this document type are customized (Custom DocPerm)","Дозволи цього типу документа налаштовано вручну (Custom DocPerm)"
+"Custom permissions","Власні дозволи"
+"Child table","Дочірня таблиця"
+"No document access","Немає доступу до документів"
+"Needs attention","Потребує уваги"
+"The role is listed in the standard permissions of these document types, but their permissions are customized without it, so it gives nothing there:","Роль є у стандартних дозволах цих типів документів, але їхні дозволи налаштовано без неї, тож там вона нічого не дає:"
+"Users with this role: {0}","Користувачів із цією роллю: {0}"
+"Role profiles: {0}","Профілі ролей: {0}"
+"Needs Report access to {0}","Потрібен доступ «Звіт» до {0}"
+"Workflow actions","Дії робочого процесу"
+"with condition","з умовою"
+"Can edit in workflow states","Може редагувати в станах робочого процесу"
+"Document types","Типи документів"
+"Pages","Сторінки"
+"What role {0} grants","Що дає роль {0}"
+"What this role grants","Що дає ця роль"
+"Only Access Manager or System Manager can do this","Це може зробити лише Менеджер доступів або Системний менеджер"
+"Check access on the parent document instead of the child table {0}","Перевіряйте доступ на батьківському документі, а не на дочірній таблиці {0}"
+"Role {0} not found","Роль {0} не знайдено"
+"User {0} not found","Користувача {0} не знайдено"
+"Only Access Manager or System Manager can check access of other users","Перевіряти доступ інших користувачів може лише Менеджер доступів або Системний менеджер"
+"Access Manager","Менеджер доступів"
+"Invalid access context","Невірний контекст доступу"
+"{0} requests access: {1}","{0} просить доступ: {1}"
+"Page {0}","Сторінка {0}"
+"Other access","Інший доступ"
+"You already have a pending request {0} for this access","У вас уже є запит {0} на цей доступ, він очікує розгляду"
+"Access granted: {0}. Reload the page to use it","Доступ надано: {0}. Оновіть сторінку, щоб ним скористатися"
+"Access request rejected: {0}","Запит на доступ відхилено: {0}"
+"Request {0} is already {1}","Запит {0} уже має статус «{1}»"
+"Role profile {0} is still being applied to its users. Try again in a few minutes","Профіль ролей {0} ще застосовується до користувачів. Спробуйте за кілька хвилин"
+"Role profiles {0} were unlinked, the user keeps their roles directly","Профілі ролей {0} відв'язано, ролі залишились у користувача напряму"
+"Choose what to do with the user's role profile","Оберіть, що зробити з профілем ролей користувача"
+"Role {0} was added to role profile {1}, users with this profile: {2}","Роль {0} додано до профілю ролей {1}, користувачів із цим профілем: {2}"
+"Role {0} cannot be granted through an access request","Роль {0} не можна видати через запит на доступ"
+"User {0} already has role {1}","Користувач {0} уже має роль {1}"
+"Role {0} was not saved for user {1}","Роль {0} не збереглася у користувача {1}"
+"This access cannot be given by sharing the document","Цей доступ не можна надати через спільний доступ до документа"
+"This User Permission does not widen the user's existing restrictions","Цей дозвіл користувача не розширює наявних обмежень користувача"
+"You cannot approve your own access request","Не можна схвалити власний запит на доступ"
+"Choose how to grant access","Оберіть, як надати доступ"
+"You can cancel only your own requests","Скасувати можна лише власні запити"
+"Your request is waiting for a decision of the Access Manager","Ваш запит очікує рішення менеджера доступів"
+"Check what the user will get before approving","Перед схваленням перевірте, що отримає користувач"
+"Cancel request","Скасувати запит"
+"The user has this access now","Користувач уже має цей доступ"
+"Workflow state","Стан робочого процесу"
+"Can edit in this state","Редагувати в цьому стані можуть"
+"Also given by roles that are never granted through a request","Також дають ролі, які через запит не видаються"
+"The user is disabled","Користувача вимкнено"
+"User roles","Ролі користувача"
+"Access is given by roles","Доступ дають ролі"
+"+{0} new rights","+{0} нових прав"
+"holders: {0}","мають: {0}"
+"Unlink role profiles, keep the roles directly","Відв'язати профілі ролей, залишити ролі напряму"
+"The user gets these rights on this document only","Користувач отримає ці права лише на цей документ"
+"Choose a role","Оберіть роль"
+"Approve request {0}","Схвалити запит {0}"
+"Grant by","Спосіб надання"
+"Sorted from the smallest extra access","Від найменшого додаткового доступу"
+"Role profile","Профіль ролей"
+"While the user has a role profile, a role added directly is removed on the next save","Поки в користувача є профіль ролей, роль, додана напряму, зникне при наступному збереженні"
+"Rights","Права"
+"Allow value","Дозволити значення"
+"Note for the user","Примітка для користувача"
+"What the user will get","Що отримає користувач"
+"Access granted","Доступ надано"
+"This role gives sensitive data or risky rights (delete, cancel, export, import, share). Approve anyway?","Ця роль дає доступ до чутливих даних або ризикових прав (видалення, скасування, експорт, імпорт, спільний доступ). Все одно схвалити?"
+"Reject request {0}","Відхилити запит {0}"
+"None of your roles gives this access","Жодна з ваших ролей не дає цього доступу"
+"Your role gives this access only to documents you created","Ваша роль дає цей доступ лише до документів, створених вами"
+"The document is outside the values you are allowed to work with (User Permission)","Документ поза значеннями, з якими вам дозволено працювати (дозволи користувача)"
+"Access is limited by a rule of this document type","Доступ обмежено правилом цього типу документа"
+"This document type cannot be submitted","Цей тип документа не проводиться"
+"Import is not allowed for this document type","Імпорт для цього типу документа заборонено"
+"The reason could not be determined","Причину визначити не вдалося"
+"A submitted document cannot be edited, cancel and amend it instead","Проведений документ не можна змінити, скасуйте його та створіть виправлення"
+"Cancel the document before deleting it","Перед видаленням скасуйте документ"
+"A cancelled document cannot be changed","Скасований документ не можна змінити"
+"Only a submitted document can be cancelled","Скасувати можна лише проведений документ"
+"Only a draft can be submitted","Провести можна лише чернетку"
+"Open page","Відкрити сторінку"
+"Open report","Відкрити звіт"
+"No role gives this access","Жодна роль не дає цього доступу"
+"Your request {0} is waiting for a decision since {1}","Ваш запит {0} очікує рішення з {1}"
+"You have this access now. Reload the page to continue","Тепер у вас є цей доступ. Оновіть сторінку, щоб продовжити"
+"No Access Manager is assigned yet. Your request will be seen by a System Manager","Менеджера доступів ще не призначено. Ваш запит побачить системний менеджер"
+"Your roles","Ваші ролі"
+"Why do you need this access?","Навіщо вам цей доступ?"
+"Request access","Запросити доступ"
+"Access request {0} sent","Запит на доступ {0} надіслано"
+"Request cancelled","Запит скасовано"
+"Why? Request access","Чому? Запросити доступ"
+"Your request {0} was approved. Reload the page to use the new access","Ваш запит {0} схвалено. Оновіть сторінку, щоб скористатися новим доступом"
+"Your access request {0} was rejected","Ваш запит на доступ {0} відхилено"
+"Access Request","Запит на доступ"
+"A user's request for access, with the decision and what it granted","Запит користувача на доступ із рішенням і тим, що було надано"
+"Decision","Рішення"
+"Role Profile Change","Зміна профілю ролей"
+"Shared Rights","Права спільного доступу"
+"Decided By","Вирішив"
+"Decided On","Дата рішення"
+"Decision Note","Примітка до рішення"
+"Audit","Аудит"
+"Diagnosis","Діагностика"
+"Impact","Що надано"
+"None of the user's roles gives this access","Жодна з ролей користувача не дає цього доступу"
+"The user's role gives this access only to their own documents","Роль користувача дає цей доступ лише до власних документів"
+"The document is outside the values the user is allowed to work with (User Permission)","Документ поза значеннями, з якими користувачу дозволено працювати (дозволи користувача)"
+"Requested access","Запитаний доступ"
+Not available,Недоступно
+The request is not for a specific document,Запит не стосується конкретного документа
+This right cannot be given by sharing a document,Це право не можна надати через спільний доступ до документа
+"The user has no User Permission restrictions here, adding one would narrow access instead","У користувача немає обмежень User Permission за цими значеннями, новий запис звузив би доступ, а не розширив"
+The document's values are already allowed for the user,Значення документа вже дозволені користувачу
+"No role profile gives this access (profiles with System Manager or Access Manager are not offered)","Жоден профіль ролей не дає цього доступу (профілі з «Системний менеджер» або «Менеджер доступів» не пропонуються)"
+removes {0} roles,забирає ролей: {0}
+users: {0},користувачів: {0}
+Add to the current profiles ({0}),Додати до поточних профілів ({0})
+Replace the current profiles ({0}),Замінити поточні профілі ({0})
+Choose a role profile,Оберіть профіль ролей
+Roles the user gets,"Ролі, які отримає користувач"
+"Profiles that give this access, sorted from the smallest change","Профілі, які дають цей доступ, від найменшої зміни"
+Current role profiles,Поточні профілі ролей
+Role profile {0} cannot be assigned through this request,Профіль ролей {0} не можна призначити через цей запит
+Choose what to do with the user's current role profiles,"Оберіть, що робити з поточними профілями ролей користувача"
+Role profile {0} was not applied to user {1},Профіль ролей {0} не застосовано до користувача {1}
+Replaced role profiles: {0},Замінено профілі ролей: {0}
+Removed roles: {0},Знято ролі: {0}
+Role profile {0} not found,Профіль ролей {0} не знайдено
+lacks: {0},бракує: {0}
+covers all chosen,покриває все обране
+Not covered: {0},Не покрито: {0}
+Covers all chosen rights,Покриває всі обрані права
+Chosen rights,Обрані права
+The chosen grant does not give: {0},Обраний спосіб не дає: {0}
+The user will lose roles: {0},Користувач втратить ролі: {0}
+"This grant gives sensitive data or risky rights (delete, cancel, export, import, share)","Це надання дає чутливі дані або ризиковані права (видалення, скасування, експорт, імпорт, спільний доступ)"
+Approve anyway?,Все одно погодити?
+Rights to grant,"Права, які надати"
+"Pre-filled with what the user asked for. Roles and profiles below follow this choice","Заповнено тим, що запитав користувач. Ролі та профілі нижче впорядковано під цей вибір"
+"Sorted by the chosen rights first, then from the smallest extra access","Спочатку ті, що покривають обрані права, далі — від найменшого зайвого доступу"
+Which rights do you need?,Які права вам потрібні?
+{0} and {1} are always included,«{0}» і «{1}» включено завжди
+"These roles are listed in the standard permissions of these document types, but their permissions are customized without them, so they give nothing there:","Ці ролі є у стандартних дозволах цих типів документів, але їхні дозволи налаштовано без них, тож там вони нічого не дають:"
+Invalid list of rights,Некоректний список прав
+Requested Rights,Запитані права
+Approved Rights,Погоджені права
+"A role profile replaces every role given directly, see the Loses tab","Профіль ролей замінює всі ролі, видані напряму — див. вкладку «Втратить»"
+Roles the user loses,"Ролі, які користувач втратить"
+The user loses nothing,Користувач нічого не втрачає
+Gets,Отримає
+Loses,Втратить
+Revoked,Відкликано
+Access revoked,Доступ відкликано
+Role Right,Права ролі
+Revoked By,Відкликав
+Revoked On,Дата відкликання
+Revoke Note,Примітка до відкликання
+Rights of a role can be added only for a document type,Права ролі можна додати лише для типу документа
+"Rights of system document types (users, roles, permissions, scripts) are not changed here","Права системних типів документів (користувачі, ролі, дозволи, скрипти) тут не змінюються"
+Role {0} already gives the chosen rights,Роль {0} вже дає обрані права
+Profiles with this role: {0},Профілі з цією роллю: {0}
+Role {0} gets on {1}: {2},Роль {0} отримає на {1}: {2}
+"Every user with this role gets it too, users: {0}","Це отримають усі користувачі з цією роллю, їх: {0}"
+"The document type uses standard permissions, they are copied to custom permissions first","Тип документа має стандартні права, спершу їх буде скопійовано у власні"
+The change is logged in the request and can be revoked from it,"Зміну буде записано в запиті, звідти її можна відкликати"
+Revoke request {0},Відкликати запит {0}
+Role {0} loses on {1}: {2}. Every user with this role loses them too. The role itself stays with the user,Роль {0} втратить на {1}: {2}. Це втратять усі користувачі з цією роллю. Сама роль у користувача залишиться
+"Rights of role {0} change for every user with it, users: {1}","Права ролі {0} зміняться для всіх, хто її має, їх: {1}"
+Role to give the rights to,"Роль, якій додати права"
+The user's roles. Your own roles are not listed unless you are a System Manager,"Ролі користувача. Ваших власних ролей тут немає, якщо ви не System Manager"
+Access revoked: {0},Доступ відкликано: {0}
+Rights of this document type cannot be changed through an access request,Права цього типу документа не можна змінити через запит на доступ
+Rights of role {0} cannot be changed through an access request,Права ролі {0} не можна змінити через запит на доступ
+"You have role {0} yourself, so only a System Manager can change its rights","Ви самі маєте роль {0}, тому змінити її права може лише System Manager"
+Role {0} already gives these rights on {1},Роль {0} вже дає ці права на {1}
+"User {0} does not have role {1}","Користувач {0} не має ролі {1}"
+"The user has no role whose rights you may change (your own roles need a System Manager)","У користувача немає ролі, права якої ви можете змінити (для ваших власних ролей потрібен System Manager)"
+"Access from your request {0} was revoked","Доступ за вашим запитом {0} відкликано"
+Grant Log,Журнал надання
+Grant Method,Спосіб надання
+Document Share,Спільний доступ до документа
+Role Profile,Профіль ролей
+Give a role,Видати роль
+Add rights to a user's role,Додати права ролі користувача
+Give a role profile,Видати профіль ролей
+Open access to this document only,Відкрити доступ лише до цього документа
+Allow the value (user permission),Дозволити значення (дозвіл користувача)
+A role profile change cannot be revoked from the request later,Зміну профілю ролей потім не можна буде відкликати із запиту
+"Access was given through a role profile change, it cannot be revoked from the request","Доступ надано через зміну профілю ролей, відкликати його із запиту не можна"
+Role profiles unlinked at approval ({0}) are not linked back,"Профілі, відв'язані під час погодження ({0}), назад не прив'язуються"
+Sharing of {0} goes back to the rights the user had before the request,"Спільний доступ до {0} повернеться до прав, які користувач мав до запиту"
+Sharing of {0} with the user is removed,Спільний доступ користувача до {0} буде прибрано
+User Permission {0} = {1} is removed,Дозвіл користувача {0} = {1} буде видалено
+Request {0} has no change that can be revoked,"У запиті {0} немає зміни, яку можна відкликати"
+Decided By Name,Ім'я того хто вирішив
+Revoked By Name,Ім'я того хто відкликав
+Allow values,Дозволити значення
+Values of this document the user is not allowed to work with yet,"Значення цього документа, з якими користувачу ще не дозволено працювати"
+Add the roles to profile {0} (users: {1}),Додати ролі до профілю {0} (користувачів: {1})
+The user loses roles: {0},Користувач втратить ролі: {0}
+"The user can work with documents of these values as well, in every document type that uses them","Користувач зможе працювати і з документами з цими значеннями, у всіх типах документів, що їх використовують"
+"The roles are added to role profile {0}, so every user with this profile gets them too","Ролі буде додано до профілю ролей {0}, тож їх отримає кожен користувач із цим профілем"
+"Roles {0} were added to role profile {1}, users with this profile: {2}","Ролі {0} додано до профілю ролей {1}, користувачів із цим профілем: {2}"
+Choose at least one role,Оберіть хоча б одну роль
+Roles {0} were not saved for user {1},Ролі {0} не збереглися для користувача {1}
+Choose at least one role profile,Оберіть хоча б один профіль ролей
+Role profiles {0} were not applied to user {1},Профілі ролей {0} не застосувалися до користувача {1}
+Choose at least one value to allow,"Оберіть хоча б одне значення, яке треба дозволити"
+Granted Roles,Видані ролі
+Granted Role Profiles,Видані профілі ролей
+Allowed Values,Дозволені значення
+Chosen: {0},Обрано: {0}
 "Consumption Recipe","Рецепт списання"
 "Consumption Recipe Item","Позиція рецепта списання"
 "What gets used up, and how much of it, as a function of how many units a step handles. Reusable: packing uses it today, manufacturing operations can use it later.","Що і скільки витрачається залежно від кількості одиниць на кроці. Рецепт універсальний: пакування використовує його вже зараз, операції виробництва зможуть пізніше."
@@ -15844,7 +16078,7 @@ Production Line Order,Замовлення виробничої лінії
 "Daily: Work Orders are opened every day from the plan, an overflow one is opened when the plan runs out, and units nobody started are closed in the evening. Manual: the manager adds orders below and releases them; nothing is opened or closed automatically, and when an order is made the bench has nothing more to take.","Щодня: Work Order відкриваються щодня за планом, коли план вичерпано — відкривається додатковий, а невзяті одиниці закриваються ввечері. Вручну: менеджер додає замовлення нижче й запускає їх; нічого не відкривається і не закривається автоматично, а коли замовлення виготовлено, робоче місце більше нічого не бере."
 "How many units to make. Fixed once the Work Order is released.","Скільки одиниць виготовити. Після запуску Work Order змінити не можна."
 Row {0}: Qty must be greater than zero,Рядок {0}: кількість має бути більшою за нуль
-"Row {0}: the Work Order is already released, its Qty can no longer change","Рядок {0}: Work Order уже запущено, його кількість більше не змінюється"
+"Row {0}: the Work Order is already released, the order can no longer change","Рядок {0}: Work Order уже запущено, замовлення більше не змінюється"
 Production line {0} plans daily, it has no orders to release,Виробнича лінія {0} планує щодня, замовлень для запуску немає
 Production line {0} is disabled,Виробнича лінія {0} вимкнена
 "Nothing is left to make for {0} on line {1}: every released order is done. Release another order.","Для {0} на лінії {1} більше нічого виготовляти: усі запущені замовлення виконано. Запустіть нове замовлення."
@@ -15958,6 +16192,31 @@ Liked,Вподобано
 Like,Вподобати
 Unlike,Зняти вподобання
 The item does not belong to this consolidated order.,Позиція не належить до цього зведеного замовлення.
+Packing Job,Задача упаковки
+Packing Job Serial,Серійний номер задачі упаковки
+Packing Jobs,Задачі упаковки
+Box No,Номер коробки
+Boxes In Order,Коробок у замовленні
+Units Per Box,Одиниць у коробці
+Consumables Issue,Списання витратних матеріалів
+Moves the units out of staging,Переміщує одиниці зі складу комплектування
+Started On,Розпочато
+Serial No {0} is listed more than once,Серійний номер {0} вказано більше одного разу
+Already in an open packing job: {0},Уже в відкритій задачі упаковки: {0}
+Workplace {0} is not a packaging workplace of any production line,Робоче місце {0} не є місцем пакування жодної виробничої лінії
+"Packing Job {0} is {1}, not in progress","Задача упаковки {0}: {1}, а не в роботі"
+"Boxes being packed right now. The units are already in stock, in the staging warehouse.","Коробки, що пакуються просто зараз. Одиниці вже на складі, у проміжному складі комплектування."
+The default BOM names no staging warehouse,"BOM за замовчуванням не називає склад комплектування"
+"Waiting for packing","Чекає пакування"
+"Current Orders","Поточні замовлення"
+"Completed Orders","Виконані замовлення"
+"New Orders","Нові замовлення"
+"No released orders in progress","Запущених замовлень у роботі немає"
+"No completed orders yet","Виконаних замовлень ще немає"
+"Order of Work Order {0} is released and cannot be removed","Замовлення з Work Order {0} запущено, його не можна видалити"
+Your user is not linked to an Employee,Ваш користувач не привʼязаний до Співробітника
+No free virtual scanner,Вільного віртуального сканера немає
+Workplace {0} is inactive,Робоче місце {0} неактивне
 Payment Approval History,Історія погодження оплати
 Invoice Approval Route,Маршрут погодження рахунку
 Recorded CEO Approvers,Зафіксовані CEO-погоджувачі

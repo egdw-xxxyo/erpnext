@@ -670,7 +670,7 @@ def _update_scan_log(scanner, row_name, **kwargs):
 
 
 def _resolve_scan(data):
-	wp = frappe.db.get_value("Workplace", {"barcode": data}, "name")
+	wp = frappe.db.get_value("Workplace", {"barcode": data, "is_active": 1}, "name")
 	if wp:
 		return "workplace", {"doc": frappe.get_doc("Workplace", wp)}
 

@@ -1,0 +1,197 @@
+{
+  "actions": [],
+  "autoname": "format:PACK-JOB-{#####}",
+  "creation": "2026-10-13 12:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "production_line",
+    "workplace",
+    "employee",
+    "column_break_main",
+    "status",
+    "started_on",
+    "finished_on",
+    "box_section",
+    "box_no",
+    "box_total",
+    "units_per_box",
+    "column_break_box",
+    "recipe",
+    "stock_entry",
+    "consumption_entry",
+    "serials_section",
+    "serials"
+  ],
+  "fields": [
+    {
+      "fieldname": "production_line",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "label": "Production Line",
+      "options": "Production Line"
+    },
+    {
+      "fieldname": "workplace",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "label": "Workplace",
+      "options": "Workplace"
+    },
+    {
+      "fieldname": "employee",
+      "fieldtype": "Link",
+      "label": "Employee",
+      "options": "Employee"
+    },
+    {
+      "fieldname": "column_break_main",
+      "fieldtype": "Column Break"
+    },
+    {
+      "default": "In Progress",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "label": "Status",
+      "options": "In Progress\nDone\nCancelled",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "started_on",
+      "fieldtype": "Datetime",
+      "label": "Started On",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "finished_on",
+      "fieldtype": "Datetime",
+      "label": "Finished On",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "box_section",
+      "fieldtype": "Section Break",
+      "label": "Box"
+    },
+    {
+      "fieldname": "box_no",
+      "fieldtype": "Int",
+      "label": "Box No"
+    },
+    {
+      "fieldname": "box_total",
+      "fieldtype": "Int",
+      "label": "Boxes In Order"
+    },
+    {
+      "fieldname": "units_per_box",
+      "fieldtype": "Int",
+      "label": "Units Per Box"
+    },
+    {
+      "fieldname": "column_break_box",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "recipe",
+      "fieldtype": "Link",
+      "label": "Consumption Recipe",
+      "options": "Consumption Recipe"
+    },
+    {
+      "fieldname": "stock_entry",
+      "fieldtype": "Link",
+      "label": "Transfer",
+      "options": "Stock Entry",
+      "read_only": 1,
+      "no_copy": 1,
+      "description": "Moves the units out of staging"
+    },
+    {
+      "fieldname": "consumption_entry",
+      "fieldtype": "Link",
+      "label": "Consumables Issue",
+      "options": "Stock Entry",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "serials_section",
+      "fieldtype": "Section Break",
+      "label": "Units"
+    },
+    {
+      "fieldname": "serials",
+      "fieldtype": "Table",
+      "label": "Units",
+      "options": "Packing Job Serial",
+      "reqd": 1
+    }
+  ],
+  "index_web_pages_for_search": 1,
+  "links": [],
+  "modified": "2026-10-13 12:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Manufacturing",
+  "name": "Packing Job",
+  "naming_rule": "Expression",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Manufacturing Manager",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 0,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Manufacturing User",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 0,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Stock User",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "title_field": "workplace",
+  "track_changes": 1
+}
