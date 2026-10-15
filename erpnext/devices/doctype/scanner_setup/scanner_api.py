@@ -21,7 +21,7 @@ def handle_scan(scanner_key=None, data=None):
 		return _resp(success=False, error="Invalid or inactive scanner key")
 
 	# 1. Check if scanned data is a Workplace barcode
-	workplace_name = frappe.db.get_value("Workplace", {"barcode": data}, "name")
+	workplace_name = frappe.db.get_value("Workplace", {"barcode": data, "is_active": 1}, "name")
 	if workplace_name:
 		frappe.db.set_value("Scanner Setup", scanner.name, "workplace", workplace_name)
 		frappe.db.commit()

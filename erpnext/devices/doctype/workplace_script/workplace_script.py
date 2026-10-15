@@ -442,10 +442,14 @@ def run_state(script_name, e, scripts=None, handler="on_scan"):
 def script_for_workplace(workplace=None, include_default=1):
 	"""Name of the active root script that runs at `workplace`.
 
+	An inactive workplace runs nothing, not even the default.
+
 	With `include_default` the site-wide default script (the active root script with no
 	workplaces) is returned when the bench names none of its own.
 	"""
 	if workplace:
+		if not frappe.db.get_value("Workplace", workplace, "is_active"):
+			return None
 		rows = frappe.get_all(
 			"Workplace Script Workplace",
 			filters={
