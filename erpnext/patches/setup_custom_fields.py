@@ -17,6 +17,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_invoice_payment_routes()
 	setup_procurement_item_likes()
 	setup_company_requisites()
 	setup_supplier_item_matching()
@@ -112,6 +113,71 @@ def execute():
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_invoice_payment_routes():
+	fields = []
+	for doctype, after in (
+		("Purchase Invoice", "custom_supplier_invoice_files_html"),
+		("Payment Request", "custom_procurement_approved"),
+	):
+		fields.extend(
+			[
+				{
+					"dt": doctype,
+					"fieldname": "custom_payment_route_section",
+					"fieldtype": "Section Break",
+					"insert_after": after,
+				},
+				{
+					"dt": doctype,
+					"fieldname": "custom_payment_route_html",
+					"label": "Approval Route",
+					"fieldtype": "HTML",
+					"insert_after": "custom_payment_route_section",
+				},
+				{
+					"dt": doctype,
+					"fieldname": "custom_payment_route_snapshot",
+					"label": "Payment Approval History",
+					"fieldtype": "Long Text",
+					"hidden": 1,
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_payment_route_html",
+				},
+			]
+		)
+	for name, label, fieldtype, options in (
+		("custom_payment_dynamic_approval", "Invoice Approval Route", "Check", None),
+		("custom_payment_ceo_threshold", "CEO Approval Threshold", "Currency", None),
+		("custom_payment_ceo_approvers", "Recorded CEO Approvers", "Long Text", None),
+		("custom_payment_ceo_votes", "Recorded CEO Approvals", "Long Text", None),
+		("custom_payment_ceo_automatic", "Automatic CEO Approval", "Check", None),
+		("custom_payment_department_approved_by", "Department Approval By", "Link", "User"),
+		("custom_payment_treasury_approved_by", "Treasury Approval By", "Link", "User"),
+	):
+		fields.append(
+			{
+				"dt": "Payment Request",
+				"fieldname": name,
+				"label": label,
+				"fieldtype": fieldtype,
+				"options": options,
+				"hidden": 1,
+				"read_only": 1,
+				"no_copy": 1,
+				"allow_on_submit": 1,
+				"insert_after": "custom_payment_route_snapshot",
+			}
+		)
+	_create_custom_fields(fields)
+	# Move the route out of PDF validation on sites where it was already created.
+	for doctype in ("Purchase Invoice", "Payment Request"):
+		route_field = frappe.get_doc("Custom Field", f"{doctype}-custom_payment_route_html")
+		if route_field.insert_after != "custom_payment_route_section":
+			route_field.insert_after = "custom_payment_route_section"
+			route_field.save(ignore_permissions=True)
 
 
 def setup_procurement_item_likes():
@@ -4226,7 +4292,76 @@ def setup_procurement_document_details():
 	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
+	vat_fields = {}
+	for doctype, anchor in (
+		("Purchase Invoice", "grand_total"),
+		("Payment Request", "grand_total"),
+		("Payment Entry", "received_amount"),
+	):
+		vat_fields[doctype] = [
+			{
+				"fieldname": "custom_supplier_vat_totals",
+				"fieldtype": "HTML",
+				"label": "VAT breakdown",
+				"insert_after": anchor,
+			}
+		]
+	for doctype, definitions in (
+		(
+			"Purchase Invoice Item",
+			(
+				("custom_vat_net_rate", "Price excluding VAT", "rate"),
+				("custom_vat_gross_rate", "Price", "custom_vat_net_rate"),
+				("custom_vat_gross_amount", "Amount", "amount"),
+			),
+		),
+		(
+			"Payment Reference",
+			(
+				("custom_vat_net_amount", "Amount excluding VAT", "amount"),
+				("custom_vat_amount", "VAT", "custom_vat_net_amount"),
+			),
+		),
+		(
+			"Payment Entry Reference",
+			(
+				("custom_vat_net_amount", "Amount excluding VAT", "allocated_amount"),
+				("custom_vat_amount", "VAT", "custom_vat_net_amount"),
+			),
+		),
+	):
+		vat_fields[doctype] = [
+			{
+				"fieldname": name,
+				"label": label,
+				"insert_after": anchor,
+				"fieldtype": "Currency",
+				"is_virtual": 1,
+				"read_only": 1,
+				"hidden": 1,
+				"precision": "2",
+				"columns": 1,
+			}
+			for name, label, anchor in definitions
+		]
+	create_custom_fields(vat_fields)
+
 	fields = {
+		"Consolidated Purchase Order Item": [
+			{
+				"fieldname": "custom_rate_excluding_vat",
+				"fieldtype": "Currency",
+				"options": "",
+				"label": "Price excluding VAT",
+				"insert_after": "uom",
+				"is_virtual": 1,
+				"in_list_view": 1,
+				"columns": 1,
+				"precision": "2",
+				"hidden": 1,
+				"description": "Calculated from the final price. VAT payers use 20% VAT; other suppliers have no VAT.",
+			}
+		],
 		"Supplier": [
 			{
 				"fieldname": "custom_is_vat_payer",
@@ -4237,6 +4372,12 @@ def setup_procurement_document_details():
 			}
 		],
 		"Consolidated Purchase Order": [
+			{
+				"fieldname": "custom_vat_totals",
+				"fieldtype": "HTML",
+				"label": "VAT breakdown",
+				"insert_after": "grand_total",
+			},
 			{
 				"fieldname": "custom_has_delivery_note",
 				"fieldtype": "Check",

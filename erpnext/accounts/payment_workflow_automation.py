@@ -189,21 +189,32 @@ def sync_payment_request_assignment(doc, method=None):
 		fields=["name", "assignment_rule", "allocated_to"],
 	)
 
-	target_user = _get_stage_user(matching, doc) if matching else None
+	from erpnext.accounts.payment_request_approval import FINAL, approvers, uses_invoice_route, votes
+
+	if matching and doc.workflow_state == FINAL and uses_invoice_route(doc) and approvers(doc):
+		target_users = [user for user in approvers(doc) if user not in votes(doc)]
+	else:
+		user = _get_stage_user(matching, doc) if matching else None
+		target_users = [user] if user else []
 	for todo in open_todos:
-		if matching and todo.assignment_rule == matching["name"] and todo.allocated_to == target_user:
+		if matching and todo.assignment_rule == matching["name"] and todo.allocated_to in target_users:
 			continue
 		todo_doc = frappe.get_doc("ToDo", todo.name)
 		todo_doc.status = "Closed"
 		todo_doc.save(ignore_permissions=True)
 
-	if not matching or not target_user or not frappe.db.get_value("User", target_user, "enabled"):
+	if not matching:
 		return
-	if any(
-		todo.assignment_rule == matching["name"] and todo.allocated_to == target_user for todo in open_todos
-	):
-		return
+	for target_user in target_users:
+		if not frappe.db.get_value("User", target_user, "enabled") or any(
+			todo.assignment_rule == matching["name"] and todo.allocated_to == target_user
+			for todo in open_todos
+		):
+			continue
+		_assign_stage_user(matching, doc, target_user)
 
+
+def _assign_stage_user(matching, doc, target_user):
 	rule = frappe.get_doc("Assignment Rule", matching["name"])
 	add_assignment(
 		{

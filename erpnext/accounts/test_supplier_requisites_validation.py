@@ -10,6 +10,7 @@ from erpnext.accounts.supplier_requisites_validation import (
 	_get_company_requisites,
 	_get_invoice_file_groups,
 	_get_ukrainian_bank_code,
+	_has_verified_invoice_source,
 	_looks_like_individual_entrepreneur,
 	_sync_bank_code_from_iban,
 	get_iban_bank_suggestion,
@@ -20,6 +21,83 @@ from erpnext.accounts.supplier_requisites_validation import (
 
 
 class TestSupplierRequisitesValidation(IntegrationTestCase):
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.db.get_value")
+	def test_request_inherits_only_submitted_verified_invoice_for_same_party_and_company(self, get_value):
+		doc = frappe._dict(
+			doctype="Payment Request",
+			party_type="Supplier",
+			payment_request_type="Outward",
+			party="SUP-A",
+			company="COMP-A",
+			reference_doctype="Purchase Invoice",
+			reference_name="INV-A",
+		)
+		invoice = frappe._dict(
+			docstatus=1, supplier="SUP-A", company="COMP-A", custom_supplier_requisites_manual_confirmation=1
+		)
+		get_value.return_value = invoice
+		self.assertTrue(_has_verified_invoice_source(doc))
+		for field, value in (
+			("docstatus", 0),
+			("docstatus", 2),
+			("supplier", "SUP-B"),
+			("company", "COMP-B"),
+			("custom_supplier_requisites_manual_confirmation", 0),
+		):
+			with self.subTest(field=field, value=value):
+				get_value.return_value = frappe._dict({**invoice, field: value})
+				self.assertFalse(_has_verified_invoice_source(doc))
+
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.db.get_value")
+	def test_payment_requires_every_referenced_invoice_to_be_verified(self, get_value):
+		doc = frappe._dict(
+			doctype="Payment Entry",
+			payment_type="Pay",
+			party_type="Supplier",
+			party="SUP-A",
+			company="COMP-A",
+			references=[
+				frappe._dict(reference_doctype="Purchase Invoice", reference_name=name)
+				for name in ("INV-A", "INV-B")
+			],
+		)
+		verified = frappe._dict(
+			docstatus=1, supplier="SUP-A", company="COMP-A", custom_supplier_requisites_manual_confirmation=1
+		)
+		get_value.side_effect = [verified, verified]
+		self.assertTrue(_has_verified_invoice_source(doc))
+		get_value.side_effect = [
+			verified,
+			frappe._dict({**verified, "custom_supplier_requisites_manual_confirmation": 0}),
+		]
+		self.assertFalse(_has_verified_invoice_source(doc))
+		doc.references = []
+		self.assertFalse(_has_verified_invoice_source(doc))
+
+	@patch(
+		"erpnext.accounts.supplier_requisites_validation.validate_supplier_requisites",
+		return_value={"applicable": True, "requires_manual_confirmation": True},
+	)
+	@patch("erpnext.accounts.supplier_requisites_validation.frappe.db.get_value")
+	def test_submit_carries_invoice_confirmation_without_second_manual_check(self, get_value, validate):
+		get_value.return_value = frappe._dict(
+			docstatus=1, supplier="SUP-A", company="COMP-A", custom_supplier_requisites_manual_confirmation=1
+		)
+		doc = frappe._dict(
+			dict(
+				doctype="Payment Request",
+				party_type="Supplier",
+				payment_request_type="Outward",
+				party="SUP-A",
+				company="COMP-A",
+				reference_doctype="Purchase Invoice",
+				reference_name="INV-A",
+			)
+		)
+		doc.set = lambda field, value: doc.update({field: value})
+		validate_before_submit(doc)
+		self.assertEqual(doc.custom_supplier_requisites_manual_confirmation, 1)
+
 	def test_buyer_details_do_not_make_supplier_details_ambiguous(self):
 		cases = (
 			("tax_id", "1234567890", "9999999999", "ІПН"),

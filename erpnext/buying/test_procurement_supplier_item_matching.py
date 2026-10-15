@@ -16,6 +16,7 @@ from erpnext.buying.procurement_supplier_item_matching import (
 	_fill_canonical,
 	_prefill_context,
 	confirm_matches,
+	confirm_prefill_matches,
 	get_prefill_preview,
 	prepare_prefill_items,
 	suggest_rows,
@@ -174,6 +175,28 @@ class TestProcurementSupplierItemMatching(IntegrationTestCase):
 			self.assertEqual(imported["items"][0]["qty"], 10)
 			self.assertEqual(imported["items"][0]["rate"], 5)
 			self.assertFalse(imported["missing_values"])
+			with patch(f"{MODULE}.frappe.db.get_value", return_value=1):
+				for basis, confirmation, expected in (
+					("exclusive", "", 6),
+					("inclusive", "", 5),
+					("unknown", "exclusive", 6),
+					("unknown", "inclusive", 5),
+					("unknown", "", None),
+				):
+					with patch(
+						f"{MODULE}.read_invoice_items",
+						return_value={"rows": [{**self.invoice_row(), "price_basis": basis}]},
+					):
+						vat_result = prepare_prefill_items(
+							"SUP",
+							"/invoice.pdf",
+							{},
+							[{"invoice_row": "1:0:1", "item_code": "ITEM-A"}],
+							import_values=True,
+							unknown_price_basis=confirmation,
+						)
+						self.assertEqual(vat_result["items"][0].get("rate"), expected)
+						self.assertEqual(vat_result["missing_values"], expected is None)
 			with patch(
 				f"{MODULE}.read_invoice_items", return_value={"rows": [{**self.invoice_row(), "rate": None}]}
 			):
@@ -256,7 +279,7 @@ class TestProcurementSupplierItemMatching(IntegrationTestCase):
 					"Загальна\nвартість",
 				]
 			),
-			{"supplier_item_name": 1, "uom": 2, "qty": 3, "rate": 4, "amount": 5},
+			{"supplier_item_name": 1, "uom": 2, "qty": 3, "rate": 4, "rate_exclusive": 4, "amount": 5},
 		)
 
 	def test_table_multiline_names_repeated_headers_and_totals(self):
@@ -318,6 +341,51 @@ class TestProcurementSupplierItemMatching(IntegrationTestCase):
 		with patch(f"{MODULE}.frappe.session", frappe._dict(user="buyer@example.com")):
 			with self.assertRaises(frappe.PermissionError):
 				_check_order("ORDER", "OTHER", "/private/files/invoice.pdf")
+
+	def test_prefill_confirmation_uses_pdf_text_and_does_not_save_order(self):
+		doc = MagicMock()
+		doc.name = "ORDER"
+		doc.is_new.return_value = False
+		doc.items = [self.order_row()]
+		item = MagicMock(disabled=0, has_variants=0, is_purchase_item=1)
+		with (
+			patch(f"{MODULE}._prefill_context", return_value=doc),
+			patch(f"{MODULE}.read_invoice_items", return_value={"rows": [self.invoice_row()]}),
+			patch(f"{MODULE}.frappe.get_doc", return_value=item),
+			patch(f"{MODULE}._save_confirmed_matches", return_value={"saved": 1}) as save,
+		):
+			result = confirm_prefill_matches(
+				"SUP",
+				"/private/files/invoice.pdf",
+				{},
+				[{"invoice_row": "1:0:1", "item_code": "ITEM-A", "supplier_item_name": "Forged name"}],
+			)
+		self.assertEqual(result, {"saved": 1})
+		save.assert_called_once_with(
+			[(self.invoice_row(), "ITEM-A")], "SUP", "/private/files/invoice.pdf", "ORDER"
+		)
+		doc.save.assert_not_called()
+		item.check_permission.assert_called_once_with("read")
+
+	def test_prefill_confirmation_rejects_unknown_duplicate_and_foreign_items(self):
+		doc = MagicMock()
+		doc.items = [self.order_row()]
+		item = MagicMock(disabled=0, has_variants=0, is_purchase_item=1)
+		with (
+			patch(f"{MODULE}._prefill_context", return_value=doc),
+			patch(f"{MODULE}.read_invoice_items", return_value={"rows": [self.invoice_row()]}),
+			patch(f"{MODULE}.frappe.get_doc", return_value=item),
+			patch(f"{MODULE}._save_confirmed_matches") as save,
+		):
+			for mappings in (
+				[],
+				[{"invoice_row": "FAKE", "item_code": "ITEM-A"}],
+				[{"invoice_row": "1:0:1", "item_code": "FOREIGN"}],
+				[{"invoice_row": "1:0:1", "item_code": "ITEM-A"}] * 2,
+			):
+				with self.subTest(mappings=mappings), self.assertRaises(frappe.ValidationError):
+					confirm_prefill_matches("SUP", "/private/files/invoice.pdf", {}, mappings)
+			save.assert_not_called()
 
 	def call_confirmation(self, mappings, existing=None):
 		doc = MagicMock(name="ORDER")
