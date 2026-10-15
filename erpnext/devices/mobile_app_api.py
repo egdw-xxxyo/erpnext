@@ -262,10 +262,25 @@ def get_me():
 	if image and not image.startswith(("http://", "https://")):
 		image = _site_url() + ("" if image.startswith("/") else "/") + image
 
+	employee = (
+		frappe.db.get_value(
+			"Employee",
+			{"user_id": user, "status": "Active"},
+			["name", "employee_name", "employee_number", "attendance_device_id", "department", "designation"],
+			as_dict=True,
+		)
+		or frappe._dict()
+	)
+
 	return {
 		"email": user,
 		"first_name": row.get("first_name") or "",
 		"last_name": row.get("last_name") or "",
 		"full_name": (row.get("full_name") or "").strip() or user,
 		"user_image": image or None,
+		"employee": employee.get("name"),
+		"employee_number": employee.get("employee_number"),
+		"badge_code": (employee.get("attendance_device_id") or "").strip() or None,
+		"department": employee.get("department"),
+		"designation": employee.get("designation"),
 	}
