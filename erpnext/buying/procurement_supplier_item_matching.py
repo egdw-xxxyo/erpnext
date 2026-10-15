@@ -8,7 +8,7 @@ from frappe import _
 from frappe.utils import cint, flt
 
 from erpnext.buying.doctype.supplier_item_alias.supplier_item_alias import alias_key, normalize_alias
-from erpnext.buying.procurement_invoice_items import read_invoice_items
+from erpnext.buying.procurement_invoice_items import invoice_rate, read_invoice_items
 
 ALIAS = "Supplier Item Alias"
 CPO = "Consolidated Purchase Order"
@@ -107,6 +107,7 @@ def _prefill_context(supplier, file_url, draft_doc):
 def get_prefill_preview(supplier: str, file_url: str, draft_doc: str | dict):
 	_prefill_context(supplier, file_url, draft_doc)
 	result = read_invoice_items(file_url)
+	result["is_vat_payer"] = cint(frappe.db.get_value("Supplier", supplier, "custom_is_vat_payer"))
 	aliases = _known_items(supplier)
 	candidates = {row.item_code for row in aliases}
 	allowed = (
@@ -151,6 +152,7 @@ def prepare_prefill_items(
 	draft_doc: str | dict,
 	mappings: str | list[dict],
 	import_values: bool | int | str = False,
+	unknown_price_basis: str = "",
 ):
 	"""Return unsaved rows; PDF quantities/prices require explicit opt-in."""
 	doc = _prefill_context(supplier, file_url, draft_doc)
@@ -163,6 +165,9 @@ def prepare_prefill_items(
 	):
 		frappe.throw(_("Select invoice rows and their matching order items."))
 	invoice_rows = {row["id"]: row for row in read_invoice_items(file_url)["rows"]}
+	is_vat_payer = cint(frappe.db.get_value("Supplier", supplier, "custom_is_vat_payer"))
+	if unknown_price_basis not in ("", "inclusive", "exclusive"):
+		frappe.throw(_("Select whether the PDF price includes VAT."))
 	seen = set()
 	rows = []
 	missing_values = False
@@ -204,7 +209,11 @@ def prepare_prefill_items(
 		if cint(import_values):
 			invoice = invoice_rows[invoice_id]
 			for fieldname in ("qty", "rate"):
-				value = invoice.get(fieldname)
+				value = (
+					invoice_rate(invoice, is_vat_payer, unknown_price_basis)
+					if fieldname == "rate"
+					else invoice.get(fieldname)
+				)
 				if (
 					value is not None
 					and isfinite(value)
@@ -298,6 +307,46 @@ def confirm_matches(source_name: str, supplier: str, file_url: str, mappings: st
 				_("The supplier item name or part number is too long to save. Check the PDF layout.")
 			)
 		confirmed.append((invoice_row, order_rows[order_id].item_code))
+	return _save_confirmed_matches(confirmed, supplier, file_url, doc.name)
+
+
+@frappe.whitelist(methods=["POST"])
+def confirm_prefill_matches(supplier: str, file_url: str, draft_doc: str | dict, mappings: str | list[dict]):
+	"""Save explicit PDF-to-Item choices without saving or submitting the order."""
+	doc = _prefill_context(supplier, file_url, draft_doc)
+	mappings = frappe.parse_json(mappings)
+	if (
+		not isinstance(mappings, list)
+		or not mappings
+		or len(mappings) > 200
+		or any(not isinstance(mapping, dict) for mapping in mappings)
+	):
+		frappe.throw(_("Select invoice rows and their matching order items."))
+	invoice_rows = {row["id"]: row for row in read_invoice_items(file_url)["rows"]}
+	seen = set()
+	confirmed = []
+	for mapping in mappings:
+		invoice_id = mapping.get("invoice_row")
+		code = mapping.get("item_code")
+		if invoice_id in seen or invoice_id not in invoice_rows or not code:
+			frappe.throw(_("The invoice or order items changed. Open the matching window again."))
+		seen.add(invoice_id)
+		if not any(row.item_code == code and row.supplier == supplier for row in doc.items):
+			frappe.throw(_("The invoice or order items changed. Open the matching window again."))
+		invoice_row = invoice_rows[invoice_id]
+		if len(invoice_row["supplier_item_name"]) > 140 or len(invoice_row["supplier_part_no"]) > 140:
+			frappe.throw(
+				_("The supplier item name or part number is too long to save. Check the PDF layout.")
+			)
+		item = frappe.get_doc("Item", code)
+		item.check_permission("read")
+		if item.disabled or item.has_variants or not item.is_purchase_item:
+			frappe.throw(_("Select an enabled purchase Item without variants."))
+		confirmed.append((invoice_row, code))
+	return _save_confirmed_matches(confirmed, supplier, file_url, None if doc.is_new() else doc.name)
+
+
+def _save_confirmed_matches(confirmed, supplier, file_url, source_name):
 	# Serialize confirmations for a supplier, including different target Items.
 	frappe.get_doc("Supplier", supplier, for_update=True).check_permission("read")
 	items = {}
@@ -332,7 +381,7 @@ def confirm_matches(source_name: str, supplier: str, file_url: str, mappings: st
 				"item_code": code,
 				"supplier_item_name": invoice_row["supplier_item_name"],
 				"supplier_part_no": invoice_row["supplier_part_no"],
-				"source_order": doc.name,
+				"source_order": source_name,
 				"source_file": file_url,
 				"confirmed_by": frappe.session.user,
 			}

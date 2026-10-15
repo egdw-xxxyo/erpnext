@@ -64,7 +64,7 @@ function select_supplier_invoice(frm, mode = "match") {
 		primary_action_label: __("Read invoice items"),
 		async primary_action(values) {
 			const invoice = invoices.find((row) => row.name === values.invoice);
-			const snapshot = JSON.stringify(frm.doc);
+			const snapshot = supplier_item_draft_snapshot(frm.doc);
 			const response = await frappe.call({
 				method: `erpnext.buying.procurement_supplier_item_matching.${
 					mode === "prefill" ? "get_prefill_preview" : "get_matching_preview"
@@ -173,11 +173,11 @@ function show_supplier_item_matches(frm, invoice, result) {
 				row.candidates[0];
 			html += `<tr data-invoice-row="${escape(row.id)}"><td><input type="checkbox" aria-label="${escape(
 				__("Confirm")
-			)}"></td><td>${escape(row.supplier_item_name)}<div class="text-muted">${__("Page {0}", [
-				row.page,
-			])}</div></td><td>${escape(row.supplier_part_no)}</td><td>${number(row.qty)} ${escape(
-				row.uom
-			)}</td><td>${number(
+			)}"></td><td title="${escape(row.supplier_item_name)}">${escape(
+				row.supplier_item_name
+			)}<div class="text-muted">${__("Page {0}", [row.page])}</div></td><td>${escape(
+				row.supplier_part_no
+			)}</td><td>${number(row.qty)} ${escape(row.uom)}</td><td>${number(
 				row.rate
 			)}</td><td><select class="form-control" style="min-width:280px" aria-label="${escape(
 				__("Order item")
@@ -208,6 +208,9 @@ function show_supplier_item_matches(frm, invoice, result) {
 
 function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 	const escape = frappe.utils.escape_html;
+	const ambiguous_price =
+		result.is_vat_payer &&
+		result.rows.some((row) => row.rate != null && (!row.price_basis || row.price_basis === "unknown"));
 	const dialog = new frappe.ui.Dialog({
 		title: __("Prefill from PDF"),
 		size: "extra-large",
@@ -232,6 +235,20 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 				),
 			},
 			{
+				fieldname: "unknown_price_basis",
+				fieldtype: "Select",
+				label: __("VAT in unspecified PDF prices"),
+				options: [
+					{ label: __("Select"), value: "" },
+					{ label: __("Including VAT"), value: "inclusive" },
+					{ label: __("Excluding VAT"), value: "exclusive" },
+				],
+				hidden: !ambiguous_price,
+				description: __(
+					"For prices without a VAT label, confirm whether VAT is already included. Explicit prices excluding VAT are increased by 20% for VAT payers."
+				),
+			},
+			{
 				fieldname: "rows",
 				fieldtype: "Table",
 				label: __("Invoice items"),
@@ -240,6 +257,12 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 				data: result.rows.map((row) => ({
 					...row,
 					invoice_row: row.id,
+					price_basis_label:
+						row.price_basis === "inclusive"
+							? __("Including VAT")
+							: row.price_basis === "exclusive"
+							? __("Excluding VAT")
+							: __("Not specified"),
 					__checked: row.suggested_item_code ? 1 : 0,
 					item_code: row.suggested_item_code || "",
 				})),
@@ -278,6 +301,14 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 						columns: 1,
 					},
 					{
+						fieldname: "price_basis_label",
+						fieldtype: "Data",
+						label: __("PDF VAT basis"),
+						read_only: 1,
+						in_list_view: 1,
+						columns: 1,
+					},
+					{
 						fieldname: "item_code",
 						fieldtype: "Link",
 						options: "Item",
@@ -291,12 +322,16 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 		],
 		primary_action_label: __("Add selected items"),
 		async primary_action(values) {
+			if (values.import_values && ambiguous_price && !values.unknown_price_basis) {
+				frappe.msgprint(__("Select whether the PDF price includes VAT."));
+				return;
+			}
 			const selected = dialog.fields_dict.rows.grid.get_selected_children();
 			if (!selected.length || selected.some((row) => !row.item_code)) {
 				frappe.msgprint(__("Tick invoice rows and select our Item for each one."));
 				return;
 			}
-			if (JSON.stringify(frm.doc) !== snapshot) {
+			if (supplier_item_draft_snapshot(frm.doc) !== snapshot) {
 				frappe.msgprint(__("The order changed. Open the PDF prefill again."));
 				return;
 			}
@@ -305,6 +340,7 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 				args: {
 					draft_doc: snapshot,
 					import_values: values.import_values || 0,
+					unknown_price_basis: values.unknown_price_basis || "",
 					supplier: invoice.supplier,
 					file_url: invoice.invoice_pdf,
 					mappings: selected.map((row) => ({
@@ -314,7 +350,7 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 				},
 				freeze: true,
 			});
-			if (JSON.stringify(frm.doc) !== snapshot) {
+			if (supplier_item_draft_snapshot(frm.doc) !== snapshot) {
 				frappe.msgprint(__("The order changed. Open the PDF prefill again."));
 				return;
 			}
@@ -326,6 +362,43 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 			frm.trigger("render_supplier_contacts");
 			frm.dirty();
 			dialog.hide();
+			const new_matches = selected.filter((row) => {
+				const original = result.rows.find((entry) => entry.id === row.invoice_row);
+				return original?.suggested_item_code !== row.item_code;
+			});
+			if (new_matches.length) {
+				const save_matches = await new Promise((resolve) =>
+					frappe.confirm(
+						__(
+							"Save the selected supplier names and articles for these Items for future PDF matching?"
+						),
+						() => resolve(true),
+						() => resolve(false)
+					)
+				);
+				if (save_matches) {
+					const saved = await frappe.call({
+						method: "erpnext.buying.procurement_supplier_item_matching.confirm_prefill_matches",
+						args: {
+							draft_doc: supplier_item_draft_snapshot(frm.doc),
+							supplier: invoice.supplier,
+							file_url: invoice.invoice_pdf,
+							mappings: new_matches.map((row) => ({
+								invoice_row: row.invoice_row,
+								item_code: row.item_code,
+							})),
+						},
+						freeze: true,
+					});
+					frappe.msgprint(
+						__("Saved {0} new matches; {1} were already saved.", [
+							saved.message.saved,
+							saved.message.already_saved,
+						])
+					);
+				}
+			}
+
 			frappe.msgprint(
 				__(
 					"Items were added to the draft. Verify quantities, units, prices and VAT against the PDF before saving."
@@ -348,5 +421,28 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 			)
 		);
 	}
+	const grid = dialog.fields_dict.rows.grid;
+	dialog.$wrapper.addClass("supplier-pdf-prefill-dialog");
+	dialog.$wrapper.prepend(`<style>
+		.supplier-pdf-prefill-dialog .grid-body .grid-row .data-row > .col:last-child,
+		.supplier-pdf-prefill-dialog .grid-heading-row .data-row > .col:last-child{flex:0 0 36px;max-width:36px;padding:0 6px}
+		.supplier-pdf-prefill-dialog .grid-static-col[data-fieldname="supplier_item_name"]{flex:1 1 0;max-width:none}
+	</style>`);
+	const show_full_names = (row) => {
+		if (row.grid !== grid || !row.doc) return;
+		for (const name of ["supplier_item_name", "supplier_part_no", "item_code"]) {
+			row.row.find(`[data-fieldname="${name}"]`).attr("title", row.doc[name] || "");
+		}
+		row.row.find(".btn-open-row").parent().css({ flex: "0 0 36px", "max-width": "36px" });
+	};
+	dialog.$wrapper.on("mouseenter.supplier-pdf-names", ".grid-static-col[data-fieldname]", function () {
+		const row = grid.grid_rows_by_docname[$(this).closest(".grid-row").attr("data-name")];
+		if (row) show_full_names(row);
+	});
 	dialog.show();
+	for (const row of grid.grid_rows || []) show_full_names(row);
+}
+
+function supplier_item_draft_snapshot(doc) {
+	return JSON.stringify(doc, (key, value) => (key === "custom_rate_excluding_vat" ? undefined : value));
 }

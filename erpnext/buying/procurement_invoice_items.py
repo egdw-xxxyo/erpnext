@@ -20,7 +20,18 @@ HEADERS = {
 		"item name",
 	),
 	"supplier_part_no": ("артикул", "код товару", "код товара", "sku", "part number", "item code"),
-	"qty": ("кількість", "количество", "к-сть", "к-во", "к-ть", "кіл-ть", "кол-во", "quantity", "qty"),
+	"qty": (
+		"кількість",
+		"количество",
+		"к-сть",
+		"к-во",
+		"к-ть",
+		"кіл-ть",
+		"кіл-сть",
+		"кол-во",
+		"quantity",
+		"qty",
+	),
 	"rate": ("ціна", "цена", "price", "unit price"),
 	"amount": ("сума", "сумма", "вартість", "стоимость", "amount", "total"),
 	"uom": ("од. вим", "одиниця", "ед. изм", "од.", "uom", "unit"),
@@ -55,8 +66,57 @@ def header_columns(cells):
 				key == "uom" and any(pattern in compact for pattern in ("одвим", "едизм"))
 			):
 				columns.setdefault(key, index)
+				if key == "rate":
+					basis = price_basis(label)
+					if basis != "unknown":
+						columns[f"rate_{basis}"] = index
 				break
+	if "rate_inclusive" in columns:
+		columns["rate"] = columns["rate_inclusive"]
 	return columns if "supplier_item_name" in columns and "qty" in columns else None
+
+
+def price_basis(label):
+	label = normalize_alias(label)
+	if re.search(r"без\s*(пдв|ндс)|excl(?:uding)?\.?\s*vat|without\s+vat", label):
+		return "exclusive"
+	if re.search(r"(?:із|зі|з|с)\s*(пдв|ндс)|incl(?:uding)?\.?\s*vat|with\s+vat", label):
+		return "inclusive"
+	return "unknown"
+
+
+def _header_cells(table, index):
+	"""Join split header lines only, never consume a numeric item row."""
+	cells = list(table[index])
+	for offset in (-1, 1):
+		adjacent = index + offset
+		if not 0 <= adjacent < len(table):
+			continue
+		other = table[adjacent]
+		if len(other) != len(cells) or any(parse_number(cell) is not None for cell in other):
+			continue
+		if not any(re.search(r"ціна|цена|price|сума|amount|пдв|ндс|vat", normalize_alias(c)) for c in other):
+			continue
+		cells = [
+			" ".join(str(part) for part in (left, right) if part)
+			for left, right in (
+				zip(other, cells, strict=True) if offset < 0 else zip(cells, other, strict=True)
+			)
+		]
+	return cells
+
+
+def invoice_rate(row, is_vat_payer, unknown_price_basis=""):
+	"""CPO rates are gross. Ambiguous VAT-payer prices require explicit confirmation."""
+	rate = row.get("rate")
+	if rate is None or not is_vat_payer:
+		return rate
+	basis = row.get("price_basis", "unknown")
+	if basis == "unknown":
+		basis = unknown_price_basis
+	if basis == "exclusive":
+		return float(Decimal(str(rate)) * Decimal("1.2"))
+	return rate if basis == "inclusive" else None
 
 
 def parse_table(table, page, table_index, previous_columns=None):
@@ -65,7 +125,7 @@ def parse_table(table, page, table_index, previous_columns=None):
 	for index, cells in enumerate(table):
 		found = header_columns(cells)
 		if found:
-			columns = found
+			columns = header_columns(_header_cells(table, index)) or found
 			continue
 		if not columns:
 			continue
@@ -85,6 +145,14 @@ def parse_table(table, page, table_index, previous_columns=None):
 				"uom": " ".join(str(values.get("uom") or "").split()),
 				"qty": qty,
 				"rate": parse_number(values.get("rate")),
+				"price_basis": next(
+					(
+						basis
+						for basis in ("inclusive", "exclusive")
+						if columns.get(f"rate_{basis}") == columns.get("rate") and "rate" in columns
+					),
+					"unknown",
+				),
 				"amount": parse_number(values.get("amount")),
 			}
 		)

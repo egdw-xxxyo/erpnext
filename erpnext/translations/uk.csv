@@ -15985,3 +15985,21 @@ The payment request changed. Refresh the invoice and try again.,Запит на 
 Payment requests already exist for this invoice: {0}. Confirm the treasury review and submit them before creating the payment?,Для цього рахунку вже створено запити на оплату: {0}. Підтвердити перевірку казначейства та провести їх перед створенням оплати?
 Not yet completed,Очікує завершення
 Source Consolidated Purchase Order,Вихідне зведене замовлення на придбання
+Unit price excluding VAT,Ціна одиниці без ПДВ
+"Calculated from the final price. VAT payers use 20% VAT; other suppliers have no VAT.","Розраховується з кінцевої ціни. Для платників застосовується ПДВ 20%; для інших постачальників — без ПДВ."
+VAT breakdown,ПДВ за постачальниками
+"Final unit price: includes 20% VAT for VAT payers; no VAT for other suppliers.","Кінцева ціна одиниці: для платників включає ПДВ 20%; для інших постачальників — без ПДВ."
+Total payable,Разом до сплати
+Total excluding VAT,Разом без ПДВ
+Without VAT,Без ПДВ
+Including VAT,З ПДВ
+Excluding VAT,Без ПДВ
+VAT calculation uses 20% for VAT payers.,Для платників ПДВ розрахунок виконується за ставкою 20%.
+Could not read supplier VAT status. Check Supplier access permissions.,Не вдалося отримати статус платника ПДВ. Перевірте права доступу до постачальника.
+VAT in unspecified PDF prices,ПДВ у цінах PDF без уточнення
+"For prices without a VAT label, confirm whether VAT is already included. Explicit prices excluding VAT are increased by 20% for VAT payers.","Для цін без позначки ПДВ підтвердіть, чи включено податок. Явно зазначені ціни без ПДВ для платників збільшуються на 20%."
+PDF VAT basis,ПДВ у ціні PDF
+Select whether the PDF price includes VAT.,"Вкажіть, чи включено ПДВ у ціну PDF."
+VAT,ПДВ
+Price excluding VAT,Ціна без ПДВ
+Save the selected supplier names and articles for these Items for future PDF matching?,Зберегти вибрані назви й артикули постачальника для цих товарів для наступного зіставлення з PDF?

@@ -45,6 +45,7 @@ doctype_js = {
 	"Consolidated Purchase Order": [
 		"public/js/procurement_links.js",
 		"public/js/custom/procurement_supplier_item_matching.js",
+		"public/js/custom/procurement_vat.js",
 	],
 	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",

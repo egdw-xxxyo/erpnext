@@ -4212,6 +4212,21 @@ def setup_procurement_document_details():
 	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 	fields = {
+		"Consolidated Purchase Order Item": [
+			{
+				"fieldname": "custom_rate_excluding_vat",
+				"fieldtype": "Currency",
+				"options": "",
+				"label": "Price excluding VAT",
+				"insert_after": "uom",
+				"is_virtual": 1,
+				"in_list_view": 1,
+				"columns": 1,
+				"precision": "2",
+				"hidden": 1,
+				"description": "Calculated from the final price. VAT payers use 20% VAT; other suppliers have no VAT.",
+			}
+		],
 		"Supplier": [
 			{
 				"fieldname": "custom_is_vat_payer",
@@ -4222,6 +4237,12 @@ def setup_procurement_document_details():
 			}
 		],
 		"Consolidated Purchase Order": [
+			{
+				"fieldname": "custom_vat_totals",
+				"fieldtype": "HTML",
+				"label": "VAT breakdown",
+				"insert_after": "grand_total",
+			},
 			{
 				"fieldname": "custom_has_delivery_note",
 				"fieldtype": "Check",
