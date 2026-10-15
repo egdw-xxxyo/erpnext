@@ -41,6 +41,8 @@
   "mobile_no",
   "email_id",
   "accounting_tab",
+  "accounting_statistics_section",
+  "accounting_statistics_html",
   "default_accounts_section",
   "accounts",
   "supplier_bank_accounts_section",
@@ -91,6 +93,15 @@
   "dashboard_tab"
  ],
  "fields": [
+  {
+   "fieldname": "accounting_statistics_section",
+   "fieldtype": "Section Break",
+   "label": "Stats"
+  },
+  {
+   "fieldname": "accounting_statistics_html",
+   "fieldtype": "HTML"
+  },
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",

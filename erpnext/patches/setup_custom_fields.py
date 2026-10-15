@@ -4211,6 +4211,60 @@ def setup_procurement_document_details():
 	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
+	vat_fields = {}
+	for doctype, anchor in (
+		("Purchase Invoice", "grand_total"),
+		("Payment Request", "grand_total"),
+		("Payment Entry", "received_amount"),
+	):
+		vat_fields[doctype] = [
+			{
+				"fieldname": "custom_supplier_vat_totals",
+				"fieldtype": "HTML",
+				"label": "VAT breakdown",
+				"insert_after": anchor,
+			}
+		]
+	for doctype, definitions in (
+		(
+			"Purchase Invoice Item",
+			(
+				("custom_vat_net_rate", "Price excluding VAT", "rate"),
+				("custom_vat_gross_rate", "Price", "custom_vat_net_rate"),
+				("custom_vat_gross_amount", "Amount", "amount"),
+			),
+		),
+		(
+			"Payment Reference",
+			(
+				("custom_vat_net_amount", "Amount excluding VAT", "amount"),
+				("custom_vat_amount", "VAT", "custom_vat_net_amount"),
+			),
+		),
+		(
+			"Payment Entry Reference",
+			(
+				("custom_vat_net_amount", "Amount excluding VAT", "allocated_amount"),
+				("custom_vat_amount", "VAT", "custom_vat_net_amount"),
+			),
+		),
+	):
+		vat_fields[doctype] = [
+			{
+				"fieldname": name,
+				"label": label,
+				"insert_after": anchor,
+				"fieldtype": "Currency",
+				"is_virtual": 1,
+				"read_only": 1,
+				"hidden": 1,
+				"precision": "2",
+				"columns": 1,
+			}
+			for name, label, anchor in definitions
+		]
+	create_custom_fields(vat_fields)
+
 	fields = {
 		"Consolidated Purchase Order Item": [
 			{

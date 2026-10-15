@@ -41,6 +41,7 @@ web_include_icons = [
 ]
 
 doctype_js = {
+	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
 	"Consolidated Purchase Order": [
 		"public/js/procurement_links.js",
@@ -71,20 +72,26 @@ doctype_js = {
 	"Stock Entry": "public/js/responsible_employee.js",
 	"Purchase Receipt": "public/js/responsible_employee.js",
 	"Purchase Invoice": [
+		"public/js/custom/supplier_vat_display.js",
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
 	],
 	"Payment Request": [
+		"public/js/custom/supplier_vat_display.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
 	],
-	"Payment Entry": "public/js/procurement_supplier_invoice_files.js",
+	"Payment Entry": [
+		"public/js/procurement_supplier_invoice_files.js",
+		"public/js/custom/supplier_vat_display.js",
+	],
 	"Delivery Note": "public/js/responsible_employee.js",
 	"Sales Invoice": "public/js/responsible_employee.js",
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"Purchase Invoice": "public/js/custom/purchase_invoice_vat_list.js",
 	"ToDo": "public/js/custom/todo_list.js",
 	"Code List": [
 		"edi/doctype/code_list/code_list_import.js",

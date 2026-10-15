@@ -16003,3 +16003,7 @@ Select whether the PDF price includes VAT.,"Вкажіть, чи включен�
 VAT,ПДВ
 Price excluding VAT,Ціна без ПДВ
 Save the selected supplier names and articles for these Items for future PDF matching?,Зберегти вибрані назви й артикули постачальника для цих товарів для наступного зіставлення з PDF?
+Amount excluding VAT,Сума без ПДВ
+Price including VAT,Ціна з ПДВ
+Paid VAT,Сплачено ПДВ
+Invalid invoice selection.,Некоректний вибір рахунків.
