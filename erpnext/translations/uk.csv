@@ -16278,3 +16278,58 @@ Package {0} is {1}: only a packed package can be shipped,"Пакування {0}
 Package {0} is already shipped and cannot be unpacked,Пакування {0} вже відправлено і не може бути розпаковане
 Serial No {0} is in package {1} ({2} pcs). Add the whole package?,Серійний номер {0} входить до пакування {1} ({2} шт.). Додати все пакування?
 "Serial No {0} not added: a package is shipped only whole","Серійний номер {0} не додано: пакування відправляється лише цілим"
+Package Overview,Огляд пакувань
+All {0} serials left stock but the box is still Packed,"Усі {0} серійних номерів вибули зі складу, але пакування досі «Запаковано»"
+Boxes,Пакування
+Boxes shipped,Відправлено пакувань
+Boxes waiting to ship,Пакування очікують відправлення
+"Boxes: contents, status, the document that shipped them","Пакування: вміст, статус, документ відправлення"
+By,Ким
+By item,За товарами
+Checks,Перевірки
+Click a number to see those boxes.,"Натисніть число, щоб побачити ці пакування."
+Contents,Вміст
+Delivery notes: a packed box ships only whole,Накладні: запаковане пакування відправляється лише цілим
+Draft box not finished for {0} days,Чернетку пакування не завершено {0} дн.
+Draft boxes,Чернетки пакувань
+Draft boxes are not packed yet: their serials are free.,Чернетки ще не запаковані: їхні серійні номери вільні.
+Drafts,Чернетки
+Items in waiting boxes,"Товарів у пакуваннях, що очікують"
+Last {0} days,Останні {0} дн.
+Not submitted,Не проведено
+Oldest first. Click a row to see its serial numbers.,"Спочатку найстаріші. Натисніть рядок, щоб побачити серійні номери."
+Oldest waiting,Найдовше очікує
+"Package, serial no, item, order","Пакування, серійний номер, товар, замовлення"
+"Packed / shipped, 7 days",Запаковано / відправлено за 7 днів
+Packed box without serial numbers,Запаковане пакування без серійних номерів
+Packing jobs: who packed which serials at which workplace,Завдання пакування: хто які номери пакував і на якому робочому місці
+"Packing templates: box, units per box, required checks","Шаблони пакування: коробка, кількість у коробці, обов'язкові перевірки"
+Pallets: boxes put together for one shipment,"Палети: пакування, зібрані для одного відправлення"
+Partially shipped: {0} of {1} serials left stock,Відправлено частково: {0} з {1} серійних номерів вибули зі складу
+Serial number is in several open boxes: {0},Серійний номер є в кількох відкритих пакуваннях: {0}
+Serial numbers delivered that were never in a submitted package.,"Відвантажені серійні номери, які ніколи не були в проведеному пакуванні."
+Serials of one box stand in different warehouses: {0},Серійні номери одного пакування на різних складах: {0}
+Shipped box but {0} serials are back in stock: {1},"Пакування відправлено, але {0} серійних номерів знову на складі: {1}"
+Shipped box without a shipping document,Відправлене пакування без документа відправлення
+"Shipped by {0} {1}, which is not submitted","Відправлено документом {0} {1}, який не проведено"
+Shipped without a box,Відправлено без пакування
+"Shipped without a box, last {0} days","Відправлено без пакування, останні {0} дн."
+Showing {0} of {1}. Narrow with the search or the item.,Показано {0} з {1}. Звузьте пошуком або товаром.
+Unit in staging,Виріб на проміжному складі
+Unpacked and loose,Розпаковані та без пакування
+Unpacked in the last 30 days,Розпаковані за останні 30 днів
+Waiting to ship,Очікують відправлення
+Where the serials are,Де серійні номери
+boxes,пакувань
+in {0} boxes,у {0} пакуваннях
+not submitted yet,ще не проведені
+packed,запаковано
+"serials, last {0} days","серійних номерів, останні {0} дн."
+shipped,відправлено
+whole box,ціле пакування
+{0} documents,{0} документів
+{0} in staging,{0} на проміжному складі
+{0} items packed ever,{0} товарів пакувалося загалом
+{0} left stock,{0} вибули зі складу
+"{0} pcs, oldest {1}","{0} шт., найстаріше {1}"
+{0} serials are packed but still stand in a staging warehouse,"{0} серійних номерів запаковано, але вони досі на проміжному складі"

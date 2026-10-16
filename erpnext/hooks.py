@@ -227,6 +227,7 @@ after_migrate = [
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 	"erpnext.setup.organization_sidebar.add_organization_links",
 	"erpnext.buying.buying_sidebar.add_buying_links",
+	"erpnext.stock.stock_sidebar.add_stock_links",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
