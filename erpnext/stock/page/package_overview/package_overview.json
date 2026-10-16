@@ -4,7 +4,7 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-10-16 12:00:00.000000",
+ "modified": "2026-10-16 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "package-overview",
@@ -12,19 +12,10 @@
  "page_name": "package-overview",
  "roles": [
   {
+   "role": "Accounts Manager"
+  },
+  {
    "role": "Stock User"
-  },
-  {
-   "role": "Stock Manager"
-  },
-  {
-   "role": "Manufacturing Manager"
-  },
-  {
-   "role": "Manufacturing User"
-  },
-  {
-   "role": "System Manager"
   }
  ],
  "script": null,

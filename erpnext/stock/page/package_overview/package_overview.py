@@ -12,7 +12,8 @@ from frappe.utils import add_days, getdate, now_datetime, today
 from erpnext.manufacturing.packing import staging_warehouses
 from erpnext.stock.package_shipping import LINK_FIELD
 
-VIEW_ROLES = ("Stock User", "Stock Manager", "Manufacturing Manager", "Manufacturing User", "System Manager")
+# Who sees the page: whoever may run this report, so access is managed in one place.
+ACCESS_REPORT = "Stock Balance"
 HISTORY_DAYS = 14
 STALE_DRAFT_DAYS = 1
 UNPACKED_DAYS = 30
@@ -20,7 +21,7 @@ UNPACKED_DAYS = 30
 
 @frappe.whitelist()
 def get_overview():
-	frappe.only_for(VIEW_ROLES)
+	check_access()
 
 	rows = _rows()
 	packages = _packages(rows)
@@ -49,6 +50,12 @@ def get_overview():
 		"loose_shipped": _loose_shipped(),
 		"issues": _issues(packages, shipped_docs),
 	}
+
+
+def check_access():
+	report = frappe.get_doc("Report", ACCESS_REPORT)
+	if not report.is_permitted() or not frappe.has_permission(report.ref_doctype, "report"):
+		frappe.throw(_("You need access to the {0} report").format(_(ACCESS_REPORT)), frappe.PermissionError)
 
 
 def _rows():
