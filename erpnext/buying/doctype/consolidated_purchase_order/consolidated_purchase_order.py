@@ -612,6 +612,7 @@ def get_approval_route_summary(source_name: str):
 		get_approval_threshold,
 		get_document_approved_users,
 		get_document_final_approvers,
+		has_administrator_approval,
 		is_automatic_final_approval,
 	)
 
@@ -668,6 +669,7 @@ def get_approval_route_summary(source_name: str):
 		"final_approved_users": final_approved_users,
 		"final_approvers": [_get_user_summary(user) for user in get_document_final_approvers(doc)],
 		"final_approval_automatic": is_automatic_final_approval(doc),
+		"final_approval_administrator": has_administrator_approval(doc),
 		"final_approval_threshold": doc.ceo_approval_threshold or get_approval_threshold(),
 		"external_payment": bool(doc.items_already_purchased),
 		"external_payer": external_payer,

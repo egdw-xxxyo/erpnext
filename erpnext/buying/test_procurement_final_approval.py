@@ -174,6 +174,72 @@ class TestProcurementFinalApproval(IntegrationTestCase):
 			apply_workflow({"doctype": doc.doctype, "name": doc.name}, "Погодити")
 			core.assert_called_once()
 
+	def test_administrator_completes_final_approval_without_impersonating_ceos(self):
+		from erpnext.buying.procurement_workflow_reason import apply_workflow
+
+		for required in ([], ["ceo1"], ["ceo1", "ceo2", "ceo3", "ceo4"], ["Administrator", "ceo1", "ceo2"]):
+			with self.subTest(required=required):
+				doc = self.doc(
+					**{
+						approval.SNAPSHOT_FIELD: json.dumps(required),
+						approval.VOTES_FIELD: '["Administrator"]' if "Administrator" in required else "[]",
+					}
+				)
+				with (
+					patch.object(approval.frappe, "session", frappe._dict(user="Administrator")),
+					patch.object(approval.frappe, "get_doc", return_value=doc),
+					patch.object(doc, "check_permission"),
+					patch.object(doc, "add_comment") as comment,
+					patch.object(approval.frappe.db, "set_value"),
+					patch.object(approval.frappe, "get_cached_value", return_value="Administrator"),
+					patch.object(approval, "_close_user_assignment"),
+					patch.object(approval, "close_final_approval_assignments") as close,
+					patch("frappe.model.workflow.apply_workflow", return_value=doc) as core,
+				):
+					apply_workflow({"doctype": doc.doctype, "name": doc.name}, "Погодити")
+				self.assertEqual(approval.get_document_final_approvers(doc), required)
+				self.assertEqual(approval.get_document_approved_users(doc), ["Administrator"])
+				self.assertEqual(doc.final_approval_count, 1)
+				comment.assert_called_once()
+				core.assert_called_once()
+				close.assert_called_once_with(doc.name)
+				next_doc = self.doc(workflow_state="Погоджено")
+				next_doc._doc_before_save = doc
+				approval.capture_final_approvers(next_doc)
+				self.assertEqual(approval.get_document_approved_users(next_doc), ["Administrator"])
+
+	def test_client_cannot_forge_administrator_approval(self):
+		doc = self.doc(
+			workflow_state="Погоджено",
+			**{approval.VOTES_FIELD: json.dumps(["Administrator", approval.ADMINISTRATOR_OVERRIDE])},
+		)
+		doc._doc_before_save = self.doc(
+			**{approval.SNAPSHOT_FIELD: '["ceo1", "ceo2"]', approval.VOTES_FIELD: "[]"}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			approval.capture_final_approvers(doc)
+
+	def test_old_ordinary_administrator_vote_does_not_override_other_ceos(self):
+		doc = self.doc(workflow_state="Погоджено")
+		doc._doc_before_save = self.doc(
+			**{
+				approval.SNAPSHOT_FIELD: '["Administrator", "ceo2"]',
+				approval.VOTES_FIELD: '["Administrator"]',
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			approval.capture_final_approvers(doc)
+
+	@patch.object(approval, "get_configured_final_approvers", return_value=["ceo1", "ceo2"])
+	def test_administrator_approval_does_not_carry_over_to_a_new_cycle(self, _configured):
+		doc = self.doc()
+		doc._doc_before_save = self.doc(
+			workflow_state="Потребує доопрацювання", **{approval.VOTES_FIELD: '["Administrator"]'}
+		)
+		approval.capture_final_approvers(doc)
+		self.assertEqual(approval.get_document_approved_users(doc), [])
+		self.assertEqual(doc.final_approval_count, 0)
+
 	def test_repeated_settings_migration_does_not_save_or_insert(self):
 		settings = MagicMock()
 		settings.get.return_value = 1

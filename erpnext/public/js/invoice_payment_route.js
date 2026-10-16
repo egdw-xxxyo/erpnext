@@ -58,6 +58,7 @@ async function render_invoice_payment_route(frm) {
 			let role = __(stage.role);
 			if (step.key === "ceo") {
 				if (step.automatic && step.completed) role = __("Approved automatically");
+				else if (route.ceo_administrator) role = __("Approved by Administrator");
 				else if (current || step.completed) role += ` · ${route.ceo_votes}/${route.ceo_required}`;
 			}
 			const actor = step.automatic && step.completed ? "" : frappe.utils.escape_html(actorText);

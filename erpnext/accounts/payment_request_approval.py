@@ -6,8 +6,10 @@ import frappe
 from frappe import _
 
 from erpnext.buying.procurement_final_approval import (
+	ADMINISTRATOR_OVERRIDE,
 	get_approval_threshold,
 	get_configured_final_approvers,
+	has_administrator_approval,
 )
 
 FINAL = "Фінальне погодження"
@@ -34,7 +36,9 @@ def approvers(doc):
 
 def votes(doc):
 	return [
-		user for user in dict.fromkeys(frappe.parse_json(doc.get(VOTES) or "[]")) if user in approvers(doc)
+		user
+		for user in dict.fromkeys(frappe.parse_json(doc.get(VOTES) or "[]"))
+		if user in approvers(doc) or (user == "Administrator" and has_administrator_approval(doc, VOTES))
 	]
 
 
@@ -71,7 +75,7 @@ def prepare_approval(doc, method=None):
 	if state == FINAL and state != previous:
 		doc.set(SNAPSHOT, json.dumps(get_configured_final_approvers()))
 		doc.set(VOTES, "[]")
-	if previous == FINAL and state == TREASURY:
+	if previous == FINAL and state == TREASURY and not has_administrator_approval(doc, VOTES):
 		if not approvers(doc) or set(votes(doc)) != set(approvers(doc)):
 			frappe.throw(_("All recorded CEO approvers must approve this payment request."))
 
@@ -81,39 +85,51 @@ def record_vote(doc):
 	doc.check_permission("write")
 	if doc.workflow_state != FINAL or not uses_invoice_route(doc):
 		frappe.throw(_("The payment request is not awaiting CEO approval."))
+	user = frappe.session.user
 	# Existing requests are initialized on an explicit approval action, never during migration.
 	if not doc.get(SNAPSHOT):
-		doc.set(SNAPSHOT, json.dumps(get_configured_final_approvers()))
+		doc.set(SNAPSHOT, json.dumps(get_configured_final_approvers(throw=user != "Administrator")))
 		doc.set(VOTES, "[]")
 		doc.set(THRESHOLD, get_approval_threshold())
-	user = frappe.session.user
-	if user not in approvers(doc) or "Payments: Фінальний погоджувач" not in frappe.get_roles():
+	if user != "Administrator" and (
+		user not in approvers(doc) or "Payments: Фінальний погоджувач" not in frappe.get_roles()
+	):
 		frappe.throw(
 			_("Only a recorded CEO approver can decide this payment request."), frappe.PermissionError
 		)
 	approved = votes(doc)
-	if user in approved and len(approved) < len(approvers(doc)):
+	if user != "Administrator" and user in approved and len(approved) < len(approvers(doc)):
 		frappe.throw(_("You have already approved this payment request."))
-	if user not in approved:
-		approved.append(user)
-		doc.set(VOTES, json.dumps(approved))
+	if user not in approved or (user == "Administrator" and not has_administrator_approval(doc, VOTES)):
+		if user not in approved:
+			approved.append(user)
+		stored = [*approved, ADMINISTRATOR_OVERRIDE] if user == "Administrator" else approved
+		doc.set(VOTES, json.dumps(stored))
 		frappe.db.set_value(
 			doc.doctype,
 			doc.name,
 			{SNAPSHOT: doc.get(SNAPSHOT), VOTES: doc.get(VOTES), THRESHOLD: doc.get(THRESHOLD)},
 		)
 		doc.add_comment(
-			"Comment", text=_("CEO approval recorded: {0}/{1}.").format(len(approved), len(approvers(doc)))
+			"Comment",
+			text=_("Administrator completed CEO approval without the remaining CEO votes.")
+			if user == "Administrator"
+			else _("CEO approval recorded: {0}/{1}.").format(len(approved), len(approvers(doc))),
 		)
 		from erpnext.accounts.payment_workflow_automation import sync_payment_request_assignment
 
 		sync_payment_request_assignment(doc)
 		doc.reload()
-	return doc, len(approved) == len(approvers(doc))
+	return doc, has_administrator_approval(doc, VOTES) or len(approved) == len(approvers(doc))
 
 
 def check_final_decision(doc):
-	if uses_invoice_route(doc) and doc.get(SNAPSHOT) and frappe.session.user not in approvers(doc):
+	if (
+		frappe.session.user != "Administrator"
+		and uses_invoice_route(doc)
+		and doc.get(SNAPSHOT)
+		and frappe.session.user not in approvers(doc)
+	):
 		frappe.throw(
 			_("Only a recorded CEO approver can decide this payment request."), frappe.PermissionError
 		)
