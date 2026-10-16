@@ -342,6 +342,56 @@ class TestProcurementSupplierItemMatching(IntegrationTestCase):
 			with self.assertRaises(frappe.PermissionError):
 				_check_order("ORDER", "OTHER", "/private/files/invoice.pdf")
 
+	@patch(f"{MODULE}.frappe.get_roles", return_value=["Закупівельник"])
+	def test_matching_later_and_completed_orders_only_saves_aliases(self, _roles):
+		for status, stage, completion in (
+			(0, "Перевірка підрозділу", "Погодження"),
+			(0, "Фінальне погодження", "Погодження"),
+			(1, "Погоджено", "Очікує оплату"),
+			(1, "Погоджено", "Завершено"),
+		):
+			with self.subTest(stage=stage, completion=completion):
+				doc = MagicMock(
+					owner="owner@example.com",
+					initiator_user="buyer@example.com",
+					docstatus=status,
+					workflow_state=stage,
+					procurement_completion_status=completion,
+				)
+				doc.name = "ORDER"
+				doc.items = [self.order_row()]
+				doc.supplier_invoices = [
+					frappe._dict(supplier="SUP", invoice_pdf="/private/files/invoice.pdf")
+				]
+				with (
+					patch(f"{MODULE}.frappe.session", frappe._dict(user="buyer@example.com")),
+					patch(f"{MODULE}.frappe.get_doc", side_effect=[doc, MagicMock()]),
+					patch(f"{MODULE}.read_invoice_items", return_value={"rows": [self.invoice_row()]}),
+					patch(f"{MODULE}._save_confirmed_matches", return_value={"saved": 1}) as save,
+				):
+					result = confirm_matches(
+						"ORDER",
+						"SUP",
+						"/private/files/invoice.pdf",
+						[{"invoice_row": "1:0:1", "order_row": "ROW-A"}],
+					)
+				self.assertEqual(result, {"saved": 1})
+				save.assert_called_once_with(
+					[(self.invoice_row(), "ITEM-A")], "SUP", "/private/files/invoice.pdf", "ORDER"
+				)
+				doc.check_permission.assert_called_once_with("read")
+				doc.save.assert_not_called()
+				doc.db_set.assert_not_called()
+				doc.submit.assert_not_called()
+
+	def test_cancelled_order_cannot_be_used_for_matching(self):
+		with (
+			patch(f"{MODULE}.frappe.session", frappe._dict(user="Administrator")),
+			patch(f"{MODULE}.frappe.get_doc", return_value=MagicMock(docstatus=2)),
+			self.assertRaises(frappe.ValidationError),
+		):
+			_check_order("ORDER", "SUP", "/private/files/invoice.pdf")
+
 	def test_prefill_confirmation_uses_pdf_text_and_does_not_save_order(self):
 		doc = MagicMock()
 		doc.name = "ORDER"
