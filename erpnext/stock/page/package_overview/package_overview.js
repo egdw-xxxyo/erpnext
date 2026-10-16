@@ -39,7 +39,8 @@ class PackageOverview {
 		this.data = null;
 		this.tab = "summary";
 		this.filter = "";
-		this.item = "";
+		this.items = [];
+		this.groups = [];
 		this.auto = true;
 		this.make();
 		this.refresh();
@@ -49,15 +50,21 @@ class PackageOverview {
 		this.page.set_primary_action(__("Refresh"), () => this.refresh(), "refresh");
 		this.page.add_inner_button(__("Auto-refresh"), () => this.toggle_auto());
 		this.page.add_inner_button(__("Package"), () => frappe.set_route("List", "Package"));
-		this.item_field = this.page.add_field({
-			fieldname: "item_code",
-			fieldtype: "Link",
-			options: "Item",
-			label: __("Item"),
-			change: () => {
-				this.item = this.item_field.get_value() || "";
-				this.render();
-			},
+		this.items_field = this.page.add_field({
+			fieldname: "items",
+			fieldtype: "MultiSelectList",
+			label: __("Filter items"),
+			placeholder: __("Filter items"),
+			get_data: (txt) => this.item_options(txt),
+			change: () => this.set_filter("items", this.items_field.get_value()),
+		});
+		this.groups_field = this.page.add_field({
+			fieldname: "item_groups",
+			fieldtype: "MultiSelectList",
+			label: __("Filter categories"),
+			placeholder: __("Filter categories"),
+			get_data: (txt) => this.group_options(txt),
+			change: () => this.set_filter("groups", this.groups_field.get_value()),
 		});
 		this.search = this.page.add_field({
 			fieldname: "search",
@@ -78,11 +85,26 @@ class PackageOverview {
 			<div class="package-overview">
 				<div class="pko-tabs"></div>
 				<div class="pko-meta text-muted"></div>
+				<div class="pko-filters"></div>
 				<div class="pko-body"></div>
 			</div>
 		`);
 		this.$tabs = this.page.main.find(".pko-tabs");
 		this.$meta = this.page.main.find(".pko-meta");
+		this.$filters = this.page.main.find(".pko-filters");
+		this.$filters.on("click", ".pko-chip-x", (e) => {
+			const $chip = $(e.currentTarget).closest(".pko-chip");
+			const kind = $chip.data("kind");
+			this.set_filter(
+				kind,
+				this[kind].filter((v) => v !== String($chip.data("value"))),
+				true
+			);
+		});
+		this.$filters.on("click", ".pko-clear", () => {
+			this.set_filter("items", [], true);
+			this.set_filter("groups", [], true);
+		});
 		this.$body = this.page.main.find(".pko-body");
 		this.$tabs.on("click", ".pko-tab", (e) => {
 			this.tab = $(e.currentTarget).data("tab");
@@ -92,7 +114,9 @@ class PackageOverview {
 			e.preventDefault();
 			this.tab = $(e.currentTarget).data("tab");
 			const item = $(e.currentTarget).data("item");
-			if (item) this.item_field.set_value(item);
+			if (item && !this.items.includes(String(item))) {
+				this.set_filter("items", [...this.items, String(item)], true);
+			}
 			this.render();
 		});
 		this.$body.on("click", ".pko-toggle", (e) => {
@@ -140,25 +164,84 @@ class PackageOverview {
 		if (!this.timer && this.auto) this.start_timer();
 	}
 
-	// The item picker narrows every tab; the data itself always covers all boxes.
+	// Item and category filters narrow every tab; the data itself always covers all boxes.
+	set_filter(kind, values, sync_field) {
+		this[kind] = [...new Set((values || []).filter(Boolean).map(String))];
+		if (sync_field) {
+			const field = kind === "items" ? this.items_field : this.groups_field;
+			this.syncing = true;
+			field.set_value(this[kind]);
+			this.syncing = false;
+		}
+		if (!this.syncing) this.render();
+	}
+
+	item_options(txt) {
+		const q = (txt || "").toLowerCase();
+		return (this.data?.items || [])
+			.filter((i) => !q || `${i.item_code} ${i.item_name || ""}`.toLowerCase().includes(q))
+			.map((i) => ({
+				value: i.item_code,
+				description: i.item_name !== i.item_code ? i.item_name : "",
+			}));
+	}
+
+	group_options(txt) {
+		const q = (txt || "").toLowerCase();
+		const counts = {};
+		Object.values(this.data?.item_groups || {}).forEach((g) => (counts[g] = (counts[g] || 0) + 1));
+		return Object.keys(counts)
+			.sort()
+			.filter((g) => !q || g.toLowerCase().includes(q))
+			.map((g) => ({ value: g, description: __("{0} items in group", [counts[g]]) }));
+	}
+
+	item_allowed(item_code) {
+		if (this.items.length && !this.items.includes(item_code)) return false;
+		if (this.groups.length && !this.groups.includes((this.data.item_groups || {})[item_code]))
+			return false;
+		return true;
+	}
+
 	view() {
 		const d = this.data;
-		if (!this.item) return d;
-		const has = (box) => box.contents.some((c) => c.item_code === this.item);
+		if (!this.items.length && !this.groups.length) return d;
+		const ok = (code) => this.item_allowed(code);
+		const has = (box) => box.contents.some((c) => ok(c.item_code));
 		return {
 			...d,
 			waiting: d.waiting.filter(has),
 			drafts: d.drafts.filter(has),
-			items: d.items.filter((i) => i.item_code === this.item),
-			shipments: d.shipments.filter((s) => s.items[this.item]),
-			loose_shipped: d.loose_shipped.filter((s) => s.item_code === this.item),
+			items: d.items.filter((i) => ok(i.item_code)),
+			shipments: d.shipments.filter((s) => Object.keys(s.items).some(ok)),
+			loose_shipped: d.loose_shipped.filter((s) => ok(s.item_code)),
 		};
+	}
+
+	render_filters() {
+		const names = Object.fromEntries((this.data.items || []).map((i) => [i.item_code, i.item_name]));
+		const chip = (kind, value, label) => `
+			<span class="pko-chip" data-kind="${kind}" data-value="${frappe.utils.escape_html(value)}">
+				${frappe.utils.escape_html(label)}
+				<a class="pko-chip-x" title="${__("Remove")}"><i class="fa fa-times"></i></a>
+			</span>`;
+		const chips = [
+			...this.groups.map((g) => chip("groups", g, `${__("Category")}: ${g}`)),
+			...this.items.map((i) => chip("items", i, names[i] || i)),
+		];
+		this.$filters.html(
+			chips.length
+				? `<span class="text-muted">${__("Filters")}:</span> ${chips.join("")}
+				   <a class="pko-clear">${__("Clear filters")}</a>`
+				: ""
+		);
 	}
 
 	render() {
 		if (!this.data) return;
 		this.render_tabs();
 		this.render_meta();
+		this.render_filters();
 		const html = this[`render_${this.tab}`](this.view());
 		this.$body.html(html || `<div class="text-muted pko-empty">${__("Nothing found")}</div>`);
 	}

@@ -32,6 +32,8 @@ def get_overview():
 		_place(pkg, staging)
 
 	open_boxes = [p for p in packages.values() if p["status"] in ("Packed", "Draft")]
+	by_item = _by_item(packages)
+	loose = _loose_shipped()
 	return {
 		"generated_at": frappe.utils.now(),
 		"today": today(),
@@ -43,11 +45,12 @@ def get_overview():
 		"drafts": sorted(
 			(_compact(p) for p in open_boxes if p["status"] == "Draft"), key=lambda p: p["created"]
 		),
-		"items": _by_item(packages),
+		"items": by_item,
+		"item_groups": _item_groups({r["item_code"] for r in by_item} | {r.item_code for r in loose}),
 		"shipments": _shipments(packages, shipped_docs),
 		"history": _history(packages, shipped_docs),
 		"unpacked": _unpacked(),
-		"loose_shipped": _loose_shipped(),
+		"loose_shipped": loose,
 		"issues": _issues(packages, shipped_docs),
 	}
 
@@ -183,6 +186,17 @@ def _by_item(packages):
 			):
 				row["oldest_packed"] = pkg["created"]
 	return sorted(out.values(), key=lambda r: (-r["Packed"]["qty"], r["item_code"]))
+
+
+def _item_groups(codes):
+	"""`{item_code: item_group}`: the category filter of the page groups items by it."""
+	if not codes:
+		return {}
+	return dict(
+		frappe.get_all(
+			"Item", filters={"name": ["in", list(codes)]}, fields=["name", "item_group"], as_list=True
+		)
+	)
 
 
 def _shipping_docs(packages):
