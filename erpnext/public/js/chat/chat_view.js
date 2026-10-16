@@ -29,6 +29,9 @@
 //   can_search?(chat), search?(chat, txt) -> [{id, author, author_key, time, text}]   (search in a chat)
 //   realtime?(view) -> {event: handler}
 //
+// Fixed mode (`opts.fixed`): the whole screen, list included, inside a container that has its own
+// height (the bubble's expanded popup); no route options are read.
+//
 // Embedded mode (`opts.embedded`): the same thread — header, messages, reply, reactions,
 // emoji, composer — without the conversation list, mounted into any container; `page` is
 // then just {main: $container}. The host opens a chat with `view.open(id)`. Extra opts:
@@ -75,6 +78,11 @@ erpnext.chat_view.ChatView = class ChatView {
 			this.refresh();
 			return;
 		}
+		if (this.opts.fixed) {
+			// A popup sizes the view itself and is not a route: nothing to fit, nothing to open.
+			this.refresh();
+			return;
+		}
 		$(this.page.wrapper).on("remove", () => this.destroy());
 		setTimeout(() => this.fit_height(), 0);
 
@@ -87,7 +95,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	// Fill the window down to a small bottom gap, whatever the desk header above it
 	// measures (it differs between v15, v16 and a page with a filter bar).
 	fit_height() {
-		if (this.embedded) return;
+		if (this.embedded || this.opts.fixed) return;
 		const el = this.page.main.find(".cv-page")[0];
 		if (!el || !el.offsetParent) return;
 		const top = el.getBoundingClientRect().top + window.scrollY;
@@ -111,7 +119,9 @@ erpnext.chat_view.ChatView = class ChatView {
 	make_layout() {
 		const s = this.source;
 		this.page.main.html(`
-			<div class="cv-root cv-page${this.opts.embedded ? " cv-embedded cv-compact" : ""}">
+			<div class="cv-root cv-page${this.opts.embedded ? " cv-embedded cv-compact" : ""}${
+			this.opts.fixed ? " cv-fixed" : ""
+		}">
 				<div class="cv-sidebar">
 					<div class="cv-search">
 						<div class="cv-search-row">
@@ -258,7 +268,7 @@ erpnext.chat_view.ChatView = class ChatView {
 	}
 
 	inject_styles() {
-		if (document.getElementById("cv-page-styles-v5")) return;
+		if (document.getElementById("cv-page-styles-v6")) return;
 		const css = `
 		.cv-group-head{display:flex;align-items:center;gap:10px;margin:12px 8px 6px;padding:8px 12px 8px 20px;
 			position:sticky;top:0;z-index:1;border-radius:10px;background:var(--gray-200,#e2e6e9);
@@ -277,7 +287,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		.cv-group-title > .ent{font-size:13px;}
 		.cv-page{display:flex;height:calc(100vh - 120px);min-height:420px;margin:12px 20px 0;border:1px solid var(--border-color);
 			border-radius:var(--border-radius-lg,12px);overflow:hidden;background:var(--card-bg);}
-		.cv-page.cv-embedded{height:100%;min-height:0;margin:0;border:none;border-radius:0;}
+		.cv-page.cv-embedded,.cv-page.cv-fixed{height:100%;min-height:0;margin:0;border:none;border-radius:0;}
 		.cv-embedded .cv-sidebar,.cv-embedded .cv-side{display:none;}
 		.cv-embedded .cv-thread{padding:10px;}
 		.cv-embedded .cv-with-avatar{margin-left:32px;}
@@ -404,7 +414,7 @@ erpnext.chat_view.ChatView = class ChatView {
 		@media (max-width:1200px){.cv-side{display:none;}}
 		@media (max-width:768px){.cv-sidebar{width:220px;}.cv-thread{padding:10px;}}
 		`;
-		$(`<style id="cv-page-styles-v5">${css}</style>`).appendTo(document.head);
+		$(`<style id="cv-page-styles-v6">${css}</style>`).appendTo(document.head);
 	}
 
 	// ------------------------------------------------------------------ list

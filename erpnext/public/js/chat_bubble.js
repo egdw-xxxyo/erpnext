@@ -371,7 +371,9 @@ class ChatBubble {
 			color:#fff;font-size:10px;line-height:17px;font-weight:600;text-align:center;display:none;}
 		.cb-count.show{display:inline-block;}
 		.cb-body{flex:1;overflow-y:auto;}
-		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;}
+		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;display:flex;align-items:center;gap:10px;}
+		.cb-conv .cb-conv-av{flex:none;display:flex;}
+		.cb-conv .cb-conv-main{flex:1;min-width:0;}
 		.cb-conv:hover{background:var(--bg-light-gray);}
 		.cb-conv .cb-name{font-weight:600;font-size:var(--text-sm);display:flex;justify-content:space-between;gap:6px;}
 		.cb-conv .cb-time{font-weight:400;color:var(--text-muted);font-size:10px;white-space:nowrap;
@@ -382,6 +384,14 @@ class ChatBubble {
 		.cb-conv .cb-done{color:var(--green-500,#38a169);margin-left:4px;font-size:11px;}
 		.cb-thread{padding:10px;min-height:100%;}
 		.cb-empty{padding:24px 12px;text-align:center;color:var(--text-muted);font-size:var(--text-sm);}
+.cb-big-backdrop{position:fixed;inset:0;z-index:1034;background:rgba(0,0,0,.35);}
+		.cb-big{position:fixed;z-index:1035;right:50%;bottom:50%;transform:translate(50%,50%);
+			width:min(1100px,96vw);height:min(88vh,900px);border:1px solid var(--border-color);background:var(--card-bg);
+			border-radius:var(--border-radius-md);box-shadow:0 8px 28px rgba(0,0,0,.3);overflow:hidden;}
+		.cb-big-main{height:100%;}
+		.cb-big-close{position:absolute;top:8px;right:8px;z-index:7;border:none;background:transparent;cursor:pointer;
+			color:var(--text-muted);padding:4px 8px;}
+		.cb-big-close:hover{color:var(--text-color);}
 		.cb-arch-head{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;
 			background:var(--bg-light-gray);border-top:1px solid var(--border-color);
 			border-bottom:1px solid var(--border-color);font-size:var(--text-sm);font-weight:600;
@@ -453,7 +463,7 @@ class ChatBubble {
 					<span class="cb-deep-chip" style="display:none;"><i class="fa fa-archive"></i></span>
 					<span class="cb-act cb-undeep" style="display:none;"><i class="fa fa-level-up"></i></span>
 					<span class="cb-act cb-sound" title="${__("Notification sound")}"></span>
-					<span class="cb-act cb-open-page" title="${__("Open full page")}"><i class="fa fa-expand"></i></span>
+					<span class="cb-act cb-open-page" title="${__("Expand")}"><i class="fa fa-expand"></i></span>
 					<span class="cb-act cb-close" title="${__("Close")}"><i class="fa fa-times"></i></span>
 				</div>
 				<div class="cb-chat-head" style="display:none;"></div>
@@ -512,7 +522,8 @@ class ChatBubble {
 		});
 		this.$panel.find(".cb-close").on("click", () => this.toggle(false));
 		this.$back.on("click", () => this.show_list());
-		this.$panel.find(".cb-goto, .cb-open-page").on("click", () => this.goto_page());
+		this.$panel.find(".cb-goto").on("click", () => this.goto_page());
+		this.$panel.find(".cb-open-page").on("click", () => this.open_big());
 		this.$sound.on("click", () => {
 			erpnext.chat_sound.set_enabled(!erpnext.chat_sound.enabled());
 			this.render_sound_toggle();
@@ -572,6 +583,45 @@ class ChatBubble {
 
 	goto_page() {
 		window.location.href = this.source.route_for(this.active);
+	}
+
+	// The expand button: the chat pages' own ChatView (list, tabs, thread) in a large popup,
+	// opened on the conversation the bubble was showing.
+	async open_big() {
+		const id = this.active;
+		const src = this.source;
+		this.close_big();
+		this.toggle(false);
+		this.$big_backdrop = $('<div class="cb-big-backdrop"></div>')
+			.on("click", () => this.close_big())
+			.appendTo(document.body);
+		this.$big = $(`
+			<div class="cb-big">
+				<button class="cb-big-close" title="${__("Close")}"><i class="fa fa-times"></i></button>
+				<div class="cb-big-main"></div>
+			</div>
+		`).appendTo(document.body);
+		this.$big.find(".cb-big-close").on("click", () => this.close_big());
+		this.big_keydown = (e) => e.key === "Escape" && this.close_big();
+		$(document).on("keydown", this.big_keydown);
+
+		const main = this.$big.find(".cb-big-main");
+		this.big_view = new erpnext.chat_view.ChatView({ main, wrapper: main }, new src.constructor(), {
+			fixed: true,
+		});
+		this.big_view.tab = id && src.tab_of ? src.tab_of(id) : this.tab;
+		await this.big_view.refresh(true);
+		if (id && this.big_view.chats[id]) this.big_view.open(id);
+	}
+
+	close_big() {
+		if (!this.big_view) return;
+		this.big_view.destroy();
+		this.big_view = null;
+		$(document).off("keydown", this.big_keydown);
+		this.$big.remove();
+		this.$big_backdrop.remove();
+		this.refresh_soon();
 	}
 
 	toggle(state) {
@@ -715,13 +765,17 @@ class ChatBubble {
 		const done = c.is_finished
 			? `<i class="fa fa-check-circle cb-done" title="${__("Conversation finished")}"></i>`
 			: "";
+		const avatar = erpnext.chat_render.avatar_html(c.avatar || { name: c.title, key: c.id }, 36);
 		return `<div class="cb-conv ${c.unread ? "unread" : ""} ${
 			c.is_finished ? "cb-finished" : ""
 		}" data-id="${frappe.utils.escape_html(c.id)}">
-			<div class="cb-name"><span>${name}${done}</span><span class="cb-time">${unread}${cb_fmt_time(
+			<span class="cb-conv-av">${avatar}</span>
+			<div class="cb-conv-main">
+				<div class="cb-name"><span>${name}${done}</span><span class="cb-time">${unread}${cb_fmt_time(
 			c.time
 		)}</span></div>
-			<div class="cb-prev">${via}${prev || __("(no text)")}</div>
+				<div class="cb-prev">${via}${prev || __("(no text)")}</div>
+			</div>
 		</div>`;
 	}
 
