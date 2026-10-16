@@ -14,6 +14,117 @@ GET_DOC = frappe.get_doc
 
 
 class TestProcurementOrderReuse(IntegrationTestCase):
+	def setUp(self):
+		super().setUp()
+		# Load controllers and metadata before tests replace SQL with reservation rows.
+		for doctype in (
+			"Material Request",
+			"Material Request Item",
+			"Consolidated Purchase Order",
+			"Consolidated Purchase Order Item",
+		):
+			GET_DOC({"doctype": doctype})
+		frappe.new_doc("Consolidated Purchase Order")
+		self.original_allowances = reuse._order_allowances
+		self.allowances = patch.object(reuse, "_order_allowances", return_value={"ITEM1": 0})
+		self.allowances_mock = self.allowances.start()
+		self.addCleanup(self.allowances.stop)
+
+	@patch("erpnext.controllers.status_updater.get_allowance_for")
+	def test_uses_purchase_order_allowance_resolver(self, resolver):
+		resolver.return_value = (10, {}, 10, None)
+		self.assertEqual(self.original_allowances(self.source()), {"ITEM1": 10})
+		resolver.assert_called_once_with(
+			"ITEM1",
+			item_allowance={},
+			global_qty_allowance=None,
+			global_qty_allowance_field="over_order_allowance",
+			global_qty_allowance_doctype="Buying Settings",
+			item_qty_allowance_field="over_order_allowance",
+		)
+
+	@patch.object(reuse.frappe.db, "sql")
+	def test_allowance_changes_limit_without_inflating_required_quantity(self, sql):
+		self.allowances_mock.return_value = {"ITEM1": 10}
+		sql.return_value = [self.reservation()]
+		remaining = reuse.get_material_request_remaining(self.source())
+		self.assertEqual(remaining["ROW1"].remaining_qty, 4)
+		self.assertEqual(remaining["ROW1"].allowed_remaining_qty, 5)
+		self.assertEqual(remaining["ROW2"].allowed_remaining_qty, 5.5)
+		self.assertEqual(
+			reuse.get_material_request_remaining(self.source(), exclude="CPO1")["ROW1"].allowed_remaining_qty,
+			11,
+		)
+
+	@patch.object(reuse.frappe.db, "sql")
+	def test_fully_covered_request_does_not_require_allowance_to_be_used(self, sql):
+		self.allowances_mock.return_value = {"ITEM1": 10}
+		row = self.reservation()
+		row.qty = 10
+		sql.return_value = [row]
+		remaining = reuse.get_material_request_remaining(self.source())["ROW1"]
+		self.assertEqual(remaining.remaining_qty, 0)
+		self.assertEqual(remaining.allowed_remaining_qty, 1)
+
+	@patch.object(reuse.frappe.db, "sql")
+	@patch.object(reuse.frappe, "get_doc")
+	def test_combined_rows_respect_allowance_and_unit_conversion(self, get_doc, sql):
+		source = self.source()
+		source.check_permission = MagicMock()
+		get_doc.side_effect = (
+			lambda dt, *args, **kwargs: source if dt == "Material Request" else GET_DOC(dt, *args, **kwargs)
+		)
+		sql.return_value = [self.reservation()]
+		self.allowances_mock.return_value = {"ITEM1": 10}
+		doc = frappe.new_doc("Consolidated Purchase Order")
+		for qty in (2, 3):
+			doc.append(
+				"items",
+				{
+					"material_request": source.name,
+					"material_request_item": "ROW1",
+					"item_code": "ITEM1",
+					"uom": "Box",
+					"qty": qty,
+				},
+			)
+		reuse.validate_consolidated_request_quantities(doc)
+		doc.items[1].qty = 3.01
+		with self.assertRaises(frappe.ValidationError):
+			reuse.validate_consolidated_request_quantities(doc)
+		doc.items[1].qty = 3
+		self.allowances_mock.return_value = {"ITEM1": 0}
+		with self.assertRaises(frappe.ValidationError):
+			reuse.validate_consolidated_request_quantities(doc)
+
+	@patch("erpnext.stock.get_item_details.get_conversion_factor", return_value={"conversion_factor": 1})
+	@patch.object(reuse.frappe.db, "sql")
+	@patch.object(reuse.frappe, "get_doc")
+	def test_allowance_counts_mixed_units_in_stock_quantity(self, get_doc, sql, _factor):
+		source = self.source()
+		source.check_permission = MagicMock()
+		get_doc.side_effect = (
+			lambda dt, *args, **kwargs: source if dt == "Material Request" else GET_DOC(dt, *args, **kwargs)
+		)
+		sql.return_value = [self.reservation()]
+		self.allowances_mock.return_value = {"ITEM1": 10}
+		doc = frappe.new_doc("Consolidated Purchase Order")
+		for qty, uom in ((2, "Box"), (6, "Nos")):
+			doc.append(
+				"items",
+				{
+					"material_request": source.name,
+					"material_request_item": "ROW1",
+					"item_code": "ITEM1",
+					"uom": uom,
+					"qty": qty,
+				},
+			)
+		reuse.validate_consolidated_request_quantities(doc)
+		doc.items[1].qty = 6.01
+		with self.assertRaises(frappe.ValidationError):
+			reuse.validate_consolidated_request_quantities(doc)
+
 	def source(self):
 		return GET_DOC(
 			{

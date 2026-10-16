@@ -31,9 +31,29 @@ def _stock_factor(item_code, uom, source):
 	return factor
 
 
+def _order_allowances(source):
+	from erpnext.controllers.status_updater import get_allowance_for
+
+	item_allowance = {}
+	global_allowance = None
+	allowances = {}
+	for item_code in dict.fromkeys(row.item_code for row in source.items):
+		allowance, item_allowance, global_allowance, _amount = get_allowance_for(
+			item_code,
+			item_allowance=item_allowance,
+			global_qty_allowance=global_allowance,
+			global_qty_allowance_field="over_order_allowance",
+			global_qty_allowance_doctype="Buying Settings",
+			item_qty_allowance_field="over_order_allowance",
+		)
+		allowances[item_code] = max(0, flt(allowance))
+	return allowances
+
+
 def get_material_request_remaining(source, exclude=None, lock=False):
 	"""Reserve quantities by original row, including drafts and excluding rejected/cancelled orders."""
 	source_items = {row.name: row for row in source.items}
+	allowances = _order_allowances(source)
 	# A locking read observes the latest reservations even if this transaction already
 	# read an older version before acquiring the Material Request lock.
 	rows = frappe.db.sql(
@@ -85,6 +105,8 @@ def get_material_request_remaining(source, exclude=None, lock=False):
 			requested_qty=requested / factor,
 			reserved_qty=used / factor,
 			remaining_qty=max(0, requested - used) / factor,
+			allowed_remaining_qty=max(0, requested * (1 + allowances[original.item_code] / 100) - used)
+			/ factor,
 		)
 	return result
 
@@ -127,11 +149,12 @@ def validate_consolidated_request_quantities(doc):
 			factor = flt(original.conversion_factor) or 1
 			selected[original.name] += flt(row.qty) * _stock_factor(row.item_code, row.uom, original) / factor
 		for key, qty in selected.items():
-			if qty > remaining[key].remaining_qty + 0.000001:
+			available = remaining[key].get("allowed_remaining_qty", remaining[key].remaining_qty)
+			if qty > available + 0.000001:
 				frappe.throw(
 					_(
 						"Material Request {0}, item {1}: only {2} remains available for this consolidated order."
-					).format(name, originals[key].item_code, remaining[key].remaining_qty)
+					).format(name, originals[key].item_code, available)
 				)
 
 
