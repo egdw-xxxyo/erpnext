@@ -4385,7 +4385,7 @@ def setup_procurement_document_details():
 				"read_only": 1,
 				"allow_on_submit": 1,
 				"in_list_view": 1,
-				"in_standard_filter": 1,
+				"in_standard_filter": 0,
 				"insert_after": "company",
 				"hidden": 1,
 				"no_copy": 1,
@@ -4462,9 +4462,9 @@ def setup_procurement_document_details():
 		"field_name": "request_initiator_user",
 		"property": "in_standard_filter",
 	}
-	if frappe.db.get_value("Property Setter", filters, "value") != "1":
+	if frappe.db.get_value("Property Setter", filters, "value") != "0":
 		make_property_setter(
-			"Consolidated Purchase Order", "request_initiator_user", "in_standard_filter", "1", "Check"
+			"Consolidated Purchase Order", "request_initiator_user", "in_standard_filter", "0", "Check"
 		)
 
 	filters = {

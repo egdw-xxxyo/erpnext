@@ -6,6 +6,7 @@ frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
 });
 function render_supplier_invoice_actions(frm) {
 	const field = frm.get_field("supplier_invoices");
+	frm.remove_custom_button(__("Match supplier item names"));
 	field?.$wrapper.find(".supplier-invoice-actions").remove();
 	if (!field || frm.doc.docstatus === 2) return;
 	if (
@@ -18,29 +19,36 @@ function render_supplier_invoice_actions(frm) {
 		return;
 	const editable =
 		frm.doc.docstatus === 0 &&
+		frm.doc.procurement_completion_status !== "Завершено" &&
 		!["Перевірка підрозділу", "Фінальне погодження", "Погоджено"].includes(frm.doc.workflow_state) &&
 		(frm.is_new() ? frm.perm?.[0]?.create : frm.perm?.[0]?.write);
 	if (editable) frm.set_query("supplier", "supplier_invoices", () => ({}));
 	const actions = $(
 		'<div class="supplier-invoice-actions mt-3 d-flex flex-wrap" style="gap:8px"></div>'
 	).appendTo(field.$wrapper);
+	const run_action = (mode) => {
+		if (mode === "match" && frm.is_dirty()) {
+			frappe.msgprint(__("Save the order and supplier invoices before matching items."));
+			return;
+		}
+		if (!(frm.doc.supplier_invoices || []).some((row) => row.supplier && row.invoice_pdf)) {
+			frappe.msgprint(__("Select a saved supplier invoice from this order."));
+			return;
+		}
+		select_supplier_invoice(frm, mode);
+	};
 	const add_action = (label, mode) => {
 		$('<button type="button" class="btn btn-default btn-sm"></button>')
 			.text(__(label))
 			.appendTo(actions)
-			.on("click", () => {
-				if (mode === "match" && frm.is_dirty()) {
-					frappe.msgprint(__("Save the order and supplier invoices before matching items."));
-					return;
-				}
-				if (!(frm.doc.supplier_invoices || []).some((row) => row.supplier && row.invoice_pdf)) {
-					frappe.msgprint(__("Select a supplier invoice from this draft."));
-					return;
-				}
-				select_supplier_invoice(frm, mode);
-			});
+			.on("click", () => run_action(mode));
 	};
-	if (!frm.is_new()) add_action("Match supplier item names", "match");
+	if (!frm.is_new()) {
+		add_action("Match supplier item names", "match");
+		if (!editable) {
+			frm.add_custom_button(__("Match supplier item names"), () => run_action("match"));
+		}
+	}
 	if (editable) add_action("Prefill from PDF", "prefill");
 }
 

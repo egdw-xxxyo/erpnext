@@ -14,6 +14,7 @@ APPROVER_SETTING_FIELDS = ("custom_final_approver_1", "custom_final_approver_2")
 APPROVAL_USER_FIELDS = ("final_approved_by_1", "final_approved_by_2")
 SNAPSHOT_FIELD = "custom_final_approvers_snapshot"
 VOTES_FIELD = "custom_final_approved_users"
+ADMINISTRATOR_OVERRIDE = "__administrator_ceo_override__"
 
 
 def get_approval_threshold():
@@ -76,6 +77,12 @@ def _read_users(value):
 	return list(dict.fromkeys(frappe.parse_json(value) or []))
 
 
+def has_administrator_approval(doc, votes_field=VOTES_FIELD):
+	"""Distinguish an explicit override from an old, ordinary Administrator CEO vote."""
+	users = _read_users(doc.get(votes_field))
+	return "Administrator" in users and ADMINISTRATOR_OVERRIDE in users
+
+
 def get_document_final_approvers(doc):
 	if doc.get(SNAPSHOT_FIELD) is not None and doc.get(SNAPSHOT_FIELD) != "":
 		return _read_users(doc.get(SNAPSHOT_FIELD))
@@ -89,7 +96,11 @@ def get_document_approved_users(doc):
 		else [doc.get(field) for field in APPROVAL_USER_FIELDS if doc.get(field)]
 	)
 	approvers = get_document_final_approvers(doc)
-	return [user for user in dict.fromkeys(users) if user in approvers]
+	return [
+		user
+		for user in dict.fromkeys(users)
+		if user in approvers or (user == "Administrator" and has_administrator_approval(doc))
+	]
 
 
 def capture_final_approvers(doc, method=None):
@@ -110,6 +121,7 @@ def capture_final_approvers(doc, method=None):
 		and previous.workflow_state == FINAL_APPROVAL_STATE
 		and doc.workflow_state == "Погоджено"
 		and not is_automatic_final_approval(previous)
+		and not has_administrator_approval(previous)
 	):
 		approvers = get_document_final_approvers(previous)
 		if (
@@ -129,10 +141,16 @@ def capture_final_approvers(doc, method=None):
 		doc.final_approval_count = 0
 
 
-def _write_vote(doc, user, update_modified):
+def _write_vote(doc, user, update_modified, administrator_override=False):
 	approved = get_document_approved_users(doc)
-	approved.append(user)
-	values = {VOTES_FIELD: json.dumps(approved), "final_approval_count": len(approved)}
+	if user not in approved:
+		approved.append(user)
+	stored = (
+		[*approved, ADMINISTRATOR_OVERRIDE]
+		if administrator_override or has_administrator_approval(doc)
+		else approved
+	)
+	values = {VOTES_FIELD: json.dumps(stored), "final_approval_count": len(approved)}
 	# Retain the two legacy slots for existing integrations and historical reports.
 	values.update(
 		{
@@ -157,17 +175,20 @@ def record_final_approval(doc):
 		frappe.throw(_("This purchase does not require manual CEO approval."))
 	approvers = get_document_final_approvers(doc)
 	user = frappe.session.user
-	if not doc.get(SNAPSHOT_FIELD) or user not in approvers:
+	if user != "Administrator" and (not doc.get(SNAPSHOT_FIELD) or user not in approvers):
 		frappe.throw(_("Only a configured CEO approver can approve this purchase."))
 	if user in get_document_approved_users(doc):
-		if len(get_document_approved_users(doc)) == len(approvers):
+		if has_administrator_approval(doc) or len(get_document_approved_users(doc)) == len(approvers):
 			return len(approvers)
-		frappe.throw(_("You have already approved this purchase."))
-	count = _write_vote(doc, user, update_modified=True)
+		if user != "Administrator":
+			frappe.throw(_("You have already approved this purchase."))
+	count = _write_vote(doc, user, update_modified=True, administrator_override=user == "Administrator")
 	actor = frappe.get_cached_value("User", user, "full_name") or user
 	doc.add_comment(
 		"Comment",
-		text=_("{0} recorded CEO approval {1}/{2}.").format(
+		text=_("Administrator completed CEO approval without the remaining CEO votes.")
+		if user == "Administrator"
+		else _("{0} recorded CEO approval {1}/{2}.").format(
 			f"<b>{escape_html(actor)}</b>", count, len(approvers)
 		),
 	)
@@ -214,6 +235,8 @@ def reset_final_approvals(docname):
 def sync_final_approval_assignments(doc, method=None):
 	close_final_approval_assignments(doc.name)
 	if doc.workflow_state != FINAL_APPROVAL_STATE or is_automatic_final_approval(doc):
+		return
+	if has_administrator_approval(doc):
 		return
 	users = [
 		user for user in get_document_final_approvers(doc) if user not in get_document_approved_users(doc)

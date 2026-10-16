@@ -8,6 +8,7 @@ erpnext.buying.get_procurement_status_color = (status) =>
 		"Очікує надходження": "purple",
 		"Очікуються видаткові накладні": "yellow",
 		Завершено: "green",
+		Скасовано: "red",
 	}[status] || "gray");
 
 erpnext.buying.format_procurement_status = (status, fieldname = "procurement_completion_status") => {
@@ -36,9 +37,12 @@ erpnext.buying.apply_procurement_work_queue_filters = (listview, options) => {
 	}
 
 	const participant = frappe.session.user;
+	const completion_filter = options.completion_values
+		? [listview.doctype, options.completion_field, "not in", options.completion_values]
+		: [listview.doctype, options.completion_field, "!=", options.completion_value || "Завершено"];
 	const filters = [
 		[listview.doctype, options.participants_field, "like", `%\"${participant}\"%`],
-		[listview.doctype, options.completion_field, "!=", options.completion_value || "Завершено"],
+		completion_filter,
 	];
 
 	// These are working-list defaults, not permission restrictions. Clearing them

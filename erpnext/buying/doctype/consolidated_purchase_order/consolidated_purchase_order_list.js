@@ -1,4 +1,34 @@
 frappe.listview_settings["Consolidated Purchase Order"] = {
+	hide_name_filter: true,
+	custom_filter_configs: [
+		{ fieldname: "company", fieldtype: "Link", options: "Company", label: __("Company") },
+		{
+			fieldname: "request_initiator_user",
+			fieldtype: "Link",
+			options: "User",
+			label: __("Initiator User"),
+		},
+		{
+			fieldname: "current_assignees",
+			fieldtype: "Data",
+			condition: "like",
+			label: __("Current Assignee"),
+		},
+		{
+			doctype: "Consolidated Purchase Order Item",
+			fieldname: "supplier",
+			fieldtype: "Link",
+			options: "Supplier",
+			label: __("Supplier"),
+		},
+		{
+			doctype: "Consolidated Purchase Order Item",
+			fieldname: "item_name",
+			fieldtype: "Data",
+			condition: "like",
+			label: __("Nomenclature"),
+		},
+	],
 	add_fields: [
 		"custom_has_delivery_note",
 		"custom_delivery_note_supplier_count",
@@ -14,6 +44,7 @@ frappe.listview_settings["Consolidated Purchase Order"] = {
 		erpnext.buying.apply_procurement_work_queue_filters(listview, {
 			participants_field: "procurement_participants",
 			completion_field: "procurement_completion_status",
+			completion_values: ["Завершено", "Скасовано"],
 		});
 	},
 	formatters: {
