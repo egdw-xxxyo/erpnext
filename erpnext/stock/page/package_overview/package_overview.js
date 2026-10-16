@@ -16,7 +16,7 @@ frappe.pages["package-overview"].on_page_hide = function (wrapper) {
 };
 
 const PKO_REFRESH_SECONDS = 60;
-const PKO_ROW_LIMIT = 300;
+const PKO_PAGE_SIZE = 50;
 const PKO_TABS = [
 	["summary", "fa fa-th-large", "Summary"],
 	["waiting", "fa fa-hourglass-half", "Waiting to ship"],
@@ -38,9 +38,8 @@ class PackageOverview {
 		this.page = page;
 		this.data = null;
 		this.tab = "summary";
-		this.filter = "";
-		this.items = [];
-		this.groups = [];
+		this.state = {};
+		this.page_no = {};
 		this.auto = true;
 		this.make();
 		this.refresh();
@@ -50,72 +49,37 @@ class PackageOverview {
 		this.page.set_primary_action(__("Refresh"), () => this.refresh(), "refresh");
 		this.page.add_inner_button(__("Auto-refresh"), () => this.toggle_auto());
 		this.page.add_inner_button(__("Package"), () => frappe.set_route("List", "Package"));
-		this.items_field = this.page.add_field({
-			fieldname: "items",
-			fieldtype: "MultiSelectList",
-			label: __("Filter items"),
-			placeholder: __("Filter items"),
-			get_data: (txt) => this.item_options(txt),
-			change: () => this.set_filter("items", this.items_field.get_value()),
-		});
-		this.groups_field = this.page.add_field({
-			fieldname: "item_groups",
-			fieldtype: "MultiSelectList",
-			label: __("Filter categories"),
-			placeholder: __("Filter categories"),
-			get_data: (txt) => this.group_options(txt),
-			change: () => this.set_filter("groups", this.groups_field.get_value()),
-		});
-		this.search = this.page.add_field({
-			fieldname: "search",
-			fieldtype: "Data",
-			label: __("Search"),
-			placeholder: __("Package, serial no, item, order"),
-			change: () => {
-				this.filter = (this.search.get_value() || "").trim().toLowerCase();
-				this.render();
-			},
-		});
-		this.search.$input.on(
-			"input",
-			frappe.utils.debounce(() => this.search.$input.trigger("change"), 250)
-		);
-
 		this.page.main.html(`
 			<div class="package-overview">
 				<div class="pko-tabs"></div>
 				<div class="pko-meta text-muted"></div>
-				<div class="pko-filters"></div>
+				<div class="pko-bar"></div>
 				<div class="pko-body"></div>
 			</div>
 		`);
 		this.$tabs = this.page.main.find(".pko-tabs");
 		this.$meta = this.page.main.find(".pko-meta");
-		this.$filters = this.page.main.find(".pko-filters");
-		this.$filters.on("click", ".pko-chip-x", (e) => {
-			const $chip = $(e.currentTarget).closest(".pko-chip");
-			const kind = $chip.data("kind");
-			this.set_filter(
-				kind,
-				this[kind].filter((v) => v !== String($chip.data("value"))),
-				true
-			);
-		});
-		this.$filters.on("click", ".pko-clear", () => {
-			this.set_filter("items", [], true);
-			this.set_filter("groups", [], true);
-		});
+		this.$bar = this.page.main.find(".pko-bar");
+		this.make_bar();
 		this.$body = this.page.main.find(".pko-body");
 		this.$tabs.on("click", ".pko-tab", (e) => {
 			this.tab = $(e.currentTarget).data("tab");
+			this.render();
+		});
+		this.$body.on("click", ".pko-page", (e) => {
+			const $b = $(e.currentTarget);
+			const key = $b.data("key");
+			this.page_no[key] = Math.max(0, (this.page_no[key] || 0) + Number($b.data("dir")));
 			this.render();
 		});
 		this.$body.on("click", ".pko-goto", (e) => {
 			e.preventDefault();
 			this.tab = $(e.currentTarget).data("tab");
 			const item = $(e.currentTarget).data("item");
-			if (item && !this.items.includes(String(item))) {
-				this.set_filter("items", [...this.items, String(item)], true);
+			if (item) {
+				const f = this.f();
+				if (!f.items.includes(String(item))) f.items = [...f.items, String(item)];
+				this.reset_pages();
 			}
 			this.render();
 		});
@@ -164,32 +128,110 @@ class PackageOverview {
 		if (!this.timer && this.auto) this.start_timer();
 	}
 
-	// Item and category filters narrow every tab; the data itself always covers all boxes.
-	set_filter(kind, values, sync_field) {
-		this[kind] = [...new Set((values || []).filter(Boolean).map(String))];
-		if (sync_field) {
-			const field = kind === "items" ? this.items_field : this.groups_field;
-			this.syncing = true;
-			field.set_value(this[kind]);
-			this.syncing = false;
-		}
-		if (!this.syncing) this.render();
+	f(tab) {
+		return (this.state[tab || this.tab] ||= { items: [], groups: [], from: "", to: "", q: "" });
+	}
+
+	reset_pages() {
+		this.page_no = {};
+	}
+
+	make_bar() {
+		const defs = [
+			["items", "MultiSelectList", __("Item"), (txt) => this.item_options(txt)],
+			["groups", "MultiSelectList", __("Item Category"), (txt) => this.group_options(txt)],
+			["from", "Date", __("From date")],
+			["to", "Date", __("To date")],
+			["q", "Data", __("Package"), null, __("Package ID, serial no, order")],
+		];
+		this.fields = {};
+		defs.forEach(([key, fieldtype, label, get_data, placeholder]) => {
+			const $col = $(`<div class="pko-field" data-key="${key}"></div>`).appendTo(this.$bar);
+			const df = {
+				fieldname: key,
+				fieldtype,
+				label,
+				placeholder: placeholder || label,
+				change: () => this.on_field(key),
+			};
+			if (get_data) df.get_data = get_data;
+			const control = frappe.ui.form.make_control({ df, parent: $col, render_input: true });
+			control.refresh();
+			this.fields[key] = control;
+		});
+		this.fields.q.$input.on(
+			"input",
+			frappe.utils.debounce(() => this.on_field("q"), 250)
+		);
+		$(`<a class="pko-clear">${__("Clear filters")}</a>`)
+			.appendTo(this.$bar)
+			.on("click", () => {
+				this.state[this.tab] = null;
+				this.reset_pages();
+				this.render();
+			});
+	}
+
+	on_field(key) {
+		if (this.syncing) return;
+		const f = this.f();
+		let value = this.fields[key].get_value();
+		if (key === "items" || key === "groups") value = [...new Set((value || []).map(String))];
+		else value = (value || "").trim();
+		if (JSON.stringify(f[key]) === JSON.stringify(value)) return;
+		f[key] = value;
+		this.reset_pages();
+		this.render();
+	}
+
+	sync_bar() {
+		const f = this.f();
+		const show = this.tab !== "summary";
+		this.$bar.toggle(show);
+		if (!show) return;
+		this.syncing = true;
+		Object.keys(this.fields).forEach((key) => {
+			const want = f[key];
+			if (
+				JSON.stringify(this.fields[key].get_value() || (Array.isArray(want) ? [] : "")) !==
+				JSON.stringify(want)
+			)
+				this.fields[key].set_value(want);
+		});
+		this.syncing = false;
+		const dated = this.tab !== "items";
+		this.$bar.find('[data-key="from"], [data-key="to"]').toggle(dated);
+	}
+
+	// Codes of the items the current tab shows, ignoring its own item and category filter.
+	tab_codes() {
+		const d = this.data;
+		const codes = new Set();
+		if (this.tab === "waiting" || this.tab === "drafts")
+			d[this.tab].forEach((b) => b.contents.forEach((c) => codes.add(c.item_code)));
+		else if (this.tab === "items") d.items.forEach((i) => codes.add(i.item_code));
+		else if (this.tab === "shipped")
+			d.shipments.forEach((s) => Object.keys(s.items).forEach((c) => codes.add(c)));
+		else if (this.tab === "other") d.loose_shipped.forEach((s) => codes.add(s.item_code));
+		return codes;
 	}
 
 	item_options(txt) {
 		const q = (txt || "").toLowerCase();
-		return (this.data?.items || [])
-			.filter((i) => !q || `${i.item_code} ${i.item_name || ""}`.toLowerCase().includes(q))
-			.map((i) => ({
-				value: i.item_code,
-				description: i.item_name !== i.item_code ? i.item_name : "",
-			}));
+		const names = Object.fromEntries((this.data?.items || []).map((i) => [i.item_code, i.item_name]));
+		return [...this.tab_codes()]
+			.sort()
+			.filter((c) => !q || `${c} ${names[c] || ""}`.toLowerCase().includes(q))
+			.map((c) => ({ value: c, description: names[c] && names[c] !== c ? names[c] : "" }));
 	}
 
 	group_options(txt) {
 		const q = (txt || "").toLowerCase();
 		const counts = {};
-		Object.values(this.data?.item_groups || {}).forEach((g) => (counts[g] = (counts[g] || 0) + 1));
+		this.tab_codes().forEach((c) => {
+			const g = (this.data.item_groups || {})[c];
+			if (g) counts[g] = (counts[g] || 0) + 1;
+		});
 		return Object.keys(counts)
 			.sort()
 			.filter((g) => !q || g.toLowerCase().includes(q))
@@ -197,57 +239,54 @@ class PackageOverview {
 	}
 
 	item_allowed(item_code) {
-		if (this.items.length && !this.items.includes(item_code)) return false;
-		if (this.groups.length && !this.groups.includes((this.data.item_groups || {})[item_code]))
-			return false;
+		const f = this.f();
+		if (f.items.length && !f.items.includes(item_code)) return false;
+		if (f.groups.length && !f.groups.includes((this.data.item_groups || {})[item_code])) return false;
 		return true;
 	}
 
-	view() {
-		const d = this.data;
-		if (!this.items.length && !this.groups.length) return d;
-		const ok = (code) => this.item_allowed(code);
-		const has = (box) => box.contents.some((c) => ok(c.item_code));
-		return {
-			...d,
-			waiting: d.waiting.filter(has),
-			drafts: d.drafts.filter(has),
-			items: d.items.filter((i) => ok(i.item_code)),
-			shipments: d.shipments.filter((s) => Object.keys(s.items).some(ok)),
-			loose_shipped: d.loose_shipped.filter((s) => ok(s.item_code)),
-		};
+	date_allowed(date) {
+		const f = this.f();
+		if (!f.from && !f.to) return true;
+		const day = String(date || "").slice(0, 10);
+		if (!day) return false;
+		return (!f.from || day >= f.from) && (!f.to || day <= f.to);
 	}
 
-	render_filters() {
-		const names = Object.fromEntries((this.data.items || []).map((i) => [i.item_code, i.item_name]));
-		const chip = (kind, value, label) => `
-			<span class="pko-chip" data-kind="${kind}" data-value="${frappe.utils.escape_html(value)}">
-				${frappe.utils.escape_html(label)}
-				<a class="pko-chip-x" title="${__("Remove")}"><i class="fa fa-times"></i></a>
-			</span>`;
-		const chips = [
-			...this.groups.map((g) => chip("groups", g, `${__("Category")}: ${g}`)),
-			...this.items.map((i) => chip("items", i, names[i] || i)),
-		];
-		this.$filters.html(
-			chips.length
-				? `<span class="text-muted">${__("Filters")}:</span> ${chips.join("")}
-				   <a class="pko-clear">${__("Clear filters")}</a>`
-				: ""
-		);
+	paginate(key, rows) {
+		const pages = Math.max(1, Math.ceil(rows.length / PKO_PAGE_SIZE));
+		const page = Math.min(this.page_no[key] || 0, pages - 1);
+		this.page_no[key] = page;
+		const from = page * PKO_PAGE_SIZE;
+		const pager = `
+			<div class="pko-pager">
+				<span class="text-muted">${__("{0}–{1} of {2}", [
+					rows.length ? from + 1 : 0,
+					Math.min(rows.length, from + PKO_PAGE_SIZE),
+					rows.length,
+				])}</span>
+				<button class="btn btn-xs btn-default pko-page" data-key="${key}" data-dir="-1" ${page ? "" : "disabled"}>
+					<i class="fa fa-chevron-left"></i></button>
+				<span>${page + 1} / ${pages}</span>
+				<button class="btn btn-xs btn-default pko-page" data-key="${key}" data-dir="1" ${
+			page < pages - 1 ? "" : "disabled"
+		}>
+					<i class="fa fa-chevron-right"></i></button>
+			</div>`;
+		return { rows: rows.slice(from, from + PKO_PAGE_SIZE), pager };
 	}
 
 	render() {
 		if (!this.data) return;
 		this.render_tabs();
 		this.render_meta();
-		this.render_filters();
-		const html = this[`render_${this.tab}`](this.view());
+		this.sync_bar();
+		const html = this[`render_${this.tab}`](this.data);
 		this.$body.html(html || `<div class="text-muted pko-empty">${__("Nothing found")}</div>`);
 	}
 
 	render_tabs() {
-		const d = this.view();
+		const d = this.data;
 		const counts = {
 			summary: d.issues.filter((i) => i.level === "error").length || "",
 			waiting: d.waiting.length,
@@ -277,20 +316,25 @@ class PackageOverview {
 	}
 
 	match(...values) {
-		if (!this.filter) return true;
-		return values.flat().some((v) => v && String(v).toLowerCase().includes(this.filter));
+		const q = this.f().q.toLowerCase();
+		if (!q) return true;
+		return values.flat().some((v) => v && String(v).toLowerCase().includes(q));
 	}
 
 	box_match(box) {
-		return this.match(
-			box.name,
-			box.packing_template,
-			box.sales_order,
-			box.bpak,
-			box.pallet,
-			box.serials,
-			box.contents.map((c) => [c.item_code, c.item_name]),
-			Object.keys(box.warehouses)
+		return (
+			box.contents.some((c) => this.item_allowed(c.item_code)) &&
+			this.date_allowed(box.created) &&
+			this.match(
+				box.name,
+				box.packing_template,
+				box.sales_order,
+				box.bpak,
+				box.pallet,
+				box.serials,
+				box.contents.map((c) => [c.item_code, c.item_name]),
+				Object.keys(box.warehouses)
+			)
 		);
 	}
 
@@ -319,7 +363,8 @@ class PackageOverview {
 			info: "fa-info-circle",
 		};
 		const level_label = { error: __("Error"), warning: __("Warning"), info: __("Info") };
-		const shown = issues.slice(0, PKO_ROW_LIMIT);
+		const page = this.paginate("issues", issues);
+		const shown = page.rows;
 
 		return `
 			<div class="pko-tiles">
@@ -393,7 +438,7 @@ class PackageOverview {
 							<span class="pko-issue-msg">${frappe.utils.escape_html(i.message)}</span>
 						</div>`
 							)
-							.join("")}</div>${this.more(issues.length)}`
+							.join("")}</div>${issues.length > PKO_PAGE_SIZE ? page.pager : ""}`
 					: `<div class="pko-ok"><i class="fa fa-check-circle"></i> ${__(
 							"No problems found"
 					  )}</div>`
@@ -462,7 +507,8 @@ class PackageOverview {
 	box_table(boxes, hint) {
 		const rows = boxes.filter((b) => this.box_match(b));
 		if (!rows.length) return "";
-		const shown = rows.slice(0, PKO_ROW_LIMIT);
+		const page = this.paginate(this.tab, rows);
+		const shown = page.rows;
 		const dash = `<span class="text-muted">—</span>`;
 		return `
 			<div class="text-muted small pko-hint">${hint}</div>
@@ -499,7 +545,7 @@ class PackageOverview {
 					</tr>`
 					)
 					.join("")}</tbody>
-			</table></div>${this.more(rows.length)}`;
+			</table></div>${page.pager}`;
 	}
 
 	places(box) {
@@ -515,8 +561,14 @@ class PackageOverview {
 	// ------------------------------------------------------------------ items
 
 	render_items(d) {
-		const rows = d.items.filter((i) => this.match(i.item_code, i.item_name, Object.keys(i.templates)));
-		if (!rows.length) return "";
+		const all = d.items.filter(
+			(i) =>
+				this.item_allowed(i.item_code) &&
+				this.match(i.item_code, i.item_name, Object.keys(i.templates))
+		);
+		if (!all.length) return "";
+		const page = this.paginate("items", all);
+		const rows = page.rows;
 		const cell = (s) =>
 			s.boxes
 				? `<b>${s.qty}</b> <span class="text-muted small">${__("in {0} boxes", [s.boxes])}</span>`
@@ -567,15 +619,21 @@ class PackageOverview {
 					</tr>`
 					)
 					.join("")}</tbody>
-			</table></div>`;
+			</table></div>${page.pager}`;
 	}
 
 	// ------------------------------------------------------------------ shipped
 
 	render_shipped(d) {
-		const rows = d.shipments.filter((s) => this.match(s.name, s.party, Object.keys(s.items)));
+		const rows = d.shipments.filter(
+			(s) =>
+				Object.keys(s.items).some((c) => this.item_allowed(c)) &&
+				this.date_allowed(s.date) &&
+				this.match(s.name, s.party, Object.keys(s.items))
+		);
 		if (!rows.length) return "";
-		const shown = rows.slice(0, PKO_ROW_LIMIT);
+		const page = this.paginate("shipped", rows);
+		const shown = page.rows;
 		return `
 			<div class="pko-table-wrap"><table class="table table-bordered pko-table">
 				<thead><tr>
@@ -599,7 +657,7 @@ class PackageOverview {
 					</tr>`
 					)
 					.join("")}</tbody>
-			</table></div>${this.more(rows.length)}`;
+			</table></div>${page.pager}`;
 	}
 
 	link_field(doctype) {
@@ -613,10 +671,19 @@ class PackageOverview {
 	// ------------------------------------------------------------------ other
 
 	render_other(d) {
-		const unpacked = d.unpacked.filter((u) => this.match(u.name, u.packing_template));
-		const loose = d.loose_shipped.filter((s) => this.match(s.voucher_no, s.serial_no, s.item_code));
+		const unpacked = d.unpacked.filter(
+			(u) => this.date_allowed(u.modified) && this.match(u.name, u.packing_template)
+		);
+		const loose = d.loose_shipped.filter(
+			(s) =>
+				this.item_allowed(s.item_code) &&
+				this.date_allowed(s.posting_datetime) &&
+				this.match(s.voucher_no, s.serial_no, s.item_code)
+		);
 		const by_dn = {};
 		loose.forEach((s) => (by_dn[s.voucher_no] = by_dn[s.voucher_no] || []).push(s));
+		const up = this.paginate("other_unpacked", unpacked);
+		const lp = this.paginate("other_loose", Object.entries(by_dn));
 		return `
 			<h5 class="pko-h">${__("Unpacked in the last 30 days")} <span class="text-muted">(${
 			unpacked.length
@@ -627,7 +694,7 @@ class PackageOverview {
 				<thead><tr><th>${__("Package")}</th><th>${__("Packing Template")}</th><th>${__("Unpacked")}</th><th>${__(
 							"By"
 					  )}</th></tr></thead>
-				<tbody>${unpacked
+				<tbody>${up.rows
 					.map(
 						(u) => `<tr>
 						<td>${this.link("Package", u.name)}</td>
@@ -636,7 +703,7 @@ class PackageOverview {
 						<td>${erpnext.entity ? erpnext.entity.user(u.modified_by, { size: 18 }) : u.modified_by}</td>
 					</tr>`
 					)
-					.join("")}</tbody></table></div>`
+					.join("")}</tbody></table></div>${up.pager}`
 					: `<div class="text-muted">${__("Nothing found")}</div>`
 			}
 			<h5 class="pko-h">${__("Shipped without a box, last {0} days", [this.data.history_days])}
@@ -648,7 +715,7 @@ class PackageOverview {
 				loose.length
 					? `<div class="pko-table-wrap"><table class="table table-bordered pko-table">
 				<thead><tr><th>${__("Delivery Note")}</th><th>${__("Item")}</th><th>${__("Serial No")}</th></tr></thead>
-				<tbody>${Object.entries(by_dn)
+				<tbody>${lp.rows
 					.map(
 						([dn, list]) => `<tr>
 						<td>${this.link("Delivery Note", dn)}
@@ -657,21 +724,12 @@ class PackageOverview {
 						<td class="small">${list.length} · ${list.map((s) => this.link("Serial No", s.serial_no)).join(" ")}</td>
 					</tr>`
 					)
-					.join("")}</tbody></table></div>`
+					.join("")}</tbody></table></div>${lp.pager}`
 					: `<div class="text-muted">${__("Nothing found")}</div>`
 			}`;
 	}
 
 	// ------------------------------------------------------------------ helpers
-
-	more(total) {
-		return total > PKO_ROW_LIMIT
-			? `<div class="text-muted small">${__("Showing {0} of {1}. Narrow with the search or the item.", [
-					PKO_ROW_LIMIT,
-					total,
-			  ])}</div>`
-			: "";
-	}
 
 	item_link(item_code, item_name) {
 		return `${this.link("Item", item_code)}${

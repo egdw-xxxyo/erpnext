@@ -1,3 +1,37 @@
+.package-overview {
+	padding: 16px 20px 40px;
+}
+
+.package-overview .pko-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.package-overview .pko-bar .pko-field {
+	flex: 1 1 180px;
+	max-width: 260px;
+}
+
+.package-overview .pko-bar .frappe-control {
+	margin-bottom: 0;
+}
+
+.package-overview .pko-clear {
+	cursor: pointer;
+	padding-bottom: 8px;
+}
+
+.package-overview .pko-pager {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	justify-content: flex-end;
+	margin-top: 8px;
+}
+
 .package-overview .pko-tabs {
 	display: flex;
 	flex-wrap: wrap;
@@ -260,41 +294,4 @@
 
 .package-overview .pko-open .pko-details {
 	display: block;
-}
-
-.package-overview .pko-filters {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 6px;
-	margin: -6px 0 14px;
-	font-size: 12px;
-}
-
-.package-overview .pko-filters:empty {
-	display: none;
-}
-
-.package-overview .pko-chip {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 2px 8px;
-	border-radius: 12px;
-	background: var(--bg-blue);
-	color: var(--text-on-blue);
-}
-
-.package-overview .pko-chip-x,
-.package-overview .pko-clear {
-	cursor: pointer;
-}
-
-.package-overview .pko-chip-x {
-	color: inherit;
-	opacity: 0.7;
-}
-
-.package-overview .pko-chip-x:hover {
-	opacity: 1;
 }
