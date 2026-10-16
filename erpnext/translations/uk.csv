@@ -16269,3 +16269,12 @@ Invalid invoice selection.,Некоректний вибір рахунків.
 Approved by Administrator,Погоджено адміністратором
 Administrator completed CEO approval without the remaining CEO votes.,Адміністратор завершив фінальне погодження без решти голосів CEO.
 Nomenclature,Номенклатура
+"Package {0}: only the whole package can be moved. Missing serial numbers: {1}","Пакування {0}: можна переміщувати лише все пакування. Бракує серійних номерів: {1}"
+Package {0} is already shipped by {1},Пакування {0} вже відправлено документом {1}
+Packages must be shipped whole,Пакування відправляються лише цілими
+"Package {0}: add its items. Missing serial numbers: {1}","Пакування {0}: додайте його товари. Бракує серійних номерів: {1}"
+Package {0} is {1}: only a packed package can be shipped,"Пакування {0} має статус {1}: відправити можна лише запаковане пакування"
+"Cannot cancel Package {0}: it is already shipped","Неможливо скасувати пакування {0}: його вже відправлено"
+Package {0} is already shipped and cannot be unpacked,Пакування {0} вже відправлено і не може бути розпаковане
+Serial No {0} is in package {1} ({2} pcs). Add the whole package?,Серійний номер {0} входить до пакування {1} ({2} шт.). Додати все пакування?
+"Serial No {0} not added: a package is shipped only whole","Серійний номер {0} не додано: пакування відправляється лише цілим"

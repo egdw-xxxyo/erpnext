@@ -31,6 +31,8 @@
   "bpak_template_name",
   "sales_order",
   "delivery_note",
+  "sales_invoice",
+  "stock_entry",
   "purchase_receipt",
   "column_break_refs",
   "shipment",
@@ -207,8 +209,29 @@
    "allow_on_submit": 1,
    "fieldname": "delivery_note",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Delivery Note",
-   "options": "Delivery Note"
+   "no_copy": 1,
+   "options": "Delivery Note",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "no_copy": 1,
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "no_copy": 1,
+   "options": "Stock Entry",
+   "read_only": 1
   },
   {
    "fieldname": "purchase_receipt",
@@ -259,7 +282,7 @@
   }
  ],
  "links": [],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "Package",
