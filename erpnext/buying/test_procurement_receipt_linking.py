@@ -3,7 +3,10 @@ from unittest.mock import MagicMock, patch
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from erpnext.buying.procurement_automation import _get_consolidated_procurement_status
+from erpnext.buying.procurement_automation import (
+	_get_consolidated_procurement_status,
+	sync_procurement_completion_status,
+)
 from erpnext.buying.procurement_receipt_linking import _eligible_receipt, _require_manager, link_receipts
 
 
@@ -115,3 +118,38 @@ class TestProcurementReceiptLinking(IntegrationTestCase):
 		self.assertEqual(_get_consolidated_procurement_status(doc, **args), "Очікуються видаткові накладні")
 		args["warehouse_receipt_complete"] = False
 		self.assertEqual(_get_consolidated_procurement_status(doc, **args), "Очікує надходження")
+
+	def test_rejection_and_cancellation_take_priority_over_completed_receipts(self):
+		for status, state in ((0, "Відхилено"), (2, "Проведено")):
+			with self.subTest(status=status, state=state):
+				doc = frappe._dict(docstatus=status, workflow_state=state)
+				self.assertEqual(
+					_get_consolidated_procurement_status(
+						doc,
+						terminal=True,
+						payment_complete=True,
+						fiscal_receipt_complete=True,
+						purchase_receipt_complete=True,
+						warehouse_receipt_complete=True,
+					),
+					"Скасовано",
+				)
+
+	def test_rejected_and_cancelled_orders_persist_cancelled_status(self):
+		module = "erpnext.buying.procurement_automation"
+		for status, state in ((0, "Відхилено"), (2, "Проведено")):
+			with self.subTest(status=status, state=state):
+				doc = frappe._dict(docstatus=status, workflow_state=state, items_already_purchased=0)
+				with (
+					patch(f"{module}.frappe.db.exists", return_value=True),
+					patch(f"{module}.frappe.get_doc", return_value=doc),
+					patch(f"{module}.frappe.get_all", return_value=[]),
+					patch(f"{module}.frappe.db.get_value", return_value=None),
+					patch(f"{module}._set_procurement_status") as save,
+					patch(f"{module}._notify_procurement_initiators") as notify,
+				):
+					sync_procurement_completion_status(
+						"CPO-A", {"payment_invoice_count": 0, "payment_receipt_count": 0}
+					)
+				save.assert_called_once_with("Consolidated Purchase Order", "CPO-A", "Скасовано")
+				notify.assert_called_once_with("CPO-A", "cancelled")

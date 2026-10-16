@@ -42,6 +42,7 @@ PROCUREMENT_APPROVAL = "Погодження"
 PROCUREMENT_AWAITING_PAYMENT = "Очікує оплату"
 PROCUREMENT_AWAITING_RECEIPT = "Очікує надходження"
 PROCUREMENT_COMPLETED = "Завершено"
+PROCUREMENT_CANCELLED = "Скасовано"
 PROCUREMENT_STATUS_PRIORITY = {
 	PROCUREMENT_PREPARATION: 0,
 	PROCUREMENT_APPROVAL: 1,
@@ -843,7 +844,7 @@ def _get_consolidated_procurement_status(
 	warehouse_receipt_complete=False,
 ):
 	if terminal:
-		return PROCUREMENT_COMPLETED
+		return PROCUREMENT_CANCELLED
 	if payment_complete and warehouse_receipt_complete:
 		suppliers = {row.supplier for row in consolidated.items if row.supplier}
 		attached = {

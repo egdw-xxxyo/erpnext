@@ -62,7 +62,6 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Company",
    "options": "Company",
    "remember_last_selected_value": 1,
@@ -271,7 +270,6 @@
    "fieldname": "payment_receipts_progress",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Payment",
    "no_copy": 1,
    "read_only": 1
@@ -318,7 +316,6 @@
    "fieldname": "current_assignees",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Current Assignee",
    "no_copy": 1,
    "read_only": 1
@@ -335,10 +332,9 @@
    "default": "Підготовка",
    "fieldname": "procurement_completion_status",
    "fieldtype": "Select",
-   "in_standard_filter": 1,
    "label": "Procurement Status",
    "no_copy": 1,
-   "options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nОчікуються видаткові накладні\nЗавершено",
+   "options": "Підготовка\nПогодження\nОчікує оплату\nОчікує надходження\nОчікуються видаткові накладні\nЗавершено\nСкасовано",
    "read_only": 1
   },
   {
