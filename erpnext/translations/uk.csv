@@ -16334,3 +16334,4 @@ whole box,ціле пакування
 "{0} pcs, oldest {1}","{0} шт., найстаріше {1}"
 {0} serials are packed but still stand in a staging warehouse,"{0} серійних номерів запаковано, але вони досі на проміжному складі"
 You need access to the {0} report,Потрібен доступ до звіту «{0}»
+"All serial numbers of package {0} are already shipped by {1}: the package is marked Shipped","Усі серійні номери пакування {0} вже відправлено документом {1}: пакування позначено «Відправлено»"

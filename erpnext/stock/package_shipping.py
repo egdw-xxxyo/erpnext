@@ -107,6 +107,7 @@ def _sync_package_rows(doc, boxes, serials):
 			doc.append(
 				"packages", {"package": name, "serial_nos": "\n".join(box.serials), "status": "Packed"}
 			)
+	stale = []
 	for row in doc.packages:
 		if not row.package or row.package in boxes:
 			continue
@@ -115,6 +116,9 @@ def _sync_package_rows(doc, boxes, serials):
 			filters={"parent": row.package, "parenttype": "Package", "serial_no": ["is", "set"]},
 			pluck="serial_no",
 		)
+		if contents and not any(s in serials for s in contents):
+			stale.append(row)
+			continue
 		missing = [s for s in contents if s not in serials]
 		if missing:
 			problems.append(
@@ -122,6 +126,9 @@ def _sync_package_rows(doc, boxes, serials):
 					row.package, ", ".join(missing)
 				)
 			)
+	# A box whose serials were all taken out of the document no longer ships with it.
+	for row in stale:
+		doc.remove(row)
 	return problems
 
 
@@ -194,6 +201,100 @@ def after_status_change(packages):
 		update_status_from_package(bpak)
 	for sales_order in {p.sales_order for p in parents if p.sales_order}:
 		update_so_progress(sales_order)
+
+
+def outbound_moves(serials):
+	"""`{serial: latest move}` for serials that an outbound document took out and are not back in stock."""
+	if not serials:
+		return {}
+	rows = frappe.db.sql(
+		"""
+		SELECT sbe.serial_no, sbb.voucher_type, sbb.voucher_no, sbb.posting_datetime
+		FROM `tabSerial and Batch Bundle` sbb
+		JOIN `tabSerial and Batch Entry` sbe ON sbe.parent = sbb.name
+		JOIN `tabSerial No` sn ON sn.name = sbe.serial_no
+		LEFT JOIN `tabDelivery Note` dn
+			ON sbb.voucher_type = 'Delivery Note' AND dn.name = sbb.voucher_no
+		LEFT JOIN `tabSales Invoice` si
+			ON sbb.voucher_type = 'Sales Invoice' AND si.name = sbb.voucher_no
+		LEFT JOIN `tabStock Entry` se
+			ON sbb.voucher_type = 'Stock Entry' AND se.name = sbb.voucher_no
+		WHERE sbb.docstatus = 1 AND sbb.is_cancelled = 0 AND sbb.type_of_transaction = 'Outward'
+		  AND IFNULL(sn.warehouse, '') = ''
+		  AND sbe.serial_no IN %(serials)s
+		  AND (
+			(dn.docstatus = 1 AND dn.is_return = 0)
+			OR (si.docstatus = 1 AND si.update_stock = 1 AND si.is_return = 0)
+			OR (se.docstatus = 1 AND se.purpose IN %(purposes)s)
+		  )
+		""",
+		{"serials": list(serials), "purposes": ISSUE_PURPOSES},
+		as_dict=True,
+	)
+	latest = {}
+	for row in rows:
+		if row.serial_no not in latest or row.posting_datetime > latest[row.serial_no].posting_datetime:
+			latest[row.serial_no] = row
+	return latest
+
+
+def add_delivery_note_row(delivery_note, package, serials, status):
+	"""Put a box into the `packages` table of a submitted Delivery Note, once."""
+	if frappe.db.exists(
+		"Delivery Note Package", {"parent": delivery_note, "parenttype": "Delivery Note", "package": package}
+	):
+		return
+	idx = frappe.db.sql(
+		"""SELECT COALESCE(MAX(idx), 0) FROM `tabDelivery Note Package`
+		   WHERE parent = %s AND parenttype = 'Delivery Note' AND parentfield = 'packages'""",
+		delivery_note,
+	)[0][0]
+	frappe.get_doc(
+		{
+			"doctype": "Delivery Note Package",
+			"parent": delivery_note,
+			"parenttype": "Delivery Note",
+			"parentfield": "packages",
+			"idx": idx + 1,
+			"package": package,
+			"box_template": frappe.db.get_value("Package", package, "box_template"),
+			"serial_nos": "\n".join(serials),
+			"status": status,
+		}
+	).db_insert()
+
+
+def link_shipped(package, serials):
+	"""A box packed from serials that already left: mark it Shipped and put it on the documents that took them.
+
+	Returns the documents, or nothing when not every serial left (the box then stays Packed).
+	"""
+	moves = outbound_moves(serials)
+	if not serials or len(moves) < len(serials):
+		return []
+	links = {}
+	for move in sorted(moves.values(), key=lambda m: m.posting_datetime):
+		links[LINK_FIELD[move.voucher_type]] = move.voucher_no
+	frappe.db.set_value("Package", package, {"status": "Shipped", **links})
+	notes = sorted({m.voucher_no for m in moves.values() if m.voucher_type == "Delivery Note"})
+	for dn in notes:
+		add_delivery_note_row(dn, package, [s for s in serials if moves[s].voucher_no == dn], "Shipped")
+	return sorted({m.voucher_no for m in moves.values()})
+
+
+def link_shipped_on_submit(doc):
+	"""Called from `Package.on_submit`: a box packed after its serials were shipped is shipped too."""
+	serials = [row.serial_no for row in doc.items if row.serial_no]
+	docs = link_shipped(doc.name, serials)
+	if docs:
+		frappe.msgprint(
+			_(
+				"All serial numbers of package {0} are already shipped by {1}: the package is marked Shipped"
+			).format(doc.name, ", ".join(docs)),
+			indicator="blue",
+			alert=True,
+		)
+	return docs
 
 
 @frappe.whitelist()

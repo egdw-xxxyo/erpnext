@@ -145,6 +145,10 @@ class Package(Document):
 		if self.operation:
 			self._finish_operations()
 		self.db_set("status", "Packed")
+		from erpnext.stock.package_shipping import link_shipped_on_submit
+
+		if link_shipped_on_submit(self):
+			self.reload()
 		self._update_bpak_status()
 
 	def _apply_qc_pass(self):
