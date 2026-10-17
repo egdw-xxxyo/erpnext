@@ -38,17 +38,21 @@ def _department_actor(doctype, name):
 
 
 def _source_snapshot(invoice):
-	source = invoice.get("custom_consolidated_purchase_order")
+	source = invoice.get("custom_recurring_purchase") or invoice.get("custom_consolidated_purchase_order")
 	if not source:
 		return None
-	order = frappe.get_doc("Consolidated Purchase Order", source)
+	source_type = (
+		"Recurring Purchase" if invoice.get("custom_recurring_purchase") else "Consolidated Purchase Order"
+	)
+	order = frappe.get_doc(source_type, source)
 	if order.docstatus != 1 or order.workflow_state != "Проведено":
 		return None
 	return {
 		"source": order.name,
+		"source_doctype": source_type,
 		"source_owner": order.owner,
-		"initiator": order.get("request_initiator_user"),
-		"department": _department_actor(order.doctype, order.name),
+		"initiator": order.get("request_initiator_user") or order.owner,
+		"department": order.get("department_approved_by") or _department_actor(order.doctype, order.name),
 		"ceo": get_document_approved_users(order),
 		"automatic": is_automatic_final_approval(order),
 		"ceo_administrator": has_administrator_approval(order),
@@ -174,9 +178,12 @@ def get_payment_route(doctype: str, name: str):
 	return {
 		"visible": True,
 		"source": data.get("source") if data else None,
+		"source_doctype": data.get("source_doctype", "Consolidated Purchase Order") if data else None,
 		"source_creator": _user(
 			data.get("source_owner")
-			or frappe.get_cached_value("Consolidated Purchase Order", data["source"], "owner")
+			or frappe.get_cached_value(
+				data.get("source_doctype", "Consolidated Purchase Order"), data["source"], "owner"
+			)
 		)
 		if data
 		else None,

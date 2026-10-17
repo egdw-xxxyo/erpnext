@@ -88,6 +88,12 @@ def apply_workflow(doc: str | dict, action: str):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
 
 	payload = frappe.parse_json(doc)
+	if payload.get("doctype") == "Recurring Purchase":
+		from erpnext.buying.doctype.recurring_purchase.recurring_purchase import (
+			apply_workflow as apply_recurring,
+		)
+
+		return apply_recurring(doc, action)
 	if payload.get("doctype") == "Consolidated Purchase Order":
 		from erpnext.buying.procurement_workflow_reason import apply_workflow as apply_procurement_workflow
 

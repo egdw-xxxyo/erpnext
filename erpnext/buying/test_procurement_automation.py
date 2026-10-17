@@ -441,6 +441,8 @@ class TestProcurementAutomation(FrappeTestCase):
 		purchase_invoice = MagicMock()
 		purchase_invoice.supplier = "SUPPLIER-A"
 		purchase_invoice.custom_consolidated_purchase_order = "CPO-TEST"
+		purchase_invoice.custom_recurring_purchase = None
+		purchase_invoice.custom_recurring_invoice_pdf = None
 		purchase_invoice.get.side_effect = lambda fieldname: getattr(purchase_invoice, fieldname, None)
 		source = MagicMock()
 		get_doc.side_effect = (
@@ -463,6 +465,39 @@ class TestProcurementAutomation(FrappeTestCase):
 		get_doc.assert_called_once_with("Purchase Invoice", "PINV-TEST")
 		self.assertEqual(result[0]["consolidated_order"], "CPO-TEST")
 		self.assertEqual(result[0]["supplier"], "SUPPLIER-A")
+
+	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_doc")
+	def test_recurring_invoice_reference_uses_its_own_pdf(self, get_doc):
+		invoice = MagicMock()
+		invoice.supplier = "SUPPLIER-A"
+		invoice.custom_recurring_invoice_pdf = "/private/files/recurring-invoice.pdf"
+		values = {
+			"custom_recurring_purchase": "REG-TEST",
+			"custom_recurring_invoice_pdf": invoice.custom_recurring_invoice_pdf,
+		}
+		invoice.get.side_effect = values.get
+		get_doc.return_value = invoice
+
+		result = get_supplier_invoice_files(
+			references=[{"reference_doctype": "Purchase Invoice", "reference_name": "PINV-TEST"}]
+		)
+
+		invoice.check_permission.assert_called_once_with("read")
+		get_doc.assert_called_once_with("Purchase Invoice", "PINV-TEST")
+		self.assertEqual(
+			result,
+			[
+				{
+					"supplier": "SUPPLIER-A",
+					"files": [
+						{
+							"file_name": "recurring-invoice.pdf",
+							"file_url": invoice.custom_recurring_invoice_pdf,
+						}
+					],
+				}
+			],
+		)
 
 	@patch("erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.frappe.get_all")
 	def test_related_supplier_names_include_self_and_both_relation_directions(self, get_all):

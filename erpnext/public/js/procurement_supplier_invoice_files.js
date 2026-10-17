@@ -695,7 +695,11 @@ function expand_purchase_invoice_supplier_section(frm, hasFiles) {
 
 function get_supplier_invoice_file_args(frm) {
 	if (frm.doctype === "Purchase Invoice") {
-		if (!frm.doc.custom_consolidated_purchase_order || !frm.doc.supplier) return null;
+		if (
+			(!frm.doc.custom_consolidated_purchase_order && !frm.doc.custom_recurring_purchase) ||
+			!frm.doc.supplier
+		)
+			return null;
 		if (!frm.is_new()) {
 			return {
 				references: JSON.stringify([
@@ -706,6 +710,7 @@ function get_supplier_invoice_file_args(frm) {
 				]),
 			};
 		}
+		if (frm.doc.custom_recurring_purchase) return null;
 		return {
 			consolidated_order: frm.doc.custom_consolidated_purchase_order,
 			supplier: frm.doc.supplier,

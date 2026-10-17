@@ -17,6 +17,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_recurring_purchase_fields()
 	setup_invoice_payment_routes()
 	setup_procurement_item_likes()
 	setup_company_requisites()
@@ -112,6 +113,35 @@ def execute():
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
+	)
+
+
+def setup_recurring_purchase_fields():
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+	create_custom_fields(
+		{
+			"Purchase Invoice": [
+				{
+					"fieldname": "custom_recurring_purchase",
+					"label": "Recurring Purchase",
+					"fieldtype": "Link",
+					"options": "Recurring Purchase",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "supplier",
+					"search_index": 1,
+				},
+				{
+					"fieldname": "custom_recurring_invoice_pdf",
+					"label": "Supplier Invoice PDF",
+					"fieldtype": "Attach",
+					"insert_after": "custom_recurring_purchase",
+					"no_copy": 1,
+					"depends_on": "eval:doc.custom_recurring_purchase",
+				},
+			]
+		}
 	)
 
 
