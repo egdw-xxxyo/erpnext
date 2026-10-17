@@ -16299,3 +16299,5 @@ The recurring purchase is outside its validity period. New invoices are unavaila
 No invoices have been created from this recurring purchase.,За цією регулярною закупівлею ще не створено рахунків.
 Final Approver 1,Фінальний погоджувач 1
 Final Approver 2,Фінальний погоджувач 2
+Input price,Ціна (введення)
+Price including VAT (calculated),Ціна з ПДВ (розрахунок)
