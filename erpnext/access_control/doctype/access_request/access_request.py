@@ -235,7 +235,10 @@ def _open_role_candidates(roles) -> dict:
 			where hr.parenttype = 'User' and u.enabled = 1 group by hr.role"""
 		)
 	)
-	offered = frappe.get_all("Role", filters={"disabled": 0, "desk_access": 1}, pluck="name", order_by="name")
+	offered = sorted(
+		frappe.get_all("Role", filters={"disabled": 0, "desk_access": 1}, pluck="name"),
+		key=lambda role: _(role).casefold(),
+	)
 	return {
 		"candidates": [
 			{"role": role, "scope": None, "size": None, "users": holders.get(role, 0), "role_profiles": []}

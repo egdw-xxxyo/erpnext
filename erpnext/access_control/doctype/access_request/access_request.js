@@ -964,7 +964,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 			dialog,
 			"role_list",
 			role_options,
-			role_options.slice(0, 1).map((option) => option.value)
+			frm.doc.request_type === "Other" ? [] : role_options.slice(0, 1).map((option) => option.value)
 		);
 		erpnext.access_control.set_pick_list(
 			dialog,
