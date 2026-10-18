@@ -30,6 +30,7 @@ def misplaced():
 class TestKeepTreePosition(unittest.TestCase):
 	def tearDown(self):
 		frappe.db.rollback()
+		super().tearDown()
 
 	def test_stale_save_keeps_tree(self):
 		branch = group("_Test Stale Branch")
