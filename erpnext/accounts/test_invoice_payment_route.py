@@ -15,9 +15,12 @@ from erpnext.accounts.payment_request_approval import (
 	THRESHOLD,
 	TREASURY,
 	VOTES,
+	check_final_decision,
 	prepare_approval,
 	record_vote,
+	votes,
 )
+from erpnext.buying.procurement_final_approval import ADMINISTRATOR_OVERRIDE
 
 
 class ApprovalDoc(frappe._dict):
@@ -169,5 +172,89 @@ class TestInvoicePaymentRoute(TestCase):
 		)
 		doc.check_permission = MagicMock()
 		get_doc.return_value = doc
-		with self.assertRaises(frappe.PermissionError):
+		with (
+			patch("erpnext.accounts.payment_request_approval.frappe.session", frappe._dict(user="outsider")),
+			self.assertRaises(frappe.PermissionError),
+		):
 			record_vote(doc)
+
+	def test_administrator_completes_ceo_step_and_keeps_actual_votes(self):
+		for required in ([], ["ceo1"], ["ceo1", "ceo2", "ceo3", "ceo4"], ["Administrator", "ceo1", "ceo2"]):
+			with self.subTest(required=required):
+				doc = request(
+					"Фінальне погодження",
+					**{
+						SNAPSHOT: json.dumps(required),
+						VOTES: '["Administrator"]' if "Administrator" in required else "[]",
+					},
+				)
+				doc.check_permission = MagicMock()
+				doc.add_comment = MagicMock()
+				doc.reload = MagicMock()
+				with (
+					patch(
+						"erpnext.accounts.payment_request_approval.frappe.session",
+						frappe._dict(user="Administrator"),
+					),
+					patch("erpnext.accounts.payment_request_approval.frappe.get_doc", return_value=doc),
+					patch("erpnext.accounts.payment_request_approval.frappe.get_roles", return_value=[]),
+					patch("erpnext.accounts.payment_request_approval.frappe.db.set_value"),
+					patch("erpnext.accounts.payment_workflow_automation.sync_payment_request_assignment"),
+					patch("erpnext.accounts.payment_procurement_route.set_procurement_approval_route"),
+				):
+					check_final_decision(doc)
+					approved, complete = record_vote(doc)
+					self.assertTrue(complete)
+					self.assertIs(approved, doc)
+					self.assertEqual(json.loads(doc.get(SNAPSHOT)), required)
+					self.assertEqual(votes(doc), ["Administrator"])
+					doc.add_comment.assert_called_once()
+					next_doc = request(TREASURY, before=doc)
+					prepare_approval(next_doc)
+					self.assertEqual(votes(next_doc), ["Administrator"])
+
+	@patch("erpnext.accounts.payment_procurement_route.set_procurement_approval_route")
+	def test_old_ordinary_administrator_vote_does_not_override_other_ceos(self, _route):
+		before = request(
+			"Фінальне погодження", **{SNAPSHOT: '["Administrator", "ceo2"]', VOTES: '["Administrator"]'}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			prepare_approval(request(TREASURY, before=before))
+
+	@patch("erpnext.accounts.payment_procurement_route.set_procurement_approval_route")
+	def test_client_cannot_forge_administrator_ceo_vote(self, _route):
+		before = request("Фінальне погодження", **{SNAPSHOT: '["ceo1", "ceo2"]', VOTES: "[]"})
+		doc = request(
+			TREASURY, before=before, **{VOTES: json.dumps(["Administrator", ADMINISTRATOR_OVERRIDE])}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			prepare_approval(doc)
+
+	def test_final_workflow_action_is_available_to_administrator_without_membership(self):
+		from erpnext.accounts.payment_workflow import WORKFLOW_TRANSITIONS
+
+		transition = next(
+			row
+			for row in WORKFLOW_TRANSITIONS
+			if row["state"] == "Фінальне погодження" and row["action"] == "Погодити"
+		)
+		doc = request(
+			"Фінальне погодження", custom_payment_dynamic_approval=1, **{SNAPSHOT: '["ceo1", "ceo2", "ceo3"]'}
+		)
+		for user, allowed in (("Administrator", True), ("ceo1", True), ("outsider", False)):
+			with self.subTest(user=user):
+				result = frappe.safe_eval(
+					transition["condition"],
+					{"frappe": frappe._dict(session=frappe._dict(user=user))},
+					{"doc": doc},
+				)
+				self.assertEqual(result, allowed)
+
+	@patch("erpnext.accounts.payment_procurement_route.set_procurement_approval_route")
+	@patch("erpnext.accounts.payment_request_approval.get_approval_threshold", return_value=15000)
+	def test_administrator_vote_is_reset_for_a_new_payment_approval_cycle(self, _threshold, _route):
+		before = request("Потребує доопрацювання", **{SNAPSHOT: '["ceo1"]', VOTES: '["Administrator"]'})
+		doc = request("Перевірка підрозділу", before=before)
+		prepare_approval(doc)
+		self.assertEqual(json.loads(doc.get(VOTES)), [])
+		self.assertIsNone(doc.get(SNAPSHOT))

@@ -2,7 +2,7 @@
  * Tools for editing scripts on the Workplace Script / Scanner Script / Scanner Command
  * pages.
  *
- * Versioning (keep in sync with erpnext/manufacturing/doctype/workplace_script/workplace_script.py)
+ * Versioning (keep in sync with erpnext/devices/doctype/workplace_script/workplace_script.py)
  * --------------------------------------------------------------------------------------------------
  * Each Workplace Script / Scanner Script has a child `versions` table. Each row stores a JSON
  * snapshot:
@@ -79,7 +79,7 @@ export const SCRIPT_TOOLS = [
   // ── Workplace Script ────────────────────────────────────────────────────
   {
     name: "list_workplace_scripts",
-    description: "List all Workplace Scripts (the per-workplace scanner pipeline scripts) with workplace + parent_script + active status + default version. parent_script identifies subflows (see edit_workplace_script_meta).",
+    description: "List all Workplace Scripts (the per-workplace scanner pipeline scripts) with workplaces + parent_script + active status + default version. parent_script identifies subflows (see edit_workplace_script_meta).",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -362,12 +362,12 @@ export const SCRIPT_TOOLS = [
   {
     name: "edit_workplace_script_meta",
     description:
-      "Update top-level (non-versioned) fields on a Workplace Script: workplace, is_active, parent_script. parent_script makes this script a subflow of another Workplace Script — subflows have no workplace and are exempt from the per-workplace uniqueness check. Use create_document via the generic ERPNext MCP to create a new Workplace Script.",
+      "Update top-level (non-versioned) fields on a Workplace Script: workplaces, is_active, parent_script. workplaces replaces the whole list of workplaces the script runs on (many benches can share one script; empty list makes it the site-wide default). parent_script makes this script a subflow of another Workplace Script — subflows have no workplaces and are exempt from the per-workplace uniqueness check. Use create_document via the generic ERPNext MCP to create a new Workplace Script.",
     inputSchema: {
       type: "object",
       properties: {
         script_name: { type: "string" },
-        workplace: { type: "string", description: "Workplace link, or null/empty to clear. Mutually exclusive with parent_script." },
+        workplaces: { type: "array", items: { type: "string" }, description: "Full list of Workplace names (replaces the table). Empty array clears. Mutually exclusive with parent_script." },
         is_active: { type: "boolean" },
         parent_script: { type: "string", description: "Workplace Script name. Setting marks this as a subflow. Pass empty string to clear." },
       },
@@ -463,10 +463,16 @@ export async function handleScriptTool(
         const docs = await erpnext.getDocList(
           "Workplace Script",
           undefined,
-          ["name", "workplace", "parent_script", "is_active", "default_version"],
+          ["name", "parent_script", "is_active", "default_version"],
           200,
         );
-        return json(docs);
+        const withWorkplaces = await Promise.all(
+          docs.map(async (d: any) => {
+            const full = await erpnext.getDocument("Workplace Script", d.name);
+            return { ...d, workplaces: (full.workplaces || []).map((w: any) => w.workplace) };
+          }),
+        );
+        return json(withWorkplaces);
       }
 
       case "get_workplace_script": {
@@ -479,7 +485,7 @@ export async function handleScriptTool(
         const snap = workplaceSnapshot(row);
         return json({
           name: doc.name,
-          workplace: doc.workplace,
+          workplaces: (doc.workplaces || []).map((w: any) => w.workplace),
           parent_script: doc.parent_script || null,
           is_active: doc.is_active,
           default_version: doc.default_version,
@@ -899,20 +905,19 @@ export async function handleScriptTool(
 
       case "edit_workplace_script_meta": {
         const scriptName = arg<string>(args, "script_name");
-        const workplace = arg<string | undefined>(args, "workplace");
+        const workplaces = arg<string[] | undefined>(args, "workplaces");
         const isActive = arg<boolean | undefined>(args, "is_active");
         const parentScript = arg<string | undefined>(args, "parent_script");
         if (!scriptName) return err("script_name is required");
 
         const data: Record<string, any> = {};
-        if (workplace !== undefined) data.workplace = workplace || null;
+        if (workplaces !== undefined) data.workplaces = workplaces.map((w) => ({ workplace: w }));
         if (isActive !== undefined) data.is_active = isActive ? 1 : 0;
         if (parentScript !== undefined) data.parent_script = parentScript || null;
-        if (Object.keys(data).length === 0) return err("Nothing to update — provide workplace, is_active, or parent_script");
+        if (Object.keys(data).length === 0) return err("Nothing to update — provide workplaces, is_active, or parent_script");
 
-        if (data.parent_script && (data.workplace || (data.workplace === undefined))) {
-          // subflow must have no workplace
-          if (data.workplace) return err("Subflow (parent_script set) cannot have a workplace");
+        if (data.parent_script && data.workplaces && data.workplaces.length) {
+          return err("Subflow (parent_script set) cannot have workplaces");
         }
 
         await erpnext.updateDocument("Workplace Script", scriptName, data);

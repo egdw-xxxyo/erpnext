@@ -72,7 +72,7 @@ doctype_js = {
 	# сканер серійних / партійних номерів на самому комплекті
 	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
-	"Stock Entry": "public/js/responsible_employee.js",
+	"Stock Entry": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
 	"Purchase Receipt": "public/js/responsible_employee.js",
 	"Purchase Invoice": [
 		"public/js/custom/supplier_vat_display.js",
@@ -89,8 +89,8 @@ doctype_js = {
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/custom/supplier_vat_display.js",
 	],
-	"Delivery Note": "public/js/responsible_employee.js",
-	"Sales Invoice": "public/js/responsible_employee.js",
+	"Delivery Note": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
+	"Sales Invoice": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
@@ -227,6 +227,7 @@ after_migrate = [
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 	"erpnext.setup.organization_sidebar.add_organization_links",
 	"erpnext.buying.buying_sidebar.add_buying_links",
+	"erpnext.stock.stock_sidebar.add_stock_links",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -607,8 +608,13 @@ doc_events = {
 		"on_trash": "erpnext.setup.doctype.employee_group.group_access.clear_group_cache",
 	},
 	"Stock Entry": {
-		"validate": "erpnext.crm.doctype.lead_expense.lead_expense.validate_stock_entry",
+		"validate": [
+			"erpnext.crm.doctype.lead_expense.lead_expense.validate_stock_entry",
+			# a packed box is issued whole and marked Shipped
+			"erpnext.stock.package_shipping.validate_whole_packages",
+		],
 		"on_submit": [
+			"erpnext.stock.package_shipping.mark_shipped",
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			# record which fiber reel each produced optical spool was wound from
 			"erpnext.devices.spool_lineage.stamp_source_batch",
@@ -621,6 +627,7 @@ doc_events = {
 			"erpnext.manufacturing.consumption.cancel_for_source",
 			# a packing transfer's «Упаковка» note on the serials goes back with it
 			"erpnext.manufacturing.packing.unpack_on_cancel",
+			"erpnext.stock.package_shipping.revert_shipped",
 		],
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
@@ -628,7 +635,13 @@ doc_events = {
 	# the route of a unit: which BOM step puts it into stock, and the steps after that
 	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
 	# a unit waiting for packing is stock but not sellable
-	"Delivery Note": {"before_submit": "erpnext.manufacturing.packing.block_unpacked_delivery"},
+	"Delivery Note": {
+		"before_submit": "erpnext.manufacturing.packing.block_unpacked_delivery",
+		# a packed box ships whole and is marked Shipped
+		"validate": "erpnext.stock.package_shipping.validate_whole_packages",
+		"on_submit": "erpnext.stock.package_shipping.mark_shipped",
+		"on_cancel": "erpnext.stock.package_shipping.revert_shipped",
+	},
 	"Work Order": {"before_validate": "erpnext.manufacturing.unit_route.drop_after_stock_operations"},
 	# every desk notification is mirrored to WhatsApp for users who opted into CallMeBot,
 	# and pushed to the mobile app's registered devices
@@ -665,11 +678,14 @@ doc_events = {
 		"on_update": "erpnext.crm.utils.disable_opportunity_creation_on_contact_us_disabled",
 	},
 	"Sales Invoice": {
+		"validate": "erpnext.stock.package_shipping.validate_whole_packages",
 		"on_submit": [
 			"erpnext.regional.italy.utils.sales_invoice_on_submit",
+			"erpnext.stock.package_shipping.mark_shipped",
 		],
 		"on_cancel": [
 			"erpnext.regional.italy.utils.sales_invoice_on_cancel",
+			"erpnext.stock.package_shipping.revert_shipped",
 		],
 		"on_trash": "erpnext.regional.check_deletion_permission",
 	},

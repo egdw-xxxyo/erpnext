@@ -1,0 +1,297 @@
+.package-overview {
+	padding: 16px 20px 40px;
+}
+
+.package-overview .pko-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.package-overview .pko-bar .pko-field {
+	flex: 1 1 180px;
+	max-width: 260px;
+}
+
+.package-overview .pko-bar .frappe-control {
+	margin-bottom: 0;
+}
+
+.package-overview .pko-clear {
+	cursor: pointer;
+	padding-bottom: 8px;
+}
+
+.package-overview .pko-pager {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	justify-content: flex-end;
+	margin-top: 8px;
+}
+
+.package-overview .pko-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+
+.package-overview .pko-count {
+	margin-left: 4px;
+	padding: 0 6px;
+	border-radius: 8px;
+	background: var(--bg-gray);
+	color: var(--text-color);
+	font-size: 11px;
+}
+
+.package-overview .pko-meta {
+	font-size: 12px;
+	margin-bottom: 14px;
+}
+
+.package-overview .pko-h {
+	margin: 24px 0 10px;
+}
+
+.package-overview .pko-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 12px;
+}
+
+.package-overview .pko-tile {
+	display: block;
+	padding: 14px 16px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+	color: var(--text-color);
+	text-decoration: none;
+}
+
+.package-overview .pko-tile:hover {
+	border-color: var(--primary);
+	text-decoration: none;
+}
+
+.package-overview .pko-tile-icon {
+	color: var(--text-muted);
+	font-size: 16px;
+}
+
+.package-overview .pko-tile-value {
+	font-size: 24px;
+	font-weight: 600;
+	margin-top: 4px;
+}
+
+.package-overview .pko-tile-label {
+	font-weight: 500;
+}
+
+.package-overview .pko-tile-sub {
+	font-size: 12px;
+}
+
+.package-overview .pko-flow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 16px;
+	padding: 10px 14px;
+	border-radius: var(--border-radius-md);
+	background: var(--subtle-fg);
+	font-size: 13px;
+}
+
+.package-overview .pko-flow .fa-long-arrow-right {
+	color: var(--text-muted);
+}
+
+.package-overview .pko-issues {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	overflow: hidden;
+}
+
+.package-overview .pko-issue {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 13px;
+}
+
+.package-overview .pko-issue:last-child {
+	border-bottom: 0;
+}
+
+.package-overview .pko-issue-level {
+	font-weight: 600;
+	min-width: 90px;
+}
+
+.package-overview .pko-issue-area {
+	min-width: 110px;
+}
+
+.package-overview .pko-issue-msg {
+	flex: 1;
+	min-width: 240px;
+}
+
+.package-overview .pko-error .fa,
+.package-overview .pko-error .pko-issue-level {
+	color: var(--red-600);
+}
+
+.package-overview .pko-warning .fa,
+.package-overview .pko-warning .pko-issue-level {
+	color: var(--orange-600);
+}
+
+.package-overview .pko-info .fa,
+.package-overview .pko-info .pko-issue-level {
+	color: var(--blue-600);
+}
+
+.package-overview .pko-ok {
+	color: var(--green-600);
+}
+
+.package-overview .pko-where {
+	display: grid;
+	gap: 4px;
+	font-size: 13px;
+}
+
+.package-overview .pko-table-wrap {
+	overflow-x: auto;
+}
+
+.package-overview .pko-table {
+	font-size: 13px;
+	background: var(--card-bg);
+}
+
+.package-overview .pko-table th {
+	white-space: nowrap;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.package-overview .pko-table td {
+	vertical-align: top;
+}
+
+.package-overview .pko-pill {
+	margin-right: 4px;
+}
+
+.package-overview .pko-hint {
+	margin-bottom: 10px;
+}
+
+.package-overview .pko-empty {
+	padding: 30px 0;
+	text-align: center;
+}
+
+.package-overview .pko-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.package-overview .pko-legend i {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 4px;
+	border-radius: 2px;
+	vertical-align: -1px;
+}
+
+.package-overview .pko-statuses {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 14px;
+}
+
+.package-overview .pko-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	height: 140px;
+	padding: 10px 12px 0;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+}
+
+.package-overview .pko-day {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-width: 18px;
+}
+
+.package-overview .pko-day-bars {
+	flex: 1;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 2px;
+}
+
+.package-overview .pko-day-bars span {
+	width: 40%;
+	min-height: 1px;
+	border-radius: 2px 2px 0 0;
+}
+
+.package-overview .pko-day-label {
+	font-size: 10px;
+	text-align: center;
+	padding: 4px 0;
+}
+
+.package-overview .pko-bar-packed {
+	background: var(--blue-500);
+}
+
+.package-overview .pko-bar-shipped {
+	background: var(--green-500);
+}
+
+.package-overview .pko-legend {
+	margin-top: 6px;
+}
+
+.package-overview .pko-card {
+	cursor: pointer;
+}
+
+.package-overview .pko-details {
+	display: none;
+	margin-top: 6px;
+	padding-top: 6px;
+	border-top: 1px dashed var(--border-color);
+	font-size: 12px;
+	line-height: 1.8;
+}
+
+.package-overview .pko-open .pko-details {
+	display: block;
+}

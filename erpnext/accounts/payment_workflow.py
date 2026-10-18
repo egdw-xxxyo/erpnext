@@ -313,7 +313,7 @@ def _invoice_approval_transitions():
 		if transition["state"] == "Фінальне погодження":
 			transition[
 				"condition"
-			] = "not doc.custom_payment_dynamic_approval or ('\"' + frappe.session.user + '\"') in (doc.custom_payment_ceo_approvers or '')"
+			] = "frappe.session.user == 'Administrator' or not doc.custom_payment_dynamic_approval or ('\"' + frappe.session.user + '\"') in (doc.custom_payment_ceo_approvers or '')"
 		if transition["state"] == "Перевірка казначейства" and transition["action"] == "Погодити":
 			transition["condition"] = STANDARD_ROUTE_CONDITION
 			transitions.append({**original, "condition": APPROVED_ROUTE_CONDITION, "allow_self_approval": 1})

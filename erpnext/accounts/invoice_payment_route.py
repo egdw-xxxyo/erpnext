@@ -7,7 +7,11 @@ from frappe import _
 from frappe.utils import flt, get_link_to_form
 
 from erpnext.accounts.payment_request_approval import DEPARTMENT_ACTOR, FINAL, TREASURY, approvers, votes
-from erpnext.buying.procurement_final_approval import get_document_approved_users, is_automatic_final_approval
+from erpnext.buying.procurement_final_approval import (
+	get_document_approved_users,
+	has_administrator_approval,
+	is_automatic_final_approval,
+)
 
 SNAPSHOT = "custom_payment_route_snapshot"
 
@@ -47,6 +51,7 @@ def _source_snapshot(invoice):
 		"department": _department_actor(order.doctype, order.name),
 		"ceo": get_document_approved_users(order),
 		"automatic": is_automatic_final_approval(order),
+		"ceo_administrator": has_administrator_approval(order),
 		"invoice_creator": invoice.owner or frappe.session.user,
 	}
 
@@ -177,6 +182,9 @@ def get_payment_route(doctype: str, name: str):
 		else None,
 		"steps": steps,
 		"ceo_votes": len(votes(doc)) if not data else len(data.get("ceo") or []),
+		"ceo_administrator": has_administrator_approval(doc, "custom_payment_ceo_votes")
+		if not data
+		else bool(data.get("ceo_administrator")),
 		"ceo_required": len(approvers(doc)) if not data else len(data.get("ceo") or []),
 	}
 

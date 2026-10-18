@@ -37,3 +37,13 @@ class Pallet(Document):
 
 	def _linked_package_count(self):
 		return frappe.db.count("Package", {"pallet": self.name, "docstatus": ["<", 2]})
+
+
+def update_status_from_packages(pallet_name):
+	"""A submitted pallet is Shipped once every box on it is, Packed otherwise."""
+	if frappe.db.get_value("Pallet", pallet_name, "docstatus") != 1:
+		return
+	statuses = frappe.get_all("Package", filters={"pallet": pallet_name, "docstatus": 1}, pluck="status")
+	new_status = "Shipped" if statuses and all(s == "Shipped" for s in statuses) else "Packed"
+	if frappe.db.get_value("Pallet", pallet_name, "status") != new_status:
+		frappe.db.set_value("Pallet", pallet_name, "status", new_status)

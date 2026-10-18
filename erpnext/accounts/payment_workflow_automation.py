@@ -190,9 +190,14 @@ def sync_payment_request_assignment(doc, method=None):
 	)
 
 	from erpnext.accounts.payment_request_approval import FINAL, approvers, uses_invoice_route, votes
+	from erpnext.buying.procurement_final_approval import has_administrator_approval
 
 	if matching and doc.workflow_state == FINAL and uses_invoice_route(doc) and approvers(doc):
-		target_users = [user for user in approvers(doc) if user not in votes(doc)]
+		target_users = (
+			[]
+			if has_administrator_approval(doc, "custom_payment_ceo_votes")
+			else [user for user in approvers(doc) if user not in votes(doc)]
+		)
 	else:
 		user = _get_stage_user(matching, doc) if matching else None
 		target_users = [user] if user else []

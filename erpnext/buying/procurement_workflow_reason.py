@@ -19,6 +19,7 @@ def apply_workflow(doc: str | dict, action: str):
 		FINAL_APPROVAL_STATE,
 		close_final_approval_assignments,
 		get_document_final_approvers,
+		has_administrator_approval,
 		record_final_approval,
 		reset_final_approvals,
 	)
@@ -34,7 +35,9 @@ def apply_workflow(doc: str | dict, action: str):
 	if current_doc.workflow_state == FINAL_APPROVAL_STATE and action == "Погодити":
 		approval_count = record_final_approval(current_doc)
 		required = len(get_document_final_approvers(frappe.get_doc(current_doc.doctype, current_doc.name)))
-		if approval_count < required:
+		if approval_count < required and not has_administrator_approval(
+			frappe.get_doc(current_doc.doctype, current_doc.name)
+		):
 			frappe.msgprint(
 				_(
 					"CEO approval {0}/{1} recorded. The document is waiting for the remaining approvers."
