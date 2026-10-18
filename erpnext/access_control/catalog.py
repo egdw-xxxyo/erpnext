@@ -1,24 +1,26 @@
-from itertools import islice
-
 import frappe
 from frappe import _
 from frappe.desk.desk_views import DeskViews
-from frappe.utils import escape_html
 from frappe.utils.user import UserPermissions
 
 CACHE_KEY = "access_catalog"
 CACHE_SECONDS = 300
-LIMIT = 20
-INDEX = 1
+LIMIT = 30
+MIN_CHARS = 3
 KIND_LABELS = {"doctype": "List", "single": None, "report": "Report", "page": "Page"}
 
 
-def search(txt: str) -> list[dict]:
-	if frappe.get_cached_value("User", frappe.session.user, "user_type") != "System User":
-		return []
+@frappe.whitelist()
+def search_inaccessible(txt: str) -> dict:
 	words = txt.casefold().split()
-	entries = (entry for entry in catalog(frappe.session.user) if matches(entry, words))
-	return [option(entry) for entry in islice(entries, LIMIT)]
+	if len(txt.strip()) < MIN_CHARS or not is_desk_user():
+		return {"total": 0, "items": []}
+	found = [entry for entry in catalog(frappe.session.user) if matches(entry, words)]
+	return {"total": len(found), "items": [option(entry) for entry in found[:LIMIT]]}
+
+
+def is_desk_user() -> bool:
+	return frappe.get_cached_value("User", frappe.session.user, "user_type") == "System User"
 
 
 def matches(entry: dict, words: list[str]) -> bool:
@@ -27,15 +29,11 @@ def matches(entry: dict, words: list[str]) -> bool:
 
 
 def option(entry: dict) -> dict:
-	title = _(entry["title"])
 	kind = KIND_LABELS[entry["kind"]]
-	suffix = f' <span class="text-muted">{_(kind)}</span>' if kind else ""
 	return {
-		"label": f'<i class="fa fa-lock text-muted"></i> {escape_html(title)}{suffix}',
-		"value": f"{title} · {entry['kind']} · {entry['name']}",
-		"description": _("No access. Open to request it"),
+		"title": _(entry["title"]),
+		"kind": _(kind) if kind else "",
 		"route": entry["route"],
-		"index": INDEX,
 	}
 
 

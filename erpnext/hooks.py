@@ -41,7 +41,6 @@ web_include_icons = [
 ]
 
 after_request = ["erpnext.access_control.denial.attach_denial_context"]
-awesomebar_search = ["erpnext.access_control.catalog.search"]
 
 doctype_js = {
 	"Supplier": "public/js/custom/supplier_paid_vat.js",

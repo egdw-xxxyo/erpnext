@@ -1,6 +1,6 @@
 import unittest
 
-from erpnext.access_control.catalog import matches, option
+from erpnext.access_control.catalog import matches, option, search_inaccessible
 
 
 def entry(kind="doctype", title="Payroll Entry", route=None):
@@ -22,19 +22,20 @@ class TestCatalogMatch(unittest.TestCase):
 		self.assertFalse(matches(entry(), []))
 
 
-class TestCatalogOption(unittest.TestCase):
-	def test_title_is_escaped(self):
-		self.assertNotIn("<script>", option(entry(title="<script>"))["label"])
+class TestCatalogSearch(unittest.TestCase):
+	def test_short_query_returns_nothing(self):
+		self.assertEqual(search_inaccessible(" pa "), {"total": 0, "items": []})
 
-	def test_route_and_lock(self):
+
+class TestCatalogOption(unittest.TestCase):
+	def test_report_keeps_route_and_kind(self):
 		result = option(
 			entry(kind="report", title="General Ledger", route=["query-report", "General Ledger"])
 		)
 		self.assertEqual(result["route"], ["query-report", "General Ledger"])
-		self.assertIn("fa-lock", result["label"])
+		self.assertEqual(result["title"], "General Ledger")
+		self.assertTrue(result["kind"])
 
-	def test_values_differ_by_kind(self):
-		self.assertNotEqual(
-			option(entry(kind="doctype", title="Sales"))["value"],
-			option(entry(kind="page", title="Sales", route=["sales"]))["value"],
-		)
+	def test_single_has_no_kind(self):
+		result = option(entry(kind="single", title="Payroll Settings"))
+		self.assertEqual(result["kind"], "")
