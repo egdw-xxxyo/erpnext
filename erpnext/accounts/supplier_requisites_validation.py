@@ -455,6 +455,10 @@ def _get_expected_bank_accounts(doc, supplier):
 
 
 def _get_invoice_file_groups(doc, context):
+	if doc.doctype == "Purchase Invoice" and not doc.is_new():
+		return get_supplier_invoice_files(
+			references=[{"reference_doctype": doc.doctype, "reference_name": doc.name}]
+		)
 	if doc.doctype == "Purchase Invoice":
 		return get_supplier_invoice_files(
 			consolidated_order=doc.get("custom_consolidated_purchase_order"),

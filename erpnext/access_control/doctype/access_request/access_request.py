@@ -227,6 +227,31 @@ def _role_candidates(doc, granting: dict, roles, context: dict | None) -> dict:
 	}
 
 
+def _open_role_candidates(roles) -> dict:
+	held = set(roles)
+	holders = dict(
+		frappe.db.sql(
+			"""select hr.role, count(distinct hr.parent) from `tabHas Role` hr join tabUser u on u.name = hr.parent
+			where hr.parenttype = 'User' and u.enabled = 1 group by hr.role"""
+		)
+	)
+	offered = frappe.get_all("Role", filters={"disabled": 0, "desk_access": 1}, pluck="name", order_by="name")
+	return {
+		"candidates": [
+			{"role": role, "scope": None, "size": None, "users": holders.get(role, 0), "role_profiles": []}
+			for role in offered
+			if rules.is_grantable(role) and role not in held
+		],
+		"never_granted": [],
+	}
+
+
+def _candidates(doc, granting: dict, roles, context: dict | None) -> dict:
+	if doc.request_type == "Other":
+		return _open_role_candidates(roles)
+	return _role_candidates(doc, granting, roles, context)
+
+
 def _link_values(row) -> list[tuple[str, str]]:
 	return [
 		(field.options, row.get(field.fieldname))
@@ -357,7 +382,7 @@ def get_approval_options(name: str) -> dict:
 		"own_request": doc.user == frappe.session.user,
 		"user_roles": visible_roles(roles),
 		"situation": situation,
-		**_role_candidates(doc, granting, roles, context),
+		**_candidates(doc, granting, roles, context),
 		"rights": context["rights"] if context else [],
 		"requested_rights": context["requested"] if context else [],
 		"current_coverage": _coverage_fields(context, roles).get("coverage", {}),
@@ -769,7 +794,7 @@ def get_candidates(name: str, rights: str | list | None = None) -> dict:
 	context = _rights_context(doc, _parse_rights(rights))
 	granting = _granting(_situation(doc), context)
 	return {
-		**_role_candidates(doc, granting, frappe.get_roles(doc.user), context),
+		**_candidates(doc, granting, frappe.get_roles(doc.user), context),
 		"profile_candidates": _profile_candidates(doc, granting, context),
 	}
 

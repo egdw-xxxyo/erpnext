@@ -16266,3 +16266,4 @@ Amount excluding VAT,Сума без ПДВ
 Price including VAT,Ціна з ПДВ
 Paid VAT,Сплачено ПДВ
 Invalid invoice selection.,Некоректний вибір рахунків.
+"The system could not tell which access was refused. Pick the roles yourself","Система не змогла визначити, в якому доступі відмовлено. Оберіть ролі самостійно"

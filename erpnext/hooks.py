@@ -40,6 +40,7 @@ web_include_icons = [
 	"/assets/erpnext/icons/pos-icons.svg",
 ]
 
+before_request = ["erpnext.access_control.denial.track_denials"]
 after_request = ["erpnext.access_control.denial.attach_denial_context"]
 
 doctype_js = {
