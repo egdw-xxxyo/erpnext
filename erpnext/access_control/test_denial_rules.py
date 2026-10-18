@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from erpnext.access_control.denial_rules import denial_context, slug_to_name
+from erpnext.access_control.denial_rules import denial_context, slug_to_name, with_raised
 
 
 class TestMethodContext(unittest.TestCase):
@@ -83,6 +83,39 @@ class TestResourceContext(unittest.TestCase):
 
 	def test_unrelated_path(self):
 		self.assertIsNone(denial_context("/app/item", "GET", {}))
+
+
+RAISED = {"kind": "doctype", "doctype": "Consolidated Purchase Order", "name": None, "ptype": "read"}
+
+
+class TestRaisedDenial(unittest.TestCase):
+	def test_unknown_method_takes_raised_check(self):
+		requested = denial_context("/api/method/erpnext.accounts.custom.check", "POST", {"doc": "{}"})
+		self.assertEqual(
+			with_raised(requested, RAISED),
+			{**RAISED, "method": "erpnext.accounts.custom.check"},
+		)
+
+	def test_unknown_method_with_doctype_takes_raised_check(self):
+		requested = denial_context("/api/method/erpnext.custom.run", "GET", {"doctype": "Item"})
+		self.assertEqual(with_raised(requested, RAISED)["doctype"], "Consolidated Purchase Order")
+
+	def test_known_method_keeps_request(self):
+		requested = denial_context(
+			"/api/method/frappe.desk.form.load.getdoc", "GET", {"doctype": "Quotation", "name": "Q-1"}
+		)
+		self.assertEqual(with_raised(requested, RAISED), requested)
+
+	def test_resource_keeps_request(self):
+		requested = denial_context("/api/resource/ToDo/T-1", "GET", {})
+		self.assertEqual(with_raised(requested, RAISED), requested)
+
+	def test_nothing_raised_keeps_request(self):
+		requested = denial_context("/api/method/erpnext.accounts.custom.check", "POST", {})
+		self.assertEqual(with_raised(requested, None), requested)
+
+	def test_unrelated_path_takes_raised_check(self):
+		self.assertEqual(with_raised(None, RAISED), RAISED)
 
 
 class TestSlug(unittest.TestCase):

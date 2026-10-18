@@ -604,7 +604,10 @@ def _thread_row(t, me, last_read, can_purge):
 	unreachable = without_channels([p.user for p in parts])
 	images = dict(
 		frappe.get_all(
-			"User", filters={"name": ["in", [p.user for p in parts]]}, fields=["name", "user_image"], as_list=True
+			"User",
+			filters={"name": ["in", [p.user for p in parts]]},
+			fields=["name", "user_image"],
+			as_list=True,
 		)
 	)
 	for p in parts:

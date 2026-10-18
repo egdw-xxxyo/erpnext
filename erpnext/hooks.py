@@ -519,6 +519,7 @@ override_doctype_dashboards = {
 doc_events = {
 	"List Filter": {"on_trash": "erpnext.utilities.todo.prevent_default_filter_deletion"},
 	"*": {
+		"before_validate": "erpnext.utilities.nested_set.keep_tree_position",
 		"validate": [
 			"erpnext.support.doctype.service_level_agreement.service_level_agreement.apply",
 			"erpnext.setup.doctype.transaction_deletion_record.transaction_deletion_record.check_for_running_deletion_job",
