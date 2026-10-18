@@ -73,5 +73,6 @@ import "./environment_badge.js";
 import "./sidebar_memory.js";
 import "./access_control/role_grants.js";
 import "./access_control/access_denied.js";
+import "./access_control/search_catalog.js";
 
 // import { sum } from 'frappe/public/utils/util.js'
