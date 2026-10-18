@@ -297,6 +297,17 @@ def _line_for_item(item_code):
 	return None
 
 
+def _line_for_card(card):
+	"""The line that opened this unit's Work Order, else the one that plans its item.
+
+	Two lines may share an item; the Work Order remembers which one opened it.
+	"""
+	name = card.work_order and frappe.db.get_value("Work Order", card.work_order, "production_line")
+	if name and frappe.db.get_value("Production Line", name, "enabled"):
+		return frappe.get_cached_doc("Production Line", name)
+	return _line_for_item(card.production_item)
+
+
 def _line_for(line_type, item_code, workplace=None):
 	for line in _enabled_lines(line_type):
 		if _plan_rows(line, workplace=workplace, item_code=item_code):
@@ -851,7 +862,7 @@ def finish_unit(job_card):
 			# card with an inspection and `next_unit` had nothing else to offer the bench.
 			if card.docstatus == 0:
 				_complete_job_card(card, rejected=True)
-			line = _line_for_item(card.production_item)
+			line = _line_for_card(card)
 			reject_warehouse = line.reject_warehouse if line else None
 			stock_entry = card.auto_stock_entry
 			if reject_warehouse and (
@@ -886,7 +897,7 @@ def finish_unit(job_card):
 	# A line that finishes into stock at packing leaves the unit out of stock here on purpose:
 	# `Stock Entry.check_if_operations_completed` refuses a Manufacture entry while any
 	# operation of the Work Order is still open, and packing is one of those operations.
-	line = _line_for_item(card.production_item)
+	line = _line_for_card(card)
 	# The BOM, not the line, says how this unit finishes: one that names a staging warehouse
 	# lands in stock now and is packed later, whatever the line's flag still says for the Work
 	# Orders opened on an older BOM.
