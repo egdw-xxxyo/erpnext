@@ -2,7 +2,6 @@ import json
 
 import frappe
 from frappe import _
-from frappe.model.document import Document
 from frappe.permissions import has_permission
 from frappe.utils import strip_html
 
@@ -64,41 +63,9 @@ def resolve(context: dict | None) -> dict | None:
 	return {**(resolved or {"kind": "other"}), "method": context.get("method")}
 
 
-def _remember_denial(doctype, name, ptype: str):
-	frappe.local.raised_denial = denial_rules.doctype_context(doctype, name, ptype)
-
-
-def _tracking_has_permission(original):
-	def has_permission(doctype=None, ptype="read", doc=None, *args, **kwargs):
-		try:
-			return original(doctype, ptype, doc, *args, **kwargs)
-		except frappe.PermissionError:
-			name = doc if isinstance(doc, str) else getattr(doc, "name", None)
-			_remember_denial(doctype or getattr(doc, "doctype", None), name, ptype)
-			raise
-
-	has_permission.tracks_denials = True
-	return has_permission
-
-
-def _tracking_raise_no_permission_to(original):
-	def raise_no_permission_to(self, perm_type):
-		parent = self.meta.istable and self.get("parenttype")
-		_remember_denial(
-			self.parenttype if parent else self.doctype, self.parent if parent else self.name, perm_type
-		)
-		return original(self, perm_type)
-
-	raise_no_permission_to.tracks_denials = True
-	return raise_no_permission_to
-
-
-def track_denials():
-	frappe.local.raised_denial = None
-	if not getattr(frappe.has_permission, "tracks_denials", False):
-		frappe.has_permission = _tracking_has_permission(frappe.has_permission)
-	if not getattr(Document.raise_no_permission_to, "tracks_denials", False):
-		Document.raise_no_permission_to = _tracking_raise_no_permission_to(Document.raise_no_permission_to)
+def _raised_denial() -> dict | None:
+	denial = frappe.flags.get("permission_denial")
+	return denial and denial_rules.doctype_context(denial["doctype"], denial["name"], denial["ptype"])
 
 
 def attach_denial_context(response=None, request=None):
@@ -110,7 +77,7 @@ def attach_denial_context(response=None, request=None):
 	if not isinstance(body, dict):
 		return
 	requested = denial_rules.denial_context(request.path, request.method, frappe.local.form_dict)
-	context = resolve(denial_rules.with_raised(requested, getattr(frappe.local, "raised_denial", None)))
+	context = resolve(denial_rules.with_raised(requested, _raised_denial()))
 	response.set_data(json.dumps({**body, "_access_denied": context or {"kind": "other"}}, default=str))
 
 
