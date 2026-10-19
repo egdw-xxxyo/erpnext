@@ -76,6 +76,7 @@ CONTEXT_FIELD_FIELDS = [
 	"show_in_app",
 	"app_editable",
 	"is_primary",
+	"is_required",
 	"preserve_on_switch",
 	"blocks_switch",
 	"editable_in_states",
@@ -609,6 +610,7 @@ def _read_session(scanner_row, probe_printer=False):
 				"show_in_app": cint(decl.get("show_in_app")),
 				"app_editable": cint(decl.get("app_editable")),
 				"is_primary": cint(decl.get("is_primary")),
+				"is_required": cint(decl.get("is_required")),
 				"preserve_on_switch": cint(decl.get("preserve_on_switch")),
 				"blocks_switch": cint(decl.get("blocks_switch")),
 				"editable_in_states": _editable_states(decl),
@@ -638,6 +640,7 @@ def _read_session(scanner_row, probe_printer=False):
 				"show_in_app": 0,
 				"app_editable": 0,
 				"is_primary": 0,
+				"is_required": 0,
 				"preserve_on_switch": 0,
 				"blocks_switch": 0,
 				"editable_in_states": [],
@@ -982,6 +985,8 @@ def set_context_field(scanner=None, key=None, value=None):
 	decl = _require_editable(declared, key, frame.get("state"))
 
 	coerced = _coerce_value(decl, value, context)
+	if cint(decl.get("is_required")) and coerced in (None, ""):
+		frappe.throw(_("{0} is required and cannot be cleared").format(decl.get("label") or key))
 	current = context.get(key)
 	is_switch = bool(cint(decl.get("is_primary"))) and current not in (None, "") and current != coerced
 

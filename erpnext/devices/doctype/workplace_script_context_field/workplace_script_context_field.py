@@ -15,6 +15,7 @@ class WorkplaceScriptContextField(Document):
 		enter_state: DF.Data | None
 		fieldtype: DF.Literal["Data", "Int", "Float", "Check", "Link", "Select"]
 		is_primary: DF.Check
+		is_required: DF.Check
 		key: DF.Data
 		label: DF.Data | None
 		link_doctype: DF.Link | None

@@ -15,6 +15,7 @@
   "show_in_app",
   "app_editable",
   "is_primary",
+  "is_required",
   "preserve_on_switch",
   "blocks_switch",
   "section_behaviour",
@@ -101,6 +102,13 @@
    "description": "The entity this session is about (e.g. the Sales Order being packed). Setting it from the app clears every other key except those marked Preserve On Switch. Requires App Editable."
   },
   {
+   "default": "0",
+   "fieldname": "is_required",
+   "fieldtype": "Check",
+   "label": "Required",
+   "description": "Once set, the app cannot clear this key — only replace it. For answers the flow fills in itself (e.g. the order's BpAK)."
+  },
+  {
    "fieldname": "preserve_on_switch",
    "fieldtype": "Check",
    "label": "Preserve On Switch",
@@ -152,7 +160,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-09-22 00:00:00.000000",
+ "modified": "2026-10-19 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Workplace Script Context Field",

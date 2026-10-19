@@ -16352,3 +16352,6 @@ WhatsApp chats,Чати WhatsApp
 "No access. Open to request it","Немає доступу. Відкрийте, щоб запросити"
 "Open an item to request access","Відкрийте пункт, щоб запросити доступ"
 "Showing {0} of {1}. Refine the search to see the rest","Показано {0} з {1}. Уточніть пошук, щоб побачити решту"
+Required,Обовʼязкове
+"Once set, the app cannot clear this key — only replace it. For answers the flow fills in itself (e.g. the order's BpAK).","Після заповнення застосунок не може очистити це поле — лише замінити. Для значень, які потік заповнює сам (наприклад, БпАК Замовлення)."
+{0} is required and cannot be cleared,"{0} — обовʼязкове поле, його не можна очистити"
