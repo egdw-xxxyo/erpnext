@@ -16301,3 +16301,11 @@ Final Approver 1,Фінальний погоджувач 1
 Final Approver 2,Фінальний погоджувач 2
 Input price,Ціна (введення)
 Price including VAT (calculated),Ціна з ПДВ (розрахунок)
+Submitted By,Провів
+Supplier VAT pricing,Ціни з урахуванням ПДВ постачальника
+Validity Status,Статус дії
+Not yet effective,Ще не діє
+Validity expired,Строк дії минув
+Effective,Діє
+"Final prices include 20% VAT for VAT payers. Quantities and prices are defaults, not periodic limits.","Кінцеві ціни включають 20% ПДВ для платників ПДВ. Кількість і ціни є типовими значеннями, а не лімітами на період."
+This approved document retains its original tax template and amounts.,У цьому погодженому документі збережено початковий податковий шаблон і суми.

@@ -21,6 +21,10 @@
     "totals_section",
     "net_total",
     "grand_total",
+    "submitted_by",
+    "supplier_vat_pricing",
+    "supplier_is_vat_payer",
+    "vat_totals_html",
     "notes",
     "invoices_section",
     "invoices_html",
@@ -81,7 +85,8 @@
       "fieldtype": "Float",
       "label": "Exchange Rate",
       "default": "1",
-      "reqd": 1
+      "reqd": 1,
+      "hidden": 1
     },
     {
       "fieldname": "column_break_dates",
@@ -98,7 +103,8 @@
       "fieldname": "valid_until",
       "fieldtype": "Date",
       "label": "Valid Until",
-      "reqd": 1
+      "reqd": 1,
+      "in_list_view": 1
     },
     {
       "fieldname": "contract_file",
@@ -121,7 +127,8 @@
       "fieldname": "taxes_and_charges",
       "fieldtype": "Link",
       "label": "Purchase Taxes and Charges Template",
-      "options": "Purchase Taxes and Charges Template"
+      "options": "Purchase Taxes and Charges Template",
+      "hidden": 1
     },
     {
       "fieldname": "totals_section",
@@ -131,14 +138,14 @@
     {
       "fieldname": "net_total",
       "fieldtype": "Currency",
-      "label": "Net Total",
+      "label": "Total excluding VAT",
       "options": "currency",
       "read_only": 1
     },
     {
       "fieldname": "grand_total",
       "fieldtype": "Currency",
-      "label": "Grand Total",
+      "label": "Total payable",
       "options": "currency",
       "read_only": 1,
       "in_list_view": 1
@@ -238,6 +245,36 @@
       "fieldtype": "Link",
       "label": "Amended From",
       "options": "Recurring Purchase",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "submitted_by",
+      "fieldtype": "Link",
+      "options": "User",
+      "label": "Submitted By",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "supplier_vat_pricing",
+      "fieldtype": "Check",
+      "label": "Supplier VAT pricing",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "vat_totals_html",
+      "fieldtype": "HTML",
+      "label": "VAT"
+    },
+    {
+      "fieldname": "supplier_is_vat_payer",
+      "fieldtype": "Check",
+      "label": "VAT Payer",
+      "hidden": 1,
       "read_only": 1,
       "no_copy": 1
     }

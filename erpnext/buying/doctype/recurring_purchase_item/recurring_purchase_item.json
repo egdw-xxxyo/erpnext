@@ -9,6 +9,7 @@
     "description",
     "qty",
     "uom",
+    "rate_excluding_vat",
     "rate",
     "amount",
     "warehouse"
@@ -21,7 +22,7 @@
       "options": "Item",
       "reqd": 1,
       "in_list_view": 1,
-      "columns": 3
+      "columns": 2
     },
     {
       "fieldname": "item_name",
@@ -60,7 +61,8 @@
       "label": "Price",
       "reqd": 1,
       "in_list_view": 1,
-      "columns": 2
+      "columns": 2,
+      "options": "parent.currency"
     },
     {
       "fieldname": "amount",
@@ -68,13 +70,23 @@
       "label": "Amount",
       "read_only": 1,
       "in_list_view": 1,
-      "columns": 2
+      "columns": 2,
+      "options": "parent.currency"
     },
     {
       "fieldname": "warehouse",
       "fieldtype": "Link",
       "label": "Target Warehouse",
       "options": "Warehouse"
+    },
+    {
+      "fieldname": "rate_excluding_vat",
+      "fieldtype": "Currency",
+      "label": "Price excluding VAT",
+      "options": "",
+      "in_list_view": 1,
+      "columns": 2,
+      "is_virtual": 1
     }
   ],
   "permissions": [],

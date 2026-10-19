@@ -42,6 +42,9 @@ ITEM_FIELDS = ("item_code", "description", "qty", "uom", "rate", "warehouse")
 class RecurringPurchase(Document):
 	def validate(self):
 		before = self.get_doc_before_save()
+		self.submitted_by = before.get("submitted_by") if before else None
+		self.supplier_vat_pricing = before.get("supplier_vat_pricing", 0) if before else 0
+		self.supplier_is_vat_payer = before.get("supplier_is_vat_payer", 0) if before else 0
 		if not before and self.get("workflow_state") not in (None, "", "Чернетка"):
 			frappe.throw(_("Create the recurring purchase as a draft first."))
 		if before and before.workflow_state not in EDITABLE_STATES:
@@ -55,6 +58,13 @@ class RecurringPurchase(Document):
 		)
 		if getdate(self.valid_until) < getdate(self.valid_from):
 			frappe.throw(_("Valid Until cannot be earlier than Valid From."))
+		if not before or before.workflow_state in EDITABLE_STATES:
+			from erpnext.setup.utils import get_exchange_rate
+
+			company_currency = frappe.get_cached_value("Company", self.company, "default_currency")
+			self.conversion_rate = get_exchange_rate(self.currency, company_currency, today(), "for_buying")
+			self.taxes_and_charges = None
+			self.supplier_vat_pricing = 1
 		if not self.items or flt(self.conversion_rate) <= 0:
 			frappe.throw(_("Add purchase items and a positive exchange rate."))
 		for row in self.items:
@@ -73,9 +83,13 @@ class RecurringPurchase(Document):
 		if before and before.workflow_state not in EDITABLE_STATES:
 			self.net_total, self.grand_total = before.net_total, before.grand_total
 		else:
-			invoice = build_invoice(self)
-			self.net_total = invoice.net_total
-			self.grand_total = invoice.grand_total
+			payer = frappe.get_cached_value("Supplier", self.supplier, "custom_is_vat_payer")
+			self.supplier_is_vat_payer = int(bool(payer))
+			self.grand_total = flt(sum(flt(row.amount) for row in self.items), self.precision("grand_total"))
+			vat = (
+				flt(self.grand_total - self.grand_total / 1.2, self.precision("grand_total")) if payer else 0
+			)
+			self.net_total = self.grand_total - vat
 		capture_final_approvers(self)
 		if before and before.workflow_state != self.workflow_state:
 			from erpnext.buying.procurement_workflow_reason import validate_required_reason
@@ -99,6 +113,9 @@ class RecurringPurchase(Document):
 				self.set(VOTES_FIELD, json.dumps([self.owner]))
 				self.final_approval_count = 1
 				self.final_approved_by_1 = self.owner
+
+	def before_submit(self):
+		self.submitted_by = frappe.session.user
 
 	def on_update(self):
 		before = self.get_doc_before_save()
@@ -182,6 +199,13 @@ def build_invoice(source):
 			"taxes", get_taxes_and_charges("Purchase Taxes and Charges Template", source.taxes_and_charges)
 		)
 	invoice.set_missing_values()
+	if source.get("supplier_vat_pricing"):
+		# Like consolidated purchases, rate is the final payable price; VAT is a breakdown.
+		# Party/item defaults must not add VAT again on top of that price.
+		invoice.taxes_and_charges = None
+		invoice.set("taxes", [])
+		for row in invoice.items:
+			row.item_tax_template = None
 	# Item/party defaults must not replace the explicitly entered template prices.
 	for original, row in zip(source.items, invoice.items, strict=True):
 		row.rate = original.rate
@@ -288,6 +312,7 @@ def get_overview(name: str):
 				"currency",
 				"grand_total",
 				"outstanding_amount",
+				"owner",
 			],
 			order_by="creation desc",
 			limit_page_length=0,
@@ -295,8 +320,33 @@ def get_overview(name: str):
 		if frappe.has_permission("Purchase Invoice", "read")
 		else []
 	)
+	submitted_by = doc.get("submitted_by")
+	if not submitted_by and doc.docstatus == 1:
+		submitted_by = frappe.db.get_value(
+			"Workflow Action",
+			{
+				"reference_doctype": DOCTYPE,
+				"reference_name": name,
+				"workflow_state": "Погоджено",
+				"status": "Completed",
+			},
+			"completed_by",
+			order_by="modified desc",
+		)
+	users = {doc.owner, doc.department_approved_by, submitted_by, *get_document_approved_users(doc)}
+	users.update(row.owner for row in invoices)
+	identities = {
+		row.name: {"user": row.name, "full_name": row.full_name, "user_image": row.user_image}
+		for row in frappe.get_all(
+			"User",
+			filters={"name": ["in", list(users - {None, ""})]},
+			fields=["name", "full_name", "user_image"],
+		)
+	}
 	return {
 		"invoices": invoices,
+		"users": identities,
+		"submitted_by": submitted_by,
 		"approvers": get_document_final_approvers(doc),
 		"votes": get_document_approved_users(doc),
 		"automatic": is_automatic_final_approval(doc),
