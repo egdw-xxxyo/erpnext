@@ -31,7 +31,7 @@ class TestLinkFilterContext(ERPNextTestSuite):
 		self.assertEqual(resolved, {"docstatus": 1, "sales_order": "SO-1"})
 
 	def test_missing_key_matches_nothing(self):
-		self.assertEqual(api._apply_context({"sales_order": "{so}"}, {}), {"sales_order": ""})
+		self.assertEqual(api._apply_context({"sales_order": "{so}"}, {}), {"sales_order": api.UNANSWERED})
 
 	def test_placeholder_inside_operator(self):
 		resolved = api._apply_context({"sales_order": ["=", "{so}"]}, {"so": "SO-2"})

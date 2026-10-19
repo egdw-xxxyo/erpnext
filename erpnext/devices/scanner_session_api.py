@@ -351,12 +351,16 @@ def _orders_with_room_for_packing():
 	)
 
 
+UNANSWERED = "\u2205 unanswered"
+
+
 def _apply_context(value, context):
 	"""`link_filters` with `"{key}"` values replaced by that key from the session context.
 
 	Lets a picker depend on an earlier answer — "BpAKs of the chosen order" is
-	`{"sales_order": "{so}"}`. An unanswered key resolves to "" so the picker offers nothing
-	rather than every document.
+	`{"sales_order": "{so}"}`. An unanswered key resolves to a value no document carries, so
+	the picker offers nothing. Not "": Frappe reads `= ""` as "empty or NULL" and would offer
+	every BpAK without an order.
 	"""
 	if isinstance(value, dict):
 		return {k: _apply_context(v, context) for k, v in value.items()}
@@ -364,7 +368,7 @@ def _apply_context(value, context):
 		return [_apply_context(v, context) for v in value]
 	if isinstance(value, str) and len(value) > 2 and value[0] == "{" and value[-1] == "}":
 		resolved = (context or {}).get(value[1:-1].strip())
-		return "" if resolved in (None, "", [], {}) else resolved
+		return UNANSWERED if resolved in (None, "", [], {}) else resolved
 	return value
 
 
