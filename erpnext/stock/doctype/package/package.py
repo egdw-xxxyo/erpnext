@@ -258,6 +258,14 @@ class Package(Document):
 		)
 		row.db_insert()
 
+	def before_update_after_submit(self):
+		if self.status != "Packed":
+			return
+		if not any(row.item_code for row in self.items):
+			frappe.throw(
+				_("A packed Package cannot be left empty. Unpack it instead of removing every item.")
+			)
+
 	def on_update_after_submit(self):
 		self._update_bpak_status()
 

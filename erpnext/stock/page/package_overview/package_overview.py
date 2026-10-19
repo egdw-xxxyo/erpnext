@@ -106,17 +106,21 @@ def _packages(rows):
 def _place(pkg, staging):
 	"""Where the serials of a box are now: warehouses, how many left stock, how many still in staging."""
 	warehouses = {}
-	gone = staging_count = 0
+	gone = never_received = staging_count = 0
 	for line in pkg["lines"]:
 		if not line.serial_no:
 			continue
 		if line.warehouse:
 			warehouses[line.warehouse] = warehouses.get(line.warehouse, 0) + 1
 			staging_count += line.warehouse in staging
+		elif line.serial_status == "Inactive":
+			# No warehouse and not delivered: the receipt that brought the serial was cancelled.
+			never_received += 1
 		else:
 			gone += 1
 	pkg["warehouses"] = warehouses
 	pkg["gone"] = gone
+	pkg["never_received"] = never_received
 	pkg["in_staging"] = staging_count
 	pkg["serial_count"] = sum(1 for line in pkg["lines"] if line.serial_no)
 
@@ -326,6 +330,16 @@ def _issues(packages, docs):
 					_("Partially shipped: {0} of {1} serials left stock").format(
 						pkg["gone"], pkg["serial_count"]
 					),
+					"Package",
+					name,
+				)
+			if pkg["never_received"]:
+				add(
+					"error",
+					"Package",
+					_(
+						"{0} of {1} serials were never received: their receipt was cancelled. Unpack the box"
+					).format(pkg["never_received"], pkg["serial_count"]),
 					"Package",
 					name,
 				)
