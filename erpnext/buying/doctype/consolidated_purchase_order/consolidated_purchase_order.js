@@ -935,8 +935,7 @@ function setup_delivery_note_action(frm) {
 	const allowed =
 		frappe.session.user === "Administrator" ||
 		roles.includes("Payments: Казначей") ||
-		(roles.includes("Закупівельник") &&
-			[frm.doc.owner, frm.doc.initiator_user].includes(frappe.session.user));
+		roles.includes("Закупівельник");
 	if (!allowed || frm.doc.docstatus !== 1 || frm.doc.procurement_completion_status === "Завершено") return;
 	frm.add_custom_button(__("Attach delivery note"), () => {
 		const dialog = new frappe.ui.Dialog({

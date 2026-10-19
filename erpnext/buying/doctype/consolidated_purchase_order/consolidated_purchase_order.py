@@ -76,7 +76,7 @@ class ConsolidatedPurchaseOrder(Document):
 
 			if not can_add_delivery_note(before):
 				frappe.throw(
-					_("Only the creator, lead buyer or treasurer can change delivery notes."),
+					_("Only buyers or treasurers can change delivery notes."),
 					title=_("Not Permitted"),
 				)
 			self._validate_delivery_notes()

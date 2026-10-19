@@ -9,17 +9,13 @@ def can_add_delivery_note(doc):
 	if doc.docstatus != 1 or doc.procurement_completion_status == "Завершено":
 		return False
 	roles = frappe.get_roles()
-	return (
-		frappe.session.user == "Administrator"
-		or "Payments: Казначей" in roles
-		or ("Закупівельник" in roles and frappe.session.user in (doc.owner, doc.initiator_user))
-	)
+	return frappe.session.user == "Administrator" or "Payments: Казначей" in roles or "Закупівельник" in roles
 
 
 @frappe.whitelist(methods=["POST"])
 def add_delivery_note(name: str, supplier: str, file_url: str):
 	# This endpoint permits only an append to the delivery-note table. It does not
-	# grant the treasurer general write access to the procurement document.
+	# grant buyers or treasurers general write access to the procurement document.
 	doc = frappe.get_doc(CPO, name, for_update=True)
 	doc.check_permission("read")
 	if not can_add_delivery_note(doc):
