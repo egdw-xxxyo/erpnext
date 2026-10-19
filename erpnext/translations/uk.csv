@@ -16357,3 +16357,8 @@ Required,Обовʼязкове
 {0} is required and cannot be cleared,"{0} — обовʼязкове поле, його не можна очистити"
 A packed Package cannot be left empty. Unpack it instead of removing every item.,Запаковане пакування не може бути порожнім. Розпакуйте його замість видалення всіх позицій.
 {0} of {1} serials were never received: their receipt was cancelled. Unpack the box,"{0} з {1} серійних номерів не надходили на склад: їхній прихід скасовано. Розпакуйте пакування"
+Serial numbers are not received yet on {0}: {1},Серійні номери ще не надійшли на склад станом на {0}: {1}
+Submit the receipt first: {0},Спочатку проведіть прихід: {0}
+Serial numbers not in stock,Серійних номерів немає на складі
+"Serial numbers {0} already left stock before this receipt: {1}. Set the posting date of the receipt before {2}","Серійні номери {0} вибули зі складу раніше за цей прихід: {1}. Встановіть дату проведення приходу раніше за {2}"
+Receipt posted after shipment,Прихід проводиться пізніше за відвантаження

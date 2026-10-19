@@ -631,12 +631,18 @@ doc_events = {
 		],
 		"after_insert": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		"on_trash": "erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
+		# a serial is issued only after the receipt that brought it in is posted
+		"before_submit": "erpnext.stock.serial_receipt_guard.block_unreceived",
 	},
 	# the route of a unit: which BOM step puts it into stock, and the steps after that
 	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
 	# a unit waiting for packing is stock but not sellable
 	"Delivery Note": {
-		"before_submit": "erpnext.manufacturing.packing.block_unpacked_delivery",
+		"before_submit": [
+			"erpnext.manufacturing.packing.block_unpacked_delivery",
+			# a serial ships only after the receipt that brought it in is posted
+			"erpnext.stock.serial_receipt_guard.block_unreceived",
+		],
 		# a packed box ships whole and is marked Shipped
 		"validate": "erpnext.stock.package_shipping.validate_whole_packages",
 		"on_submit": "erpnext.stock.package_shipping.mark_shipped",
@@ -679,6 +685,7 @@ doc_events = {
 	},
 	"Sales Invoice": {
 		"validate": "erpnext.stock.package_shipping.validate_whole_packages",
+		"before_submit": "erpnext.stock.serial_receipt_guard.block_unreceived",
 		"on_submit": [
 			"erpnext.regional.italy.utils.sales_invoice_on_submit",
 			"erpnext.stock.package_shipping.mark_shipped",
@@ -784,6 +791,8 @@ doc_events = {
 	},
 	"Purchase Receipt": {
 		"on_trash": "erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
+		# not posted later than a shipment of its own serials
+		"before_submit": "erpnext.stock.serial_receipt_guard.block_receipt_after_shipment",
 		"on_submit": "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.sync_linked_consolidated_purchase_order_progress",
 		"on_cancel": [
 			"erpnext.stock.doctype.package.package.unlink_packages_from_purchase_receipt",
