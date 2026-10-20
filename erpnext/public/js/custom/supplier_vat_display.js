@@ -39,7 +39,15 @@ async function render_supplier_vat_display(frm) {
 				"hidden",
 				visible && (data.payer || data.totals.vat !== 0) ? 0 : 1
 			);
-			grid.update_docfield_property("rate", "in_list_view", visible ? 0 : 1);
+			// Keep the accounting input accessible; VAT fields are display-only projections.
+			// Do not override read_only: receipt-linked rows retain standard rate restrictions.
+			grid.update_docfield_property("rate", "in_list_view", 1);
+			grid.update_docfield_property("rate", "label", __("Input price"));
+			grid.update_docfield_property(
+				"custom_vat_gross_rate",
+				"label",
+				__("Price including VAT (calculated)")
+			);
 			grid.update_docfield_property("amount", "in_list_view", visible ? 0 : 1);
 		}
 		const widths =
@@ -54,7 +62,7 @@ async function render_supplier_vat_display(frm) {
 				  }
 				: frm.doctype === "Payment Request"
 				? { payment_term: 2, description: 3, due_date: 2, amount: 1 }
-				: {};
+				: { item_code: 2, qty: 1, rate: 1 };
 		for (const [name, columns] of Object.entries(widths))
 			grid.update_docfield_property(name, "columns", columns);
 		if (frm.__vat_display_visible !== visible) {

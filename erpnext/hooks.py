@@ -113,6 +113,7 @@ override_doctype_class = {
 }
 
 extend_doctype_class = {
+	"Purchase Invoice": ["erpnext.buying.recurring_purchase.RecurringPurchaseInvoice"],
 	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
 }
@@ -220,6 +221,7 @@ after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
 	"erpnext.setup.payment_workflow_setup.after_migrate",
 	"erpnext.setup.procurement_workflow_setup.after_migrate",
+	"erpnext.buying.recurring_purchase.setup",
 	"erpnext.manufacturing.doctype.release_note.release_note.sync_release_notes",
 	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
@@ -700,6 +702,7 @@ doc_events = {
 		"before_validate": "erpnext.accounts.invoice_payment_route.capture_source_history",
 		"before_submit": "erpnext.accounts.supplier_requisites_validation.validate_before_submit",
 		"validate": [
+			"erpnext.buying.recurring_purchase.validate_invoice",
 			"erpnext.buying.procurement_document_details.sync_supplier_vat",
 			"erpnext.regional.united_arab_emirates.utils.update_grand_total_for_rcm",
 			"erpnext.regional.united_arab_emirates.utils.validate_returns",

@@ -18,10 +18,21 @@ def _has_approved_procurement_source(doc):
 	invoice = frappe.db.get_value(
 		PURCHASE_INVOICE_DOCTYPE,
 		doc.reference_name,
-		["docstatus", "custom_consolidated_purchase_order"],
+		["docstatus", "custom_consolidated_purchase_order", "custom_recurring_purchase"],
 		as_dict=True,
 	)
-	if not invoice or invoice.docstatus != 1 or not invoice.custom_consolidated_purchase_order:
+	if not invoice or invoice.docstatus != 1:
+		return False
+	if invoice.get("custom_recurring_purchase"):
+		# Expiry prevents new invoices, not payment of invoices validly submitted earlier.
+		source = frappe.db.get_value(
+			"Recurring Purchase",
+			invoice.custom_recurring_purchase,
+			["docstatus", "workflow_state"],
+			as_dict=True,
+		)
+		return bool(source and source.docstatus == 1 and source.workflow_state == "Проведено")
+	if not invoice.custom_consolidated_purchase_order:
 		return False
 
 	consolidated_order = frappe.db.get_value(

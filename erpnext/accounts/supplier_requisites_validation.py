@@ -460,6 +460,20 @@ def _get_invoice_file_groups(doc, context):
 			references=[{"reference_doctype": doc.doctype, "reference_name": doc.name}]
 		)
 	if doc.doctype == "Purchase Invoice":
+		if doc.get("custom_recurring_purchase"):
+			url = doc.get("custom_recurring_invoice_pdf")
+			return (
+				[
+					{
+						"supplier": context["supplier"],
+						"files": [
+							{"file_name": url.rsplit("/", 1)[-1], "file_url": url},
+						],
+					}
+				]
+				if url
+				else []
+			)
 		return get_supplier_invoice_files(
 			consolidated_order=doc.get("custom_consolidated_purchase_order"),
 			supplier=context["supplier"],

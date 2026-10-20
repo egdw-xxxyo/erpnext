@@ -10,6 +10,12 @@ SIDEBAR = "Buying"
 INSERT_AFTER = "Material Request"
 LINKS = (
 	{
+		"label": "Recurring Purchase",
+		"link_to": "Recurring Purchase",
+		"link_type": "DocType",
+		"icon": "clipboard-list",
+	},
+	{
 		"label": "Consolidated Purchase Order",
 		"link_to": "Consolidated Purchase Order",
 		"link_type": "DocType",

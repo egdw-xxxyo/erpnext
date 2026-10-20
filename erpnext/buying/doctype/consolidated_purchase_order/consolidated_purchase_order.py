@@ -76,7 +76,7 @@ class ConsolidatedPurchaseOrder(Document):
 
 			if not can_add_delivery_note(before):
 				frappe.throw(
-					_("Only the creator, lead buyer or treasurer can change delivery notes."),
+					_("Only buyers or treasurers can change delivery notes."),
 					title=_("Not Permitted"),
 				)
 			self._validate_delivery_notes()
@@ -469,6 +469,7 @@ def get_supplier_invoice_files(
 
 	references = frappe.parse_json(references) if isinstance(references, str) else references
 	purchase_invoice_names = set()
+	recurring_files = []
 	payment_request_names = set()
 	for reference in references or []:
 		reference = frappe._dict(reference)
@@ -488,10 +489,24 @@ def get_supplier_invoice_files(
 	for purchase_invoice_name in purchase_invoice_names:
 		purchase_invoice = frappe.get_doc("Purchase Invoice", purchase_invoice_name)
 		purchase_invoice.check_permission("read")
+		if purchase_invoice.get("custom_recurring_purchase") and purchase_invoice.get(
+			"custom_recurring_invoice_pdf"
+		):
+			recurring_files.append(
+				{
+					"supplier": purchase_invoice.supplier,
+					"files": [
+						{
+							"file_name": purchase_invoice.custom_recurring_invoice_pdf.rsplit("/", 1)[-1],
+							"file_url": purchase_invoice.custom_recurring_invoice_pdf,
+						}
+					],
+				}
+			)
 		if purchase_invoice.get("custom_consolidated_purchase_order") and purchase_invoice.supplier:
 			contexts[(purchase_invoice.custom_consolidated_purchase_order, purchase_invoice.supplier)] = True
 
-	result = []
+	result = list(recurring_files)
 	for source_name, supplier_name in sorted(contexts):
 		if not contexts[(source_name, supplier_name)]:
 			source = frappe.get_doc("Consolidated Purchase Order", source_name)

@@ -16362,3 +16362,44 @@ Submit the receipt first: {0},Спочатку проведіть прихід: 
 Serial numbers not in stock,Серійних номерів немає на складі
 "Serial numbers {0} already left stock before this receipt: {1}. Set the posting date of the receipt before {2}","Серійні номери {0} вибули зі складу раніше за цей прихід: {1}. Встановіть дату проведення приходу раніше за {2}"
 Receipt posted after shipment,Прихід проводиться пізніше за відвантаження
+Recurring Purchase,Регулярна закупівля
+Recurring Purchase Item,Позиція регулярної закупівлі
+Contract File,Файл договору
+Department approved by,Погодив керівник підрозділу
+CEO approvers snapshot,Зафіксований склад фінальних погоджувачів
+CEO votes,Рішення фінальних погоджувачів
+Final approval count,Кількість фінальних погоджень
+Create the recurring purchase as a draft first.,Спочатку створіть регулярну закупівлю як чернетку.
+Return the recurring purchase for rework before changing its terms.,Поверніть регулярну закупівлю на доопрацювання перед зміною її умов.
+Valid Until cannot be earlier than Valid From.,Дата завершення дії не може передувати даті початку.
+Add purchase items and a positive exchange rate.,Додайте позиції закупівлі та додатний курс валюти.
+Quantity must be positive and price cannot be negative.,Кількість має бути додатною; ціна не може бути від’ємною.
+Item {0} is not available for purchase.,Номенклатура {0} недоступна для закупівлі.
+Warehouse must belong to the selected company.,Склад має належати вибраній компанії.
+Recurring purchase {0}: {1},Регулярна закупівля {0}: {1}
+Review recurring purchase {0}.,Перегляньте регулярну закупівлю {0}.
+Submit the approved recurring purchase before creating an invoice.,Перед створенням рахунку проведіть погоджену регулярну закупівлю.
+The invoice can only be created and submitted during the recurring purchase validity period.,Створення та проведення рахунку дозволено лише в межах строку дії регулярної закупівлі.
+Tax template must belong to the selected company.,Шаблон податків має належати вибраній компанії.
+Only a buyer can create invoices from a recurring purchase.,Створювати рахунки з регулярної закупівлі може лише закупівельник.
+The recurring purchase reference cannot be changed after saving the invoice.,Посилання на регулярну закупівлю не можна змінити після збереження рахунку.
+An invoice cannot reference both a recurring and a consolidated purchase.,Рахунок не може одночасно посилатися на регулярну та зведену закупівлю.
+"Invoice supplier, company and currency must match the recurring purchase.","Постачальник, компанія та валюта рахунку мають відповідати регулярній закупівлі."
+Invoice items must belong to the approved recurring purchase.,Позиції рахунку мають належати погодженій регулярній закупівлі.
+Receive recurring purchase goods with a separate Purchase Receipt.,Приймайте товари регулярної закупівлі окремою прихідною накладною.
+The recurring purchase is outside its validity period. New invoices are unavailable.,Регулярна закупівля поза строком дії. Створення нових рахунків недоступне.
+"Prices and VAT follow the selected purchase tax template. Quantities and prices are defaults, not periodic limits.","Ціни та ПДВ визначаються вибраним шаблоном податків закупівель. Кількість і ціни — початкові значення для рахунку, а не ліміти періоду."
+No invoices have been created from this recurring purchase.,За цією регулярною закупівлею ще не створено рахунків.
+Final Approver 1,Фінальний погоджувач 1
+Final Approver 2,Фінальний погоджувач 2
+Input price,Ціна (введення)
+Price including VAT (calculated),Ціна з ПДВ (розрахунок)
+Submitted By,Провів
+Supplier VAT pricing,Ціни з урахуванням ПДВ постачальника
+Validity Status,Статус дії
+Not yet effective,Ще не діє
+Validity expired,Строк дії минув
+Effective,Діє
+"Final prices include 20% VAT for VAT payers. Quantities and prices are defaults, not periodic limits.","Кінцеві ціни включають 20% ПДВ для платників ПДВ. Кількість і ціни є типовими значеннями, а не лімітами на період."
+This approved document retains its original tax template and amounts.,У цьому погодженому документі збережено початковий податковий шаблон і суми.
+Only buyers or treasurers can change delivery notes.,Змінювати видаткові накладні можуть лише закупівельники або казначеї.

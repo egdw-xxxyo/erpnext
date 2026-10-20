@@ -27,7 +27,7 @@ class TestProcurementDocumentDetails(IntegrationTestCase):
 			roles.return_value = ["Payments: Казначей"]
 			self.assertTrue(can_add_delivery_note(doc))
 			roles.return_value = ["Закупівельник"]
-			self.assertFalse(can_add_delivery_note(doc))
+			self.assertTrue(can_add_delivery_note(doc))
 		with patch(
 			"erpnext.buying.procurement_document_details.frappe.session",
 			frappe._dict(user="buyer@example.com"),
@@ -39,12 +39,40 @@ class TestProcurementDocumentDetails(IntegrationTestCase):
 			"erpnext.buying.procurement_document_details.frappe.session",
 			frappe._dict(user="treasurer@example.com"),
 		):
-			roles.return_value = ["Payments: Казначей"]
-			doc.docstatus = 0
-			self.assertFalse(can_add_delivery_note(doc))
-			doc.docstatus = 1
-			doc.procurement_completion_status = "Завершено"
-			self.assertFalse(can_add_delivery_note(doc))
+			for role in ("Payments: Казначей", "Закупівельник"):
+				roles.return_value = [role]
+				for status in (0, 2):
+					doc.docstatus = status
+					self.assertFalse(can_add_delivery_note(doc))
+				doc.docstatus = 1
+				doc.procurement_completion_status = "Завершено"
+				self.assertFalse(can_add_delivery_note(doc))
+				doc.procurement_completion_status = "Підготовка"
+
+	@patch("erpnext.buying.procurement_document_details.frappe.db.exists", return_value="FILE-A")
+	@patch("erpnext.buying.procurement_document_details.frappe.get_doc")
+	@patch("erpnext.buying.procurement_document_details.frappe.get_roles", return_value=["Закупівельник"])
+	def test_another_buyer_can_append_without_general_write_permission(self, roles, get_doc, exists):
+		doc = MagicMock(
+			name="CPO-A",
+			docstatus=1,
+			procurement_completion_status="Підготовка",
+			owner="creator@example.com",
+			initiator_user="lead@example.com",
+			delivery_notes=[],
+		)
+		file = MagicMock(attached_to_doctype=None, owner="another-buyer@example.com")
+		get_doc.side_effect = [doc, file]
+		with patch(
+			"erpnext.buying.procurement_document_details.frappe.session",
+			frappe._dict(user="another-buyer@example.com"),
+		):
+			add_delivery_note("CPO-A", "SUP-A", "/private/files/note.pdf")
+		doc.check_permission.assert_called_once_with("read")
+		doc.append.assert_called_once_with(
+			"delivery_notes", {"supplier": "SUP-A", "delivery_note_file": "/private/files/note.pdf"}
+		)
+		doc.save.assert_called_once_with(ignore_permissions=True)
 
 	@patch("erpnext.buying.procurement_document_details.can_add_delivery_note", return_value=True)
 	@patch("erpnext.buying.procurement_document_details.frappe.get_doc")

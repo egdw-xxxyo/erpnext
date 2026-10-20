@@ -1,0 +1,346 @@
+{
+  "doctype": "DocType",
+  "name": "Recurring Purchase",
+  "module": "Buying",
+  "engine": "InnoDB",
+  "field_order": [
+    "title",
+    "approval_route_html",
+    "details_section",
+    "supplier",
+    "company",
+    "currency",
+    "conversion_rate",
+    "column_break_dates",
+    "valid_from",
+    "valid_until",
+    "contract_file",
+    "items_section",
+    "items",
+    "taxes_and_charges",
+    "totals_section",
+    "net_total",
+    "grand_total",
+    "submitted_by",
+    "supplier_vat_pricing",
+    "supplier_is_vat_payer",
+    "vat_totals_html",
+    "notes",
+    "invoices_section",
+    "invoices_html",
+    "workflow_state",
+    "department_approved_by",
+    "ceo_approval_threshold",
+    "custom_final_approvers_snapshot",
+    "custom_final_approved_users",
+    "final_approved_by_1",
+    "final_approved_by_2",
+    "final_approval_count",
+    "workflow_action_reason",
+    "amended_from"
+  ],
+  "fields": [
+    {
+      "fieldname": "title",
+      "fieldtype": "Data",
+      "label": "Title",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "approval_route_html",
+      "fieldtype": "HTML",
+      "label": "Approval Route"
+    },
+    {
+      "fieldname": "details_section",
+      "fieldtype": "Section Break",
+      "label": "Details"
+    },
+    {
+      "fieldname": "supplier",
+      "fieldtype": "Link",
+      "label": "Supplier",
+      "options": "Supplier",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "label": "Company",
+      "options": "Company",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Link",
+      "label": "Currency",
+      "options": "Currency",
+      "reqd": 1
+    },
+    {
+      "fieldname": "conversion_rate",
+      "fieldtype": "Float",
+      "label": "Exchange Rate",
+      "default": "1",
+      "reqd": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "column_break_dates",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "valid_from",
+      "fieldtype": "Date",
+      "label": "Valid From",
+      "reqd": 1,
+      "default": "Today"
+    },
+    {
+      "fieldname": "valid_until",
+      "fieldtype": "Date",
+      "label": "Valid Until",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "contract_file",
+      "fieldtype": "Attach",
+      "label": "Contract File"
+    },
+    {
+      "fieldname": "items_section",
+      "fieldtype": "Section Break",
+      "label": "Items"
+    },
+    {
+      "fieldname": "items",
+      "fieldtype": "Table",
+      "label": "Items",
+      "options": "Recurring Purchase Item",
+      "reqd": 1
+    },
+    {
+      "fieldname": "taxes_and_charges",
+      "fieldtype": "Link",
+      "label": "Purchase Taxes and Charges Template",
+      "options": "Purchase Taxes and Charges Template",
+      "hidden": 1
+    },
+    {
+      "fieldname": "totals_section",
+      "fieldtype": "Section Break",
+      "label": "Totals"
+    },
+    {
+      "fieldname": "net_total",
+      "fieldtype": "Currency",
+      "label": "Total excluding VAT",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "grand_total",
+      "fieldtype": "Currency",
+      "label": "Total payable",
+      "options": "currency",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    },
+    {
+      "fieldname": "invoices_section",
+      "fieldtype": "Section Break",
+      "label": "Purchase Invoices"
+    },
+    {
+      "fieldname": "invoices_html",
+      "fieldtype": "HTML",
+      "label": "Purchase Invoices"
+    },
+    {
+      "fieldname": "workflow_state",
+      "fieldtype": "Link",
+      "label": "Approval Stage",
+      "options": "Workflow State",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "department_approved_by",
+      "fieldtype": "Link",
+      "label": "Department approved by",
+      "options": "User",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "ceo_approval_threshold",
+      "fieldtype": "Currency",
+      "label": "CEO Approval Threshold",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "custom_final_approvers_snapshot",
+      "fieldtype": "Long Text",
+      "label": "CEO approvers snapshot",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "custom_final_approved_users",
+      "fieldtype": "Long Text",
+      "label": "CEO votes",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "final_approved_by_1",
+      "fieldtype": "Link",
+      "label": "Final Approver 1",
+      "options": "User",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "final_approved_by_2",
+      "fieldtype": "Link",
+      "label": "Final Approver 2",
+      "options": "User",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "final_approval_count",
+      "fieldtype": "Int",
+      "label": "Final approval count",
+      "read_only": 1,
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "workflow_action_reason",
+      "fieldtype": "Small Text",
+      "label": "Reason",
+      "hidden": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "amended_from",
+      "fieldtype": "Link",
+      "label": "Amended From",
+      "options": "Recurring Purchase",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "submitted_by",
+      "fieldtype": "Link",
+      "options": "User",
+      "label": "Submitted By",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "supplier_vat_pricing",
+      "fieldtype": "Check",
+      "label": "Supplier VAT pricing",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "vat_totals_html",
+      "fieldtype": "HTML",
+      "label": "VAT"
+    },
+    {
+      "fieldname": "supplier_is_vat_payer",
+      "fieldtype": "Check",
+      "label": "VAT Payer",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "select": 1,
+      "report": 1,
+      "print": 1,
+      "write": 1,
+      "create": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1
+    },
+    {
+      "role": "Закупівельник",
+      "read": 1,
+      "select": 1,
+      "report": 1,
+      "print": 1,
+      "write": 1,
+      "create": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1
+    },
+    {
+      "role": "Payments: Керівник підрозділу",
+      "read": 1,
+      "select": 1,
+      "report": 1,
+      "print": 1,
+      "write": 1
+    },
+    {
+      "role": "Payments: Фінальний погоджувач",
+      "read": 1,
+      "select": 1,
+      "report": 1,
+      "print": 1,
+      "write": 1
+    },
+    {
+      "role": "Payments: Казначей",
+      "read": 1,
+      "select": 1,
+      "report": 1,
+      "print": 1
+    },
+    {
+      "role": "Stock Manager",
+      "read": 1,
+      "select": 1,
+      "report": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "track_changes": 1,
+  "autoname": "REG-PUR-.YYYY.-.#####",
+  "is_submittable": 1,
+  "title_field": "title",
+  "search_fields": "title,supplier",
+  "allow_rename": 0
+}

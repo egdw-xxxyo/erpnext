@@ -1,0 +1,97 @@
+{
+  "doctype": "DocType",
+  "name": "Recurring Purchase Item",
+  "module": "Buying",
+  "engine": "InnoDB",
+  "field_order": [
+    "item_code",
+    "item_name",
+    "description",
+    "qty",
+    "uom",
+    "rate_excluding_vat",
+    "rate",
+    "amount",
+    "warehouse"
+  ],
+  "fields": [
+    {
+      "fieldname": "item_code",
+      "fieldtype": "Link",
+      "label": "Item Code",
+      "options": "Item",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 2
+    },
+    {
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "label": "Item Name",
+      "fetch_from": "item_code.item_name",
+      "read_only": 1
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "label": "Description"
+    },
+    {
+      "fieldname": "qty",
+      "fieldtype": "Float",
+      "label": "Quantity",
+      "reqd": 1,
+      "default": "1",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "label": "UOM",
+      "options": "UOM",
+      "reqd": 1,
+      "fetch_from": "item_code.stock_uom",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "rate",
+      "fieldtype": "Currency",
+      "label": "Price",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 2,
+      "options": "parent.currency"
+    },
+    {
+      "fieldname": "amount",
+      "fieldtype": "Currency",
+      "label": "Amount",
+      "read_only": 1,
+      "in_list_view": 1,
+      "columns": 2,
+      "options": "parent.currency"
+    },
+    {
+      "fieldname": "warehouse",
+      "fieldtype": "Link",
+      "label": "Target Warehouse",
+      "options": "Warehouse"
+    },
+    {
+      "fieldname": "rate_excluding_vat",
+      "fieldtype": "Currency",
+      "label": "Price excluding VAT",
+      "options": "",
+      "in_list_view": 1,
+      "columns": 2,
+      "is_virtual": 1
+    }
+  ],
+  "permissions": [],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "track_changes": 1,
+  "istable": 1
+}

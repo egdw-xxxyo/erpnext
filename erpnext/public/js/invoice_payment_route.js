@@ -73,11 +73,15 @@ async function render_invoice_payment_route(frm) {
 		})
 		.join("");
 	const origin = route.source
-		? `<div class="payment-route-origin">${__("Source Consolidated Purchase Order")}:
-		<a href="/app/consolidated-purchase-order/${encodeURIComponent(route.source)}">${frappe.utils.escape_html(
-				route.source
-		  )}</a>
-		· ${__("Created by")}: ${frappe.utils.escape_html(route.source_creator?.full_name || "")}</div>`
+		? `<div class="payment-route-origin">${__(route.source_doctype || "Consolidated Purchase Order")}:
+		${erpnext.entity.html({
+			name: route.source,
+			icon: "file-text-o",
+			route: ["Form", route.source_doctype || "Consolidated Purchase Order", route.source],
+		})}
+		· ${__("Created by")}: ${
+				route.source_creator ? erpnext.entity.user(route.source_creator, { size: 18 }) : ""
+		  }</div>`
 		: "";
 	const color = ["Проведено", "Погоджено"].includes(state)
 		? "green"
