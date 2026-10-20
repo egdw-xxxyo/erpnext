@@ -75,8 +75,21 @@ function cb_fmt_time(dt) {
 // Launcher buttons, left→right. The chat about the open document lives in the form sidebar
 // (see chat/form_sidebar_chat.js).
 const CB_LAUNCH = {
-	whatsapp: { icon: "fa fa-whatsapp", color: "#25d366", title: __("WhatsApp") },
-	employee: { icon: "fa fa-users", color: "#2490ef", title: __("Employee Chat") },
+	personal: {
+		source: "employee",
+		tab: "employee",
+		icon: "fa fa-user",
+		color: "#7c5cff",
+		title: __("Personal chats"),
+	},
+	group: {
+		source: "employee",
+		tab: "group",
+		icon: "fa fa-users",
+		color: "#2490ef",
+		title: __("Group chats"),
+	},
+	whatsapp: { source: "whatsapp", icon: "fa fa-whatsapp", color: "#25d366", title: __("WhatsApp chats") },
 };
 
 class ChatBubble {
@@ -358,7 +371,9 @@ class ChatBubble {
 			color:#fff;font-size:10px;line-height:17px;font-weight:600;text-align:center;display:none;}
 		.cb-count.show{display:inline-block;}
 		.cb-body{flex:1;overflow-y:auto;}
-		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;}
+		.cb-conv{padding:9px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;display:flex;align-items:center;gap:10px;}
+		.cb-conv .cb-conv-av{flex:none;display:flex;}
+		.cb-conv .cb-conv-main{flex:1;min-width:0;}
 		.cb-conv:hover{background:var(--bg-light-gray);}
 		.cb-conv .cb-name{font-weight:600;font-size:var(--text-sm);display:flex;justify-content:space-between;gap:6px;}
 		.cb-conv .cb-time{font-weight:400;color:var(--text-muted);font-size:10px;white-space:nowrap;
@@ -369,6 +384,14 @@ class ChatBubble {
 		.cb-conv .cb-done{color:var(--green-500,#38a169);margin-left:4px;font-size:11px;}
 		.cb-thread{padding:10px;min-height:100%;}
 		.cb-empty{padding:24px 12px;text-align:center;color:var(--text-muted);font-size:var(--text-sm);}
+.cb-big-backdrop{position:fixed;inset:0;z-index:1034;background:rgba(0,0,0,.35);}
+		.cb-big{position:fixed;z-index:1035;right:50%;bottom:50%;transform:translate(50%,50%);
+			width:min(1100px,96vw);height:min(88vh,900px);border:1px solid var(--border-color);background:var(--card-bg);
+			border-radius:var(--border-radius-md);box-shadow:0 8px 28px rgba(0,0,0,.3);overflow:hidden;}
+		.cb-big-main{height:100%;}
+		.cb-big-close{position:absolute;top:8px;right:8px;z-index:7;border:none;background:transparent;cursor:pointer;
+			color:var(--text-muted);padding:4px 8px;}
+		.cb-big-close:hover{color:var(--text-color);}
 		.cb-arch-head{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;
 			background:var(--bg-light-gray);border-top:1px solid var(--border-color);
 			border-bottom:1px solid var(--border-color);font-size:var(--text-sm);font-weight:600;
@@ -391,12 +414,17 @@ class ChatBubble {
 		.cb-send{color:var(--primary,#2490ef);}
 		.cb-send:hover{background:var(--bg-light-gray);color:var(--primary,#2490ef);}
 		.cb-foot{padding:6px 8px;border-top:1px solid var(--border-color);}
-		.cb-launcher.cb-docked{position:static;flex-wrap:wrap;justify-content:center;gap:6px;padding:0;}
-		.body-sidebar-container.expanded .cb-launcher.cb-docked{justify-content:flex-start;padding:0 8px;}
+		.cb-launcher.cb-docked{position:static;flex-direction:column;align-items:stretch;gap:2px;padding:6px 8px;
+			border-top:1px solid var(--border-color);}
 		.cb-launcher.cb-docked + .dropdown-navbar-user{margin-top:4px !important;}
-		.cb-docked .cb-fab{width:28px;height:28px;font-size:15px;line-height:28px;box-shadow:none;}
-		.cb-docked .cb-fab.cb-active{outline:2px solid var(--gray-500);outline-offset:2px;}
-		.cb-docked .cb-badge{top:-6px;right:-8px;min-width:16px;height:16px;padding:0 3px;font-size:9px;line-height:12px;}
+		.cb-docked .cb-fab{display:flex;align-items:center;gap:10px;width:100%;height:auto;padding:6px 8px;border-radius:8px;
+			background:transparent !important;color:var(--text-color);box-shadow:none;font-size:13px;line-height:1.2;text-align:left;}
+		.cb-docked .cb-fab:hover{transform:none;background:var(--bg-light-gray) !important;}
+		.cb-docked .cb-fab.cb-active{outline:none;background:var(--bg-light-gray) !important;font-weight:600;}
+		.cb-docked .cb-fab .cb-ico-circle{flex:none;width:28px;height:28px;border-radius:50%;color:#fff;font-size:14px;
+			line-height:28px;text-align:center;}
+		.cb-docked .cb-fab .cb-fab-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+		.cb-docked .cb-badge{position:static;flex:none;border:none;min-width:18px;height:18px;padding:0 5px;font-size:10px;line-height:18px;}
 		.cb-panel.cb-docked{right:auto;left:62px;bottom:16px;height:min(600px,calc(100vh - 32px));}
 		body:has(.body-sidebar-container.expanded) .cb-panel.cb-docked{left:calc(var(--sidebar-width) + 12px);}
 		@media (max-width:600px){
@@ -410,14 +438,14 @@ class ChatBubble {
 
 	make_dom() {
 		const keys = this.sources.map((s) => s.key);
-		const btns = ["employee", "whatsapp"]
-			.filter((k) => keys.includes(k))
+		const btns = ["personal", "group", "whatsapp"]
+			.filter((k) => keys.includes(CB_LAUNCH[k].source))
 			.map((k) => {
 				const m = CB_LAUNCH[k];
-				return `<button class="cb-fab cb-fab-${k}" data-key="${k}" title="${frappe.utils.escape_html(
-					m.title
-				)}" style="background:${m.color};">
-					<i class="${m.icon}"></i><span class="cb-badge"></span>
+				const title = frappe.utils.escape_html(m.title);
+				return `<button class="cb-fab cb-fab-${k}" data-key="${k}" title="${title}" style="background:${m.color};">
+					<span class="cb-ico-circle" style="background:${m.color};"><i class="${m.icon}"></i></span>
+					<span class="cb-fab-label">${title}</span><span class="cb-badge"></span>
 				</button>`;
 			})
 			.join("");
@@ -435,7 +463,7 @@ class ChatBubble {
 					<span class="cb-deep-chip" style="display:none;"><i class="fa fa-archive"></i></span>
 					<span class="cb-act cb-undeep" style="display:none;"><i class="fa fa-level-up"></i></span>
 					<span class="cb-act cb-sound" title="${__("Notification sound")}"></span>
-					<span class="cb-act cb-open-page" title="${__("Open full page")}"><i class="fa fa-expand"></i></span>
+					<span class="cb-act cb-open-page" title="${__("Expand")}"><i class="fa fa-expand"></i></span>
 					<span class="cb-act cb-close" title="${__("Close")}"><i class="fa fa-times"></i></span>
 				</div>
 				<div class="cb-chat-head" style="display:none;"></div>
@@ -494,7 +522,8 @@ class ChatBubble {
 		});
 		this.$panel.find(".cb-close").on("click", () => this.toggle(false));
 		this.$back.on("click", () => this.show_list());
-		this.$panel.find(".cb-goto, .cb-open-page").on("click", () => this.goto_page());
+		this.$panel.find(".cb-goto").on("click", () => this.goto_page());
+		this.$panel.find(".cb-open-page").on("click", () => this.open_big());
 		this.$sound.on("click", () => {
 			erpnext.chat_sound.set_enabled(!erpnext.chat_sound.enabled());
 			this.render_sound_toggle();
@@ -535,7 +564,8 @@ class ChatBubble {
 	// Click a category button: open its conversation list. Clicking the same
 	// button again (while showing its list) closes the panel.
 	open_source(key) {
-		const src = this.sources.find((s) => s.key === key);
+		const m = CB_LAUNCH[key];
+		const src = m && this.sources.find((s) => s.key === m.source);
 		if (!src) return;
 		if (this.open && this.source === src && this.active_key === key && !this.active) {
 			this.toggle(false);
@@ -543,8 +573,7 @@ class ChatBubble {
 		}
 		this.source = src;
 		this.active = null;
-		// Pressing the launcher always lands on the first tab (employee threads).
-		this.tab = "employee";
+		this.tab = m.tab || "employee";
 		this.set_active_fab(key);
 		this.open = true;
 		this.$panel.addClass("open");
@@ -554,6 +583,45 @@ class ChatBubble {
 
 	goto_page() {
 		window.location.href = this.source.route_for(this.active);
+	}
+
+	// The expand button: the chat pages' own ChatView (list, tabs, thread) in a large popup,
+	// opened on the conversation the bubble was showing.
+	async open_big() {
+		const id = this.active;
+		const src = this.source;
+		this.close_big();
+		this.toggle(false);
+		this.$big_backdrop = $('<div class="cb-big-backdrop"></div>')
+			.on("click", () => this.close_big())
+			.appendTo(document.body);
+		this.$big = $(`
+			<div class="cb-big">
+				<button class="cb-big-close" title="${__("Close")}"><i class="fa fa-times"></i></button>
+				<div class="cb-big-main"></div>
+			</div>
+		`).appendTo(document.body);
+		this.$big.find(".cb-big-close").on("click", () => this.close_big());
+		this.big_keydown = (e) => e.key === "Escape" && this.close_big();
+		$(document).on("keydown", this.big_keydown);
+
+		const main = this.$big.find(".cb-big-main");
+		this.big_view = new erpnext.chat_view.ChatView({ main, wrapper: main }, new src.constructor(), {
+			fixed: true,
+		});
+		this.big_view.tab = id && src.tab_of ? src.tab_of(id) : this.tab;
+		await this.big_view.refresh(true);
+		if (id && this.big_view.chats[id]) this.big_view.open(id);
+	}
+
+	close_big() {
+		if (!this.big_view) return;
+		this.big_view.destroy();
+		this.big_view = null;
+		$(document).off("keydown", this.big_keydown);
+		this.$big.remove();
+		this.$big_backdrop.remove();
+		this.refresh_soon();
 	}
 
 	toggle(state) {
@@ -610,12 +678,18 @@ class ChatBubble {
 		};
 		// Each category button carries only its own unread — WhatsApp stays visible
 		// even while the employee chat is ignored, and vice versa.
-		this.sources.forEach((s) => {
+		Object.keys(CB_LAUNCH).forEach((key) => {
+			const m = CB_LAUNCH[key];
+			const s = this.sources.find((x) => x.key === m.source);
+			if (!s) return;
 			// Sum unread *messages* across conversations (each c.unread is already a message
 			// count, secret threads included — the server counts rows, never plaintext), not
 			// the number of conversations that have something unread.
-			const count = (s.chats || []).reduce((n, c) => n + (c.unread || 0), 0);
-			set(s.key, count);
+			const chats = m.tab ? s.chats_for_tab(m.tab) : s.chats || [];
+			set(
+				key,
+				chats.reduce((n, c) => n + (c.unread || 0), 0)
+			);
 		});
 		this.render_tab_counts();
 		erpnext.form_sidebar_chat?.sync();
@@ -637,7 +711,7 @@ class ChatBubble {
 	// Tab strip, only for sources that declare tabs and only on the list view.
 	render_tabs() {
 		const tabs = this.source.tabs;
-		if (!tabs || this.active) {
+		if (!tabs || this.active || this.tab !== "entity") {
 			this.$tabs.removeClass("show").empty();
 			return;
 		}
@@ -691,13 +765,17 @@ class ChatBubble {
 		const done = c.is_finished
 			? `<i class="fa fa-check-circle cb-done" title="${__("Conversation finished")}"></i>`
 			: "";
+		const avatar = erpnext.chat_render.avatar_html(c.avatar || { name: c.title, key: c.id }, 36);
 		return `<div class="cb-conv ${c.unread ? "unread" : ""} ${
 			c.is_finished ? "cb-finished" : ""
 		}" data-id="${frappe.utils.escape_html(c.id)}">
-			<div class="cb-name"><span>${name}${done}</span><span class="cb-time">${unread}${cb_fmt_time(
+			<span class="cb-conv-av">${avatar}</span>
+			<div class="cb-conv-main">
+				<div class="cb-name"><span>${name}${done}</span><span class="cb-time">${unread}${cb_fmt_time(
 			c.time
 		)}</span></div>
-			<div class="cb-prev">${via}${prev || __("(no text)")}</div>
+				<div class="cb-prev">${via}${prev || __("(no text)")}</div>
+			</div>
 		</div>`;
 	}
 

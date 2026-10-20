@@ -38,6 +38,18 @@ REPORT_METHODS = frozenset(
 	}
 )
 
+SPECIAL_METHODS = frozenset(
+	{
+		"frappe.desk.form.save.savedocs",
+		"frappe.client.save",
+		"frappe.client.insert",
+		"frappe.desk.desk_page.getpage",
+		"frappe.www.printview.get_html_and_style",
+	}
+)
+
+KNOWN_METHODS = frozenset(DOCTYPE_METHODS) | REPORT_METHODS | SPECIAL_METHODS
+
 RESOURCE_PTYPES = {"GET": "read", "PUT": "write", "PATCH": "write", "DELETE": "delete", "POST": "create"}
 
 METHOD_PATH = re.compile(r"^/api/(?:v\d+/)?method/([\w.]+)")
@@ -107,6 +119,13 @@ def denial_context(path: str, http_method: str, params: Mapping) -> dict | None:
 		doctype, name = resource_match.groups()
 		return doctype_context(doctype, name, RESOURCE_PTYPES.get((http_method or "GET").upper(), "read"))
 	return None
+
+
+def with_raised(context: dict | None, raised: dict | None) -> dict | None:
+	method = (context or {}).get("method")
+	if not raised or (context and (not method or method in KNOWN_METHODS)):
+		return context
+	return {**raised, "method": method} if method else raised
 
 
 def slug_to_name(slug: str) -> str:

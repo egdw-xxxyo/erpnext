@@ -649,11 +649,49 @@ def get_leave(name: str) -> dict:
 
 @frappe.whitelist()
 def get_leave_details(employee: str, date: str) -> dict:
-	from hrms.hr.doctype.leave_application.leave_application import get_leave_details as leave_details
+	from hrms.hr.doctype.leave_application.leave_application import get_leave_allocation_records
 
 	assert_can_edit([employee])
 
-	return leave_details(employee, date)
+	allocations = get_leave_allocation_records(employee, date)
+	precision = frappe.db.get_single_value("System Settings", "float_precision") or 2
+
+	return {
+		"leave_allocation": {
+			leave_type: leave_balance(employee, leave_type, allocation, date, int(precision))
+			for leave_type, allocation in allocations.items()
+		},
+		"lwps": frappe.get_all("Leave Type", filters={"is_lwp": 1}, pluck="name"),
+	}
+
+
+def leave_balance(employee: str, leave_type: str, allocation: dict, date: str, precision: int) -> dict:
+	from hrms.hr.doctype.leave_application.leave_application import (
+		get_leave_balance_on,
+		get_leaves_for_period,
+		get_leaves_pending_approval_for_period,
+	)
+
+	remaining = get_leave_balance_on(
+		employee,
+		leave_type,
+		date,
+		to_date=allocation.to_date,
+		consider_all_leaves_in_the_allocation_period=True,
+	)
+	taken = -get_leaves_for_period(employee, leave_type, allocation.from_date, allocation.to_date)
+	pending = get_leaves_pending_approval_for_period(
+		employee, leave_type, allocation.from_date, allocation.to_date
+	)
+	expired = allocation.total_leaves_allocated - (remaining + taken)
+
+	return {
+		"total_leaves": flt(allocation.total_leaves_allocated, precision),
+		"expired_leaves": flt(max(expired, 0), precision),
+		"leaves_taken": flt(taken, precision),
+		"leaves_pending_approval": flt(pending, precision),
+		"remaining_leaves": flt(remaining, precision),
+	}
 
 
 @frappe.whitelist()

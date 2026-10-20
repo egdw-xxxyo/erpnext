@@ -63,6 +63,11 @@ def resolve(context: dict | None) -> dict | None:
 	return {**(resolved or {"kind": "other"}), "method": context.get("method")}
 
 
+def _raised_denial() -> dict | None:
+	denial = frappe.flags.get("permission_denial")
+	return denial and denial_rules.doctype_context(denial["doctype"], denial["name"], denial["ptype"])
+
+
 def attach_denial_context(response=None, request=None):
 	if response is None or request is None or response.status_code != 403:
 		return
@@ -71,7 +76,8 @@ def attach_denial_context(response=None, request=None):
 	body = json.loads(response.get_data(as_text=True) or "{}")
 	if not isinstance(body, dict):
 		return
-	context = resolve(denial_rules.denial_context(request.path, request.method, frappe.local.form_dict))
+	requested = denial_rules.denial_context(request.path, request.method, frappe.local.form_dict)
+	context = resolve(denial_rules.with_raised(requested, _raised_denial()))
 	response.set_data(json.dumps({**body, "_access_denied": context or {"kind": "other"}}, default=str))
 
 
@@ -108,7 +114,7 @@ def _report_denial(report: str, roles) -> dict:
 def _doctype_denial(context: dict, user: str) -> dict:
 	result = explain(context["doctype"], context.get("ptype") or "read", context.get("name"), user)
 	public = result if is_access_manager(user) else _public_explanation(result)
-	title = " ".join(filter(None, (_(context["doctype"]), context.get("name"))))
+	title = " ".join(part for part in (_(context["doctype"]), context.get("name")) if part)
 	return {
 		"title": title,
 		**{key: value for key, value in public.items() if key not in ("debug_log", "facts", "user_roles")},
@@ -176,7 +182,7 @@ REQUESTER_HIDDEN = ("granting_roles", "user_roles", "source", "workflow")
 
 
 @frappe.whitelist()
-def get_denial(context=None) -> dict:
+def get_denial(context: str | dict | None = None) -> dict:
 	context = _context(context)
 	user = frappe.session.user
 	return {
@@ -200,11 +206,11 @@ def _requested_rights(context: dict, rights) -> str | None:
 
 @frappe.whitelist()
 def create_request(
-	context=None,
+	context: str | dict | None = None,
 	reason: str | None = None,
 	route: str | None = None,
 	message: str | None = None,
-	rights=None,
+	rights: str | list | None = None,
 ):
 	context = _context(context)
 	doc = frappe.get_doc(

@@ -82,13 +82,38 @@ erpnext.access_control.situation_html = (frm, options) => {
 		<p><span class="text-muted">${__("User roles")}:</span> ${erpnext.access_control.roles_html(
 		options.user_roles
 	)}</p>
-		<p><span class="text-muted">${__("Access is given by roles")}:</span> ${erpnext.access_control.granting_html(
-		(situation.granting_roles && Object.keys(situation.granting_roles).length
-			? situation.granting_roles
-			: null) || {}
-	)}</p>
+		${
+			frm.doc.request_type === "Other"
+				? erpnext.access_control.denied_at_html(frm.doc)
+				: `<p><span class="text-muted">${__(
+						"Access is given by roles"
+				  )}:</span> ${erpnext.access_control.granting_html(
+						(situation.granting_roles && Object.keys(situation.granting_roles).length
+							? situation.granting_roles
+							: null) || {}
+				  )}</p>`
+		}
 		${never}
 	</div>`;
+};
+
+erpnext.access_control.denied_at_html = (doc) => {
+	const esc = frappe.utils.escape_html;
+	const rows = [
+		[
+			__("Page"),
+			doc.route
+				? `<a href="/desk/${esc(encodeURI(doc.route))}" target="_blank">${esc(doc.route)}</a>`
+				: null,
+		],
+		[__("Method"), doc.method ? `<code>${esc(doc.method)}</code>` : null],
+		[__("Error"), doc.message ? esc(doc.message) : null],
+	].filter(([, value]) => value);
+	return `<p class="text-muted">${__(
+		"The system could not tell which access was refused. Pick the roles yourself"
+	)}</p>${rows
+		.map(([label, value]) => `<p><span class="text-muted">${label}:</span> ${value}</p>`)
+		.join("")}`;
 };
 
 erpnext.access_control.resolution_options = (options) =>
@@ -438,7 +463,7 @@ erpnext.access_control.approval_warnings = (dialog, options, values) => {
 erpnext.access_control.candidate_details = (candidate, missing = [], wanted = []) =>
 	[
 		erpnext.access_control.coverage_note(missing, wanted),
-		__("+{0} new rights", [candidate.size]),
+		candidate.size === null ? null : __("+{0} new rights", [candidate.size]),
 		candidate.scope === "owner" ? __("own only") : null,
 		__("holders: {0}", [candidate.users]),
 	]
@@ -939,7 +964,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 			dialog,
 			"role_list",
 			role_options,
-			role_options.slice(0, 1).map((option) => option.value)
+			frm.doc.request_type === "Other" ? [] : role_options.slice(0, 1).map((option) => option.value)
 		);
 		erpnext.access_control.set_pick_list(
 			dialog,

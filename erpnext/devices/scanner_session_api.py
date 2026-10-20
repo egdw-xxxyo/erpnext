@@ -76,6 +76,7 @@ CONTEXT_FIELD_FIELDS = [
 	"show_in_app",
 	"app_editable",
 	"is_primary",
+	"is_required",
 	"preserve_on_switch",
 	"blocks_switch",
 	"editable_in_states",
@@ -244,7 +245,7 @@ def seeded_context(root_script, subflow, base=None):
 		if default in (None, ""):
 			continue
 		try:
-			context[key] = _coerce_value(decl, default)
+			context[key] = _coerce_value(decl, default, context)
 		except Exception:
 			# A default pointing at a deleted or filtered-out document must cost the operator
 			# one extra tap, not the whole session.
@@ -349,6 +350,27 @@ def _orders_with_room_for_packing():
 		), 0)
 		"""
 	)
+
+
+UNANSWERED = "\u2205 unanswered"
+
+
+def _apply_context(value, context):
+	"""`link_filters` with `"{key}"` values replaced by that key from the session context.
+
+	Lets a picker depend on an earlier answer — "BpAKs of the chosen order" is
+	`{"sales_order": "{so}"}`. An unanswered key resolves to a value no document carries, so
+	the picker offers nothing. Not "": Frappe reads `= ""` as "empty or NULL" and would offer
+	every BpAK without an order.
+	"""
+	if isinstance(value, dict):
+		return {k: _apply_context(v, context) for k, v in value.items()}
+	if isinstance(value, list):
+		return [_apply_context(v, context) for v in value]
+	if isinstance(value, str) and len(value) > 2 and value[0] == "{" and value[-1] == "}":
+		resolved = (context or {}).get(value[1:-1].strip())
+		return UNANSWERED if resolved in (None, "", [], {}) else resolved
+	return value
 
 
 def _resolve_link_filters(doctype, filters):
@@ -588,6 +610,7 @@ def _read_session(scanner_row, probe_printer=False):
 				"show_in_app": cint(decl.get("show_in_app")),
 				"app_editable": cint(decl.get("app_editable")),
 				"is_primary": cint(decl.get("is_primary")),
+				"is_required": cint(decl.get("is_required")),
 				"preserve_on_switch": cint(decl.get("preserve_on_switch")),
 				"blocks_switch": cint(decl.get("blocks_switch")),
 				"editable_in_states": _editable_states(decl),
@@ -617,6 +640,7 @@ def _read_session(scanner_row, probe_printer=False):
 				"show_in_app": 0,
 				"app_editable": 0,
 				"is_primary": 0,
+				"is_required": 0,
 				"preserve_on_switch": 0,
 				"blocks_switch": 0,
 				"editable_in_states": [],
@@ -919,7 +943,7 @@ def search_context_options(scanner=None, key=None, query=None, limit=20):
 		frappe.throw(_("Context field {0} has no options to pick from").format(key))
 
 	doctype = _link_doctype(decl)
-	filters = _resolve_link_filters(doctype, _link_filters(decl))
+	filters = _resolve_link_filters(doctype, _apply_context(_link_filters(decl), frame.get("context") or {}))
 	limit = min(cint(limit) or 20, 50)
 
 	# A declaration may restrict the picker by name — one packing template for this bench —
@@ -960,7 +984,9 @@ def set_context_field(scanner=None, key=None, value=None):
 	declared = _declared_context_fields(root_script, frame.get("subflow"))
 	decl = _require_editable(declared, key, frame.get("state"))
 
-	coerced = _coerce_value(decl, value)
+	coerced = _coerce_value(decl, value, context)
+	if cint(decl.get("is_required")) and coerced in (None, ""):
+		frappe.throw(_("{0} is required and cannot be cleared").format(decl.get("label") or key))
 	current = context.get(key)
 	is_switch = bool(cint(decl.get("is_primary"))) and current not in (None, "") and current != coerced
 
@@ -1272,7 +1298,7 @@ def _require_editable(declared, key, state=None):
 	return decl
 
 
-def _coerce_value(decl, value):
+def _coerce_value(decl, value, context=None):
 	fieldtype = decl.get("fieldtype") or "Data"
 
 	if fieldtype == "Check":
@@ -1298,7 +1324,7 @@ def _coerce_value(decl, value):
 			frappe.throw(_("{0} {1} not found").format(_(doctype), value), frappe.DoesNotExistError)
 		# The same filters the picker applies, re-checked here: a client that skipped the
 		# picker must not be able to park a draft order on the scanner.
-		filters = _resolve_link_filters(doctype, _link_filters(decl))
+		filters = _resolve_link_filters(doctype, _apply_context(_link_filters(decl), context))
 		if filters:
 			if "name" in filters and value not in _names_of(filters["name"]):
 				frappe.throw(_("{0} {1} is not available for selection").format(_(doctype), value))

@@ -455,6 +455,10 @@ def _get_expected_bank_accounts(doc, supplier):
 
 
 def _get_invoice_file_groups(doc, context):
+	if doc.doctype == "Purchase Invoice" and not doc.is_new():
+		return get_supplier_invoice_files(
+			references=[{"reference_doctype": doc.doctype, "reference_name": doc.name}]
+		)
 	if doc.doctype == "Purchase Invoice":
 		if doc.get("custom_recurring_purchase"):
 			url = doc.get("custom_recurring_invoice_pdf")

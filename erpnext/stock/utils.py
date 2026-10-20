@@ -651,30 +651,7 @@ def _scan_barcode_single(search_value, ctx, set_cache):
 		"name",
 	)
 	if pkg_name:
-		pkg = frappe.get_doc("Package", pkg_name)
-		pkg_items = []
-		for row in pkg.items:
-			item_info = (
-				frappe.get_cached_value(
-					"Item", row.item_code, ("has_batch_no", "has_serial_no"), as_dict=True
-				)
-				or {}
-			)
-			pkg_items.append(
-				{
-					"item_code": row.item_code,
-					"serial_no": row.serial_no,
-					"batch_no": row.batch_no,
-					"qty": row.qty,
-					"has_batch_no": item_info.get("has_batch_no"),
-					"has_serial_no": item_info.get("has_serial_no"),
-				}
-			)
-		package_data = {
-			"package_name": pkg.name,
-			"package_items": pkg_items,
-		}
-		return package_data
+		return package_scan_data(pkg_name)
 
 	warehouse = frappe.get_cached_value("Warehouse", search_value, ("name", "disabled"), as_dict=True)
 	if warehouse and not warehouse.disabled:
@@ -683,6 +660,30 @@ def _scan_barcode_single(search_value, ctx, set_cache):
 		return warehouse_data
 
 	return None
+
+
+def package_scan_data(pkg_name):
+	pkg = frappe.get_doc("Package", pkg_name)
+	pkg_items = []
+	for row in pkg.items:
+		item_info = (
+			frappe.get_cached_value("Item", row.item_code, ("has_batch_no", "has_serial_no"), as_dict=True)
+			or {}
+		)
+		pkg_items.append(
+			{
+				"item_code": row.item_code,
+				"serial_no": row.serial_no,
+				"batch_no": row.batch_no,
+				"qty": row.qty,
+				"has_batch_no": item_info.get("has_batch_no"),
+				"has_serial_no": item_info.get("has_serial_no"),
+			}
+		)
+	return {
+		"package_name": pkg.name,
+		"package_items": pkg_items,
+	}
 
 
 # Keyboard layout maps: each row maps physical key positions across layouts

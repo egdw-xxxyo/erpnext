@@ -145,6 +145,10 @@ class Package(Document):
 		if self.operation:
 			self._finish_operations()
 		self.db_set("status", "Packed")
+		from erpnext.stock.package_shipping import link_shipped_on_submit
+
+		if link_shipped_on_submit(self):
+			self.reload()
 		self._update_bpak_status()
 
 	def _apply_qc_pass(self):
@@ -254,10 +258,20 @@ class Package(Document):
 		)
 		row.db_insert()
 
+	def before_update_after_submit(self):
+		if self.status != "Packed":
+			return
+		if not any(row.item_code for row in self.items):
+			frappe.throw(
+				_("A packed Package cannot be left empty. Unpack it instead of removing every item.")
+			)
+
 	def on_update_after_submit(self):
 		self._update_bpak_status()
 
 	def on_cancel(self):
+		if self.status == "Shipped":
+			frappe.throw(_("Cannot cancel Package {0}: it is already shipped").format(self.name))
 		if self.shipment:
 			frappe.throw(_("Cannot cancel a Package linked to Shipment {0}").format(self.shipment))
 		self.db_set("status", "Cancelled")
@@ -306,7 +320,7 @@ class Package(Document):
 			WHERE pbi.serial_no IN %(serial_nos)s
 			AND pb.name != %(current)s
 			AND pb.docstatus = 1
-			AND pb.status != 'Cancelled'
+			AND pb.status NOT IN ('Cancelled', 'Shipped')
 			""",
 			{"serial_nos": serial_nos, "current": self.name or ""},
 			as_dict=True,
@@ -504,6 +518,8 @@ def unpack_package(package_name, employee=None):
 		frappe.throw(_("Package {0} is already unpacked or cancelled").format(package_name))
 	if pkg.docstatus != 1:
 		frappe.throw(_("Package {0} must be submitted first").format(package_name))
+	if pkg.status == "Shipped":
+		frappe.throw(_("Package {0} is already shipped and cannot be unpacked").format(package_name))
 
 	serials = [row.serial_no for row in pkg.items if row.serial_no]
 	item_count = len(pkg.items)
