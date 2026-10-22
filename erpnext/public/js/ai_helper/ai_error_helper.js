@@ -5,9 +5,19 @@ erpnext.ai_helper.status = () => {
 		erpnext.ai_helper._status = frappe
 			.xcall("erpnext.ai_helper.api.get_status")
 			.then((r) => !!(r && r.available))
-			.catch(() => false);
+			.catch(() => false)
+			.then((available) => {
+				erpnext.ai_helper._available = available;
+				return available;
+			});
 	}
 	return erpnext.ai_helper._status;
+};
+
+erpnext.ai_helper.when_available = (fn) => {
+	if (erpnext.ai_helper._available === true) return fn();
+	if (erpnext.ai_helper._available === false) return;
+	erpnext.ai_helper.status().then((available) => available && fn());
 };
 
 erpnext.ai_helper.CSS = `
@@ -159,16 +169,15 @@ erpnext.ai_helper.install = () => {
 		const is_error = indicator === "red" || indicator === "orange";
 		dialog.footer.find(".aih-btn").addClass("hide");
 		if (is_error) {
-			erpnext.ai_helper.status().then((available) => {
-				if (!available) return;
+			erpnext.ai_helper.when_available(() =>
 				erpnext.ai_helper
 					.attach(
 						dialog,
 						() => dialog.msg_area.text().trim(),
 						() => dialog.$wrapper.find(".modal-title").text().trim()
 					)
-					.removeClass("hide");
-			});
+					.removeClass("hide")
+			);
 		}
 		return dialog;
 	};
@@ -178,17 +187,17 @@ erpnext.ai_helper.install = () => {
 		const result = report_error.apply(this, arguments);
 		const dialog = frappe.error_dialog;
 		if (dialog && dialog.footer) {
-			erpnext.ai_helper.status().then((available) => {
-				if (!available) return;
+			erpnext.ai_helper.when_available(() =>
 				erpnext.ai_helper.attach(
 					dialog,
 					() => dialog.$body.text().trim(),
 					() => __("Server Error")
-				);
-			});
+				)
+			);
 		}
 		return result;
 	};
 };
 
 erpnext.ai_helper.install();
+$(() => erpnext.ai_helper.status());
