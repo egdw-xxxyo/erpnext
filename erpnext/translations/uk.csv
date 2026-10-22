@@ -16435,3 +16435,29 @@ The AI needed too many data lookups. Ask a narrower question.,ШІ потреб�
 DocType {0} is not available,Тип документа {0} недоступний
 Row #{0}: {1} already has a key,Рядок №{0}: для {1} ключ уже є
 the default key,ключ за замовчуванням
+Looking for a known solution...,Шукаю відоме рішення...
+Known solution,Відоме рішення
+It is helpful,Це допомогло
+It is wrong,Це неправильно
+Ask AI,Запитати ШІ
+"Thanks, glad it helped.","Дякуємо, радий, що допомогло."
+Marked as wrong.,Позначено як неправильне.
+Did this help?,Це допомогло?
+Thanks.,Дякуємо.
+Saving the solution...,Зберігаю рішення...
+Solution saved for next time.,Рішення збережено для наступного разу.
+Did the AI helper solve the problem?,Чи вирішив ШІ-помічник проблему?
+Empty solution,Порожнє рішення
+Unknown solution,Невідоме рішення
+Unknown verdict,Невідома оцінка
+The AI could not write a solution.,ШІ не зміг сформулювати рішення.
+AI Error Type,Тип помилки ШІ
+AI Error Solution,Рішення помилки ШІ
+Solution,Рішення
+Solutions,Рішення
+Last Shown,Востаннє показано
+Marked Wrong,Позначено неправильним
+Exception Type,Тип винятку
+Sample Message,Приклад повідомлення
+Occurrences,Кількість випадків
+Helpful,Корисне

@@ -37,6 +37,12 @@ erpnext.ai_helper.CSS = `
 .aih-msg.assistant p:last-child, .aih-msg.assistant ul:last-child, .aih-msg.assistant ol:last-child { margin-bottom: 0; }
 .aih-msg.assistant pre { white-space: pre-wrap; }
 .aih-wait { color: var(--text-muted); }
+.aih-msg.card { align-self: stretch; max-width: 100%; border: 1px solid var(--border-color);
+	background: var(--subtle-fg); }
+.aih-msg.card.rated { opacity: 0.6; }
+.aih-label { font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+.aih-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.aih-note { color: var(--text-muted); font-size: var(--text-sm); }
 .aih-form { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border-color); }
 .aih-form textarea { flex: 1; resize: none; height: 38px; }
 `;
@@ -53,8 +59,112 @@ erpnext.ai_helper.Chat = class {
 		this.context = context;
 		this.messages = [];
 		this.busy = false;
+		this.solutions = [];
+		this.asked_ai = false;
+		this.feedback_asked = false;
+		this.feedback_pending = false;
 		this.render();
+		this.start();
+	}
+
+	start() {
+		const $wait = this.add(
+			"assistant aih-wait",
+			`<i class="fa fa-spinner fa-spin"></i> ${__("Looking for a known solution...")}`
+		);
+		frappe
+			.xcall("erpnext.ai_helper.api.lookup", { context: this.context })
+			.catch(() => ({ type: null, solutions: [] }))
+			.then((r) => {
+				$wait.remove();
+				this.context.error_type = r.type || null;
+				this.solutions = r.solutions || [];
+				this.next_solution();
+			});
+	}
+
+	next_solution() {
+		const solution = this.solutions.shift();
+		if (solution) return this.show_solution(solution);
+		this.ask_ai();
+	}
+
+	show_solution(solution) {
+		const $card = this.add(
+			"card",
+			`<div class="aih-label">${__("Known solution")}</div>
+			<div>${frappe.markdown(solution.solution)}</div>
+			<div class="aih-actions">
+				<button class="btn btn-primary btn-xs aih-yes">${__("It is helpful")}</button>
+				<button class="btn btn-default btn-xs aih-no">${__("It is wrong")}</button>
+				<button class="btn btn-link btn-xs aih-ask">${__("Ask AI")}</button>
+			</div>`
+		);
+		const done = (note) => {
+			$card.addClass("rated").find(".aih-actions").html(`<span class="aih-note">${note}</span>`);
+		};
+		const rate = (verdict) =>
+			frappe.xcall("erpnext.ai_helper.api.rate", {
+				error_type: this.context.error_type,
+				solution: solution.name,
+				verdict: verdict,
+			});
+		$card.find(".aih-yes").on("click", () => {
+			rate("helpful");
+			done(__("Thanks, glad it helped."));
+		});
+		$card.find(".aih-no").on("click", () => {
+			rate("wrong");
+			done(__("Marked as wrong."));
+			this.next_solution();
+		});
+		$card.find(".aih-ask").on("click", () => {
+			$card.find(".aih-actions").empty();
+			this.ask_ai();
+		});
+	}
+
+	ask_ai() {
+		if (this.busy) return;
+		this.asked_ai = true;
 		this.send(__("Explain why this error happened and how to fix it"));
+	}
+
+	ask_feedback() {
+		this.feedback_pending = true;
+		this.$feedback = this.add(
+			"card",
+			`<div>${__("Did this help?")}</div>
+			<div class="aih-actions">
+				<button class="btn btn-primary btn-xs aih-fb-yes">${__("Yes")}</button>
+				<button class="btn btn-default btn-xs aih-fb-no">${__("No")}</button>
+			</div>`
+		);
+		this.$feedback.find(".aih-fb-yes").on("click", () => this.answer_feedback(true));
+		this.$feedback.find(".aih-fb-no").on("click", () => this.answer_feedback(false));
+	}
+
+	answer_feedback(helped) {
+		if (!this.feedback_pending) return;
+		this.feedback_pending = false;
+		this.$feedback
+			.addClass("rated")
+			.find(".aih-actions")
+			.html(`<span class="aih-note">${helped ? __("Saving the solution...") : __("Thanks.")}</span>`);
+		if (!helped) return;
+		frappe
+			.xcall("erpnext.ai_helper.api.learn", {
+				messages: this.messages,
+				context: this.context,
+			})
+			.then((r) => {
+				const note = r && r.ok ? __("Solution saved for next time.") : (r && r.error) || "";
+				this.$feedback.find(".aih-note").text(note);
+				if (r && r.ok && !this.$el.is(":visible")) {
+					frappe.show_alert({ message: note, indicator: "green" });
+				}
+			})
+			.catch(() => {});
 	}
 
 	render() {
@@ -113,6 +223,10 @@ erpnext.ai_helper.Chat = class {
 				if (r.ok) {
 					this.messages.push({ role: "assistant", content: r.reply });
 					this.add("assistant", frappe.markdown(r.reply));
+					if (this.asked_ai && !this.feedback_asked) {
+						this.feedback_asked = true;
+						this.ask_feedback();
+					}
 				} else {
 					this.messages.pop();
 					this.add("error", frappe.utils.escape_html(r.error));
@@ -132,14 +246,23 @@ erpnext.ai_helper.Chat = class {
 	close() {
 		this.$el.remove();
 		if (erpnext.ai_helper.chat === this) erpnext.ai_helper.chat = null;
+		if (this.feedback_pending) {
+			frappe.confirm(
+				__("Did the AI helper solve the problem?"),
+				() => this.answer_feedback(true),
+				() => this.answer_feedback(false)
+			);
+		}
 	}
 };
 
 erpnext.ai_helper.open = (error, title) => {
 	if (erpnext.ai_helper.chat) erpnext.ai_helper.chat.close();
+	const route = frappe.get_route();
 	erpnext.ai_helper.chat = new erpnext.ai_helper.Chat({
 		url: window.location.href,
 		route: frappe.get_route_str(),
+		doctype: ["Form", "List", "Report"].includes(route[0]) ? route[1] || "" : "",
 		title: title || "",
 		error: error,
 	});

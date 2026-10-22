@@ -1,3 +1,4 @@
+import inspect
 import json
 
 import frappe
@@ -5,7 +6,31 @@ from frappe import _
 
 MAX_ROWS = 50
 MAX_RESULT_CHARS = 20000
-DENIED_DOCTYPES = {"File", "Chat Thread", "Chat Message", "AI Helper Settings", "AI Helper Company Key"}
+DENIED_DOCTYPES = {
+	"File",
+	"Chat Thread",
+	"Chat Message",
+	"AI Helper Settings",
+	"AI Helper Company Key",
+	"AI Error Type",
+	"AI Error Solution",
+}
+MAX_SOURCE_CHARS = 6000
+LOGIC_METHODS = (
+	"autoname",
+	"before_validate",
+	"validate",
+	"before_save",
+	"before_insert",
+	"before_submit",
+	"on_update",
+	"on_submit",
+	"before_cancel",
+	"on_cancel",
+	"on_trash",
+	"before_update_after_submit",
+)
+LOGIC_PACKAGES = ("erpnext", "frappe", "hrms")
 SECRET_FIELDTYPES = {"Password"}
 STANDARD_FIELDS = {"name", "owner", "creation", "modified", "modified_by", "docstatus", "idx"}
 
@@ -21,7 +46,23 @@ TOOL_SCHEMAS = [
 	},
 	{
 		"name": "get_doctype_fields",
-		"description": "List fields of a DocType (fieldname, label, type, options, mandatory).",
+		"description": (
+			"List fields of a DocType (fieldname, label, type, options, mandatory, depends_on, "
+			"mandatory_depends_on, read_only, unique)."
+		),
+		"input_schema": {
+			"type": "object",
+			"properties": {"doctype": {"type": "string"}},
+			"required": ["doctype"],
+		},
+	},
+	{
+		"name": "get_doctype_logic",
+		"description": (
+			"Show the validation logic of a DocType: Python controller methods (validate, on_submit, ...), "
+			"doc_events handlers from hooks, and Server/Client Scripts when the user may read them. "
+			"Use it to find which check raised an error."
+		),
 		"input_schema": {
 			"type": "object",
 			"properties": {"doctype": {"type": "string"}},
@@ -88,10 +129,78 @@ def get_doctype_fields(doctype: str) -> list[dict]:
 			"fieldtype": df.fieldtype,
 			"options": df.options,
 			"reqd": df.reqd,
+			"depends_on": df.depends_on,
+			"mandatory_depends_on": df.mandatory_depends_on,
+			"read_only": df.read_only,
+			"unique": df.unique,
 		}
 		for df in _readable_fields(frappe.get_meta(doctype)).values()
 		if df.fieldtype not in frappe.model.layout_fields
 	]
+
+
+def _in_logic_package(obj) -> bool:
+	module = getattr(obj, "__module__", "") or ""
+	return module.split(".")[0] in LOGIC_PACKAGES
+
+
+def _source(obj) -> str | None:
+	try:
+		return inspect.getsource(obj)[:MAX_SOURCE_CHARS]
+	except (OSError, TypeError):
+		return None
+
+
+def _controller_logic(doctype: str) -> dict:
+	from frappe.model.base_document import get_controller
+
+	controller = get_controller(doctype)
+	methods = {}
+	for name in LOGIC_METHODS:
+		method = getattr(controller, name, None)
+		if not callable(method) or not _in_logic_package(method):
+			continue
+		if getattr(method, "__qualname__", "").startswith("Document."):
+			continue
+		source = _source(method)
+		if source:
+			methods[name] = source
+	return methods
+
+
+def _hook_logic(doctype: str) -> dict:
+	events = {}
+	for key in (doctype, "*"):
+		for event, handlers in (frappe.get_hooks("doc_events").get(key) or {}).items():
+			if isinstance(handlers, str):
+				handlers = [handlers]
+			for path in handlers:
+				try:
+					source = _source(frappe.get_attr(path))
+				except Exception:
+					source = None
+				events.setdefault(f"{key}.{event}", []).append({"handler": path, "source": source})
+	return events
+
+
+def _readable_scripts(script_doctype: str, filters: dict) -> list[dict] | str:
+	if not frappe.has_permission(script_doctype, "read"):
+		return "not permitted"
+	rows = frappe.get_list(script_doctype, filters=filters, fields=["name", "script"], limit=MAX_ROWS)
+	return [{"name": r.name, "script": (r.script or "")[:MAX_SOURCE_CHARS]} for r in rows]
+
+
+def get_doctype_logic(doctype: str) -> dict:
+	_check_readable(doctype)
+	return {
+		"controller": _controller_logic(doctype),
+		"doc_events": _hook_logic(doctype),
+		"server_scripts": _readable_scripts(
+			"Server Script",
+			{"script_type": "DocType Event", "reference_doctype": doctype, "disabled": 0},
+		),
+		"client_scripts": _readable_scripts("Client Script", {"dt": doctype, "enabled": 1}),
+	}
 
 
 def get_documents(
@@ -124,6 +233,7 @@ def run_report(report_name: str, filters: dict | None = None) -> dict:
 HANDLERS = {
 	"get_doctypes": get_doctypes,
 	"get_doctype_fields": get_doctype_fields,
+	"get_doctype_logic": get_doctype_logic,
 	"get_documents": get_documents,
 	"run_report": run_report,
 }
