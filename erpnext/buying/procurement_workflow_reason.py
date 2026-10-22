@@ -71,21 +71,48 @@ def apply_workflow(doc: str | dict, action: str):
 		frappe.flags.procurement_workflow_action = previous_action
 
 
+def _get_prepaid_material_request(doc):
+	"""Use the actual item source, never an editable initiator field."""
+	if not doc.get("items_already_purchased"):
+		return None
+	requests = {row.get("material_request") for row in doc.get("items") or []}
+	if len(requests) != 1 or not all(requests):
+		return None
+	return frappe.db.get_value(
+		"Material Request",
+		{
+			"name": next(iter(requests)),
+			"company": doc.get("company"),
+			"docstatus": 1,
+			"material_request_type": "Purchase",
+			"custom_items_already_purchased": 1,
+		},
+		["name", "owner"],
+		as_dict=True,
+	)
+
+
 def _apply_creator_department_approval(doc, core_apply_workflow):
-	"""Advance the department stage when the document creator is a department head."""
+	"""Approve prepaid request chains; preserve the recurring-purchase creator policy."""
 	from erpnext.buying.procurement_final_approval import get_configured_final_approvers
 	from erpnext.buying.procurement_workflow import DEPARTMENT_HEAD_ROLE
 
 	if doc.workflow_state != "Перевірка підрозділу":
 		return doc
 
-	creator = doc.owner
+	material_request = None
+	if doc.doctype == CONSOLIDATED_PURCHASE_ORDER_DOCTYPE:
+		material_request = _get_prepaid_material_request(doc)
+		if not material_request:
+			return doc
+		creator = material_request.owner
+	else:
+		creator = doc.owner
 	if not frappe.db.exists("Has Role", {"parent": creator, "role": DEPARTMENT_HEAD_ROLE}):
 		return doc
-	# A configured CEO must not approve the department stage on their own order.
-	# Their creator vote is recorded only after the department head moves the
-	# document into the final approval state.
-	if creator in get_configured_final_approvers(throw=False):
+	# Preserve the separate recurring-purchase policy for CEO creators.
+	# The prepaid request exception skips only department review, never CEO voting.
+	if not material_request and creator in get_configured_final_approvers(throw=False):
 		return doc
 
 	workflow_action = frappe.db.get_value(
@@ -118,11 +145,18 @@ def _apply_creator_department_approval(doc, core_apply_workflow):
 		)
 
 	actor = frappe.get_cached_value("User", creator, "full_name") or creator
+	message = (
+		_("Department review was approved automatically: {0} created prepaid Material Request {1}.").format(
+			f"<b>{escape_html(actor)}</b>", escape_html(material_request.name)
+		)
+		if material_request
+		else _("{0} approved the department review as the document creator.").format(
+			f"<b>{escape_html(actor)}</b>"
+		)
+	)
 	result.add_comment(
 		"Comment",
-		text=_("{0} approved the department review as the document creator.").format(
-			f"<b>{escape_html(actor)}</b>"
-		),
+		text=message,
 		comment_email=creator,
 		comment_by=actor,
 	)

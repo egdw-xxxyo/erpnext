@@ -16403,3 +16403,4 @@ Effective,Діє
 "Final prices include 20% VAT for VAT payers. Quantities and prices are defaults, not periodic limits.","Кінцеві ціни включають 20% ПДВ для платників ПДВ. Кількість і ціни є типовими значеннями, а не лімітами на період."
 This approved document retains its original tax template and amounts.,У цьому погодженому документі збережено початковий податковий шаблон і суми.
 Only buyers or treasurers can change delivery notes.,Змінювати видаткові накладні можуть лише закупівельники або казначеї.
+Department review was approved automatically: {0} created prepaid Material Request {1}.,Перевірку підрозділу погоджено автоматично: {0} створив ЗМ {1} із позначкою «Матеріали вже придбані».
