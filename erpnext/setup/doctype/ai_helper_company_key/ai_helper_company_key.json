@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "creation": "2026-10-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "model",
+  "auth_token"
+ ],
+ "fields": [
+  {
+   "description": "Leave empty for the key used by every company without its own row",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "default": "Haiku",
+   "fieldname": "model",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Model",
+   "options": "Haiku",
+   "reqd": 1
+  },
+  {
+   "description": "Anthropic API key (sk-ant-api...) or OAuth token (sk-ant-oat...)",
+   "fieldname": "auth_token",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "API Key / OAuth Token",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Setup",
+ "name": "AI Helper Company Key",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

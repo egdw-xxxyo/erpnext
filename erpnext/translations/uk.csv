@@ -16406,3 +16406,32 @@ Only buyers or treasurers can change delivery notes.,Змінювати вида
 Department review was approved automatically: {0} created prepaid Material Request {1}.,Перевірку підрозділу погоджено автоматично: {0} створив ЗМ {1} із позначкою «Матеріали вже придбані».
 Payment confirmed by Material Request receipt,Оплату підтверджено чеком із ЗМ
 Open payment confirmation,Відкрити підтвердження оплати
+AI,ШІ
+AI helper,ШІ-помічник
+AI Helper,ШІ-помічник
+AI Helper Settings,Налаштування ШІ-помічника
+AI Helper Company Key,Ключ ШІ-помічника компанії
+AI Helper Key,Ключ ШІ-помічника
+Company Keys,Ключі компаній
+Keys,Ключі
+API Key / OAuth Token,API-ключ / OAuth-токен
+Show the AI button on error popups,Показувати кнопку ШІ у вікнах помилок
+Leave empty for the key used by every company without its own row,"Залиште порожнім для ключа, який використовують усі компанії без власного рядка"
+Anthropic API key (sk-ant-api...) or OAuth token (sk-ant-oat...),API-ключ Anthropic (sk-ant-api...) або OAuth-токен (sk-ant-oat...)
+Personal Anthropic API key or OAuth token. Overrides the company key.,Особистий API-ключ Anthropic або OAuth-токен. Має пріоритет над ключем компанії.
+Explain why this error happened and how to fix it,"Поясни, чому виникла ця помилка і як її виправити"
+Ask a follow-up question,Поставте додаткове запитання
+Thinking...,Думаю...
+The AI helper is unavailable right now.,ШІ-помічник зараз недоступний.
+No AI key is set up. Add one in My Settings or ask an administrator.,Ключ ШІ не налаштовано. Додайте його в «Мої налаштування» або зверніться до адміністратора.
+The AI key was rejected. Check it in My Settings or AI Helper Settings.,Ключ ШІ відхилено. Перевірте його в «Моїх налаштуваннях» або в «Налаштуваннях ШІ-помічника».
+The AI key has no access to this model.,Ключ ШІ не має доступу до цієї моделі.
+"AI rate limit reached, try again in a minute.","Ліміт запитів до ШІ вичерпано, спробуйте за хвилину."
+Cannot reach the AI service.,Не вдалося з'єднатися зі службою ШІ.
+AI service error ({0}).,Помилка служби ШІ ({0}).
+The AI declined to answer this request.,ШІ відмовився відповідати на цей запит.
+No answer.,Немає відповіді.
+The AI needed too many data lookups. Ask a narrower question.,ШІ потребував забагато звернень до даних. Поставте вужче запитання.
+DocType {0} is not available,Тип документа {0} недоступний
+Row #{0}: {1} already has a key,Рядок №{0}: для {1} ключ уже є
+the default key,ключ за замовчуванням

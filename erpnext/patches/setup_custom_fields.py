@@ -46,6 +46,7 @@ def execute():
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
+	create_ai_helper_user_fields()
 	create_salary_split_fields()
 	create_salary_tax_components()
 	create_disability_fields()
@@ -849,6 +850,28 @@ def create_custom_fields_on_employee():
 			"label": "Shortname",
 			"insert_after": "employee_name",
 			"unique": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_ai_helper_user_fields():
+	fields = [
+		{
+			"dt": "User",
+			"fieldname": "ai_helper_section",
+			"fieldtype": "Section Break",
+			"label": "AI Helper",
+			"insert_after": "api_secret",
+			"collapsible": 1,
+		},
+		{
+			"dt": "User",
+			"fieldname": "ai_helper_token",
+			"fieldtype": "Password",
+			"label": "AI Helper Key",
+			"insert_after": "ai_helper_section",
+			"description": "Personal Anthropic API key or OAuth token. Overrides the company key.",
 		},
 	]
 	_create_custom_fields(fields)

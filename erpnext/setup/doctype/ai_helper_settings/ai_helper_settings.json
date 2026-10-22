@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "creation": "2026-10-22 00:00:00.000000",
+ "description": "Claude-powered helper that explains error popups. Keys are set per company; a personal key in My Settings overrides them.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "keys_section",
+  "company_keys"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "description": "Show the AI button on error popups",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "keys_section",
+   "fieldtype": "Section Break",
+   "label": "Keys"
+  },
+  {
+   "fieldname": "company_keys",
+   "fieldtype": "Table",
+   "label": "Company Keys",
+   "options": "AI Helper Company Key"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Setup",
+ "name": "AI Helper Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}
