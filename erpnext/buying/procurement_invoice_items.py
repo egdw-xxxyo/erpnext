@@ -9,6 +9,32 @@ from frappe import _
 
 from erpnext.buying.doctype.supplier_item_alias.supplier_item_alias import normalize_alias
 
+# Compare header keywords in a common alphabet, never rewrite supplier data.
+HEADER_LOOKALIKES = str.maketrans(
+	{
+		"а": "a",
+		"в": "b",
+		"е": "e",
+		"к": "k",
+		"м": "m",
+		"н": "h",
+		"о": "o",
+		"р": "p",
+		"с": "c",
+		"т": "t",
+		"у": "y",
+		"х": "x",
+		"і": "i",
+		"ј": "j",
+		"ѕ": "s",
+	}
+)
+
+
+def normalize_header(value):
+	return normalize_alias(value).translate(HEADER_LOOKALIKES).replace("–", "-").replace("−", "-")
+
+
 HEADERS = {
 	"supplier_item_name": (
 		"найменування",
@@ -57,13 +83,13 @@ def parse_number(value):
 def header_columns(cells):
 	columns = {}
 	for index, cell in enumerate(cells):
-		label = normalize_alias(cell).replace("–", "-").replace("−", "-")
+		label = normalize_header(cell)
 		compact = re.sub(r"[\s.]", "", label)
 		# "Код товару" is an article, not the name; "unit price" is not a UOM.
 		for key in ("supplier_part_no", "qty", "rate", "amount", "uom", "supplier_item_name"):
-			patterns = HEADERS[key]
+			patterns = [normalize_header(pattern) for pattern in HEADERS[key]]
 			if any(pattern in label for pattern in patterns) or (
-				key == "uom" and any(pattern in compact for pattern in ("одвим", "едизм"))
+				key == "uom" and any(normalize_header(pattern) in compact for pattern in ("одвим", "едизм"))
 			):
 				columns.setdefault(key, index)
 				if key == "rate":
@@ -77,10 +103,10 @@ def header_columns(cells):
 
 
 def price_basis(label):
-	label = normalize_alias(label)
-	if re.search(r"без\s*(пдв|ндс)|excl(?:uding)?\.?\s*vat|without\s+vat", label):
+	label = normalize_header(label)
+	if re.search(normalize_header(r"без\s*(пдв|ндс)|excl(?:uding)?\.?\s*vat|without\s+vat"), label):
 		return "exclusive"
-	if re.search(r"(?:із|зі|з|с)\s*(пдв|ндс)|incl(?:uding)?\.?\s*vat|with\s+vat", label):
+	if re.search(normalize_header(r"(?:із|зі|з|с)\s*(пдв|ндс)|incl(?:uding)?\.?\s*vat|with\s+vat"), label):
 		return "inclusive"
 	return "unknown"
 
@@ -95,7 +121,10 @@ def _header_cells(table, index):
 		other = table[adjacent]
 		if len(other) != len(cells) or any(parse_number(cell) is not None for cell in other):
 			continue
-		if not any(re.search(r"ціна|цена|price|сума|amount|пдв|ндс|vat", normalize_alias(c)) for c in other):
+		if not any(
+			re.search(normalize_header(r"ціна|цена|price|сума|amount|пдв|ндс|vat"), normalize_header(c))
+			for c in other
+		):
 			continue
 		cells = [
 			" ".join(str(part) for part in (left, right) if part)
