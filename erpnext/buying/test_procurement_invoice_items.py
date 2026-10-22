@@ -4,6 +4,40 @@ from erpnext.buying.procurement_invoice_items import invoice_rate, parse_table
 
 
 class TestInvoiceVATParsing(TestCase):
+	def test_mixed_alphabet_invoice_headers_preserve_item_text(self):
+		name = 'Третя рука JM-501 тримач плат з двума "крокодилами" та лупою'
+		rows, _ = parse_table(
+			[
+				["№", "Артиkул", "Нaзвa", "Oд.вим.", "Кiлькiсть", "Цiна", "Cума"],
+				["1", "06978-АB", name, "шт.", "10", "188,60", "1886,00"],
+			],
+			1,
+			0,
+		)
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["supplier_item_name"], name)
+		self.assertEqual(rows[0]["supplier_part_no"], "06978-АB")
+		self.assertEqual((rows[0]["qty"], rows[0]["rate"], rows[0]["amount"]), (10, 188.6, 1886))
+
+	def test_english_headers_with_cyrillic_letters(self):
+		rows, _ = parse_table(
+			[["Itеm Nаmе", "Qtу", "Рriсе еxсl. VАT"], ["Cable", "2", "100"]],
+			1,
+			0,
+		)
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["price_basis"], "exclusive")
+		self.assertEqual(invoice_rate(rows[0], True), 120)
+
+	def test_mixed_alphabet_split_vat_header(self):
+		rows, _ = parse_table(
+			[["Тoвар", "Кiлькiсть", "Цiна бeз"], ["", "", "ПДB"], ["Cable", "2", "100"]],
+			1,
+			0,
+		)
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["price_basis"], "exclusive")
+
 	def test_split_ukrainian_header(self):
 		table = [
 			["", "", "", "", "", "Ціна без", "Сума без"],

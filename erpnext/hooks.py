@@ -730,6 +730,7 @@ doc_events = {
 		],
 		"on_change": [
 			"erpnext.accounts.payment_workflow_automation.sync_payment_request_assignment",
+			"erpnext.accounts.payment_fiscal_receipt.sync_payment_request_receipt",
 			"erpnext.projects.task_payments.sync_payment_request_task_summary",
 		],
 		"after_insert": "erpnext.projects.task_activity.log_linked_document_creation",

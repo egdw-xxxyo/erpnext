@@ -96,8 +96,8 @@ paymentRequestListSettings.formatters.custom_fiscal_receipt_status = function (v
 	const escapedUrl = frappe.utils.escape_html(instructionUrl);
 	return `<a class="indicator-pill green ellipsis" href="${escapedUrl}" target="_blank"
 		onclick="event.stopPropagation()"
-		rel="noopener noreferrer" title="${__("Open payment instruction")}">
-		<span class="ellipsis">${__("Open payment instruction")}</span></a>`;
+		rel="noopener noreferrer" title="${__("Open payment confirmation")}">
+		<span class="ellipsis">${__("Open payment confirmation")}</span></a>`;
 };
 frappe.listview_settings["Payment Request"] = paymentRequestListSettings;
 """.strip()
@@ -165,6 +165,14 @@ def _get_linked_payment_requests(payment_entry):
 
 
 def _update_payment_request_receipt_status(payment_request):
+	from erpnext.accounts.invoice_payment_route import _invoice, _prepaid_receipt
+
+	request = frappe.get_doc(PAYMENT_REQUEST_DOCTYPE, payment_request)
+	evidence = _prepaid_receipt(_invoice(request)) if request.docstatus != 2 else None
+	if evidence:
+		values = {RECEIPT_STATUS_FIELD: RECEIPT_ADDED, RECEIPT_URL_FIELD: evidence["receipt_url"]}
+		frappe.db.set_value(PAYMENT_REQUEST_DOCTYPE, payment_request, values, update_modified=False)
+		return
 	payment_entries = set(
 		frappe.get_all(
 			"Payment Entry Reference",
@@ -211,6 +219,10 @@ def _update_payment_request_receipt_status(payment_request):
 	if frappe.db.has_column(PAYMENT_REQUEST_DOCTYPE, RECEIPT_URL_FIELD):
 		values[RECEIPT_URL_FIELD] = receipt_url
 	frappe.db.set_value(PAYMENT_REQUEST_DOCTYPE, payment_request, values, update_modified=False)
+
+
+def sync_payment_request_receipt(doc, method=None):
+	_update_payment_request_receipt_status(doc.name)
 
 
 def _validate_file_extension(file_url):
