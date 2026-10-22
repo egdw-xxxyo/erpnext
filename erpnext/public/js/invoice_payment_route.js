@@ -56,6 +56,8 @@ async function render_invoice_payment_route(frm) {
 					? __("User is not recorded")
 					: __("Not completed yet"));
 			let role = __(stage.role);
+			if (step.key === "payment" && step.external_payment)
+				role = __("Payment was made at the expense of:");
 			if (step.key === "ceo") {
 				if (step.automatic && step.completed) role = __("Approved automatically");
 				else if (route.ceo_administrator) role = __("Approved by Administrator");

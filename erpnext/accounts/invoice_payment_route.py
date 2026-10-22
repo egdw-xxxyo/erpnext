@@ -1,6 +1,7 @@
 """Display inherited approvals and protect invoice payments with pending requests."""
 
 import json
+from urllib.parse import urlsplit
 
 import frappe
 from frappe import _
@@ -112,7 +113,37 @@ def _step(key, title, users, completed=False, automatic=False):
 	}
 
 
+def _prepaid_receipt(invoice):
+	"""An original receipt proves the existing purchase, not a new treasury payment."""
+	if (
+		not invoice
+		or invoice.get("docstatus") != 1
+		or invoice.get("is_return")
+		or not invoice.get("custom_consolidated_purchase_order")
+		or not (invoice.get("is_paid") or flt(invoice.get("outstanding_amount")) <= 0)
+	):
+		return None
+	from erpnext.buying.procurement_workflow_reason import _get_prepaid_material_request
+
+	order = frappe.get_doc("Consolidated Purchase Order", invoice.custom_consolidated_purchase_order)
+	if order.docstatus != 1 or order.workflow_state != "Проведено" or order.company != invoice.company:
+		return None
+	source = _get_prepaid_material_request(order)
+	if not source:
+		return None
+	request = frappe.get_doc("Material Request", source.name)
+	for row in request.get("custom_purchase_receipts") or []:
+		url = row.get("invoice_pdf") or ""
+		if urlsplit(url).path.lower().endswith(".pdf") and frappe.db.exists("File", {"file_url": url}):
+			return {"user": source.owner, "request": source.name, "receipt_url": url}
+
+
 def _payment_progress(doc, invoice):
+	evidence = _prepaid_receipt(invoice)
+	if evidence:
+		step = _step("payment", "Payment confirmed by Material Request receipt", [evidence["user"]], True)
+		step["external_payment"] = True
+		return step
 	filters = {"parenttype": "Payment Entry", "docstatus": 1, "allocated_amount": [">", 0]}
 	if doc.doctype == "Payment Request":
 		filters["payment_request"] = doc.name
