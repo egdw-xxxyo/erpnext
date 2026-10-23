@@ -223,7 +223,12 @@ def _resolve_qi_template(item_code):
 	with the OTDR doctype: the item is now derived from the scanned serial rather than
 	picked from a device-scoped dropdown, so the item's own template is the only answer.
 	"""
-	return frappe.db.get_value("Item", item_code, "quality_inspection_template")
+	template, variant_of = frappe.db.get_value(
+		"Item", item_code, ["quality_inspection_template", "variant_of"]
+	) or (None, None)
+	if not template and variant_of:
+		template = frappe.db.get_value("Item", variant_of, "quality_inspection_template")
+	return template
 
 
 def _source_batch(serial_no):
