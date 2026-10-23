@@ -48,3 +48,53 @@ class OTDRMeasurement(Document):
 	def before_insert(self):
 		if not self.measured_on:
 			self.measured_on = frappe.utils.now_datetime()
+
+
+def cleanup_old_sor_files(days=7, batch_size=1000):
+	"""Daily scheduler job: drop the raw .sor attachments of measurements older than `days`.
+
+	The measurement itself, its parsed payload and its verdict stay; only the file and the
+	`sor_file` link go. Works through the backlog `batch_size` files at a time, committing
+	after each batch so a long run never holds one huge transaction.
+	"""
+	cutoff = frappe.utils.add_days(frappe.utils.now_datetime(), -days)
+	removed = 0
+	while True:
+		files = frappe.get_all(
+			"File",
+			filters={
+				"attached_to_doctype": "OTDR Measurement",
+				"creation": ["<", cutoff],
+			},
+			fields=["name", "attached_to_name"],
+			order_by="creation asc",
+			limit_page_length=batch_size,
+		)
+		if not files:
+			break
+
+		done = []
+		for row in files:
+			try:
+				frappe.delete_doc(
+					"File",
+					row.name,
+					force=True,
+					ignore_permissions=True,
+					delete_permanently=True,
+				)
+				done.append(row.attached_to_name)
+			except Exception:
+				frappe.log_error(title=f"OTDR SOR cleanup: could not delete File {row.name}")
+
+		if done:
+			frappe.db.sql(
+				"UPDATE `tabOTDR Measurement` SET sor_file = NULL WHERE name IN %(names)s",
+				{"names": tuple(set(done))},
+			)
+		frappe.db.commit()
+		removed += len(done)
+
+		if not done:
+			break
+	return removed

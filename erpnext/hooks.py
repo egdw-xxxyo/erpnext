@@ -970,7 +970,9 @@ scheduler_events = {
 		"erpnext.crm.chat_archive.auto_deep_archive",
 		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
 	],
-	"daily_long": [],
+	"daily_long": [
+		"erpnext.devices.doctype.otdr_measurement.otdr_measurement.cleanup_old_sor_files",
+	],
 	"daily_maintenance": [
 		"erpnext.support.doctype.issue.issue.auto_close_tickets",
 		"erpnext.crm.doctype.opportunity.opportunity.auto_close_opportunity",
