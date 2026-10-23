@@ -469,6 +469,21 @@ def _free_job_cards(item_code, workplace=None, limit=20):
 	)
 
 
+def _free_job_card_count(item_code, workplace=None):
+	"""How many units are still waiting to be started — `_free_job_cards` stops at its limit."""
+	filters = {
+		"docstatus": 0,
+		"status": FREE_JOB_CARD_STATUS,
+		"production_item": item_code,
+		"quality_inspection": ["is", "not set"],
+		"serial_no": ["is", "set"],
+	}
+	workstations = _workstations(workplace)
+	if workstations:
+		filters["workstation"] = ["in", workstations]
+	return frappe.db.count("Job Card", filters)
+
+
 def _unfinished_job_cards(item_code=None, workplace=None, limit=20):
 	"""Units already measured but never closed — the bench walked away from them.
 
@@ -683,12 +698,12 @@ def get_plan(line_type, workplace=None):
 		listed = {}
 		for row in _plan_rows(line, workplace=workplace):
 			if manual:
-				# Several orders for one item are one line of the bench's plan.
-				key = (row.item_code, row.workplace)
+				# Several orders for one item are one line of the bench's plan, whichever
+				# workplace each order names.
+				key = row.item_code
 				if key in listed:
 					listed[key]["daily_qty"] += cint(row.qty)
 					continue
-			free = _free_job_cards(row.item_code, workplace=row.workplace or workplace, limit=100)
 			entry = {
 				"production_line": line.name,
 				"item_code": row.item_code,
@@ -697,11 +712,11 @@ def get_plan(line_type, workplace=None):
 				"daily_qty": cint(row.qty) if manual else row.daily_qty,
 				"overflow_qty": 0 if manual else line.overflow_qty,
 				"planning_mode": line.planning_mode or "Daily Planning",
-				"remaining": len(free),
+				"remaining": _free_job_card_count(row.item_code, workplace=workplace or row.workplace),
 			}
 			items.append(entry)
 			if manual:
-				listed[(row.item_code, row.workplace)] = entry
+				listed[row.item_code] = entry
 
 	return {"enabled": bool(items), "items": items}
 
@@ -729,7 +744,7 @@ def next_unit(line_type, workplace=None, item_code=None):
 			"item_code": item_code,
 			"overflow_work_order": None,
 			"resumed": True,
-			"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
+			"remaining": _free_job_card_count(item_code, workplace=workplace),
 		}
 
 	free = _free_job_cards(item_code, workplace=workplace, limit=1)
@@ -774,7 +789,7 @@ def next_unit(line_type, workplace=None, item_code=None):
 		"item_code": item_code,
 		"overflow_work_order": overflow.name if overflow else None,
 		"resumed": False,
-		"remaining": len(_free_job_cards(item_code, workplace=workplace, limit=100)),
+		"remaining": _free_job_card_count(item_code, workplace=workplace),
 	}
 
 
