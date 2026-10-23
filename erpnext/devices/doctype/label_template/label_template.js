@@ -187,12 +187,8 @@ function _do_render_preview(frm) {
 			let data = r.message;
 
 			let PX_PER_MM = 3.78;
-			let pw = Math.round(data.width_mm * PX_PER_MM);
-			let ph = Math.round(data.height_mm * PX_PER_MM);
-
-			let scale = 3;
-			let cw = pw * scale;
-			let ch = ph * scale;
+			let scale = 1.5;
+			let cw = Math.round(data.width_mm * PX_PER_MM * scale);
 
 			let info_html = `<div class="label-preview-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
 				${data.width_mm} × ${data.height_mm} mm &nbsp;|&nbsp; ${data.width_dots} × ${data.height_dots} dots @ ${data.dpi} DPI
@@ -202,9 +198,9 @@ function _do_render_preview(frm) {
 				$wrapper.html(`
 					<div class="label-preview-container" style="padding:10px;">
 						${info_html}
-						<div style="display:inline-block; border:1px solid var(--border-color); background:#fff; border-radius:4px; overflow:hidden;">
+						<div style="display:inline-block; max-width:100%; border:1px solid var(--border-color); background:#fff; border-radius:4px; overflow:hidden;">
 							<img src="data:image/png;base64,${data.image_base64}"
-								style="width:${cw}px; height:${ch}px; display:block; image-rendering:pixelated;" />
+								style="width:${cw}px; max-width:100%; height:auto; display:block;" />
 						</div>
 						<div style="margin-top:8px;">
 							<details>
