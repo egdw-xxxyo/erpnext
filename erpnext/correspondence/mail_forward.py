@@ -16,6 +16,7 @@ from frappe.utils import (
 from frappe.utils.jinja import get_template
 from frappe.utils.user import get_users_with_role
 
+from erpnext.correspondence.email_account import connection_error_title
 from erpnext.correspondence.forwarding_accounts import MANAGER_ROLE
 from erpnext.correspondence.mail_routing import dedupe_key, parse_patterns, plan_copies, route
 
@@ -27,7 +28,7 @@ QUEUE_OUTCOMES = {"Sent": "Sent", "Error": "Failed"}
 PROCESSED_FIELD = "mail_forward_processed"
 RECONCILE_WINDOW_DAYS = 3
 RECONCILE_DELAY_HOURS = 1
-ALERT_ROLES = ("System Manager", MANAGER_ROLE)
+UNREACHABLE_HOURS = 3
 
 
 def watched_mailbox(settings, email_account: str | None):
@@ -277,11 +278,30 @@ def accounts_off(settings) -> int:
 	)
 
 
-def count_problems(settings, since, lost: list[str]) -> dict[str, int]:
+def unreachable_periods(unreachable_since, moment) -> int:
+	return int(
+		(get_datetime(moment) - get_datetime(unreachable_since)).total_seconds() // (UNREACHABLE_HOURS * 3600)
+	)
+
+
+def unreachable_reminder_due(unreachable_since, since, now) -> bool:
+	return unreachable_periods(unreachable_since, now) > max(unreachable_periods(unreachable_since, since), 0)
+
+
+def mailboxes_unreachable(settings, since, now) -> int:
+	return sum(
+		1
+		for row in settings.mailboxes
+		if row.unreachable_since and unreachable_reminder_due(row.unreachable_since, since, now)
+	)
+
+
+def count_problems(settings, since, now, lost: list[str]) -> dict[str, int]:
 	mailboxes = [row.email_account for row in settings.mailboxes]
 	accounts = [*mailboxes, settings.sender_account] if settings.sender_account else mailboxes
 	return {
 		"accounts": accounts_off(settings),
+		"unreachable": mailboxes_unreachable(settings, since, now),
 		"lost": len(lost),
 		"failed": frappe.db.count("Mail Forward Log", {"status": "Failed", "modified": [">", since]}),
 		"unhandled": frappe.db.count(
@@ -292,6 +312,7 @@ def count_problems(settings, since, lost: list[str]) -> dict[str, int]:
 			{
 				"reference_doctype": "Email Account",
 				"reference_name": ["in", accounts or [""]],
+				"method": ["not in", [connection_error_title(name) for name in mailboxes] or [""]],
 				"creation": [">", since],
 			},
 		)
@@ -314,6 +335,7 @@ def count_problems(settings, since, lost: list[str]) -> dict[str, int]:
 def problem_labels() -> dict[str, str]:
 	return {
 		"accounts": _("Mail accounts that are turned off or missing: {0}"),
+		"unreachable": _("Mailboxes the mail server has not let in for more than 3 hours: {0}"),
 		"lost": _("Mail picked up by the hourly check after its forwarding job was lost: {0}"),
 		"failed": _("Copies that failed to send: {0}"),
 		"unhandled": _("Messages the mailbox could not read: {0}"),
@@ -334,7 +356,7 @@ def alert_link(counts: dict[str, int]) -> str:
 
 
 def alert_recipients() -> list[str]:
-	return sorted({user for role in ALERT_ROLES for user in get_users_with_role(role)})
+	return sorted(get_users_with_role(MANAGER_ROLE) or get_users_with_role("System Manager"))
 
 
 def notify(counts: dict[str, int]):
@@ -356,7 +378,7 @@ def check_forwarding_health():
 	settings = frappe.get_single(SETTINGS)
 	now = now_datetime()
 	since = get_datetime(settings.last_health_check or add_to_date(now, hours=-1))
-	counts = count_problems(settings, since, reconcile_lost_mail(settings, now))
+	counts = count_problems(settings, since, now, reconcile_lost_mail(settings, now))
 	frappe.db.set_single_value(SETTINGS, "last_health_check", now, update_modified=False)
 	if any(counts.values()):
 		notify(counts)

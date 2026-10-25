@@ -5,7 +5,9 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, add_to_date, get_datetime, now_datetime
 
+from erpnext.correspondence import mail_forward
 from erpnext.correspondence.doctype.mail_forward_settings import mail_forward_settings
+from erpnext.correspondence.email_account import MailboxUnreachable, connection_error_title
 from erpnext.correspondence.imap_folders import parse_list_response
 from erpnext.correspondence.imap_uids import FolderState
 from erpnext.correspondence.mail_forward import (
@@ -262,7 +264,7 @@ def arrived(comm, hours_ago: int):
 	)
 
 
-def make_manager(email: str):
+def make_manager(email: str, role: str = "Correspondence Manager"):
 	frappe.delete_doc("User", email, force=True, ignore_missing=True)
 	return frappe.get_doc(
 		{
@@ -270,7 +272,7 @@ def make_manager(email: str):
 			"email": email,
 			"first_name": "Mail",
 			"send_welcome_email": 0,
-			"roles": [{"role": "Correspondence Manager"}],
+			"roles": [{"role": role}],
 		}
 	).insert(ignore_permissions=True)
 
@@ -290,6 +292,7 @@ class TestMailForwardHealth(MailForwardCase):
 		frappe.db.set_single_value(
 			"Mail Forward Settings", "last_health_check", add_to_date(now_datetime(), hours=-1)
 		)
+		frappe.db.delete("Error Log", {"reference_name": ["in", [WATCHED, SENDER]]})
 
 	def processed(self, comm):
 		return frappe.db.get_value("Communication", comm.name, PROCESSED_FIELD)
@@ -393,6 +396,84 @@ class TestMailForwardHealth(MailForwardCase):
 		check_forwarding_health()
 		self.assertIn("Mail accounts that are turned off or missing: 1", alerts_for(manager.name)[0].subject)
 
+	def mailbox_error(self, title: str):
+		frappe.log_error(title=title, reference_doctype="Email Account", reference_name=WATCHED)
+
+	def unreachable_for(self, minutes: int):
+		frappe.db.set_value(
+			"Mail Forward Mailbox",
+			{"email_account": WATCHED},
+			"unreachable_since",
+			add_to_date(now_datetime(), minutes=-minutes),
+		)
+
+	def test_a_connection_error_alone_is_not_reported(self):
+		manager = make_manager("_mail-blip@kalheon.test")
+		self.mailbox_error(connection_error_title(WATCHED))
+		check_forwarding_health()
+		self.assertEqual(alerts_for(manager.name), [])
+
+	def test_other_mailbox_errors_are_reported(self):
+		manager = make_manager("_mail-fetch@kalheon.test")
+		self.mailbox_error("Unable to fetch email")
+		check_forwarding_health()
+		self.assertIn("Errors while reading or forwarding mail: 1", alerts_for(manager.name)[0].subject)
+
+	def test_a_mailbox_unreachable_for_hours_is_reported_every_three_hours(self):
+		manager = make_manager("_mail-down@kalheon.test")
+		self.unreachable_for(200)
+		check_forwarding_health()
+		check_forwarding_health()
+		self.assertEqual(len(alerts_for(manager.name)), 1)
+		self.assertIn(
+			"Mailboxes the mail server has not let in for more than 3 hours: 1",
+			alerts_for(manager.name)[0].subject,
+		)
+		for minutes in (260, 320):
+			self.unreachable_for(minutes)
+			frappe.db.set_single_value(
+				"Mail Forward Settings", "last_health_check", add_to_date(now_datetime(), hours=-1)
+			)
+			check_forwarding_health()
+		self.assertEqual(len(alerts_for(manager.name)), 1)
+		self.unreachable_for(380)
+		frappe.db.set_single_value(
+			"Mail Forward Settings", "last_health_check", add_to_date(now_datetime(), hours=-1)
+		)
+		check_forwarding_health()
+		self.assertEqual(len(alerts_for(manager.name)), 2)
+
+	def test_a_mailbox_unreachable_for_a_short_while_is_not_reported(self):
+		manager = make_manager("_mail-short@kalheon.test")
+		self.unreachable_for(150)
+		check_forwarding_health()
+		self.assertEqual(alerts_for(manager.name), [])
+
+	def test_a_long_gap_between_checks_still_reminds_once(self):
+		self.assertTrue(
+			mail_forward.unreachable_reminder_due(
+				add_to_date(now_datetime(), hours=-10), add_to_date(now_datetime(), hours=-5), now_datetime()
+			)
+		)
+		self.assertFalse(
+			mail_forward.unreachable_reminder_due(
+				add_to_date(now_datetime(), hours=-1), add_to_date(now_datetime(), hours=-5), now_datetime()
+			)
+		)
+
+	def test_system_managers_are_left_out_while_there_is_a_manager(self):
+		manager = make_manager("_mail-cm@kalheon.test")
+		admin = make_manager("_mail-sm@kalheon.test", "System Manager")
+		frappe.db.set_value("Email Account", WATCHED, "enable_incoming", 0)
+		check_forwarding_health()
+		self.assertEqual(len(alerts_for(manager.name)), 1)
+		self.assertEqual(alerts_for(admin.name), [])
+
+	def test_system_managers_are_alerted_when_there_is_no_manager(self):
+		roles = {"Correspondence Manager": [], "System Manager": ["b@kalheon.test", "a@kalheon.test"]}
+		with patch.object(mail_forward, "get_users_with_role", side_effect=roles.get):
+			self.assertEqual(mail_forward.alert_recipients(), ["a@kalheon.test", "b@kalheon.test"])
+
 	def test_quiet_hour_sends_no_alert(self):
 		manager = make_manager("_mail-quiet@kalheon.test")
 		frappe.db.set_single_value("Mail Forward Settings", "last_health_check", now_datetime())
@@ -492,6 +573,32 @@ class TestFolderSync(FrappeTestCase):
 		)[0]
 		self.assertIn("server down", row.folder_sync_error)
 		self.assertTrue(row.last_folder_sync)
+
+	def unreachable_since(self, account: str):
+		return frappe.db.get_value("Mail Forward Mailbox", {"email_account": account}, "unreachable_since")
+
+	def test_an_unreachable_server_marks_the_mailbox_instead_of_a_folder_error(self):
+		def unreachable(account):
+			raise MailboxUnreachable("server down")
+
+		with patch.object(mail_forward_settings, "fetch_folders", unreachable):
+			results = mail_forward_settings.sync_all_mailboxes()
+		self.assertIn("server down", results[WATCHED])
+		self.assertTrue(self.unreachable_since(WATCHED))
+		row = frappe.get_all(
+			"Mail Forward Mailbox",
+			filters={"email_account": WATCHED},
+			fields=["folder_sync_error", "last_folder_sync"],
+		)[0]
+		self.assertEqual((row.folder_sync_error, row.last_folder_sync), (None, None))
+
+	def test_a_successful_sync_clears_the_unreachable_mark(self):
+		frappe.db.set_value(
+			"Mail Forward Mailbox", {"email_account": WATCHED}, "unreachable_since", now_datetime()
+		)
+		with fake_server():
+			mail_forward_settings.sync_all_mailboxes()
+		self.assertIsNone(self.unreachable_since(WATCHED))
 
 	def test_manual_mailbox_keeps_its_folders_and_gets_a_starting_point(self):
 		frappe.db.set_value("Mail Forward Mailbox", {"email_account": WATCHED}, "folder_mode", "Manual")
