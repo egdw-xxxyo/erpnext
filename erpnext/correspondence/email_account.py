@@ -13,6 +13,7 @@ from erpnext.correspondence.forwarding_accounts import (
 	form_profile,
 	forwarding_role,
 	pending_changes,
+	record_connection,
 )
 from erpnext.correspondence.imap_uids import (
 	FolderState,
@@ -22,6 +23,24 @@ from erpnext.correspondence.imap_uids import (
 	progress_start,
 	read_plan,
 )
+
+
+class MailboxUnreachable(frappe.ValidationError):
+	pass
+
+
+def connection_error_title(name: str) -> str:
+	return _("Error while connecting to email account {0}").format(name)
+
+
+def open_server(account):
+	try:
+		server = account.get_incoming_server(in_receive=True, email_sync_rule="ALL")
+	except Exception as error:
+		raise MailboxUnreachable(_("Could not connect to {0}").format(account.email_id)) from error
+	if not getattr(server, "imap", None):
+		raise MailboxUnreachable(_("Could not connect to {0}").format(account.email_id))
+	return server
 
 
 class ForwardingEmailAccount(EmailAccount):
@@ -54,19 +73,24 @@ class ForwardingEmailAccount(EmailAccount):
 		if not self.reads_folders_by_uid():
 			return super().get_inbound_mails()
 		self.flags.folder_progress = self.flags.folder_progress or {}
+		try:
+			server = open_server(self)
+		except MailboxUnreachable:
+			record_connection(self.name, reachable=False)
+			self.log_error(title=connection_error_title(self.name))
+			return []
+		record_connection(self.name, reachable=True)
+		self.flags.mail_check_started = now_datetime()
 		mails = []
 		try:
-			server = self.get_incoming_server(in_receive=True, email_sync_rule="ALL")
-			self.flags.mail_check_started = now_datetime()
-			try:
-				for folder in self.imap_folder:
-					for mail in self.read_folder(server, folder):
-						mails.append(mail)
-			finally:
-				with suppress(Exception):
-					server.imap.logout()
+			for folder in self.imap_folder:
+				for mail in self.read_folder(server, folder):
+					mails.append(mail)
 		except Exception:
-			self.log_error(title=_("Error while connecting to email account {0}").format(self.name))
+			self.log_error(title=_("Error while reading email account {0}").format(self.name))
+		finally:
+			with suppress(Exception):
+				server.imap.logout()
 		return mails
 
 	def read_folder(self, server, folder) -> Iterator[InboundMail]:
