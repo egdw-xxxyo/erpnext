@@ -6,8 +6,10 @@ from frappe.desk.doctype.notification_log.notification_log import enqueue_create
 from frappe.model.document import Document
 from frappe.permissions import get_user_permissions, setup_custom_perms
 from frappe.share import add_docshare
-from frappe.utils import file_lock, now_datetime
+from frappe.translate import get_user_lang
+from frappe.utils import file_lock, get_datetime, now_datetime
 
+from erpnext.access_control import impersonation_rules
 from erpnext.access_control import permission_rules as rules
 from erpnext.access_control.denial import access_managers, describe, visible_roles
 from erpnext.access_control.permissions_engine import (
@@ -22,6 +24,7 @@ from erpnext.access_control.permissions_engine import (
 	role_delta,
 	roles_delta,
 )
+from erpnext.access_control.scope import user_in_scope
 
 KEY_FIELDS = ("request_type", "reference_doctype", "reference_name", "ptype", "page", "report")
 MAX_CANDIDATES = 15
@@ -49,20 +52,29 @@ class AccessRequest(Document):
 		return [right for right in (self.ptypes or "").split(",") if right] or [self.ptype or "read"]
 
 	def before_insert(self):
+		if self.flags.from_console:
+			return
+		self.source = "Request"
 		self.user = frappe.session.user
 		self.status = "Pending"
+		self.valid_till = None
 
 	def onload(self):
 		self.set_onload(
 			"revocable", self.status == "Approved" and rules.is_revocable(self.resolution, _grant_log(self))
 		)
+		if is_access_manager():
+			self.set_onload("decision_refusal", decision_refusal(self.user))
 
 	def validate(self):
-		self.title = self.make_title()
+		self.title = self.title or self.make_title()
 		if self.status == "Pending":
 			self.ensure_unique()
 
 	def after_insert(self):
+		if self.source == "Console":
+			notify_requester(self)
+			return
 		self.db_set("diagnosis", as_json(diagnose_request(self)), update_modified=False)
 		notify(
 			access_managers(exclude=self.user),
@@ -71,6 +83,8 @@ class AccessRequest(Document):
 		)
 
 	def make_title(self) -> str:
+		if self.source == "Console":
+			return self.console_title()
 		titles = {
 			"Document Type": lambda: " ".join(
 				part
@@ -87,6 +101,17 @@ class AccessRequest(Document):
 			"Report": lambda: _("Report {0}").format(_(self.report)),
 		}
 		return titles.get(self.request_type, lambda: _("Other access"))()
+
+	def console_title(self) -> str:
+		def translated(values: str | None) -> str:
+			return ", ".join(_(value.strip()) for value in (values or "").split(",") if value.strip())
+
+		titles = {
+			"Role": lambda: _("Roles granted: {0}").format(translated(self.granted_roles)),
+			"Role Removal": lambda: _("Roles removed: {0}").format(translated(self.removed_roles)),
+			"Role Profile": lambda: _("Role profiles assigned: {0}").format(self.granted_role_profiles),
+		}
+		return titles.get(self.resolution, lambda: _("Access change"))()
 
 	def ensure_unique(self):
 		if self.request_type == "Other":
@@ -130,23 +155,55 @@ def notify(users: list[str], doc, subject: str):
 
 
 def notify_requester(doc):
+	lang = get_user_lang(doc.user)
 	subjects = {
-		"Approved": _("Access granted: {0}. Reload the page to use it"),
-		"Rejected": _("Access request rejected: {0}"),
-		"Revoked": _("Access revoked: {0}"),
+		"Approved": _("Your access was changed: {0}. Reload the page to use it", lang=lang)
+		if doc.source == "Console"
+		else _("Access granted: {0}. Reload the page to use it", lang=lang),
+		"Rejected": _("Access request rejected: {0}", lang=lang),
+		"Revoked": _("Access revoked: {0}", lang=lang),
+		"Expired": _("Temporary access ended: {0}", lang=lang),
 	}
 	notify([doc.user], doc, subjects[doc.status].format(doc.title))
 	frappe.publish_realtime(
 		"access_request_decided",
-		{"name": doc.name, "status": doc.status, "title": doc.title, "note": doc.decision_note},
+		{
+			"name": doc.name,
+			"status": doc.status,
+			"title": doc.title,
+			"note": doc.decision_note,
+			"source": doc.source,
+		},
 		user=doc.user,
 		after_commit=True,
 	)
 
 
+def decision_messages() -> dict[str, str]:
+	return {
+		"out_of_scope": _("The user is outside the companies or employees you may manage"),
+		"top_role": _(
+			"Only Administrator or a user with both System Manager and Access Manager roles can change the access of users with System Manager role"
+		),
+	}
+
+
+def decision_refusal(user: str) -> str | None:
+	code = impersonation_rules.decide_refusal(
+		frappe.session.user, frappe.get_roles(), frappe.get_roles(user), user_in_scope(user)
+	)
+	return decision_messages().get(code) if code else None
+
+
+def _require_decider(doc):
+	if refusal := decision_refusal(doc.user):
+		frappe.throw(refusal, frappe.PermissionError)
+
+
 def _load_pending(name: str):
 	_require_manager()
 	doc = frappe.get_doc("Access Request", name)
+	_require_decider(doc)
 	if doc.status != "Pending":
 		frappe.throw(_("Request {0} is already {1}").format(name, _(doc.status)))
 	return doc
@@ -484,12 +541,16 @@ def _grant_profile(doc, profiles=None, profile_mode: str | None = None, **_kwarg
 	for profile in profiles:
 		if profile not in offered:
 			frappe.throw(_("Role profile {0} cannot be assigned through this request").format(profile))
-	current = _current_profiles(doc.user)
+	return _assign_profiles(doc.user, profiles, profile_mode)
+
+
+def _assign_profiles(user_name: str, profiles: list[str], profile_mode: str | None) -> dict:
+	current = _current_profiles(user_name)
 	mode = profile_mode if current else "add"
 	if mode not in rules.PROFILE_MODES:
 		frappe.throw(_("Choose what to do with the user's current role profiles"))
-	impact = _profile_delta(doc.user, profiles, mode)
-	user = frappe.get_doc("User", doc.user)
+	impact = _profile_delta(user_name, profiles, mode)
+	user = frappe.get_doc("User", user_name)
 	log = {
 		"profiles": profiles,
 		"mode": mode,
@@ -502,10 +563,12 @@ def _grant_profile(doc, profiles=None, profile_mode: str | None = None, **_kwarg
 	for profile in profiles:
 		user.append("role_profiles", {"role_profile": profile})
 	user.save(ignore_permissions=True)
-	held = set(frappe.get_all("Has Role", filters={"parenttype": "User", "parent": doc.user}, pluck="role"))
+	held = set(frappe.get_all("Has Role", filters={"parenttype": "User", "parent": user_name}, pluck="role"))
 	by_profile = _roles_by_profile()
 	if missing := [profile for profile in profiles if not set(by_profile.get(profile, [])) <= held]:
-		frappe.throw(_("Role profiles {0} were not applied to user {1}").format(", ".join(missing), doc.user))
+		frappe.throw(
+			_("Role profiles {0} were not applied to user {1}").format(", ".join(missing), user_name)
+		)
 	change = [
 		_("Replaced role profiles: {0}").format(", ".join(current))
 		if mode == "replace" and current
@@ -517,6 +580,70 @@ def _grant_profile(doc, profiles=None, profile_mode: str | None = None, **_kwarg
 	return {
 		"granted_role_profiles": ", ".join(profiles),
 		"role_profile_change": "\n".join(line for line in change if line) or None,
+		"impact": as_json(impact),
+		"grant_log": as_json(log),
+	}
+
+
+def _remove_from_profiles(profiles: list[str], roles: list[str]) -> str:
+	removed = set(roles)
+	for profile in profiles:
+		profile_doc = frappe.get_doc("Role Profile", profile)
+		_save_role_profile(profile_doc, [row.role for row in profile_doc.roles if row.role not in removed])
+	holders = frappe.db.count("User Role Profile", {"parenttype": "User", "role_profile": ["in", profiles]})
+	return _("Roles {0} were removed from role profiles {1}, users with these profiles: {2}").format(
+		", ".join(_(role) for role in roles), ", ".join(profiles), holders
+	)
+
+
+def _drop_roles(user, roles: list[str], profile_action: str | None) -> str | None:
+	profiles = [row.role_profile for row in user.role_profiles]
+	user.flags.ignore_permissions = True
+	if not profiles:
+		user.remove_roles(*roles)
+		return None
+	if profile_action not in rules.REMOVAL_ACTIONS:
+		frappe.throw(_("Choose what to do with the user's role profile"))
+	if profile_action == "profiles":
+		change = _remove_from_profiles(rules.profiles_with_roles(_roles_by_profile(), profiles, roles), roles)
+		user.reload()
+		user.save(ignore_permissions=True)
+		return change
+	user.role_profiles = []
+	user.role_profile_name = None
+	user.set("roles", [row for row in user.roles if row.role not in set(roles)])
+	user.save(ignore_permissions=True)
+	return _("Role profiles {0} were unlinked, the user keeps the other roles directly").format(
+		", ".join(profiles)
+	)
+
+
+def _remove_roles(doc, roles=None, profile_action: str | None = None, **_kwargs) -> dict:
+	roles = _chosen(roles)
+	if not roles:
+		frappe.throw(_("Choose at least one role"))
+	held = frappe.get_roles(doc.user)
+	for role in roles:
+		if not rules.is_grantable(role):
+			frappe.throw(_("Role {0} cannot be removed here").format(role))
+		if role not in held:
+			frappe.throw(_("User {0} does not have role {1}").format(doc.user, role))
+	impact = roles_delta(doc.user, rules.roles_after_removal(held, roles))
+	user = frappe.get_doc("User", doc.user)
+	profiles = [row.role_profile for row in user.role_profiles]
+	by_profile = _roles_by_profile()
+	log = rules.role_removal_log(
+		roles,
+		rules.profiles_with_roles(by_profile, profiles, roles) if profile_action == "profiles" else profiles,
+		profile_action if profiles else None,
+	)
+	profile_change = _drop_roles(user, roles, profile_action)
+	saved = set(frappe.get_all("Has Role", filters={"parenttype": "User", "parent": doc.user}, pluck="role"))
+	if kept := [role for role in roles if role in saved]:
+		frappe.throw(_("Roles {0} were not removed from user {1}").format(", ".join(kept), doc.user))
+	return {
+		"removed_roles": ", ".join(roles),
+		"role_profile_change": profile_change,
 		"impact": as_json(impact),
 		"grant_log": as_json(log),
 	}
@@ -605,7 +732,9 @@ def _role_right_plan(doc, role: str | None, rights) -> dict:
 
 def role_right_refusal(refusal: str, role: str) -> str:
 	if refusal == "own_role":
-		return _("You have role {0} yourself, so only a System Manager can change its rights").format(role)
+		return _(
+			"You have role {0} yourself, so only Administrator or a user with both System Manager and Access Manager roles can change its rights"
+		).format(role)
 	return _("Rights of role {0} cannot be changed through an access request").format(role)
 
 
@@ -716,6 +845,20 @@ GRANTS = {
 }
 
 
+def parse_valid_till(value) -> object | None:
+	if not value:
+		return None
+	moment = get_datetime(value)
+	if moment <= now_datetime():
+		frappe.throw(_("Temporary access must end in the future"))
+	return moment
+
+
+def ensure_can_expire(valid_till, resolution: str, log: dict | None):
+	if valid_till and not rules.can_expire(resolution, log):
+		frappe.throw(_("This access cannot be temporary because it cannot be revoked automatically"))
+
+
 def _decide(doc, status: str, note: str | None, changes: dict | None = None):
 	doc.update(
 		{
@@ -743,8 +886,10 @@ def approve(
 	profiles: str | list | None = None,
 	profile_mode: str | None = None,
 	rights: str | list | None = None,
+	valid_till: str | None = None,
 ):
 	doc = _load_pending(name)
+	valid_till = parse_valid_till(valid_till)
 	if doc.user == frappe.session.user:
 		frappe.throw(_("You cannot approve your own access request"), frappe.PermissionError)
 	if not frappe.db.get_value("User", doc.user, "enabled"):
@@ -762,11 +907,19 @@ def approve(
 		user_permissions=user_permissions,
 		rights=rights,
 	)
+	ensure_can_expire(
+		valid_till, resolution, json.loads(changes["grant_log"]) if changes.get("grant_log") else None
+	)
 	_decide(
 		doc,
 		"Approved",
 		note,
-		{"resolution": resolution, "approved_rights": _approved_rights(doc, rights), **changes},
+		{
+			"resolution": resolution,
+			"approved_rights": _approved_rights(doc, rights),
+			"valid_till": valid_till,
+			**changes,
+		},
 	)
 	frappe.clear_cache(user=doc.user)
 	notify_requester(doc)
@@ -870,8 +1023,20 @@ def _revert_user_permission(doc, log: dict):
 			)
 
 
+def _restore_roles(doc, log: dict):
+	user = frappe.get_doc("User", doc.user)
+	user.flags.ignore_permissions = True
+	user.add_roles(*log["roles"])
+	saved = set(frappe.get_all("Has Role", filters={"parenttype": "User", "parent": doc.user}, pluck="role"))
+	if missing := [role for role in log["roles"] if role not in saved]:
+		frappe.throw(
+			_("Roles {0} were not restored: the user has a role profile now").format(", ".join(missing))
+		)
+
+
 REVERTS = {
 	"Role": _revert_role,
+	"Role Removal": _restore_roles,
 	"Role Right": lambda doc, log: _revert_role_rights(log),
 	"Document Share": _revert_share,
 	"User Permission": _revert_user_permission,
@@ -885,6 +1050,7 @@ def _grant_log(doc) -> dict | None:
 def _load_revocable(name: str):
 	_require_manager()
 	doc = frappe.get_doc("Access Request", name)
+	_require_decider(doc)
 	if doc.status != "Approved" or not rules.is_revocable(doc.resolution, _grant_log(doc)):
 		frappe.throw(_("Request {0} has no change that can be revoked").format(name))
 	return doc
@@ -903,23 +1069,42 @@ def get_revoke_preview(name: str) -> dict:
 	}
 
 
-@frappe.whitelist()
-def revoke(name: str, note: str | None = None):
-	doc = _load_revocable(name)
+def _close_grant(doc, status: str, by: str | None, note: str | None):
 	REVERTS[doc.resolution](doc, _grant_log(doc))
-	doc.update(
-		{
-			"status": "Revoked",
-			"revoked_by": frappe.session.user,
-			"revoked_on": now_datetime(),
-			"revoke_note": (note or "").strip() or None,
-		}
-	)
+	doc.update({"status": status, "revoked_by": by, "revoked_on": now_datetime(), "revoke_note": note})
 	doc.flags.ignore_permissions = True
 	doc.save()
 	frappe.clear_cache(user=doc.user)
 	notify_requester(doc)
+
+
+@frappe.whitelist()
+def revoke(name: str, note: str | None = None):
+	doc = _load_revocable(name)
+	_close_grant(doc, "Revoked", frappe.session.user, (note or "").strip() or None)
 	return {"name": doc.name, "status": doc.status}
+
+
+def _expire(name: str):
+	doc = frappe.get_doc("Access Request", name)
+	if doc.status != "Approved" or not rules.can_expire(doc.resolution, _grant_log(doc)):
+		return
+	_close_grant(doc, "Expired", None, _("Temporary access ended", lang=get_user_lang(doc.user)))
+
+
+def expire_access():
+	due = frappe.get_all(
+		"Access Request",
+		filters={"status": "Approved", "valid_till": ["<=", now_datetime()]},
+		pluck="name",
+	)
+	for name in due:
+		try:
+			_expire(name)
+			frappe.db.commit()
+		except Exception:
+			frappe.db.rollback()
+			frappe.log_error(title=_("Temporary access {0} was not ended").format(name))
 
 
 @frappe.whitelist()

@@ -14,7 +14,7 @@ from frappe.permissions import (
 
 from erpnext.access_control import permission_rules as rules
 
-MANAGER_ROLES = ("Access Manager", "System Manager")
+MANAGER_ROLES = ("Access Manager",)
 SHAREABLE_RIGHTS = ("read", "write", "share", "submit", "email", "print")
 
 
@@ -24,7 +24,7 @@ def is_access_manager(user: str | None = None) -> bool:
 
 def _require_manager():
 	if not is_access_manager():
-		frappe.throw(_("Only Access Manager or System Manager can do this"), frappe.PermissionError)
+		frappe.throw(_("Only Access Manager or Administrator can do this"), frappe.PermissionError)
 
 
 def _rights(doctype: str, ptype_map: dict | None = None) -> list[str]:
@@ -564,7 +564,7 @@ def explain_access(
 	manager = is_access_manager()
 	if target != frappe.session.user and not manager:
 		frappe.throw(
-			_("Only Access Manager or System Manager can check access of other users"), frappe.PermissionError
+			_("Only Access Manager or Administrator can check access of other users"), frappe.PermissionError
 		)
 	result = explain(doctype, ptype, name, target, debug=manager)
 	return result if manager else _public_explanation(result)

@@ -41,6 +41,7 @@ web_include_icons = [
 ]
 
 after_request = ["erpnext.access_control.denial.attach_denial_context"]
+before_request = ["erpnext.access_control.impersonation.enforce_view_mode"]
 
 doctype_js = {
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
@@ -688,7 +689,10 @@ doc_events = {
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
-		"validate": "erpnext.setup.doctype.employee.employee.validate_employee_role",
+		"validate": [
+			"erpnext.setup.doctype.employee.employee.validate_employee_role",
+			"erpnext.access_control.role_guard.guard_access_manager_role",
+		],
 		"on_update": "erpnext.portal.utils.set_default_role",
 	},
 	"Communication": {
@@ -955,6 +959,7 @@ scheduler_events = {
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
 			"erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.run_parallel_reposting",
 			"erpnext.crm.chat_archive.reap_expired_restores",
+			"erpnext.access_control.doctype.access_request.access_request.expire_access",
 		],
 		# Hourly but offset by 30 minutes
 		"30 * * * *": [
@@ -1228,6 +1233,7 @@ extend_bootinfo = [
 	"erpnext.startup.boot.bootinfo",
 	"erpnext.startup.instance_env.add_instance_env",
 	"erpnext.crm.whatsapp_access.boot_session",
+	"erpnext.access_control.impersonation.boot_view",
 ]
 
 

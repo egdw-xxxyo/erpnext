@@ -176,6 +176,7 @@ def workflow_options(transitions: Iterable[Mapping], state: str | None, roles: I
 
 
 PRIVILEGED_ROLES = frozenset({"Administrator", "System Manager", "Access Manager"})
+TOP_MANAGER_ROLES = frozenset({"System Manager", "Access Manager"})
 NEVER_GRANTED_ROLES = PRIVILEGED_ROLES | {"All", "Guest", "Desk User"}
 PROFILE_MODES = ("add", "replace")
 
@@ -198,11 +199,16 @@ def role_right_unavailable(is_doctype_request: bool, doctype: str | None, module
 	return None
 
 
+def is_top_manager(roles: Iterable[str]) -> bool:
+	held = frozenset(roles)
+	return "Administrator" in held or TOP_MANAGER_ROLES <= held
+
+
 def role_right_refusal(role: str | None, approver_roles: Iterable[str]) -> str | None:
 	held = frozenset(approver_roles)
 	if not is_grantable(role):
 		return "never_granted"
-	if role in held and "System Manager" not in held:
+	if role in held and not is_top_manager(held):
 		return "own_role"
 	return None
 
@@ -230,20 +236,54 @@ def role_grant_log(roles: Sequence[str], profiles: Sequence[str], profile_action
 	}
 
 
-REVOCABLE = ("Role", "Role Right", "Document Share", "User Permission")
+REVOCABLE = ("Role", "Role Right", "Document Share", "User Permission", "Role Removal")
 
 
 def is_revocable(resolution: str | None, log: Mapping | None) -> bool:
 	if not log or resolution not in REVOCABLE:
 		return False
+	if resolution == "Role Removal":
+		return not log.get("profiles")
 	return not (resolution == "Role" and log.get("profile"))
 
 
+def can_expire(resolution: str | None, log: Mapping | None) -> bool:
+	return resolution != "Role Removal" and is_revocable(resolution, log)
+
+
 def roles_after_revoke(resolution: str, log: Mapping, current: Iterable[str]) -> list[str] | None:
+	current = list(current)
+	if resolution == "Role Removal":
+		return [*current, *(role for role in log["roles"] if role not in current)]
 	if resolution != "Role":
 		return None
 	revoked = set(log["roles"])
 	return [role for role in current if role not in revoked]
+
+
+REMOVAL_ACTIONS = ("unlink", "profiles")
+
+
+def role_removal_log(roles: Sequence[str], profiles: Sequence[str], profile_action: str | None) -> dict:
+	return {
+		"roles": list(roles),
+		"profiles": list(profiles) if profile_action == "profiles" else [],
+		"unlinked": list(profiles) if profiles and profile_action == "unlink" else [],
+	}
+
+
+def profiles_with_roles(by_profile: Mapping[str, Iterable[str]], profiles: Iterable[str], roles) -> list[str]:
+	wanted = set(roles)
+	return [profile for profile in profiles if wanted & set(by_profile.get(profile, ()))]
+
+
+def roles_after_removal(current: Iterable[str], roles: Iterable[str]) -> list[str]:
+	removed = set(roles)
+	return [role for role in current if role not in removed]
+
+
+def ungrantable_gains(gained_roles: Iterable[str]) -> list[str]:
+	return [role for role in gained_roles if not is_grantable(role)]
 
 
 def same_rows(left: Iterable[Mapping], right: Iterable[Mapping]) -> bool:
@@ -389,3 +429,15 @@ def merge_granting(maps: Iterable[Mapping[str, str]]) -> dict[str, str]:
 	maps = list(maps)
 	roles = dict.fromkeys(role for granting in maps for role in granting)
 	return {role: ALL if any(granting.get(role) == ALL for granting in maps) else OWNER for role in roles}
+
+
+def changes_role(before: Iterable[str], after: Iterable[str], role: str) -> bool:
+	return role in set(before) ^ set(after)
+
+
+def role_sources(by_profile: Mapping[str, Iterable[str]], profiles: Iterable[str]) -> dict[str, list[str]]:
+	chosen = list(profiles)
+	return {
+		role: [profile for profile in chosen if role in by_profile.get(profile, ())]
+		for role in sorted({role for profile in chosen for role in by_profile.get(profile, ())})
+	}
