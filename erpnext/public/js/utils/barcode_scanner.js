@@ -517,7 +517,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	is_duplicate_serial_no(row, serial_no) {
-		const is_duplicate = row[this.serial_no_field]?.includes(serial_no);
+		const is_duplicate = this.is_serial_no_in_document(serial_no);
 
 		if (is_duplicate) {
 			this.show_alert(__("Serial No {0} is already added", [serial_no]), "orange");
@@ -648,5 +648,15 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 	show_alert(msg, indicator, duration = 3) {
 		frappe.show_alert({ message: msg, indicator: indicator }, duration);
+	}
+
+	is_serial_no_in_document(serial_no) {
+		if (!serial_no) return false;
+		return (this.frm.doc[this.items_table_name] || []).some((d) =>
+			(d[this.serial_no_field] || "")
+				.split("\n")
+				.map((s) => s.trim())
+				.includes(serial_no)
+		);
 	}
 };

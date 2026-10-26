@@ -16465,3 +16465,6 @@ Exception Type,Тип винятку
 Sample Message,Приклад повідомлення
 Occurrences,Кількість випадків
 Helpful,Корисне
+Row {0}: serial numbers entered more than once: {1},"Рядок {0}: серійні номери введено більше одного разу: {1}"
+Serial No {0} is in rows {1},"Серійний номер {0} є в рядках {1}"
+Duplicate serial numbers,Дублікати серійних номерів

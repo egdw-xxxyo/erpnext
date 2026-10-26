@@ -545,6 +545,16 @@ doc_events = {
 	): {
 		"validate": "erpnext.stock.responsible_employee.validate_responsible_employee",
 	},
+	# a serial number is one unit: a scanned box listed twice is refused on save
+	(
+		"Stock Entry",
+		"Purchase Receipt",
+		"Purchase Invoice",
+		"Delivery Note",
+		"Sales Invoice",
+	): {
+		"validate": "erpnext.stock.serial_duplicate_guard.validate_unique_serials",
+	},
 	# a serial number is one unit, so its holder belongs on the Serial No itself
 	"Stock Ledger Entry": {
 		"on_submit": "erpnext.stock.responsible_employee.set_serial_no_responsible",
