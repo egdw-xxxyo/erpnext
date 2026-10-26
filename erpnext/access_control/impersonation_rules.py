@@ -36,18 +36,26 @@ def view_refusal(
 	return next((code for code, failed in checks if failed), None)
 
 
+def decide_refusal(manager: str, manager_roles, target_roles, in_scope: bool = True) -> str | None:
+	checks = (
+		("out_of_scope", not in_scope),
+		("top_role", bool(set(target_roles) & TOP_ROLES) and not is_top_viewer(manager, manager_roles)),
+	)
+	return next((code for code, failed in checks if failed), None)
+
+
 def manage_refusal(
 	manager: str, manager_roles, target: str, target_roles, target_enabled: bool, in_scope: bool = True
 ) -> str | None:
 	checks = (
 		("not_manager", manager != "Administrator" and not set(manager_roles) & MANAGER_ROLES),
 		("self", manager == target),
-		("out_of_scope", not in_scope),
 		("service_user", target in SERVICE_USERS),
 		("disabled", not target_enabled),
-		("top_role", bool(set(target_roles) & TOP_ROLES) and not is_top_viewer(manager, manager_roles)),
 	)
-	return next((code for code, failed in checks if failed), None)
+	return next((code for code, failed in checks if failed), None) or decide_refusal(
+		manager, manager_roles, target_roles, in_scope
+	)
 
 
 def manager_scope(is_top: bool, allowed: Mapping[str, Iterable[str]]) -> dict[str, frozenset] | None:

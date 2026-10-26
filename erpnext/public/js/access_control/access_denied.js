@@ -151,7 +151,7 @@ erpnext.access_control.denial_html = (info, message) => {
 	const no_managers =
 		!info.has_managers && !info.pending && !info.allowed
 			? `<div class="alert alert-warning">${__(
-					"No Access Manager is assigned yet. Your request will be seen by a System Manager"
+					"No Access Manager is assigned yet. Your request will be seen by the Administrator"
 			  )}</div>`
 			: "";
 	return `<div class="ac-denial">

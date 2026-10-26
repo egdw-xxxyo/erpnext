@@ -14,6 +14,7 @@ from erpnext.access_control.doctype.access_request.access_request import (
 	_remove_roles,
 	_roles_after_profile,
 	_roles_by_profile,
+	decision_messages,
 	ensure_can_expire,
 	parse_valid_till,
 )
@@ -32,12 +33,9 @@ def refusal_messages() -> dict[str, str]:
 	return {
 		"not_manager": _("Only Access Manager or Administrator can do this"),
 		"self": _("You cannot change your own access"),
-		"out_of_scope": _("The user is outside the companies or employees you may manage"),
 		"service_user": _("The access of this account cannot be changed"),
 		"disabled": _("The user is disabled"),
-		"top_role": _(
-			"Only Administrator or a user with both System Manager and Access Manager roles can change the access of users with System Manager role"
-		),
+		**decision_messages(),
 	}
 
 

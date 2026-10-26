@@ -15902,7 +15902,7 @@ Partially attached,Частково
 "No role gives this access","Жодна роль не дає цього доступу"
 "Your request {0} is waiting for a decision since {1}","Ваш запит {0} очікує рішення з {1}"
 "You have this access now. Reload the page to continue","Тепер у вас є цей доступ. Оновіть сторінку, щоб продовжити"
-"No Access Manager is assigned yet. Your request will be seen by a System Manager","Менеджера доступів ще не призначено. Ваш запит побачить системний менеджер"
+"No Access Manager is assigned yet. Your request will be seen by the Administrator","Менеджера доступів ще не призначено. Ваш запит побачить адміністратор"
 "Your roles","Ваші ролі"
 "Why do you need this access?","Навіщо вам цей доступ?"
 "Request access","Запросити доступ"

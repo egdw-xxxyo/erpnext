@@ -10,7 +10,7 @@ from erpnext.access_control.console import (
 	preview_change,
 	who_can,
 )
-from erpnext.access_control.doctype.access_request.access_request import _expire, revoke
+from erpnext.access_control.doctype.access_request.access_request import _expire, approve, reject, revoke
 from erpnext.access_control.impersonation import get_users
 
 USER = "access-console-test@example.com"
@@ -184,6 +184,23 @@ class TestManagerScope(unittest.TestCase):
 		names = [user["user"] for user in get_users()]
 		self.assertIn(COLLEAGUE, names)
 		self.assertNotIn(USER, names)
+
+	def test_restricted_manager_decides_only_requests_within_the_scope(self):
+		frappe.set_user(USER)
+		outside = frappe.get_doc({"doctype": "Access Request", "request_type": "Other"}).insert(
+			ignore_permissions=True
+		)
+		frappe.set_user(COLLEAGUE)
+		inside = frappe.get_doc({"doctype": "Access Request", "request_type": "Other"}).insert(
+			ignore_permissions=True
+		)
+		frappe.set_user(MANAGER)
+		with self.assertRaises(frappe.PermissionError):
+			reject(outside.name)
+		with self.assertRaises(frappe.PermissionError):
+			approve(outside.name, "Role", roles=["Sales User"])
+		reject(inside.name)
+		self.assertEqual(frappe.db.get_value("Access Request", inside.name, "status"), "Rejected")
 
 	def test_restricted_manager_cannot_change_users_outside_the_scope(self):
 		with self.assertRaises(frappe.PermissionError):

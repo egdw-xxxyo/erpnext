@@ -9,6 +9,7 @@ from frappe.share import add_docshare
 from frappe.translate import get_user_lang
 from frappe.utils import file_lock, get_datetime, now_datetime
 
+from erpnext.access_control import impersonation_rules
 from erpnext.access_control import permission_rules as rules
 from erpnext.access_control.denial import access_managers, describe, visible_roles
 from erpnext.access_control.permissions_engine import (
@@ -23,6 +24,7 @@ from erpnext.access_control.permissions_engine import (
 	role_delta,
 	roles_delta,
 )
+from erpnext.access_control.scope import user_in_scope
 
 KEY_FIELDS = ("request_type", "reference_doctype", "reference_name", "ptype", "page", "report")
 MAX_CANDIDATES = 15
@@ -61,6 +63,8 @@ class AccessRequest(Document):
 		self.set_onload(
 			"revocable", self.status == "Approved" and rules.is_revocable(self.resolution, _grant_log(self))
 		)
+		if is_access_manager():
+			self.set_onload("decision_refusal", decision_refusal(self.user))
 
 	def validate(self):
 		self.title = self.title or self.make_title()
@@ -175,9 +179,31 @@ def notify_requester(doc):
 	)
 
 
+def decision_messages() -> dict[str, str]:
+	return {
+		"out_of_scope": _("The user is outside the companies or employees you may manage"),
+		"top_role": _(
+			"Only Administrator or a user with both System Manager and Access Manager roles can change the access of users with System Manager role"
+		),
+	}
+
+
+def decision_refusal(user: str) -> str | None:
+	code = impersonation_rules.decide_refusal(
+		frappe.session.user, frappe.get_roles(), frappe.get_roles(user), user_in_scope(user)
+	)
+	return decision_messages().get(code) if code else None
+
+
+def _require_decider(doc):
+	if refusal := decision_refusal(doc.user):
+		frappe.throw(refusal, frappe.PermissionError)
+
+
 def _load_pending(name: str):
 	_require_manager()
 	doc = frappe.get_doc("Access Request", name)
+	_require_decider(doc)
 	if doc.status != "Pending":
 		frappe.throw(_("Request {0} is already {1}").format(name, _(doc.status)))
 	return doc
@@ -1024,6 +1050,7 @@ def _grant_log(doc) -> dict | None:
 def _load_revocable(name: str):
 	_require_manager()
 	doc = frappe.get_doc("Access Request", name)
+	_require_decider(doc)
 	if doc.status != "Approved" or not rules.is_revocable(doc.resolution, _grant_log(doc)):
 		frappe.throw(_("Request {0} has no change that can be revoked").format(name))
 	return doc

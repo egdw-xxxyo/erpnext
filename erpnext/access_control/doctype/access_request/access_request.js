@@ -2,7 +2,11 @@ const AR_METHOD = "erpnext.access_control.doctype.access_request.access_request"
 
 frappe.ui.form.on("Access Request", {
 	refresh(frm) {
-		if (frm.doc.__onload?.revocable && erpnext.access_control.can_manage()) {
+		if (
+			frm.doc.__onload?.revocable &&
+			erpnext.access_control.can_manage() &&
+			!frm.doc.__onload?.decision_refusal
+		) {
 			frm.add_custom_button(__("Revoke"), () => erpnext.access_control.revoke_dialog(frm));
 		}
 		if (frm.doc.status === "Approved" && frm.doc.valid_till) {
@@ -22,13 +26,14 @@ frappe.ui.form.on("Access Request", {
 		if (frm.doc.status !== "Pending") return;
 		const own = frm.doc.user === frappe.session.user;
 		const manager = erpnext.access_control.can_manage();
+		const refusal = frm.doc.__onload?.decision_refusal;
 		frm.set_intro(
 			own
 				? __("Your request is waiting for a decision of the Access Manager")
-				: __("Check what the user will get before approving"),
-			"blue"
+				: refusal || __("Check what the user will get before approving"),
+			refusal ? "orange" : "blue"
 		);
-		if (manager && !own) {
+		if (manager && !own && !refusal) {
 			frm.add_custom_button(__("Approve"), () => erpnext.access_control.approve_dialog(frm)).addClass(
 				"btn-primary"
 			);

@@ -2,6 +2,7 @@ import unittest
 
 from erpnext.access_control.impersonation_rules import (
 	allowed_while_viewing,
+	decide_refusal,
 	in_scope,
 	manage_refusal,
 	manager_scope,
@@ -110,6 +111,21 @@ class TestManageRefusal(unittest.TestCase):
 	def test_users_outside_the_scope_are_refused(self):
 		self.assertEqual(manage(in_scope=False), "out_of_scope")
 		self.assertEqual(refusal(in_scope=False), "out_of_scope")
+
+
+class TestDecideRefusal(unittest.TestCase):
+	def test_ordinary_requests_are_decided_by_any_manager(self):
+		self.assertIsNone(decide_refusal("am@example.com", MANAGER, ("Sales User",)))
+
+	def test_system_manager_requests_need_a_top_manager(self):
+		self.assertEqual(decide_refusal("am@example.com", MANAGER, SYSTEM), "top_role")
+		self.assertIsNone(decide_refusal("am@example.com", MANAGER + SYSTEM, SYSTEM))
+		self.assertIsNone(decide_refusal("Administrator", (), SYSTEM))
+
+	def test_requests_outside_the_scope_are_refused(self):
+		self.assertEqual(
+			decide_refusal("am@example.com", MANAGER, ("Sales User",), in_scope=False), "out_of_scope"
+		)
 
 
 class TestManagerScope(unittest.TestCase):

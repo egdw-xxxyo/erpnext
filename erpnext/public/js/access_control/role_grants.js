@@ -267,4 +267,4 @@ erpnext.access_control.show_role_grants = (role, on_filter) =>
 		dialog.show();
 	});
 
-erpnext.access_control.can_manage = () => frappe.user.has_role(["Access Manager", "System Manager"]);
+erpnext.access_control.can_manage = () => frappe.user.has_role("Access Manager");
