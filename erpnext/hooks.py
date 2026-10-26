@@ -72,13 +72,18 @@ doctype_js = {
 	# сканер серійних / партійних номерів на самому комплекті
 	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
-	"Stock Entry": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Purchase Receipt": "public/js/responsible_employee.js",
+	"Stock Entry": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Purchase Receipt": ["public/js/responsible_employee.js", "public/js/custom/serial_duplicates.js"],
 	"Purchase Invoice": [
 		"public/js/custom/supplier_vat_display.js",
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
+		"public/js/custom/serial_duplicates.js",
 	],
 	"Payment Request": [
 		"public/js/custom/supplier_vat_display.js",
@@ -89,8 +94,16 @@ doctype_js = {
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/custom/supplier_vat_display.js",
 	],
-	"Delivery Note": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Sales Invoice": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
+	"Delivery Note": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Sales Invoice": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
