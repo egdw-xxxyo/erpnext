@@ -296,6 +296,24 @@ def setup_todo_deadline():
 				"allow_in_quick_entry": 1,
 				"in_list_view": 1,
 			},
+			{
+				"dt": "ToDo",
+				"fieldname": "remind_at",
+				"fieldtype": "Datetime",
+				"label": "Remind At",
+				"insert_after": "deadline",
+				"allow_in_quick_entry": 1,
+			},
+			{
+				"dt": "ToDo",
+				"fieldname": "reminder_sent",
+				"fieldtype": "Check",
+				"label": "Reminder Sent",
+				"insert_after": "remind_at",
+				"hidden": 1,
+				"read_only": 1,
+				"no_copy": 1,
+			},
 		]
 	)
 	if frappe.get_meta("ToDo").get_field("date").label != "Assignment Date":

@@ -1,0 +1,134 @@
+.my-tasks {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: var(--padding-md) 0;
+}
+
+.my-tasks .mt-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--margin-xs);
+	margin-bottom: var(--margin-md);
+}
+
+.my-tasks .mt-tab {
+	border: 1px solid var(--border-color);
+	background: var(--fg-color);
+	color: var(--text-color);
+	border-radius: var(--border-radius-md);
+	padding: 6px 12px;
+	font-size: var(--text-sm);
+}
+
+.my-tasks .mt-tab.active {
+	background: var(--btn-primary);
+	border-color: var(--btn-primary);
+	color: var(--neutral);
+}
+
+.my-tasks .mt-count {
+	display: inline-block;
+	min-width: 20px;
+	margin-left: 4px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--control-bg);
+	color: var(--text-muted);
+	font-size: var(--text-xs);
+	text-align: center;
+}
+
+.my-tasks .mt-count-alert {
+	background: var(--red-100);
+	color: var(--red-600);
+}
+
+.my-tasks .mt-add {
+	display: flex;
+	gap: var(--margin-xs);
+	margin-bottom: var(--margin-sm);
+}
+
+.my-tasks .mt-add-text {
+	flex: 1;
+}
+
+.my-tasks .mt-add-deadline {
+	width: 220px;
+}
+
+.my-tasks .mt-closed {
+	font-size: var(--text-sm);
+	color: var(--text-muted);
+	margin-bottom: var(--margin-sm);
+}
+
+.my-tasks .mt-row {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--margin-sm);
+	padding: 10px 12px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--fg-color);
+	margin-bottom: var(--margin-xs);
+	cursor: pointer;
+}
+
+.my-tasks .mt-row:hover {
+	background: var(--fg-hover-color);
+}
+
+.my-tasks .mt-check {
+	margin-top: 3px;
+}
+
+.my-tasks .mt-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.my-tasks .mt-title {
+	color: var(--text-color);
+	overflow-wrap: anywhere;
+}
+
+.my-tasks .mt-done .mt-title {
+	text-decoration: line-through;
+	color: var(--text-muted);
+}
+
+.my-tasks .mt-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--margin-sm);
+	margin-top: 2px;
+	font-size: var(--text-xs);
+	color: var(--text-muted);
+}
+
+.my-tasks .mt-overdue {
+	color: var(--red-600);
+	font-weight: 600;
+}
+
+.my-tasks .mt-empty {
+	padding: var(--padding-xl);
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.my-tasks .mt-load-more {
+	display: block;
+	margin: var(--margin-sm) auto 0;
+}
+
+@media (max-width: 600px) {
+	.my-tasks .mt-add {
+		flex-wrap: wrap;
+	}
+
+	.my-tasks .mt-add-deadline {
+		width: 100%;
+	}
+}

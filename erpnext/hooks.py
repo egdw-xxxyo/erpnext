@@ -804,6 +804,7 @@ doc_events = {
 		"on_cancel": "erpnext.buying.procurement_final_approval.close_final_approval_assignments",
 	},
 	"ToDo": {
+		"validate": "erpnext.utilities.todo_reminder.reset_reminder",
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
 		"on_update": [
 			"erpnext.buying.procurement_automation.sync_current_assignees",
@@ -948,6 +949,7 @@ scheduler_events = {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
 			"erpnext.correspondence.mail_forward.sync_delivery_status",
+			"erpnext.utilities.todo_reminder.send_due_reminders",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
