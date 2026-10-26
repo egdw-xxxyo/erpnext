@@ -16465,6 +16465,26 @@ Exception Type,Тип винятку
 Sample Message,Приклад повідомлення
 Occurrences,Кількість випадків
 Helpful,Корисне
+Row {0}: serial numbers entered more than once: {1},"Рядок {0}: серійні номери введено більше одного разу: {1}"
+Serial No {0} is in rows {1},"Серійний номер {0} є в рядках {1}"
+Duplicate serial numbers,Дублікати серійних номерів
+My Tasks,Мої справи
+Upcoming,Майбутні
+All Mine,Усі мої
+New Reminder,Нове нагадування
+Add a task and press Enter,Додайте справу й натисніть Enter
+Show completed,Показати виконані
+Nothing here,Тут порожньо
+Mark as done,Позначити виконаною
+Task added,Справу додано
+Link to Document,Привʼязати до документа
+Remind At,Нагадати о
+Reminder Sent,Нагадування надіслано
+Unknown view: {0},Невідоме подання: {0}
+Describe the task,Опишіть справу
+Select both the document type and the document,"Виберіть і тип документа, і документ"
+Unknown status: {0},Невідомий статус: {0}
+This task is not yours,Це не ваша справа
 Finish the current view session first,Спершу завершіть поточну сесію перегляду
 You cannot view as yourself,Не можна переглядати від власного імені
 This account cannot be viewed as,Від імені цього облікового запису переглядати не можна

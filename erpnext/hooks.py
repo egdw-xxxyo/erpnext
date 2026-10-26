@@ -73,13 +73,18 @@ doctype_js = {
 	# сканер серійних / партійних номерів на самому комплекті
 	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
-	"Stock Entry": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Purchase Receipt": "public/js/responsible_employee.js",
+	"Stock Entry": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Purchase Receipt": ["public/js/responsible_employee.js", "public/js/custom/serial_duplicates.js"],
 	"Purchase Invoice": [
 		"public/js/custom/supplier_vat_display.js",
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
+		"public/js/custom/serial_duplicates.js",
 	],
 	"Payment Request": [
 		"public/js/custom/supplier_vat_display.js",
@@ -90,8 +95,16 @@ doctype_js = {
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/custom/supplier_vat_display.js",
 	],
-	"Delivery Note": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Sales Invoice": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
+	"Delivery Note": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Sales Invoice": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
@@ -546,6 +559,16 @@ doc_events = {
 	): {
 		"validate": "erpnext.stock.responsible_employee.validate_responsible_employee",
 	},
+	# a serial number is one unit: a scanned box listed twice is refused on save
+	(
+		"Stock Entry",
+		"Purchase Receipt",
+		"Purchase Invoice",
+		"Delivery Note",
+		"Sales Invoice",
+	): {
+		"validate": "erpnext.stock.serial_duplicate_guard.validate_unique_serials",
+	},
 	# a serial number is one unit, so its holder belongs on the Serial No itself
 	"Stock Ledger Entry": {
 		"on_submit": "erpnext.stock.responsible_employee.set_serial_no_responsible",
@@ -785,6 +808,7 @@ doc_events = {
 		"on_cancel": "erpnext.buying.procurement_final_approval.close_final_approval_assignments",
 	},
 	"ToDo": {
+		"validate": "erpnext.utilities.todo_reminder.reset_reminder",
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
 		"on_update": [
 			"erpnext.buying.procurement_automation.sync_current_assignees",
@@ -929,6 +953,7 @@ scheduler_events = {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
 			"erpnext.correspondence.mail_forward.sync_delivery_status",
+			"erpnext.utilities.todo_reminder.send_due_reminders",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
