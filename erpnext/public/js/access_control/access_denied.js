@@ -291,28 +291,31 @@ erpnext.access_control.install_denial_handlers = () => {
 	};
 };
 
+erpnext.access_control.DECISION_ALERTS = {
+	Revoked: (title) => __("Access from your request {0} was revoked", [title]),
+	Expired: (title) => __("Temporary access ended: {0}", [title]),
+	Rejected: (title) => __("Your access request {0} was rejected", [title]),
+};
+
 erpnext.access_control.listen_decisions = () =>
 	frappe.realtime.on("access_request_decided", (data) => {
+		const title = frappe.utils.escape_html(data.title);
+		const console_change = data.source === "Console";
 		if (data.status === "Approved") {
 			frappe.msgprint({
-				title: __("Access granted"),
+				title: console_change ? __("Your access was changed") : __("Access granted"),
 				indicator: "green",
-				message: __("Your request {0} was approved. Reload the page to use the new access", [
-					frappe.utils.escape_html(data.title),
-				]),
+				message: console_change
+					? __("{0}. Reload the page to use the new access", [title])
+					: __("Your request {0} was approved. Reload the page to use the new access", [title]),
 				primary_action: { label: __("Reload"), action: () => window.location.reload() },
 			});
 			return;
 		}
-		const title = frappe.utils.escape_html(data.title);
+		const alert = erpnext.access_control.DECISION_ALERTS[data.status];
+		if (!alert) return;
 		frappe.show_alert(
-			{
-				message:
-					data.status === "Revoked"
-						? __("Access from your request {0} was revoked", [title])
-						: __("Your access request {0} was rejected", [title]),
-				indicator: data.status === "Revoked" ? "orange" : "red",
-			},
+			{ message: alert(title), indicator: data.status === "Rejected" ? "red" : "orange" },
 			10
 		);
 	});

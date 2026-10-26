@@ -15832,11 +15832,11 @@ Partially attached,Частково
 "Pages","Сторінки"
 "What role {0} grants","Що дає роль {0}"
 "What this role grants","Що дає ця роль"
-"Only Access Manager or System Manager can do this","Це може зробити лише Менеджер доступів або Системний менеджер"
+"Only Access Manager or Administrator can do this","Це може зробити лише Менеджер доступів або Адміністратор"
 "Check access on the parent document instead of the child table {0}","Перевіряйте доступ на батьківському документі, а не на дочірній таблиці {0}"
 "Role {0} not found","Роль {0} не знайдено"
 "User {0} not found","Користувача {0} не знайдено"
-"Only Access Manager or System Manager can check access of other users","Перевіряти доступ інших користувачів може лише Менеджер доступів або Системний менеджер"
+"Only Access Manager or Administrator can check access of other users","Перевіряти доступ інших користувачів може лише Менеджер доступів або Адміністратор"
 "Access Manager","Менеджер доступів"
 "Invalid access context","Невірний контекст доступу"
 "{0} requests access: {1}","{0} просить доступ: {1}"
@@ -15987,14 +15987,14 @@ Revoke request {0},Відкликати запит {0}
 Role {0} loses on {1}: {2}. Every user with this role loses them too. The role itself stays with the user,Роль {0} втратить на {1}: {2}. Це втратять усі користувачі з цією роллю. Сама роль у користувача залишиться
 "Rights of role {0} change for every user with it, users: {1}","Права ролі {0} зміняться для всіх, хто її має, їх: {1}"
 Role to give the rights to,"Роль, якій додати права"
-The user's roles. Your own roles are not listed unless you are a System Manager,"Ролі користувача. Ваших власних ролей тут немає, якщо ви не System Manager"
+"The user's roles. Your own roles are not listed unless you are Administrator or have both System Manager and Access Manager roles","Ролі користувача. Ваших власних ролей тут немає, якщо ви не Адміністратор і не маєте обох ролей: Системний менеджер і Менеджер доступів"
 Access revoked: {0},Доступ відкликано: {0}
 Rights of this document type cannot be changed through an access request,Права цього типу документа не можна змінити через запит на доступ
 Rights of role {0} cannot be changed through an access request,Права ролі {0} не можна змінити через запит на доступ
-"You have role {0} yourself, so only a System Manager can change its rights","Ви самі маєте роль {0}, тому змінити її права може лише System Manager"
+"You have role {0} yourself, so only Administrator or a user with both System Manager and Access Manager roles can change its rights","Ви самі маєте роль {0}, тому змінити її права може лише Адміністратор або користувач, який має обидві ролі: Системний менеджер і Менеджер доступів"
 Role {0} already gives these rights on {1},Роль {0} вже дає ці права на {1}
 "User {0} does not have role {1}","Користувач {0} не має ролі {1}"
-"The user has no role whose rights you may change (your own roles need a System Manager)","У користувача немає ролі, права якої ви можете змінити (для ваших власних ролей потрібен System Manager)"
+"The user has no role whose rights you may change (your own roles need Administrator or both System Manager and Access Manager roles)","У користувача немає ролі, права якої ви можете змінити (для ваших власних ролей потрібен Адміністратор або обидві ролі: Системний менеджер і Менеджер доступів)"
 "Access from your request {0} was revoked","Доступ за вашим запитом {0} відкликано"
 Grant Log,Журнал надання
 Grant Method,Спосіб надання
@@ -16465,3 +16465,113 @@ Exception Type,Тип винятку
 Sample Message,Приклад повідомлення
 Occurrences,Кількість випадків
 Helpful,Корисне
+Finish the current view session first,Спершу завершіть поточну сесію перегляду
+You cannot view as yourself,Не можна переглядати від власного імені
+This account cannot be viewed as,Від імені цього облікового запису переглядати не можна
+Only desk users can be viewed as,Переглядати можна лише від імені системних користувачів
+"Only Administrator or a user with both System Manager and Access Manager roles can view as users with System Manager role","Від імені користувачів з роллю Системний менеджер може переглядати лише Адміністратор або користувач, який має обидві ролі: Системний менеджер і Менеджер доступів"
+{0} viewed the system on your behalf (view only). Reason: {1},{0}: перегляд системи від вашого імені (лише перегляд). Причина: {1}
+Enter the reason,Вкажіть причину
+{0} started viewing as {1}. Reason: {2},Перегляд від імені {1} розпочато користувачем {0}. Причина: {2}
+{0} finished viewing as {1},Перегляд від імені {1} завершено користувачем {0}
+This is not a view session,Це не сесія перегляду
+View session finished,Сесію перегляду завершено
+View as {0},Перегляд від імені {0}
+View only: nothing you do is saved. The user gets a notification with your reason.,Лише перегляд: нічого з ваших дій не зберігається. Користувач отримає сповіщення з вашою причиною.
+Start viewing,Почати перегляд
+Viewing as {0},Перегляд від імені {0}
+"view only, nothing is saved","лише перегляд, нічого не зберігається"
+Started by {0},Ініціатор: {0}
+Finish session,Завершити сесію
+View only,Лише перегляд
+You are viewing the system as another user. Changes are not saved. Finish the session to return to your account.,"Ви переглядаєте систему від імені іншого користувача. Зміни не зберігаються. Завершіть сесію, щоб повернутися до свого облікового запису."
+Access Management,Керування доступом
+"Name, email or role","Ім'я, email або роль"
+{0} users,Користувачів: {0}
+No users found,Користувачів не знайдено
+Never logged in,Входів не було
+{0} roles,Ролей: {0}
+View as...,Увійти як…
+No roles,Ролей немає
+"Simulated steps: {0}, nothing saved","Змодельовано кроків: {0}, нічого не збережено"
+"Simulation reset, data is shown as saved","Симуляцію скинуто, дані показано як збережені"
+"Simulated, nothing was saved","Змодельовано, нічого не збережено"
+This action changes the database schema and cannot be simulated,"Ця дія змінює структуру бази даних, її не можна змоделювати"
+Network access is blocked during a simulation: {0},Під час симуляції доступ до мережі заблоковано: {0}
+Invalid simulation steps,Некоректні кроки симуляції
+This action cannot be simulated,Цю дію не можна змоделювати
+The simulation took too long and was stopped,Симуляція тривала надто довго й була зупинена
+Earlier simulated steps no longer apply. Reset the simulation and start again,Попередні змодельовані кроки більше не відтворюються. Скиньте симуляцію й почніть знову
+Simulation,Симуляція
+Simulation is available only in a view session,Симуляція доступна лише в сесії перегляду
+Simulation is not supported by the installed framework version,Встановлена версія фреймворку не підтримує симуляцію
+Roles granted: {0},Видано ролі: {0}
+Roles removed: {0},Знято ролі: {0}
+Role profiles assigned: {0},Призначено профілі ролей: {0}
+Access change,Зміна доступу
+Your access was changed: {0}. Reload the page to use it,"Ваш доступ змінено: {0}. Перезавантажте сторінку, щоб скористатися ним"
+Temporary access ended: {0},Тимчасовий доступ завершився: {0}
+"Roles {0} were removed from role profiles {1}, users with these profiles: {2}","Ролі {0} прибрано з профілів ролей {1}, користувачів із цими профілями: {2}"
+"Role profiles {0} were unlinked, the user keeps the other roles directly","Профілі ролей {0} відв'язано, решта ролей залишилася в користувача напряму"
+Role {0} cannot be removed here,Роль {0} не можна зняти тут
+Roles {0} were not removed from user {1},Ролі {0} не вдалося зняти з користувача {1}
+Temporary access must end in the future,Тимчасовий доступ має завершуватися в майбутньому
+This access cannot be temporary because it cannot be revoked automatically,"Цей доступ не може бути тимчасовим, бо його не можна відкликати автоматично"
+Roles {0} were not restored: the user has a role profile now,Ролі {0} не відновлено: тепер у користувача є профіль ролей
+Temporary access ended,Тимчасовий доступ завершився
+Temporary access {0} was not ended,Тимчасовий доступ {0} не вдалося завершити
+You cannot change your own access,Не можна змінювати власний доступ
+The access of this account cannot be changed,Доступ цього облікового запису змінювати не можна
+"Only Administrator or a user with both System Manager and Access Manager roles can change the access of users with System Manager role","Змінювати доступ користувачів з роллю Системний менеджер може лише Адміністратор або користувач, який має обидві ролі: Системний менеджер і Менеджер доступів"
+Choose what to change,"Оберіть, що змінити"
+These role profiles give roles that cannot be granted here: {0},"Ці профілі дають ролі, які тут видавати не можна: {0}"
+The user already has these role profiles,У користувача вже є ці профілі ролей
+Console,Консоль
+Removed Roles,Зняті ролі
+The access is revoked automatically at this time,У цей час доступ буде відкликано автоматично
+Role Removal,Зняття ролі
+"Unlink role profiles, keep the other roles directly","Відв'язати профілі ролей, решту ролей залишити напряму"
+Remove the role from role profiles {0} (users: {1}),Прибрати роль із профілів ролей {0} (користувачів: {1})
+"The role is removed from the role profiles, so every user with these profiles loses it too","Роль прибирається з профілів ролей, тож її втратять усі користувачі з цими профілями"
+Leave empty for permanent access. Temporary access is revoked automatically,Залиште порожнім для постійного доступу. Тимчасовий доступ відкликається автоматично
+What changes for the user,Що зміниться для користувача
+Access changed: {0},Доступ змінено: {0}
+Grant roles to {0},Видати ролі: {0}
+Roles the user does not have yet,"Ролі, яких у користувача ще немає"
+Remove role {0} from {1},Зняти роль {0} з {1}
+The role comes from the user's role profile,Роль надходить із профілю ролей користувача
+Role profiles of {0},Профілі ролей: {0}
+Profiles with System Manager or Access Manager roles are not offered,Профілі з ролями Системний менеджер або Менеджер доступів не пропонуються
+Assign,Призначити
+Grant,Видати
+"Temporary, until {0}","Тимчасово, до {0}"
+Remove role,Зняти роль
+Grant roles,Видати ролі
+Role profiles,Профілі ролей
+"Temporary access, it is revoked automatically on {0}","Тимчасовий доступ, його буде автоматично відкликано {0}"
+The user gets back roles: {0},Користувачу повернуться ролі: {0}
+Your access was changed,Ваш доступ змінено
+{0}. Reload the page to use the new access,"{0}. Перезавантажте сторінку, щоб скористатися новим доступом"
+Roles,Ролі
+Role Profiles,Профілі ролей
+The user is outside the companies or employees you may manage,"Користувач поза компаніями чи працівниками, якими ви можете керувати"
+Document type {0} not found,Тип документа {0} не знайдено
+Right {0} does not apply to {1},Право {0} не застосовується до {1}
+Show users with this role,Показати користувачів із цією роллю
+Show users with this role profile,Показати користувачів із цим профілем ролей
+No role profile,Без профілю ролей
+Temporary access,Тимчасовий доступ
+No login for {0}+ days,Не заходили {0}+ днів
+Pending requests,Відкриті заявки
+All roles,Усі ролі
+All role profiles,Усі профілі ролей
+All companies,Усі компанії
+No employee,Без працівника
+Who can: document type,Хто може: тип документа
+Right,Право
+Choose a right,Оберіть право
+Reset filters,Скинути фільтри
+Who can {0} {1}: roles {2},Хто може «{0}» у {1}: ролі {2}
+"own only, via {0}","лише свої, через {0}"
+Only Administrator can grant or remove the Access Manager role,Видавати або знімати роль Менеджер доступів може лише Адміністратор
+"From role profile: {0}","З профілю ролей: {0}"

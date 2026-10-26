@@ -5,6 +5,14 @@ frappe.ui.form.on("Access Request", {
 		if (frm.doc.__onload?.revocable && erpnext.access_control.can_manage()) {
 			frm.add_custom_button(__("Revoke"), () => erpnext.access_control.revoke_dialog(frm));
 		}
+		if (frm.doc.status === "Approved" && frm.doc.valid_till) {
+			frm.set_intro(
+				__("Temporary access, it is revoked automatically on {0}", [
+					frappe.datetime.str_to_user(frm.doc.valid_till),
+				]),
+				"orange"
+			);
+		}
 		if (frm.doc.status === "Approved" && frm.doc.grant_log && !frm.doc.__onload?.revocable) {
 			frm.set_intro(
 				__("Access was given through a role profile change, it cannot be revoked from the request"),
@@ -135,7 +143,9 @@ erpnext.access_control.UNAVAILABLE_REASONS = {
 	already_allowed: () => __("The document's values are already allowed for the user"),
 	not_doctype: () => __("Rights of a role can be added only for a document type"),
 	no_right_roles: () =>
-		__("The user has no role whose rights you may change (your own roles need a System Manager)"),
+		__(
+			"The user has no role whose rights you may change (your own roles need Administrator or both System Manager and Access Manager roles)"
+		),
 	protected_doctype: () =>
 		__("Rights of system document types (users, roles, permissions, scripts) are not changed here"),
 	no_profile_grants: () =>
@@ -167,9 +177,6 @@ erpnext.access_control.unavailable_html = (unavailable) => {
 				.join("")}</ul></div>`
 		: "";
 };
-
-erpnext.access_control.right_label = (right) =>
-	erpnext.access_control.RIGHT_LABELS[right] || __(frappe.unscrub(right));
 
 erpnext.access_control.missing_for = (candidate, wanted) =>
 	wanted.filter((right) => !(candidate.coverage || {})[right]);
@@ -488,68 +495,6 @@ erpnext.access_control.profile_mode_options = (profiles) => {
 	];
 };
 
-erpnext.access_control.tabs_html = (tabs) =>
-	`<div class="ac-tabs">
-		<ul class="nav nav-tabs">${tabs
-			.map(
-				(tab, index) =>
-					`<li class="nav-item"><a href="#" class="nav-link ${index ? "" : "active"} ${
-						tab.danger ? "text-danger" : ""
-					}" data-ac-tab="${index}">${tab.label}</a></li>`
-			)
-			.join("")}</ul>
-		${tabs
-			.map(
-				(tab, index) =>
-					`<div class="pt-3" data-ac-pane="${index}" ${index ? "hidden" : ""}>${tab.html}</div>`
-			)
-			.join("")}
-	</div>`;
-
-erpnext.access_control.bind_tabs = (wrapper) =>
-	wrapper.off("click.ac-tabs").on("click.ac-tabs", ".ac-tabs [data-ac-tab]", (event) => {
-		event.preventDefault();
-		const $link = $(event.currentTarget);
-		const $tabs = $link.closest(".ac-tabs");
-		const index = String($link.data("ac-tab"));
-		$tabs.find("[data-ac-tab]").removeClass("active");
-		$link.addClass("active");
-		$tabs.find("[data-ac-pane]").each((_, pane) => {
-			pane.hidden = String($(pane).data("ac-pane")) !== index;
-		});
-	});
-
-erpnext.access_control.profile_impact_html = (delta) => {
-	const esc = frappe.utils.escape_html;
-	const lost_roles = delta.lost_roles.map((role) => esc(__(role))).join(", ");
-	const loses = delta.lost_roles.length || delta.lost.doctypes.length;
-	const summary = delta.lost_roles.length
-		? `<div class="alert alert-danger">
-			<div>${__("The user will lose roles: {0}", [`<b>${lost_roles}</b>`])}</div>
-			<div class="small">${__("A role profile replaces every role given directly, see the Loses tab")}</div>
-		</div>`
-		: "";
-	const gains_html = `<p>${__("Roles the user gets")}: ${erpnext.access_control.roles_html(
-		delta.gained_roles
-	)}</p>${erpnext.access_control.render_grants(delta)}`;
-	const losses_html = loses
-		? `<p>${__("Roles the user loses")}: ${erpnext.access_control.roles_html(
-				delta.lost_roles
-		  )}</p>${erpnext.access_control.render_grants(delta.lost)}`
-		: `<p class="text-muted">${__("The user loses nothing")}</p>`;
-	return (
-		summary +
-		erpnext.access_control.tabs_html([
-			{ label: `${__("Gets")} (${delta.doctypes.length})`, html: gains_html },
-			{
-				label: `${__("Loses")} (${delta.lost.doctypes.length})`,
-				html: losses_html,
-				danger: Boolean(loses),
-			},
-		])
-	);
-};
-
 erpnext.access_control.profile_impact = (dialog, options, wrapper) => {
 	const profiles = erpnext.access_control.picked(dialog, "profile_list");
 	const mode = erpnext.access_control.profile_mode(dialog, options);
@@ -661,6 +606,8 @@ erpnext.access_control.revoke_summary = (frm, preview) => {
 			]
 				.filter(Boolean)
 				.join("<br>"),
+		"Role Removal": () =>
+			__("The user gets back roles: {0}", [log.roles.map((role) => bold(__(role))).join(", ")]),
 		"Document Share": () =>
 			log.previous
 				? __("Sharing of {0} goes back to the rights the user had before the request", [target])
@@ -865,7 +812,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 					options: right_roles,
 					default: right_roles.length ? right_roles[0].value : undefined,
 					description: __(
-						"The user's roles. Your own roles are not listed unless you are a System Manager"
+						"The user's roles. Your own roles are not listed unless you are Administrator or have both System Manager and Access Manager roles"
 					),
 					depends_on: "eval:doc.resolution==='Role Right'",
 					onchange: refresh,
@@ -915,6 +862,16 @@ erpnext.access_control.approve_dialog = (frm) =>
 					depends_on: "eval:doc.resolution==='Role Profile'",
 					onchange: refresh,
 				},
+				{
+					fieldtype: "Datetime",
+					fieldname: "valid_till",
+					label: __("Valid Till"),
+					description: __(
+						"Leave empty for permanent access. Temporary access is revoked automatically"
+					),
+					depends_on:
+						"eval:doc.resolution!=='Role Profile' && !(doc.resolution==='Role' && (doc.profile_action||'').startsWith('profile:'))",
+				},
 				{ fieldtype: "Section Break", label: __("What the user will get") },
 				{ fieldtype: "HTML", fieldname: "coverage" },
 				{ fieldtype: "HTML", fieldname: "impact" },
@@ -940,6 +897,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 								.checked_values(dialog, "value_list")
 								.map((value) => JSON.parse(value)),
 							note: values.note,
+							valid_till: values.valid_till,
 						})
 						.then(() => {
 							dialog.hide();
