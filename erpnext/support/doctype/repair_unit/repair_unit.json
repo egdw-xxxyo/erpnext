@@ -1,0 +1,366 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Unit",
+ "default_print_format": "Repair Unit Label",
+ "module": "Support",
+ "engine": "InnoDB",
+ "field_order": [
+  "unit_details_tab",
+  "issue",
+  "priority",
+  "status",
+  "company",
+  "item_code",
+  "product_name",
+  "factory_serial",
+  "previous_repair",
+  "unit_info_column",
+  "warehouse",
+  "received_on",
+  "repair_user",
+  "support_user",
+  "unit_fault_section",
+  "fault_description",
+  "accessories",
+  "photo",
+  "unit_work_tab",
+  "diagnosis",
+  "work_done",
+  "outcome",
+  "work_log",
+  "unit_costs_tab",
+  "currency",
+  "labor_cost",
+  "parts_cost",
+  "total_cost",
+  "unit_history_tab",
+  "unit_history",
+  "customer",
+  "sender_contact",
+  "request_row",
+  "last_action",
+  "legacy_order_item",
+  "legacy_order",
+  "original_serial",
+  "stock_item",
+  "serial_no"
+ ],
+ "fields": [
+  {
+   "fieldname": "product_name",
+   "label": "Product Description",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "item_code",
+   "label": "Item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "factory_serial",
+   "label": "Factory Serial Number",
+   "fieldtype": "Data",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "original_serial",
+   "label": "Original Serial Number",
+   "fieldtype": "Link",
+   "options": "Serial No",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "stock_item",
+   "label": "Repair Stock Item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "read_only": 1,
+   "no_copy": 1,
+   "reqd": 0,
+   "hidden": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "label": "Repair Serial Number",
+   "fieldtype": "Link",
+   "options": "Serial No",
+   "read_only": 1,
+   "no_copy": 1,
+   "hidden": 1,
+   "reqd": 0
+  },
+  {
+   "fieldname": "company",
+   "label": "Company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "reqd": 1,
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "unit_history",
+   "label": "Repair History",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "warehouse",
+   "label": "Current Warehouse",
+   "fieldtype": "Link",
+   "options": "Warehouse",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "label": "Repair Stage",
+   "fieldtype": "Select",
+   "options": "Awaiting Receipt\nReceived\nIn Repair\nWaiting for Parts\nWaiting for Customer\nReady for Dispatch\nDispatched\nDelivered\nDisposed",
+   "default": "Awaiting Receipt",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "label": "Customer",
+   "fieldtype": "Link",
+   "options": "Customer",
+   "read_only": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "sender_contact",
+   "label": "Contact",
+   "fieldtype": "Link",
+   "options": "Contact",
+   "read_only": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "issue",
+   "label": "Service Request",
+   "fieldtype": "Link",
+   "options": "Issue",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "priority",
+   "label": "Priority",
+   "fieldtype": "Link",
+   "options": "Issue Priority",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "request_row",
+   "label": "Service Request Row",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "previous_repair",
+   "label": "Previous Repair",
+   "fieldtype": "Link",
+   "options": "Repair Unit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "repair_user",
+   "label": "Repair Technician",
+   "fieldtype": "Link",
+   "options": "User",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "support_user",
+   "label": "Support Coordinator",
+   "fieldtype": "Link",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "received_on",
+   "label": "Received On",
+   "fieldtype": "Datetime",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fault_description",
+   "label": "Fault Description",
+   "fieldtype": "Small Text",
+   "read_only": 1
+  },
+  {
+   "fieldname": "accessories",
+   "label": "Accessories and Condition",
+   "fieldtype": "Small Text",
+   "read_only": 1
+  },
+  {
+   "fieldname": "photo",
+   "label": "Product Photo",
+   "fieldtype": "Attach Image",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diagnosis",
+   "label": "Diagnosis",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "work_done",
+   "label": "Work Done",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "outcome",
+   "label": "Repair Result",
+   "fieldtype": "Select",
+   "options": "\nRepaired\nNo Fault Found\nNot Repairable",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "work_log",
+   "label": "Repair Work Log",
+   "fieldtype": "Table",
+   "options": "Repair Work Log"
+  },
+  {
+   "fieldname": "currency",
+   "label": "Currency",
+   "fieldtype": "Link",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "labor_cost",
+   "label": "Labor and External Cost",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "parts_cost",
+   "label": "Consumed Parts Cost",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_cost",
+   "label": "Total Repair Cost",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_action",
+   "label": "Last Repair Action",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "legacy_order_item",
+   "label": "Legacy Repair Order Row",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "legacy_order",
+   "label": "Legacy Repair Order",
+   "fieldtype": "Link",
+   "options": "Repair Order",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "unit_details_tab",
+   "label": "Repair Unit",
+   "fieldtype": "Tab Break"
+  },
+  {
+   "fieldname": "unit_info_column",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "unit_fault_section",
+   "label": "Fault Description",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "unit_work_tab",
+   "label": "Repair Work",
+   "fieldtype": "Tab Break"
+  },
+  {
+   "fieldname": "unit_costs_tab",
+   "label": "Costs",
+   "fieldtype": "Tab Break"
+  },
+  {
+   "fieldname": "unit_history_tab",
+   "label": "Repair History",
+   "fieldtype": "Tab Break"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "Repair Technician",
+   "read": 1,
+   "print": 1,
+   "report": 1,
+   "write": 1
+  },
+  {
+   "role": "Support Team",
+   "read": 1,
+   "write": 1,
+   "create": 0,
+   "print": 1,
+   "report": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "print": 1,
+   "report": 1
+  },
+  {
+   "role": "Support Team",
+   "permlevel": 1,
+   "read": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1
+  }
+ ],
+ "track_changes": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "autoname": "format:REP-{YYYY}-{######}",
+ "title_field": "product_name"
+}

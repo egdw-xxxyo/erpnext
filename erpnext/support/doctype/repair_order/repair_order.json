@@ -1,0 +1,117 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Order",
+ "module": "Support",
+ "engine": "InnoDB",
+ "field_order": [
+  "issue",
+  "company",
+  "currency",
+  "support_user",
+  "repair_user",
+  "status",
+  "items",
+  "total_cost",
+  "movement_history"
+ ],
+ "fields": [
+  {
+   "fieldname": "issue",
+   "label": "Service Request",
+   "fieldtype": "Link",
+   "options": "Issue",
+   "reqd": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "company",
+   "label": "Company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "label": "Currency",
+   "fieldtype": "Link",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "support_user",
+   "label": "Support Coordinator",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "repair_user",
+   "label": "Repair Technician",
+   "fieldtype": "Link",
+   "options": "User"
+  },
+  {
+   "fieldname": "status",
+   "label": "Repair Stage",
+   "fieldtype": "Select",
+   "options": "Awaiting Receipt\nReceived\nIn Repair\nReady for Dispatch\nDispatched\nClosed",
+   "read_only": 1,
+   "no_copy": 1,
+   "default": "Awaiting Receipt",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "items",
+   "label": "Repair Units",
+   "fieldtype": "Table",
+   "options": "Repair Order Item",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_cost",
+   "label": "Total Repair Cost",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "movement_history",
+   "label": "Repair Movements",
+   "fieldtype": "HTML"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "Repair Technician",
+   "read": 1,
+   "write": 1,
+   "print": 1,
+   "report": 1
+  },
+  {
+   "role": "Support Team",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "print": 1,
+   "report": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "print": 1,
+   "report": 1
+  }
+ ],
+ "track_changes": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "autoname": "format:RPR-{YYYY}-{#####}"
+}

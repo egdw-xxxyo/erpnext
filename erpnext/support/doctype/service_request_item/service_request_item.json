@@ -1,0 +1,103 @@
+{
+ "doctype": "DocType",
+ "name": "Service Request Item",
+ "module": "Support",
+ "engine": "InnoDB",
+ "field_order": [
+  "repair_unit",
+  "repair_status",
+  "repair_outcome",
+  "previous_repair",
+  "item_code",
+  "product_name",
+  "factory_serial",
+  "fault_description",
+  "accessories",
+  "photo"
+ ],
+ "fields": [
+  {
+   "fieldname": "repair_unit",
+   "label": "Repair Unit",
+   "fieldtype": "Link",
+   "options": "Repair Unit",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "item_code",
+   "label": "Item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "in_list_view": 1,
+   "columns": 2,
+   "reqd": 1
+  },
+  {
+   "fieldname": "product_name",
+   "label": "Product Description",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 0,
+   "fetch_from": "item_code.item_name",
+   "fetch_if_empty": 1,
+   "columns": 4
+  },
+  {
+   "fieldname": "factory_serial",
+   "label": "Factory Serial Number",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "fault_description",
+   "label": "Fault Description",
+   "fieldtype": "Small Text",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "accessories",
+   "label": "Accessories and Condition",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "photo",
+   "label": "Product Photo",
+   "fieldtype": "Attach Image"
+  },
+  {
+   "fieldname": "previous_repair",
+   "label": "Previous Repair",
+   "fieldtype": "Link",
+   "options": "Repair Unit"
+  },
+  {
+   "fieldname": "repair_status",
+   "label": "Repair Stage",
+   "fieldtype": "Select",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "options": "\nAwaiting Receipt\nReceived\nIn Repair\nWaiting for Parts\nWaiting for Customer\nReady for Dispatch\nDispatched\nDelivered\nDisposed"
+  },
+  {
+   "fieldname": "repair_outcome",
+   "label": "Repair Result",
+   "fieldtype": "Select",
+   "options": "\nRepaired\nNo Fault Found\nNot Repairable",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "permissions": [],
+ "track_changes": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "istable": 1,
+ "editable_grid": 1
+}

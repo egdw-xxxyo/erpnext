@@ -1,0 +1,11 @@
+{
+ "doctype": "Print Format",
+ "name": "Repair Unit Label",
+ "doc_type": "Repair Unit",
+ "module": "Support",
+ "standard": "Yes",
+ "custom_format": 1,
+ "print_format_type": "Jinja",
+ "html": "<div style=\"width:75mm;padding:4mm;border:1px solid #222;color:#000\">\n<div>{{ _(\"Repair Unit\") }}</div>\n<h2 style=\"margin:3mm 0\">{{ doc.name | e }}</h2>\n<svg data-barcode-value=\"{{ doc.name | e }}\" data-options=\"CODE128\"></svg>\n<div><strong>{{ doc.product_name | e }}</strong></div>\n{% if doc.factory_serial %}<div>{{ _(\"Factory Serial Number\") }}: {{ doc.factory_serial | e }}</div>{% endif %}\n</div>",
+ "disabled": 0
+}

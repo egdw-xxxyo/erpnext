@@ -1,0 +1,79 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Shipment",
+ "module": "Support",
+ "engine": "InnoDB",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "repair_unit",
+  "movement",
+  "delivery_type",
+  "waybill",
+  "delivery_details",
+  "disposal_approved",
+  "approval",
+  "cancelled"
+ ],
+ "fields": [
+  {
+   "fieldname": "repair_unit",
+   "label": "Repair Unit",
+   "fieldtype": "Link",
+   "options": "Repair Unit",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "movement",
+   "label": "Repair Movement",
+   "fieldtype": "Link",
+   "options": "Repair Movement",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "waybill",
+   "label": "Waybill",
+   "fieldtype": "Data",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "approval",
+   "label": "Customer Disposal Approval",
+   "fieldtype": "Attach",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cancelled",
+   "label": "Cancelled",
+   "fieldtype": "Check",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "delivery_type",
+   "label": "Delivery Type",
+   "fieldtype": "Select",
+   "options": "\nNova Poshta\nUkrposhta\nTaxi\nSelf Pickup\nOther",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "delivery_details",
+   "label": "Delivery Details",
+   "fieldtype": "Small Text",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "disposal_approved",
+   "label": "Customer Agreed to Disposal",
+   "fieldtype": "Check",
+   "read_only": 1,
+   "in_list_view": 0
+  }
+ ],
+ "permissions": []
+}
