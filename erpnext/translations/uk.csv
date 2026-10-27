@@ -5141,7 +5141,7 @@ Is Your Company Address,Є адресою вашої компанії
 Is a Subscription,Є підписка
 Is created using POS,Створено за допомогою POS
 Is this Tax included in Basic Rate?,Це податок Включено в базовій ставці?
-Issue,Проблема
+Issue,Сервісна заявка
 Issue Analytics,Аналітика проблем
 Issue Credit Note,Випуск кредитної картки
 Issue Date,Дата випуску
@@ -5153,7 +5153,7 @@ Issue Type,Тип проблеми
 Issue a debit note with 0 qty against an existing Sales Invoice,Випустити дебетову ноту з нульовою кількістю до існуючого рахунку-фактури продажу
 Issued,Виданий
 Issued Items Against Work Order,Видано предмети проти порядку роботи
-Issues,Питань
+Issues,Сервісні заявки
 Issuing Date,Дата випуску
 Issuing cannot be done to a location. Please enter employee to issue the Asset {0} to,"Видача не може бути здійснена на місце розташування. Будь ласка, вкажіть працівника для видачі активу {0}"
 It can take upto few hours for accurate stock values to be visible after merging items.,"Після об'єднання позицій може знадобитися кілька годин, щоб побачити точні значення запасів."
@@ -16468,3 +16468,207 @@ Helpful,Корисне
 Row {0}: serial numbers entered more than once: {1},"Рядок {0}: серійні номери введено більше одного разу: {1}"
 Serial No {0} is in rows {1},"Серійний номер {0} є в рядках {1}"
 Duplicate serial numbers,Дублікати серійних номерів
+"Update Labor Cost","Оновити вартість робіт"
+"Apply","Застосувати"
+"Destination Warehouse","Склад призначення"
+"Return Address","Адреса повернення"
+"Managed by Repair","Створено процесом ремонту"
+"Repair Unit Label","Етикетка ремонтної одиниці"
+"Enable serial and batch tracking in Stock Settings before using repairs.","Увімкніть серійний і партійний облік у налаштуваннях складу перед використанням ремонту."
+"Repair Unit","Ремонтна одиниця"
+"Repair Order","Замовлення на ремонт"
+"Repair Settings","Налаштування ремонту"
+"Service Request","Сервісна заявка"
+"Service Request Item","Виріб сервісної заявки"
+"Repair Order Item","Одиниця замовлення на ремонт"
+"Product Repair","Ремонт виробів"
+"Products for Repair","Вироби для ремонту"
+"Product Description","Опис виробу"
+"Factory Serial Number","Заводський серійний номер"
+"Original Serial Number","Початковий серійний номер"
+"Fault Description","Опис несправності"
+"Accessories and Condition","Комплектація та стан"
+"Product Photo","Фото виробу"
+"Repair Stock Item","Обліковий товар ремонту"
+"Repair Serial Number","Ремонтний серійний номер"
+"Repair History","Історія ремонтів"
+"Repair Stage","Етап ремонту"
+"Current Warehouse","Поточний склад"
+"Repair Result","Результат ремонту"
+"Labor and External Cost","Вартість робіт та зовнішніх послуг"
+"Consumed Parts Cost","Вартість використаних запчастин"
+"Cost Explanation","Пояснення витрат"
+"Outbound Waybill","Вихідна ТТН"
+"Inbound Waybill","Вхідна ТТН"
+"Customer Disposal Approval","Погодження утилізації клієнтом"
+"Last Stock Entry","Останній рух ТМЦ"
+"Last Repair Action","Остання дія ремонту"
+"Repair Route","Маршрут ремонту"
+"Support Coordinator","Координатор саппорту"
+"Repair Technician","Відповідальний ремонтник"
+"Repair Units","Ремонтні одиниці"
+"Stock Movements","Складські рухи"
+"Repair Setup","Налаштування ремонту"
+"Awaiting Receipt","Очікуємо надходження"
+"In Repair","У ремонті"
+"Waiting for Parts","Очікуємо запчастини"
+"Waiting for Customer","Очікуємо рішення клієнта"
+"Ready for Dispatch","Готово до відправлення"
+"Dispatched","Відправлено"
+"Disposed","Утилізовано"
+"Repaired","Відремонтовано"
+"No Fault Found","Несправність не виявлено"
+"Not Repairable","Ремонт неможливий"
+"Repair Action","Дія ремонту"
+"Repair Movement Data","Дані ремонтного переміщення"
+"Current stage","Поточний етап"
+"No stock movements yet","Складських рухів ще немає"
+"Create Repair Order","Створити замовлення на ремонт"
+"Consumed Parts","Використані запчастини"
+"Update Repair","Оновити ремонт"
+"Confirm Customer Delivery","Підтвердити доставку клієнту"
+"Receive Units","Прийняти вироби"
+"Transfer Units","Перемістити вироби"
+"Dispatch Units","Відправити вироби"
+"Dispose with Customer Approval","Утилізувати за погодженням клієнта"
+"Consume Parts","Списати запчастини"
+"receive","Приймання"
+"transfer","Переміщення"
+"dispatch","Відправлення"
+"dispose","Утилізація"
+"parts","Списання запчастин"
+"One row per physical unit. Describe the fault separately for each unit.","Один рядок на фізичний виріб. Опишіть несправність окремо для кожного екземпляра."
+"Use a dedicated serialized customer-provided stock item with zero valuation. Do not use a sales item.","Використовуйте окремий серіалізований складський товар клієнта з нульовою вартістю, не товар для продажу."
+"Applied to EACH selected unit. For different costs, update units separately.","Сума застосовується до КОЖНОГО вибраного виробу. Різні витрати вводьте окремо."
+"Submit the stock entry to confirm the physical movement.","Проведіть рух ТМЦ, щоб підтвердити фізичне переміщення."
+"Select one or more distinct repair units.","Виберіть одну чи декілька різних ремонтних одиниць."
+"Selected units do not belong to this repair order.","Вибрані одиниці не належать цьому замовленню на ремонт."
+"The repair request identity cannot be changed after creating its repair order.","Після створення замовлення на ремонт не можна змінювати компанію, відправника чи зв’язок із заявкою."
+"Products are fixed in the repair order. Create a new request for another repair episode.","Вироби зафіксовано в замовленні на ремонт. Для нового епізоду створіть нову заявку."
+"Create the repair order using the repair action.","Створіть замовлення на ремонт відповідною кнопкою."
+"A repair request needs a company, sender contact and at least one product.","Для ремонту вкажіть компанію, контакт відправника та хоча б один виріб."
+"Describe the product and its fault in every row.","Опишіть виріб та його несправність у кожному рядку."
+"Return or dispose of all repair units before closing the service request.","Перш ніж закрити сервісну заявку, поверніть або погоджено утилізуйте всі вироби."
+"Choose a dedicated serialized customer-provided stock item: no purchasing, selling, manufacturing, batches or valuation.","Виберіть окремий серіалізований складський товар клієнта: без закупівлі, продажу, виробництва, партій та вартості оцінки."
+"Enable Product Repair first.","Спочатку ввімкніть ремонт виробів."
+"Configure the repair stock item in Repair Settings first.","Спочатку виберіть обліковий товар у налаштуваннях ремонту."
+"The repair unit company and stock item must match this request.","Компанія та обліковий товар ремонтної одиниці мають відповідати цій заявці."
+"Repair unit {0} already has an unfinished repair.","Ремонтна одиниця {0} вже має незавершений ремонт."
+"One physical unit can appear only once in a repair order.","Один фізичний виріб можна додати до замовлення на ремонт лише один раз."
+"Create a repair order from the service request.","Створюйте замовлення на ремонт із сервісної заявки."
+"Use repair actions to change the repair stage.","Змінюйте етап ремонту відповідними діями."
+"Use repair actions to change repair units.","Змінюйте ремонтні одиниці відповідними діями."
+"Choose an enabled repair user with access to Repair Order.","Виберіть активного користувача з доступом до замовлень на ремонт."
+"Repair order {0} assigned for repair","Замовлення {0} призначено вам для ремонту"
+"Repair order {0} is ready for dispatch","Замовлення на ремонт {0} готове до відправлення"
+"Invalid repair stage.","Неприпустимий етап ремонту."
+"Invalid repair result.","Неприпустимий результат ремонту."
+"Receive the unit before repair; confirm delivery only after dispatch.","Спочатку прийміть виріб на склад; підтверджуйте доставку лише після відправлення."
+"Specify work done and the repair result before marking the unit ready.","Перш ніж позначити виріб готовим, укажіть виконані роботи та результат ремонту."
+"Provide a cost explanation and a non-negative labor/external cost.","Укажіть пояснення витрат і невід’ємну вартість робіт або зовнішніх послуг."
+"Choose an active non-group warehouse of the repair company.","Виберіть активний негруповий склад компанії ремонту."
+"Invalid repair action.","Неприпустима дія ремонту."
+"The selected units are not at the required repair stage.","Вибрані вироби перебувають на іншому етапі ремонту."
+"Enter the outbound waybill and return address before dispatch.","Перед відправленням укажіть вихідну ТТН та адресу повернення."
+"Disposal requires a Not Repairable result and the customer's approval file.","Для утилізації потрібні результат «Ремонт неможливий» та файл погодження клієнта."
+"Attach the customer's disposal approval first.","Спочатку прикріпіть погодження клієнта на утилізацію."
+"Select one repair unit and specify the consumed parts.","Виберіть одну ремонтну одиницю та вкажіть використані запчастини."
+"Part quantity must be greater than zero.","Кількість запчастин має бути більшою за нуль."
+"Move repair stock only through a repair order.","Переміщуйте ремонтні вироби лише через замовлення на ремонт."
+"Repair movement purpose, company and zero additional costs must be preserved.","Не змінюйте призначення, компанію та нульові додаткові витрати ремонтного руху."
+"Each repair movement row must represent exactly one unit.","Кожний рядок ремонтного руху має відповідати одному виробу."
+"Consume parts for one repair unit at a time.","Списуйте запчастини для однієї ремонтної одиниці за раз."
+"Use actual spare parts and a source warehouse for repair consumption.","Для ремонту вкажіть справжні запчастини та склад списання."
+"Preserve the repair item's identity, serial number and quantity of one.","Не змінюйте обліковий товар, ремонтний серійний номер та кількість 1."
+"Customer repair stock must have zero valuation.","Ремонтні вироби клієнта мають обліковуватися з нульовою вартістю."
+"The source warehouse must match the repair unit's current warehouse.","Склад списання має відповідати поточному складу ремонтної одиниці."
+"An outbound repair movement cannot have a destination warehouse.","Відправлення або утилізація ремонтного виробу не можуть мати склад призначення."
+"Preserve the dedicated repair stock item's zero-value serialized configuration.","Збережіть серійний облік та нульову вартість спеціального ремонтного товару."
+"This repair movement has no cancellation snapshot.","Немає збереженого попереднього стану для скасування цього ремонтного руху."
+"A later repair action exists. Cancel movements in reverse order before changing this movement.","Уже виконано наступну ремонтну дію. Скасовуйте складські рухи у зворотному порядку; після ремонтної дії використайте коригувальне переміщення."
+"Invalid repair document.","Неприпустимий ремонтний документ."
+"Create repair units from a service request.","Створюйте ремонтні одиниці із сервісної заявки."
+"The repair stock identity cannot be changed.","Не можна змінювати складську ідентифікацію ремонтного виробу."
+"The repair stock item cannot be replaced after repair units have been created.","Не можна замінити обліковий товар після створення ремонтних одиниць."
+Repair Warehouse,Склад ремонту
+Default storage location for customer repairs. Customer units are tracked outside stock balances.,Типове місце зберігання клієнтських виробів. Вироби обліковуються окремо від товарних залишків.
+Repair Movement,Переміщення ремонту
+Repair Movements,Переміщення ремонту
+Repair Movement Item,Позиція переміщення ремонту
+Repair Shipment,Відправлення ремонту
+Repair Shipments,Відправлення ремонту
+Previous Repair State,Попередній стан ремонту
+Specify serial numbers only for the selected repair units.,Указуйте серійні номери лише для вибраних ремонтних виробів.
+Register dispatch and disposal from the service request.,Реєструйте відправлення й утилізацію із сервісної заявки.
+The repair unit does not match the order's current custody.,Місце зберігання ремонтного виробу не відповідає поточному стану замовлення.
+Confirm the factory serial number during receipt.,Уточнюйте заводський серійний номер під час приймання.
+Configure a repair warehouse for this company in Repair Settings first.,Спочатку виберіть склад цієї компанії у налаштуваннях ремонту.
+The repair unit company and owner must match this request.,Компанія та власник ремонтного виробу мають відповідати заявці.
+Choose an item for every repair unit.,Виберіть номенклатуру для кожного ремонтного виробу.
+Register customer property movements in the repair register.,Реєструйте переміщення клієнтських виробів у реєстрі ремонту.
+No repair movements yet,Переміщень ремонту ще немає
+A stock receipt from the previous repair flow is still submitted. Its history and stock balance have been preserved.,Залишається проведений складський прихід за попередньою схемою ремонту. Його історію та залишок збережено.
+Submit the stock entry to confirm spare-part consumption.,Проведіть складський документ для підтвердження списання запчастин.
+Repair movement registered.,Переміщення ремонту зареєстровано.
+Repair Actions,Дії з ремонтом
+Not assigned,Не призначено
+Attach a saved file to the repair work entry.,Прикріпіть збережений файл до запису про ремонтні роботи.
+Choose a completed previous repair of the same customer's item.,Виберіть завершений попередній ремонт виробу того самого клієнта.
+Create Repair Cards,Створити ремонтні картки
+Describe the work or attach a repair photo.,Опишіть роботу або додайте фото ремонту.
+Give the repair role to an enabled user before saving this assignment rule.,Перед збереженням правила надайте роль ремонтника активному користувачу.
+Legacy Repair Order,Попереднє групове замовлення на ремонт
+Legacy Repair Order Row,Рядок попереднього замовлення на ремонт
+Performed By,Виконав
+Previous Repair,Попередній ремонт
+Previous repair work,Раніше виконані ремонтні роботи
+Receive the unit before adding repair work.,Прийміть виріб перед додаванням ремонтних робіт.
+Repair Company Warehouse,Склад ремонту компанії
+Repair Photo,Фото ремонту
+Repair Work Log,Журнал ремонтних робіт
+Repair Work,Ремонтні роботи
+Repair unit {0} is ready for dispatch,Ремонтний виріб {0} готовий до відправлення
+Repair work history is append-only. Add a new entry to correct earlier work.,Історія робіт зберігається без перезапису. Для виправлення додайте новий запис.
+Resume Repair,Продовжити ремонт
+Role-based repair assignment supports Round Robin or Load Balancing.,Призначення ремонтів за роллю підтримує почерговий розподіл або балансування навантаження.
+Selected units do not belong to this service request.,Вибрані ремонтні одиниці не належать до цієї заявки.
+Service Request Row,Рядок сервісної заявки
+Start Repair,Почати ремонт
+This repair is assigned to another technician.,Цей ремонт призначено іншому ремонтнику.
+Work Date,Дата роботи
+Work Notes,Опис роботи
+Repair Assignee Role,Роль відповідального за ремонт
+Assign received repair cards to enabled users with this role and repair access.,Призначати прийняті ремонтні картки активним користувачам із цією роллю та доступом до ремонту.
+Select only one repair warehouse per company.,Виберіть лише один склад ремонту для кожної компанії.
+Repair Warehouses by Company,Склади ремонту за компаніями
+Select an existing repair warehouse for each company. Warehouses are not created automatically.,Виберіть наявний склад ремонту для кожної компанії. Склади не створюються автоматично.
+receive,Приймання
+transfer,Переміщення
+dispatch,Відправлення
+dispose,Утилізація
+parts,Запчастини
+Cannot match repair {0} to its source request row. Check the original request.,Не вдалося зіставити ремонт {0} із рядком вихідної заявки. Перевірте вихідну заявку.
+Continue this repair in its individual repair cards.,Продовжуйте цей ремонт в індивідуальних картках виробів.
+Costs,Витрати
+Create individual repair cards from the service request instead of a grouped repair order.,Створіть окремі картки ремонту із сервісної заявки замість групового замовлення.
+Customer repair units cannot be transferred between warehouses.,Переміщення клієнтських виробів між складами в ремонті недоступне.
+No parts have been consumed for this repair.,Для цього ремонту запчастини ще не списували.
+Cancelled issues are excluded from the repair cost.,Скасовані списання не включено у вартість ремонту.
+Posted By,Списав
+Inbound Delivery Type,Тип надходження
+Inbound Delivery Details,Подробиці надходження
+Delivery Type,Тип відправлення
+Waybill,ТТН
+Nova Poshta,Нова пошта
+Ukrposhta,Укрпошта
+Taxi,Таксі
+Self Pickup,Самовивіз
+Customer Agreed to Disposal,Клієнт погодився з утилізацією
+Result not specified,Результат ще не вказано
+Choose a delivery type for receipt or dispatch.,Виберіть тип доставки для приймання або відправлення.
+Enter a waybill for postal delivery.,Вкажіть ТТН для поштового відправлення.
+"Enter delivery details for taxi, self pickup or other delivery.","Вкажіть подробиці для таксі, самовивозу чи іншого способу доставки."
+Confirm that the customer agreed to disposal.,"Підтвердьте, що клієнт погодився з утилізацією."
+Attach a saved disposal approval file.,Прикріпіть збережений файл погодження утилізації.
+Only units with a Not Repairable result can be disposed of.,Утилізувати можна лише вироби з результатом «Ремонт неможливий».
+Delivery and disposal details must match the recorded repair action.,Подробиці доставки та утилізації мають відповідати записаній дії ремонту.

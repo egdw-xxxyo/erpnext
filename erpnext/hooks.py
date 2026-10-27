@@ -43,6 +43,9 @@ web_include_icons = [
 after_request = ["erpnext.access_control.denial.attach_denial_context"]
 
 doctype_js = {
+	"Issue": "public/js/custom/service_repair.js",
+	"Repair Unit": "public/js/custom/repair_unit.js",
+	"Repair Settings": "public/js/custom/repair_settings.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
 	"Consolidated Purchase Order": [
@@ -94,6 +97,7 @@ doctype_js = {
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"Repair Unit": "public/js/custom/repair_unit_list.js",
 	"Purchase Invoice": "public/js/custom/purchase_invoice_vat_list.js",
 	"ToDo": "public/js/custom/todo_list.js",
 	"Code List": [
