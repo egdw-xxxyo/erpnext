@@ -275,6 +275,62 @@ class TestIndividualRepairs(TestCase):
 			}
 		).insert()
 
+	def test_role_assignment_runs_on_receipt_not_creation(self):
+		role = frappe.get_doc(
+			{
+				"doctype": "Role",
+				"role_name": f"Repair pool {frappe.generate_hash(length=8)}",
+				"desk_access": 1,
+			}
+		).insert()
+		user = self.user(role.name)
+		rule = frappe.get_doc(
+			{
+				"doctype": "Assignment Rule",
+				"name": f"Repair rule {frappe.generate_hash(length=10)}",
+				"document_type": "Repair Unit",
+				"custom_repair_assignee_role": role.name,
+				"rule": "Round Robin",
+				"priority": 9999,
+				"description": "Repair {{ name }}",
+				"assign_condition": "status == 'Received'",
+				"assignment_days": [
+					{"day": day}
+					for day in ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+				],
+			}
+		).insert()
+		self.assertEqual(rule.users[0].user, user.name)
+		self.assertFalse(
+			frappe.db.exists(
+				"ToDo", {"reference_type": "Repair Unit", "reference_name": self.names[0], "status": "Open"}
+			)
+		)
+		entry = self.receive(units=[self.names[0]])
+		self.assertEqual(frappe.db.get_value("Repair Unit", self.names[0], "repair_user"), user.name)
+		self.assertTrue(
+			frappe.db.exists(
+				"ToDo",
+				{
+					"reference_type": "Repair Unit",
+					"reference_name": self.names[0],
+					"allocated_to": user.name,
+					"status": "Open",
+				},
+			)
+		)
+		self.assertFalse(
+			frappe.db.exists(
+				"ToDo", {"reference_type": "Repair Unit", "reference_name": self.names[1], "status": "Open"}
+			)
+		)
+		entry.cancel()
+		self.assertFalse(
+			frappe.db.exists(
+				"ToDo", {"reference_type": "Repair Unit", "reference_name": self.names[0], "status": "Open"}
+			)
+		)
+
 	def test_technician_cannot_perform_support_logistics(self):
 		self.receive()
 		user = self.user()

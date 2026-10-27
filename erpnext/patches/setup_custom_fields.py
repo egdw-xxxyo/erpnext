@@ -123,6 +123,17 @@ def setup_service_repair_fields():
 
 	create_custom_fields(
 		{
+			"Assignment Rule": [
+				{
+					"fieldname": "custom_repair_assignee_role",
+					"label": "Repair Assignee Role",
+					"fieldtype": "Link",
+					"options": "Role",
+					"insert_after": "rule",
+					"depends_on": "eval:doc.document_type == 'Repair Unit' && ['Round Robin', 'Load Balancing'].includes(doc.rule)",
+					"description": "Assign received repair cards to enabled users with this role and repair access.",
+				},
+			],
 			"ToDo": [
 				{
 					"fieldname": "custom_repair_managed",
@@ -274,6 +285,16 @@ def setup_service_repair_fields():
 	)
 
 	# Move stock fields with a Property Setter rather than rewriting Issue JSON.
+	frappe.make_property_setter(
+		{
+			"doctype": "Assignment Rule",
+			"fieldname": "users",
+			"property": "mandatory_depends_on",
+			"value": "eval:['Round Robin', 'Load Balancing'].includes(doc.rule) && !doc.custom_repair_assignee_role",
+			"property_type": "Code",
+		},
+		validate_fields_for_doctype=False,
+	)
 	current = [df.fieldname for df in frappe.get_meta("Issue", cached=False).fields]
 	moves = (
 		("contact", "issue_split_from"),
