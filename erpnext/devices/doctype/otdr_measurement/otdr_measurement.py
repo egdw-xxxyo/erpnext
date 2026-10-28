@@ -97,4 +97,11 @@ def cleanup_old_sor_files(days=7, batch_size=1000):
 
 		if not done:
 			break
+
+	frappe.db.sql(
+		"UPDATE `tabOTDR Measurement` SET sor_file = NULL"
+		" WHERE creation < %(cutoff)s AND sor_file IS NOT NULL AND sor_file != ''",
+		{"cutoff": cutoff},
+	)
+	frappe.db.commit()
 	return removed
