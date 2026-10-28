@@ -130,6 +130,7 @@ extend_doctype_class = {
 	"Purchase Invoice": ["erpnext.buying.recurring_purchase.RecurringPurchaseInvoice"],
 	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
+	"Quality Inspection": ["erpnext.stock.inspection_formula.InspectionFormulaContext"],
 }
 
 override_whitelisted_methods = {
