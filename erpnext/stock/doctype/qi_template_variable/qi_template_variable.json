@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "creation": "2026-10-28 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "variable",
+  "value",
+  "item",
+  "attribute",
+  "attribute_value",
+  "description"
+ ],
+ "fields": [
+  {
+   "description": "Name used in the acceptance formulas, e.g. max_loss",
+   "fieldname": "variable",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Variable",
+   "reqd": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Value",
+   "precision": "6",
+   "reqd": 1,
+   "columns": 2
+  },
+  {
+   "description": "Leave empty to apply to every item. Matches the item or its template.",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "columns": 2
+  },
+  {
+   "fieldname": "attribute",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Attribute",
+   "options": "Item Attribute",
+   "columns": 2
+  },
+  {
+   "description": "As on the item variant, e.g. 25 км",
+   "fieldname": "attribute_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Attribute Value",
+   "columns": 2
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Stock",
+ "name": "QI Template Variable",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

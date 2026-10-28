@@ -33,6 +33,7 @@ def execute():
 	create_custom_fields_on_pr_item()
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
+	create_custom_field_on_qi_template()
 	create_custom_field_on_serial_no()
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
@@ -633,6 +634,24 @@ def create_custom_field_on_qi():
 			"options": "QI Serial Entry",
 			"insert_after": "readings",
 			"description": "Per-serial-number pass/fail inspection results",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_field_on_qi_template():
+	fields = [
+		{
+			"dt": "Quality Inspection Template",
+			"fieldname": "variables",
+			"fieldtype": "Table",
+			"label": "Variables",
+			"options": "QI Template Variable",
+			"insert_after": "item_quality_inspection_parameter",
+			"description": (
+				"Named limits for the acceptance formulas (e.g. max_loss), optionally per item or "
+				"attribute value, so they are edited here instead of inside a formula."
+			),
 		},
 	]
 	_create_custom_fields(fields)

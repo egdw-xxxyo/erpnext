@@ -565,3 +565,4 @@ erpnext.patches.v16_0.chat_thread_kinds
 erpnext.patches.v16_0.mark_shipped_packages
 erpnext.patches.v16_0.link_shipped_packages_to_delivery_notes
 erpnext.patches.v16_0.optical_spool_acceptance_formulas
+erpnext.patches.v16_0.optical_spool_template_variables

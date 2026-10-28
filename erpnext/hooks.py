@@ -853,6 +853,9 @@ doc_events = {
 	"Serial Number Template": {
 		"validate": "erpnext.stock.serial_charset.validate_serial_number_template",
 	},
+	"Quality Inspection Template": {
+		"validate": "erpnext.stock.inspection_formula.validate_template_variables",
+	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
 		"on_cancel": "erpnext.stock.doctype.serial_no.inspection.clear_inspection_status_on_cancel",

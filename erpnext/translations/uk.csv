@@ -16595,3 +16595,11 @@ Who can {0} {1}: roles {2},Хто може «{0}» у {1}: ролі {2}
 "own only, via {0}","лише свої, через {0}"
 Only Administrator can grant or remove the Access Manager role,Видавати або знімати роль Менеджер доступів може лише Адміністратор
 "From role profile: {0}","З профілю ролей: {0}"
+Variable,Змінна
+QI Template Variable,Змінна шаблону перевірки
+Invalid Variable,Недопустима змінна
+Row #{0}: {1} cannot be used as a variable name.,Рядок №{0}: {1} не можна використовувати як назву змінної.
+"Named limits for the acceptance formulas (e.g. max_loss), optionally per item or attribute value, so they are edited here instead of inside a formula.","Іменовані допуски для формул прийняття (наприклад, max_loss), за потреби окремо для товару чи значення атрибута — редагуються тут, а не всередині формули."
+Name used in the acceptance formulas, e.g. max_loss,"Назва, що використовується у формулах прийняття, напр. max_loss"
+Leave empty to apply to every item. Matches the item or its template.,Залиште порожнім, щоб застосувати до всіх товарів. Збігається з товаром або його шаблоном.
+"As on the item variant, e.g. 25 км","Як у варіанті товару, напр. 25 км"
