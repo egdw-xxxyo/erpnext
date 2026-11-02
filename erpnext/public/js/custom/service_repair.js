@@ -120,7 +120,7 @@
 			.join("");
 		const counts = {};
 		(data.items || []).forEach((row) => {
-			counts[row.status] = (counts[row.status] || 0) + 1;
+			counts[row.status] = (counts[row.status] || 0) + (row.qty || 1);
 		});
 		const progress = Object.entries(counts)
 			.map(([status, count]) => `${esc(__(status))}: ${count}`)
@@ -254,6 +254,19 @@
 		},
 	});
 
+	frappe.ui.form.on("Service Request Item", {
+		async item_code(frm, cdt, cdn) {
+			const row = locals[cdt][cdn];
+			if (!row.item_code || row.repair_unit) return;
+			const item = row.item_code;
+			const { message } = await frappe.db.get_value("Item", item, "has_serial_no");
+			if (row.item_code !== item) return;
+			await frappe.model.set_value(cdt, cdn, "has_serial_no", message?.has_serial_no || 0);
+			if (message?.has_serial_no || !row.qty) await frappe.model.set_value(cdt, cdn, "qty", 1);
+			frm.refresh_field("custom_repair_items");
+		},
+	});
+
 	const unit_field = (frm, states, action) => ({
 		fieldname: "units",
 		label: __("Repair Units"),
@@ -264,7 +277,7 @@
 				(r) => states.includes(r.status) && (action !== "dispose" || r.outcome === "Not Repairable")
 			)
 			.map((r) => ({
-				label: `${r.repair_unit} — ${r.product_name} (${__(r.status)} · ${
+				label: `${r.repair_unit} — ${r.product_name} × ${r.qty || 1} (${__(r.status)} · ${
 					r.outcome ? __(r.outcome) : __("Result not specified")
 				})`,
 				value: r.repair_unit,
@@ -333,7 +346,7 @@
 		}
 		if (action === "receive") {
 			(frm.doc.items || frm.repair_data?.items || [])
-				.filter((r) => states.includes(r.status))
+				.filter((r) => states.includes(r.status) && r.has_serial_no)
 				.forEach((row, index) => {
 					fields.push({
 						fieldname: `serial_${index}`,

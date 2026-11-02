@@ -74,7 +74,9 @@ def validate_issue(doc):
 		doc.custom_request_type = "Product Repair" if doc.get("custom_service_repair") else "General Request"
 	else:
 		doc.custom_service_repair = int(doc.custom_request_type == "Product Repair")
-	if doc.get("custom_service_repair") and not frappe.flags.in_migrate and not frappe.flags.in_patch:
+	if doc.get("custom_service_repair") and not (
+		frappe.flags.in_migrate or frappe.flags.in_patch or frappe.flags.repair_unit_action
+	):
 		from erpnext.support.repair_access import require_support
 
 		require_support()
@@ -84,12 +86,15 @@ def validate_issue(doc):
 		return
 	if not doc.company or not doc.contact or not doc.get("custom_repair_items"):
 		frappe.throw(_("A repair request needs a company, sender contact and at least one product."))
+	from erpnext.support.repair_batches import validate_request_rows
+
+	validate_request_rows(doc)
 	before = doc.get_doc_before_save()
 	if before and frappe.db.exists("Repair Unit", {"issue": doc.name}):
 		if any(doc.get(key) != before.get(key) for key in ("company", "customer", "contact")):
 			frappe.throw(_("The repair request identity cannot be changed after creating its repair order."))
 		current = {row.name: row for row in doc.custom_repair_items}
-		for row in before.get("custom_repair_items", []):
+		for row in before.get("custom_repair_items", []) if not frappe.flags.repair_unit_action else []:
 			if row.repair_unit and (
 				row.name not in current
 				or any(
@@ -102,6 +107,7 @@ def validate_issue(doc):
 						"accessories",
 						"photo",
 						"previous_repair",
+						"qty",
 					)
 				)
 			):
@@ -124,6 +130,7 @@ def validate_issue(doc):
 			"disposal_approved",
 			"dispatch_document",
 			"shipment_status",
+			"qty",
 		)
 		if len(old_shipments) != len(new_shipments) or any(
 			any(a.get(k) != b.get(k) for k in keys)
@@ -165,6 +172,9 @@ def validate_unit(doc):
 	before = doc.get_doc_before_save()
 	if frappe.flags.repair_unit_action:
 		return
+	from erpnext.support.repair_batches import RESULT_FIELDS, validate_distribution
+
+	validate_distribution(doc, before)
 	if doc.is_new():
 		frappe.throw(_("Create repair units from a service request."))
 	protected = (
@@ -193,6 +203,10 @@ def validate_unit(doc):
 		"legacy_order_item",
 		"stock_item",
 		"serial_no",
+		"qty",
+		"has_serial_no",
+		"split_from",
+		"split_finalized",
 	)
 	if any(field_changed(doc, before, key) for key in protected):
 		frappe.throw(_("Use repair actions to change repair units."))
@@ -215,7 +229,8 @@ def validate_unit(doc):
 	):
 		frappe.throw(_("Repair work history is append-only. Add a new entry to correct earlier work."))
 	work_changed = len(doc.work_log) != len(old) or any(
-		doc.get(key) != before.get(key) for key in ("diagnosis", "work_done", "outcome")
+		doc.get(key) != before.get(key)
+		for key in ("diagnosis", "work_done", "outcome", *RESULT_FIELDS.values())
 	)
 	if work_changed:
 		check_work_access(doc)
@@ -257,7 +272,7 @@ def after_unit_update(doc):
 		frappe.db.set_value(
 			"Service Request Item",
 			doc.request_row,
-			{"repair_status": doc.status, "repair_outcome": doc.outcome},
+			{"repair_status": doc.status, "repair_outcome": doc.outcome, "qty": doc.qty},
 			update_modified=False,
 		)
 	before = doc.get_doc_before_save()
@@ -357,8 +372,12 @@ def create_units(issue: str):
 					"priority": request.priority,
 					"company": request.company,
 					"item_code": row.item_code,
+					"qty": row.qty,
+					"has_serial_no": row.has_serial_no,
 					"product_name": row.product_name,
-					"factory_serial": previous.factory_serial if row.previous_repair else None,
+					"factory_serial": previous.factory_serial
+					if row.previous_repair and row.has_serial_no
+					else None,
 					"customer": request.customer,
 					"sender_contact": request.contact,
 					"support_user": request.get("custom_support_user") or request.owner,
@@ -421,6 +440,10 @@ def change_stage(unit: str, status: str):
 			doc.repair_user = frappe.session.user
 		if status not in {"In Repair", "Waiting for Parts", "Waiting for Customer", "Ready for Dispatch"}:
 			frappe.throw(_("Invalid repair stage."))
+		if status == "Ready for Dispatch" and doc.qty > 1 and not doc.split_finalized:
+			from erpnext.support.repair_batches import finalize
+
+			return finalize(doc)
 		if status == "Ready for Dispatch" and (
 			(not doc.work_done and doc.outcome != "Not Repairable")
 			or doc.outcome not in {"Repaired", "No Fault Found", "Not Repairable"}
@@ -493,6 +516,8 @@ def summary(doc):
 						"item_code",
 						"priority",
 						"outcome",
+						"qty",
+						"has_serial_no",
 					)
 				},
 				"repair_unit": name,

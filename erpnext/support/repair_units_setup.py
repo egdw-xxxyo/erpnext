@@ -23,6 +23,9 @@ def execute():
 	frappe.flags.in_patch = True
 	try:
 		with internal_action():
+			from erpnext.support.repair_batches import backfill
+
+			backfill()
 			migrate_orders()
 			from erpnext.support.repair_unit_movement import sync_shipment_history
 

@@ -34,6 +34,64 @@
 		await frm.reload_doc();
 	}
 
+	function distribution(frm, canWork) {
+		const field = frm.fields_dict.outcome_distribution;
+		const batch = !frm.doc.has_serial_no && frm.doc.qty > 1;
+		frm.toggle_display("outcome_distribution", batch);
+		frm.toggle_display("outcome", !batch);
+		frm.toggle_display("qty", !frm.doc.has_serial_no);
+		field.$wrapper.empty();
+		if (!batch) return;
+		const options = [
+			["repaired_qty", "Repaired"],
+			["no_fault_qty", "No Fault Found"],
+			["not_repairable_qty", "Not Repairable"],
+		];
+		const editable = canWork && !frm.doc.split_finalized;
+		field.$wrapper.html(`<style>
+			.repair-results{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}
+			.repair-result{flex:1 1 150px;min-width:0;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--border-radius-md);background:var(--control-bg)}
+			.repair-result label{display:block;font-size:var(--text-sm);margin-bottom:6px}
+			.repair-result input{width:100%;border:0;background:var(--card-bg);border-radius:6px;padding:5px 8px;font-weight:600;color:var(--text-color)}
+		</style><div class="repair-results">${options
+			.map(
+				([key, label]) => `
+			<div class="repair-result"><label for="repair-${key}">${esc(__(label))}</label>
+			<input id="repair-${key}" data-result="${key}" type="number" min="0" max="${frm.doc.qty}" step="1" value="${
+					frm.doc[key] || 0
+				}" ${editable ? "" : "disabled"}></div>`
+			)
+			.join("")}
+		</div><div class="text-muted small repair-result-total"></div>`);
+		const updateTotal = () => {
+			const total = options.reduce((sum, [key]) => sum + (frm.doc[key] || 0), 0);
+			field.$wrapper
+				.find(".repair-result-total")
+				.text(__("Distributed {0} of {1}", [total, frm.doc.qty]));
+			for (const [key] of options) {
+				field.$wrapper
+					.find(`[data-result="${key}"]`)
+					.attr("max", frm.doc.qty - total + (frm.doc[key] || 0));
+			}
+		};
+		updateTotal();
+		field.$wrapper.find("input[data-result]").on("change", async function () {
+			const key = this.dataset.result;
+			const value = Number(this.value);
+			const others = options.reduce((sum, [name]) => sum + (name === key ? 0 : frm.doc[name] || 0), 0);
+			if (!Number.isInteger(value) || value < 0 || value + others > frm.doc.qty) {
+				this.value = frm.doc[key] || 0;
+				frappe.show_alert({
+					message: __("The total repair result quantity cannot exceed the repair quantity."),
+					indicator: "red",
+				});
+				return;
+			}
+			await frm.set_value(key, value);
+			updateTotal();
+		});
+	}
+
 	function render_parts(frm, rows) {
 		frm.fields_dict.total_cost.$wrapper.siblings(".repair-consumed-parts").remove();
 		const headers = [
@@ -159,6 +217,8 @@
 			["diagnosis", "work_done", "outcome", "work_log"].forEach((field) =>
 				frm.set_df_property(field, "read_only", !canWork)
 			);
+			if (frm.doc.split_finalized) frm.set_df_property("outcome", "read_only", true);
+			distribution(frm, canWork);
 			if (canWork) {
 				if (
 					["Waiting for Parts", "Waiting for Customer", "Ready for Dispatch"].includes(

@@ -121,6 +121,8 @@ def register(
 	serials = frappe.parse_json(serials) if isinstance(serials, str) else (serials or {})
 	if not isinstance(serials, dict) or set(serials) - {doc.name for doc in docs}:
 		frappe.throw(_("Specify serial numbers only for the selected repair units."))
+	if any(serials.get(doc.name) and not doc.has_serial_no for doc in docs):
+		frappe.throw(_("A factory serial number is only available for serialized items."))
 	if action in {"receive", "dispatch"}:
 		validate_delivery(delivery_type, waybill, delivery_details)
 	if action == "dispose":
@@ -146,7 +148,12 @@ def register(
 			"warehouse": warehouse
 			or (repairs.warehouse_for(docs[0].company) if action == "receive" else None),
 			"items": [
-				{"repair_unit": doc.name, "factory_serial": serials.get(doc.name, doc.factory_serial)}
+				{
+					"repair_unit": doc.name,
+					"qty": doc.qty,
+					"has_serial_no": doc.has_serial_no,
+					"factory_serial": serials.get(doc.name, doc.factory_serial),
+				}
 				for doc in docs
 			],
 		}
@@ -159,6 +166,7 @@ def register(
 					"custom_repair_shipments",
 					{
 						"repair_unit": doc.name,
+						"qty": doc.qty,
 						"movement": entry.name,
 						"waybill": entry.waybill,
 						"delivery_type": entry.delivery_type,
@@ -222,6 +230,10 @@ def validate(doc):
 			):
 				frappe.throw(_("Delivery and disposal details must match the recorded repair action."))
 	for detail, unit in zip(doc.items, units, strict=True):
+		if detail.qty != unit.qty:
+			frappe.throw(_("Movement quantity must match the selected repair result row."))
+		if doc.action == "receive" and detail.factory_serial and not unit.has_serial_no:
+			frappe.throw(_("A factory serial number is only available for serialized items."))
 		if doc.action != "receive" and detail.factory_serial != unit.factory_serial:
 			frappe.throw(_("Confirm the factory serial number during receipt."))
 
@@ -282,7 +294,9 @@ def before_cancel(doc):
 			"approval",
 			"dispatch_document",
 		)
-	) or [row.repair_unit for row in doc.items] != [row.repair_unit for row in saved.items]:
+	) or [(row.repair_unit, row.qty, row.factory_serial) for row in doc.items] != [
+		(row.repair_unit, row.qty, row.factory_serial) for row in saved.items
+	]:
 		frappe.throw(_("Use repair actions to change repair units."))
 	if doc.action != "transfer":
 		repairs.issue_doc(doc.issue)

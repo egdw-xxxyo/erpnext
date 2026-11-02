@@ -12,6 +12,10 @@
   "company",
   "item_code",
   "product_name",
+  "has_serial_no",
+  "qty",
+  "split_from",
+  "split_finalized",
   "factory_serial",
   "previous_repair",
   "unit_info_column",
@@ -27,6 +31,10 @@
   "diagnosis",
   "work_done",
   "outcome",
+  "outcome_distribution",
+  "repaired_qty",
+  "no_fault_qty",
+  "not_repairable_qty",
   "work_log",
   "unit_costs_tab",
   "currency",
@@ -46,6 +54,34 @@
   "serial_no"
  ],
  "fields": [
+  {
+   "fieldname": "has_serial_no", "label": "Has Serial No", "fieldtype": "Check",
+   "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "qty", "label": "Quantity", "fieldtype": "Int", "default": "1", "read_only": 1
+  },
+  {
+   "fieldname": "split_from", "label": "Source Repair Card", "fieldtype": "Link",
+   "options": "Repair Unit", "read_only": 1, "depends_on": "eval:doc.split_from",
+   "description": "Work and cost history remains on the source repair card."
+  },
+  {
+   "fieldname": "split_finalized", "label": "Repair Results Distributed", "fieldtype": "Check",
+   "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "outcome_distribution", "label": "Repair Results by Quantity", "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "repaired_qty", "label": "Repaired Quantity", "fieldtype": "Int", "hidden": 1
+  },
+  {
+   "fieldname": "no_fault_qty", "label": "No Fault Found Quantity", "fieldtype": "Int", "hidden": 1
+  },
+  {
+   "fieldname": "not_repairable_qty", "label": "Not Repairable Quantity", "fieldtype": "Int", "hidden": 1
+  },
   {
    "fieldname": "product_name",
    "label": "Product Description",
@@ -67,6 +103,7 @@
    "label": "Factory Serial Number",
    "fieldtype": "Data",
    "read_only": 1,
+   "depends_on": "eval:doc.has_serial_no",
    "in_list_view": 0
   },
   {

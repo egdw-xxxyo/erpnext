@@ -236,6 +236,10 @@ class TestIndividualRepairs(TestCase):
 
 	def test_receipt_serials_and_cancellation_do_not_touch_stock(self):
 		frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 0)
+		self.item.has_serial_no = 1
+		self.item.save()
+		self.request = self.request_doc()
+		self.names = create_units(self.request.name)
 		entry = self.receive(
 			units=list(reversed(self.names)), serials={self.names[0]: "A", self.names[1]: "B"}
 		)

@@ -16694,3 +16694,20 @@ Attach a saved dispatch confirmation document.,Прикріпіть збереж
 Chat attachments cannot be reused as dispatch documents.,Вкладення чату не можна використовувати як документи відправлення.
 Dispatch confirmation must be a PDF or PNG/JPG/JPEG image.,Підтвердження відправлення має бути PDF або зображенням PNG/JPG/JPEG.
 A dispatch document can only be attached when returning units to the customer.,Документ відправлення можна прикріпити лише під час повернення виробів клієнту.
+Source Repair Card,Вихідна картка ремонту
+Repair Results Distributed,Результати ремонту розподілено
+Repair Results by Quantity,Результати ремонту за кількістю
+Repaired Quantity,Кількість відремонтованих
+No Fault Found Quantity,Кількість без виявленої несправності
+Not Repairable Quantity,Кількість неремонтопридатних
+Distributed {0} of {1},Розподілено {0} із {1}
+Work and cost history remains on the source repair card.,Історія робіт і витрат зберігається у вихідній картці ремонту.
+Repair quantities must be whole numbers and cannot be negative or empty.,Кількість виробів має бути цілим додатним числом; кількість за результатом може дорівнювати нулю.
+A serialized item must have its own repair row with quantity 1.,Для товару із серійним номером потрібен окремий рядок ремонту з кількістю 1.
+The total repair result quantity cannot exceed the repair quantity.,Сумарна кількість за результатами ремонту не може перевищувати заявлену кількість.
+Distributed repair results are fixed. Continue delivery or disposal on the result rows.,Розподілені результати ремонту зафіксовано. Продовжуйте відправлення або утилізацію за рядками результатів.
+Distribute the repair quantity between results instead of choosing a single result.,Розподіліть кількість виробів між результатами замість вибору одного результату.
+Distribute the entire repair quantity before marking the repair ready.,Перед готовністю до відправлення розподіліть усю кількість виробів за результатами ремонту.
+Cannot find the source request row for this repair.,Не знайдено вихідний рядок заявки для цього ремонту.
+A factory serial number is only available for serialized items.,Заводський серійний номер можна вводити лише для товарів із серійним номером.
+Movement quantity must match the selected repair result row.,Кількість у переміщенні має відповідати вибраному рядку результату ремонту.

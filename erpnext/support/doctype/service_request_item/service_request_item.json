@@ -10,12 +10,23 @@
   "previous_repair",
   "item_code",
   "product_name",
+  "has_serial_no",
+  "qty",
   "factory_serial",
   "fault_description",
   "accessories",
   "photo"
  ],
  "fields": [
+  {
+   "fieldname": "has_serial_no", "label": "Has Serial No", "fieldtype": "Check",
+   "fetch_from": "item_code.has_serial_no", "read_only": 1, "hidden": 1
+  },
+  {
+   "fieldname": "qty", "label": "Quantity", "fieldtype": "Int", "default": "1",
+   "reqd": 1, "in_list_view": 1, "columns": 1,
+   "read_only_depends_on": "eval:doc.has_serial_no || doc.repair_unit"
+  },
   {
    "fieldname": "repair_unit",
    "label": "Repair Unit",
@@ -57,7 +68,7 @@
    "fieldtype": "Small Text",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 1
   },
   {
    "fieldname": "accessories",
