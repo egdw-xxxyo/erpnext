@@ -17,6 +17,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_service_repair_fields()
 	setup_recurring_purchase_fields()
 	setup_invoice_payment_routes()
 	setup_procurement_item_likes()
@@ -116,6 +117,316 @@ def execute():
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_service_repair_fields():
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+	had_request_type = frappe.db.exists("Custom Field", "Issue-custom_request_type")
+	create_custom_fields(
+		{
+			"Assignment Rule": [
+				{
+					"fieldname": "custom_repair_assignee_role",
+					"label": "Repair Assignee Role",
+					"fieldtype": "Link",
+					"options": "Role",
+					"insert_after": "rule",
+					"depends_on": "eval:doc.document_type == 'Repair Unit' && ['Round Robin', 'Load Balancing'].includes(doc.rule)",
+					"description": "Assign received repair cards to enabled users with this role and repair access.",
+				},
+			],
+			"ToDo": [
+				{
+					"fieldname": "custom_repair_managed",
+					"label": "Managed by Repair",
+					"fieldtype": "Check",
+					"hidden": 1,
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "status",
+				},
+			],
+			"Issue": [
+				{
+					"fieldname": "custom_repair_delivery_column",
+					"fieldtype": "Column Break",
+					"insert_after": "custom_repair_delivery_details",
+				},
+				{
+					"fieldname": "custom_request_references_section",
+					"label": "Related Documents",
+					"fieldtype": "Section Break",
+					"insert_after": "custom_repair_return_address",
+				},
+				{
+					"fieldname": "custom_repair_products_section",
+					"label": "Products for Repair",
+					"fieldtype": "Section Break",
+					"insert_after": "custom_repair_sales_order",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_support_user",
+					"label": "Responsible Support",
+					"fieldtype": "Link",
+					"options": "User",
+					"default": "__user",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "military_unit",
+					"in_standard_filter": 1,
+				},
+				{
+					"fieldname": "custom_request_type",
+					"label": "Support Request Type",
+					"fieldtype": "Select",
+					"options": "General Request\nProduct Repair",
+					"default": "General Request",
+					"reqd": 1,
+					"insert_after": "subject",
+					"in_standard_filter": 1,
+				},
+				{
+					"fieldname": "custom_contact_details_section",
+					"label": "Contact Details",
+					"fieldtype": "Section Break",
+					"insert_after": "issue_split_from",
+				},
+				{
+					"fieldname": "custom_repair_contact_details",
+					"label": "Contact Details",
+					"fieldtype": "HTML",
+					"insert_after": "contact",
+					"depends_on": "",
+				},
+				{
+					"fieldname": "custom_repair_route_section",
+					"fieldtype": "Section Break",
+					"insert_after": "",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_service_repair",
+					"label": "Product Repair",
+					"fieldtype": "Check",
+					"insert_after": "subject",
+					"hidden": 1,
+				},
+				{
+					"fieldname": "custom_repair_section",
+					"label": "Delivery Details",
+					"fieldtype": "Section Break",
+					"insert_after": "customer_name",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_repair_route",
+					"label": "Repair Route",
+					"fieldtype": "HTML",
+					"insert_after": "custom_repair_route_section",
+				},
+				{
+					"fieldname": "custom_repair_order",
+					"label": "Repair Order",
+					"fieldtype": "Link",
+					"options": "Repair Order",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_repair_section",
+					"hidden": 1,
+				},
+				{
+					"fieldname": "custom_repair_delivery_type",
+					"label": "Inbound Delivery Type",
+					"fieldtype": "Select",
+					"options": "\nNova Poshta\nUkrposhta\nTaxi\nSelf Pickup\nOther",
+					"insert_after": "custom_repair_order",
+				},
+				{
+					"fieldname": "custom_repair_waybill",
+					"label": "Inbound Waybill",
+					"fieldtype": "Data",
+					"insert_after": "custom_repair_delivery_type",
+					"depends_on": "eval:['Nova Poshta', 'Ukrposhta'].includes(doc.custom_repair_delivery_type) || (!doc.custom_repair_delivery_type && doc.custom_repair_waybill)",
+				},
+				{
+					"fieldname": "custom_repair_delivery_details",
+					"label": "Inbound Delivery Details",
+					"fieldtype": "Small Text",
+					"insert_after": "custom_repair_waybill",
+					"depends_on": "eval:doc.custom_repair_delivery_type && !['Nova Poshta', 'Ukrposhta'].includes(doc.custom_repair_delivery_type)",
+				},
+				{
+					"fieldname": "custom_repair_return_address",
+					"label": "Return Address",
+					"fieldtype": "Small Text",
+					"insert_after": "custom_repair_delivery_details",
+				},
+				{
+					"fieldname": "custom_repair_sales_order",
+					"label": "Sales Order",
+					"fieldtype": "Link",
+					"options": "Sales Order",
+					"insert_after": "custom_repair_return_address",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_repair_items",
+					"label": "Products for Repair",
+					"fieldtype": "Table",
+					"options": "Service Request Item",
+					"insert_after": "custom_repair_sales_order",
+					"description": "One row per physical unit. Describe the fault separately for each unit.",
+				},
+				{
+					"fieldname": "custom_repair_shipments",
+					"label": "Repair Shipments",
+					"fieldtype": "Table",
+					"options": "Repair Shipment",
+					"read_only": 1,
+					"insert_after": "custom_repair_items",
+				},
+			],
+			"Stock Entry": [
+				{
+					"fieldname": "custom_repair_unit",
+					"label": "Repair Unit",
+					"fieldtype": "Link",
+					"options": "Repair Unit",
+					"insert_after": "stock_entry_type",
+					"read_only": 1,
+					"no_copy": 1,
+				},
+				{
+					"fieldname": "custom_repair_order",
+					"label": "Repair Order",
+					"fieldtype": "Link",
+					"options": "Repair Order",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "stock_entry_type",
+				},
+				{
+					"fieldname": "custom_repair_action",
+					"label": "Repair Action",
+					"fieldtype": "Data",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_repair_order",
+				},
+				{
+					"fieldname": "custom_repair_data",
+					"label": "Repair Movement Data",
+					"fieldtype": "Long Text",
+					"hidden": 1,
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_repair_action",
+				},
+			],
+			"Stock Entry Detail": [
+				{
+					"fieldname": "custom_repair_unit",
+					"label": "Repair Unit",
+					"fieldtype": "Link",
+					"options": "Repair Unit",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "item_code",
+				},
+			],
+		}
+	)
+
+	# Move stock fields with a Property Setter rather than rewriting Issue JSON.
+	frappe.make_property_setter(
+		{
+			"doctype": "Assignment Rule",
+			"fieldname": "users",
+			"property": "mandatory_depends_on",
+			"value": "eval:['Round Robin', 'Load Balancing'].includes(doc.rule) && !doc.custom_repair_assignee_role",
+			"property_type": "Code",
+		},
+		validate_fields_for_doctype=False,
+	)
+	current = [df.fieldname for df in frappe.get_meta("Issue", cached=False).fields]
+	# Keep company in its original additional-info location.
+	header = [
+		"subject_section",
+		"naming_series",
+		"subject",
+		"custom_request_type",
+		"customer",
+		"military_unit",
+		"custom_support_user",
+		"cb00",
+		"status",
+		"priority",
+		"issue_type",
+		"contact",
+		"custom_service_repair",
+		"custom_contact_details_section",
+		"custom_repair_contact_details",
+	]
+	route_fields = ["custom_repair_route_section", "custom_repair_route"]
+	repair_fields = [
+		"custom_request_references_section",
+		"custom_repair_sales_order",
+		"lead",
+		"custom_repair_section",
+		"custom_repair_order",
+		"custom_repair_delivery_type",
+		"custom_repair_waybill",
+		"custom_repair_delivery_details",
+		"custom_repair_delivery_column",
+		"custom_repair_return_address",
+		"custom_repair_products_section",
+		"custom_repair_items",
+		"custom_repair_shipments",
+	]
+	preferred = route_fields + header + repair_fields
+	arranged = [name for name in preferred if name in current] + [
+		name for name in current if name not in preferred
+	]
+	# Secondary identity fields belong in the existing additional-info section.
+	for name in ("raised_by", "customer_name", "issue_split_from"):
+		arranged = _move_field_after(arranged, (name, "additional_info"))
+	arranged = _move_field_after(arranged, ("company", "project"))
+	frappe.make_property_setter(
+		{
+			"doctype": "Issue",
+			"fieldname": "email_account",
+			"property": "hidden",
+			"value": "1",
+			"property_type": "Check",
+		},
+		validate_fields_for_doctype=False,
+	)
+	if arranged != current:
+		frappe.make_property_setter(
+			{
+				"doctype": "Issue",
+				"doctype_or_field": "DocType",
+				"property": "field_order",
+				"value": json.dumps(arranged),
+				"property_type": "Data",
+			},
+			validate_fields_for_doctype=False,
+		)
+		frappe.clear_cache(doctype="Issue")
+	if not had_request_type:
+		frappe.db.sql(
+			"""update `tabIssue` set custom_request_type =
+			case when custom_service_repair = 1 then 'Product Repair' else 'General Request' end"""
+		)
+	frappe.db.sql(
+		"""update `tabIssue` set custom_support_user = owner
+		where custom_support_user is null or custom_support_user = ''"""
+	)
+	from erpnext.support.repair_access import setup as setup_repair_access
+
+	setup_repair_access()
 
 
 def setup_recurring_purchase_fields():

@@ -250,6 +250,8 @@ def auto_close_tickets():
 
 	for issue in issues:
 		doc = frappe.get_doc("Issue", issue)
+		if doc.get("custom_service_repair"):
+			continue
 		doc.status = "Closed"
 		doc.flags.ignore_permissions = True
 		doc.flags.ignore_mandatory = True

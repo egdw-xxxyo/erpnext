@@ -1,0 +1,106 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Shipment",
+ "module": "Support",
+ "engine": "InnoDB",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "repair_unit",
+  "qty",
+  "movement",
+  "delivery_type",
+  "waybill",
+  "delivery_details",
+  "disposal_approved",
+  "approval",
+  "shipment_status",
+  "dispatch_document",
+  "cancelled"
+ ],
+ "fields": [
+  {
+   "fieldname": "qty", "label": "Quantity", "fieldtype": "Int",
+   "default": "1", "read_only": 1, "in_list_view": 1, "columns": 1
+  },
+  {
+   "fieldname": "repair_unit",
+   "label": "Repair Unit",
+   "fieldtype": "Link",
+   "options": "Repair Unit",
+   "columns": 2,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "movement",
+   "label": "Repair Movement",
+   "fieldtype": "Link",
+   "options": "Repair Movement",
+   "columns": 2,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "waybill",
+   "label": "Waybill",
+   "columns": 2,
+   "fieldtype": "Data",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "approval",
+   "label": "Customer Disposal Approval",
+   "fieldtype": "Attach",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cancelled",
+   "label": "Cancelled",
+   "fieldtype": "Check",
+   "read_only": 1,
+   "in_list_view": 0,
+   "hidden": 1
+  },
+  {
+   "fieldname": "shipment_status",
+   "label": "Shipment Status",
+   "columns": 2,
+   "fieldtype": "Select",
+   "options": "\nDispatched\nCancelled\nDisposed",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "dispatch_document",
+   "label": "Dispatch Document",
+   "fieldtype": "Attach",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delivery_type",
+   "label": "Delivery Type",
+   "columns": 1,
+   "fieldtype": "Select",
+   "options": "\nNova Poshta\nUkrposhta\nTaxi\nSelf Pickup\nOther",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "delivery_details",
+   "label": "Delivery Details",
+   "fieldtype": "Small Text",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "disposal_approved",
+   "label": "Customer Agreed to Disposal",
+   "fieldtype": "Check",
+   "read_only": 1,
+   "in_list_view": 0
+  }
+ ],
+ "permissions": []
+}

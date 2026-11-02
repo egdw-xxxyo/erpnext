@@ -1,0 +1,50 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Settings",
+ "module": "Support",
+ "engine": "InnoDB",
+ "field_order": [
+  "warehouses",
+  "repair_warehouse",
+  "stock_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "warehouses",
+   "label": "Repair Warehouses by Company",
+   "fieldtype": "Table",
+   "options": "Repair Company Warehouse",
+   "description": "Select an existing repair warehouse for each company. Warehouses are not created automatically."
+  },
+  {
+   "fieldname": "repair_warehouse",
+   "label": "Repair Warehouse",
+   "fieldtype": "Link",
+   "options": "Warehouse",
+   "reqd": 0,
+   "description": "Default storage location for customer repairs. Customer units are tracked outside stock balances.",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_item",
+   "label": "Repair Stock Item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "hidden": 1,
+   "read_only": 1,
+   "reqd": 0
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1
+  }
+ ],
+ "track_changes": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "issingle": 1
+}

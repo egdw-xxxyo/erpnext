@@ -1,0 +1,48 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Movement Item",
+ "module": "Support",
+ "engine": "InnoDB",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "repair_unit",
+  "qty",
+  "has_serial_no",
+  "factory_serial",
+  "previous_state"
+ ],
+ "fields": [
+  {
+   "fieldname": "has_serial_no", "label": "Has Serial No", "fieldtype": "Check",
+   "fetch_from": "repair_unit.has_serial_no", "hidden": 1, "read_only": 1
+  },
+  {
+   "fieldname": "qty", "label": "Quantity", "fieldtype": "Int",
+   "default": "1", "read_only": 1, "in_list_view": 1
+  },
+  {
+   "fieldname": "repair_unit",
+   "label": "Repair Unit",
+   "fieldtype": "Link",
+   "options": "Repair Unit",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "factory_serial",
+   "label": "Factory Serial Number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "depends_on": "eval:doc.has_serial_no"
+  },
+  {
+   "fieldname": "previous_state",
+   "label": "Previous Repair State",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "read_only": 1
+  }
+ ],
+ "permissions": []
+}

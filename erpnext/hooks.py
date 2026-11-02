@@ -44,6 +44,9 @@ after_request = ["erpnext.access_control.denial.attach_denial_context"]
 before_request = ["erpnext.access_control.impersonation.enforce_view_mode"]
 
 doctype_js = {
+	"Issue": "public/js/custom/service_repair.js",
+	"Repair Unit": "public/js/custom/repair_unit.js",
+	"Repair Settings": "public/js/custom/repair_settings.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
 	"Consolidated Purchase Order": [
@@ -108,6 +111,7 @@ doctype_js = {
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"Repair Unit": "public/js/custom/repair_unit_list.js",
 	"Purchase Invoice": "public/js/custom/purchase_invoice_vat_list.js",
 	"ToDo": "public/js/custom/todo_list.js",
 	"Code List": [
@@ -127,6 +131,8 @@ override_doctype_class = {
 }
 
 extend_doctype_class = {
+	"Issue": ["erpnext.support.request_intake.SupportRequestIntake"],
+	"Assignment Rule": ["erpnext.support.repair_assignment.RepairAssignmentRule"],
 	"Purchase Invoice": ["erpnext.buying.recurring_purchase.RecurringPurchaseInvoice"],
 	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
@@ -234,6 +240,8 @@ before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
+	"erpnext.patches.setup_custom_fields.setup_service_repair_fields",
+	"erpnext.support.repair_units_setup.execute",
 	"erpnext.setup.payment_workflow_setup.after_migrate",
 	"erpnext.setup.procurement_workflow_setup.after_migrate",
 	"erpnext.buying.recurring_purchase.setup",
@@ -598,7 +606,11 @@ doc_events = {
 		],
 	},
 	"Issue": {
-		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+		"on_update": "erpnext.support.repair_units.sync_priority",
+		"validate": [
+			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.support.service_repair.validate_issue",
+		],
 	},
 	"Customer": {
 		"after_insert": "erpnext.crm.doctype.prospect.prospect.propagate_customer_to_leads",
@@ -636,11 +648,13 @@ doc_events = {
 	},
 	"Stock Entry": {
 		"validate": [
+			"erpnext.support.service_repair.validate_stock_entry",
 			"erpnext.crm.doctype.lead_expense.lead_expense.validate_stock_entry",
 			# a packed box is issued whole and marked Shipped
 			"erpnext.stock.package_shipping.validate_whole_packages",
 		],
 		"on_submit": [
+			"erpnext.support.service_repair.submit_stock_entry",
 			"erpnext.stock.package_shipping.mark_shipped",
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			# record which fiber reel each produced optical spool was wound from
@@ -648,6 +662,7 @@ doc_events = {
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		],
 		"on_cancel": [
+			"erpnext.support.service_repair.cancel_stock_entry",
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 			# a consumption issued for this entry goes back with it
@@ -813,6 +828,7 @@ doc_events = {
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
 		"on_update": [
 			"erpnext.buying.procurement_automation.sync_current_assignees",
+			"erpnext.support.repair_units.sync_assignee",
 			# an assignee always belongs to the chat of the record they are assigned to
 			"erpnext.crm.chat_members.on_todo_change",
 		],
