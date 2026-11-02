@@ -24,6 +24,9 @@ def execute():
 	try:
 		with internal_action():
 			migrate_orders()
+			from erpnext.support.repair_unit_movement import sync_shipment_history
+
+			sync_shipment_history()
 			for unit in frappe.get_all("Repair Unit", fields=["request_row", "status", "outcome"]):
 				if unit.request_row:
 					frappe.db.set_value(

@@ -137,15 +137,29 @@
 		async refresh(frm) {
 			frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");
 			if (frm.is_new()) return;
+			const manager = frappe.session.user === "Administrator" || frappe.user.has_role("System Manager");
+			const technician = manager || frappe.user.has_role("Repair Technician");
+			const ownRepair = manager || frm.doc.repair_user === frappe.session.user;
 			const canWork = Boolean(
-				frm.doc.received_on && working.includes(frm.doc.status) && frm.perm?.[0]?.write
+				technician &&
+					ownRepair &&
+					frm.doc.received_on &&
+					working.includes(frm.doc.status) &&
+					frm.perm?.[0]?.write
 			);
+			if (
+				technician &&
+				frm.doc.status === "Received" &&
+				frm.doc.received_on &&
+				(!frm.doc.repair_user || ownRepair) &&
+				frm.perm?.[0]?.write
+			) {
+				frm.add_custom_button(__("Take into Work"), () => stage(frm, "In Repair"));
+			}
 			["diagnosis", "work_done", "outcome", "work_log"].forEach((field) =>
 				frm.set_df_property(field, "read_only", !canWork)
 			);
 			if (canWork) {
-				if (frm.doc.status === "Received")
-					frm.add_custom_button(__("Start Repair"), () => stage(frm, "In Repair"));
 				if (
 					["Waiting for Parts", "Waiting for Customer", "Ready for Dispatch"].includes(
 						frm.doc.status

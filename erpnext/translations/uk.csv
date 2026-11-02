@@ -16672,3 +16672,25 @@ Confirm that the customer agreed to disposal.,"Підтвердьте, що кл
 Attach a saved disposal approval file.,Прикріпіть збережений файл погодження утилізації.
 Only units with a Not Repairable result can be disposed of.,Утилізувати можна лише вироби з результатом «Ремонт неможливий».
 Delivery and disposal details must match the recorded repair action.,Подробиці доставки та утилізації мають відповідати записаній дії ремонту.
+Only repair support can manage intake and delivery.,Прийманням і доставкою може керувати лише саппорт ремонту.
+Only a repair technician can edit repair work.,Змінювати ремонтні роботи може лише ремонтник.
+Take the repair into work before editing it.,Перш ніж змінювати ремонтні дані візьміть ремонт у роботу.
+Take repair {0} into work.,Візьміть ремонт {0} у роботу.
+Take into Work,Взяти в роботу
+Repair Support,Саппорт ремонту
+Contact phone is not specified,Телефон контакту не вказано
+Telegram,Telegram
+WhatsApp,WhatsApp
+Viber,Viber
+General Request,Загальна заявка
+Support Request Type,Тип заявки
+Responsible Support,Відповідальний саппорт
+New repair card {0}: {1},Нова картка ремонту {0}: {1}
+Contact Details,Контактні дані
+Shipment Status,Статус відправлення
+Dispatch Document,Документ відправлення
+Optional PDF or image confirming the return shipment to the customer.,Необов'язковий PDF або зображення для підтвердження відправлення клієнту.
+Attach a saved dispatch confirmation document.,Прикріпіть збережений документ підтвердження відправлення.
+Chat attachments cannot be reused as dispatch documents.,Вкладення чату не можна використовувати як документи відправлення.
+Dispatch confirmation must be a PDF or PNG/JPG/JPEG image.,Підтвердження відправлення має бути PDF або зображенням PNG/JPG/JPEG.
+A dispatch document can only be attached when returning units to the customer.,Документ відправлення можна прикріпити лише під час повернення виробів клієнту.

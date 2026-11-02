@@ -2,21 +2,24 @@ import frappe
 from frappe import _
 
 
+def role_users(role, doc=None):
+	members = frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent")
+	users = (
+		frappe.get_all(
+			"User",
+			filters={"name": ["in", members], "enabled": 1, "user_type": "System User"},
+			pluck="name",
+			order_by="name",
+		)
+		if members
+		else []
+	)
+	return [user for user in users if frappe.has_permission("Repair Unit", "write", doc=doc, user=user)]
+
+
 class RepairAssignmentRule:
 	def role_users(self, doc=None):
-		role = self.get("custom_repair_assignee_role")
-		members = frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent")
-		users = (
-			frappe.get_all(
-				"User",
-				filters={"name": ["in", members], "enabled": 1, "user_type": "System User"},
-				pluck="name",
-				order_by="name",
-			)
-			if members
-			else []
-		)
-		return [user for user in users if frappe.has_permission("Repair Unit", "write", doc=doc, user=user)]
+		return role_users(self.get("custom_repair_assignee_role"), doc)
 
 	def validate(self):
 		if self.document_type != "Repair Unit":
@@ -25,8 +28,6 @@ class RepairAssignmentRule:
 			if self.rule not in {"Round Robin", "Load Balancing"}:
 				frappe.throw(_("Role-based repair assignment supports Round Robin or Load Balancing."))
 			users = self.role_users()
-			if not users:
-				frappe.throw(_("Give the repair role to an enabled user before saving this assignment rule."))
 			self.set("users", [{"user": user} for user in users])
 		super().validate()
 
@@ -35,6 +36,12 @@ class RepairAssignmentRule:
 			not doc.get("received_on")
 			or not doc.get("warehouse")
 			or doc.get("status") not in {"Received", "In Repair", "Waiting for Parts", "Waiting for Customer"}
+		):
+			return False
+		if (
+			self.document_type == "Repair Unit"
+			and self.get("custom_repair_assignee_role")
+			and not self.role_users()
 		):
 			return False
 		return super().apply_assign(doc)

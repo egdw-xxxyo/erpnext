@@ -13,6 +13,8 @@
   "delivery_details",
   "disposal_approved",
   "approval",
+  "shipment_status",
+  "dispatch_document",
   "cancelled"
  ],
  "fields": [
@@ -50,7 +52,22 @@
    "label": "Cancelled",
    "fieldtype": "Check",
    "read_only": 1,
+   "in_list_view": 0,
+   "hidden": 1
+  },
+  {
+   "fieldname": "shipment_status",
+   "label": "Shipment Status",
+   "fieldtype": "Select",
+   "options": "\nDispatched\nCancelled\nDisposed",
+   "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "dispatch_document",
+   "label": "Dispatch Document",
+   "fieldtype": "Attach",
+   "read_only": 1
   },
   {
    "fieldname": "delivery_type",

@@ -117,6 +117,7 @@ override_doctype_class = {
 }
 
 extend_doctype_class = {
+	"Issue": ["erpnext.support.request_intake.SupportRequestIntake"],
 	"Assignment Rule": ["erpnext.support.repair_assignment.RepairAssignmentRule"],
 	"Purchase Invoice": ["erpnext.buying.recurring_purchase.RecurringPurchaseInvoice"],
 	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],

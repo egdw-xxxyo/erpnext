@@ -121,6 +121,7 @@ def execute():
 def setup_service_repair_fields():
 	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+	had_request_type = frappe.db.exists("Custom Field", "Issue-custom_request_type")
 	create_custom_fields(
 		{
 			"Assignment Rule": [
@@ -147,6 +148,58 @@ def setup_service_repair_fields():
 			],
 			"Issue": [
 				{
+					"fieldname": "custom_repair_delivery_column",
+					"fieldtype": "Column Break",
+					"insert_after": "custom_repair_delivery_details",
+				},
+				{
+					"fieldname": "custom_request_references_section",
+					"label": "Related Documents",
+					"fieldtype": "Section Break",
+					"insert_after": "custom_repair_return_address",
+				},
+				{
+					"fieldname": "custom_repair_products_section",
+					"label": "Products for Repair",
+					"fieldtype": "Section Break",
+					"insert_after": "custom_repair_sales_order",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_support_user",
+					"label": "Responsible Support",
+					"fieldtype": "Link",
+					"options": "User",
+					"default": "__user",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "military_unit",
+					"in_standard_filter": 1,
+				},
+				{
+					"fieldname": "custom_request_type",
+					"label": "Support Request Type",
+					"fieldtype": "Select",
+					"options": "General Request\nProduct Repair",
+					"default": "General Request",
+					"reqd": 1,
+					"insert_after": "subject",
+					"in_standard_filter": 1,
+				},
+				{
+					"fieldname": "custom_contact_details_section",
+					"label": "Contact Details",
+					"fieldtype": "Section Break",
+					"insert_after": "issue_split_from",
+				},
+				{
+					"fieldname": "custom_repair_contact_details",
+					"label": "Contact Details",
+					"fieldtype": "HTML",
+					"insert_after": "contact",
+					"depends_on": "",
+				},
+				{
 					"fieldname": "custom_repair_route_section",
 					"fieldtype": "Section Break",
 					"insert_after": "",
@@ -157,10 +210,11 @@ def setup_service_repair_fields():
 					"label": "Product Repair",
 					"fieldtype": "Check",
 					"insert_after": "subject",
+					"hidden": 1,
 				},
 				{
 					"fieldname": "custom_repair_section",
-					"label": "Product Repair",
+					"label": "Delivery Details",
 					"fieldtype": "Section Break",
 					"insert_after": "customer_name",
 					"depends_on": "custom_service_repair",
@@ -296,22 +350,58 @@ def setup_service_repair_fields():
 		validate_fields_for_doctype=False,
 	)
 	current = [df.fieldname for df in frappe.get_meta("Issue", cached=False).fields]
-	moves = (
-		("contact", "issue_split_from"),
-		("customer_name", "contact"),
-		("custom_repair_section", "customer_name"),
-		("custom_repair_order", "custom_repair_section"),
-		("custom_repair_delivery_type", "custom_repair_order"),
-		("custom_repair_waybill", "custom_repair_delivery_type"),
-		("custom_repair_delivery_details", "custom_repair_waybill"),
-		("custom_repair_return_address", "custom_repair_delivery_details"),
-		("custom_repair_sales_order", "custom_repair_return_address"),
-		("custom_repair_items", "custom_repair_sales_order"),
-		("custom_repair_shipments", "custom_repair_items"),
-	)
-	arranged = reduce(_move_field_after, moves, current)
+	# Keep company in its original additional-info location.
+	header = [
+		"subject_section",
+		"naming_series",
+		"subject",
+		"custom_request_type",
+		"customer",
+		"military_unit",
+		"custom_support_user",
+		"cb00",
+		"status",
+		"priority",
+		"issue_type",
+		"contact",
+		"custom_service_repair",
+		"custom_contact_details_section",
+		"custom_repair_contact_details",
+	]
 	route_fields = ["custom_repair_route_section", "custom_repair_route"]
-	arranged = route_fields + [name for name in arranged if name not in route_fields]
+	repair_fields = [
+		"custom_request_references_section",
+		"custom_repair_sales_order",
+		"lead",
+		"custom_repair_section",
+		"custom_repair_order",
+		"custom_repair_delivery_type",
+		"custom_repair_waybill",
+		"custom_repair_delivery_details",
+		"custom_repair_delivery_column",
+		"custom_repair_return_address",
+		"custom_repair_products_section",
+		"custom_repair_items",
+		"custom_repair_shipments",
+	]
+	preferred = route_fields + header + repair_fields
+	arranged = [name for name in preferred if name in current] + [
+		name for name in current if name not in preferred
+	]
+	# Secondary identity fields belong in the existing additional-info section.
+	for name in ("raised_by", "customer_name", "issue_split_from"):
+		arranged = _move_field_after(arranged, (name, "additional_info"))
+	arranged = _move_field_after(arranged, ("company", "project"))
+	frappe.make_property_setter(
+		{
+			"doctype": "Issue",
+			"fieldname": "email_account",
+			"property": "hidden",
+			"value": "1",
+			"property_type": "Check",
+		},
+		validate_fields_for_doctype=False,
+	)
 	if arranged != current:
 		frappe.make_property_setter(
 			{
@@ -324,6 +414,18 @@ def setup_service_repair_fields():
 			validate_fields_for_doctype=False,
 		)
 		frappe.clear_cache(doctype="Issue")
+	if not had_request_type:
+		frappe.db.sql(
+			"""update `tabIssue` set custom_request_type =
+			case when custom_service_repair = 1 then 'Product Repair' else 'General Request' end"""
+		)
+	frappe.db.sql(
+		"""update `tabIssue` set custom_support_user = owner
+		where custom_support_user is null or custom_support_user = ''"""
+	)
+	from erpnext.support.repair_access import setup as setup_repair_access
+
+	setup_repair_access()
 
 
 def setup_recurring_purchase_fields():

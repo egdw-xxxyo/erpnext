@@ -92,6 +92,9 @@ class TestIndividualRepairs(TestCase):
 
 	def ready(self, name, outcome="Repaired"):
 		unit = frappe.get_doc("Repair Unit", name)
+		if unit.status == "Received":
+			change_stage(name, "In Repair")
+			unit.reload()
 		unit.diagnosis = "Identified defect"
 		unit.work_done = "Repaired and tested"
 		unit.outcome = outcome
@@ -109,6 +112,64 @@ class TestIndividualRepairs(TestCase):
 			self.assertEqual(unit.status, "Awaiting Receipt")
 			self.assertFalse(unit.received_on)
 
+	def test_each_new_card_notifies_technicians_only_once(self):
+		technician = self.user()
+		request = self.request_doc()
+		self.notify.reset_mock()
+		names = create_units(request.name)
+		self.assertEqual(self.notify.call_count, len(names))
+		for call in self.notify.call_args_list:
+			self.assertIn(technician.name, call.args[0])
+			self.assertEqual(call.args[1]["document_type"], "Repair Unit")
+			self.assertIn(call.args[1]["document_name"], names)
+			self.assertIn("document_name", call.kwargs["dedupe_on"])
+		self.assertEqual(create_units(request.name), names)
+		self.assertEqual(self.notify.call_count, len(names))
+
+	def test_request_type_preserves_legacy_repair_and_switches_before_cards(self):
+		request = self.request_doc()
+		self.assertEqual(request.custom_request_type, "Product Repair")
+		request.custom_request_type = "General Request"
+		request.save()
+		self.assertFalse(request.custom_service_repair)
+		request.custom_request_type = "Product Repair"
+		request.save()
+		self.assertTrue(request.custom_service_repair)
+
+	def test_request_type_cannot_drop_existing_repair_cards(self):
+		self.request.reload()
+		self.request.custom_request_type = "General Request"
+		with self.assertRaises(frappe.ValidationError):
+			self.request.save()
+
+	def test_support_creator_is_not_used_as_customer_contact(self):
+		support = self.user("Support Team")
+		frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": "Support person",
+				"email_ids": [{"email_id": support.name, "is_primary": 1}],
+			}
+		).insert()
+		frappe.set_user(support.name)
+		request = frappe.get_doc(
+			{
+				"doctype": "Issue",
+				"subject": "Manual customer contact",
+				"company": "_Test Company",
+				"custom_request_type": "General Request",
+			}
+		).insert()
+		self.assertFalse(request.contact)
+		self.assertEqual(request.custom_support_user, support.name)
+		request.contact = self.contact.name
+		request.save()
+		self.assertEqual(request.contact, self.contact.name)
+		frappe.set_user("Administrator")
+		request.custom_support_user = "Administrator"
+		request.save()
+		self.assertEqual(request.custom_support_user, support.name)
+
 	def test_work_is_individual_costed_and_append_only(self):
 		self.receive()
 		unit = frappe.get_doc("Repair Unit", self.names[0])
@@ -123,6 +184,22 @@ class TestIndividualRepairs(TestCase):
 		unit.work_log[0].notes = "Overwrite history"
 		with self.assertRaises(frappe.ValidationError):
 			unit.save()
+
+	def test_not_repairable_does_not_require_work_done_for_dispatch(self):
+		self.receive(units=[self.names[0]])
+		change_stage(self.names[0], "In Repair")
+		unit = frappe.get_doc("Repair Unit", self.names[0])
+		for outcome in ("Repaired", "No Fault Found", ""):
+			unit.outcome = outcome
+			unit.work_done = ""
+			unit.save()
+			with self.assertRaises(frappe.ValidationError):
+				change_stage(unit.name, "Ready for Dispatch")
+		unit.outcome = "Not Repairable"
+		unit.save()
+		change_stage(unit.name, "Ready for Dispatch")
+		self.assertEqual(unit.reload().status, "Ready for Dispatch")
+		self.assertFalse(unit.work_done)
 
 	def test_work_and_forged_status_are_blocked_before_receipt(self):
 		unit = frappe.get_doc("Repair Unit", self.names[0])
@@ -184,6 +261,7 @@ class TestIndividualRepairs(TestCase):
 			self.request.name, [self.names[0]], "dispatch", waybill="PARTIAL-TTN", delivery_type="Nova Poshta"
 		)
 		change_stage(self.names[0], "Delivered")
+		self.assertNotEqual(self.request.reload().status, "Closed")
 		self.assertEqual(frappe.db.get_value("Repair Unit", self.names[1], "status"), "Received")
 		self.assertEqual(self.request.reload().custom_repair_shipments[0].waybill, "PARTIAL-TTN")
 		repeat = self.request_doc(self.names[0])
@@ -194,6 +272,26 @@ class TestIndividualRepairs(TestCase):
 		self.assertEqual(new.issue, repeat.name)
 		self.assertEqual(new.total_cost, 0)
 		self.assertEqual(frappe.db.get_value("Repair Unit", self.names[0], "status"), "Delivered")
+
+	def test_request_closes_only_after_all_deliveries_are_confirmed(self):
+		self.receive()
+		for name in self.names:
+			self.ready(name)
+		register(self.request.name, self.names, "dispatch", delivery_type="Nova Poshta", waybill="TEST")
+		self.assertNotEqual(self.request.reload().status, "Closed")
+		change_stage(self.names[0], "Delivered")
+		self.assertNotEqual(self.request.reload().status, "Closed")
+		change_stage(self.names[1], "Delivered")
+		self.assertEqual(self.request.reload().status, "Closed")
+
+	def test_completed_disposal_closes_request_and_cancellation_reopens_it(self):
+		self.receive()
+		for name in self.names:
+			self.ready(name, "Not Repairable")
+		movement = register(self.request.name, self.names, "dispose", disposal_approved=1)
+		self.assertEqual(self.request.reload().status, "Closed")
+		frappe.get_doc("Repair Movement", movement).cancel()
+		self.assertEqual(self.request.reload().status, "Open")
 
 	def test_real_parts_use_stock_documents_and_cost_one_card(self):
 		self.receive()
@@ -307,7 +405,7 @@ class TestIndividualRepairs(TestCase):
 			)
 		)
 		entry = self.receive(units=[self.names[0]])
-		self.assertEqual(frappe.db.get_value("Repair Unit", self.names[0], "repair_user"), user.name)
+		self.assertFalse(frappe.db.get_value("Repair Unit", self.names[0], "repair_user"))
 		self.assertTrue(
 			frappe.db.exists(
 				"ToDo",
@@ -330,6 +428,39 @@ class TestIndividualRepairs(TestCase):
 				"ToDo", {"reference_type": "Repair Unit", "reference_name": self.names[0], "status": "Open"}
 			)
 		)
+
+	def test_acceptance_sets_responsibility_and_support_cannot_edit_work(self):
+		self.receive(units=[self.names[0]])
+		technician = self.user()
+		frappe.set_user(technician.name)
+		unit = frappe.get_doc("Repair Unit", self.names[0])
+		unit.diagnosis = "Too early"
+		with self.assertRaises(frappe.ValidationError):
+			unit.save()
+		change_stage(unit.name, "In Repair")
+		unit.reload()
+		self.assertEqual(unit.repair_user, technician.name)
+		self.assertEqual(frappe.parse_json(unit.get("_assign")), [technician.name])
+		unit.diagnosis = "Accepted diagnosis"
+		unit.save()
+		frappe.set_user("Administrator")
+		support = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": f"support-{frappe.generate_hash(length=10)}@example.invalid",
+				"first_name": "Support test",
+				"send_welcome_email": 0,
+				"roles": [{"role": "Support Team"}],
+			}
+		).insert()
+		frappe.set_user(support.name)
+		unit.reload()
+		unit.diagnosis = "Support overwrite"
+		with self.assertRaises(frappe.PermissionError):
+			unit.save()
+		with self.assertRaises(frappe.PermissionError):
+			change_stage(unit.name, "Waiting for Parts")
+		frappe.set_user("Administrator")
 
 	def test_technician_cannot_perform_support_logistics(self):
 		self.receive()
@@ -425,10 +556,63 @@ class TestIndividualRepairs(TestCase):
 		self.assertEqual(frappe.db.get_value("Repair Unit", self.names[0], "status"), "Disposed")
 		shipment = self.request.reload().custom_repair_shipments[0]
 		self.assertEqual(shipment.disposal_approved, 1)
+		self.assertEqual(shipment.shipment_status, "Disposed")
 		self.assertFalse(shipment.approval)
 		frappe.get_doc("Repair Movement", name).cancel()
 		self.assertEqual(frappe.db.get_value("Repair Unit", self.names[0], "status"), "Ready for Dispatch")
 		self.assertTrue(self.request.reload().custom_repair_shipments[0].cancelled)
+		self.assertEqual(self.request.custom_repair_shipments[0].shipment_status, "Cancelled")
+
+	def test_dispatch_document_is_preserved_in_cancelled_history(self):
+		from io import BytesIO
+
+		from pypdf import PdfWriter
+
+		self.receive()
+		self.ready(self.names[0])
+		content = BytesIO()
+		writer = PdfWriter()
+		writer.add_blank_page(width=100, height=100)
+		writer.write(content)
+		file = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": "dispatch-confirmation.pdf",
+				"content": content.getvalue(),
+				"is_private": 1,
+				"attached_to_doctype": "Issue",
+				"attached_to_name": self.request.name,
+			}
+		).insert()
+		name = register(
+			self.request.name,
+			[self.names[0]],
+			"dispatch",
+			delivery_type="Nova Poshta",
+			waybill="TEST-DISPATCH",
+			dispatch_document=file.file_url,
+		)
+		shipment = self.request.reload().custom_repair_shipments[0]
+		self.assertEqual(shipment.shipment_status, "Dispatched")
+		self.assertEqual(shipment.dispatch_document, file.file_url)
+		self.assertEqual(frappe.db.get_value("Repair Movement", name, "dispatch_document"), file.file_url)
+		frappe.get_doc("Repair Movement", name).cancel()
+		shipment = self.request.reload().custom_repair_shipments[0]
+		self.assertEqual(shipment.shipment_status, "Cancelled")
+		self.assertEqual(shipment.dispatch_document, file.file_url)
+
+	def test_dispatch_document_is_rejected_for_receipt_and_when_missing(self):
+		with self.assertRaisesRegex(frappe.ValidationError, "returning units"):
+			self.receive(dispatch_document="/files/invalid.pdf")
+		with self.assertRaisesRegex(frappe.ValidationError, "saved dispatch"):
+			register(
+				self.request.name,
+				[self.names[0]],
+				"dispatch",
+				delivery_type="Nova Poshta",
+				waybill="TEST-DISPATCH",
+				dispatch_document="/files/missing-dispatch.pdf",
+			)
 
 	def test_legacy_cards_without_source_links_migrate_once(self):
 		from erpnext.support.repair_units import internal_action

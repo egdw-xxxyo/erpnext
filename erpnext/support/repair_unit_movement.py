@@ -1,6 +1,7 @@
 """Custody and spare-part movements for individual repair cards."""
 
 import json
+from pathlib import PurePosixPath
 
 import frappe
 from frappe import _
@@ -11,6 +12,61 @@ from erpnext.support.repair_custody import STATES
 
 DELIVERY_TYPES = {"Nova Poshta", "Ukrposhta", "Taxi", "Self Pickup", "Other"}
 POSTAL_TYPES = {"Nova Poshta", "Ukrposhta"}
+
+
+def validate_dispatch_document(url):
+	if not url:
+		return
+	name = frappe.db.get_value("File", {"file_url": url}, "name")
+	if not name:
+		frappe.throw(_("Attach a saved dispatch confirmation document."))
+	file = frappe.get_doc("File", name)
+	file.check_permission("read")
+	if file.attached_to_doctype == "Chat Thread":
+		frappe.throw(_("Chat attachments cannot be reused as dispatch documents."))
+	extension = PurePosixPath(file.file_name or "").suffix.lower()
+	if extension not in {".pdf", ".png", ".jpg", ".jpeg", ".img"} or not url.startswith(
+		("/files/", "/private/files/")
+	):
+		frappe.throw(_("Dispatch confirmation must be a PDF or PNG/JPG/JPEG image."))
+	if extension == ".img":
+		from io import BytesIO
+
+		from PIL import Image, UnidentifiedImageError
+
+		try:
+			with Image.open(BytesIO(file.get_content())) as image:
+				if image.format not in {"PNG", "JPEG"}:
+					frappe.throw(_("Dispatch confirmation must be a PDF or PNG/JPG/JPEG image."))
+				image.verify()
+		except (UnidentifiedImageError, OSError, ValueError):
+			frappe.throw(_("Dispatch confirmation must be a PDF or PNG/JPG/JPEG image."))
+	return file
+
+
+def shipment_status(row, movement=None):
+	if row.cancelled or (movement and movement.docstatus == 2):
+		return "Cancelled"
+	return "Disposed" if movement and movement.action == "dispose" else "Dispatched"
+
+
+def sync_shipment_history():
+	"""Backfill derived history fields without saving requests or rerunning assignments."""
+	for row in frappe.get_all(
+		"Repair Shipment", fields=["name", "movement", "cancelled", "shipment_status", "dispatch_document"]
+	):
+		movement = (
+			frappe.db.get_value(
+				"Repair Movement", row.movement, ["action", "docstatus", "dispatch_document"], as_dict=True
+			)
+			if row.movement
+			else None
+		)
+		values = {"shipment_status": shipment_status(row, movement)}
+		if movement and movement.dispatch_document:
+			values["dispatch_document"] = movement.dispatch_document
+		if any(row.get(key) != value for key, value in values.items()):
+			frappe.db.set_value("Repair Shipment", row.name, values, update_modified=False)
 
 
 def validate_delivery(delivery_type, waybill, details):
@@ -58,6 +114,7 @@ def register(
 	delivery_type: str | None = None,
 	delivery_details: str | None = None,
 	disposal_approved: int | str = 0,
+	dispatch_document: str | None = None,
 ):
 	docs = selected(issue, units)
 	request = repairs.issue_doc(issue) if action != "transfer" else None
@@ -68,6 +125,12 @@ def register(
 		validate_delivery(delivery_type, waybill, delivery_details)
 	if action == "dispose":
 		validate_approval(disposal_approved, approval)
+	if dispatch_document:
+		if action != "dispatch":
+			frappe.throw(_("A dispatch document can only be attached when returning units to the customer."))
+		file = validate_dispatch_document(dispatch_document)
+		if file.attached_to_doctype != "Issue" or file.attached_to_name != issue:
+			file.create_attachment_copy("Issue", issue, ignore_permissions=True)
 	entry = frappe.get_doc(
 		{
 			"doctype": "Repair Movement",
@@ -79,6 +142,7 @@ def register(
 			"delivery_details": delivery_details if delivery_type not in POSTAL_TYPES else None,
 			"disposal_approved": cint(disposal_approved) if action == "dispose" else 0,
 			"approval": approval if action == "dispose" else None,
+			"dispatch_document": dispatch_document,
 			"warehouse": warehouse
 			or (repairs.warehouse_for(docs[0].company) if action == "receive" else None),
 			"items": [
@@ -101,6 +165,8 @@ def register(
 						"delivery_details": entry.delivery_details,
 						"disposal_approved": entry.disposal_approved,
 						"approval": entry.approval,
+						"shipment_status": "Disposed" if action == "dispose" else "Dispatched",
+						"dispatch_document": entry.dispatch_document,
 					},
 				)
 			request.save()
@@ -118,6 +184,10 @@ def validate(doc):
 		validate_delivery(doc.delivery_type, doc.waybill, doc.delivery_details)
 	if doc.action == "dispose":
 		validate_approval(doc.disposal_approved, doc.approval)
+	if doc.get("dispatch_document"):
+		if doc.action != "dispatch":
+			frappe.throw(_("A dispatch document can only be attached when returning units to the customer."))
+		validate_dispatch_document(doc.dispatch_document)
 	request = repairs.issue_doc(doc.issue) if doc.action != "transfer" else None
 	if any(unit.status not in STATES[doc.action][0] for unit in units):
 		frappe.throw(_("The selected units are not at the required repair stage."))
@@ -141,7 +211,14 @@ def validate(doc):
 			row = shipments[unit.name]
 			if any(
 				row.get(key) != doc.get(key)
-				for key in ("delivery_type", "waybill", "delivery_details", "disposal_approved", "approval")
+				for key in (
+					"delivery_type",
+					"waybill",
+					"delivery_details",
+					"disposal_approved",
+					"approval",
+					"dispatch_document",
+				)
 			):
 				frappe.throw(_("Delivery and disposal details must match the recorded repair action."))
 	for detail, unit in zip(doc.items, units, strict=True):
@@ -203,6 +280,7 @@ def before_cancel(doc):
 			"delivery_details",
 			"disposal_approved",
 			"approval",
+			"dispatch_document",
 		)
 	) or [row.repair_unit for row in doc.items] != [row.repair_unit for row in saved.items]:
 		frappe.throw(_("Use repair actions to change repair units."))
@@ -232,6 +310,7 @@ def on_cancel(doc):
 			for row in request.custom_repair_shipments:
 				if row.movement == doc.name:
 					row.cancelled = 1
+					row.shipment_status = "Cancelled"
 			request.save()
 
 

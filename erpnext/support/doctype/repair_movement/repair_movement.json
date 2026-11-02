@@ -17,6 +17,7 @@
   "delivery_type",
   "waybill",
   "delivery_details",
+  "dispatch_document",
   "disposal_approved",
   "approval",
   "items"
@@ -88,6 +89,13 @@
    "fieldtype": "Small Text",
    "read_only": 1,
    "depends_on": "eval:doc.delivery_type && !['Nova Poshta', 'Ukrposhta'].includes(doc.delivery_type)"
+  },
+  {
+   "fieldname": "dispatch_document",
+   "label": "Dispatch Document",
+   "fieldtype": "Attach",
+   "read_only": 1,
+   "depends_on": "eval:doc.action == 'dispatch'"
   },
   {
    "fieldname": "disposal_approved",

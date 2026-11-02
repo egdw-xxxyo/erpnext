@@ -50,12 +50,34 @@ def unit_doc(name, permission="write"):
 
 
 def issue_doc(name):
+	from erpnext.support.repair_access import require_support
+
+	require_support()
 	doc = frappe.get_doc("Issue", name, for_update=True)
 	doc.check_permission("write")
 	return doc
 
 
 def validate_issue(doc):
+	# Keep the original repair flag as a compatibility bridge for existing APIs.
+	before = doc.get_doc_before_save()
+	doc.custom_support_user = (
+		(before.get("custom_support_user") or before.owner) if before else frappe.session.user
+	)
+	if before and doc.get("custom_request_type") != before.get("custom_request_type"):
+		doc.custom_service_repair = int(doc.custom_request_type == "Product Repair")
+	elif (
+		not doc.get("custom_request_type")
+		or (before and doc.get("custom_service_repair") != before.get("custom_service_repair"))
+		or (doc.is_new() and doc.get("custom_service_repair"))
+	):
+		doc.custom_request_type = "Product Repair" if doc.get("custom_service_repair") else "General Request"
+	else:
+		doc.custom_service_repair = int(doc.custom_request_type == "Product Repair")
+	if doc.get("custom_service_repair") and not frappe.flags.in_migrate and not frappe.flags.in_patch:
+		from erpnext.support.repair_access import require_support
+
+		require_support()
 	if not doc.get("custom_service_repair"):
 		if frappe.db.exists("Repair Unit", {"issue": doc.name}):
 			frappe.throw(_("The repair request identity cannot be changed after creating its repair order."))
@@ -100,6 +122,8 @@ def validate_issue(doc):
 			"delivery_type",
 			"delivery_details",
 			"disposal_approved",
+			"dispatch_document",
+			"shipment_status",
 		)
 		if len(old_shipments) != len(new_shipments) or any(
 			any(a.get(k) != b.get(k) for k in keys)
@@ -109,6 +133,15 @@ def validate_issue(doc):
 		old_rows = {r.name: r.repair_unit for r in before.get("custom_repair_items", [])} if before else {}
 		if any(row.repair_unit != old_rows.get(row.name) for row in doc.custom_repair_items):
 			frappe.throw(_("Create repair units from a service request."))
+	from erpnext.support.repair_unit_movement import shipment_status
+
+	for shipment in doc.get("custom_repair_shipments", []):
+		movement = (
+			frappe.db.get_value("Repair Movement", shipment.movement, ["action", "docstatus"], as_dict=True)
+			if shipment.movement
+			else None
+		)
+		shipment.shipment_status = shipment_status(shipment, movement)
 	for row in doc.custom_repair_items:
 		if row.repair_unit:
 			values = frappe.db.get_value("Repair Unit", row.repair_unit, ["status", "outcome"], as_dict=True)
@@ -205,15 +238,15 @@ def validate_unit(doc):
 	doc.total_cost = flt(doc.labor_cost) + flt(doc.parts_cost)
 
 
-def check_work_access(doc):
+def check_work_access(doc, claiming=False):
+	from erpnext.support.repair_access import is_manager, require_technician
+
+	require_technician()
 	if not doc.received_on or doc.status not in WORKING:
 		frappe.throw(_("Receive the unit before adding repair work."))
-	if (
-		doc.repair_user
-		and doc.repair_user != frappe.session.user
-		and not ({"Support Team", "System Manager"} & set(frappe.get_roles()))
-		and frappe.session.user != "Administrator"
-	):
+	if not is_manager() and not claiming and not doc.repair_user:
+		frappe.throw(_("Take the repair into work before editing it."))
+	if doc.repair_user and doc.repair_user != frappe.session.user and not is_manager():
 		frappe.throw(_("This repair is assigned to another technician."))
 
 
@@ -250,23 +283,33 @@ def after_unit_update(doc):
 			task = frappe.get_doc("ToDo", todo)
 			task.status = "Closed"
 			task.save(ignore_permissions=True)
+	if before and before.status != doc.status and (doc.status in TERMINAL or before.status in TERMINAL):
+		sync_request_completion(doc.issue)
+
+
+def sync_request_completion(issue):
+	"""Close the request only when every listed item has completed its repair episode."""
+	from erpnext.support.service_repair import _lock
+
+	_lock("Issue", issue)
+	request = frappe.get_doc("Issue", issue)
+	if not request.get("custom_service_repair") or not request.custom_repair_items:
+		return
+	states = {
+		row.name: row.status
+		for row in frappe.get_all("Repair Unit", filters={"issue": issue}, fields=["name", "status"])
+	}
+	completed = all(states.get(row.repair_unit) in TERMINAL for row in request.custom_repair_items)
+	status = "Closed" if completed else "Open" if request.status == "Closed" else request.status
+	if request.status != status:
+		with internal_action():
+			request.status = status
+			request.save(ignore_permissions=True)
 
 
 def sync_assignee(doc, method=None):
-	if (
-		doc.reference_type != "Repair Unit"
-		or not doc.reference_name
-		or not frappe.db.exists("Repair Unit", doc.reference_name)
-	):
-		return
-	user = frappe.db.get_value(
-		"ToDo",
-		{"reference_type": "Repair Unit", "reference_name": doc.reference_name, "status": "Open"},
-		"allocated_to",
-		order_by="creation desc",
-	)
-	if user:
-		frappe.db.set_value("Repair Unit", doc.reference_name, "repair_user", user, update_modified=False)
+	# A ToDo offers the repair to a technician. Responsibility starts on acceptance.
+	return
 
 
 def sync_priority(doc, method=None):
@@ -318,7 +361,7 @@ def create_units(issue: str):
 					"factory_serial": previous.factory_serial if row.previous_repair else None,
 					"customer": request.customer,
 					"sender_contact": request.contact,
-					"support_user": frappe.session.user,
+					"support_user": request.get("custom_support_user") or request.owner,
 					"currency": frappe.get_cached_value("Company", request.company, "default_currency"),
 					"fault_description": row.fault_description,
 					"accessories": row.accessories,
@@ -328,6 +371,7 @@ def create_units(issue: str):
 			)
 			# Creation is gated by write permission on the customer's request.
 			unit.insert(ignore_permissions=True)
+			notify_new_card(unit)
 			row.repair_unit = unit.name
 			row.repair_status = unit.status
 			result.append(unit.name)
@@ -335,25 +379,93 @@ def create_units(issue: str):
 	return result
 
 
+def notify_new_card(doc):
+	"""Announce a card once without assigning or claiming it."""
+	if frappe.flags.in_migrate or frappe.flags.in_patch or frappe.flags.in_install:
+		return
+	from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+	from frappe.utils import escape_html
+
+	from erpnext.support.repair_access import TECHNICIAN_ROLE
+	from erpnext.support.repair_assignment import role_users
+
+	users = role_users(TECHNICIAN_ROLE, doc)
+	if users:
+		enqueue_create_notification(
+			users,
+			{
+				"type": "Alert",
+				"document_type": "Repair Unit",
+				"document_name": doc.name,
+				"subject": _("New repair card {0}: {1}").format(doc.name, escape_html(doc.product_name)),
+				"from_user": doc.support_user or frappe.session.user,
+			},
+			dedupe_on=["type", "document_type", "document_name", "subject"],
+		)
+
+
 @frappe.whitelist()
 def change_stage(unit: str, status: str):
 	doc = unit_doc(unit)
+	claiming = False
 	if status == "Delivered":
 		issue_doc(doc.issue)
 		if doc.status != "Dispatched":
 			frappe.throw(_("Receive the unit before repair; confirm delivery only after dispatch."))
 	else:
-		check_work_access(doc)
+		claiming = doc.status == "Received" and status == "In Repair"
+		check_work_access(doc, claiming=claiming)
+		if doc.status == "Received" and not claiming:
+			frappe.throw(_("Take the repair into work before editing it."))
+		if claiming:
+			doc.repair_user = frappe.session.user
 		if status not in {"In Repair", "Waiting for Parts", "Waiting for Customer", "Ready for Dispatch"}:
 			frappe.throw(_("Invalid repair stage."))
 		if status == "Ready for Dispatch" and (
-			not doc.work_done or doc.outcome not in {"Repaired", "No Fault Found", "Not Repairable"}
+			(not doc.work_done and doc.outcome != "Not Repairable")
+			or doc.outcome not in {"Repaired", "No Fault Found", "Not Repairable"}
 		):
 			frappe.throw(_("Specify work done and the repair result before marking the unit ready."))
 	with internal_action():
 		doc.status = status
 		doc.last_action = frappe.generate_hash(length=12)
 		doc.save()
+	if claiming:
+		from frappe.desk.form import assign_to
+
+		current = frappe.get_all(
+			"ToDo",
+			filters={
+				"reference_type": "Repair Unit",
+				"reference_name": doc.name,
+				"status": "Open",
+			},
+			pluck="allocated_to",
+		)
+		if current != [frappe.session.user]:
+			assign_to.clear("Repair Unit", doc.name, ignore_permissions=True)
+			assign_to._add(
+				{
+					"doctype": "Repair Unit",
+					"name": doc.name,
+					"assign_to": [frappe.session.user],
+					"description": _("Repair in progress"),
+				},
+				ignore_permissions=True,
+			)
+		# Also refresh the standard sidebar when the offered ToDo already belongs to us.
+		todo = frappe.db.get_value(
+			"ToDo",
+			{
+				"reference_type": "Repair Unit",
+				"reference_name": doc.name,
+				"status": "Open",
+				"allocated_to": frappe.session.user,
+			},
+			"name",
+		)
+		if todo:
+			frappe.get_doc("ToDo", todo).update_in_reference()
 	return doc.name
 
 
@@ -392,7 +504,9 @@ def summary(doc):
 		"status": aggregate_status([frappe._dict(row) for row in items]),
 		"items": items,
 		"default_warehouse": warehouse_for(doc.company),
-		"support_user": frappe._dict(user=doc.owner),
+		"support_user": frappe._dict(
+			user=doc.get("custom_support_user") or doc.get("support_user") or doc.owner
+		),
 		"repair_users": [
 			{"user": user, "full_name": frappe.get_cached_value("User", user, "full_name")}
 			for user in sorted(users)

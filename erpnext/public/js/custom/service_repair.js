@@ -12,6 +12,53 @@
 		["Closed", "flag-checkered"],
 	];
 	const esc = frappe.utils.escape_html;
+	async function contact_details(frm) {
+		const field = frm.fields_dict.custom_repair_contact_details;
+		if (!field) return;
+		field.$wrapper.empty();
+		if (!frm.doc.contact) return;
+		const contact = frm.doc.contact;
+		const { message: data } = await frappe.call({
+			method: "erpnext.support.repair_access.contact_details",
+			args: { contact },
+		});
+		if (frm.doc.contact !== contact) return;
+		const phone = data.phone || "";
+		let digits = phone.replace(/\D/g, "");
+		if (digits.length === 10 && digits.startsWith("0")) digits = "38" + digits;
+		const valid = digits.length >= 10 && digits.length <= 15;
+		const buttons = [
+			["Telegram", "paper-plane", `https://t.me/+${digits}`],
+			["WhatsApp", "whatsapp", `https://wa.me/${digits}`],
+			["Viber", "phone", `viber://chat?number=${encodeURIComponent("+" + digits)}`],
+		]
+			.map(([name, icon, url]) =>
+				valid
+					? `<a class="btn btn-xs btn-default" href="${esc(
+							url
+					  )}" target="_blank" rel="noopener noreferrer" title="${esc(
+							__(name)
+					  )}" aria-label="${esc(
+							__(name)
+					  )}"><i class="fa fa-${icon}" aria-hidden="true"></i> ${esc(__(name))}</a>`
+					: `<button class="btn btn-xs btn-default" disabled title="${esc(
+							__("Contact phone is not specified")
+					  )}">${esc(__(name))}</button>`
+			)
+			.join(" ");
+		field.$wrapper
+			.html(`<style>.service-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.service-contact-grid>div{min-width:0;overflow-wrap:anywhere}@media(max-width:767px){.service-contact-grid{grid-template-columns:1fr}}</style><div class="service-contact-grid"><div class="mb-3"><div class="text-muted small mb-1">${esc(
+			__("Phone")
+		)}</div>
+			<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${
+				phone ? `<a href="tel:${esc(phone)}">${esc(phone)}</a>` : esc(__("Not specified"))
+			} ${buttons}</div></div>
+			<div class="mb-3"><div class="text-muted small mb-1">${esc(__("Email"))}</div>${
+			data.email
+				? `<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>`
+				: esc(__("Not specified"))
+		}</div></div>`);
+	}
 	const link = (doctype, name) =>
 		`<a href="${esc(erpnext.entity.url(["Form", doctype, name]))}" title="${esc(
 			`${__(doctype)}: ${name}`
@@ -138,7 +185,16 @@
 	}
 
 	frappe.ui.form.on("Issue", {
+		async onload(frm) {
+			if (frm.is_new() && !frm.doc.__support_intake_initialized) {
+				frm.doc.__support_intake_initialized = true;
+				await frm.set_value("contact", "");
+				await frm.set_value("custom_support_user", frappe.session.user);
+			}
+		},
 		async refresh(frm) {
+			frm.toggle_display("custom_service_repair", false);
+			await contact_details(frm);
 			frm.toggle_display(["customer_name", "issue_split_from"], !frm.doc.custom_service_repair);
 			frm.toggle_reqd(
 				["contact", "company", "custom_repair_items"],
@@ -185,6 +241,16 @@
 		},
 		custom_service_repair(frm) {
 			frm.refresh();
+		},
+		async custom_request_type(frm) {
+			await frm.set_value(
+				"custom_service_repair",
+				frm.doc.custom_request_type === "Product Repair" ? 1 : 0
+			);
+			frm.refresh();
+		},
+		contact(frm) {
+			return contact_details(frm);
 		},
 	});
 
@@ -236,6 +302,20 @@
 					default: action === "receive" ? frm.doc.custom_repair_delivery_details : "",
 				}
 			);
+		}
+		if (action === "dispatch") {
+			fields.push({
+				fieldname: "dispatch_document",
+				label: __("Dispatch Document"),
+				fieldtype: "Attach",
+				description: __("Optional PDF or image confirming the return shipment to the customer."),
+				options: {
+					doctype: "Issue",
+					docname: frm.doc.name,
+					make_attachments_public: 0,
+					restrictions: { allowed_file_types: [".pdf", ".png", ".jpg", ".jpeg", ".img"] },
+				},
+			});
 		}
 		if (["receive", "transfer"].includes(action)) {
 			fields.push({
