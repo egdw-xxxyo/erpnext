@@ -1,0 +1,81 @@
+{
+ "app": "erpnext",
+ "creation": "2026-10-26 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "list-todo",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Today",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link",
+   "link_to": "my-tasks",
+   "route_options": "{\"view\": \"today\"}",
+   "icon": "sun"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Overdue",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link",
+   "link_to": "my-tasks",
+   "route_options": "{\"view\": \"overdue\"}",
+   "icon": "circle-alert"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Upcoming",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link",
+   "link_to": "my-tasks",
+   "route_options": "{\"view\": \"upcoming\"}",
+   "icon": "calendar"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "All Mine",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link",
+   "link_to": "my-tasks",
+   "route_options": "{\"view\": \"all\"}",
+   "icon": "list"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Planner",
+   "link_type": "URL",
+   "show_arrow": 0,
+   "type": "Link",
+   "url": "/desk/todo/view/planner",
+   "icon": "calendar-days"
+  }
+ ],
+ "modified": "2026-10-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Projects",
+ "name": "My Tasks",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "My Tasks"
+}

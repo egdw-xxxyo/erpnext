@@ -7,6 +7,8 @@ from erpnext.access_control.permission_rules import (
 	access_map,
 	allowed_values,
 	applicable_rights,
+	can_expire,
+	changes_role,
 	chosen_rights,
 	coverage,
 	delta_size,
@@ -24,6 +26,7 @@ from erpnext.access_control.permission_rules import (
 	missing_rights,
 	normalize_rows,
 	page_roles,
+	profiles_with_roles,
 	rank_candidates,
 	rank_profiles,
 	report_roles,
@@ -31,15 +34,19 @@ from erpnext.access_control.permission_rules import (
 	rights_to_add,
 	risky_rights,
 	role_grant_log,
+	role_removal_log,
 	role_right_refusal,
 	role_right_unavailable,
+	role_sources,
 	roles_after_profile,
+	roles_after_removal,
 	roles_after_revoke,
 	rows_with_rights,
 	same_rows,
 	share_coverage,
 	share_rights_for,
 	share_unavailable,
+	ungrantable_gains,
 	user_permission_candidates,
 	user_permission_unavailable,
 	workflow_options,
@@ -369,11 +376,15 @@ class TestRoleRight(unittest.TestCase):
 		self.assertEqual(role_right_unavailable(True, "Client Script", "Custom"), "protected_doctype")
 		self.assertIsNone(role_right_unavailable(True, "Purchase Invoice", "Accounts"))
 
-	def test_refusal_blocks_privileged_roles_and_own_roles_of_non_system_managers(self):
+	def test_refusal_blocks_privileged_roles_and_own_roles_of_ordinary_managers(self):
 		self.assertEqual(role_right_refusal("All", ["Access Manager"]), "never_granted")
 		self.assertEqual(role_right_refusal("System Manager", ["System Manager"]), "never_granted")
 		self.assertEqual(role_right_refusal("Sales User", ["Access Manager", "Sales User"]), "own_role")
-		self.assertIsNone(role_right_refusal("Sales User", ["System Manager", "Sales User"]))
+		self.assertEqual(role_right_refusal("Sales User", ["System Manager", "Sales User"]), "own_role")
+		self.assertIsNone(role_right_refusal("Sales User", ["Administrator", "Sales User"]))
+		self.assertIsNone(
+			role_right_refusal("Sales User", ["System Manager", "Access Manager", "Sales User"])
+		)
 		self.assertIsNone(role_right_refusal("Sales User", ["Access Manager"]))
 
 	def test_held_rights_count_only_level_zero_rows_for_all_documents(self):
@@ -431,6 +442,56 @@ class TestRevoke(unittest.TestCase):
 	def test_other_resolutions_do_not_change_roles(self):
 		for resolution in ("Document Share", "User Permission", "Role Right"):
 			self.assertIsNone(roles_after_revoke(resolution, {}, ["A"]))
+
+	def test_removal_log_records_how_profiles_were_handled(self):
+		self.assertEqual(role_removal_log(["R"], [], None), {"roles": ["R"], "profiles": [], "unlinked": []})
+		self.assertEqual(
+			role_removal_log(["R"], ["P"], "profiles"), {"roles": ["R"], "profiles": ["P"], "unlinked": []}
+		)
+		self.assertEqual(
+			role_removal_log(["R"], ["P"], "unlink"), {"roles": ["R"], "profiles": [], "unlinked": ["P"]}
+		)
+
+	def test_removal_is_revocable_unless_profiles_were_edited(self):
+		self.assertTrue(is_revocable("Role Removal", {"roles": ["R"], "profiles": [], "unlinked": ["P"]}))
+		self.assertFalse(is_revocable("Role Removal", {"roles": ["R"], "profiles": ["P"], "unlinked": []}))
+
+	def test_revoking_a_removal_gives_the_roles_back(self):
+		self.assertEqual(
+			roles_after_revoke("Role Removal", {"roles": ["B", "C"]}, ["A", "B"]), ["A", "B", "C"]
+		)
+
+	def test_only_revocable_grants_can_expire(self):
+		self.assertTrue(can_expire("Role", {"roles": ["R"], "profile": None, "unlinked": []}))
+		self.assertTrue(can_expire("Document Share", {"share": "S"}))
+		self.assertFalse(can_expire("Role", {"roles": ["R"], "profile": "P", "unlinked": []}))
+		self.assertFalse(can_expire("Role Profile", {"profiles": ["P"]}))
+		self.assertFalse(can_expire("Role Removal", {"roles": ["R"], "profiles": [], "unlinked": []}))
+
+
+class TestRoleRemoval(unittest.TestCase):
+	def test_removal_drops_only_the_chosen_roles(self):
+		self.assertEqual(roles_after_removal(["A", "B", "C"], ["B"]), ["A", "C"])
+
+	def test_profiles_holding_the_roles(self):
+		by_profile = {"P": ["A", "B"], "Q": ["C"], "S": ["B"]}
+		self.assertEqual(profiles_with_roles(by_profile, ["P", "Q", "S"], ["B"]), ["P", "S"])
+		self.assertEqual(profiles_with_roles(by_profile, ["Q"], ["B"]), [])
+
+	def test_privileged_gains_are_reported(self):
+		self.assertEqual(
+			ungrantable_gains(["Sales User", "System Manager", "All"]), ["System Manager", "All"]
+		)
+
+	def test_role_sources_list_the_profiles_giving_each_role(self):
+		by_profile = {"P": ["A", "B"], "Q": ["B"], "S": ["C"]}
+		self.assertEqual(role_sources(by_profile, ["P", "Q"]), {"A": ["P"], "B": ["P", "Q"]})
+		self.assertEqual(role_sources(by_profile, []), {})
+
+	def test_changes_role_detects_grant_and_removal(self):
+		self.assertTrue(changes_role([], ["Access Manager"], "Access Manager"))
+		self.assertTrue(changes_role(["Access Manager", "A"], ["A"], "Access Manager"))
+		self.assertFalse(changes_role(["Access Manager"], ["Access Manager", "A"], "Access Manager"))
 
 
 class TestAllowedValues(unittest.TestCase):

@@ -34,6 +34,7 @@ def execute():
 	create_custom_fields_on_pr_item()
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
+	create_custom_field_on_qi_template()
 	create_custom_field_on_serial_no()
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
@@ -607,6 +608,24 @@ def setup_todo_deadline():
 				"allow_in_quick_entry": 1,
 				"in_list_view": 1,
 			},
+			{
+				"dt": "ToDo",
+				"fieldname": "remind_at",
+				"fieldtype": "Datetime",
+				"label": "Remind At",
+				"insert_after": "deadline",
+				"allow_in_quick_entry": 1,
+			},
+			{
+				"dt": "ToDo",
+				"fieldname": "reminder_sent",
+				"fieldtype": "Check",
+				"label": "Reminder Sent",
+				"insert_after": "remind_at",
+				"hidden": 1,
+				"read_only": 1,
+				"no_copy": 1,
+			},
 		]
 	)
 	if frappe.get_meta("ToDo").get_field("date").label != "Assignment Date":
@@ -926,6 +945,24 @@ def create_custom_field_on_qi():
 			"options": "QI Serial Entry",
 			"insert_after": "readings",
 			"description": "Per-serial-number pass/fail inspection results",
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_custom_field_on_qi_template():
+	fields = [
+		{
+			"dt": "Quality Inspection Template",
+			"fieldname": "variables",
+			"fieldtype": "Table",
+			"label": "Variables",
+			"options": "QI Template Variable",
+			"insert_after": "item_quality_inspection_parameter",
+			"description": (
+				"Named limits for the acceptance formulas (e.g. max_loss), optionally per item or "
+				"attribute value, so they are edited here instead of inside a formula."
+			),
 		},
 	]
 	_create_custom_fields(fields)

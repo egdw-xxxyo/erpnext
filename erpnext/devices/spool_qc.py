@@ -25,7 +25,8 @@ old behaviour rather than failing.
 
 Pass/fail is **not** reimplemented here. Readings are filled from the measurement and the
 stock `Quality Inspection.inspect_and_set_status()` applies the template's min/max,
-acceptance values and formulas. `Serial No.inspection_status` is then set by the existing
+acceptance values and formulas. Per-length / per-fiber-type limits live in the template's
+acceptance formulas, which see the item through `erpnext.stock.inspection_formula`. `Serial No.inspection_status` is then set by the existing
 `Quality Inspection.on_submit` hook (see `erpnext/stock/doctype/serial_no/inspection.py`).
 
 Two stock behaviours shape the code below:
@@ -34,8 +35,7 @@ Two stock behaviours shape the code below:
   rejected**, not ignored. Any reading this module cannot fill is therefore marked
   `manual_inspection` so it neither auto-passes nor auto-fails.
 * `validate` overwrites every reading from the item's template when `inspection_type` is
-  `In Process` **and** `reference_type` is `Job Card`, which would discard the per-spool
-  length limits computed here. So the Job Card is linked the other way round — by setting
+  `In Process` **and** `reference_type` is `Job Card`. So the Job Card is linked the other way round — by setting
   `Job Card.quality_inspection` — and `reference_type` is left unset.
 """
 
@@ -48,11 +48,9 @@ from frappe.utils import cint, flt
 from erpnext.devices.label_resolution import PURPOSE_FAILED, PURPOSE_PASSED, resolve_label_template
 
 # Specification name -> where to read it from in the measurement payload.
-# `limits: "length"` marks the reading whose min/max are derived per spool from the
-# variant's winding-length attribute instead of being taken from the template.
 DEFAULT_READINGS = {
 	"Загасання волокна (дБ)": {"path": "loss_db"},
-	"Довжина волокна (км)": {"path": "distance_km", "limits": "length"},
+	"Довжина волокна (км)": {"path": "distance_km"},
 	"Відбиття кінця волокна (дБ)": {"path": "reflectance_db"},
 	"Довжина хвилі (нм)": {"path": "wavelength_nm"},
 }
@@ -60,8 +58,6 @@ DEFAULT_READINGS = {
 DEFAULT_CONFIG = {
 	"readings": DEFAULT_READINGS,
 	"serial_fields": ["sor.General.fiber_id", "sor.General.cable_id"],
-	"length_attribute": "Довжина намотки",
-	"length_tolerance_pct": 1.0,
 	"print_label": True,
 }
 
@@ -167,53 +163,6 @@ def _format_reading(value):
 	decimal_str, _comma_str = get_reading_separators(get_reading_number_format())
 	text = f"{flt(value):g}"
 	return text.replace(".", decimal_str) if decimal_str != "." else text
-
-
-def _nominal_length_km(item_code, attribute_name):
-	"""Winding length declared by the variant's attribute.
-
-	Attribute values carry their unit — "25 км", not "25" — so only the leading number is
-	read.
-	"""
-	value = frappe.db.get_value(
-		"Item Variant Attribute",
-		{"parent": item_code, "attribute": attribute_name},
-		"attribute_value",
-	)
-	if not value:
-		return None
-
-	match = re.match(r"\s*([-+]?\d+(?:[.,]\d+)?)", str(value))
-	if not match:
-		return None
-	return float(match.group(1).replace(",", "."))
-
-
-def _apply_length_limits(reading, item_code, cfg, log):
-	"""Set this reading's min/max from the spool's nominal length ± tolerance.
-
-	One template serves every length variant this way; without it each of the ten
-	variants would need its own Quality Inspection Template.
-	"""
-	nominal = _nominal_length_km(item_code, cfg.get("length_attribute"))
-	if nominal is None:
-		log(
-			"Nominal winding length not found, keeping template limits",
-			level="WARN",
-			item_code=item_code,
-			attribute=cfg.get("length_attribute"),
-		)
-		return
-
-	tolerance = flt(cfg.get("length_tolerance_pct")) / 100.0
-	reading.min_value = nominal * (1 - tolerance)
-	reading.max_value = nominal * (1 + tolerance)
-	log(
-		"Length limits set from nominal",
-		nominal_km=nominal,
-		min_km=reading.min_value,
-		max_km=reading.max_value,
-	)
 
 
 def _resolve_qi_template(item_code):
@@ -453,8 +402,6 @@ def make_quality_inspection(serial_no, item_code, payload, cfg, log, workplace=N
 
 		reading.reading_1 = _format_reading(value)
 		reading.manual_inspection = 0
-		if spec.get("limits") == "length":
-			_apply_length_limits(reading, item_code, cfg, log)
 		filled[reading.specification] = reading.reading_1
 
 	if not filled:

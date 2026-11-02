@@ -74,6 +74,8 @@ import "./sidebar_memory.js";
 import "./access_control/role_grants.js";
 import "./access_control/access_denied.js";
 import "./access_control/search_catalog.js";
+import "./access_control/view_session.js";
+import "./access_control/role_change.js";
 import "./ai_helper/ai_error_helper.js";
 
 // import { sum } from 'frappe/public/utils/util.js'

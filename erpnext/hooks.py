@@ -41,6 +41,7 @@ web_include_icons = [
 ]
 
 after_request = ["erpnext.access_control.denial.attach_denial_context"]
+before_request = ["erpnext.access_control.impersonation.enforce_view_mode"]
 
 doctype_js = {
 	"Issue": "public/js/custom/service_repair.js",
@@ -75,13 +76,18 @@ doctype_js = {
 	# сканер серійних / партійних номерів на самому комплекті
 	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
-	"Stock Entry": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Purchase Receipt": "public/js/responsible_employee.js",
+	"Stock Entry": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Purchase Receipt": ["public/js/responsible_employee.js", "public/js/custom/serial_duplicates.js"],
 	"Purchase Invoice": [
 		"public/js/custom/supplier_vat_display.js",
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
+		"public/js/custom/serial_duplicates.js",
 	],
 	"Payment Request": [
 		"public/js/custom/supplier_vat_display.js",
@@ -92,8 +98,16 @@ doctype_js = {
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/custom/supplier_vat_display.js",
 	],
-	"Delivery Note": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Sales Invoice": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
+	"Delivery Note": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Sales Invoice": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
@@ -122,6 +136,7 @@ extend_doctype_class = {
 	"Purchase Invoice": ["erpnext.buying.recurring_purchase.RecurringPurchaseInvoice"],
 	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
+	"Quality Inspection": ["erpnext.stock.inspection_formula.InspectionFormulaContext"],
 }
 
 override_whitelisted_methods = {
@@ -690,7 +705,10 @@ doc_events = {
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
-		"validate": "erpnext.setup.doctype.employee.employee.validate_employee_role",
+		"validate": [
+			"erpnext.setup.doctype.employee.employee.validate_employee_role",
+			"erpnext.access_control.role_guard.guard_access_manager_role",
+		],
 		"on_update": "erpnext.portal.utils.set_default_role",
 	},
 	"Communication": {
@@ -806,6 +824,7 @@ doc_events = {
 		"on_cancel": "erpnext.buying.procurement_final_approval.close_final_approval_assignments",
 	},
 	"ToDo": {
+		"validate": "erpnext.utilities.todo_reminder.reset_reminder",
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
 		"on_update": [
 			"erpnext.buying.procurement_automation.sync_current_assignees",
@@ -849,6 +868,9 @@ doc_events = {
 	},
 	"Serial Number Template": {
 		"validate": "erpnext.stock.serial_charset.validate_serial_number_template",
+	},
+	"Quality Inspection Template": {
+		"validate": "erpnext.stock.inspection_formula.validate_template_variables",
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
@@ -951,11 +973,13 @@ scheduler_events = {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
 			"erpnext.correspondence.mail_forward.sync_delivery_status",
+			"erpnext.utilities.todo_reminder.send_due_reminders",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
 			"erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.run_parallel_reposting",
 			"erpnext.crm.chat_archive.reap_expired_restores",
+			"erpnext.access_control.doctype.access_request.access_request.expire_access",
 		],
 		# Hourly but offset by 30 minutes
 		"30 * * * *": [
@@ -1229,6 +1253,7 @@ extend_bootinfo = [
 	"erpnext.startup.boot.bootinfo",
 	"erpnext.startup.instance_env.add_instance_env",
 	"erpnext.crm.whatsapp_access.boot_session",
+	"erpnext.access_control.impersonation.boot_view",
 ]
 
 
