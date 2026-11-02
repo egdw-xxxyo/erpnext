@@ -33,12 +33,68 @@ erpnext.mount_global_todo_sidebar = function () {
 		$(".standard-items-sections").first().append($item);
 	}
 
+	erpnext.mount_global_menu_items($item);
 	erpnext.update_global_todo_sidebar_state();
+};
+
+erpnext.global_menu_route = function (item) {
+	if (item.link_type === "DocType") return ["List", item.link_to];
+	if (item.link_type === "Report") return ["query-report", item.link_to];
+	if (item.link_type === "Workspace") return [frappe.router.slug(item.link_to)];
+	return [item.link_to];
+};
+
+erpnext.mount_global_menu_items = function ($after) {
+	let $anchor = $after;
+	(frappe.boot.global_sidebar_items || []).forEach((item, idx) => {
+		const id = `navbar-global-menu-${idx}`;
+		if ($(`#${id}`).length) {
+			$anchor = $(`#${id}`);
+			return;
+		}
+		const is_url = item.link_type === "URL";
+		const href = is_url
+			? item.link_to
+			: "/desk/" + erpnext.global_menu_route(item).join("/").toLowerCase();
+		const $item = $(`
+			<div id="${id}" class="sidebar-item-container global-menu-item" item-name="${frappe.utils.escape_html(
+			item.label
+		)}" data-id="${frappe.utils.escape_html(item.label)}" data-link="${frappe.utils.escape_html(
+			item.link_to
+		)}"
+				data-type="${item.link_type}" title="${frappe.utils.escape_html(
+			item.label
+		)}" data-toggle="tooltip" data-placement="right">
+				<div class="standard-sidebar-item">
+					<a class="item-anchor" href="${frappe.utils.escape_html(href)}">
+						<span class="sidebar-item-icon text-ink-gray-7" item-icon="${item.icon}">
+							${frappe.utils.icon(item.icon, "sm", "", "", "text-ink-gray-7 current-color", true)}
+						</span>
+						<span class="sidebar-item-label">${frappe.utils.escape_html(item.label)}</span>
+					</a>
+				</div>
+			</div>
+		`);
+		if (!is_url) {
+			$item.on("click", "a", (event) => {
+				event.preventDefault();
+				frappe.set_route(erpnext.global_menu_route(item));
+			});
+		}
+		$anchor.after($item);
+		$anchor = $item;
+	});
 };
 
 erpnext.update_global_todo_sidebar_state = function () {
 	const active = /^\/(desk|app)\/todo$/.test(window.location.pathname.replace(/\/$/, ""));
 	$("#navbar-global-todo .standard-sidebar-item").toggleClass("active-sidebar", active);
+	$(".global-menu-item").each(function () {
+		const $el = $(this);
+		const link = String($el.data("link")).toLowerCase();
+		const path = window.location.pathname.toLowerCase();
+		$el.find(".standard-sidebar-item").toggleClass("active-sidebar", path.endsWith("/" + link));
+	});
 };
 
 $(document).on("toolbar_setup", () => erpnext.mount_global_todo_sidebar());

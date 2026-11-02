@@ -25,6 +25,7 @@ def execute():
 	setup_supplier_item_matching()
 	setup_procurement_document_details()
 	setup_todo_deadline()
+	setup_sidebar_item_roles()
 	setup_payment_instruction_list_link()
 	create_workflow_states()
 	create_workflow_actions()
@@ -592,6 +593,22 @@ def setup_payment_instruction_list_link():
 	from erpnext.accounts.payment_fiscal_receipt import sync_existing_fiscal_receipt_statuses
 
 	sync_existing_fiscal_receipt_statuses()
+
+
+def setup_sidebar_item_roles():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Workspace Sidebar Item",
+				"fieldname": "visible_roles",
+				"fieldtype": "Small Text",
+				"label": "Visible To Roles",
+				"description": "Comma-separated roles; empty = everyone. Set in the sidebar editor.",
+				"insert_after": "link_to",
+				"read_only": 1,
+			}
+		]
+	)
 
 
 def setup_todo_deadline():

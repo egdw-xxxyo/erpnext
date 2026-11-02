@@ -16886,3 +16886,15 @@ Distribute the entire repair quantity before marking the repair ready.,Пере�
 Cannot find the source request row for this repair.,Не знайдено вихідний рядок заявки для цього ремонту.
 A factory serial number is only available for serialized items.,Заводський серійний номер можна вводити лише для товарів із серійним номером.
 Movement quantity must match the selected repair result row.,Кількість у переміщенні має відповідати вибраному рядку результату ремонту.
+"Sidebar Menu Item","Елемент бічного меню"
+"Visible To","Видимий для"
+"Required DocType","Потрібний DocType"
+"Sort Order","Порядок сортування"
+"Empty = global item shown under Tasks in every sidebar. Otherwise the item is added to this sidebar, or restricted if the sidebar already has an item with the same target.","Порожньо = глобальний елемент під «Завдання» в кожному меню. Інакше елемент додається до цього меню або обмежується, якщо там уже є елемент із такою ж ціллю."
+"Hides the item for everyone, including a standard one with the same target.","Приховує елемент для всіх, зокрема стандартний із такою ж ціллю."
+"Position among the items added to the same place; 0 = end.","Позиція серед елементів, доданих в те саме місце; 0 = в кінець."
+"Page name, DocType, Report, Workspace or URL.","Назва сторінки, DocType, звіту, робочого простору або URL."
+"Icon name from the desk icon set, e.g. list, sheet, users.","Назва значка з набору значків, напр. list, sheet, users."
+"Show only to users who can read this DocType.","Показувати лише користувачам, які можуть читати цей DocType."
+"Empty = visible to everyone who may open the target.","Порожньо = видимий усім, хто може відкрити ціль."
+"Target","Ціль"

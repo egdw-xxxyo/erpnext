@@ -1254,6 +1254,7 @@ extend_bootinfo = [
 	"erpnext.startup.instance_env.add_instance_env",
 	"erpnext.crm.whatsapp_access.boot_session",
 	"erpnext.access_control.impersonation.boot_view",
+	"erpnext.access_control.sidebar_menu.boot_session",
 ]
 
 
