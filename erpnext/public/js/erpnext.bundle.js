@@ -33,6 +33,7 @@ import "./utils/month_field";
 import "./utils/grid_editor";
 import "./utils/employee_preview";
 import "./payroll/payroll_sheet_view";
+import "./payroll/vacation_pay_sheet_view";
 import "./utils/attendance_details";
 import "./utils/leave_pay";
 import "./utils/package_list_table";

@@ -1406,6 +1406,15 @@ def create_average_pay_fields():
 			"insert_after": "custom_sick_pay_in_full",
 			"description": "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.",
 		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_vacation_paid_opening",
+			"fieldtype": "Float",
+			"label": "Vacation Days Already Paid Officially",
+			"insert_after": "custom_opening_earnings",
+			"precision": "1",
+			"description": "Calendar days of vacation already paid officially before the Vacation Pay Sheet. They cover the oldest requested days first.",
+		},
 	]
 	_create_custom_fields(fields)
 	_update_field_texts(fields)

@@ -207,7 +207,9 @@ def plan_advance(
 		# лікарняному; ті дні вже оплачені за середньою. Лікарняний понад дні роботодавця
 		# платить Пенсійний фонд, тож у виплату компанії він не входить зовсім.
 		official_days = flt(max(planned_days - leave.working_days, 0), 2)
-		advance_official = flt(rate_official * official_days + leave.vacation_pay + leave.sick_pay, 2)
+		# Відпускні тут не платяться: їх оплачує «Відомість відпускних» блоком днів (див.
+		# `erpnext.payroll_ua.doctype.vacation_pay_sheet`).
+		advance_official = flt(rate_official * official_days + leave.sick_pay, 2)
 
 		rows.append(
 			frappe._dict(

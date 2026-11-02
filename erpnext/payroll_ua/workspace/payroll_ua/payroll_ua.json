@@ -75,6 +75,17 @@
    "type": "Link"
   },
   {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vacation Pay Sheet",
+   "link_count": 0,
+   "link_to": "Vacation Pay Sheet",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
    "hidden": 0,
    "is_query_report": 0,
    "label": "Employees",
@@ -280,6 +291,12 @@
   {
    "label": "Management Payroll Sheet",
    "link_to": "Management Payroll Sheet",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Vacation Pay Sheet",
+   "link_to": "Vacation Pay Sheet",
    "type": "DocType",
    "doc_view": "List"
   },
