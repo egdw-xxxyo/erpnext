@@ -606,7 +606,15 @@ def setup_sidebar_item_roles():
 				"description": "Comma-separated roles; empty = everyone. Set in the sidebar editor.",
 				"insert_after": "link_to",
 				"read_only": 1,
-			}
+			},
+			{
+				"dt": "Workspace Sidebar Item",
+				"fieldname": "icon_color",
+				"fieldtype": "Data",
+				"label": "Icon Color",
+				"insert_after": "icon",
+				"read_only": 1,
+			},
 		]
 	)
 
