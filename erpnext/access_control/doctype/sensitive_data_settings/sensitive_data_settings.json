@@ -1,0 +1,114 @@
+{
+ "actions": [],
+ "creation": "2026-11-01 00:00:00.000000",
+ "description": "Which data opens only after the personal PIN, and for how long",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "enabled",
+  "unlock_minutes",
+  "idle_minutes",
+  "column_break_general",
+  "max_attempts",
+  "api_users",
+  "objects_section",
+  "objects",
+  "fields_section",
+  "fields"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "General"
+  },
+  {
+   "default": "0",
+   "description": "While off, nothing asks for the PIN",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "default": "30",
+   "fieldname": "unlock_minutes",
+   "fieldtype": "Int",
+   "label": "Unlock Duration (min)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "10",
+   "description": "Locks again after this many minutes without opening protected data. 0 turns it off",
+   "fieldname": "idle_minutes",
+   "fieldtype": "Int",
+   "label": "Lock After Inactivity (min)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "column_break_general",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "5",
+   "description": "After this many wrong PINs in a row the PIN is blocked until it is reset",
+   "fieldname": "max_attempts",
+   "fieldtype": "Int",
+   "label": "Wrong PIN Attempts Allowed",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "description": "Integrations that sign in with an API key and may read protected data without a PIN",
+   "fieldname": "api_users",
+   "fieldtype": "Table MultiSelect",
+   "label": "API Users Without PIN",
+   "options": "Sensitive Data API User"
+  },
+  {
+   "fieldname": "objects_section",
+   "fieldtype": "Section Break",
+   "label": "Protected Data"
+  },
+  {
+   "description": "Child tables are protected together with their document",
+   "fieldname": "objects",
+   "fieldtype": "Table",
+   "label": "Document Types, Reports and Pages",
+   "options": "Sensitive Data Object"
+  },
+  {
+   "fieldname": "fields_section",
+   "fieldtype": "Section Break",
+   "label": "Protected Fields"
+  },
+  {
+   "fieldname": "fields",
+   "fieldtype": "Table",
+   "label": "Fields",
+   "options": "Sensitive Data Field"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Control",
+ "name": "Sensitive Data Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Access Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

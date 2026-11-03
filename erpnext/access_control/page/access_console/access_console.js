@@ -96,6 +96,8 @@ class AccessConsole {
 			change: () => this.load_who(),
 		});
 		page.set_secondary_action(__("Refresh"), () => this.load(), "refresh");
+		page.add_inner_button(__("Sensitive Data Monitor"), () => frappe.set_route("sensitive-data-monitor"));
+		page.add_inner_button(__("Access Request"), () => frappe.set_route("List", "Access Request"));
 		this.$body = $('<div class="ac-console"></div>').appendTo(page.main);
 		this.add_style();
 		this.bind();

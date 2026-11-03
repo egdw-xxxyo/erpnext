@@ -38,7 +38,7 @@ class TestParseSteps(unittest.TestCase):
 class TestSimulate(unittest.TestCase):
 	def setUp(self):
 		self.request = getattr(frappe.local, "request", None)
-		frappe.local.request = SimpleNamespace(method="POST", path="/api/method/simulate")
+		frappe.local.request = SimpleNamespace(method="POST", path="/api/method/simulate", headers={})
 		frappe.session.data[SESSION_KEY] = {"by": "Administrator", "reason": "test", "since": ""}
 
 	def tearDown(self):

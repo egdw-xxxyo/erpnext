@@ -32,11 +32,16 @@ erpnext.access_control.view_session = (() => {
 
 	const view = () => frappe.boot && frappe.boot.access_view;
 
+	const switch_session = ({ route, csrf_token }) => {
+		if (csrf_token) frappe.csrf_token = csrf_token;
+		window.location.assign(route);
+	};
+
 	const end = () => {
 		write_history([]);
 		return frappe
 			.xcall(END_METHOD)
-			.then(({ route }) => window.location.assign(route))
+			.then(switch_session)
 			.catch(() => window.location.assign("/login"));
 	};
 
@@ -54,10 +59,7 @@ erpnext.access_control.view_session = (() => {
 				{ fieldtype: "Small Text", fieldname: "reason", label: __("Reason"), reqd: 1 },
 			],
 			primary_action_label: __("Start viewing"),
-			primary_action: ({ reason }) =>
-				frappe
-					.xcall(START_METHOD, { user, reason })
-					.then(({ route }) => window.location.assign(route)),
+			primary_action: ({ reason }) => frappe.xcall(START_METHOD, { user, reason }).then(switch_session),
 		});
 		dialog.show();
 		return dialog;
