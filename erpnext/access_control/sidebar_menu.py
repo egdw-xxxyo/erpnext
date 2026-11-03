@@ -45,15 +45,30 @@ def boot_session(bootinfo):
 	roles = set(frappe.get_roles(user))
 	rows = frappe.get_all("Sidebar Menu Item", fields=FIELDS, order_by="sort_order asc, creation asc")
 
-	bootinfo.global_sidebar_items = [
-		{"label": _(r.label), "link_type": r.link_type, "link_to": r.link_to, "icon": r.icon or "list"}
-		for r in rows
-		if not r.sidebar and allowed(r, roles, user)
-	]
+	bootinfo.global_sidebar_items = []
+	bootinfo.hidden_builtin_items = []
+	for r in rows:
+		if r.sidebar:
+			continue
+		visible = allowed(r, roles, user)
+		if r.builtin and visible:
+			bootinfo.global_sidebar_items.append({"key": r.builtin, "builtin": r.builtin})
+		elif r.builtin:
+			bootinfo.hidden_builtin_items.append(r.builtin)
+		elif visible:
+			bootinfo.global_sidebar_items.append(
+				{
+					"key": r.name,
+					"label": _(r.label),
+					"link_type": r.link_type,
+					"link_to": r.link_to,
+					"icon": r.icon or "list",
+				}
+			)
 
 	sidebars = bootinfo.get("workspace_sidebar_item") or {}
 	for row in rows:
-		if not row.sidebar:
+		if not row.sidebar or row.builtin:
 			continue
 		sidebar = sidebars.get(row.sidebar.lower())
 		if sidebar is None:

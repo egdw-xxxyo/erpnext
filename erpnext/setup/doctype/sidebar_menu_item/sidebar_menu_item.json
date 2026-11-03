@@ -9,6 +9,7 @@
   "label",
   "sidebar",
   "column_break_a",
+  "builtin",
   "disabled",
   "sort_order",
   "section_break_target",
@@ -37,6 +38,14 @@
    "in_standard_filter": 1,
    "label": "Sidebar",
    "options": "Workspace Sidebar"
+  },
+  {
+   "description": "Set for the menu entries the system itself provides (Tasks, Search, ...). Such a row only controls order, roles and visibility.",
+   "fieldname": "builtin",
+   "fieldtype": "Select",
+   "label": "Built-in",
+   "options": "\nTasks\nSearch\nScanner\nNotifications",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_a",
@@ -76,7 +85,7 @@
    "fieldname": "link_to",
    "fieldtype": "Data",
    "label": "Link To",
-   "reqd": 1
+   "mandatory_depends_on": "eval: !doc.builtin"
   },
   {
    "fieldname": "column_break_b",
