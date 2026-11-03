@@ -20,6 +20,8 @@ frappe.ui.form.on("Employee", {
 	custom_employment_rate: (frm) => show_reservation_match(frm),
 
 	refresh(frm) {
+		if (erpnext.sensitive_data.masked_here(frm).length) return;
+
 		show_card_amount(frm);
 		show_reservation_match(frm);
 

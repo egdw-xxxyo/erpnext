@@ -16915,3 +16915,208 @@ Movement quantity must match the selected repair result row.,Кількість 
 "Tasks","Завдання"
 "Search","Пошук"
 "Notification","Сповіщення"
+This data is protected. Enter your PIN to open it,"Ці дані захищено. Введіть PIN, щоб їх відкрити"
+This data is protected by a PIN. Open it in the browser,Ці дані захищено PIN-кодом. Відкрийте їх у браузері
+The PIN must be exactly 6 digits,PIN має складатися рівно з 6 цифр
+The PIN is too simple. Do not use repeated or consecutive digits,PIN надто простий. Не використовуйте однакові чи послідовні цифри
+The PINs do not match,PIN-коди не збігаються
+You have not set a PIN yet,Ви ще не створили PIN
+You already have a PIN. Change it or reset it instead,У вас уже є PIN. Змініть або скиньте його
+Your PIN is blocked after too many wrong attempts. Reset it to continue,"Ваш PIN заблоковано через забагато невдалих спроб. Скиньте його, щоб продовжити"
+Wrong PIN,Невірний PIN
+Wrong password,Невірний пароль
+The reset link is invalid or has expired. Request a new one,Посилання для скидання недійсне або застаріле. Запросіть нове
+This reset link was sent to another user,Це посилання для скидання надіслано іншому користувачу
+This is not available while viewing as another user,Це недоступно в режимі перегляду від імені іншого користувача
+PIN of {0} is blocked after {1} wrong attempts,PIN користувача {0} заблоковано після {1} невдалих спроб
+Reset your PIN for protected data,Скидання PIN для захищених даних
+Someone asked to reset the PIN that protects payroll and other sensitive data.,"Надійшов запит на скидання PIN, який захищає зарплатні та інші чутливі дані."
+Set a new PIN,Встановити новий PIN
+"The link works for one hour and only while you are signed in. If you did not ask for this, tell your Access Manager.","Посилання діє одну годину і лише тоді, коли ви увійшли в систему. Якщо ви цього не запитували, повідомте менеджера доступів."
+{0} reset their PIN,{0} скинув(ла) свій PIN
+Row {0}: {1} is listed twice,Рядок {0}: {1} вказано двічі
+Row {0}: system document type {1} cannot be protected,Рядок {0}: системний тип документа {1} не можна захистити
+"Row {0}: {1} is a child table, protect its document instead","Рядок {0}: {1} — дочірня таблиця, захистіть її документ"
+Row {0}: {1} has no field {2},Рядок {0}: у {1} немає поля {2}
+{0} changed the protected data settings,{0} змінив(ла) налаштування захисту чутливих даних
+PIN States,Стан PIN-кодів
+Protected data is open until {0},Захищені дані відкрито до {0}
+Lock now,Заблокувати зараз
+Protected data is locked,Захищені дані заблоковано
+Protected data is open. Repeat the action,Захищені дані відкрито. Повторіть дію
+Forgot your PIN?,Забули PIN?
+"The data stays open for {0} minutes, or until {1} minutes pass without opening it.",Дані залишаться відкритими {0} хв або до {1} хв без звернень до них.
+The data stays open for {0} minutes.,Дані залишаться відкритими {0} хв.
+Enter PIN,Введіть PIN
+You are viewing as another user: enter the PIN of {0}.,Ви переглядаєте систему від імені іншого користувача: введіть PIN користувача {0}.
+This data is protected by your personal PIN.,Ці дані захищено вашим особистим PIN-кодом.
+PIN is not set,PIN не створено
+"This user has not set a PIN yet, so protected data cannot be opened.","Цей користувач ще не створив PIN, тому захищені дані відкрити не можна."
+Create a PIN,Створіть PIN
+Choose 6 digits that only you know.,"Оберіть 6 цифр, які знаєте лише ви."
+Your login password,Ваш пароль для входу
+New PIN,Новий PIN
+Repeat PIN,Повторіть PIN
+Save PIN,Зберегти PIN
+PIN is blocked,PIN заблоковано
+The PIN of this user is blocked after too many wrong attempts.,PIN цього користувача заблоковано через забагато невдалих спроб.
+Your PIN is blocked after too many wrong attempts. We will email you a link to set a new one.,Ваш PIN заблоковано через забагато невдалих спроб. Ми надішлемо на пошту посилання для створення нового.
+Send reset link,Надіслати посилання для скидання
+Reset link sent,Посилання для скидання надіслано
+We sent a link to set a new PIN to {0}. It works for one hour.,Посилання для створення нового PIN надіслано на {0}. Воно діє одну годину.
+Change PIN,Змінити PIN
+Current PIN,Поточний PIN
+PIN changed,PIN змінено
+Reset PIN,Скинути PIN
+Send {0} a link to set a new PIN for protected data?,Надіслати користувачу {0} посилання для створення нового PIN для захищених даних?
+"Set a new PIN for payroll and other protected data. To confirm it is you, enter your login password.","Встановіть новий PIN для зарплатних та інших захищених даних. Щоб підтвердити, що це ви, введіть пароль для входу."
+New PIN saved,Новий PIN збережено
+Sensitive Access Log,Журнал чутливого доступу
+"PIN unlocks, wrong attempts, resets and settings changes","Розблокування PIN-кодом, невдалі спроби, скидання та зміни налаштувань"
+PIN Blocked,PIN заблоковано
+PIN Set,PIN створено
+PIN Changed,PIN змінено
+Reset Requested,Запит на скидання
+PIN Reset,PIN скинуто
+Settings Changed,Налаштування змінено
+Acted By,Виконав
+"Who acted, if not the user: a manager viewing as the user or resetting their PIN","Хто діяв, якщо не сам користувач: менеджер, що переглядає від його імені або скидає його PIN"
+Unlocked Until,Розблоковано до
+Sensitive Data API User,API-користувач без PIN
+Sensitive Data Object,Захищений об'єкт
+"A document type, report or page that opens only after the PIN","Тип документа, звіт або сторінка, що відкриваються лише після PIN"
+Unlock Duration (min),Тривалість розблокування (хв)
+Empty uses the default unlock duration,Якщо порожньо — тривалість за замовчуванням
+Sensitive Data Field,Захищене поле
+A field whose value is hidden until the PIN is entered,"Поле, значення якого приховане до введення PIN"
+Sensitive Data Settings,Захист чутливих даних
+"Which data opens only after the personal PIN, and for how long",Які дані відкриваються лише після особистого PIN і на скільки
+"While off, nothing asks for the PIN","Поки вимкнено, PIN ніде не запитується"
+Lock After Inactivity (min),Блокувати після бездіяльності (хв)
+Locks again after this many minutes without opening protected data. 0 turns it off,Знову блокує після стількох хвилин без звернень до захищених даних. 0 — вимкнено
+Wrong PIN Attempts Allowed,Дозволено невдалих спроб PIN
+After this many wrong PINs in a row the PIN is blocked until it is reset,Після стількох невдалих спроб поспіль PIN блокується до скидання
+API Users Without PIN,API-користувачі без PIN
+Integrations that sign in with an API key and may read protected data without a PIN,"Інтеграції, що входять за API-ключем і можуть читати захищені дані без PIN"
+Protected Data,Захищені дані
+"Document Types, Reports and Pages","Типи документів, звіти та сторінки"
+Child tables are protected together with their document,Дочірні таблиці захищаються разом зі своїм документом
+Protected Fields,Захищені поля
+Sensitive Data PIN,PIN для чутливих даних
+PIN state of a user. The PIN itself is stored only as a hash,Стан PIN користувача. Сам PIN зберігається лише як хеш
+Wrong Attempts In A Row,Невдалих спроб поспіль
+PIN Set On,Дата створення PIN
+Last Unlock,Останнє розблокування
+Reset Key,Ключ скидання
+Reset Link Expires,Посилання для скидання діє до
+Access and Security,Доступи та безпека
+All events,Усі події
+Blocked PINs,Заблоковані PIN
+Enter PIN to show them,"Введіть PIN, щоб їх показати"
+Exports and prints,Вивантаження та друк
+Lock,Заблокувати
+Lock protected data for this user now?,Заблокувати захищені дані для цього користувача зараз?
+Locked by a manager,Заблоковано менеджером
+My Access Requests,Мої запити на доступ
+No events yet,Подій ще немає
+No protected document was opened yet,Захищені документи ще не відкривали
+Nobody has created a PIN yet,Ніхто ще не створив PIN
+Nobody has protected data open,Зараз ніхто не має відкритих захищених даних
+Nothing protected was exported or printed,Захищені дані не вивантажували й не друкували
+On,Увімкнено
+Open now,Відкрито зараз
+Opened protected documents,Відкриті захищені документи
+Protected data. Open it in the browser,Захищені дані. Відкрийте їх у браузері
+Protected fields,Захищені поля
+Protected objects,Захищені об’єкти
+Protection,Захист
+Protection is off: nothing asks for the PIN. Turn it on in the settings.,Захист вимкнено: PIN ніде не запитується. Увімкніть його в налаштуваннях.
+Sensitive Data Monitor,Моніторинг захищених даних
+This data is protected by a PIN. Enter your PIN in the browser to open it,"Ці дані захищені PIN-кодом. Введіть PIN у браузері, щоб їх відкрити"
+This unlock has already ended,Це розблокування вже завершилося
+"Unlock lasts {0} min, locks after {1} min without activity, {2} wrong attempts block the PIN.","Розблокування діє {0} хв, блокується після {1} хв бездіяльності, {2} невдалих спроб блокують PIN."
+When,Коли
+Wrong PINs in 24 h,Невірних PIN за 24 год
+viewing as the user,переглядає як цей користувач
+"{0} does not receive email, so the reset link cannot be sent. Set a real email address in the user first.","{0} не отримує пошту, тому посилання для скидання надіслати неможливо. Спершу вкажіть користувачу справжню адресу пошти."
+Unlocked,Розблоковано
+Who Viewed,Хто переглядав
+Protected data,Захищені дані
+Object,Об'єкт
+Who,Хто
+File Download,Скачування
+What Changed,Що змінено
+Who Changed,Хто змінив
+Object Type,Тип об'єкта
+Level {0},Рівень {0}
+Role Profile Name,Профіль ролей
+Permlevel,Рівень доступу
+access granted,доступ надано
+access removed,доступ забрано
+{0} rights changed,змінено прав: {0}
+Granted: {0},Надано: {0}
+Revoked: {0},Забрано: {0}
+Rights: {0},Права: {0}
+Own documents only,Лише власні документи
+Was: {0},Було: {0}
+Now: {0},Стало: {0}
+All document types,Усі типи документів
+Applies to,Діє для
+Before Change,Було
+After Change,Стало
+No changes,Змін немає
+View Log,Журнал переглядів
+Apply To All Doctypes,Застосувати до всіх типів документів
+Failed Login,Невдалий вхід
+Signed Out,Вихід
+Viewing as another user,Перегляд від імені
+User Manually Logged Out,Вручну
+Force Logged out by the user,Примусово завершено
+Whole document,Документ повністю
+What to protect,Що захистити
+Add Protection,Додати захист
+Already protected,Уже захищено
+Choose a document type first,Спочатку виберіть тип документа
+Name or module,Назва або модуль
+Select at least one item,Виберіть хоча б один пункт
+Unknown object type {0},Невідомий тип об'єкта {0}
+"Its list, form, print and export ask for the PIN","Список, форма, друк і експорт питатимуть PIN"
+"The document stays open, only the chosen fields stay hidden until the PIN is entered","Документ лишається відкритим, приховані лише вибрані поля, доки не введено PIN"
+Opening and running the report asks for the PIN,Відкриття та запуск звіту питатимуть PIN
+Opening the page and the server methods of its own module ask for the PIN,Відкриття сторінки та серверні методи її власного модуля питатимуть PIN
+Empty: the general value from the settings,"Порожньо: загальне значення з налаштувань"
+Added: {0}. Save the settings to apply,"Додано: {0}. Збережіть налаштування, щоб застосувати"
+"This document is already protected as a whole, its fields are hidden anyway","Цей документ уже захищено повністю, його поля й так приховані"
+PIN reset,PIN скинуто
+Confirm it is you with your login password and choose a new PIN. Access Managers will be notified.,"Підтвердіть, що це ви, паролем для входу та виберіть новий PIN. Менеджери доступу отримають сповіщення."
+Your PIN is blocked after too many wrong attempts. Set a new one with your login password.,"PIN заблоковано після надто багатьох невдалих спроб. Задайте новий, підтвердивши паролем для входу."
+{0} has no PIN to reset,У {0} немає PIN для скидання
+{0} reset your PIN. Create a new one the next time you open protected data,"{0} скинув ваш PIN. Створіть новий, коли наступного разу відкриватимете захищені дані"
+Reset the PIN of {0}? They will create a new one with their login password the next time they open protected data.,"Скинути PIN користувача {0}? Новий PIN він створить сам, підтвердивши паролем для входу, коли наступного разу відкриватиме захищені дані."
+API client,API-клієнт
+protection turned on,захист увімкнено
+protection turned off,захист вимкнено
+unlock duration {0} → {1} min,тривалість розблокування {0} → {1} хв
+idle limit {0} → {1} min,бездіяльність {0} → {1} хв
+attempts {0} → {1},спроб {0} → {1}
+protected: {0},захищено: {0}
+unprotected: {0},знято захист: {0}
+hidden fields: {0},приховано поля: {0}
+shown fields: {0},відкрито поля: {0}
+{0}: {1} → {2} min,{0}: {1} → {2} хв
+API access granted: {0},доступ через API надано: {0}
+API access removed: {0},доступ через API забрано: {0}
+and {0} more,і ще {0}
+Unlocked until {0},Розблоковано до {0}
+Wrong PIN · attempt {0},Невірний PIN · спроба {0}
+PIN blocked after too many attempts,PIN заблоковано після забагатьох спроб
+PIN created,PIN створено
+PIN reset by a manager,PIN скинуто менеджером
+PIN replaced with the login password,PIN замінено через пароль для входу
+PIN reset requested by email,Запит на скидання PIN поштою
+Locked manually,Заблоковано вручну
+Closed for inactivity at {0},Закрито через бездіяльність о {0}
+"Closed, the unlock time ran out at {0}",Закрито: минув час розблокування о {0}
+What happened,Що сталося
+Protected fields are hidden: {0}.,Захищені поля приховано: {0}.
+"Protected data opens only after your personal PIN, so nobody can read it at your computer while you are away.","Захищені дані відкриваються лише після введення вашого особистого PIN, щоб ніхто не зміг переглянути їх за вашим комп'ютером, поки вас немає."

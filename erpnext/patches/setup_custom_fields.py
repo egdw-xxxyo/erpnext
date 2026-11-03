@@ -114,6 +114,12 @@ def execute():
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
 	allow_warehouse_rename()
+	setup_view_log_list()
+	setup_access_log_list()
+	setup_permission_log_list()
+	setup_activity_log_list()
+	make_user_images_public()
+	remove_retired_pages()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -4960,3 +4966,133 @@ def allow_warehouse_rename():
 		validate_fields_for_doctype=False,
 	)
 	frappe.clear_cache(doctype="Warehouse")
+
+
+VIEW_LOG_PROPERTIES = (
+	(None, "title_field", "reference_name", "Data"),
+	("viewed_by", "fieldtype", "Link", "Select"),
+	("viewed_by", "options", "User", "Text"),
+	("viewed_by", "label", "Who Viewed", "Data"),
+	("reference_doctype", "label", "Document Type", "Data"),
+	("reference_name", "label", "Document", "Data"),
+	("viewed_by", "in_list_view", "1", "Check"),
+	("viewed_by", "in_standard_filter", "1", "Check"),
+	("reference_doctype", "in_list_view", "1", "Check"),
+	("reference_doctype", "in_standard_filter", "1", "Check"),
+	("reference_name", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_view_log_list():
+	apply_list_properties("View Log", VIEW_LOG_PROPERTIES)
+
+
+ACCESS_LOG_PROPERTIES = (
+	(None, "title_field", "reference_document", "Data"),
+	("reference_document", "label", "Object", "Data"),
+	("user", "label", "Who", "Data"),
+	("method", "label", "Action", "Data"),
+	("export_from", "label", "Source", "Data"),
+	("reference_document", "in_list_view", "0", "Check"),
+	("reference_document", "in_standard_filter", "0", "Check"),
+	("method", "in_list_view", "1", "Check"),
+	("file_type", "in_list_view", "1", "Check"),
+	("method", "in_standard_filter", "1", "Check"),
+	("export_from", "in_standard_filter", "1", "Check"),
+	("report_name", "in_standard_filter", "1", "Check"),
+	("file_type", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_access_log_list():
+	apply_list_properties("Access Log", ACCESS_LOG_PROPERTIES)
+
+
+PERMISSION_LOG_PROPERTIES = (
+	(None, "title_field", "changes", "Data"),
+	("changes", "label", "What Changed", "Data"),
+	("changed_by", "label", "Who Changed", "Data"),
+	("for_doctype", "label", "Object Type", "Data"),
+	("for_document", "label", "Object", "Data"),
+	("changed_by", "in_standard_filter", "1", "Check"),
+	("status", "in_standard_filter", "1", "Check"),
+	("for_doctype", "in_list_view", "0", "Check"),
+	("reference_type", "in_list_view", "0", "Check"),
+	("reference", "in_list_view", "0", "Check"),
+	("reference_type", "in_standard_filter", "0", "Check"),
+	("reference", "in_standard_filter", "0", "Check"),
+)
+
+
+def setup_permission_log_list():
+	apply_list_properties("Permission Log", PERMISSION_LOG_PROPERTIES)
+
+
+ACTIVITY_LOG_PROPERTIES = (
+	("subject", "label", "Event", "Data"),
+	("user", "label", "Who", "Data"),
+	("user", "in_list_view", "1", "Check"),
+	("ip_address", "in_list_view", "1", "Check"),
+	("full_name", "in_list_view", "0", "Check"),
+	("user", "in_standard_filter", "1", "Check"),
+	("operation", "in_standard_filter", "1", "Check"),
+	("status", "in_standard_filter", "1", "Check"),
+	("ip_address", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_activity_log_list():
+	apply_list_properties("Activity Log", ACTIVITY_LOG_PROPERTIES)
+
+
+def apply_list_properties(doctype, properties):
+	meta = frappe.get_meta(doctype)
+	for fieldname, prop, value, property_type in properties:
+		current = (meta if fieldname is None else meta.get_field(fieldname)).get(prop)
+		if ("" if current is None else str(current)) == value:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": doctype,
+				"doctype_or_field": "DocType" if fieldname is None else "DocField",
+				"fieldname": fieldname,
+				"property": prop,
+				"value": value,
+				"property_type": property_type,
+			},
+			validate_fields_for_doctype=False,
+		)
+	frappe.clear_cache(doctype=doctype)
+
+
+def remove_retired_pages():
+	frappe.delete_doc_if_exists("Page", "sensitive-pin-reset")
+
+
+def make_user_images_public():
+	"""Avatars are shown to everyone; a private one writes an Access Log row on every page view."""
+	if not frappe.get_meta("User").get_field("user_image").make_attachment_public:
+		frappe.make_property_setter(
+			{
+				"doctype": "User",
+				"doctype_or_field": "DocField",
+				"fieldname": "user_image",
+				"property": "make_attachment_public",
+				"value": "1",
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		frappe.clear_cache(doctype="User")
+	private_images = frappe.get_all(
+		"File",
+		filters={"attached_to_doctype": "User", "attached_to_field": "user_image", "is_private": 1},
+		pluck="name",
+	)
+	for name in private_images:
+		file = frappe.get_doc("File", name)
+		file.is_private = 0
+		try:
+			file.save(ignore_permissions=True)
+		except (FileNotFoundError, FileExistsError):
+			frappe.clear_last_message()

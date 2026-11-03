@@ -20,6 +20,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, now
 
+from erpnext.access_control import sensitive
 from erpnext.crm.notification_channels import sync_users, without_channels
 
 URL_RE = re.compile(r"https?://[^\s<>\"']+")
@@ -680,7 +681,7 @@ def get_threads():
 	for t in threads:
 		_thread_row(t, me, last_read[t["name"]], can_purge)
 
-	return threads
+	return sensitive.hide_locked_previews(threads)
 
 
 @frappe.whitelist()
@@ -1688,7 +1689,11 @@ def _push_new_message(thread_doc, msg, sender, notify_users):
 	if not tokens:
 		return
 	title = thread_doc.title or _user_name(sender)
-	body = _preview_text(msg.content_type, msg.message, msg.attach, is_encrypted=msg.is_encrypted)
+	body = (
+		sensitive.protected_push_text()
+		if sensitive.is_protected_doctype(thread_doc.reference_doctype)
+		else _preview_text(msg.content_type, msg.message, msg.attach, is_encrypted=msg.is_encrypted)
+	)
 	frappe.enqueue(
 		"erpnext.crm.page.employee_chat.employee_chat._send_fcm_push",
 		queue="short",

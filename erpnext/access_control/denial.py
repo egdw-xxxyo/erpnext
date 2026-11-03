@@ -5,7 +5,7 @@ from frappe import _
 from frappe.permissions import has_permission
 from frappe.utils import strip_html
 
-from erpnext.access_control import denial_rules
+from erpnext.access_control import denial_rules, sensitive
 from erpnext.access_control import permission_rules as rules
 from erpnext.access_control.permissions_engine import (
 	_public_explanation,
@@ -185,8 +185,10 @@ REQUESTER_HIDDEN = ("granting_roles", "user_roles", "source", "workflow")
 def get_denial(context: str | dict | None = None) -> dict:
 	context = _context(context)
 	user = frappe.session.user
+	target = sensitive.target_for_context(context)
 	return {
 		"context": context,
+		"sensitive_locked": bool(target and sensitive.is_locked(target)),
 		"pending": pending_request(user, context),
 		"has_managers": bool(access_managers(exclude=user)),
 		"can_request": user != "Administrator",
