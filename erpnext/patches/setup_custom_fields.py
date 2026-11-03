@@ -118,6 +118,7 @@ def execute():
 	setup_access_log_list()
 	setup_permission_log_list()
 	setup_activity_log_list()
+	open_colleague_employee_links()
 	make_user_images_public()
 	remove_retired_pages()
 	frappe.db.commit()
@@ -4949,6 +4950,49 @@ def execute_quiet():
 	finally:
 		frappe.clear_cache = clear_cache
 	clear_cache()
+
+
+COLLEAGUE_EMPLOYEE_LINKS = (
+	("Employee Grievance", "employee_responsible"),
+	("Exit Interview", "reports_to"),
+	("Employee Group Table", "employee"),
+	("Delivery Trip", "employee"),
+	("Vehicle", "employee"),
+	("Vehicle Trip", "employee"),
+	("Driver", "employee"),
+	("Sales Person", "employee"),
+	("Activity Cost", "employee"),
+	("Call Log", "call_received_by"),
+	("Supplier Scorecard", "employee"),
+	("Supplier Scorecard Standing", "employee_link"),
+	("Supplier Scorecard Scoring Standing", "employee_link"),
+)
+
+
+def open_colleague_employee_links():
+	"""Let a user pick any colleague in these Links to Employee.
+
+	An Employee linked to a User gets a User Permission on its own Employee, and Frappe applies
+	it to every Link to Employee: the dropdown offers only the user's own record and a document
+	naming a colleague cannot be saved. These fields name a colleague, not the person the
+	document belongs to, so they ignore user permissions. The field that says whose document it
+	is (`employee`, `raised_by`, ...) keeps them, which is what limits the documents a user sees.
+	"""
+	for doctype, fieldname in COLLEAGUE_EMPLOYEE_LINKS:
+		df = frappe.get_meta(doctype).get_field(fieldname) if frappe.db.exists("DocType", doctype) else None
+		if not df or df.options != "Employee" or df.ignore_user_permissions:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": doctype,
+				"fieldname": fieldname,
+				"property": "ignore_user_permissions",
+				"value": 1,
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Ignored user permissions: {doctype}.{fieldname}")
 
 
 def allow_warehouse_rename():
