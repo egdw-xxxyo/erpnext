@@ -12,11 +12,13 @@ from frappe import _
 
 FIELDS = [
 	"name",
+	"builtin",
 	"label",
 	"sidebar",
 	"link_type",
 	"link_to",
 	"icon",
+	"icon_color",
 	"required_doctype",
 	"sort_order",
 	"disabled",
@@ -63,6 +65,7 @@ def boot_session(bootinfo):
 					"link_type": r.link_type,
 					"link_to": r.link_to,
 					"icon": r.icon or "list",
+					"icon_color": r.icon_color,
 				}
 			)
 
@@ -90,6 +93,7 @@ def boot_session(bootinfo):
 			"link_type": row.link_type,
 			"type": "Link",
 			"icon": row.icon,
+			"icon_color": row.icon_color,
 			"child": 0,
 			"collapsible": 1,
 			"indent": 0,

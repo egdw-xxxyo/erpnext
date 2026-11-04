@@ -78,7 +78,7 @@ erpnext.GlobalMenuPage = class GlobalMenuPage {
 					border-radius: var(--border-radius-md); background: var(--card-bg); opacity: ${shown ? 1 : 0.4};">
 					<span class="drag-handle" style="cursor: grab;"><i class="fa fa-bars text-muted"></i></span>
 					<span style="width: 20px; text-align: center;">
-						${frappe.utils.icon(item.icon || "list", "sm")}
+						${erpnext.global_menu_icon({ icon: item.icon || "list", icon_color: item.icon_color })}
 					</span>
 					<span class="flex-grow-1">
 						<strong>${label}</strong>

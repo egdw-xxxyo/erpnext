@@ -17,6 +17,7 @@
   "link_to",
   "column_break_b",
   "icon",
+  "icon_color",
   "required_doctype",
   "section_break_roles",
   "roles"
@@ -92,10 +93,15 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Icon name from the desk icon set, e.g. list, sheet, users.",
    "fieldname": "icon",
-   "fieldtype": "Data",
-   "label": "Icon"
+   "fieldtype": "Icon",
+   "label": "Icon",
+   "options": "Emojis"
+  },
+  {
+   "fieldname": "icon_color",
+   "fieldtype": "Color",
+   "label": "Icon Color"
   },
   {
    "description": "Show only to users who can read this DocType.",

@@ -14,7 +14,8 @@ class SidebarMenuItem(Document):
 
 		builtin: DF.Literal["", "Tasks", "Search", "Scanner", "Notifications"]
 		disabled: DF.Check
-		icon: DF.Data | None
+		icon: DF.Icon | None
+		icon_color: DF.Color | None
 		label: DF.Data
 		link_to: DF.Data | None
 		link_type: DF.Literal["Page", "DocType", "Report", "Workspace", "URL"]

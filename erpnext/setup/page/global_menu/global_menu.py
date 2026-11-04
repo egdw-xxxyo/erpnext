@@ -14,7 +14,17 @@ def get_items() -> list[dict]:
 	rows = frappe.get_all(
 		"Sidebar Menu Item",
 		filters={"sidebar": ["is", "not set"]},
-		fields=["name", "builtin", "label", "icon", "link_type", "link_to", "disabled", "required_doctype"],
+		fields=[
+			"name",
+			"builtin",
+			"label",
+			"icon",
+			"icon_color",
+			"link_type",
+			"link_to",
+			"disabled",
+			"required_doctype",
+		],
 		order_by="sort_order asc, creation asc",
 	)
 	for r in rows:

@@ -63,6 +63,18 @@ erpnext.global_menu_dom_id = function (key) {
 	return `navbar-global-menu-${String(key).replace(/[^A-Za-z0-9_-]/g, "_")}`;
 };
 
+erpnext.global_menu_icon = function (item) {
+	const colored = /^#[0-9a-fA-F]{3,8}$/.test(item.icon_color || "");
+	return frappe.utils.icon(
+		item.icon,
+		"sm",
+		"",
+		colored ? "color: " + item.icon_color : "",
+		colored ? "current-color" : "text-ink-gray-7 current-color",
+		true
+	);
+};
+
 erpnext.mount_global_menu_items = function () {
 	const $container = $(".standard-items-sections").first();
 	if (!$container.length) return;
@@ -84,7 +96,7 @@ erpnext.mount_global_menu_items = function () {
 				<div class="standard-sidebar-item">
 					<a class="item-anchor" href="${href}">
 						<span class="sidebar-item-icon text-ink-gray-7" item-icon="${item.icon}">
-							${frappe.utils.icon(item.icon, "sm", "", "", "text-ink-gray-7 current-color", true)}
+							${erpnext.global_menu_icon(item)}
 						</span>
 						<span class="sidebar-item-label">${label}</span>
 					</a>
