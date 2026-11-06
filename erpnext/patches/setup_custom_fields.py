@@ -98,6 +98,7 @@ def execute():
 	setup_opportunity_field_properties()
 	set_v16_ported_properties()
 	create_v16_ported_fields()
+	create_commercial_offer_company_fields()
 	arrange_lead_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
@@ -5140,3 +5141,39 @@ def make_user_images_public():
 			file.save(ignore_permissions=True)
 		except (FileNotFoundError, FileExistsError):
 			frappe.clear_last_message()
+
+
+def create_commercial_offer_company_fields():
+	fields = [
+		{
+			"dt": "Company",
+			"fieldname": "commercial_offer_section",
+			"fieldtype": "Section Break",
+			"label": "Commercial Offer",
+			"insert_after": "company_logo",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_logo",
+			"fieldtype": "Attach Image",
+			"label": "Commercial Offer Logo",
+			"insert_after": "commercial_offer_section",
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_stamp",
+			"fieldtype": "Attach Image",
+			"label": "Commercial Offer Stamp and Signature",
+			"insert_after": "offer_logo",
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_header_text",
+			"fieldtype": "Small Text",
+			"label": "Commercial Offer Header Text",
+			"insert_after": "offer_stamp",
+			"description": "Company name, registration code, IBAN and bank; one line per row",
+		},
+	]
+	_create_custom_fields(fields)
