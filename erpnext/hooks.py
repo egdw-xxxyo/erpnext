@@ -27,7 +27,11 @@ app_include_js = [
 	"/assets/erpnext/js/custom/todo_planner.js",
 	"/assets/erpnext/js/custom/doc_help.js",
 ]
-app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
+app_include_css = [
+	"erpnext.bundle.css",
+	"/assets/erpnext/css/todo_planner.css",
+	"/assets/erpnext/css/repair_form.css",
+]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
@@ -44,8 +48,16 @@ after_request = ["erpnext.access_control.denial.attach_denial_context"]
 before_request = ["erpnext.access_control.impersonation.enforce_view_mode"]
 
 doctype_js = {
-	"Issue": "public/js/custom/service_repair.js",
-	"Repair Unit": "public/js/custom/repair_unit.js",
+	"Issue": [
+		"public/js/custom/repair_dialog.js",
+		"public/js/custom/repair_form.js",
+		"public/js/custom/service_repair.js",
+	],
+	"Repair Unit": [
+		"public/js/custom/repair_dialog.js",
+		"public/js/custom/repair_form.js",
+		"public/js/custom/repair_unit.js",
+	],
 	"Repair Settings": "public/js/custom/repair_settings.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",

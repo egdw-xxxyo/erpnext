@@ -16886,3 +16886,19 @@ Distribute the entire repair quantity before marking the repair ready.,Пере�
 Cannot find the source request row for this repair.,Не знайдено вихідний рядок заявки для цього ремонту.
 A factory serial number is only available for serialized items.,Заводський серійний номер можна вводити лише для товарів із серійним номером.
 Movement quantity must match the selected repair result row.,Кількість у переміщенні має відповідати вибраному рядку результату ремонту.
+Use New Repair UI,Увімкнути новий інтерфейс ремонту
+Return to Standard Frappe UI,Повернутися до стандартного Frappe UI
+The action could not be completed. Check the details and try again.,Не вдалося виконати дію. Перевірте дані та спробуйте ще раз.
+"New Service Request","Нова сервісна заявка"
+"New Repair Unit","Нова ремонтна одиниця"
+"Describe the request, select its type and specify the contact.","Опишіть звернення та виберіть тип заявки й контактну особу."
+"Review the item details, record the repair work and its result.","Перевірте дані виробу та зафіксуйте виконані роботи й результат ремонту."
+"Questions and support","Запитання та підтримка"
+"Intake, repair and return","Приймання та повернення"
+"Request Details","Дані заявки"
+"Discard Draft","Відкинути чернетку"
+"Working…","Виконується…"
+"Select a contact to see their phone, email and messaging options.","Виберіть контактну особу — тут зʼявляться телефон і пошта та кнопки звʼязку."
+"The operation was completed. Reload the document to see the latest data.","Операцію виконано. Оновіть документ, щоб побачити актуальні дані."
+"Repair Item Details","Дані виробу"
+"The new repair interface could not be loaded. The standard form is available; your input is preserved.","Не вдалося завантажити новий інтерфейс ремонту. Доступна стандартна форма; введені дані збережено."

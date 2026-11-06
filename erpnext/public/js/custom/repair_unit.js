@@ -31,7 +31,14 @@
 			args: { unit: frm.doc.name, status },
 			freeze: true,
 		});
-		await frm.reload_doc();
+		try {
+			await frm.reload_doc();
+		} catch {
+			frappe.show_alert({
+				message: __("The operation was completed. Reload the document to see the latest data."),
+				indicator: "orange",
+			});
+		}
 	}
 
 	function distribution(frm, canWork) {
@@ -137,7 +144,8 @@
 	}
 
 	function parts(frm) {
-		frappe.prompt(
+		erpnext.repair_form.prompt(
+			frm,
 			[
 				{
 					fieldname: "parts",
@@ -193,6 +201,7 @@
 
 	frappe.ui.form.on("Repair Unit", {
 		async refresh(frm) {
+			erpnext.repair_form.refresh(frm);
 			frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");
 			if (frm.is_new()) return;
 			const manager = frappe.session.user === "Administrator" || frappe.user.has_role("System Manager");

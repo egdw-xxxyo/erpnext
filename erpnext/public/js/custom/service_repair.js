@@ -12,11 +12,31 @@
 		["Closed", "flag-checkered"],
 	];
 	const esc = frappe.utils.escape_html;
+	async function reload_after_action(frm) {
+		try {
+			await frm.reload_doc();
+			return true;
+		} catch {
+			frappe.show_alert({
+				message: __("The operation was completed. Reload the document to see the latest data."),
+				indicator: "orange",
+			});
+			return false;
+		}
+	}
+
 	async function contact_details(frm) {
 		const field = frm.fields_dict.custom_repair_contact_details;
 		if (!field) return;
 		field.$wrapper.empty();
-		if (!frm.doc.contact) return;
+		if (!frm.doc.contact) {
+			field.$wrapper.html(
+				'<div class="repair-contact-empty"><i class="fa fa-address-card-o" aria-hidden="true"></i>' +
+					esc(__("Select a contact to see their phone, email and messaging options.")) +
+					"</div>"
+			);
+			return;
+		}
 		const contact = frm.doc.contact;
 		const { message: data } = await frappe.call({
 			method: "erpnext.support.repair_access.contact_details",
@@ -193,6 +213,7 @@
 			}
 		},
 		async refresh(frm) {
+			erpnext.repair_form.refresh(frm);
 			frm.toggle_display("custom_service_repair", false);
 			await contact_details(frm);
 			frm.toggle_display(["customer_name", "issue_split_from"], !frm.doc.custom_service_repair);
@@ -217,7 +238,7 @@
 						args: { issue: frm.doc.name },
 						freeze: true,
 					});
-					await frm.reload_doc();
+					await reload_after_action(frm);
 				});
 			}
 			if (!frm.is_new() && frm.repair_data?.items?.length && frm.perm?.[0]?.write) {
@@ -248,6 +269,12 @@
 				frm.doc.custom_request_type === "Product Repair" ? 1 : 0
 			);
 			frm.refresh();
+		},
+		subject(frm) {
+			erpnext.repair_form.update_header(frm);
+		},
+		status(frm) {
+			erpnext.repair_form.update_header(frm);
 		},
 		contact(frm) {
 			return contact_details(frm);
@@ -372,7 +399,8 @@
 				reqd: 0,
 			});
 		}
-		frappe.prompt(
+		erpnext.repair_form.prompt(
+			frm,
 			fields,
 			async (values) => {
 				if (action === "dispose" && !values.disposal_approved)
@@ -393,25 +421,41 @@
 					args: { issue: frm.doc.name, action, ...values, serials },
 					freeze: true,
 				});
-				await frm.reload_doc();
-				frappe.show_alert(__("Repair movement registered."));
+				if (await reload_after_action(frm)) frappe.show_alert(__("Repair movement registered."));
 			},
-			__(action),
-			__("Confirm")
+			__(
+				{
+					receive: "Receive Units",
+					dispatch: "Dispatch Units",
+					dispose: "Dispose with Customer Approval",
+				}[action] || action
+			),
+			__("Confirm"),
+			{ danger: action === "dispose" }
 		);
 	}
 
 	function update(frm) {
-		frappe.prompt(
+		const name = frm.doc.name;
+		frm._repair_delivery_progress ??= new Map();
+		if (!frm._repair_delivery_progress.has(name)) {
+			frm._repair_delivery_progress.set(name, new Set());
+		}
+		const delivered = frm._repair_delivery_progress.get(name);
+		erpnext.repair_form.prompt(
+			frm,
 			[unit_field(frm, ["Dispatched"])],
 			async (values) => {
-				for (const unit of values.units)
+				for (const unit of values.units) {
+					if (delivered.has(unit)) continue;
 					await frappe.call({
 						method: "erpnext.support.repair_units.change_stage",
 						args: { unit, status: "Delivered" },
 						freeze: true,
 					});
-				await frm.reload_doc();
+					delivered.add(unit);
+				}
+				if (await reload_after_action(frm)) frm._repair_delivery_progress.delete(name);
 			},
 			__("Confirm Customer Delivery"),
 			__("Apply")
