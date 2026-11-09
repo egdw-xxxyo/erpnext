@@ -59,7 +59,7 @@ frappe.ui.form.on("Commercial Offer", {
 				__("Fill")
 			);
 			frm.add_custom_button(
-				__("Delivery Set from BOM"),
+				__("Add Items from Stock"),
 				() => erpnext.commercial_offer.fill_items(frm),
 				__("Fill")
 			);
@@ -240,21 +240,36 @@ erpnext.commercial_offer = {
 	},
 
 	fill_items(frm) {
-		if (!frm.doc.main_item) {
-			frappe.msgprint(__("Select the product first."));
-			return;
-		}
-		frappe.call({
-			method: "erpnext.crm.commercial_offer_fields.get_delivery_set",
-			args: { item: frm.doc.main_item },
-			callback: ({ message }) => {
-				if (!message?.length) {
-					frappe.msgprint(__("The product has no default BOM."));
-					return;
-				}
-				frm.clear_table("items");
-				message.forEach((row) => frm.add_child("items", row));
-				frm.refresh_field("items");
+		new frappe.ui.form.MultiSelectDialog({
+			doctype: "Item",
+			target: frm,
+			setters: { item_group: null, stock_uom: null },
+			add_filters_group: 1,
+			get_query: () => ({ filters: { disabled: 0, is_stock_item: 1 } }),
+			action(selections) {
+				const present = new Set((frm.doc.items || []).map((row) => row.item));
+				const chosen = selections.filter((name) => !present.has(name));
+				this.dialog.hide();
+				if (!chosen.length) return;
+				frappe.db
+					.get_list("Item", {
+						filters: { name: ["in", chosen] },
+						fields: ["name", "item_name", "stock_uom"],
+						limit: chosen.length,
+					})
+					.then((items) => {
+						chosen.forEach((name) => {
+							const item = items.find((entry) => entry.name === name);
+							if (!item) return;
+							frm.add_child("items", {
+								item: item.name,
+								item_name: item.item_name,
+								uom: item.stock_uom,
+								qty: 1,
+							});
+						});
+						frm.refresh_field("items");
+					});
 			},
 		});
 	},
