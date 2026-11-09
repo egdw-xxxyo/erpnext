@@ -146,20 +146,6 @@ def get_item_parameters(item):
 	]
 
 
-@frappe.whitelist()
-def get_delivery_set(item):
-	frappe.has_permission("Item", "read", item, throw=True)
-	bom = frappe.db.get_value("BOM", {"item": item, "is_default": 1, "is_active": 1, "docstatus": 1}, "name")
-	if not bom:
-		return []
-	return frappe.get_all(
-		"BOM Item",
-		filters={"parent": bom},
-		fields=["item_code as item", "item_name", "qty", "uom"],
-		order_by="idx asc",
-	)
-
-
 def price_in_words(amount, currency):
 	from frappe.utils import money_in_words
 
