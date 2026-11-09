@@ -16406,3 +16406,7 @@ Only buyers or treasurers can change delivery notes.,Змінювати вида
 Department review was approved automatically: {0} created prepaid Material Request {1}.,Перевірку підрозділу погоджено автоматично: {0} створив ЗМ {1} із позначкою «Матеріали вже придбані».
 Payment confirmed by Material Request receipt,Оплату підтверджено чеком із ЗМ
 Open payment confirmation,Відкрити підтвердження оплати
+Approve on behalf of all CEOs,Погодити за всіх CEO
+Only a Department Head can approve on behalf of all CEOs.,Погодити за всіх CEO може лише керівник підрозділу.
+Approved by Department Head on behalf of all CEOs,Погоджено керівником підрозділу за всіх CEO
+{0} approved on behalf of all CEOs for the following reason:<br>{1},{0} погодив за всіх CEO з таким поясненням:<br>{1}

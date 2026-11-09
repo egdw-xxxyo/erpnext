@@ -4,7 +4,11 @@ import frappe
 from frappe import _
 from frappe.utils import cint, escape_html, flt
 
-from erpnext.buying.procurement_workflow import CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME
+from erpnext.buying.procurement_workflow import (
+	APPROVE_ALL_CEOS_ACTION,
+	CONSOLIDATED_FINAL_ASSIGNMENT_RULE_NAME,
+	DEPARTMENT_HEAD_ROLE,
+)
 
 CONSOLIDATED_PURCHASE_ORDER_DOCTYPE = "Consolidated Purchase Order"
 FINAL_APPROVAL_STATE = "Фінальне погодження"
@@ -15,6 +19,7 @@ APPROVAL_USER_FIELDS = ("final_approved_by_1", "final_approved_by_2")
 SNAPSHOT_FIELD = "custom_final_approvers_snapshot"
 VOTES_FIELD = "custom_final_approved_users"
 ADMINISTRATOR_OVERRIDE = "__administrator_ceo_override__"
+DEPARTMENT_HEAD_OVERRIDE_PREFIX = "__department_head_ceo_override__:"
 
 
 def get_approval_threshold():
@@ -83,6 +88,59 @@ def has_administrator_approval(doc, votes_field=VOTES_FIELD):
 	return "Administrator" in users and ADMINISTRATOR_OVERRIDE in users
 
 
+def get_department_head_approval(doc, votes_field=VOTES_FIELD):
+	users = _read_users(doc.get(votes_field))
+	for value in users:
+		if value.startswith(DEPARTMENT_HEAD_OVERRIDE_PREFIX):
+			user = value.removeprefix(DEPARTMENT_HEAD_OVERRIDE_PREFIX)
+			if user and user in users:
+				return user
+	return None
+
+
+def apply_department_head_approval(doc, reason, core_apply_workflow):
+	"""Complete the CEO stage with one accountable decision, preserving actual CEO votes."""
+	from erpnext.buying.procurement_workflow_reason import _validate_reason
+
+	_validate_reason(reason)
+	doc = frappe.get_doc(doc.doctype, doc.name, for_update=True)
+	doc.check_permission("write")
+	user = frappe.session.user
+	if user != "Administrator" and DEPARTMENT_HEAD_ROLE not in frappe.get_roles():
+		frappe.throw(_("Only a Department Head can approve on behalf of all CEOs."), frappe.PermissionError)
+	if doc.docstatus != 0 or doc.workflow_state != FINAL_APPROVAL_STATE:
+		frappe.throw(_("The document is not at the final approval stage."))
+	is_request = doc.doctype == "Payment Request"
+	votes_field = "custom_payment_ceo_votes" if is_request else VOTES_FIELD
+	snapshot_field = "custom_payment_ceo_approvers" if is_request else SNAPSHOT_FIELD
+	approved = _read_users(doc.get(votes_field)) if is_request else get_document_approved_users(doc)
+	if user not in approved:
+		approved.append(user)
+	values = {votes_field: json.dumps([*approved, DEPARTMENT_HEAD_OVERRIDE_PREFIX + user])}
+	if not doc.get(snapshot_field):
+		values[snapshot_field] = json.dumps(get_configured_final_approvers(throw=False))
+	if not is_request:
+		values["final_approval_count"] = len(approved)
+		values.update(
+			{
+				field: approved[index] if index < len(approved) else None
+				for index, field in enumerate(APPROVAL_USER_FIELDS)
+			}
+		)
+	frappe.db.set_value(doc.doctype, doc.name, values)
+	# Reload so the standard workflow and validation hooks see only server-owned votes.
+	doc = frappe.get_doc(doc.doctype, doc.name)
+	result = core_apply_workflow(doc, APPROVE_ALL_CEOS_ACTION)
+	actor = frappe.get_cached_value("User", user, "full_name") or user
+	result.add_comment(
+		"Comment",
+		text=_("{0} approved on behalf of all CEOs for the following reason:<br>{1}").format(
+			f"<b>{escape_html(actor)}</b>", escape_html(reason).replace("\n", "<br>")
+		),
+	)
+	return result
+
+
 def get_document_final_approvers(doc):
 	if doc.get(SNAPSHOT_FIELD) is not None and doc.get(SNAPSHOT_FIELD) != "":
 		return _read_users(doc.get(SNAPSHOT_FIELD))
@@ -99,7 +157,9 @@ def get_document_approved_users(doc):
 	return [
 		user
 		for user in dict.fromkeys(users)
-		if user in approvers or (user == "Administrator" and has_administrator_approval(doc))
+		if user in approvers
+		or (user == "Administrator" and has_administrator_approval(doc))
+		or user == get_department_head_approval(doc)
 	]
 
 
@@ -122,6 +182,7 @@ def capture_final_approvers(doc, method=None):
 		and doc.workflow_state == "Погоджено"
 		and not is_automatic_final_approval(previous)
 		and not has_administrator_approval(previous)
+		and not get_department_head_approval(previous)
 	):
 		approvers = get_document_final_approvers(previous)
 		if (
@@ -236,7 +297,7 @@ def sync_final_approval_assignments(doc, method=None):
 	close_final_approval_assignments(doc.name)
 	if doc.workflow_state != FINAL_APPROVAL_STATE or is_automatic_final_approval(doc):
 		return
-	if has_administrator_approval(doc):
+	if has_administrator_approval(doc) or get_department_head_approval(doc):
 		return
 	users = [
 		user for user in get_document_final_approvers(doc) if user not in get_document_approved_users(doc)

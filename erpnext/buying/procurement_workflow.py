@@ -113,7 +113,10 @@ WORKFLOW_STATES = (
 	("Відхилено", "Danger"),
 )
 
+APPROVE_ALL_CEOS_ACTION = "Погодити за всіх CEO"
+
 WORKFLOW_ACTIONS = (
+	APPROVE_ALL_CEOS_ACTION,
 	"Подати на перевірку підрозділу",
 	"Погодити",
 	"Повернути на доопрацювання",
@@ -183,6 +186,13 @@ WORKFLOW_TRANSITIONS = (
 		"action": "Погодити",
 		"next_state": "Погоджено",
 		"allowed": FINAL_APPROVER_ROLE,
+		"allow_self_approval": 1,
+	},
+	{
+		"state": "Фінальне погодження",
+		"action": APPROVE_ALL_CEOS_ACTION,
+		"next_state": "Погоджено",
+		"allowed": DEPARTMENT_HEAD_ROLE,
 		"allow_self_approval": 1,
 	},
 	{
