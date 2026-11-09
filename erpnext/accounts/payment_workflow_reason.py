@@ -16,6 +16,7 @@ frappe.ui.form.on("Payment Request", {
 	before_workflow_action(frm) {
 		const action = frm.selected_workflow_action;
 		const actionsRequiringReason = [
+			"Погодити за всіх CEO",
 			"Повернути на доопрацювання",
 			"Відхилити",
 		];
@@ -108,6 +109,14 @@ def apply_workflow(doc: str | dict, action: str):
 	)
 
 	current = frappe.get_doc(PAYMENT_REQUEST_DOCTYPE, payload.get("name"))
+	from erpnext.buying.procurement_final_approval import (
+		APPROVE_ALL_CEOS_ACTION,
+		apply_department_head_approval,
+	)
+
+	if action == APPROVE_ALL_CEOS_ACTION:
+		reason = (payload.get(REASON_FIELD) or "").strip()
+		return apply_department_head_approval(current, reason, core_apply_workflow)
 	if current.workflow_state == FINAL and uses_invoice_route(current):
 		check_final_decision(current)
 		if action == "Погодити":

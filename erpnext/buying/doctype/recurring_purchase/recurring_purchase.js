@@ -69,9 +69,12 @@ frappe.ui.form.on("Recurring Purchase", {
 	},
 	before_workflow_action(frm) {
 		if (
-			!["Повернути на доопрацювання", "Відхилити", "Відкликати на доопрацювання"].includes(
-				frm.selected_workflow_action
-			)
+			![
+				"Погодити за всіх CEO",
+				"Повернути на доопрацювання",
+				"Відхилити",
+				"Відкликати на доопрацювання",
+			].includes(frm.selected_workflow_action)
 		)
 			return;
 		frappe.dom.unfreeze();
@@ -201,7 +204,9 @@ function render_recurring_route(frm, data) {
 			if (index === 2 && data.automatic && done) {
 				role = __("Approved automatically");
 				actor = "";
-			} else if (index === 2 && data.administrator) role = __("Approved by Administrator");
+			} else if (index === 2 && data.department_head)
+				role = __("Approved by Department Head on behalf of all CEOs");
+			else if (index === 2 && data.administrator) role = __("Approved by Administrator");
 			else if (index === 2 && (done || active))
 				role += ` · ${data.votes.length}/${data.approvers.length}`;
 			if (!actor && !(index === 2 && data.automatic && done))

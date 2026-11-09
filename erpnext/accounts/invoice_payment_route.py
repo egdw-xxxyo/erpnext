@@ -9,6 +9,7 @@ from frappe.utils import flt, get_link_to_form
 
 from erpnext.accounts.payment_request_approval import DEPARTMENT_ACTOR, FINAL, TREASURY, approvers, votes
 from erpnext.buying.procurement_final_approval import (
+	get_department_head_approval,
 	get_document_approved_users,
 	has_administrator_approval,
 	is_automatic_final_approval,
@@ -57,6 +58,7 @@ def _source_snapshot(invoice):
 		"ceo": get_document_approved_users(order),
 		"automatic": is_automatic_final_approval(order),
 		"ceo_administrator": has_administrator_approval(order),
+		"ceo_department_head": get_department_head_approval(order),
 		"invoice_creator": invoice.owner or frappe.session.user,
 	}
 
@@ -223,6 +225,9 @@ def get_payment_route(doctype: str, name: str):
 		"ceo_administrator": has_administrator_approval(doc, "custom_payment_ceo_votes")
 		if not data
 		else bool(data.get("ceo_administrator")),
+		"ceo_department_head": get_department_head_approval(doc, "custom_payment_ceo_votes")
+		if not data
+		else data.get("ceo_department_head"),
 		"ceo_required": len(approvers(doc)) if not data else len(data.get("ceo") or []),
 	}
 
@@ -243,10 +248,12 @@ def _pending_requests(invoice):
 
 def _can_confirm(invoice, requests):
 	return bool(
-		_source_snapshot(invoice)
-		and requests
-		and all(row.workflow_state in {"Чернетка", TREASURY} for row in requests)
+		requests
 		and (frappe.session.user == "Administrator" or "Payments: Казначей" in frappe.get_roles())
+		and all(
+			row.workflow_state == TREASURY or (row.workflow_state == "Чернетка" and _source_snapshot(invoice))
+			for row in requests
+		)
 	)
 
 
@@ -280,7 +287,9 @@ def confirm_invoice_payment_requests(invoice_name: str, request_names: str | lis
 		if (
 			request.docstatus != 0
 			or request.workflow_state != row.workflow_state
+			or request.reference_doctype != "Purchase Invoice"
 			or request.reference_name != invoice.name
+			or not _can_confirm(invoice, [request])
 		):
 			frappe.throw(_("The payment request changed. Refresh the invoice and try again."))
 		if request.workflow_state == "Чернетка":

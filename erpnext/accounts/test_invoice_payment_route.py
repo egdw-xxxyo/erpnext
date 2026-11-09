@@ -102,9 +102,34 @@ class TestInvoicePaymentRoute(TestCase):
 		with self.assertRaises(frappe.ValidationError):
 			prepare_approval(doc)
 
+	@patch("erpnext.accounts.invoice_payment_route.frappe.get_roles", return_value=["Payments: Казначей"])
 	@patch("erpnext.accounts.invoice_payment_route._source_snapshot", return_value=None)
-	def test_standalone_invoice_cannot_auto_submit_pending_request(self, snapshot):
+	def test_standalone_invoice_can_confirm_only_at_treasury_stage(self, snapshot, _roles):
+		for state in (
+			"Чернетка",
+			"Перевірка підрозділу",
+			"Фінальне погодження",
+			"Потребує доопрацювання",
+			TREASURY,
+		):
+			with self.subTest(state=state):
+				self.assertEqual(
+					_can_confirm(frappe._dict(), [frappe._dict(workflow_state=state)]), state == TREASURY
+				)
+
+	@patch("erpnext.accounts.invoice_payment_route.frappe.session", frappe._dict(user="buyer"))
+	@patch("erpnext.accounts.invoice_payment_route.frappe.get_roles", return_value=["Accounts User"])
+	def test_only_treasurer_can_confirm_invoice_requests(self, _roles):
 		self.assertFalse(_can_confirm(frappe._dict(), [frappe._dict(workflow_state=TREASURY)]))
+
+	@patch("erpnext.accounts.invoice_payment_route.frappe.get_roles", return_value=["Payments: Казначей"])
+	@patch("erpnext.accounts.invoice_payment_route._source_snapshot", return_value={"source": "CPO-A"})
+	def test_upstream_invoice_still_allows_draft_and_treasury_requests(self, _snapshot, _roles):
+		self.assertTrue(
+			_can_confirm(
+				frappe._dict(), [frappe._dict(workflow_state=state) for state in ("Чернетка", TREASURY)]
+			)
+		)
 
 	@patch("erpnext.accounts.invoice_payment_route._source_snapshot", return_value={"source": "CPO-A"})
 	def test_upstream_order_does_not_allow_skipping_pending_department_review(self, snapshot):
@@ -153,11 +178,47 @@ class TestInvoicePaymentRoute(TestCase):
 	):
 		invoice = MagicMock(docstatus=1, outstanding_amount=100, name="INV-A")
 		invoice.name = "INV-A"
-		req = MagicMock(docstatus=0, workflow_state=TREASURY, reference_name="INV-A")
+		req = MagicMock(
+			docstatus=0, workflow_state=TREASURY, reference_doctype="Purchase Invoice", reference_name="INV-A"
+		)
 		get_doc.side_effect = [invoice, req]
 		self.assertEqual(confirm_invoice_payment_requests("INV-A", ["REQ-A"]), ["REQ-A"])
 		req.check_permission.assert_called_once_with("submit")
 		apply.assert_called_once_with(req.as_dict(), "Погодити")
+
+	@patch("frappe.model.workflow.apply_workflow")
+	@patch("erpnext.accounts.invoice_payment_route._source_snapshot", return_value=None)
+	@patch("erpnext.accounts.invoice_payment_route.frappe.get_roles", return_value=["Payments: Казначей"])
+	@patch("erpnext.accounts.invoice_payment_route._pending_requests")
+	@patch("erpnext.accounts.invoice_payment_route.frappe.get_doc")
+	def test_standalone_invoice_confirms_existing_request_without_repeating_ceo_approval(
+		self, get_doc, pending, _roles, _source, apply
+	):
+		invoice = MagicMock(docstatus=1, outstanding_amount=100)
+		invoice.name = "INV-A"
+		req = request(TREASURY, docstatus=0)
+		req.check_permission = MagicMock()
+		req.as_dict = MagicMock(return_value=dict(req))
+		get_doc.side_effect = [invoice, req]
+		pending.return_value = [frappe._dict(name=req.name, workflow_state=TREASURY)]
+		self.assertEqual(confirm_invoice_payment_requests(invoice.name, [req.name]), [req.name])
+		apply.assert_called_once_with(req.as_dict(), "Погодити")
+		req.check_permission.assert_called_once_with("submit")
+
+	@patch("frappe.model.workflow.apply_workflow")
+	@patch("erpnext.accounts.invoice_payment_route._can_confirm", return_value=True)
+	@patch("erpnext.accounts.invoice_payment_route._pending_requests")
+	@patch("erpnext.accounts.invoice_payment_route.frappe.get_doc")
+	def test_confirmation_rejects_request_changed_after_context_was_read(self, get_doc, pending, _can, apply):
+		invoice = MagicMock(docstatus=1, outstanding_amount=100)
+		invoice.name = "INV-A"
+		pending.return_value = [frappe._dict(name="REQ-A", workflow_state=TREASURY)]
+		req = request("Фінальне погодження", docstatus=0)
+		req.check_permission = MagicMock()
+		get_doc.side_effect = [invoice, req]
+		with self.assertRaises(frappe.ValidationError):
+			confirm_invoice_payment_requests(invoice.name, ["REQ-A"])
+		apply.assert_not_called()
 
 	@patch(
 		"erpnext.accounts.payment_request_approval.frappe.get_roles",

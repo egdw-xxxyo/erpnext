@@ -60,6 +60,8 @@ async function render_invoice_payment_route(frm) {
 				role = __("Payment was made at the expense of:");
 			if (step.key === "ceo") {
 				if (step.automatic && step.completed) role = __("Approved automatically");
+				else if (route.ceo_department_head)
+					role = __("Approved by Department Head on behalf of all CEOs");
 				else if (route.ceo_administrator) role = __("Approved by Administrator");
 				else if (current || step.completed) role += ` · ${route.ceo_votes}/${route.ceo_required}`;
 			}

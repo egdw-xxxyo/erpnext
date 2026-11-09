@@ -16,7 +16,9 @@ def apply_workflow(doc: str | dict, action: str):
 	from frappe.model.workflow import apply_workflow as core_apply_workflow
 
 	from erpnext.buying.procurement_final_approval import (
+		APPROVE_ALL_CEOS_ACTION,
 		FINAL_APPROVAL_STATE,
+		apply_department_head_approval,
 		close_final_approval_assignments,
 		get_document_final_approvers,
 		has_administrator_approval,
@@ -27,6 +29,8 @@ def apply_workflow(doc: str | dict, action: str):
 	payload = frappe.parse_json(doc)
 	current_doc = frappe.get_doc(payload.get("doctype"), payload.get("name"))
 	reason = (payload.get(REASON_FIELD) or "").strip()
+	if action == APPROVE_ALL_CEOS_ACTION:
+		return apply_department_head_approval(current_doc, reason, core_apply_workflow)
 	if action == RECALL_ACTION and current_doc.owner != frappe.session.user:
 		frappe.throw(_("Only the buyer who created this consolidated order can recall it."))
 	if action in REQUIRED_ACTIONS:

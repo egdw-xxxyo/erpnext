@@ -7,8 +7,10 @@ from frappe import _
 
 from erpnext.buying.procurement_final_approval import (
 	ADMINISTRATOR_OVERRIDE,
+	FINAL_APPROVER_ROLE,
 	get_approval_threshold,
 	get_configured_final_approvers,
+	get_department_head_approval,
 	has_administrator_approval,
 )
 
@@ -38,7 +40,9 @@ def votes(doc):
 	return [
 		user
 		for user in dict.fromkeys(frappe.parse_json(doc.get(VOTES) or "[]"))
-		if user in approvers(doc) or (user == "Administrator" and has_administrator_approval(doc, VOTES))
+		if user in approvers(doc)
+		or (user == "Administrator" and has_administrator_approval(doc, VOTES))
+		or user == get_department_head_approval(doc, VOTES)
 	]
 
 
@@ -53,8 +57,6 @@ def prepare_approval(doc, method=None):
 				frappe.throw(_("Return the payment request for rework before changing its amount or source."))
 	dynamic = uses_invoice_route(doc)
 	doc.set(DYNAMIC, int(dynamic))
-	if not dynamic:
-		return
 	state = doc.get("workflow_state") or "Чернетка"
 	previous = before.get("workflow_state") if before else None
 	if before:
@@ -63,6 +65,19 @@ def prepare_approval(doc, method=None):
 	else:
 		for field in (SNAPSHOT, VOTES, DEPARTMENT_ACTOR, "custom_payment_ceo_automatic"):
 			doc.set(field, None)
+	if not dynamic:
+		if (
+			previous == FINAL
+			and state == TREASURY
+			and frappe.session.user != "Administrator"
+			and FINAL_APPROVER_ROLE not in frappe.get_roles()
+			and not get_department_head_approval(doc, VOTES)
+		):
+			frappe.throw(_("Use a workflow action for this transition and provide a reason."))
+		if state == "Перевірка підрозділу" and state != previous:
+			doc.set(SNAPSHOT, None)
+			doc.set(VOTES, "[]")
+		return
 	if not before or (state == "Перевірка підрозділу" and state != previous):
 		doc.set(THRESHOLD, get_approval_threshold())
 		doc.set(SNAPSHOT, None)
@@ -75,7 +90,12 @@ def prepare_approval(doc, method=None):
 	if state == FINAL and state != previous:
 		doc.set(SNAPSHOT, json.dumps(get_configured_final_approvers()))
 		doc.set(VOTES, "[]")
-	if previous == FINAL and state == TREASURY and not has_administrator_approval(doc, VOTES):
+	if (
+		previous == FINAL
+		and state == TREASURY
+		and not has_administrator_approval(doc, VOTES)
+		and not get_department_head_approval(doc, VOTES)
+	):
 		if not approvers(doc) or set(votes(doc)) != set(approvers(doc)):
 			frappe.throw(_("All recorded CEO approvers must approve this payment request."))
 
