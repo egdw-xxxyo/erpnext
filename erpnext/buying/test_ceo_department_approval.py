@@ -168,9 +168,10 @@ class TestDepartmentHeadCEOApproval(TestCase):
 
 	def test_new_cycle_resets_head_decision_including_standard_payment_route(self):
 		for doctype, _apply in ROUTES:
-			for standard_payment in (False, True) if doctype == "Payment Request" else (False,):
+			is_request = doctype == "Payment Request"
+			standard_payment_cases = (False, True) if is_request else (False,)
+			for standard_payment in standard_payment_cases:
 				with self.subTest(doctype=doctype, standard_payment=standard_payment):
-					is_request = doctype == "Payment Request"
 					field = VOTES if is_request else approval.VOTES_FIELD
 					before = make_doc(doctype, ["ceo1"])
 					before.workflow_state = "Потребує доопрацювання"
