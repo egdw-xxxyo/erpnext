@@ -22,7 +22,7 @@ RUN apt-get update \
 # firebase-admin is declared in erpnext's pyproject.toml, but this image keeps the
 # stock pyproject (only the erpnext/ package dir is overlaid), so it has to be
 # installed explicitly for employee_chat's FCM push to import.
-RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs firebase-admin
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir qrcode python-barcode Pillow otdrs firebase-admin anthropic
 
 # ── Extra apps from apps.json ─────────────────────────────────────────
 # Installed against the frappe and erpnext of the base image; ours are overlaid and

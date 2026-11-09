@@ -6,6 +6,7 @@ frappe.listview_settings["Access Request"] = {
 			Rejected: "red",
 			Cancelled: "gray",
 			Revoked: "purple",
+			Expired: "gray",
 		};
 		return [__(doc.status), colors[doc.status] || "gray", `status,=,${doc.status}`];
 	},

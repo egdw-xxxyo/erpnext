@@ -3,7 +3,14 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
-from erpnext.correspondence.forwarding_accounts import MANAGER_ROLE, SENDER, WATCHED, apply_defaults
+from erpnext.correspondence.email_account import MailboxUnreachable, open_server
+from erpnext.correspondence.forwarding_accounts import (
+	MANAGER_ROLE,
+	SENDER,
+	WATCHED,
+	apply_defaults,
+	record_connection,
+)
 from erpnext.correspondence.imap_folders import (
 	MANUAL,
 	decode_modified_utf7,
@@ -70,13 +77,6 @@ def validate_watched_account(name: str):
 	account = frappe.db.get_value("Email Account", name, ["enable_incoming", "use_imap"], as_dict=True)
 	if not (account and account.enable_incoming and account.use_imap):
 		frappe.throw(_("Email Account {0} must receive mail over IMAP").format(name))
-
-
-def open_server(account):
-	server = account.get_incoming_server(in_receive=True, email_sync_rule="ALL")
-	if not server or not getattr(server, "imap", None):
-		frappe.throw(_("Could not connect to {0}").format(account.email_id))
-	return server
 
 
 def fetch_folders(account) -> list:
@@ -151,7 +151,12 @@ def sync_row(row) -> str | None:
 	try:
 		sync_mailbox(row)
 		record_sync(row, None)
+		record_connection(row.email_account, reachable=True)
 		return None
+	except MailboxUnreachable:
+		frappe.db.rollback(save_point=savepoint)
+		record_connection(row.email_account, reachable=False)
+		return frappe.get_traceback()
 	except Exception:
 		frappe.db.rollback(save_point=savepoint)
 		error = frappe.get_traceback()

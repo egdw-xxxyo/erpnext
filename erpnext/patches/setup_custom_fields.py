@@ -17,6 +17,7 @@ from erpnext.stock.responsible_employee import (
 
 
 def execute():
+	setup_service_repair_fields()
 	setup_recurring_purchase_fields()
 	setup_invoice_payment_routes()
 	setup_procurement_item_likes()
@@ -24,6 +25,7 @@ def execute():
 	setup_supplier_item_matching()
 	setup_procurement_document_details()
 	setup_todo_deadline()
+	setup_sidebar_item_roles()
 	setup_payment_instruction_list_link()
 	create_workflow_states()
 	create_workflow_actions()
@@ -33,6 +35,7 @@ def execute():
 	create_custom_fields_on_pr_item()
 	create_custom_fields_on_pr()
 	create_custom_field_on_qi()
+	create_custom_field_on_qi_template()
 	create_custom_field_on_serial_no()
 	create_scan_field_on_serial_batch_bundle()
 	create_spool_lineage_fields()
@@ -46,6 +49,7 @@ def execute():
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
+	create_ai_helper_user_fields()
 	create_salary_split_fields()
 	create_salary_tax_components()
 	create_disability_fields()
@@ -94,6 +98,7 @@ def execute():
 	setup_opportunity_field_properties()
 	set_v16_ported_properties()
 	create_v16_ported_fields()
+	create_commercial_offer_company_fields()
 	arrange_lead_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
@@ -110,10 +115,327 @@ def execute():
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
 	allow_warehouse_rename()
+	setup_view_log_list()
+	setup_access_log_list()
+	setup_permission_log_list()
+	setup_activity_log_list()
+	open_colleague_employee_links()
+	make_user_images_public()
+	remove_retired_pages()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
 	)
+
+
+def setup_service_repair_fields():
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+	had_request_type = frappe.db.exists("Custom Field", "Issue-custom_request_type")
+	create_custom_fields(
+		{
+			"Assignment Rule": [
+				{
+					"fieldname": "custom_repair_assignee_role",
+					"label": "Repair Assignee Role",
+					"fieldtype": "Link",
+					"options": "Role",
+					"insert_after": "rule",
+					"depends_on": "eval:doc.document_type == 'Repair Unit' && ['Round Robin', 'Load Balancing'].includes(doc.rule)",
+					"description": "Assign received repair cards to enabled users with this role and repair access.",
+				},
+			],
+			"ToDo": [
+				{
+					"fieldname": "custom_repair_managed",
+					"label": "Managed by Repair",
+					"fieldtype": "Check",
+					"hidden": 1,
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "status",
+				},
+			],
+			"Issue": [
+				{
+					"fieldname": "custom_repair_delivery_column",
+					"fieldtype": "Column Break",
+					"insert_after": "custom_repair_delivery_details",
+				},
+				{
+					"fieldname": "custom_request_references_section",
+					"label": "Related Documents",
+					"fieldtype": "Section Break",
+					"insert_after": "custom_repair_return_address",
+				},
+				{
+					"fieldname": "custom_repair_products_section",
+					"label": "Products for Repair",
+					"fieldtype": "Section Break",
+					"insert_after": "custom_repair_sales_order",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_support_user",
+					"label": "Responsible Support",
+					"fieldtype": "Link",
+					"options": "User",
+					"default": "__user",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "military_unit",
+					"in_standard_filter": 1,
+				},
+				{
+					"fieldname": "custom_request_type",
+					"label": "Support Request Type",
+					"fieldtype": "Select",
+					"options": "General Request\nProduct Repair",
+					"default": "General Request",
+					"reqd": 1,
+					"insert_after": "subject",
+					"in_standard_filter": 1,
+				},
+				{
+					"fieldname": "custom_contact_details_section",
+					"label": "Contact Details",
+					"fieldtype": "Section Break",
+					"insert_after": "issue_split_from",
+				},
+				{
+					"fieldname": "custom_repair_contact_details",
+					"label": "Contact Details",
+					"fieldtype": "HTML",
+					"insert_after": "contact",
+					"depends_on": "",
+				},
+				{
+					"fieldname": "custom_repair_route_section",
+					"fieldtype": "Section Break",
+					"insert_after": "",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_service_repair",
+					"label": "Product Repair",
+					"fieldtype": "Check",
+					"insert_after": "subject",
+					"hidden": 1,
+				},
+				{
+					"fieldname": "custom_repair_section",
+					"label": "Delivery Details",
+					"fieldtype": "Section Break",
+					"insert_after": "customer_name",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_repair_route",
+					"label": "Repair Route",
+					"fieldtype": "HTML",
+					"insert_after": "custom_repair_route_section",
+				},
+				{
+					"fieldname": "custom_repair_order",
+					"label": "Repair Order",
+					"fieldtype": "Link",
+					"options": "Repair Order",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_repair_section",
+					"hidden": 1,
+				},
+				{
+					"fieldname": "custom_repair_delivery_type",
+					"label": "Inbound Delivery Type",
+					"fieldtype": "Select",
+					"options": "\nNova Poshta\nUkrposhta\nTaxi\nSelf Pickup\nOther",
+					"insert_after": "custom_repair_order",
+				},
+				{
+					"fieldname": "custom_repair_waybill",
+					"label": "Inbound Waybill",
+					"fieldtype": "Data",
+					"insert_after": "custom_repair_delivery_type",
+					"depends_on": "eval:['Nova Poshta', 'Ukrposhta'].includes(doc.custom_repair_delivery_type) || (!doc.custom_repair_delivery_type && doc.custom_repair_waybill)",
+				},
+				{
+					"fieldname": "custom_repair_delivery_details",
+					"label": "Inbound Delivery Details",
+					"fieldtype": "Small Text",
+					"insert_after": "custom_repair_waybill",
+					"depends_on": "eval:doc.custom_repair_delivery_type && !['Nova Poshta', 'Ukrposhta'].includes(doc.custom_repair_delivery_type)",
+				},
+				{
+					"fieldname": "custom_repair_return_address",
+					"label": "Return Address",
+					"fieldtype": "Small Text",
+					"insert_after": "custom_repair_delivery_details",
+				},
+				{
+					"fieldname": "custom_repair_sales_order",
+					"label": "Sales Order",
+					"fieldtype": "Link",
+					"options": "Sales Order",
+					"insert_after": "custom_repair_return_address",
+					"depends_on": "custom_service_repair",
+				},
+				{
+					"fieldname": "custom_repair_items",
+					"label": "Products for Repair",
+					"fieldtype": "Table",
+					"options": "Service Request Item",
+					"insert_after": "custom_repair_sales_order",
+					"description": "One row per physical unit. Describe the fault separately for each unit.",
+				},
+				{
+					"fieldname": "custom_repair_shipments",
+					"label": "Repair Shipments",
+					"fieldtype": "Table",
+					"options": "Repair Shipment",
+					"read_only": 1,
+					"insert_after": "custom_repair_items",
+				},
+			],
+			"Stock Entry": [
+				{
+					"fieldname": "custom_repair_unit",
+					"label": "Repair Unit",
+					"fieldtype": "Link",
+					"options": "Repair Unit",
+					"insert_after": "stock_entry_type",
+					"read_only": 1,
+					"no_copy": 1,
+				},
+				{
+					"fieldname": "custom_repair_order",
+					"label": "Repair Order",
+					"fieldtype": "Link",
+					"options": "Repair Order",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "stock_entry_type",
+				},
+				{
+					"fieldname": "custom_repair_action",
+					"label": "Repair Action",
+					"fieldtype": "Data",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_repair_order",
+				},
+				{
+					"fieldname": "custom_repair_data",
+					"label": "Repair Movement Data",
+					"fieldtype": "Long Text",
+					"hidden": 1,
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "custom_repair_action",
+				},
+			],
+			"Stock Entry Detail": [
+				{
+					"fieldname": "custom_repair_unit",
+					"label": "Repair Unit",
+					"fieldtype": "Link",
+					"options": "Repair Unit",
+					"read_only": 1,
+					"no_copy": 1,
+					"insert_after": "item_code",
+				},
+			],
+		}
+	)
+
+	# Move stock fields with a Property Setter rather than rewriting Issue JSON.
+	frappe.make_property_setter(
+		{
+			"doctype": "Assignment Rule",
+			"fieldname": "users",
+			"property": "mandatory_depends_on",
+			"value": "eval:['Round Robin', 'Load Balancing'].includes(doc.rule) && !doc.custom_repair_assignee_role",
+			"property_type": "Code",
+		},
+		validate_fields_for_doctype=False,
+	)
+	current = [df.fieldname for df in frappe.get_meta("Issue", cached=False).fields]
+	# Keep company in its original additional-info location.
+	header = [
+		"subject_section",
+		"naming_series",
+		"subject",
+		"custom_request_type",
+		"customer",
+		"military_unit",
+		"custom_support_user",
+		"cb00",
+		"status",
+		"priority",
+		"issue_type",
+		"contact",
+		"custom_service_repair",
+		"custom_contact_details_section",
+		"custom_repair_contact_details",
+	]
+	route_fields = ["custom_repair_route_section", "custom_repair_route"]
+	repair_fields = [
+		"custom_request_references_section",
+		"custom_repair_sales_order",
+		"lead",
+		"custom_repair_section",
+		"custom_repair_order",
+		"custom_repair_delivery_type",
+		"custom_repair_waybill",
+		"custom_repair_delivery_details",
+		"custom_repair_delivery_column",
+		"custom_repair_return_address",
+		"custom_repair_products_section",
+		"custom_repair_items",
+		"custom_repair_shipments",
+	]
+	preferred = route_fields + header + repair_fields
+	arranged = [name for name in preferred if name in current] + [
+		name for name in current if name not in preferred
+	]
+	# Secondary identity fields belong in the existing additional-info section.
+	for name in ("raised_by", "customer_name", "issue_split_from"):
+		arranged = _move_field_after(arranged, (name, "additional_info"))
+	arranged = _move_field_after(arranged, ("company", "project"))
+	frappe.make_property_setter(
+		{
+			"doctype": "Issue",
+			"fieldname": "email_account",
+			"property": "hidden",
+			"value": "1",
+			"property_type": "Check",
+		},
+		validate_fields_for_doctype=False,
+	)
+	if arranged != current:
+		frappe.make_property_setter(
+			{
+				"doctype": "Issue",
+				"doctype_or_field": "DocType",
+				"property": "field_order",
+				"value": json.dumps(arranged),
+				"property_type": "Data",
+			},
+			validate_fields_for_doctype=False,
+		)
+		frappe.clear_cache(doctype="Issue")
+	if not had_request_type:
+		frappe.db.sql(
+			"""update `tabIssue` set custom_request_type =
+			case when custom_service_repair = 1 then 'Product Repair' else 'General Request' end"""
+		)
+	frappe.db.sql(
+		"""update `tabIssue` set custom_support_user = owner
+		where custom_support_user is null or custom_support_user = ''"""
+	)
+	from erpnext.support.repair_access import setup as setup_repair_access
+
+	setup_repair_access()
 
 
 def setup_recurring_purchase_fields():
@@ -281,6 +603,30 @@ def setup_payment_instruction_list_link():
 	sync_existing_fiscal_receipt_statuses()
 
 
+def setup_sidebar_item_roles():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Workspace Sidebar Item",
+				"fieldname": "visible_roles",
+				"fieldtype": "Small Text",
+				"label": "Visible To Roles",
+				"description": "Comma-separated roles; empty = everyone. Set in the sidebar editor.",
+				"insert_after": "link_to",
+				"read_only": 1,
+			},
+			{
+				"dt": "Workspace Sidebar Item",
+				"fieldname": "icon_color",
+				"fieldtype": "Data",
+				"label": "Icon Color",
+				"insert_after": "icon",
+				"read_only": 1,
+			},
+		]
+	)
+
+
 def setup_todo_deadline():
 	from erpnext.utilities.todo import upgrade_overdue_filters, upgrade_today_filters
 
@@ -294,6 +640,24 @@ def setup_todo_deadline():
 				"insert_after": "date",
 				"allow_in_quick_entry": 1,
 				"in_list_view": 1,
+			},
+			{
+				"dt": "ToDo",
+				"fieldname": "remind_at",
+				"fieldtype": "Datetime",
+				"label": "Remind At",
+				"insert_after": "deadline",
+				"allow_in_quick_entry": 1,
+			},
+			{
+				"dt": "ToDo",
+				"fieldname": "reminder_sent",
+				"fieldtype": "Check",
+				"label": "Reminder Sent",
+				"insert_after": "remind_at",
+				"hidden": 1,
+				"read_only": 1,
+				"no_copy": 1,
 			},
 		]
 	)
@@ -619,6 +983,24 @@ def create_custom_field_on_qi():
 	_create_custom_fields(fields)
 
 
+def create_custom_field_on_qi_template():
+	fields = [
+		{
+			"dt": "Quality Inspection Template",
+			"fieldname": "variables",
+			"fieldtype": "Table",
+			"label": "Variables",
+			"options": "QI Template Variable",
+			"insert_after": "item_quality_inspection_parameter",
+			"description": (
+				"Named limits for the acceptance formulas (e.g. max_loss), optionally per item or "
+				"attribute value, so they are edited here instead of inside a formula."
+			),
+		},
+	]
+	_create_custom_fields(fields)
+
+
 def create_scan_field_on_serial_batch_bundle():
 	fields = [
 		{
@@ -854,6 +1236,28 @@ def create_custom_fields_on_employee():
 	_create_custom_fields(fields)
 
 
+def create_ai_helper_user_fields():
+	fields = [
+		{
+			"dt": "User",
+			"fieldname": "ai_helper_section",
+			"fieldtype": "Section Break",
+			"label": "AI Helper",
+			"insert_after": "api_secret",
+			"collapsible": 1,
+		},
+		{
+			"dt": "User",
+			"fieldname": "ai_helper_token",
+			"fieldtype": "Password",
+			"label": "AI Helper Key",
+			"insert_after": "ai_helper_section",
+			"description": "Personal Anthropic API key or OAuth token. Overrides the company key.",
+		},
+	]
+	_create_custom_fields(fields)
+
+
 def create_salary_split_fields():
 	fields = [
 		{
@@ -1034,6 +1438,15 @@ def create_average_pay_fields():
 			"options": "Employee Opening Earning",
 			"insert_after": "custom_sick_pay_in_full",
 			"description": "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_vacation_paid_opening",
+			"fieldtype": "Float",
+			"label": "Vacation Days Already Paid Officially",
+			"insert_after": "custom_opening_earnings",
+			"precision": "1",
+			"description": "Calendar days of vacation already paid officially before the Vacation Pay Sheet. They cover the oldest requested days first.",
 		},
 	]
 	_create_custom_fields(fields)
@@ -4540,6 +4953,49 @@ def execute_quiet():
 	clear_cache()
 
 
+COLLEAGUE_EMPLOYEE_LINKS = (
+	("Employee Grievance", "employee_responsible"),
+	("Exit Interview", "reports_to"),
+	("Employee Group Table", "employee"),
+	("Delivery Trip", "employee"),
+	("Vehicle", "employee"),
+	("Vehicle Trip", "employee"),
+	("Driver", "employee"),
+	("Sales Person", "employee"),
+	("Activity Cost", "employee"),
+	("Call Log", "call_received_by"),
+	("Supplier Scorecard", "employee"),
+	("Supplier Scorecard Standing", "employee_link"),
+	("Supplier Scorecard Scoring Standing", "employee_link"),
+)
+
+
+def open_colleague_employee_links():
+	"""Let a user pick any colleague in these Links to Employee.
+
+	An Employee linked to a User gets a User Permission on its own Employee, and Frappe applies
+	it to every Link to Employee: the dropdown offers only the user's own record and a document
+	naming a colleague cannot be saved. These fields name a colleague, not the person the
+	document belongs to, so they ignore user permissions. The field that says whose document it
+	is (`employee`, `raised_by`, ...) keeps them, which is what limits the documents a user sees.
+	"""
+	for doctype, fieldname in COLLEAGUE_EMPLOYEE_LINKS:
+		df = frappe.get_meta(doctype).get_field(fieldname) if frappe.db.exists("DocType", doctype) else None
+		if not df or df.options != "Employee" or df.ignore_user_permissions:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": doctype,
+				"fieldname": fieldname,
+				"property": "ignore_user_permissions",
+				"value": 1,
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Ignored user permissions: {doctype}.{fieldname}")
+
+
 def allow_warehouse_rename():
 	"""A warehouse made for one purpose gets a better name later; stock Warehouse forbids the rename."""
 	if frappe.get_meta("Warehouse").allow_rename:
@@ -4555,3 +5011,169 @@ def allow_warehouse_rename():
 		validate_fields_for_doctype=False,
 	)
 	frappe.clear_cache(doctype="Warehouse")
+
+
+VIEW_LOG_PROPERTIES = (
+	(None, "title_field", "reference_name", "Data"),
+	("viewed_by", "fieldtype", "Link", "Select"),
+	("viewed_by", "options", "User", "Text"),
+	("viewed_by", "label", "Who Viewed", "Data"),
+	("reference_doctype", "label", "Document Type", "Data"),
+	("reference_name", "label", "Document", "Data"),
+	("viewed_by", "in_list_view", "1", "Check"),
+	("viewed_by", "in_standard_filter", "1", "Check"),
+	("reference_doctype", "in_list_view", "1", "Check"),
+	("reference_doctype", "in_standard_filter", "1", "Check"),
+	("reference_name", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_view_log_list():
+	apply_list_properties("View Log", VIEW_LOG_PROPERTIES)
+
+
+ACCESS_LOG_PROPERTIES = (
+	(None, "title_field", "reference_document", "Data"),
+	("reference_document", "label", "Object", "Data"),
+	("user", "label", "Who", "Data"),
+	("method", "label", "Action", "Data"),
+	("export_from", "label", "Source", "Data"),
+	("reference_document", "in_list_view", "0", "Check"),
+	("reference_document", "in_standard_filter", "0", "Check"),
+	("method", "in_list_view", "1", "Check"),
+	("file_type", "in_list_view", "1", "Check"),
+	("method", "in_standard_filter", "1", "Check"),
+	("export_from", "in_standard_filter", "1", "Check"),
+	("report_name", "in_standard_filter", "1", "Check"),
+	("file_type", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_access_log_list():
+	apply_list_properties("Access Log", ACCESS_LOG_PROPERTIES)
+
+
+PERMISSION_LOG_PROPERTIES = (
+	(None, "title_field", "changes", "Data"),
+	("changes", "label", "What Changed", "Data"),
+	("changed_by", "label", "Who Changed", "Data"),
+	("for_doctype", "label", "Object Type", "Data"),
+	("for_document", "label", "Object", "Data"),
+	("changed_by", "in_standard_filter", "1", "Check"),
+	("status", "in_standard_filter", "1", "Check"),
+	("for_doctype", "in_list_view", "0", "Check"),
+	("reference_type", "in_list_view", "0", "Check"),
+	("reference", "in_list_view", "0", "Check"),
+	("reference_type", "in_standard_filter", "0", "Check"),
+	("reference", "in_standard_filter", "0", "Check"),
+)
+
+
+def setup_permission_log_list():
+	apply_list_properties("Permission Log", PERMISSION_LOG_PROPERTIES)
+
+
+ACTIVITY_LOG_PROPERTIES = (
+	("subject", "label", "Event", "Data"),
+	("user", "label", "Who", "Data"),
+	("user", "in_list_view", "1", "Check"),
+	("ip_address", "in_list_view", "1", "Check"),
+	("full_name", "in_list_view", "0", "Check"),
+	("user", "in_standard_filter", "1", "Check"),
+	("operation", "in_standard_filter", "1", "Check"),
+	("status", "in_standard_filter", "1", "Check"),
+	("ip_address", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_activity_log_list():
+	apply_list_properties("Activity Log", ACTIVITY_LOG_PROPERTIES)
+
+
+def apply_list_properties(doctype, properties):
+	meta = frappe.get_meta(doctype)
+	for fieldname, prop, value, property_type in properties:
+		current = (meta if fieldname is None else meta.get_field(fieldname)).get(prop)
+		if ("" if current is None else str(current)) == value:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": doctype,
+				"doctype_or_field": "DocType" if fieldname is None else "DocField",
+				"fieldname": fieldname,
+				"property": prop,
+				"value": value,
+				"property_type": property_type,
+			},
+			validate_fields_for_doctype=False,
+		)
+	frappe.clear_cache(doctype=doctype)
+
+
+def remove_retired_pages():
+	frappe.delete_doc_if_exists("Page", "sensitive-pin-reset")
+
+
+def make_user_images_public():
+	"""Avatars are shown to everyone; a private one writes an Access Log row on every page view."""
+	if not frappe.get_meta("User").get_field("user_image").make_attachment_public:
+		frappe.make_property_setter(
+			{
+				"doctype": "User",
+				"doctype_or_field": "DocField",
+				"fieldname": "user_image",
+				"property": "make_attachment_public",
+				"value": "1",
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		frappe.clear_cache(doctype="User")
+	private_images = frappe.get_all(
+		"File",
+		filters={"attached_to_doctype": "User", "attached_to_field": "user_image", "is_private": 1},
+		pluck="name",
+	)
+	for name in private_images:
+		file = frappe.get_doc("File", name)
+		file.is_private = 0
+		try:
+			file.save(ignore_permissions=True)
+		except (FileNotFoundError, FileExistsError):
+			frappe.clear_last_message()
+
+
+def create_commercial_offer_company_fields():
+	fields = [
+		{
+			"dt": "Company",
+			"fieldname": "commercial_offer_section",
+			"fieldtype": "Section Break",
+			"label": "Commercial Offer",
+			"insert_after": "company_logo",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_logo",
+			"fieldtype": "Attach Image",
+			"label": "Commercial Offer Logo",
+			"insert_after": "commercial_offer_section",
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_stamp",
+			"fieldtype": "Attach Image",
+			"label": "Commercial Offer Stamp and Signature",
+			"insert_after": "offer_logo",
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_header_text",
+			"fieldtype": "Small Text",
+			"label": "Commercial Offer Header Text",
+			"insert_after": "offer_stamp",
+			"description": "Company name, registration code, IBAN and bank; one line per row",
+		},
+	]
+	_create_custom_fields(fields)

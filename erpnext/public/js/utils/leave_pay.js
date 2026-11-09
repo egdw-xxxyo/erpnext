@@ -14,10 +14,8 @@ erpnext.utils.leave_pay.lines = function (row) {
 
 	if (flt(row.vacation_days)) {
 		lines.push([
-			__("Vacation Pay"),
-			`${money(row.vacation_pay)} (${__("{0} d", [number(row.vacation_days)])} × ${money(
-				row.vacation_average
-			)})`,
+			__("Vacation"),
+			`${__("{0} d", [number(row.vacation_days)])} (${__("paid by the Vacation Pay Sheet")})`,
 		]);
 	}
 

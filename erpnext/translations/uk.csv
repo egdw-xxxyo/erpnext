@@ -5141,7 +5141,7 @@ Is Your Company Address,Є адресою вашої компанії
 Is a Subscription,Є підписка
 Is created using POS,Створено за допомогою POS
 Is this Tax included in Basic Rate?,Це податок Включено в базовій ставці?
-Issue,Проблема
+Issue,Сервісна заявка
 Issue Analytics,Аналітика проблем
 Issue Credit Note,Випуск кредитної картки
 Issue Date,Дата випуску
@@ -5153,7 +5153,7 @@ Issue Type,Тип проблеми
 Issue a debit note with 0 qty against an existing Sales Invoice,Випустити дебетову ноту з нульовою кількістю до існуючого рахунку-фактури продажу
 Issued,Виданий
 Issued Items Against Work Order,Видано предмети проти порядку роботи
-Issues,Питань
+Issues,Сервісні заявки
 Issuing Date,Дата випуску
 Issuing cannot be done to a location. Please enter employee to issue the Asset {0} to,"Видача не може бути здійснена на місце розташування. Будь ласка, вкажіть працівника для видачі активу {0}"
 It can take upto few hours for accurate stock values to be visible after merging items.,"Після об'єднання позицій може знадобитися кілька годин, щоб побачити точні значення запасів."
@@ -15539,6 +15539,10 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Messages the mailbox could not read: {0}","Листи, які не вдалося прочитати зі скриньки: {0}"
 "Errors while reading or forwarding mail: {0}","Помилки під час читання чи пересилання пошти: {0}"
 "Mailboxes whose folder sync failed: {0}","Скриньки з помилкою синхронізації папок: {0}"
+"Mailboxes the mail server has not let in for more than 3 hours: {0}","Скриньки, до яких поштовий сервер не пускає понад 3 години: {0}"
+"Error while reading email account {0}","Помилка під час читання облікового запису електронної пошти {0}"
+"Unreachable Since","Недоступна з"
+"Set when the mail server stops letting the system in and cleared on the next successful connection. The hourly check reports the mailbox once this lasts more than 3 hours","Ставиться, коли поштовий сервер перестає пускати систему, і очищується після наступного вдалого підключення. Щогодинна перевірка повідомляє про скриньку, якщо це триває понад 3 години"
 "Mail accounts that are turned off or missing: {0}","Облікові записи пошти вимкнено або видалено: {0}"
 "Mail Forward Mailbox","Скринька для пересилання"
 "Mail Forward Recipient","Адресат пересилання"
@@ -15828,11 +15832,11 @@ Partially attached,Частково
 "Pages","Сторінки"
 "What role {0} grants","Що дає роль {0}"
 "What this role grants","Що дає ця роль"
-"Only Access Manager or System Manager can do this","Це може зробити лише Менеджер доступів або Системний менеджер"
+"Only Access Manager or Administrator can do this","Це може зробити лише Менеджер доступів або Адміністратор"
 "Check access on the parent document instead of the child table {0}","Перевіряйте доступ на батьківському документі, а не на дочірній таблиці {0}"
 "Role {0} not found","Роль {0} не знайдено"
 "User {0} not found","Користувача {0} не знайдено"
-"Only Access Manager or System Manager can check access of other users","Перевіряти доступ інших користувачів може лише Менеджер доступів або Системний менеджер"
+"Only Access Manager or Administrator can check access of other users","Перевіряти доступ інших користувачів може лише Менеджер доступів або Адміністратор"
 "Access Manager","Менеджер доступів"
 "Invalid access context","Невірний контекст доступу"
 "{0} requests access: {1}","{0} просить доступ: {1}"
@@ -15898,7 +15902,7 @@ Partially attached,Частково
 "No role gives this access","Жодна роль не дає цього доступу"
 "Your request {0} is waiting for a decision since {1}","Ваш запит {0} очікує рішення з {1}"
 "You have this access now. Reload the page to continue","Тепер у вас є цей доступ. Оновіть сторінку, щоб продовжити"
-"No Access Manager is assigned yet. Your request will be seen by a System Manager","Менеджера доступів ще не призначено. Ваш запит побачить системний менеджер"
+"No Access Manager is assigned yet. Your request will be seen by the Administrator","Менеджера доступів ще не призначено. Ваш запит побачить адміністратор"
 "Your roles","Ваші ролі"
 "Why do you need this access?","Навіщо вам цей доступ?"
 "Request access","Запросити доступ"
@@ -15983,14 +15987,14 @@ Revoke request {0},Відкликати запит {0}
 Role {0} loses on {1}: {2}. Every user with this role loses them too. The role itself stays with the user,Роль {0} втратить на {1}: {2}. Це втратять усі користувачі з цією роллю. Сама роль у користувача залишиться
 "Rights of role {0} change for every user with it, users: {1}","Права ролі {0} зміняться для всіх, хто її має, їх: {1}"
 Role to give the rights to,"Роль, якій додати права"
-The user's roles. Your own roles are not listed unless you are a System Manager,"Ролі користувача. Ваших власних ролей тут немає, якщо ви не System Manager"
+"The user's roles. Your own roles are not listed unless you are Administrator or have both System Manager and Access Manager roles","Ролі користувача. Ваших власних ролей тут немає, якщо ви не Адміністратор і не маєте обох ролей: Системний менеджер і Менеджер доступів"
 Access revoked: {0},Доступ відкликано: {0}
 Rights of this document type cannot be changed through an access request,Права цього типу документа не можна змінити через запит на доступ
 Rights of role {0} cannot be changed through an access request,Права ролі {0} не можна змінити через запит на доступ
-"You have role {0} yourself, so only a System Manager can change its rights","Ви самі маєте роль {0}, тому змінити її права може лише System Manager"
+"You have role {0} yourself, so only Administrator or a user with both System Manager and Access Manager roles can change its rights","Ви самі маєте роль {0}, тому змінити її права може лише Адміністратор або користувач, який має обидві ролі: Системний менеджер і Менеджер доступів"
 Role {0} already gives these rights on {1},Роль {0} вже дає ці права на {1}
 "User {0} does not have role {1}","Користувач {0} не має ролі {1}"
-"The user has no role whose rights you may change (your own roles need a System Manager)","У користувача немає ролі, права якої ви можете змінити (для ваших власних ролей потрібен System Manager)"
+"The user has no role whose rights you may change (your own roles need Administrator or both System Manager and Access Manager roles)","У користувача немає ролі, права якої ви можете змінити (для ваших власних ролей потрібен Адміністратор або обидві ролі: Системний менеджер і Менеджер доступів)"
 "Access from your request {0} was revoked","Доступ за вашим запитом {0} відкликано"
 Grant Log,Журнал надання
 Grant Method,Спосіб надання
@@ -16406,6 +16410,799 @@ Only buyers or treasurers can change delivery notes.,Змінювати вида
 Department review was approved automatically: {0} created prepaid Material Request {1}.,Перевірку підрозділу погоджено автоматично: {0} створив ЗМ {1} із позначкою «Матеріали вже придбані».
 Payment confirmed by Material Request receipt,Оплату підтверджено чеком із ЗМ
 Open payment confirmation,Відкрити підтвердження оплати
+AI,ШІ
+AI helper,ШІ-помічник
+AI Helper,ШІ-помічник
+AI Helper Settings,Налаштування ШІ-помічника
+AI Helper Company Key,Ключ ШІ-помічника компанії
+AI Helper Key,Ключ ШІ-помічника
+Company Keys,Ключі компаній
+Keys,Ключі
+API Key / OAuth Token,API-ключ / OAuth-токен
+Show the AI button on error popups,Показувати кнопку ШІ у вікнах помилок
+Leave empty for the key used by every company without its own row,"Залиште порожнім для ключа, який використовують усі компанії без власного рядка"
+Anthropic API key (sk-ant-api...) or OAuth token (sk-ant-oat...),API-ключ Anthropic (sk-ant-api...) або OAuth-токен (sk-ant-oat...)
+Personal Anthropic API key or OAuth token. Overrides the company key.,Особистий API-ключ Anthropic або OAuth-токен. Має пріоритет над ключем компанії.
+Explain why this error happened and how to fix it,"Поясни, чому виникла ця помилка і як її виправити"
+Ask a follow-up question,Поставте додаткове запитання
+Thinking...,Думаю...
+The AI helper is unavailable right now.,ШІ-помічник зараз недоступний.
+No AI key is set up. Add one in My Settings or ask an administrator.,Ключ ШІ не налаштовано. Додайте його в «Мої налаштування» або зверніться до адміністратора.
+The AI key was rejected. Check it in My Settings or AI Helper Settings.,Ключ ШІ відхилено. Перевірте його в «Моїх налаштуваннях» або в «Налаштуваннях ШІ-помічника».
+The AI key has no access to this model.,Ключ ШІ не має доступу до цієї моделі.
+"AI rate limit reached, try again in a minute.","Ліміт запитів до ШІ вичерпано, спробуйте за хвилину."
+Cannot reach the AI service.,Не вдалося з'єднатися зі службою ШІ.
+AI service error ({0}).,Помилка служби ШІ ({0}).
+The AI declined to answer this request.,ШІ відмовився відповідати на цей запит.
+No answer.,Немає відповіді.
+The AI needed too many data lookups. Ask a narrower question.,ШІ потребував забагато звернень до даних. Поставте вужче запитання.
+DocType {0} is not available,Тип документа {0} недоступний
+Row #{0}: {1} already has a key,Рядок №{0}: для {1} ключ уже є
+the default key,ключ за замовчуванням
+Looking for a known solution...,Шукаю відоме рішення...
+Known solution,Відоме рішення
+It is helpful,Це допомогло
+It is wrong,Це неправильно
+Ask AI,Запитати ШІ
+"Thanks, glad it helped.","Дякуємо, радий, що допомогло."
+Marked as wrong.,Позначено як неправильне.
+Did this help?,Це допомогло?
+Thanks.,Дякуємо.
+Saving the solution...,Зберігаю рішення...
+Solution saved for next time.,Рішення збережено для наступного разу.
+Did the AI helper solve the problem?,Чи вирішив ШІ-помічник проблему?
+Empty solution,Порожнє рішення
+Unknown solution,Невідоме рішення
+Unknown verdict,Невідома оцінка
+The AI could not write a solution.,ШІ не зміг сформулювати рішення.
+AI Error Type,Тип помилки ШІ
+AI Error Solution,Рішення помилки ШІ
+Solution,Рішення
+Solutions,Рішення
+Last Shown,Востаннє показано
+Marked Wrong,Позначено неправильним
+Exception Type,Тип винятку
+Sample Message,Приклад повідомлення
+Occurrences,Кількість випадків
+Helpful,Корисне
+Row {0}: serial numbers entered more than once: {1},"Рядок {0}: серійні номери введено більше одного разу: {1}"
+Serial No {0} is in rows {1},"Серійний номер {0} є в рядках {1}"
+Duplicate serial numbers,Дублікати серійних номерів
+My Tasks,Мої справи
+Upcoming,Майбутні
+All Mine,Усі мої
+New Reminder,Нове нагадування
+Add a task and press Enter,Додайте справу й натисніть Enter
+Show completed,Показати виконані
+Nothing here,Тут порожньо
+Mark as done,Позначити виконаною
+Task added,Справу додано
+Link to Document,Привʼязати до документа
+Remind At,Нагадати о
+Reminder Sent,Нагадування надіслано
+Unknown view: {0},Невідоме подання: {0}
+Describe the task,Опишіть справу
+Select both the document type and the document,"Виберіть і тип документа, і документ"
+Unknown status: {0},Невідомий статус: {0}
+This task is not yours,Це не ваша справа
+Finish the current view session first,Спершу завершіть поточну сесію перегляду
+You cannot view as yourself,Не можна переглядати від власного імені
+This account cannot be viewed as,Від імені цього облікового запису переглядати не можна
+Only desk users can be viewed as,Переглядати можна лише від імені системних користувачів
+"Only Administrator or a user with both System Manager and Access Manager roles can view as users with System Manager role","Від імені користувачів з роллю Системний менеджер може переглядати лише Адміністратор або користувач, який має обидві ролі: Системний менеджер і Менеджер доступів"
+{0} viewed the system on your behalf (view only). Reason: {1},{0}: перегляд системи від вашого імені (лише перегляд). Причина: {1}
+Enter the reason,Вкажіть причину
+{0} started viewing as {1}. Reason: {2},Перегляд від імені {1} розпочато користувачем {0}. Причина: {2}
+{0} finished viewing as {1},Перегляд від імені {1} завершено користувачем {0}
+This is not a view session,Це не сесія перегляду
+View session finished,Сесію перегляду завершено
+View as {0},Перегляд від імені {0}
+View only: nothing you do is saved. The user gets a notification with your reason.,Лише перегляд: нічого з ваших дій не зберігається. Користувач отримає сповіщення з вашою причиною.
+Start viewing,Почати перегляд
+Viewing as {0},Перегляд від імені {0}
+"view only, nothing is saved","лише перегляд, нічого не зберігається"
+Started by {0},Ініціатор: {0}
+Finish session,Завершити сесію
+View only,Лише перегляд
+You are viewing the system as another user. Changes are not saved. Finish the session to return to your account.,"Ви переглядаєте систему від імені іншого користувача. Зміни не зберігаються. Завершіть сесію, щоб повернутися до свого облікового запису."
+Access Management,Керування доступом
+"Name, email or role","Ім'я, email або роль"
+{0} users,Користувачів: {0}
+No users found,Користувачів не знайдено
+Never logged in,Входів не було
+{0} roles,Ролей: {0}
+View as...,Увійти як…
+No roles,Ролей немає
+"Simulated steps: {0}, nothing saved","Змодельовано кроків: {0}, нічого не збережено"
+"Simulation reset, data is shown as saved","Симуляцію скинуто, дані показано як збережені"
+"Simulated, nothing was saved","Змодельовано, нічого не збережено"
+This action changes the database schema and cannot be simulated,"Ця дія змінює структуру бази даних, її не можна змоделювати"
+Network access is blocked during a simulation: {0},Під час симуляції доступ до мережі заблоковано: {0}
+Invalid simulation steps,Некоректні кроки симуляції
+This action cannot be simulated,Цю дію не можна змоделювати
+The simulation took too long and was stopped,Симуляція тривала надто довго й була зупинена
+Earlier simulated steps no longer apply. Reset the simulation and start again,Попередні змодельовані кроки більше не відтворюються. Скиньте симуляцію й почніть знову
+Simulation,Симуляція
+Simulation is available only in a view session,Симуляція доступна лише в сесії перегляду
+Simulation is not supported by the installed framework version,Встановлена версія фреймворку не підтримує симуляцію
+Roles granted: {0},Видано ролі: {0}
+Roles removed: {0},Знято ролі: {0}
+Role profiles assigned: {0},Призначено профілі ролей: {0}
+Access change,Зміна доступу
+Your access was changed: {0}. Reload the page to use it,"Ваш доступ змінено: {0}. Перезавантажте сторінку, щоб скористатися ним"
+Temporary access ended: {0},Тимчасовий доступ завершився: {0}
+"Roles {0} were removed from role profiles {1}, users with these profiles: {2}","Ролі {0} прибрано з профілів ролей {1}, користувачів із цими профілями: {2}"
+"Role profiles {0} were unlinked, the user keeps the other roles directly","Профілі ролей {0} відв'язано, решта ролей залишилася в користувача напряму"
+Role {0} cannot be removed here,Роль {0} не можна зняти тут
+Roles {0} were not removed from user {1},Ролі {0} не вдалося зняти з користувача {1}
+Temporary access must end in the future,Тимчасовий доступ має завершуватися в майбутньому
+This access cannot be temporary because it cannot be revoked automatically,"Цей доступ не може бути тимчасовим, бо його не можна відкликати автоматично"
+Roles {0} were not restored: the user has a role profile now,Ролі {0} не відновлено: тепер у користувача є профіль ролей
+Temporary access ended,Тимчасовий доступ завершився
+Temporary access {0} was not ended,Тимчасовий доступ {0} не вдалося завершити
+You cannot change your own access,Не можна змінювати власний доступ
+The access of this account cannot be changed,Доступ цього облікового запису змінювати не можна
+"Only Administrator or a user with both System Manager and Access Manager roles can change the access of users with System Manager role","Змінювати доступ користувачів з роллю Системний менеджер може лише Адміністратор або користувач, який має обидві ролі: Системний менеджер і Менеджер доступів"
+Choose what to change,"Оберіть, що змінити"
+These role profiles give roles that cannot be granted here: {0},"Ці профілі дають ролі, які тут видавати не можна: {0}"
+The user already has these role profiles,У користувача вже є ці профілі ролей
+Console,Консоль
+Removed Roles,Зняті ролі
+The access is revoked automatically at this time,У цей час доступ буде відкликано автоматично
+Role Removal,Зняття ролі
+"Unlink role profiles, keep the other roles directly","Відв'язати профілі ролей, решту ролей залишити напряму"
+Remove the role from role profiles {0} (users: {1}),Прибрати роль із профілів ролей {0} (користувачів: {1})
+"The role is removed from the role profiles, so every user with these profiles loses it too","Роль прибирається з профілів ролей, тож її втратять усі користувачі з цими профілями"
+Leave empty for permanent access. Temporary access is revoked automatically,Залиште порожнім для постійного доступу. Тимчасовий доступ відкликається автоматично
+What changes for the user,Що зміниться для користувача
+Access changed: {0},Доступ змінено: {0}
+Grant roles to {0},Видати ролі: {0}
+Roles the user does not have yet,"Ролі, яких у користувача ще немає"
+Remove role {0} from {1},Зняти роль {0} з {1}
+The role comes from the user's role profile,Роль надходить із профілю ролей користувача
+Role profiles of {0},Профілі ролей: {0}
+Profiles with System Manager or Access Manager roles are not offered,Профілі з ролями Системний менеджер або Менеджер доступів не пропонуються
+Assign,Призначити
+Grant,Видати
+"Temporary, until {0}","Тимчасово, до {0}"
+Remove role,Зняти роль
+Grant roles,Видати ролі
+Role profiles,Профілі ролей
+"Temporary access, it is revoked automatically on {0}","Тимчасовий доступ, його буде автоматично відкликано {0}"
+The user gets back roles: {0},Користувачу повернуться ролі: {0}
+Your access was changed,Ваш доступ змінено
+{0}. Reload the page to use the new access,"{0}. Перезавантажте сторінку, щоб скористатися новим доступом"
+Roles,Ролі
+Role Profiles,Профілі ролей
+The user is outside the companies or employees you may manage,"Користувач поза компаніями чи працівниками, якими ви можете керувати"
+Document type {0} not found,Тип документа {0} не знайдено
+Right {0} does not apply to {1},Право {0} не застосовується до {1}
+Show users with this role,Показати користувачів із цією роллю
+Show users with this role profile,Показати користувачів із цим профілем ролей
+No role profile,Без профілю ролей
+Temporary access,Тимчасовий доступ
+No login for {0}+ days,Не заходили {0}+ днів
+Pending requests,Відкриті заявки
+All roles,Усі ролі
+All role profiles,Усі профілі ролей
+All companies,Усі компанії
+No employee,Без працівника
+Who can: document type,Хто може: тип документа
+Right,Право
+Choose a right,Оберіть право
+Reset filters,Скинути фільтри
+Who can {0} {1}: roles {2},Хто може «{0}» у {1}: ролі {2}
+"own only, via {0}","лише свої, через {0}"
+Only Administrator can grant or remove the Access Manager role,Видавати або знімати роль Менеджер доступів може лише Адміністратор
+"From role profile: {0}","З профілю ролей: {0}"
+Variable,Змінна
+QI Template Variable,Змінна шаблону перевірки
+Invalid Variable,Недопустима змінна
+Row #{0}: {1} cannot be used as a variable name.,Рядок №{0}: {1} не можна використовувати як назву змінної.
+"Named limits for the acceptance formulas (e.g. max_loss), optionally per item or attribute value, so they are edited here instead of inside a formula.","Іменовані допуски для формул прийняття (наприклад, max_loss), за потреби окремо для товару чи значення атрибута — редагуються тут, а не всередині формули."
+Name used in the acceptance formulas, e.g. max_loss,"Назва, що використовується у формулах прийняття, напр. max_loss"
+Leave empty to apply to every item. Matches the item or its template.,Залиште порожнім, щоб застосувати до всіх товарів. Збігається з товаром або його шаблоном.
+"As on the item variant, e.g. 25 км","Як у варіанті товару, напр. 25 км"
+"Vacation Pay Sheet","Відомість відпускних"
+"Vacation Pay Sheet Item","Рядок відомості відпускних"
+"Vacation Days Already Paid Officially","Дні відпустки, уже оплачені офіційно"
+"Calendar days of vacation already paid officially before the Vacation Pay Sheet. They cover the oldest requested days first.","Календарні дні відпустки, оплачені офіційно до появи відомості відпускних. Вони закривають найстаріші взяті дні."
+"Requested Days","Взято днів"
+"All vacation calendar days taken up to the end of the month.","Усі календарні дні відпустки, взяті до кінця місяця."
+"Already Paid (Opening)","Уже оплачено (початкове)"
+"Paid Through Sheets","Оплачено відомостями"
+"Earned by Law","Заробіток за законом"
+"2 days per full month worked.","2 дні за повний відпрацьований місяць."
+"Earned Minus Taken","Заробіток мінус взято"
+"Days to Pay","Днів до оплати"
+"First Day","Перший день"
+"Last Day","Останній день"
+"Pay Not Later Than","Оплатити не пізніше"
+"Average Daily Pay","Середньоденна зарплата"
+"Withheld (PIT + Military)","Утримано (ПДФО + військовий збір)"
+"Payment Marks","Позначки виплати"
+"Accrual Entry","Проведення нарахування"
+"The sheet has paid vacations — it cannot be deleted.","У відомості є виплачені відпускні — видалити її не можна."
+"Taken {0} days, earned by law {1}.","Взято {0} дн., заробіток за законом {1}."
+"Marked as paid more days ({0}) than were requested.","Позначено оплаченими більше днів ({0}), ніж було взято."
+"Late: the vacation pay was due by {0}.","Запізнення: відпускні треба було виплатити до {0}."
+"Law: one part of the vacation is at least {0} days.","Закон: одна з частин відпустки — не менше {0} днів."
+"More than {0} days at once.","Більше {0} днів за раз."
+"The days already paid cannot be negative.","Оплачених днів не може бути менше нуля."
+"{0} has nothing to change here.","Для {0} тут нічого змінювати."
+"Choose from 0 to {0} days.","Оберіть від 0 до {0} днів."
+"Choose the employee to pay — the vacation is paid row by row.","Оберіть працівника — відпускні платяться по рядках."
+"{0}: {1} days to pay, only {2} unpaid.","{0}: до оплати {1} дн., неоплачено лише {2}."
+"Vacation pay {0}.{1}","Відпускні {0}.{1}"
+"Taxes on the vacation pay {0}.{1}","Податки з відпускних {0}.{1}"
+"{0} employees are paid later than the law allows (3 days before the vacation).","{0} працівникам відпускні виплачені пізніше, ніж дозволяє закон (за 3 дні до відпустки)."
+"Calendar days already paid officially","Календарні дні, уже оплачені офіційно"
+"Days to pay (up to {0})","Днів до оплати (до {0})"
+"{0} d from {1} to {2}: {3} accrued, {4} to the card.","{0} дн. з {1} до {2}: нараховано {3}, на картку {4}."
+"{0} d, {1}","{0} дн., {1}"
+"Paid on {0}","Виплачено {0}"
+"Vacation","Відпустка"
+"paid by the Vacation Pay Sheet","платиться відомістю відпускних"
+"Update Labor Cost","Оновити вартість робіт"
+"Apply","Застосувати"
+"Destination Warehouse","Склад призначення"
+"Return Address","Адреса повернення"
+"Managed by Repair","Створено процесом ремонту"
+"Repair Unit Label","Етикетка ремонтної одиниці"
+"Enable serial and batch tracking in Stock Settings before using repairs.","Увімкніть серійний і партійний облік у налаштуваннях складу перед використанням ремонту."
+"Repair Unit","Ремонтна одиниця"
+"Repair Order","Замовлення на ремонт"
+"Repair Settings","Налаштування ремонту"
+"Service Request","Сервісна заявка"
+"Service Request Item","Виріб сервісної заявки"
+"Repair Order Item","Одиниця замовлення на ремонт"
+"Product Repair","Ремонт виробів"
+"Products for Repair","Вироби для ремонту"
+"Product Description","Опис виробу"
+"Factory Serial Number","Заводський серійний номер"
+"Original Serial Number","Початковий серійний номер"
+"Fault Description","Опис несправності"
+"Accessories and Condition","Комплектація та стан"
+"Product Photo","Фото виробу"
+"Repair Stock Item","Обліковий товар ремонту"
+"Repair Serial Number","Ремонтний серійний номер"
+"Repair History","Історія ремонтів"
+"Repair Stage","Етап ремонту"
+"Current Warehouse","Поточний склад"
+"Repair Result","Результат ремонту"
+"Labor and External Cost","Вартість робіт та зовнішніх послуг"
+"Consumed Parts Cost","Вартість використаних запчастин"
+"Cost Explanation","Пояснення витрат"
+"Outbound Waybill","Вихідна ТТН"
+"Inbound Waybill","Вхідна ТТН"
+"Customer Disposal Approval","Погодження утилізації клієнтом"
+"Last Stock Entry","Останній рух ТМЦ"
+"Last Repair Action","Остання дія ремонту"
+"Repair Route","Маршрут ремонту"
+"Support Coordinator","Координатор саппорту"
+"Repair Technician","Відповідальний ремонтник"
+"Repair Units","Ремонтні одиниці"
+"Stock Movements","Складські рухи"
+"Repair Setup","Налаштування ремонту"
+"Awaiting Receipt","Очікуємо надходження"
+"In Repair","У ремонті"
+"Waiting for Parts","Очікуємо запчастини"
+"Waiting for Customer","Очікуємо рішення клієнта"
+"Ready for Dispatch","Готово до відправлення"
+"Dispatched","Відправлено"
+"Disposed","Утилізовано"
+"Repaired","Відремонтовано"
+"No Fault Found","Несправність не виявлено"
+"Not Repairable","Ремонт неможливий"
+"Repair Action","Дія ремонту"
+"Repair Movement Data","Дані ремонтного переміщення"
+"Current stage","Поточний етап"
+"No stock movements yet","Складських рухів ще немає"
+"Create Repair Order","Створити замовлення на ремонт"
+"Consumed Parts","Використані запчастини"
+"Update Repair","Оновити ремонт"
+"Confirm Customer Delivery","Підтвердити доставку клієнту"
+"Receive Units","Прийняти вироби"
+"Transfer Units","Перемістити вироби"
+"Dispatch Units","Відправити вироби"
+"Dispose with Customer Approval","Утилізувати за погодженням клієнта"
+"Consume Parts","Списати запчастини"
+"receive","Приймання"
+"transfer","Переміщення"
+"dispatch","Відправлення"
+"dispose","Утилізація"
+"parts","Списання запчастин"
+"One row per physical unit. Describe the fault separately for each unit.","Один рядок на фізичний виріб. Опишіть несправність окремо для кожного екземпляра."
+"Use a dedicated serialized customer-provided stock item with zero valuation. Do not use a sales item.","Використовуйте окремий серіалізований складський товар клієнта з нульовою вартістю, не товар для продажу."
+"Applied to EACH selected unit. For different costs, update units separately.","Сума застосовується до КОЖНОГО вибраного виробу. Різні витрати вводьте окремо."
+"Submit the stock entry to confirm the physical movement.","Проведіть рух ТМЦ, щоб підтвердити фізичне переміщення."
+"Select one or more distinct repair units.","Виберіть одну чи декілька різних ремонтних одиниць."
+"Selected units do not belong to this repair order.","Вибрані одиниці не належать цьому замовленню на ремонт."
+"The repair request identity cannot be changed after creating its repair order.","Після створення замовлення на ремонт не можна змінювати компанію, відправника чи зв’язок із заявкою."
+"Products are fixed in the repair order. Create a new request for another repair episode.","Вироби зафіксовано в замовленні на ремонт. Для нового епізоду створіть нову заявку."
+"Create the repair order using the repair action.","Створіть замовлення на ремонт відповідною кнопкою."
+"A repair request needs a company, sender contact and at least one product.","Для ремонту вкажіть компанію, контакт відправника та хоча б один виріб."
+"Describe the product and its fault in every row.","Опишіть виріб та його несправність у кожному рядку."
+"Return or dispose of all repair units before closing the service request.","Перш ніж закрити сервісну заявку, поверніть або погоджено утилізуйте всі вироби."
+"Choose a dedicated serialized customer-provided stock item: no purchasing, selling, manufacturing, batches or valuation.","Виберіть окремий серіалізований складський товар клієнта: без закупівлі, продажу, виробництва, партій та вартості оцінки."
+"Enable Product Repair first.","Спочатку ввімкніть ремонт виробів."
+"Configure the repair stock item in Repair Settings first.","Спочатку виберіть обліковий товар у налаштуваннях ремонту."
+"The repair unit company and stock item must match this request.","Компанія та обліковий товар ремонтної одиниці мають відповідати цій заявці."
+"Repair unit {0} already has an unfinished repair.","Ремонтна одиниця {0} вже має незавершений ремонт."
+"One physical unit can appear only once in a repair order.","Один фізичний виріб можна додати до замовлення на ремонт лише один раз."
+"Create a repair order from the service request.","Створюйте замовлення на ремонт із сервісної заявки."
+"Use repair actions to change the repair stage.","Змінюйте етап ремонту відповідними діями."
+"Use repair actions to change repair units.","Змінюйте ремонтні одиниці відповідними діями."
+"Choose an enabled repair user with access to Repair Order.","Виберіть активного користувача з доступом до замовлень на ремонт."
+"Repair order {0} assigned for repair","Замовлення {0} призначено вам для ремонту"
+"Repair order {0} is ready for dispatch","Замовлення на ремонт {0} готове до відправлення"
+"Invalid repair stage.","Неприпустимий етап ремонту."
+"Invalid repair result.","Неприпустимий результат ремонту."
+"Receive the unit before repair; confirm delivery only after dispatch.","Спочатку прийміть виріб на склад; підтверджуйте доставку лише після відправлення."
+"Specify work done and the repair result before marking the unit ready.","Перш ніж позначити виріб готовим, укажіть виконані роботи та результат ремонту."
+"Provide a cost explanation and a non-negative labor/external cost.","Укажіть пояснення витрат і невід’ємну вартість робіт або зовнішніх послуг."
+"Choose an active non-group warehouse of the repair company.","Виберіть активний негруповий склад компанії ремонту."
+"Invalid repair action.","Неприпустима дія ремонту."
+"The selected units are not at the required repair stage.","Вибрані вироби перебувають на іншому етапі ремонту."
+"Enter the outbound waybill and return address before dispatch.","Перед відправленням укажіть вихідну ТТН та адресу повернення."
+"Disposal requires a Not Repairable result and the customer's approval file.","Для утилізації потрібні результат «Ремонт неможливий» та файл погодження клієнта."
+"Attach the customer's disposal approval first.","Спочатку прикріпіть погодження клієнта на утилізацію."
+"Select one repair unit and specify the consumed parts.","Виберіть одну ремонтну одиницю та вкажіть використані запчастини."
+"Part quantity must be greater than zero.","Кількість запчастин має бути більшою за нуль."
+"Move repair stock only through a repair order.","Переміщуйте ремонтні вироби лише через замовлення на ремонт."
+"Repair movement purpose, company and zero additional costs must be preserved.","Не змінюйте призначення, компанію та нульові додаткові витрати ремонтного руху."
+"Each repair movement row must represent exactly one unit.","Кожний рядок ремонтного руху має відповідати одному виробу."
+"Consume parts for one repair unit at a time.","Списуйте запчастини для однієї ремонтної одиниці за раз."
+"Use actual spare parts and a source warehouse for repair consumption.","Для ремонту вкажіть справжні запчастини та склад списання."
+"Preserve the repair item's identity, serial number and quantity of one.","Не змінюйте обліковий товар, ремонтний серійний номер та кількість 1."
+"Customer repair stock must have zero valuation.","Ремонтні вироби клієнта мають обліковуватися з нульовою вартістю."
+"The source warehouse must match the repair unit's current warehouse.","Склад списання має відповідати поточному складу ремонтної одиниці."
+"An outbound repair movement cannot have a destination warehouse.","Відправлення або утилізація ремонтного виробу не можуть мати склад призначення."
+"Preserve the dedicated repair stock item's zero-value serialized configuration.","Збережіть серійний облік та нульову вартість спеціального ремонтного товару."
+"This repair movement has no cancellation snapshot.","Немає збереженого попереднього стану для скасування цього ремонтного руху."
+"A later repair action exists. Cancel movements in reverse order before changing this movement.","Уже виконано наступну ремонтну дію. Скасовуйте складські рухи у зворотному порядку; після ремонтної дії використайте коригувальне переміщення."
+"Invalid repair document.","Неприпустимий ремонтний документ."
+"Create repair units from a service request.","Створюйте ремонтні одиниці із сервісної заявки."
+"The repair stock identity cannot be changed.","Не можна змінювати складську ідентифікацію ремонтного виробу."
+"The repair stock item cannot be replaced after repair units have been created.","Не можна замінити обліковий товар після створення ремонтних одиниць."
+Repair Warehouse,Склад ремонту
+Default storage location for customer repairs. Customer units are tracked outside stock balances.,Типове місце зберігання клієнтських виробів. Вироби обліковуються окремо від товарних залишків.
+Repair Movement,Переміщення ремонту
+Repair Movements,Переміщення ремонту
+Repair Movement Item,Позиція переміщення ремонту
+Repair Shipment,Відправлення ремонту
+Repair Shipments,Відправлення ремонту
+Previous Repair State,Попередній стан ремонту
+Specify serial numbers only for the selected repair units.,Указуйте серійні номери лише для вибраних ремонтних виробів.
+Register dispatch and disposal from the service request.,Реєструйте відправлення й утилізацію із сервісної заявки.
+The repair unit does not match the order's current custody.,Місце зберігання ремонтного виробу не відповідає поточному стану замовлення.
+Confirm the factory serial number during receipt.,Уточнюйте заводський серійний номер під час приймання.
+Configure a repair warehouse for this company in Repair Settings first.,Спочатку виберіть склад цієї компанії у налаштуваннях ремонту.
+The repair unit company and owner must match this request.,Компанія та власник ремонтного виробу мають відповідати заявці.
+Choose an item for every repair unit.,Виберіть номенклатуру для кожного ремонтного виробу.
+Register customer property movements in the repair register.,Реєструйте переміщення клієнтських виробів у реєстрі ремонту.
+No repair movements yet,Переміщень ремонту ще немає
+A stock receipt from the previous repair flow is still submitted. Its history and stock balance have been preserved.,Залишається проведений складський прихід за попередньою схемою ремонту. Його історію та залишок збережено.
+Submit the stock entry to confirm spare-part consumption.,Проведіть складський документ для підтвердження списання запчастин.
+Repair movement registered.,Переміщення ремонту зареєстровано.
+Repair Actions,Дії з ремонтом
+Not assigned,Не призначено
+Attach a saved file to the repair work entry.,Прикріпіть збережений файл до запису про ремонтні роботи.
+Choose a completed previous repair of the same customer's item.,Виберіть завершений попередній ремонт виробу того самого клієнта.
+Create Repair Cards,Створити ремонтні картки
+Describe the work or attach a repair photo.,Опишіть роботу або додайте фото ремонту.
+Give the repair role to an enabled user before saving this assignment rule.,Перед збереженням правила надайте роль ремонтника активному користувачу.
+Legacy Repair Order,Попереднє групове замовлення на ремонт
+Legacy Repair Order Row,Рядок попереднього замовлення на ремонт
+Performed By,Виконав
+Previous Repair,Попередній ремонт
+Previous repair work,Раніше виконані ремонтні роботи
+Receive the unit before adding repair work.,Прийміть виріб перед додаванням ремонтних робіт.
+Repair Company Warehouse,Склад ремонту компанії
+Repair Photo,Фото ремонту
+Repair Work Log,Журнал ремонтних робіт
+Repair Work,Ремонтні роботи
+Repair unit {0} is ready for dispatch,Ремонтний виріб {0} готовий до відправлення
+Repair work history is append-only. Add a new entry to correct earlier work.,Історія робіт зберігається без перезапису. Для виправлення додайте новий запис.
+Resume Repair,Продовжити ремонт
+Role-based repair assignment supports Round Robin or Load Balancing.,Призначення ремонтів за роллю підтримує почерговий розподіл або балансування навантаження.
+Selected units do not belong to this service request.,Вибрані ремонтні одиниці не належать до цієї заявки.
+Service Request Row,Рядок сервісної заявки
+Start Repair,Почати ремонт
+This repair is assigned to another technician.,Цей ремонт призначено іншому ремонтнику.
+Work Date,Дата роботи
+Work Notes,Опис роботи
+Repair Assignee Role,Роль відповідального за ремонт
+Assign received repair cards to enabled users with this role and repair access.,Призначати прийняті ремонтні картки активним користувачам із цією роллю та доступом до ремонту.
+Select only one repair warehouse per company.,Виберіть лише один склад ремонту для кожної компанії.
+Repair Warehouses by Company,Склади ремонту за компаніями
+Select an existing repair warehouse for each company. Warehouses are not created automatically.,Виберіть наявний склад ремонту для кожної компанії. Склади не створюються автоматично.
+receive,Приймання
+transfer,Переміщення
+dispatch,Відправлення
+dispose,Утилізація
+parts,Запчастини
+Cannot match repair {0} to its source request row. Check the original request.,Не вдалося зіставити ремонт {0} із рядком вихідної заявки. Перевірте вихідну заявку.
+Continue this repair in its individual repair cards.,Продовжуйте цей ремонт в індивідуальних картках виробів.
+Costs,Витрати
+Create individual repair cards from the service request instead of a grouped repair order.,Створіть окремі картки ремонту із сервісної заявки замість групового замовлення.
+Customer repair units cannot be transferred between warehouses.,Переміщення клієнтських виробів між складами в ремонті недоступне.
+No parts have been consumed for this repair.,Для цього ремонту запчастини ще не списували.
+Cancelled issues are excluded from the repair cost.,Скасовані списання не включено у вартість ремонту.
+Posted By,Списав
+Inbound Delivery Type,Тип надходження
+Inbound Delivery Details,Подробиці надходження
+Delivery Type,Тип відправлення
+Waybill,ТТН
+Nova Poshta,Нова пошта
+Ukrposhta,Укрпошта
+Taxi,Таксі
+Self Pickup,Самовивіз
+Customer Agreed to Disposal,Клієнт погодився з утилізацією
+Result not specified,Результат ще не вказано
+Choose a delivery type for receipt or dispatch.,Виберіть тип доставки для приймання або відправлення.
+Enter a waybill for postal delivery.,Вкажіть ТТН для поштового відправлення.
+"Enter delivery details for taxi, self pickup or other delivery.","Вкажіть подробиці для таксі, самовивозу чи іншого способу доставки."
+Confirm that the customer agreed to disposal.,"Підтвердьте, що клієнт погодився з утилізацією."
+Attach a saved disposal approval file.,Прикріпіть збережений файл погодження утилізації.
+Only units with a Not Repairable result can be disposed of.,Утилізувати можна лише вироби з результатом «Ремонт неможливий».
+Delivery and disposal details must match the recorded repair action.,Подробиці доставки та утилізації мають відповідати записаній дії ремонту.
+Only repair support can manage intake and delivery.,Прийманням і доставкою може керувати лише саппорт ремонту.
+Only a repair technician can edit repair work.,Змінювати ремонтні роботи може лише ремонтник.
+Take the repair into work before editing it.,Перш ніж змінювати ремонтні дані візьміть ремонт у роботу.
+Take repair {0} into work.,Візьміть ремонт {0} у роботу.
+Take into Work,Взяти в роботу
+Repair Support,Саппорт ремонту
+Contact phone is not specified,Телефон контакту не вказано
+Telegram,Telegram
+WhatsApp,WhatsApp
+Viber,Viber
+General Request,Загальна заявка
+Support Request Type,Тип заявки
+Responsible Support,Відповідальний саппорт
+New repair card {0}: {1},Нова картка ремонту {0}: {1}
+Contact Details,Контактні дані
+Shipment Status,Статус відправлення
+Dispatch Document,Документ відправлення
+Optional PDF or image confirming the return shipment to the customer.,Необов'язковий PDF або зображення для підтвердження відправлення клієнту.
+Attach a saved dispatch confirmation document.,Прикріпіть збережений документ підтвердження відправлення.
+Chat attachments cannot be reused as dispatch documents.,Вкладення чату не можна використовувати як документи відправлення.
+Dispatch confirmation must be a PDF or PNG/JPG/JPEG image.,Підтвердження відправлення має бути PDF або зображенням PNG/JPG/JPEG.
+A dispatch document can only be attached when returning units to the customer.,Документ відправлення можна прикріпити лише під час повернення виробів клієнту.
+Source Repair Card,Вихідна картка ремонту
+Repair Results Distributed,Результати ремонту розподілено
+Repair Results by Quantity,Результати ремонту за кількістю
+Repaired Quantity,Кількість відремонтованих
+No Fault Found Quantity,Кількість без виявленої несправності
+Not Repairable Quantity,Кількість неремонтопридатних
+Distributed {0} of {1},Розподілено {0} із {1}
+Work and cost history remains on the source repair card.,Історія робіт і витрат зберігається у вихідній картці ремонту.
+Repair quantities must be whole numbers and cannot be negative or empty.,Кількість виробів має бути цілим додатним числом; кількість за результатом може дорівнювати нулю.
+A serialized item must have its own repair row with quantity 1.,Для товару із серійним номером потрібен окремий рядок ремонту з кількістю 1.
+The total repair result quantity cannot exceed the repair quantity.,Сумарна кількість за результатами ремонту не може перевищувати заявлену кількість.
+Distributed repair results are fixed. Continue delivery or disposal on the result rows.,Розподілені результати ремонту зафіксовано. Продовжуйте відправлення або утилізацію за рядками результатів.
+Distribute the repair quantity between results instead of choosing a single result.,Розподіліть кількість виробів між результатами замість вибору одного результату.
+Distribute the entire repair quantity before marking the repair ready.,Перед готовністю до відправлення розподіліть усю кількість виробів за результатами ремонту.
+Cannot find the source request row for this repair.,Не знайдено вихідний рядок заявки для цього ремонту.
+A factory serial number is only available for serialized items.,Заводський серійний номер можна вводити лише для товарів із серійним номером.
+Movement quantity must match the selected repair result row.,Кількість у переміщенні має відповідати вибраному рядку результату ремонту.
+"Sidebar Menu Item","Елемент бічного меню"
+"Visible To","Видимий для"
+"Required DocType","Потрібний DocType"
+"Sort Order","Порядок сортування"
+"Empty = global item shown under Tasks in every sidebar. Otherwise the item is added to this sidebar, or restricted if the sidebar already has an item with the same target.","Порожньо = глобальний елемент під «Завдання» в кожному меню. Інакше елемент додається до цього меню або обмежується, якщо там уже є елемент із такою ж ціллю."
+"Hides the item for everyone, including a standard one with the same target.","Приховує елемент для всіх, зокрема стандартний із такою ж ціллю."
+"Position among the items added to the same place; 0 = end.","Позиція серед елементів, доданих в те саме місце; 0 = в кінець."
+"Page name, DocType, Report, Workspace or URL.","Назва сторінки, DocType, звіту, робочого простору або URL."
+"Icon name from the desk icon set, e.g. list, sheet, users.","Назва значка з набору значків, напр. list, sheet, users."
+"Show only to users who can read this DocType.","Показувати лише користувачам, які можуть читати цей DocType."
+"Empty = visible to everyone who may open the target.","Порожньо = видимий усім, хто може відкрити ціль."
+"Target","Ціль"
+"Global Menu","Глобальне меню"
+"Add Item","Додати пункт"
+"Reload Menu","Перезавантажити меню"
+"View as role","Переглянути як роль"
+"Drag to reorder. These entries appear at the top of every sidebar.","Перетягуйте для зміни порядку. Ці пункти показуються зверху в кожному бічному меню."
+"Everyone","Всіх"
+"built-in","вбудований"
+"Show","Показати"
+"Hide","Приховати"
+"Edit","Редагувати"
+"Drag and Drop View","Перетягування"
+"Built-in","Вбудований"
+"Built-in menu items cannot be deleted, disable them instead.","Вбудовані пункти меню не можна видалити, приховайте їх."
+"Set for the menu entries the system itself provides (Tasks, Search, ...). Such a row only controls order, roles and visibility.","Задано для пунктів, які надає система (Завдання, Пошук, ...). Такий рядок керує лише порядком, ролями та видимістю."
+"Tasks","Завдання"
+"Search","Пошук"
+"Notification","Сповіщення"
+This data is protected. Enter your PIN to open it,"Ці дані захищено. Введіть PIN, щоб їх відкрити"
+This data is protected by a PIN. Open it in the browser,Ці дані захищено PIN-кодом. Відкрийте їх у браузері
+The PIN must be exactly 6 digits,PIN має складатися рівно з 6 цифр
+The PIN is too simple. Do not use repeated or consecutive digits,PIN надто простий. Не використовуйте однакові чи послідовні цифри
+The PINs do not match,PIN-коди не збігаються
+You have not set a PIN yet,Ви ще не створили PIN
+You already have a PIN. Change it or reset it instead,У вас уже є PIN. Змініть або скиньте його
+Your PIN is blocked after too many wrong attempts. Reset it to continue,"Ваш PIN заблоковано через забагато невдалих спроб. Скиньте його, щоб продовжити"
+Wrong PIN,Невірний PIN
+Wrong password,Невірний пароль
+The reset link is invalid or has expired. Request a new one,Посилання для скидання недійсне або застаріле. Запросіть нове
+This reset link was sent to another user,Це посилання для скидання надіслано іншому користувачу
+This is not available while viewing as another user,Це недоступно в режимі перегляду від імені іншого користувача
+PIN of {0} is blocked after {1} wrong attempts,PIN користувача {0} заблоковано після {1} невдалих спроб
+Reset your PIN for protected data,Скидання PIN для захищених даних
+Someone asked to reset the PIN that protects payroll and other sensitive data.,"Надійшов запит на скидання PIN, який захищає зарплатні та інші чутливі дані."
+Set a new PIN,Встановити новий PIN
+"The link works for one hour and only while you are signed in. If you did not ask for this, tell your Access Manager.","Посилання діє одну годину і лише тоді, коли ви увійшли в систему. Якщо ви цього не запитували, повідомте менеджера доступів."
+{0} reset their PIN,{0} скинув(ла) свій PIN
+Row {0}: {1} is listed twice,Рядок {0}: {1} вказано двічі
+Row {0}: system document type {1} cannot be protected,Рядок {0}: системний тип документа {1} не можна захистити
+"Row {0}: {1} is a child table, protect its document instead","Рядок {0}: {1} — дочірня таблиця, захистіть її документ"
+Row {0}: {1} has no field {2},Рядок {0}: у {1} немає поля {2}
+{0} changed the protected data settings,{0} змінив(ла) налаштування захисту чутливих даних
+PIN States,Стан PIN-кодів
+Protected data is open until {0},Захищені дані відкрито до {0}
+Lock now,Заблокувати зараз
+Protected data is locked,Захищені дані заблоковано
+Protected data is open. Repeat the action,Захищені дані відкрито. Повторіть дію
+Forgot your PIN?,Забули PIN?
+"The data stays open for {0} minutes, or until {1} minutes pass without opening it.",Дані залишаться відкритими {0} хв або до {1} хв без звернень до них.
+The data stays open for {0} minutes.,Дані залишаться відкритими {0} хв.
+Enter PIN,Введіть PIN
+You are viewing as another user: enter the PIN of {0}.,Ви переглядаєте систему від імені іншого користувача: введіть PIN користувача {0}.
+This data is protected by your personal PIN.,Ці дані захищено вашим особистим PIN-кодом.
+PIN is not set,PIN не створено
+"This user has not set a PIN yet, so protected data cannot be opened.","Цей користувач ще не створив PIN, тому захищені дані відкрити не можна."
+Create a PIN,Створіть PIN
+Choose 6 digits that only you know.,"Оберіть 6 цифр, які знаєте лише ви."
+Your login password,Ваш пароль для входу
+New PIN,Новий PIN
+Repeat PIN,Повторіть PIN
+Save PIN,Зберегти PIN
+PIN is blocked,PIN заблоковано
+The PIN of this user is blocked after too many wrong attempts.,PIN цього користувача заблоковано через забагато невдалих спроб.
+Your PIN is blocked after too many wrong attempts. We will email you a link to set a new one.,Ваш PIN заблоковано через забагато невдалих спроб. Ми надішлемо на пошту посилання для створення нового.
+Send reset link,Надіслати посилання для скидання
+Reset link sent,Посилання для скидання надіслано
+We sent a link to set a new PIN to {0}. It works for one hour.,Посилання для створення нового PIN надіслано на {0}. Воно діє одну годину.
+Change PIN,Змінити PIN
+Current PIN,Поточний PIN
+PIN changed,PIN змінено
+Reset PIN,Скинути PIN
+Send {0} a link to set a new PIN for protected data?,Надіслати користувачу {0} посилання для створення нового PIN для захищених даних?
+"Set a new PIN for payroll and other protected data. To confirm it is you, enter your login password.","Встановіть новий PIN для зарплатних та інших захищених даних. Щоб підтвердити, що це ви, введіть пароль для входу."
+New PIN saved,Новий PIN збережено
+Sensitive Access Log,Журнал чутливого доступу
+"PIN unlocks, wrong attempts, resets and settings changes","Розблокування PIN-кодом, невдалі спроби, скидання та зміни налаштувань"
+PIN Blocked,PIN заблоковано
+PIN Set,PIN створено
+PIN Changed,PIN змінено
+Reset Requested,Запит на скидання
+PIN Reset,PIN скинуто
+Settings Changed,Налаштування змінено
+Acted By,Виконав
+"Who acted, if not the user: a manager viewing as the user or resetting their PIN","Хто діяв, якщо не сам користувач: менеджер, що переглядає від його імені або скидає його PIN"
+Unlocked Until,Розблоковано до
+Sensitive Data API User,API-користувач без PIN
+Sensitive Data Object,Захищений об'єкт
+"A document type, report or page that opens only after the PIN","Тип документа, звіт або сторінка, що відкриваються лише після PIN"
+Unlock Duration (min),Тривалість розблокування (хв)
+Empty uses the default unlock duration,Якщо порожньо — тривалість за замовчуванням
+Sensitive Data Field,Захищене поле
+A field whose value is hidden until the PIN is entered,"Поле, значення якого приховане до введення PIN"
+Sensitive Data Settings,Захист чутливих даних
+"Which data opens only after the personal PIN, and for how long",Які дані відкриваються лише після особистого PIN і на скільки
+"While off, nothing asks for the PIN","Поки вимкнено, PIN ніде не запитується"
+Lock After Inactivity (min),Блокувати після бездіяльності (хв)
+Locks again after this many minutes without opening protected data. 0 turns it off,Знову блокує після стількох хвилин без звернень до захищених даних. 0 — вимкнено
+Wrong PIN Attempts Allowed,Дозволено невдалих спроб PIN
+After this many wrong PINs in a row the PIN is blocked until it is reset,Після стількох невдалих спроб поспіль PIN блокується до скидання
+API Users Without PIN,API-користувачі без PIN
+Integrations that sign in with an API key and may read protected data without a PIN,"Інтеграції, що входять за API-ключем і можуть читати захищені дані без PIN"
+Protected Data,Захищені дані
+"Document Types, Reports and Pages","Типи документів, звіти та сторінки"
+Child tables are protected together with their document,Дочірні таблиці захищаються разом зі своїм документом
+Protected Fields,Захищені поля
+Sensitive Data PIN,PIN для чутливих даних
+PIN state of a user. The PIN itself is stored only as a hash,Стан PIN користувача. Сам PIN зберігається лише як хеш
+Wrong Attempts In A Row,Невдалих спроб поспіль
+PIN Set On,Дата створення PIN
+Last Unlock,Останнє розблокування
+Reset Key,Ключ скидання
+Reset Link Expires,Посилання для скидання діє до
+Access and Security,Доступи та безпека
+All events,Усі події
+Blocked PINs,Заблоковані PIN
+Enter PIN to show them,"Введіть PIN, щоб їх показати"
+Exports and prints,Вивантаження та друк
+Lock,Заблокувати
+Lock protected data for this user now?,Заблокувати захищені дані для цього користувача зараз?
+Locked by a manager,Заблоковано менеджером
+My Access Requests,Мої запити на доступ
+No events yet,Подій ще немає
+No protected document was opened yet,Захищені документи ще не відкривали
+Nobody has created a PIN yet,Ніхто ще не створив PIN
+Nobody has protected data open,Зараз ніхто не має відкритих захищених даних
+Nothing protected was exported or printed,Захищені дані не вивантажували й не друкували
+On,Увімкнено
+Open now,Відкрито зараз
+Opened protected documents,Відкриті захищені документи
+Protected data. Open it in the browser,Захищені дані. Відкрийте їх у браузері
+Protected fields,Захищені поля
+Protected objects,Захищені об’єкти
+Protection,Захист
+Protection is off: nothing asks for the PIN. Turn it on in the settings.,Захист вимкнено: PIN ніде не запитується. Увімкніть його в налаштуваннях.
+Sensitive Data Monitor,Моніторинг захищених даних
+This data is protected by a PIN. Enter your PIN in the browser to open it,"Ці дані захищені PIN-кодом. Введіть PIN у браузері, щоб їх відкрити"
+This unlock has already ended,Це розблокування вже завершилося
+"Unlock lasts {0} min, locks after {1} min without activity, {2} wrong attempts block the PIN.","Розблокування діє {0} хв, блокується після {1} хв бездіяльності, {2} невдалих спроб блокують PIN."
+When,Коли
+Wrong PINs in 24 h,Невірних PIN за 24 год
+viewing as the user,переглядає як цей користувач
+"{0} does not receive email, so the reset link cannot be sent. Set a real email address in the user first.","{0} не отримує пошту, тому посилання для скидання надіслати неможливо. Спершу вкажіть користувачу справжню адресу пошти."
+Unlocked,Розблоковано
+Who Viewed,Хто переглядав
+Protected data,Захищені дані
+Object,Об'єкт
+Who,Хто
+File Download,Скачування
+What Changed,Що змінено
+Who Changed,Хто змінив
+Object Type,Тип об'єкта
+Level {0},Рівень {0}
+Role Profile Name,Профіль ролей
+Permlevel,Рівень доступу
+access granted,доступ надано
+access removed,доступ забрано
+{0} rights changed,змінено прав: {0}
+Granted: {0},Надано: {0}
+Revoked: {0},Забрано: {0}
+Rights: {0},Права: {0}
+Own documents only,Лише власні документи
+Was: {0},Було: {0}
+Now: {0},Стало: {0}
+All document types,Усі типи документів
+Applies to,Діє для
+Before Change,Було
+After Change,Стало
+No changes,Змін немає
+View Log,Журнал переглядів
+Apply To All Doctypes,Застосувати до всіх типів документів
+Failed Login,Невдалий вхід
+Signed Out,Вихід
+Viewing as another user,Перегляд від імені
+User Manually Logged Out,Вручну
+Force Logged out by the user,Примусово завершено
+Whole document,Документ повністю
+What to protect,Що захистити
+Add Protection,Додати захист
+Already protected,Уже захищено
+Choose a document type first,Спочатку виберіть тип документа
+Name or module,Назва або модуль
+Select at least one item,Виберіть хоча б один пункт
+Unknown object type {0},Невідомий тип об'єкта {0}
+"Its list, form, print and export ask for the PIN","Список, форма, друк і експорт питатимуть PIN"
+"The document stays open, only the chosen fields stay hidden until the PIN is entered","Документ лишається відкритим, приховані лише вибрані поля, доки не введено PIN"
+Opening and running the report asks for the PIN,Відкриття та запуск звіту питатимуть PIN
+Opening the page and the server methods of its own module ask for the PIN,Відкриття сторінки та серверні методи її власного модуля питатимуть PIN
+Empty: the general value from the settings,"Порожньо: загальне значення з налаштувань"
+Added: {0}. Save the settings to apply,"Додано: {0}. Збережіть налаштування, щоб застосувати"
+"This document is already protected as a whole, its fields are hidden anyway","Цей документ уже захищено повністю, його поля й так приховані"
+PIN reset,PIN скинуто
+Confirm it is you with your login password and choose a new PIN. Access Managers will be notified.,"Підтвердіть, що це ви, паролем для входу та виберіть новий PIN. Менеджери доступу отримають сповіщення."
+Your PIN is blocked after too many wrong attempts. Set a new one with your login password.,"PIN заблоковано після надто багатьох невдалих спроб. Задайте новий, підтвердивши паролем для входу."
+{0} has no PIN to reset,У {0} немає PIN для скидання
+{0} reset your PIN. Create a new one the next time you open protected data,"{0} скинув ваш PIN. Створіть новий, коли наступного разу відкриватимете захищені дані"
+Reset the PIN of {0}? They will create a new one with their login password the next time they open protected data.,"Скинути PIN користувача {0}? Новий PIN він створить сам, підтвердивши паролем для входу, коли наступного разу відкриватиме захищені дані."
+API client,API-клієнт
+protection turned on,захист увімкнено
+protection turned off,захист вимкнено
+unlock duration {0} → {1} min,тривалість розблокування {0} → {1} хв
+idle limit {0} → {1} min,бездіяльність {0} → {1} хв
+attempts {0} → {1},спроб {0} → {1}
+protected: {0},захищено: {0}
+unprotected: {0},знято захист: {0}
+hidden fields: {0},приховано поля: {0}
+shown fields: {0},відкрито поля: {0}
+{0}: {1} → {2} min,{0}: {1} → {2} хв
+API access granted: {0},доступ через API надано: {0}
+API access removed: {0},доступ через API забрано: {0}
+and {0} more,і ще {0}
+Unlocked until {0},Розблоковано до {0}
+Wrong PIN · attempt {0},Невірний PIN · спроба {0}
+PIN blocked after too many attempts,PIN заблоковано після забагатьох спроб
+PIN created,PIN створено
+PIN reset by a manager,PIN скинуто менеджером
+PIN replaced with the login password,PIN замінено через пароль для входу
+PIN reset requested by email,Запит на скидання PIN поштою
+Locked manually,Заблоковано вручну
+Closed for inactivity at {0},Закрито через бездіяльність о {0}
+"Closed, the unlock time ran out at {0}",Закрито: минув час розблокування о {0}
+What happened,Що сталося
+Protected fields are hidden: {0}.,Захищені поля приховано: {0}.
+"Protected data opens only after your personal PIN, so nobody can read it at your computer while you are away.","Захищені дані відкриваються лише після введення вашого особистого PIN, щоб ніхто не зміг переглянути їх за вашим комп'ютером, поки вас немає."
+"Commercial Offer","Комерційна пропозиція"
+"Commercial Offer Item","Позиція комерційної пропозиції"
+"Commercial Offer Field","Поле комерційної пропозиції"
+"Tagline","Підзаголовок"
+"Cover text under the product name","Текст на обкладинці під назвою виробу"
+"Commercial Terms","Комерційні умови"
+"Delivery Days","Термін поставки (днів)"
+"Validity Days","Чинність пропозиції (днів)"
+"Total Price without VAT","Загальна вартість без ПДВ"
+"Price in Words","Вартість прописом"
+"Technical State","Технічний стан"
+"Signer Name","Підписант"
+"Signer Title","Посада підписанта"
+"Classification Data","Класифікаційні дані"
+"Delivery Set","Комплект поставки"
+"Overrides the item name in the PDF","Замінює назву товару у PDF"
+"Key Capability","Ключова можливість"
+"Source Item","Товар-джерело"
+"Source Parameter","Параметр-джерело"
+"Specification parameter of the source item","Параметр специфікації товару-джерела"
+"Value or Formula","Значення або формула"
+"Text, or =formula with {Parameter} / {Row name} tokens","Текст або =формула з токенами {Параметр} / {Назва рядка}"
+"Override","Перевизначити"
+"Custom Value","Власне значення"
+"Icon","Іконка"
+"Font Awesome name, e.g. fa-plane","Назва Font Awesome, напр. fa-plane"
+"Commercial Offer Logo","Логотип для комерційної пропозиції"
+"Commercial Offer Stamp and Signature","Печатка і підпис для комерційної пропозиції"
+"Commercial Offer Header Text","Текст шапки комерційної пропозиції"
+"Company name, registration code, IBAN and bank; one line per row","Назва компанії, код, IBAN і банк; по одному рядку"
+"Specifications of Product","Характеристики виробу"
+"Delivery Set from BOM","Комплект поставки зі BOM"
+"Refresh Preview","Оновити перегляд"
+"Select the product first.","Спочатку оберіть виріб."
+"The product has no default BOM.","У виробу немає типової BOM."
+"Add the delivery set before submitting.","Додайте комплект поставки перед проведенням."
+"{0} must be greater than zero.","{0} має бути більше нуля."
+"These field rows have no value:","У цих рядків полів немає значення:"
+"Unresolved Commercial Offer Fields","Незаповнені поля комерційної пропозиції"
+"Made in Ukraine","Вироблено в Україні"
+"Key Capabilities","Ключові можливості"
+"days","днів"
+"delivery term","термін поставки"
+"offer validity","чинність пропозиції"
+"total price* without VAT","загальна вартість* без ПДВ"
+"Main Tactical and Technical Characteristics","Основні тактико-технічні характеристики"
+"Value, unit","Значення параметру, одиниця виміру"
+"Name, unit of measure","Найменування, одиниця виміру"
+"Technical condition data:","Дані щодо технічного стану:"
+"Full name of the manufacturer, country of origin and location, logistics route:","Повне найменування виробника, країна походження та знаходження, логістичний маршрут постачання:"
+"full name of the manufacturer:","повне найменування виробника:"
+"country of origin: Ukraine, and location: Ukraine.","країна походження: Україна, та знаходження: Україна."
+"logistics route: delivery to the customer's warehouse within Ukraine is possible.","логістичний маршрут постачання: можлива доставка на склад замовника в межах України."
+"Terms of delivery (term, schedule, etc.):","Умови постачання (строк, графік тощо):"
+"by the supplier's own forces and means within {0} days after the Contract is signed.","силами і засобами постачальника протягом {0} днів після підписання Договору."
+"Total cost (price) and terms of payment:","Загальна вартість (ціна) та умови оплати:"
+"total cost","загальна вартість"
+"without VAT","без ПДВ"
+"payment terms: non-cash payment for the actually delivered Goods is made in the national currency of Ukraine within 5 (five) calendar days from the date the Supplier provides the Customer with the Supplier's delivery note and invoice.","умови оплати: безготівковий розрахунок за фактично поставлений Товар проводиться в національній валюті України протягом 5 (п’яти) календарних днів з дати надання Постачальником Замовнику видаткової накладної та рахунку-фактури."
+"We hope for productive and long-term cooperation!","Сподіваємося на продуктивну та тривалу співпрацю!"
+"Sincerely,","З повагою,"
+"Title in PDF","Назва у PDF"
+"Replaces the product name on every page; empty = product name","Замінює назву виробу на кожній сторінці; порожньо = назва виробу"
+"pcs","шт."
+"Field of the source Item, e.g. weight_per_unit","Поле товару-джерела, напр. weight_per_unit"
+"A template is never submitted; new offers are created as its copy","Шаблон не проводиться; нові пропозиції створюються як його копія"
+"Create from Template","Створити із шаблону"
+"Pick a template to fill in every field of this offer","Оберіть шаблон, щоб заповнити всі поля цієї пропозиції"
+"A template cannot be submitted. Create an offer from it first.","Шаблон не можна провести. Спершу створіть із нього пропозицію."
+"{0} is not a template.","{0} не є шаблоном."
+"Create Offer","Створити пропозицію"
+"Template (disabled)","Шаблон (вимкнено)"
+"A disabled template is not offered when creating an offer","Вимкнений шаблон не пропонується під час створення пропозиції"
+"Key Capability rows fill the icon strip on page 1; Specification rows fill the table on page 2.","Рядки «Ключова можливість» заповнюють смугу іконок на сторінці 1, рядки «Характеристика» — таблицю на сторінці 2."
+"A value starting with = is a formula, e.g. ={Range}*2. {Name} reads a parameter of the source item or another row.","Значення, що починається з =, є формулою, напр. ={Дальність}*2. {Назва} бере параметр товару-джерела або іншого рядка."
+"Final Value","Кінцеве значення"
+"Reset to default","Скинути до значення за замовчуванням"
+"Overridden value","Значення змінено вручну"
+"Fill in to override the default value","Заповніть, щоб замінити значення за замовчуванням"
+"Text","Текст"
+"Default definition","Визначення за замовчуванням"
+"Preview PDF","Попередній перегляд PDF"
+"Generating PDF...","Формування PDF..."
 Approve on behalf of all CEOs,Погодити за всіх CEO
 Only a Department Head can approve on behalf of all CEOs.,Погодити за всіх CEO може лише керівник підрозділу.
 Approved by Department Head on behalf of all CEOs,Погоджено керівником підрозділу за всіх CEO

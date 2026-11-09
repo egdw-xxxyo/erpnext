@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-11-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "sidebar",
+  "column_break_a",
+  "builtin",
+  "disabled",
+  "sort_order",
+  "section_break_target",
+  "link_type",
+  "link_to",
+  "column_break_b",
+  "icon",
+  "icon_color",
+  "required_doctype",
+  "section_break_roles",
+  "roles"
+ ],
+ "fields": [
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "reqd": 1,
+   "translatable": 1
+  },
+  {
+   "description": "Empty = global item shown under Tasks in every sidebar. Otherwise the item is added to this sidebar, or restricted if the sidebar already has an item with the same target.",
+   "fieldname": "sidebar",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sidebar",
+   "options": "Workspace Sidebar"
+  },
+  {
+   "description": "Set for the menu entries the system itself provides (Tasks, Search, ...). Such a row only controls order, roles and visibility.",
+   "fieldname": "builtin",
+   "fieldtype": "Select",
+   "label": "Built-in",
+   "options": "\nTasks\nSearch\nScanner\nNotifications",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Hides the item for everyone, including a standard one with the same target.",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Disabled"
+  },
+  {
+   "default": "0",
+   "description": "Position among the items added to the same place; 0 = end.",
+   "fieldname": "sort_order",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sort Order"
+  },
+  {
+   "fieldname": "section_break_target",
+   "fieldtype": "Section Break",
+   "label": "Target"
+  },
+  {
+   "default": "Page",
+   "fieldname": "link_type",
+   "fieldtype": "Select",
+   "label": "Link Type",
+   "options": "Page\nDocType\nReport\nWorkspace\nURL",
+   "reqd": 1
+  },
+  {
+   "description": "Page name, DocType, Report, Workspace or URL.",
+   "fieldname": "link_to",
+   "fieldtype": "Data",
+   "label": "Link To",
+   "mandatory_depends_on": "eval: !doc.builtin"
+  },
+  {
+   "fieldname": "column_break_b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Icon",
+   "label": "Icon",
+   "options": "Emojis"
+  },
+  {
+   "fieldname": "icon_color",
+   "fieldtype": "Color",
+   "label": "Icon Color"
+  },
+  {
+   "description": "Show only to users who can read this DocType.",
+   "fieldname": "required_doctype",
+   "fieldtype": "Link",
+   "label": "Required DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "section_break_roles",
+   "fieldtype": "Section Break",
+   "label": "Visible To"
+  },
+  {
+   "description": "Empty = visible to everyone who may open the target.",
+   "fieldname": "roles",
+   "fieldtype": "Table",
+   "label": "Roles",
+   "options": "Has Role"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Setup",
+ "name": "Sidebar Menu Item",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "label"
+}

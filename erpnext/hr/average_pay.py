@@ -289,7 +289,41 @@ def monthly_earnings(employee, months: list) -> dict:
 				unpaid_days=flt(row.unpaid_leave_days),
 			)
 
+	_add_paid_vacation(employee, months, result)
+
 	return result
+
+
+def _add_paid_vacation(employee, months: list, result: dict):
+	"""Відпускні, виплачені «Відомістю відпускних», входять у заробіток свого місяця."""
+	sheets = {
+		row.name: getdate(row.period_start)
+		for row in frappe.get_all(
+			"Vacation Pay Sheet",
+			filters={"period_start": ("between", [months[0], months[-1]]), "docstatus": ("<", 2)},
+			fields=["name", "period_start"],
+		)
+	}
+
+	if not sheets:
+		return
+
+	paid = frappe.get_all(
+		"Vacation Pay Sheet Item",
+		filters={
+			"parent": ("in", list(sheets)),
+			"parenttype": "Vacation Pay Sheet",
+			"employee": employee.name,
+			"paid": 1,
+		},
+		fields=["parent", "gross"],
+	)
+
+	for row in paid:
+		month = result.setdefault(
+			sheets[row.parent], frappe._dict(earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0)
+		)
+		month.earnings += flt(row.gross)
 
 
 def _month_days(month) -> int:

@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import now_datetime
 
 SETTINGS = "Mail Forward Settings"
 WATCHED = "Watched"
@@ -56,3 +57,20 @@ def apply_defaults(name: str, role: str) -> list[str]:
 def form_profile(name: str | None) -> dict | None:
 	role = forwarding_role(name)
 	return {"role": role, "locked": LOCKED[role], "hidden": HIDDEN[role]} if role else None
+
+
+def record_connection(email_account: str, reachable: bool):
+	row = frappe.db.get_value(
+		"Mail Forward Mailbox",
+		{"parenttype": SETTINGS, "email_account": email_account},
+		["name", "unreachable_since"],
+		as_dict=True,
+	)
+	if row and bool(row.unreachable_since) == reachable:
+		frappe.db.set_value(
+			"Mail Forward Mailbox",
+			row.name,
+			"unreachable_since",
+			None if reachable else now_datetime(),
+			update_modified=False,
+		)

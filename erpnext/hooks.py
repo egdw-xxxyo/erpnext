@@ -40,9 +40,30 @@ web_include_icons = [
 	"/assets/erpnext/icons/pos-icons.svg",
 ]
 
-after_request = ["erpnext.access_control.denial.attach_denial_context"]
+after_request = [
+	"erpnext.access_control.denial.attach_denial_context",
+	"erpnext.access_control.sensitive.after_request",
+]
+before_request = [
+	"erpnext.access_control.impersonation.enforce_view_mode",
+	"erpnext.access_control.sensitive.guard_request",
+]
+on_logout = "erpnext.access_control.sensitive.clear_unlock_on_logout"
+masked_fields = ["erpnext.access_control.sensitive.masked_fields"]
+
+sensitive_data_methods = {
+	"Salary History": ["erpnext.payroll_ua.salary_history."],
+	"access-console": [
+		"erpnext.access_control.console.",
+		"erpnext.access_control.impersonation.get_users",
+	],
+}
 
 doctype_js = {
+	"Issue": "public/js/custom/service_repair.js",
+	"Repair Unit": "public/js/custom/repair_unit.js",
+	"Repair Settings": "public/js/custom/repair_settings.js",
+	"Permission Log": "public/js/custom/permission_log.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
 	"Consolidated Purchase Order": [
@@ -72,13 +93,18 @@ doctype_js = {
 	# сканер серійних / партійних номерів на самому комплекті
 	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",
 	# prefill the Responsible Employee dimension with the Employee of the current user
-	"Stock Entry": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Purchase Receipt": "public/js/responsible_employee.js",
+	"Stock Entry": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Purchase Receipt": ["public/js/responsible_employee.js", "public/js/custom/serial_duplicates.js"],
 	"Purchase Invoice": [
 		"public/js/custom/supplier_vat_display.js",
 		"public/js/responsible_employee.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
+		"public/js/custom/serial_duplicates.js",
 	],
 	"Payment Request": [
 		"public/js/custom/supplier_vat_display.js",
@@ -89,13 +115,30 @@ doctype_js = {
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/custom/supplier_vat_display.js",
 	],
-	"Delivery Note": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
-	"Sales Invoice": ["public/js/responsible_employee.js", "public/js/custom/package_shipping.js"],
+	"Delivery Note": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
+	"Sales Invoice": [
+		"public/js/responsible_employee.js",
+		"public/js/custom/package_shipping.js",
+		"public/js/custom/serial_duplicates.js",
+	],
 	"Stock Reconciliation": "public/js/responsible_employee.js",
 }
 doctype_list_js = {
+	"Repair Unit": "public/js/custom/repair_unit_list.js",
 	"Purchase Invoice": "public/js/custom/purchase_invoice_vat_list.js",
 	"ToDo": "public/js/custom/todo_list.js",
+	"View Log": "public/js/custom/view_log_list.js",
+	"Access Log": "public/js/custom/access_log_list.js",
+	"Permission Log": "public/js/custom/permission_log_list.js",
+	"Activity Log": "public/js/custom/activity_log_list.js",
+	"Sensitive Access Log": [
+		"public/js/access_control/sensitive_log.js",
+		"public/js/custom/sensitive_access_log_list.js",
+	],
 	"Code List": [
 		"edi/doctype/code_list/code_list_import.js",
 	],
@@ -104,7 +147,10 @@ doctype_list_js = {
 	],
 }
 
-page_js = {"print": "public/js/print.js"}
+page_js = {
+	"print": "public/js/print.js",
+	"sensitive-data-monitor": "public/js/access_control/sensitive_log.js",
+}
 
 override_doctype_class = {
 	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
@@ -113,9 +159,12 @@ override_doctype_class = {
 }
 
 extend_doctype_class = {
+	"Issue": ["erpnext.support.request_intake.SupportRequestIntake"],
+	"Assignment Rule": ["erpnext.support.repair_assignment.RepairAssignmentRule"],
 	"Purchase Invoice": ["erpnext.buying.recurring_purchase.RecurringPurchaseInvoice"],
 	"Employee": ["erpnext.hr.employee_full_name.EmployeeFullName"],
 	"Email Account": ["erpnext.correspondence.email_account.ForwardingEmailAccount"],
+	"Quality Inspection": ["erpnext.stock.inspection_formula.InspectionFormulaContext"],
 }
 
 override_whitelisted_methods = {
@@ -148,6 +197,7 @@ permission_query_conditions = {
 	# WhatsApp chats and messages are visible only on the numbers the user is assigned to.
 	"WhatsApp Chat": "erpnext.crm.whatsapp_access.chat_query_conditions",
 	"WhatsApp Message": "erpnext.crm.whatsapp_access.message_query_conditions",
+	"*": "erpnext.access_control.sensitive.query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -205,6 +255,7 @@ has_permission = {
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
 	"WhatsApp Chat": "erpnext.crm.whatsapp_access.has_permission",
 	"WhatsApp Message": "erpnext.crm.whatsapp_access.has_permission",
+	"*": "erpnext.access_control.sensitive.has_permission",
 }
 
 welcome_email = "erpnext.setup.utils.welcome_email"
@@ -219,6 +270,8 @@ before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
+	"erpnext.patches.setup_custom_fields.setup_service_repair_fields",
+	"erpnext.support.repair_units_setup.execute",
 	"erpnext.setup.payment_workflow_setup.after_migrate",
 	"erpnext.setup.procurement_workflow_setup.after_migrate",
 	"erpnext.buying.recurring_purchase.setup",
@@ -226,10 +279,12 @@ after_migrate = [
 	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.crm.crm_sidebar.add_chat_pages",
+	"erpnext.crm.crm_sidebar.add_commercial_offer",
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 	"erpnext.setup.organization_sidebar.add_organization_links",
 	"erpnext.buying.buying_sidebar.add_buying_links",
 	"erpnext.stock.stock_sidebar.add_stock_links",
+	"erpnext.access_control.sidebar.add_access_links",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -395,6 +450,21 @@ standard_navbar_items = [
 		"condition": "eval: frappe.boot.sysdefaults.demo_company && frappe.boot.sysdefaults.demo_company.length > 0",
 		"icon": "trash",
 	},
+	{
+		"item_label": "My Access Requests",
+		"item_type": "Action",
+		"action": "frappe.set_route('List', 'Access Request', {user: frappe.session.user})",
+		"is_standard": 1,
+		"icon": "lock-keyhole",
+	},
+	{
+		"item_label": "Change PIN",
+		"item_type": "Action",
+		"action": "erpnext.sensitive_data.change_dialog()",
+		"is_standard": 1,
+		"condition": "eval: frappe.boot.sensitive_data && frappe.boot.sensitive_data.enabled && frappe.boot.sensitive_data.has_pin",
+		"icon": "key-round",
+	},
 ]
 
 standard_portal_menu_items = [
@@ -531,6 +601,7 @@ doc_events = {
 		"on_trash": "erpnext.crm.doctype.chat_thread.chat_thread.on_reference_deleted",
 		# share what a group member creates with the whole group
 		"after_insert": "erpnext.setup.doctype.employee_group.group_access.auto_share_on_insert",
+		"before_print": "erpnext.access_control.sensitive.mask_print",
 	},
 	tuple(period_closing_doctypes): {
 		"validate": "erpnext.accounts.doctype.accounting_period.accounting_period.validate_accounting_period_on_doc_save",
@@ -544,6 +615,16 @@ doc_events = {
 		"Stock Reconciliation",
 	): {
 		"validate": "erpnext.stock.responsible_employee.validate_responsible_employee",
+	},
+	# a serial number is one unit: a scanned box listed twice is refused on save
+	(
+		"Stock Entry",
+		"Purchase Receipt",
+		"Purchase Invoice",
+		"Delivery Note",
+		"Sales Invoice",
+	): {
+		"validate": "erpnext.stock.serial_duplicate_guard.validate_unique_serials",
 	},
 	# a serial number is one unit, so its holder belongs on the Serial No itself
 	"Stock Ledger Entry": {
@@ -573,7 +654,11 @@ doc_events = {
 		],
 	},
 	"Issue": {
-		"validate": "erpnext.crm.utils.set_military_unit_from_party",
+		"on_update": "erpnext.support.repair_units.sync_priority",
+		"validate": [
+			"erpnext.crm.utils.set_military_unit_from_party",
+			"erpnext.support.service_repair.validate_issue",
+		],
 	},
 	"Customer": {
 		"after_insert": "erpnext.crm.doctype.prospect.prospect.propagate_customer_to_leads",
@@ -611,11 +696,13 @@ doc_events = {
 	},
 	"Stock Entry": {
 		"validate": [
+			"erpnext.support.service_repair.validate_stock_entry",
 			"erpnext.crm.doctype.lead_expense.lead_expense.validate_stock_entry",
 			# a packed box is issued whole and marked Shipped
 			"erpnext.stock.package_shipping.validate_whole_packages",
 		],
 		"on_submit": [
+			"erpnext.support.service_repair.submit_stock_entry",
 			"erpnext.stock.package_shipping.mark_shipped",
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			# record which fiber reel each produced optical spool was wound from
@@ -623,6 +710,7 @@ doc_events = {
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 		],
 		"on_cancel": [
+			"erpnext.support.service_repair.cancel_stock_entry",
 			"erpnext.stock.doctype.material_request.material_request.update_completed_and_requested_qty",
 			"erpnext.crm.doctype.lead_expense.lead_expense.sync_stock_entry_status",
 			# a consumption issued for this entry goes back with it
@@ -665,7 +753,10 @@ doc_events = {
 	},
 	"User": {
 		"after_insert": "frappe.contacts.doctype.contact.contact.update_contact",
-		"validate": "erpnext.setup.doctype.employee.employee.validate_employee_role",
+		"validate": [
+			"erpnext.setup.doctype.employee.employee.validate_employee_role",
+			"erpnext.access_control.role_guard.guard_access_manager_role",
+		],
 		"on_update": "erpnext.portal.utils.set_default_role",
 	},
 	"Communication": {
@@ -781,9 +872,11 @@ doc_events = {
 		"on_cancel": "erpnext.buying.procurement_final_approval.close_final_approval_assignments",
 	},
 	"ToDo": {
+		"validate": "erpnext.utilities.todo_reminder.reset_reminder",
 		"after_insert": "erpnext.buying.procurement_automation.sync_current_assignees",
 		"on_update": [
 			"erpnext.buying.procurement_automation.sync_current_assignees",
+			"erpnext.support.repair_units.sync_assignee",
 			# an assignee always belongs to the chat of the record they are assigned to
 			"erpnext.crm.chat_members.on_todo_change",
 		],
@@ -823,6 +916,9 @@ doc_events = {
 	},
 	"Serial Number Template": {
 		"validate": "erpnext.stock.serial_charset.validate_serial_number_template",
+	},
+	"Quality Inspection Template": {
+		"validate": "erpnext.stock.inspection_formula.validate_template_variables",
 	},
 	"Quality Inspection": {
 		"on_submit": "erpnext.stock.doctype.serial_no.inspection.sync_inspection_status_on_submit",
@@ -925,11 +1021,14 @@ scheduler_events = {
 		"0/5 * * * *": [
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
 			"erpnext.correspondence.mail_forward.sync_delivery_status",
+			"erpnext.utilities.todo_reminder.send_due_reminders",
+			"erpnext.access_control.sensitive_monitor.expire_unlocks",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
 			"erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.run_parallel_reposting",
 			"erpnext.crm.chat_archive.reap_expired_restores",
+			"erpnext.access_control.doctype.access_request.access_request.expire_access",
 		],
 		# Hourly but offset by 30 minutes
 		"30 * * * *": [
@@ -970,7 +1069,9 @@ scheduler_events = {
 		"erpnext.crm.chat_archive.auto_deep_archive",
 		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
 	],
-	"daily_long": [],
+	"daily_long": [
+		"erpnext.devices.doctype.otdr_measurement.otdr_measurement.cleanup_old_sor_files",
+	],
 	"daily_maintenance": [
 		"erpnext.support.doctype.issue.issue.auto_close_tickets",
 		"erpnext.crm.doctype.opportunity.opportunity.auto_close_opportunity",
@@ -1201,6 +1302,10 @@ extend_bootinfo = [
 	"erpnext.startup.boot.bootinfo",
 	"erpnext.startup.instance_env.add_instance_env",
 	"erpnext.crm.whatsapp_access.boot_session",
+	"erpnext.access_control.impersonation.boot_view",
+	"erpnext.access_control.sidebar_menu.boot_session",
+	"erpnext.access_control.sensitive.boot",
+	"erpnext.access_control.sidebar.hide_module_sidebar",
 ]
 
 

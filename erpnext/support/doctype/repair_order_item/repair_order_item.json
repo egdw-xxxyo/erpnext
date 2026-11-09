@@ -1,0 +1,168 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Order Item",
+ "module": "Support",
+ "engine": "InnoDB",
+ "field_order": [
+  "repair_unit",
+  "item_code",
+  "factory_serial",
+  "product_name",
+  "fault_description",
+  "accessories",
+  "photo",
+  "status",
+  "warehouse",
+  "diagnosis",
+  "work_done",
+  "outcome",
+  "labor_cost",
+  "parts_cost",
+  "cost_note",
+  "last_stock_entry",
+  "last_action"
+ ],
+ "fields": [
+  {
+   "fieldname": "repair_unit",
+   "label": "Repair Unit",
+   "fieldtype": "Link",
+   "options": "Repair Unit",
+   "read_only": 1,
+   "no_copy": 1,
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "product_name",
+   "label": "Product Description",
+   "fieldtype": "Data",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "fault_description",
+   "label": "Fault Description",
+   "fieldtype": "Small Text",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "accessories",
+   "label": "Accessories and Condition",
+   "fieldtype": "Small Text",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "photo",
+   "label": "Product Photo",
+   "fieldtype": "Attach Image",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "status",
+   "label": "Repair Stage",
+   "fieldtype": "Select",
+   "read_only": 1,
+   "no_copy": 1,
+   "default": "Awaiting Receipt",
+   "options": "Awaiting Receipt\nReceived\nIn Repair\nWaiting for Parts\nWaiting for Customer\nReady for Dispatch\nDispatched\nDelivered\nDisposed",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "label": "Current Warehouse",
+   "fieldtype": "Link",
+   "options": "Warehouse",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "diagnosis",
+   "label": "Diagnosis",
+   "fieldtype": "Small Text",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "work_done",
+   "label": "Work Done",
+   "fieldtype": "Small Text",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "outcome",
+   "label": "Repair Result",
+   "fieldtype": "Select",
+   "read_only": 1,
+   "no_copy": 1,
+   "options": "\nRepaired\nNo Fault Found\nNot Repairable"
+  },
+  {
+   "fieldname": "labor_cost",
+   "label": "Labor and External Cost",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "parts_cost",
+   "label": "Consumed Parts Cost",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cost_note",
+   "label": "Cost Explanation",
+   "fieldtype": "Small Text",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "last_stock_entry",
+   "label": "Last Stock Entry",
+   "fieldtype": "Link",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "last_action",
+   "label": "Last Repair Action",
+   "fieldtype": "Data",
+   "read_only": 1,
+   "no_copy": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "item_code",
+   "label": "Item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "factory_serial",
+   "label": "Factory Serial Number",
+   "fieldtype": "Data",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [],
+ "track_changes": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "istable": 1,
+ "editable_grid": 1
+}

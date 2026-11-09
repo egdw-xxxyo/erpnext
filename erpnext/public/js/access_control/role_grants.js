@@ -17,6 +17,9 @@ erpnext.access_control.RIGHT_LABELS = {
 	share: __("Share"),
 };
 
+erpnext.access_control.right_label = (right) =>
+	erpnext.access_control.RIGHT_LABELS[right] || __(frappe.unscrub(right));
+
 erpnext.access_control.RISKY_RIGHTS = ["delete", "cancel", "export", "import", "share"];
 
 erpnext.access_control.right_badge = (right, scope) => {
@@ -183,17 +186,85 @@ erpnext.access_control.STYLE = `<style>
 	.ac-denial .ac-message { margin-bottom: var(--margin-sm); }
 </style>`;
 
-erpnext.access_control.show_role_grants = (role) =>
+erpnext.access_control.tabs_html = (tabs) =>
+	`<div class="ac-tabs">
+		<ul class="nav nav-tabs">${tabs
+			.map(
+				(tab, index) =>
+					`<li class="nav-item"><a href="#" class="nav-link ${index ? "" : "active"} ${
+						tab.danger ? "text-danger" : ""
+					}" data-ac-tab="${index}">${tab.label}</a></li>`
+			)
+			.join("")}</ul>
+		${tabs
+			.map(
+				(tab, index) =>
+					`<div class="pt-3" data-ac-pane="${index}" ${index ? "hidden" : ""}>${tab.html}</div>`
+			)
+			.join("")}
+	</div>`;
+
+erpnext.access_control.bind_tabs = (wrapper) =>
+	wrapper.off("click.ac-tabs").on("click.ac-tabs", ".ac-tabs [data-ac-tab]", (event) => {
+		event.preventDefault();
+		const $link = $(event.currentTarget);
+		const $tabs = $link.closest(".ac-tabs");
+		const index = String($link.data("ac-tab"));
+		$tabs.find("[data-ac-tab]").removeClass("active");
+		$link.addClass("active");
+		$tabs.find("[data-ac-pane]").each((_, pane) => {
+			pane.hidden = String($(pane).data("ac-pane")) !== index;
+		});
+	});
+
+erpnext.access_control.profile_impact_html = (delta) => {
+	const esc = frappe.utils.escape_html;
+	const lost_roles = delta.lost_roles.map((role) => esc(__(role))).join(", ");
+	const loses = delta.lost_roles.length || delta.lost.doctypes.length;
+	const summary = delta.lost_roles.length
+		? `<div class="alert alert-danger">
+			<div>${__("The user will lose roles: {0}", [`<b>${lost_roles}</b>`])}</div>
+			<div class="small">${__("A role profile replaces every role given directly, see the Loses tab")}</div>
+		</div>`
+		: "";
+	const gains_html = `<p>${__("Roles the user gets")}: ${erpnext.access_control.roles_html(
+		delta.gained_roles
+	)}</p>${erpnext.access_control.render_grants(delta)}`;
+	const losses_html = loses
+		? `<p>${__("Roles the user loses")}: ${erpnext.access_control.roles_html(
+				delta.lost_roles
+		  )}</p>${erpnext.access_control.render_grants(delta.lost)}`
+		: `<p class="text-muted">${__("The user loses nothing")}</p>`;
+	return (
+		summary +
+		erpnext.access_control.tabs_html([
+			{ label: `${__("Gets")} (${delta.doctypes.length})`, html: gains_html },
+			{
+				label: `${__("Loses")} (${delta.lost.doctypes.length})`,
+				html: losses_html,
+				danger: Boolean(loses),
+			},
+		])
+	);
+};
+
+erpnext.access_control.show_role_grants = (role, on_filter) =>
 	frappe.xcall("erpnext.access_control.permissions_engine.get_role_grants", { role }).then((data) => {
 		const dialog = new frappe.ui.Dialog({
 			title: __("What role {0} grants", [__(role)]),
 			size: "extra-large",
 			fields: [{ fieldtype: "HTML", fieldname: "grants" }],
 		});
+		if (on_filter) {
+			dialog.set_primary_action(__("Show users with this role"), () => {
+				dialog.hide();
+				on_filter(role);
+			});
+		}
 		dialog.fields_dict.grants.$wrapper.html(
 			erpnext.access_control.STYLE + erpnext.access_control.render_grants(data)
 		);
 		dialog.show();
 	});
 
-erpnext.access_control.can_manage = () => frappe.user.has_role(["Access Manager", "System Manager"]);
+erpnext.access_control.can_manage = () => frappe.user.has_role("Access Manager");

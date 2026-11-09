@@ -23,6 +23,9 @@ dependencies = [
     # try/except-guarded there, so a site can skip this and just get no push.
     "firebase-admin~=6.9.0",
 
+    # AI helper on error popups (erpnext.ai_helper)
+    "anthropic>=0.80.0",
+
     # Not used directly - required by PyQRCode for PNG generation
     "pypng~=0.20220715.0",
 

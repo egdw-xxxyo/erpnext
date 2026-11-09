@@ -23,18 +23,6 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
-   "label": "Attendance Sheet",
-   "link_type": "Page",
-   "link_to": "attendance-sheet",
-   "show_arrow": 0,
-   "type": "Link",
-   "icon": "sheet"
-  },
-  {
-   "child": 0,
-   "collapsible": 1,
-   "indent": 0,
-   "keep_closed": 0,
    "label": "Salary Advance",
    "link_type": "DocType",
    "link_to": "Salary Advance",

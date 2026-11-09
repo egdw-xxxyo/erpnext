@@ -1,0 +1,21 @@
+{
+ "app": "erpnext",
+ "creation": "2026-10-26 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "list-todo",
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "My Tasks",
+ "link_to": "My Tasks",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-10-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "My Tasks",
+ "owner": "Administrator",
+ "parent_icon": "ERPNext",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

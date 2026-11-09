@@ -6,7 +6,7 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from erpnext.correspondence.email_account import ForwardingEmailAccount
+from erpnext.correspondence.email_account import ForwardingEmailAccount, connection_error_title
 from erpnext.correspondence.test_mail_forward import WATCHED, make_account
 
 OTHER = "_Test Unwatched Mailbox"
@@ -169,6 +169,29 @@ class TestFolderUids(FrappeTestCase):
 			self.assertEqual(self.pull(imap), ["INBOX 502"])
 		log_error.assert_called_once()
 		self.assertEqual(self.stored()["INBOX"], ("7", "503"))
+
+	def test_a_refused_connection_marks_the_mailbox_and_reads_nothing(self):
+		account = frappe.get_doc("Email Account", WATCHED)
+		refused = frappe.ValidationError("command: LOGIN => socket error: EOF")
+		with (
+			patch.object(ForwardingEmailAccount, "get_incoming_server", side_effect=refused),
+			patch.object(ForwardingEmailAccount, "log_error") as log_error,
+		):
+			self.assertEqual(account.get_inbound_mails(), [])
+		self.assertEqual(log_error.call_args.kwargs["title"], connection_error_title(WATCHED))
+		first = self.mailbox("unreachable_since")
+		self.assertTrue(first)
+		with (
+			patch.object(ForwardingEmailAccount, "get_incoming_server", side_effect=refused),
+			patch.object(ForwardingEmailAccount, "log_error"),
+		):
+			account.get_inbound_mails()
+		self.assertEqual(self.mailbox("unreachable_since"), first)
+
+	def test_a_successful_connection_clears_the_unreachable_mark(self):
+		frappe.db.set_value("Mail Forward Mailbox", {"email_account": WATCHED}, "unreachable_since", ARRIVED)
+		self.pull(FakeImap({"INBOX": ("7", [500]), "Banks": ("3", [10])}))
+		self.assertIsNone(self.mailbox("unreachable_since"))
 
 	def test_receive_stores_mail_and_the_counters(self):
 		imap = FakeImap({"INBOX": ("7", [500]), "Banks": ("3", [10])})

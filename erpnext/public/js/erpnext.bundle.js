@@ -33,6 +33,7 @@ import "./utils/month_field";
 import "./utils/grid_editor";
 import "./utils/employee_preview";
 import "./payroll/payroll_sheet_view";
+import "./payroll/vacation_pay_sheet_view";
 import "./utils/attendance_details";
 import "./utils/leave_pay";
 import "./utils/package_list_table";
@@ -74,5 +75,10 @@ import "./sidebar_memory.js";
 import "./access_control/role_grants.js";
 import "./access_control/access_denied.js";
 import "./access_control/search_catalog.js";
+import "./access_control/view_session.js";
+import "./access_control/role_change.js";
+import "./access_control/sensitive_data.js";
+import "./access_control/permission_log.js";
+import "./ai_helper/ai_error_helper.js";
 
 // import { sum } from 'frappe/public/utils/util.js'

@@ -1,0 +1,63 @@
+{
+ "doctype": "DocType",
+ "name": "Repair Work Log",
+ "module": "Support",
+ "engine": "InnoDB",
+ "istable": 1,
+ "editable_grid": 1,
+ "fields": [
+  {
+   "fieldname": "performed_on",
+   "label": "Work Date",
+   "fieldtype": "Datetime",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "performed_by",
+   "label": "Performed By",
+   "fieldtype": "Link",
+   "options": "User",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "notes",
+   "label": "Work Notes",
+   "fieldtype": "Small Text",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "photo",
+   "label": "Repair Photo",
+   "fieldtype": "Attach Image"
+  },
+  {
+   "fieldname": "attachment",
+   "label": "Attachment",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "labor_cost",
+   "label": "Labor and External Cost",
+   "fieldtype": "Currency",
+   "options": "parent.currency",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cost_note",
+   "label": "Cost Explanation",
+   "fieldtype": "Small Text"
+  }
+ ],
+ "field_order": [
+  "performed_on",
+  "performed_by",
+  "notes",
+  "photo",
+  "attachment",
+  "labor_cost",
+  "cost_note"
+ ],
+ "permissions": []
+}

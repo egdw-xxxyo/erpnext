@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "autoname": "field:user",
+ "creation": "2026-11-01 00:00:00.000000",
+ "description": "PIN state of a user. The PIN itself is stored only as a hash",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "full_name",
+  "is_set",
+  "locked",
+  "column_break_state",
+  "failed_attempts",
+  "pin_set_on",
+  "last_unlock"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fetch_from": "user.full_name",
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_set",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "PIN Set",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "locked",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Blocked",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_state",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "failed_attempts",
+   "fieldtype": "Int",
+   "label": "Wrong Attempts In A Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pin_set_on",
+   "fieldtype": "Datetime",
+   "label": "PIN Set On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_unlock",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Unlock",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Control",
+ "name": "Sensitive Data PIN",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "role": "Access Manager"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "full_name"
+}

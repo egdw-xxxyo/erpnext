@@ -104,6 +104,47 @@ frappe.provide("erpnext.entity");
 		);
 	};
 
+	E.load_users = function (users) {
+		const unknown = [...new Set(users)].filter((u) => u && !frappe.boot.user_info?.[u]);
+		if (!unknown.length) return Promise.resolve(false);
+		return frappe
+			.xcall("frappe.desk.form.load.get_user_info_for_viewers", { users: unknown })
+			.then((info) => {
+				frappe.update_user_info(info || {});
+				return Object.keys(info || {}).length > 0;
+			});
+	};
+
+	E.route_to = function (href) {
+		const url = new URL(href, window.location.origin);
+		if (url.search) frappe.route_options = Object.fromEntries(url.searchParams);
+		frappe.set_route(url.pathname);
+	};
+
+	// Stock list rows open the subject link by its path only, and also fire when a chip
+	// inside the row is clicked: chips go to their own target, rows keep the link's query.
+	E.bind_list_links = function (listview) {
+		listview.$result.get(0).addEventListener(
+			"click",
+			(event) => {
+				const row = event.target.closest(".list-row");
+				if (!row || event.target.closest("input")) return;
+				const chip = event.target.closest("a.ent-link");
+				const subject = row.querySelector(".list-subject a");
+				if (chip) {
+					event.stopPropagation();
+					if (event.ctrlKey || event.metaKey) return;
+					event.preventDefault();
+					E.route_to(chip.href);
+				} else if (!event.target.closest("a") && subject?.search) {
+					event.stopPropagation();
+					E.route_to(subject.href);
+				}
+			},
+			true
+		);
+	};
+
 	// A WhatsApp business number: photo, verified name, display number. Managers get a
 	// link to its card in the WhatsApp Overview.
 	E.number = function (n, opts) {
