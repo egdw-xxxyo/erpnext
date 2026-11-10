@@ -216,9 +216,11 @@ class ClientBase {
 						this.open_hidden.has(g.unit) ? __("Hide") : __("Show")
 				  }</button></span>`
 				: "";
-			html += `<tr class="cb-group"><td colspan="${ncols}">
-				${this.E.military_unit({ name: g.unit, sub: g.unit_name || "" }, { size: 22 })}
-				<span class="cb-group-count">${g.rows.filter((r) => !r.cb_hidden).length}</span>${hidden_note}</td></tr>`;
+			html += `<tr class="cb-group"><td colspan="${ncols}"><div class="cb-group-line">
+				${this.E.military_unit({ name: g.unit, sub: g.unit_name || __("Military Unit") }, { card: true, size: 36 })}
+				<span class="cb-group-count">${
+					g.rows.filter((r) => !r.cb_hidden).length
+				}</span>${hidden_note}</div></td></tr>`;
 			g.rows.forEach((r) => (html += this.row_html(r)));
 		});
 		html += "</tbody></table>";
@@ -243,9 +245,9 @@ class ClientBase {
 			{
 				contact: r.contact,
 				full_name: r.full_name || r.contact,
-				sub: r.call_sign ? `«${r.call_sign}»` : "",
+				sub: r.call_sign ? `«${r.call_sign}»` : r.designation || r.display_phone || "",
 			},
-			{ size: 24 }
+			{ card: true, size: 36 }
 		);
 		const phone = r.display_phone
 			? `<a href="tel:${this.esc(r.display_phone.replace(/[^\d+]/g, ""))}">${this.esc(
@@ -432,10 +434,14 @@ class ClientBase {
 	contact_header(r) {
 		return `<div class="cb-dialog-head">
 			${this.E.contact(
-				{ contact: r.contact, full_name: r.full_name || r.contact, sub: r.call_sign || "" },
-				{ size: 32 }
+				{
+					contact: r.contact,
+					full_name: r.full_name || r.contact,
+					sub: r.call_sign ? `«${r.call_sign}»` : "",
+				},
+				{ card: true }
 			)}
-			${this.E.military_unit({ name: r.unit, sub: r.unit_name || "" }, { size: 32 })}
+			${this.E.military_unit({ name: r.unit, sub: r.unit_name || __("Military Unit") }, { card: true })}
 			<div class="cb-sub">${this.esc(r.display_phone)} ${r.designation ? "· " + this.esc(r.designation) : ""}</div>
 		</div>`;
 	}

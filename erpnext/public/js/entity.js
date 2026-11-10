@@ -3,7 +3,8 @@
 // customers, chats… all render through erpnext.entity so they look the same on every
 // page — no bare names in one place and avatars in another.
 //
-//   erpnext.entity.html({name, sub, image, icon, key, route, href, title, size, class})
+//   erpnext.entity.html({name, sub, image, icon, key, route, href, title, size, class, card})
+//     card: true → the chat-list look: 40px avatar, bold name, second line always reserved
 //   erpnext.entity.user("jane@x.com" | {user, full_name, user_image}, opts)
 //   erpnext.entity.number({name, verified_name, account_name, display_phone_number,
 //                          profile_image}, opts)          // WhatsApp business number
@@ -75,15 +76,17 @@ frappe.provide("erpnext.entity");
 	E.html = function (e, opts) {
 		E.inject_styles();
 		e = Object.assign({}, e, opts);
-		const size = e.size || 24;
+		const size = e.size || (e.card ? 40 : 24);
 		const href = e.href || (e.route ? E.url(e.route) : null);
 		const tag = href ? "a" : "span";
 		const attrs = [
-			`class="ent${href ? " ent-link" : ""}${e.class ? " " + e.class : ""}"`,
+			`class="ent${e.card ? " ent-card" : ""}${href ? " ent-link" : ""}${
+				e.class ? " " + e.class : ""
+			}"`,
 			href ? `href="${esc(href)}"` : "",
 			`title="${esc(e.title || [e.name, e.sub].filter(Boolean).join(" · "))}"`,
 		].join(" ");
-		const sub = e.sub ? `<span class="ent-sub">${esc(e.sub)}</span>` : "";
+		const sub = e.sub || e.card ? `<span class="ent-sub">${e.sub ? esc(e.sub) : "&nbsp;"}</span>` : "";
 		return `<${tag} ${attrs}>${E.avatar_html(e, size)}<span class="ent-text"><span class="ent-name">${esc(
 			e.name
 		)}</span>${sub}</span></${tag}>`;
@@ -241,8 +244,8 @@ frappe.provide("erpnext.entity");
 	};
 
 	E.inject_styles = function () {
-		if (document.getElementById("ent-styles-v2")) return;
-		$(`<style id="ent-styles-v2">
+		if (document.getElementById("ent-styles-v3")) return;
+		$(`<style id="ent-styles-v3">
 			.ent-avatar{display:inline-block;flex:none;border-radius:50%;color:#fff;font-weight:600;
 				text-align:center;overflow:hidden;user-select:none;vertical-align:middle;}
 			.ent-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -251,6 +254,9 @@ frappe.provide("erpnext.entity");
 			.ent-text{display:flex;flex-direction:column;min-width:0;line-height:1.25;}
 			.ent-name,.ent-sub{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 			.ent-sub{font-size:0.85em;color:var(--text-muted);font-weight:400;}
+			.ent-card{gap:10px;}
+			.ent-card .ent-name{font-weight:600;}
+			.ent-card .ent-sub{font-size:var(--text-sm);}
 			.ent-link:hover{text-decoration:none;}
 			.ent-link:hover .ent-name{text-decoration:underline;}
 			.ent-doc{color:inherit;font-weight:600;padding:0 3px;border-radius:4px;
