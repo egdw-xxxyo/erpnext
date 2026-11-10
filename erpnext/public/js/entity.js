@@ -9,6 +9,8 @@
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
 //   erpnext.entity.workplace("Packing" | {name, sub}, opts)  // production workplace → its form
+//   erpnext.entity.contact("CONT-1" | {contact, full_name, sub}, opts)  // contact → its form
+//   erpnext.entity.military_unit("A0001" | {name, sub}, opts)  // military unit → its form
 //   erpnext.entity.doc_link({doctype, name, label})       // inline link to any record, inside text
 //   erpnext.entity.list(items, renderer, opts)            // several, wrapped, or "—"
 //   erpnext.entity.avatar_html({name, key, image, icon}, size)
@@ -189,6 +191,36 @@ frappe.provide("erpnext.entity");
 				key: name,
 				icon: "fa fa-cogs",
 				route: ["Form", "Workplace", name],
+			},
+			opts
+		);
+	};
+
+	E.contact = function (c, opts) {
+		if (!c) return "";
+		const id = typeof c === "string" ? c : c.contact || c.name;
+		const name = (typeof c === "object" && (c.full_name || c.label)) || id;
+		return E.html(
+			{
+				name,
+				sub: (typeof c === "object" && c.sub) || "",
+				key: (typeof c === "object" && c.key) || id,
+				route: ["Form", "Contact", id],
+			},
+			opts
+		);
+	};
+
+	E.military_unit = function (u, opts) {
+		if (!u) return "";
+		const id = typeof u === "string" ? u : u.name;
+		return E.html(
+			{
+				name: id,
+				sub: (typeof u === "object" && u.sub) || "",
+				key: id,
+				icon: "fa fa-shield",
+				route: ["Form", "Military Unit", id],
 			},
 			opts
 		);

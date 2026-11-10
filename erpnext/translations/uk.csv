@@ -17244,3 +17244,10 @@ Call back later,Передзвонити пізніше
 Proposal sent,Пропозицію надіслано
 Refused,Відмова
 Gray,Сірий
+{0} hidden,Приховано: {0}
+Unhide,Показати знову
+{0} open,відкритих: {0}
+Click to expand,"Натисніть, щоб розгорнути"
+Other open tasks,Інші відкриті завдання
+Client Base Comment,Коментар (клієнтська база)
+Contact {0} not found,Контакт {0} не знайдено

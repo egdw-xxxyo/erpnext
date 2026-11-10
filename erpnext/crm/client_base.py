@@ -32,6 +32,7 @@ def _base_rows():
 		SELECT c.name AS contact, TRIM(CONCAT_WS(' ', c.first_name, c.last_name)) AS full_name,
 			c.call_sign, c.designation, c.mobile_no, c.phone,
 			c.cb_favorite, c.cb_hidden, c.cb_working, c.cb_done, c.cb_working_by, c.cb_work_started,
+			c.cb_comment,
 			dl.link_name AS unit, mu.name_of_military_unit AS unit_name
 		FROM `tabContact` c
 		JOIN `tabDynamic Link` dl
@@ -81,19 +82,20 @@ def _last_results(contacts):
 
 
 def _next_actions(contacts):
-	out = {}
+	out, counts = {}, {}
 	if not contacts:
-		return out
+		return out, counts
 	for t in frappe.get_all(
 		"ToDo",
 		filters={"reference_type": "Contact", "reference_name": ["in", contacts], "status": "Open"},
-		fields=["name", "reference_name", "date", "description", "allocated_to"],
+		fields=["name", "reference_name", "date", "description", "allocated_to", "priority"],
 		order_by="creation asc",
 	):
+		counts[t.reference_name] = counts.get(t.reference_name, 0) + 1
 		best = out.get(t.reference_name)
 		if best is None or (t.date and (not best.date or getdate(t.date) < getdate(best.date))):
 			out[t.reference_name] = t
-	return out
+	return out, counts
 
 
 @frappe.whitelist()
@@ -109,49 +111,62 @@ def get_rows(filters=None, work_mode=0):
 		rows = [r for r in rows if r.cb_working and r.cb_working_by == user]
 	else:
 		rows = [r for r in rows if not (r.cb_working and r.cb_working_by == user)]
-		if not cint(filters.get("show_hidden")):
-			rows = [r for r in rows if not r.cb_hidden]
 
 	contacts = list({r.contact for r in rows})
 	last = _last_results(contacts)
-	nxt = _next_actions(contacts)
+	nxt, open_counts = _next_actions(contacts)
 
 	text = (filters.get("search") or "").strip().lower()
 	out = []
 	for r in rows:
 		r.last_result = last.get(r.contact)
 		r.next_action = nxt.get(r.contact)
-		due = r.next_action and r.next_action.date and getdate(r.next_action.date) <= today
-		r.due = 1 if due else 0
+		r.open_todos = open_counts.get(r.contact, 0)
+		r.urgency = 0
+		if r.next_action and r.next_action.date:
+			due = getdate(r.next_action.date)
+			r.urgency = 2 if due < today else 1 if due == today else 0
 		if filters.get("military_unit") and r.unit != filters["military_unit"]:
 			continue
 		if filters.get("dup_key") and r.dup_key != filters["dup_key"]:
 			continue
 		if cint(filters.get("favorite")) and not r.cb_favorite:
 			continue
-		if cint(filters.get("only_due")) and not r.due:
+		if cint(filters.get("only_due")) and not r.urgency:
 			continue
 		if filters.get("result") and (not r.last_result or r.last_result.result != filters["result"]):
 			continue
 		if text:
 			hay = " ".join(
 				str(v or "")
-				for v in (r.full_name, r.call_sign, r.display_phone, r.designation, r.unit, r.unit_name)
+				for v in (
+					r.full_name,
+					r.call_sign,
+					r.display_phone,
+					r.designation,
+					r.unit,
+					r.unit_name,
+					r.cb_comment,
+				)
 			).lower()
 			if text not in hay:
 				continue
 		out.append(r)
 
-	out.sort(
-		key=lambda r: (
-			not r.due,
-			not r.cb_favorite,
-			r.unit or "",
-			(r.full_name or r.contact).lower(),
-		)
+	visible = [r for r in out if work_mode or not r.cb_hidden]
+	processed = (
+		sum(1 for r in visible if r.cb_done) if work_mode else sum(1 for r in visible if r.last_result)
 	)
-	processed = sum(1 for r in out if r.cb_done) if work_mode else sum(1 for r in out if r.last_result)
-	return {"rows": out, "processed": processed, "total": len(out)}
+	return {"rows": out, "processed": processed, "total": len(visible)}
+
+
+@frappe.whitelist()
+def set_comment(contact, comment=None):
+	_check()
+	if not frappe.db.exists("Contact", contact):
+		frappe.throw(_("Contact {0} not found").format(contact))
+	frappe.db.set_value("Contact", contact, "cb_comment", comment or None, update_modified=False)
+	return comment or ""
 
 
 @frappe.whitelist()
@@ -248,7 +263,7 @@ def get_history(contact):
 	todos = frappe.get_all(
 		"ToDo",
 		filters={"reference_type": "Contact", "reference_name": contact},
-		fields=["name", "status", "date", "description", "allocated_to", "creation"],
+		fields=["name", "status", "date", "description", "allocated_to", "priority", "creation"],
 		order_by="creation desc",
 	)
 	return {"results": results, "todos": todos}
