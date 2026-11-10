@@ -1,0 +1,17 @@
+.client-base .cb-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.client-base .cb-toolbar .frappe-control { margin-bottom: 0; min-width: 180px; }
+.client-base .cb-counter { margin-left: auto; color: var(--text-muted); }
+.client-base .cb-group > td { background: var(--subtle-fg); font-weight: 600; cursor: pointer; }
+.client-base .cb-group .cb-group-name { font-weight: 400; color: var(--text-muted); margin-left: 8px; }
+.client-base table { width: 100%; }
+.client-base th, .client-base td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+.client-base tr.cb-due > td { background: var(--yellow-50, #fffbeb); }
+.client-base tr.cb-done > td { background: var(--green-50, #ecfdf5); }
+.client-base .cb-dup { cursor: pointer; color: var(--text-color); font-weight: 600; margin-left: 4px; }
+.client-base .cb-dup:hover { text-decoration: underline; }
+.client-base .cb-icon { cursor: pointer; color: var(--text-light); margin: 0 4px; }
+.client-base .cb-icon.active { color: var(--yellow-600, #d97706); }
+.client-base .cb-sub { color: var(--text-muted); font-size: var(--text-sm); }
+.client-base .cb-actions { white-space: nowrap; }
+.client-base .cb-bottom { position: sticky; bottom: 0; padding: 10px 0; background: var(--bg-color); text-align: right; }
+.client-base .cb-empty { padding: 40px; text-align: center; color: var(--text-muted); }

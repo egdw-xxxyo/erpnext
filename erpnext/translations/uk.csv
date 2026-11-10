@@ -17207,3 +17207,40 @@ Only a Department Head can approve on behalf of all CEOs.,Погодити за 
 Approved by Department Head on behalf of all CEOs,Погоджено керівником підрозділу за всіх CEO
 {0} approved on behalf of all CEOs for the following reason:<br>{1},{0} погодив за всіх CEO з таким поясненням:<br>{1}
 Printer {0} ({1}:{2}) is not reachable. Check power and network.,Принтер {0} ({1}:{2}) недоступний. Перевірте живлення та мережу.
+Client Base,Клієнтська база
+Call Result,Результат дзвінка
+Contact Call Result,Результат дзвінка по контакту
+Favorite,Обране
+Favorites,Обрані
+Hidden,Приховано
+Show Hidden,Показати приховані
+Due Today,Наступна дія сьогодні
+In Work,У роботі
+Worked By,Працює
+Work Started,Початок роботи
+Processed contacts,Опрацьовано контактів
+Reset contact filter,Скинути фільтр контакту
+No contacts in work,Немає контактів у роботі
+No contacts,Немає контактів
+Start Work,Почати роботу
+Finish Work,Завершити роботу
+Finish Contact,Завершити роботу з контактом
+Add Result,Додати результат
+Results,Результати
+No results,Немає результатів
+No tasks,Немає завдань
+Task closed,Завдання закрито
+Changes during work,Зміни під час роботи
+Tasks from before the work (tick to close),Завдання, що були до початку роботи (позначте, щоб закрити)
+No open tasks from before the work,Немає відкритих завдань, що були до початку роботи
+Finish work? All contacts will no longer be marked as in work.,Завершити роботу? Усі контакти більше не будуть позначені як у роботі.
+Select at least one contact,Виберіть хоча б один контакт
+Contact {0} is already being worked on by {1},Контакт {0} уже в роботі у {1}
+Contact {0} is not in your work,Контакт {0} не у вашій роботі
+Follow up,Повторний контакт
+Invalid field,Неправильне поле
+No answer,Без відповіді
+Call back later,Передзвонити пізніше
+Proposal sent,Пропозицію надіслано
+Refused,Відмова
+Gray,Сірий

@@ -52,3 +52,15 @@ OFFER_LINK = {
 
 def add_commercial_offer():
 	add_links(SIDEBAR, INSERT_AFTER, (OFFER_LINK,))
+
+
+CLIENT_BASE_LINK = {
+	"label": "Client Base",
+	"link_to": "client-base",
+	"link_type": "Page",
+	"icon": "users",
+}
+
+
+def add_client_base():
+	add_links(SIDEBAR, INSERT_AFTER, (CLIENT_BASE_LINK,))

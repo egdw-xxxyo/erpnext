@@ -84,6 +84,7 @@ def execute():
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
 	create_call_sign_fields()
+	create_client_base_fields()
 	create_customer_prospect_link()
 	setup_lead_sources()
 	setup_lead_permissions()
@@ -2803,6 +2804,88 @@ def create_call_sign_fields():
 			},
 		]
 	)
+
+
+def create_client_base_fields():
+	"""State of the «Клієнтська база» page on the Contact: favorite / hidden marks and the work session.
+
+	Also seeds the Call Result dictionary the page logs call outcomes against."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Contact",
+				"fieldname": "client_base_section",
+				"fieldtype": "Section Break",
+				"label": "Client Base",
+				"insert_after": "call_sign",
+				"collapsible": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_favorite",
+				"fieldtype": "Check",
+				"label": "Favorite",
+				"insert_after": "client_base_section",
+				"no_copy": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_hidden",
+				"fieldtype": "Check",
+				"label": "Hidden",
+				"insert_after": "cb_favorite",
+				"no_copy": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_working",
+				"fieldtype": "Check",
+				"label": "In Work",
+				"insert_after": "cb_hidden",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_done",
+				"fieldtype": "Check",
+				"label": "Work Done",
+				"insert_after": "cb_working",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_working_by",
+				"fieldtype": "Link",
+				"label": "Worked By",
+				"options": "User",
+				"insert_after": "cb_done",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_work_started",
+				"fieldtype": "Datetime",
+				"label": "Work Started",
+				"insert_after": "cb_working_by",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+		]
+	)
+	for name, color in (
+		("No answer", "Gray"),
+		("Call back later", "Orange"),
+		("Interested", "Green"),
+		("Proposal sent", "Blue"),
+		("Refused", "Red"),
+	):
+		if not frappe.db.exists("Call Result", name):
+			frappe.get_doc({"doctype": "Call Result", "result_name": name, "color": color}).insert(
+				ignore_permissions=True
+			)
 
 
 def create_customer_prospect_link():
