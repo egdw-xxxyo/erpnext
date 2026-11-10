@@ -88,9 +88,11 @@ def _next_actions(contacts):
 		"ToDo",
 		filters={"reference_type": "Contact", "reference_name": ["in", contacts], "status": "Open"},
 		fields=["name", "reference_name", "date", "description", "allocated_to"],
-		order_by="date is null, date asc, creation asc",
+		order_by="creation asc",
 	):
-		out.setdefault(t.reference_name, t)
+		best = out.get(t.reference_name)
+		if best is None or (t.date and (not best.date or getdate(t.date) < getdate(best.date))):
+			out[t.reference_name] = t
 	return out
 
 
