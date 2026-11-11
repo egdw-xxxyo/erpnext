@@ -476,20 +476,20 @@ class ClientBase {
 			const key = el.getAttribute("data-key");
 			const side = el.getAttribute("data-side");
 			const current = (this.date_filters[key] || {})[side] || "";
+			const apply = (value) => {
+				$(el).toggleClass("has-value", !!value);
+				const f = this.date_filters[key] || {};
+				if ((f[side] || "") === value) return;
+				this.date_filters[key] = Object.assign({}, f, { [side]: value });
+				this.render_rows();
+			};
 			const control = frappe.ui.form.make_control({
 				parent: $(el),
 				df: {
 					fieldtype: "Date",
 					fieldname: `${key}_${side}`,
 					placeholder: side === "from" ? __("From") : __("To"),
-					change: () => {
-						const value = control.get_value() || "";
-						$(el).toggleClass("has-value", !!value);
-						const f = this.date_filters[key] || {};
-						if ((f[side] || "") === value) return;
-						this.date_filters[key] = Object.assign({}, f, { [side]: value });
-						this.render_rows();
-					},
+					change: () => apply(control.get_value() || ""),
 				},
 				render_input: true,
 			});
@@ -497,8 +497,18 @@ class ClientBase {
 			$(el).addClass("cb-clearable").toggleClass("has-value", !!current).append(this.clear_btn());
 			$(el)
 				.find(".cb-clear")
-				.on("click", () => control.set_value(""));
-			if (current) control.set_value(current);
+				.on("click", () => {
+					control.set_value("");
+					control.$input.val("");
+					apply("");
+				});
+			control.$input.on("input change blur", () => {
+				if (!control.$input.val()) apply("");
+			});
+			if (current) {
+				control.value = current;
+				control.$input.val(frappe.datetime.str_to_user(current));
+			}
 		});
 	}
 
