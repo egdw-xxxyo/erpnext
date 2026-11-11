@@ -17367,3 +17367,29 @@ The salary is paid for {0} paid days of {1} working days in the month — a sick
 Sick Pay (Fund),Лікарняні (фонд)
 paid separately by the sick leave case,платиться окремо випадком лікарняного
 {0} d,{0} дн.
+Vacation Payments,Виплати відпускних
+Days Ahead,Днів наперед
+Late by {0} d,Прострочено на {0} дн.
+Today,Сьогодні
+In {0} d,Через {0} дн.
+No unpaid vacations ahead.,Неоплачених відпусток попереду немає.
+plus {0} earlier unpaid days,плюс {0} раніше неоплачених дн.
+Vacation pay is due {0} d before the first vacation day (Payroll Tax Settings).,Відпускні платяться за {0} дн. до першого дня відпустки (Налаштування податків на зарплату).
+"{0} d: {1} accrued, {2} to the card.","{0} дн.: нараховано {1}, на картку {2}."
+Paid through {0},Оплачено через {0}
+No earnings yet — official salary × 12 ÷ {0} days.,Заробітку ще немає — офіційний оклад × 12 ÷ {0} дн.
+{0} – {1}: earnings {2} ÷ {3} days.,{0} – {1}: заробіток {2} ÷ {3} дн.
+{0} employees are paid later than the due date before the vacation.,"Працівників, яким відпускні оплачено пізніше строку: {0}."
+How many days before the first vacation day the vacation pay must be paid (the Labour Code says 3).,За скільки днів до першого дня відпустки треба виплатити відпускні (КЗпП каже 3).
+Pay Vacation Days Before,Платити відпускні за днів до
+Earnings by Month,Заробіток по місяцях
+ERP,ERP
+Before ERP,До ERP
+Earnings by Month: {0},Заробіток по місяцях: {0}
+"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до ERP — з таблиці «Заробіток до ERP» цієї картки."
+Official Accrued,Нараховано офіційно
+Official Paid to Card,Виплачено на картку
+Cash Accrued,Нараховано готівкою
+Cash Paid,Виплачено готівкою
+For the Average,Для середньої
+No months yet.,Місяців ще немає.

@@ -37,7 +37,7 @@ function show_status(frm) {
 
 	if (late) {
 		frm.dashboard.add_comment(
-			__("{0} employees are paid later than the law allows (3 days before the vacation).", [late]),
+			__("{0} employees are paid later than the due date before the vacation.", [late]),
 			"red",
 			true
 		);

@@ -87,6 +87,7 @@ doctype_js = {
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
+		"public/js/custom/employee_earnings.js",
 		"public/js/custom/employee_attendance_sheet.js",
 		"public/js/custom/employee_overview.js",
 	],

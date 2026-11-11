@@ -16,6 +16,7 @@
   "section_break_average_pay",
   "minimum_wage",
   "sick_cash_percent",
+  "vacation_pay_before_days",
   "section_break_reservation",
   "minimum_reservation_salary",
   "column_break_reservation",
@@ -91,6 +92,13 @@
    "fieldname": "sick_cash_percent",
    "fieldtype": "Percent",
    "label": "Cash Pay for a Sick Day"
+  },
+  {
+   "default": "1",
+   "description": "How many days before the first vacation day the vacation pay must be paid (the Labour Code says 3).",
+   "fieldname": "vacation_pay_before_days",
+   "fieldtype": "Int",
+   "label": "Pay Vacation Days Before"
   },
   {
    "fieldname": "section_break_reservation",
