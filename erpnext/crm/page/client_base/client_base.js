@@ -26,12 +26,24 @@ class ClientBase {
 			<div class="cb-tabs"></div>
 			<div class="cb-toolbar"></div>
 			<div class="cb-scroll"></div>
-			<div class="cb-bottom"></div></div>`);
+			<div class="cb-bottom"></div>
+			<button class="btn btn-default cb-to-top" title="${__(
+				"Scroll to top"
+			)}"><i class="fa fa-arrow-up"></i></button></div>`);
 		this.$root = this.page.main.find(".client-base");
 		this.$toolbar = this.$root.find(".cb-toolbar");
 		this.$tabs = this.$root.find(".cb-tabs");
 		this.$body = this.$root.find(".cb-scroll");
 		this.$bottom = this.$root.find(".cb-bottom");
+		this.$top = this.$root.find(".cb-to-top");
+		const toggle_top = () =>
+			this.$top.toggleClass("visible", this.$body.scrollTop() > 200 || $(window).scrollTop() > 200);
+		this.$body.on("scroll", frappe.utils.throttle(toggle_top, 100));
+		$(window).on("scroll.client-base", frappe.utils.throttle(toggle_top, 100));
+		this.$top.on("click", () => {
+			this.$body.animate({ scrollTop: 0 }, 200);
+			$("html, body").animate({ scrollTop: 0 }, 200);
+		});
 		this.columns = [
 			{
 				key: "unit",

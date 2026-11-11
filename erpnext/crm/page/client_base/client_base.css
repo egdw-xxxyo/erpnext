@@ -50,3 +50,5 @@
 .cb-dialog-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 12px; }
 .cb-info th { width: 160px; color: var(--text-muted); font-weight: 400; }
 .client-base .cb-table tr > td.cb-unit { vertical-align: top; background: var(--bg-color); border-right: 1px solid var(--border-color); opacity: 1; }
+.client-base .cb-to-top { position: fixed; right: 24px; bottom: 72px; z-index: 5; width: 40px; height: 40px; border-radius: 50%; box-shadow: var(--shadow-md); display: none; padding: 0; }
+.client-base .cb-to-top.visible { display: block; }
