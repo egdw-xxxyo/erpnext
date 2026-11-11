@@ -17402,3 +17402,49 @@ Overtime Pay (Cash),Понаднормові (готівкою)
 Overtime in Cash,Понаднормові готівкою
 h,год
 days off,вихідні
+Enforcement Order,Виконавчий документ
+Enforcement Orders,Виконавчі документи
+Enforcement Order Withholding,Утримання за виконавчим документом
+Kind,Вид
+Child Alimony,Аліменти на дітей
+Other Alimony,Інші аліменти
+Other Debt,Інший борг
+"Child alimony allows withholding up to 70% of a payment, everything else up to 50%.","Для аліментів на дітей можна утримати до 70% виплати, для решти — до 50%."
+Document Number,Номер документа
+Enforcement Proceeding No.,№ виконавчого провадження
+Issued By (Court / Enforcement Officer),Ким видано (суд / виконавець)
+Withhold From,Утримувати з
+Withhold Until,Утримувати до
+Percent,Відсоток
+Percent: from every official payment after PIT and military levy. Fixed: once a month from the monthly salary.,Відсоток — з кожної офіційної виплати після ПДФО і військового збору. Фіксована сума — раз на місяць із зарплати за місяць.
+Percent of Net Official Pay,Відсоток від чистої офіційної виплати
+Fixed Amount per Month,Фіксована сума на місяць
+Total Debt,Загальна сума боргу
+Stop withholding once this much is withheld. Empty — no limit (alimony).,"Утримання припиняється, щойно утримано цю суму. Порожньо — без обмеження (аліменти)."
+Fixed Amount Not Withheld Yet,Ще не утримана фіксована сума
+What the last months could not withhold — added to the next month.,"Те, що не вдалося утримати в попередні місяці, — додається до наступного."
+Recipient Tax ID / EDRPOU,РНОКПП / ЄДРПОУ отримувача
+Withheld,Утримано
+Transferred to Recipient,Перераховано отримувачу
+To Transfer,До перерахування
+Withholdings,Утримання
+Paid By Type,Тип виплати
+Paid By,Виплата
+Net Payment,Чиста виплата
+Withholding Entry,Проведення утримання
+Transfer Entry,Проведення перерахування
+The percent must be above 0 and not more than 100.,Відсоток має бути більшим за 0 і не більшим за 100.
+Enter the fixed amount per month.,Вкажіть фіксовану суму на місяць.
+The last day of withholding is before the first one.,Останній день утримання раніше за перший.
+Money was already withheld under this document — close it instead of deleting.,За цим документом уже утримано гроші — закрийте його замість видалення.
+Nothing is waiting to be transferred to the recipient.,"Немає сум, що чекають на перерахування отримувачу."
+Set the bank account and the account of component «{0}» first.,Спершу налаштуйте банківський рахунок і рахунок компонента «{0}».
+"{0}: {1}, IBAN {2}. {3}","{0}: {1}, IBAN {2}. {3}"
+Transfer to Recipient,Перерахувати отримувачу
+"{0} to {1}, IBAN {2}.","{0} — {1}, IBAN {2}."
+Set the account for salary component «{0}» for company {1}: the payment has withholdings under enforcement orders.,Налаштуйте рахунок компонента «{0}» для компанії {1}: у виплаті є утримання за виконавчими документами.
+No Account for Enforcement Withholdings,Немає рахунку для утримань за виконавчими документами
+Withheld under enforcement orders: {0},Утримано за виконавчими документами: {0}
+Withheld under Enforcement Orders,Утримано за виконавчими документами
+"Taken from this card payment under the employee's enforcement orders (alimony, court debts).","Утримано з цієї виплати на картку за виконавчими документами працівника (аліменти, борги за рішенням суду)."
+Fund Part Withheld under Enforcement Orders,Утримано з частини фонду за виконавчими документами

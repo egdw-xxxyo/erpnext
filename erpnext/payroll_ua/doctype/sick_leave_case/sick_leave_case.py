@@ -14,7 +14,7 @@ from frappe.utils import add_days, date_diff, flt, formatdate, getdate, nowdate
 
 from erpnext.hr import payroll_accounts, payroll_tax
 from erpnext.hr.salary_advance import _holiday_dates, _holiday_list
-from erpnext.payroll_ua import sick_rules
+from erpnext.payroll_ua import enforcement, sick_rules
 
 
 class SickLeaveCase(Document):
@@ -271,14 +271,34 @@ class SickLeaveCase(Document):
 
 		posting_date = getdate(posting_date or nowdate())
 		taxes = payroll_tax.split(flt(self.fund_gross), self.employee)
+		# Виконавчі документи утримуються й з лікарняних, але не з допомоги у зв'язку з
+		# вагітністю та пологами (ст. 73 Закону «Про виконавче провадження»).
+		items = (
+			[]
+			if self.case_type == "Maternity"
+			else enforcement.calculate(self.employee, self.company, taxes.net, posting_date)
+		)
+		enforcement.check_account(self.company, items)
+		self.fund_enforcement = enforcement.total(items)
+		to_card = flt(taxes.net - self.fund_enforcement, 2)
 		card = payroll_accounts.make_journal_entry(
 			self.company,
 			payroll_accounts.bank_account(self.company),
 			payroll_accounts.payable_account(self.company),
-			taxes.net,
+			to_card,
 			posting_date,
 			_("Sick pay (fund part) {0}").format(self.name),
-			parties=[(self.employee, taxes.net)],
+			parties=[(self.employee, to_card)],
+		)
+		enforcement.post(
+			self.company,
+			self.employee,
+			items,
+			posting_date,
+			payroll_accounts.payable_account(self.company),
+			self.doctype,
+			self.name,
+			base=taxes.net,
 		)
 		tax = payroll_accounts.make_tax_entry(
 			self.company,

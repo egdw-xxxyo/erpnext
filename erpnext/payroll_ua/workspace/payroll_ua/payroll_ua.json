@@ -15,7 +15,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Monthly Cycle",
-   "link_count": 8,
+   "link_count": 9,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -103,6 +103,17 @@
    "label": "Sick Leave Case",
    "link_count": 0,
    "link_to": "Sick Leave Case",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Enforcement Order",
+   "link_count": 0,
+   "link_to": "Enforcement Order",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -330,6 +341,12 @@
   {
    "label": "Sick Leave Case",
    "link_to": "Sick Leave Case",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Enforcement Order",
+   "link_to": "Enforcement Order",
    "type": "DocType",
    "doc_view": "List"
   },

@@ -24,7 +24,7 @@ from erpnext.hr.salary_advance import (
 	ATTENDANCE_FIELDS,
 	plan_month,
 )
-from erpnext.payroll_ua import sick_rules
+from erpnext.payroll_ua import enforcement, sick_rules
 from erpnext.payroll_ua.doctype.salary_approval.salary_approval import (
 	get_coverage,
 	missing_attendance_note,
@@ -131,6 +131,12 @@ class PayrollSheetBase(Document):
 			)
 			for row in self.employees
 		}
+		# Утримане за виконавчими документами з уже виплаченого рядка не перераховується.
+		paid_enforcement = {
+			row.employee: (flt(row.get("enforcement_withheld")), row.get("enforcement_orders"))
+			for row in self.employees
+			if row.paid_date
+		}
 
 		self.set("employees", [])
 
@@ -177,6 +183,17 @@ class PayrollSheetBase(Document):
 			debt_carried = flt(debts.get(employee), 2)
 			deduction = flt(payroll_tax.net(overpaid, employee) + debt_carried + absent_official, 2)
 			cash_due = flt(earned_cash - advance_cash - deduction, 2)
+			# Виконавчі документи утримуються лише з офіційних грошей на руки (див.
+			# `erpnext.payroll_ua.enforcement`), і саме з цієї виплати.
+			card_net = max(flt(payroll_tax.net(taxes.gross - advance_official), 2), 0)
+			enforcement_withheld, enforcement_orders = 0.0, ""
+
+			if employee in paid_enforcement:
+				enforcement_withheld, enforcement_orders = paid_enforcement[employee]
+			elif self.pays_officially:
+				items = enforcement.calculate(employee, self.company, card_net, self.period_end, monthly=True)
+				enforcement_withheld = enforcement.total(items)
+				enforcement_orders = enforcement.encode(items)
 
 			row = self.append(
 				"employees",
@@ -218,7 +235,9 @@ class PayrollSheetBase(Document):
 					# з тієї частини, якою були видані. Податки рахуються із залишку, а не з
 					# усього місяця з відніманням чистого авансу: ставка та сама, але так
 					# розклад у формі сходиться до копійки.
-					"salary_card": max(flt(payroll_tax.net(taxes.gross - advance_official) - deposit, 2), 0),
+					"salary_card": max(flt(card_net - deposit - flt(enforcement_withheld), 2), 0),
+					"enforcement_withheld": flt(enforcement_withheld, 2),
+					"enforcement_orders": enforcement_orders,
 					"official_paid": paid_officially,
 					"official_overpaid": overpaid,
 					"absent_deduction": absent_official,
@@ -642,6 +661,11 @@ class PayrollSheetBase(Document):
 		self.validate_attendance_approved(targets)
 		self.validate_salary_approved(targets)
 
+		if self.pays_officially:
+			enforcement.check_account(
+				self.company, [row.employee for row in targets if flt(row.get("enforcement_withheld"))]
+			)
+
 		posting_date = getdate(posting_date or self.period_end)
 		vouchers = []
 
@@ -680,6 +704,24 @@ class PayrollSheetBase(Document):
 
 			if tax_voucher:
 				row.journal_entry_tax = tax_voucher
+
+		# Утримане за виконавчими документами лягає на рахунок утримань — до перерахування
+		# отримувачу (див. «Виконавчий документ»).
+		if self.pays_officially:
+			for row in targets:
+				enforcement.post(
+					self.company,
+					row.employee,
+					enforcement.decode(row.get("enforcement_orders")),
+					posting_date,
+					self.payable_account(),
+					self.doctype,
+					self.name,
+					base=flt(row.salary_card)
+					+ flt(row.get("deposit"))
+					+ flt(row.get("enforcement_withheld")),
+					monthly=True,
+				)
 
 		# Частина роботодавця лікарняного виплачена разом з офіційною зарплатою — випадок
 		# лікарняного закриває свою першу половину (див. `erpnext.payroll_ua.sick_rules`).

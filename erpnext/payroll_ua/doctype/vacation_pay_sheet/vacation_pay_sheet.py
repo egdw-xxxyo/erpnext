@@ -20,7 +20,7 @@ from frappe.utils import cint, flt, get_last_day, getdate, nowdate
 
 from erpnext.hr import average_pay, payroll_accounts, payroll_tax
 from erpnext.hr.salary_advance import _holiday_dates, _holiday_list
-from erpnext.payroll_ua import vacation_rules
+from erpnext.payroll_ua import enforcement, vacation_rules
 
 # Далі цієї дати табель не дивимось — відпусток раніше за ERP не буде.
 EARLIEST = "2000-01-01"
@@ -271,17 +271,42 @@ class VacationPaySheet(Document):
 				)
 
 		posting_date = getdate(posting_date or nowdate())
+		# Виконавчі документи утримуються й з відпускних — з чистої суми (див.
+		# `erpnext.payroll_ua.enforcement`).
+		withholdings = {}
+
+		for row in targets:
+			items = enforcement.calculate(row.employee, self.company, flt(row.net), posting_date)
+			row.enforcement_withheld = enforcement.total(items)
+
+			if items:
+				withholdings[row.employee] = items
+
+		enforcement.check_account(self.company, list(withholdings.values()))
 		remark = _("Vacation pay {0}.{1}").format(self.month, self.year)
 		accrual = self._post_accrual(targets, posting_date, remark)
 		card = payroll_accounts.make_journal_entry(
 			self.company,
 			payroll_accounts.bank_account(self.company),
 			payroll_accounts.payable_account(self.company),
-			sum(flt(row.net) for row in targets),
+			sum(flt(row.net) - flt(row.enforcement_withheld) for row in targets),
 			posting_date,
 			remark,
-			parties=[(row.employee, flt(row.net, 2)) for row in targets],
+			parties=[(row.employee, flt(flt(row.net) - flt(row.enforcement_withheld), 2)) for row in targets],
 		)
+
+		for row in targets:
+			if row.employee in withholdings:
+				enforcement.post(
+					self.company,
+					row.employee,
+					withholdings[row.employee],
+					posting_date,
+					payroll_accounts.payable_account(self.company),
+					self.doctype,
+					self.name,
+					base=flt(row.net),
+				)
 		taxes = [payroll_tax.split(row.gross, row.employee) for row in targets]
 		tax = payroll_accounts.make_tax_entry(
 			self.company,

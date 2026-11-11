@@ -422,7 +422,10 @@ function payout_lines(frm, row) {
 
 	const [pit_rate, levy_rate] = erpnext.payroll.rates();
 	const remainder = remainder_official(row);
-	const withheld = flt(remainder - flt(row.salary_card) - flt(row.deposit), 2);
+	const withheld = flt(
+		remainder - flt(row.salary_card) - flt(row.deposit) - flt(row.enforcement_withheld),
+		2
+	);
 	// Утримане ділиться між податками за їхніми ставками, а не рахується від залишку наново:
 	// так сума рядків завжди дорівнює тому, що справді утримали.
 	const pit = flt((withheld * pit_rate) / (pit_rate + levy_rate), 2);
@@ -434,6 +437,11 @@ function payout_lines(frm, row) {
 	// Задаток видають не всім — рядок з'являється лише тоді, коли він був.
 	if (flt(row.deposit)) {
 		lines.push([__("Deposit"), money(row.deposit)]);
+	}
+
+	// Аліменти й борги за рішенням суду — із чистої офіційної суми, людині стільки менше.
+	if (flt(row.enforcement_withheld)) {
+		lines.push([__("Withheld under Enforcement Orders"), `− ${money(row.enforcement_withheld)}`]);
 	}
 
 	lines.push(

@@ -48,6 +48,7 @@
   "fund_gross",
   "fund_withheld",
   "fund_net",
+  "fund_enforcement",
   "fund_ssc",
   "column_break_fund",
   "fund_received_amount",
@@ -319,6 +320,13 @@
    "fieldname": "fund_net",
    "fieldtype": "Currency",
    "label": "Fund Part to Card",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "fund_enforcement",
+   "fieldtype": "Currency",
+   "label": "Fund Part Withheld under Enforcement Orders",
    "read_only": 1,
    "options": "Company:company:default_currency"
   },

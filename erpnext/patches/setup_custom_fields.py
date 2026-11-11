@@ -1514,6 +1514,10 @@ def create_salary_tax_components():
 	payroll_tax.ensure_components()
 	_default_minimum_wage()
 
+	from erpnext.payroll_ua import enforcement
+
+	enforcement.ensure_component()
+
 
 def _default_minimum_wage():
 	"""Порожня мінімальна зарплата в налаштуваннях показувалась нулем, хоч рахувалось від

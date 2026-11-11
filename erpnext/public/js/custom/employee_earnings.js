@@ -7,6 +7,11 @@ frappe.ui.form.on("Employee", {
 		if (!frappe.model.can_read("Payroll Sheet")) return;
 
 		frm.add_custom_button(__("Earnings by Month"), () => show_earnings(frm), __("View"));
+		frm.add_custom_button(
+			__("Enforcement Orders"),
+			() => frappe.set_route("List", "Enforcement Order", { employee: frm.doc.name }),
+			__("View")
+		);
 	},
 });
 
