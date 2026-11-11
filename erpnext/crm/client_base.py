@@ -179,7 +179,17 @@ def get_rows(filters=None, work_mode=0):
 	processed = (
 		sum(1 for r in visible if r.cb_done) if work_mode else sum(1 for r in visible if r.last_result)
 	)
-	return {"rows": out, "processed": processed, "total": len(visible), "work_count": work_count}
+	done = (lambda r: r.cb_done) if work_mode else (lambda r: r.last_result)
+	units = {r.unit for r in visible}
+	units_processed = {r.unit for r in visible if done(r)}
+	return {
+		"rows": out,
+		"processed": processed,
+		"total": len(visible),
+		"units_processed": len(units_processed),
+		"units_total": len(units),
+		"work_count": work_count,
+	}
 
 
 @frappe.whitelist()

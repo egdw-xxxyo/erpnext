@@ -284,10 +284,12 @@ class ClientBase {
 
 	render() {
 		this.$reset.toggle(!!this.dup_key);
-		this.$counter.text(
-			`${this.work_mode ? __("Worked") : __("Processed contacts")}: ${this.data.processed}/${
-				this.data.total
-			}`
+		const d = this.data;
+		this.$counter.html(
+			`<span>${this.work_mode ? __("Worked") : __("Processed contacts")}: <b>${d.processed}/${
+				d.total
+			}</b></span>
+			<span>${__("Processed military units")}: <b>${d.units_processed || 0}/${d.units_total || 0}</b></span>`
 		);
 		this.$toolbar.find(".cb-field").toggle(!this.work_mode);
 

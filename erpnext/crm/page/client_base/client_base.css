@@ -4,7 +4,8 @@
 .client-base .cb-tab-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 9px; background: var(--bg-light-gray); font-size: var(--text-sm); }
 .client-base .cb-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
 .client-base .cb-toolbar .frappe-control { margin-bottom: 0; min-width: 180px; }
-.client-base .cb-counter { margin-left: auto; color: var(--text-muted); }
+.client-base .cb-counter { margin-left: auto; color: var(--text-muted); display: flex; gap: 16px; white-space: nowrap; }
+.client-base .cb-counter b { color: var(--text-color); }
 .client-base .cb-scroll { overflow: auto; max-width: 100%; max-height: calc(100vh - 220px); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); }
 .client-base .cb-table { width: 100%; min-width: 1950px; border-collapse: collapse; }
 .client-base .cb-table th, .client-base .cb-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
