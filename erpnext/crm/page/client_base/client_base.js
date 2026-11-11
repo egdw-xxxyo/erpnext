@@ -281,9 +281,11 @@ class ClientBase {
 				? `<i class="fa fa-sort-${this.sort.dir > 0 ? "asc" : "desc"}"></i>`
 				: `<i class="fa fa-sort text-muted"></i>`;
 		const cols = this.visible_columns();
-		const ncols = cols.length + 2;
+		const ncols = cols.length + 3;
 		const th = (c) =>
-			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(c.key)}</th>`;
+			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(c.key)}</th>${
+				c.key === "designation" ? '<th class="cb-col-add"></th>' : ""
+			}`;
 		let html = `<table class="cb-table"><thead><tr>
 			${cols
 				.filter((c) => c.group)
@@ -386,12 +388,10 @@ class ClientBase {
 			  }</span> ${r.cb_working_by ? this.E.user(r.cb_working_by, { size: 20 }) : ""}`
 			: "";
 		const actions = this.work_mode
-			? `<button class="btn btn-xs btn-default cb-result">${__("Add Result")}</button>
-				<button class="btn btn-xs ${r.cb_done ? "btn-success" : "btn-primary"} cb-finish">${
+			? `<button class="btn btn-xs ${r.cb_done ? "btn-success" : "btn-primary"} cb-finish">${
 					r.cb_done ? __("Finished") : __("Finish")
 			  }</button>`
-			: `<button class="btn btn-xs btn-default cb-result">${__("Add Result")}</button>
-				<i class="fa ${r.cb_hidden ? "fa-eye" : "fa-eye-slash"} cb-icon cb-hide" title="${
+			: `<i class="fa ${r.cb_hidden ? "fa-eye" : "fa-eye-slash"} cb-icon cb-hide" title="${
 					r.cb_hidden ? __("Unhide") : __("Hide")
 			  }"></i>`;
 		return `<tr class="cb-row ${unit_cells ? "cb-first" : ""} ${this.row_class(
@@ -404,6 +404,7 @@ class ClientBase {
 			<td class="cb-col-contact">${contact}${dup}</td>
 			<td class="cb-col-phone">${phone}</td>
 			<td class="cb-col-designation">${this.esc(r.designation)}</td>
+			<td class="cb-col-add"><button class="btn btn-xs btn-default cb-result">${__("Add Result")}</button></td>
 			<td class="cb-col-last_result">${lr}</td>
 			<td class="cb-col-next_action">${na}</td>
 			<td class="cb-col-comment">${this.comment_html(r)}</td>

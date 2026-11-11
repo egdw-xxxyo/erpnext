@@ -20,6 +20,7 @@
 .client-base tr.cb-first > td { border-top: 2px solid var(--border-color); }
 .client-base .cb-col-phone { min-width: 130px; white-space: nowrap; }
 .client-base .cb-col-designation { min-width: 140px; }
+.client-base .cb-col-add { white-space: nowrap; width: 1%; }
 .client-base .cb-col-last_result { min-width: 150px; }
 .client-base .cb-col-next_action { min-width: 200px; }
 .client-base .cb-col-comment { min-width: 260px; max-width: 360px; }
