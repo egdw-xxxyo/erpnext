@@ -197,6 +197,16 @@ class ClientBase {
 			}
 			this.render();
 		});
+		this.$fclear = $(
+			`<button class="btn btn-default btn-sm cb-filters-clear" style="display:none">
+				<i class="fa fa-times"></i> ${__("Clear filters")}</button>`
+		).appendTo(this.$toolbar);
+		this.$fclear.on("click", () => {
+			this.col_filters = {};
+			this.date_filters = {};
+			this.manager_filter = "";
+			this.render();
+		});
 		this.$reset = $(
 			`<button class="btn btn-default btn-sm" style="display:none">
 				<i class="fa fa-times"></i> ${__("Reset contact filter")}</button>`
@@ -513,6 +523,7 @@ class ClientBase {
 		const n = this.filter_count();
 		this.$ftoggle.toggleClass("active", this.show_filters).toggleClass("btn-primary-light", n > 0);
 		this.$ftoggle.find(".cb-fcount").text(n ? `(${n})` : "");
+		this.$fclear.toggle(n > 0);
 	}
 
 	unit_cells(g) {
