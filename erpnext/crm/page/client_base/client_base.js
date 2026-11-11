@@ -285,7 +285,7 @@ class ClientBase {
 				contact: r.contact,
 				full_name: r.full_name || r.contact,
 				image: r.image,
-				sub: r.call_sign ? `«${r.call_sign}»` : r.designation || r.display_phone || "",
+				sub: r.call_sign ? `«${r.call_sign}»` : "",
 			},
 			{ card: true, size: 36 }
 		);
