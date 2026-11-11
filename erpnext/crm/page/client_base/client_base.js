@@ -250,6 +250,20 @@ class ClientBase {
 		const col = this.sort_column();
 		if (col && col.group) {
 			list.sort((a, b) => col.val(a).localeCompare(col.val(b)) * this.sort.dir);
+		} else if (col) {
+			const dir = this.sort.dir;
+			const key = (g) => {
+				const pool = g.rows.filter((r) => !r.cb_hidden);
+				const vals = (pool.length ? pool : g.rows).map((r) => String(col.val(r)));
+				if (!vals.length) return dir > 0 ? "\uffff" : "";
+				return vals.reduce((m, v) => ((dir > 0 ? v < m : v > m) ? v : m));
+			};
+			list.forEach((g) => (g.sort_key = key(g)));
+			list.sort(
+				(a, b) =>
+					(a.sort_key < b.sort_key ? -1 : a.sort_key > b.sort_key ? 1 : 0) * dir ||
+					String(a.unit).localeCompare(String(b.unit))
+			);
 		} else {
 			list.sort((a, b) => b.urgency - a.urgency || String(a.unit).localeCompare(String(b.unit)));
 		}
