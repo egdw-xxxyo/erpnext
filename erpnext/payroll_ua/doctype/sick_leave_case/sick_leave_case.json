@@ -1,0 +1,435 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "SLC-.YYYY.-.#####",
+ "creation": "2026-11-11 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_case",
+  "company",
+  "case_type",
+  "status",
+  "closed",
+  "section_break_certificates",
+  "certificates",
+  "start_date",
+  "column_break_period",
+  "end_date",
+  "column_break_period_2",
+  "calendar_days",
+  "section_break_calculation",
+  "calculation_html",
+  "insurance_years",
+  "insurance_months",
+  "percent",
+  "percent_reason",
+  "column_break_calculation",
+  "average_daily",
+  "daily_pay",
+  "average_note",
+  "section_break_employer",
+  "employer_days",
+  "employer_gross",
+  "employer_withheld",
+  "employer_net",
+  "employer_ssc",
+  "column_break_employer",
+  "payroll_sheet",
+  "employer_period",
+  "employer_paid_date",
+  "section_break_fund",
+  "fund_days",
+  "fund_expected",
+  "fund_gross",
+  "fund_withheld",
+  "fund_net",
+  "fund_ssc",
+  "column_break_fund",
+  "fund_received_amount",
+  "fund_received_date",
+  "je_fund_receipt",
+  "fund_paid_date",
+  "je_fund_card",
+  "je_fund_tax",
+  "section_break_note",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "fetch_from": "employee.employee_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "fetch_from": "employee.department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_case",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "fetch_from": "employee.company",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "case_type",
+   "fieldtype": "Select",
+   "label": "Case Type",
+   "options": "Illness or Injury\nWork Injury or Occupational Disease\nMaternity\nChild Care",
+   "default": "Illness or Injury",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Open\nClosed\nEmployer Paid\nFund Received\nPaid",
+   "default": "Open",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "closed",
+   "fieldtype": "Check",
+   "label": "Final Certificate Received",
+   "default": "0",
+   "description": "Tick when the last electronic sick leave certificate (ЕЛН) is closed: only then the employer part goes into the salary."
+  },
+  {
+   "fieldname": "section_break_certificates",
+   "fieldtype": "Section Break",
+   "label": "Certificates (ЕЛН)"
+  },
+  {
+   "fieldname": "certificates",
+   "fieldtype": "Table",
+   "label": "Certificates",
+   "options": "Sick Leave Certificate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "First Day",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "Last Day",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_period_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "calendar_days",
+   "fieldtype": "Int",
+   "label": "Calendar Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_calculation",
+   "fieldtype": "Section Break",
+   "label": "Calculation"
+  },
+  {
+   "fieldname": "calculation_html",
+   "fieldtype": "HTML",
+   "label": "Calculation Details"
+  },
+  {
+   "fieldname": "insurance_years",
+   "fieldtype": "Int",
+   "label": "Insurance Record, Years",
+   "read_only": 1
+  },
+  {
+   "fieldname": "insurance_months",
+   "fieldtype": "Int",
+   "label": "Insurance Record, Months",
+   "read_only": 1
+  },
+  {
+   "fieldname": "percent",
+   "fieldtype": "Percent",
+   "label": "Pay Percent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "percent_reason",
+   "fieldtype": "Small Text",
+   "label": "Why This Percent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_calculation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "average_daily",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "daily_pay",
+   "fieldtype": "Currency",
+   "label": "Pay per Day",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "average_note",
+   "fieldtype": "Small Text",
+   "label": "How the Average Was Taken",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_employer",
+   "fieldtype": "Section Break",
+   "label": "Employer Part"
+  },
+  {
+   "fieldname": "employer_days",
+   "fieldtype": "Int",
+   "label": "Employer Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_gross",
+   "fieldtype": "Currency",
+   "label": "Employer Part Accrued",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "employer_withheld",
+   "fieldtype": "Currency",
+   "label": "Employer Part Withheld",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "employer_net",
+   "fieldtype": "Currency",
+   "label": "Employer Part to Card",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "employer_ssc",
+   "fieldtype": "Currency",
+   "label": "Employer Part SSC",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "column_break_employer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payroll_sheet",
+   "fieldtype": "Link",
+   "label": "Paid by Payroll Sheet",
+   "options": "Payroll Sheet",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_period",
+   "fieldtype": "Date",
+   "label": "Salary Month",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_paid_date",
+   "fieldtype": "Date",
+   "label": "Employer Part Paid On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_fund",
+   "fieldtype": "Section Break",
+   "label": "Fund Part"
+  },
+  {
+   "fieldname": "fund_days",
+   "fieldtype": "Int",
+   "label": "Fund Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fund_expected",
+   "fieldtype": "Currency",
+   "label": "Fund Part Expected",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "fund_gross",
+   "fieldtype": "Currency",
+   "label": "Fund Part Accrued",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "fund_withheld",
+   "fieldtype": "Currency",
+   "label": "Fund Part Withheld",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "fund_net",
+   "fieldtype": "Currency",
+   "label": "Fund Part to Card",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "fund_ssc",
+   "fieldtype": "Currency",
+   "label": "Fund Part SSC",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "column_break_fund",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fund_received_amount",
+   "fieldtype": "Currency",
+   "label": "Received from Fund",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "fund_received_date",
+   "fieldtype": "Date",
+   "label": "Received from Fund On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "je_fund_receipt",
+   "fieldtype": "Link",
+   "label": "Fund Receipt Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fund_paid_date",
+   "fieldtype": "Date",
+   "label": "Fund Part Paid On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "je_fund_card",
+   "fieldtype": "Link",
+   "label": "Fund Part Payment Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "je_fund_tax",
+   "fieldtype": "Link",
+   "label": "Fund Part Tax Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_note",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Sick Leave Case",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "write": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "write": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User"
+  }
+ ],
+ "search_fields": "employee_name",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name",
+ "track_changes": 1
+}

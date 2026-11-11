@@ -10,10 +10,10 @@
 	аванс_частини  = денна_ставка × оплачувані_дні(1..відсікання)
 
 Оплачувані дні рахуються **за календарем**, а не за табелем: робочі дні від прийняття на
-роботу по день відсікання мінус єдина неоплачувана відсутність — лікарняний понад
-`SICK_DAYS_PAID` днів. Усе інше (присутність, відпустка, зокрема без збереження, прогул і
-лікарняний у межах норми) платиться як робочий день, а незакритий табель аванс не зменшує:
-день без жодної відмітки вважається відпрацьованим.
+роботу по день відсікання. Готівкова половина платить день лікарняного відсотком із
+налаштувань (`sick_rules.cash_percent`), усе інше (присутність, відпустка, зокрема без
+збереження, прогул) — як робочий день, а незакритий табель аванс не зменшує: день без жодної
+відмітки вважається відпрацьованим.
 
 Кожна половина — окремий компонент («Аванс на картку» / «Аванс готівкою»), щоб у листку було
 видно з назви, звідки платили.
@@ -24,7 +24,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, date_diff, flt, get_last_day, getdate
+from frappe.utils import add_days, cint, date_diff, flt, get_last_day, getdate
 
 from erpnext.hr import average_pay, payroll_tax
 from erpnext.hr.salary_split import employment_rate_on, salary_parts_on
@@ -47,9 +47,6 @@ DAY_WEIGHT = {
 
 # Дні, коли людина була на роботі — відрядження серед них.
 PRESENT_STATUSES = ("Present", "Work From Home", "Business Trip")
-
-# Скільки днів офіційного лікарняного оплачується на місяць — понад норму день не платиться.
-SICK_DAYS_PAID = 5
 
 # Скільки годин має повний робочий день, коли зміна не задана.
 DEFAULT_DAY_HOURS = 8.0
@@ -150,6 +147,15 @@ def plan_advance(
 			holiday_dates,
 		),
 	)
+	# Лікарняний платиться випадком: частину роботодавця несе лише зарплата за повний місяць,
+	# аванс її не платить (див. `erpnext.payroll_ua.sick_rules.employer_pay`).
+	from erpnext.payroll_ua import sick_rules
+
+	sick_cases = (
+		sick_rules.employer_pay([employee.name for employee in employees], company, period_start, period_end)
+		if cutoff >= period_end
+		else {}
+	)
 	rows = []
 
 	for employee in employees:
@@ -204,12 +210,13 @@ def plan_advance(
 			leaves.get(employee.name),
 		)
 		# Офіційна половина: оклад — лише за дні, коли людина не була у відпустці чи на
-		# лікарняному; ті дні вже оплачені за середньою. Лікарняний понад дні роботодавця
-		# платить Пенсійний фонд, тож у виплату компанії він не входить зовсім.
+		# лікарняному; ті дні оплачуються окремо за середньою.
 		official_days = flt(max(planned_days - leave.working_days, 0), 2)
 		# Відпускні тут не платяться: їх оплачує «Відомість відпускних» блоком днів (див.
-		# `erpnext.payroll_ua.doctype.vacation_pay_sheet`).
-		advance_official = flt(rate_official * official_days + leave.sick_pay, 2)
+		# `erpnext.payroll_ua.doctype.vacation_pay_sheet`). Лікарняний — частина роботодавця
+		# закритих випадків, і лише в зарплаті за місяць; частину фонду платить сам випадок.
+		sick = sick_cases.get(employee.name) or frappe._dict()
+		advance_official = flt(rate_official * official_days + flt(sick.sick_pay), 2)
 
 		rows.append(
 			frappe._dict(
@@ -250,17 +257,19 @@ def plan_advance(
 				advance_days=advance_days,
 				advance_official=advance_official,
 				advance_official_net=payroll_tax.net(advance_official),
-				# Готівкова половина закону не знає: платить ці дні як і раніше, за окладом.
+				# Готівкова половина закону не знає: платить ці дні за окладом, а лікарняний — за
+				# відсотком із налаштувань (див. `absence_days`).
 				advance_cash=flt(rate_cash * advance_days, 2),
 				official_days=official_days,
 				vacation_days=leave.vacation_days,
 				vacation_pay=leave.vacation_pay,
 				vacation_average=leave.vacation_average,
-				sick_calendar_days=leave.sick_calendar_days,
-				sick_pay=leave.sick_pay,
-				sick_pay_fund=leave.sick_pay_fund,
-				sick_average=leave.sick_average,
-				sick_percent=leave.sick_percent,
+				sick_calendar_days=cint(sick.sick_calendar_days),
+				sick_pay=flt(sick.sick_pay),
+				sick_pay_fund=flt(sick.sick_pay_fund),
+				sick_average=flt(sick.sick_average),
+				sick_percent=flt(sick.sick_percent),
+				sick_cases="\n".join(sick.sick_cases or []),
 			)
 		)
 
@@ -519,15 +528,21 @@ def attendance_stats(employees: list, start, end) -> dict:
 def absence_days(employees: list, start, end) -> dict:
 	"""Неоплачувані дні по кожному працівнику: `{працівник: {дата: вага}}`.
 
-	Платяться всі планові робочі дні — присутність, відпустка (зокрема без збереження),
-	прогул і офіційний лікарняний у межах `SICK_DAYS_PAID` днів періоду. Знімається лише
-	лікарняний понад норму: за нього платить не компанія. Вага дня — 1, для півдня — 0.5.
+	Платяться всі планові робочі дні — присутність, відпустка (зокрема без збереження) і
+	прогул. День лікарняного (відмітка в табелі чи заявка лікарняного типу) готівкова половина
+	платить відсотком із «Налаштувань податків на зарплату», тож знімається решта дня.
 	"""
 	if not employees:
 		return {}
 
+	from erpnext.payroll_ua import sick_rules
+
 	start, end = getdate(start), getdate(end)
 	absences = {}
+	weight = sick_rules.cash_unpaid_weight()
+
+	if not weight:
+		return absences
 
 	marked = frappe.get_all(
 		"Attendance",
@@ -535,21 +550,34 @@ def absence_days(employees: list, start, end) -> dict:
 			"docstatus": 1,
 			"employee": ("in", employees),
 			"attendance_date": ("between", [start, end]),
-			"status": "Sick Leave",
+			"status": ("in", ["Sick Leave", "On Leave"]),
 		},
-		fields=["employee", "attendance_date"],
+		fields=["employee", "attendance_date", "status", "leave_application"],
 		order_by="attendance_date asc",
 	)
-	sick_seen = {}
+	sick_applications = _sick_applications(
+		{row.leave_application for row in marked if row.status == "On Leave" and row.leave_application}
+	)
 
 	for row in marked:
-		# Офіційний лікарняний оплачується, але не більше ніж `SICK_DAYS_PAID` дні періоду.
-		sick_seen[row.employee] = seen = sick_seen.get(row.employee, 0) + 1
-
-		if seen > SICK_DAYS_PAID:
-			absences.setdefault(row.employee, {})[getdate(row.attendance_date)] = 1
+		if row.status == "Sick Leave" or row.leave_application in sick_applications:
+			absences.setdefault(row.employee, {})[getdate(row.attendance_date)] = weight
 
 	return absences
+
+
+def _sick_applications(applications: set) -> set:
+	"""Заявки, що насправді є лікарняним (див. `average_pay.SICK_LEAVE_TYPES`)."""
+	if not applications:
+		return set()
+
+	return set(
+		frappe.get_all(
+			"Leave Application",
+			filters={"name": ("in", list(applications)), "leave_type": ("in", average_pay.SICK_LEAVE_TYPES)},
+			pluck="name",
+		)
+	)
 
 
 def _paid_days(first, last, holiday_list, absences, planned_days, holiday_dates) -> float:

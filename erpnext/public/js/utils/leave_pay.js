@@ -20,16 +20,31 @@ erpnext.utils.leave_pay.lines = function (row) {
 	}
 
 	if (flt(row.sick_calendar_days)) {
+		const cases = (row.sick_cases || "")
+			.split(/\s+/)
+			.filter(Boolean)
+			.map(
+				(name) =>
+					`<a href="/desk/sick-leave-case/${encodeURIComponent(name)}">${frappe.utils.escape_html(
+						name
+					)}</a>`
+			)
+			.join(", ");
+
 		lines.push([
 			__("Sick Pay (Employer)"),
-			`${money(row.sick_pay)} (${money(row.sick_average)} × ${number(row.sick_percent)}%)`,
+			`${money(row.sick_pay)} (${__("{0} d", [number(row.sick_calendar_days)])}, ${money(
+				row.sick_average
+			)} × ${number(row.sick_percent)}%)${cases ? `<br><small>${cases}</small>` : ""}`,
 		]);
 	}
 
 	if (flt(row.sick_pay_fund)) {
 		lines.push([
-			__("Sick Pay (Pension Fund)"),
-			`<span class="text-muted">${money(row.sick_pay_fund)}</span>`,
+			__("Sick Pay (Fund)"),
+			`<span class="text-muted">${money(row.sick_pay_fund)} (${__(
+				"paid separately by the sick leave case"
+			)})</span>`,
 		]);
 	}
 

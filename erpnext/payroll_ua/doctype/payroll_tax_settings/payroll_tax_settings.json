@@ -15,6 +15,7 @@
   "ssc_disability_rate",
   "section_break_average_pay",
   "minimum_wage",
+  "sick_cash_percent",
   "section_break_reservation",
   "minimum_reservation_salary",
   "column_break_reservation",
@@ -85,6 +86,13 @@
    "precision": "2"
   },
   {
+   "default": "50",
+   "description": "How much of the cash daily rate the cash half pays for each sick day.",
+   "fieldname": "sick_cash_percent",
+   "fieldtype": "Percent",
+   "label": "Cash Pay for a Sick Day"
+  },
+  {
    "fieldname": "section_break_reservation",
    "fieldtype": "Section Break",
    "label": "Reservation (Бронювання)"
@@ -111,7 +119,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-06 10:00:00.000000",
+ "modified": "2026-11-11 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Payroll Tax Settings",

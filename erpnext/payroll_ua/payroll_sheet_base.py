@@ -24,6 +24,7 @@ from erpnext.hr.salary_advance import (
 	ATTENDANCE_FIELDS,
 	plan_month,
 )
+from erpnext.payroll_ua import sick_rules
 from erpnext.payroll_ua.doctype.salary_approval.salary_approval import (
 	get_coverage,
 	missing_attendance_note,
@@ -53,6 +54,7 @@ LEAVE_PAY_FIELDS = (
 	"sick_pay_fund",
 	"sick_average",
 	"sick_percent",
+	"sick_cases",
 )
 
 
@@ -671,6 +673,14 @@ class PayrollSheetBase(Document):
 
 			if tax_voucher:
 				row.journal_entry_tax = tax_voucher
+
+		# Частина роботодавця лікарняного виплачена разом з офіційною зарплатою — випадок
+		# лікарняного закриває свою першу половину (див. `erpnext.payroll_ua.sick_rules`).
+		if self.pays_officially:
+			for row in targets:
+				sick_rules.mark_employer_paid(
+					(row.get("sick_cases") or "").split(), self.name, self.period_start, posting_date
+				)
 
 		# Нарахування в HRMS — після проведення грошей: половина, яка через HRMS не проходить,
 		# нічого тут не робить (див. `after_payment`).

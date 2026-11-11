@@ -113,7 +113,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Calendar working days from the joining date up to the cut-off, less sick leave over 5 days a month.",
+   "description": "Calendar working days from the joining date up to the cut-off; a sick day counts at the cash percent from the payroll tax settings.",
    "fieldname": "advance_days",
    "fieldtype": "Float",
    "label": "Paid Days of the Advance",

@@ -487,7 +487,7 @@ function show_payout(frm, row) {
 			${lines_html(lines)}
 			${paid_note}
 			<p class="text-muted" style="margin-top: 8px;">${__(
-				"The salary is paid for {0} paid days of {1} working days in the month — working days less sick leave over 5 days.",
+				"The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.",
 				[number(row.paid_days), number(row.total_working_days)]
 			)}</p>
 		`,
@@ -661,7 +661,7 @@ function show_cash_payout(frm, row) {
 		message: `
 			${lines_html(lines)}
 			<p class="text-muted" style="margin-top: 8px;">${__(
-				"The salary is paid for {0} paid days of {1} working days in the month — working days less sick leave over 5 days.",
+				"The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.",
 				[number(row.paid_days), number(row.total_working_days)]
 			)}</p>
 		`,

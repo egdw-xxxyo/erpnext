@@ -17264,3 +17264,106 @@ Add to Work,Додати в роботу
 Added to work: {0},Додано в роботу: {0}
 Scroll to top,Нагору
 Processed military units,Опрацьовано ВЧ
+Sick Leave Case,Випадок лікарняного
+Sick Leave Certificate,Листок непрацездатності (ЕЛН)
+Sick Leave Cases,Випадки лікарняного
+Case Type,Тип випадку
+Illness or Injury,Захворювання або травма
+Work Injury or Occupational Disease,Виробнича травма або профзахворювання
+Maternity,Вагітність і пологи
+Child Care,Догляд за дитиною
+Employer Paid,Оплачено роботодавцем
+Fund Received,Отримано від фонду
+Final Certificate Received,Отримано останній ЕЛН
+Tick when the last electronic sick leave certificate (ЕЛН) is closed: only then the employer part goes into the salary.,"Позначте, коли останній ЕЛН закрито: лише тоді частина роботодавця йде в зарплату."
+Certificates (ЕЛН),Листки непрацездатності (ЕЛН)
+Certificates,Листки
+Certificate Number (ЕЛН),Номер ЕЛН
+Calendar Days,Календарні дні
+Calculation,Розрахунок
+Calculation Details,Деталі розрахунку
+"Insurance Record, Years","Страховий стаж, років"
+"Insurance Record, Months","Страховий стаж, місяців"
+Pay Percent,Відсоток оплати
+Why This Percent,Чому такий відсоток
+Average Daily Wage,Середньоденна зарплата
+Pay per Day,Оплата за день
+How the Average Was Taken,Як порахована середня
+Employer Part,Частина роботодавця
+Employer Days,Дні роботодавця
+Employer Part Accrued,Нараховано (роботодавець)
+Employer Part Withheld,Утримано (роботодавець)
+Employer Part to Card,На картку (роботодавець)
+Employer Part SSC,ЄСВ (роботодавець)
+Paid by Payroll Sheet,Виплачено зарплатною відомістю
+Salary Month,Місяць зарплати
+Employer Part Paid On,Частину роботодавця виплачено
+Fund Part,Частина фонду
+Fund Days,Дні фонду
+Fund Part Expected,Очікується від фонду
+Fund Part Accrued,Нараховано (фонд)
+Fund Part Withheld,Утримано (фонд)
+Fund Part to Card,На картку (фонд)
+Fund Part SSC,ЄСВ (фонд)
+Received from Fund,Отримано від фонду
+Received from Fund On,Дата надходження від фонду
+Fund Receipt Entry,Проведення надходження від фонду
+Fund Part Paid On,Частину фонду виплачено
+Fund Part Payment Entry,Проведення виплати частини фонду
+Fund Part Tax Entry,Проведення податків частини фонду
+Add at least one sick leave certificate (ЕЛН).,Додайте хоча б один листок непрацездатності (ЕЛН).
+Certificate {0}: the last day is before the first day.,ЕЛН {0}: останній день раніше за перший.
+Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case.,ЕЛН {0} не продовжує {1}: продовження починається наступного дня після закінчення попереднього. Перерва означає новий випадок лікарняного.
+These days are already in sick leave case {0}.,Ці дні вже є у випадку лікарняного {0}.
+The sick leave case is already paid — it cannot be deleted.,Випадок лікарняного вже оплачено — видалити його не можна.
+No earnings in the calculation period — taken from the official salary.,У розрахунковому періоді немає заробітку — середня з офіційного окладу.
+{0} – {1}: earnings {2} over {3} days.,{0} – {1}: заробіток {2} за {3} дн.
+Capped by the maximum SSC base: {0} a day instead of {1}.,Обмежено максимальною базою ЄСВ: {0} на день замість {1}.
+"Insurance record under 6 months: capped by the minimum wage, {0} a day instead of {1}.","Страховий стаж менше 6 місяців: обмежено мінімальною зарплатою, {0} на день замість {1}."
+Attendance shows another status on: {0}.,У табелі інша відмітка на: {0}.
+The fund pays nothing in this case.,У цьому випадку фонд нічого не платить.
+The money from the fund is already recorded.,Надходження від фонду вже записано.
+Enter the amount received from the fund.,"Вкажіть суму, отриману від фонду."
+"Sick pay from the fund, {0}, {1}","Лікарняні від фонду, {0}, {1}"
+"The fund paid {0}, the calculation expected {1}.","Фонд заплатив {0}, за розрахунком очікувалось {1}."
+Record the money from the fund first.,Спершу запишіть надходження від фонду.
+The fund part is already paid.,Частину фонду вже виплачено.
+Sick pay (fund part) {0},Лікарняні (частина фонду) {0}
+Taxes on the sick pay (fund part) {0},Податки з лікарняних (частина фонду) {0}
+Not entered,Не вказано
+{0}: always {1}%,{0}: завжди {1}%
+Employee card: sick pay in full,Картка працівника: лікарняні у повному розмірі
+Insurance record {0} full years (from {1} years — {2}%),Страховий стаж {0} повних років (від {1} років — {2}%)
+Insurance record {0} full years (under 3 years — {1}%),Страховий стаж {0} повних років (до 3 років — {1}%)
+Money Received from Fund,Отримано гроші від фонду
+Pay Fund Part to Employee,Виплатити частину фонду працівнику
+Fund,Фонд
+The case is open: the employer part goes into the salary once the final certificate is ticked.,"Випадок відкритий: частина роботодавця піде в зарплату, коли буде позначено останній ЕЛН."
+Save the case to see the calculation.,"Збережіть випадок, щоб побачити розрахунок."
+Insurance record,Страховий стаж
+{0} y {1} m = before joining {2} m (from the {3}) + here {4} m since {5},{0} р. {1} міс. = до прийняття {2} міс. (з {3}) + тут {4} міс. з {5}
+employee card,картки працівника
+Pay percent,Відсоток оплати
+Average daily wage,Середньоденна зарплата
+Pay per day,Оплата за день
+"{0} calendar days: employer {1}, fund {2}","{0} календарних дн.: роботодавець {1}, фонд {2}"
+Employer part (with the salary),Частина роботодавця (із зарплатою)
+"{0} accrued, {1} to the card","нараховано {0}, на картку {1}"
+Fund part (when the money arrives),Частина фонду (коли прийдуть гроші)
+Amount Received,Отримана сума
+"{0} accrued, {1} to the card.","Нараховано {0}, на картку {1}."
+Waiting for Fund,Чекає на фонд
+Not Closed,Не закриті
+Find Unregistered Sick Days,Знайти незареєстровані лікарняні
+Find,Знайти
+Created {0} draft cases — enter the certificate numbers.,Створено чернеток випадків: {0} — вкажіть номери ЕЛН.
+Sick leave cases whose employer part this row pays.,"Випадки лікарняного, частину роботодавця яких платить цей рядок."
+Working days by the calendar; a sick day counts at the cash percent from the payroll tax settings.,Робочі дні за календарем; день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+Paid separately by the sick leave case when the money from the fund arrives.,"Платиться окремо випадком лікарняного, коли прийдуть гроші від фонду."
+How much of the cash daily rate the cash half pays for each sick day.,Скільки відсотків готівкової денної ставки платиться за кожен день лікарняного.
+Cash Pay for a Sick Day,Готівка за день лікарняного
+Calendar working days from the joining date up to the cut-off; a sick day counts at the cash percent from the payroll tax settings.,Робочі дні за календарем від прийняття на роботу до дня відсікання; день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.,Зарплата платиться за {0} оплачуваних днів із {1} робочих днів місяця — день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+Sick Pay (Fund),Лікарняні (фонд)
+paid separately by the sick leave case,платиться окремо випадком лікарняного
+{0} d,{0} дн.

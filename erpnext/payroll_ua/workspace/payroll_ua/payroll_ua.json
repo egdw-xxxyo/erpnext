@@ -15,7 +15,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Monthly Cycle",
-   "link_count": 5,
+   "link_count": 7,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -81,6 +81,17 @@
    "label": "Vacation Pay Sheet",
    "link_count": 0,
    "link_to": "Vacation Pay Sheet",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sick Leave Case",
+   "link_count": 0,
+   "link_to": "Sick Leave Case",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -297,6 +308,12 @@
   {
    "label": "Vacation Pay Sheet",
    "link_to": "Vacation Pay Sheet",
+   "type": "DocType",
+   "doc_view": "List"
+  },
+  {
+   "label": "Sick Leave Case",
+   "link_to": "Sick Leave Case",
    "type": "DocType",
    "doc_view": "List"
   },
