@@ -337,6 +337,10 @@ function salary_lines(frm, row) {
 			lines.push([__("Bonus in Cash"), money(row.bonus_cash)]);
 		}
 
+		if (flt(row.overtime_pay)) {
+			lines.push(overtime_line(row));
+		}
+
 		lines.push(
 			[__("Paid Out"), money(paid_out(row))],
 			[__("To Pay"), `<b>${money(row.outstanding)}</b>`]
@@ -375,7 +379,24 @@ function cash_worked(row) {
 }
 
 function accrued_cash(row) {
-	return flt(flt(row.earned_cash) - flt(row.bonus_cash), 2);
+	return flt(flt(row.earned_cash) - flt(row.bonus_cash) - flt(row.overtime_pay), 2);
+}
+
+// Понаднормові: години звичайних днів за ставкою, робота у вихідний — подвійно.
+function overtime_line(row) {
+	const parts = [];
+
+	if (flt(row.regular_overtime_hours)) {
+		parts.push(`${flt(row.regular_overtime_hours)} ${__("h")} × ${money(row.overtime_rate)}`);
+	}
+
+	if (flt(row.holiday_hours)) {
+		parts.push(
+			`${flt(row.holiday_hours)} ${__("h")} × 2 × ${money(row.overtime_rate)} (${__("days off")})`
+		);
+	}
+
+	return [__("Overtime in Cash"), `+ ${money(row.overtime_pay)} (${parts.join(" + ")})`];
 }
 
 // Премія й надбавка платяться лише готівкою, тож офіційне нараховане — це рівно оклад
@@ -619,10 +640,15 @@ function show_cash_payout(frm, row) {
 	// Премію могли призначити готівкою — без окремого рядка нарахована сума виглядає
 	// більшою за оклад половини.
 	if (flt(row.bonus_cash)) {
-		lines.push(
-			[__("Bonus in Cash"), `+ ${money(row.bonus_cash)}`],
-			[__("Accrued in Total"), money(row.earned_cash)]
-		);
+		lines.push([__("Bonus in Cash"), `+ ${money(row.bonus_cash)}`]);
+	}
+
+	if (flt(row.overtime_pay)) {
+		lines.push(overtime_line(row));
+	}
+
+	if (flt(row.bonus_cash) || flt(row.overtime_pay)) {
+		lines.push([__("Accrued in Total"), money(row.earned_cash)]);
 	}
 
 	lines.push([__("Advance in Cash"), `− ${money(row.advance_cash)}`]);

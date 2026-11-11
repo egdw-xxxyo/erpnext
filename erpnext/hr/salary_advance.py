@@ -156,6 +156,20 @@ def plan_advance(
 		if cutoff >= period_end
 		else {}
 	)
+	# Понаднормові платить лише готівка і лише за повний місяць (див. `erpnext.payroll_ua.overtime`).
+	from erpnext.payroll_ua import overtime
+
+	overtime_hours = (
+		overtime.hours(
+			[employee.name for employee in employees],
+			period_start,
+			cutoff,
+			lambda name: _holiday_dates(holiday_lists.get(name), period_start, period_end, holiday_dates),
+			day_hours,
+		)
+		if cutoff >= period_end
+		else {}
+	)
 	rows = []
 
 	for employee in employees:
@@ -216,6 +230,8 @@ def plan_advance(
 		# `erpnext.payroll_ua.doctype.vacation_pay_sheet`). Лікарняний — частина роботодавця
 		# закритих випадків, і лише в зарплаті за місяць; частину фонду платить сам випадок.
 		sick = sick_cases.get(employee.name) or frappe._dict()
+		overtime_entry = overtime_hours.get(employee.name)
+		overtime_rate = overtime.hour_rate(official, cash, month_days, day_hours)
 		advance_official = flt(rate_official * official_days + flt(sick.sick_pay), 2)
 
 		rows.append(
@@ -270,6 +286,10 @@ def plan_advance(
 				sick_average=flt(sick.sick_average),
 				sick_percent=flt(sick.sick_percent),
 				sick_cases="\n".join(sick.sick_cases or []),
+				overtime_rate=overtime_rate if overtime_entry else 0.0,
+				regular_overtime_hours=flt(overtime_entry.regular_hours, 2) if overtime_entry else 0.0,
+				holiday_hours=flt(overtime_entry.holiday_hours, 2) if overtime_entry else 0.0,
+				overtime_pay=overtime.pay(overtime_rate, overtime_entry),
 			)
 		)
 

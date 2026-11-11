@@ -158,7 +158,10 @@ class PayrollSheetBase(Document):
 				if month_days
 				else 0
 			)
-			earned_cash = flt(flt(entry.paid_cash, 2) - absent_cash + bonus_cash, 2)
+			# Понаднормові — лише готівкою, за годинною ставкою повного окладу (див.
+			# `erpnext.payroll_ua.overtime`).
+			overtime_pay = flt(entry.get("overtime_pay"), 2)
+			earned_cash = flt(flt(entry.paid_cash, 2) - absent_cash + bonus_cash + overtime_pay, 2)
 			advance_days = flt(advance.get(ADVANCE_DAYS))
 			advance_official = flt(advance.get(ADVANCE_OFFICIAL))
 			advance_card = flt(advance.get(ADVANCE_CARD))
@@ -200,6 +203,10 @@ class PayrollSheetBase(Document):
 					"earned_cash": earned_cash,
 					"bonus_amount": flt(bonus.get("bonus")),
 					"bonus_cash": bonus_cash,
+					"overtime_rate": flt(entry.get("overtime_rate"), 2),
+					"regular_overtime_hours": flt(entry.get("regular_overtime_hours"), 2),
+					"holiday_hours": flt(entry.get("holiday_hours"), 2),
+					"overtime_pay": overtime_pay,
 					"allowance": flt(bonus.get("allowance")),
 					"gross_pay": flt(taxes.gross + earned_cash, 2),
 					"advance_days": advance_days,

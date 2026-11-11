@@ -17393,3 +17393,12 @@ Cash Accrued,Нараховано готівкою
 Cash Paid,Виплачено готівкою
 For the Average,Для середньої
 No months yet.,Місяців ще немає.
+Overtime Hour Rate,Годинна ставка понаднормових
+Full salary ÷ working days of the month ÷ hours of a working day.,Повний оклад ÷ робочі дні місяця ÷ години робочого дня.
+Overtime Hours on Working Days,Понаднормові години в робочі дні
+Hours Worked on Days Off,Години роботи у вихідні та свята
+"The whole day plus its overtime hours, paid at the double rate.",Увесь день плюс його понаднормові години — за подвійною ставкою.
+Overtime Pay (Cash),Понаднормові (готівкою)
+Overtime in Cash,Понаднормові готівкою
+h,год
+days off,вихідні

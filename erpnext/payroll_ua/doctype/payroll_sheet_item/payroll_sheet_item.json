@@ -39,6 +39,10 @@
   "bonus_amount",
   "allowance",
   "bonus_cash",
+  "overtime_rate",
+  "regular_overtime_hours",
+  "holiday_hours",
+  "overtime_pay",
   "taxes_withheld",
   "earned_official",
   "earned_card",
@@ -301,6 +305,32 @@
    "description": "The part of the bonus that is paid from the cash half — the rest of the bonus and the allowance go to the card.",
    "read_only": 1,
    "precision": "2"
+  },
+  {
+   "fieldname": "overtime_rate",
+   "fieldtype": "Currency",
+   "label": "Overtime Hour Rate",
+   "read_only": 1,
+   "description": "Full salary ÷ working days of the month ÷ hours of a working day."
+  },
+  {
+   "fieldname": "regular_overtime_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Hours on Working Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "holiday_hours",
+   "fieldtype": "Float",
+   "label": "Hours Worked on Days Off",
+   "read_only": 1,
+   "description": "The whole day plus its overtime hours, paid at the double rate."
+  },
+  {
+   "fieldname": "overtime_pay",
+   "fieldtype": "Currency",
+   "label": "Overtime Pay (Cash)",
+   "read_only": 1
   },
   {
    "fieldname": "earned_official",
