@@ -24,6 +24,7 @@ class ClientBase {
 		this.dup_key = null;
 		this.col_filters = {};
 		this.date_filters = {};
+		this.manager_filter = "";
 		this.page.main.html(`<div class="client-base">
 			<div class="cb-tabs"></div>
 			<div class="cb-toolbar"></div>
@@ -157,34 +158,11 @@ class ClientBase {
 			return c;
 		};
 		this.f = {
-			search: mk({ fieldtype: "Data", fieldname: "search", placeholder: __("Search"), change: reload }),
-			military_unit: mk({
-				fieldtype: "Link",
-				options: "Military Unit",
-				fieldname: "military_unit",
-				placeholder: __("Military Unit"),
-				change: reload,
-			}),
-			result: mk({
-				fieldtype: "Link",
-				options: "Call Result",
-				fieldname: "result",
-				placeholder: __("Latest Result"),
-				change: reload,
-			}),
 			mine: mk({ fieldtype: "Check", fieldname: "mine", label: __("My contacts"), change: reload }),
 			unassigned: mk({
 				fieldtype: "Check",
 				fieldname: "unassigned",
 				label: __("Unassigned"),
-				change: reload,
-			}),
-			manager_user: mk({
-				fieldtype: "Link",
-				options: "User",
-				fieldname: "manager_user",
-				placeholder: __("Responsible Manager"),
-				get_query: () => ({ query: `${CB_API}.manager_query` }),
 				change: reload,
 			}),
 			favorite: mk({
@@ -201,6 +179,24 @@ class ClientBase {
 				change: () => this.render(),
 			}),
 		};
+		try {
+			this.show_filters = localStorage.getItem("client-base-filters") === "1";
+		} catch (e) {
+			this.show_filters = false;
+		}
+		this.$ftoggle = $(
+			`<button class="btn btn-default btn-sm cb-filters-toggle">
+				<i class="fa fa-filter"></i> ${__("Filters")} <span class="cb-fcount"></span></button>`
+		).appendTo(this.$toolbar);
+		this.$ftoggle.on("click", () => {
+			this.show_filters = !this.show_filters;
+			try {
+				localStorage.setItem("client-base-filters", this.show_filters ? "1" : "0");
+			} catch (e) {
+				this.show_filters = !!this.show_filters;
+			}
+			this.render();
+		});
 		this.$reset = $(
 			`<button class="btn btn-default btn-sm" style="display:none">
 				<i class="fa fa-times"></i> ${__("Reset contact filter")}</button>`
@@ -216,14 +212,10 @@ class ClientBase {
 		if (this.work_mode) return {};
 		const g = (k) => this.f[k].get_value();
 		return {
-			search: g("search"),
-			military_unit: g("military_unit"),
-			result: g("result"),
 			favorite: g("favorite") ? 1 : 0,
 			only_due: g("only_due") ? 1 : 0,
 			dup_key: this.dup_key,
 			manager: g("mine") ? "mine" : g("unassigned") ? "unassigned" : "",
-			manager_user: g("manager_user"),
 		};
 	}
 
@@ -320,6 +312,10 @@ class ClientBase {
 		const row_f = active.filter((c) => !c.group);
 		let list = [...map.values()].filter((g) => g.rows.length || g.hidden);
 		if (group_f.length) list = list.filter((g) => group_f.every((c) => this.matches(c, g)));
+		if (this.manager_filter && this.visible_columns().some((c) => c.key === "manager")) {
+			list.forEach((g) => (g.rows = g.rows.filter((r) => r.cb_manager === this.manager_filter)));
+			list = list.filter((g) => g.rows.length);
+		}
 		if (row_f.length) {
 			list.forEach((g) => (g.rows = g.rows.filter((r) => row_f.every((c) => this.matches(c, r)))));
 			list = list.filter((g) => g.rows.length);
@@ -396,6 +392,8 @@ class ClientBase {
 		};
 		const fth = (c) =>
 			`<th class="cb-filter-cell cb-col-${c.key}">${
+				c.key === "manager" ? '<div class="cb-manager-slot"></div>' : ""
+			}${
 				c.text
 					? `<input type="text" class="form-control input-xs cb-col-filter" data-key="${
 							c.key
@@ -412,17 +410,48 @@ class ClientBase {
 				.join("")}<th></th></tr>`;
 		const all = this.work_mode ? "" : '<input type="checkbox" class="cb-all">';
 		this.$body.html(`<table class="cb-table"><thead>
-			${head(fth, '<th class="cb-check"></th>')}
+			${this.show_filters ? head(fth, '<th class="cb-check"></th>') : ""}
 			${head(th, `<th class="cb-check">${all}</th>`)}
 			</thead><tbody></tbody></table>`);
 		this.mount_date_filters();
+		this.mount_manager_filter();
 		const $head = this.$body.find("thead tr");
-		$head
-			.eq(1)
-			.children("th")
-			.css("top", `${$head.eq(0).outerHeight()}px`);
+		if (this.show_filters)
+			$head
+				.eq(1)
+				.children("th")
+				.css("top", `${$head.eq(0).outerHeight()}px`);
 		this.render_rows();
 		this.render_bottom();
+	}
+
+	mount_manager_filter() {
+		const $slot = this.$body.find(".cb-manager-slot");
+		if (!$slot.length) return;
+		const control = frappe.ui.form.make_control({
+			parent: $slot,
+			df: {
+				fieldtype: "Link",
+				options: "User",
+				fieldname: "manager_filter",
+				placeholder: __("Responsible Manager"),
+				get_query: () => ({ query: `${CB_API}.manager_query` }),
+				change: () => {
+					const value = control.get_value() || "";
+					if (value === this.manager_filter) return;
+					this.manager_filter = value;
+					this.render_rows();
+				},
+			},
+			render_input: true,
+		});
+		control.refresh();
+		if (this.manager_filter) control.set_value(this.manager_filter);
+	}
+
+	filter_count() {
+		const dates = this.date_ranges().length;
+		return this.active_filters().length + dates + (this.manager_filter ? 1 : 0);
 	}
 
 	mount_date_filters() {
@@ -469,6 +498,9 @@ class ClientBase {
 			g.rows.forEach((r, i) => (html += this.row_html(r, i === 0 ? unit_cells : null)));
 		});
 		this.$body.find("tbody").html(html);
+		const n = this.filter_count();
+		this.$ftoggle.toggleClass("active", this.show_filters).toggleClass("btn-primary-light", n > 0);
+		this.$ftoggle.find(".cb-fcount").text(n ? `(${n})` : "");
 	}
 
 	unit_cells(g) {
