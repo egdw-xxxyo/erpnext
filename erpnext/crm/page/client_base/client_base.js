@@ -56,6 +56,12 @@ class ClientBase {
 				val: (r) => (r.next_action && r.next_action.date) || "9999",
 			},
 			{ key: "comment", label: __("Comment"), val: (r) => (r.cb_comment || "").toLowerCase() },
+			{ key: "manager", label: __("Responsible Manager"), val: (r) => this.user_name(r.cb_manager) },
+			{
+				key: "in_work",
+				label: __("In Work"),
+				val: (r) => (r.cb_working ? "0" + this.user_name(r.cb_working_by) : "1"),
+			},
 		];
 		this.make_toolbar();
 		this.bind();
@@ -73,6 +79,19 @@ class ClientBase {
 		return $("<div>")
 			.html(html || "")
 			.text();
+	}
+
+	user_name(u) {
+		if (!u) return "\uffff";
+		const info = (frappe.user_info && frappe.user_info(u)) || {};
+		return String(info.fullname || u).toLowerCase();
+	}
+
+	selectable(r) {
+		const me = frappe.session.user;
+		if (r.cb_manager && r.cb_manager !== me) return false;
+		if (r.cb_working && r.cb_working_by && r.cb_working_by !== me) return false;
+		return true;
 	}
 
 	dt(v) {
@@ -101,6 +120,23 @@ class ClientBase {
 				options: "Call Result",
 				fieldname: "result",
 				placeholder: __("Last Result"),
+				change: reload,
+			}),
+			manager: mk({
+				fieldtype: "Select",
+				fieldname: "manager",
+				options: [
+					{ value: "", label: __("All managers") },
+					{ value: "mine", label: __("My contacts") },
+					{ value: "unassigned", label: __("Unassigned") },
+				],
+				change: reload,
+			}),
+			manager_user: mk({
+				fieldtype: "Link",
+				options: "User",
+				fieldname: "manager_user",
+				placeholder: __("Responsible Manager"),
 				change: reload,
 			}),
 			favorite: mk({
@@ -137,6 +173,8 @@ class ClientBase {
 			favorite: g("favorite") ? 1 : 0,
 			only_due: g("only_due") ? 1 : 0,
 			dup_key: this.dup_key,
+			manager: g("manager"),
+			manager_user: g("manager_user"),
 		};
 	}
 
@@ -306,9 +344,26 @@ class ClientBase {
 					r.open_todos > 1 ? ` · ${__("{0} open", [r.open_todos])}` : ""
 			  }</div>`
 			: "";
+		const can = this.selectable(r);
 		const check = this.work_mode
 			? ""
-			: `<input type="checkbox" class="cb-sel" ${this.selected.has(r.contact) ? "checked" : ""}>`;
+			: `<input type="checkbox" class="cb-sel" ${this.selected.has(r.contact) ? "checked" : ""} ${
+					can
+						? ""
+						: `disabled title="${__(
+								"Only your own or unassigned contacts can be taken to work"
+						  )}"`
+			  }>`;
+		const manager = `<div class="cb-manager">${
+			r.cb_manager
+				? this.E.user(r.cb_manager, { size: 22 })
+				: `<span class="cb-sub">${__("Unassigned")}</span>`
+		}<i class="fa fa-pencil cb-icon cb-manager-edit" title="${__("Change manager")}"></i></div>`;
+		const in_work = r.cb_working
+			? `<span class="indicator-pill ${r.cb_done ? "green" : "orange"}">${
+					r.cb_done ? __("Finished") : __("In Work")
+			  }</span> ${r.cb_working_by ? this.E.user(r.cb_working_by, { size: 20 }) : ""}`
+			: "";
 		const actions = this.work_mode
 			? `<button class="btn btn-xs btn-default cb-result">${__("Add Result")}</button>
 				<button class="btn btn-xs ${r.cb_done ? "btn-success" : "btn-primary"} cb-finish">${
@@ -329,6 +384,8 @@ class ClientBase {
 			<td class="cb-col-last_result">${lr}</td>
 			<td class="cb-col-next_action">${na}</td>
 			<td class="cb-col-comment">${this.comment_html(r)}</td>
+			<td class="cb-col-manager">${manager}</td>
+			<td class="cb-col-in_work">${in_work}</td>
 			<td class="cb-actions">${actions}
 				<i class="fa fa-history cb-icon cb-history" title="${__("History")}"></i></td></tr>`;
 	}
@@ -415,10 +472,13 @@ class ClientBase {
 		root.on("change", ".cb-all", (e) => {
 			const on = e.currentTarget.checked;
 			this.groups().forEach((g) =>
-				g.rows.forEach((r) => (on ? this.selected.add(r.contact) : this.selected.delete(r.contact)))
+				g.rows
+					.filter((r) => this.selectable(r))
+					.forEach((r) => (on ? this.selected.add(r.contact) : this.selected.delete(r.contact)))
 			);
 			this.render();
 		});
+		root.on("click", ".cb-manager-edit", (e) => this.manager_dialog(this.row_of(e.currentTarget)));
 		root.on("click", ".cb-fav", (e) => this.toggle_flag(e, "cb_favorite"));
 		root.on("click", ".cb-hide", (e) => this.toggle_flag(e, "cb_hidden"));
 		root.on("click", ".cb-result", (e) => this.result_dialog(this.row_of(e.currentTarget)));
@@ -458,6 +518,31 @@ class ClientBase {
 				this.render();
 			});
 		});
+	}
+
+	manager_dialog(r) {
+		const d = new frappe.ui.Dialog({
+			title: __("Change manager"),
+			fields: [
+				{ fieldtype: "HTML", fieldname: "info", options: this.contact_header(r) },
+				{
+					fieldtype: "Link",
+					fieldname: "manager",
+					label: __("Responsible Manager"),
+					options: "User",
+					default: r.cb_manager || frappe.session.user,
+					get_query: () => ({ filters: { enabled: 1, user_type: "System User" } }),
+				},
+			],
+			primary_action_label: __("Save"),
+			primary_action: (v) => {
+				this.call("set_manager", { contact: r.contact, manager: v.manager || "" }).then(() => {
+					d.hide();
+					this.load();
+				});
+			},
+		});
+		d.show();
 	}
 
 	toggle_flag(e, field) {

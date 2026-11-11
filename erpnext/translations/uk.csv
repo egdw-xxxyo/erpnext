@@ -17254,3 +17254,8 @@ Contact {0} not found,Контакт {0} не знайдено
 Military Unit Name,Повна назва ВЧ
 All contacts are hidden,Усі контакти приховано
 {0} contacts,Контактів: {0}
+My contacts,Мої контакти
+Unassigned,Без менеджера
+Change manager,Змінити менеджера
+Only your own or unassigned contacts can be taken to work,У роботу можна взяти лише свої контакти або контакти без менеджера
+Contact {0} belongs to manager {1},Контакт {0} закріплений за менеджером {1}

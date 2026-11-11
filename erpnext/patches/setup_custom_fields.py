@@ -2822,10 +2822,19 @@ def create_client_base_fields():
 			},
 			{
 				"dt": "Contact",
+				"fieldname": "cb_manager",
+				"fieldtype": "Link",
+				"label": "Responsible Manager",
+				"options": "User",
+				"insert_after": "client_base_section",
+				"in_standard_filter": 1,
+			},
+			{
+				"dt": "Contact",
 				"fieldname": "cb_favorite",
 				"fieldtype": "Check",
 				"label": "Favorite",
-				"insert_after": "client_base_section",
+				"insert_after": "cb_manager",
 				"no_copy": 1,
 			},
 			{

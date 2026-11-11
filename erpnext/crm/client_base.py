@@ -32,7 +32,7 @@ def _base_rows():
 		SELECT c.name AS contact, TRIM(CONCAT_WS(' ', c.first_name, c.last_name)) AS full_name,
 			c.call_sign, c.designation, c.mobile_no, c.phone, c.image,
 			c.cb_favorite, c.cb_hidden, c.cb_working, c.cb_done, c.cb_working_by, c.cb_work_started,
-			c.cb_comment,
+			c.cb_comment, c.cb_manager,
 			dl.link_name AS unit, mu.name_of_military_unit AS unit_name
 		FROM `tabContact` c
 		JOIN `tabDynamic Link` dl
@@ -144,6 +144,13 @@ def get_rows(filters=None, work_mode=0):
 			continue
 		if filters.get("dup_key") and r.dup_key != filters["dup_key"]:
 			continue
+		manager = filters.get("manager")
+		if manager == "mine" and r.cb_manager != user:
+			continue
+		if manager == "unassigned" and r.cb_manager:
+			continue
+		if filters.get("manager_user") and r.cb_manager != filters["manager_user"]:
+			continue
 		if cint(filters.get("favorite")) and not r.cb_favorite:
 			continue
 		if cint(filters.get("only_due")) and not r.urgency:
@@ -198,23 +205,41 @@ def start_work(contacts):
 	user = frappe.session.user
 	if not contacts:
 		frappe.throw(_("Select at least one contact"))
-	busy = frappe.get_all(
+	rows = frappe.get_all(
 		"Contact",
-		filters={"name": ["in", contacts], "cb_working": 1, "cb_working_by": ["not in", [user, ""]]},
-		fields=["name", "cb_working_by"],
+		filters={"name": ["in", contacts]},
+		fields=["name", "cb_working", "cb_working_by", "cb_manager"],
 	)
-	if busy:
-		frappe.throw(
-			_("Contact {0} is already being worked on by {1}").format(busy[0].name, busy[0].cb_working_by)
-		)
+	for r in rows:
+		if r.cb_manager and r.cb_manager != user:
+			frappe.throw(_("Contact {0} belongs to manager {1}").format(r.name, r.cb_manager))
+		if r.cb_working and r.cb_working_by and r.cb_working_by != user:
+			frappe.throw(_("Contact {0} is already being worked on by {1}").format(r.name, r.cb_working_by))
 	started = now_datetime()
-	for name in contacts:
+	for r in rows:
 		frappe.db.set_value(
 			"Contact",
-			name,
-			{"cb_working": 1, "cb_done": 0, "cb_working_by": user, "cb_work_started": started},
+			r.name,
+			{
+				"cb_working": 1,
+				"cb_done": 0,
+				"cb_working_by": user,
+				"cb_work_started": started,
+				"cb_manager": r.cb_manager or user,
+			},
 			update_modified=False,
 		)
+
+
+@frappe.whitelist()
+def set_manager(contact, manager=None):
+	_check()
+	if not frappe.db.exists("Contact", contact):
+		frappe.throw(_("Contact {0} not found").format(contact))
+	if manager and not frappe.db.exists("User", {"name": manager, "enabled": 1}):
+		frappe.throw(_("User {0} not found").format(manager))
+	frappe.db.set_value("Contact", contact, "cb_manager", manager or None, update_modified=False)
+	return manager or ""
 
 
 def _own_working(contact):
