@@ -223,22 +223,24 @@ class ClientBase {
 				? `<i class="fa fa-sort-${this.sort.dir > 0 ? "asc" : "desc"}"></i>`
 				: `<i class="fa fa-sort text-muted"></i>`;
 		const ncols = this.columns.length + 2;
+		const th = (c) =>
+			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(c.key)}</th>`;
 		let html = `<table class="cb-table"><thead><tr>
+			${this.columns
+				.filter((c) => c.group)
+				.map(th)
+				.join("")}
 			<th class="cb-check">${this.work_mode ? "" : '<input type="checkbox" class="cb-all">'}</th>
 			${this.columns
-				.map(
-					(c) =>
-						`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(
-							c.key
-						)}</th>`
-				)
+				.filter((c) => !c.group)
+				.map(th)
 				.join("")}
 			<th></th></tr></thead><tbody>`;
 		groups.forEach((g) => {
 			const unit_cells = this.unit_cells(g);
 			if (!g.rows.length) {
 				html += `<tr class="cb-row cb-first cb-only-hidden">
-					<td class="cb-check"></td>${unit_cells}
+					${unit_cells}<td class="cb-check"></td>
 					<td colspan="${ncols - 3}" class="cb-sub">${__("All contacts are hidden")}</td></tr>`;
 				return;
 			}
@@ -270,6 +272,7 @@ class ClientBase {
 		else if (r.urgency === 2) cls.push("cb-overdue");
 		else if (r.urgency === 1) cls.push("cb-today");
 		if (r.cb_hidden && !this.work_mode) cls.push("cb-is-hidden");
+		if (!this.work_mode && this.selected.has(r.contact)) cls.push("cb-selected");
 		return cls.join(" ");
 	}
 
@@ -319,7 +322,7 @@ class ClientBase {
 		return `<tr class="cb-row ${unit_cells ? "cb-first" : ""} ${this.row_class(
 			r
 		)}" data-contact="${this.esc(r.contact)}" data-unit="${this.esc(r.unit)}">
-			<td class="cb-check">${check}</td>${unit_cells || ""}
+			${unit_cells || ""}<td class="cb-check">${check}</td>
 			<td class="cb-col-contact">${contact}${dup}</td>
 			<td class="cb-col-phone">${phone}</td>
 			<td class="cb-col-designation">${this.esc(r.designation)}</td>
@@ -402,6 +405,11 @@ class ClientBase {
 		root.on("change", ".cb-sel", (e) => {
 			const r = this.row_of(e.currentTarget);
 			e.currentTarget.checked ? this.selected.add(r.contact) : this.selected.delete(r.contact);
+			this.$body
+				.find(`tr.cb-row[data-contact="${CSS.escape(r.contact)}"]`)
+				.toggleClass("cb-selected", e.currentTarget.checked)
+				.find(".cb-sel")
+				.prop("checked", e.currentTarget.checked);
 			this.render_bottom();
 		});
 		root.on("change", ".cb-all", (e) => {
