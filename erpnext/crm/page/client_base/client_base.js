@@ -13,7 +13,8 @@ class ClientBase {
 	constructor(page) {
 		this.page = page;
 		this.E = erpnext.entity;
-		this.work_mode = 0;
+		this.work_mode = null;
+		this.work_count = 0;
 		this.data = { rows: [], processed: 0, total: 0 };
 		this.selected = new Set();
 		this.open_hidden = new Set();
@@ -22,11 +23,13 @@ class ClientBase {
 		this.sort = null;
 		this.dup_key = null;
 		this.page.main.html(`<div class="client-base">
+			<div class="cb-tabs"></div>
 			<div class="cb-toolbar"></div>
 			<div class="cb-scroll"></div>
 			<div class="cb-bottom"></div></div>`);
 		this.$root = this.page.main.find(".client-base");
 		this.$toolbar = this.$root.find(".cb-toolbar");
+		this.$tabs = this.$root.find(".cb-tabs");
 		this.$body = this.$root.find(".cb-scroll");
 		this.$bottom = this.$root.find(".cb-bottom");
 		this.columns = [
@@ -183,12 +186,19 @@ class ClientBase {
 	}
 
 	load() {
+		const first = this.work_mode === null;
+		if (first) this.work_mode = 1;
 		return frappe
 			.call({
 				method: `${CB_API}.get_rows`,
 				args: { filters: this.filters(), work_mode: this.work_mode },
 			})
 			.then((r) => {
+				this.work_count = r.message.work_count || 0;
+				if (first && !this.work_count) {
+					this.work_mode = 0;
+					return this.load();
+				}
 				this.data = r.message;
 				const present = new Set(this.data.rows.map((x) => x.contact));
 				this.selected = new Set([...this.selected].filter((c) => present.has(c)));
@@ -432,12 +442,36 @@ class ClientBase {
 		this.$body.css("max-height", `${Math.max(240, height)}px`);
 	}
 
+	render_tabs() {
+		const tab = (mode, label) =>
+			`<button class="cb-tab ${
+				this.work_mode === mode ? "active" : ""
+			}" data-mode="${mode}">${label}</button>`;
+		this.$tabs.html(
+			tab(1, `${__("In Work")} <span class="cb-tab-count">${this.work_count}</span>`) +
+				tab(0, __("List"))
+		);
+	}
+
+	switch_tab(mode) {
+		if (mode === this.work_mode) return;
+		this.work_mode = mode;
+		this.sort = null;
+		this.editing = null;
+		this.load();
+	}
+
 	render_bottom() {
+		this.render_tabs();
 		if (this.work_mode) {
-			this.$bottom.html(`<button class="btn btn-danger cb-finish-work">${__("Finish Work")}</button>`);
+			this.$bottom.html(
+				this.work_count
+					? `<button class="btn btn-danger cb-finish-work">${__("Finish Work")}</button>`
+					: ""
+			);
 		} else if (this.selected.size) {
 			this.$bottom.html(
-				`<button class="btn btn-primary cb-start">${__("Start Work")} (${
+				`<button class="btn btn-primary cb-start">${__("Add to Work")} (${
 					this.selected.size
 				})</button>`
 			);
@@ -506,6 +540,7 @@ class ClientBase {
 		});
 		root.on("click", ".cb-finish", (e) => this.finish_dialog(this.row_of(e.currentTarget).contact));
 		root.on("click", ".cb-start", () => this.start_work());
+		root.on("click", ".cb-tab", (e) => this.switch_tab(Number($(e.currentTarget).attr("data-mode"))));
 		root.on("click", ".cb-finish-work", () => this.finish_work());
 		root.on("click", ".cb-comment-text", (e) => {
 			const r = this.row_of(e.currentTarget);
@@ -567,20 +602,17 @@ class ClientBase {
 	}
 
 	start_work() {
+		const count = this.selected.size;
 		this.call("start_work", { contacts: [...this.selected] }).then(() => {
 			this.selected.clear();
-			this.work_mode = 1;
-			this.sort = null;
+			frappe.show_alert({ message: __("Added to work: {0}", [count]), indicator: "green" });
 			this.load();
 		});
 	}
 
 	finish_work() {
 		frappe.confirm(__("Finish work? All contacts will no longer be marked as in work."), () => {
-			this.call("finish_work").then(() => {
-				this.work_mode = 0;
-				this.load();
-			});
+			this.call("finish_work").then(() => this.switch_tab(0));
 		});
 	}
 

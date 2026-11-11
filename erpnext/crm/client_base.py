@@ -121,6 +121,7 @@ def get_rows(filters=None, work_mode=0):
 	today = getdate(nowdate())
 
 	rows = _base_rows()
+	work_count = len({r.contact for r in rows if r.cb_working and r.cb_working_by == user})
 	if work_mode:
 		rows = [r for r in rows if r.cb_working and r.cb_working_by == user]
 	else:
@@ -178,7 +179,7 @@ def get_rows(filters=None, work_mode=0):
 	processed = (
 		sum(1 for r in visible if r.cb_done) if work_mode else sum(1 for r in visible if r.last_result)
 	)
-	return {"rows": out, "processed": processed, "total": len(visible)}
+	return {"rows": out, "processed": processed, "total": len(visible), "work_count": work_count}
 
 
 @frappe.whitelist()
