@@ -85,3 +85,9 @@
 .client-base .cb-filter-cell .link-btn { top: 0; }
 .client-base .cb-table thead th.cb-filter-cell { z-index: 4; overflow: visible; }
 .client-base .cb-filter-cell .awesomplete > ul, .client-base .cb-filter-cell .awesomplete > [role="listbox"] { z-index: 20; min-width: 220px; }
+.client-base .cb-clearable { position: relative; flex: 1 1 60px; min-width: 50px; }
+.client-base .cb-filter-line .cb-date-slot.cb-clearable { flex: 0 0 82px; }
+.client-base .cb-clearable input.form-control { padding-right: 18px; }
+.client-base .cb-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; cursor: pointer; color: var(--text-muted); line-height: 0; z-index: 1; }
+.client-base .cb-clear:hover { color: var(--text-color); }
+.client-base .cb-clearable.has-value .cb-clear { display: block; }

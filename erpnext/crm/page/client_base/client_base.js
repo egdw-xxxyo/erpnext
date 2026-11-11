@@ -395,9 +395,11 @@ class ClientBase {
 				c.key === "manager" ? '<div class="cb-manager-slot"></div>' : ""
 			}${
 				c.text
-					? `<input type="text" class="form-control input-xs cb-col-filter" data-key="${
-							c.key
-					  }" placeholder="${__("Filter")}" value="${this.esc(this.col_filters[c.key] || "")}">`
+					? `<div class="cb-clearable ${this.col_filters[c.key] ? "has-value" : ""}">
+						<input type="text" class="form-control input-xs cb-col-filter" data-key="${c.key}" placeholder="${__(
+							"Filter"
+					  )}" value="${this.esc(this.col_filters[c.key] || "")}">
+						${this.clear_btn()}</div>`
 					: ""
 			}${range(c)}</div></th>${extra(c, "<th></th>")}`;
 		const head = (cell, check) =>
@@ -455,6 +457,10 @@ class ClientBase {
 		return this.active_filters().length + dates + (this.manager_filter ? 1 : 0);
 	}
 
+	clear_btn() {
+		return `<span class="cb-clear" title="${__("Clear")}">${frappe.utils.icon("close", "xs")}</span>`;
+	}
+
 	mount_date_filters() {
 		this.$body.find(".cb-date-slot").each((_i, el) => {
 			const key = el.getAttribute("data-key");
@@ -468,6 +474,7 @@ class ClientBase {
 					placeholder: side === "from" ? __("From") : __("To"),
 					change: () => {
 						const value = control.get_value() || "";
+						$(el).toggleClass("has-value", !!value);
 						const f = this.date_filters[key] || {};
 						if ((f[side] || "") === value) return;
 						this.date_filters[key] = Object.assign({}, f, { [side]: value });
@@ -477,6 +484,10 @@ class ClientBase {
 				render_input: true,
 			});
 			control.refresh();
+			$(el).addClass("cb-clearable").toggleClass("has-value", !!current).append(this.clear_btn());
+			$(el)
+				.find(".cb-clear")
+				.on("click", () => control.set_value(""));
 			if (current) control.set_value(current);
 		});
 	}
@@ -690,7 +701,13 @@ class ClientBase {
 		const refilter = frappe.utils.debounce(() => this.render_rows(), 150);
 		root.on("input", ".cb-col-filter", (e) => {
 			this.col_filters[$(e.currentTarget).attr("data-key")] = e.currentTarget.value;
+			$(e.currentTarget).closest(".cb-clearable").toggleClass("has-value", !!e.currentTarget.value);
 			refilter();
+		});
+		root.on("click", ".cb-clearable .cb-clear", (e) => {
+			const $input = $(e.currentTarget).siblings(".cb-col-filter");
+			if (!$input.length) return;
+			$input.val("").trigger("input").trigger("focus");
 		});
 		root.on("click", ".cb-sortable", (e) => {
 			const key = $(e.currentTarget).attr("data-key");
