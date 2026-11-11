@@ -23,6 +23,7 @@ class ClientBase {
 		this.sort = null;
 		this.dup_key = null;
 		this.col_filters = {};
+		this.date_filters = {};
 		this.page.main.html(`<div class="client-base">
 			<div class="cb-tabs"></div>
 			<div class="cb-toolbar"></div>
@@ -102,8 +103,14 @@ class ClientBase {
 					: "",
 			comment: (r) => r.cb_comment,
 		};
+		const dates = {
+			last_result: (r) => (r.last_result ? String(r.last_result.result_date).slice(0, 10) : ""),
+			next_action: (r) =>
+				r.next_action && r.next_action.date ? String(r.next_action.date).slice(0, 10) : "",
+		};
 		this.columns.forEach((c) => {
 			c.text = texts[c.key];
+			c.date = dates[c.key];
 			c.phone = c.key === "phone";
 		});
 		this.make_toolbar();
@@ -276,6 +283,20 @@ class ClientBase {
 		return false;
 	}
 
+	date_ranges() {
+		return this.columns.filter((c) => {
+			const f = this.date_filters[c.key];
+			return c.date && f && (f.from || f.to);
+		});
+	}
+
+	in_range(col, r) {
+		const f = this.date_filters[col.key];
+		const v = col.date(r);
+		if (!v) return false;
+		return (!f.from || v >= f.from) && (!f.to || v <= f.to);
+	}
+
 	active_filters() {
 		return this.columns.filter((c) => c.text && String(this.col_filters[c.key] || "").trim());
 	}
@@ -303,6 +324,13 @@ class ClientBase {
 			list.forEach((g) => (g.rows = g.rows.filter((r) => row_f.every((c) => this.matches(c, r)))));
 			list = list.filter((g) => g.rows.length);
 		}
+		const ranges = this.date_ranges();
+		list.forEach((g) =>
+			g.rows.forEach(
+				(r) => (r._match = ranges.length ? ranges.every((c) => this.in_range(c, r)) : false)
+			)
+		);
+		if (ranges.length) list = list.filter((g) => g.rows.some((r) => r._match));
 		list.forEach((g) => {
 			g.rows.sort((a, b) => this.compare(a, b));
 			g.urgency = Math.max(0, ...g.rows.filter((r) => !r.cb_hidden).map((r) => r.urgency));
@@ -361,6 +389,19 @@ class ClientBase {
 			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(
 				c.key
 			)}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
+		const range = (c) => {
+			if (!c.date) return "";
+			const f = this.date_filters[c.key] || {};
+			const input = (side, label) =>
+				`<input type="date" class="form-control input-xs cb-date-filter" data-key="${
+					c.key
+				}" data-side="${side}"
+					title="${label}" value="${this.esc(f[side] || "")}">`;
+			return `<div class="cb-range">${input("from", __("From"))}<span>–</span>${input(
+				"to",
+				__("To")
+			)}</div>`;
+		};
 		const fth = (c) =>
 			`<th class="cb-filter-cell cb-col-${c.key}">${
 				c.text
@@ -368,7 +409,7 @@ class ClientBase {
 							c.key
 					  }" placeholder="${__("Filter")}" value="${this.esc(this.col_filters[c.key] || "")}">`
 					: ""
-			}</th>${extra(c, "<th></th>")}`;
+			}${range(c)}</th>${extra(c, "<th></th>")}`;
 		const head = (cell, check) =>
 			`<tr>${cols
 				.filter((c) => c.group)
@@ -382,6 +423,11 @@ class ClientBase {
 			${head(fth, '<th class="cb-check"></th>')}
 			${head(th, `<th class="cb-check">${all}</th>`)}
 			</thead><tbody></tbody></table>`);
+		const $head = this.$body.find("thead tr");
+		$head
+			.eq(1)
+			.children("th")
+			.css("top", `${$head.eq(0).outerHeight()}px`);
 		this.render_rows();
 		this.render_bottom();
 	}
@@ -427,6 +473,7 @@ class ClientBase {
 		else if (r.urgency === 2) cls.push("cb-overdue");
 		else if (r.urgency === 1) cls.push("cb-today");
 		if (r.cb_hidden && !this.work_mode) cls.push("cb-is-hidden");
+		if (r._match) cls.push("cb-match");
 		if (!this.work_mode && this.selected.has(r.contact)) cls.push("cb-selected");
 		return cls.join(" ");
 	}
@@ -592,6 +639,14 @@ class ClientBase {
 		root.on("input", ".cb-col-filter", (e) => {
 			this.col_filters[$(e.currentTarget).attr("data-key")] = e.currentTarget.value;
 			refilter();
+		});
+		root.on("change", ".cb-date-filter", (e) => {
+			const $i = $(e.currentTarget);
+			const key = $i.attr("data-key");
+			this.date_filters[key] = Object.assign({}, this.date_filters[key], {
+				[$i.attr("data-side")]: e.currentTarget.value,
+			});
+			this.render_rows();
 		});
 		root.on("click", ".cb-sortable", (e) => {
 			const key = $(e.currentTarget).attr("data-key");

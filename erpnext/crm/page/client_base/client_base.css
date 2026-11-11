@@ -35,6 +35,8 @@
 .client-base tr.cb-overdue > td { background: var(--red-50, #fef2f2); }
 .client-base tr.cb-done > td { background: var(--green-50, #ecfdf5); }
 .client-base tr.cb-is-hidden > td { opacity: 0.5; }
+.client-base tr.cb-match > td { background: var(--purple-50, #f5f3ff); }
+.client-base tr.cb-match > td.cb-check { box-shadow: inset 3px 0 0 var(--purple-500, #8b5cf6); }
 .client-base tr.cb-selected > td { background: var(--blue-50, #eff6ff); }
 .client-base .cb-dup { cursor: pointer; font-weight: 600; margin-left: 4px; }
 .client-base .cb-icon { cursor: pointer; color: var(--text-light); margin: 0 4px; }
@@ -53,6 +55,7 @@
 .client-base .cb-table tr > td.cb-unit { vertical-align: top; background: var(--bg-color); border-right: 1px solid var(--border-color); opacity: 1; }
 .client-base .cb-to-top { position: fixed; right: 24px; bottom: 72px; z-index: 5; width: 40px; height: 40px; border-radius: 50%; box-shadow: var(--shadow-md); display: none; padding: 0; }
 .client-base .cb-to-top.visible { display: block; }
-.client-base .cb-table thead tr:nth-child(2) th { top: 38px; }
 .client-base .cb-filter-cell { padding: 4px 6px; }
 .client-base .cb-col-filter { height: 28px; font-size: var(--text-sm); }
+.client-base .cb-range { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.client-base .cb-range .cb-date-filter { height: 28px; font-size: var(--text-xs); padding: 0 4px; min-width: 0; }
