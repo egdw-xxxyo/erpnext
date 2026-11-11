@@ -391,7 +391,7 @@ class ClientBase {
 			return `<div class="cb-range">${slot("from")}<span>–</span>${slot("to")}</div>`;
 		};
 		const fth = (c) =>
-			`<th class="cb-filter-cell cb-col-${c.key}">${
+			`<th class="cb-filter-cell cb-col-${c.key}"><div class="cb-filter-line">${
 				c.key === "manager" ? '<div class="cb-manager-slot"></div>' : ""
 			}${
 				c.text
@@ -399,7 +399,7 @@ class ClientBase {
 							c.key
 					  }" placeholder="${__("Filter")}" value="${this.esc(this.col_filters[c.key] || "")}">`
 					: ""
-			}${range(c)}</th>${extra(c, "<th></th>")}`;
+			}${range(c)}</div></th>${extra(c, "<th></th>")}`;
 		const head = (cell, check) =>
 			`<tr>${cols
 				.filter((c) => c.group)

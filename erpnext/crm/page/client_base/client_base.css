@@ -63,3 +63,23 @@
 .client-base .cb-date-slot input, .client-base .cb-manager-slot input { height: 24px; font-size: var(--text-xs); padding: 0 6px; }
 .client-base .cb-manager-slot .frappe-control { margin-bottom: 0; }
 .client-base .cb-filters-toggle.active { background: var(--control-bg-on-gray, var(--gray-200)); }
+
+.client-base .cb-tabs { margin-bottom: 6px; }
+.client-base .cb-tab { padding: 4px 12px; }
+.client-base .cb-toolbar { gap: 4px 14px; margin-bottom: 6px; }
+.client-base .cb-toolbar .frappe-control { min-width: 0; }
+.client-base .cb-toolbar .form-group, .client-base .cb-toolbar .checkbox { margin: 0; }
+.client-base .cb-toolbar .help-box { display: none; }
+.client-base .cb-toolbar .btn-sm { padding: 2px 10px; }
+.client-base .cb-filter-cell { vertical-align: top; padding: 2px 4px; }
+.client-base .cb-filter-line { display: flex; align-items: center; gap: 2px; }
+.client-base .cb-filter-line > .cb-col-filter { flex: 1 1 60px; min-width: 50px; }
+.client-base .cb-filter-line .cb-range { margin: 0; flex: 0 1 auto; gap: 2px; }
+.client-base .cb-filter-line .cb-range > span { display: none; }
+.client-base .cb-filter-line .cb-date-slot { flex: 0 0 82px; }
+.client-base .cb-manager-slot { flex: 1; }
+.client-base .cb-filter-cell .frappe-control, .client-base .cb-filter-cell .form-group { margin: 0 !important; }
+.client-base .cb-filter-cell .control-label, .client-base .cb-filter-cell .help-box { display: none; }
+.client-base .cb-filter-cell .control-input-wrapper, .client-base .cb-filter-cell .control-input { min-height: 0; }
+.client-base .cb-filter-cell input.form-control { height: 22px; min-height: 0; line-height: 22px; padding: 0 6px; font-size: var(--text-xs); }
+.client-base .cb-filter-cell .link-btn { top: 0; }
