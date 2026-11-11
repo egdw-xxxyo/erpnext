@@ -390,14 +390,16 @@ class ClientBase {
 					r.cb_done ? __("Finished") : __("Finish")
 			  }</button>`
 			: `<button class="btn btn-xs btn-default cb-result">${__("Add Result")}</button>
-				<i class="fa fa-star cb-icon cb-fav ${r.cb_favorite ? "active" : ""}" title="${__("Favorite")}"></i>
 				<i class="fa ${r.cb_hidden ? "fa-eye" : "fa-eye-slash"} cb-icon cb-hide" title="${
 					r.cb_hidden ? __("Unhide") : __("Hide")
 			  }"></i>`;
 		return `<tr class="cb-row ${unit_cells ? "cb-first" : ""} ${this.row_class(
 			r
 		)}" data-contact="${this.esc(r.contact)}" data-unit="${this.esc(r.unit)}">
-			${unit_cells || ""}<td class="cb-check">${check}</td>
+			${unit_cells || ""}<td class="cb-check"><div class="cb-check-line">${check}
+				<i class="fa ${r.cb_favorite ? "fa-star active" : "fa-star-o"} cb-icon cb-fav" title="${__(
+			"Favorite"
+		)}"></i></div></td>
 			<td class="cb-col-contact">${contact}${dup}</td>
 			<td class="cb-col-phone">${phone}</td>
 			<td class="cb-col-designation">${this.esc(r.designation)}</td>

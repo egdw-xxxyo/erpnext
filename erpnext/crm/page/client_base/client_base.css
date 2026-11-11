@@ -10,7 +10,9 @@
 .client-base .cb-table th, .client-base .cb-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
 .client-base .cb-table thead th { position: sticky; top: 0; background: var(--bg-color); white-space: nowrap; z-index: 2; box-shadow: inset 0 -1px 0 var(--border-color); }
 .client-base .cb-sortable { cursor: pointer; user-select: none; }
-.client-base .cb-check { width: 36px; border-left: 1px solid var(--border-color); }
+.client-base .cb-check { width: 64px; border-left: 1px solid var(--border-color); }
+.client-base .cb-check-line { display: flex; align-items: center; gap: 6px; }
+.client-base .cb-check-line .cb-icon { margin: 0; font-size: 16px; }
 .client-base .cb-col-unit { min-width: 170px; }
 .client-base .cb-col-unit_name { min-width: 200px; }
 .client-base .cb-col-contact { min-width: 220px; }
