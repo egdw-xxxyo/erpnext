@@ -10,7 +10,7 @@
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
 //   erpnext.entity.workplace("Packing" | {name, sub}, opts)  // production workplace → its form
-//   erpnext.entity.contact("CONT-1" | {contact, full_name, sub}, opts)  // contact → its form
+//   erpnext.entity.contact("CONT-1" | {contact, full_name, sub, image}, opts)  // contact → its form
 //   erpnext.entity.military_unit("A0001" | {name, sub}, opts)  // military unit → its form
 //   erpnext.entity.doc_link({doctype, name, label})       // inline link to any record, inside text
 //   erpnext.entity.list(items, renderer, opts)            // several, wrapped, or "—"
@@ -208,6 +208,7 @@ frappe.provide("erpnext.entity");
 				name,
 				sub: (typeof c === "object" && c.sub) || "",
 				key: (typeof c === "object" && c.key) || id,
+				image: (typeof c === "object" && c.image) || "",
 				route: ["Form", "Contact", id],
 			},
 			opts

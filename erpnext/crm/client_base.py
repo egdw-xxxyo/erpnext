@@ -30,7 +30,7 @@ def _base_rows():
 	rows = frappe.db.sql(
 		"""
 		SELECT c.name AS contact, TRIM(CONCAT_WS(' ', c.first_name, c.last_name)) AS full_name,
-			c.call_sign, c.designation, c.mobile_no, c.phone,
+			c.call_sign, c.designation, c.mobile_no, c.phone, c.image,
 			c.cb_favorite, c.cb_hidden, c.cb_working, c.cb_done, c.cb_working_by, c.cb_work_started,
 			c.cb_comment,
 			dl.link_name AS unit, mu.name_of_military_unit AS unit_name
@@ -62,9 +62,23 @@ def _base_rows():
 		r.display_phone = r.mobile_no or r.phone or (first_phone.get(r.contact) or ("",))[0]
 		r.dup_key = _key(r.full_name or r.contact, r.display_phone)
 		units_by_key.setdefault(r.dup_key, set()).add(r.unit)
+	wa_by_contact, wa_by_phone = _whatsapp_images()
 	for r in rows:
 		r.dup_count = len(units_by_key[r.dup_key] - {r.unit})
+		r.image = r.image or wa_by_contact.get(r.contact) or wa_by_phone.get(r.dup_key)
 	return rows
+
+
+def _whatsapp_images():
+	profile = "WhatsApp Profiles"
+	if not frappe.db.exists("DocType", profile) or not frappe.get_meta(profile).has_field("image"):
+		return {}, {}
+	by_contact, by_phone = {}, {}
+	for p in frappe.get_all(profile, filters={"image": ["is", "set"]}, fields=["number", "contact", "image"]):
+		if p.contact:
+			by_contact.setdefault(p.contact, p.image)
+		by_phone.setdefault(_key("", p.number), p.image)
+	return by_contact, by_phone
 
 
 def _last_results(contacts):
