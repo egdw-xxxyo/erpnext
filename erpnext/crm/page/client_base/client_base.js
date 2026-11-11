@@ -626,7 +626,7 @@ class ClientBase {
 				{ fieldtype: "Small Text", fieldname: "comment", label: __("Comment") },
 				{ fieldtype: "Section Break", label: __("Next Action") },
 				{ fieldtype: "Small Text", fieldname: "next_description", label: __("Description") },
-				{ fieldtype: "Date", fieldname: "next_date", label: __("Due Date") },
+				{ fieldtype: "Date", fieldname: "next_date", label: __("Date") },
 				{
 					fieldtype: "Link",
 					fieldname: "next_user",
@@ -662,7 +662,7 @@ class ClientBase {
 						options: `${this.contact_header(r)}
 							<table class="table table-sm cb-info">
 								${row(__("Task"), this.todo_link(next))}
-								${row(__("Due Date"), this.dt(next.date))}
+								${row(__("Date"), this.dt(next.date))}
 								${row(__("Priority"), next.priority ? __(next.priority) : "")}
 								${row(__("Assigned To"), next.allocated_to ? this.E.user(next.allocated_to, { size: 20 }) : "")}
 								${row(__("Description"), `<div class="cb-desc">${next.description || ""}</div>`)}
