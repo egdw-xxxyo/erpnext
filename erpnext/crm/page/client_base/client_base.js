@@ -30,6 +30,18 @@ class ClientBase {
 		this.$body = this.$root.find(".cb-scroll");
 		this.$bottom = this.$root.find(".cb-bottom");
 		this.columns = [
+			{
+				key: "unit",
+				label: __("Military Unit"),
+				group: true,
+				val: (g) => String(g.unit || "").toLowerCase(),
+			},
+			{
+				key: "unit_name",
+				label: __("Military Unit Name"),
+				group: true,
+				val: (g) => String(g.unit_name || "").toLowerCase(),
+			},
 			{ key: "contact", label: __("Contact"), val: (r) => (r.full_name || r.contact).toLowerCase() },
 			{ key: "phone", label: __("Phone"), val: (r) => r.display_phone || "" },
 			{ key: "designation", label: __("Position"), val: (r) => (r.designation || "").toLowerCase() },
@@ -147,8 +159,8 @@ class ClientBase {
 	}
 
 	compare(a, b) {
-		if (this.sort) {
-			const col = this.columns.find((c) => c.key === this.sort.key);
+		if (this.sort && !this.sort_column().group) {
+			const col = this.sort_column();
 			const x = col.val(a);
 			const y = col.val(b);
 			if (x !== y) return (x < y ? -1 : 1) * this.sort.dir;
@@ -156,6 +168,10 @@ class ClientBase {
 		if (a.urgency !== b.urgency) return b.urgency - a.urgency;
 		if (a.cb_favorite !== b.cb_favorite) return b.cb_favorite - a.cb_favorite;
 		return (a.full_name || a.contact).localeCompare(b.full_name || b.contact);
+	}
+
+	sort_column() {
+		return this.sort ? this.columns.find((c) => c.key === this.sort.key) : null;
 	}
 
 	groups() {
@@ -173,7 +189,12 @@ class ClientBase {
 			g.rows.sort((a, b) => this.compare(a, b));
 			g.urgency = Math.max(0, ...g.rows.filter((r) => !r.cb_hidden).map((r) => r.urgency));
 		});
-		list.sort((a, b) => b.urgency - a.urgency || String(a.unit).localeCompare(String(b.unit)));
+		const col = this.sort_column();
+		if (col && col.group) {
+			list.sort((a, b) => col.val(a).localeCompare(col.val(b)) * this.sort.dir);
+		} else {
+			list.sort((a, b) => b.urgency - a.urgency || String(a.unit).localeCompare(String(b.unit)));
+		}
 		return list;
 	}
 
@@ -214,22 +235,33 @@ class ClientBase {
 				.join("")}
 			<th></th></tr></thead><tbody>`;
 		groups.forEach((g) => {
-			const hidden_note = g.hidden
-				? `<span class="cb-hidden-note">${__("{0} hidden", [g.hidden])}
-					<button class="btn btn-xs btn-default cb-toggle-hidden" data-unit="${this.esc(g.unit)}">${
-						this.open_hidden.has(g.unit) ? __("Hide") : __("Show")
-				  }</button></span>`
-				: "";
-			html += `<tr class="cb-group"><td colspan="${ncols}"><div class="cb-group-line">
-				${this.E.military_unit({ name: g.unit, sub: g.unit_name || __("Military Unit") }, { card: true, size: 36 })}
-				<span class="cb-group-count">${
-					g.rows.filter((r) => !r.cb_hidden).length
-				}</span>${hidden_note}</div></td></tr>`;
-			g.rows.forEach((r) => (html += this.row_html(r)));
+			const unit_cells = this.unit_cells(g);
+			if (!g.rows.length) {
+				html += `<tr class="cb-row cb-first cb-only-hidden">
+					<td class="cb-check"></td>${unit_cells}
+					<td colspan="${ncols - 3}" class="cb-sub">${__("All contacts are hidden")}</td></tr>`;
+				return;
+			}
+			g.rows.forEach((r, i) => (html += this.row_html(r, i === 0 ? unit_cells : null)));
 		});
 		html += "</tbody></table>";
 		this.$body.html(html);
 		this.render_bottom();
+	}
+
+	unit_cells(g) {
+		const span = Math.max(1, g.rows.length);
+		const visible = g.rows.filter((r) => !r.cb_hidden).length;
+		const hidden = g.hidden
+			? `<div class="cb-hidden-note">${__("{0} hidden", [g.hidden])}
+				<button class="btn btn-xs btn-default cb-toggle-hidden" data-unit="${this.esc(g.unit)}">${
+					this.open_hidden.has(g.unit) ? __("Hide") : __("Show")
+			  }</button></div>`
+			: "";
+		return `<td class="cb-unit cb-col-unit" rowspan="${span}">
+				${this.E.military_unit({ name: g.unit, sub: __("{0} contacts", [visible]) }, { card: true, size: 32 })}
+				${hidden}</td>
+			<td class="cb-unit cb-col-unit_name" rowspan="${span}">${this.esc(g.unit_name)}</td>`;
 	}
 
 	row_class(r) {
@@ -241,7 +273,7 @@ class ClientBase {
 		return cls.join(" ");
 	}
 
-	row_html(r) {
+	row_html(r, unit_cells) {
 		const dup = r.dup_count
 			? `<a class="cb-dup" data-key="${this.esc(r.dup_key)}">(${r.dup_count})</a>`
 			: "";
@@ -284,10 +316,10 @@ class ClientBase {
 				<i class="fa ${r.cb_hidden ? "fa-eye" : "fa-eye-slash"} cb-icon cb-hide" title="${
 					r.cb_hidden ? __("Unhide") : __("Hide")
 			  }"></i>`;
-		return `<tr class="cb-row ${this.row_class(r)}" data-contact="${this.esc(
-			r.contact
-		)}" data-unit="${this.esc(r.unit)}">
-			<td class="cb-check">${check}</td>
+		return `<tr class="cb-row ${unit_cells ? "cb-first" : ""} ${this.row_class(
+			r
+		)}" data-contact="${this.esc(r.contact)}" data-unit="${this.esc(r.unit)}">
+			<td class="cb-check">${check}</td>${unit_cells || ""}
 			<td class="cb-col-contact">${contact}${dup}</td>
 			<td class="cb-col-phone">${phone}</td>
 			<td class="cb-col-designation">${this.esc(r.designation)}</td>
