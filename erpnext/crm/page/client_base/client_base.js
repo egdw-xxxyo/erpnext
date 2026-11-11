@@ -56,9 +56,15 @@ class ClientBase {
 				val: (r) => (r.next_action && r.next_action.date) || "9999",
 			},
 			{ key: "comment", label: __("Comment"), val: (r) => (r.cb_comment || "").toLowerCase() },
-			{ key: "manager", label: __("Responsible Manager"), val: (r) => this.user_name(r.cb_manager) },
+			{
+				key: "manager",
+				others: true,
+				label: __("Responsible Manager"),
+				val: (r) => this.user_name(r.cb_manager),
+			},
 			{
 				key: "in_work",
+				others: true,
 				label: __("In Work"),
 				val: (r) => (r.cb_working ? "0" + this.user_name(r.cb_working_by) : "1"),
 			},
@@ -122,14 +128,11 @@ class ClientBase {
 				placeholder: __("Last Result"),
 				change: reload,
 			}),
-			manager: mk({
-				fieldtype: "Select",
-				fieldname: "manager",
-				options: [
-					{ value: "", label: __("All managers") },
-					{ value: "mine", label: __("My contacts") },
-					{ value: "unassigned", label: __("Unassigned") },
-				],
+			mine: mk({ fieldtype: "Check", fieldname: "mine", label: __("My contacts"), change: reload }),
+			unassigned: mk({
+				fieldtype: "Check",
+				fieldname: "unassigned",
+				label: __("Unassigned"),
 				change: reload,
 			}),
 			manager_user: mk({
@@ -165,6 +168,7 @@ class ClientBase {
 	}
 
 	filters() {
+		if (this.work_mode) return {};
 		const g = (k) => this.f[k].get_value();
 		return {
 			search: g("search"),
@@ -173,7 +177,7 @@ class ClientBase {
 			favorite: g("favorite") ? 1 : 0,
 			only_due: g("only_due") ? 1 : 0,
 			dup_key: this.dup_key,
-			manager: g("manager"),
+			manager: g("mine") ? "mine" : g("unassigned") ? "unassigned" : "",
 			manager_user: g("manager_user"),
 		};
 	}
@@ -206,6 +210,11 @@ class ClientBase {
 		if (a.urgency !== b.urgency) return b.urgency - a.urgency;
 		if (a.cb_favorite !== b.cb_favorite) return b.cb_favorite - a.cb_favorite;
 		return (a.full_name || a.contact).localeCompare(b.full_name || b.contact);
+	}
+
+	visible_columns() {
+		const own = this.work_mode || this.f.mine.get_value();
+		return this.columns.filter((c) => !(c.others && own));
 	}
 
 	sort_column() {
@@ -260,16 +269,17 @@ class ClientBase {
 			this.sort && this.sort.key === key
 				? `<i class="fa fa-sort-${this.sort.dir > 0 ? "asc" : "desc"}"></i>`
 				: `<i class="fa fa-sort text-muted"></i>`;
-		const ncols = this.columns.length + 2;
+		const cols = this.visible_columns();
+		const ncols = cols.length + 2;
 		const th = (c) =>
 			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(c.key)}</th>`;
 		let html = `<table class="cb-table"><thead><tr>
-			${this.columns
+			${cols
 				.filter((c) => c.group)
 				.map(th)
 				.join("")}
 			<th class="cb-check">${this.work_mode ? "" : '<input type="checkbox" class="cb-all">'}</th>
-			${this.columns
+			${cols
 				.filter((c) => !c.group)
 				.map(th)
 				.join("")}
@@ -384,8 +394,12 @@ class ClientBase {
 			<td class="cb-col-last_result">${lr}</td>
 			<td class="cb-col-next_action">${na}</td>
 			<td class="cb-col-comment">${this.comment_html(r)}</td>
-			<td class="cb-col-manager">${manager}</td>
-			<td class="cb-col-in_work">${in_work}</td>
+			${
+				this.visible_columns().some((c) => c.others)
+					? `<td class="cb-col-manager">${manager}</td>
+			<td class="cb-col-in_work">${in_work}</td>`
+					: ""
+			}
 			<td class="cb-actions">${actions}
 				<i class="fa fa-history cb-icon cb-history" title="${__("History")}"></i></td></tr>`;
 	}
