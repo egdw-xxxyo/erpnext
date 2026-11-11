@@ -83,3 +83,5 @@
 .client-base .cb-filter-cell .control-input-wrapper, .client-base .cb-filter-cell .control-input { min-height: 0; }
 .client-base .cb-filter-cell input.form-control { height: 22px; min-height: 0; line-height: 22px; padding: 0 6px; font-size: var(--text-xs); }
 .client-base .cb-filter-cell .link-btn { top: 0; }
+.client-base .cb-table thead th.cb-filter-cell { z-index: 4; overflow: visible; }
+.client-base .cb-filter-cell .awesomplete > ul, .client-base .cb-filter-cell .awesomplete > [role="listbox"] { z-index: 20; min-width: 220px; }

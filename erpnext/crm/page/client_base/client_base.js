@@ -435,6 +435,7 @@ class ClientBase {
 				options: "User",
 				fieldname: "manager_filter",
 				placeholder: __("Responsible Manager"),
+				only_select: 1,
 				get_query: () => ({ query: `${CB_API}.manager_query` }),
 				change: () => {
 					const value = control.get_value() || "";
