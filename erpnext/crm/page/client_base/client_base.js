@@ -47,7 +47,7 @@ class ClientBase {
 			{ key: "designation", label: __("Position"), val: (r) => (r.designation || "").toLowerCase() },
 			{
 				key: "last_result",
-				label: __("Last Result"),
+				label: __("Latest Result"),
 				val: (r) => (r.last_result ? r.last_result.result_date : ""),
 			},
 			{
@@ -125,7 +125,7 @@ class ClientBase {
 				fieldtype: "Link",
 				options: "Call Result",
 				fieldname: "result",
-				placeholder: __("Last Result"),
+				placeholder: __("Latest Result"),
 				change: reload,
 			}),
 			mine: mk({ fieldtype: "Check", fieldname: "mine", label: __("My contacts"), change: reload }),
