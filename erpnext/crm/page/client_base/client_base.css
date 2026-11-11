@@ -53,3 +53,6 @@
 .client-base .cb-table tr > td.cb-unit { vertical-align: top; background: var(--bg-color); border-right: 1px solid var(--border-color); opacity: 1; }
 .client-base .cb-to-top { position: fixed; right: 24px; bottom: 72px; z-index: 5; width: 40px; height: 40px; border-radius: 50%; box-shadow: var(--shadow-md); display: none; padding: 0; }
 .client-base .cb-to-top.visible { display: block; }
+.client-base .cb-table thead tr:nth-child(2) th { top: 38px; }
+.client-base .cb-filter-cell { padding: 4px 6px; }
+.client-base .cb-col-filter { height: 28px; font-size: var(--text-sm); }

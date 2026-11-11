@@ -22,6 +22,7 @@ class ClientBase {
 		this.editing = null;
 		this.sort = null;
 		this.dup_key = null;
+		this.col_filters = {};
 		this.page.main.html(`<div class="client-base">
 			<div class="cb-tabs"></div>
 			<div class="cb-toolbar"></div>
@@ -84,6 +85,27 @@ class ClientBase {
 				val: (r) => (r.cb_working ? "0" + this.user_name(r.cb_working_by) : "1"),
 			},
 		];
+		const texts = {
+			unit: (g) => g.unit,
+			unit_name: (g) => g.unit_name,
+			contact: (r) => `${r.full_name || r.contact} ${r.call_sign || ""}`,
+			phone: (r) => r.display_phone,
+			last_result: (r) =>
+				r.last_result
+					? `${__(r.last_result.result)} ${r.last_result.comment || ""} ${this.dt(
+							r.last_result.result_date
+					  )}`
+					: "",
+			next_action: (r) =>
+				r.next_action
+					? `${this.plain(r.next_action.description)} ${this.dt(r.next_action.date)}`
+					: "",
+			comment: (r) => r.cb_comment,
+		};
+		this.columns.forEach((c) => {
+			c.text = texts[c.key];
+			c.phone = c.key === "phone";
+		});
 		this.make_toolbar();
 		this.bind();
 		$(window).on(
@@ -240,6 +262,24 @@ class ClientBase {
 		return this.columns.filter((c) => !(c.others && own));
 	}
 
+	matches(col, obj) {
+		const q = String(this.col_filters[col.key] || "")
+			.trim()
+			.toLowerCase();
+		if (!q) return true;
+		const text = String(col.text(obj) || "").toLowerCase();
+		if (text.includes(q)) return true;
+		if (col.phone) {
+			const digits = q.replace(/\D/g, "");
+			return !!digits && text.replace(/\D/g, "").includes(digits);
+		}
+		return false;
+	}
+
+	active_filters() {
+		return this.columns.filter((c) => c.text && String(this.col_filters[c.key] || "").trim());
+	}
+
 	sort_column() {
 		return this.sort ? this.columns.find((c) => c.key === this.sort.key) : null;
 	}
@@ -254,7 +294,15 @@ class ClientBase {
 			if (r.cb_hidden && !this.work_mode) g.hidden += 1;
 			if (!r.cb_hidden || show_all || this.open_hidden.has(r.unit)) g.rows.push(r);
 		});
-		const list = [...map.values()].filter((g) => g.rows.length || g.hidden);
+		const active = this.active_filters();
+		const group_f = active.filter((c) => c.group);
+		const row_f = active.filter((c) => !c.group);
+		let list = [...map.values()].filter((g) => g.rows.length || g.hidden);
+		if (group_f.length) list = list.filter((g) => group_f.every((c) => this.matches(c, g)));
+		if (row_f.length) {
+			list.forEach((g) => (g.rows = g.rows.filter((r) => row_f.every((c) => this.matches(c, r)))));
+			list = list.filter((g) => g.rows.length);
+		}
 		list.forEach((g) => {
 			g.rows.sort((a, b) => this.compare(a, b));
 			g.urgency = Math.max(0, ...g.rows.filter((r) => !r.cb_hidden).map((r) => r.urgency));
@@ -293,8 +341,7 @@ class ClientBase {
 		);
 		this.$toolbar.find(".cb-field").toggle(!this.work_mode);
 
-		const groups = this.groups();
-		if (!groups.length) {
+		if (!this.data.rows.length) {
 			this.$body.html(
 				`<div class="cb-empty">${
 					this.work_mode ? __("No contacts in work") : __("No contacts")
@@ -309,22 +356,43 @@ class ClientBase {
 				? `<i class="fa fa-sort-${this.sort.dir > 0 ? "asc" : "desc"}"></i>`
 				: `<i class="fa fa-sort text-muted"></i>`;
 		const cols = this.visible_columns();
-		const ncols = cols.length + 3;
+		const extra = (c, cell) => (c.key === "designation" ? cell : "");
 		const th = (c) =>
-			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(c.key)}</th>${
-				c.key === "designation" ? '<th class="cb-col-add"></th>' : ""
-			}`;
-		let html = `<table class="cb-table"><thead><tr>
-			${cols
+			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(
+				c.key
+			)}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
+		const fth = (c) =>
+			`<th class="cb-filter-cell cb-col-${c.key}">${
+				c.text
+					? `<input type="text" class="form-control input-xs cb-col-filter" data-key="${
+							c.key
+					  }" placeholder="${__("Filter")}" value="${this.esc(this.col_filters[c.key] || "")}">`
+					: ""
+			}</th>${extra(c, "<th></th>")}`;
+		const head = (cell, check) =>
+			`<tr>${cols
 				.filter((c) => c.group)
-				.map(th)
-				.join("")}
-			<th class="cb-check">${this.work_mode ? "" : '<input type="checkbox" class="cb-all">'}</th>
-			${cols
+				.map(cell)
+				.join("")}${check}${cols
 				.filter((c) => !c.group)
-				.map(th)
-				.join("")}
-			<th></th></tr></thead><tbody>`;
+				.map(cell)
+				.join("")}<th></th></tr>`;
+		const all = this.work_mode ? "" : '<input type="checkbox" class="cb-all">';
+		this.$body.html(`<table class="cb-table"><thead>
+			${head(fth, '<th class="cb-check"></th>')}
+			${head(th, `<th class="cb-check">${all}</th>`)}
+			</thead><tbody></tbody></table>`);
+		this.render_rows();
+		this.render_bottom();
+	}
+
+	render_rows() {
+		const ncols = this.visible_columns().length + 3;
+		const groups = this.groups();
+		let html = "";
+		if (!groups.length) {
+			html = `<tr><td colspan="${ncols + 1}" class="cb-empty">${__("Nothing found")}</td></tr>`;
+		}
 		groups.forEach((g) => {
 			const unit_cells = this.unit_cells(g);
 			if (!g.rows.length) {
@@ -335,9 +403,7 @@ class ClientBase {
 			}
 			g.rows.forEach((r, i) => (html += this.row_html(r, i === 0 ? unit_cells : null)));
 		});
-		html += "</tbody></table>";
-		this.$body.html(html);
-		this.render_bottom();
+		this.$body.find("tbody").html(html);
 	}
 
 	unit_cells(g) {
@@ -522,6 +588,11 @@ class ClientBase {
 
 	bind() {
 		const root = this.$root;
+		const refilter = frappe.utils.debounce(() => this.render_rows(), 150);
+		root.on("input", ".cb-col-filter", (e) => {
+			this.col_filters[$(e.currentTarget).attr("data-key")] = e.currentTarget.value;
+			refilter();
+		});
 		root.on("click", ".cb-sortable", (e) => {
 			const key = $(e.currentTarget).attr("data-key");
 			if (!this.sort || this.sort.key !== key) this.sort = { key, dir: 1 };
