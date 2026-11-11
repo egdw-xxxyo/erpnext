@@ -76,7 +76,7 @@
 .client-base .cb-filter-line > .cb-col-filter { flex: 1 1 60px; min-width: 50px; }
 .client-base .cb-filter-line .cb-range { margin: 0; flex: 0 1 auto; gap: 2px; }
 .client-base .cb-filter-line .cb-range > span { display: none; }
-.client-base .cb-filter-line .cb-date-slot { flex: 0 0 82px; }
+.client-base .cb-filter-line .cb-date-slot { flex: 0 0 96px; }
 .client-base .cb-manager-slot { flex: 1; }
 .client-base .cb-filter-cell .frappe-control, .client-base .cb-filter-cell .form-group { margin: 0 !important; }
 .client-base .cb-filter-cell .control-label, .client-base .cb-filter-cell .help-box { display: none; }
@@ -86,7 +86,7 @@
 .client-base .cb-table thead th.cb-filter-cell { z-index: 4; overflow: visible; }
 .client-base .cb-filter-cell .awesomplete > ul, .client-base .cb-filter-cell .awesomplete > [role="listbox"] { z-index: 20; min-width: 220px; }
 .client-base .cb-clearable { position: relative; flex: 1 1 60px; min-width: 50px; }
-.client-base .cb-filter-line .cb-date-slot.cb-clearable { flex: 0 0 82px; }
+.client-base .cb-filter-line .cb-date-slot.cb-clearable { flex: 0 0 96px; }
 .client-base .cb-clearable input.form-control { padding-right: 18px; }
 .client-base .cb-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; cursor: pointer; color: var(--text-muted); line-height: 0; z-index: 1; }
 .client-base .cb-clear:hover { color: var(--text-color); }
