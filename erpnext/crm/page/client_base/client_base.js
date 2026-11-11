@@ -47,6 +47,10 @@ class ClientBase {
 		];
 		this.make_toolbar();
 		this.bind();
+		$(window).on(
+			"resize.client-base",
+			frappe.utils.debounce(() => this.fit(), 100)
+		);
 	}
 
 	esc(v) {
@@ -313,6 +317,14 @@ class ClientBase {
 		)}"></i></div>`;
 	}
 
+	fit() {
+		const el = this.$body.get(0);
+		if (!el || !el.offsetParent) return;
+		const bottom = this.$bottom.outerHeight() || 0;
+		const height = window.innerHeight - el.getBoundingClientRect().top - bottom - 16;
+		this.$body.css("max-height", `${Math.max(240, height)}px`);
+	}
+
 	render_bottom() {
 		if (this.work_mode) {
 			this.$bottom.html(`<button class="btn btn-danger cb-finish-work">${__("Finish Work")}</button>`);
@@ -325,6 +337,7 @@ class ClientBase {
 		} else {
 			this.$bottom.empty();
 		}
+		this.fit();
 	}
 
 	row_of(el) {
