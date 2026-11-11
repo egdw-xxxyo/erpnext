@@ -143,6 +143,7 @@ class ClientBase {
 				options: "User",
 				fieldname: "manager_user",
 				placeholder: __("Responsible Manager"),
+				get_query: () => ({ query: `${CB_API}.manager_query` }),
 				change: reload,
 			}),
 			favorite: mk({

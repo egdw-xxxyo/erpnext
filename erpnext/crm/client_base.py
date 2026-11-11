@@ -363,3 +363,21 @@ def finish_work():
 		""",
 		frappe.session.user,
 	)
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def manager_query(doctype, txt, searchfield, start, page_len, filters):
+	_check()
+	like = f"%{txt or ''}%"
+	return frappe.db.sql(
+		"""
+		SELECT u.name, u.full_name
+		FROM `tabUser` u
+		WHERE u.name IN (SELECT DISTINCT cb_manager FROM `tabContact` WHERE IFNULL(cb_manager, '') != '')
+			AND (u.name LIKE %(like)s OR u.full_name LIKE %(like)s)
+		ORDER BY u.full_name
+		LIMIT %(start)s, %(page_len)s
+		""",
+		{"like": like, "start": int(start), "page_len": int(page_len)},
+	)
