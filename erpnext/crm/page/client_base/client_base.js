@@ -391,16 +391,8 @@ class ClientBase {
 			)}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
 		const range = (c) => {
 			if (!c.date) return "";
-			const f = this.date_filters[c.key] || {};
-			const input = (side, label) =>
-				`<input type="date" class="form-control input-xs cb-date-filter" data-key="${
-					c.key
-				}" data-side="${side}"
-					title="${label}" value="${this.esc(f[side] || "")}">`;
-			return `<div class="cb-range">${input("from", __("From"))}<span>–</span>${input(
-				"to",
-				__("To")
-			)}</div>`;
+			const slot = (side) => `<div class="cb-date-slot" data-key="${c.key}" data-side="${side}"></div>`;
+			return `<div class="cb-range">${slot("from")}<span>–</span>${slot("to")}</div>`;
 		};
 		const fth = (c) =>
 			`<th class="cb-filter-cell cb-col-${c.key}">${
@@ -423,6 +415,7 @@ class ClientBase {
 			${head(fth, '<th class="cb-check"></th>')}
 			${head(th, `<th class="cb-check">${all}</th>`)}
 			</thead><tbody></tbody></table>`);
+		this.mount_date_filters();
 		const $head = this.$body.find("thead tr");
 		$head
 			.eq(1)
@@ -430,6 +423,32 @@ class ClientBase {
 			.css("top", `${$head.eq(0).outerHeight()}px`);
 		this.render_rows();
 		this.render_bottom();
+	}
+
+	mount_date_filters() {
+		this.$body.find(".cb-date-slot").each((_i, el) => {
+			const key = el.getAttribute("data-key");
+			const side = el.getAttribute("data-side");
+			const current = (this.date_filters[key] || {})[side] || "";
+			const control = frappe.ui.form.make_control({
+				parent: $(el),
+				df: {
+					fieldtype: "Date",
+					fieldname: `${key}_${side}`,
+					placeholder: side === "from" ? __("From") : __("To"),
+					change: () => {
+						const value = control.get_value() || "";
+						const f = this.date_filters[key] || {};
+						if ((f[side] || "") === value) return;
+						this.date_filters[key] = Object.assign({}, f, { [side]: value });
+						this.render_rows();
+					},
+				},
+				render_input: true,
+			});
+			control.refresh();
+			if (current) control.set_value(current);
+		});
 	}
 
 	render_rows() {
@@ -639,14 +658,6 @@ class ClientBase {
 		root.on("input", ".cb-col-filter", (e) => {
 			this.col_filters[$(e.currentTarget).attr("data-key")] = e.currentTarget.value;
 			refilter();
-		});
-		root.on("change", ".cb-date-filter", (e) => {
-			const $i = $(e.currentTarget);
-			const key = $i.attr("data-key");
-			this.date_filters[key] = Object.assign({}, this.date_filters[key], {
-				[$i.attr("data-side")]: e.currentTarget.value,
-			});
-			this.render_rows();
 		});
 		root.on("click", ".cb-sortable", (e) => {
 			const key = $(e.currentTarget).attr("data-key");

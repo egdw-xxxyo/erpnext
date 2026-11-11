@@ -58,4 +58,6 @@
 .client-base .cb-filter-cell { padding: 4px 6px; }
 .client-base .cb-col-filter { height: 28px; font-size: var(--text-sm); }
 .client-base .cb-range { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
-.client-base .cb-range .cb-date-filter { height: 28px; font-size: var(--text-xs); padding: 0 4px; min-width: 0; }
+.client-base .cb-date-slot { flex: 1; min-width: 0; }
+.client-base .cb-date-slot .frappe-control { margin-bottom: 0; }
+.client-base .cb-date-slot input { height: 28px; font-size: var(--text-xs); }
