@@ -28,6 +28,7 @@
   "gross",
   "withheld",
   "net",
+  "enforcement_withheld",
   "ssc",
   "note",
   "section_break_paid",
@@ -174,6 +175,12 @@
    "label": "To Card",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "enforcement_withheld",
+   "fieldtype": "Currency",
+   "label": "Withheld under Enforcement Orders",
+   "read_only": 1
   },
   {
    "fieldname": "ssc",

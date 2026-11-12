@@ -9,12 +9,15 @@ from frappe.utils import escape_html, flt, getdate, today
 
 from erpnext.buying.procurement_final_approval import (
 	ADMINISTRATOR_OVERRIDE,
+	APPROVE_ALL_CEOS_ACTION,
 	FINAL_APPROVAL_STATE,
 	FINAL_APPROVER_ROLE,
 	SNAPSHOT_FIELD,
 	VOTES_FIELD,
+	apply_department_head_approval,
 	capture_final_approvers,
 	get_approval_threshold,
+	get_department_head_approval,
 	get_document_approved_users,
 	get_document_final_approvers,
 	has_administrator_approval,
@@ -238,6 +241,8 @@ def apply_workflow(doc, action):
 	current = frappe.get_doc(DOCTYPE, payload.get("name"), for_update=True)
 	current.check_permission("write")
 	reason = (payload.get("workflow_action_reason") or "").strip()
+	if action == APPROVE_ALL_CEOS_ACTION:
+		return apply_department_head_approval(current, reason, core_apply_workflow)
 	if action in REQUIRED_ACTIONS:
 		_validate_reason(reason)
 	if current.workflow_state == FINAL_APPROVAL_STATE:
@@ -351,4 +356,5 @@ def get_overview(name: str):
 		"votes": get_document_approved_users(doc),
 		"automatic": is_automatic_final_approval(doc),
 		"administrator": has_administrator_approval(doc),
+		"department_head": get_department_head_approval(doc),
 	}

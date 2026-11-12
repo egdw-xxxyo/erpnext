@@ -16888,6 +16888,568 @@ Distribute the entire repair quantity before marking the repair ready.,Пере�
 Cannot find the source request row for this repair.,Не знайдено вихідний рядок заявки для цього ремонту.
 A factory serial number is only available for serialized items.,Заводський серійний номер можна вводити лише для товарів із серійним номером.
 Movement quantity must match the selected repair result row.,Кількість у переміщенні має відповідати вибраному рядку результату ремонту.
+"Sidebar Menu Item","Елемент бічного меню"
+"Visible To","Видимий для"
+"Required DocType","Потрібний DocType"
+"Sort Order","Порядок сортування"
+"Empty = global item shown under Tasks in every sidebar. Otherwise the item is added to this sidebar, or restricted if the sidebar already has an item with the same target.","Порожньо = глобальний елемент під «Завдання» в кожному меню. Інакше елемент додається до цього меню або обмежується, якщо там уже є елемент із такою ж ціллю."
+"Hides the item for everyone, including a standard one with the same target.","Приховує елемент для всіх, зокрема стандартний із такою ж ціллю."
+"Position among the items added to the same place; 0 = end.","Позиція серед елементів, доданих в те саме місце; 0 = в кінець."
+"Page name, DocType, Report, Workspace or URL.","Назва сторінки, DocType, звіту, робочого простору або URL."
+"Icon name from the desk icon set, e.g. list, sheet, users.","Назва значка з набору значків, напр. list, sheet, users."
+"Show only to users who can read this DocType.","Показувати лише користувачам, які можуть читати цей DocType."
+"Empty = visible to everyone who may open the target.","Порожньо = видимий усім, хто може відкрити ціль."
+"Target","Ціль"
+"Global Menu","Глобальне меню"
+"Add Item","Додати пункт"
+"Reload Menu","Перезавантажити меню"
+"View as role","Переглянути як роль"
+"Drag to reorder. These entries appear at the top of every sidebar.","Перетягуйте для зміни порядку. Ці пункти показуються зверху в кожному бічному меню."
+"Everyone","Всіх"
+"built-in","вбудований"
+"Show","Показати"
+"Hide","Приховати"
+"Edit","Редагувати"
+"Drag and Drop View","Перетягування"
+"Built-in","Вбудований"
+"Built-in menu items cannot be deleted, disable them instead.","Вбудовані пункти меню не можна видалити, приховайте їх."
+"Set for the menu entries the system itself provides (Tasks, Search, ...). Such a row only controls order, roles and visibility.","Задано для пунктів, які надає система (Завдання, Пошук, ...). Такий рядок керує лише порядком, ролями та видимістю."
+"Tasks","Завдання"
+"Search","Пошук"
+"Notification","Сповіщення"
+This data is protected. Enter your PIN to open it,"Ці дані захищено. Введіть PIN, щоб їх відкрити"
+This data is protected by a PIN. Open it in the browser,Ці дані захищено PIN-кодом. Відкрийте їх у браузері
+The PIN must be exactly 6 digits,PIN має складатися рівно з 6 цифр
+The PIN is too simple. Do not use repeated or consecutive digits,PIN надто простий. Не використовуйте однакові чи послідовні цифри
+The PINs do not match,PIN-коди не збігаються
+You have not set a PIN yet,Ви ще не створили PIN
+You already have a PIN. Change it or reset it instead,У вас уже є PIN. Змініть або скиньте його
+Your PIN is blocked after too many wrong attempts. Reset it to continue,"Ваш PIN заблоковано через забагато невдалих спроб. Скиньте його, щоб продовжити"
+Wrong PIN,Невірний PIN
+Wrong password,Невірний пароль
+The reset link is invalid or has expired. Request a new one,Посилання для скидання недійсне або застаріле. Запросіть нове
+This reset link was sent to another user,Це посилання для скидання надіслано іншому користувачу
+This is not available while viewing as another user,Це недоступно в режимі перегляду від імені іншого користувача
+PIN of {0} is blocked after {1} wrong attempts,PIN користувача {0} заблоковано після {1} невдалих спроб
+Reset your PIN for protected data,Скидання PIN для захищених даних
+Someone asked to reset the PIN that protects payroll and other sensitive data.,"Надійшов запит на скидання PIN, який захищає зарплатні та інші чутливі дані."
+Set a new PIN,Встановити новий PIN
+"The link works for one hour and only while you are signed in. If you did not ask for this, tell your Access Manager.","Посилання діє одну годину і лише тоді, коли ви увійшли в систему. Якщо ви цього не запитували, повідомте менеджера доступів."
+{0} reset their PIN,{0} скинув(ла) свій PIN
+Row {0}: {1} is listed twice,Рядок {0}: {1} вказано двічі
+Row {0}: system document type {1} cannot be protected,Рядок {0}: системний тип документа {1} не можна захистити
+"Row {0}: {1} is a child table, protect its document instead","Рядок {0}: {1} — дочірня таблиця, захистіть її документ"
+Row {0}: {1} has no field {2},Рядок {0}: у {1} немає поля {2}
+{0} changed the protected data settings,{0} змінив(ла) налаштування захисту чутливих даних
+PIN States,Стан PIN-кодів
+Protected data is open until {0},Захищені дані відкрито до {0}
+Lock now,Заблокувати зараз
+Protected data is locked,Захищені дані заблоковано
+Protected data is open. Repeat the action,Захищені дані відкрито. Повторіть дію
+Forgot your PIN?,Забули PIN?
+"The data stays open for {0} minutes, or until {1} minutes pass without opening it.",Дані залишаться відкритими {0} хв або до {1} хв без звернень до них.
+The data stays open for {0} minutes.,Дані залишаться відкритими {0} хв.
+Enter PIN,Введіть PIN
+You are viewing as another user: enter the PIN of {0}.,Ви переглядаєте систему від імені іншого користувача: введіть PIN користувача {0}.
+This data is protected by your personal PIN.,Ці дані захищено вашим особистим PIN-кодом.
+PIN is not set,PIN не створено
+"This user has not set a PIN yet, so protected data cannot be opened.","Цей користувач ще не створив PIN, тому захищені дані відкрити не можна."
+Create a PIN,Створіть PIN
+Choose 6 digits that only you know.,"Оберіть 6 цифр, які знаєте лише ви."
+Your login password,Ваш пароль для входу
+New PIN,Новий PIN
+Repeat PIN,Повторіть PIN
+Save PIN,Зберегти PIN
+PIN is blocked,PIN заблоковано
+The PIN of this user is blocked after too many wrong attempts.,PIN цього користувача заблоковано через забагато невдалих спроб.
+Your PIN is blocked after too many wrong attempts. We will email you a link to set a new one.,Ваш PIN заблоковано через забагато невдалих спроб. Ми надішлемо на пошту посилання для створення нового.
+Send reset link,Надіслати посилання для скидання
+Reset link sent,Посилання для скидання надіслано
+We sent a link to set a new PIN to {0}. It works for one hour.,Посилання для створення нового PIN надіслано на {0}. Воно діє одну годину.
+Change PIN,Змінити PIN
+Current PIN,Поточний PIN
+PIN changed,PIN змінено
+Reset PIN,Скинути PIN
+Send {0} a link to set a new PIN for protected data?,Надіслати користувачу {0} посилання для створення нового PIN для захищених даних?
+"Set a new PIN for payroll and other protected data. To confirm it is you, enter your login password.","Встановіть новий PIN для зарплатних та інших захищених даних. Щоб підтвердити, що це ви, введіть пароль для входу."
+New PIN saved,Новий PIN збережено
+Sensitive Access Log,Журнал чутливого доступу
+"PIN unlocks, wrong attempts, resets and settings changes","Розблокування PIN-кодом, невдалі спроби, скидання та зміни налаштувань"
+PIN Blocked,PIN заблоковано
+PIN Set,PIN створено
+PIN Changed,PIN змінено
+Reset Requested,Запит на скидання
+PIN Reset,PIN скинуто
+Settings Changed,Налаштування змінено
+Acted By,Виконав
+"Who acted, if not the user: a manager viewing as the user or resetting their PIN","Хто діяв, якщо не сам користувач: менеджер, що переглядає від його імені або скидає його PIN"
+Unlocked Until,Розблоковано до
+Sensitive Data API User,API-користувач без PIN
+Sensitive Data Object,Захищений об'єкт
+"A document type, report or page that opens only after the PIN","Тип документа, звіт або сторінка, що відкриваються лише після PIN"
+Unlock Duration (min),Тривалість розблокування (хв)
+Empty uses the default unlock duration,Якщо порожньо — тривалість за замовчуванням
+Sensitive Data Field,Захищене поле
+A field whose value is hidden until the PIN is entered,"Поле, значення якого приховане до введення PIN"
+Sensitive Data Settings,Захист чутливих даних
+"Which data opens only after the personal PIN, and for how long",Які дані відкриваються лише після особистого PIN і на скільки
+"While off, nothing asks for the PIN","Поки вимкнено, PIN ніде не запитується"
+Lock After Inactivity (min),Блокувати після бездіяльності (хв)
+Locks again after this many minutes without opening protected data. 0 turns it off,Знову блокує після стількох хвилин без звернень до захищених даних. 0 — вимкнено
+Wrong PIN Attempts Allowed,Дозволено невдалих спроб PIN
+After this many wrong PINs in a row the PIN is blocked until it is reset,Після стількох невдалих спроб поспіль PIN блокується до скидання
+API Users Without PIN,API-користувачі без PIN
+Integrations that sign in with an API key and may read protected data without a PIN,"Інтеграції, що входять за API-ключем і можуть читати захищені дані без PIN"
+Protected Data,Захищені дані
+"Document Types, Reports and Pages","Типи документів, звіти та сторінки"
+Child tables are protected together with their document,Дочірні таблиці захищаються разом зі своїм документом
+Protected Fields,Захищені поля
+Sensitive Data PIN,PIN для чутливих даних
+PIN state of a user. The PIN itself is stored only as a hash,Стан PIN користувача. Сам PIN зберігається лише як хеш
+Wrong Attempts In A Row,Невдалих спроб поспіль
+PIN Set On,Дата створення PIN
+Last Unlock,Останнє розблокування
+Reset Key,Ключ скидання
+Reset Link Expires,Посилання для скидання діє до
+Access and Security,Доступи та безпека
+All events,Усі події
+Blocked PINs,Заблоковані PIN
+Enter PIN to show them,"Введіть PIN, щоб їх показати"
+Exports and prints,Вивантаження та друк
+Lock,Заблокувати
+Lock protected data for this user now?,Заблокувати захищені дані для цього користувача зараз?
+Locked by a manager,Заблоковано менеджером
+My Access Requests,Мої запити на доступ
+No events yet,Подій ще немає
+No protected document was opened yet,Захищені документи ще не відкривали
+Nobody has created a PIN yet,Ніхто ще не створив PIN
+Nobody has protected data open,Зараз ніхто не має відкритих захищених даних
+Nothing protected was exported or printed,Захищені дані не вивантажували й не друкували
+On,Увімкнено
+Open now,Відкрито зараз
+Opened protected documents,Відкриті захищені документи
+Protected data. Open it in the browser,Захищені дані. Відкрийте їх у браузері
+Protected fields,Захищені поля
+Protected objects,Захищені об’єкти
+Protection,Захист
+Protection is off: nothing asks for the PIN. Turn it on in the settings.,Захист вимкнено: PIN ніде не запитується. Увімкніть його в налаштуваннях.
+Sensitive Data Monitor,Моніторинг захищених даних
+This data is protected by a PIN. Enter your PIN in the browser to open it,"Ці дані захищені PIN-кодом. Введіть PIN у браузері, щоб їх відкрити"
+This unlock has already ended,Це розблокування вже завершилося
+"Unlock lasts {0} min, locks after {1} min without activity, {2} wrong attempts block the PIN.","Розблокування діє {0} хв, блокується після {1} хв бездіяльності, {2} невдалих спроб блокують PIN."
+When,Коли
+Wrong PINs in 24 h,Невірних PIN за 24 год
+viewing as the user,переглядає як цей користувач
+"{0} does not receive email, so the reset link cannot be sent. Set a real email address in the user first.","{0} не отримує пошту, тому посилання для скидання надіслати неможливо. Спершу вкажіть користувачу справжню адресу пошти."
+Unlocked,Розблоковано
+Who Viewed,Хто переглядав
+Protected data,Захищені дані
+Object,Об'єкт
+Who,Хто
+File Download,Скачування
+What Changed,Що змінено
+Who Changed,Хто змінив
+Object Type,Тип об'єкта
+Level {0},Рівень {0}
+Role Profile Name,Профіль ролей
+Permlevel,Рівень доступу
+access granted,доступ надано
+access removed,доступ забрано
+{0} rights changed,змінено прав: {0}
+Granted: {0},Надано: {0}
+Revoked: {0},Забрано: {0}
+Rights: {0},Права: {0}
+Own documents only,Лише власні документи
+Was: {0},Було: {0}
+Now: {0},Стало: {0}
+All document types,Усі типи документів
+Applies to,Діє для
+Before Change,Було
+After Change,Стало
+No changes,Змін немає
+View Log,Журнал переглядів
+Apply To All Doctypes,Застосувати до всіх типів документів
+Failed Login,Невдалий вхід
+Signed Out,Вихід
+Viewing as another user,Перегляд від імені
+User Manually Logged Out,Вручну
+Force Logged out by the user,Примусово завершено
+Whole document,Документ повністю
+What to protect,Що захистити
+Add Protection,Додати захист
+Already protected,Уже захищено
+Choose a document type first,Спочатку виберіть тип документа
+Name or module,Назва або модуль
+Select at least one item,Виберіть хоча б один пункт
+Unknown object type {0},Невідомий тип об'єкта {0}
+"Its list, form, print and export ask for the PIN","Список, форма, друк і експорт питатимуть PIN"
+"The document stays open, only the chosen fields stay hidden until the PIN is entered","Документ лишається відкритим, приховані лише вибрані поля, доки не введено PIN"
+Opening and running the report asks for the PIN,Відкриття та запуск звіту питатимуть PIN
+Opening the page and the server methods of its own module ask for the PIN,Відкриття сторінки та серверні методи її власного модуля питатимуть PIN
+Empty: the general value from the settings,"Порожньо: загальне значення з налаштувань"
+Added: {0}. Save the settings to apply,"Додано: {0}. Збережіть налаштування, щоб застосувати"
+"This document is already protected as a whole, its fields are hidden anyway","Цей документ уже захищено повністю, його поля й так приховані"
+PIN reset,PIN скинуто
+Confirm it is you with your login password and choose a new PIN. Access Managers will be notified.,"Підтвердіть, що це ви, паролем для входу та виберіть новий PIN. Менеджери доступу отримають сповіщення."
+Your PIN is blocked after too many wrong attempts. Set a new one with your login password.,"PIN заблоковано після надто багатьох невдалих спроб. Задайте новий, підтвердивши паролем для входу."
+{0} has no PIN to reset,У {0} немає PIN для скидання
+{0} reset your PIN. Create a new one the next time you open protected data,"{0} скинув ваш PIN. Створіть новий, коли наступного разу відкриватимете захищені дані"
+Reset the PIN of {0}? They will create a new one with their login password the next time they open protected data.,"Скинути PIN користувача {0}? Новий PIN він створить сам, підтвердивши паролем для входу, коли наступного разу відкриватиме захищені дані."
+API client,API-клієнт
+protection turned on,захист увімкнено
+protection turned off,захист вимкнено
+unlock duration {0} → {1} min,тривалість розблокування {0} → {1} хв
+idle limit {0} → {1} min,бездіяльність {0} → {1} хв
+attempts {0} → {1},спроб {0} → {1}
+protected: {0},захищено: {0}
+unprotected: {0},знято захист: {0}
+hidden fields: {0},приховано поля: {0}
+shown fields: {0},відкрито поля: {0}
+{0}: {1} → {2} min,{0}: {1} → {2} хв
+API access granted: {0},доступ через API надано: {0}
+API access removed: {0},доступ через API забрано: {0}
+and {0} more,і ще {0}
+Unlocked until {0},Розблоковано до {0}
+Wrong PIN · attempt {0},Невірний PIN · спроба {0}
+PIN blocked after too many attempts,PIN заблоковано після забагатьох спроб
+PIN created,PIN створено
+PIN reset by a manager,PIN скинуто менеджером
+PIN replaced with the login password,PIN замінено через пароль для входу
+PIN reset requested by email,Запит на скидання PIN поштою
+Locked manually,Заблоковано вручну
+Closed for inactivity at {0},Закрито через бездіяльність о {0}
+"Closed, the unlock time ran out at {0}",Закрито: минув час розблокування о {0}
+What happened,Що сталося
+Protected fields are hidden: {0}.,Захищені поля приховано: {0}.
+"Protected data opens only after your personal PIN, so nobody can read it at your computer while you are away.","Захищені дані відкриваються лише після введення вашого особистого PIN, щоб ніхто не зміг переглянути їх за вашим комп'ютером, поки вас немає."
+"Commercial Offer","Комерційна пропозиція"
+"Commercial Offer Item","Позиція комерційної пропозиції"
+"Commercial Offer Field","Поле комерційної пропозиції"
+"Tagline","Підзаголовок"
+"Cover text under the product name","Текст на обкладинці під назвою виробу"
+"Commercial Terms","Комерційні умови"
+"Delivery Days","Термін поставки (днів)"
+"Validity Days","Чинність пропозиції (днів)"
+"Total Price without VAT","Загальна вартість без ПДВ"
+"Price in Words","Вартість прописом"
+"Technical State","Технічний стан"
+"Signer Name","Підписант"
+"Signer Title","Посада підписанта"
+"Classification Data","Класифікаційні дані"
+"Delivery Set","Комплект поставки"
+"Overrides the item name in the PDF","Замінює назву товару у PDF"
+"Key Capability","Ключова можливість"
+"Source Item","Товар-джерело"
+"Source Parameter","Параметр-джерело"
+"Specification parameter of the source item","Параметр специфікації товару-джерела"
+"Value or Formula","Значення або формула"
+"Text, or =formula with {Parameter} / {Row name} tokens","Текст або =формула з токенами {Параметр} / {Назва рядка}"
+"Override","Перевизначити"
+"Custom Value","Власне значення"
+"Icon","Іконка"
+"Font Awesome name, e.g. fa-plane","Назва Font Awesome, напр. fa-plane"
+"Commercial Offer Logo","Логотип для комерційної пропозиції"
+"Commercial Offer Stamp and Signature","Печатка і підпис для комерційної пропозиції"
+"Commercial Offer Header Text","Текст шапки комерційної пропозиції"
+"Company name, registration code, IBAN and bank; one line per row","Назва компанії, код, IBAN і банк; по одному рядку"
+"Specifications of Product","Характеристики виробу"
+"Refresh Preview","Оновити перегляд"
+"Select the product first.","Спочатку оберіть виріб."
+"Add the delivery set before submitting.","Додайте комплект поставки перед проведенням."
+"{0} must be greater than zero.","{0} має бути більше нуля."
+"These field rows have no value:","У цих рядків полів немає значення:"
+"Unresolved Commercial Offer Fields","Незаповнені поля комерційної пропозиції"
+"Made in Ukraine","Вироблено в Україні"
+"Key Capabilities","Ключові можливості"
+"days","днів"
+"delivery term","термін поставки"
+"offer validity","чинність пропозиції"
+"total price* without VAT","загальна вартість* без ПДВ"
+"Main Tactical and Technical Characteristics","Основні тактико-технічні характеристики"
+"Value, unit","Значення параметру, одиниця виміру"
+"Name, unit of measure","Найменування, одиниця виміру"
+"Technical condition data:","Дані щодо технічного стану:"
+"Full name of the manufacturer, country of origin and location, logistics route:","Повне найменування виробника, країна походження та знаходження, логістичний маршрут постачання:"
+"full name of the manufacturer:","повне найменування виробника:"
+"country of origin: Ukraine, and location: Ukraine.","країна походження: Україна, та знаходження: Україна."
+"logistics route: delivery to the customer's warehouse within Ukraine is possible.","логістичний маршрут постачання: можлива доставка на склад замовника в межах України."
+"Terms of delivery (term, schedule, etc.):","Умови постачання (строк, графік тощо):"
+"by the supplier's own forces and means within {0} days after the Contract is signed.","силами і засобами постачальника протягом {0} днів після підписання Договору."
+"Total cost (price) and terms of payment:","Загальна вартість (ціна) та умови оплати:"
+"total cost","загальна вартість"
+"without VAT","без ПДВ"
+"payment terms: non-cash payment for the actually delivered Goods is made in the national currency of Ukraine within 5 (five) calendar days from the date the Supplier provides the Customer with the Supplier's delivery note and invoice.","умови оплати: безготівковий розрахунок за фактично поставлений Товар проводиться в національній валюті України протягом 5 (п’яти) календарних днів з дати надання Постачальником Замовнику видаткової накладної та рахунку-фактури."
+"We hope for productive and long-term cooperation!","Сподіваємося на продуктивну та тривалу співпрацю!"
+"Sincerely,","З повагою,"
+"Title in PDF","Назва у PDF"
+"Replaces the product name on every page; empty = product name","Замінює назву виробу на кожній сторінці; порожньо = назва виробу"
+"pcs","шт."
+"Field of the source Item, e.g. weight_per_unit","Поле товару-джерела, напр. weight_per_unit"
+"A template is never submitted; new offers are created as its copy","Шаблон не проводиться; нові пропозиції створюються як його копія"
+"Create from Template","Створити із шаблону"
+"Pick a template to fill in every field of this offer","Оберіть шаблон, щоб заповнити всі поля цієї пропозиції"
+"A template cannot be submitted. Create an offer from it first.","Шаблон не можна провести. Спершу створіть із нього пропозицію."
+"{0} is not a template.","{0} не є шаблоном."
+"Create Offer","Створити пропозицію"
+"Template (disabled)","Шаблон (вимкнено)"
+"A disabled template is not offered when creating an offer","Вимкнений шаблон не пропонується під час створення пропозиції"
+"Key Capability rows fill the icon strip on page 1; Specification rows fill the table on page 2.","Рядки «Ключова можливість» заповнюють смугу іконок на сторінці 1, рядки «Характеристика» — таблицю на сторінці 2."
+"A value starting with = is a formula, e.g. ={Range}*2. {Name} reads a parameter of the source item or another row.","Значення, що починається з =, є формулою, напр. ={Дальність}*2. {Назва} бере параметр товару-джерела або іншого рядка."
+"Final Value","Кінцеве значення"
+"Reset to default","Скинути до значення за замовчуванням"
+"Overridden value","Значення змінено вручну"
+"Fill in to override the default value","Заповніть, щоб замінити значення за замовчуванням"
+"Text","Текст"
+"Default definition","Визначення за замовчуванням"
+"Preview PDF","Попередній перегляд PDF"
+"Generating PDF...","Формування PDF..."
+"Add Items from Stock","Додати товари зі складу"
+Approve on behalf of all CEOs,Погодити за всіх CEO
+Only a Department Head can approve on behalf of all CEOs.,Погодити за всіх CEO може лише керівник підрозділу.
+Approved by Department Head on behalf of all CEOs,Погоджено керівником підрозділу за всіх CEO
+{0} approved on behalf of all CEOs for the following reason:<br>{1},{0} погодив за всіх CEO з таким поясненням:<br>{1}
+Printer {0} ({1}:{2}) is not reachable. Check power and network.,Принтер {0} ({1}:{2}) недоступний. Перевірте живлення та мережу.
+Client Base,Клієнтська база
+Call Result,Результат дзвінка
+Contact Call Result,Результат дзвінка по контакту
+Favorite,Обране
+Favorites,Обрані
+Hidden,Приховано
+Show Hidden,Показати приховані
+Due Today,Наступна дія сьогодні
+In Work,У роботі
+Worked By,Працює
+Work Started,Початок роботи
+Processed contacts,Опрацьовано контактів
+Reset contact filter,Скинути фільтр контакту
+No contacts in work,Немає контактів у роботі
+No contacts,Немає контактів
+Start Work,Почати роботу
+Finish Work,Завершити роботу
+Finish Contact,Завершити роботу з контактом
+Add Result,Додати результат
+Results,Результати
+No results,Немає результатів
+No tasks,Немає завдань
+Task closed,Завдання закрито
+Changes during work,Зміни під час роботи
+Tasks from before the work (tick to close),Завдання, що були до початку роботи (позначте, щоб закрити)
+No open tasks from before the work,Немає відкритих завдань, що були до початку роботи
+Finish work? All contacts will no longer be marked as in work.,Завершити роботу? Усі контакти більше не будуть позначені як у роботі.
+Select at least one contact,Виберіть хоча б один контакт
+Contact {0} is already being worked on by {1},Контакт {0} уже в роботі у {1}
+Contact {0} is not in your work,Контакт {0} не у вашій роботі
+Follow up,Повторний контакт
+Invalid field,Неправильне поле
+No answer,Без відповіді
+Call back later,Передзвонити пізніше
+Proposal sent,Пропозицію надіслано
+Refused,Відмова
+Gray,Сірий
+{0} hidden,Приховано: {0}
+Unhide,Показати знову
+{0} open,відкритих: {0}
+Click to expand,"Натисніть, щоб розгорнути"
+Other open tasks,Інші відкриті завдання
+Client Base Comment,Коментар (клієнтська база)
+Contact {0} not found,Контакт {0} не знайдено
+Military Unit Name,Повна назва ВЧ
+All contacts are hidden,Усі контакти приховано
+{0} contacts,Контактів: {0}
+My contacts,Мої контакти
+Unassigned,Без менеджера
+Change manager,Змінити менеджера
+Only your own or unassigned contacts can be taken to work,У роботу можна взяти лише свої контакти або контакти без менеджера
+Contact {0} belongs to manager {1},Контакт {0} закріплений за менеджером {1}
+Latest Result,Останній результат
+Add to Work,Додати в роботу
+Added to work: {0},Додано в роботу: {0}
+Scroll to top,Нагору
+Processed military units,Опрацьовано ВЧ
+Sick Leave Case,Випадок лікарняного
+Sick Leave Certificate,Листок непрацездатності (ЕЛН)
+Sick Leave Cases,Випадки лікарняного
+Case Type,Тип випадку
+Illness or Injury,Захворювання або травма
+Work Injury or Occupational Disease,Виробнича травма або профзахворювання
+Maternity,Вагітність і пологи
+Child Care,Догляд за дитиною
+Employer Paid,Оплачено роботодавцем
+Fund Received,Отримано від фонду
+Final Certificate Received,Отримано останній ЕЛН
+Tick when the last electronic sick leave certificate (ЕЛН) is closed: only then the employer part goes into the salary.,"Позначте, коли останній ЕЛН закрито: лише тоді частина роботодавця йде в зарплату."
+Certificates (ЕЛН),Листки непрацездатності (ЕЛН)
+Certificates,Листки
+Certificate Number (ЕЛН),Номер ЕЛН
+Calendar Days,Календарні дні
+Calculation,Розрахунок
+Calculation Details,Деталі розрахунку
+"Insurance Record, Years","Страховий стаж, років"
+"Insurance Record, Months","Страховий стаж, місяців"
+Pay Percent,Відсоток оплати
+Why This Percent,Чому такий відсоток
+Average Daily Wage,Середньоденна зарплата
+Pay per Day,Оплата за день
+How the Average Was Taken,Як порахована середня
+Employer Part,Частина роботодавця
+Employer Days,Дні роботодавця
+Employer Part Accrued,Нараховано (роботодавець)
+Employer Part Withheld,Утримано (роботодавець)
+Employer Part to Card,На картку (роботодавець)
+Employer Part SSC,ЄСВ (роботодавець)
+Paid by Payroll Sheet,Виплачено зарплатною відомістю
+Salary Month,Місяць зарплати
+Employer Part Paid On,Частину роботодавця виплачено
+Fund Part,Частина фонду
+Fund Days,Дні фонду
+Fund Part Expected,Очікується від фонду
+Fund Part Accrued,Нараховано (фонд)
+Fund Part Withheld,Утримано (фонд)
+Fund Part to Card,На картку (фонд)
+Fund Part SSC,ЄСВ (фонд)
+Received from Fund,Отримано від фонду
+Received from Fund On,Дата надходження від фонду
+Fund Receipt Entry,Проведення надходження від фонду
+Fund Part Paid On,Частину фонду виплачено
+Fund Part Payment Entry,Проведення виплати частини фонду
+Fund Part Tax Entry,Проведення податків частини фонду
+Add at least one sick leave certificate (ЕЛН).,Додайте хоча б один листок непрацездатності (ЕЛН).
+Certificate {0}: the last day is before the first day.,ЕЛН {0}: останній день раніше за перший.
+Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case.,ЕЛН {0} не продовжує {1}: продовження починається наступного дня після закінчення попереднього. Перерва означає новий випадок лікарняного.
+These days are already in sick leave case {0}.,Ці дні вже є у випадку лікарняного {0}.
+The sick leave case is already paid — it cannot be deleted.,Випадок лікарняного вже оплачено — видалити його не можна.
+No earnings in the calculation period — taken from the official salary.,У розрахунковому періоді немає заробітку — середня з офіційного окладу.
+{0} – {1}: earnings {2} over {3} days.,{0} – {1}: заробіток {2} за {3} дн.
+Capped by the maximum SSC base: {0} a day instead of {1}.,Обмежено максимальною базою ЄСВ: {0} на день замість {1}.
+"Insurance record under 6 months: capped by the minimum wage, {0} a day instead of {1}.","Страховий стаж менше 6 місяців: обмежено мінімальною зарплатою, {0} на день замість {1}."
+Attendance shows another status on: {0}.,У табелі інша відмітка на: {0}.
+The fund pays nothing in this case.,У цьому випадку фонд нічого не платить.
+The money from the fund is already recorded.,Надходження від фонду вже записано.
+Enter the amount received from the fund.,"Вкажіть суму, отриману від фонду."
+"Sick pay from the fund, {0}, {1}","Лікарняні від фонду, {0}, {1}"
+"The fund paid {0}, the calculation expected {1}.","Фонд заплатив {0}, за розрахунком очікувалось {1}."
+Record the money from the fund first.,Спершу запишіть надходження від фонду.
+The fund part is already paid.,Частину фонду вже виплачено.
+Sick pay (fund part) {0},Лікарняні (частина фонду) {0}
+Taxes on the sick pay (fund part) {0},Податки з лікарняних (частина фонду) {0}
+Not entered,Не вказано
+{0}: always {1}%,{0}: завжди {1}%
+Employee card: sick pay in full,Картка працівника: лікарняні у повному розмірі
+Insurance record {0} full years (from {1} years — {2}%),Страховий стаж {0} повних років (від {1} років — {2}%)
+Insurance record {0} full years (under 3 years — {1}%),Страховий стаж {0} повних років (до 3 років — {1}%)
+Money Received from Fund,Отримано гроші від фонду
+Pay Fund Part to Employee,Виплатити частину фонду працівнику
+Fund,Фонд
+The case is open: the employer part goes into the salary once the final certificate is ticked.,"Випадок відкритий: частина роботодавця піде в зарплату, коли буде позначено останній ЕЛН."
+Save the case to see the calculation.,"Збережіть випадок, щоб побачити розрахунок."
+Insurance record,Страховий стаж
+{0} y {1} m = before joining {2} m (from the {3}) + here {4} m since {5},{0} р. {1} міс. = до прийняття {2} міс. (з {3}) + тут {4} міс. з {5}
+employee card,картки працівника
+Pay percent,Відсоток оплати
+Average daily wage,Середньоденна зарплата
+Pay per day,Оплата за день
+"{0} calendar days: employer {1}, fund {2}","{0} календарних дн.: роботодавець {1}, фонд {2}"
+Employer part (with the salary),Частина роботодавця (із зарплатою)
+"{0} accrued, {1} to the card","нараховано {0}, на картку {1}"
+Fund part (when the money arrives),Частина фонду (коли прийдуть гроші)
+Amount Received,Отримана сума
+"{0} accrued, {1} to the card.","Нараховано {0}, на картку {1}."
+Waiting for Fund,Чекає на фонд
+Not Closed,Не закриті
+Find Unregistered Sick Days,Знайти незареєстровані лікарняні
+Find,Знайти
+Created {0} draft cases — enter the certificate numbers.,Створено чернеток випадків: {0} — вкажіть номери ЕЛН.
+Sick leave cases whose employer part this row pays.,"Випадки лікарняного, частину роботодавця яких платить цей рядок."
+Working days by the calendar; a sick day counts at the cash percent from the payroll tax settings.,Робочі дні за календарем; день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+Paid separately by the sick leave case when the money from the fund arrives.,"Платиться окремо випадком лікарняного, коли прийдуть гроші від фонду."
+How much of the cash daily rate the cash half pays for each sick day.,Скільки відсотків готівкової денної ставки платиться за кожен день лікарняного.
+Cash Pay for a Sick Day,Готівка за день лікарняного
+Calendar working days from the joining date up to the cut-off; a sick day counts at the cash percent from the payroll tax settings.,Робочі дні за календарем від прийняття на роботу до дня відсікання; день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.,Зарплата платиться за {0} оплачуваних днів із {1} робочих днів місяця — день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+Sick Pay (Fund),Лікарняні (фонд)
+paid separately by the sick leave case,платиться окремо випадком лікарняного
+{0} d,{0} дн.
+Vacation Payments,Виплати відпускних
+Days Ahead,Днів наперед
+Late by {0} d,Прострочено на {0} дн.
+Today,Сьогодні
+In {0} d,Через {0} дн.
+No unpaid vacations ahead.,Неоплачених відпусток попереду немає.
+plus {0} earlier unpaid days,плюс {0} раніше неоплачених дн.
+Vacation pay is due {0} d before the first vacation day (Payroll Tax Settings).,Відпускні платяться за {0} дн. до першого дня відпустки (Налаштування податків на зарплату).
+"{0} d: {1} accrued, {2} to the card.","{0} дн.: нараховано {1}, на картку {2}."
+Paid through {0},Оплачено через {0}
+No earnings yet — official salary × 12 ÷ {0} days.,Заробітку ще немає — офіційний оклад × 12 ÷ {0} дн.
+{0} – {1}: earnings {2} ÷ {3} days.,{0} – {1}: заробіток {2} ÷ {3} дн.
+{0} employees are paid later than the due date before the vacation.,"Працівників, яким відпускні оплачено пізніше строку: {0}."
+How many days before the first vacation day the vacation pay must be paid (the Labour Code says 3).,За скільки днів до першого дня відпустки треба виплатити відпускні (КЗпП каже 3).
+Pay Vacation Days Before,Платити відпускні за днів до
+Earnings by Month,Заробіток по місяцях
+ERP,ERP
+Before ERP,До ERP
+Earnings by Month: {0},Заробіток по місяцях: {0}
+"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до ERP — з таблиці «Заробіток до ERP» цієї картки."
+Official Accrued,Нараховано офіційно
+Official Paid to Card,Виплачено на картку
+Cash Accrued,Нараховано готівкою
+Cash Paid,Виплачено готівкою
+For the Average,Для середньої
+No months yet.,Місяців ще немає.
+Overtime Hour Rate,Годинна ставка понаднормових
+Full salary ÷ working days of the month ÷ hours of a working day.,Повний оклад ÷ робочі дні місяця ÷ години робочого дня.
+Overtime Hours on Working Days,Понаднормові години в робочі дні
+Hours Worked on Days Off,Години роботи у вихідні та свята
+"The whole day plus its overtime hours, paid at the double rate.",Увесь день плюс його понаднормові години — за подвійною ставкою.
+Overtime Pay (Cash),Понаднормові (готівкою)
+Overtime in Cash,Понаднормові готівкою
+h,год
+days off,вихідні
+Enforcement Order,Виконавчий документ
+Enforcement Orders,Виконавчі документи
+Enforcement Order Withholding,Утримання за виконавчим документом
+Kind,Вид
+Child Alimony,Аліменти на дітей
+Other Alimony,Інші аліменти
+Other Debt,Інший борг
+"Child alimony allows withholding up to 70% of a payment, everything else up to 50%.","Для аліментів на дітей можна утримати до 70% виплати, для решти — до 50%."
+Document Number,Номер документа
+Enforcement Proceeding No.,№ виконавчого провадження
+Issued By (Court / Enforcement Officer),Ким видано (суд / виконавець)
+Withhold From,Утримувати з
+Withhold Until,Утримувати до
+Percent,Відсоток
+Percent: from every official payment after PIT and military levy. Fixed: once a month from the monthly salary.,Відсоток — з кожної офіційної виплати після ПДФО і військового збору. Фіксована сума — раз на місяць із зарплати за місяць.
+Percent of Net Official Pay,Відсоток від чистої офіційної виплати
+Fixed Amount per Month,Фіксована сума на місяць
+Total Debt,Загальна сума боргу
+Stop withholding once this much is withheld. Empty — no limit (alimony).,"Утримання припиняється, щойно утримано цю суму. Порожньо — без обмеження (аліменти)."
+Fixed Amount Not Withheld Yet,Ще не утримана фіксована сума
+What the last months could not withhold — added to the next month.,"Те, що не вдалося утримати в попередні місяці, — додається до наступного."
+Recipient Tax ID / EDRPOU,РНОКПП / ЄДРПОУ отримувача
+Withheld,Утримано
+Transferred to Recipient,Перераховано отримувачу
+To Transfer,До перерахування
+Withholdings,Утримання
+Paid By Type,Тип виплати
+Paid By,Виплата
+Net Payment,Чиста виплата
+Withholding Entry,Проведення утримання
+Transfer Entry,Проведення перерахування
+The percent must be above 0 and not more than 100.,Відсоток має бути більшим за 0 і не більшим за 100.
+Enter the fixed amount per month.,Вкажіть фіксовану суму на місяць.
+The last day of withholding is before the first one.,Останній день утримання раніше за перший.
+Money was already withheld under this document — close it instead of deleting.,За цим документом уже утримано гроші — закрийте його замість видалення.
+Nothing is waiting to be transferred to the recipient.,"Немає сум, що чекають на перерахування отримувачу."
+Set the bank account and the account of component «{0}» first.,Спершу налаштуйте банківський рахунок і рахунок компонента «{0}».
+"{0}: {1}, IBAN {2}. {3}","{0}: {1}, IBAN {2}. {3}"
+Transfer to Recipient,Перерахувати отримувачу
+"{0} to {1}, IBAN {2}.","{0} — {1}, IBAN {2}."
+Set the account for salary component «{0}» for company {1}: the payment has withholdings under enforcement orders.,Налаштуйте рахунок компонента «{0}» для компанії {1}: у виплаті є утримання за виконавчими документами.
+No Account for Enforcement Withholdings,Немає рахунку для утримань за виконавчими документами
+Withheld under enforcement orders: {0},Утримано за виконавчими документами: {0}
+Withheld under Enforcement Orders,Утримано за виконавчими документами
+"Taken from this card payment under the employee's enforcement orders (alimony, court debts).","Утримано з цієї виплати на картку за виконавчими документами працівника (аліменти, борги за рішенням суду)."
+Fund Part Withheld under Enforcement Orders,Утримано з частини фонду за виконавчими документами
 Use New Repair UI,Увімкнути новий інтерфейс ремонту
 Return to Standard Frappe UI,Повернутися до стандартного Frappe UI
 The action could not be completed. Check the details and try again.,Не вдалося виконати дію. Перевірте дані та спробуйте ще раз.

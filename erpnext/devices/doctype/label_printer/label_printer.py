@@ -57,11 +57,42 @@ class LabelPrinter(Document):
 # ---------------------------------------------------------------------------
 
 
-def _tcp_query(ip, port, command, timeout=5, recv_timeout=0.5):
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.settimeout(timeout)
+CONNECT_TIMEOUT = 3
+CONNECT_ATTEMPTS = 3
+SEND_ATTEMPTS = 3
+SEND_MIN_RATE_BPS = 8 * 1024
+RETRY_BACKOFF = (1, 2)
+
+
+def _tcp_connect(ip, port, connect_timeout=CONNECT_TIMEOUT, attempts=CONNECT_ATTEMPTS):
+	last_err = None
+	for attempt in range(attempts):
+		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		sock.settimeout(connect_timeout)
+		try:
+			sock.connect((ip, port))
+			return sock
+		except OSError as e:
+			sock.close()
+			last_err = e
+			if attempt < attempts - 1:
+				time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
+	raise last_err
+
+
+def is_printer_reachable(ip, port, timeout=4):
 	try:
-		sock.connect((ip, port))
+		sock = _tcp_connect(ip, port, connect_timeout=timeout, attempts=1)
+	except OSError:
+		return False
+	sock.close()
+	return True
+
+
+def _tcp_query(ip, port, command, timeout=5, recv_timeout=0.5):
+	sock = _tcp_connect(ip, port, connect_timeout=min(timeout, CONNECT_TIMEOUT), attempts=2)
+	try:
+		sock.settimeout(timeout)
 		sock.sendall(f"{command}\r\n".encode())
 		sock.settimeout(recv_timeout)
 		response = b""
@@ -79,13 +110,28 @@ def _tcp_query(ip, port, command, timeout=5, recv_timeout=0.5):
 
 
 def _tcp_send_raw(ip, port, data, timeout=5):
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.settimeout(timeout)
-	try:
-		sock.connect((ip, port))
-		sock.sendall(data)
-	finally:
-		sock.close()
+	# Send budget scales with payload: a 100x100 label bitmap is ~170KB and a printer
+	# still busy with the previous label drains its buffer slowly. A failed attempt
+	# never prints (the closing "E" is the last byte), so retrying cannot duplicate a label.
+	send_timeout = max(timeout, 10 + len(data) / SEND_MIN_RATE_BPS)
+	last_err = None
+	for attempt in range(SEND_ATTEMPTS):
+		try:
+			sock = _tcp_connect(ip, port)
+			try:
+				sock.settimeout(send_timeout)
+				sock.sendall(data)
+				return
+			finally:
+				sock.close()
+		except OSError as e:
+			last_err = e
+			frappe.logger("label_printer").warning(
+				f"_tcp_send_raw {ip}:{port} attempt {attempt + 1}/{SEND_ATTEMPTS} failed: {e}"
+			)
+			if attempt < SEND_ATTEMPTS - 1:
+				time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
+	raise last_err
 
 
 def _send_ezpl(printer_doc, ezpl_str):
@@ -487,6 +533,13 @@ def print_label(print_job_name, label_printer=None):
 	t0 = time.monotonic()
 	try:
 		printer = _get_printer_doc(job.label_printer)
+
+		if not printer.mock_printing and not is_printer_reachable(printer.ip_address, printer.port):
+			frappe.throw(
+				_("Printer {0} ({1}:{2}) is not reachable. Check power and network.").format(
+					job.label_printer, printer.ip_address, printer.port
+				)
+			)
 
 		if printer.is_label_change_in_progress:
 			frappe.throw(_("Printer {0} is changing labels. Please wait.").format(job.label_printer))

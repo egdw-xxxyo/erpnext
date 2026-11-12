@@ -186,7 +186,11 @@ erpnext.access_control.denial_html = (info, message) => {
 erpnext.access_control.show_denial = ({ context, message, re_route }) =>
 	frappe
 		.xcall("erpnext.access_control.denial.get_denial", { context })
-		.then((info) => erpnext.access_control.denial_dialog(info, message, re_route));
+		.then((info) =>
+			info.sensitive_locked
+				? erpnext.sensitive_data.prompt("reload")
+				: erpnext.access_control.denial_dialog(info, message, re_route)
+		);
 
 erpnext.access_control.denial_dialog = (info, message, re_route) => {
 	const can_ask = info.can_request && !info.pending && !info.allowed;

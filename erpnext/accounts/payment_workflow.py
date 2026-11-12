@@ -1,5 +1,7 @@
 import frappe
 
+from erpnext.buying.procurement_workflow import APPROVE_ALL_CEOS_ACTION, DEPARTMENT_HEAD_ROLE
+
 WORKFLOW_NAME = "Payments: погодження запиту на оплату"
 
 WORKFLOW_STATES = (
@@ -13,6 +15,7 @@ WORKFLOW_STATES = (
 )
 
 WORKFLOW_ACTIONS = (
+	APPROVE_ALL_CEOS_ACTION,
 	"Подати на перевірку підрозділу",
 	"Подати на перевірку казначейству",
 	"Погодити",
@@ -332,6 +335,15 @@ def _invoice_approval_transitions():
 
 
 WORKFLOW_TRANSITIONS = _invoice_approval_transitions()
+WORKFLOW_TRANSITIONS += (
+	{
+		"state": "Фінальне погодження",
+		"action": APPROVE_ALL_CEOS_ACTION,
+		"next_state": "Перевірка казначейства",
+		"allowed": DEPARTMENT_HEAD_ROLE,
+		"allow_self_approval": 1,
+	},
+)
 
 
 def sync_workflow_configuration():

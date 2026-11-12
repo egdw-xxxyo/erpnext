@@ -40,3 +40,27 @@ MOCK_LINK = {
 def add_chat_pages():
 	links = LINKS if frappe.conf.get("instance_env") == "prod" else (*LINKS, MOCK_LINK)
 	add_links(SIDEBAR, INSERT_AFTER, links)
+
+
+OFFER_LINK = {
+	"label": "Commercial Offer",
+	"link_to": "Commercial Offer",
+	"link_type": "DocType",
+	"icon": "file-text",
+}
+
+
+def add_commercial_offer():
+	add_links(SIDEBAR, INSERT_AFTER, (OFFER_LINK,))
+
+
+CLIENT_BASE_LINK = {
+	"label": "Client Base",
+	"link_to": "client-base",
+	"link_type": "Page",
+	"icon": "users",
+}
+
+
+def add_client_base():
+	add_links(SIDEBAR, INSERT_AFTER, (CLIENT_BASE_LINK,))

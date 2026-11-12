@@ -23,6 +23,7 @@ from erpnext.hr.salary_advance import (
 	period_norm,
 	plan_advance,
 )
+from erpnext.payroll_ua import enforcement
 from erpnext.payroll_ua.doctype.salary_approval.salary_approval import get_coverage
 
 
@@ -210,6 +211,24 @@ class SalaryAdvance(Document):
 		posting_date = getdate(posting_date or self.payment_date or self.cutoff_date())
 		vouchers = []
 
+		# Виконавчі документи (відсоткові) утримуються й з авансу на картку — людині менше.
+		withholdings = {}
+
+		for row in targets:
+			items = enforcement.calculate(row.employee, self.company, flt(row.advance_card), posting_date)
+			row.advance_enforcement = enforcement.total(items)
+
+			if items:
+				withholdings[row.employee] = items
+
+		enforcement.check_account(self.company, list(withholdings.values()))
+
+		def card_amount(row, source):
+			if source == "advance_card":
+				return flt(flt(row.advance_card) - flt(row.advance_enforcement), 2)
+
+			return flt(row.get(source), 2)
+
 		paid_to = payroll_accounts.advance_account(self.company)
 		# Рахунок авансу зазвичай персональний (розрахунки з працівниками), тож розкладаємо
 		# борг по контрагентах — без цього проведення на такий рахунок не збережеться.
@@ -220,7 +239,9 @@ class SalaryAdvance(Document):
 		)
 
 		for paid_from, remark, source in payouts:
-			parties = [(row.employee, flt(row.get(source), 2)) for row in targets if flt(row.get(source), 2)]
+			parties = [
+				(row.employee, card_amount(row, source)) for row in targets if card_amount(row, source)
+			]
 			amount = sum(party_amount for _employee, party_amount in parties)
 
 			if not amount:
@@ -241,6 +262,19 @@ class SalaryAdvance(Document):
 			for row in targets:
 				if flt(row.get(source), 2):
 					row.set(f"journal_entry_{source.replace('advance_', '')}", voucher)
+
+		for row in targets:
+			if row.employee in withholdings:
+				enforcement.post(
+					self.company,
+					row.employee,
+					withholdings[row.employee],
+					posting_date,
+					paid_to,
+					self.doctype,
+					self.name,
+					base=flt(row.advance_card),
+				)
 
 		# Податки з виплаченого авансу: утримане з людини й ЄСВ зверху — окремим проведенням,
 		# інакше борг перед бюджетом ніде не видно (див. `payroll_accounts.make_tax_entry`).

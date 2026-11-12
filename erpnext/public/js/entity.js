@@ -3,13 +3,16 @@
 // customers, chats… all render through erpnext.entity so they look the same on every
 // page — no bare names in one place and avatars in another.
 //
-//   erpnext.entity.html({name, sub, image, icon, key, route, href, title, size, class})
+//   erpnext.entity.html({name, sub, image, icon, key, route, href, title, size, class, card})
+//     card: true → the chat-list look: 40px avatar, bold name, second line always reserved
 //   erpnext.entity.user("jane@x.com" | {user, full_name, user_image}, opts)
 //   erpnext.entity.contact({name, full_name, image, designation, department, company_name}, opts)
 //   erpnext.entity.number({name, verified_name, account_name, display_phone_number,
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
 //   erpnext.entity.workplace("Packing" | {name, sub}, opts)  // production workplace → its form
+//   erpnext.entity.contact("CONT-1" | {contact, full_name, sub, image}, opts)  // contact → its form
+//   erpnext.entity.military_unit("A0001" | {name, sub}, opts)  // military unit → its form
 //   erpnext.entity.doc_link({doctype, name, label})       // inline link to any record, inside text
 //   erpnext.entity.list(items, renderer, opts)            // several, wrapped, or "—"
 //   erpnext.entity.avatar_html({name, key, image, icon}, size)
@@ -74,15 +77,17 @@ frappe.provide("erpnext.entity");
 	E.html = function (e, opts) {
 		E.inject_styles();
 		e = Object.assign({}, e, opts);
-		const size = e.size || 24;
+		const size = e.size || (e.card ? 40 : 24);
 		const href = e.href || (e.route ? E.url(e.route) : null);
 		const tag = href ? "a" : "span";
 		const attrs = [
-			`class="ent${href ? " ent-link" : ""}${e.class ? " " + e.class : ""}"`,
+			`class="ent${e.card ? " ent-card" : ""}${href ? " ent-link" : ""}${
+				e.class ? " " + e.class : ""
+			}"`,
 			href ? `href="${esc(href)}"` : "",
 			`title="${esc(e.title || [e.name, e.sub].filter(Boolean).join(" · "))}"`,
 		].join(" ");
-		const sub = e.sub ? `<span class="ent-sub">${esc(e.sub)}</span>` : "";
+		const sub = e.sub || e.card ? `<span class="ent-sub">${e.sub ? esc(e.sub) : "&nbsp;"}</span>` : "";
 		return `<${tag} ${attrs}>${E.avatar_html(e, size)}<span class="ent-text"><span class="ent-name">${esc(
 			e.name
 		)}</span>${sub}</span></${tag}>`;
@@ -117,6 +122,47 @@ frappe.provide("erpnext.entity");
 				route: ["Form", "Contact", contact.name],
 			},
 			opts
+		);
+	};
+
+	E.load_users = function (users) {
+		const unknown = [...new Set(users)].filter((u) => u && !frappe.boot.user_info?.[u]);
+		if (!unknown.length) return Promise.resolve(false);
+		return frappe
+			.xcall("frappe.desk.form.load.get_user_info_for_viewers", { users: unknown })
+			.then((info) => {
+				frappe.update_user_info(info || {});
+				return Object.keys(info || {}).length > 0;
+			});
+	};
+
+	E.route_to = function (href) {
+		const url = new URL(href, window.location.origin);
+		if (url.search) frappe.route_options = Object.fromEntries(url.searchParams);
+		frappe.set_route(url.pathname);
+	};
+
+	// Stock list rows open the subject link by its path only, and also fire when a chip
+	// inside the row is clicked: chips go to their own target, rows keep the link's query.
+	E.bind_list_links = function (listview) {
+		listview.$result.get(0).addEventListener(
+			"click",
+			(event) => {
+				const row = event.target.closest(".list-row");
+				if (!row || event.target.closest("input")) return;
+				const chip = event.target.closest("a.ent-link");
+				const subject = row.querySelector(".list-subject a");
+				if (chip) {
+					event.stopPropagation();
+					if (event.ctrlKey || event.metaKey) return;
+					event.preventDefault();
+					E.route_to(chip.href);
+				} else if (!event.target.closest("a") && subject?.search) {
+					event.stopPropagation();
+					E.route_to(subject.href);
+				}
+			},
+			true
 		);
 	};
 
@@ -169,6 +215,37 @@ frappe.provide("erpnext.entity");
 		);
 	};
 
+	E.contact = function (c, opts) {
+		if (!c) return "";
+		const id = typeof c === "string" ? c : c.contact || c.name;
+		const name = (typeof c === "object" && (c.full_name || c.label)) || id;
+		return E.html(
+			{
+				name,
+				sub: (typeof c === "object" && c.sub) || "",
+				key: (typeof c === "object" && c.key) || id,
+				image: (typeof c === "object" && c.image) || "",
+				route: ["Form", "Contact", id],
+			},
+			opts
+		);
+	};
+
+	E.military_unit = function (u, opts) {
+		if (!u) return "";
+		const id = typeof u === "string" ? u : u.name;
+		return E.html(
+			{
+				name: id,
+				sub: (typeof u === "object" && u.sub) || "",
+				key: id,
+				icon: "fa fa-shield",
+				route: ["Form", "Military Unit", id],
+			},
+			opts
+		);
+	};
+
 	// A record named inside running text (a chat mention, a referenced document): an inline
 	// link to its form, whatever the doctype.
 	E.doc_link = function (d) {
@@ -184,8 +261,8 @@ frappe.provide("erpnext.entity");
 	};
 
 	E.inject_styles = function () {
-		if (document.getElementById("ent-styles-v2")) return;
-		$(`<style id="ent-styles-v2">
+		if (document.getElementById("ent-styles-v3")) return;
+		$(`<style id="ent-styles-v3">
 			.ent-avatar{display:inline-block;flex:none;border-radius:50%;color:#fff;font-weight:600;
 				text-align:center;overflow:hidden;user-select:none;vertical-align:middle;}
 			.ent-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -194,6 +271,9 @@ frappe.provide("erpnext.entity");
 			.ent-text{display:flex;flex-direction:column;min-width:0;line-height:1.25;}
 			.ent-name,.ent-sub{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 			.ent-sub{font-size:0.85em;color:var(--text-muted);font-weight:400;}
+			.ent-card{gap:10px;}
+			.ent-card .ent-name{font-weight:600;}
+			.ent-card .ent-sub{font-size:var(--text-sm);}
 			.ent-link:hover{text-decoration:none;}
 			.ent-link:hover .ent-name{text-decoration:underline;}
 			.ent-doc{color:inherit;font-weight:600;padding:0 3px;border-radius:4px;

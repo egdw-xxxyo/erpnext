@@ -174,6 +174,42 @@ export class ERPNextClient {
     }
   }
 
+  // Read the rows of one child table through the parent document
+  async getChildRows(doctype: string, name: string, tableField: string): Promise<any[]> {
+    const doc = await this.getDocument(doctype, name);
+    const rows = doc?.[tableField];
+    if (!Array.isArray(rows)) {
+      throw new Error(`${doctype} ${name} has no child table '${tableField}'`);
+    }
+    return rows;
+  }
+
+  // Change child rows through the parent: update by row name, add new rows, remove by row name
+  async updateChildRows(
+    doctype: string,
+    name: string,
+    tableField: string,
+    update?: Record<string, Record<string, any>>,
+    add?: Record<string, any>[],
+    remove?: string[]
+  ): Promise<any[]> {
+    const rows = await this.getChildRows(doctype, name, tableField);
+    const known = new Set(rows.map((row: any) => row.name));
+    for (const rowName of [...Object.keys(update || {}), ...(remove || [])]) {
+      if (!known.has(rowName)) {
+        throw new Error(`Row '${rowName}' not found in ${doctype} ${name}.${tableField}`);
+      }
+    }
+    const removed = new Set(remove || []);
+    const next = rows
+      .filter((row: any) => !removed.has(row.name))
+      .map((row: any) => ({ ...row, ...(update?.[row.name] || {}) }));
+    for (const row of add || []) next.push({ ...row });
+    next.forEach((row: any, index: number) => { row.idx = index + 1; });
+    const result = await this.updateDocument(doctype, name, { [tableField]: next });
+    return result?.[tableField] ?? next;
+  }
+
   // Call a Frappe whitelisted method
   async callMethod(method: string, args?: Record<string, any>): Promise<any> {
     try {
@@ -539,6 +575,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: "get_child_rows",
+        description: "Read the rows of one child table of a document (e.g. Quality Inspection Template -> item_quality_inspection_parameter). Goes through the parent document, so it works where get_documents with parent_doctype is denied.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            doctype: { type: "string", description: "Parent DocType" },
+            name: { type: "string", description: "Parent document name/ID" },
+            table_field: { type: "string", description: "Child table fieldname on the parent" }
+          },
+          required: ["doctype", "name", "table_field"]
+        }
+      },
+      {
+        name: "update_child_rows",
+        description: "Change rows of one child table through the parent document without resending the whole document. 'update' maps a row name to the fields to change, 'add' appends new rows, 'remove' lists row names to delete. Returns the resulting rows.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            doctype: { type: "string", description: "Parent DocType" },
+            name: { type: "string", description: "Parent document name/ID" },
+            table_field: { type: "string", description: "Child table fieldname on the parent" },
+            update: {
+              type: "object",
+              additionalProperties: { type: "object", additionalProperties: true },
+              description: "{row_name: {field: value}} — fields to change on existing rows"
+            },
+            add: {
+              type: "array",
+              items: { type: "object", additionalProperties: true },
+              description: "New rows to append"
+            },
+            remove: {
+              type: "array",
+              items: { type: "string" },
+              description: "Names of rows to delete"
+            }
+          },
+          required: ["doctype", "name", "table_field"]
+        }
+      },
+      {
         name: "update_document",
         description: "Update an existing document in ERPNext",
         inputSchema: {
@@ -835,6 +912,57 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
     
+    case "get_child_rows":
+    case "update_child_rows": {
+      if (!erpnext.isAuthenticated()) {
+        return {
+          content: [{
+            type: "text",
+            text: "Not authenticated with ERPNext. Please configure API key authentication."
+          }],
+          isError: true
+        };
+      }
+
+      const args = request.params.arguments || {};
+      const doctype = String(args.doctype || "");
+      const name = String(args.name || "");
+      const tableField = String(args.table_field || "");
+      if (!doctype || !name || !tableField) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "doctype, name and table_field are required"
+        );
+      }
+
+      try {
+        const rows = request.params.name === "get_child_rows"
+          ? await erpnext.getChildRows(doctype, name, tableField)
+          : await erpnext.updateChildRows(
+              doctype,
+              name,
+              tableField,
+              args.update as Record<string, Record<string, any>> | undefined,
+              args.add as Record<string, any>[] | undefined,
+              args.remove as string[] | undefined
+            );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(rows, null, 2)
+          }]
+        };
+      } catch (error: any) {
+        return {
+          content: [{
+            type: "text",
+            text: `Failed on ${doctype} ${name}.${tableField}: ${error?.message || 'Unknown error'}`
+          }],
+          isError: true
+        };
+      }
+    }
+
     case "update_document": {
       if (!erpnext.isAuthenticated()) {
         return {

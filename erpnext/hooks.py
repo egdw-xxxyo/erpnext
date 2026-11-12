@@ -44,8 +44,24 @@ web_include_icons = [
 	"/assets/erpnext/icons/pos-icons.svg",
 ]
 
-after_request = ["erpnext.access_control.denial.attach_denial_context"]
-before_request = ["erpnext.access_control.impersonation.enforce_view_mode"]
+after_request = [
+	"erpnext.access_control.denial.attach_denial_context",
+	"erpnext.access_control.sensitive.after_request",
+]
+before_request = [
+	"erpnext.access_control.impersonation.enforce_view_mode",
+	"erpnext.access_control.sensitive.guard_request",
+]
+on_logout = "erpnext.access_control.sensitive.clear_unlock_on_logout"
+masked_fields = ["erpnext.access_control.sensitive.masked_fields"]
+
+sensitive_data_methods = {
+	"Salary History": ["erpnext.payroll_ua.salary_history."],
+	"access-console": [
+		"erpnext.access_control.console.",
+		"erpnext.access_control.impersonation.get_users",
+	],
+}
 
 doctype_js = {
 	"Issue": [
@@ -59,6 +75,7 @@ doctype_js = {
 		"public/js/custom/repair_unit.js",
 	],
 	"Repair Settings": "public/js/custom/repair_settings.js",
+	"Permission Log": "public/js/custom/permission_log.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
 	"Consolidated Purchase Order": [
@@ -82,6 +99,7 @@ doctype_js = {
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
+		"public/js/custom/employee_earnings.js",
 		"public/js/custom/employee_attendance_sheet.js",
 		"public/js/custom/employee_overview.js",
 	],
@@ -126,6 +144,14 @@ doctype_list_js = {
 	"Repair Unit": "public/js/custom/repair_unit_list.js",
 	"Purchase Invoice": "public/js/custom/purchase_invoice_vat_list.js",
 	"ToDo": "public/js/custom/todo_list.js",
+	"View Log": "public/js/custom/view_log_list.js",
+	"Access Log": "public/js/custom/access_log_list.js",
+	"Permission Log": "public/js/custom/permission_log_list.js",
+	"Activity Log": "public/js/custom/activity_log_list.js",
+	"Sensitive Access Log": [
+		"public/js/access_control/sensitive_log.js",
+		"public/js/custom/sensitive_access_log_list.js",
+	],
 	"Code List": [
 		"edi/doctype/code_list/code_list_import.js",
 	],
@@ -134,7 +160,10 @@ doctype_list_js = {
 	],
 }
 
-page_js = {"print": "public/js/print.js"}
+page_js = {
+	"print": "public/js/print.js",
+	"sensitive-data-monitor": "public/js/access_control/sensitive_log.js",
+}
 
 override_doctype_class = {
 	"Address": "erpnext.accounts.custom.address.ERPNextAddress",
@@ -181,6 +210,7 @@ permission_query_conditions = {
 	# WhatsApp chats and messages are visible only on the numbers the user is assigned to.
 	"WhatsApp Chat": "erpnext.crm.whatsapp_access.chat_query_conditions",
 	"WhatsApp Message": "erpnext.crm.whatsapp_access.message_query_conditions",
+	"*": "erpnext.access_control.sensitive.query_conditions",
 }
 
 # Access to a parent document reaches its children: whoever can see a Project can see that
@@ -238,6 +268,7 @@ has_permission = {
 	"Technical Document Audit Entry": "erpnext.technical_documentation.permissions.audit_entry_has_permission",
 	"WhatsApp Chat": "erpnext.crm.whatsapp_access.has_permission",
 	"WhatsApp Message": "erpnext.crm.whatsapp_access.has_permission",
+	"*": "erpnext.access_control.sensitive.has_permission",
 }
 
 welcome_email = "erpnext.setup.utils.welcome_email"
@@ -261,10 +292,13 @@ after_migrate = [
 	"erpnext.devices.app_version.sync_required_app_version",
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.crm.crm_sidebar.add_chat_pages",
+	"erpnext.crm.crm_sidebar.add_commercial_offer",
+	"erpnext.crm.crm_sidebar.add_client_base",
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 	"erpnext.setup.organization_sidebar.add_organization_links",
 	"erpnext.buying.buying_sidebar.add_buying_links",
 	"erpnext.stock.stock_sidebar.add_stock_links",
+	"erpnext.access_control.sidebar.add_access_links",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -430,6 +464,21 @@ standard_navbar_items = [
 		"condition": "eval: frappe.boot.sysdefaults.demo_company && frappe.boot.sysdefaults.demo_company.length > 0",
 		"icon": "trash",
 	},
+	{
+		"item_label": "My Access Requests",
+		"item_type": "Action",
+		"action": "frappe.set_route('List', 'Access Request', {user: frappe.session.user})",
+		"is_standard": 1,
+		"icon": "lock-keyhole",
+	},
+	{
+		"item_label": "Change PIN",
+		"item_type": "Action",
+		"action": "erpnext.sensitive_data.change_dialog()",
+		"is_standard": 1,
+		"condition": "eval: frappe.boot.sensitive_data && frappe.boot.sensitive_data.enabled && frappe.boot.sensitive_data.has_pin",
+		"icon": "key-round",
+	},
 ]
 
 standard_portal_menu_items = [
@@ -566,6 +615,7 @@ doc_events = {
 		"on_trash": "erpnext.crm.doctype.chat_thread.chat_thread.on_reference_deleted",
 		# share what a group member creates with the whole group
 		"after_insert": "erpnext.setup.doctype.employee_group.group_access.auto_share_on_insert",
+		"before_print": "erpnext.access_control.sensitive.mask_print",
 	},
 	tuple(period_closing_doctypes): {
 		"validate": "erpnext.accounts.doctype.accounting_period.accounting_period.validate_accounting_period_on_doc_save",
@@ -986,6 +1036,7 @@ scheduler_events = {
 			"erpnext.devices.doctype.scanner.scanner_api.expire_scanner_sessions",
 			"erpnext.correspondence.mail_forward.sync_delivery_status",
 			"erpnext.utilities.todo_reminder.send_due_reminders",
+			"erpnext.access_control.sensitive_monitor.expire_unlocks",
 		],
 		"0/15 * * * *": [
 			"erpnext.manufacturing.doctype.bom_update_log.bom_update_log.resume_bom_cost_update_jobs",
@@ -1266,6 +1317,9 @@ extend_bootinfo = [
 	"erpnext.startup.instance_env.add_instance_env",
 	"erpnext.crm.whatsapp_access.boot_session",
 	"erpnext.access_control.impersonation.boot_view",
+	"erpnext.access_control.sidebar_menu.boot_session",
+	"erpnext.access_control.sensitive.boot",
+	"erpnext.access_control.sidebar.hide_module_sidebar",
 ]
 
 

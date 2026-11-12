@@ -37,6 +37,7 @@
   "column_break_advance",
   "advance_accrued",
   "advance_card",
+  "advance_enforcement",
   "advance_cash",
   "advance_total",
   "section_break_leave_pay",
@@ -113,7 +114,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Calendar working days from the joining date up to the cut-off, less sick leave over 5 days a month.",
+   "description": "Calendar working days from the joining date up to the cut-off; a sick day counts at the cash percent from the payroll tax settings.",
    "fieldname": "advance_days",
    "fieldtype": "Float",
    "label": "Paid Days of the Advance",
@@ -260,6 +261,12 @@
    "fieldname": "advance_card",
    "fieldtype": "Currency",
    "label": "Advance to Card"
+  },
+  {
+   "fieldname": "advance_enforcement",
+   "fieldtype": "Currency",
+   "label": "Withheld under Enforcement Orders",
+   "read_only": 1
   },
   {
    "fieldname": "advance_cash",

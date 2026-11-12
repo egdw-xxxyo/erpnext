@@ -14,7 +14,10 @@ import re
 from urllib.parse import parse_qs, urlparse
 
 import frappe
+from frappe import _
 from frappe.utils import strip_html_tags
+
+from erpnext.access_control import sensitive
 
 MAX_TITLE = 120
 MAX_BODY = 400
@@ -61,6 +64,9 @@ def on_notification_log(doc, method=None):
 		body = _plain(doc.email_content)[:MAX_BODY]
 		if not body and doc.document_type:
 			body = f"{doc.document_type} {doc.document_name or ''}".strip()
+		if sensitive.is_protected_doctype(doc.document_type):
+			title = _(doc.document_type)
+			body = sensitive.protected_push_text()
 
 		frappe.enqueue(
 			"erpnext.crm.page.employee_chat.employee_chat._send_fcm_push",

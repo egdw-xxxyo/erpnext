@@ -1,0 +1,320 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-11-03 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "links": [],
+ "field_order": [
+  "naming_series",
+  "is_template",
+  "template_name",
+  "disabled",
+  "base_template",
+  "date",
+  "company",
+  "customer",
+  "col_1",
+  "main_item",
+  "item_name",
+  "pdf_title",
+  "product_type",
+  "tagline",
+  "terms_section",
+  "qty",
+  "delivery_days",
+  "valid_days",
+  "col_2",
+  "currency",
+  "price",
+  "price_in_words",
+  "col_3",
+  "technical_state",
+  "signer_name",
+  "signer_title",
+  "classification_text",
+  "fields_tab",
+  "fields_help",
+  "spec_fields",
+  "items_tab",
+  "items",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "КП-.YYYY.-.###",
+   "default": "КП-.YYYY.-.###",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "is_template",
+   "fieldtype": "Check",
+   "label": "Is Template",
+   "no_copy": 1,
+   "in_standard_filter": 1,
+   "description": "A template is never submitted; new offers are created as its copy"
+  },
+  {
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "label": "Template Name",
+   "depends_on": "is_template",
+   "mandatory_depends_on": "is_template",
+   "no_copy": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled",
+   "depends_on": "is_template",
+   "no_copy": 1,
+   "description": "A disabled template is not offered when creating an offer"
+  },
+  {
+   "fieldname": "base_template",
+   "fieldtype": "Link",
+   "label": "Create from Template",
+   "options": "Commercial Offer",
+   "depends_on": "eval:!doc.is_template",
+   "no_copy": 1,
+   "description": "Pick a template to fill in every field of this offer"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "default": "Today",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "main_item",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Product Name",
+   "fetch_from": "main_item.item_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "pdf_title",
+   "fieldtype": "Data",
+   "label": "Title in PDF",
+   "description": "Replaces the product name on every page; empty = product name"
+  },
+  {
+   "fieldname": "product_type",
+   "fieldtype": "Data",
+   "label": "Product Type",
+   "default": "Безпілотний літальний апарат"
+  },
+  {
+   "fieldname": "tagline",
+   "fieldtype": "Small Text",
+   "label": "Tagline",
+   "description": "Cover text under the product name"
+  },
+  {
+   "fieldname": "terms_section",
+   "fieldtype": "Section Break",
+   "label": "Commercial Terms"
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "label": "Quantity",
+   "default": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "delivery_days",
+   "fieldtype": "Int",
+   "label": "Delivery Days",
+   "default": "30",
+   "reqd": 1
+  },
+  {
+   "fieldname": "valid_days",
+   "fieldtype": "Int",
+   "label": "Validity Days",
+   "default": "30",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "fetch_from": "company.default_currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Total Price without VAT",
+   "options": "currency",
+   "in_list_view": 1,
+   "mandatory_depends_on": "eval:!doc.is_template"
+  },
+  {
+   "fieldname": "price_in_words",
+   "fieldtype": "Small Text",
+   "label": "Price in Words",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "technical_state",
+   "fieldtype": "Data",
+   "label": "Technical State",
+   "default": "новий"
+  },
+  {
+   "fieldname": "signer_name",
+   "fieldtype": "Data",
+   "label": "Signer Name"
+  },
+  {
+   "fieldname": "signer_title",
+   "fieldtype": "Data",
+   "label": "Signer Title",
+   "default": "Генеральний директор"
+  },
+  {
+   "fieldname": "classification_text",
+   "fieldtype": "Small Text",
+   "label": "Classification Data"
+  },
+  {
+   "fieldname": "fields_tab",
+   "fieldtype": "Tab Break",
+   "label": "Fields"
+  },
+  {
+   "fieldname": "fields_help",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "spec_fields",
+   "fieldtype": "Table",
+   "label": "Fields",
+   "options": "Commercial Offer Field"
+  },
+  {
+   "fieldname": "items_tab",
+   "fieldtype": "Tab Break",
+   "label": "Delivery Set"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Delivery Set",
+   "options": "Commercial Offer Item"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Commercial Offer",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "modified": "2026-11-06 17:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CRM",
+ "name": "Commercial Offer",
+ "owner": "Administrator",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "item_name",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  }
+ ],
+ "search_fields": "template_name,item_name"
+}

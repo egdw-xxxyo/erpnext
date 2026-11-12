@@ -3,7 +3,7 @@ from operator import itemgetter
 
 import frappe
 from frappe import _
-from frappe.sessions import delete_session
+from frappe.sessions import delete_session, get_csrf_token
 from frappe.utils import now_datetime
 
 from erpnext.access_control import impersonation_rules as rules
@@ -15,7 +15,15 @@ from erpnext.access_control.scope import employees_by_user, manager_scope, user_
 
 SESSION_KEY = "access_view"
 SIMULATE_METHOD = "erpnext.access_control.dry_run.simulate"
-ALLOWED_WHILE_VIEWING = frozenset({"erpnext.access_control.impersonation.end_view", "logout"})
+ALLOWED_WHILE_VIEWING = frozenset(
+	{
+		"erpnext.access_control.impersonation.end_view",
+		"logout",
+		"erpnext.access_control.sensitive.get_status",
+		"erpnext.access_control.sensitive.unlock",
+		"erpnext.access_control.sensitive.lock",
+	}
+)
 LOGIN_METADATA = ("last_login", "last_ip", "last_active")
 
 
@@ -180,7 +188,7 @@ def start_view(user: str, reason: str) -> dict:
 	session.data.data.csrf_token = frappe.generate_hash()
 	session.update(force=True)
 	_restore_login_metadata(user, metadata)
-	return {"route": "/app"}
+	return {"route": "/app", "csrf_token": session.data.data.csrf_token}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -195,7 +203,7 @@ def end_view() -> dict:
 	_log(target, _("{0} finished viewing as {1}").format(view["by"], target))
 	frappe.local.login_manager.login_as(view["by"], session_end=data.session_end, audit_user=data.audit_user)
 	delete_session(mask_sid, user=target, reason="View session finished")
-	return {"route": "/app/access-console"}
+	return {"route": "/app/access-console", "csrf_token": get_csrf_token()}
 
 
 def enforce_view_mode():

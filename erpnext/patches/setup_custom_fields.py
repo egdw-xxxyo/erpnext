@@ -25,6 +25,7 @@ def execute():
 	setup_supplier_item_matching()
 	setup_procurement_document_details()
 	setup_todo_deadline()
+	setup_sidebar_item_roles()
 	setup_payment_instruction_list_link()
 	create_workflow_states()
 	create_workflow_actions()
@@ -83,6 +84,7 @@ def execute():
 	setup_whatsapp_user_role()
 	create_military_unit_fields()
 	create_call_sign_fields()
+	create_client_base_fields()
 	create_customer_prospect_link()
 	setup_lead_sources()
 	setup_lead_permissions()
@@ -97,6 +99,7 @@ def execute():
 	setup_opportunity_field_properties()
 	set_v16_ported_properties()
 	create_v16_ported_fields()
+	create_commercial_offer_company_fields()
 	arrange_lead_fields()
 	setup_chat_manager_role()
 	restore_standard_navbar_items()
@@ -113,6 +116,13 @@ def execute():
 	setup_payroll_tax_accounts()
 	setup_procurement_custom_fields()
 	allow_warehouse_rename()
+	setup_view_log_list()
+	setup_access_log_list()
+	setup_permission_log_list()
+	setup_activity_log_list()
+	open_colleague_employee_links()
+	make_user_images_public()
+	remove_retired_pages()
 	frappe.db.commit()
 	print(
 		"Setup complete: PR workflow, custom fields on Item, PR Item, Quality Inspection, Work Order, Sales Order attachments"
@@ -592,6 +602,30 @@ def setup_payment_instruction_list_link():
 	from erpnext.accounts.payment_fiscal_receipt import sync_existing_fiscal_receipt_statuses
 
 	sync_existing_fiscal_receipt_statuses()
+
+
+def setup_sidebar_item_roles():
+	_create_custom_fields(
+		[
+			{
+				"dt": "Workspace Sidebar Item",
+				"fieldname": "visible_roles",
+				"fieldtype": "Small Text",
+				"label": "Visible To Roles",
+				"description": "Comma-separated roles; empty = everyone. Set in the sidebar editor.",
+				"insert_after": "link_to",
+				"read_only": 1,
+			},
+			{
+				"dt": "Workspace Sidebar Item",
+				"fieldname": "icon_color",
+				"fieldtype": "Data",
+				"label": "Icon Color",
+				"insert_after": "icon",
+				"read_only": 1,
+			},
+		]
+	)
 
 
 def setup_todo_deadline():
@@ -1479,6 +1513,10 @@ def create_salary_tax_components():
 
 	payroll_tax.ensure_components()
 	_default_minimum_wage()
+
+	from erpnext.payroll_ua import enforcement
+
+	enforcement.ensure_component()
 
 
 def _default_minimum_wage():
@@ -2770,6 +2808,105 @@ def create_call_sign_fields():
 			},
 		]
 	)
+
+
+def create_client_base_fields():
+	"""State of the «Клієнтська база» page on the Contact: favorite / hidden marks and the work session.
+
+	Also seeds the Call Result dictionary the page logs call outcomes against."""
+	_create_custom_fields(
+		[
+			{
+				"dt": "Contact",
+				"fieldname": "client_base_section",
+				"fieldtype": "Section Break",
+				"label": "Client Base",
+				"insert_after": "call_sign",
+				"collapsible": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_manager",
+				"fieldtype": "Link",
+				"label": "Responsible Manager",
+				"options": "User",
+				"insert_after": "client_base_section",
+				"in_standard_filter": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_favorite",
+				"fieldtype": "Check",
+				"label": "Favorite",
+				"insert_after": "cb_manager",
+				"no_copy": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_hidden",
+				"fieldtype": "Check",
+				"label": "Hidden",
+				"insert_after": "cb_favorite",
+				"no_copy": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_comment",
+				"fieldtype": "Small Text",
+				"label": "Client Base Comment",
+				"insert_after": "cb_hidden",
+				"no_copy": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_working",
+				"fieldtype": "Check",
+				"label": "In Work",
+				"insert_after": "cb_comment",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_done",
+				"fieldtype": "Check",
+				"label": "Work Done",
+				"insert_after": "cb_working",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_working_by",
+				"fieldtype": "Link",
+				"label": "Worked By",
+				"options": "User",
+				"insert_after": "cb_done",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+			{
+				"dt": "Contact",
+				"fieldname": "cb_work_started",
+				"fieldtype": "Datetime",
+				"label": "Work Started",
+				"insert_after": "cb_working_by",
+				"no_copy": 1,
+				"read_only": 1,
+			},
+		]
+	)
+	for name, color in (
+		("No answer", "Gray"),
+		("Call back later", "Orange"),
+		("Interested", "Green"),
+		("Proposal sent", "Blue"),
+		("Refused", "Red"),
+	):
+		if not frappe.db.exists("Call Result", name):
+			frappe.get_doc({"doctype": "Call Result", "result_name": name, "color": color}).insert(
+				ignore_permissions=True
+			)
 
 
 def create_customer_prospect_link():
@@ -4920,6 +5057,49 @@ def execute_quiet():
 	clear_cache()
 
 
+COLLEAGUE_EMPLOYEE_LINKS = (
+	("Employee Grievance", "employee_responsible"),
+	("Exit Interview", "reports_to"),
+	("Employee Group Table", "employee"),
+	("Delivery Trip", "employee"),
+	("Vehicle", "employee"),
+	("Vehicle Trip", "employee"),
+	("Driver", "employee"),
+	("Sales Person", "employee"),
+	("Activity Cost", "employee"),
+	("Call Log", "call_received_by"),
+	("Supplier Scorecard", "employee"),
+	("Supplier Scorecard Standing", "employee_link"),
+	("Supplier Scorecard Scoring Standing", "employee_link"),
+)
+
+
+def open_colleague_employee_links():
+	"""Let a user pick any colleague in these Links to Employee.
+
+	An Employee linked to a User gets a User Permission on its own Employee, and Frappe applies
+	it to every Link to Employee: the dropdown offers only the user's own record and a document
+	naming a colleague cannot be saved. These fields name a colleague, not the person the
+	document belongs to, so they ignore user permissions. The field that says whose document it
+	is (`employee`, `raised_by`, ...) keeps them, which is what limits the documents a user sees.
+	"""
+	for doctype, fieldname in COLLEAGUE_EMPLOYEE_LINKS:
+		df = frappe.get_meta(doctype).get_field(fieldname) if frappe.db.exists("DocType", doctype) else None
+		if not df or df.options != "Employee" or df.ignore_user_permissions:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": doctype,
+				"fieldname": fieldname,
+				"property": "ignore_user_permissions",
+				"value": 1,
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		print(f"  Ignored user permissions: {doctype}.{fieldname}")
+
+
 def allow_warehouse_rename():
 	"""A warehouse made for one purpose gets a better name later; stock Warehouse forbids the rename."""
 	if frappe.get_meta("Warehouse").allow_rename:
@@ -4935,3 +5115,169 @@ def allow_warehouse_rename():
 		validate_fields_for_doctype=False,
 	)
 	frappe.clear_cache(doctype="Warehouse")
+
+
+VIEW_LOG_PROPERTIES = (
+	(None, "title_field", "reference_name", "Data"),
+	("viewed_by", "fieldtype", "Link", "Select"),
+	("viewed_by", "options", "User", "Text"),
+	("viewed_by", "label", "Who Viewed", "Data"),
+	("reference_doctype", "label", "Document Type", "Data"),
+	("reference_name", "label", "Document", "Data"),
+	("viewed_by", "in_list_view", "1", "Check"),
+	("viewed_by", "in_standard_filter", "1", "Check"),
+	("reference_doctype", "in_list_view", "1", "Check"),
+	("reference_doctype", "in_standard_filter", "1", "Check"),
+	("reference_name", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_view_log_list():
+	apply_list_properties("View Log", VIEW_LOG_PROPERTIES)
+
+
+ACCESS_LOG_PROPERTIES = (
+	(None, "title_field", "reference_document", "Data"),
+	("reference_document", "label", "Object", "Data"),
+	("user", "label", "Who", "Data"),
+	("method", "label", "Action", "Data"),
+	("export_from", "label", "Source", "Data"),
+	("reference_document", "in_list_view", "0", "Check"),
+	("reference_document", "in_standard_filter", "0", "Check"),
+	("method", "in_list_view", "1", "Check"),
+	("file_type", "in_list_view", "1", "Check"),
+	("method", "in_standard_filter", "1", "Check"),
+	("export_from", "in_standard_filter", "1", "Check"),
+	("report_name", "in_standard_filter", "1", "Check"),
+	("file_type", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_access_log_list():
+	apply_list_properties("Access Log", ACCESS_LOG_PROPERTIES)
+
+
+PERMISSION_LOG_PROPERTIES = (
+	(None, "title_field", "changes", "Data"),
+	("changes", "label", "What Changed", "Data"),
+	("changed_by", "label", "Who Changed", "Data"),
+	("for_doctype", "label", "Object Type", "Data"),
+	("for_document", "label", "Object", "Data"),
+	("changed_by", "in_standard_filter", "1", "Check"),
+	("status", "in_standard_filter", "1", "Check"),
+	("for_doctype", "in_list_view", "0", "Check"),
+	("reference_type", "in_list_view", "0", "Check"),
+	("reference", "in_list_view", "0", "Check"),
+	("reference_type", "in_standard_filter", "0", "Check"),
+	("reference", "in_standard_filter", "0", "Check"),
+)
+
+
+def setup_permission_log_list():
+	apply_list_properties("Permission Log", PERMISSION_LOG_PROPERTIES)
+
+
+ACTIVITY_LOG_PROPERTIES = (
+	("subject", "label", "Event", "Data"),
+	("user", "label", "Who", "Data"),
+	("user", "in_list_view", "1", "Check"),
+	("ip_address", "in_list_view", "1", "Check"),
+	("full_name", "in_list_view", "0", "Check"),
+	("user", "in_standard_filter", "1", "Check"),
+	("operation", "in_standard_filter", "1", "Check"),
+	("status", "in_standard_filter", "1", "Check"),
+	("ip_address", "in_standard_filter", "1", "Check"),
+)
+
+
+def setup_activity_log_list():
+	apply_list_properties("Activity Log", ACTIVITY_LOG_PROPERTIES)
+
+
+def apply_list_properties(doctype, properties):
+	meta = frappe.get_meta(doctype)
+	for fieldname, prop, value, property_type in properties:
+		current = (meta if fieldname is None else meta.get_field(fieldname)).get(prop)
+		if ("" if current is None else str(current)) == value:
+			continue
+		frappe.make_property_setter(
+			{
+				"doctype": doctype,
+				"doctype_or_field": "DocType" if fieldname is None else "DocField",
+				"fieldname": fieldname,
+				"property": prop,
+				"value": value,
+				"property_type": property_type,
+			},
+			validate_fields_for_doctype=False,
+		)
+	frappe.clear_cache(doctype=doctype)
+
+
+def remove_retired_pages():
+	frappe.delete_doc_if_exists("Page", "sensitive-pin-reset")
+
+
+def make_user_images_public():
+	"""Avatars are shown to everyone; a private one writes an Access Log row on every page view."""
+	if not frappe.get_meta("User").get_field("user_image").make_attachment_public:
+		frappe.make_property_setter(
+			{
+				"doctype": "User",
+				"doctype_or_field": "DocField",
+				"fieldname": "user_image",
+				"property": "make_attachment_public",
+				"value": "1",
+				"property_type": "Check",
+			},
+			validate_fields_for_doctype=False,
+		)
+		frappe.clear_cache(doctype="User")
+	private_images = frappe.get_all(
+		"File",
+		filters={"attached_to_doctype": "User", "attached_to_field": "user_image", "is_private": 1},
+		pluck="name",
+	)
+	for name in private_images:
+		file = frappe.get_doc("File", name)
+		file.is_private = 0
+		try:
+			file.save(ignore_permissions=True)
+		except (FileNotFoundError, FileExistsError):
+			frappe.clear_last_message()
+
+
+def create_commercial_offer_company_fields():
+	fields = [
+		{
+			"dt": "Company",
+			"fieldname": "commercial_offer_section",
+			"fieldtype": "Section Break",
+			"label": "Commercial Offer",
+			"insert_after": "company_logo",
+			"collapsible": 1,
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_logo",
+			"fieldtype": "Attach Image",
+			"label": "Commercial Offer Logo",
+			"insert_after": "commercial_offer_section",
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_stamp",
+			"fieldtype": "Attach Image",
+			"label": "Commercial Offer Stamp and Signature",
+			"insert_after": "offer_logo",
+		},
+		{
+			"dt": "Company",
+			"fieldname": "offer_header_text",
+			"fieldtype": "Small Text",
+			"label": "Commercial Offer Header Text",
+			"insert_after": "offer_stamp",
+			"description": "Company name, registration code, IBAN and bank; one line per row",
+		},
+	]
+	_create_custom_fields(fields)

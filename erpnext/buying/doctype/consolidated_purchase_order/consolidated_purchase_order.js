@@ -446,6 +446,8 @@ function render_approval_route(frm, field, route_data) {
 			if (is_final_approval && final_approval_automatic && completed) {
 				role_text = __("Approved automatically");
 				actor_text = "";
+			} else if (is_final_approval && route_data.final_approval_department_head) {
+				role_text = __("Approved by Department Head on behalf of all CEOs");
 			} else if (is_final_approval && route_data.final_approval_administrator) {
 				role_text = __("Approved by Administrator");
 			} else if (is_final_approval && (current || completed)) {

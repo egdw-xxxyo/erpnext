@@ -363,6 +363,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 	before_workflow_action(frm) {
 		const action = frm.selected_workflow_action;
 		const actionsRequiringReason = [
+			"Погодити за всіх CEO",
 			"Повернути на доопрацювання",
 			"Відхилити",
 			"Відкликати на доопрацювання",
