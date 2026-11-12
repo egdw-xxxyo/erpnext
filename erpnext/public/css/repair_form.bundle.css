@@ -1,5 +1,22 @@
-.repair-contact-empty {
+.repair-contact-empty,
+.repair-contact-identity {
 	display: none;
+}
+.service-contact-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px 24px;
+}
+.service-contact-grid > div {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.repair-contact-phone,
+.repair-contact-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 .repair-form-ui {
 	--repair-accent: #5557aa;
@@ -7,6 +24,7 @@
 	--repair-border: #dcdce7;
 	--repair-tint: #faf9ff;
 	--repair-selected: #eeebff;
+	--repair-input: #f1eeffe3;
 	--repair-muted: #686b80;
 	--repair-action: #17795d;
 	--repair-danger: #b64250;
@@ -17,6 +35,7 @@
 	--repair-border: #41414d;
 	--repair-tint: #22212b;
 	--repair-selected: #302c46;
+	--repair-input: var(--repair-selected);
 	--repair-muted: #b1afc1;
 	--repair-danger: #b64250;
 }
@@ -59,14 +78,6 @@
 	gap: 14px;
 	padding-top: 3px;
 	max-width: 40%;
-}
-.repair-form-ui .repair-form-status {
-	padding: 5px 12px;
-	border-radius: 7px;
-	background: var(--repair-selected);
-	color: var(--repair-accent);
-	font-size: 12px;
-	font-weight: 600;
 }
 .repair-form-ui .repair-form-status:empty,
 .repair-form-ui .repair-form-owner:empty {
@@ -111,6 +122,33 @@
 .repair-form-ui .form-section > .section-body > .form-column > form > .frappe-control {
 	margin-bottom: 20px;
 }
+.repair-issue-ui .form-dashboard > .form-links,
+.repair-issue-ui .form-section[data-fieldname="subject_section"] [data-fieldname="custom_support_user"] {
+	display: none;
+}
+.repair-issue-ui .repair-issue-request-type > .section-body > .frappe-control {
+	width: 100%;
+	margin-bottom: 12px;
+}
+.repair-issue-ui [data-fieldname="custom_request_references_section"] > .section-body > .form-column > form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+	column-gap: 24px;
+}
+.repair-issue-ui
+	[data-fieldname="custom_request_references_section"]
+	> .section-body
+	> .form-column
+	> form
+	> .input-max-width {
+	max-width: none;
+	padding-inline-end: 0;
+}
+.repair-issue-ui .repair-delivery-heading {
+	margin: 0 0 14px;
+	font-size: 14px;
+	font-weight: 600;
+}
 .repair-form-ui .form-tabs-list {
 	margin-bottom: 18px;
 	background: var(--card-bg);
@@ -134,6 +172,11 @@
 	background-color: var(--control-bg);
 	border: 1px solid transparent;
 }
+.repair-form-ui .control-input .form-control:not(:disabled, [readonly]),
+.repair-form-ui .control-input .ql-editor[contenteditable="true"],
+.repair-form-ui .repair-result input:not(:disabled) {
+	background-color: var(--repair-input);
+}
 .repair-form-ui .control-input :is(input, select).form-control {
 	height: 48px;
 	padding-inline: 12px;
@@ -148,27 +191,71 @@
 	border-radius: 10px;
 	background: var(--repair-tint);
 }
-.repair-form-ui .control-input .link-btn {
-	top: 12px;
-}
 .repair-form-ui .grid-row .control-input :is(input, select).form-control {
 	height: 32px;
 	min-height: 32px;
 	padding: 4px 8px;
 }
+.repair-form-ui .control-input .link-field > .link-btn {
+	inset-block: 1px;
+	height: auto;
+	margin-top: 0;
+	padding-block: 0;
+	background: transparent;
+}
+.repair-form-ui .control-input .link-field > .link-btn a {
+	width: 22px;
+	justify-content: center;
+}
+.repair-form-ui .control-input .link-field:is(:hover, :focus-within) input.form-control {
+	padding-inline-end: 54px;
+}
 .repair-form-ui .grid-row .form-column {
 	flex-basis: auto;
 }
-.repair-form-ui .grid-heading-row {
+.repair-form-ui .form-grid {
+	--table-border-color: var(--repair-border);
+	background: var(--card-bg);
+	border-radius: 12px;
+}
+.repair-form-ui .form-grid .grid-heading-row .data-row:not(.filter-row) > .col {
 	background: var(--repair-tint);
 	color: var(--repair-muted);
 }
-.repair-form-ui .form-grid {
-	border-color: var(--repair-border);
-	border-radius: 10px;
-}
 .repair-form-ui .form-grid .grid-heading-row .static-area {
 	font-weight: 600;
+}
+.repair-form-ui .form-grid .data-row > .col {
+	border-inline-end-color: transparent;
+}
+.repair-form-ui .form-grid .grid-body .data-row {
+	color: var(--text-color);
+}
+.repair-form-ui
+	.form-grid
+	.grid-body
+	.data-row:not(.editable-row, .highlight):hover
+	> .col:not(.error, .invalid) {
+	background-color: var(--repair-tint);
+}
+.repair-form-ui
+	.form-grid
+	.grid-body
+	.data-row:not(.editable-row, .highlight):has(.grid-row-check:checked)
+	> .col:not(.error, .invalid) {
+	background-color: var(--repair-selected);
+}
+.repair-form-ui .form-grid .grid-empty {
+	background: var(--card-bg);
+	color: var(--repair-muted);
+}
+.repair-form-ui .grid-footer .btn-secondary {
+	border-radius: 8px;
+	background: var(--repair-tint);
+	color: var(--text-color);
+}
+.repair-form-ui .grid-footer .btn-secondary:hover:not(:disabled) {
+	background: var(--repair-selected);
 }
 .repair-form-ui .repair-choice-field select,
 .repair-form-ui .repair-choice-field .select-icon {
@@ -254,11 +341,33 @@
 	background: var(--repair-tint);
 	font-size: 13px;
 }
-.repair-form-ui .service-contact-grid > div {
-	padding: 16px;
+.repair-form-ui .repair-contact-card {
+	padding: 18px;
 	border: 1px solid var(--repair-border);
-	border-radius: 10px;
+	border-radius: 12px;
 	background: var(--repair-tint);
+}
+.repair-form-ui .repair-contact-identity:not(:empty) {
+	display: block;
+	padding-bottom: 14px;
+	margin-bottom: 14px;
+	border-bottom: 1px solid var(--repair-border);
+}
+.repair-form-ui .repair-contact-identity .ent {
+	gap: 12px;
+}
+.repair-form-ui .repair-contact-identity .ent-name {
+	font-size: 16px;
+	font-weight: 650;
+}
+.repair-form-ui .repair-contact-identity .ent-sub {
+	margin-top: 4px;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.repair-form-ui .repair-contact-phone {
+	flex-direction: column;
+	align-items: flex-start;
 }
 .repair-form-ui .repair-route-card {
 	margin: 0;
@@ -292,15 +401,27 @@
 }
 .repair-form-ui .repair-route-participant .ent-avatar {
 	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 .repair-form-ui .repair-result {
+	display: flex;
+	flex-direction: column;
 	border-radius: 12px;
 	padding: 16px;
 	background: var(--repair-tint);
 }
+.repair-form-ui .repair-result label {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
 .repair-form-ui .repair-result input {
 	padding: 10px 12px;
 	font-size: 20px;
+	text-align: center;
 }
 .repair-form-ui.modal .modal-dialog:not(.modal-lg, .modal-xl) {
 	max-width: min(700px, calc(100% - 32px));
@@ -363,6 +484,9 @@
 	border-color: var(--repair-focus);
 }
 @media (max-width: 767px) {
+	.service-contact-grid {
+		grid-template-columns: 1fr;
+	}
 	.repair-form-ui .repair-form-header {
 		flex-direction: column;
 	}

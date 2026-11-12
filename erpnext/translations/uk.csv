@@ -16832,6 +16832,8 @@ Cancelled issues are excluded from the repair cost.,Скасовані спис�
 Posted By,Списав
 Inbound Delivery Type,Тип надходження
 Inbound Delivery Details,Подробиці надходження
+Intake Details,Деталі надходження
+Return Details,Деталі повернення
 Delivery Type,Тип відправлення
 Waybill,ТТН
 Nova Poshta,Нова пошта

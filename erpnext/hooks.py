@@ -30,7 +30,7 @@ app_include_js = [
 app_include_css = [
 	"erpnext.bundle.css",
 	"/assets/erpnext/css/todo_planner.css",
-	"/assets/erpnext/css/repair_form.css",
+	"repair_form.bundle.css",
 ]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"

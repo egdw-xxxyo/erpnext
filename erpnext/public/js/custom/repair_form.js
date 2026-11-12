@@ -30,7 +30,11 @@
 					? __("Describe the request, select its type and specify the contact.")
 					: __("Review the item details, record the repair work and its result.")
 			);
-		header.find(".repair-form-status").text(frm.is_new() ? __("Not Saved") : __(frm.doc.status || ""));
+		const [label, color] = frappe.get_indicator(frm.doc, frm.doctype) || [];
+		header
+			.find(".repair-form-status")
+			.attr("class", `repair-form-status indicator-pill no-indicator-dot ${color || ""}`)
+			.text(label || "");
 		const owner = issue ? frm.doc.custom_support_user : frm.doc.repair_user;
 		header.find(".repair-form-owner").html(owner ? erpnext.entity.user(owner, { size: 24 }) : "");
 	}
@@ -68,9 +72,65 @@
 		}
 	}
 
+	function arrange_issue(frm) {
+		const { contact, subject, custom_request_type, custom_request_references_section, sb_details } =
+			frm.fields_dict;
+		const type = custom_request_type?.$wrapper;
+		const references = custom_request_references_section?.wrapper;
+		const dashboard = frm.dashboard.parent;
+
+		// Keep the original locations so the standard view can reuse the same controls.
+		const moves = [];
+		const remember = (element) => {
+			const anchor = document.createComment("");
+			element.before(anchor);
+			moves.push([anchor, element]);
+		};
+		frm._restore_repair_issue_layout = () => {
+			for (const [anchor, element] of moves) {
+				anchor.replaceWith(element[0]);
+			}
+		};
+
+		if (type?.length && dashboard.length) {
+			remember(type);
+			const section = $(
+				'<section class="form-section repair-issue-request-type"><div class="section-body"></div></section>'
+			).insertBefore(dashboard);
+			section.children(".section-body").append(type);
+		}
+
+		if (contact?.$wrapper.length && subject?.$wrapper.length) {
+			remember(contact.$wrapper);
+			contact.$wrapper.insertAfter(subject.$wrapper);
+		}
+
+		if (references?.length && sb_details?.wrapper.length) {
+			remember(references);
+			references.insertAfter(sb_details.wrapper);
+		}
+
+		for (const [fieldname, label] of [
+			["custom_repair_delivery_type", __("Intake Details")],
+			["custom_repair_return_address", __("Return Details")],
+		]) {
+			$('<h4 class="repair-delivery-heading"></h4>')
+				.text(label)
+				.prependTo(frm.fields_dict[fieldname]?.$wrapper.closest(".form-column"));
+		}
+	}
+
 	function restore(frm) {
-		$(frm.wrapper).removeClass(scope);
-		frm.body.find(".repair-form-header, .repair-section-caption, .repair-request-types").remove();
+		$(frm.wrapper)
+			.removeClass(scope + " repair-issue-ui")
+			.off(".repair-header");
+		frm._restore_repair_issue_layout?.();
+		delete frm._restore_repair_issue_layout;
+		frm.body
+			.find(
+				".repair-form-header, .repair-section-caption, .repair-request-types, .repair-issue-request-type, .repair-delivery-heading"
+			)
+			.remove();
 		frm.body.find(".repair-choice-field").removeClass("repair-choice-field");
 	}
 
@@ -101,6 +161,10 @@
 		if (isStandard) return;
 		try {
 			$(frm.wrapper).addClass(scope);
+			if (frm.doctype === "Issue") {
+				$(frm.wrapper).addClass("repair-issue-ui");
+				arrange_issue(frm);
+			}
 			update_header(frm);
 			request_type(frm);
 			for (const section of frm.layout.sections) {
@@ -113,7 +177,7 @@
 				}
 			}
 			$(frm.wrapper)
-				.off("change.repair-header")
+				.on("dirty.repair-header", () => update_header(frm))
 				.on(
 					"change.repair-header",
 					'[data-fieldname="subject"] input, [data-fieldname="status"] select',

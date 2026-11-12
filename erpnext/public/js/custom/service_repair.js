@@ -37,12 +37,13 @@
 			);
 			return;
 		}
-		const contact = frm.doc.contact;
+		const doc = frm.doc;
+		const contact = doc.contact;
 		const { message: data } = await frappe.call({
 			method: "erpnext.support.repair_access.contact_details",
 			args: { contact },
 		});
-		if (frm.doc.contact !== contact) return;
+		if (frm.doc !== doc || frm.doc.contact !== contact) return;
 		const phone = data.phone || "";
 		let digits = phone.replace(/\D/g, "");
 		if (digits.length === 10 && digits.startsWith("0")) digits = "38" + digits;
@@ -66,18 +67,22 @@
 					  )}">${esc(__(name))}</button>`
 			)
 			.join(" ");
-		field.$wrapper
-			.html(`<style>.service-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.service-contact-grid>div{min-width:0;overflow-wrap:anywhere}@media(max-width:767px){.service-contact-grid{grid-template-columns:1fr}}</style><div class="service-contact-grid"><div class="mb-3"><div class="text-muted small mb-1">${esc(
-			__("Phone")
-		)}</div>
-			<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${
-				phone ? `<a href="tel:${esc(phone)}">${esc(phone)}</a>` : esc(__("Not specified"))
-			} ${buttons}</div></div>
-			<div class="mb-3"><div class="text-muted small mb-1">${esc(__("Email"))}</div>${
-			data.email
-				? `<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>`
-				: esc(__("Not specified"))
-		}</div></div>`);
+		const identity = erpnext.entity.contact?.(data, { size: 48 }) || "";
+		const phoneLink = phone ? `<a href="tel:${esc(phone)}">${esc(phone)}</a>` : esc(__("Not specified"));
+		const emailLink = data.email
+			? `<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>`
+			: esc(__("Not specified"));
+		field.$wrapper.html(`<div class="repair-contact-card">
+			<div class="repair-contact-identity">${identity}</div>
+			<div class="service-contact-grid">
+				<div><div class="text-muted small mb-1">${esc(__("Phone"))}</div>
+				<div class="repair-contact-phone">
+					${phoneLink}<span class="repair-contact-actions">${buttons}</span>
+				</div>
+				</div>
+				<div><div class="text-muted small mb-1">${esc(__("Email"))}</div>${emailLink}</div>
+			</div>
+		</div>`);
 	}
 	const link = (doctype, name) =>
 		`<a href="${esc(erpnext.entity.url(["Form", doctype, name]))}" title="${esc(
