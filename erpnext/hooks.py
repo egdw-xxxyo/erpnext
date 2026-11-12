@@ -27,7 +27,11 @@ app_include_js = [
 	"/assets/erpnext/js/custom/todo_planner.js",
 	"/assets/erpnext/js/custom/doc_help.js",
 ]
-app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
+app_include_css = [
+	"erpnext.bundle.css",
+	"/assets/erpnext/css/todo_planner.css",
+	"repair_form.bundle.css",
+]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
@@ -60,8 +64,16 @@ sensitive_data_methods = {
 }
 
 doctype_js = {
-	"Issue": "public/js/custom/service_repair.js",
-	"Repair Unit": "public/js/custom/repair_unit.js",
+	"Issue": [
+		"public/js/custom/repair_dialog.js",
+		"public/js/custom/repair_form.js",
+		"public/js/custom/service_repair.js",
+	],
+	"Repair Unit": [
+		"public/js/custom/repair_dialog.js",
+		"public/js/custom/repair_form.js",
+		"public/js/custom/repair_unit.js",
+	],
 	"Repair Settings": "public/js/custom/repair_settings.js",
 	"Permission Log": "public/js/custom/permission_log.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",

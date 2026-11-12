@@ -111,9 +111,16 @@ def setup():
 def contact_details(contact: str):
 	doc = frappe.get_doc("Contact", contact)
 	doc.check_permission("read")
+	doc.apply_fieldlevel_read_permissions()
 	phones = doc.get("phone_nos") or []
 	emails = doc.get("email_ids") or []
 	return {
-		"phone": doc.mobile_no or doc.phone or next((row.phone for row in phones), ""),
-		"email": doc.email_id or next((row.email_id for row in emails), ""),
+		"name": doc.name,
+		"full_name": doc.get("full_name"),
+		"image": doc.get("image"),
+		"company_name": doc.get("company_name"),
+		"designation": doc.get("designation"),
+		"department": doc.get("department"),
+		"phone": doc.get("mobile_no") or doc.get("phone") or next((row.get("phone") for row in phones), ""),
+		"email": doc.get("email_id") or next((row.get("email_id") for row in emails), ""),
 	}

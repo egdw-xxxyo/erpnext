@@ -12,17 +12,38 @@
 		["Closed", "flag-checkered"],
 	];
 	const esc = frappe.utils.escape_html;
+	async function reload_after_action(frm) {
+		try {
+			await frm.reload_doc();
+			return true;
+		} catch {
+			frappe.show_alert({
+				message: __("The operation was completed. Reload the document to see the latest data."),
+				indicator: "orange",
+			});
+			return false;
+		}
+	}
+
 	async function contact_details(frm) {
 		const field = frm.fields_dict.custom_repair_contact_details;
 		if (!field) return;
 		field.$wrapper.empty();
-		if (!frm.doc.contact) return;
-		const contact = frm.doc.contact;
+		if (!frm.doc.contact) {
+			field.$wrapper.html(
+				'<div class="repair-contact-empty"><i class="fa fa-address-card-o" aria-hidden="true"></i>' +
+					esc(__("Select a contact to see their phone, email and messaging options.")) +
+					"</div>"
+			);
+			return;
+		}
+		const doc = frm.doc;
+		const contact = doc.contact;
 		const { message: data } = await frappe.call({
 			method: "erpnext.support.repair_access.contact_details",
 			args: { contact },
 		});
-		if (frm.doc.contact !== contact) return;
+		if (frm.doc !== doc || frm.doc.contact !== contact) return;
 		const phone = data.phone || "";
 		let digits = phone.replace(/\D/g, "");
 		if (digits.length === 10 && digits.startsWith("0")) digits = "38" + digits;
@@ -46,18 +67,22 @@
 					  )}">${esc(__(name))}</button>`
 			)
 			.join(" ");
-		field.$wrapper
-			.html(`<style>.service-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.service-contact-grid>div{min-width:0;overflow-wrap:anywhere}@media(max-width:767px){.service-contact-grid{grid-template-columns:1fr}}</style><div class="service-contact-grid"><div class="mb-3"><div class="text-muted small mb-1">${esc(
-			__("Phone")
-		)}</div>
-			<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${
-				phone ? `<a href="tel:${esc(phone)}">${esc(phone)}</a>` : esc(__("Not specified"))
-			} ${buttons}</div></div>
-			<div class="mb-3"><div class="text-muted small mb-1">${esc(__("Email"))}</div>${
-			data.email
-				? `<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>`
-				: esc(__("Not specified"))
-		}</div></div>`);
+		const identity = erpnext.entity.contact?.(data, { size: 48 }) || "";
+		const phoneLink = phone ? `<a href="tel:${esc(phone)}">${esc(phone)}</a>` : esc(__("Not specified"));
+		const emailLink = data.email
+			? `<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>`
+			: esc(__("Not specified"));
+		field.$wrapper.html(`<div class="repair-contact-card">
+			<div class="repair-contact-identity">${identity}</div>
+			<div class="service-contact-grid">
+				<div><div class="text-muted small mb-1">${esc(__("Phone"))}</div>
+				<div class="repair-contact-phone">
+					${phoneLink}<span class="repair-contact-actions">${buttons}</span>
+				</div>
+				</div>
+				<div><div class="text-muted small mb-1">${esc(__("Email"))}</div>${emailLink}</div>
+			</div>
+		</div>`);
 	}
 	const link = (doctype, name) =>
 		`<a href="${esc(erpnext.entity.url(["Form", doctype, name]))}" title="${esc(
@@ -193,6 +218,7 @@
 			}
 		},
 		async refresh(frm) {
+			erpnext.repair_form.refresh(frm);
 			frm.toggle_display("custom_service_repair", false);
 			await contact_details(frm);
 			frm.toggle_display(["customer_name", "issue_split_from"], !frm.doc.custom_service_repair);
@@ -217,7 +243,7 @@
 						args: { issue: frm.doc.name },
 						freeze: true,
 					});
-					await frm.reload_doc();
+					await reload_after_action(frm);
 				});
 			}
 			if (!frm.is_new() && frm.repair_data?.items?.length && frm.perm?.[0]?.write) {
@@ -248,6 +274,12 @@
 				frm.doc.custom_request_type === "Product Repair" ? 1 : 0
 			);
 			frm.refresh();
+		},
+		subject(frm) {
+			erpnext.repair_form.update_header(frm);
+		},
+		status(frm) {
+			erpnext.repair_form.update_header(frm);
 		},
 		contact(frm) {
 			return contact_details(frm);
@@ -372,7 +404,8 @@
 				reqd: 0,
 			});
 		}
-		frappe.prompt(
+		erpnext.repair_form.prompt(
+			frm,
 			fields,
 			async (values) => {
 				if (action === "dispose" && !values.disposal_approved)
@@ -393,25 +426,41 @@
 					args: { issue: frm.doc.name, action, ...values, serials },
 					freeze: true,
 				});
-				await frm.reload_doc();
-				frappe.show_alert(__("Repair movement registered."));
+				if (await reload_after_action(frm)) frappe.show_alert(__("Repair movement registered."));
 			},
-			__(action),
-			__("Confirm")
+			__(
+				{
+					receive: "Receive Units",
+					dispatch: "Dispatch Units",
+					dispose: "Dispose with Customer Approval",
+				}[action] || action
+			),
+			__("Confirm"),
+			{ danger: action === "dispose" }
 		);
 	}
 
 	function update(frm) {
-		frappe.prompt(
+		const name = frm.doc.name;
+		frm._repair_delivery_progress ??= new Map();
+		if (!frm._repair_delivery_progress.has(name)) {
+			frm._repair_delivery_progress.set(name, new Set());
+		}
+		const delivered = frm._repair_delivery_progress.get(name);
+		erpnext.repair_form.prompt(
+			frm,
 			[unit_field(frm, ["Dispatched"])],
 			async (values) => {
-				for (const unit of values.units)
+				for (const unit of values.units) {
+					if (delivered.has(unit)) continue;
 					await frappe.call({
 						method: "erpnext.support.repair_units.change_stage",
 						args: { unit, status: "Delivered" },
 						freeze: true,
 					});
-				await frm.reload_doc();
+					delivered.add(unit);
+				}
+				if (await reload_after_action(frm)) frm._repair_delivery_progress.delete(name);
 			},
 			__("Confirm Customer Delivery"),
 			__("Apply")
