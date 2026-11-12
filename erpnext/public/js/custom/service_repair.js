@@ -67,7 +67,8 @@
 					  )}">${esc(__(name))}</button>`
 			)
 			.join(" ");
-		const identity = erpnext.entity.contact?.(data, { size: 48 }) || "";
+		const sub = [data.designation, data.department, data.company_name].filter(Boolean).join(" · ");
+		const identity = erpnext.entity.contact?.({ ...data, sub }, { size: 48 }) || "";
 		const phoneLink = phone ? `<a href="tel:${esc(phone)}">${esc(phone)}</a>` : esc(__("Not specified"));
 		const emailLink = data.email
 			? `<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>`
