@@ -6,7 +6,6 @@
 //   erpnext.entity.html({name, sub, image, icon, key, route, href, title, size, class, card})
 //     card: true → the chat-list look: 40px avatar, bold name, second line always reserved
 //   erpnext.entity.user("jane@x.com" | {user, full_name, user_image}, opts)
-//   erpnext.entity.contact({name, full_name, image, designation, department, company_name}, opts)
 //   erpnext.entity.number({name, verified_name, account_name, display_phone_number,
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
@@ -105,21 +104,6 @@ frappe.provide("erpnext.entity");
 				key: id,
 				image: (typeof u === "object" && u.user_image) || info.image,
 				route: ["Form", "User", id],
-			},
-			opts
-		);
-	};
-
-	E.contact = function (contact, opts) {
-		return E.html(
-			{
-				name: contact.full_name || contact.name,
-				sub: [contact.designation, contact.department, contact.company_name]
-					.filter(Boolean)
-					.join(" · "),
-				key: contact.name,
-				image: contact.image,
-				route: ["Form", "Contact", contact.name],
 			},
 			opts
 		);
