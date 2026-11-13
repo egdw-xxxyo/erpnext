@@ -17477,3 +17477,5 @@ The action could not be completed. Check the details and try again.,Не вда�
 "The operation was completed. Reload the document to see the latest data.","Операцію виконано. Оновіть документ, щоб побачити актуальні дані."
 "Repair Item Details","Дані виробу"
 "The new repair interface could not be loaded. The standard form is available; your input is preserved.","Не вдалося завантажити новий інтерфейс ремонту. Доступна стандартна форма; введені дані збережено."
+NATO Code,Код NATO
+Shown in the PDF above «Made in Ukraine»,Виводиться в PDF над «Вироблено в Україні»

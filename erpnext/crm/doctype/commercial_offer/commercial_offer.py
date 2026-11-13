@@ -34,6 +34,7 @@ class CommercialOffer(Document):
 		items: DF.Table[CommercialOfferItem]
 		main_item: DF.Link
 		naming_series: DF.Literal["КП-.YYYY.-.###"]
+		nato_code: DF.Data | None
 		pdf_title: DF.Data | None
 		price: DF.Currency
 		price_in_words: DF.SmallText | None
