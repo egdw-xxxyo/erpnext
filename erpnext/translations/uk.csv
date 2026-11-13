@@ -17266,6 +17266,16 @@ Add to Work,Додати в роботу
 Added to work: {0},Додано в роботу: {0}
 Scroll to top,Нагору
 Processed military units,Опрацьовано ВЧ
+Add contact,Додати контакт
+Contact added,Контакт додано
+No military units in work,Немає ВЧ у роботі
+Select at least one military unit,Виберіть хоча б одну ВЧ
+Military unit {0} not found,ВЧ {0} не знайдено
+Military unit {0} is already being worked on by {1},ВЧ {0} уже в роботі у {1}
+Military unit {0} is not in your work,ВЧ {0} не у вашій роботі
+Military unit is being worked on by {0},ВЧ у роботі у {0}
+Finish Military Unit,Завершити роботу з ВЧ
+Finish work? All military units will no longer be marked as in work.,Завершити роботу? Усі ВЧ більше не будуть позначені як у роботі.
 Sick Leave Case,Випадок лікарняного
 Sick Leave Certificate,Листок непрацездатності (ЕЛН)
 Sick Leave Cases,Випадки лікарняного

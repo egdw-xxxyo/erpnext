@@ -1,4 +1,7 @@
-"""Backend of the «Клієнтська база» page: contacts grouped by military unit, work sessions, call results."""
+"""Backend of the «Клієнтська база» page: contacts grouped by military unit, work sessions, call results.
+
+A work session is taken on a Military Unit, never on a single contact: every contact linked
+to a unit in work is in work too, including contacts added while the session runs."""
 
 import json
 import re
@@ -31,9 +34,9 @@ def _base_rows():
 		"""
 		SELECT c.name AS contact, TRIM(CONCAT_WS(' ', c.first_name, c.last_name)) AS full_name,
 			c.call_sign, c.designation, c.mobile_no, c.phone, c.image,
-			c.cb_favorite, c.cb_hidden, c.cb_working, c.cb_done, c.cb_working_by, c.cb_work_started,
-			c.cb_comment, c.cb_manager,
-			dl.link_name AS unit, mu.name_of_military_unit AS unit_name
+			c.cb_favorite, c.cb_hidden, c.cb_comment, c.cb_manager,
+			dl.link_name AS unit, mu.name_of_military_unit AS unit_name,
+			mu.cb_working, mu.cb_done, mu.cb_working_by, mu.cb_work_started
 		FROM `tabContact` c
 		JOIN `tabDynamic Link` dl
 			ON dl.parent = c.name AND dl.parenttype = 'Contact' AND dl.link_doctype = 'Military Unit'
@@ -121,7 +124,7 @@ def get_rows(filters=None, work_mode=0):
 	today = getdate(nowdate())
 
 	rows = _base_rows()
-	work_count = len({r.contact for r in rows if r.cb_working and r.cb_working_by == user})
+	work_count = len({r.unit for r in rows if r.cb_working and r.cb_working_by == user})
 	if work_mode:
 		rows = [r for r in rows if r.cb_working and r.cb_working_by == user]
 	else:
@@ -176,18 +179,21 @@ def get_rows(filters=None, work_mode=0):
 		out.append(r)
 
 	visible = [r for r in out if work_mode or not r.cb_hidden]
-	processed = (
-		sum(1 for r in visible if r.cb_done) if work_mode else sum(1 for r in visible if r.last_result)
-	)
-	done = (lambda r: r.cb_done) if work_mode else (lambda r: r.last_result)
-	units = {r.unit for r in visible}
-	units_processed = {r.unit for r in visible if done(r)}
+	if work_mode:
+		for r in visible:
+			started = get_datetime(r.cb_work_started) if r.cb_work_started else None
+			r.worked = bool(r.last_result and started and get_datetime(r.last_result.result_date) >= started)
+		processed = sum(1 for r in visible if r.worked)
+		units_processed = {r.unit for r in visible if r.cb_done}
+	else:
+		processed = sum(1 for r in visible if r.last_result)
+		units_processed = {r.unit for r in visible if r.last_result}
 	return {
 		"rows": out,
 		"processed": processed,
 		"total": len(visible),
 		"units_processed": len(units_processed),
-		"units_total": len(units),
+		"units_total": len({r.unit for r in visible}),
 		"work_count": work_count,
 	}
 
@@ -209,37 +215,67 @@ def set_flag(contact, field, value):
 	frappe.db.set_value("Contact", contact, field, cint(value), update_modified=False)
 
 
+def _unit_contacts(unit):
+	return frappe.get_all(
+		"Dynamic Link",
+		filters={"parenttype": "Contact", "link_doctype": "Military Unit", "link_name": unit},
+		pluck="parent",
+		distinct=True,
+	)
+
+
 @frappe.whitelist()
-def start_work(contacts):
+def start_work(units):
 	_check()
-	contacts = _loads(contacts)
+	units = _loads(units)
 	user = frappe.session.user
-	if not contacts:
-		frappe.throw(_("Select at least one contact"))
+	if not units:
+		frappe.throw(_("Select at least one military unit"))
 	rows = frappe.get_all(
-		"Contact",
-		filters={"name": ["in", contacts]},
-		fields=["name", "cb_working", "cb_working_by", "cb_manager"],
+		"Military Unit",
+		filters={"name": ["in", units]},
+		fields=["name", "cb_working", "cb_working_by"],
 	)
 	for r in rows:
-		if r.cb_manager and r.cb_manager != user:
-			frappe.throw(_("Contact {0} belongs to manager {1}").format(r.name, r.cb_manager))
 		if r.cb_working and r.cb_working_by and r.cb_working_by != user:
-			frappe.throw(_("Contact {0} is already being worked on by {1}").format(r.name, r.cb_working_by))
+			frappe.throw(
+				_("Military unit {0} is already being worked on by {1}").format(r.name, r.cb_working_by)
+			)
 	started = now_datetime()
 	for r in rows:
+		if r.cb_working and r.cb_working_by == user:
+			continue
 		frappe.db.set_value(
-			"Contact",
+			"Military Unit",
 			r.name,
-			{
-				"cb_working": 1,
-				"cb_done": 0,
-				"cb_working_by": user,
-				"cb_work_started": started,
-				"cb_manager": r.cb_manager or user,
-			},
+			{"cb_working": 1, "cb_done": 0, "cb_working_by": user, "cb_work_started": started},
 			update_modified=False,
 		)
+		for contact in _unit_contacts(r.name):
+			if not frappe.db.get_value("Contact", contact, "cb_manager"):
+				frappe.db.set_value("Contact", contact, "cb_manager", user, update_modified=False)
+
+
+@frappe.whitelist()
+def add_contact(unit, first_name, last_name=None, call_sign=None, designation=None, phone=None):
+	_check()
+	if not frappe.db.exists("Military Unit", unit):
+		frappe.throw(_("Military unit {0} not found").format(unit))
+	contact = frappe.new_doc("Contact")
+	contact.update(
+		{
+			"first_name": first_name,
+			"last_name": last_name,
+			"call_sign": call_sign,
+			"designation": designation,
+			"cb_manager": frappe.session.user,
+		}
+	)
+	if phone:
+		contact.append("phone_nos", {"phone": phone, "is_primary_mobile_no": 1})
+	contact.append("links", {"link_doctype": "Military Unit", "link_name": unit})
+	contact.insert()
+	return contact.name
 
 
 @frappe.whitelist()
@@ -253,12 +289,12 @@ def set_manager(contact, manager=None):
 	return manager or ""
 
 
-def _own_working(contact):
+def _own_working(unit):
 	row = frappe.db.get_value(
-		"Contact", contact, ["cb_working", "cb_working_by", "cb_work_started"], as_dict=True
+		"Military Unit", unit, ["cb_working", "cb_working_by", "cb_work_started"], as_dict=True
 	)
 	if not row or not row.cb_working or row.cb_working_by != frappe.session.user:
-		frappe.throw(_("Contact {0} is not in your work").format(contact))
+		frappe.throw(_("Military unit {0} is not in your work").format(unit))
 	return row
 
 
@@ -320,14 +356,32 @@ def get_history(contact):
 
 
 @frappe.whitelist()
-def get_finish_summary(contact):
+def get_finish_summary(unit):
 	_check()
-	work = _own_working(contact)
+	work = _own_working(unit)
 	started = get_datetime(work.cb_work_started) if work.cb_work_started else add_to_date(None, days=-1)
+	contacts = _unit_contacts(unit)
+	if not contacts:
+		return {"before_open": [], "changes": [], "results": [], "names": {}}
+	names = {
+		c.name: (f"{c.first_name or ''} {c.last_name or ''}".strip() or c.name)
+		for c in frappe.get_all(
+			"Contact", filters={"name": ["in", contacts]}, fields=["name", "first_name", "last_name"]
+		)
+	}
 	todos = frappe.get_all(
 		"ToDo",
-		filters={"reference_type": "Contact", "reference_name": contact},
-		fields=["name", "status", "date", "description", "allocated_to", "creation", "modified"],
+		filters={"reference_type": "Contact", "reference_name": ["in", contacts]},
+		fields=[
+			"name",
+			"status",
+			"date",
+			"description",
+			"allocated_to",
+			"creation",
+			"modified",
+			"reference_name",
+		],
 		order_by="creation asc",
 	)
 	before_open, changes = [], []
@@ -343,23 +397,24 @@ def get_finish_summary(contact):
 			changes.append(t)
 	results = frappe.get_all(
 		"Contact Call Result",
-		filters={"contact": contact, "creation": [">=", started]},
-		fields=["name", "result", "result_date", "comment", "next_todo"],
+		filters={"contact": ["in", contacts], "creation": [">=", started]},
+		fields=["name", "contact", "result", "result_date", "comment", "next_todo"],
 		order_by="result_date asc",
 	)
-	return {"before_open": before_open, "changes": changes, "results": results}
+	return {"before_open": before_open, "changes": changes, "results": results, "names": names}
 
 
 @frappe.whitelist()
-def finish_contact(contact, close_todos=None):
+def finish_unit(unit, close_todos=None):
 	_check()
-	_own_working(contact)
+	_own_working(unit)
+	contacts = set(_unit_contacts(unit))
 	for name in _loads(close_todos):
 		todo = frappe.get_doc("ToDo", name)
-		if todo.reference_type == "Contact" and todo.reference_name == contact and todo.status == "Open":
+		if todo.reference_type == "Contact" and todo.reference_name in contacts and todo.status == "Open":
 			todo.status = "Closed"
 			todo.save(ignore_permissions=True)
-	frappe.db.set_value("Contact", contact, "cb_done", 1, update_modified=False)
+	frappe.db.set_value("Military Unit", unit, "cb_done", 1, update_modified=False)
 
 
 @frappe.whitelist()
@@ -367,7 +422,7 @@ def finish_work():
 	_check()
 	frappe.db.sql(
 		"""
-		UPDATE `tabContact`
+		UPDATE `tabMilitary Unit`
 		SET cb_working = 0, cb_done = 0, cb_working_by = NULL, cb_work_started = NULL
 		WHERE cb_working = 1 AND cb_working_by = %s
 		""",

@@ -91,3 +91,6 @@
 .client-base .cb-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; cursor: pointer; color: var(--text-muted); line-height: 0; z-index: 1; }
 .client-base .cb-clear:hover { color: var(--text-color); }
 .client-base .cb-clearable.has-value .cb-clear { display: block; }
+.client-base .cb-unit-head { display: flex; align-items: center; gap: 8px; }
+.client-base .cb-unit-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.client-base .cb-col-unit .cb-all { margin-right: 4px; }

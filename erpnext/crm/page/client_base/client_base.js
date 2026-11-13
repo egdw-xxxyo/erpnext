@@ -138,11 +138,8 @@ class ClientBase {
 		return String(info.fullname || u).toLowerCase();
 	}
 
-	selectable(r) {
-		const me = frappe.session.user;
-		if (r.cb_manager && r.cb_manager !== me) return false;
-		if (r.cb_working && r.cb_working_by && r.cb_working_by !== me) return false;
-		return true;
+	selectable(g) {
+		return !(g.cb_working && g.cb_working_by && g.cb_working_by !== frappe.session.user);
 	}
 
 	dt(v) {
@@ -244,8 +241,8 @@ class ClientBase {
 					return this.load();
 				}
 				this.data = r.message;
-				const present = new Set(this.data.rows.map((x) => x.contact));
-				this.selected = new Set([...this.selected].filter((c) => present.has(c)));
+				const present = new Set(this.data.rows.map((x) => x.unit));
+				this.selected = new Set([...this.selected].filter((u) => present.has(u)));
 				this.render();
 			});
 	}
@@ -312,7 +309,15 @@ class ClientBase {
 		const map = new Map();
 		this.data.rows.forEach((r) => {
 			if (!map.has(r.unit))
-				map.set(r.unit, { unit: r.unit, unit_name: r.unit_name, rows: [], hidden: 0 });
+				map.set(r.unit, {
+					unit: r.unit,
+					unit_name: r.unit_name,
+					cb_working: r.cb_working,
+					cb_working_by: r.cb_working_by,
+					cb_done: r.cb_done,
+					rows: [],
+					hidden: 0,
+				});
 			const g = map.get(r.unit);
 			if (r.cb_hidden && !this.work_mode) g.hidden += 1;
 			if (!r.cb_hidden || show_all || this.open_hidden.has(r.unit)) g.rows.push(r);
@@ -368,9 +373,7 @@ class ClientBase {
 		this.$reset.toggle(!!this.dup_key);
 		const d = this.data;
 		this.$counter.html(
-			`<span>${this.work_mode ? __("Worked") : __("Processed contacts")}: <b>${d.processed}/${
-				d.total
-			}</b></span>
+			`<span>${__("Processed contacts")}: <b>${d.processed}/${d.total}</b></span>
 			<span>${__("Processed military units")}: <b>${d.units_processed || 0}/${d.units_total || 0}</b></span>`
 		);
 		this.$toolbar.find(".cb-field").toggle(!this.work_mode);
@@ -378,7 +381,7 @@ class ClientBase {
 		if (!this.data.rows.length) {
 			this.$body.html(
 				`<div class="cb-empty">${
-					this.work_mode ? __("No contacts in work") : __("No contacts")
+					this.work_mode ? __("No military units in work") : __("No contacts")
 				}</div>`
 			);
 			this.render_bottom();
@@ -391,10 +394,11 @@ class ClientBase {
 				: `<i class="fa fa-sort text-muted"></i>`;
 		const cols = this.visible_columns();
 		const extra = (c, cell) => (c.key === "designation" ? cell : "");
+		const all = this.work_mode ? "" : '<input type="checkbox" class="cb-all"> ';
 		const th = (c) =>
-			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.label} ${arrow(
-				c.key
-			)}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
+			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.key === "unit" ? all : ""}${
+				c.label
+			} ${arrow(c.key)}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
 		const range = (c) => {
 			if (!c.date) return "";
 			const slot = (side) => `<div class="cb-date-slot" data-key="${c.key}" data-side="${side}"></div>`;
@@ -420,10 +424,9 @@ class ClientBase {
 				.filter((c) => !c.group)
 				.map(cell)
 				.join("")}<th></th></tr>`;
-		const all = this.work_mode ? "" : '<input type="checkbox" class="cb-all">';
 		this.$body.html(`<table class="cb-table"><thead>
 			${this.show_filters ? head(fth, '<th class="cb-check"></th>') : ""}
-			${head(th, `<th class="cb-check">${all}</th>`)}
+			${head(th, '<th class="cb-check"></th>')}
 			</thead><tbody></tbody></table>`);
 		this.mount_date_filters();
 		this.mount_manager_filter();
@@ -545,9 +548,34 @@ class ClientBase {
 					this.open_hidden.has(g.unit) ? __("Hide") : __("Show")
 			  }</button></div>`
 			: "";
+		const unit = this.esc(g.unit);
+		const check = this.work_mode
+			? ""
+			: `<input type="checkbox" class="cb-sel" data-unit="${unit}" ${
+					this.selected.has(g.unit) ? "checked" : ""
+			  } ${
+					this.selectable(g)
+						? ""
+						: `disabled title="${this.esc(
+								__("Military unit is being worked on by {0}", [
+									(frappe.user_info(g.cb_working_by) || {}).fullname || g.cb_working_by,
+								])
+						  )}"`
+			  }>`;
+		const finish = this.work_mode
+			? `<button class="btn btn-xs ${
+					g.cb_done ? "btn-success" : "btn-primary"
+			  } cb-finish" data-unit="${unit}">${g.cb_done ? __("Finished") : __("Finish")}</button>`
+			: "";
 		return `<td class="cb-unit cb-col-unit" rowspan="${span}">
-				${this.E.military_unit({ name: g.unit, sub: __("{0} contacts", [visible]) }, { card: true, size: 32 })}
-				${hidden}</td>
+				<div class="cb-unit-head">${check}${this.E.military_unit(
+			{ name: g.unit, sub: __("{0} contacts", [visible]) },
+			{ card: true, size: 32 }
+		)}</div>
+				${hidden}
+				<div class="cb-unit-actions">
+					<button class="btn btn-xs btn-default cb-add-contact" data-unit="${unit}">
+						<i class="fa fa-user-plus"></i> ${__("Add contact")}</button>${finish}</div></td>
 			<td class="cb-unit cb-col-unit_name" rowspan="${span}">${this.esc(g.unit_name)}</td>`;
 	}
 
@@ -558,7 +586,7 @@ class ClientBase {
 		else if (r.urgency === 1) cls.push("cb-today");
 		if (r.cb_hidden && !this.work_mode) cls.push("cb-is-hidden");
 		if (r._match) cls.push("cb-match");
-		if (!this.work_mode && this.selected.has(r.contact)) cls.push("cb-selected");
+		if (!this.work_mode && this.selected.has(r.unit)) cls.push("cb-selected");
 		return cls.join(" ");
 	}
 
@@ -592,16 +620,6 @@ class ClientBase {
 					r.open_todos > 1 ? ` · ${__("{0} open", [r.open_todos])}` : ""
 			  }</div>`
 			: "";
-		const can = this.selectable(r);
-		const check = this.work_mode
-			? ""
-			: `<input type="checkbox" class="cb-sel" ${this.selected.has(r.contact) ? "checked" : ""} ${
-					can
-						? ""
-						: `disabled title="${__(
-								"Only your own or unassigned contacts can be taken to work"
-						  )}"`
-			  }>`;
 		const manager = `<div class="cb-manager">${
 			r.cb_manager
 				? this.E.user(r.cb_manager, { size: 22 })
@@ -613,16 +631,14 @@ class ClientBase {
 			  }</span> ${r.cb_working_by ? this.E.user(r.cb_working_by, { size: 20 }) : ""}`
 			: "";
 		const actions = this.work_mode
-			? `<button class="btn btn-xs ${r.cb_done ? "btn-success" : "btn-primary"} cb-finish">${
-					r.cb_done ? __("Finished") : __("Finish")
-			  }</button>`
+			? ""
 			: `<i class="fa ${r.cb_hidden ? "fa-eye" : "fa-eye-slash"} cb-icon cb-hide" title="${
 					r.cb_hidden ? __("Unhide") : __("Hide")
 			  }"></i>`;
 		return `<tr class="cb-row ${unit_cells ? "cb-first" : ""} ${this.row_class(
 			r
 		)}" data-contact="${this.esc(r.contact)}" data-unit="${this.esc(r.unit)}">
-			${unit_cells || ""}<td class="cb-check"><div class="cb-check-line">${check}
+			${unit_cells || ""}<td class="cb-check"><div class="cb-check-line">
 				<i class="fa ${r.cb_favorite ? "fa-star active" : "fa-star-o"} cb-icon cb-fav" title="${__(
 			"Favorite"
 		)}"></i></div></td>
@@ -748,24 +764,24 @@ class ClientBase {
 			this.load();
 		});
 		root.on("change", ".cb-sel", (e) => {
-			const r = this.row_of(e.currentTarget);
-			e.currentTarget.checked ? this.selected.add(r.contact) : this.selected.delete(r.contact);
+			const unit = $(e.currentTarget).attr("data-unit");
+			e.currentTarget.checked ? this.selected.add(unit) : this.selected.delete(unit);
 			this.$body
-				.find(`tr.cb-row[data-contact="${CSS.escape(r.contact)}"]`)
-				.toggleClass("cb-selected", e.currentTarget.checked)
-				.find(".cb-sel")
-				.prop("checked", e.currentTarget.checked);
+				.find(`tr.cb-row[data-unit="${CSS.escape(unit)}"]`)
+				.toggleClass("cb-selected", e.currentTarget.checked);
 			this.render_bottom();
 		});
+		root.on("click", ".cb-all", (e) => e.stopPropagation());
 		root.on("change", ".cb-all", (e) => {
 			const on = e.currentTarget.checked;
-			this.groups().forEach((g) =>
-				g.rows
-					.filter((r) => this.selectable(r))
-					.forEach((r) => (on ? this.selected.add(r.contact) : this.selected.delete(r.contact)))
-			);
+			this.groups()
+				.filter((g) => this.selectable(g))
+				.forEach((g) => (on ? this.selected.add(g.unit) : this.selected.delete(g.unit)));
 			this.render();
 		});
+		root.on("click", ".cb-add-contact", (e) =>
+			this.add_contact_dialog($(e.currentTarget).attr("data-unit"))
+		);
 		root.on("click", ".cb-manager-edit", (e) => this.manager_dialog(this.row_of(e.currentTarget)));
 		root.on("click", ".cb-fav", (e) => this.toggle_flag(e, "cb_favorite"));
 		root.on("click", ".cb-hide", (e) => this.toggle_flag(e, "cb_hidden"));
@@ -778,7 +794,7 @@ class ClientBase {
 			e.preventDefault();
 			this.next_dialog(this.row_of(e.currentTarget));
 		});
-		root.on("click", ".cb-finish", (e) => this.finish_dialog(this.row_of(e.currentTarget).contact));
+		root.on("click", ".cb-finish", (e) => this.finish_dialog($(e.currentTarget).attr("data-unit")));
 		root.on("click", ".cb-start", () => this.start_work());
 		root.on("click", ".cb-tab", (e) => this.switch_tab(Number($(e.currentTarget).attr("data-mode"))));
 		root.on("click", ".cb-finish-work", () => this.finish_work());
@@ -843,7 +859,7 @@ class ClientBase {
 
 	start_work() {
 		const count = this.selected.size;
-		this.call("start_work", { contacts: [...this.selected] }).then(() => {
+		this.call("start_work", { units: [...this.selected] }).then(() => {
 			this.selected.clear();
 			frappe.show_alert({ message: __("Added to work: {0}", [count]), indicator: "green" });
 			this.load();
@@ -851,7 +867,7 @@ class ClientBase {
 	}
 
 	finish_work() {
-		frappe.confirm(__("Finish work? All contacts will no longer be marked as in work."), () => {
+		frappe.confirm(__("Finish work? All military units will no longer be marked as in work."), () => {
 			this.call("finish_work").then(() => this.switch_tab(0));
 		});
 	}
@@ -1001,9 +1017,41 @@ class ClientBase {
 		});
 	}
 
-	finish_dialog(contact) {
-		this.call("get_finish_summary", { contact }).then((res) => {
-			const { before_open, changes, results } = res.message;
+	add_contact_dialog(unit) {
+		const d = new frappe.ui.Dialog({
+			title: __("Add contact"),
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "info",
+					options: `<div class="cb-dialog-head">${this.E.military_unit(
+						{ name: unit, sub: __("Military Unit") },
+						{ card: true }
+					)}</div>`,
+				},
+				{ fieldtype: "Data", fieldname: "first_name", label: __("First Name"), reqd: 1 },
+				{ fieldtype: "Data", fieldname: "last_name", label: __("Last Name") },
+				{ fieldtype: "Data", fieldname: "call_sign", label: __("Call Sign") },
+				{ fieldtype: "Column Break" },
+				{ fieldtype: "Data", fieldname: "phone", label: __("Phone"), options: "Phone" },
+				{ fieldtype: "Data", fieldname: "designation", label: __("Position") },
+			],
+			primary_action_label: __("Save"),
+			primary_action: (v) => {
+				this.call("add_contact", { unit, ...v }).then(() => {
+					d.hide();
+					frappe.show_alert({ message: __("Contact added"), indicator: "green" });
+					this.load();
+				});
+			},
+		});
+		d.show();
+	}
+
+	finish_dialog(unit) {
+		this.call("get_finish_summary", { unit }).then((res) => {
+			const { before_open, changes, results, names } = res.message;
+			const who = (c) => `<span class="cb-sub">${this.esc(names[c] || c)}</span>`;
 			const old = before_open.length
 				? before_open
 						.map(
@@ -1012,27 +1060,34 @@ class ClientBase {
 									t.name
 								)}"> ${this.todo_link(t)} <span class="cb-sub">${this.dt(
 									t.date
-								)}</span></label></div>`
+								)}</span> ${who(t.reference_name)}</label></div>`
 						)
 						.join("")
 				: `<div class="cb-sub">${__("No open tasks from before the work")}</div>`;
 			const items = [
 				...results.map(
-					(x) => `<li><b>${__("Result")}:</b> ${this.esc(__(x.result))} ${this.esc(x.comment)}</li>`
+					(x) =>
+						`<li><b>${__("Result")}:</b> ${this.esc(__(x.result))} ${this.esc(x.comment)} ${who(
+							x.contact
+						)}</li>`
 				),
 				...changes.map(
 					(t) => `<li><b>${t.change === "created" ? __("New task") : __("Task closed")}:</b>
-						${this.todo_link(t)} <span class="cb-sub">${this.dt(t.date)}</span></li>`
+						${this.todo_link(t)} <span class="cb-sub">${this.dt(t.date)}</span> ${who(t.reference_name)}</li>`
 				),
 			];
 			const d = new frappe.ui.Dialog({
-				title: __("Finish Contact"),
+				title: __("Finish Military Unit"),
 				size: "large",
 				fields: [
 					{
 						fieldtype: "HTML",
 						fieldname: "body",
-						options: `<h6>${__("Changes during work")}</h6>
+						options: `<div class="cb-dialog-head">${this.E.military_unit(
+							{ name: unit, sub: __("Military Unit") },
+							{ card: true }
+						)}</div>
+							<h6>${__("Changes during work")}</h6>
 							<ul>${items.join("") || `<li class="cb-sub">${__("No changes")}</li>`}</ul>
 							<h6>${__("Tasks from before the work (tick to close)")}</h6>${old}`,
 					},
@@ -1043,7 +1098,7 @@ class ClientBase {
 						.find(".cb-close:checked")
 						.map((_i, el) => el.value)
 						.get();
-					this.call("finish_contact", { contact, close_todos: close }).then(() => {
+					this.call("finish_unit", { unit, close_todos: close }).then(() => {
 						d.hide();
 						this.load();
 					});

@@ -15,6 +15,10 @@ class MilitaryUnit(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		cb_done: DF.Check
+		cb_work_started: DF.Datetime | None
+		cb_working: DF.Check
+		cb_working_by: DF.Link | None
 		military_unit_code: DF.Data
 		name_of_military_unit: DF.Data | None
 		note: DF.SmallText | None

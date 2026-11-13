@@ -2811,7 +2811,9 @@ def create_call_sign_fields():
 
 
 def create_client_base_fields():
-	"""State of the «Клієнтська база» page on the Contact: favorite / hidden marks and the work session.
+	"""State of the «Клієнтська база» page on the Contact: manager, favorite / hidden marks, comment.
+
+	The work session lives on the Military Unit (its own DocType fields), not here.
 
 	Also seeds the Call Result dictionary the page logs call outcomes against."""
 	_create_custom_fields(
@@ -2856,43 +2858,6 @@ def create_client_base_fields():
 				"label": "Client Base Comment",
 				"insert_after": "cb_hidden",
 				"no_copy": 1,
-			},
-			{
-				"dt": "Contact",
-				"fieldname": "cb_working",
-				"fieldtype": "Check",
-				"label": "In Work",
-				"insert_after": "cb_comment",
-				"no_copy": 1,
-				"read_only": 1,
-			},
-			{
-				"dt": "Contact",
-				"fieldname": "cb_done",
-				"fieldtype": "Check",
-				"label": "Work Done",
-				"insert_after": "cb_working",
-				"no_copy": 1,
-				"read_only": 1,
-			},
-			{
-				"dt": "Contact",
-				"fieldname": "cb_working_by",
-				"fieldtype": "Link",
-				"label": "Worked By",
-				"options": "User",
-				"insert_after": "cb_done",
-				"no_copy": 1,
-				"read_only": 1,
-			},
-			{
-				"dt": "Contact",
-				"fieldname": "cb_work_started",
-				"fieldtype": "Datetime",
-				"label": "Work Started",
-				"insert_after": "cb_working_by",
-				"no_copy": 1,
-				"read_only": 1,
 			},
 		]
 	)
