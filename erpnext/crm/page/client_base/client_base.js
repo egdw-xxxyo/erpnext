@@ -617,7 +617,9 @@ class ClientBase {
 					this.esc(this.plain(r.next_action.description)) || __("Task")
 			  }</a>
 				<div class="cb-sub">${this.dt(r.next_action.date)}${
-					r.open_todos > 1 ? ` · ${__("{0} open", [r.open_todos])}` : ""
+					r.open_todos > 1
+						? ` · <a class="cb-next cb-open-all" href="#">${__("{0} open", [r.open_todos])}</a>`
+						: ""
 			  }</div>`
 			: "";
 		const manager = `<div class="cb-manager">${
@@ -938,39 +940,28 @@ class ClientBase {
 		this.call("get_history", { contact: r.contact }, false).then((res) => {
 			const open = res.message.todos.filter((t) => t.status === "Open");
 			const next = open.find((t) => t.name === r.next_action.name) || r.next_action;
-			const others = open.filter((t) => t.name !== next.name);
+			const tasks = [next, ...open.filter((t) => t.name !== next.name)];
 			const row = (label, value) => `<tr><th>${label}</th><td>${value || "—"}</td></tr>`;
-			const d = new frappe.ui.Dialog({
-				title: __("Next Action"),
+			const card = (t) => `<table class="table table-sm cb-info cb-task ${
+				t === next ? "cb-task-next" : ""
+			}">
+					${row(__("Task"), this.todo_link(t))}
+					${row(__("Date"), this.dt(t.date))}
+					${row(__("Priority"), t.priority ? __(t.priority) : "")}
+					${row(__("Assigned To"), t.allocated_to ? this.E.user(t.allocated_to, { size: 20 }) : "")}
+					${row(__("Description"), `<div class="cb-desc">${t.description || ""}</div>`)}
+				</table>`;
+			new frappe.ui.Dialog({
+				title: tasks.length > 1 ? __("Open tasks ({0})", [tasks.length]) : __("Next Action"),
 				size: "large",
 				fields: [
 					{
 						fieldtype: "HTML",
 						fieldname: "body",
-						options: `${this.contact_header(r)}
-							<table class="table table-sm cb-info">
-								${row(__("Task"), this.todo_link(next))}
-								${row(__("Date"), this.dt(next.date))}
-								${row(__("Priority"), next.priority ? __(next.priority) : "")}
-								${row(__("Assigned To"), next.allocated_to ? this.E.user(next.allocated_to, { size: 20 }) : "")}
-								${row(__("Description"), `<div class="cb-desc">${next.description || ""}</div>`)}
-							</table>
-							${
-								others.length
-									? `<h6>${__("Other open tasks")}</h6><ul>${others
-											.map(
-												(t) =>
-													`<li>${this.todo_link(t)} <span class="cb-sub">${this.dt(
-														t.date
-													)}</span></li>`
-											)
-											.join("")}</ul>`
-									: ""
-							}`,
+						options: `${this.contact_header(r)}${tasks.map(card).join("")}`,
 					},
 				],
-			});
-			d.show();
+			}).show();
 		});
 	}
 
