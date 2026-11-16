@@ -119,6 +119,8 @@ class ProductionLine(Document):
 		for row in self.get("orders") or []:
 			if row.work_order:
 				row.produced_qty = cint(frappe.db.get_value("Work Order", row.work_order, "produced_qty"))
+		for row in self.get("allowed_items") or []:
+			row.can_produce = _can_produce(self, row.item_code)
 
 	def _validate_orders(self):
 		"""Orders of a manual line: a released order is a Work Order, so it is read-only for good."""
@@ -1615,6 +1617,22 @@ def max_producible(rows):
 	"""Whole units the free stock covers: the scarcest component decides."""
 	limits = [int(max(flt(row.free), 0) / flt(row.per_unit) + 1e-9) for row in rows if flt(row.per_unit) > 0]
 	return min(limits) if limits else None
+
+
+def _can_produce(line, item_code):
+	"""Whole units of `item_code` the line's free stock covers; 0 when it cannot be worked out."""
+	if not item_code or not line.source_warehouse:
+		return 0
+	if not frappe.db.get_value("Item", item_code, "default_bom"):
+		return 0
+	needs = _bom_requirements(line, item_code)
+	free = _free_stock((need.item_code, need.warehouse) for need in needs.values())
+	rows = [
+		frappe._dict(per_unit=need.qty, free=free.get((need.item_code, need.warehouse), 0.0))
+		for need in needs.values()
+	]
+	limit = max_producible(rows)
+	return 0 if limit is None else limit
 
 
 @frappe.whitelist()

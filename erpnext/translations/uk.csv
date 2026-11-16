@@ -17513,3 +17513,5 @@ The BOM has no stock components,У нормах немає складських 
 Can produce {0} of {1},Можна виготовити {0} з {1}
 short by {0},бракує {0}
 below critical stock after this order,після замовлення нижче критичного залишку
+Can Produce,Можна виготовити
+"How many units the free stock of the Raw Material Warehouse covers by this item's BOM. Recalculated every time the line is opened.","Скільки одиниць покриває вільний залишок складу комплектуючих за нормами цього виробу. Перераховується щоразу, коли відкривається лінія."
