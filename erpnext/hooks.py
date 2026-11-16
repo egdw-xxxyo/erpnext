@@ -1082,6 +1082,7 @@ scheduler_events = {
 		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
 		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
+		"erpnext.manufacturing.doctype.production_line.production_line.check_critical_stock",
 	],
 	"daily_long": [
 		"erpnext.devices.doctype.otdr_measurement.otdr_measurement.cleanup_old_sor_files",

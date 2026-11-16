@@ -10,6 +10,7 @@
 //                          profile_image}, opts)          // WhatsApp business number
 //   erpnext.entity.wa_person({phone, name, image}, opts)  // customer → WhatsApp person page
 //   erpnext.entity.workplace("Packing" | {name, sub}, opts)  // production workplace → its form
+//   erpnext.entity.item("ITEM-1" | {item_code, item_name, image}, opts)  // item → its form
 //   erpnext.entity.contact("CONT-1" | {contact, full_name, sub, image}, opts)  // contact → its form
 //   erpnext.entity.military_unit("A0001" | {name, sub}, opts)  // military unit → its form
 //   erpnext.entity.doc_link({doctype, name, label})       // inline link to any record, inside text
@@ -194,6 +195,23 @@ frappe.provide("erpnext.entity");
 				key: name,
 				icon: "fa fa-cogs",
 				route: ["Form", "Workplace", name],
+			},
+			opts
+		);
+	};
+
+	E.item = function (i, opts) {
+		if (!i) return "";
+		const code = typeof i === "string" ? i : i.item_code || i.name;
+		const item_name = typeof i === "object" ? i.item_name : "";
+		return E.html(
+			{
+				name: code,
+				sub: item_name && item_name !== code ? item_name : "",
+				key: code,
+				image: (typeof i === "object" && i.image) || "",
+				icon: "fa fa-cube",
+				route: ["Form", "Item", code],
 			},
 			opts
 		);

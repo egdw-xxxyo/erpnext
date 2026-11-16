@@ -17479,3 +17479,37 @@ The action could not be completed. Check the details and try again.,Не вда�
 "The new repair interface could not be loaded. The standard form is available; your input is preserved.","Не вдалося завантажити новий інтерфейс ремонту. Доступна стандартна форма; введені дані збережено."
 NATO Code,Код NATO
 Shown in the PDF above «Made in Ukraine»,Виводиться в PDF над «Вироблено в Україні»
+Critical Stock,Критичний залишок
+Critical Stock Overview,Огляд критичних залишків
+Component,Компонент
+Free Stock,Вільний залишок
+Per Unit,На одиницю
+After Order,Після замовлення
+Add Order,Додати замовлення
+Fill From BOMs,Заповнити з норм
+OK,Гаразд
+Production Line Allowed Item,Дозволений виріб виробничої лінії
+Production Line Critical Stock,Критичний залишок виробничої лінії
+"What this line may produce. Orders and plan rows can only name these items. Left empty, any item is allowed.","Що може виробляти ця лінія. Замовлення та рядки плану можуть містити лише ці вироби. Якщо порожньо — дозволено будь-який виріб."
+"Components of the allowed items' BOMs and the free stock below which the line warns. Free stock = stock in the Raw Material Warehouse minus what released Work Orders already reserved.","Компоненти з норм дозволених виробів і вільний залишок, нижче якого лінія попереджає. Вільний залишок = залишок на складі комплектуючих мінус те, що вже зарезервували випущені виробничі замовлення."
+The item's default BOM. Its components are what an order of this item consumes.,"Норми виробу за замовчуванням. Їх компоненти — те, що споживає замовлення цього виробу."
+"When free stock of this component in the Raw Material Warehouse falls below this, the line warns so it can be ordered in time.","Коли вільний залишок цього компонента на складі комплектуючих падає нижче цього значення, лінія попереджає, щоб його встигли замовити."
+{0}: item {1} is listed more than once,{0}: позиція {1} вказана більше одного разу
+Row {0}: item {1} is not one of this line's allowed items,Рядок {0}: виріб {1} не входить до дозволених виробів цієї лінії
+Item {0} is not one of this line's allowed items,Виріб {0} не входить до дозволених виробів цієї лінії
+Set the Raw Material Warehouse of production line {0} first,Спочатку вкажіть склад комплектуючих виробничої лінії {0}
+Production line {0}: {1} component(s) below critical stock,Виробнича лінія {0}: компонентів нижче критичного залишку — {1}
+Save the production line first,Спочатку збережіть виробничу лінію
+Add allowed items first: their BOMs give the component list,Спочатку додайте дозволені вироби: список компонентів береться з їх норм
+{0} component(s) added. Set their critical stock and save.,Додано компонентів: {0}. Вкажіть для них критичний залишок і збережіть.
+All components are already listed,Усі компоненти вже є у списку
+Not used by any allowed item's BOM — can be removed,Не використовується в нормах жодного дозволеного виробу — можна видалити
+Below critical stock,Нижче критичного залишку
+{0} below critical stock,Нижче критичного залишку: {0}
+{0} not needed by this line,Не потрібні цій лінії: {0}
+{0} component(s) below critical stock — order them in time,Компонентів нижче критичного залишку: {0} — замовте їх вчасно
+"Components on stock cover only {0} of {1}. Add the order for {1} anyway?","Компонентів на складі вистачає лише на {0} з {1}. Все одно додати замовлення на {1}?"
+The BOM has no stock components,У нормах немає складських компонентів
+Can produce {0} of {1},Можна виготовити {0} з {1}
+short by {0},бракує {0}
+below critical stock after this order,після замовлення нижче критичного залишку
