@@ -139,16 +139,19 @@ Elements (coordinates and sizes in mm, relative to the padded area):
 | `field` | `field` — key of `doc`, `format` (`upper`, `date`, `datetime`, `float:0..3`), `prefix`, `suffix` |
 | `input` | `input` — fieldname of a **Print Inputs** row, value asked in the Print dialog |
 | `image` | `file` — File name (becomes `<attachment name=...>`), `fit` (`contain` / `stretch`) |
-| `barcode` | `source` (`field` / `text`), `field` or `data`, `barcode_type`, `module_width`, `show_text` (1 mm quiet zone; `<barcode quiet_zone="mm">` is also accepted in HTML templates) |
+| `barcode` | `source` (`field` / `text`), `field` or `data`, `barcode_type`, `module_width`, `show_text` (bars fill the box edge to edge — leave white space around it for scanners; HTML templates may also use `quiet_zone="mm"` and `margin="mm"` on `<barcode>`) |
 | `qr` | `source`, `field` or `data`, `module_size` |
 | `table` | `cols` (mm), `rows[{h, cells[{text, bold, align, colspan}]}]`, `loop` — child table: the last row repeats with `{{ row.x }}` |
+| `repeat` | `list` (doc key: child table or a list set in Data setup), `value` (row field, `.` = the item itself), `show` (`barcode` / `qr` / `text`), `item_h`, `columns`, `gap_mm`, `max_items`, plus barcode / text options — one block per item |
 | `line`, `rect` | `rect`: `fill`, `radius_mm`, `style.border_mm` |
 
 Fonts: only `DejaVu Sans`, `DejaVu Serif`, `DejaVu Sans Mono` exist in the render image (old `Arial` / `Monospace` values map to them). The designer loads the same files from `erpnext/public/fonts/label/`, snaps font size to whole 300-dpi pixels like wkhtmltoimage does, and disables kerning (wkhtmltoimage does not kern), so text that fits the canvas fits the print. `erpnext/devices/test_label_render_parity.py` guards this.
 
 Data setup: `setup` (string) — Jinja emitted before the elements, for lookups a Field cannot do. Store results on `doc` (`{% set _ = doc.update({"tu": ...}) %}`) and show them with `field` elements.
 
-Common: `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`, `italic`, `underline`, `align`, `valign`, `nowrap`, `invert`, `border_mm`, `line_height`).
+Text markup in text, prefix/suffix and table cells: `**bold**`, `^^superscript^^` (both may wrap `{{ }}`). Tables: `col_styles` (per-column `font_size_pt`, `bold`, `align`, `valign`, `nowrap`), cells may override the same keys.
+
+Common: `show_if` (plain Jinja condition, element is drawn only when true), `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`, `italic`, `underline`, `align`, `valign`, `nowrap`, `invert`, `border_mm`, `line_height`).
 
 ## Print inputs and printing from the template
 

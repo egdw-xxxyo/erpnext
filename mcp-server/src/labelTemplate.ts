@@ -78,7 +78,7 @@ export const LABEL_TEMPLATE_TOOLS = [
         layout_json: {
           type: "string",
           description:
-            "Visual layout JSON: {\"v\":1,\"grid_mm\":0.5,\"elements\":[{\"id\",\"type\":\"text|field|input|image|barcode|qr|table|line|rect\",\"x\",\"y\",\"w\",\"h\" (mm inside padding),\"rotate\",\"style\":{font_size_pt,font_family,bold,italic,underline,align,valign,nowrap,invert,border_mm,line_height}, ...}], \"setup\": \"optional Jinja run before elements; put computed values on doc via {% set _ = doc.update({...}) %} and show them with field elements\"}. See REFERENCE.md \"Visual editor\"",
+            "Visual layout JSON: {\"v\":1,\"grid_mm\":0.5,\"elements\":[{\"id\",\"type\":\"text|field|input|image|barcode|qr|table|repeat|line|rect\",\"x\",\"y\",\"w\",\"h\" (mm inside padding),\"rotate\",\"show_if\" (Jinja condition),\"style\":{font_size_pt,font_family,bold,italic,underline,align,valign,nowrap,invert,border_mm,line_height}, ...}], \"setup\": \"optional Jinja run before elements; put computed values on doc via {% set _ = doc.update({...}) %} and show them with field elements\"}. Text supports **bold** and ^^sup^^; tables accept col_styles; repeat draws one barcode/qr/text block per list item. See REFERENCE.md \"Visual editor\" (get_label_template_reference).",
         },
         inputs: {
           type: "array",

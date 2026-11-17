@@ -8,6 +8,7 @@ const LD_PALETTE = [
 	{ type: "barcode", icon: "fa fa-barcode", label: __("Barcode") },
 	{ type: "qr", icon: "fa fa-qrcode", label: __("QR Code") },
 	{ type: "table", icon: "fa fa-table", label: __("Table") },
+	{ type: "repeat", icon: "fa fa-th-list", label: __("Repeat") },
 	{ type: "line", icon: "fa fa-minus", label: __("Line") },
 	{ type: "rect", icon: "fa fa-square-o", label: __("Box") },
 ];
@@ -28,6 +29,22 @@ const LD_DEFAULTS = {
 		style: { font_size_pt: 7 },
 	}),
 	qr: () => ({ w: 15, h: 15, source: "field", field: "name", module_size: 4 }),
+	repeat: () => ({
+		w: 40,
+		h: 30,
+		list: "items",
+		value: "serial_no",
+		show: "barcode",
+		show_text: 1,
+		barcode_type: "code128",
+		module_width: 0.3,
+		module_size: 4,
+		item_h: 9,
+		columns: 1,
+		gap_mm: 1,
+		max_items: 0,
+		style: { font_size_pt: 7 },
+	}),
 	table: () => ({
 		w: 50,
 		h: 12,
@@ -536,7 +553,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 	position_dom(el) {
 		const $el = this.$stage.find(`.ld-el[data-id="${el.id}"]`);
 		$el.css(this.box_css(el));
-		if (["qr", "table"].includes(el.type)) $el.find(".ld-el-inner").html(this.inner_html(el));
+		if (["qr", "table", "repeat"].includes(el.type)) $el.find(".ld-el-inner").html(this.inner_html(el));
 	}
 
 	box_css(el) {
@@ -595,10 +612,20 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			this.overflowing = new Set();
 			this.$stage.find(".ld-el").each((_i, node) => {
 				const el = this.layout.elements.find((e) => e.id === node.dataset.id);
-				if (!el || !["text", "field", "input", "table", "barcode"].includes(el.type)) return;
+				if (!el || !["text", "field", "input", "table", "barcode", "repeat"].includes(el.type))
+					return;
 				const inner = node.querySelector(".ld-el-inner");
 				const content = inner.firstElementChild;
 				if (!content) return;
+				if (el.type === "repeat") {
+					const n = this.repeat_sample(el).length;
+					const rows = Math.ceil(n / Math.max(1, cint(el.columns) || 1));
+					const over_r =
+						rows * (flt(el.item_h) + flt(el.gap_mm)) - flt(el.gap_mm) > flt(el.h) + 0.01;
+					node.classList.toggle("ld-overflow", over_r);
+					if (over_r) this.overflowing.add(el.id);
+					return;
+				}
 				const over =
 					content.scrollWidth > inner.clientWidth + 1 ||
 					content.scrollHeight > inner.clientHeight + 1 ||
@@ -650,7 +677,11 @@ erpnext.label_designer.Designer = class LabelDesigner {
 
 	sample_text(text, scope_row) {
 		const data = this.sample_data();
-		return esc(text || "")
+		return esc(
+			String(text || "")
+				.replace(/\*\*([\s\S]+?)\*\*/g, "\u0001$1\u0002")
+				.replace(/\^\^([\s\S]+?)\^\^/g, "\u0003$1\u0004")
+		)
 			.replace(/\{\{(.*?)\}\}/g, (m, expr) => {
 				const match =
 					expr.trim().match(/^(doc|row)\.([^\s|()]+)/) || expr.trim().match(/^([^\s|()]+)$/);
@@ -659,7 +690,11 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				if (scope === "doc" && data[key] != null && data[key] !== "") return esc(data[key]);
 				return `<span class="ld-ph">${esc(scope_row && scope === "row" ? "↻ " + key : key)}</span>`;
 			})
-			.replace(/\n/g, "<br>");
+			.replace(/\n/g, "<br>")
+			.replace(/\u0001/g, "<b>")
+			.replace(/\u0002/g, "</b>")
+			.replace(/\u0003/g, '<sup style="font-size:50%;vertical-align:super;line-height:0">')
+			.replace(/\u0004/g, "</sup>");
 	}
 
 	text_css(style) {
@@ -733,6 +768,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			return `<div class="ld-qr" style="width:${side}px;height:${side}px;"></div>`;
 		}
 		if (el.type === "table") return this.table_html(el);
+		if (el.type === "repeat") return this.repeat_html(el);
 		if (el.type === "line") return `<div style="width:100%;height:100%;background:#000;"></div>`;
 		if (el.type === "rect") {
 			const b = Math.max(1, flt(style.border_mm) * z);
@@ -745,6 +781,55 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		return "";
 	}
 
+	repeat_sample(el) {
+		const list = this.sample_data()[el.list];
+		const items = Array.isArray(list) && list.length ? list : [null, null, null];
+		return cint(el.max_items) ? items.slice(0, cint(el.max_items)) : items;
+	}
+
+	repeat_html(el) {
+		const z = this.zoom;
+		const cols = Math.max(1, cint(el.columns) || 1);
+		const gap = flt(el.gap_mm);
+		const item_h = Math.max(0.5, flt(el.item_h) || 10);
+		const item_w = Math.max(0.5, (flt(el.w) - gap * (cols - 1)) / cols);
+		const style = el.style || {};
+		const key = el.value || ".";
+		return this.repeat_sample(el)
+			.map((item, i) => {
+				let val = item == null ? null : key === "." ? item : item[key];
+				const shown =
+					val != null && val !== "" && typeof val !== "object"
+						? esc(val)
+						: `<span class="ld-ph">↻ ${esc(key === "." ? el.list : key)}</span>`;
+				let inner;
+				if (el.show === "text") {
+					inner = this.cell(
+						this.sample_text(el.prefix || "") + shown + this.sample_text(el.suffix || ""),
+						style
+					);
+				} else if (el.show === "qr") {
+					const side = Math.min(item_w, item_h) * z;
+					inner = `<div class="ld-qr" style="width:${side}px;height:${side}px;"></div>`;
+				} else {
+					const text = el.show_text
+						? `<div style="${this.text_css({
+								...style,
+								align: "center",
+								nowrap: 1,
+						  })}">${shown}</div>`
+						: "";
+					inner = `<div class="ld-barcode-wrap"><div class="ld-barcode"></div>${text}</div>`;
+				}
+				const left = (i % cols) * (item_w + gap) * z;
+				const top = Math.floor(i / cols) * (item_h + gap) * z;
+				return `<div class="ld-repeat-item" style="left:${left}px;top:${top}px;width:${
+					item_w * z
+				}px;height:${item_h * z}px;">${inner}</div>`;
+			})
+			.join("");
+	}
+
 	table_html(el) {
 		const style = el.style || {};
 		const cols = (el.cols || []).map(flt);
@@ -753,17 +838,25 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		const pad = flt(el.cell_padding_mm ?? 0.5) * this.zoom;
 		const rows = (el.rows || [])
 			.map((row, ri) => {
-				const is_loop = el.loop && ri === el.rows.length - 1 && el.rows.length >= 2;
+				const is_loop = el.loop && ri === el.rows.length - 1;
+				let ci = 0;
 				const cells = (row.cells || [])
 					.slice(0, cols.length)
 					.map((c) => {
 						c = c || {};
-						const cs = {
-							...style,
-							bold: c.bold,
-							align: c.align || style.align,
-							italic: c.italic,
-						};
+						const col = (el.col_styles || [])[ci] || {};
+						ci += cint(c.colspan) || 1;
+						const own = Object.fromEntries(
+							Object.entries({ ...col, ...c }).filter(
+								([k, v]) =>
+									["bold", "align", "italic", "font_size_pt", "valign", "nowrap"].includes(
+										k
+									) &&
+									v !== "" &&
+									v != null
+							)
+						);
+						const cs = { ...style, ...own };
 						return `<td colspan="${
 							c.colspan || 1
 						}" style="border:${b}px solid #000;padding:${pad}px;${this.text_css(
@@ -823,6 +916,9 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				[270, "270°"],
 			])}
 			${this.style_props(el)}
+			<div class="ld-group-title">${__("Visibility")}</div>
+			${this.text("show_if", __("Show only if (Jinja condition)"), el.show_if)}
+			<div class="ld-hint">${__("E.g. doc.items or doc.qty > 0. Empty = always shown.")}</div>
 		`);
 	}
 
@@ -915,6 +1011,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				${this.check("show_text", __("Show text under barcode"), el.show_text)}`;
 		}
 		if (el.type === "table") return this.table_props(el);
+		if (el.type === "repeat") return this.repeat_props(el, list_id);
 		if (el.type === "rect") {
 			return `${this.check("fill", __("Filled"), el.fill)}${this.num(
 				"radius_mm",
@@ -923,6 +1020,55 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			)}`;
 		}
 		return "";
+	}
+
+	repeat_props(el, list_id) {
+		const lists = [
+			...new Set([...(this.child_tables || []).map((t) => t.fieldname), ...this.setup_keys()]),
+		];
+		const lists_id = list_id + "-lists";
+		const show = el.show || "barcode";
+		let kind = "";
+		if (show === "barcode") {
+			kind = `${this.select(
+				"barcode_type",
+				__("Barcode type"),
+				el.barcode_type || "code128",
+				LD_BARCODES.map((b) => [b, b.toUpperCase()])
+			)}
+				${this.num("module_width", __("Bar width (mm)"), el.module_width || 0.2)}
+				${this.check("show_text", __("Show text under barcode"), el.show_text)}`;
+		} else if (show === "qr") {
+			kind = this.num("module_size", __("Module size"), el.module_size || 4);
+		} else {
+			kind = `${this.select("format", __("Format"), el.format || "", LD_FORMATS)}
+				<div class="ld-grid2">${this.text("prefix", __("Prefix"), el.prefix)}${this.text(
+				"suffix",
+				__("Suffix"),
+				el.suffix
+			)}</div>`;
+		}
+		return `${this.text("list", __("List"), el.list, lists_id)}
+			<datalist id="${lists_id}">${lists.map((l) => `<option value="${esc(l)}">`).join("")}</datalist>
+			<div class="ld-hint">${__(
+				"A child table of the document or a list put on doc in Data setup. One block is drawn per item."
+			)}</div>
+			${this.text("value", __("Value of each item"), el.value, list_id)}${this.keys_datalist(list_id)}
+			<div class="ld-hint">${__("Field of the row, or . for the item itself (a list of strings).")}</div>
+			${this.select("show", __("Show as"), show, [
+				["barcode", __("Barcode")],
+				["qr", __("QR Code")],
+				["text", __("Text")],
+			])}
+			${kind}
+			<div class="ld-grid2">
+				${this.num("item_h", __("Block height (mm)"), el.item_h || 10)}
+				${this.num("columns", __("Columns"), el.columns || 1)}
+			</div>
+			<div class="ld-grid2">
+				${this.num("gap_mm", __("Gap (mm)"), el.gap_mm || 0)}
+				${this.num("max_items", __("Max items (0 = all)"), el.max_items || 0)}
+			</div>`;
 	}
 
 	table_props(el) {
@@ -953,7 +1099,12 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				</div>`
 			)
 			.join("");
+		const col_fonts = (el.cols || []).map((_c, i) => ((el.col_styles || [])[i] || {}).font_size_pt || "");
 		return `${this.text("@cols", __("Column widths (mm)"), (el.cols || []).join(", "))}
+			${this.text("@col_fonts", __("Column font sizes (pt)"), col_fonts.join(", "))}
+			<div class="ld-hint">${__(
+				"Comma-separated, empty = text style size. Use **text** for bold inside a cell."
+			)}</div>
 			<div class="ld-hint">${__(
 				"Row height (mm) first, then cell texts. {{ doc.x }} and {{ row.x }} allowed."
 			)}</div>
@@ -1065,7 +1216,16 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		}
 		const el = this.selected_elements()[0];
 		if (!el) return;
-		if (path === "@cols") {
+		if (path === "@col_fonts") {
+			const sizes = String(value).split(",");
+			el.col_styles = (el.cols || []).map((_c, i) => {
+				const cs = { ...((el.col_styles || [])[i] || {}) };
+				const n = flt((sizes[i] || "").trim());
+				if (n > 0) cs.font_size_pt = n;
+				else delete cs.font_size_pt;
+				return cs;
+			});
+		} else if (path === "@cols") {
 			const cols = String(value)
 				.split(/[,;\s]+/)
 				.map(flt)
@@ -1084,7 +1244,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		this.save();
 		this._props_dirty = true;
 		if (e.type === "change" || kind === "check" || $input.is("select"))
-			this.commit_props(path === "@cols");
+			this.commit_props(path === "@cols" || $input.is("select"));
 	}
 
 	commit_props(rerender) {
@@ -1378,6 +1538,7 @@ erpnext.label_designer.inject_style = function () {
 .ld-cell td{padding:0}
 .ld-table{width:100%;border-collapse:collapse;table-layout:fixed}
 .ld-loop-row td{background:rgba(36,144,239,.08)}
+.ld-repeat-item{position:absolute;overflow:hidden;outline:1px dotted rgba(36,144,239,.5)}
 .ld-ph{background:rgba(36,144,239,.15);color:#1366b8;border-radius:3px;padding:0 2px;font-family:monospace;font-size:.85em}
 .ld-ph-input{background:rgba(255,160,0,.2);color:#a05a00}
 .ld-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#eee;color:#999}

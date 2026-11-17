@@ -20,7 +20,9 @@ DPI = 300
 PX_PER_MM = DPI / 25.4
 PX_PER_PT = DPI / 72
 
-ELEMENT_TYPES = ("text", "field", "input", "image", "barcode", "qr", "table", "line", "rect")
+ELEMENT_TYPES = ("text", "field", "input", "image", "barcode", "qr", "table", "repeat", "line", "rect")
+REPEAT_SHOWS = ("barcode", "qr", "text")
+CELL_STYLE_KEYS = ("bold", "align", "italic", "font_size_pt", "valign", "nowrap", "line_height")
 ALIGNS = ("left", "center", "right")
 VALIGNS = ("top", "middle", "bottom")
 # Only fonts installed in the image (fonts-dejavu-core). The designer loads the very same
@@ -39,6 +41,10 @@ DEFAULT_FONT = "DejaVu Sans"
 FORMATS = ("", "upper", "date", "datetime", "float:0", "float:1", "float:2", "float:3")
 BARCODE_TYPES = ("code128", "code39", "ean13", "ean8", "upca", "isbn13", "gs1_128")
 JINJA_EXPR = re.compile(r"(\{\{.*?\}\})", re.DOTALL)
+BOLD = re.compile(r"\*\*(.+?)\*\*", re.DOTALL)
+SUP = re.compile(r"\^\^(.+?)\^\^", re.DOTALL)
+SUP_HTML = '<sup style="font-size:50%;vertical-align:super;line-height:0">'
+ITEM = "."
 
 
 def _px(mm):
@@ -57,19 +63,25 @@ def _num(value, default=0.0, lo=None, hi=None):
 	return n
 
 
-def _key(value, what):
+def _key(value, what, allow_item=False):
 	key = (value or "").strip()
 	if not key:
 		return ""
+	if allow_item and key == ITEM:
+		return key
 	if not key.isidentifier():
 		frappe.throw(_("Invalid {0} name: {1}").format(what, key))
 	return key
 
 
 def _text_html(text):
-	"""Static text with `{{ ... }}` placeholders: escape the static parts, keep the expressions."""
+	"""Static text with `{{ ... }}` placeholders: escape the static parts, keep the expressions.
+
+	`**bold**` marks bold runs, `^^tm^^` superscript; both may wrap a placeholder (`**{{ row.value }}**`).
+	"""
 	out = []
-	for part in JINJA_EXPR.split(text or ""):
+	text = SUP.sub("\x03\\1\x04", BOLD.sub("\x01\\1\x02", text or ""))
+	for part in JINJA_EXPR.split(text):
 		if not part:
 			continue
 		if JINJA_EXPR.fullmatch(part):
@@ -77,11 +89,12 @@ def _text_html(text):
 		else:
 			safe = escape(part, quote=False).replace("{", "&#123;").replace("\n", "<br>")
 			out.append(safe)
-	return "".join(out)
+	html = "".join(out).replace("\x01", "<b>").replace("\x02", "</b>")
+	return html.replace("\x03", SUP_HTML).replace("\x04", "</sup>")
 
 
 def _value_expr(key, fmt="", scope="doc", attr=False):
-	v = f"{scope}.get('{key}')"
+	v = scope if key == ITEM else f"{scope}.get('{key}')"
 	if fmt == "upper":
 		body = f"({v} | string).upper()"
 	elif fmt == "date":
@@ -138,16 +151,16 @@ def _cell_box(inner, style, extra_td=""):
 	)
 
 
-def _barcode_data(el):
+def _barcode_data(el, scope="doc"):
 	source = el.get("source") or "field"
 	if source == "text":
 		return _text_html(el.get("data") or "").replace('"', "&#34;")
-	key = _key(el.get("field"), _("field"))
-	return _value_expr(key, attr=True) if key else ""
+	key = _key(el.get("field"), _("field"), allow_item=scope != "doc")
+	return _value_expr(key, scope=scope, attr=True) if key else ""
 
 
-def _barcode_html(el):
-	data = _barcode_data(el)
+def _barcode_html(el, scope="doc"):
+	data = _barcode_data(el, scope)
 	if not data:
 		return ""
 	style = el.get("style") or {}
@@ -166,7 +179,7 @@ def _barcode_html(el):
 		text_h = round(min(_num(style.get("font_size_pt"), 8, 2, 200) * PX_PER_PT * 1.3, box_h / 2), 2)
 	img = (
 		f'<barcode type="{bc_type}" data="{data}" module_width="{module_width}" '
-		f'module_height="8" quiet_zone="1" style="display:block;width:{box_w}px;height:{round(box_h - text_h, 2)}px" />'
+		f'module_height="8" quiet_zone="0" margin="0" style="display:block;width:{box_w}px;height:{round(box_h - text_h, 2)}px" />'
 	)
 	if not text_h:
 		return img
@@ -198,12 +211,21 @@ def _table_html(el):
 
 	colgroup = "".join(f'<col style="width:{round(c / total * 100, 3)}%">' for c in cols)
 
+	col_styles = el.get("col_styles") or []
+
+	def col_style(i):
+		cs = col_styles[i] if i < len(col_styles) and isinstance(col_styles[i], dict) else {}
+		return {k: v for k, v in cs.items() if k in CELL_STYLE_KEYS and v not in (None, "")}
+
 	def row_html(row):
 		cells = []
+		ci = 0
 		for cell in (row.get("cells") or [])[: len(cols)]:
 			cell = cell or {}
 			span = int(_num(cell.get("colspan"), 1, 1, len(cols)))
-			cstyle = {**style, **{k: v for k, v in cell.items() if k in ("bold", "align", "italic")}}
+			own = {k: v for k, v in cell.items() if k in CELL_STYLE_KEYS and v not in (None, "")}
+			cstyle = {**style, **col_style(ci), **own}
+			ci += span
 			cells.append(
 				f'<td colspan="{span}" style="{border_css}padding:{pad}px;overflow:hidden;'
 				f'{_style_css(cstyle)}">{_text_html(cell.get("text") or "")}</td>'
@@ -212,7 +234,7 @@ def _table_html(el):
 		h_css = f' style="height:{_px(h)}px"' if h else ""
 		return f"<tr{h_css}>{''.join(cells)}</tr>"
 
-	if loop and len(rows) >= 2:
+	if loop and rows:
 		header = "".join(row_html(r) for r in rows[:-1])
 		body = f"{{% for row in (doc.get('{loop}') or []) %}}{row_html(rows[-1])}{{% endfor %}}"
 		inner = header + body
@@ -222,6 +244,45 @@ def _table_html(el):
 	return (
 		'<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
 		f"<colgroup>{colgroup}</colgroup>{inner}</table>"
+	)
+
+
+def _repeat_html(el):
+	style = el.get("style") or {}
+	lst = _key(el.get("list"), _("list"))
+	if not lst:
+		return ""
+	w = _num(el.get("w"), 10, 0.1)
+	columns = int(_num(el.get("columns"), 1, 1, 20))
+	gap = _num(el.get("gap_mm"), 0, 0, 100)
+	item_h = _num(el.get("item_h"), 10, 0.5, 1000)
+	item_w = max(0.5, (w - gap * (columns - 1)) / columns)
+	limit = int(_num(el.get("max_items"), 0, 0, 1000))
+	show = el.get("show") if el.get("show") in REPEAT_SHOWS else "barcode"
+	key = _key(el.get("value") or ITEM, _("field"), allow_item=True)
+
+	if show == "text":
+		fmt = el.get("format") if el.get("format") in FORMATS else ""
+		block = _cell_box(
+			_text_html(el.get("prefix") or "")
+			+ _value_expr(key, fmt, scope="row")
+			+ _text_html(el.get("suffix") or ""),
+			style,
+		)
+	else:
+		block = _barcode_html(
+			{**el, "type": show, "source": "field", "field": key, "w": item_w, "h": item_h}, "row"
+		)
+
+	items = f"(doc.get('{lst}') or [])" + (f"[:{limit}]" if limit else "")
+	step_x, step_y = _px(item_w + gap), _px(item_h + gap)
+	return (
+		f"{{% for row in {items} %}}"
+		f'<div style="position:absolute;'
+		f"left:{{{{ (loop.index0 % {columns}) * {step_x} }}}}px;"
+		f"top:{{{{ (loop.index0 // {columns}) * {step_y} }}}}px;"
+		f'width:{_px(item_w)}px;height:{_px(item_h)}px;overflow:hidden">{block}</div>'
+		"{% endfor %}"
 	)
 
 
@@ -245,6 +306,8 @@ def _element_inner(el):
 		return _barcode_html(el)
 	if t == "table":
 		return _table_html(el)
+	if t == "repeat":
+		return _repeat_html(el)
 	if t == "line":
 		return '<div style="width:100%;height:100%;background:#000"></div>'
 	if t == "rect":
@@ -268,11 +331,17 @@ def _element_html(el):
 		f"position:absolute;left:{_px(x)}px;top:{_px(y)}px;width:{_px(w)}px;height:{_px(h)}px;"
 		"overflow:hidden;"
 	)
-	if el["type"] not in ("table", "rect"):
+	if el["type"] not in ("table", "rect", "repeat"):
 		box += _border_css(el.get("style"))
 	if rotate:
 		box += f"-webkit-transform:rotate({rotate}deg);transform:rotate({rotate}deg);"
-	return f'<div class="le le-{el["type"]}" style="{box}">{_element_inner(el)}</div>'
+	html = f'<div class="le le-{el["type"]}" style="{box}">{_element_inner(el)}</div>'
+	show_if = (el.get("show_if") or "").strip()
+	if show_if:
+		if re.search(r"%\}|\}\}|\{%|\{\{", show_if):
+			frappe.throw(_("Show-if must be a plain Jinja condition, without {{ }} or {% %}"))
+		html = f"{{% if {show_if} %}}{html}{{% endif %}}"
+	return html
 
 
 def parse_layout(layout):

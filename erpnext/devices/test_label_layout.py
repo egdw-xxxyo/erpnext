@@ -65,3 +65,86 @@ class TestLabelLayout(FrappeTestCase):
 			compile_layout({"elements": [{"type": "field", "field": "a}}{{x"}]})
 		with self.assertRaises(Exception):
 			compile_layout({"elements": [{"type": "script"}]})
+
+
+class TestLabelLayoutBlocks(FrappeTestCase):
+	def _render(self, layout, **doc):
+		import frappe
+
+		return frappe.render_template(compile_layout(layout), {"doc": frappe._dict(doc)})
+
+	def test_repeat_draws_a_block_per_item(self):
+		out = self._render(
+			{
+				"elements": [
+					{
+						"type": "repeat",
+						"x": 0,
+						"y": 0,
+						"w": 40,
+						"h": 30,
+						"list": "serials",
+						"show": "text",
+						"item_h": 5,
+					}
+				]
+			},
+			serials=["S1", "S2", "S3"],
+		)
+		self.assertEqual([s for s in ("S1", "S2", "S3") if s in out], ["S1", "S2", "S3"])
+		self.assertIn("top:", out)
+
+	def test_repeat_field_of_child_rows_and_limit(self):
+		out = self._render(
+			{
+				"elements": [
+					{
+						"type": "repeat",
+						"x": 0,
+						"y": 0,
+						"w": 40,
+						"h": 30,
+						"list": "items",
+						"value": "serial_no",
+						"show": "barcode",
+						"max_items": 1,
+					}
+				]
+			},
+			items=[{"serial_no": "A1"}, {"serial_no": "A2"}],
+		)
+		self.assertIn('data="A1"', out)
+		self.assertNotIn("A2", out)
+
+	def test_column_styles_bold_and_superscript(self):
+		html = compile_layout(
+			{
+				"elements": [
+					{
+						"type": "table",
+						"x": 0,
+						"y": 0,
+						"w": 40,
+						"h": 10,
+						"cols": [10, 30],
+						"col_styles": [{"font_size_pt": 5}, {"font_size_pt": 9}],
+						"rows": [{"cells": [{"text": "a"}, {"text": "**b**^^tm^^"}]}],
+					}
+				]
+			}
+		)
+		self.assertIn("font-size:21px", html)
+		self.assertIn("font-size:38px", html)
+		self.assertIn("<b>b</b>", html)
+		self.assertIn("<sup", html)
+
+	def test_show_if(self):
+		layout = {
+			"elements": [
+				{"type": "text", "x": 0, "y": 0, "w": 9, "h": 5, "text": "HIDDEN", "show_if": "doc.flag"}
+			]
+		}
+		self.assertNotIn("HIDDEN", self._render(layout))
+		self.assertIn("HIDDEN", self._render(layout, flag=1))
+		with self.assertRaises(Exception):
+			compile_layout({"elements": [{"type": "text", "show_if": "x %}{{ y"}]})

@@ -17621,3 +17621,19 @@ Data setup,Підготовка даних
 Compute values with Jinja before the elements are drawn,Обчислити значення через Jinja перед малюванням елементів
 Jinja run before the elements,"Jinja, що виконується перед елементами"
 "Store computed values on doc, e.g. {% set _ = doc.update({""tu"": ...}) %}; then show them with a Field element (doc.tu). Lookups run when the label is rendered; the canvas shows the key name.","Збережіть обчислені значення в doc, напр. {% set _ = doc.update({""tu"": ...}) %}; потім покажіть їх елементом «Поле» (doc.tu). Пошук виконується під час формування мітки; на полотні видно назву ключа."
+Repeat,Повтор
+Visibility,Видимість
+Show only if (Jinja condition),Показувати лише якщо (умова Jinja)
+E.g. doc.items or doc.qty > 0. Empty = always shown.,Напр. doc.items або doc.qty > 0. Порожньо — показувати завжди.
+A child table of the document or a list put on doc in Data setup. One block is drawn per item.,"Дочірня таблиця документа або список, покладений у doc у «Підготовці даних». Для кожного елемента малюється блок."
+Value of each item,Значення кожного елемента
+"Field of the row, or . for the item itself (a list of strings).",Поле рядка або . для самого елемента (список рядків).
+Show as,Показувати як
+Block height (mm),Висота блоку (мм)
+Columns,Колонки
+Gap (mm),Проміжок (мм)
+Max items (0 = all),Найбільше елементів (0 = усі)
+Column font sizes (pt),Розміри шрифту колонок (пт)
+"Comma-separated, empty = text style size. Use **text** for bold inside a cell.","Через кому, порожньо — розмір зі стилю тексту. **текст** — жирний усередині клітинки."
+"Show-if must be a plain Jinja condition, without {{ }} or {% %}","Умова показу має бути простою умовою Jinja, без {{ }} чи {% %}"
+list,список
