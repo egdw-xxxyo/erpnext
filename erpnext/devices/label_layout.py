@@ -143,19 +143,18 @@ def _barcode_html(el):
 		)
 	bc_type = el.get("barcode_type") if el.get("barcode_type") in BARCODE_TYPES else "code128"
 	module_width = _num(el.get("module_width"), 0.2, 0.05, 2)
+	box_w, box_h = _px(_num(el.get("w"), 10, 0.1)), _px(_num(el.get("h"), 5, 0.1))
+	text_h = 0
+	if el.get("show_text"):
+		text_h = round(min(_num(style.get("font_size_pt"), 8, 2, 200) * PX_PER_PT * 1.3, box_h / 2), 2)
 	img = (
 		f'<barcode type="{bc_type}" data="{data}" module_width="{module_width}" '
-		f'module_height="8" style="width:100%;height:100%" />'
+		f'module_height="8" quiet_zone="1" style="display:block;width:{box_w}px;height:{round(box_h - text_h, 2)}px" />'
 	)
-	if not el.get("show_text"):
+	if not text_h:
 		return img
-	text_h = _num(style.get("font_size_pt"), 8, 2, 200) * PX_PER_PT * 1.25
-	text_style = {**style, "align": "center", "valign": "top", "nowrap": 1}
-	return (
-		'<table style="width:100%;height:100%;border-collapse:collapse;table-layout:fixed">'
-		f'<tr><td style="padding:0">{img}</td></tr>'
-		f'<tr><td style="padding:0;height:{round(text_h, 2)}px;{_style_css(text_style)}">{data}</td></tr></table>'
-	)
+	text_style = {**style, "align": "center", "valign": "top", "nowrap": 1, "line_height": 1}
+	return f'{img}<div style="height:{text_h}px;overflow:hidden;{_style_css(text_style)}">{data}</div>'
 
 
 def _image_html(el):

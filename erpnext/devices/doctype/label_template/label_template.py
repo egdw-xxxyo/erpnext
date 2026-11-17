@@ -222,6 +222,7 @@ def _process_barcode_tags(html):
 		bc_size = _get_attr(attrs_str, "size")
 		bc_module_width = _get_attr(attrs_str, "module_width")
 		bc_module_height = _get_attr(attrs_str, "module_height")
+		bc_quiet_zone = _get_attr(attrs_str, "quiet_zone")
 
 		if not bc_type or not bc_data:
 			return match.group(0)
@@ -247,6 +248,8 @@ def _process_barcode_tags(html):
 				opts = {"write_text": False}
 				opts["module_width"] = float(bc_module_width) if bc_module_width else 0.2
 				opts["module_height"] = float(bc_module_height) if bc_module_height else 8
+				if bc_quiet_zone:
+					opts["quiet_zone"] = float(bc_quiet_zone)
 				code.write(buf, options=opts)
 
 			b64 = base64.b64encode(buf.getvalue()).decode("ascii")

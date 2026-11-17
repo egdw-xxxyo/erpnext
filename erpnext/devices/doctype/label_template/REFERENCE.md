@@ -139,7 +139,7 @@ Elements (coordinates and sizes in mm, relative to the padded area):
 | `field` | `field` — key of `doc`, `format` (`upper`, `date`, `datetime`, `float:0..3`), `prefix`, `suffix` |
 | `input` | `input` — fieldname of a **Print Inputs** row, value asked in the Print dialog |
 | `image` | `file` — File name (becomes `<attachment name=...>`), `fit` (`contain` / `stretch`) |
-| `barcode` | `source` (`field` / `text`), `field` or `data`, `barcode_type`, `module_width`, `show_text` |
+| `barcode` | `source` (`field` / `text`), `field` or `data`, `barcode_type`, `module_width`, `show_text` (1 mm quiet zone; `<barcode quiet_zone="mm">` is also accepted in HTML templates) |
 | `qr` | `source`, `field` or `data`, `module_size` |
 | `table` | `cols` (mm), `rows[{h, cells[{text, bold, align, colspan}]}]`, `loop` — child table: the last row repeats with `{{ row.x }}` |
 | `line`, `rect` | `rect`: `fill`, `radius_mm`, `style.border_mm` |
