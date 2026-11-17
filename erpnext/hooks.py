@@ -27,7 +27,11 @@ app_include_js = [
 	"/assets/erpnext/js/custom/todo_planner.js",
 	"/assets/erpnext/js/custom/doc_help.js",
 ]
-app_include_css = ["erpnext.bundle.css", "/assets/erpnext/css/todo_planner.css"]
+app_include_css = [
+	"erpnext.bundle.css",
+	"/assets/erpnext/css/todo_planner.css",
+	"procurement_form.bundle.css",
+]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
 email_css = "email_erpnext.bundle.css"
@@ -66,10 +70,12 @@ doctype_js = {
 	"Permission Log": "public/js/custom/permission_log.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
+	"Material Request": "public/js/custom/procurement_form.js",
 	"Consolidated Purchase Order": [
 		"public/js/procurement_links.js",
 		"public/js/custom/procurement_supplier_item_matching.js",
 		"public/js/custom/procurement_vat.js",
+		"public/js/custom/procurement_form.js",
 	],
 	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",

@@ -1,4 +1,4 @@
-frappe.ui.form.on("Consolidated Purchase Order", { refresh: render_supplier_invoice_actions });
+frappe.ui.form.on("Consolidated Purchase Order", { render_supplier_invoice_actions });
 frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
 	supplier: render_supplier_invoice_actions,
 	invoice_pdf: render_supplier_invoice_actions,
@@ -45,7 +45,7 @@ function render_supplier_invoice_actions(frm) {
 	};
 	if (!frm.is_new()) {
 		add_action("Match supplier item names", "match");
-		if (!editable) {
+		if (!editable && !frm.$wrapper.hasClass("procurement-form-ui")) {
 			frm.add_custom_button(__("Match supplier item names"), () => run_action("match"));
 		}
 	}
@@ -93,6 +93,12 @@ function select_supplier_invoice(frm, mode = "match") {
 	dialog.show();
 }
 
+function supplier_pdf_link(invoice) {
+	return `<a class="procurement-dialog-file" href="${frappe.utils.escape_html(
+		invoice.invoice_pdf
+	)}" target="_blank" rel="noopener noreferrer">${__("Open PDF")}</a>`;
+}
+
 function show_supplier_item_matches(frm, invoice, result) {
 	const escape = frappe.utils.escape_html;
 	const number = (value) => (value == null ? "—" : escape(String(value)));
@@ -135,10 +141,7 @@ function show_supplier_item_matches(frm, invoice, result) {
 			);
 		},
 	});
-	const pdf = `<a href="${escape(invoice.invoice_pdf)}" target="_blank" rel="noopener noreferrer">${__(
-		"Open PDF"
-	)}</a>`;
-	let html = `<p>${pdf}</p><p class="text-muted">${__(
+	let html = `<p>${supplier_pdf_link(invoice)}</p><p class="procurement-dialog-note text-muted">${__(
 		"Check the PDF and tick only confirmed matches. Order quantities and prices will not change."
 	)}</p>`;
 	if (!result.rows.length) {
@@ -150,7 +153,7 @@ function show_supplier_item_matches(frm, invoice, result) {
 		html += `<div class="alert alert-warning">${__(
 			"PDF extraction may miss or merge rows. Verify names, units and VAT basis against the PDF; quantity and price are only hints."
 		)}</div>`;
-		html += `<div style="overflow:auto"><table class="table table-bordered"><thead><tr>${[
+		html += `<div class="table-responsive"><table class="table table-bordered supplier-item-match-table"><thead><tr>${[
 			"Confirm",
 			"Supplier Item Name",
 			"Supplier article",
@@ -187,7 +190,7 @@ function show_supplier_item_matches(frm, invoice, result) {
 				row.supplier_part_no
 			)}</td><td>${number(row.qty)} ${escape(row.uom)}</td><td>${number(
 				row.rate
-			)}</td><td><select class="form-control" style="min-width:280px" aria-label="${escape(
+			)}</td><td class="supplier-item-match-target"><select class="form-control" aria-label="${escape(
 				__("Order item")
 			)}">${options.join("")}</select></td><td>${(hint?.reasons || [])
 				.map((reason) => escape(__(reason)))
@@ -215,7 +218,6 @@ function show_supplier_item_matches(frm, invoice, result) {
 }
 
 function show_supplier_item_prefill(frm, invoice, result, snapshot) {
-	const escape = frappe.utils.escape_html;
 	const ambiguous_price =
 		result.is_vat_payer &&
 		result.rows.some((row) => row.rate != null && (!row.price_basis || row.price_basis === "unknown"));
@@ -225,11 +227,9 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 		fields: [
 			{
 				fieldtype: "HTML",
-				options: `<p><a href="${escape(
-					invoice.invoice_pdf
-				)}" target="_blank" rel="noopener noreferrer">${__(
-					"Open PDF"
-				)}</a></p><p class="text-muted">${__(
+				options: `<p>${supplier_pdf_link(
+					invoice
+				)}</p><p class="procurement-dialog-note text-muted">${__(
 					"Saved supplier names and articles preselect our Items. Check the matches; choose unknown or ambiguous Items manually. Existing order rows will remain."
 				)}</p>`,
 			},
@@ -431,17 +431,11 @@ function show_supplier_item_prefill(frm, invoice, result, snapshot) {
 	}
 	const grid = dialog.fields_dict.rows.grid;
 	dialog.$wrapper.addClass("supplier-pdf-prefill-dialog");
-	dialog.$wrapper.prepend(`<style>
-		.supplier-pdf-prefill-dialog .grid-body .grid-row .data-row > .col:last-child,
-		.supplier-pdf-prefill-dialog .grid-heading-row .data-row > .col:last-child{flex:0 0 36px;max-width:36px;padding:0 6px}
-		.supplier-pdf-prefill-dialog .grid-static-col[data-fieldname="supplier_item_name"]{flex:1 1 0;max-width:none}
-	</style>`);
 	const show_full_names = (row) => {
 		if (row.grid !== grid || !row.doc) return;
 		for (const name of ["supplier_item_name", "supplier_part_no", "item_code"]) {
 			row.row.find(`[data-fieldname="${name}"]`).attr("title", row.doc[name] || "");
 		}
-		row.row.find(".btn-open-row").parent().css({ flex: "0 0 36px", "max-width": "36px" });
 	};
 	dialog.$wrapper.on("mouseenter.supplier-pdf-names", ".grid-static-col[data-fieldname]", function () {
 		const row = grid.grid_rows_by_docname[$(this).closest(".grid-row").attr("data-name")];

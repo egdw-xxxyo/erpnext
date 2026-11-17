@@ -430,6 +430,7 @@ def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[
 		filters={"name": ["in", supplier_names]},
 		fields=["name", "supplier_name", "supplier_primary_contact"],
 		order_by="supplier_name asc, name asc",
+		limit_page_length=0,
 	)
 	contact_names = [row.supplier_primary_contact for row in rows if row.supplier_primary_contact]
 	contacts = (
@@ -444,16 +445,37 @@ def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[
 		if contact_names
 		else {}
 	)
-	return [
-		{
-			"supplier": row.name,
-			"supplier_name": row.supplier_name or row.name,
-			"email": contacts.get(row.supplier_primary_contact, {}).get("email_id"),
-			"phone": contacts.get(row.supplier_primary_contact, {}).get("mobile_no")
-			or contacts.get(row.supplier_primary_contact, {}).get("phone"),
+	identities = {}
+	if contact_names and frappe.has_permission("Contact", "read"):
+		identities = {
+			row.name: row
+			for row in frappe.get_list(
+				"Contact",
+				filters={"name": ["in", contact_names]},
+				fields=["name", "full_name", "image", "designation", "department"],
+				limit_page_length=0,
+			)
 		}
-		for row in rows
-	]
+
+	result = []
+	for row in rows:
+		contact = contacts.get(row.supplier_primary_contact, {})
+		identity = identities.get(row.supplier_primary_contact, {})
+		result.append(
+			{
+				"supplier": row.name,
+				"supplier_name": row.supplier_name or row.name,
+				"has_contact": row.supplier_primary_contact in contacts,
+				"contact": identity.get("name"),
+				"full_name": identity.get("full_name"),
+				"image": identity.get("image"),
+				"designation": identity.get("designation"),
+				"department": identity.get("department"),
+				"email": contact.get("email_id"),
+				"phone": contact.get("mobile_no") or contact.get("phone"),
+			}
+		)
+	return result
 
 
 @frappe.whitelist()

@@ -1,5 +1,7 @@
 import frappe
 
+SUPPLIER_DOCUMENT_TYPES = {"Purchase Order", "Purchase Invoice", "Purchase Receipt"}
+
 
 @frappe.whitelist()
 def get_procurement_links(source_name: str):
@@ -81,10 +83,13 @@ def _parents(child_doctype, fieldname, names, parenttype, value_field="parent"):
 def _visible_documents(doctype, names):
 	if not names or not frappe.has_permission(doctype, "read"):
 		return []
+	fields = ["name", "docstatus"]
+	if doctype in SUPPLIER_DOCUMENT_TYPES:
+		fields.extend(("supplier", "supplier_name"))
 	return frappe.get_list(
 		doctype,
 		filters={"name": ["in", sorted(names)]},
-		fields=["name", "docstatus"],
+		fields=fields,
 		order_by="creation asc",
 		limit_page_length=0,
 	)

@@ -14632,6 +14632,8 @@ Row {0}: Attach a delivery note file.,Рядок {0}: прикріпіть фа�
 The delivery note must be a PDF or ZIP file.,Видаткова накладна має бути файлом PDF або ZIP.
 Email is not specified.,Електронну пошту не зазначено.
 Phone is not specified.,Номер телефону не зазначено.
+No primary contact,Контакт відсутній
+Without Contact,Без контакту
 Contact via Viber,Зв’язатися через Viber
 Only the buyer who created this consolidated order can recall it.,Відкликати зведене замовлення може лише закупівельник, який його створив.
 recalled the consolidated order for rework,відкликав зведене замовлення на доопрацювання
@@ -14650,6 +14652,10 @@ No Description,Немає опису
 The short description cannot contain more than 255 characters.,Короткий опис не може містити більше ніж 255 символів.
 Select a submitted Purchase Invoice linked to this task.,Оберіть проведений рахунок постачальника, пов'язаний із цим завданням.
 Consolidated Purchase Order,Зведене замовлення на придбання
+New Consolidated Purchase Order,Нове зведене замовлення на придбання
+New Material Request,Нове замовлення матеріалів
+Use New Procurement UI,Увімкнути новий інтерфейс закупівель
+Return to Standard Frappe UI,Повернутися до стандартного інтерфейсу Frappe
 Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
 Items by Supplier,Позиції за постачальниками
 Approval Details,Деталі погодження
@@ -14812,6 +14818,7 @@ Payment Requests for This Task,Запити на оплату цього зав�
 Perform the final approval of Payment Request {{ name }}.,Виконайте фінальне погодження запиту на оплату {{ name }}.
 Planned Payment Date,Запланована дата оплати
 Prepaid Purchase Note,Примітка про попередню оплату
+Purchased by,Хто придбав
 Private File Required,Потрібен приватний файл
 Process Payment Request {{ name }} at stage “{{ workflow_state }}”.,Опрацюйте запит на оплату {{ name }} на етапі «{{ workflow_state }}».
 Procurement Approval Confirmed,Погодження закупівлі підтверджено
@@ -14832,6 +14839,7 @@ Row {0}: Select a supplier used in the order items.,Рядок {0}: вибері
 Row {0}: Supplier is required for the purchase receipt.,Рядок {0}: для чека про придбання потрібно вказати постачальника.
 Row {0}: Supplier is required.,Рядок {0}: постачальник обов’язковий.
 Select Supplier for Purchase Invoice,Виберіть постачальника для вхідного рахунку-фактури
+Create Purchase Invoice,Створити вхідний рахунок
 Select a submitted Purchase Invoice linked to this task.,Виберіть проведений вхідний рахунок-фактуру цього завдання.
 Short Description,Короткий опис
 Submit the consolidated order before creating a Purchase Invoice.,Проведіть зведене замовлення перед створенням вхідного рахунку-фактури.

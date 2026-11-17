@@ -1,0 +1,1062 @@
+:is(.procurement-form-ui, .procurement-dialog-theme) {
+	--procurement-accent: #5557aa;
+	--procurement-focus: #6366a8;
+	--procurement-border: #dcdce7;
+	--procurement-tint: #faf9ff;
+	--procurement-selected: #eeebff;
+	--procurement-input: #f1eeffe3;
+	--procurement-muted: #686b80;
+	--procurement-action: #17795d;
+}
+[data-theme="dark"] :is(.procurement-form-ui, .procurement-dialog-theme) {
+	--procurement-accent: #b8b4ff;
+	--procurement-focus: #b8b4ff;
+	--procurement-border: #41414d;
+	--procurement-tint: #22212b;
+	--procurement-selected: #302c46;
+	--procurement-input: var(--procurement-selected);
+	--procurement-muted: #b1afc1;
+}
+:is([data-page-route="List/Consolidated Purchase Order"], [data-page-route="List/Consolidated Purchase Order/List"], [data-page-route="List/Material Request"], [data-page-route="List/Material Request/List"])
+	:is(.like-action, .list-liked-by-me).liked
+	:is(.like-icon, .like-icon use) {
+	--icon-stroke: var(--purple-500);
+	fill: var(--purple-500);
+}
+.procurement-form-ui .cpo-item-like {
+	--cpo-item-like-active: var(--purple-500);
+}
+.procurement-form-ui .std-form-layout {
+	padding: 28px clamp(16px, 3vw, 40px);
+	background: linear-gradient(135deg, var(--procurement-tint), var(--card-bg) 60%);
+}
+.procurement-form-ui .procurement-form-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 24px;
+	padding: 4px 4px 28px;
+}
+.procurement-form-ui .procurement-form-heading {
+	flex: 1;
+	min-width: 0;
+}
+.procurement-form-ui .procurement-form-context {
+	color: var(--procurement-accent);
+	font-size: 12px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+.procurement-form-ui .procurement-form-heading h2 {
+	margin: 0;
+	font-size: 28px;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+	letter-spacing: -0.5px;
+}
+.procurement-form-ui .procurement-form-meta {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 10px;
+	padding-top: 3px;
+	max-width: 50%;
+}
+.procurement-form-ui .procurement-form-status:empty,
+.procurement-form-ui .procurement-form-people:empty {
+	display: none;
+}
+.procurement-form-ui .procurement-form-people {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 20px;
+	max-width: 100%;
+}
+.procurement-form-ui .procurement-form-people .ent-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.procurement-form-ui .procurement-form-people .ent-sub {
+	color: var(--procurement-muted);
+}
+.procurement-form-ui .procurement-header-initiator {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+.procurement-form-ui .procurement-initiator-button {
+	flex-shrink: 0;
+	padding: 4px 8px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 8px;
+	background: var(--procurement-tint);
+	color: var(--procurement-accent);
+}
+.procurement-form-ui .procurement-initiator-button:hover {
+	background: var(--procurement-selected);
+}
+.procurement-form-ui :is([data-fieldname="request_initiator_html"], [data-fieldname="lead_buyer_html"]) {
+	display: none;
+}
+.procurement-form-ui .std-form-layout > .form-layout > .form-page {
+	background: transparent;
+}
+.procurement-form-ui
+	.std-form-layout
+	> .form-layout
+	:is(.form-page > .form-section, .form-page > .form-tab-content > .tab-pane > .form-section) {
+	margin-bottom: 18px;
+	padding: 18px 22px 8px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 14px;
+	background: var(--card-bg);
+}
+.procurement-form-ui
+	.std-form-layout
+	> .form-layout
+	:is(.form-page > .form-section, .form-page > .form-tab-content > .tab-pane > .form-section)
+	> :is(.section-head, .section-body) {
+	max-width: none;
+}
+.procurement-form-ui .section-head,
+.procurement-form-ui .procurement-section-caption {
+	font-size: 16px;
+	font-weight: 650;
+	padding: 0 0 16px;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .form-section > .section-body {
+	padding-top: 0;
+	column-gap: 24px;
+}
+.procurement-form-ui .form-section > .section-body > .form-column {
+	padding-inline: 0;
+	flex: 1 1 0;
+	min-width: 0;
+}
+.procurement-form-ui .form-section > .section-body > .form-column > form > .frappe-control {
+	margin-bottom: 20px;
+}
+.procurement-form-ui .form-section[data-fieldname="details_section"] > .section-body {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-areas:
+		"company date currency"
+		"supplier schedule warehouse"
+		"prepaid prepaid purchased";
+	reading-flow: grid-rows;
+	gap: 16px 24px;
+	align-items: center;
+	padding-bottom: 14px;
+}
+.procurement-form-ui [data-fieldname="details_section"] .form-column,
+.procurement-form-ui [data-fieldname="details_section"] .form-column > form {
+	display: contents;
+}
+.procurement-form-ui [data-fieldname="details_section"] .form-column > form > .frappe-control,
+.procurement-form-ui [data-fieldname="details_section"] .form-group {
+	margin-bottom: 0;
+	min-width: 0;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="company"] {
+	grid-area: company;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="transaction_date"] {
+	grid-area: date;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="currency"] {
+	grid-area: currency;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="set_supplier"] {
+	grid-area: supplier;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="set_schedule_date"] {
+	grid-area: schedule;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="set_warehouse"] {
+	grid-area: warehouse;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="items_already_purchased"] {
+	grid-area: purchased;
+	justify-self: end;
+}
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="items_already_purchased"] label {
+	margin-bottom: 0;
+}
+.procurement-prepaid-summary,
+.procurement-form-ui [data-fieldname="details_section"] [data-fieldname="prepaid_purchase_note"] {
+	display: none;
+}
+.procurement-form-ui .procurement-prepaid-summary {
+	grid-area: prepaid;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	padding: 10px 12px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-form-ui .procurement-prepaid-summary p {
+	flex: 1 1 220px;
+	margin: 0;
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui .form-tabs-list {
+	margin-bottom: 18px;
+	background: var(--card-bg);
+	border-bottom: 1px solid var(--procurement-border);
+}
+.procurement-form-ui .form-tabs {
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.procurement-form-ui .form-tabs .nav-link.active {
+	color: var(--procurement-accent);
+	border-color: var(--procurement-accent);
+}
+.procurement-links-empty {
+	display: none;
+}
+.procurement-form-ui .procurement-link-cards .document-link {
+	--border-color: var(--procurement-border);
+	background: var(--procurement-tint);
+}
+.procurement-form-ui .procurement-link-cards .document-link-badge {
+	justify-content: space-between;
+}
+.procurement-form-ui .procurement-link-cards .badge-link {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .procurement-link-cards .count {
+	min-width: 24px;
+	padding: 4px 6px;
+	border-radius: 999px;
+	background: var(--procurement-selected);
+	color: var(--procurement-accent);
+	font-variant-numeric: tabular-nums;
+}
+.procurement-form-ui .procurement-link-groups {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+	column-gap: 20px;
+}
+.procurement-form-ui .procurement-link-group {
+	min-width: 0;
+}
+.procurement-form-ui .procurement-link-group h5 {
+	margin-bottom: 10px;
+}
+.procurement-form-ui .procurement-link-group table {
+	margin-bottom: 0;
+	overflow-wrap: anywhere;
+}
+[data-fieldname="supplier_invoices"] .grid-body .data-row > .grid-static-col {
+	height: auto;
+	min-height: 43px;
+}
+[data-fieldname="supplier_invoices"] .grid-body [data-fieldname="purchase_invoice_action"] .static-area {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.procurement-create-purchase-invoice {
+	max-width: 100%;
+	white-space: normal;
+}
+.procurement-form-ui .procurement-create-purchase-invoice {
+	padding: 4px 8px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 8px;
+	background: var(--procurement-tint);
+	color: var(--procurement-accent);
+}
+.procurement-form-ui .procurement-create-purchase-invoice:hover:not(:disabled) {
+	background: var(--procurement-selected);
+}
+.procurement-form-ui .procurement-link-group-empty {
+	display: none;
+}
+.procurement-form-ui .procurement-links-empty {
+	display: block;
+	margin-bottom: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+	color: var(--procurement-muted);
+}
+.procurement-created-cards,
+.procurement-form-ui :is(.procurement-created-tables, [data-fieldname="workflow_details_section"]) {
+	display: none;
+}
+.procurement-form-ui .procurement-created-cards {
+	display: grid;
+	gap: 12px;
+	padding-bottom: 12px;
+}
+.procurement-created-cards h5 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+.procurement-created-cards .procurement-created-grid + h5 {
+	margin-top: 10px;
+}
+.procurement-created-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+	gap: 12px;
+}
+.procurement-created-card {
+	min-width: 0;
+	padding: 14px 16px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 12px;
+	background: var(--procurement-tint);
+	text-align: start;
+	overflow-wrap: anywhere;
+}
+.procurement-created-card-heading {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 4px 12px;
+}
+.procurement-created-card-title {
+	margin: 0;
+	color: var(--text-color);
+	font-size: 15px;
+	font-weight: 650;
+}
+.procurement-created-card-link {
+	color: var(--procurement-accent);
+	font-size: 12px;
+	font-weight: 600;
+}
+.procurement-created-card dl {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px 16px;
+	margin: 10px 0 0;
+	padding-top: 10px;
+	border-top: 1px solid var(--procurement-border);
+}
+.procurement-created-card dt {
+	margin-bottom: 4px;
+	color: var(--procurement-muted);
+	font-size: 12px;
+	font-weight: 500;
+}
+.procurement-created-card dd {
+	margin: 0;
+	color: var(--text-color);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+.procurement-created-card .indicator-pill {
+	max-width: 100%;
+	height: auto;
+	white-space: normal;
+}
+@media (max-width: 600px) {
+	.procurement-created-card dl {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .control-label {
+	font-size: 13px;
+	color: var(--procurement-muted);
+	margin-bottom: 7px;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .control-input .form-control {
+	border-radius: 10px;
+	background-color: var(--control-bg);
+	border: 1px solid transparent;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.control-input
+	.form-control:not(:disabled, [readonly]),
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.control-input
+	.ql-editor[contenteditable="true"] {
+	background-color: var(--procurement-input);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.control-input
+	:is(input, select).form-control {
+	height: 48px;
+	padding-inline: 12px;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.control-input
+	:is(input, select, textarea).form-control:focus {
+	border-color: var(--procurement-focus);
+	box-shadow: 0 0 0 2px var(--procurement-selected);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .control-value.like-disabled-input {
+	min-height: 48px;
+	padding: 12px;
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-form-ui .form-section[data-fieldname="totals_section"] {
+	padding-bottom: 18px;
+}
+.procurement-form-ui .form-section[data-fieldname="totals_section"] > .section-head {
+	padding-bottom: 12px;
+}
+.procurement-form-ui .form-section[data-fieldname="totals_section"] > .section-body {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 12px 20px;
+	padding: 12px 16px;
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-form-ui [data-fieldname="totals_section"] .form-column,
+.procurement-form-ui [data-fieldname="totals_section"] .form-column > form {
+	display: contents;
+}
+.procurement-form-ui [data-fieldname="totals_section"] .form-column > form > .frappe-control,
+.procurement-form-ui [data-fieldname="totals_section"] .form-group {
+	margin: 0;
+	min-width: 0;
+}
+.procurement-form-ui
+	[data-fieldname="totals_section"]
+	:is([data-fieldname="total_qty"], [data-fieldname="grand_total"]) {
+	order: -1;
+}
+.procurement-form-ui [data-fieldname="totals_section"] .control-label {
+	margin-bottom: 3px;
+	font-size: 12px;
+}
+.procurement-form-ui [data-fieldname="totals_section"] .control-value.like-disabled-input {
+	min-height: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--text-color);
+	font-size: 15px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui [data-fieldname="totals_section"] [data-fieldname="grand_total"] .control-value {
+	color: var(--procurement-accent);
+}
+.procurement-form-ui [data-fieldname="totals_section"] [data-fieldname="custom_vat_totals"] {
+	grid-column: 1 / -1;
+	order: 1;
+}
+.procurement-form-ui .cpo-vat-summary {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 20px;
+	padding-top: 8px;
+	border-top: 1px solid var(--procurement-border);
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui .cpo-vat-summary strong {
+	color: var(--text-color);
+	font-variant-numeric: tabular-nums;
+}
+.procurement-form-ui .cpo-vat-summary .cpo-vat-trigger {
+	position: static;
+}
+.procurement-form-ui .cpo-vat-summary .cpo-vat-breakdown {
+	min-width: min(300px, 100%);
+	max-width: 100%;
+}
+.procurement-form-ui .cpo-vat-summary .cpo-vat-note {
+	display: none;
+}
+.procurement-form-ui .cpo-vat-summary .cpo-vat-breakdown-note {
+	display: block;
+	margin-top: 6px;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.grid-row
+	.control-input
+	:is(input, select).form-control {
+	height: 32px;
+	min-height: 32px;
+	padding: 4px 8px;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .control-input .link-field > .link-btn {
+	inset-block: 1px;
+	height: auto;
+	margin-top: 0;
+	padding-block: 0;
+	background: transparent;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .control-input .link-field > .link-btn a {
+	width: 22px;
+	justify-content: center;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.control-input
+	.link-field:is(:hover, :focus-within)
+	input.form-control {
+	padding-inline-end: 54px;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .grid-row .form-column {
+	flex-basis: auto;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .form-grid {
+	--table-border-color: var(--procurement-border);
+	background: var(--card-bg);
+	border-radius: 12px;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.form-grid
+	.grid-heading-row
+	.data-row:not(.filter-row)
+	> .col {
+	background: var(--procurement-tint);
+	color: var(--procurement-muted);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.form-grid
+	.grid-heading-row
+	.static-area {
+	font-weight: 600;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .form-grid .grid-body .data-row {
+	color: var(--text-color);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.form-grid
+	.grid-body
+	.data-row:not(.editable-row, .highlight):hover
+	> .col:not(.error, .invalid) {
+	background-color: var(--procurement-tint);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.form-grid
+	.grid-body
+	.data-row:not(.editable-row, .highlight):has(.grid-row-check:checked)
+	> .col:not(.error, .invalid) {
+	background-color: var(--procurement-selected);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .form-grid .grid-empty {
+	background: var(--card-bg);
+	color: var(--procurement-muted);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) .grid-footer .btn-secondary {
+	border-radius: 8px;
+	background: var(--procurement-tint);
+	color: var(--text-color);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	.grid-footer
+	.btn-secondary:hover:not(:disabled) {
+	background: var(--procurement-selected);
+}
+.procurement-form-ui .page-actions .btn-primary,
+.procurement-dialog-theme .modal .modal-footer .btn-primary:not(.btn-danger) {
+	background: var(--procurement-action);
+	border-color: var(--procurement-action);
+	color: white;
+}
+.procurement-form-ui .page-actions .btn-primary:hover:not(:disabled),
+.procurement-dialog-theme .modal .modal-footer .btn-primary:hover:not(:disabled, .btn-danger) {
+	background: #12654d;
+	border-color: #12654d;
+}
+.procurement-form-ui .inner-toolbar .btn {
+	min-height: 36px;
+	border-radius: 8px;
+}
+.procurement-form-ui .inner-toolbar .btn-group,
+.procurement-form-ui .inner-toolbar > .btn {
+	margin-right: 10px;
+	margin-bottom: 8px;
+}
+.procurement-form-ui .supplier-invoice-actions {
+	justify-content: flex-end;
+	padding-top: 12px;
+	border-top: 1px solid color-mix(in srgb, var(--procurement-border) 45%, transparent);
+}
+.procurement-form-ui .supplier-invoice-actions .btn {
+	min-height: 32px;
+	padding: 5px 12px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--procurement-muted);
+	white-space: normal;
+}
+.procurement-form-ui .supplier-invoice-actions .btn:is(:hover, :focus-visible) {
+	background: var(--procurement-tint);
+	color: var(--text-color);
+}
+.procurement-form-ui .supplier-invoice-actions .btn:focus-visible {
+	outline: 2px solid var(--procurement-focus);
+	outline-offset: 2px;
+}
+.procurement-dialog-theme .modal .modal-dialog {
+	--procurement-dialog-margin: clamp(16px, 4vh, 32px);
+	width: calc(100% - 32px);
+	max-width: 660px;
+	margin: var(--procurement-dialog-margin) auto;
+}
+.procurement-dialog-theme .modal .modal-dialog.modal-sm {
+	max-width: 420px;
+}
+.procurement-dialog-theme .modal .modal-dialog.modal-lg {
+	max-width: 960px;
+}
+.procurement-dialog-theme .modal .modal-dialog.modal-xl {
+	max-width: 1440px;
+}
+.procurement-dialog-theme .modal .modal-content {
+	max-height: calc(100dvh - 2 * var(--procurement-dialog-margin));
+	border: 1px solid var(--procurement-border);
+	border-radius: 20px;
+	background: var(--card-bg);
+}
+.procurement-dialog-theme .modal .modal-header {
+	padding: 18px 26px;
+	flex-shrink: 0;
+	border-bottom-color: var(--procurement-border);
+	border-radius: 19px 19px 0 0;
+	background: var(--procurement-tint);
+}
+.procurement-dialog-theme .modal .modal-title {
+	font-size: 21px;
+	line-height: 30px;
+}
+.procurement-dialog-theme .modal .modal-body {
+	padding: 20px 26px;
+	min-height: 0;
+	overflow-y: auto;
+}
+.procurement-dialog-theme .modal .modal-footer {
+	padding: 14px 26px;
+	flex-shrink: 0;
+	border-top: 1px solid var(--procurement-border);
+	border-radius: 0 0 19px 19px;
+	background: var(--procurement-tint);
+}
+.procurement-dialog-theme .modal .modal-footer .btn {
+	min-height: 40px;
+	border-radius: 9px;
+}
+:is(.procurement-dialog-theme .modal, .procurement-initiator-dialog)
+	.control-input
+	.awesomplete
+	> [role="listbox"] {
+	position: static;
+	min-width: 0;
+	max-height: var(--procurement-list-height, clamp(56px, calc(100dvh - 350px), 220px));
+	margin-top: 6px;
+	overflow-y: auto;
+	overscroll-behavior-y: contain;
+}
+.modal.procurement-initiator-dialog .modal-content {
+	max-height: none;
+}
+.modal.procurement-initiator-dialog .modal-body {
+	overflow: visible;
+}
+.procurement-initiator-dialog .control-input .link-field > .link-btn {
+	inset-block-end: auto;
+	height: var(--input-height);
+}
+.procurement-dialog-theme .modal .control-input .link-field > .link-btn {
+	inset-block-end: auto;
+	height: 46px;
+}
+.procurement-dialog-theme .modal .grid-row .control-input .link-field > .link-btn {
+	height: 32px;
+}
+.awesomplete.procurement-dialog-list-overlay {
+	position: absolute;
+	z-index: 4;
+}
+.procurement-dialog-list-overlay > [role="listbox"] {
+	position: static;
+	min-width: 0;
+	max-height: var(--procurement-list-height);
+	overscroll-behavior-y: contain;
+}
+@media (max-height: 540px) {
+	.procurement-dialog-theme .modal .modal-dialog {
+		--procurement-dialog-margin: 12px;
+	}
+	.procurement-dialog-theme .modal :is(.modal-header, .modal-body, .modal-footer) {
+		padding-block: 10px;
+	}
+}
+.procurement-dialog-theme .modal .procurement-dialog-note {
+	padding: 12px 14px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-dialog-theme .modal .procurement-dialog-file {
+	display: inline-block;
+	padding: 6px 12px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 8px;
+	color: var(--procurement-accent);
+	font-weight: 600;
+}
+.procurement-dialog-theme .modal .procurement-dialog-file:hover {
+	background: var(--procurement-selected);
+}
+.procurement-dialog-theme .modal .procurement-invoice-option {
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	padding: 9px 12px;
+	border-bottom: 1px solid var(--procurement-border);
+	color: var(--text-color);
+}
+.procurement-dialog-theme .modal .procurement-invoice-options {
+	display: block;
+	margin-top: 10px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-dialog-theme .modal .procurement-invoice-option:last-child {
+	border-bottom: 0;
+}
+.procurement-dialog-theme .modal .procurement-invoice-options > br {
+	display: none;
+}
+.supplier-item-match-table {
+	min-width: 770px;
+	table-layout: fixed;
+	overflow-wrap: anywhere;
+}
+.supplier-item-match-table th:is(:first-child, :nth-child(4), :nth-child(5)) {
+	width: 8%;
+}
+.supplier-item-match-table th:is(:nth-child(3), :last-child) {
+	width: 12%;
+}
+.supplier-item-match-table th:nth-child(6) {
+	width: 32%;
+}
+.supplier-item-match-target select.form-control {
+	width: 100%;
+	text-overflow: ellipsis;
+}
+.procurement-dialog-theme .modal .supplier-item-match-target select.form-control {
+	min-height: 36px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 8px;
+	background: var(--procurement-tint);
+	color: var(--text-color);
+	appearance: auto;
+	cursor: pointer;
+}
+.procurement-dialog-theme .modal .supplier-item-match-target select.form-control:hover {
+	background-color: var(--procurement-selected);
+}
+.procurement-dialog-theme .modal .supplier-item-match-target select.form-control:focus {
+	border-color: var(--procurement-focus);
+	box-shadow: 0 0 0 2px var(--procurement-selected);
+}
+.supplier-pdf-prefill-dialog .form-grid:not(:has(.grid-row-open)) {
+	width: max(100%, 760px);
+}
+.supplier-pdf-prefill-dialog .form-grid .grid-row > .data-row:not(.filter-row) {
+	display: grid;
+	grid-template-columns:
+		34px minmax(0, 3.2fr) minmax(0, 1.35fr) minmax(0, 1.05fr) minmax(0, 1.1fr)
+		minmax(0, 1.2fr) minmax(0, 2.3fr) 36px;
+	margin: 0;
+}
+.supplier-pdf-prefill-dialog .form-grid .grid-row > .data-row > .col {
+	width: auto;
+	min-width: 0;
+	max-width: none;
+	height: auto;
+	min-height: 42px;
+	align-content: center;
+}
+.supplier-pdf-prefill-dialog .form-grid .grid-row > .data-row > .row-index {
+	display: none;
+}
+.supplier-pdf-prefill-dialog .form-grid .grid-heading-row {
+	height: auto;
+}
+.supplier-pdf-prefill-dialog .form-grid .grid-heading-row .static-area {
+	white-space: normal;
+}
+.supplier-pdf-prefill-dialog .form-grid .grid-body .static-area {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.procurement-dialog-theme .modal.supplier-pdf-prefill-dialog .modal-dialog {
+	max-width: 1200px;
+}
+.procurement-dialog-theme .supplier-pdf-prefill-dialog .form-grid .grid-body {
+	background: var(--card-bg);
+}
+.procurement-form-ui .cpo-route-card {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.procurement-form-ui .cpo-route-scroll {
+	overflow-x: auto;
+}
+.procurement-form-ui .cpo-route {
+	grid-template-columns: repeat(6, minmax(136px, 1fr));
+	grid-template-rows: repeat(3, auto);
+	gap: 8px 10px;
+	align-items: stretch;
+}
+.procurement-form-ui .cpo-route-segment {
+	display: grid;
+	grid-row: 1 / -1;
+	grid-template-rows: subgrid;
+}
+.procurement-form-ui .cpo-route-step {
+	display: grid;
+	grid-row: 1 / -1;
+	grid-template-rows: subgrid;
+	grid-template-columns: 34px minmax(0, 1fr);
+	grid-template-areas:
+		"icon title"
+		"role role"
+		"actor actor";
+	column-gap: 6px;
+	align-items: start;
+	padding: 10px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-form-ui .cpo-route-step.is-current {
+	background: var(--procurement-selected);
+}
+.procurement-form-ui .cpo-route-copy {
+	display: contents;
+}
+.procurement-form-ui .cpo-route-icon {
+	grid-area: icon;
+}
+.procurement-form-ui .cpo-route-actor {
+	grid-area: actor;
+	display: grid;
+	align-self: stretch;
+	align-content: end;
+	margin-top: 0;
+	padding-top: 6px;
+	border-top: 1px solid color-mix(in srgb, var(--procurement-border) 35%, transparent);
+	color: var(--procurement-muted);
+	text-align: end;
+}
+.procurement-form-ui .cpo-route-actor:empty {
+	visibility: hidden;
+}
+.procurement-form-ui .cpo-route-title {
+	grid-area: title;
+	padding-top: 4px;
+	text-wrap: balance;
+}
+.procurement-form-ui .cpo-route-role {
+	grid-area: role;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	height: 3lh;
+	overflow: hidden;
+	margin-top: 0;
+}
+.procurement-form-ui :is(.cpo-route-title, .cpo-route-role, .cpo-route-actor) {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.procurement-supplier-cards,
+.procurement-suppliers-without-contact,
+.procurement-form-ui .procurement-supplier-table {
+	display: none;
+}
+.procurement-form-ui .procurement-supplier-cards:not(:empty) {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+	gap: 12px;
+	margin-bottom: 16px;
+}
+.procurement-form-ui .procurement-supplier-card {
+	min-width: 0;
+	border: 1px solid var(--procurement-border);
+	border-radius: 12px;
+	background: var(--procurement-tint);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 16px;
+}
+.procurement-form-ui .procurement-supplier-heading {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 40%);
+	align-items: start;
+	gap: 12px;
+	padding-bottom: 14px;
+	border-bottom: 1px solid var(--procurement-border);
+}
+.procurement-form-ui .procurement-suppliers-without-contact {
+	display: block;
+	margin-bottom: 16px;
+}
+.procurement-suppliers-without-contact h5 {
+	margin: 0 0 8px;
+	color: var(--procurement-muted);
+	font-size: 13px;
+	font-weight: 600;
+}
+.procurement-suppliers-without-contact ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-suppliers-without-contact li + li {
+	border-top: 1px solid var(--procurement-border);
+}
+.procurement-form-ui .procurement-suppliers-without-contact .procurement-supplier-link {
+	display: block;
+	padding: 8px 12px;
+	text-align: start;
+}
+.procurement-form-ui .procurement-supplier-heading .ent-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.procurement-form-ui .procurement-supplier-heading :is(.ent-name, .ent-sub) {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .procurement-supplier-heading .ent-name {
+	font-weight: 650;
+}
+.procurement-form-ui .procurement-supplier-link {
+	justify-self: end;
+	text-align: end;
+	color: var(--procurement-accent);
+	font-size: 13px;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+	text-wrap: balance;
+}
+.procurement-form-ui .procurement-supplier-details {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .procurement-supplier-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: auto;
+}
+.procurement-form-ui .procurement-supplier-actions .btn {
+	border: 1px solid var(--procurement-border);
+	border-radius: 8px;
+	background: var(--card-bg);
+}
+.procurement-form-ui .procurement-supplier-actions a.btn:hover {
+	background: var(--procurement-selected);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) table.table-bordered {
+	border: 1px solid var(--procurement-border);
+	border-collapse: separate;
+	border-spacing: 0;
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--card-bg);
+	color: var(--text-color);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	table.table-bordered
+	> :is(thead, tbody, tfoot)
+	> tr
+	> :is(th, td) {
+	padding: 10px 14px;
+	border: 0;
+	border-block-end: 1px solid var(--procurement-border);
+	vertical-align: middle;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	table.table-bordered
+	> :is(thead, tbody, tfoot)
+	> tr
+	> :is(th, td):not(:last-child) {
+	border-inline-end: 1px solid var(--procurement-border);
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal) table.table-bordered > thead > tr > th {
+	background: var(--procurement-tint);
+	color: var(--procurement-muted);
+	font-weight: 600;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	table.table-bordered
+	> :last-child
+	> tr:last-child
+	> :is(th, td) {
+	border-block-end: 0;
+}
+:is(.procurement-form-ui, :where(.procurement-dialog-theme) .modal)
+	table.table-bordered
+	> tbody
+	> tr:is(:hover, :focus-within)
+	> :is(th, td) {
+	background: var(--procurement-tint);
+}
+.procurement-dialog-theme .modal .form-section {
+	padding-inline: 0;
+}
+@media (max-width: 767px) {
+	.procurement-form-ui .form-section[data-fieldname="details_section"] > .section-body {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-areas:
+			"company date"
+			"currency supplier"
+			"schedule warehouse"
+			"purchased purchased";
+	}
+	.procurement-form-ui .procurement-prepaid-summary {
+		grid-area: purchased-end / 1 / span 1 / -1;
+	}
+	.procurement-form-ui .form-section[data-fieldname="totals_section"] > .section-body {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.procurement-form-ui .procurement-form-header {
+		flex-direction: column;
+		gap: 12px;
+	}
+	.procurement-form-ui .procurement-form-meta {
+		max-width: 100%;
+		flex-direction: row;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+	.procurement-form-ui .form-section > .section-body > .form-column {
+		flex: 1 1 100%;
+		max-width: 100%;
+	}
+	.procurement-dialog-theme .modal :is(.modal-header, .modal-body, .modal-footer) {
+		padding-inline: 16px;
+	}
+}
