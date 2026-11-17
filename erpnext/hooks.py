@@ -479,6 +479,14 @@ standard_navbar_items = [
 		"condition": "eval: frappe.boot.sensitive_data && frappe.boot.sensitive_data.enabled && frappe.boot.sensitive_data.has_pin",
 		"icon": "key-round",
 	},
+	{
+		"item_label": "Ops Dashboard",
+		"item_type": "Action",
+		"action": "window.open(location.protocol + '//' + location.hostname + ':8081/', '_blank')",
+		"is_standard": 1,
+		"condition": "eval: frappe.user.has_role('System Manager')",
+		"icon": "server",
+	},
 ]
 
 standard_portal_menu_items = [
