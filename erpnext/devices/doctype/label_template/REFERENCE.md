@@ -144,6 +144,8 @@ Elements (coordinates and sizes in mm, relative to the padded area):
 | `table` | `cols` (mm), `rows[{h, cells[{text, bold, align, colspan}]}]`, `loop` — child table: the last row repeats with `{{ row.x }}` |
 | `line`, `rect` | `rect`: `fill`, `radius_mm`, `style.border_mm` |
 
+Fonts: only `DejaVu Sans`, `DejaVu Serif`, `DejaVu Sans Mono` exist in the render image (old `Arial` / `Monospace` values map to them). The designer loads the same files from `erpnext/public/fonts/label/`, snaps font size to whole 300-dpi pixels like wkhtmltoimage does, and disables kerning (wkhtmltoimage does not kern), so text that fits the canvas fits the print. `erpnext/devices/test_label_render_parity.py` guards this.
+
 Common: `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`, `italic`, `underline`, `align`, `valign`, `nowrap`, `invert`, `border_mm`, `line_height`).
 
 ## Print inputs and printing from the template

@@ -23,12 +23,19 @@ PX_PER_PT = DPI / 72
 ELEMENT_TYPES = ("text", "field", "input", "image", "barcode", "qr", "table", "line", "rect")
 ALIGNS = ("left", "center", "right")
 VALIGNS = ("top", "middle", "bottom")
+# Only fonts installed in the image (fonts-dejavu-core). The designer loads the very same
+# files from erpnext/public/fonts/label/, so the canvas and the printed label share metrics.
 FONTS = {
-	"Arial": "Arial, Helvetica, sans-serif",
-	"DejaVu Sans": "'DejaVu Sans', Arial, sans-serif",
-	"DejaVu Sans Condensed": "'DejaVu Sans Condensed', 'DejaVu Sans', Arial, sans-serif",
-	"Monospace": "'DejaVu Sans Mono', 'Courier New', monospace",
+	"DejaVu Sans": "'DejaVu Sans'",
+	"DejaVu Serif": "'DejaVu Serif'",
+	"DejaVu Sans Mono": "'DejaVu Sans Mono'",
 }
+FONT_ALIASES = {
+	"Arial": "DejaVu Sans",
+	"DejaVu Sans Condensed": "DejaVu Sans",
+	"Monospace": "DejaVu Sans Mono",
+}
+DEFAULT_FONT = "DejaVu Sans"
 FORMATS = ("", "upper", "date", "datetime", "float:0", "float:1", "float:2", "float:3")
 BARCODE_TYPES = ("code128", "code39", "ean13", "ean8", "upca", "isbn13", "gs1_128")
 JINJA_EXPR = re.compile(r"(\{\{.*?\}\})", re.DOTALL)
@@ -91,11 +98,21 @@ def _value_expr(key, fmt="", scope="doc", attr=False):
 	return f"{{{{ ({body}) | e if {v} not in (None, '') else '' }}}}"
 
 
+def font_px(size_pt):
+	"""wkhtmltoimage's WebKit snaps font sizes to whole pixels; emit that size so the designer can match it."""
+	return max(1, round(_num(size_pt, 10, 2, 200) * PX_PER_PT))
+
+
+def font_name(value):
+	value = FONT_ALIASES.get(value, value)
+	return value if value in FONTS else DEFAULT_FONT
+
+
 def _style_css(style):
 	style = style or {}
 	parts = [
-		f"font-family:{FONTS.get(style.get('font_family'), FONTS['Arial'])}",
-		f"font-size:{round(_num(style.get('font_size_pt'), 10, 2, 200) * PX_PER_PT, 2)}px",
+		f"font-family:{FONTS[font_name(style.get('font_family'))]}",
+		f"font-size:{font_px(style.get('font_size_pt'))}px",
 		f"line-height:{_num(style.get('line_height'), 1.15, 0.6, 3)}",
 		f"text-align:{style.get('align') if style.get('align') in ALIGNS else 'left'}",
 		f"vertical-align:{style.get('valign') if style.get('valign') in VALIGNS else 'top'}",

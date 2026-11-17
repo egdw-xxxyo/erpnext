@@ -17613,3 +17613,7 @@ not set,не задано
 table,таблиця
 {0} elements selected,Обрано елементів: {0}
 Ops Dashboard,Панель адміністрування
+Compare with print,Порівняти з друком
+Overlay the printed result (red) on the canvas,Накласти надрукований результат (червоним) на полотно
+Red = printed result,Червоне = результат друку
+The content does not fit the box and will be cut on the label. Enlarge the box or reduce the font.,Вміст не вміщується в рамку й буде обрізаний на мітці. Збільште рамку або зменште шрифт.

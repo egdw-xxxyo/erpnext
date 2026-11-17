@@ -1,7 +1,5 @@
 frappe.provide("erpnext.label_designer");
 
-const LD_PT_MM = 25.4 / 72;
-
 const LD_PALETTE = [
 	{ type: "text", icon: "fa fa-font", label: __("Text") },
 	{ type: "field", icon: "fa fa-database", label: __("Field") },
@@ -46,7 +44,23 @@ const LD_DEFAULTS = {
 	rect: () => ({ w: 30, h: 15, fill: 0, radius_mm: 0, style: { border_mm: 0.3 } }),
 };
 
-const LD_FONTS = ["Arial", "DejaVu Sans", "DejaVu Sans Condensed", "Monospace"];
+const LD_FONTS = ["DejaVu Sans", "DejaVu Serif", "DejaVu Sans Mono"];
+const LD_FONT_ALIASES = {
+	Arial: "DejaVu Sans",
+	"DejaVu Sans Condensed": "DejaVu Sans",
+	Monospace: "DejaVu Sans Mono",
+};
+const LD_FONT_FILES = {
+	"DejaVu Sans": ["DejaVuSans", "DejaVuSans-Bold"],
+	"DejaVu Serif": ["DejaVuSerif", "DejaVuSerif-Bold"],
+	"DejaVu Sans Mono": ["DejaVuSansMono", "DejaVuSansMono-Bold"],
+};
+const LD_DOTS_PER_MM = 300 / 25.4;
+const ld_font_mm = (pt) => Math.max(1, Math.round(flt(pt || 10) * (300 / 72))) / LD_DOTS_PER_MM;
+const ld_font = (name) => {
+	name = LD_FONT_ALIASES[name] || name;
+	return LD_FONT_FILES[name] ? name : "DejaVu Sans";
+};
 const LD_FORMATS = [
 	["", __("As is")],
 	["upper", __("Upper case")],
@@ -218,6 +232,9 @@ erpnext.label_designer.Designer = class LabelDesigner {
 						"Delete"
 					)} (Del)"><i class="fa fa-trash"></i></button>
 					<span class="ld-flex"></span>
+					<button class="btn btn-xs btn-default ld-compare-btn" data-action="compare" title="${__(
+						"Overlay the printed result (red) on the canvas"
+					)}"><i class="fa fa-adjust"></i> ${__("Compare with print")}</button>
 					<button class="btn btn-xs btn-default" data-action="html" title="${__(
 						"Generated HTML"
 					)}"><i class="fa fa-code"></i></button>
@@ -311,6 +328,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (action === "fit") this.fit_zoom();
 		if (["zoom_in", "zoom_out", "fit"].includes(action)) return this.render();
 		if (action === "preview") return this.exact_preview();
+		if (action === "compare") return this.toggle_compare();
 		if (action === "html") return this.show_html();
 		if (!sel.length) return;
 		const els = this.layout.elements;
@@ -359,6 +377,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		this.push_history();
 		this.save();
 		this.render();
+		this.schedule_compare();
 	}
 
 	save() {
@@ -557,9 +576,71 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		}px;background-size:${big}px ${big}px, ${big}px ${big}px, ${grid}px ${grid}px, ${grid}px ${grid}px;">
 					${els}
 				</div>
+				${this.compare && this.compare_url ? `<img class="ld-compare" src="${this.compare_url}">` : ""}
 			</div>
-			<div class="ld-size-note">${this.size.w} × ${this.size.h} ${__("mm")}</div>`);
+			<div class="ld-size-note">${this.size.w} × ${this.size.h} ${__("mm")}${
+			this.compare ? ` · <span class="ld-compare-note">${__("Red = printed result")}</span>` : ""
+		}</div>`);
 		this.render_inspector();
+		this.check_overflow();
+	}
+
+	check_overflow() {
+		const run = () => {
+			this.overflowing = new Set();
+			this.$stage.find(".ld-el").each((_i, node) => {
+				const el = this.layout.elements.find((e) => e.id === node.dataset.id);
+				if (!el || !["text", "field", "input", "table", "barcode"].includes(el.type)) return;
+				const inner = node.querySelector(".ld-el-inner");
+				const content = inner.firstElementChild;
+				if (!content) return;
+				const over =
+					content.scrollWidth > inner.clientWidth + 1 ||
+					content.scrollHeight > inner.clientHeight + 1 ||
+					[...content.querySelectorAll("td")].some(
+						(td) => td.scrollWidth > td.clientWidth + 1 || td.scrollHeight > td.clientHeight + 1
+					);
+				node.classList.toggle("ld-overflow", over);
+				if (over) this.overflowing.add(el.id);
+			});
+			const sel = this.selected_elements();
+			this.$inspector
+				.find(".ld-overflow-warn")
+				.toggle(sel.length === 1 && this.overflowing.has(sel[0].id));
+		};
+		if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
+		else run();
+	}
+
+	toggle_compare() {
+		this.compare = !this.compare;
+		this.$root.find(".ld-compare-btn").toggleClass("btn-primary", this.compare);
+		if (this.compare) this.refresh_compare();
+		else this.render();
+	}
+
+	schedule_compare() {
+		if (!this.compare) return;
+		clearTimeout(this._compare_timer);
+		this._compare_timer = setTimeout(() => this.refresh_compare(), 700);
+	}
+
+	refresh_compare() {
+		const seq = (this._compare_seq = (this._compare_seq || 0) + 1);
+		frappe
+			.call({
+				method: "erpnext.devices.doctype.label_template.label_template.render_template_preview",
+				args: { doc: erpnext.label_designer.form_payload(this.frm), sample: 1 },
+			})
+			.then((r) => {
+				if (seq !== this._compare_seq || !this.compare || !r.message) return;
+				return erpnext.label_designer.tint_ink(r.message.image_base64);
+			})
+			.then((url) => {
+				if (!url || seq !== this._compare_seq) return;
+				this.compare_url = url;
+				this.render();
+			});
 	}
 
 	sample_text(text, scope_row) {
@@ -578,15 +659,9 @@ erpnext.label_designer.Designer = class LabelDesigner {
 
 	text_css(style) {
 		style = style || {};
-		const fs = flt(style.font_size_pt || 10) * LD_PT_MM * this.zoom;
-		const fonts = {
-			Arial: "Arial, Helvetica, sans-serif",
-			"DejaVu Sans": "'DejaVu Sans', Arial, sans-serif",
-			"DejaVu Sans Condensed": "'DejaVu Sans Condensed', 'Arial Narrow', sans-serif",
-			Monospace: "'DejaVu Sans Mono', 'Courier New', monospace",
-		};
+		const fs = ld_font_mm(style.font_size_pt) * this.zoom;
 		return [
-			`font-family:${fonts[style.font_family] || fonts.Arial}`,
+			`font-family:'LD ${ld_font(style.font_family)}'`,
 			`font-size:${fs}px`,
 			`line-height:${style.line_height || 1.15}`,
 			`text-align:${style.align || "left"}`,
@@ -595,7 +670,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			`font-style:${style.italic ? "italic" : "normal"}`,
 			style.underline ? "text-decoration:underline" : "",
 			style.invert ? "color:#fff;background:#000" : "color:#000",
-			style.nowrap ? "white-space:nowrap" : "word-break:break-word",
+			style.nowrap ? "white-space:nowrap" : "overflow-wrap:break-word",
 		]
 			.filter(Boolean)
 			.join(";");
@@ -725,6 +800,11 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		const meta = LD_PALETTE.find((p) => p.type === el.type);
 		this.$inspector.html(`
 			<div class="ld-panel-title"><i class="${meta.icon}"></i> ${meta.label}</div>
+			<div class="ld-overflow-warn alert alert-warning small" style="display:none;">
+				<i class="fa fa-exclamation-triangle"></i> ${__(
+					"The content does not fit the box and will be cut on the label. Enlarge the box or reduce the font."
+				)}
+			</div>
 			${this.type_props(el)}
 			<div class="ld-group-title">${__("Position and size")} (${__("mm")})</div>
 			<div class="ld-grid4">
@@ -896,7 +976,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				${this.select(
 					"style.font_family",
 					__("Font"),
-					s.font_family || "Arial",
+					ld_font(s.font_family),
 					LD_FONTS.map((f) => [f, f])
 				)}
 			</div>
@@ -1097,6 +1177,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 	}
 
 	exact_preview() {
+		if (this.compare) this.refresh_compare();
 		erpnext.label_designer.preview_form(this.frm).then((data) => {
 			if (data) erpnext.label_designer.show_big_preview(data, this.frm.doc.template_name);
 		});
@@ -1177,9 +1258,53 @@ erpnext.label_designer.show_big_preview = function (data, title) {
 	d.show();
 };
 
+erpnext.label_designer.tint_ink = function (b64) {
+	return new Promise((resolve) => {
+		const img = new Image();
+		img.onload = () => {
+			const c = document.createElement("canvas");
+			c.width = img.width;
+			c.height = img.height;
+			const ctx = c.getContext("2d");
+			ctx.drawImage(img, 0, 0);
+			const data = ctx.getImageData(0, 0, c.width, c.height);
+			const px = data.data;
+			for (let i = 0; i < px.length; i += 4) {
+				const ink = px[i] < 128;
+				px[i] = 230;
+				px[i + 1] = 20;
+				px[i + 2] = 20;
+				px[i + 3] = ink ? 150 : 0;
+			}
+			ctx.putImageData(data, 0, 0);
+			resolve(c.toDataURL("image/png"));
+		};
+		img.onerror = () => resolve(null);
+		img.src = `data:image/png;base64,${b64}`;
+	});
+};
+
+erpnext.label_designer.font_faces = function () {
+	return Object.entries(LD_FONT_FILES)
+		.map(([family, [regular, bold]]) =>
+			[
+				[regular, "normal"],
+				[bold, "bold"],
+			]
+				.map(
+					([file, weight]) =>
+						`@font-face{font-family:'LD ${family}';src:url('/assets/erpnext/fonts/label/${file}.ttf') format('truetype');font-weight:${weight};font-style:normal;font-display:block}`
+				)
+				.join("\n")
+		)
+		.join("\n");
+};
+
 erpnext.label_designer.inject_style = function () {
 	if (document.getElementById("ld-style")) return;
-	const css = `
+	const css =
+		erpnext.label_designer.font_faces() +
+		`
 .ld-root{border:1px solid var(--border-color);border-radius:var(--border-radius-md);background:var(--card-bg);outline:none}
 .ld-toolbar{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border-color);flex-wrap:wrap}
 .ld-sep{width:1px;height:18px;background:var(--border-color);margin:0 4px}
@@ -1203,7 +1328,11 @@ erpnext.label_designer.inject_style = function () {
 .ld-el{position:absolute;cursor:move;box-sizing:border-box;touch-action:none}
 .ld-el:hover{outline:1px dashed rgba(0,120,255,.6)}
 .ld-el.ld-selected{outline:1px solid #2490ef;z-index:2}
-.ld-el-inner{width:100%;height:100%;overflow:hidden;pointer-events:none;color:#000}
+.ld-el-inner{width:100%;height:100%;overflow:hidden;pointer-events:none;color:#000;font-kerning:none;font-variant-ligatures:none;font-feature-settings:"kern" 0,"liga" 0;letter-spacing:0.006em;word-spacing:0;text-rendering:optimizeSpeed;-webkit-font-smoothing:antialiased}
+.ld-el.ld-overflow{outline:1px dashed #e24c4c}
+.ld-el.ld-overflow::after{content:"\\f071";font-family:FontAwesome;position:absolute;right:-14px;top:-14px;color:#e24c4c;font-size:12px}
+.ld-compare{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;image-rendering:pixelated;z-index:5}
+.ld-compare-note{color:#e61414}
 .ld-cell{width:100%;height:100%;border-collapse:collapse;table-layout:fixed;box-sizing:border-box}
 .ld-cell td{padding:0}
 .ld-table{width:100%;border-collapse:collapse;table-layout:fixed}
