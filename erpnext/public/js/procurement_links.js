@@ -83,6 +83,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 							"Purchase Order",
 							"Purchase Invoice",
 							"Purchase Receipt",
+							"Payment Entry",
 						].includes(group.doctype);
 						const rows = group.documents
 							.map((doc) => {

@@ -86,13 +86,23 @@ def _visible_documents(doctype, names):
 	fields = ["name", "docstatus"]
 	if doctype in SUPPLIER_DOCUMENT_TYPES:
 		fields.extend(("supplier", "supplier_name"))
-	return frappe.get_list(
+	elif doctype == "Payment Entry":
+		fields.extend(("party_type", "party", "party_name"))
+	documents = frappe.get_list(
 		doctype,
 		filters={"name": ["in", sorted(names)]},
 		fields=fields,
 		order_by="creation asc",
 		limit_page_length=0,
 	)
+	if doctype == "Payment Entry":
+		for document in documents:
+			party_type = document.pop("party_type", None)
+			party = document.pop("party", None)
+			party_name = document.pop("party_name", None)
+			if party_type == "Supplier":
+				document.update(supplier=party, supplier_name=party_name)
+	return documents
 
 
 @frappe.whitelist()
