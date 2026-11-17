@@ -90,6 +90,65 @@ const LD_FORMATS = [
 ];
 const LD_BARCODES = ["code128", "code39", "ean13", "ean8", "upca", "isbn13", "gs1_128"];
 
+const ld_svg = (body) =>
+	`<svg class="ld-ico" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">${body}</svg>`;
+const LD_ICONS = {
+	align_left: ld_svg(
+		'<path d="M2 1v14"/><rect x="3.6" y="3" width="10" height="3.6"/><rect x="3.6" y="9.4" width="6" height="3.6"/>'
+	),
+	align_center: ld_svg(
+		'<path d="M8 1v14"/><rect x="3" y="3" width="10" height="3.6"/><rect x="5" y="9.4" width="6" height="3.6"/>'
+	),
+	align_right: ld_svg(
+		'<path d="M14 1v14"/><rect x="2.4" y="3" width="10" height="3.6"/><rect x="6.4" y="9.4" width="6" height="3.6"/>'
+	),
+	align_top: ld_svg(
+		'<path d="M1 2h14"/><rect x="3" y="3.6" width="3.6" height="10"/><rect x="9.4" y="3.6" width="3.6" height="6"/>'
+	),
+	align_middle: ld_svg(
+		'<path d="M1 8h14"/><rect x="3" y="3" width="3.6" height="10"/><rect x="9.4" y="5" width="3.6" height="6"/>'
+	),
+	align_bottom: ld_svg(
+		'<path d="M1 14h14"/><rect x="3" y="2.4" width="3.6" height="10"/><rect x="9.4" y="6.4" width="3.6" height="6"/>'
+	),
+	distribute_h: ld_svg(
+		'<path d="M1 1v14M15 1v14"/><rect x="3" y="4" width="2.6" height="8"/><rect x="6.7" y="5.5" width="2.6" height="5"/><rect x="10.4" y="4" width="2.6" height="8"/>'
+	),
+	distribute_v: ld_svg(
+		'<path d="M1 1h14M1 15h14"/><rect x="4" y="3" width="8" height="2.6"/><rect x="5.5" y="6.7" width="5" height="2.6"/><rect x="4" y="10.4" width="8" height="2.6"/>'
+	),
+	same_width: ld_svg(
+		'<rect x="2" y="2" width="12" height="4"/><rect x="2" y="10" width="7" height="4" stroke-dasharray="1.5 1.2"/><path d="M9.5 12h4.5M12.5 10.6l1.5 1.4-1.5 1.4"/>'
+	),
+	same_height: ld_svg(
+		'<rect x="2" y="2" width="4" height="12"/><rect x="10" y="2" width="4" height="7" stroke-dasharray="1.5 1.2"/><path d="M12 9.5v4.5M10.6 12.5l1.4 1.5 1.4-1.5"/>'
+	),
+	valign_top: ld_svg(
+		'<rect x="1.5" y="1.5" width="13" height="13" stroke-opacity=".35"/><path d="M4.5 4.5h7M4.5 7h7"/>'
+	),
+	valign_middle: ld_svg(
+		'<rect x="1.5" y="1.5" width="13" height="13" stroke-opacity=".35"/><path d="M4.5 6.8h7M4.5 9.3h7"/>'
+	),
+	valign_bottom: ld_svg(
+		'<rect x="1.5" y="1.5" width="13" height="13" stroke-opacity=".35"/><path d="M4.5 9h7M4.5 11.5h7"/>'
+	),
+};
+const LD_ARRANGE = [
+	["align_left", __("Align left")],
+	["align_center", __("Align center")],
+	["align_right", __("Align right")],
+	null,
+	["align_top", __("Align top")],
+	["align_middle", __("Align middle")],
+	["align_bottom", __("Align bottom")],
+	null,
+	["distribute_h", __("Distribute horizontally")],
+	["distribute_v", __("Distribute vertically")],
+	null,
+	["same_width", __("Same width")],
+	["same_height", __("Same height")],
+];
+
 const esc = (v) => frappe.utils.escape_html(v == null ? "" : String(v));
 const round2 = (n) => Math.round(n * 100) / 100;
 
@@ -240,6 +299,12 @@ erpnext.label_designer.Designer = class LabelDesigner {
 					<button class="btn btn-xs btn-default" data-action="duplicate" title="${__(
 						"Duplicate"
 					)} (Ctrl+D)"><i class="fa fa-clone"></i></button>
+					<div class="ld-dd">
+						<button class="btn btn-xs btn-default ld-dd-toggle" title="${__("Align")}">${
+			LD_ICONS.align_left
+		}<i class="fa fa-caret-down"></i></button>
+						<div class="ld-dd-menu"></div>
+					</div>
 					<button class="btn btn-xs btn-default" data-action="front" title="${__(
 						"Bring to front"
 					)}"><i class="fa fa-level-up"></i></button>
@@ -284,6 +349,45 @@ erpnext.label_designer.Designer = class LabelDesigner {
 	}
 
 	bind() {
+		this.$root.on("click", ".ld-dd-toggle", (e) => {
+			e.stopPropagation();
+			const $dd = $(e.currentTarget).closest(".ld-dd");
+			const open = !$dd.hasClass("open");
+			this.$root.find(".ld-dd").removeClass("open");
+			if (open) {
+				$dd.find(".ld-dd-menu").html(this.arrange_menu());
+				$dd.addClass("open");
+			}
+		});
+		this.$root.on("click", ".ld-dd-item", (e) => {
+			const $it = $(e.currentTarget);
+			if ($it.hasClass("disabled")) return;
+			if ($it.attr("data-align-to")) {
+				this.align_to = $it.attr("data-align-to");
+				$it.closest(".ld-dd-menu").html(this.arrange_menu());
+				this.render_inspector();
+				return;
+			}
+			this.$root.find(".ld-dd").removeClass("open");
+			this.arrange($it.attr("data-arrange"));
+		});
+		$(document).on("mousedown.ld-dd", (e) => {
+			if (!$(e.target).closest(".ld-dd").length)
+				this.$root && this.$root.find(".ld-dd").removeClass("open");
+		});
+		this.$inspector.on("click", "[data-seg]", (e) => {
+			const $b = $(e.currentTarget);
+			const el = this.selected_elements()[0];
+			if (!el) return;
+			const path = $b.attr("data-seg");
+			const val = $b.attr("data-val");
+			ld_set(el, path, val === "toggle" ? (ld_get(el, path) ? 0 : 1) : val);
+			this.commit();
+		});
+		this.$inspector.on("click", "[data-align-to]", (e) => {
+			this.align_to = $(e.currentTarget).attr("data-align-to");
+			this.render_inspector();
+		});
 		this.$root.on("click", "[data-action]", (e) => {
 			const action = $(e.currentTarget).attr("data-action");
 			if (action === "snap") {
@@ -890,38 +994,11 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			return;
 		}
 		if (sel.length > 1) {
-			const btn = (cmd, icon, title, disabled) =>
-				`<button class="btn btn-xs btn-default" data-cmd="${cmd}" title="${title}" ${
-					disabled ? "disabled" : ""
-				}>${icon}</button>`;
-			const few = sel.length < 3;
 			this.$inspector.html(`<div class="ld-panel-title">${__("{0} elements selected", [
 				sel.length,
 			])}</div>
-				<div class="ld-group-title">${__("Align")}</div>
-				<div class="ld-btns ld-align">
-					${btn("align_left", '<i class="fa fa-align-left"></i>', __("Align left edges"))}
-					${btn("align_center", '<i class="fa fa-align-center"></i>', __("Align horizontal centres"))}
-					${btn("align_right", '<i class="fa fa-align-right"></i>', __("Align right edges"))}
-				</div>
-				<div class="ld-btns ld-align">
-					${btn("align_top", '<i class="fa fa-long-arrow-up"></i>', __("Align top edges"))}
-					${btn("align_middle", '<i class="fa fa-arrows-v"></i>', __("Align vertical centres"))}
-					${btn("align_bottom", '<i class="fa fa-long-arrow-down"></i>', __("Align bottom edges"))}
-				</div>
-				<div class="ld-group-title">${__("Distribute")}</div>
-				<div class="ld-btns ld-align">
-					${btn("distribute_h", '<i class="fa fa-arrows-h"></i>', __("Equal horizontal gaps (3 or more)"), few)}
-					${btn("distribute_v", '<i class="fa fa-arrows-v"></i>', __("Equal vertical gaps (3 or more)"), few)}
-				</div>
-				<div class="ld-group-title">${__("Size")}</div>
-				<div class="ld-btns ld-align">
-					${btn("same_width", __("Same width"), __("Width of the first selected element"))}
-					${btn("same_height", __("Same height"), __("Height of the first selected element"))}
-				</div>
-				<div class="ld-hint">${__(
-					"Edges align to the outer edge of the selection; sizes copy the first selected element."
-				)}</div>
+				${this.rotate_bar(null)}
+				${this.arrange_bar(sel.length)}
 				<div class="ld-hint">${__("Drag to move together, arrows to nudge, Del to remove.")}</div>`);
 			return;
 		}
@@ -940,12 +1017,8 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				${this.num("x", "X", el.x)}${this.num("y", "Y", el.y)}
 				${this.num("w", __("Width"), el.w)}${this.num("h", __("Height"), el.h)}
 			</div>
-			${this.select("rotate", __("Rotation"), el.rotate || 0, [
-				[0, "0°"],
-				[90, "90°"],
-				[180, "180°"],
-				[270, "270°"],
-			])}
+			${this.rotate_bar(el.rotate || 0)}
+			${this.arrange_bar(1)}
 			${this.style_props(el)}
 			<div class="ld-group-title">${__("Visibility")}</div>
 			${this.text("show_if", __("Show only if (Jinja condition)"), el.show_if)}
@@ -1167,22 +1240,24 @@ erpnext.label_designer.Designer = class LabelDesigner {
 					LD_FONTS.map((f) => [f, f])
 				)}
 			</div>
-			<div class="ld-grid2">
-				${this.select("style.align", __("Horizontal"), s.align || "left", [
-					["left", __("Left")],
-					["center", __("Center")],
-					["right", __("Right")],
+			<div class="ld-segs">
+				${this.seg("style.align", s.align || "left", [
+					["left", '<i class="fa fa-align-left"></i>', __("Left")],
+					["center", '<i class="fa fa-align-center"></i>', __("Center")],
+					["right", '<i class="fa fa-align-right"></i>', __("Right")],
 				])}
-				${this.select("style.valign", __("Vertical"), s.valign || "top", [
-					["top", __("Top")],
-					["middle", __("Middle")],
-					["bottom", __("Bottom")],
+				${this.seg("style.valign", s.valign || "top", [
+					["top", LD_ICONS.valign_top, __("Top")],
+					["middle", LD_ICONS.valign_middle, __("Middle")],
+					["bottom", LD_ICONS.valign_bottom, __("Bottom")],
 				])}
+				<div class="ld-seg">
+					${this.toggle("style.bold", s.bold, '<i class="fa fa-bold"></i>', __("Bold"))}
+					${this.toggle("style.italic", s.italic, '<i class="fa fa-italic"></i>', __("Italic"))}
+					${this.toggle("style.underline", s.underline, '<i class="fa fa-underline"></i>', __("Underline"))}
+				</div>
 			</div>
 			<div class="ld-checks">
-				${this.check("style.bold", __("Bold"), s.bold)}
-				${this.check("style.italic", __("Italic"), s.italic)}
-				${this.check("style.underline", __("Underline"), s.underline)}
 				${this.check("style.nowrap", __("No wrap"), s.nowrap)}
 				${this.check("style.invert", __("White on black"), s.invert)}
 			</div>
@@ -1191,6 +1266,88 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			__("Line height"),
 			s.line_height || 1.15
 		)}</div>`;
+	}
+
+	rotate_bar(value) {
+		return `<div class="ld-field"><label>${__("Rotation")}</label>
+			<div class="ld-rotate">
+				<button class="btn btn-xs btn-default" data-cmd="rotate_left" title="${__(
+					"Rotate left 90°"
+				)}"><i class="fa fa-rotate-left"></i></button>
+				<span class="ld-rotate-val">${value == null ? "" : `${value}°`}</span>
+				<button class="btn btn-xs btn-default" data-cmd="rotate_right" title="${__(
+					"Rotate right 90°"
+				)}"><i class="fa fa-rotate-right"></i></button>
+			</div></div>`;
+	}
+
+	seg(path, value, options) {
+		return `<div class="ld-seg">${options
+			.map(
+				([v, icon, title]) =>
+					`<button class="btn btn-xs btn-default ${
+						String(v) === String(value) ? "active" : ""
+					}" data-seg="${path}" data-val="${v}" title="${title}">${icon}</button>`
+			)
+			.join("")}</div>`;
+	}
+
+	toggle(path, value, icon, title) {
+		return `<button class="btn btn-xs btn-default ${
+			value ? "active" : ""
+		}" data-seg="${path}" data-val="toggle" title="${title}">${icon}</button>`;
+	}
+
+	arrange_to_label(count) {
+		return count < 2 || this.align_to === "label";
+	}
+
+	arrange_disabled(cmd, count) {
+		if (cmd.startsWith("distribute_")) return count < 3;
+		if (cmd.startsWith("same_")) return count < 2;
+		return count < 1;
+	}
+
+	arrange_menu() {
+		const count = this.selected.length;
+		const items = LD_ARRANGE.map((it) =>
+			it
+				? `<a class="ld-dd-item ${
+						this.arrange_disabled(it[0], count) ? "disabled" : ""
+				  }" data-arrange="${it[0]}">${LD_ICONS[it[0]]}<span>${it[1]}</span></a>`
+				: `<div class="ld-dd-sep"></div>`
+		).join("");
+		const to_label = this.arrange_to_label(count);
+		const mode = (key, label, on) =>
+			`<a class="ld-dd-item" data-align-to="${key}"><i class="fa fa-check ld-dd-check" style="visibility:${
+				on ? "visible" : "hidden"
+			}"></i><span>${label}</span></a>`;
+		return `${items}<div class="ld-dd-sep"></div>
+			${mode("label", __("Align to label"), to_label)}
+			${mode("selection", __("Align selected objects"), !to_label)}`;
+	}
+
+	arrange_bar(count) {
+		const btn = (cmd, title) =>
+			`<button class="btn btn-xs btn-default" data-cmd="${cmd}" title="${title}" ${
+				this.arrange_disabled(cmd, count) ? "disabled" : ""
+			}>${LD_ICONS[cmd]}</button>`;
+		const items = LD_ARRANGE.filter(Boolean).filter(([cmd]) => count > 1 || cmd.startsWith("align_"));
+		const to_label = this.arrange_to_label(count);
+		const modes =
+			count > 1
+				? `<div class="ld-seg ld-align-to">
+					<button class="btn btn-xs btn-default ${!to_label ? "active" : ""}" data-align-to="selection">${__(
+						"To selection"
+				  )}</button>
+					<button class="btn btn-xs btn-default ${to_label ? "active" : ""}" data-align-to="label">${__(
+						"To label"
+				  )}</button>
+				</div>`
+				: "";
+		return `<div class="ld-group-title">${count > 1 ? __("Align") : __("Align on label")}</div>
+			${modes}
+			<div class="ld-arrange">${items.map(([cmd, title]) => btn(cmd, title)).join("")}</div>`;
 	}
 
 	num(path, label, value) {
@@ -1284,36 +1441,69 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (rerender) this.render();
 	}
 
+	visual_box(e) {
+		const r = (((cint(e.rotate) || 0) % 360) + 360) % 360;
+		if (r === 90 || r === 270) {
+			const cx = e.x + e.w / 2;
+			const cy = e.y + e.h / 2;
+			return { x: cx - e.h / 2, y: cy - e.w / 2, w: e.h, h: e.w };
+		}
+		return { x: e.x, y: e.y, w: e.w, h: e.h };
+	}
+
 	arrange(cmd) {
 		const sel = this.selected.map((id) => this.layout.elements.find((e) => e.id === id)).filter(Boolean);
-		if (sel.length < 2) return;
-		const left = Math.min(...sel.map((e) => e.x));
-		const top = Math.min(...sel.map((e) => e.y));
-		const right = Math.max(...sel.map((e) => e.x + e.w));
-		const bottom = Math.max(...sel.map((e) => e.y + e.h));
-		const set = {
-			align_left: (e) => (e.x = left),
-			align_right: (e) => (e.x = right - e.w),
-			align_center: (e) => (e.x = (left + right) / 2 - e.w / 2),
-			align_top: (e) => (e.y = top),
-			align_bottom: (e) => (e.y = bottom - e.h),
-			align_middle: (e) => (e.y = (top + bottom) / 2 - e.h / 2),
-			same_width: (e) => (e.w = sel[0].w),
-			same_height: (e) => (e.h = sel[0].h),
+		if (!sel.length || this.arrange_disabled(cmd, sel.length)) return;
+		const boxes = sel.map((e) => this.visual_box(e));
+		const c = this.content_size;
+		const ref = this.arrange_to_label(sel.length)
+			? { left: 0, top: 0, right: c.w, bottom: c.h }
+			: {
+					left: Math.min(...boxes.map((b) => b.x)),
+					top: Math.min(...boxes.map((b) => b.y)),
+					right: Math.max(...boxes.map((b) => b.x + b.w)),
+					bottom: Math.max(...boxes.map((b) => b.y + b.h)),
+			  };
+		const move = (e, dx, dy) => {
+			e.x += dx;
+			e.y += dy;
+		};
+		const shift = {
+			align_left: (b) => [ref.left - b.x, 0],
+			align_right: (b) => [ref.right - b.w - b.x, 0],
+			align_center: (b) => [(ref.left + ref.right) / 2 - b.w / 2 - b.x, 0],
+			align_top: (b) => [0, ref.top - b.y],
+			align_bottom: (b) => [0, ref.bottom - b.h - b.y],
+			align_middle: (b) => [0, (ref.top + ref.bottom) / 2 - b.h / 2 - b.y],
 		}[cmd];
-		if (set) sel.forEach(set);
-		const distribute = (pos, size, start, end) => {
-			if (sel.length < 3) return;
-			const ordered = [...sel].sort((a, b) => a[pos] - b[pos]);
-			const gap = (end - start - ordered.reduce((s, e) => s + e[size], 0)) / (ordered.length - 1);
+		if (shift) sel.forEach((e, i) => move(e, ...shift(boxes[i])));
+
+		if (cmd === "same_width" || cmd === "same_height") {
+			const key = cmd === "same_width" ? "w" : "h";
+			sel.slice(1).forEach((e, i) => {
+				const before = boxes[i + 1];
+				const r = (((cint(e.rotate) || 0) % 360) + 360) % 360;
+				const sideways = r === 90 || r === 270;
+				const own = sideways ? (key === "w" ? "h" : "w") : key;
+				e[own] = boxes[0][key];
+				const after = this.visual_box(e);
+				move(e, before.x - after.x, before.y - after.y);
+			});
+		}
+
+		const distribute = (pos, size) => {
+			const order = sel.map((e, i) => ({ e, b: boxes[i] })).sort((a, b) => a.b[pos] - b.b[pos]);
+			const start = Math.min(...order.map((o) => o.b[pos]));
+			const end = Math.max(...order.map((o) => o.b[pos] + o.b[size]));
+			const gap = (end - start - order.reduce((sum, o) => sum + o.b[size], 0)) / (order.length - 1);
 			let at = start;
-			ordered.forEach((e) => {
-				e[pos] = at;
-				at += e[size] + gap;
+			order.forEach((o) => {
+				move(o.e, pos === "x" ? at - o.b.x : 0, pos === "y" ? at - o.b.y : 0);
+				at += o.b[size] + gap;
 			});
 		};
-		if (cmd === "distribute_h") distribute("x", "w", left, right);
-		if (cmd === "distribute_v") distribute("y", "h", top, bottom);
+		if (cmd === "distribute_h") distribute("x", "w");
+		if (cmd === "distribute_v") distribute("y", "h");
 		sel.forEach((e) => ["x", "y", "w", "h"].forEach((k) => (e[k] = round2(e[k]))));
 		this.commit();
 	}
@@ -1321,6 +1511,11 @@ erpnext.label_designer.Designer = class LabelDesigner {
 	on_inspector_cmd(e) {
 		const cmd = $(e.currentTarget).attr("data-cmd");
 		if (/^(align_|distribute_|same_)/.test(cmd)) return this.arrange(cmd);
+		if (cmd === "rotate_left" || cmd === "rotate_right") {
+			const step = cmd === "rotate_right" ? 90 : 270;
+			this.selected_elements().forEach((el) => (el.rotate = ((cint(el.rotate) || 0) + step) % 360));
+			return this.commit();
+		}
 		const el = this.selected_elements()[0];
 		if (!el) return;
 		const ri = cint($(e.currentTarget).attr("data-row"));
@@ -1704,6 +1899,28 @@ erpnext.label_designer.inject_style = function () {
 .ld-trow{display:flex;gap:2px}.ld-trow input{min-width:0;flex:1;padding:2px 4px}.ld-trow .ld-rowh{flex:0 0 42px}
 .ld-btns{display:flex;gap:4px;margin-bottom:6px}
 .ld-align .btn{flex:1}
+.ld-ico{display:inline-block;vertical-align:middle}
+.ld-rotate{display:flex;align-items:center;gap:6px}
+.ld-rotate .btn{flex:0 0 34px}
+.ld-rotate-val{flex:1;text-align:center;font-size:13px;background:var(--control-bg);border-radius:6px;padding:3px 0;min-height:24px}
+.ld-arrange{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-bottom:6px}
+.ld-arrange .btn{padding:3px 0}
+.ld-segs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.ld-seg{display:inline-flex;margin-bottom:4px}
+.ld-seg .btn{border-radius:0;padding:3px 7px;margin-left:-1px}
+.ld-seg .btn:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.ld-seg .btn:last-child{border-radius:0 6px 6px 0}
+.ld-seg .btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.ld-align-to .btn{font-size:11px}
+.ld-dd{position:relative;display:inline-block}
+.ld-dd-toggle{display:inline-flex;align-items:center;gap:3px}
+.ld-dd-menu{display:none;position:absolute;top:100%;left:0;z-index:20;min-width:220px;margin-top:4px;padding:4px 0;background:var(--card-bg,#fff);border:1px solid var(--border-color);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.ld-dd.open .ld-dd-menu{display:block}
+.ld-dd-item{display:flex;align-items:center;gap:10px;padding:5px 12px;font-size:13px;color:var(--text-color);cursor:pointer;text-decoration:none!important}
+.ld-dd-item:hover{background:var(--fg-hover-color,var(--subtle-fg))}
+.ld-dd-item.disabled{opacity:.4;cursor:default;background:none}
+.ld-dd-check{width:16px;text-align:center}
+.ld-dd-sep{height:1px;background:var(--border-color);margin:4px 0}
 .lt-thumb{display:inline-block;cursor:zoom-in;border:1px solid var(--border-color);border-radius:4px;background:#fff;padding:4px;max-width:100%}
 .lt-thumb img{display:block;max-height:150px;max-width:100%;width:auto;height:auto}
 @media (max-width:900px){.ld-body{flex-direction:column}.ld-palette,.ld-inspector{width:auto;border:0;max-height:none}.ld-palette{display:flex;flex-wrap:wrap;gap:4px}}

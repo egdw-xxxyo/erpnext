@@ -17662,3 +17662,18 @@ Same height,Однакова висота
 Width of the first selected element,Ширина першого обраного елемента
 Height of the first selected element,Висота першого обраного елемента
 Edges align to the outer edge of the selection; sizes copy the first selected element.,Краї вирівнюються за зовнішнім краєм виділення; розмір береться з першого обраного елемента.
+Align left,Вирівняти ліворуч
+Align center,Вирівняти по центру
+Align right,Вирівняти праворуч
+Align top,Вирівняти вгору
+Align middle,Вирівняти посередині
+Align bottom,Вирівняти вниз
+Distribute horizontally,Розподілити по горизонталі
+Distribute vertically,Розподілити по вертикалі
+Align to label,Вирівнювати відносно мітки
+Align selected objects,Вирівнювати обрані обʼєкти між собою
+To selection,Між собою
+To label,Відносно мітки
+Align on label,Вирівняти на мітці
+Rotate left 90°,Повернути ліворуч на 90°
+Rotate right 90°,Повернути праворуч на 90°
