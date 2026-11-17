@@ -60,6 +60,10 @@ EDITABLE = (
 	"padding_left_mm",
 	"inputs",
 )
+IMAGE_TYPES = ("image/png", "image/jpeg", "image/gif", "image/webp")
+MAX_IMAGES_PER_MESSAGE = 4
+MAX_IMAGE_B64 = 5_000_000
+KEEP_IMAGE_TURNS = 2
 INPUT_FIELDS = ("fieldname", "label", "fieldtype", "options", "default_value", "reqd")
 
 SYSTEM_PROMPT = """You are the label design assistant inside ERPNext's Label Template designer.
@@ -82,6 +86,9 @@ How to work:
   get_data_sources to see what doc has, write it with set_data_setup and read the result it returns: fix
   every error and check every computed value against a real document (reference_name) when one exists.
   People cannot read Jinja, so keep it short and add a {# comment #} line per value explaining it.
+- The user may paste images. A photo or screenshot of a label means "make it look like this": copy the
+  layout, sizes and texts as closely as the elements allow. A logo or icon meant for the label goes into the
+  library with add_pasted_image_to_library and then into an image element. Labels print in black and white.
 - Values the operator types at print time (quantity, batch, operator name) are Print Inputs: add_print_input
   and an element of type "input" bound to it.
 - You change only the draft on the user's screen. Nothing is saved until the user presses Save, and they can
@@ -217,18 +224,35 @@ LABEL_TOOLS = [
 	{
 		"name": "add_print_input",
 		"description": "Add (or replace by fieldname) a Print Input: a value asked in the Print dialog, available "
-		"as doc.<fieldname>. Show it with an element {\"type\": \"input\", \"input\": fieldname}.",
+		'as doc.<fieldname>. Show it with an element {"type": "input", "input": fieldname}.',
 		"input_schema": {
 			"type": "object",
 			"properties": {
 				"fieldname": {"type": "string"},
 				"label": {"type": "string"},
-				"fieldtype": {"type": "string", "enum": ["Data", "Small Text", "Int", "Float", "Date", "Select", "Check"]},
+				"fieldtype": {
+					"type": "string",
+					"enum": ["Data", "Small Text", "Int", "Float", "Date", "Select", "Check"],
+				},
 				"options": {"type": "string"},
 				"default_value": {"type": "string"},
 				"reqd": {"type": "boolean"},
 			},
 			"required": ["fieldname", "label"],
+		},
+	},
+	{
+		"name": "add_pasted_image_to_library",
+		"description": "Save an image the user pasted into the chat (numbered [Pasted image N]) to the shared "
+		"label image library, so an image element can use it. Only for pictures that should be printed (logos, "
+		"icons); not for screenshots or photos of a label to copy. Returns the stored file_name.",
+		"input_schema": {
+			"type": "object",
+			"properties": {
+				"image_number": {"type": "integer"},
+				"file_name": {"type": "string", "description": "Name with extension, e.g. company-logo.png"},
+			},
+			"required": ["image_number", "file_name"],
 		},
 	},
 	{
@@ -271,19 +295,62 @@ def _check_access():
 		)
 
 
+def _clean_images(raw):
+	images = []
+	for img in (raw or [])[:MAX_IMAGES_PER_MESSAGE]:
+		media, data = img.get("media_type"), img.get("data") or ""
+		if media in IMAGE_TYPES and data and len(data) <= MAX_IMAGE_B64:
+			images.append({"media_type": media, "data": data, "name": str(img.get("name") or "")[:80]})
+	return images
+
+
 def _clean_history(raw):
+	"""Text turns plus pasted images; only the last KEEP_IMAGE_TURNS image turns keep their pixels.
+
+	Returns (history for the model, pasted images of the whole conversation in order).
+	"""
 	if not isinstance(raw, list):
 		frappe.throw(_("Nothing to send"))
-	history = []
+	turns = []
 	for m in raw[-MAX_TURNS:]:
 		text = str(m.get("content") or "")[:MAX_MESSAGE_CHARS]
-		if m.get("role") in ("user", "assistant") and text:
-			history.append({"role": m["role"], "content": text})
-	while history and history[0]["role"] != "user":
-		history.pop(0)
-	if not history or history[-1]["role"] != "user":
+		images = _clean_images(m.get("images")) if m.get("role") == "user" else []
+		if m.get("role") in ("user", "assistant") and (text or images):
+			turns.append((m["role"], text, images))
+	while turns and turns[0][0] != "user":
+		turns.pop(0)
+	if not turns or turns[-1][0] != "user":
 		frappe.throw(_("Nothing to send"))
-	return history
+
+	image_turns = [i for i, t in enumerate(turns) if t[2]]
+	keep = set(image_turns[-KEEP_IMAGE_TURNS:])
+	pasted, history = [], []
+	for i, (role, text, images) in enumerate(turns):
+		if not images:
+			history.append({"role": role, "content": text})
+			continue
+		blocks = []
+		for img in images:
+			pasted.append(img)
+			number = len(pasted)
+			if i in keep:
+				blocks.append(
+					{
+						"type": "text",
+						"text": f"[Pasted image {number}{': ' + img['name'] if img['name'] else ''}]",
+					}
+				)
+				blocks.append(
+					{
+						"type": "image",
+						"source": {"type": "base64", "media_type": img["media_type"], "data": img["data"]},
+					}
+				)
+			else:
+				blocks.append({"type": "text", "text": f"[Pasted image {number} — no longer attached]"})
+		blocks.append({"type": "text", "text": text or "(see the pasted image)"})
+		history.append({"role": role, "content": blocks})
+	return history, pasted
 
 
 def _clean_draft(raw):
@@ -301,7 +368,7 @@ def start(label_template, messages, draft, run_id):
 			"ok": False,
 			"error": _("No AI key is set up. Add one in My Settings or ask an administrator."),
 		}
-	history = _clean_history(frappe.parse_json(messages))
+	history, pasted = _clean_history(frappe.parse_json(messages))
 	draft = _clean_draft(frappe.parse_json(draft) or {})
 	frappe.enqueue(
 		"erpnext.devices.label_ai.run",
@@ -309,6 +376,7 @@ def start(label_template, messages, draft, run_id):
 		timeout=900,
 		label_template=label_template,
 		history=history,
+		pasted=pasted,
 		draft=draft,
 		run_id=str(run_id)[:40],
 		user=frappe.session.user,
@@ -320,11 +388,11 @@ def _publish(user, run_id, **payload):
 	frappe.publish_realtime(EVENT, {"run_id": run_id, **payload}, user=user, after_commit=False)
 
 
-def run(label_template, history, draft, run_id, user):
+def run(label_template, history, draft, run_id, user, pasted=None):
 	frappe.set_user(user)
 	credentials = resolve_credentials(user)
 	try:
-		session = Session(label_template, draft, lambda **p: _publish(user, run_id, **p))
+		session = Session(label_template, draft, lambda **p: _publish(user, run_id, **p), pasted)
 		reply = session.chat(credentials, history)
 		_publish(user, run_id, type="done", reply=reply, draft=session.draft if session.changed else None)
 	except anthropic.AuthenticationError:
@@ -339,8 +407,9 @@ def run(label_template, history, draft, run_id, user):
 
 
 class Session:
-	def __init__(self, label_template, draft, publish):
+	def __init__(self, label_template, draft, publish, pasted=None):
 		self.name = label_template
+		self.pasted = pasted or []
 		self.draft = draft
 		self.publish = publish
 		self.changed = False
@@ -462,7 +531,9 @@ class Session:
 		from erpnext.devices.label_layout import parse_layout
 
 		if self.draft.get("editor_mode") != "Visual" and not self.draft.get("layout_json"):
-			frappe.throw(_("The template is in HTML mode. Switch it to Visual with edit_label_template first."))
+			frappe.throw(
+				_("The template is in HTML mode. Switch it to Visual with edit_label_template first.")
+			)
 		return parse_layout(self.draft.get("layout_json"))
 
 	def _save_layout(self, layout):
@@ -483,16 +554,29 @@ class Session:
 		if dt:
 			meta = frappe.get_meta(dt)
 			for f in meta.fields:
-				if f.fieldtype in ("Section Break", "Column Break", "Tab Break", "HTML", "Button", "Password"):
+				if f.fieldtype in (
+					"Section Break",
+					"Column Break",
+					"Tab Break",
+					"HTML",
+					"Button",
+					"Password",
+				):
 					continue
 				if f.fieldtype == "Table":
 					cm = frappe.get_meta(f.options)
 					out["child_tables"][f.fieldname] = {
 						"doctype": f.options,
-						"fields": [c.fieldname for c in cm.fields if c.fieldtype not in ("Section Break", "Column Break")],
+						"fields": [
+							c.fieldname
+							for c in cm.fields
+							if c.fieldtype not in ("Section Break", "Column Break")
+						],
 					}
 				else:
-					out["fields"].append(f"{f.fieldname} ({f.fieldtype}{': ' + f.options if f.options and f.fieldtype == 'Link' else ''}) {f.label or ''}".strip())
+					out["fields"].append(
+						f"{f.fieldname} ({f.fieldtype}{': ' + f.options if f.options and f.fieldtype == 'Link' else ''}) {f.label or ''}".strip()
+					)
 				if f.fieldtype == "Link":
 					out["links"][f.fieldname] = f.options
 			out["sample_documents"] = frappe.get_list(dt, fields=["name"], order_by="modified desc", limit=3)
@@ -506,14 +590,24 @@ class Session:
 			setup = self._layout().get("setup") or ""
 		except Exception:
 			frappe.clear_messages()
-		out["data_setup_keys"] = sorted(set(re.findall(r"[\"']([A-Za-z_]\w*)[\"']\s*:", " ".join(re.findall(r"doc\.update\((.*?)\)", setup, re.S)))))
+		out["data_setup_keys"] = sorted(
+			set(
+				re.findall(
+					r"[\"']([A-Za-z_]\w*)[\"']\s*:",
+					" ".join(re.findall(r"doc\.update\((.*?)\)", setup, re.S)),
+				)
+			)
+		)
 		return out
 
 	def tool_set_data_setup(self, setup, reference_name=None, input_values=None):
 		layout = self._layout()
 		layout["setup"] = (setup or "").strip()
 		self._save_layout(layout)
-		return {"saved_to_draft": True, "test": self._test_setup(layout["setup"], reference_name, input_values)}
+		return {
+			"saved_to_draft": True,
+			"test": self._test_setup(layout["setup"], reference_name, input_values),
+		}
 
 	def tool_test_data_setup(self, reference_name=None, input_values=None):
 		return self._test_setup(self._layout().get("setup") or "", reference_name, input_values)
@@ -553,9 +647,25 @@ class Session:
 
 	def tool_add_print_input(self, fieldname, label, **row):
 		rows = [r for r in self.draft.get("inputs") or [] if r.get("fieldname") != fieldname]
-		rows.append({"fieldname": fieldname, "label": label, "fieldtype": row.get("fieldtype") or "Data", **row})
+		rows.append(
+			{"fieldname": fieldname, "label": label, "fieldtype": row.get("fieldtype") or "Data", **row}
+		)
 		self.tool_edit_label_template(inputs=rows)
 		return {"print_inputs": [r["fieldname"] for r in self.draft["inputs"]]}
+
+	def tool_add_pasted_image_to_library(self, image_number, file_name):
+		import os
+
+		from erpnext.devices.label_images import _save_image
+
+		if not 1 <= int(image_number) <= len(self.pasted):
+			frappe.throw(_("There is no pasted image {0}").format(image_number))
+		img = self.pasted[int(image_number) - 1]
+		ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp"}[
+			img["media_type"]
+		]
+		base = os.path.splitext(os.path.basename(file_name or "pasted"))[0] or "pasted"
+		return _save_image(base + ext, base64.b64decode(img["data"]))
 
 	def tool_list_label_images(self, search=None):
 		from erpnext.devices.label_images import get_label_images

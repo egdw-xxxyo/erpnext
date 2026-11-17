@@ -32,14 +32,45 @@ const LAI_TOOLS = {
 	update_label_element: __("Changing an element"),
 	remove_label_elements: __("Removing elements"),
 	add_print_input: __("Adding a print input"),
+	add_pasted_image_to_library: __("Saving the pasted image to the library"),
 	get_doctype_fields: __("Reading document fields"),
 	get_documents: __("Reading documents"),
+};
+
+erpnext.label_designer.downscale_image = function (file, max_side) {
+	return new Promise((resolve) => {
+		const url = URL.createObjectURL(file);
+		const img = new Image();
+		img.onload = () => {
+			const scale = Math.min(1, max_side / Math.max(img.width, img.height));
+			const c = document.createElement("canvas");
+			c.width = Math.max(1, Math.round(img.width * scale));
+			c.height = Math.max(1, Math.round(img.height * scale));
+			const ctx = c.getContext("2d");
+			const png = /png|gif|webp/.test(file.type);
+			if (!png) {
+				ctx.fillStyle = "#fff";
+				ctx.fillRect(0, 0, c.width, c.height);
+			}
+			ctx.drawImage(img, 0, 0, c.width, c.height);
+			URL.revokeObjectURL(url);
+			const media_type = png ? "image/png" : "image/jpeg";
+			const data = c.toDataURL(media_type, 0.9).split(",")[1];
+			resolve({ media_type, data, name: file.name || "" });
+		};
+		img.onerror = () => {
+			URL.revokeObjectURL(url);
+			resolve(null);
+		};
+		img.src = url;
+	});
 };
 
 erpnext.label_designer.LabelAI = class LabelAI {
 	constructor(frm) {
 		this.frm = frm;
 		this.messages = [];
+		this.pending = [];
 		this.busy = false;
 		this.on_rt = (data) => this.on_event(data);
 		frappe.realtime.on("label_ai", this.on_rt);
@@ -83,6 +114,16 @@ erpnext.label_designer.LabelAI = class LabelAI {
 			.lai-progress{font-size:var(--text-sm);color:var(--text-muted);display:flex;gap:6px;align-items:center}
 			.lai-bar{display:flex;gap:6px;padding:6px 14px;border-top:1px solid var(--border-color);flex-wrap:wrap}
 			.lai-hint{font-size:var(--text-sm);color:var(--text-muted)}
+			.lai-thumbs{display:flex;gap:6px;flex-wrap:wrap;padding:6px 14px 0}
+			.lai-thumbs:empty{display:none}
+			.lai-thumb{position:relative;width:56px;height:56px;border:1px solid var(--border-color);border-radius:6px;overflow:hidden;background:#fff}
+			.lai-thumb img{width:100%;height:100%;object-fit:contain}
+			.lai-thumb .lai-x{position:absolute;top:0;right:0;width:18px;height:18px;line-height:16px;text-align:center;
+				background:rgba(0,0,0,.6);color:#fff;font-size:13px;cursor:pointer;border-bottom-left-radius:6px}
+			.lai-thumb .lai-n{position:absolute;left:2px;bottom:1px;font-size:10px;background:rgba(255,255,255,.85);padding:0 3px;border-radius:3px}
+			.aih-msg .lai-msg-imgs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+			.aih-msg .lai-msg-imgs img{max-width:120px;max-height:90px;border-radius:4px;border:1px solid var(--border-color);background:#fff}
+			.lai-panel.lai-drop{outline:2px dashed var(--primary);outline-offset:-6px}
 		</style>`).appendTo(document.head);
 	}
 
@@ -106,8 +147,11 @@ erpnext.label_designer.LabelAI = class LabelAI {
 					<button class="btn btn-xs btn-default lai-undo"><i class="fa fa-undo"></i> ${__("Undo AI changes")}</button>
 					<button class="btn btn-xs btn-default lai-new">${__("New conversation")}</button>
 				</div>
+				<div class="lai-thumbs"></div>
 				<div class="aih-form">
-					<textarea class="form-control" placeholder="${__("What should change on the label?")}"></textarea>
+					<textarea class="form-control" placeholder="${__(
+						"What should change on the label? Paste images with Ctrl+V"
+					)}"></textarea>
 					<button class="btn btn-primary btn-sm lai-send"><i class="fa fa-paper-plane"></i></button>
 				</div>
 			</div>`).appendTo(document.body);
@@ -121,10 +165,61 @@ erpnext.label_designer.LabelAI = class LabelAI {
 			}
 		});
 		this.$panel.find(".lai-undo").on("click", () => this.undo());
+		this.$panel.find("textarea").on("paste", (e) => {
+			const items = [...((e.originalEvent.clipboardData || {}).items || [])];
+			const files = items
+				.filter((i) => i.kind === "file" && i.type.startsWith("image/"))
+				.map((i) => i.getAsFile());
+			if (!files.length) return;
+			e.preventDefault();
+			files.forEach((f) => this.add_image(f));
+		});
+		this.$panel.on("dragover", (e) => {
+			e.preventDefault();
+			this.$panel.addClass("lai-drop");
+		});
+		this.$panel.on("dragleave drop", () => this.$panel.removeClass("lai-drop"));
+		this.$panel.on("drop", (e) => {
+			e.preventDefault();
+			[...(e.originalEvent.dataTransfer.files || [])]
+				.filter((f) => f.type.startsWith("image/"))
+				.forEach((f) => this.add_image(f));
+		});
+		this.$panel.on("click", ".lai-x", (e) => {
+			this.pending.splice(cint($(e.currentTarget).attr("data-i")), 1);
+			this.draw_thumbs();
+		});
 		this.$panel.find(".lai-new").on("click", () => {
 			this.messages = [];
 			this.$thread.find(".aih-msg").remove();
 		});
+	}
+
+	pasted_count() {
+		return this.messages.reduce((n, m) => n + ((m.images || []).length || 0), 0);
+	}
+
+	async add_image(file) {
+		if (this.pending.length >= 4) {
+			frappe.show_alert({ message: __("At most 4 images per message"), indicator: "orange" });
+			return;
+		}
+		const img = await erpnext.label_designer.downscale_image(file, 1568);
+		if (!img) return;
+		this.pending.push(img);
+		this.draw_thumbs();
+	}
+
+	draw_thumbs() {
+		const base = this.pasted_count();
+		this.$panel.find(".lai-thumbs").html(
+			this.pending
+				.map(
+					(img, i) => `<div class="lai-thumb"><img src="data:${img.media_type};base64,${img.data}">
+						<span class="lai-n">${base + i + 1}</span><span class="lai-x" data-i="${i}">&times;</span></div>`
+				)
+				.join("")
+		);
 	}
 
 	add(role, html) {
@@ -176,10 +271,18 @@ erpnext.label_designer.LabelAI = class LabelAI {
 		if (this.busy) return;
 		const $ta = this.$panel.find("textarea");
 		const text = ($ta.val() || "").trim();
-		if (!text) return;
+		const images = this.pending;
+		if (!text && !images.length) return;
 		$ta.val("");
-		this.add("user", frappe.utils.escape_html(text).replace(/\n/g, "<br>"));
-		this.messages.push({ role: "user", content: text });
+		this.pending = [];
+		this.draw_thumbs();
+		const imgs = images.length
+			? `<div class="lai-msg-imgs">${images
+					.map((img) => `<img src="data:${img.media_type};base64,${img.data}">`)
+					.join("")}</div>`
+			: "";
+		this.add("user", imgs + frappe.utils.escape_html(text).replace(/\n/g, "<br>"));
+		this.messages.push({ role: "user", content: text, images });
 		if (!this.snapshot) this.snapshot = this.draft();
 		this.run_id = frappe.utils.get_random(12);
 		this.busy = true;

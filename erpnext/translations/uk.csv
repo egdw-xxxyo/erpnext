@@ -17724,3 +17724,7 @@ Alignment,Вирівнювання
 Alignment on label,Вирівнювання на мітці
 Anchor (size is copied from it),Взірець (розмір береться з нього)
 "Orange = anchor, blue = elements that change. Hover a button to see them.","Помаранчевий — взірець, синій — елементи, що зміняться. Наведіть на кнопку, щоб побачити."
+Saving the pasted image to the library,Зберігаю вставлене зображення в бібліотеку
+What should change on the label? Paste images with Ctrl+V,Що змінити на мітці? Зображення можна вставити Ctrl+V
+At most 4 images per message,Не більше 4 зображень в одному повідомленні
+There is no pasted image {0},Немає вставленого зображення {0}

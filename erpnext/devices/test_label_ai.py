@@ -40,14 +40,21 @@ class TestLabelAITools(FrappeTestCase):
 class TestLabelAIDataTools(FrappeTestCase):
 	def _session(self, **draft):
 		layout = {"v": 1, "elements": []}
-		base = {"editor_mode": "Visual", "layout_json": json.dumps(layout), "inputs": [], "preview_data": '{"name": "X1", "qty": 3}'}
+		base = {
+			"editor_mode": "Visual",
+			"layout_json": json.dumps(layout),
+			"inputs": [],
+			"preview_data": '{"name": "X1", "qty": 3}',
+		}
 		return Session("Test", {**base, **draft}, lambda **p: None)
 
 	def test_set_data_setup_reports_values_and_errors(self):
 		s = self._session()
 		out, err = s.execute(
 			"set_data_setup",
-			{"setup": '{# two #}{% set double = doc.qty * 2 %}{% set _ = doc.update({"tag": "T-" ~ doc.name}) %}'},
+			{
+				"setup": '{# two #}{% set double = doc.qty * 2 %}{% set _ = doc.update({"tag": "T-" ~ doc.name}) %}'
+			},
 		)
 		self.assertFalse(err, out)
 		test = json.loads(out)["test"]
@@ -63,7 +70,8 @@ class TestLabelAIDataTools(FrappeTestCase):
 	def test_element_tools(self):
 		s = self._session()
 		out, err = s.execute(
-			"add_label_elements", {"elements": [{"type": "field", "field": "name", "x": 0, "y": 0, "w": 20, "h": 5}]}
+			"add_label_elements",
+			{"elements": [{"type": "field", "field": "name", "x": 0, "y": 0, "w": 20, "h": 5}]},
 		)
 		self.assertFalse(err, out)
 		el_id = json.loads(out)["added"][0]
@@ -77,5 +85,29 @@ class TestLabelAIDataTools(FrappeTestCase):
 	def test_add_print_input_replaces_by_fieldname(self):
 		s = self._session()
 		s.execute("add_print_input", {"fieldname": "qty", "label": "Qty", "fieldtype": "Int"})
-		s.execute("add_print_input", {"fieldname": "qty", "label": "Quantity", "fieldtype": "Int", "reqd": True})
-		self.assertEqual([(r["fieldname"], r["label"], r["reqd"]) for r in s.draft["inputs"]], [("qty", "Quantity", 1)])
+		s.execute(
+			"add_print_input", {"fieldname": "qty", "label": "Quantity", "fieldtype": "Int", "reqd": True}
+		)
+		self.assertEqual(
+			[(r["fieldname"], r["label"], r["reqd"]) for r in s.draft["inputs"]], [("qty", "Quantity", 1)]
+		)
+
+
+class TestLabelAIPastedImages(FrappeTestCase):
+	def test_only_last_image_turns_keep_pixels(self):
+		from erpnext.devices.label_ai import _clean_history
+
+		img = {"media_type": "image/png", "data": "iVBORw0KGgo=", "name": "a.png"}
+		raw = [
+			{"role": "user", "content": "one", "images": [img]},
+			{"role": "assistant", "content": "ok"},
+			{"role": "user", "content": "two", "images": [img]},
+			{"role": "assistant", "content": "ok"},
+			{"role": "user", "content": "three", "images": [img, {"media_type": "text/html", "data": "x"}]},
+		]
+		history, pasted = _clean_history(raw)
+		self.assertEqual(len(pasted), 3)
+		kinds = [[b["type"] for b in m["content"]] for m in history if isinstance(m["content"], list)]
+		self.assertNotIn("image", kinds[0])
+		self.assertIn("image", kinds[1])
+		self.assertIn("image", kinds[2])
