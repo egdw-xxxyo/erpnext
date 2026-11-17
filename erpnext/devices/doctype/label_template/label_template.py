@@ -832,7 +832,9 @@ def run_data_setup(tpl, setup, inputs=None, reference_name=None, sample=1):
 		result["error"] = f"{type(e).__name__}: {e}"
 		return result
 	result["doc_changes"] = {
-		k: _preview_value(v) for k, v in doc.items() if before.get(k) != json.dumps(v, default=str, sort_keys=True)
+		k: _preview_value(v)
+		for k, v in doc.items()
+		if before.get(k) != json.dumps(v, default=str, sort_keys=True)
 	}
 	result["variables"] = {
 		k: _preview_value(getattr(module, k)) for k in dir(module) if not k.startswith("_") and k != "doc"
