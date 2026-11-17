@@ -291,19 +291,15 @@ def _process_attachment_tags(html):
 			return match.group(0)
 
 		try:
-			file_doc = frappe.get_value(
-				"File", {"file_name": file_name}, ["file_url", "is_private"], as_dict=True
-			)
+			from erpnext.devices.label_images import file_path as _file_path
+			from erpnext.devices.label_images import resolve_file
+
+			file_doc = resolve_file(file_name)
 			if not file_doc:
 				return match.group(0)
 
-			site_path = frappe.get_site_path()
-			if file_doc.is_private:
-				file_path = os.path.join(site_path, "private", "files", file_name)
-			else:
-				file_path = os.path.join(site_path, "public", "files", file_name)
-
-			if not os.path.exists(file_path):
+			file_path = _file_path(file_doc)
+			if not file_path or not os.path.exists(file_path):
 				return match.group(0)
 
 			with open(file_path, "rb") as f:

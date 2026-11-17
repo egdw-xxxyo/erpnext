@@ -17637,3 +17637,13 @@ Column font sizes (pt),Розміри шрифту колонок (пт)
 "Comma-separated, empty = text style size. Use **text** for bold inside a cell.","Через кому, порожньо — розмір зі стилю тексту. **текст** — жирний усередині клітинки."
 "Show-if must be a plain Jinja condition, without {{ }} or {% %}","Умова показу має бути простою умовою Jinja, без {{ }} чи {% %}"
 list,список
+Choose image,Обрати зображення
+Label images,Зображення для міток
+Search images...,Пошук зображень...
+Upload new,Завантажити нове
+Shared by every label template. Uploaded images are added here for everyone; labels print them in black and white.,Спільні для всіх шаблонів міток. Завантажені зображення додаються сюди для всіх; на мітках друкуються чорно-білими.
+No images yet. Upload the first one.,Зображень ще немає. Завантажте перше.
+Only users who edit label templates can add label images,"Додавати зображення для міток можуть лише ті, хто редагує шаблони міток"
+No file uploaded,Файл не завантажено
+Only images can be added to the label image library,До бібліотеки зображень для міток можна додавати лише зображення
+Image content is not valid base64,Вміст зображення не є коректним base64

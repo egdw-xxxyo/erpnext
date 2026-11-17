@@ -160,3 +160,7 @@ Common: `show_if` (plain Jinja condition, element is drawn only when true), `rot
 ## AI / MCP loop
 
 MCP `render_label_preview` returns the printer-exact PNG (300 dpi, 1-bit) as an image, with `input_values` for Print Inputs, `reference_name` for a source document and `overrides` (e.g. `layout_json`) to try unsaved changes. `edit_label_template` saves `layout_json`, `editor_mode` and the full `inputs` list. Edit → render → look → fix.
+
+## Label image library
+
+All label images live in the public File folder `Home/Label Images` (`erpnext/devices/label_images.py`). Everyone who can read Label Templates sees them in the designer gallery (Image element → choose / upload); users who can edit templates can upload. File names are unique in the folder; `<attachment name="...">` resolves the library copy first. MCP: `list_label_images`, `get_label_image`, `upload_label_image`. Images used by templates written before the library existed are copied in with `label_images.adopt(file_name)`.

@@ -263,6 +263,16 @@ export class ERPNextClient {
     }
   }
 
+  // Download a file (site-relative URL such as /files/x.png) as bytes
+  async getBinary(url: string): Promise<{ data: Buffer; contentType: string }> {
+    try {
+      const response = await this.axiosInstance.get(encodeURI(url), { responseType: "arraybuffer" });
+      return { data: Buffer.from(response.data), contentType: String(response.headers["content-type"] || "") };
+    } catch (error: any) {
+      throw new Error(`Failed to download ${url}: ${error?.message || 'Unknown error'}`);
+    }
+  }
+
   // Upload a file to ERPNext
   async uploadFile(
     filename: string,

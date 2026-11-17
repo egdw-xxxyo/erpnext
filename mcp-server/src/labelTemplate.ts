@@ -135,6 +135,35 @@ export const LABEL_TEMPLATE_TOOLS = [
     },
   },
   {
+    name: "list_label_images",
+    description:
+      "List the shared label image library (folder Home/Label Images): file_name and file_url of every image labels can use. Use file_name in a visual layout image element (\"type\":\"image\",\"file\":<file_name>) or in <attachment name=\"...\"> in HTML templates.",
+    inputSchema: { type: "object", properties: { search: { type: "string", description: "Optional substring filter" } } },
+  },
+  {
+    name: "get_label_image",
+    description:
+      "Load one image from the label image library so you can look at it (PNG/JPEG/GIF/WebP come back as an image, SVG as its source text).",
+    inputSchema: {
+      type: "object",
+      properties: { file_name: { type: "string", description: "file_name from list_label_images" } },
+      required: ["file_name"],
+    },
+  },
+  {
+    name: "upload_label_image",
+    description:
+      "Add an image to the shared label image library (visible to everyone who edits label templates). Give either file_path (a file on this machine) or content_base64 + file_name. Returns the stored file_name (made unique if the name was taken) to use in layouts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file_path: { type: "string", description: "Local path of an image file (png, jpg, gif, svg, webp, bmp)" },
+        content_base64: { type: "string", description: "Image bytes as base64 (alternative to file_path)" },
+        file_name: { type: "string", description: "Name to store; defaults to the file_path basename" },
+      },
+    },
+  },
+  {
     name: "get_label_template_reference",
     description:
       "Fetch the canonical Label Template authoring reference (utility classes, padding model, custom tags, layout tips) plus all published Label Template Examples. Read this BEFORE writing or editing a Label Template — it tells you what classes exist, how the wrapper works, and provides curated snippets you can adapt. Same source the in-app dialog reads.",
@@ -345,6 +374,53 @@ export async function handleLabelTemplateTool(
         ];
         if (arg<boolean>(args, "include_html")) content.push({ type: "text", text: r.html ?? "" });
         return { content };
+      }
+
+      case "list_label_images": {
+        const files: any[] = (await erpnext.callMethod("erpnext.devices.label_images.get_label_images")) ?? [];
+        const q = (arg<string>(args, "search") ?? "").toLowerCase();
+        return json(
+          files
+            .filter((f) => !q || String(f.file_name).toLowerCase().includes(q))
+            .map((f) => ({ file_name: f.file_name, file_url: f.file_url })),
+        );
+      }
+
+      case "get_label_image": {
+        const fileName = arg<string>(args, "file_name");
+        if (!fileName) return err("file_name is required");
+        const files: any[] = (await erpnext.callMethod("erpnext.devices.label_images.get_label_images")) ?? [];
+        const file = files.find((f) => f.file_name === fileName);
+        if (!file) return err(`No image "${fileName}" in the label image library. Use list_label_images.`);
+        const { data, contentType } = await erpnext.getBinary(file.file_url);
+        if (contentType.includes("svg") || fileName.toLowerCase().endsWith(".svg")) {
+          return ok(`${fileName} (SVG, ${data.length} bytes):\n${data.toString("utf8")}`);
+        }
+        const mimeType = contentType.split(";")[0].trim() || "image/png";
+        return {
+          content: [
+            { type: "image", data: data.toString("base64"), mimeType },
+            { type: "text", text: `${fileName} — ${file.file_url}, ${data.length} bytes` },
+          ],
+        };
+      }
+
+      case "upload_label_image": {
+        const filePath = arg<string | undefined>(args, "file_path");
+        let content = arg<string | undefined>(args, "content_base64");
+        let fileName = arg<string | undefined>(args, "file_name");
+        if (filePath) {
+          const fs = await import("node:fs/promises");
+          const path = await import("node:path");
+          content = (await fs.readFile(filePath)).toString("base64");
+          fileName = fileName || path.basename(filePath);
+        }
+        if (!content || !fileName) return err("Give file_path, or content_base64 together with file_name");
+        const r = await erpnext.callMethod("erpnext.devices.label_images.add_label_image", {
+          file_name: fileName,
+          content_base64: content,
+        });
+        return json(r);
       }
 
       case "get_label_template_reference": {

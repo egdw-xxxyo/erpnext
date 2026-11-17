@@ -389,6 +389,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		this.selected = [el.id];
 		this.commit();
 		this.$root.trigger("focus");
+		if (type === "image") this.choose_image(el);
 	}
 
 	selected_elements() {
@@ -752,9 +753,10 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			);
 		}
 		if (el.type === "image") {
-			if (!el.file_url) return `<div class="ld-empty"><i class="fa fa-picture-o"></i></div>`;
+			const url = el.file_url || (el.file ? `/files/${encodeURIComponent(el.file)}` : "");
+			if (!url) return `<div class="ld-empty"><i class="fa fa-picture-o"></i></div>`;
 			const fit = el.fit === "stretch" ? "fill" : "contain";
-			return `<img src="${esc(el.file_url)}" style="width:100%;height:100%;object-fit:${fit};">`;
+			return `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:${fit};">`;
 		}
 		if (el.type === "barcode") {
 			const data = el.source === "text" ? this.sample_text(el.data) : this.value_html({}, el.field);
@@ -979,8 +981,8 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (el.type === "image") {
 			return `<div class="ld-field"><label>${__("File")}</label>
 					<div class="ld-file">${esc(el.file || __("No file"))}</div>
-					<button class="btn btn-xs btn-default" data-cmd="upload"><i class="fa fa-upload"></i> ${__(
-						"Upload image"
+					<button class="btn btn-xs btn-default" data-cmd="gallery"><i class="fa fa-picture-o"></i> ${__(
+						"Choose image"
 					)}</button></div>
 				${this.select("fit", __("Fit"), el.fit || "contain", [
 					["contain", __("Keep proportions")],
@@ -1259,7 +1261,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (!el) return;
 		const ri = cint($(e.currentTarget).attr("data-row"));
 		if (cmd === "new_input") return this.new_input(el);
-		if (cmd === "upload") return this.upload_image(el);
+		if (cmd === "gallery") return this.choose_image(el);
 		if (cmd === "add_row") el.rows.push({ h: 0, cells: el.cols.map(() => ({ text: "" })) });
 		if (cmd === "del_row" && el.rows.length > 1) el.rows.splice(ri, 1);
 		if (cmd === "row_bold") {
@@ -1327,15 +1329,14 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		d.show();
 	}
 
-	upload_image(el) {
-		new frappe.ui.FileUploader({
-			doctype: this.frm.is_new() ? null : this.frm.doctype,
-			docname: this.frm.is_new() ? null : this.frm.doc.name,
-			make_attachments_public: true,
-			restrictions: { allowed_file_types: ["image/*"] },
-			on_success: (file) => {
-				el.file = file.file_name;
-				el.file_url = file.file_url;
+	choose_image(el) {
+		erpnext.label_designer.image_gallery({
+			selected: el.file,
+			on_select: (file) => {
+				const target = this.layout.elements.find((e) => e.id === el.id);
+				if (!target) return;
+				target.file = file.file_name;
+				target.file_url = file.file_url;
 				this.commit();
 			},
 		});
@@ -1401,6 +1402,77 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			},
 		});
 	}
+};
+
+erpnext.label_designer.image_gallery = function ({ selected, on_select }) {
+	const method = "erpnext.devices.label_images";
+	const d = new frappe.ui.Dialog({ title: __("Label images"), size: "large" });
+	d.$body.html(`
+		<div class="ld-gallery-bar">
+			<input type="text" class="form-control input-sm ld-gallery-search" placeholder="${__("Search images...")}">
+			<button class="btn btn-sm btn-primary ld-gallery-upload"><i class="fa fa-upload"></i> ${__(
+				"Upload new"
+			)}</button>
+		</div>
+		<div class="ld-gallery"><div class="text-muted small">${__("Loading...")}</div></div>
+		<div class="ld-hint">${__(
+			"Shared by every label template. Uploaded images are added here for everyone; labels print them in black and white."
+		)}</div>`);
+	let files = [];
+	const draw = () => {
+		const q = (d.$body.find(".ld-gallery-search").val() || "").toLowerCase().trim();
+		const shown = files.filter((f) => !q || f.file_name.toLowerCase().includes(q));
+		d.$body.find(".ld-gallery").html(
+			shown.length
+				? shown
+						.map(
+							(f) => `<div class="ld-gallery-item ${
+								f.file_name === selected ? "ld-gallery-selected" : ""
+							}" data-name="${esc(f.name)}" title="${esc(f.file_name)}">
+								<div class="ld-gallery-thumb"><img src="${esc(f.file_url)}" loading="lazy"></div>
+								<div class="ld-gallery-name">${esc(f.file_name)}</div>
+							</div>`
+						)
+						.join("")
+				: `<div class="text-muted small">${__("No images yet. Upload the first one.")}</div>`
+		);
+	};
+	const load = () =>
+		frappe.call({ method: `${method}.get_label_images` }).then((r) => {
+			files = r.message || [];
+			draw();
+		});
+	const pick = (file) => {
+		d.hide();
+		on_select(file);
+	};
+	d.$body.on("input", ".ld-gallery-search", draw);
+	d.$body.on("click", ".ld-gallery-item", (e) => {
+		const file = files.find((f) => f.name === $(e.currentTarget).attr("data-name"));
+		if (file) pick(file);
+	});
+	d.$body.on("click", ".ld-gallery-upload", () => {
+		new frappe.ui.FileUploader({
+			method: `${method}.upload_label_image`,
+			restrictions: { allowed_file_types: ["image/*"] },
+			disable_file_browser: true,
+			allow_web_link: false,
+			allow_take_photo: false,
+			allow_google_drive: false,
+			on_success: (_file_doc, r) => {
+				const file = r && r.message;
+				if (file && file.file_url) {
+					files.push(file);
+					pick(file);
+				} else {
+					load();
+				}
+			},
+		});
+	});
+	d.show();
+	load();
+	return d;
 };
 
 erpnext.label_designer.form_payload = function (frm) {
@@ -1538,6 +1610,13 @@ erpnext.label_designer.inject_style = function () {
 .ld-cell td{padding:0}
 .ld-table{width:100%;border-collapse:collapse;table-layout:fixed}
 .ld-loop-row td{background:rgba(36,144,239,.08)}
+.ld-gallery-bar{display:flex;gap:8px;margin-bottom:10px}
+.ld-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;max-height:60vh;overflow:auto;padding:2px}
+.ld-gallery-item{border:1px solid var(--border-color);border-radius:6px;padding:6px;cursor:pointer;background:var(--fg-color)}
+.ld-gallery-item:hover,.ld-gallery-selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.ld-gallery-thumb{height:90px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:4px}
+.ld-gallery-thumb img{max-width:100%;max-height:90px;object-fit:contain}
+.ld-gallery-name{font-size:11px;margin-top:4px;word-break:break-all;text-align:center}
 .ld-repeat-item{position:absolute;overflow:hidden;outline:1px dotted rgba(36,144,239,.5)}
 .ld-ph{background:rgba(36,144,239,.15);color:#1366b8;border-radius:3px;padding:0 2px;font-family:monospace;font-size:.85em}
 .ld-ph-input{background:rgba(255,160,0,.2);color:#a05a00}
