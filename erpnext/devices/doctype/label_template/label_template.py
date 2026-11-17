@@ -795,3 +795,57 @@ def print_from_template(label_template, label_printer, copies=1, inputs=None, re
 	)
 	result = print_label(queued["print_job"]) or {}
 	return {**result, "print_job": queued["print_job"]}
+
+
+def _preview_value(value, limit=300):
+	if isinstance(value, str | int | float | bool) or value is None:
+		text = value
+	else:
+		try:
+			text = json.loads(frappe.as_json(value))
+		except Exception:
+			text = str(value)
+	dumped = json.dumps(text, ensure_ascii=False, default=str)
+	return text if len(dumped) <= limit else dumped[:limit] + "…"
+
+
+def run_data_setup(tpl, setup, inputs=None, reference_name=None, sample=1):
+	"""Run a visual layout's Data setup on real or sample data and report what it produced.
+
+	Returns the doc keys it added or changed and the template-level variables it set (both usable by
+	elements: Field elements read doc keys, text can use the variables), or the error it raised.
+	"""
+	from frappe.utils import cint
+	from frappe.utils.jinja import get_jenv
+
+	data = _build_label_data(tpl, inputs, reference_name, sample=cint(sample))
+	doc = frappe._dict(data)
+	resolve_field_mapping(tpl, doc)
+	before = {k: json.dumps(v, default=str, sort_keys=True) for k, v in doc.items()}
+	result = {"doc_keys_before": sorted(before), "error": None, "doc_changes": {}, "variables": {}}
+	if not (setup or "").strip():
+		return result
+	try:
+		module = get_jenv().from_string(setup).make_module({"doc": doc, "frappe": frappe, "_": _})
+	except Exception as e:
+		frappe.clear_messages()
+		result["error"] = f"{type(e).__name__}: {e}"
+		return result
+	result["doc_changes"] = {
+		k: _preview_value(v) for k, v in doc.items() if before.get(k) != json.dumps(v, default=str, sort_keys=True)
+	}
+	result["variables"] = {
+		k: _preview_value(getattr(module, k)) for k in dir(module) if not k.startswith("_") and k != "doc"
+	}
+	return result
+
+
+@frappe.whitelist()
+def test_data_setup(label_template=None, doc=None, setup=None, inputs=None, reference_name=None, sample=1):
+	"""Try a Data setup block (the template's own, or `setup` to test an unsaved one)."""
+	tpl = _template_from_form(doc) if doc else _load_template(label_template)
+	if setup is None:
+		from erpnext.devices.label_layout import parse_layout
+
+		setup = parse_layout(tpl.get("layout_json")).get("setup") or ""
+	return run_data_setup(tpl, setup, inputs, reference_name, sample)

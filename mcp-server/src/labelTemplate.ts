@@ -135,6 +135,22 @@ export const LABEL_TEMPLATE_TOOLS = [
     },
   },
   {
+    name: "test_label_data_setup",
+    description:
+      "Run a visual template's Data setup (the Jinja in layout_json.setup that runs before the elements) and show what it produces: doc keys it added/changed (usable by field elements), template variables (usable in text as {{ var }}) or the error. Pass setup to try a new version without saving, reference_name to test on a real document.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Label Template name" },
+        setup: { type: "string", description: "Jinja to test instead of the saved Data setup" },
+        reference_name: { type: "string" },
+        input_values: { type: "object", additionalProperties: true },
+        use_preview_data: { type: "boolean", description: "Default true" },
+      },
+      required: ["name"],
+    },
+  },
+  {
     name: "list_label_images",
     description:
       "List the shared label image library (folder Home/Label Images): file_name and file_url of every image labels can use. Use file_name in a visual layout image element (\"type\":\"image\",\"file\":<file_name>) or in <attachment name=\"...\"> in HTML templates.",
@@ -374,6 +390,23 @@ export async function handleLabelTemplateTool(
         ];
         if (arg<boolean>(args, "include_html")) content.push({ type: "text", text: r.html ?? "" });
         return { content };
+      }
+
+      case "test_label_data_setup": {
+        const n = arg<string>(args, "name");
+        if (!n) return err("name is required");
+        const callArgs: Record<string, any> = {
+          label_template: n,
+          inputs: JSON.stringify(arg<Record<string, any>>(args, "input_values") ?? {}),
+          sample: arg<boolean | undefined>(args, "use_preview_data") === false ? 0 : 1,
+        };
+        const setup = arg<string | undefined>(args, "setup");
+        if (setup !== undefined) callArgs.setup = setup;
+        const ref = arg<string | undefined>(args, "reference_name");
+        if (ref) callArgs.reference_name = ref;
+        return json(
+          await erpnext.callMethod("erpnext.devices.doctype.label_template.label_template.test_data_setup", callArgs),
+        );
       }
 
       case "list_label_images": {

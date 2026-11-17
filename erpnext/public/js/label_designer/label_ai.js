@@ -25,6 +25,13 @@ const LAI_TOOLS = {
 	get_label_image: __("Looking at an image"),
 	list_label_templates: __("Looking at other templates"),
 	get_other_label_template: __("Reading another template"),
+	get_data_sources: __("Looking at the available data"),
+	set_data_setup: __("Writing the data setup"),
+	test_data_setup: __("Testing the data setup"),
+	add_label_elements: __("Adding elements"),
+	update_label_element: __("Changing an element"),
+	remove_label_elements: __("Removing elements"),
+	add_print_input: __("Adding a print input"),
 	get_doctype_fields: __("Reading document fields"),
 	get_documents: __("Reading documents"),
 };

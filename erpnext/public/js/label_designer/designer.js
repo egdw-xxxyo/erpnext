@@ -1632,6 +1632,8 @@ erpnext.label_designer.Designer = class LabelDesigner {
 						'Store computed values on doc, e.g. {% set _ = doc.update({"tu": ...}) %}; then show them with a Field element (doc.tu). Lookups run when the label is rendered; the canvas shows the key name.'
 					),
 				},
+				{ fieldname: "tools", fieldtype: "HTML" },
+				{ fieldname: "result", fieldtype: "HTML" },
 			],
 			primary_action_label: __("Apply"),
 			primary_action: (v) => {
@@ -1640,6 +1642,64 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				this.commit();
 				this.refresh_keys();
 			},
+		});
+		const ai = erpnext.label_designer._ai;
+		d.fields_dict.tools.$wrapper.html(`<div class="ld-btns">
+			<button class="btn btn-sm btn-default ld-setup-test"><i class="fa fa-flask"></i> ${__("Test")}</button>
+			${
+				ai
+					? `<button class="btn btn-sm btn-default ld-setup-ai"><i class="fa fa-magic"></i> ${__("Write with AI")}</button>`
+					: ""
+			}
+			<input class="form-control input-sm ld-setup-ref" style="max-width:240px" placeholder="${__(
+				"Test on document (optional)"
+			)}">
+		</div>`);
+		const $result = d.fields_dict.result.$wrapper;
+		const show = (r) => {
+			const rows = (obj) =>
+				Object.entries(obj || {})
+					.map(
+						([k, v]) =>
+							`<tr><td style="white-space:nowrap"><code>${esc(k)}</code></td><td>${esc(
+								typeof v === "string" ? v : JSON.stringify(v)
+							)}</td></tr>`
+					)
+					.join("");
+			if (r.error) {
+				$result.html(`<div class="alert alert-danger small" style="margin-top:8px">${esc(r.error)}</div>`);
+				return;
+			}
+			const changes = rows(r.doc_changes);
+			const vars = rows(r.variables);
+			$result.html(`<div style="margin-top:8px">
+				<div class="ld-group-title">${__("Values for Field elements (doc.…)")}</div>
+				${changes ? `<table class="table table-sm small">${changes}</table>` : `<div class="ld-hint">${__("None")}</div>`}
+				<div class="ld-group-title">${__("Variables for text ({{ … }})")}</div>
+				${vars ? `<table class="table table-sm small">${vars}</table>` : `<div class="ld-hint">${__("None")}</div>`}
+			</div>`);
+		};
+		d.$wrapper.on("click", ".ld-setup-test", () => {
+			$result.html(`<div class="ld-hint">${__("Running...")}</div>`);
+			frappe
+				.call({
+					method: "erpnext.devices.doctype.label_template.label_template.test_data_setup",
+					args: {
+						doc: erpnext.label_designer.form_payload(this.frm),
+						setup: d.get_value("setup") || "",
+						reference_name: d.$wrapper.find(".ld-setup-ref").val() || null,
+						sample: 1,
+					},
+				})
+				.then((r) => r.message && show(r.message));
+		});
+		d.$wrapper.on("click", ".ld-setup-ai", () => {
+			d.hide();
+			if (!ai.$panel || !ai.$panel.is(":visible")) ai.toggle();
+			ai.$panel
+				.find("textarea")
+				.val(__("Data setup: "))
+				.trigger("focus");
 		});
 		d.show();
 	}

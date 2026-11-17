@@ -17701,3 +17701,19 @@ Cannot edit: {0},Не можна змінити: {0}
 Invalid input fieldname {0},Неприпустима назва поля введення {0}
 Label Size {0} does not exist,Розміру мітки {0} не існує
 The AI key was rejected. Check it in My Settings.,Ключ AI відхилено. Перевірте його в «Мої налаштування».
+Looking at the available data,Переглядаю доступні дані
+Writing the data setup,Пишу підготовку даних
+Testing the data setup,Перевіряю підготовку даних
+Adding elements,Додаю елементи
+Changing an element,Змінюю елемент
+Removing elements,Видаляю елементи
+Adding a print input,Додаю поле для друку
+Test,Перевірити
+Write with AI,Написати з AI
+Test on document (optional),Перевірити на документі (необовʼязково)
+Values for Field elements (doc.…),Значення для елементів «Поле» (doc.…)
+Variables for text ({{ … }}),Змінні для тексту ({{ … }})
+Running...,Виконується...
+Data setup: ,Підготовка даних: 
+The template is in HTML mode. Switch it to Visual with edit_label_template first.,Шаблон у режимі HTML. Спершу перемкніть його на візуальний через edit_label_template.
+No element with id {0},Немає елемента з id {0}

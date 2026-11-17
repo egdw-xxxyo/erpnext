@@ -74,6 +74,16 @@ How to work:
 - After every edit call render_label_preview and LOOK at the image: check clipping, wrapping, overlaps,
   alignment and that barcodes/QR codes are large enough to scan. Fix and render again until it is right.
 - Images: use list_label_images and reference them by file_name in image elements.
+- Prefer the small tools for small changes: add_label_elements / update_label_element / remove_label_elements,
+  add_print_input. Use edit_label_template with a full layout_json only for a redesign.
+- Data the label needs that is not a plain field of the document (linked documents, attributes, child rows,
+  counts, formatting) goes into the Data setup: Jinja that runs before the elements. Put results on doc with
+  {% set _ = doc.update({"key": value}) %} and show them with Field elements (field "key"). Use
+  get_data_sources to see what doc has, write it with set_data_setup and read the result it returns: fix
+  every error and check every computed value against a real document (reference_name) when one exists.
+  People cannot read Jinja, so keep it short and add a {# comment #} line per value explaining it.
+- Values the operator types at print time (quantity, batch, operator name) are Print Inputs: add_print_input
+  and an element of type "input" bound to it.
 - You change only the draft on the user's screen. Nothing is saved until the user presses Save, and they can
   undo your changes. Never claim you saved anything.
 - Reply in Ukrainian unless the user writes in another language. Keep the final answer short: what you
@@ -142,6 +152,83 @@ LABEL_TOOLS = [
 				"input_values": {"type": "object", "additionalProperties": True},
 				"reference_name": {"type": "string"},
 			},
+		},
+	},
+	{
+		"name": "get_data_sources",
+		"description": "What the label can show: fields of the reference DocType (with child tables and links), "
+		"preview_data keys, Print Inputs, keys made by the Data setup, and whether a real document exists to test with.",
+		"input_schema": {"type": "object", "properties": {}},
+	},
+	{
+		"name": "set_data_setup",
+		"description": "Replace the visual layout's Data setup (Jinja run before the elements) and test it at once. "
+		"Returns the doc values and variables it produced, or the error. Pass reference_name to test on a real "
+		"document of the reference DocType.",
+		"input_schema": {
+			"type": "object",
+			"properties": {
+				"setup": {"type": "string"},
+				"reference_name": {"type": "string"},
+				"input_values": {"type": "object", "additionalProperties": True},
+			},
+			"required": ["setup"],
+		},
+	},
+	{
+		"name": "test_data_setup",
+		"description": "Run the current Data setup without changing it and show what it produces.",
+		"input_schema": {
+			"type": "object",
+			"properties": {
+				"reference_name": {"type": "string"},
+				"input_values": {"type": "object", "additionalProperties": True},
+			},
+		},
+	},
+	{
+		"name": "add_label_elements",
+		"description": "Append elements to the visual layout (same element objects as in layout_json; id is "
+		"generated when missing). Returns the ids.",
+		"input_schema": {
+			"type": "object",
+			"properties": {"elements": {"type": "array", "items": {"type": "object"}}},
+			"required": ["elements"],
+		},
+	},
+	{
+		"name": "update_label_element",
+		"description": "Change properties of one element by id. style is merged key by key; other keys replace.",
+		"input_schema": {
+			"type": "object",
+			"properties": {"id": {"type": "string"}, "changes": {"type": "object"}},
+			"required": ["id", "changes"],
+		},
+	},
+	{
+		"name": "remove_label_elements",
+		"description": "Remove elements by id.",
+		"input_schema": {
+			"type": "object",
+			"properties": {"ids": {"type": "array", "items": {"type": "string"}}},
+			"required": ["ids"],
+		},
+	},
+	{
+		"name": "add_print_input",
+		"description": "Add (or replace by fieldname) a Print Input: a value asked in the Print dialog, available "
+		"as doc.<fieldname>. Show it with an element {\"type\": \"input\", \"input\": fieldname}.",
+		"input_schema": {
+			"type": "object",
+			"properties": {
+				"fieldname": {"type": "string"},
+				"label": {"type": "string"},
+				"fieldtype": {"type": "string", "enum": ["Data", "Small Text", "Int", "Float", "Date", "Select", "Check"]},
+				"options": {"type": "string"},
+				"default_value": {"type": "string"},
+				"reqd": {"type": "boolean"},
+			},
+			"required": ["fieldname", "label"],
 		},
 	},
 	{
@@ -370,6 +457,105 @@ class Session:
 				f"@ {r['dpi']} dpi (1 mm = {r['dpi'] / 25.4:.2f} px).",
 			},
 		]
+
+	def _layout(self):
+		from erpnext.devices.label_layout import parse_layout
+
+		if self.draft.get("editor_mode") != "Visual" and not self.draft.get("layout_json"):
+			frappe.throw(_("The template is in HTML mode. Switch it to Visual with edit_label_template first."))
+		return parse_layout(self.draft.get("layout_json"))
+
+	def _save_layout(self, layout):
+		self.tool_edit_label_template(layout_json=layout, editor_mode="Visual")
+
+	def _test_setup(self, setup, reference_name=None, input_values=None):
+		from erpnext.devices.doctype.label_template.label_template import run_data_setup
+
+		tpl = frappe._dict(self.draft)
+		tpl.inputs = [frappe._dict(r) for r in self.draft.get("inputs") or []]
+		return run_data_setup(tpl, setup, json.dumps(input_values or {}), reference_name, sample=1)
+
+	def tool_get_data_sources(self):
+		import re
+
+		dt = self.draft.get("reference_doctype")
+		out = {"reference_doctype": dt, "fields": [], "child_tables": {}, "links": {}}
+		if dt:
+			meta = frappe.get_meta(dt)
+			for f in meta.fields:
+				if f.fieldtype in ("Section Break", "Column Break", "Tab Break", "HTML", "Button", "Password"):
+					continue
+				if f.fieldtype == "Table":
+					cm = frappe.get_meta(f.options)
+					out["child_tables"][f.fieldname] = {
+						"doctype": f.options,
+						"fields": [c.fieldname for c in cm.fields if c.fieldtype not in ("Section Break", "Column Break")],
+					}
+				else:
+					out["fields"].append(f"{f.fieldname} ({f.fieldtype}{': ' + f.options if f.options and f.fieldtype == 'Link' else ''}) {f.label or ''}".strip())
+				if f.fieldtype == "Link":
+					out["links"][f.fieldname] = f.options
+			out["sample_documents"] = frappe.get_list(dt, fields=["name"], order_by="modified desc", limit=3)
+		try:
+			out["preview_data_keys"] = sorted(json.loads(self.draft.get("preview_data") or "{}"))
+		except ValueError:
+			out["preview_data_keys"] = "preview_data is not valid JSON"
+		out["print_inputs"] = [r.get("fieldname") for r in self.draft.get("inputs") or []]
+		setup = ""
+		try:
+			setup = self._layout().get("setup") or ""
+		except Exception:
+			frappe.clear_messages()
+		out["data_setup_keys"] = sorted(set(re.findall(r"[\"']([A-Za-z_]\w*)[\"']\s*:", " ".join(re.findall(r"doc\.update\((.*?)\)", setup, re.S)))))
+		return out
+
+	def tool_set_data_setup(self, setup, reference_name=None, input_values=None):
+		layout = self._layout()
+		layout["setup"] = (setup or "").strip()
+		self._save_layout(layout)
+		return {"saved_to_draft": True, "test": self._test_setup(layout["setup"], reference_name, input_values)}
+
+	def tool_test_data_setup(self, reference_name=None, input_values=None):
+		return self._test_setup(self._layout().get("setup") or "", reference_name, input_values)
+
+	def tool_add_label_elements(self, elements):
+		layout = self._layout()
+		ids = []
+		for el in elements or []:
+			el = dict(el)
+			el.setdefault("id", frappe.generate_hash(length=8))
+			el.setdefault("rotate", 0)
+			layout.setdefault("elements", []).append(el)
+			ids.append(el["id"])
+		self._save_layout(layout)
+		return {"added": ids}
+
+	def tool_update_label_element(self, id, changes):
+		layout = self._layout()
+		el = next((e for e in layout.get("elements") or [] if e.get("id") == id), None)
+		if not el:
+			frappe.throw(_("No element with id {0}").format(id))
+		changes = dict(changes or {})
+		changes.pop("id", None)
+		if isinstance(changes.get("style"), dict):
+			el["style"] = {**(el.get("style") or {}), **changes.pop("style")}
+		el.update(changes)
+		self._save_layout(layout)
+		return {"updated": id, "element": el}
+
+	def tool_remove_label_elements(self, ids):
+		layout = self._layout()
+		keep = [e for e in layout.get("elements") or [] if e.get("id") not in set(ids or [])]
+		removed = len(layout.get("elements") or []) - len(keep)
+		layout["elements"] = keep
+		self._save_layout(layout)
+		return {"removed": removed}
+
+	def tool_add_print_input(self, fieldname, label, **row):
+		rows = [r for r in self.draft.get("inputs") or [] if r.get("fieldname") != fieldname]
+		rows.append({"fieldname": fieldname, "label": label, "fieldtype": row.get("fieldtype") or "Data", **row})
+		self.tool_edit_label_template(inputs=rows)
+		return {"print_inputs": [r["fieldname"] for r in self.draft["inputs"]]}
 
 	def tool_list_label_images(self, search=None):
 		from erpnext.devices.label_images import get_label_images
