@@ -7,6 +7,9 @@
  * published `Label Template Example` records. That same endpoint powers the in-app
  * "Template Reference" dialog, so the LLM and the human see the same authoring docs.
  *
+ * render_label_preview returns the printer-exact PNG as an MCP image block, so the model can
+ * look at the label, fix layout_json / html_template and render again.
+ *
  * Field model on Label Template (HTML mode):
  *   html_template            — Body content. <html>/<head>/<body> + .label-content
  *                              wrapper are added at render time.
@@ -77,6 +80,56 @@ export const LABEL_TEMPLATE_TOOLS = [
           description:
             "Visual layout JSON: {\"v\":1,\"grid_mm\":0.5,\"elements\":[{\"id\",\"type\":\"text|field|input|image|barcode|qr|table|line|rect\",\"x\",\"y\",\"w\",\"h\" (mm inside padding),\"rotate\",\"style\":{font_size_pt,font_family,bold,italic,underline,align,valign,nowrap,invert,border_mm,line_height}, ...}]}. See REFERENCE.md \"Visual editor\"",
         },
+        inputs: {
+          type: "array",
+          description:
+            "REPLACES the Print Inputs table (values asked in the Print dialog, available as {{ doc.<fieldname> }} and bound by visual elements of type \"input\"). Pass the full list.",
+          items: {
+            type: "object",
+            properties: {
+              fieldname: { type: "string", description: "Python identifier, e.g. qty" },
+              label: { type: "string" },
+              fieldtype: { type: "string", enum: ["Data", "Small Text", "Int", "Float", "Date", "Select", "Check"] },
+              options: { type: "string", description: "Select: one option per line" },
+              default_value: { type: "string" },
+              reqd: { type: "boolean" },
+            },
+            required: ["fieldname", "label"],
+          },
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "render_label_preview",
+    description:
+      "Render a Label Template exactly as the printer gets it (wkhtmltoimage, 300 dpi, 1-bit) and return the PNG image so you can look at it. Use it after every edit to verify layout, clipping and wrapping, then fix and render again. Works on the saved template; pass `overrides` to preview unsaved changes (e.g. a new layout_json) without saving. Pass `input_values` to fill Print Inputs (as the Print dialog does).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Label Template name" },
+        input_values: {
+          type: "object",
+          description: "Values for Print Inputs by fieldname, e.g. {\"qty\": 12}. Missing ones use the input's default.",
+          additionalProperties: true,
+        },
+        reference_name: {
+          type: "string",
+          description: "From DocType templates: document of reference_doctype whose data fills the label",
+        },
+        use_preview_data: {
+          type: "boolean",
+          description:
+            "Default true: when no reference_name, fill doc from the template's preview_data sample. false = exactly what a print without a document would show.",
+        },
+        overrides: {
+          type: "object",
+          description:
+            "Unsaved field values to render instead of the saved ones: layout_json, html_template, editor_mode, label_size, padding_*_mm, preview_data, field_mapping, inputs (array like edit_label_template).",
+          additionalProperties: true,
+        },
+        include_html: { type: "boolean", description: "Also return the rendered HTML (default false)" },
       },
       required: ["name"],
     },
@@ -142,7 +195,22 @@ export function isLabelTemplateTool(name: string): boolean {
   return LABEL_TEMPLATE_TOOL_NAMES.has(name);
 }
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+type ToolResult = { content: ToolContent[]; isError?: boolean };
+
+const PREVIEW_FIELDS = [
+  "editor_mode",
+  "html_template",
+  "layout_json",
+  "label_size",
+  "field_mapping",
+  "preview_data",
+  "reference_doctype",
+  "padding_top_mm",
+  "padding_right_mm",
+  "padding_bottom_mm",
+  "padding_left_mm",
+] as const;
 
 const ok = (text: string): ToolResult => ({ content: [{ type: "text", text }] });
 const err = (text: string): ToolResult => ({ content: [{ type: "text", text }], isError: true });
@@ -164,6 +232,7 @@ const EDITABLE_FIELDS = [
   "label_size",
   "editor_mode",
   "layout_json",
+  "inputs",
 ] as const;
 
 export async function handleLabelTemplateTool(
@@ -222,8 +291,60 @@ export async function handleLabelTemplateTool(
         if (Object.keys(data).length === 0) {
           return err("Provide at least one field to update");
         }
+        for (const k of ["layout_json", "preview_data", "field_mapping"]) {
+          if (data[k] && typeof data[k] !== "string") data[k] = JSON.stringify(data[k]);
+        }
+        if (Array.isArray(data.inputs)) {
+          data.inputs = data.inputs.map((r: any) => ({ ...r, reqd: r.reqd ? 1 : 0 }));
+        }
         await erpnext.updateDocument("Label Template", n, data);
         return ok(`Updated Label Template ${n}: ${Object.keys(data).join(", ")}`);
+      }
+
+      case "render_label_preview": {
+        const n = arg<string>(args, "name");
+        if (!n) return err("name is required");
+        const overrides = arg<Record<string, any> | undefined>(args, "overrides");
+        const callArgs: Record<string, any> = {
+          inputs: JSON.stringify(arg<Record<string, any>>(args, "input_values") ?? {}),
+          sample: arg<boolean | undefined>(args, "use_preview_data") === false ? 0 : 1,
+        };
+        const ref = arg<string | undefined>(args, "reference_name");
+        if (ref) callArgs.reference_name = ref;
+        if (overrides && Object.keys(overrides).length) {
+          const saved = await erpnext.getDocument("Label Template", n);
+          const doc: Record<string, any> = {};
+          for (const f of PREVIEW_FIELDS) doc[f] = saved[f];
+          doc.inputs = (saved.inputs ?? []).map((r: any) => ({
+            fieldname: r.fieldname,
+            label: r.label,
+            default_value: r.default_value,
+            reqd: r.reqd,
+          }));
+          Object.assign(doc, overrides);
+          for (const k of ["layout_json", "preview_data", "field_mapping"]) {
+            if (doc[k] && typeof doc[k] !== "string") doc[k] = JSON.stringify(doc[k]);
+          }
+          callArgs.doc = JSON.stringify(doc);
+        } else {
+          callArgs.label_template = n;
+        }
+        const r = await erpnext.callMethod(
+          "erpnext.devices.doctype.label_template.label_template.render_template_preview",
+          callArgs,
+        );
+        if (!r?.image_base64) return err("Nothing to render: set label_size and a template/layout first.");
+        const content: ToolContent[] = [
+          { type: "image", data: r.image_base64, mimeType: "image/png" },
+          {
+            type: "text",
+            text:
+              `${n}${overrides ? " (unsaved overrides)" : ""}: ${r.width_mm} × ${r.height_mm} mm, ` +
+              `${r.width_dots} × ${r.height_dots} dots @ ${r.dpi} dpi. 1 mm = ${(r.dpi / 25.4).toFixed(2)} px.`,
+          },
+        ];
+        if (arg<boolean>(args, "include_html")) content.push({ type: "text", text: r.html ?? "" });
+        return { content };
       }
 
       case "get_label_template_reference": {

@@ -151,3 +151,7 @@ Common: `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`,
 ## Print inputs and printing from the template
 
 **Print Inputs** rows (`fieldname`, `label`, type, default, mandatory) are asked in the **Print label** dialog on the template form and merged into `doc` (`{{ doc.<fieldname> }}`), in both editor modes. The dialog also asks for a printer, quantity and — for From DocType templates — the source document, and shows a live preview. Server: `label_template.print_from_template` (creates a Print Job and prints it), `render_template_preview`.
+
+## AI / MCP loop
+
+MCP `render_label_preview` returns the printer-exact PNG (300 dpi, 1-bit) as an image, with `input_values` for Print Inputs, `reference_name` for a source document and `overrides` (e.g. `layout_json`) to try unsaved changes. `edit_label_template` saves `layout_json`, `editor_mode` and the full `inputs` list. Edit → render → look → fix.
