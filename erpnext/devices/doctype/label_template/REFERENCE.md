@@ -146,6 +146,8 @@ Elements (coordinates and sizes in mm, relative to the padded area):
 
 Fonts: only `DejaVu Sans`, `DejaVu Serif`, `DejaVu Sans Mono` exist in the render image (old `Arial` / `Monospace` values map to them). The designer loads the same files from `erpnext/public/fonts/label/`, snaps font size to whole 300-dpi pixels like wkhtmltoimage does, and disables kerning (wkhtmltoimage does not kern), so text that fits the canvas fits the print. `erpnext/devices/test_label_render_parity.py` guards this.
 
+Data setup: `setup` (string) — Jinja emitted before the elements, for lookups a Field cannot do. Store results on `doc` (`{% set _ = doc.update({"tu": ...}) %}`) and show them with `field` elements.
+
 Common: `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`, `italic`, `underline`, `align`, `valign`, `nowrap`, `invert`, `border_mm`, `line_height`).
 
 ## Print inputs and printing from the template

@@ -177,6 +177,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			});
 		}
 		Object.keys(this.sample_data(true)).forEach((k) => add(k, ""));
+		this.setup_keys().forEach((k) => add(k, __("Data setup")));
 		this.keys = [...keys.entries()].map(([key, label]) => ({ key, label }));
 		this.render_inspector();
 	}
@@ -235,6 +236,9 @@ erpnext.label_designer.Designer = class LabelDesigner {
 					<button class="btn btn-xs btn-default ld-compare-btn" data-action="compare" title="${__(
 						"Overlay the printed result (red) on the canvas"
 					)}"><i class="fa fa-adjust"></i> ${__("Compare with print")}</button>
+					<button class="btn btn-xs btn-default ld-setup-btn" data-action="setup" title="${__(
+						"Compute values with Jinja before the elements are drawn"
+					)}"><i class="fa fa-cogs"></i> ${__("Data setup")}</button>
 					<button class="btn btn-xs btn-default" data-action="html" title="${__(
 						"Generated HTML"
 					)}"><i class="fa fa-code"></i></button>
@@ -330,6 +334,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (action === "preview") return this.exact_preview();
 		if (action === "compare") return this.toggle_compare();
 		if (action === "html") return this.show_html();
+		if (action === "setup") return this.edit_setup();
 		if (!sel.length) return;
 		const els = this.layout.elements;
 		if (action === "delete") {
@@ -1181,6 +1186,42 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		erpnext.label_designer.preview_form(this.frm).then((data) => {
 			if (data) erpnext.label_designer.show_big_preview(data, this.frm.doc.template_name);
 		});
+	}
+
+	setup_keys() {
+		const src = this.layout.setup || "";
+		const keys = new Set();
+		for (const m of src.matchAll(/doc\.update\(\s*\{([^}]*)\}/g)) {
+			for (const k of m[1].matchAll(/["']([A-Za-z_][\w]*)["']\s*:/g)) keys.add(k[1]);
+		}
+		return [...keys];
+	}
+
+	edit_setup() {
+		const d = new frappe.ui.Dialog({
+			title: __("Data setup"),
+			size: "large",
+			fields: [
+				{
+					fieldname: "setup",
+					fieldtype: "Code",
+					options: "Jinja",
+					label: __("Jinja run before the elements"),
+					default: this.layout.setup || "",
+					description: __(
+						'Store computed values on doc, e.g. {% set _ = doc.update({"tu": ...}) %}; then show them with a Field element (doc.tu). Lookups run when the label is rendered; the canvas shows the key name.'
+					),
+				},
+			],
+			primary_action_label: __("Apply"),
+			primary_action: (v) => {
+				this.layout.setup = (v.setup || "").trim();
+				d.hide();
+				this.commit();
+				this.refresh_keys();
+			},
+		});
+		d.show();
 	}
 
 	show_html() {

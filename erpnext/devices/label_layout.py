@@ -295,7 +295,10 @@ def compile_layout(layout):
 	layout = parse_layout(layout)
 	elements = layout.get("elements") or []
 	html = "\n".join(_element_html(el) for el in elements if not el.get("hidden"))
-	return f"<!-- visual-layout v{int(_num(layout.get('v'), 1))} -->\n{html}"
+	setup = (layout.get("setup") or "").strip()
+	if setup:
+		setup = f"{setup}\n"
+	return f"<!-- visual-layout v{int(_num(layout.get('v'), 1))} -->\n{setup}{html}"
 
 
 @frappe.whitelist()

@@ -17617,3 +17617,7 @@ Compare with print,Порівняти з друком
 Overlay the printed result (red) on the canvas,Накласти надрукований результат (червоним) на полотно
 Red = printed result,Червоне = результат друку
 The content does not fit the box and will be cut on the label. Enlarge the box or reduce the font.,Вміст не вміщується в рамку й буде обрізаний на мітці. Збільште рамку або зменште шрифт.
+Data setup,Підготовка даних
+Compute values with Jinja before the elements are drawn,Обчислити значення через Jinja перед малюванням елементів
+Jinja run before the elements,"Jinja, що виконується перед елементами"
+"Store computed values on doc, e.g. {% set _ = doc.update({""tu"": ...}) %}; then show them with a Field element (doc.tu). Lookups run when the label is rendered; the canvas shows the key name.","Збережіть обчислені значення в doc, напр. {% set _ = doc.update({""tu"": ...}) %}; потім покажіть їх елементом «Поле» (doc.tu). Пошук виконується під час формування мітки; на полотні видно назву ключа."
