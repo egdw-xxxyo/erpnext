@@ -1,10 +1,28 @@
 frappe.ui.form.on("Label Template", {
+	onload(frm) {
+		if (frm.is_new() && !frm.doc.html_template && !frm.doc.layout_json) {
+			frm.set_value("editor_mode", "Visual");
+		}
+	},
+
 	refresh(frm) {
 		frm.trigger("render_preview");
 		frm.trigger("_load_source_field_options");
 		frm.trigger("_add_template_help");
+		frm.trigger("_setup_designer");
 
 		if (frm.is_new()) return;
+
+		frm.add_custom_button(__("Print label"), () => {
+			if (frm.is_dirty()) {
+				frappe.msgprint(__("Save the template before printing."));
+				return;
+			}
+			frappe.require("label_designer.bundle.js").then(() => {
+				erpnext.label_designer.open_print_dialog(frm.doc.name);
+			});
+		});
+		frm.change_custom_button_type(__("Print label"), null, "primary");
 
 		frm.add_custom_button(
 			__("Print"),
@@ -59,9 +77,53 @@ frappe.ui.form.on("Label Template", {
 		);
 	},
 
+	editor_mode(frm) {
+		if (frm.doc.editor_mode === "Visual" && frm.doc.html_template && !frm.doc.layout_json) {
+			frappe.confirm(
+				__(
+					"The visual designer starts from an empty label. On save the designed layout replaces the current HTML. Continue?"
+				),
+				() => frm.trigger("_setup_designer"),
+				() => frm.set_value("editor_mode", "HTML")
+			);
+			return;
+		}
+		frm.trigger("_setup_designer");
+		frm.trigger("render_preview");
+	},
+
+	_setup_designer(frm) {
+		const field = frm.fields_dict.designer_html;
+		if (!field || frm.doc.editor_mode !== "Visual") return;
+		frappe.require("label_designer.bundle.js").then(() => {
+			erpnext.label_designer.inject_style();
+			if (frm._designer && frm._designer.frm === frm && $.contains(document, frm._designer.$root[0])) {
+				frm._designer.reload_from_doc();
+				frm._designer.refresh_size();
+				return;
+			}
+			field.$wrapper.empty();
+			frm._designer = new erpnext.label_designer.Designer({ wrapper: field.$wrapper, frm });
+		});
+	},
+
+	_designer_refresh(frm, what) {
+		const d = frm._designer;
+		if (!d || frm.doc.editor_mode !== "Visual") return;
+		if (what === "size") d.refresh_size();
+		else if (what === "keys") d.refresh_keys().then(() => d.render());
+		else d.render();
+	},
+
+	layout_json(frm) {
+		if (frm._designer && !frm._designer._own_change) frm._designer.reload_from_doc();
+		frm.trigger("render_preview");
+	},
+
 	reference_doctype(frm) {
 		frm.set_value("source_field", "");
 		frm.trigger("_load_source_field_options");
+		frm.events._designer_refresh(frm, "keys");
 	},
 
 	_load_source_field_options(frm) {
@@ -88,6 +150,7 @@ frappe.ui.form.on("Label Template", {
 	},
 
 	label_size(frm) {
+		frm.events._designer_refresh(frm, "size");
 		frm.trigger("render_preview");
 	},
 
@@ -127,94 +190,113 @@ frappe.ui.form.on("Label Template", {
 	},
 
 	preview_data(frm) {
+		frm.events._designer_refresh(frm, "keys");
+		frm.trigger("render_preview");
+	},
+
+	field_mapping(frm) {
 		frm.trigger("render_preview");
 	},
 
 	padding_top_mm(frm) {
+		frm.events._designer_refresh(frm);
 		frm.trigger("render_preview");
 	},
 	padding_right_mm(frm) {
+		frm.events._designer_refresh(frm);
 		frm.trigger("render_preview");
 	},
 	padding_bottom_mm(frm) {
+		frm.events._designer_refresh(frm);
 		frm.trigger("render_preview");
 	},
 	padding_left_mm(frm) {
+		frm.events._designer_refresh(frm);
 		frm.trigger("render_preview");
 	},
 
 	render_preview(frm) {
 		if (frm._preview_timer) clearTimeout(frm._preview_timer);
-		frm._preview_timer = setTimeout(() => _do_render_preview(frm), 500);
+		frm._preview_timer = setTimeout(() => _do_render_preview(frm), 600);
 	},
 });
+
+frappe.ui.form.on("Label Template Input", {
+	fieldname(frm) {
+		frm.events._designer_refresh(frm);
+	},
+	label(frm) {
+		frm.events._designer_refresh(frm);
+	},
+	default_value(frm) {
+		frm.events._designer_refresh(frm);
+		frm.trigger("render_preview");
+	},
+	inputs_remove(frm) {
+		frm.events._designer_refresh(frm);
+		frm.trigger("render_preview");
+	},
+});
+
+function _preview_message(text) {
+	return `<div class="text-muted small" style="padding:12px 0;">${text}</div>`;
+}
 
 function _do_render_preview(frm) {
 	let $wrapper = frm.fields_dict.preview_html && frm.fields_dict.preview_html.$wrapper;
 	if (!$wrapper) return;
 
 	if (!frm.doc.label_size) {
+		$wrapper.html(_preview_message(__("Select a Label Size to see preview")));
+		return;
+	}
+
+	const visual = frm.doc.editor_mode === "Visual";
+	if (visual ? !frm.doc.layout_json : !frm.doc.html_template) {
 		$wrapper.html(
-			`<div class="text-muted text-center" style="padding:20px;">${__(
-				"Select a Label Size to see preview"
-			)}</div>`
+			_preview_message(visual ? __("Add elements to see preview") : __("Enter template to see preview"))
 		);
 		return;
 	}
 
-	if (!frm.doc.html_template) {
-		$wrapper.html(
-			`<div class="text-muted text-center" style="padding:20px;">${__(
-				"Enter template to see preview"
-			)}</div>`
-		);
-		return;
-	}
+	const saved = !frm.is_new() && !frm.is_dirty();
+	const args = saved ? { label_template: frm.doc.name, sample: 1 } : { sample: 1 };
+	if (!saved && !frm.perm[0]?.write) return;
 
-	frappe.call({
-		method: "erpnext.devices.doctype.label_template.label_template.render_preview",
-		args: {
-			html_template: frm.doc.html_template || "",
-			preview_data: frm.doc.preview_data || "",
-			label_size: frm.doc.label_size,
-			padding_top_mm: frm.doc.padding_top_mm || 0,
-			padding_right_mm: frm.doc.padding_right_mm || 0,
-			padding_bottom_mm: frm.doc.padding_bottom_mm || 0,
-			padding_left_mm: frm.doc.padding_left_mm || 0,
-		},
-		callback(r) {
-			if (!r.message) return;
-			let data = r.message;
-
-			let PX_PER_MM = 3.78;
-			let scale = 1.5;
-			let cw = Math.round(data.width_mm * PX_PER_MM * scale);
-
-			let info_html = `<div class="label-preview-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
-				${data.width_mm} × ${data.height_mm} mm &nbsp;|&nbsp; ${data.width_dots} × ${data.height_dots} dots @ ${data.dpi} DPI
-			</div>`;
-
-			if (data.type === "html_image") {
-				$wrapper.html(`
-					<div class="label-preview-container" style="padding:10px;">
-						${info_html}
-						<div style="display:inline-block; max-width:100%; border:1px solid var(--border-color); background:#fff; border-radius:4px; overflow:hidden;">
-							<img src="data:image/png;base64,${data.image_base64}"
-								style="width:${cw}px; max-width:100%; height:auto; display:block;" />
-						</div>
-						<div style="margin-top:8px;">
-							<details>
-								<summary style="cursor:pointer; font-size:11px; color:var(--text-muted);">${__("Show HTML source")}</summary>
-								<pre style="font-size:10px; max-height:200px; overflow:auto; margin-top:4px; background:var(--bg-color); padding:8px; border-radius:4px;">${frappe.utils.escape_html(
-									data.html
-								)}</pre>
-							</details>
-						</div>
-					</div>
-				`);
-			}
-		},
-	});
+	const seq = (frm._preview_seq = (frm._preview_seq || 0) + 1);
+	$wrapper.find(".lt-thumb").css("opacity", 0.5);
+	frappe
+		.require("label_designer.bundle.js")
+		.then(() => {
+			if (!saved) args.doc = erpnext.label_designer.form_payload(frm);
+			return frappe.call({
+				method: "erpnext.devices.doctype.label_template.label_template.render_template_preview",
+				args,
+			});
+		})
+		.then((r) => {
+			if (seq !== frm._preview_seq) return;
+			const data = r.message;
+			if (!data || data.type !== "html_image") return;
+			$wrapper.html(`
+				<div class="label-preview-container">
+					<div class="text-muted" style="font-size:11px;margin-bottom:4px;">${__("Preview")} · ${data.width_mm} × ${
+				data.height_mm
+			} mm</div>
+					<span class="lt-thumb" title="${__("Click to enlarge")}"
+						style="display:inline-block;cursor:zoom-in;border:1px solid var(--border-color);border-radius:4px;background:#fff;padding:4px;max-width:100%;">
+						<img src="data:image/png;base64,${data.image_base64}"
+							style="display:block;max-height:150px;max-width:100%;width:auto;height:auto;" />
+					</span>
+				</div>
+			`);
+			$wrapper
+				.find(".lt-thumb")
+				.on("click", () => erpnext.label_designer.show_big_preview(data, frm.doc.template_name));
+		})
+		.catch(() => {
+			if (seq === frm._preview_seq) $wrapper.html(_preview_message(__("Preview failed")));
+		});
 }
 
 function _print_with_preview(frm) {

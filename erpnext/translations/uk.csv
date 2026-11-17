@@ -17515,3 +17515,100 @@ short by {0},бракує {0}
 below critical stock after this order,після замовлення нижче критичного залишку
 Can Produce,Можна виготовити
 "How many units the free stock of the Raw Material Warehouse covers by this item's BOM. Recalculated every time the line is opened.","Скільки одиниць покриває вільний залишок складу комплектуючих за нормами цього виробу. Перераховується щоразу, коли відкривається лінія."
+Add at least one element to the label,Додайте на мітку хоча б один елемент
+Add elements to see preview,"Додайте елементи, щоб побачити попередній перегляд"
+An input with this fieldname already exists,Поле введення з такою назвою вже існує
+As is,Як є
+Bar width (mm),Ширина штриха (мм)
+Barcode type,Тип штрихкоду
+Bold row,Жирний рядок
+Border (mm),Рамка (мм)
+Bring to front,На передній план
+Cell padding (mm),Відступ у клітинці (мм)
+Choose input,Оберіть поле введення
+Click to enlarge,"Натисніть, щоб збільшити"
+Column widths (mm),Ширина колонок (мм)
+Corner radius (mm),Радіус кутів (мм)
+Date and time,Дата і час
+Drag onto the label or click to add,"Перетягніть на мітку або натисніть, щоб додати"
+"Drag to move together, arrows to nudge, Del to remove.","Перетягуйте, щоб рухати разом, стрілки — зсув, Del — видалити."
+Editor,Редактор
+Exact preview,Точний перегляд
+Fill in: {0},Заповніть: {0}
+Filled,Заливка
+Font size (pt),Розмір шрифту (пт)
+Generated HTML,Згенерований HTML
+Grid,Сітка
+Grid step,Крок сітки
+Height,Висота
+Horizontal,По горизонталі
+Input,Поле введення
+Inputs,Поля введення
+Insert values with {{ doc.fieldname }},Вставляйте значення через {{ doc.fieldname }}
+Invalid fieldname,Неприпустима назва поля
+Invalid {0} name: {1},Неприпустима назва ({0}): {1}
+Italic,Курсив
+Keep proportions,Зберігати пропорції
+Label Template Input,Поле введення шаблону мітки
+Label data,Дані мітки
+Label sent to printer,Мітку надіслано на принтер
+"Latin letters, digits and _","Латинські літери, цифри та _"
+Layout (JSON),Макет (JSON)
+Layout is not valid JSON,Макет не є коректним JSON
+Layout must be an object with an elements list,Макет має бути об’єктом зі списком elements
+Line height,Міжрядковий інтервал
+Middle,Посередині
+Mock printing: nothing is sent to the device.,Імітація друку: на пристрій нічого не надсилається.
+Module size,Розмір модуля
+New input,Нове поле введення
+No (static rows),Ні (фіксовані рядки)
+No file,Немає файлу
+No preview,Немає попереднього перегляду
+No wrap,Без переносу
+Position and size,Положення і розмір
+Preview failed,Не вдалося побудувати попередній перегляд
+Print Inputs,Поля для друку
+Print label,Друкувати мітку
+Print label: {0},Друк мітки: {0}
+Printable area,Область друку
+Printed in black and white.,Друкується чорно-білим.
+"Printer has {0} loaded, the template needs {1}.","У принтері заправлено {0}, а шаблону потрібно {1}."
+Read only. Switch the editor to HTML to edit it by hand (the visual layout is then no longer used).,"Лише перегляд. Перемкніть редактор на HTML, щоб редагувати вручну (візуальний макет тоді більше не використовується)."
+Remove row,Видалити рядок
+Repeat last row for,Повторювати останній рядок для
+Repeats the last row for every row of the child table; use {{ row.fieldname }}.,Повторює останній рядок для кожного рядка дочірньої таблиці; використовуйте {{ row.fieldname }}.
+Rotation,Поворот
+"Row height (mm) first, then cell texts. {{ doc.x }} and {{ row.x }} allowed.","Спочатку висота рядка (мм), далі тексти клітинок. Можна {{ doc.x }} і {{ row.x }}."
+"Row height (mm), 0 = auto","Висота рядка (мм), 0 = авто"
+Row {0}: duplicate input fieldname {1},Рядок {0}: назва поля введення {1} повторюється
+Row {0}: invalid input fieldname {1},Рядок {0}: неприпустима назва поля введення {1}
+Save the template before printing.,Збережіть шаблон перед друком.
+Select an element to edit it. Shift+click selects several.,"Оберіть елемент, щоб редагувати. Shift+клік — кілька."
+Select: one option per line,Select: один варіант на рядок
+Send to back,На задній план
+Show text under barcode,Показувати текст під штрихкодом
+Size and padding are set in the fields above the designer.,Розмір і відступи задаються в полях над дизайнером.
+Snap to grid,Прилипання до сітки
+Stretch,Розтягнути
+Suffix,Суфікс
+Text style,Стиль тексту
+The document whose data goes on the label,"Документ, дані якого потрапляють на мітку"
+The value is asked in the Print dialog.,Значення запитується у вікні друку.
+The visual designer starts from an empty label. On save the designed layout replaces the current HTML. Continue?,Візуальний дизайнер починає з порожньої мітки. Під час збереження створений макет замінить поточний HTML. Продовжити?
+Underline,Підкреслений
+Unknown layout element: {0},Невідомий елемент макета: {0}
+Upload image,Завантажити зображення
+Upper case,Великими літерами
+Used in the template as {{ doc.fieldname }},У шаблоні використовується як {{ doc.fieldname }}
+Values asked in the Print dialog. Use them in the template as {{ doc.fieldname }}.,"Значення, які запитуються у вікні друку. У шаблоні — {{ doc.fieldname }}."
+Vertical,По вертикалі
+Visual,Візуальний
+"Visual: drag-and-drop designer, the HTML is generated on save. HTML: hand-written Jinja template.","Візуальний: дизайнер з перетягуванням, HTML генерується під час збереження. HTML: шаблон Jinja, написаний вручну."
+White on black,Білим по чорному
+Zoom in,Збільшити
+Zoom out,Зменшити
+field,поле
+mm,мм
+not set,не задано
+table,таблиця
+{0} elements selected,Обрано елементів: {0}

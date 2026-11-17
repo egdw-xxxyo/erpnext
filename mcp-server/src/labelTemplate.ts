@@ -2,7 +2,7 @@
  * Tools for editing Label Templates and the Label Template Example library.
  *
  * The reference text + curated examples come from the ERPNext backend method
- * `erpnext.manufacturing.doctype.label_template.label_template.get_template_reference`,
+ * `erpnext.devices.doctype.label_template.label_template.get_template_reference`,
  * which reads `erpnext/manufacturing/doctype/label_template/REFERENCE.md` plus all
  * published `Label Template Example` records. That same endpoint powers the in-app
  * "Template Reference" dialog, so the LLM and the human see the same authoring docs.
@@ -18,7 +18,7 @@
  *                              parameters with optional transforms (e.g. chemistry).
  *   preview_data             — JSON string used by the Preview pane.
  *   label_size               — Link to Label Size.
- *   template_type            — "EZPL" | "HTML".
+ *   template_type            — "From DocType" | "Raw Data" | "Barcode" | "Other".
  *   description              — Free text.
  */
 
@@ -67,6 +67,16 @@ export const LABEL_TEMPLATE_TOOLS = [
         preview_data: { type: "string", description: "JSON string used by the Preview pane" },
         description: { type: "string" },
         label_size: { type: "string", description: "Link to Label Size doc name" },
+        editor_mode: {
+          type: "string",
+          enum: ["HTML", "Visual"],
+          description: "Visual: html_template is generated from layout_json on save (do not edit html_template then)",
+        },
+        layout_json: {
+          type: "string",
+          description:
+            "Visual layout JSON: {\"v\":1,\"grid_mm\":0.5,\"elements\":[{\"id\",\"type\":\"text|field|input|image|barcode|qr|table|line|rect\",\"x\",\"y\",\"w\",\"h\" (mm inside padding),\"rotate\",\"style\":{font_size_pt,font_family,bold,italic,underline,align,valign,nowrap,invert,border_mm,line_height}, ...}]}. See REFERENCE.md \"Visual editor\"",
+        },
       },
       required: ["name"],
     },
@@ -152,6 +162,8 @@ const EDITABLE_FIELDS = [
   "preview_data",
   "description",
   "label_size",
+  "editor_mode",
+  "layout_json",
 ] as const;
 
 export async function handleLabelTemplateTool(
@@ -186,7 +198,9 @@ export async function handleLabelTemplateTool(
           reference_doctype: doc.reference_doctype,
           source_field: doc.source_field,
           html_template: doc.html_template,
-          zpl_template: doc.zpl_template,
+          editor_mode: doc.editor_mode,
+          layout_json: doc.layout_json,
+          inputs: doc.inputs,
           field_mapping: doc.field_mapping,
           preview_data: doc.preview_data,
           padding_top_mm: doc.padding_top_mm,
@@ -214,7 +228,7 @@ export async function handleLabelTemplateTool(
 
       case "get_label_template_reference": {
         const result = await erpnext.callMethod(
-          "erpnext.manufacturing.doctype.label_template.label_template.get_template_reference",
+          "erpnext.devices.doctype.label_template.label_template.get_template_reference",
         );
         const payload = result?.message ?? result;
         return json({

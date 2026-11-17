@@ -126,3 +126,26 @@ wkhtmltoimage is based on an old WebKit and does **not** support flexbox reliabl
 - For absolute positioning, prefer `width:100%;height:100%` on the child and let `.label-content` size it.
 - Test with the **Preview** panel after every change; padding fields trigger a fresh render.
 - Use the `Label Template Example` DocType to register reusable snippets — they appear in this dialog under **Приклади** and are also surfaced to the MCP `get_label_template_reference` tool.
+
+## Visual editor
+
+`Editor = Visual` turns on the drag-and-drop designer. The design is stored in `layout_json` and **compiled into `html_template` on save** (`erpnext/devices/label_layout.py`), so printing works exactly like a hand-written template. Templates with `Editor = HTML` are untouched.
+
+Elements (coordinates and sizes in mm, relative to the padded area):
+
+| type | key properties |
+|---|---|
+| `text` | `text` — static text, `{{ doc.x }}` placeholders allowed |
+| `field` | `field` — key of `doc`, `format` (`upper`, `date`, `datetime`, `float:0..3`), `prefix`, `suffix` |
+| `input` | `input` — fieldname of a **Print Inputs** row, value asked in the Print dialog |
+| `image` | `file` — File name (becomes `<attachment name=...>`), `fit` (`contain` / `stretch`) |
+| `barcode` | `source` (`field` / `text`), `field` or `data`, `barcode_type`, `module_width`, `show_text` |
+| `qr` | `source`, `field` or `data`, `module_size` |
+| `table` | `cols` (mm), `rows[{h, cells[{text, bold, align, colspan}]}]`, `loop` — child table: the last row repeats with `{{ row.x }}` |
+| `line`, `rect` | `rect`: `fill`, `radius_mm`, `style.border_mm` |
+
+Common: `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`, `italic`, `underline`, `align`, `valign`, `nowrap`, `invert`, `border_mm`, `line_height`).
+
+## Print inputs and printing from the template
+
+**Print Inputs** rows (`fieldname`, `label`, type, default, mandatory) are asked in the **Print label** dialog on the template form and merged into `doc` (`{{ doc.<fieldname> }}`), in both editor modes. The dialog also asks for a printer, quantity and — for From DocType templates — the source document, and shows a live preview. Server: `label_template.print_from_template` (creates a Print Job and prints it), `render_template_preview`.

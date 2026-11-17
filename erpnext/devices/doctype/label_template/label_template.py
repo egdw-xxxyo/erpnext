@@ -16,10 +16,15 @@ class LabelTemplate(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.devices.doctype.label_template_input.label_template_input import LabelTemplateInput
+
 		description: DF.SmallText | None
 		disabled: DF.Check
+		editor_mode: DF.Literal["HTML", "Visual"]
 		html_template: DF.Code | None
+		inputs: DF.Table[LabelTemplateInput]
 		label_size: DF.Link | None
+		layout_json: DF.Code | None
 		preview_data: DF.Code | None
 		reference_doctype: DF.Link | None
 		source_field: DF.Literal[""] | None
@@ -27,8 +32,26 @@ class LabelTemplate(Document):
 		template_type: DF.Literal["From DocType", "Raw Data", "Barcode", "Other"]
 
 	def validate(self):
+		self._validate_inputs()
+		if self.editor_mode == "Visual":
+			from erpnext.devices.label_layout import compile_layout, parse_layout
+
+			layout = parse_layout(self.layout_json)
+			if not layout.get("elements"):
+				frappe.throw(_("Add at least one element to the label"))
+			self.html_template = compile_layout(layout)
 		if not self.html_template:
 			frappe.throw(_("HTML Template is required"))
+
+	def _validate_inputs(self):
+		seen = set()
+		for row in self.inputs or []:
+			row.fieldname = (row.fieldname or "").strip()
+			if not row.fieldname.isidentifier():
+				frappe.throw(_("Row {0}: invalid input fieldname {1}").format(row.idx, row.fieldname))
+			if row.fieldname in seen:
+				frappe.throw(_("Row {0}: duplicate input fieldname {1}").format(row.idx, row.fieldname))
+			seen.add(row.fieldname)
 
 	def on_trash(self):
 		jobs = frappe.get_all("Print Job", filters={"label_template": self.name}, pluck="name")
@@ -643,3 +666,130 @@ def render_html_template(template_doc, doc=None, data=None, parent_doc=None):
 
 	log.error(f"[TIMING] render_html_template TOTAL: {(time.monotonic() - t_start)*1000:.0f}ms")
 	return html
+
+
+def _template_from_form(doc):
+	"""Unsaved form state → a template-like dict (designer preview)."""
+	if not frappe.has_permission("Label Template", "write"):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	tpl = frappe._dict(json.loads(doc) if isinstance(doc, str) else doc)
+	tpl.inputs = [frappe._dict(r) for r in (tpl.get("inputs") or [])]
+	if tpl.get("editor_mode") == "Visual":
+		from erpnext.devices.label_layout import compile_layout
+
+		tpl.html_template = compile_layout(tpl.get("layout_json"))
+	return tpl
+
+
+def _load_template(label_template):
+	tpl = frappe.get_doc("Label Template", label_template)
+	tpl.check_permission("read")
+	return tpl
+
+
+def _build_label_data(tpl, inputs=None, reference_name=None, sample=False):
+	if isinstance(inputs, str):
+		inputs = json.loads(inputs or "{}")
+	inputs = inputs or {}
+
+	data = {}
+	if reference_name and tpl.get("reference_doctype"):
+		ref = frappe.get_doc(tpl.reference_doctype, reference_name)
+		ref.check_permission("read")
+		data = json.loads(frappe.as_json(ref.as_dict()))
+	elif sample and tpl.get("preview_data"):
+		try:
+			data = json.loads(tpl.preview_data) or {}
+		except ValueError:
+			data = {}
+
+	for row in tpl.get("inputs") or []:
+		value = inputs.get(row.fieldname)
+		if value in (None, ""):
+			value = row.get("default_value")
+			if value in (None, "") and sample:
+				value = data.get(row.fieldname)
+		data[row.fieldname] = value
+	return data
+
+
+def _missing_inputs(tpl, data):
+	return [
+		row.label or row.fieldname
+		for row in tpl.get("inputs") or []
+		if row.get("reqd") and data.get(row.fieldname) in (None, "")
+	]
+
+
+@frappe.whitelist()
+def render_template_preview(label_template=None, doc=None, inputs=None, reference_name=None, sample=1):
+	"""Render a template (saved by name, or unsaved form state in `doc`) with print-time inputs."""
+	from frappe.utils import cint
+
+	tpl = _template_from_form(doc) if doc else _load_template(label_template)
+	if not tpl.get("label_size") or not tpl.get("html_template"):
+		return None
+
+	data = _build_label_data(tpl, inputs, reference_name, sample=cint(sample))
+	html = render_html_template(tpl, data=data)
+	size = _get_label_size_data(tpl.label_size)
+	img_b64 = _html_to_png_base64(
+		html, size["width_dots"], size["height_dots"], padding_mm=_padding_from_template(tpl)
+	)
+	return {"type": "html_image", "image_base64": img_b64, "html": html, **size}
+
+
+@frappe.whitelist()
+def get_print_dialog_context(label_template):
+	tpl = _load_template(label_template)
+	printers = frappe.get_all(
+		"Label Printer",
+		filters={"is_enabled": 1},
+		fields=["name", "printer_model", "loaded_label_size", "mock_printing"],
+		order_by="name asc",
+	)
+	matching = [p.name for p in printers if p.loaded_label_size == tpl.label_size]
+	return {
+		"template_name": tpl.name,
+		"template_type": tpl.template_type,
+		"reference_doctype": tpl.reference_doctype,
+		"label_size": tpl.label_size,
+		"inputs": [
+			{
+				"fieldname": r.fieldname,
+				"label": r.label,
+				"fieldtype": r.fieldtype or "Data",
+				"options": r.options,
+				"default_value": r.default_value,
+				"reqd": r.reqd,
+			}
+			for r in tpl.inputs
+		],
+		"printers": printers,
+		"default_printer": matching[0] if matching else None,
+	}
+
+
+@frappe.whitelist()
+def print_from_template(label_template, label_printer, copies=1, inputs=None, reference_name=None):
+	"""Queue and immediately print one Print Job straight from a Label Template."""
+	from frappe.utils import cint
+
+	from erpnext.devices.doctype.label_printer.label_printer import print_label, queue_print_job
+
+	tpl = _load_template(label_template)
+	data = _build_label_data(tpl, inputs, reference_name)
+	missing = _missing_inputs(tpl, data)
+	if missing:
+		frappe.throw(_("Fill in: {0}").format(", ".join(missing)))
+	data.setdefault("name", reference_name or tpl.name)
+
+	queued = queue_print_job(
+		tpl.name,
+		label_printer,
+		reference_name=reference_name,
+		raw_data=frappe.as_json(data),
+		copies=max(cint(copies), 1),
+	)
+	result = print_label(queued["print_job"]) or {}
+	return {**result, "print_job": queued["print_job"]}
