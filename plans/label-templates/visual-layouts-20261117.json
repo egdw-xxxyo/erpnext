@@ -1,0 +1,3245 @@
+[
+ {
+  "name": "CODE128 Barcode 60x10",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e1",
+     "type": "text",
+     "x": 0,
+     "y": 0.89,
+     "w": 60,
+     "h": 2.58,
+     "rotate": 0,
+     "text": "{{ doc.name }}",
+     "style": {
+      "font_size_pt": 4.48,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e2",
+     "type": "barcode",
+     "x": 2.88,
+     "y": 3.64,
+     "w": 54.099999999999994,
+     "h": 6.35,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "БПЛА 60x10",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e3",
+     "type": "text",
+     "x": 0,
+     "y": 0.89,
+     "w": 60,
+     "h": 2.58,
+     "rotate": 0,
+     "text": "{{ doc.name }}",
+     "style": {
+      "font_size_pt": 4.48,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e4",
+     "type": "barcode",
+     "x": 2.54,
+     "y": 3.47,
+     "w": 54.78,
+     "h": 6.52,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "CODE128 Barcode 60x20",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e5",
+     "type": "text",
+     "x": 0,
+     "y": 3.18,
+     "w": 65,
+     "h": 3.42,
+     "rotate": 0,
+     "text": "{{ doc.name }}",
+     "style": {
+      "font_size_pt": 6.4,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e6",
+     "type": "barcode",
+     "x": 3.05,
+     "y": 7.03,
+     "w": 58.760000000000005,
+     "h": 8.8,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Serial Number Raw 65x20",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e7",
+     "type": "text",
+     "x": 0,
+     "y": 2.59,
+     "w": 65,
+     "h": 3.42,
+     "rotate": 0,
+     "text": "{{ doc.name or doc.serial_no or '' }}",
+     "style": {
+      "font_size_pt": 6.4,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e8",
+     "type": "barcode",
+     "x": 2.79,
+     "y": 6.43,
+     "w": 59.27,
+     "h": 5.34,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.name or doc.serial_no or '' }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Команда",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e9",
+     "type": "text",
+     "x": 0,
+     "y": -0.16,
+     "w": 44,
+     "h": 5.12,
+     "rotate": 0,
+     "text": "{{ doc.name or '' }}",
+     "style": {
+      "font_size_pt": 10.24,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e10",
+     "type": "text",
+     "x": 0,
+     "y": 3.67,
+     "w": 44,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ doc.barcode_id or '' }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e11",
+     "type": "barcode",
+     "x": 1.66,
+     "y": 7.67,
+     "w": 40.550000000000004,
+     "h": 22.939999999999998,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.35,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.barcode_id or doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Працівник",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e12",
+     "type": "text",
+     "x": 0,
+     "y": 0.1,
+     "w": 44,
+     "h": 5.12,
+     "rotate": 0,
+     "text": "{{ doc.first_name or '' }} {{ doc.last_name or '' }}",
+     "style": {
+      "font_size_pt": 10.24,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e13",
+     "type": "text",
+     "x": 0,
+     "y": 4.0,
+     "w": 44,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ doc.attendance_device_id or '' }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e14",
+     "type": "barcode",
+     "x": 2.16,
+     "y": 8.01,
+     "w": 39.540000000000006,
+     "h": 23.79,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.35,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.attendance_device_id or doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Робоче місце",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e15",
+     "type": "text",
+     "x": 0,
+     "y": -0.16,
+     "w": 44,
+     "h": 5.12,
+     "rotate": 0,
+     "text": "{{ doc.workplace_name or '' }}",
+     "style": {
+      "font_size_pt": 10.24,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e16",
+     "type": "text",
+     "x": 0,
+     "y": 3.67,
+     "w": 44,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ doc.barcode or '' }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e17",
+     "type": "barcode",
+     "x": 1.74,
+     "y": 7.75,
+     "w": 40.39,
+     "h": 24.22,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.35,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.barcode or doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Шаблон пакування",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e18",
+     "type": "text",
+     "x": 0,
+     "y": -0.24,
+     "w": 44,
+     "h": 5.12,
+     "rotate": 0,
+     "text": "{{ doc.template_name or doc.name or '' }}",
+     "style": {
+      "font_size_pt": 10.24,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e19",
+     "type": "text",
+     "x": 0,
+     "y": 3.67,
+     "w": 44,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ doc.barcode_id or '' }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e20",
+     "type": "barcode",
+     "x": 1.74,
+     "y": 7.75,
+     "w": 40.39,
+     "h": 24.22,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.35,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.barcode_id or doc.name }}"
+    }
+   ]
+  }
+ },
+ {
+  "name": "BPAK Serial Number Label 75x50",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{% set bpak_serial_number = doc.get('bpak_serial_number') or doc.get('serial_number') or doc.get('name') or 'серійний_номер_БпАК' %}",
+   "elements": [
+    {
+     "id": "e21",
+     "type": "text",
+     "x": 0,
+     "y": 11.2,
+     "w": 69.4,
+     "h": 8.64,
+     "rotate": 0,
+     "text": "БпАК:",
+     "style": {
+      "font_size_pt": 18.24,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e22",
+     "type": "text",
+     "x": 0,
+     "y": 18.67,
+     "w": 69.4,
+     "h": 6.74,
+     "rotate": 0,
+     "text": "{{ bpak_serial_number }}",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"BPAK-2026-00001\", \"bpak_serial_number\": \"UASU014016000001\"}"
+ },
+ {
+  "name": "АКБ Батарея 75x50",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e1",
+     "type": "image",
+     "x": 1.86,
+     "y": 1.69,
+     "w": 5.08,
+     "h": 5.08,
+     "rotate": 0,
+     "file": "logo.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e2",
+     "type": "image",
+     "x": 68.06,
+     "y": 1.69,
+     "w": 5.08,
+     "h": 5.08,
+     "rotate": 0,
+     "file": "logo.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e3",
+     "type": "text",
+     "x": 7,
+     "y": 1.77,
+     "w": 61,
+     "h": 6.24,
+     "rotate": 0,
+     "text": "{{ doc.торгова_марка or 'Укропчик' }}^^™^^ АКБ",
+     "style": {
+      "font_size_pt": 12.8,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e4",
+     "type": "text",
+     "x": 1.86,
+     "y": 7.17,
+     "w": 40,
+     "h": 4.83,
+     "rotate": 0,
+     "text": "Li-{{ doc.хімія or 'ion' }} {{ doc.конфігурація or '' }}",
+     "style": {
+      "font_size_pt": 9.6,
+      "align": "left",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e5",
+     "type": "text",
+     "x": 33,
+     "y": 7.17,
+     "w": 40.14,
+     "h": 4.83,
+     "rotate": 0,
+     "text": "{{ doc.ємність or '—' }}мАг",
+     "style": {
+      "font_size_pt": 9.6,
+      "align": "right",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e6",
+     "type": "text",
+     "x": 1.86,
+     "y": 11.89,
+     "w": 71.3,
+     "h": 3.7,
+     "rotate": 0,
+     "text": "Вага АКБ: {{ doc.маса or '—' }}г",
+     "style": {
+      "font_size_pt": 7.04,
+      "align": "left",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e7",
+     "type": "text",
+     "x": 1.86,
+     "y": 15.23,
+     "w": 71.3,
+     "h": 3.7,
+     "rotate": 0,
+     "text": "Тип елемента: {{ doc.тип_елемента or '—' }}",
+     "style": {
+      "font_size_pt": 7.04,
+      "align": "left",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e8",
+     "type": "text",
+     "x": 1.86,
+     "y": 19.03,
+     "w": 24,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "Ufull: {{ doc.напруга_повна or '—' }}В",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e9",
+     "type": "text",
+     "x": 30.5,
+     "y": 19.03,
+     "w": 24,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "Ucell: {{ doc.напруга_комірки or '—' }}В",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e10",
+     "type": "text",
+     "x": 49.14,
+     "y": 19.03,
+     "w": 24,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "Ichrg: {{ doc.струм_заряду or '—' }}А",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "right",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e11",
+     "type": "text",
+     "x": 1.86,
+     "y": 22.75,
+     "w": 71.3,
+     "h": 13.6,
+     "rotate": 0,
+     "text": "Оптимальна температура для зарядки акумуляторної батареї складає +23°C, але не має бути меншою за +5°C.\nКатегорично забороняється виконувати зарядку батарей при температурі нижчою за 0°C.\nЗберігати акумуляторну батарею допускається від +5°C до +23°C та відносної вологості не вище 65%",
+     "style": {
+      "font_size_pt": 4.8,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.35
+     }
+    },
+    {
+     "id": "e12",
+     "type": "text",
+     "x": 0,
+     "y": 37.72,
+     "w": 75,
+     "h": 2.58,
+     "rotate": 0,
+     "text": "{{ doc.name }}",
+     "style": {
+      "font_size_pt": 4.48,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e13",
+     "type": "barcode",
+     "x": 10.33,
+     "y": 40.47,
+     "w": 54.27,
+     "h": 3.05,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.name }}"
+    },
+    {
+     "id": "e14",
+     "type": "image",
+     "x": 1.86,
+     "y": 43.6,
+     "w": 5.08,
+     "h": 5.08,
+     "rotate": 0,
+     "file": "logo.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e15",
+     "type": "image",
+     "x": 68.06,
+     "y": 43.6,
+     "w": 5.08,
+     "h": 5.08,
+     "rotate": 0,
+     "file": "logo.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e16",
+     "type": "text",
+     "x": 7,
+     "y": 44.23,
+     "w": 61,
+     "h": 4.55,
+     "rotate": 0,
+     "text": "ОТК: {{ frappe.utils.formatdate(frappe.utils.today(), 'MM.YYYY') }}",
+     "style": {
+      "font_size_pt": 8.96,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Документація на БпАК",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e17",
+     "type": "text",
+     "x": 0,
+     "y": 0,
+     "w": 96,
+     "h": 96,
+     "rotate": 0,
+     "text": "Документація на БпАК",
+     "style": {
+      "font_size_pt": 30.08,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1.15,
+      "bold": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Упаковка - Номер дотчейн",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e18",
+     "type": "text",
+     "x": 0,
+     "y": 0,
+     "w": 94,
+     "h": 94,
+     "rotate": 0,
+     "text": "{{ doc.dotchain_no or \"\" }}",
+     "style": {
+      "font_size_pt": 36.0,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1.1,
+      "bold": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Упаковка - Замовлення",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set so = doc.sales_order -%}\n{%- if not so -%}{{ frappe.throw(\"Етикетка «Упаковка - Замовлення»: пакет \" ~ doc.name ~ \" не привʼязано до Замовлення\") }}{%- endif -%}\n{%- set dotchain = frappe.db.get_value(\"Sales Order\", so, \"dotchain_no\") or \"\" -%}\n{%- set bpak_serial = (frappe.db.get_value(\"BpAK\", doc.bpak, \"serial_no\") or doc.bpak) if doc.bpak else \"\" -%}",
+   "elements": [
+    {
+     "id": "e19",
+     "type": "text",
+     "x": 0,
+     "y": -0.43,
+     "w": 94,
+     "h": 3.7,
+     "rotate": 0,
+     "text": "Замовлення",
+     "style": {
+      "font_size_pt": 7.04,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e20",
+     "type": "barcode",
+     "x": 6.91,
+     "y": 3.01,
+     "w": 80.09,
+     "h": 7.45,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ so }}"
+    },
+    {
+     "id": "e21",
+     "type": "text",
+     "x": 0,
+     "y": 10.0,
+     "w": 94,
+     "h": 4.17,
+     "rotate": 0,
+     "text": "{{ so }}",
+     "style": {
+      "font_size_pt": 8.1,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e22",
+     "type": "text",
+     "x": 0,
+     "y": 30,
+     "w": 94,
+     "h": 34,
+     "rotate": 0,
+     "text": "{{ dotchain }}",
+     "style": {
+      "font_size_pt": 19.2,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1.05,
+      "bold": 1
+     },
+     "show_if": "dotchain"
+    },
+    {
+     "id": "e23",
+     "type": "text",
+     "x": 0,
+     "y": 80.43,
+     "w": 94,
+     "h": 3.7,
+     "rotate": 0,
+     "text": "БпАК",
+     "style": {
+      "font_size_pt": 7.04,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "e24",
+     "type": "barcode",
+     "x": 7.92,
+     "y": 83.87,
+     "w": 78.06,
+     "h": 7.45,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ bpak_serial }}",
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "e25",
+     "type": "text",
+     "x": 0,
+     "y": 90.86,
+     "w": 94,
+     "h": 4.17,
+     "rotate": 0,
+     "text": "{{ bpak_serial }}",
+     "style": {
+      "font_size_pt": 8.1,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     },
+     "show_if": "bpak_serial"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Назва та логотип",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{% set modification_name = doc.modification_name or doc.model_name or doc.title or '' %}\n{% set bpak_serial_number = doc.bpak_serial_number or doc.serial_number or doc.name or '' %}",
+   "elements": [
+    {
+     "id": "e26",
+     "type": "text",
+     "x": 8.47,
+     "y": 4.66,
+     "w": 77.05,
+     "h": 23.71,
+     "rotate": 0,
+     "text": "{{ modification_name }}",
+     "style": {
+      "font_size_pt": 17.28,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1.08,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e27",
+     "type": "text",
+     "x": 8.47,
+     "y": 29.63,
+     "w": 77.05,
+     "h": 9.31,
+     "rotate": 0,
+     "text": "БпАК: {{ bpak_serial_number }}",
+     "style": {
+      "font_size_pt": 12.0,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1.05,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e28",
+     "type": "image",
+     "x": 18.2,
+     "y": 38.52,
+     "w": 57.57,
+     "h": 46.91,
+     "rotate": 0,
+     "file": "ukropchik-emblem.svg",
+     "fit": "stretch"
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"BPAK-2026-00001\", \"modification_name\": \"БпАК \\\"Укропчик 15 FO\\\" (модифікація 16)\", \"bpak_serial_number\": \"UASU014016000001\"}"
+ },
+ {
+  "name": "Місце на палеті",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{% set model_name = 'БпАК \"Укропчик 15 FO\" (модифікація 16)' %}\n{% set bpak_serial = doc.bpak_serial_number or doc.serial_number or doc.top_barcode or doc.barcode_data or doc.name or '' %}\n{% set label_date = doc.label_date_formatted or doc.label_date or '' %}\n{% set place_text = doc.place_text or ((doc.place_no or '1') ~ '/' ~ (doc.place_total or '3')) %}",
+   "elements": [
+    {
+     "id": "e29",
+     "type": "text",
+     "x": 9.99,
+     "y": 4.66,
+     "w": 77.05,
+     "h": 11.01,
+     "rotate": 0,
+     "text": "{{ model_name }}",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1.05,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e30",
+     "type": "barcode",
+     "x": 12.11,
+     "y": 16.51,
+     "w": 72.81,
+     "h": 15.24,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.95,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ bpak_serial }}"
+    },
+    {
+     "id": "e31",
+     "type": "text",
+     "x": 9.99,
+     "y": 33.02,
+     "w": 77.05,
+     "h": 5.93,
+     "rotate": 0,
+     "text": "{{ bpak_serial }}",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e32",
+     "type": "text",
+     "x": 9.99,
+     "y": 46.99,
+     "w": 77.05,
+     "h": 15.24,
+     "rotate": 0,
+     "text": "100 шт. БпЛА\nоптика, 25 км",
+     "style": {
+      "font_size_pt": 20.64,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e33",
+     "type": "text",
+     "x": 10.84,
+     "y": 76.2,
+     "w": 50.8,
+     "h": 5.25,
+     "rotate": 0,
+     "text": "{{ label_date }}",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e34",
+     "type": "rect",
+     "x": 65.87,
+     "y": 63.67,
+     "w": 21.17,
+     "h": 21.17,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.76
+     }
+    },
+    {
+     "id": "e35",
+     "type": "text",
+     "x": 65.87,
+     "y": 63.67,
+     "w": 21.17,
+     "h": 20.32,
+     "rotate": 0,
+     "text": "{{ place_text }}",
+     "style": {
+      "font_size_pt": 23.04,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"PAL-0001\", \"bpak_serial_number\": \"UASU014016000001\", \"label_date\": \"17.11.2026\", \"place_no\": 1, \"place_total\": 3}"
+ },
+ {
+  "name": "Місце на палеті (Pallet)",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{% set model_name = doc.bpak_template_name or '' %}\n{% set bpak_doc = frappe.get_doc('BpAK', doc.bpak) if doc.bpak else None %}\n{% set bpak_serial = bpak_doc.serial_no if bpak_doc else (doc.bpak or doc.name) %}\n{% set siblings = frappe.get_all('Pallet', filters={'bpak': doc.bpak, 'docstatus': ['<', 2]}, fields=['name'], order_by='creation asc') if doc.bpak else [] %}\n{% set ns = namespace(idx=1, total=siblings | length or 1) %}\n{% for p in siblings %}{% if p.name == doc.name %}{% set ns.idx = loop.index %}{% endif %}{% endfor %}\n{% set place_text = ns.idx ~ '/' ~ ns.total %}\n{% set label_date = frappe.utils.format_date(frappe.utils.nowdate(), 'dd.MM.yyyy') %}",
+   "elements": [
+    {
+     "id": "e36",
+     "type": "text",
+     "x": 9.99,
+     "y": 4.66,
+     "w": 77.05,
+     "h": 11.01,
+     "rotate": 0,
+     "text": "БпАК \"{{ model_name }}\"",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1.05,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e37",
+     "type": "barcode",
+     "x": 12.11,
+     "y": 16.51,
+     "w": 72.81,
+     "h": 15.24,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.95,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ bpak_serial }}"
+    },
+    {
+     "id": "e38",
+     "type": "text",
+     "x": 9.99,
+     "y": 33.02,
+     "w": 77.05,
+     "h": 5.93,
+     "rotate": 0,
+     "text": "{{ bpak_serial }}",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e39",
+     "type": "text",
+     "x": 9.99,
+     "y": 46.99,
+     "w": 77.05,
+     "h": 15.24,
+     "rotate": 0,
+     "text": "Палета {{ place_text }}",
+     "style": {
+      "font_size_pt": 20.64,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e40",
+     "type": "text",
+     "x": 10.84,
+     "y": 76.2,
+     "w": 50.8,
+     "h": 5.25,
+     "rotate": 0,
+     "text": "{{ label_date }}",
+     "style": {
+      "font_size_pt": 13.92,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e41",
+     "type": "rect",
+     "x": 65.87,
+     "y": 63.67,
+     "w": 21.17,
+     "h": 21.17,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.76
+     }
+    },
+    {
+     "id": "e42",
+     "type": "text",
+     "x": 65.87,
+     "y": 63.67,
+     "w": 21.17,
+     "h": 20.32,
+     "rotate": 0,
+     "text": "{{ place_text }}",
+     "style": {
+      "font_size_pt": 23.04,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"PAL-0001\", \"bpak_template_name\": \"Укропчик 15 FO (модифікація 16)\", \"bpak\": \"BPAK-2026-00031\"}"
+ },
+ {
+  "name": "Пакування палети",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{% set raw_qr_text = doc.qr_data or doc.qr_text or doc.bpla_serials_text or doc.serial_no or doc.name %}\n{% set qr_text = raw_qr_text.replace('\\r\\n', '\\n').replace('\\r', '\\n').replace('\\n', '\\r\\n') %}\n{% set qty = doc.qty or doc.total_qty or 0 %}\n{% set capacity = doc.capacity or 100 %}",
+   "elements": [
+    {
+     "id": "e43",
+     "type": "qr",
+     "x": 8.89,
+     "y": 0,
+     "w": 80.43,
+     "h": 80.43,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ qr_text }}",
+     "show_if": "qr_text"
+    },
+    {
+     "id": "e44",
+     "type": "line",
+     "x": 6,
+     "y": 82.7,
+     "w": 88,
+     "h": 0.25,
+     "rotate": 0
+    },
+    {
+     "id": "e45",
+     "type": "text",
+     "x": 0,
+     "y": 83.49,
+     "w": 100,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "БпАК \"Укропчик 15 FO\" (модифікація 16)",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e46",
+     "type": "text",
+     "x": 0,
+     "y": 86.98,
+     "w": 100,
+     "h": 3.46,
+     "rotate": 0,
+     "text": "Загальний QR БпЛА. К-ть: {{ qty }}/{{ capacity }} шт.",
+     "style": {
+      "font_size_pt": 6.48,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"PAL-0001\", \"qr_data\": \"UASU014016000001\\nUASU014016000002\\nUASU014016000003\", \"qty\": 3, \"capacity\": 100}"
+ },
+ {
+  "name": "БпАК - Упаковка - Груповий QR БпЛА",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{% set model_name = doc.bpak_template_name or '' %}\n{% set packages = frappe.get_all('Package', filters={'bpak': doc.name, 'docstatus': ['<', 2]}, fields=['name'], limit_page_length=0) %}\n{% set ns = namespace(bpla=[]) %}\n{% for pkg in packages %}\n  {% set rows = frappe.get_all('Package Item', filters={'parent': pkg.name, 'parenttype': 'Package'}, fields=['item_code', 'serial_no'], limit_page_length=0) %}\n  {% for r in rows %}\n    {% if r.serial_no %}\n      {% set ig = (frappe.db.get_value('Item', r.item_code, 'item_group') or '') | lower %}\n      {% if 'бпла' in ig or 'укропчик' in ig %}\n        {% for s in r.serial_no.replace('\\r','').split('\\n') %}\n          {% set s = s | trim %}\n          {% if s %}{% set ns.bpla = ns.bpla + [s] %}{% endif %}\n        {% endfor %}\n      {% endif %}\n    {% endif %}\n  {% endfor %}\n{% endfor %}\n{% set bpla = ns.bpla | sort %}\n{% set qr_text = bpla | join('\\r\\n') %}\n{% set qty = bpla | length %}\n{% set capacity = 100 %}",
+   "elements": [
+    {
+     "id": "e47",
+     "type": "qr",
+     "x": 8.89,
+     "y": 0,
+     "w": 80.43,
+     "h": 80.43,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ qr_text }}",
+     "show_if": "qr_text"
+    },
+    {
+     "id": "e48",
+     "type": "line",
+     "x": 6,
+     "y": 82.7,
+     "w": 88,
+     "h": 0.25,
+     "rotate": 0
+    },
+    {
+     "id": "e49",
+     "type": "text",
+     "x": 0,
+     "y": 83.49,
+     "w": 100,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "БпАК \"{{ model_name }}\"",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1
+     }
+    },
+    {
+     "id": "e50",
+     "type": "text",
+     "x": 0,
+     "y": 86.98,
+     "w": 100,
+     "h": 3.46,
+     "rotate": 0,
+     "text": "Загальний QR БпЛА. К-ть: {{ qty }}/{{ capacity }} шт.",
+     "style": {
+      "font_size_pt": 6.48,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"BPAK-2026-00031\", \"bpak_template_name\": \"Укропчик 15 FO (модифікація 16)\"}"
+ },
+ {
+  "name": "FO - Упаковка - Етикетка товару",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set items = doc.get(\"items\") or [] -%}\n{%- set first = items[0] if items else {} -%}\n{%- set title = (first.item_name or first.item_code or \"\") | replace(\".\", \" \") -%}\n{%- set ns = namespace(km=\"\") -%}\n{%- for w in title.split() -%}{%- if not ns.km and w.isdigit() -%}{%- set ns.km = w -%}{%- endif -%}{%- endfor -%}\n{%- set n = items | length -%}\n{%- if n % 10 == 1 and n % 100 != 11 -%}{%- set word = \"Котушка\" -%}\n{%- elif n % 10 in [2, 3, 4] and n % 100 not in [12, 13, 14] -%}{%- set word = \"Котушки\" -%}\n{%- else -%}{%- set word = \"Котушок\" -%}{%- endif -%}",
+   "elements": [
+    {
+     "id": "e51",
+     "type": "text",
+     "x": 0,
+     "y": 3.39,
+     "w": 94,
+     "h": 13.55,
+     "rotate": 0,
+     "text": "Укропчик^^™^^",
+     "style": {
+      "font_size_pt": 36.0,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e52",
+     "type": "image",
+     "x": 3.39,
+     "y": 31.33,
+     "w": 45.72,
+     "h": 37.25,
+     "rotate": 0,
+     "file": "ukropchik-emblem.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e53",
+     "type": "text",
+     "x": 47.41,
+     "y": 29.63,
+     "w": 47.41,
+     "h": 7.62,
+     "rotate": 0,
+     "text": "Fiber Optic",
+     "style": {
+      "font_size_pt": 18.24,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e54",
+     "type": "text",
+     "x": 50.8,
+     "y": 38.95,
+     "w": 40.64,
+     "h": 28.79,
+     "rotate": 0,
+     "text": "{{ ns.km }}",
+     "style": {
+      "font_size_pt": 79.2,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e55",
+     "type": "text",
+     "x": 0,
+     "y": 75.35,
+     "w": 94,
+     "h": 10.16,
+     "rotate": 0,
+     "text": "{{ n }} {{ word }}",
+     "style": {
+      "font_size_pt": 26.4,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Упаковка - Крихке",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e56",
+     "type": "image",
+     "x": 14.39,
+     "y": 1.69,
+     "w": 17.78,
+     "h": 35.56,
+     "rotate": 0,
+     "file": "krykhke-glass.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e57",
+     "type": "image",
+     "x": 58.42,
+     "y": 1.69,
+     "w": 22.01,
+     "h": 35.56,
+     "rotate": 0,
+     "file": "krykhke-up.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e58",
+     "type": "text",
+     "x": 0,
+     "y": 37.25,
+     "w": 94,
+     "h": 14.39,
+     "rotate": 0,
+     "text": "ОБЕРЕЖНО!!!",
+     "style": {
+      "font_size_pt": 31.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e59",
+     "type": "image",
+     "x": 11.01,
+     "y": 53.34,
+     "w": 30.48,
+     "h": 38.95,
+     "rotate": 0,
+     "file": "krykhke-sun.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e60",
+     "type": "image",
+     "x": 54.19,
+     "y": 54.19,
+     "w": 30.48,
+     "h": 37.25,
+     "rotate": 0,
+     "file": "krykhke-umbrella.svg",
+     "fit": "stretch"
+    }
+   ]
+  }
+ },
+ {
+  "name": "Упаковка - Інструкція",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "",
+   "elements": [
+    {
+     "id": "e61",
+     "type": "text",
+     "x": 14.82,
+     "y": 1.69,
+     "w": 64.35,
+     "h": 11.01,
+     "rotate": 180,
+     "text": "Інструкція",
+     "style": {
+      "font_size_pt": 15.36,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e62",
+     "type": "text",
+     "x": 14.82,
+     "y": 81.28,
+     "w": 64.35,
+     "h": 11.01,
+     "rotate": 180,
+     "text": "Інструкція",
+     "style": {
+      "font_size_pt": 15.36,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e63",
+     "type": "text",
+     "x": -24.98,
+     "y": 41.49,
+     "w": 64.35,
+     "h": 11.01,
+     "rotate": 270,
+     "text": "Укропчик^^™^^",
+     "style": {
+      "font_size_pt": 15.36,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e64",
+     "type": "text",
+     "x": 54.61,
+     "y": 41.49,
+     "w": 64.35,
+     "h": 11.01,
+     "rotate": 90,
+     "text": "Інструкція",
+     "style": {
+      "font_size_pt": 15.36,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e65",
+     "type": "image",
+     "x": 1.69,
+     "y": 2.71,
+     "w": 11.01,
+     "h": 8.97,
+     "rotate": 180,
+     "file": "ukropchik-emblem.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e66",
+     "type": "image",
+     "x": 81.28,
+     "y": 2.71,
+     "w": 11.01,
+     "h": 8.97,
+     "rotate": 180,
+     "file": "ukropchik-emblem.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e67",
+     "type": "image",
+     "x": 1.69,
+     "y": 82.3,
+     "w": 11.01,
+     "h": 8.97,
+     "rotate": 0,
+     "file": "ukropchik-emblem.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e68",
+     "type": "image",
+     "x": 81.28,
+     "y": 82.3,
+     "w": 11.01,
+     "h": 8.97,
+     "rotate": 0,
+     "file": "ukropchik-emblem.svg",
+     "fit": "stretch"
+    },
+    {
+     "id": "e69",
+     "type": "qr",
+     "x": 18.2,
+     "y": 18.2,
+     "w": 57.57,
+     "h": 57.57,
+     "rotate": 0,
+     "module_size": 24,
+     "source": "text",
+     "field": "http://help.ukropchik.com.ua",
+     "data": "http://help.ukropchik.com.ua"
+    }
+   ]
+  }
+ },
+ {
+  "name": "FO - Контроль якості - Брак",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set d = doc|default({}) -%}\n{%- set running_no = (d.num or d.name or '')|string -%}\n{%- set generated_code = 'UFOS' ~ (d.xx or '') ~ (d.yy or '') ~ (d.nn or '') ~ running_no.zfill(6) -%}\n{%- set coil_code = d.coil_code or d.код_виробу or d.serial_no or d.item_code or generated_code or 'UFOS252501002400' -%}\n{%- set raw_label_date = d.label_date_formatted or d.label_date or d.posting_date or d.modified or '' -%}\n{%- set label_date = raw_label_date|string -%}\n{%- if label_date|length >= 10 and label_date[4:5] == '-' and label_date[7:8] == '-' -%}\n  {%- set label_date = label_date[8:10] ~ '/' ~ label_date[5:7] ~ '/' ~ label_date[2:4] -%}\n{%- endif -%}\n\n{%- set product_name = d.product_name or d.назва_за_єскд or d.назва or d.item_name or 'УКРОПЧИК FO' -%}\n{%- set fiber_type = d.fiber_type or d.тип_волокна or d.custom_fiber_type or 'G657/A2' -%}\n{%- set raw_length = d.fiber_length or d.довжина_намотки_км or d.custom_fiber_length or d.length or '' -%}\n{%- set fiber_length = ('%.2f'|format(raw_length|float) ~ 'КМ') if raw_length else '25КМ' -%}\n{%- set wave_video = d.довжина_хвилі_відеосигналу_нм or '' -%}\n{%- set wave_control = d.довжина_хвилі_сигналу_керування_нм or '' -%}\n{%- set wavelength = d.wavelength|string if (d.wavelength and '/' in d.wavelength|string) else ((wave_video|string) ~ ' / ' ~ (wave_control|string) if wave_video and wave_control else '1310 / 1550') -%}\n{%- set average_twist = d.average_twist or d.custom_average_twist or d.товщина_оптоволокна or '&lt;0.35 / &lt;0.23' -%}\n{%- set failed = d.failed_readings or [] -%}",
+   "elements": [
+    {
+     "id": "e1",
+     "type": "text",
+     "x": 0,
+     "y": 0,
+     "w": 50,
+     "h": 3.73,
+     "rotate": 0,
+     "text": "{{ product_name }}",
+     "style": {
+      "font_size_pt": 8.64,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e2",
+     "type": "qr",
+     "x": 1.95,
+     "y": 3.73,
+     "w": 9.82,
+     "h": 9.82,
+     "rotate": 0,
+     "module_size": 7,
+     "source": "text",
+     "data": "{{ coil_code }}"
+    },
+    {
+     "id": "e8",
+     "type": "rect",
+     "x": 1.19,
+     "y": 14.05,
+     "w": 11.35,
+     "h": 8.81,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.25
+     }
+    },
+    {
+     "id": "t01.6914.39",
+     "type": "table",
+     "x": 1.69,
+     "y": 14.39,
+     "w": 10.33,
+     "h": 8.13,
+     "rotate": 0,
+     "cols": [
+      10.33
+     ],
+     "rows": [
+      {
+       "h": 0,
+       "cells": [
+        {
+         "text": "{{ row.specification }}\n**{{ row.value }}**{{ ' (' ~ row.limits ~ ')' if row.limits else '' }}"
+        }
+       ]
+      }
+     ],
+     "col_styles": [
+      {
+       "font_size_pt": 2.88
+      }
+     ],
+     "cell_padding_mm": 0,
+     "loop": "failed_readings",
+     "style": {
+      "font_size_pt": 6,
+      "border_mm": 0,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "nowrap": 0
+     }
+    },
+    {
+     "id": "e3",
+     "type": "image",
+     "x": 1.44,
+     "y": 23.37,
+     "w": 10.84,
+     "h": 7.28,
+     "rotate": 0,
+     "file": "Укропчик.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e4",
+     "type": "line",
+     "x": 13.8,
+     "y": 3.73,
+     "w": 0.34,
+     "h": 27.43,
+     "rotate": 0
+    },
+    {
+     "id": "e5",
+     "type": "line",
+     "x": 14.48,
+     "y": 3.73,
+     "w": 0.34,
+     "h": 27.43,
+     "rotate": 0
+    },
+    {
+     "id": "e6",
+     "type": "rect",
+     "x": 15.58,
+     "y": 3.73,
+     "w": 33.36,
+     "h": 27.43,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.34
+     }
+    },
+    {
+     "id": "t015.583.73",
+     "type": "table",
+     "x": 15.58,
+     "y": 3.73,
+     "w": 33.36,
+     "h": 27.43,
+     "rotate": 0,
+     "cols": [
+      8.81,
+      24.55
+     ],
+     "rows": [
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Волокно"
+        },
+        {
+         "text": "{{ fiber_type }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Довжина"
+        },
+        {
+         "text": "{{ fiber_length }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Хвиля"
+        },
+        {
+         "text": "{{ wavelength }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Ср.Вит\nкм",
+         "font_size_pt": 4.32
+        },
+        {
+         "text": "{{ average_twist|safe }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Контроль"
+        },
+        {
+         "text": "**БРАК**"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Дата"
+        },
+        {
+         "text": "{{ label_date }}"
+        }
+       ]
+      }
+     ],
+     "col_styles": [
+      {
+       "font_size_pt": 4.8
+      },
+      {
+       "font_size_pt": 7.68
+      }
+     ],
+     "cell_padding_mm": 0,
+     "loop": "",
+     "style": {
+      "font_size_pt": 6,
+      "border_mm": 0.25,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e7",
+     "type": "text",
+     "x": 0,
+     "y": 32.34,
+     "w": 50,
+     "h": 3.39,
+     "rotate": 0,
+     "text": "{{ coil_code }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "FO - Контроль якості - Придатно",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set d = doc|default({}) -%}\n{%- set running_no = (d.num or d.name or '')|string -%}\n{%- set generated_code = 'UFOS' ~ (d.xx or '') ~ (d.yy or '') ~ (d.nn or '') ~ running_no.zfill(6) -%}\n{%- set coil_code = d.coil_code or d.код_виробу or d.serial_no or d.item_code or generated_code or 'UFOS252501002400' -%}\n{%- set raw_label_date = d.label_date_formatted or d.label_date or d.posting_date or d.modified or '' -%}\n{%- set label_date = raw_label_date|string -%}\n{%- if label_date|length >= 10 and label_date[4:5] == '-' and label_date[7:8] == '-' -%}\n  {%- set label_date = label_date[8:10] ~ '/' ~ label_date[5:7] ~ '/' ~ label_date[2:4] -%}\n{%- endif -%}\n\n{%- set product_name = d.product_name or d.назва_за_єскд or d.назва or d.item_name or 'УКРОПЧИК FO' -%}\n{%- set fiber_type = d.fiber_type or d.тип_волокна or d.custom_fiber_type or 'G657/A2' -%}\n{%- set raw_length = d.fiber_length or d.довжина_намотки_км or d.custom_fiber_length or d.length or '' -%}\n{%- set fiber_length = ('%.2f'|format(raw_length|float) ~ 'КМ') if raw_length else '25КМ' -%}\n{%- set wave_video = d.довжина_хвилі_відеосигналу_нм or '' -%}\n{%- set wave_control = d.довжина_хвилі_сигналу_керування_нм or '' -%}\n{%- set wavelength = d.wavelength|string if (d.wavelength and '/' in d.wavelength|string) else ((wave_video|string) ~ ' / ' ~ (wave_control|string) if wave_video and wave_control else '1310 / 1550') -%}\n{%- set average_twist = d.average_twist or d.custom_average_twist or d.товщина_оптоволокна or '&lt;0.35 / &lt;0.23' -%}\n{%- set failed = d.failed_readings or [] -%}",
+   "elements": [
+    {
+     "id": "e9",
+     "type": "text",
+     "x": 0,
+     "y": 0,
+     "w": 50,
+     "h": 3.73,
+     "rotate": 0,
+     "text": "{{ product_name }}",
+     "style": {
+      "font_size_pt": 8.64,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e10",
+     "type": "qr",
+     "x": 1.95,
+     "y": 3.73,
+     "w": 9.82,
+     "h": 9.82,
+     "rotate": 0,
+     "module_size": 7,
+     "source": "text",
+     "data": "{{ coil_code }}"
+    },
+    {
+     "id": "e11",
+     "type": "image",
+     "x": 1.44,
+     "y": 23.37,
+     "w": 10.84,
+     "h": 7.28,
+     "rotate": 0,
+     "file": "Укропчик.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e12",
+     "type": "line",
+     "x": 13.8,
+     "y": 3.73,
+     "w": 0.34,
+     "h": 27.43,
+     "rotate": 0
+    },
+    {
+     "id": "e13",
+     "type": "line",
+     "x": 14.48,
+     "y": 3.73,
+     "w": 0.34,
+     "h": 27.43,
+     "rotate": 0
+    },
+    {
+     "id": "e14",
+     "type": "rect",
+     "x": 15.58,
+     "y": 3.73,
+     "w": 33.36,
+     "h": 27.43,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.34
+     }
+    },
+    {
+     "id": "t115.583.73",
+     "type": "table",
+     "x": 15.58,
+     "y": 3.73,
+     "w": 33.36,
+     "h": 27.43,
+     "rotate": 0,
+     "cols": [
+      8.81,
+      24.55
+     ],
+     "rows": [
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Волокно"
+        },
+        {
+         "text": "{{ fiber_type }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Довжина"
+        },
+        {
+         "text": "{{ fiber_length }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Хвиля"
+        },
+        {
+         "text": "{{ wavelength }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Ср.Вит\nкм",
+         "font_size_pt": 4.32
+        },
+        {
+         "text": "{{ average_twist|safe }}"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Контроль"
+        },
+        {
+         "text": "**ПРИДАТНА**"
+        }
+       ]
+      },
+      {
+       "h": 4.57,
+       "cells": [
+        {
+         "text": "Дата"
+        },
+        {
+         "text": "{{ label_date }}"
+        }
+       ]
+      }
+     ],
+     "col_styles": [
+      {
+       "font_size_pt": 4.8
+      },
+      {
+       "font_size_pt": 7.68
+      }
+     ],
+     "cell_padding_mm": 0,
+     "loop": "",
+     "style": {
+      "font_size_pt": 6,
+      "border_mm": 0.25,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e15",
+     "type": "text",
+     "x": 0,
+     "y": 32.34,
+     "w": 50,
+     "h": 3.39,
+     "rotate": 0,
+     "text": "{{ coil_code }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Котушка оптики",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set d = doc|default({}) -%}\n{%- set running_no = (d.num or d.name or '')|string -%}\n{%- set generated_code = 'UFOS' ~ (d.xx or '') ~ (d.yy or '') ~ (d.nn or '') ~ running_no.zfill(6) -%}\n{%- set coil_code = d.coil_code or d.код_виробу or d.serial_no or d.item_code or generated_code or 'UFOS252501002400' -%}\n{%- set raw_label_date = d.label_date_formatted or d.label_date or d.posting_date or d.modified or '' -%}\n{%- set label_date = raw_label_date|string -%}\n{%- if label_date|length >= 10 and label_date[4:5] == '-' and label_date[7:8] == '-' -%}\n  {%- set label_date = label_date[8:10] ~ '/' ~ label_date[5:7] ~ '/' ~ label_date[2:4] -%}\n{%- endif -%}\n\n{%- set product_name = d.product_name or d.назва_за_єскд or d.назва or d.item_name or 'УКРОПЧИК FO' -%}\n{%- set fiber_type = d.fiber_type or d.тип_волокна or d.custom_fiber_type or 'G657/A2' -%}\n{%- set raw_length = d.fiber_length or d.довжина_намотки_км or d.custom_fiber_length or d.length or '' -%}\n{%- set fiber_length = raw_length ~ 'КМ +-1%' if raw_length else '25КМ +-1%' -%}\n{%- set wave_video = d.довжина_хвилі_відеосигналу_нм or '' -%}\n{%- set wave_control = d.довжина_хвилі_сигналу_керування_нм or '' -%}\n{%- set wavelength = d.wavelength or d.custom_wavelength or ((wave_video|string) ~ ' / ' ~ (wave_control|string) if wave_video and wave_control else '1310 / 1550') -%}\n{%- set average_twist = d.average_twist or d.custom_average_twist or d.товщина_оптоволокна or '&lt;0.35 / &lt;0.23' -%}\n{%- set loss_db = d.loss_db or d.custom_loss_db or d.затухання_сишналу_на_двожинах_хвиль_13101550_не_більше or '&lt;8.70 / &lt;5.60' -%}",
+   "elements": [
+    {
+     "id": "e16",
+     "type": "qr",
+     "x": 1.95,
+     "y": 4.06,
+     "w": 9.82,
+     "h": 9.82,
+     "rotate": 0,
+     "module_size": 7,
+     "source": "text",
+     "data": "{{ coil_code }}"
+    },
+    {
+     "id": "e17",
+     "type": "text",
+     "x": 0.68,
+     "y": 14.31,
+     "w": 12.36,
+     "h": 1.35,
+     "rotate": 0,
+     "text": "{{ coil_code }}",
+     "style": {
+      "font_size_pt": 3.12,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e18",
+     "type": "rect",
+     "x": 1.19,
+     "y": 15.83,
+     "w": 11.35,
+     "h": 11.85,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.25
+     }
+    },
+    {
+     "id": "e19",
+     "type": "image",
+     "x": 1.44,
+     "y": 27.69,
+     "w": 10.84,
+     "h": 9.48,
+     "rotate": 0,
+     "file": "Укропчик.jpeg",
+     "fit": "contain"
+    },
+    {
+     "id": "e20",
+     "type": "line",
+     "x": 13.8,
+     "y": 0,
+     "w": 0.34,
+     "h": 39.96,
+     "rotate": 0
+    },
+    {
+     "id": "e21",
+     "type": "line",
+     "x": 14.48,
+     "y": 0,
+     "w": 0.34,
+     "h": 39.96,
+     "rotate": 0
+    },
+    {
+     "id": "e22",
+     "type": "rect",
+     "x": 15.58,
+     "y": 1.52,
+     "w": 33.36,
+     "h": 36.91,
+     "rotate": 0,
+     "fill": 0,
+     "radius_mm": 0,
+     "style": {
+      "border_mm": 0.34
+     }
+    },
+    {
+     "id": "t215.581.52",
+     "type": "table",
+     "x": 15.58,
+     "y": 1.52,
+     "w": 33.36,
+     "h": 36.91,
+     "rotate": 0,
+     "cols": [
+      8.81,
+      24.55
+     ],
+     "rows": [
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Назва"
+        },
+        {
+         "text": "{{ product_name }}",
+         "font_size_pt": 6.24
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Волокно"
+        },
+        {
+         "text": "{{ fiber_type }}"
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Довжина"
+        },
+        {
+         "text": "{{ fiber_length }}"
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Хвиля"
+        },
+        {
+         "text": "{{ wavelength }}"
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Ср.Вит\nкм",
+         "font_size_pt": 4.32
+        },
+        {
+         "text": "{{ average_twist|safe }}",
+         "font_size_pt": 8.16
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Витрати\ndB",
+         "font_size_pt": 4.32
+        },
+        {
+         "text": "{{ loss_db|safe }}",
+         "font_size_pt": 8.16
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Код"
+        },
+        {
+         "text": "{{ coil_code }}",
+         "font_size_pt": 6.0
+        }
+       ]
+      },
+      {
+       "h": 4.61,
+       "cells": [
+        {
+         "text": "Дата"
+        },
+        {
+         "text": "{{ label_date }}"
+        }
+       ]
+      }
+     ],
+     "col_styles": [
+      {
+       "font_size_pt": 4.8
+      },
+      {
+       "font_size_pt": 8.64
+      }
+     ],
+     "cell_padding_mm": 0,
+     "loop": "",
+     "style": {
+      "font_size_pt": 6,
+      "border_mm": 0.25,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Бпак",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set bpak = frappe.db.get_value(\"BpAK\", doc.bpak, [\"serial_no\", \"sales_order\"], as_dict=True) if doc.bpak else None -%}\n{%- set bpak_serial = doc.top_barcode or doc.bpak_serial_no or (bpak and bpak.serial_no) or (doc.serial_no if doc.doctype == \"BpAK\" else \"\") -%}\n{%- if not bpak_serial -%}{{ frappe.throw(\"Етикетка «Бпак»: у БпАК \" ~ (doc.bpak or doc.name) ~ \" не заповнено серійний номер\") }}{%- endif -%}\n{%- set so = doc.sales_order or (bpak and bpak.sales_order) -%}\n{%- set dotchain = doc.dotchain_no or (so and frappe.db.get_value(\"Sales Order\", so, \"dotchain_no\")) or \"\" -%}\n{%- set ns = namespace(l=[]) -%}\n{%- for it in doc.get(\"items\", []) -%}{%- set ns.l = ns.l + [it.serial_no or it.item_code] -%}{%- endfor -%}\n{%- set _ = doc.update({\"serial_list\": ns.l}) -%}\n{%- set serials = doc.get(\"items\", []) | map(attribute=\"serial_no\") | select | join(\"\\n\") -%}",
+   "elements": [
+    {
+     "id": "e23",
+     "type": "text",
+     "x": 2.54,
+     "y": 2.35,
+     "w": 88.92,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ \"БпАК Укропчик 15 FO (модифікація 16)\" }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e24",
+     "type": "barcode",
+     "x": 22.99,
+     "y": 5.89,
+     "w": 50.89,
+     "h": 8.3,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ bpak_serial }}"
+    },
+    {
+     "id": "e25",
+     "type": "text",
+     "x": 2.54,
+     "y": 13.66,
+     "w": 88.92,
+     "h": 4.49,
+     "rotate": 0,
+     "text": "{{ bpak_serial }}",
+     "style": {
+      "font_size_pt": 8.83,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e26",
+     "type": "text",
+     "x": 2.54,
+     "y": 22.65,
+     "w": 53.35,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "Серійні номери БпЛА:",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "r32.5427.369999999999997",
+     "type": "repeat",
+     "x": 2.54,
+     "y": 27.369999999999997,
+     "w": 52.85,
+     "h": 60,
+     "rotate": 0,
+     "list": "serial_list",
+     "value": ".",
+     "show": "barcode",
+     "show_text": 1,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "item_h": 12.6,
+     "columns": 1,
+     "gap_mm": 3.04,
+     "max_items": 0,
+     "style": {
+      "font_size_pt": 7.3,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e27",
+     "type": "qr",
+     "x": 59.28,
+     "y": 22.65,
+     "w": 28.79,
+     "h": 28.79,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ serials or doc.box_barcode or doc.name }}"
+    },
+    {
+     "id": "e28",
+     "type": "text",
+     "x": 55.89,
+     "y": 50.2,
+     "w": 35.57,
+     "h": 4.55,
+     "rotate": 0,
+     "text": "{{ dotchain }}",
+     "style": {
+      "font_size_pt": 8.96,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "dotchain"
+    },
+    {
+     "id": "e29",
+     "type": "text",
+     "x": 55.89,
+     "y": 54.04,
+     "w": 35.57,
+     "h": 4.49,
+     "rotate": 0,
+     "text": "{{ doc.name }}",
+     "style": {
+      "font_size_pt": 8.83,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Батарея 1",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set ns = namespace(l=[]) -%}\n{%- for it in doc.get(\"items\", []) -%}{%- set ns.l = ns.l + [it.serial_no or it.item_code] -%}{%- endfor -%}\n{%- set _ = doc.update({\"serial_list\": ns.l}) -%}\n{%- set serials = doc.get(\"items\", []) | map(attribute=\"serial_no\") | select | join(\"\\n\") -%}",
+   "elements": [
+    {
+     "id": "e30",
+     "type": "text",
+     "x": 2.54,
+     "y": 2.35,
+     "w": 88.92,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{\"БпАК Укропчик 15 FO (модифікація 16)\" }}",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e31",
+     "type": "barcode",
+     "x": 22.99,
+     "y": 5.89,
+     "w": 50.89,
+     "h": 8.3,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ doc.top_barcode or 'UASU014016000015' }}"
+    },
+    {
+     "id": "e32",
+     "type": "text",
+     "x": 2.54,
+     "y": 13.66,
+     "w": 88.92,
+     "h": 4.49,
+     "rotate": 0,
+     "text": "{{ doc.top_barcode or \"UASU014016000001\" }}",
+     "style": {
+      "font_size_pt": 8.83,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e33",
+     "type": "text",
+     "x": 2.54,
+     "y": 22.32,
+     "w": 53.35,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "Серійні номери батареї:",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "r42.5427.04",
+     "type": "repeat",
+     "x": 2.54,
+     "y": 27.04,
+     "w": 52.85,
+     "h": 60,
+     "rotate": 0,
+     "list": "serial_list",
+     "value": ".",
+     "show": "barcode",
+     "show_text": 1,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "item_h": 12.6,
+     "columns": 1,
+     "gap_mm": 3.04,
+     "max_items": 0,
+     "style": {
+      "font_size_pt": 7.3,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e34",
+     "type": "qr",
+     "x": 59.28,
+     "y": 22.32,
+     "w": 28.79,
+     "h": 28.79,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ serials or doc.box_barcode or doc.name }}"
+    },
+    {
+     "id": "e35",
+     "type": "text",
+     "x": 55.89,
+     "y": 50.66,
+     "w": 35.57,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "5 штук в коробці",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e36",
+     "type": "text",
+     "x": 55.89,
+     "y": 53.87,
+     "w": 35.57,
+     "h": 4.49,
+     "rotate": 0,
+     "text": "{{ doc.name }}",
+     "style": {
+      "font_size_pt": 8.83,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"PKG-00001\", \"top_barcode\": \"UASU014016000001\", \"box_barcode\": \"BOX-0001\", \"items\": [{\"serial_no\": \"U.B0.6S.2P.P42A.00001\", \"item_code\": \"BATT\"}, {\"serial_no\": \"U.B0.6S.2P.P42A.00002\", \"item_code\": \"BATT\"}]}"
+ },
+ {
+  "name": "Батареї - Пакування",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set ns = namespace(l=[]) -%}\n{%- for it in doc.get(\"items\", []) -%}{%- set ns.l = ns.l + [it.serial_no or it.item_code] -%}{%- endfor -%}\n{%- set _ = doc.update({\"serial_list\": ns.l}) -%}\n{%- set box_code = doc.box_barcode or doc.name -%}\n{%- set serials_list = doc.get(\"items\", []) | map(attribute=\"serial_no\") | select | list -%}\n{%- set serials = serials_list | join(\"\\r\\n\") -%}\n{%- set serial_count = serials_list | length -%}",
+   "elements": [
+    {
+     "id": "e37",
+     "type": "text",
+     "x": 2.54,
+     "y": 6.74,
+     "w": 53.35,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "Серійні номери батареї:",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "r52.5411.46",
+     "type": "repeat",
+     "x": 2.54,
+     "y": 11.46,
+     "w": 52.85,
+     "h": 60,
+     "rotate": 0,
+     "list": "serial_list",
+     "value": ".",
+     "show": "barcode",
+     "show_text": 1,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "item_h": 12.6,
+     "columns": 1,
+     "gap_mm": 3.04,
+     "max_items": 0,
+     "style": {
+      "font_size_pt": 7.3,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e38",
+     "type": "qr",
+     "x": 59.28,
+     "y": 6.74,
+     "w": 28.79,
+     "h": 28.79,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ serials or doc.box_barcode or doc.name }}"
+    },
+    {
+     "id": "e39",
+     "type": "text",
+     "x": 55.89,
+     "y": 36.13,
+     "w": 35.57,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ serial_count }} штук в коробці",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e40",
+     "type": "barcode",
+     "x": 57.11,
+     "y": 81.33,
+     "w": 32.94,
+     "h": 7.87,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.45,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ box_code }}"
+    },
+    {
+     "id": "e41",
+     "type": "text",
+     "x": 57.11,
+     "y": 88.86,
+     "w": 32.94,
+     "h": 3.52,
+     "rotate": 0,
+     "text": "{{ box_code }}",
+     "style": {
+      "font_size_pt": 6.62,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "Пакування котушки",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set ns = namespace(l=[]) -%}\n{%- for it in doc.get(\"items\", []) -%}{%- set ns.l = ns.l + [it.serial_no or it.item_code] -%}{%- endfor -%}\n{%- set _ = doc.update({\"serial_list\": ns.l}) -%}\n{%- set box_code = doc.box_barcode or doc.name -%}\n{%- set so = doc.sales_order -%}\n{%- set dotchain = (frappe.db.get_value(\"Sales Order\", so, \"dotchain_no\") or \"\") if so else \"\" -%}\n{%- set bpak_serial = (frappe.db.get_value(\"BpAK\", doc.bpak, \"serial_no\") or doc.bpak) if doc.bpak else \"\" -%}\n{%- set show_order = so and (dotchain or bpak_serial) -%}\n{%- set serials_list = doc.get(\"items\", []) | map(attribute=\"serial_no\") | select | list -%}\n{%- set serials = serials_list | join(\"\\n\") -%}\n{%- set serial_count = serials_list | length -%}",
+   "elements": [
+    {
+     "id": "e42",
+     "type": "text",
+     "x": 2.54,
+     "y": 2.19,
+     "w": 88.92,
+     "h": 3.42,
+     "rotate": 0,
+     "text": "БпАК",
+     "style": {
+      "font_size_pt": 6.4,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "e43",
+     "type": "barcode",
+     "x": 22.99,
+     "y": 5.2,
+     "w": 50.89,
+     "h": 6.77,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ bpak_serial }}",
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "e44",
+     "type": "text",
+     "x": 2.54,
+     "y": 11.43,
+     "w": 88.92,
+     "h": 3.85,
+     "rotate": 0,
+     "text": "{{ bpak_serial }}",
+     "style": {
+      "font_size_pt": 7.36,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     },
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "e45",
+     "type": "text",
+     "x": 2.54,
+     "y": 6.6,
+     "w": 53.35,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "Серійні номери котушек:",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "not bpak_serial"
+    },
+    {
+     "id": "r62.5411.31",
+     "type": "repeat",
+     "x": 2.54,
+     "y": 11.31,
+     "w": 52.85,
+     "h": 58,
+     "rotate": 0,
+     "list": "serial_list",
+     "value": ".",
+     "show": "barcode",
+     "show_text": 1,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "item_h": 10.7,
+     "columns": 1,
+     "gap_mm": 3.04,
+     "max_items": 0,
+     "style": {
+      "font_size_pt": 7.3,
+      "font_family": "DejaVu Sans Mono"
+     },
+     "show_if": "not bpak_serial"
+    },
+    {
+     "id": "e46",
+     "type": "text",
+     "x": 2.54,
+     "y": 16.2,
+     "w": 53.35,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "Серійні номери котушек:",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "r62.5420.4",
+     "type": "repeat",
+     "x": 2.54,
+     "y": 20.4,
+     "w": 52.85,
+     "h": 50,
+     "rotate": 0,
+     "list": "serial_list",
+     "value": ".",
+     "show": "barcode",
+     "show_text": 1,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "item_h": 9.4,
+     "columns": 1,
+     "gap_mm": 1.7,
+     "max_items": 0,
+     "style": {
+      "font_size_pt": 7.3,
+      "font_family": "DejaVu Sans Mono"
+     },
+     "show_if": "bpak_serial"
+    },
+    {
+     "id": "e47",
+     "type": "qr",
+     "x": 59.28,
+     "y": 19.78,
+     "w": 28.79,
+     "h": 28.79,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ serials or doc.box_barcode or doc.name }}"
+    },
+    {
+     "id": "e48",
+     "type": "text",
+     "x": 55.89,
+     "y": 49.26,
+     "w": 35.57,
+     "h": 3.99,
+     "rotate": 0,
+     "text": "{{ serial_count }} штук в коробці",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "e49",
+     "type": "text",
+     "x": 2.54,
+     "y": 74.5,
+     "w": 50,
+     "h": 5.5,
+     "rotate": 0,
+     "text": "{{ dotchain }}",
+     "style": {
+      "font_size_pt": 12.8,
+      "align": "left",
+      "valign": "bottom",
+      "line_height": 1.05,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "show_order and dotchain"
+    },
+    {
+     "id": "e50",
+     "type": "text",
+     "x": 2.54,
+     "y": 80.4,
+     "w": 50,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "{{ so }}",
+     "style": {
+      "font_size_pt": 7.36,
+      "align": "left",
+      "valign": "middle",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     },
+     "show_if": "show_order"
+    },
+    {
+     "id": "e51",
+     "type": "barcode",
+     "x": 57.11,
+     "y": 81.33,
+     "w": 32.94,
+     "h": 7.87,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.45,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ box_code }}"
+    },
+    {
+     "id": "e52",
+     "type": "text",
+     "x": 57.11,
+     "y": 88.86,
+     "w": 32.94,
+     "h": 3.52,
+     "rotate": 0,
+     "text": "{{ box_code }}",
+     "style": {
+      "font_size_pt": 6.62,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "БпЛА - Пакування",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set serial_list = [] -%}{%- for it in doc.get(\"items\", []) -%}{%- if it.serial_no -%}{%- for sn in it.serial_no.replace(\"\\r\\n\", \"\\n\").replace(\"\\r\", \"\\n\").split(\"\\n\") -%}{%- if sn.strip() -%}{%- set _ = serial_list.append(sn.strip()) -%}{%- endif -%}{%- endfor -%}{%- elif it.item_code -%}{%- set _ = serial_list.append(it.item_code) -%}{%- endif -%}{%- endfor -%}{%- set box_code = doc.box_barcode or doc.name -%}{%- set groups = [] -%}{%- for it in doc.get(\"items\", []) -%}{%- set code = it.item_code -%}{%- set tu = frappe.db.get_value(\"Item Variant Attribute\", {\"parent\": code, \"attribute\": \"Номер ТУ\"}, \"attribute_value\") or \"\" -%}{%- set cam = frappe.db.get_value(\"Item Variant Attribute\", {\"parent\": code, \"attribute\": \"Тип камери\"}, \"attribute_value\") or \"\" -%}{%- set label = (tu ~ \" + \" ~ cam) if (tu and cam) else (tu or cam or it.item_name or code) -%}{%- set qty = it.qty or 1 -%}{%- set found = [] -%}{%- for g in groups -%}{%- if g.label == label -%}{%- set _ = g.update({\"qty\": g.qty + qty}) -%}{%- set _ = found.append(1) -%}{%- endif -%}{%- endfor -%}{%- if not found -%}{%- set _ = groups.append({\"label\": label, \"qty\": qty}) -%}{%- endif -%}{%- endfor -%}\n{%- set _ = doc.update({\"serial_list\": serial_list, \"groups\": groups}) -%}\n{%- set serials = serial_list | join(\"\\r\\n\") -%}",
+   "elements": [
+    {
+     "id": "e53",
+     "type": "text",
+     "x": 0,
+     "y": 0,
+     "w": 56.4,
+     "h": 3.2,
+     "rotate": 0,
+     "text": "Серійні номери БпЛА:",
+     "style": {
+      "font_size_pt": 7.68,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.1,
+      "bold": 1,
+      "nowrap": 1
+     }
+    },
+    {
+     "id": "r704.54",
+     "type": "repeat",
+     "x": 0,
+     "y": 4.54,
+     "w": 55.9,
+     "h": 70,
+     "rotate": 0,
+     "list": "serial_list",
+     "value": ".",
+     "show": "barcode",
+     "show_text": 1,
+     "barcode_type": "code128",
+     "module_width": 0.4,
+     "item_h": 10.42,
+     "columns": 1,
+     "gap_mm": 3.04,
+     "max_items": 0,
+     "style": {
+      "font_size_pt": 7.3,
+      "font_family": "DejaVu Sans Mono"
+     }
+    },
+    {
+     "id": "e54",
+     "type": "qr",
+     "x": 60.8,
+     "y": 15.71,
+     "w": 28.79,
+     "h": 28.79,
+     "rotate": 0,
+     "module_size": 10,
+     "source": "text",
+     "data": "{{ serials or box_code }}"
+    },
+    {
+     "id": "e55",
+     "type": "text",
+     "x": 0,
+     "y": 80.7,
+     "w": 54.5,
+     "h": 2.9,
+     "rotate": 0,
+     "text": "Вміст упаковки",
+     "style": {
+      "font_size_pt": 6.4,
+      "align": "left",
+      "valign": "top",
+      "line_height": 1.2,
+      "bold": 1,
+      "nowrap": 1
+     },
+     "show_if": "groups"
+    },
+    {
+     "id": "e56",
+     "type": "line",
+     "x": 0,
+     "y": 83.44,
+     "w": 54.5,
+     "h": 0.1,
+     "rotate": 0,
+     "show_if": "groups"
+    },
+    {
+     "id": "t7083.7",
+     "type": "table",
+     "x": 0,
+     "y": 83.7,
+     "w": 54.5,
+     "h": 13.3,
+     "rotate": 0,
+     "cols": [
+      45.5,
+      9
+     ],
+     "rows": [
+      {
+       "h": 0,
+       "cells": [
+        {
+         "text": "{{ row.label }}"
+        },
+        {
+         "text": "**= {{ row.qty }} шт**"
+        }
+       ]
+      }
+     ],
+     "col_styles": [
+      {
+       "align": "left",
+       "nowrap": 0
+      },
+      {
+       "align": "right"
+      }
+     ],
+     "cell_padding_mm": 0,
+     "loop": "groups",
+     "style": {
+      "font_size_pt": 5.76,
+      "border_mm": 0,
+      "align": "center",
+      "valign": "top",
+      "line_height": 1.2,
+      "nowrap": 1
+     },
+     "show_if": "groups"
+    },
+    {
+     "id": "e57",
+     "type": "barcode",
+     "x": 58.3,
+     "y": 83.87,
+     "w": 35.7,
+     "h": 7.87,
+     "rotate": 0,
+     "barcode_type": "code128",
+     "module_width": 0.45,
+     "show_text": 0,
+     "source": "text",
+     "data": "{{ box_code }}"
+    },
+    {
+     "id": "e58",
+     "type": "text",
+     "x": 58.3,
+     "y": 91.24,
+     "w": 35.7,
+     "h": 3.52,
+     "rotate": 0,
+     "text": "{{ box_code }}",
+     "style": {
+      "font_size_pt": 6.62,
+      "align": "center",
+      "valign": "middle",
+      "line_height": 1,
+      "bold": 1,
+      "nowrap": 1,
+      "font_family": "DejaVu Sans Mono"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "BpAK Serial 52x30",
+  "layout": {
+   "v": 1,
+   "grid_mm": 0.5,
+   "setup": "{%- set attrs = frappe.get_all(\"BpAK Attribute\", filters={\"parent\": doc.bpak_template, \"parenttype\": \"BpAK Template\"}, fields=[\"attribute\", \"attribute_value\"]) if doc.bpak_template else [] -%}\n{%- set m = {} -%}\n{%- for a in attrs -%}{%- set _ = m.update({a.attribute: a.attribute_value}) -%}{%- endfor -%}\n{%- set tu = frappe.db.get_value(\"Item Attribute Value\", {\"parent\": \"Номер ТУ\", \"attribute_value\": m.get(\"Номер ТУ\")}, \"short_name\") or m.get(\"Номер ТУ\") -%}\n{%- set mod = frappe.db.get_value(\"Item Attribute Value\", {\"parent\": \"Відомість модифікації\", \"attribute_value\": m.get(\"Відомість модифікації\")}, \"short_name\") or m.get(\"Відомість модифікації\") -%}\n{%- set _ = doc.update({\"tu\": tu or doc.get(\"tu\") or \"\", \"mod\": mod or doc.get(\"mod\") or \"\", \"serial\": doc.serial_no or doc.name or \"\"}) -%}",
+   "elements": [
+    {
+     "id": "title",
+     "type": "field",
+     "field": "tu",
+     "prefix": "БпАК ",
+     "x": 0,
+     "y": 0,
+     "w": 50,
+     "h": 3.5,
+     "rotate": 0,
+     "style": {
+      "font_size_pt": 8,
+      "bold": 1,
+      "align": "center",
+      "valign": "middle",
+      "nowrap": 1,
+      "line_height": 1
+     }
+    },
+    {
+     "id": "mod",
+     "type": "field",
+     "field": "mod",
+     "prefix": "(",
+     "suffix": ")",
+     "x": 0,
+     "y": 3.5,
+     "w": 50,
+     "h": 3,
+     "rotate": 0,
+     "style": {
+      "font_size_pt": 7,
+      "bold": 1,
+      "align": "center",
+      "valign": "middle",
+      "nowrap": 1,
+      "line_height": 1
+     }
+    },
+    {
+     "id": "bc",
+     "type": "barcode",
+     "source": "field",
+     "field": "serial",
+     "barcode_type": "code128",
+     "module_width": 0.34,
+     "show_text": 0,
+     "x": 0,
+     "y": 7,
+     "w": 50,
+     "h": 17.5,
+     "rotate": 0
+    },
+    {
+     "id": "serial",
+     "type": "field",
+     "field": "serial",
+     "x": 0,
+     "y": 24.5,
+     "w": 50,
+     "h": 3.5,
+     "rotate": 0,
+     "style": {
+      "font_size_pt": 8,
+      "bold": 1,
+      "align": "center",
+      "valign": "middle",
+      "nowrap": 1,
+      "line_height": 1
+     }
+    }
+   ]
+  },
+  "preview_data": "{\"name\": \"BPAK-2026-00001\", \"bpak_template_name\": \"БпАК Укропчик 15 FO (модифікація 16)\", \"bpak_template\": \"BPAK-TPL-FO15-16\", \"serial_no\": \"UASU014016000001\", \"tu\": \"Укропчик 15 FO\", \"mod\": \"модифікація 16\", \"serial\": \"UASU014016000001\"}"
+ }
+]
