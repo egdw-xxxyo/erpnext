@@ -933,10 +933,26 @@
 .procurement-suppliers-without-contact li + li {
 	border-top: 1px solid var(--procurement-border);
 }
-.procurement-form-ui .procurement-suppliers-without-contact .procurement-supplier-link {
-	display: block;
+.procurement-form-ui .procurement-suppliers-without-contact li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px 12px;
 	padding: 8px 12px;
+}
+.procurement-form-ui .procurement-suppliers-without-contact .procurement-supplier-link {
 	text-align: start;
+}
+.procurement-form-ui .procurement-add-supplier-contact {
+	margin-inline-start: auto;
+	border: 1px solid var(--procurement-border);
+	border-radius: 8px;
+	background: var(--card-bg);
+	color: var(--procurement-accent);
+}
+.procurement-form-ui .procurement-add-supplier-contact:is(:hover, :focus-visible) {
+	background: var(--procurement-selected);
 }
 .procurement-form-ui .procurement-supplier-heading .ent-avatar {
 	display: inline-flex;

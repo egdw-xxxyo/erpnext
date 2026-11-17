@@ -964,6 +964,51 @@ function render_supplier_contact_card(row) {
 	</article>`;
 }
 
+function render_add_supplier_contact(row) {
+	if (!row.can_add_contact) return "";
+	const escape = frappe.utils.escape_html;
+	return `<button type="button" class="btn btn-xs btn-default procurement-add-supplier-contact"
+		data-supplier="${escape(row.supplier)}">
+		<i class="fa fa-plus" aria-hidden="true"></i> ${escape(__("Add Contact"))}
+	</button>`;
+}
+
+function show_add_supplier_contact(frm, row) {
+	const doc = frm.doc;
+	const dialog = new frappe.ui.Dialog({
+		title: __("Add Contact"),
+		fields: [
+			{
+				fieldtype: "HTML",
+				options: `<p class="procurement-dialog-note">${frappe.utils.escape_html(
+					row.supplier_name || row.supplier
+				)}</p>`,
+			},
+			{ fieldname: "first_name", fieldtype: "Data", label: __("First Name"), reqd: 1 },
+			{ fieldname: "last_name", fieldtype: "Data", label: __("Last Name") },
+			{ fieldname: "mobile_no", fieldtype: "Data", label: __("Mobile No"), options: "Phone" },
+			{ fieldname: "email_id", fieldtype: "Data", label: __("Email"), options: "Email" },
+		],
+		primary_action_label: __("Save"),
+		async primary_action(values) {
+			const button = dialog.get_primary_btn().prop("disabled", true);
+			try {
+				const response = await frappe.call({
+					method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.add_supplier_primary_contact",
+					args: { supplier: row.supplier, ...values },
+					freeze: true,
+				});
+				if (!response.message) return;
+				dialog.hide();
+				if (frm.doc === doc) frm.trigger("render_supplier_contacts");
+			} finally {
+				button.prop("disabled", false);
+			}
+		},
+	});
+	dialog.show();
+}
+
 function render_supplier_contacts(frm) {
 	const section = frm.get_field("supplier_contacts_section");
 	const field = frm.get_field("supplier_contacts_html");
@@ -982,7 +1027,7 @@ function render_supplier_contacts(frm) {
 	frappe
 		.call({
 			method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_supplier_contacts",
-			args: frm.is_new() ? { suppliers } : { source_name: frm.doc.name },
+			args: frm.is_new() || frm.is_dirty() ? { suppliers } : { source_name: frm.doc.name },
 		})
 		.then((response) => {
 			if (frm.doc !== doc || frm._supplier_contacts_request !== request) return;
@@ -993,7 +1038,10 @@ function render_supplier_contacts(frm) {
 				.join("");
 			const without_contact = rows
 				.filter((row) => row.has_contact === false)
-				.map((row) => `<li>${render_supplier_contact_link(row)}</li>`)
+				.map(
+					(row) =>
+						`<li>${render_supplier_contact_link(row)}${render_add_supplier_contact(row)}</li>`
+				)
 				.join("");
 			const body = rows
 				.map((row) => {
@@ -1013,9 +1061,22 @@ function render_supplier_contacts(frm) {
 						: `<button class="btn btn-xs btn-default" disabled>${__(
 								"Contact via Viber"
 						  )}</button>`;
-					return `<tr><td>${frappe.utils.escape_html(
-						row.supplier_name || row.supplier
-					)}</td><td>${email}</td><td>${phone}</td><td>${viber}</td></tr>`;
+					const add_contact = render_add_supplier_contact(row);
+					const contact_name = row.contact
+						? erpnext.entity.html(
+								{
+									name: row.full_name || row.contact,
+									key: row.contact,
+									image: row.image,
+									route: ["Form", "Contact", row.contact],
+								},
+								{ size: 22 }
+						  )
+						: "";
+					const contact_detail = add_contact || contact_name;
+					return `<tr><td>${frappe.utils.escape_html(row.supplier_name || row.supplier)}${
+						contact_detail ? `<div class="mt-2">${contact_detail}</div>` : ""
+					}</td><td>${email}</td><td>${phone}</td><td>${viber}</td></tr>`;
 				})
 				.join("");
 			field.$wrapper.html(`<div class="procurement-supplier-cards">${cards}</div>
@@ -1030,6 +1091,14 @@ function render_supplier_contacts(frm) {
 				<thead><tr><th>${__("Supplier")}</th><th>${__("Email")}</th><th>${__("Phone")}</th><th>${__(
 				"Viber"
 			)}</th></tr></thead><tbody>${body}</tbody></table></div>`);
+			field.$wrapper
+				.off("click.procurementSupplierContact")
+				.on("click.procurementSupplierContact", ".procurement-add-supplier-contact", (event) => {
+					const row = rows.find(
+						(supplier) => supplier.supplier === event.currentTarget.dataset.supplier
+					);
+					if (row?.can_add_contact) show_add_supplier_contact(frm, row);
+				});
 			const layout_section = (frm.layout?.sections || []).find(
 				(row) => row.df.fieldname === "supplier_contacts_section"
 			);

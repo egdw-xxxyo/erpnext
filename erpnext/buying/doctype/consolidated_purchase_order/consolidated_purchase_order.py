@@ -4,7 +4,16 @@ from urllib.parse import unquote, urlsplit
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, escape_html, flt, get_link_to_form, nowdate, sanitize_html, strip_html
+from frappe.utils import (
+	cint,
+	escape_html,
+	flt,
+	get_link_to_form,
+	nowdate,
+	sanitize_html,
+	strip_html,
+	validate_phone_number,
+)
 
 PREPAID_PURCHASE_NOTE = (
 	"The materials have already been purchased. Review the attached receipts and verify suppliers and prices."
@@ -458,6 +467,7 @@ def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[
 		}
 
 	result = []
+	can_create_contact = frappe.has_permission("Contact", "create")
 	for row in rows:
 		contact = contacts.get(row.supplier_primary_contact, {})
 		identity = identities.get(row.supplier_primary_contact, {})
@@ -466,6 +476,11 @@ def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[
 				"supplier": row.name,
 				"supplier_name": row.supplier_name or row.name,
 				"has_contact": row.supplier_primary_contact in contacts,
+				"can_add_contact": (
+					not contact
+					and can_create_contact
+					and frappe.has_permission("Supplier", "write", doc=row.name)
+				),
 				"contact": identity.get("name"),
 				"full_name": identity.get("full_name"),
 				"image": identity.get("image"),
@@ -476,6 +491,47 @@ def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[
 			}
 		)
 	return result
+
+
+@frappe.whitelist(methods=["POST"])
+def add_supplier_primary_contact(
+	supplier: str,
+	first_name: str,
+	last_name: str | None = None,
+	mobile_no: str | None = None,
+	email_id: str | None = None,
+):
+	supplier_doc = frappe.get_doc("Supplier", supplier, for_update=True, check_permission="write")
+	if supplier_doc.supplier_primary_contact and frappe.db.get_value(
+		"Contact", supplier_doc.supplier_primary_contact, for_update=True
+	):
+		frappe.throw(_("This supplier already has a primary contact."))
+
+	first_name = (first_name or "").strip()
+	if not first_name:
+		frappe.throw(_("First Name is required."), frappe.MandatoryError)
+
+	contact = frappe.get_doc(
+		{
+			"doctype": "Contact",
+			"first_name": first_name,
+			"last_name": (last_name or "").strip(),
+			"is_primary_contact": 1,
+			"links": [{"link_doctype": "Supplier", "link_name": supplier_doc.name}],
+		}
+	)
+	if mobile_no := (mobile_no or "").strip():
+		validate_phone_number(mobile_no, throw=True)
+		contact.add_phone(mobile_no, is_primary_mobile_no=1)
+	if email_id := (email_id or "").strip():
+		contact.add_email(email_id, is_primary=1)
+	contact.insert()
+
+	supplier_doc.supplier_primary_contact = contact.name
+	supplier_doc.mobile_no = contact.mobile_no
+	supplier_doc.email_id = contact.email_id
+	supplier_doc.save()
+	return contact.name
 
 
 @frappe.whitelist()
