@@ -391,6 +391,16 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			},
 			true
 		);
+		this.$inspector.on("change", ".ld-anchor-select", (e) => {
+			this._anchor = $(e.currentTarget).val();
+			this.render();
+		});
+		this.$inspector.on("mouseenter", ".ld-size-btns .btn", () =>
+			this.$stage.find(".ld-el.ld-selected:not(.ld-anchor)").addClass("ld-target")
+		);
+		this.$inspector.on("mouseleave", ".ld-size-btns .btn", () =>
+			this.$stage.find(".ld-target").removeClass("ld-target")
+		);
 		this.$inspector.on("change", "[data-pad]", (e) => {
 			const field = $(e.currentTarget).attr("data-pad");
 			this.frm.set_value(field, Math.max(0, flt($(e.currentTarget).val())));
@@ -702,9 +712,12 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				const style = Object.entries(css)
 					.map(([k, v]) => `${k}:${v}`)
 					.join(";");
-				return `<div class="ld-el ld-type-${el.type} ${sel ? "ld-selected" : ""}" data-id="${
-					el.id
-				}" style="${style}"><div class="ld-el-inner">${this.inner_html(el)}</div>${handles}</div>`;
+				const anchor = sel && this.selected.length > 1 && el.id === this.anchor_id();
+				return `<div class="ld-el ld-type-${el.type} ${sel ? "ld-selected" : ""} ${
+					anchor ? "ld-anchor" : ""
+				}" data-id="${el.id}" style="${style}"><div class="ld-el-inner">${this.inner_html(
+					el
+				)}</div>${handles}</div>`;
 			})
 			.join("");
 		this.$stage.html(`
@@ -1382,10 +1395,22 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				: "";
 		const extra =
 			count > 1
-				? `<div class="ld-segs">${group(["distribute_h", "distribute_v"])}${group([
-						"same_width",
-						"same_height",
-				  ])}</div>`
+				? `<div class="ld-sub">${__("Distribute")}</div>
+				<div class="ld-segs">${group(["distribute_h", "distribute_v"])}</div>
+				<div class="ld-section-title">${__("Size")}</div>
+				<div class="ld-sub">${__("Anchor (size is copied from it)")}</div>
+				<select class="form-control input-xs ld-anchor-select">${this.selected
+					.map((id) => this.layout.elements.find((e) => e.id === id))
+					.filter(Boolean)
+					.map(
+						(e) =>
+							`<option value="${esc(e.id)}" ${
+								e.id === this.anchor_id() ? "selected" : ""
+							}>${esc(this.element_title(e))}</option>`
+					)
+					.join("")}</select>
+				<div class="ld-segs ld-size-btns" style="margin-top:6px">${group(["same_width", "same_height"])}</div>
+				<div class="ld-hint">${__("Orange = anchor, blue = elements that change. Hover a button to see them.")}</div>`
 				: "";
 		return `<div class="ld-section-title">${__("Element position")}</div>
 			<div class="ld-sub">${count > 1 ? __("Alignment") : __("Alignment on label")}</div>
@@ -1489,6 +1514,20 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (rerender) this.render();
 	}
 
+	anchor_id() {
+		if (!this.selected.includes(this._anchor)) this._anchor = this.selected[0];
+		return this._anchor;
+	}
+
+	element_title(e) {
+		const meta = LD_PALETTE.find((p) => p.type === e.type);
+		const what = e.text || e.field || e.input || e.file || e.list || e.data || "";
+		const short = String(what)
+			.replace(/\{\{\s*|\s*\}\}/g, "")
+			.slice(0, 28);
+		return `${meta ? meta.label : e.type}${short ? `: ${short}` : ""} (${round2(e.w)}×${round2(e.h)})`;
+	}
+
 	visual_box(e) {
 		const r = (((cint(e.rotate) || 0) % 360) + 360) % 360;
 		if (r === 90 || r === 270) {
@@ -1528,12 +1567,17 @@ erpnext.label_designer.Designer = class LabelDesigner {
 
 		if (cmd === "same_width" || cmd === "same_height") {
 			const key = cmd === "same_width" ? "w" : "h";
-			sel.slice(1).forEach((e, i) => {
-				const before = boxes[i + 1];
+			const ai = Math.max(
+				0,
+				sel.findIndex((e) => e.id === this.anchor_id())
+			);
+			sel.forEach((e, i) => {
+				if (i === ai) return;
+				const before = boxes[i];
 				const r = (((cint(e.rotate) || 0) % 360) + 360) % 360;
 				const sideways = r === 90 || r === 270;
 				const own = sideways ? (key === "w" ? "h" : "w") : key;
-				e[own] = boxes[0][key];
+				e[own] = boxes[ai][key];
 				const after = this.visual_box(e);
 				move(e, before.x - after.x, before.y - after.y);
 			});
@@ -1973,6 +2017,9 @@ erpnext.label_designer.inject_style = function () {
 .ld-el{position:absolute;cursor:move;box-sizing:border-box;touch-action:none}
 .ld-el:hover{outline:1px dashed rgba(0,120,255,.6)}
 .ld-el.ld-selected{outline:1px solid #2490ef;z-index:2}
+.ld-el.ld-anchor{outline:2px solid #f59e0b;z-index:3}
+.ld-el.ld-anchor::before{content:"⚓";position:absolute;left:-2px;top:-16px;font-size:11px;line-height:14px;padding:0 3px;background:#f59e0b;color:#fff;border-radius:3px;z-index:4}
+.ld-el.ld-target{outline:2px dashed #2490ef;background:rgba(36,144,239,.12)}
 .ld-el-inner{width:100%;height:100%;overflow:hidden;pointer-events:none;color:#000;font-kerning:none;font-variant-ligatures:none;font-feature-settings:"kern" 0,"liga" 0;letter-spacing:0.006em;word-spacing:0;text-rendering:optimizeSpeed;-webkit-font-smoothing:antialiased}
 .ld-el.ld-overflow{outline:1px dashed #e24c4c}
 .ld-el.ld-overflow::after{content:"\\f071";font-family:FontAwesome;position:absolute;right:-14px;top:-14px;color:#e24c4c;font-size:12px}

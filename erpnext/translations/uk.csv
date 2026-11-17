@@ -17722,3 +17722,5 @@ Empty margin between the label edge and the printable area.,Порожнє по�
 Element position,Положення
 Alignment,Вирівнювання
 Alignment on label,Вирівнювання на мітці
+Anchor (size is copied from it),Взірець (розмір береться з нього)
+"Orange = anchor, blue = elements that change. Hover a button to see them.","Помаранчевий — взірець, синій — елементи, що зміняться. Наведіть на кнопку, щоб побачити."
