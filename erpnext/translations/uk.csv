@@ -17647,3 +17647,18 @@ Only users who edit label templates can add label images,"Додавати зо�
 No file uploaded,Файл не завантажено
 Only images can be added to the label image library,До бібліотеки зображень для міток можна додавати лише зображення
 Image content is not valid base64,Вміст зображення не є коректним base64
+Align,Вирівнювання
+Align left edges,Вирівняти за лівим краєм
+Align horizontal centres,Вирівняти центри по горизонталі
+Align right edges,Вирівняти за правим краєм
+Align top edges,Вирівняти за верхнім краєм
+Align vertical centres,Вирівняти центри по вертикалі
+Align bottom edges,Вирівняти за нижнім краєм
+Distribute,Розподілити
+Equal horizontal gaps (3 or more),Однакові проміжки по горизонталі (від 3 елементів)
+Equal vertical gaps (3 or more),Однакові проміжки по вертикалі (від 3 елементів)
+Same width,Однакова ширина
+Same height,Однакова висота
+Width of the first selected element,Ширина першого обраного елемента
+Height of the first selected element,Висота першого обраного елемента
+Edges align to the outer edge of the selection; sizes copy the first selected element.,Краї вирівнюються за зовнішнім краєм виділення; розмір береться з першого обраного елемента.

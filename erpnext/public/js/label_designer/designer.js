@@ -890,9 +890,38 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			return;
 		}
 		if (sel.length > 1) {
+			const btn = (cmd, icon, title, disabled) =>
+				`<button class="btn btn-xs btn-default" data-cmd="${cmd}" title="${title}" ${
+					disabled ? "disabled" : ""
+				}>${icon}</button>`;
+			const few = sel.length < 3;
 			this.$inspector.html(`<div class="ld-panel-title">${__("{0} elements selected", [
 				sel.length,
 			])}</div>
+				<div class="ld-group-title">${__("Align")}</div>
+				<div class="ld-btns ld-align">
+					${btn("align_left", '<i class="fa fa-align-left"></i>', __("Align left edges"))}
+					${btn("align_center", '<i class="fa fa-align-center"></i>', __("Align horizontal centres"))}
+					${btn("align_right", '<i class="fa fa-align-right"></i>', __("Align right edges"))}
+				</div>
+				<div class="ld-btns ld-align">
+					${btn("align_top", '<i class="fa fa-long-arrow-up"></i>', __("Align top edges"))}
+					${btn("align_middle", '<i class="fa fa-arrows-v"></i>', __("Align vertical centres"))}
+					${btn("align_bottom", '<i class="fa fa-long-arrow-down"></i>', __("Align bottom edges"))}
+				</div>
+				<div class="ld-group-title">${__("Distribute")}</div>
+				<div class="ld-btns ld-align">
+					${btn("distribute_h", '<i class="fa fa-arrows-h"></i>', __("Equal horizontal gaps (3 or more)"), few)}
+					${btn("distribute_v", '<i class="fa fa-arrows-v"></i>', __("Equal vertical gaps (3 or more)"), few)}
+				</div>
+				<div class="ld-group-title">${__("Size")}</div>
+				<div class="ld-btns ld-align">
+					${btn("same_width", __("Same width"), __("Width of the first selected element"))}
+					${btn("same_height", __("Same height"), __("Height of the first selected element"))}
+				</div>
+				<div class="ld-hint">${__(
+					"Edges align to the outer edge of the selection; sizes copy the first selected element."
+				)}</div>
 				<div class="ld-hint">${__("Drag to move together, arrows to nudge, Del to remove.")}</div>`);
 			return;
 		}
@@ -1255,8 +1284,43 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		if (rerender) this.render();
 	}
 
+	arrange(cmd) {
+		const sel = this.selected.map((id) => this.layout.elements.find((e) => e.id === id)).filter(Boolean);
+		if (sel.length < 2) return;
+		const left = Math.min(...sel.map((e) => e.x));
+		const top = Math.min(...sel.map((e) => e.y));
+		const right = Math.max(...sel.map((e) => e.x + e.w));
+		const bottom = Math.max(...sel.map((e) => e.y + e.h));
+		const set = {
+			align_left: (e) => (e.x = left),
+			align_right: (e) => (e.x = right - e.w),
+			align_center: (e) => (e.x = (left + right) / 2 - e.w / 2),
+			align_top: (e) => (e.y = top),
+			align_bottom: (e) => (e.y = bottom - e.h),
+			align_middle: (e) => (e.y = (top + bottom) / 2 - e.h / 2),
+			same_width: (e) => (e.w = sel[0].w),
+			same_height: (e) => (e.h = sel[0].h),
+		}[cmd];
+		if (set) sel.forEach(set);
+		const distribute = (pos, size, start, end) => {
+			if (sel.length < 3) return;
+			const ordered = [...sel].sort((a, b) => a[pos] - b[pos]);
+			const gap = (end - start - ordered.reduce((s, e) => s + e[size], 0)) / (ordered.length - 1);
+			let at = start;
+			ordered.forEach((e) => {
+				e[pos] = at;
+				at += e[size] + gap;
+			});
+		};
+		if (cmd === "distribute_h") distribute("x", "w", left, right);
+		if (cmd === "distribute_v") distribute("y", "h", top, bottom);
+		sel.forEach((e) => ["x", "y", "w", "h"].forEach((k) => (e[k] = round2(e[k]))));
+		this.commit();
+	}
+
 	on_inspector_cmd(e) {
 		const cmd = $(e.currentTarget).attr("data-cmd");
+		if (/^(align_|distribute_|same_)/.test(cmd)) return this.arrange(cmd);
 		const el = this.selected_elements()[0];
 		if (!el) return;
 		const ri = cint($(e.currentTarget).attr("data-row"));
@@ -1639,6 +1703,7 @@ erpnext.label_designer.inject_style = function () {
 .ld-table-edit{display:flex;flex-direction:column;gap:3px;margin:4px 0}
 .ld-trow{display:flex;gap:2px}.ld-trow input{min-width:0;flex:1;padding:2px 4px}.ld-trow .ld-rowh{flex:0 0 42px}
 .ld-btns{display:flex;gap:4px;margin-bottom:6px}
+.ld-align .btn{flex:1}
 .lt-thumb{display:inline-block;cursor:zoom-in;border:1px solid var(--border-color);border-radius:4px;background:#fff;padding:4px;max-width:100%}
 .lt-thumb img{display:block;max-height:150px;max-width:100%;width:auto;height:auto}
 @media (max-width:900px){.ld-body{flex-direction:column}.ld-palette,.ld-inspector{width:auto;border:0;max-height:none}.ld-palette{display:flex;flex-wrap:wrap;gap:4px}}
