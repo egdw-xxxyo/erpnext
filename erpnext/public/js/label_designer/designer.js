@@ -384,6 +384,17 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			ld_set(el, path, val === "toggle" ? (ld_get(el, path) ? 0 : 1) : val);
 			this.commit();
 		});
+		this.$inspector[0].addEventListener(
+			"toggle",
+			(e) => {
+				if (e.target.matches && e.target.matches("details.ld-acc")) this.geom_open = e.target.open;
+			},
+			true
+		);
+		this.$inspector.on("change", "[data-pad]", (e) => {
+			const field = $(e.currentTarget).attr("data-pad");
+			this.frm.set_value(field, Math.max(0, flt($(e.currentTarget).val())));
+		});
 		this.$inspector.on("click", "[data-align-to]", (e) => {
 			this.align_to = $(e.currentTarget).attr("data-align-to");
 			this.render_inspector();
@@ -1011,14 +1022,16 @@ erpnext.label_designer.Designer = class LabelDesigner {
 					"The content does not fit the box and will be cut on the label. Enlarge the box or reduce the font."
 				)}
 			</div>
-			${this.type_props(el)}
-			<div class="ld-group-title">${__("Position and size")} (${__("mm")})</div>
-			<div class="ld-grid4">
-				${this.num("x", "X", el.x)}${this.num("y", "Y", el.y)}
-				${this.num("w", __("Width"), el.w)}${this.num("h", __("Height"), el.h)}
-			</div>
-			${this.rotate_bar(el.rotate || 0)}
 			${this.arrange_bar(1)}
+			<details class="ld-acc" ${this.geom_open ? "open" : ""}>
+				<summary>${__("Position and size")} (${__("mm")})</summary>
+				<div class="ld-grid4">
+					${this.num("x", "X", el.x)}${this.num("y", "Y", el.y)}
+					${this.num("w", __("Width"), el.w)}${this.num("h", __("Height"), el.h)}
+				</div>
+				${this.rotate_bar(el.rotate || 0)}
+			</details>
+			${this.type_props(el)}
 			${this.style_props(el)}
 			<div class="ld-group-title">${__("Visibility")}</div>
 			${this.text("show_if", __("Show only if (Jinja condition)"), el.show_if)}
@@ -1038,7 +1051,26 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				[1, "1"],
 				[2, "2"],
 			])}
-			<div class="ld-hint">${__("Size and padding are set in the fields above the designer.")}</div>`;
+			<div class="ld-group-title">${__("Padding")} (${__("mm")})</div>
+			${this.padding_box()}
+			<div class="ld-hint">${__("Empty margin between the label edge and the printable area.")}</div>`;
+	}
+
+	padding_box() {
+		const d = this.frm.doc;
+		const inp = (side) =>
+			`<label class="ld-unit"><input type="number" step="0.5" min="0" data-pad="padding_${side}_mm" value="${esc(
+				flt(d[`padding_${side}_mm`])
+			)}" title="${
+				{ top: __("Top"), right: __("Right"), bottom: __("Bottom"), left: __("Left") }[side]
+			}"><span>${__("mm")}</span></label>`;
+		return `<div class="ld-pad">
+			<div class="ld-pad-row">${inp("top")}</div>
+			<div class="ld-pad-row">${inp("left")}<div class="ld-pad-box" title="${__("Label")}">${this.size.w} × ${
+			this.size.h
+		}</div>${inp("right")}</div>
+			<div class="ld-pad-row">${inp("bottom")}</div>
+		</div>`;
 	}
 
 	keys_datalist(id) {
@@ -1332,7 +1364,10 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			`<button class="btn btn-xs btn-default" data-cmd="${cmd}" title="${title}" ${
 				this.arrange_disabled(cmd, count) ? "disabled" : ""
 			}>${LD_ICONS[cmd]}</button>`;
-		const items = LD_ARRANGE.filter(Boolean).filter(([cmd]) => count > 1 || cmd.startsWith("align_"));
+		const group = (cmds) =>
+			`<div class="ld-seg">${cmds
+				.map((c) => btn(c, (LD_ARRANGE.find((it) => it && it[0] === c) || [c, c])[1]))
+				.join("")}</div>`;
 		const to_label = this.arrange_to_label(count);
 		const modes =
 			count > 1
@@ -1345,9 +1380,22 @@ erpnext.label_designer.Designer = class LabelDesigner {
 				  )}</button>
 				</div>`
 				: "";
-		return `<div class="ld-group-title">${count > 1 ? __("Align") : __("Align on label")}</div>
+		const extra =
+			count > 1
+				? `<div class="ld-segs">${group(["distribute_h", "distribute_v"])}${group([
+						"same_width",
+						"same_height",
+				  ])}</div>`
+				: "";
+		return `<div class="ld-section-title">${__("Element position")}</div>
+			<div class="ld-sub">${count > 1 ? __("Alignment") : __("Alignment on label")}</div>
 			${modes}
-			<div class="ld-arrange">${items.map(([cmd, title]) => btn(cmd, title)).join("")}</div>`;
+			<div class="ld-segs">${group(["align_left", "align_center", "align_right"])}${group([
+			"align_top",
+			"align_middle",
+			"align_bottom",
+		])}</div>
+			${extra}`;
 	}
 
 	num(path, label, value) {
@@ -1648,7 +1696,9 @@ erpnext.label_designer.Designer = class LabelDesigner {
 			<button class="btn btn-sm btn-default ld-setup-test"><i class="fa fa-flask"></i> ${__("Test")}</button>
 			${
 				ai
-					? `<button class="btn btn-sm btn-default ld-setup-ai"><i class="fa fa-magic"></i> ${__("Write with AI")}</button>`
+					? `<button class="btn btn-sm btn-default ld-setup-ai"><i class="fa fa-magic"></i> ${__(
+							"Write with AI"
+					  )}</button>`
 					: ""
 			}
 			<input class="form-control input-sm ld-setup-ref" style="max-width:240px" placeholder="${__(
@@ -1667,14 +1717,20 @@ erpnext.label_designer.Designer = class LabelDesigner {
 					)
 					.join("");
 			if (r.error) {
-				$result.html(`<div class="alert alert-danger small" style="margin-top:8px">${esc(r.error)}</div>`);
+				$result.html(
+					`<div class="alert alert-danger small" style="margin-top:8px">${esc(r.error)}</div>`
+				);
 				return;
 			}
 			const changes = rows(r.doc_changes);
 			const vars = rows(r.variables);
 			$result.html(`<div style="margin-top:8px">
 				<div class="ld-group-title">${__("Values for Field elements (doc.…)")}</div>
-				${changes ? `<table class="table table-sm small">${changes}</table>` : `<div class="ld-hint">${__("None")}</div>`}
+				${
+					changes
+						? `<table class="table table-sm small">${changes}</table>`
+						: `<div class="ld-hint">${__("None")}</div>`
+				}
 				<div class="ld-group-title">${__("Variables for text ({{ … }})")}</div>
 				${vars ? `<table class="table table-sm small">${vars}</table>` : `<div class="ld-hint">${__("None")}</div>`}
 			</div>`);
@@ -1696,10 +1752,7 @@ erpnext.label_designer.Designer = class LabelDesigner {
 		d.$wrapper.on("click", ".ld-setup-ai", () => {
 			d.hide();
 			if (!ai.$panel || !ai.$panel.is(":visible")) ai.toggle();
-			ai.$panel
-				.find("textarea")
-				.val(__("Data setup: "))
-				.trigger("focus");
+			ai.$panel.find("textarea").val(__("Data setup: ")).trigger("focus");
 		});
 		d.show();
 	}
@@ -1961,6 +2014,19 @@ erpnext.label_designer.inject_style = function () {
 .ld-align .btn{flex:1}
 .ld-ico{display:inline-block;vertical-align:middle}
 .ld-rotate{display:flex;align-items:center;gap:6px}
+.ld-section-title{font-weight:600;font-size:13px;margin:10px 0 4px}
+.ld-sub{font-size:11px;color:var(--text-muted);margin-bottom:3px}
+.ld-segs .ld-seg .btn{padding:4px 8px}
+.ld-acc{margin:6px 0;border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color);padding:4px 0}
+.ld-acc>summary{cursor:pointer;font-weight:600;font-size:12px;padding:4px 0;color:var(--text-color)}
+.ld-acc[open]>summary{margin-bottom:6px}
+.ld-pad{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0}
+.ld-pad-row{display:flex;align-items:center;gap:6px}
+.ld-pad-box{width:76px;height:52px;border:2px dashed var(--primary);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);background:var(--subtle-fg)}
+.ld-unit{display:inline-flex;align-items:center;border:1px solid var(--border-color);border-radius:8px;background:var(--control-bg);padding:0 8px 0 0;margin:0;font-weight:normal}
+.ld-unit input{width:52px;border:none;background:transparent;padding:4px 6px;font-size:13px;outline:none;-moz-appearance:textfield}
+.ld-unit input::-webkit-outer-spin-button,.ld-unit input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ld-unit span{font-size:10px;color:var(--text-muted);text-transform:uppercase}
 .ld-rotate .btn{flex:0 0 34px}
 .ld-rotate-val{flex:1;text-align:center;font-size:13px;background:var(--control-bg);border-radius:6px;padding:3px 0;min-height:24px}
 .ld-arrange{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-bottom:6px}

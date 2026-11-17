@@ -100,28 +100,32 @@
    "fieldname": "padding_top_mm",
    "fieldtype": "Float",
    "label": "Padding Top (mm)",
-   "precision": "2"
+   "precision": "2",
+   "depends_on": "eval:doc.editor_mode!=='Visual'"
   },
   {
    "default": "0",
    "fieldname": "padding_right_mm",
    "fieldtype": "Float",
    "label": "Padding Right (mm)",
-   "precision": "2"
+   "precision": "2",
+   "depends_on": "eval:doc.editor_mode!=='Visual'"
   },
   {
    "default": "0",
    "fieldname": "padding_bottom_mm",
    "fieldtype": "Float",
    "label": "Padding Bottom (mm)",
-   "precision": "2"
+   "precision": "2",
+   "depends_on": "eval:doc.editor_mode!=='Visual'"
   },
   {
    "default": "0",
    "fieldname": "padding_left_mm",
    "fieldtype": "Float",
    "label": "Padding Left (mm)",
-   "precision": "2"
+   "precision": "2",
+   "depends_on": "eval:doc.editor_mode!=='Visual'"
   },
   {
    "fieldname": "column_break_details",
@@ -210,7 +214,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-17 12:00:00.000000",
+ "modified": "2026-11-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "Label Template",

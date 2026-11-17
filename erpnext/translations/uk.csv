@@ -17717,3 +17717,8 @@ Running...,Виконується...
 Data setup: ,Підготовка даних: 
 The template is in HTML mode. Switch it to Visual with edit_label_template first.,Шаблон у режимі HTML. Спершу перемкніть його на візуальний через edit_label_template.
 No element with id {0},Немає елемента з id {0}
+Padding,Відступи
+Empty margin between the label edge and the printable area.,Порожнє поле між краєм етикетки й областю друку.
+Element position,Положення
+Alignment,Вирівнювання
+Alignment on label,Вирівнювання на мітці
