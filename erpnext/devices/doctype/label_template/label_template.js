@@ -10,6 +10,9 @@ frappe.ui.form.on("Label Template", {
 		frm.trigger("_load_source_field_options");
 		frm.trigger("_add_template_help");
 		frm.trigger("_setup_designer");
+		if (frm.perm[0]?.write) {
+			frappe.require("label_designer.bundle.js").then(() => erpnext.label_designer.LabelAI.attach(frm));
+		}
 
 		if (frm.is_new()) return;
 
@@ -160,6 +163,8 @@ frappe.ui.form.on("Label Template", {
 
 	after_save(frm) {
 		frm.trigger("_add_template_help");
+		const ai = erpnext.label_designer && erpnext.label_designer._ai;
+		if (ai && ai.frm === frm) ai.snapshot = null;
 	},
 
 	_add_template_help(frm) {

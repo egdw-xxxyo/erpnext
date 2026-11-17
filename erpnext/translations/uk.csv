@@ -17677,3 +17677,27 @@ To label,Відносно мітки
 Align on label,Вирівняти на мітці
 Rotate left 90°,Повернути ліворуч на 90°
 Rotate right 90°,Повернути праворуч на 90°
+AI label assistant,AI-помічник для міток
+Reading the label,Читаю мітку
+Reading the label reference,Читаю довідку з міток
+Changing the label,Змінюю мітку
+Rendering the print preview,Формую попередній перегляд друку
+Looking at label images,Переглядаю зображення для міток
+Looking at an image,Переглядаю зображення
+Looking at other templates,Переглядаю інші шаблони
+Reading another template,Читаю інший шаблон
+Reading document fields,Читаю поля документа
+Reading documents,Читаю документи
+"Ask for a change, e.g. “add the item name above the barcode” or “make the serial bigger and center everything”. The assistant edits the label on screen and checks the print preview; nothing is saved until you press Save.","Попросіть зміну, напр. «додай назву товару над штрихкодом» або «збільш серійний номер і вирівняй усе по центру». Помічник змінює мітку на екрані й перевіряє попередній перегляд друку; нічого не зберігається, доки ви не натиснете «Зберегти»."
+Undo AI changes,Скасувати зміни AI
+New conversation,Нова розмова
+What should change on the label?,Що змінити на мітці?
+The label assistant failed.,Помічник для міток не впорався.
+AI changes undone,Зміни AI скасовано
+Only users who edit label templates can use the label assistant,"Помічником для міток можуть користуватися лише ті, хто редагує шаблони міток"
+Done.,Готово.
+Stopped after too many steps. Look at the label and ask again for what is still missing.,"Зупинився після забагатьох кроків. Перегляньте мітку й попросіть ще раз те, чого бракує."
+Cannot edit: {0},Не можна змінити: {0}
+Invalid input fieldname {0},Неприпустима назва поля введення {0}
+Label Size {0} does not exist,Розміру мітки {0} не існує
+The AI key was rejected. Check it in My Settings.,Ключ AI відхилено. Перевірте його в «Мої налаштування».
