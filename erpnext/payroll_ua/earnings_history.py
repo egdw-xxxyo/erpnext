@@ -162,13 +162,21 @@ def _sick_fund(employee, rows):
 		if not days:
 			continue
 
-		per_day = flt(case.fund_gross) / days
+		# Сума ділиться між місяцями за днями, а останній місяць бере залишок: округлення
+		# кожного дня губило копійки, і місяць не сходився з випадком.
+		months = {}
 		day = add_days(getdate(case.start_date), int(case.employer_days or 0))
 
 		for _i in range(days):
-			entry = rows.get(_month(day))
+			months[_month(day)] = months.get(_month(day), 0) + 1
+			day = add_days(day, 1)
+
+		left = flt(case.fund_gross, 2)
+
+		for index, (month, count) in enumerate(months.items()):
+			share = left if index == len(months) - 1 else flt(flt(case.fund_gross) * count / days, 2)
+			left = flt(left - share, 2)
+			entry = rows.get(month)
 
 			if entry:
-				entry.sick_fund = flt(entry.sick_fund + per_day, 2)
-
-			day = add_days(day, 1)
+				entry.sick_fund = flt(entry.sick_fund + share, 2)
