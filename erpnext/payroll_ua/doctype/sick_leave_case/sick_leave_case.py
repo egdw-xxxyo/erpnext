@@ -12,7 +12,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, getdate, nowdate
 
-from erpnext.hr import payroll_accounts, payroll_tax
+from erpnext.hr import payroll_accounts
 from erpnext.hr.salary_advance import _holiday_dates, _holiday_list
 from erpnext.payroll_ua import enforcement, sick_rules
 
@@ -168,7 +168,7 @@ class SickLeaveCase(Document):
 		return "\n".join(lines)
 
 	def _set_fund_taxes(self):
-		taxes = payroll_tax.split(flt(self.fund_gross), self.employee)
+		taxes = sick_rules.taxes(flt(self.fund_gross), self.employee, self.case_type)
 		self.fund_withheld = taxes.withheld
 		self.fund_net = taxes.net
 		self.fund_ssc = taxes.ssc
@@ -308,7 +308,7 @@ class SickLeaveCase(Document):
 			frappe.throw(_("The fund part is already paid."))
 
 		posting_date = getdate(posting_date or nowdate())
-		taxes = payroll_tax.split(flt(self.fund_gross), self.employee)
+		taxes = sick_rules.taxes(flt(self.fund_gross), self.employee, self.case_type)
 		# Виконавчі документи утримуються й з лікарняних, але не з допомоги у зв'язку з
 		# вагітністю та пологами (ст. 73 Закону «Про виконавче провадження»).
 		items = (

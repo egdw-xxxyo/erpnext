@@ -97,6 +97,21 @@ def cash_unpaid_weight() -> float:
 	return flt(1 - min(max(cash_percent(), 0), 100) / 100, 4)
 
 
+# Допомога по вагітності та пологах не оподатковується ПДФО (ПКУ п. 165.1.1) і військовим
+# збором (п. 16-1 підрозд. 10 розд. XX ПКУ); ЄСВ на неї нараховується.
+UNTAXED_CASE_TYPES = {"Maternity"}
+
+
+def taxes(gross, employee, case_type) -> frappe._dict:
+	"""Податки з виплати за випадком: як із зарплати, крім неоподатковуваних видів допомоги."""
+	result = payroll_tax.split(gross, employee)
+
+	if case_type in UNTAXED_CASE_TYPES:
+		result.update(pit=0.0, military=0.0, withheld=0.0, net=result.gross)
+
+	return result
+
+
 def calculate(employee, case_type, start_date, calendar_days) -> frappe._dict:
 	"""Розрахунок випадку на дату його початку: стаж, відсоток, середня, суми обох частин."""
 	start_date = getdate(start_date)
@@ -105,8 +120,8 @@ def calculate(employee, case_type, start_date, calendar_days) -> frappe._dict:
 	details = average_pay.sick_average_details(employee, start_date)
 	employer_days, fund_days = split(calendar_days, case_rule(case_type)[0])
 	daily = flt(details.average * rate / 100, 2)
-	employer = payroll_tax.split(flt(daily * employer_days, 2), employee.name)
-	fund = payroll_tax.split(flt(daily * fund_days, 2), employee.name)
+	employer = taxes(flt(daily * employer_days, 2), employee.name, case_type)
+	fund = taxes(flt(daily * fund_days, 2), employee.name, case_type)
 
 	return frappe._dict(
 		record=record,
