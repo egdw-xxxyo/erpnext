@@ -26,6 +26,14 @@ frappe.listview_settings["Sick Leave Case"] = {
 				.clear()
 				.then(() => listview.filter_area.add([["Sick Leave Case", "docstatus", "=", 0]]));
 		});
+		listview.page.add_inner_button(__("Without ЕЛН Number"), () => {
+			listview.filter_area.clear().then(() =>
+				listview.filter_area.add([
+					["Sick Leave Certificate", "eln_number", "is", "not set"],
+					["Sick Leave Case", "docstatus", "=", 0],
+				])
+			);
+		});
 		listview.page.add_inner_button(__("Find Unregistered Sick Days"), () => {
 			frappe.prompt(
 				[

@@ -60,6 +60,19 @@ function show_status(frm) {
 	};
 	frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");
 
+	const without_number = (frm.doc.certificates || []).filter((row) => !(row.eln_number || "").trim());
+
+	if (frm.doc.docstatus === 0 && without_number.length) {
+		frm.dashboard.add_comment(
+			__(
+				"No ЕЛН number for {0} certificates yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with all numbers.",
+				[without_number.length]
+			),
+			"yellow",
+			true
+		);
+	}
+
 	if (frm.doc.docstatus === 0) {
 		frm.dashboard.add_comment(
 			__(

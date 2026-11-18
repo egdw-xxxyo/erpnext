@@ -86,7 +86,15 @@ class TestSickLeaveCase(IntegrationTestCase):
 		self.assertEqual(str(doc.end_date), "2026-11-06")
 		self.assertEqual(doc.calendar_days, 10)
 
-	def test_gap_is_a_new_case(self):
+	def test_number_needed_only_to_submit(self):
+		doc = self.case(("2026-10-28", "2026-10-31"))
+		doc.certificates[0].eln_number = ""
+		doc.set_period()
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.before_submit()
+
+		def test_gap_is_a_new_case(self):
 		doc = self.case(("2026-10-28", "2026-10-31"), ("2026-11-03", "2026-11-06"))
 
 		with self.assertRaises(frappe.ValidationError):

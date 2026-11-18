@@ -35,6 +35,16 @@ class SickLeaveCase(Document):
 		self.mark_attendance()
 
 	def before_submit(self):
+		missing = [str(row.idx) for row in self.certificates if not (row.eln_number or "").strip()]
+
+		if missing:
+			frappe.throw(
+				_(
+					"Enter the ЕЛН number for certificates {0}: the number appears once the ЕЛН is processed in the ПФУ e-services portal."
+				).format(", ".join(missing)),
+				title=_("ЕЛН Number Missing"),
+			)
+
 		self.closed = 1
 		self.set_status()
 
@@ -80,7 +90,9 @@ class SickLeaveCase(Document):
 
 			if getdate(row.to_date) < getdate(row.from_date):
 				frappe.throw(
-					_("Certificate {0}: the last day is before the first day.").format(row.eln_number)
+					_("Certificate {0}: the last day is before the first day.").format(
+						_certificate_label(row)
+					)
 				)
 
 			row.days = date_diff(row.to_date, row.from_date) + 1
@@ -89,7 +101,7 @@ class SickLeaveCase(Document):
 				frappe.throw(
 					_(
 						"Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case."
-					).format(row.eln_number, previous.eln_number)
+					).format(_certificate_label(row), _certificate_label(previous))
 				)
 
 			previous = row
@@ -407,7 +419,7 @@ def find_unregistered(company):
 		case.company = company
 		case.append(
 			"certificates",
-			{"eln_number": _("Not entered"), "from_date": run.from_date, "to_date": run.to_date},
+			{"from_date": run.from_date, "to_date": run.to_date},
 		)
 		case.insert()
 		created.append(case.name)
@@ -433,3 +445,8 @@ def _continues(previous, day, employee, company, cache) -> bool:
 
 		if getdate(gap) not in holidays:
 			return False
+
+
+def _certificate_label(row) -> str:
+	"""Номер ЕЛН, а поки його немає — номер рядка: номер приходить пізніше з порталу ПФУ."""
+	return (row.eln_number or "").strip() or _("row {0}").format(row.idx)

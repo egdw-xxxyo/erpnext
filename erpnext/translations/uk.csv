@@ -17879,3 +17879,9 @@ paid separately,оплачується окремо
 Cash Paid Days,Оплачувані дні готівкою
 Paid by the sick leave case,Оплачує випадок лікарняного
 "The salary pays {0} of {1} working days in the month; vacation and sick days are paid separately at the average daily wage.","Оклад платить {0} з {1} робочих днів місяця; відпустка й лікарняний оплачуються окремо за середньою."
+row {0},рядок {0}
+"Enter the ЕЛН number for certificates {0}: the number appears once the ЕЛН is processed in the ПФУ e-services portal.","Вкажіть номер ЕЛН для листків {0}: номер з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ."
+ЕЛН Number Missing,Немає номера ЕЛН
+"No ЕЛН number for {0} certificates yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with all numbers.","Ще немає номера ЕЛН для листків: {0}. Номер з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ. Провести випадок можна лише з усіма номерами."
+Without ЕЛН Number,Без номера ЕЛН
+"Fill in once the employer part of the ЕЛН is done in the ПФУ e-services portal; required to submit the case.","Заповніть, коли частину роботодавця в ЕЛН заповнено на порталі електронних послуг ПФУ; без номера випадок не провести."
