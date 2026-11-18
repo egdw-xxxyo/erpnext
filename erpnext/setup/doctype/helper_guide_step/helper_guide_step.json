@@ -1,0 +1,100 @@
+{
+ "doctype": "DocType",
+ "name": "Helper Guide Step",
+ "module": "Setup",
+ "engine": "InnoDB",
+ "creation": "2026-11-18 00:00:00.000000",
+ "modified": "2026-11-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "field_order": [
+  "step_key",
+  "step_type",
+  "target",
+  "emotion",
+  "hint",
+  "document_status",
+  "workflow_state",
+  "required_role",
+  "value_check",
+  "field_conditions"
+ ],
+ "fields": [
+  {
+   "fieldname": "step_key",
+   "fieldtype": "Data",
+   "label": "Step Key",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Stable identifier using lowercase letters, numbers, hyphens, or underscores."
+  },
+  {
+   "fieldname": "step_type",
+   "fieldtype": "Select",
+   "label": "Step Type",
+   "options": "Field\nAction\nWait\nRule",
+   "default": "Field",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "target",
+   "fieldtype": "Data",
+   "label": "Guide Target",
+   "in_list_view": 1,
+   "columns": 3,
+   "description": "Use a fieldname, table.fieldname, save, submit, update, workflow:Action, or a registered rule."
+  },
+  {
+   "fieldname": "emotion",
+   "fieldtype": "Link",
+   "label": "Helper Emotion",
+   "options": "Helper Emotion",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Leave empty to use the default emotion."
+  },
+  {
+   "fieldname": "hint",
+   "fieldtype": "Small Text",
+   "label": "Hint Text",
+   "description": "Explain what the user should do at this step."
+  },
+  {
+   "fieldname": "document_status",
+   "fieldtype": "Select",
+   "label": "Document Status Filter",
+   "options": "\n0\n1\n2",
+   "description": "0 = Draft, 1 = Submitted, 2 = Cancelled. Leave empty for any status."
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Data",
+   "label": "Workflow State Filter"
+  },
+  {
+   "fieldname": "required_role",
+   "fieldtype": "Link",
+   "label": "Required Role",
+   "options": "Role"
+  },
+  {
+   "fieldname": "value_check",
+   "fieldtype": "Select",
+   "label": "Field Value Check",
+   "options": "\nempty\nrequired_empty\nrequired_positive\nrequired_nonnegative",
+   "depends_on": "eval:doc.step_type=='Field'"
+  },
+  {
+   "fieldname": "field_conditions",
+   "fieldtype": "Code",
+   "label": "Field Conditions",
+   "options": "JSON",
+   "description": "Optional JSON array of additional field conditions. All conditions must match."
+  }
+ ],
+ "istable": 1,
+ "editable_grid": 1
+}

@@ -116,7 +116,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 									label: __("Supplier"),
 									options: suppliers.map((row) => row.supplier),
 									reqd: 1,
-									description: `<span class="procurement-invoice-options">${suppliers
+									description: `${__("Select the supplier whose invoice you want to record.")}<br><span class="procurement-invoice-options">${suppliers
 										.map(
 											(row) => `<span class="procurement-invoice-option">
 												<strong>${frappe.utils.escape_html(row.supplier_name || row.supplier)}</strong>
@@ -195,6 +195,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		const field = frm.get_field("approval_route_html");
 		if (!field) return;
 		if (frm.is_new()) {
+			frm.procurement_route_request = null;
 			render_approval_route(frm, field, {});
 			const material_requests = get_material_request_names(frm);
 			if (!material_requests.length) {
@@ -210,16 +211,23 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 			return;
 		}
 
-		frappe
+		const doc = frm.doc;
+		const state = doc.workflow_state;
+		const request = frappe
 			.call({
 				method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_approval_route_summary",
-				args: { source_name: frm.doc.name },
+				args: { source_name: doc.name },
 			})
 			.then((response) => {
+				if (frm.doc !== doc || doc.workflow_state !== state || frm.procurement_route_request !== request) {
+					return;
+				}
 				const route_data = response.message || {};
 				render_approval_route(frm, field, route_data);
 				render_material_request_comments(frm, route_data.material_requests || []);
+				return route_data;
 			});
+		frm.procurement_route_request = request;
 	},
 
 	company(frm) {
@@ -501,7 +509,7 @@ function render_approval_route(frm, field, route_data) {
 					: frappe.utils.escape_html(actor_text);
 			const description = frappe.utils.escape_html(role_text);
 			return `<div class="cpo-route-segment">
-				<div class="cpo-route-step ${status_class}">
+				<div class="cpo-route-step ${status_class}" data-procurement-stage="${stage.key}">
 					<div class="cpo-route-icon">${frappe.utils.icon(stage.icon, "sm")}</div>
 					<div class="cpo-route-copy">
 						<div class="cpo-route-title">${frappe.utils.escape_html(stage.title)}</div>
@@ -872,6 +880,7 @@ function select_procurement_initiator(frm) {
 				label: __("User"),
 				options: "User",
 				reqd: 1,
+				description: __("Select the user who requested these materials."),
 				get_query: () => ({ filters: { enabled: 1, user_type: "System User" } }),
 			},
 		],
@@ -984,7 +993,13 @@ function show_add_supplier_contact(frm, row) {
 					row.supplier_name || row.supplier
 				)}</p>`,
 			},
-			{ fieldname: "first_name", fieldtype: "Data", label: __("First Name"), reqd: 1 },
+			{
+				fieldname: "first_name",
+				fieldtype: "Data",
+				label: __("First Name"),
+				reqd: 1,
+				description: __("Enter the first name of the supplier's contact person."),
+			},
 			{ fieldname: "last_name", fieldtype: "Data", label: __("Last Name") },
 			{ fieldname: "mobile_no", fieldtype: "Data", label: __("Mobile No"), options: "Phone" },
 			{ fieldname: "email_id", fieldtype: "Data", label: __("Email"), options: "Email" },
@@ -1299,6 +1314,7 @@ function setup_delivery_note_action(frm) {
 					options: "Supplier",
 					label: __("Supplier"),
 					reqd: 1,
+				description: __("Select the supplier that issued the delivery note."),
 					get_query: () => ({ filters: { name: ["in", get_order_suppliers(frm)] } }),
 				},
 				{
@@ -1306,6 +1322,7 @@ function setup_delivery_note_action(frm) {
 					fieldtype: "Attach",
 					label: __("Supplier Delivery Notes"),
 					reqd: 1,
+				description: __("Attach the supplier's delivery note as a PDF or ZIP file."),
 					options: {
 						restrictions: { allowed_file_types: [".pdf", ".zip"] },
 						allow_web_link: false,

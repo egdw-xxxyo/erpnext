@@ -1,0 +1,312 @@
+{
+ "schema_version": 1,
+ "target_doctype": "Consolidated Purchase Order",
+ "title": "Consolidated Purchase Order Guide",
+ "steps": [
+  {
+   "id": "cancelled",
+   "type": "wait",
+   "when": {"docstatus":2},
+   "hint": "This document was cancelled."
+  },
+  {
+   "id": "rejected",
+   "type": "rule",
+   "target": "procurement_route",
+   "when": {"workflow_state":"Відхилено"},
+   "hint": "This consolidated purchase order was rejected."
+  },
+  {
+   "id": "company",
+   "type": "field",
+   "field": "company",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select our buying company. The Purchase Invoice will be recorded under this company."
+  },
+  {
+   "id": "transaction_date",
+   "type": "field",
+   "field": "transaction_date",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Enter the date this document was created."
+  },
+  {
+   "id": "items",
+   "type": "field",
+   "field": "items",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Add at least one item to the document."
+  },
+  {
+   "id": "items_supplier",
+   "type": "field",
+   "field": "items.supplier",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select the supplier named on the invoice. The Purchase Invoice will use this supplier."
+  },
+  {
+   "id": "items_related_supplier",
+   "type": "field",
+   "field": "items.related_supplier",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select the same supplier, or a cooperating company if the supplier is a sole proprietor. The Purchase Invoice uses the Supplier column."
+  },
+  {
+   "id": "items_item_code",
+   "type": "field",
+   "field": "items.item_code",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select the item from the item catalogue."
+  },
+  {
+   "id": "items_item_name",
+   "type": "field",
+   "field": "items.item_name",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Enter the name by which the item should appear in the order."
+  },
+  {
+   "id": "items_qty",
+   "type": "field",
+   "field": "items.qty",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_positive"},
+   "hint": "Enter a quantity greater than zero in the selected unit."
+  },
+  {
+   "id": "items_uom",
+   "type": "field",
+   "field": "items.uom",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select the unit used for this quantity, for example pcs or kg."
+  },
+  {
+   "id": "items_rate",
+   "type": "field",
+   "field": "items.rate",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_nonnegative"},
+   "hint": "Enter the price per unit in the order currency. Use 0 for a free item."
+  },
+  {
+   "id": "items_schedule_date",
+   "type": "field",
+   "field": "items.schedule_date",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Enter the date by which this item is needed."
+  },
+  {
+   "id": "stock_warehouse",
+   "type": "rule",
+   "target": "procurement_stock_warehouse",
+   "when": {"docstatus":0,"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання"]}]},
+   "hint": "Select the receiving warehouse for this stock item."
+  },
+  {
+   "id": "initiator",
+   "type": "rule",
+   "target": "procurement_initiator",
+   "when": {"docstatus":0,"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання"]}]},
+   "hint": "Select the user who requested these materials."
+  },
+  {
+   "id": "supplier_invoices",
+   "type": "field",
+   "field": "supplier_invoices",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Add an invoice row for the supplier."
+  },
+  {
+   "id": "supplier_invoices_supplier",
+   "type": "field",
+   "field": "supplier_invoices.supplier",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select the supplier named on the invoice. The Purchase Invoice will use this supplier."
+  },
+  {
+   "id": "supplier_invoices_invoice_pdf",
+   "type": "field",
+   "field": "supplier_invoices.invoice_pdf",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Attach the supplier's invoice as a PDF file."
+  },
+  {
+   "id": "optional_invoice",
+   "type": "rule",
+   "target": "procurement_optional_invoice",
+   "when": {"docstatus":0,"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання"]}]},
+   "hint": "If available, attach the supplier invoice as a PDF before sending for review."
+  },
+  {
+   "id": "delivery_notes",
+   "type": "field",
+   "field": "delivery_notes",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Add a delivery note row for the supplier."
+  },
+  {
+   "id": "delivery_notes_supplier",
+   "type": "field",
+   "field": "delivery_notes.supplier",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Select the supplier for this row."
+  },
+  {
+   "id": "delivery_notes_delivery_note_file",
+   "type": "field",
+   "field": "delivery_notes.delivery_note_file",
+   "when": {"fields":[{"field":"workflow_state","operator":"in","value":[null,"","Чернетка","Потребує доопрацювання","Проведено"]},{"field":"procurement_completion_status","operator":"not_equals","value":"Завершено"}],"value":"required_empty"},
+   "hint": "Attach the supplier's delivery note as a PDF or ZIP file."
+  },
+  {
+   "id": "save",
+   "type": "action",
+   "target": "save",
+   "hint": "Save the document to continue."
+  },
+  {
+   "id": "update",
+   "type": "action",
+   "target": "update",
+   "hint": "Save the document to continue."
+  },
+  {
+   "id": "submit",
+   "type": "action",
+   "target": "submit",
+   "hint": "Submit the document to move it to the next stage."
+  },
+  {
+   "id": "complete",
+   "type": "rule",
+   "target": "procurement_complete",
+   "hint": "Purchasing, payment and receipt are complete.",
+   "emotion": "complete"
+  },
+  {
+   "id": "review_department",
+   "type": "rule",
+   "target": "procurement_review",
+   "when": {"docstatus":0,"workflow_state":"Перевірка підрозділу"},
+   "hint": "Review the order and choose an available decision in Actions."
+  },
+  {
+   "id": "review_final",
+   "type": "rule",
+   "target": "procurement_review",
+   "when": {"docstatus":0,"workflow_state":"Фінальне погодження"},
+   "hint": "Review the order and choose an available decision in Actions."
+  },
+  {
+   "id": "buyer_save",
+   "type": "rule",
+   "target": "procurement_buyer_save",
+   "when": {"docstatus":0},
+   "hint": "Save the order before choosing {0}."
+  },
+  {
+   "id": "buyer_actions",
+   "type": "rule",
+   "target": "procurement_buyer_actions",
+   "when": {"docstatus":0},
+   "hint": "Open Actions and choose {0}."
+  },
+  {
+   "id": "buyer_route",
+   "type": "rule",
+   "target": "procurement_buyer_route",
+   "when": {"docstatus":0},
+   "hint": "Your next action is {0} in the Actions menu."
+  },
+  {
+   "id": "create_invoice",
+   "type": "rule",
+   "target": "procurement_create_invoice",
+   "when": {"docstatus":1},
+   "hint": "Open Create and choose Purchase Invoice to record a supplier invoice."
+  },
+  {
+   "id": "missing_invoice",
+   "type": "rule",
+   "target": "procurement_missing_invoice",
+   "when": {"docstatus":1},
+   "hint": "Add a row with the supplier and its PDF invoice before creating a Purchase Invoice."
+  },
+  {
+   "id": "attach_delivery_note",
+   "type": "rule",
+   "target": "procurement_attach_delivery_note",
+   "when": {"docstatus":1},
+   "hint": "Attach a delivery note for the supplier whose document is missing."
+  },
+  {
+   "id": "payment_route",
+   "type": "rule",
+   "target": "procurement_payment_route",
+   "when": {"docstatus":1},
+   "hint": "Open the supplier invoice in Connections to check its payment route."
+  },
+  {
+   "id": "wait_payment",
+   "type": "rule",
+   "target": "procurement_wait_payment",
+   "hint": "Wait for the treasurer to record payment and attach the payment receipt.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_preparation",
+   "type": "rule",
+   "target": "procurement_wait_preparation",
+   "hint": "Wait for the buyer to prepare the order and send it for review.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_department",
+   "type": "rule",
+   "target": "procurement_wait_department",
+   "hint": "Wait for the department head to review the order.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_final",
+   "type": "rule",
+   "target": "procurement_wait_final",
+   "hint": "Wait for the remaining final approvals.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_post",
+   "type": "rule",
+   "target": "procurement_wait_post",
+   "when": {"docstatus":0},
+   "hint": "Wait for the buyer to post the approved order.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_invoices",
+   "type": "rule",
+   "target": "procurement_wait_invoices",
+   "when": {"docstatus":1},
+   "hint": "Wait for the buyer to record the remaining supplier invoices.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_warehouse",
+   "type": "rule",
+   "target": "procurement_wait_warehouse",
+   "hint": "Wait for the warehouse to record receipt of the goods.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "wait_delivery_notes",
+   "type": "rule",
+   "target": "procurement_wait_delivery_notes",
+   "hint": "Wait for the remaining supplier delivery notes.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "route",
+   "type": "rule",
+   "target": "procurement_route",
+   "hint": "Check the approval route for the current order status."
+  }
+ ]
+}

@@ -100,7 +100,8 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 							.join("");
 						return `<section class="mb-4 procurement-link-group${
 							rows ? "" : " procurement-link-group-empty"
-						}"><h5>${escape(__(group.doctype))} (${group.documents.length})</h5>${
+						}" data-procurement-doctype="${escape(group.doctype)}">
+							<h5>${escape(__(group.doctype))} (${group.documents.length})</h5>${
 							rows
 								? `<table class="table table-bordered"><thead><tr><th>${__("Document")}</th>${
 										has_supplier ? `<th>${__("Supplier")}</th>` : ""
