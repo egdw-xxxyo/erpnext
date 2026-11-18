@@ -94,6 +94,14 @@ function show_status(frm) {
 
 	const without_number = (frm.doc.certificates || []).filter((row) => !(row.eln_number || "").trim());
 
+	if (frm.doc.limit_warning) {
+		frm.dashboard.add_comment(
+			frappe.utils.escape_html(frm.doc.limit_warning).replace(/\n/g, "<br>"),
+			"yellow",
+			true
+		);
+	}
+
 	if (frm.doc.docstatus === 0 && without_number.length) {
 		frm.dashboard.add_comment(
 			__(

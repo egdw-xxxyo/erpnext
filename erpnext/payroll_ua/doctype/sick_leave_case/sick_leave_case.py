@@ -31,6 +31,29 @@ class SickLeaveCase(Document):
 			self._set_fund_taxes()
 
 		self.set_status()
+		self.set_limit_warning()
+
+	def set_limit_warning(self):
+		year_days = 0
+
+		if self.case_type in sick_rules.ILLNESS_CASE_TYPES and self.start_date:
+			year = getdate(self.start_date).year
+			others = frappe.get_all(
+				"Sick Leave Case",
+				filters={
+					"employee": self.employee,
+					"name": ("!=", self.name or ""),
+					"docstatus": ("<", 2),
+					"case_type": ("in", sick_rules.ILLNESS_CASE_TYPES),
+					"start_date": ("between", [f"{year}-01-01", f"{year}-12-31"]),
+				},
+				pluck="calendar_days",
+			)
+			year_days = sum(int(days or 0) for days in others) + int(self.calendar_days or 0)
+
+		self.limit_warning = "\n".join(
+			sick_rules.duration_warnings(self.case_type, self.calendar_days, year_days)
+		)
 
 	def on_update(self):
 		self.mark_attendance()

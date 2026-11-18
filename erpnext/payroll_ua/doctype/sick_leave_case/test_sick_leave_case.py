@@ -114,3 +114,20 @@ class TestSickTaxes(IntegrationTestCase):
 
 		self.assertGreater(result.withheld, 0)
 		self.assertEqual(result.net, 1000 - result.withheld)
+
+
+class TestSickDurationWarnings(IntegrationTestCase):
+	def test_within_limits(self):
+		self.assertEqual(sick_rules.duration_warnings("Illness or Injury", 120, 150), [])
+		self.assertEqual(sick_rules.duration_warnings("Child Care", 14), [])
+		self.assertEqual(sick_rules.duration_warnings("Family Member Care", 3), [])
+		self.assertEqual(sick_rules.duration_warnings("Maternity", 126), [])
+
+	def test_over_limits(self):
+		self.assertEqual(len(sick_rules.duration_warnings("Illness or Injury", 121, 151)), 2)
+		self.assertEqual(len(sick_rules.duration_warnings("Child Care", 15)), 1)
+		self.assertEqual(len(sick_rules.duration_warnings("Family Member Care", 4)), 1)
+		self.assertEqual(len(sick_rules.duration_warnings("Maternity", 140)), 1)
+
+	def test_family_care_paid_by_fund(self):
+		self.assertEqual(sick_rules.case_rule("Family Member Care"), (0, None))

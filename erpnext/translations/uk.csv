@@ -17905,3 +17905,10 @@ Sick leave case {0} opened,Відкрито випадок лікарняног�
 Sick days from the timesheet: {0} — {1},Дні лікарняного з табеля: {0} — {1}
 "A sick leave case cannot be shortened: it covered {0} — {1}, and these days are marked as sick leave in the timesheet. Extend it, or delete the case and mark the days again.","Випадок лікарняного не можна скоротити: він охоплював {0} — {1}, і ці дні відмічені в табелі як лікарняний. Продовжте його або видаліть випадок і відмітьте дні знову."
 The Case Cannot Be Shortened,Випадок не можна скоротити
+Family Member Care,Догляд за хворим членом сім'ї
+Duration Check,Перевірка тривалості
+{0} days in a row: over {1} days the certificate is extended only by a decision of the ЕКОПФО commission.,"{0} днів поспіль: понад {1} днів ЕЛН продовжується лише за рішенням ЕКОПФО."
+{0} sick days this calendar year: over {1} days a repeated illness goes to the ЕКОПФО commission.,"{0} днів хвороби за календарний рік: понад {1} днів повторна хвороба йде на ЕКОПФО."
+{0} days of child care: the fund usually pays up to {1} days (longer only for a hospital stay with the child).,"{0} днів догляду за дитиною: фонд зазвичай оплачує до {1} днів (довше — лише при перебуванні з дитиною в стаціонарі)."
+"{0} days of care for a family member: the certificate is issued for up to {1} days, up to {2} only in exceptional cases.","{0} днів догляду за членом сім'ї: ЕЛН видається до {1} днів, до {2} — лише у виняткових випадках."
+"{0} days of maternity leave: the usual leave is {1} days, {2} for a complicated birth or twins, 180 for the Chornobyl categories.","{0} днів відпустки у звʼязку з вагітністю та пологами: звичайно {1} днів, {2} — при ускладнених пологах чи двійні, 180 — для чорнобильських категорій."

@@ -18,8 +18,21 @@ CASE_TYPES = {
 	"Work Injury or Occupational Disease": (average_pay.EMPLOYER_SICK_DAYS, 100.0),
 	"Maternity": (0, 100.0),
 	"Child Care": (0, None),
+	"Family Member Care": (0, None),
 }
 DEFAULT_CASE_TYPE = "Illness or Injury"
+
+# Скільки календарних днів зазвичай триває випадок, після чого потрібне окреме рішення.
+# Це попередження в картці випадку, а не обмеження розрахунку: строк ЕЛН визначає лікар
+# (або ЕКОПФО), і бухгалтерія платить за тим ЕЛН, який є. Перевіряйте з чинним Порядком.
+ILLNESS_CASE_TYPES = ("Illness or Injury", "Work Injury or Occupational Disease")
+ILLNESS_DAYS = 120  # поспіль — далі ЕЛН продовжує ЕКОПФО (до 10 міс., туберкульоз — 12)
+ILLNESS_YEAR_DAYS = 150  # за календарний рік із повторними випадками — теж ЕКОПФО
+CHILD_CARE_DAYS = 14  # догляд за хворою дитиною до 14 років
+FAMILY_CARE_DAYS = 3  # догляд за хворим членом сім'ї
+FAMILY_CARE_MAX_DAYS = 7  # у виняткових випадках
+MATERNITY_DAYS = 126  # 70 + 56
+MATERNITY_MAX_DAYS = 140  # ускладнені пологи або двоє й більше дітей (180 — чорнобильські категорії)
 
 # Скільки відсотків готівкової ставки платимо за день лікарняного — поки налаштування немає.
 DEFAULT_CASH_PERCENT = 50.0
@@ -210,3 +223,45 @@ def mark_employer_paid(case_names, payroll_sheet, period_start, paid_date):
 		case.employer_paid_date = getdate(paid_date)
 		case.flags.ignore_permissions = True
 		case.save()
+
+
+def duration_warnings(case_type, calendar_days, year_days=0) -> list:
+	"""Чому тривалість випадку варто перевірити: перевищено звичний строк ЕЛН.
+
+	`year_days` — днів хвороби цього працівника за календарний рік разом із цим випадком."""
+	days = int(calendar_days or 0)
+	warnings = []
+
+	if case_type in ILLNESS_CASE_TYPES:
+		if days > ILLNESS_DAYS:
+			warnings.append(
+				_(
+					"{0} days in a row: over {1} days the certificate is extended only by a decision of the ЕКОПФО commission."
+				).format(days, ILLNESS_DAYS)
+			)
+		if int(year_days or 0) > ILLNESS_YEAR_DAYS:
+			warnings.append(
+				_(
+					"{0} sick days this calendar year: over {1} days a repeated illness goes to the ЕКОПФО commission."
+				).format(int(year_days), ILLNESS_YEAR_DAYS)
+			)
+	elif case_type == "Child Care" and days > CHILD_CARE_DAYS:
+		warnings.append(
+			_(
+				"{0} days of child care: the fund usually pays up to {1} days (longer only for a hospital stay with the child)."
+			).format(days, CHILD_CARE_DAYS)
+		)
+	elif case_type == "Family Member Care" and days > FAMILY_CARE_DAYS:
+		warnings.append(
+			_(
+				"{0} days of care for a family member: the certificate is issued for up to {1} days, up to {2} only in exceptional cases."
+			).format(days, FAMILY_CARE_DAYS, FAMILY_CARE_MAX_DAYS)
+		)
+	elif case_type == "Maternity" and days > MATERNITY_DAYS:
+		warnings.append(
+			_(
+				"{0} days of maternity leave: the usual leave is {1} days, {2} for a complicated birth or twins, 180 for the Chornobyl categories."
+			).format(days, MATERNITY_DAYS, MATERNITY_MAX_DAYS)
+		)
+
+	return warnings
