@@ -56,7 +56,7 @@ class SickLeaveCase(Document):
 
 			row.days = date_diff(row.to_date, row.from_date) + 1
 
-			if previous and getdate(row.from_date) != add_days(previous.to_date, 1):
+			if previous and getdate(row.from_date) != getdate(add_days(previous.to_date, 1)):
 				frappe.throw(
 					_(
 						"Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case."
