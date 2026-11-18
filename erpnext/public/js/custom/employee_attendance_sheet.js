@@ -19,18 +19,22 @@ frappe.ui.form.on("Employee", {
 // відкривається на поточному місяці й гортається стрілками. Числа місяця лишаються в
 // документах: на картці немає рядка, з якого їх брати.
 function show_attendance_sheet(frm) {
-	if (frm.is_new() || !frappe.model.can_read("Attendance")) return;
+	// календар стоїть на вкладці «Облік робочого часу» (поле `custom_attendance_sheet_html`)
+	const field = frm.get_field("custom_attendance_sheet_html");
+	if (!field) return;
+
+	if (frm.is_new() || !frappe.model.can_read("Attendance")) {
+		frm.toggle_display("custom_attendance_sheet_section", false);
+		return;
+	}
 
 	const today = frappe.datetime.str_to_obj(frappe.datetime.get_today());
 	const start = frappe.datetime.obj_to_str(new Date(today.getFullYear(), today.getMonth(), 1));
 	const end = frappe.datetime.obj_to_str(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 	const row = { employee: frm.doc.name, employee_name: frm.doc.employee_name };
 	const settings = { start, end, calendar_slot: true, skip_attendance_table: true, skip_salary: true };
-	const body = frm.dashboard.add_section(
-		erpnext.utils.attendance_details.html(row, settings),
-		__("Attendance Sheet")
-	);
+	field.$wrapper.html(erpnext.utils.attendance_details.html(row, settings));
 
-	// календар шукає своє місце в `$wrapper` — діалогу тут немає, його роль грає секція
-	erpnext.utils.attendance_details.mount_calendar({ $wrapper: body }, row, settings);
+	// календар шукає своє місце в `$wrapper` — діалогу тут немає, його роль грає поле
+	erpnext.utils.attendance_details.mount_calendar({ $wrapper: field.$wrapper }, row, settings);
 }

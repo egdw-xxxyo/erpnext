@@ -20,7 +20,11 @@ frappe.ui.form.on("Employee", {
 	custom_employment_rate: (frm) => show_reservation_match(frm),
 
 	refresh(frm) {
-		if (erpnext.sensitive_data.masked_here(frm).length) return;
+		const masked = erpnext.sensitive_data.masked_here(frm).length > 0;
+
+		// оклади приховані від цього користувача — секції з ними теж немає
+		frm.toggle_display("custom_salary_history_section", !masked && !frm.is_new());
+		if (masked) return;
 
 		show_card_amount(frm);
 		show_reservation_match(frm);
@@ -37,7 +41,14 @@ frappe.ui.form.on("Employee", {
 });
 
 function render(frm, history) {
-	if (!history.length) return;
+	// секція живе на вкладці «Зарплата» (поле `custom_salary_history_html`), а не над формою
+	const field = frm.get_field("custom_salary_history_html");
+	if (!field) return;
+
+	if (!history.length) {
+		field.$wrapper.html(`<p class="text-muted">${__("No salary structure assigned yet.")}</p>`);
+		return;
+	}
 
 	const date = (value) => (value ? frappe.format(value, { fieldtype: "Date" }) : "…");
 	const money = (value) => format_currency(flt(value), frappe.defaults.get_default("currency"), 2);
@@ -80,7 +91,7 @@ function render(frm, history) {
 			<tbody>${rows}</tbody>
 		</table>`;
 
-	frm.dashboard.add_section(html, __("Salary History"));
+	field.$wrapper.html(html);
 }
 
 // Ставки живуть у «Налаштуваннях зарплатних податків» — беремо їх звідти, а не з коду,
