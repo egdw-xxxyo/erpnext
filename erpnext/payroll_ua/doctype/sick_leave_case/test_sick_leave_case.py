@@ -91,3 +91,18 @@ class TestSickLeaveCase(IntegrationTestCase):
 
 		with self.assertRaises(frappe.ValidationError):
 			doc.set_period()
+
+
+class TestSickTaxes(IntegrationTestCase):
+	def test_maternity_not_taxed(self):
+		with patch.object(sick_rules.payroll_tax, "ssc_rate", return_value=0.22):
+			result = sick_rules.taxes(1000, None, "Maternity")
+
+		self.assertEqual((result.pit, result.military, result.withheld, result.net), (0, 0, 0, 1000))
+		self.assertEqual(result.ssc, 220)
+
+	def test_illness_taxed(self):
+		result = sick_rules.taxes(1000, None, "Illness or Injury")
+
+		self.assertGreater(result.withheld, 0)
+		self.assertEqual(result.net, 1000 - result.withheld)
