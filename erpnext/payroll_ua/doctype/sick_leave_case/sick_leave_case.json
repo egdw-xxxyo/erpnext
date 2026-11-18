@@ -17,6 +17,7 @@
   "closed",
   "section_break_certificates",
   "certificates",
+  "section_break_period",
   "start_date",
   "column_break_period",
   "end_date",
@@ -135,6 +136,10 @@
    "label": "Certificates",
    "options": "Sick Leave Certificate",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_break_period",
+   "fieldtype": "Section Break"
   },
   {
    "fieldname": "start_date",
@@ -394,7 +399,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-11 00:00:00.000000",
+ "modified": "2026-11-18 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Sick Leave Case",
