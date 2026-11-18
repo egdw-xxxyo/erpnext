@@ -17885,3 +17885,21 @@ row {0},рядок {0}
 "No ЕЛН number for {0} certificates yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with all numbers.","Ще немає номера ЕЛН для листків: {0}. Номер з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ. Провести випадок можна лише з усіма номерами."
 Without ЕЛН Number,Без номера ЕЛН
 "Fill in once the employer part of the ЕЛН is done in the ПФУ e-services portal; required to submit the case.","Заповніть, коли частину роботодавця в ЕЛН заповнено на порталі електронних послуг ПФУ; без номера випадок не провести."
+{0} belongs to sick leave case {1} — change it in the case.,{0} належить випадку лікарняного {1} — змінюйте його у випадку.
+{0} — {1} already belong to sick leave case {2}.,{0} — {1} уже належать випадку лікарняного {2}.
+There is no draft sick leave case that these days continue.,"Немає чернетки випадку лікарняного, яку ці дні продовжують."
+Unknown action {0},Невідома дія {0}
+Unknown sick leave case type {0},Невідомий тип випадку лікарняного {0}
+Open Sick Leave Case,Відкрити випадок лікарняного
+"Mark sick leave for {0} employees on {1}? Each of them gets a sick leave case: the draft these days continue is extended, otherwise a new one is opened.","Відмітити лікарняний {0} працівникам на {1}? Кожному буде випадок лікарняного: чернетку, яку ці дні продовжують, буде продовжено, інакше відкриється новий."
+Sick Leave,Лікарняний
+Extend {0} ({1} — {2}) from {3},Продовжити {0} ({1} — {2}) з {3}
+New sick leave case,Новий випадок лікарняного
+"Leave empty if there is no number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal.","Залиште порожнім, якщо номера ще немає: він з'явиться, коли ЕЛН опрацюють на порталі електронних послуг ПФУ."
+No sick leave case,Немає випадку лікарняного
+ЕЛН {0},ЕЛН {0}
+ЕЛН number not entered yet,Номер ЕЛН ще не внесено
+Sick leave case {0} extended,Випадок лікарняного {0} продовжено
+Sick leave case {0} opened,Відкрито випадок лікарняного {0}
+{0} sick leave cases updated,Оновлено випадків лікарняного: {0}
+Sick days from the timesheet: {0} — {1},Дні лікарняного з табеля: {0} — {1}

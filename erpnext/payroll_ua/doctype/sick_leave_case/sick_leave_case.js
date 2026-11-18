@@ -24,6 +24,38 @@ frappe.ui.form.on("Sick Leave Case", {
 	},
 });
 
+// Лікарняний спершу відмічають у табелі: новий випадок підтягує ці дні, щоб їх не
+// вводили вдруге.
+frappe.ui.form.on("Sick Leave Case", {
+	employee(frm) {
+		if (!frm.is_new() || !frm.doc.employee) return;
+		if ((frm.doc.certificates || []).some((row) => row.from_date)) return;
+
+		frappe
+			.xcall("erpnext.payroll_ua.doctype.sick_leave_case.sick_leave_case.get_unregistered_days", {
+				employee: frm.doc.employee,
+			})
+			.then((runs) => {
+				if (!runs || !runs.length) return;
+
+				// одна хвороба — один випадок: беремо найсвіжіший відрізок, решта лишається
+				// для «Знайти незареєстровані лікарняні»
+				const run = runs[runs.length - 1];
+
+				frm.clear_table("certificates");
+				frm.add_child("certificates", { from_date: run.from_date, to_date: run.to_date });
+				frm.refresh_field("certificates");
+				frappe.show_alert({
+					message: __("Sick days from the timesheet: {0} — {1}", [
+						frappe.datetime.str_to_user(run.from_date),
+						frappe.datetime.str_to_user(run.to_date),
+					]),
+					indicator: "blue",
+				});
+			});
+	},
+});
+
 frappe.ui.form.on("Sick Leave Certificate", {
 	certificates_add(frm, cdt, cdn) {
 		const last = (frm.doc.certificates || [])

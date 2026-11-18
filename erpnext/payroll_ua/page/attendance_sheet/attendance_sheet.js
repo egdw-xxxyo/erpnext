@@ -347,6 +347,14 @@ class AttendanceSheet {
 				${__("Shortfall Hours")} - -2
 			</span>`);
 
+		entries.push(`
+			<span class="attendance-sheet-legend-item sick-mark" style="border-left-color:#f59f00">
+				${__("ЕЛН number not entered yet")}
+			</span>
+			<span class="attendance-sheet-legend-item sick-mark" style="border-left-color:#e03131">
+				${__("No sick leave case")}
+			</span>`);
+
 		this.$legend.html(entries.join(""));
 	}
 
@@ -601,9 +609,16 @@ class AttendanceSheet {
 		if (cell && cell.locked)
 			return show_menu(event, this.get_document_items(cell), () => this.clear_selection());
 
+		// a day of a sick leave case is changed in the case, not here
+		if (cell && cell.sick_case)
+			return show_menu(event, this.get_document_items(cell), () => this.clear_selection());
+
 		const items = QUICK_STATUSES.map((status) => ({
 			label: __(status),
-			onclick: () => this.save_attendance({ employees, ...period, status }),
+			onclick: () =>
+				status === "Sick Leave"
+					? this.open_sick_dialog({ employees, ...period })
+					: this.save_attendance({ employees, ...period, status }),
 		}));
 
 		items.push({
@@ -654,6 +669,12 @@ class AttendanceSheet {
 			items.push({
 				label: __("Open Leave"),
 				onclick: () => frappe.set_route("Form", "Leave Application", cell.leave_application),
+			});
+
+		if (cell.sick_case && frappe.model.can_read("Sick Leave Case"))
+			items.push({
+				label: __("Open Sick Leave Case"),
+				onclick: () => frappe.set_route("Form", "Sick Leave Case", cell.sick_case),
 			});
 
 		return items;
@@ -744,6 +765,12 @@ class AttendanceSheet {
 			fields: get_attendance_fields(is_range),
 			primary_action_label: cell ? __("Update") : __("Mark"),
 			primary_action: async (values) => {
+				// a sick day needs its reason — the case it belongs to
+				if (values.status === "Sick Leave") {
+					dialog.hide();
+					return this.open_sick_dialog({ employees, from_date, to_date });
+				}
+
 				dialog.disable_primary_action();
 				try {
 					await this.save_attendance({
@@ -774,6 +801,119 @@ class AttendanceSheet {
 		});
 
 		dialog.show();
+	}
+
+	/** «Лікарняний» always lands in a sick leave case: the dialog says which one — the draft
+	 * these days continue, or a new case. The ЕЛН number may come later from the ПФУ portal. */
+	async open_sick_dialog({ employees, from_date, to_date }) {
+		const span =
+			from_date === to_date
+				? frappe.datetime.str_to_user(from_date)
+				: `${frappe.datetime.str_to_user(from_date)} — ${frappe.datetime.str_to_user(to_date)}`;
+
+		if (employees.length > 1) {
+			return frappe.confirm(
+				__(
+					"Mark sick leave for {0} employees on {1}? Each of them gets a sick leave case: the draft these days continue is extended, otherwise a new one is opened.",
+					[employees.length, span]
+				),
+				() => this.mark_sick({ employees, from_date, to_date, action: "auto" })
+			);
+		}
+
+		const employee = employees[0];
+		const options = await frappe.xcall(`${METHOD}.get_sick_options`, {
+			employee,
+			from_date,
+			to_date,
+			company: this.company.get_value(),
+		});
+
+		if (options.error) {
+			return frappe.msgprint({ title: __("Sick Leave"), message: options.error, indicator: "orange" });
+		}
+
+		const extend = options.extend;
+		const actions = extend
+			? [
+					{
+						value: "extend",
+						label: __("Extend {0} ({1} — {2}) from {3}", [
+							extend.name,
+							frappe.datetime.str_to_user(extend.start_date),
+							frappe.datetime.str_to_user(extend.end_date),
+							frappe.datetime.str_to_user(extend.from_date),
+						]),
+					},
+					{ value: "new", label: __("New sick leave case") },
+			  ]
+			: [{ value: "new", label: __("New sick leave case") }];
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Sick Leave"),
+			fields: [
+				{ fieldtype: "Data", fieldname: "target", label: __("Employee"), read_only: 1 },
+				{ fieldtype: "Column Break" },
+				{ fieldtype: "Data", fieldname: "period", label: __("Period"), read_only: 1 },
+				{ fieldtype: "Section Break" },
+				{
+					fieldtype: "Select",
+					fieldname: "action",
+					label: __("Sick Leave Case"),
+					options: actions,
+					default: actions[0].value,
+					reqd: 1,
+				},
+				{
+					fieldtype: "Select",
+					fieldname: "case_type",
+					label: __("Case Type"),
+					options: options.case_types.map((value) => ({ value, label: __(value) })),
+					default: options.default_case_type,
+					depends_on: "eval:doc.action === 'new'",
+				},
+				{
+					fieldtype: "Data",
+					fieldname: "eln_number",
+					label: __("Certificate Number (ЕЛН)"),
+					description: __(
+						"Leave empty if there is no number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal."
+					),
+				},
+			],
+			primary_action_label: __("Mark"),
+			primary_action: async (values) => {
+				dialog.disable_primary_action();
+				try {
+					await this.mark_sick({
+						employees,
+						from_date,
+						to_date,
+						action: values.action,
+						case_type: values.case_type,
+						eln_number: values.eln_number,
+					});
+					dialog.hide();
+				} finally {
+					dialog.enable_primary_action();
+				}
+			},
+		});
+
+		dialog.set_values({ target: this.employee_name(employee), period: span });
+		dialog.show();
+	}
+
+	async mark_sick(values) {
+		const result = await frappe.xcall(`${METHOD}.mark_sick`, {
+			company: this.company.get_value(),
+			...values,
+		});
+
+		report_sick_result(result);
+		this.refresh();
+
+		return result;
 	}
 
 	employee_name(employee) {
@@ -953,11 +1093,23 @@ function get_cell_html(row, date) {
 	const cell = row.days[date];
 	const meta = STATUS_META[cell.status] || {};
 	const off = NON_WORKING_STATUSES.includes(cell.status) ? "off" : "";
-	const classes = ["day", cell.locked ? "locked" : "", cell.outside ? "outside" : "", off]
+	// a sick day shows whether it has its case and its ЕЛН number: a corner mark for
+	// what is still missing
+	const sick =
+		cell.status === "Sick Leave"
+			? !cell.sick_case
+				? "sick-no-case"
+				: !cell.eln_number
+				? "sick-no-eln"
+				: ""
+			: "";
+	const classes = ["day", cell.locked ? "locked" : "", cell.outside ? "outside" : "", off, sick]
 		.filter(Boolean)
 		.join(" ");
 	// the cells of one leave (or of one attendance) light up together on hover
-	const group = cell.leave_application
+	const group = cell.sick_case
+		? `Sick Leave Case:${cell.sick_case}`
+		: cell.leave_application
 		? `Leave Application:${cell.leave_application}`
 		: cell.attendance
 		? `Attendance:${cell.attendance}`
@@ -1009,9 +1161,24 @@ function get_cell_title(cell) {
 		? `${__("Shortfall Hours")}: ${format_hours(cell.shortfall_hours)}`
 		: "";
 
-	return [cell.status ? __(cell.status) : "", hours, cell.shift, cell.locked ? __("Approved") : ""]
+	return [
+		cell.status ? __(cell.status) : "",
+		get_sick_case_title(cell),
+		hours,
+		cell.shift,
+		cell.locked ? __("Approved") : "",
+	]
 		.filter(Boolean)
 		.join(" · ");
+}
+
+function get_sick_case_title(cell) {
+	if (!cell.sick_case) return cell.status === "Sick Leave" ? __("No sick leave case") : "";
+
+	return [
+		cell.sick_case,
+		cell.eln_number ? __("ЕЛН {0}", [cell.eln_number]) : __("ЕЛН number not entered yet"),
+	].join(", ");
 }
 
 function get_totals(row) {
@@ -1214,6 +1381,23 @@ function report_result({ created, skipped }) {
 	report_skipped(skipped, created.length ? "orange" : "red", __("Days that were skipped"));
 }
 
+function report_sick_result({ created, skipped, cases }) {
+	if (cases.length) {
+		const message =
+			cases.length === 1
+				? cases[0].extended
+					? __("Sick leave case {0} extended", [cases[0].case])
+					: __("Sick leave case {0} opened", [cases[0].case])
+				: __("{0} sick leave cases updated", [cases.length]);
+
+		frappe.show_alert({ message, indicator: "green" });
+	}
+
+	if (!skipped.length) return;
+
+	report_skipped(skipped, created.length || cases.length ? "orange" : "red", __("Days that were skipped"));
+}
+
 function report_skipped(skipped, indicator, title) {
 	frappe.msgprint({
 		title,
@@ -1376,6 +1560,14 @@ function inject_styles() {
 		table.attendance-sheet td.day.related { background-color: var(--fg-hover-color);
 			box-shadow: inset 0 -2px 0 0 var(--gray-400, #9CA3AF); }
 		table.attendance-sheet td.day.locked { cursor: default; opacity: 0.6; }
+		table.attendance-sheet td.day.sick-no-case,
+		table.attendance-sheet td.day.sick-no-eln { position: relative; }
+		table.attendance-sheet td.day.sick-no-case::after,
+		table.attendance-sheet td.day.sick-no-eln::after {
+			content: ""; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%;
+		}
+		table.attendance-sheet td.day.sick-no-case::after { background: var(--red-500, #e03131); }
+		table.attendance-sheet td.day.sick-no-eln::after { background: var(--orange-500, #f59f00); }
 		/* поза періодом роботи: не вихідний і не пропуск — просто не день цієї людини */
 		table.attendance-sheet td.day.outside {
 			cursor: not-allowed;

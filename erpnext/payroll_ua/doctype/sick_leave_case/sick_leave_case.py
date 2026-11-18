@@ -372,20 +372,57 @@ def find_unregistered(company):
 	"""Дні «Лікарняного» в табелі, яких немає в жодному випадку, — готові чернетки випадків."""
 	frappe.has_permission("Sick Leave Case", "create", throw=True)
 
+	runs = unregistered_runs(company)
+	created = []
+
+	for run in runs:
+		case = frappe.new_doc("Sick Leave Case")
+		case.employee = run.employee
+		case.company = company
+		case.append(
+			"certificates",
+			{"from_date": run.from_date, "to_date": run.to_date},
+		)
+		case.insert()
+		created.append(case.name)
+
+	return created
+
+
+@frappe.whitelist()
+def get_unregistered_days(employee):
+	"""Для нового випадку з форми: дні «Лікарняного» з табеля цього працівника без випадку."""
+	frappe.has_permission("Sick Leave Case", "create", throw=True)
+	company = frappe.db.get_value("Employee", employee, "company")
+
+	return [
+		{"from_date": run.from_date, "to_date": run.to_date} for run in unregistered_runs(company, employee)
+	]
+
+
+def unregistered_runs(company, employee=None) -> list:
+	"""Суцільні відрізки днів «Лікарняного» в табелі, що не належать жодному випадку.
+
+	Відрізок не рветься на вихідних: ЕЛН іде календарними днями, а табель вихідні не
+	відмічає."""
+	filters = {"company": company, "docstatus": 1, "status": "Sick Leave"}
+	case_filters = {"company": company, "docstatus": ("!=", 2)}
+
+	if employee:
+		filters["employee"] = employee
+		case_filters["employee"] = employee
+
 	rows = frappe.get_all(
 		"Attendance",
-		filters={"company": company, "docstatus": 1, "status": "Sick Leave"},
+		filters=filters,
 		fields=["employee", "employee_name", "attendance_date"],
 		order_by="employee asc, attendance_date asc",
 	)
-	cases = frappe.get_all(
-		"Sick Leave Case",
-		filters={"company": company, "docstatus": ("!=", 2)},
-		fields=["employee", "start_date", "end_date"],
-	)
 	covered = {}
 
-	for case in cases:
+	for case in frappe.get_all(
+		"Sick Leave Case", filters=case_filters, fields=["employee", "start_date", "end_date"]
+	):
 		covered.setdefault(case.employee, []).append((getdate(case.start_date), getdate(case.end_date)))
 
 	runs = []
@@ -411,20 +448,7 @@ def find_unregistered(company):
 			frappe._dict(employee=row.employee, employee_name=row.employee_name, from_date=day, to_date=day)
 		)
 
-	created = []
-
-	for run in runs:
-		case = frappe.new_doc("Sick Leave Case")
-		case.employee = run.employee
-		case.company = company
-		case.append(
-			"certificates",
-			{"from_date": run.from_date, "to_date": run.to_date},
-		)
-		case.insert()
-		created.append(case.name)
-
-	return created
+	return runs
 
 
 def _continues(previous, day, employee, company, cache) -> bool:
