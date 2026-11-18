@@ -20,6 +20,7 @@ from erpnext.payroll_ua import enforcement, sick_rules
 class SickLeaveCase(Document):
 	def validate(self):
 		self.set_period()
+		self.validate_not_shortened()
 		self.validate_overlap()
 
 		if not self.employer_paid_date:
@@ -110,6 +111,25 @@ class SickLeaveCase(Document):
 		self.start_date = getdate(rows[0].from_date)
 		self.end_date = getdate(rows[-1].to_date)
 		self.calendar_days = date_diff(self.end_date, self.start_date) + 1
+
+	def validate_not_shortened(self):
+		"""Випадок лише росте: його дні вже стоять у табелі «Лікарняним» і заблоковані там,
+		тож обрізаний випадок лишив би в табелі лікарняні без причини. Помилкові дні
+		прибирає скасування випадку, а не тихе скорочення."""
+		before = self.get_doc_before_save()
+
+		if not before or not before.start_date or not before.end_date:
+			return
+
+		if getdate(self.start_date) > getdate(before.start_date) or getdate(self.end_date) < getdate(
+			before.end_date
+		):
+			frappe.throw(
+				_(
+					"A sick leave case cannot be shortened: it covered {0} — {1}, and these days are marked as sick leave in the timesheet. Extend it, or delete the case and mark the days again."
+				).format(formatdate(before.start_date), formatdate(before.end_date)),
+				title=_("The Case Cannot Be Shortened"),
+			)
 
 	def validate_overlap(self):
 		other = frappe.db.get_value(

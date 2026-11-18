@@ -17903,3 +17903,5 @@ Sick leave case {0} extended,Випадок лікарняного {0} прод�
 Sick leave case {0} opened,Відкрито випадок лікарняного {0}
 {0} sick leave cases updated,Оновлено випадків лікарняного: {0}
 Sick days from the timesheet: {0} — {1},Дні лікарняного з табеля: {0} — {1}
+"A sick leave case cannot be shortened: it covered {0} — {1}, and these days are marked as sick leave in the timesheet. Extend it, or delete the case and mark the days again.","Випадок лікарняного не можна скоротити: він охоплював {0} — {1}, і ці дні відмічені в табелі як лікарняний. Продовжте його або видаліть випадок і відмітьте дні знову."
+The Case Cannot Be Shortened,Випадок не можна скоротити
