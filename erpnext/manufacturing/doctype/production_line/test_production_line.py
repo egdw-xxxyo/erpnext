@@ -2,7 +2,11 @@ from unittest.mock import patch
 
 import frappe
 
-from erpnext.manufacturing.doctype.production_line.production_line import ProductionLine, _plan_rows
+from erpnext.manufacturing.doctype.production_line.production_line import (
+	ProductionLine,
+	_plan_rows,
+	max_producible,
+)
 from erpnext.tests.utils import ERPNextTestSuite
 
 
@@ -61,3 +65,55 @@ class TestReleasedOrdersAreReadOnly(ERPNextTestSuite):
 		for change in ({"qty": 11}, {"item_code": "B"}, {"workplace": "W2"}, {"work_order": None}):
 			with self.assertRaises(frappe.ValidationError):
 				self.validate([self.released()], [self.released(**change)])
+
+
+class TestOrderFitsStock(ERPNextTestSuite):
+	def rows(self, *pairs):
+		return [frappe._dict(per_unit=per_unit, free=free) for per_unit, free in pairs]
+
+	def test_scarcest_component_decides(self):
+		self.assertEqual(max_producible(self.rows((2, 1000), (1, 51), (0.5, 100))), 51)
+
+	def test_fractional_need_rounds_down_to_whole_units(self):
+		self.assertEqual(max_producible(self.rows((0.3, 1))), 3)
+		self.assertEqual(max_producible(self.rows((0.1, 0.3))), 3)
+
+	def test_negative_free_stock_means_nothing(self):
+		self.assertEqual(max_producible(self.rows((1, -5), (1, 10))), 0)
+
+	def test_no_components_has_no_limit(self):
+		self.assertIsNone(max_producible([]))
+
+
+class TestAllowedItems(ERPNextTestSuite):
+	def validate(self, allowed, orders=(), plan=(), critical=()):
+		doc = ProductionLine.__new__(ProductionLine)
+		doc.__dict__.update(
+			allowed_items=[frappe._dict(item_code=code) for code in allowed],
+			critical_stock=[frappe._dict(item_code=code) for code in critical],
+			orders=[
+				frappe._dict(idx=i + 1, item_code=code, work_order=None) for i, code in enumerate(orders)
+			],
+			plan=[frappe._dict(idx=i + 1, item_code=code) for i, code in enumerate(plan)],
+		)
+		doc._validate_allowed_items()
+
+	def test_empty_list_allows_any_item(self):
+		self.validate([], orders=["X"], plan=["Y"])
+
+	def test_allowed_item_passes(self):
+		self.validate(["A"], orders=["A"], plan=["A"])
+
+	def test_order_outside_list_is_refused(self):
+		with self.assertRaises(frappe.ValidationError):
+			self.validate(["A"], orders=["B"])
+
+	def test_plan_outside_list_is_refused(self):
+		with self.assertRaises(frappe.ValidationError):
+			self.validate(["A"], plan=["B"])
+
+	def test_duplicates_are_refused(self):
+		with self.assertRaises(frappe.ValidationError):
+			self.validate(["A", "A"])
+		with self.assertRaises(frappe.ValidationError):
+			self.validate(["A"], critical=["C", "C"])

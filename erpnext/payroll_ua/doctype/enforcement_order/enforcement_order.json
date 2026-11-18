@@ -1,0 +1,315 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "EO-.YYYY.-.#####",
+ "creation": "2026-11-11 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "company",
+  "column_break_main",
+  "status",
+  "kind",
+  "section_break_document",
+  "document_number",
+  "document_date",
+  "enforcement_proceeding",
+  "column_break_document",
+  "issued_by",
+  "start_date",
+  "end_date",
+  "section_break_amount",
+  "method",
+  "percent",
+  "fixed_amount",
+  "column_break_amount",
+  "debt_total",
+  "fixed_carry",
+  "section_break_recipient",
+  "recipient_name",
+  "recipient_tax_id",
+  "payment_purpose",
+  "column_break_recipient",
+  "recipient_iban",
+  "recipient_bank",
+  "section_break_totals",
+  "withheld_total",
+  "transferred_total",
+  "column_break_totals",
+  "to_transfer",
+  "section_break_withholdings",
+  "withholdings"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "fetch_from": "employee.employee_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "fetch_from": "employee.company",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nSuspended\nClosed",
+   "default": "Active",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "label": "Kind",
+   "options": "Child Alimony\nOther Alimony\nOther Debt",
+   "default": "Child Alimony",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Child alimony allows withholding up to 70% of a payment, everything else up to 50%."
+  },
+  {
+   "fieldname": "section_break_document",
+   "fieldtype": "Section Break",
+   "label": "Document"
+  },
+  {
+   "fieldname": "document_number",
+   "fieldtype": "Data",
+   "label": "Document Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "document_date",
+   "fieldtype": "Date",
+   "label": "Document Date"
+  },
+  {
+   "fieldname": "enforcement_proceeding",
+   "fieldtype": "Data",
+   "label": "Enforcement Proceeding No."
+  },
+  {
+   "fieldname": "column_break_document",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "issued_by",
+   "fieldtype": "Small Text",
+   "label": "Issued By (Court / Enforcement Officer)"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Withhold From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "Withhold Until"
+  },
+  {
+   "fieldname": "section_break_amount",
+   "fieldtype": "Section Break",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "method",
+   "fieldtype": "Select",
+   "label": "Method",
+   "options": "Percent\nFixed",
+   "default": "Percent",
+   "reqd": 1,
+   "description": "Percent: from every official payment after PIT and military levy. Fixed: once a month from the monthly salary."
+  },
+  {
+   "fieldname": "percent",
+   "fieldtype": "Percent",
+   "label": "Percent of Net Official Pay",
+   "depends_on": "eval:doc.method==\"Percent\"",
+   "mandatory_depends_on": "eval:doc.method==\"Percent\""
+  },
+  {
+   "fieldname": "fixed_amount",
+   "fieldtype": "Currency",
+   "label": "Fixed Amount per Month",
+   "options": "Company:company:default_currency",
+   "depends_on": "eval:doc.method==\"Fixed\"",
+   "mandatory_depends_on": "eval:doc.method==\"Fixed\""
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "debt_total",
+   "fieldtype": "Currency",
+   "label": "Total Debt",
+   "options": "Company:company:default_currency",
+   "description": "Stop withholding once this much is withheld. Empty — no limit (alimony)."
+  },
+  {
+   "fieldname": "fixed_carry",
+   "fieldtype": "Currency",
+   "label": "Fixed Amount Not Withheld Yet",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "description": "What the last months could not withhold — added to the next month."
+  },
+  {
+   "fieldname": "section_break_recipient",
+   "fieldtype": "Section Break",
+   "label": "Recipient"
+  },
+  {
+   "fieldname": "recipient_name",
+   "fieldtype": "Data",
+   "label": "Recipient",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_tax_id",
+   "fieldtype": "Data",
+   "label": "Recipient Tax ID / EDRPOU"
+  },
+  {
+   "fieldname": "payment_purpose",
+   "fieldtype": "Small Text",
+   "label": "Payment Purpose"
+  },
+  {
+   "fieldname": "column_break_recipient",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recipient_iban",
+   "fieldtype": "Data",
+   "label": "IBAN",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_bank",
+   "fieldtype": "Data",
+   "label": "Bank"
+  },
+  {
+   "fieldname": "section_break_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "withheld_total",
+   "fieldtype": "Currency",
+   "label": "Withheld",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "transferred_total",
+   "fieldtype": "Currency",
+   "label": "Transferred to Recipient",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_transfer",
+   "fieldtype": "Currency",
+   "label": "To Transfer",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_break_withholdings",
+   "fieldtype": "Section Break",
+   "label": "Withholdings"
+  },
+  {
+   "fieldname": "withholdings",
+   "fieldtype": "Table",
+   "label": "Withholdings",
+   "options": "Enforcement Order Withholding",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-11 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Enforcement Order",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "write": 1,
+   "share": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "write": 1,
+   "share": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User"
+  }
+ ],
+ "search_fields": "employee_name,document_number",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name",
+ "track_changes": 1
+}

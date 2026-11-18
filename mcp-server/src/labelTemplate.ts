@@ -2,10 +2,13 @@
  * Tools for editing Label Templates and the Label Template Example library.
  *
  * The reference text + curated examples come from the ERPNext backend method
- * `erpnext.manufacturing.doctype.label_template.label_template.get_template_reference`,
+ * `erpnext.devices.doctype.label_template.label_template.get_template_reference`,
  * which reads `erpnext/manufacturing/doctype/label_template/REFERENCE.md` plus all
  * published `Label Template Example` records. That same endpoint powers the in-app
  * "Template Reference" dialog, so the LLM and the human see the same authoring docs.
+ *
+ * render_label_preview returns the printer-exact PNG as an MCP image block, so the model can
+ * look at the label, fix layout_json / html_template and render again.
  *
  * Field model on Label Template (HTML mode):
  *   html_template            — Body content. <html>/<head>/<body> + .label-content
@@ -18,7 +21,7 @@
  *                              parameters with optional transforms (e.g. chemistry).
  *   preview_data             — JSON string used by the Preview pane.
  *   label_size               — Link to Label Size.
- *   template_type            — "EZPL" | "HTML".
+ *   template_type            — "From DocType" | "Raw Data" | "Barcode" | "Other".
  *   description              — Free text.
  */
 
@@ -67,8 +70,113 @@ export const LABEL_TEMPLATE_TOOLS = [
         preview_data: { type: "string", description: "JSON string used by the Preview pane" },
         description: { type: "string" },
         label_size: { type: "string", description: "Link to Label Size doc name" },
+        editor_mode: {
+          type: "string",
+          enum: ["HTML", "Visual"],
+          description: "Visual: html_template is generated from layout_json on save (do not edit html_template then)",
+        },
+        layout_json: {
+          type: "string",
+          description:
+            "Visual layout JSON: {\"v\":1,\"grid_mm\":0.5,\"elements\":[{\"id\",\"type\":\"text|field|input|image|barcode|qr|table|repeat|line|rect\",\"x\",\"y\",\"w\",\"h\" (mm inside padding),\"rotate\",\"show_if\" (Jinja condition),\"style\":{font_size_pt,font_family,bold,italic,underline,align,valign,nowrap,invert,border_mm,line_height}, ...}], \"setup\": \"optional Jinja run before elements; put computed values on doc via {% set _ = doc.update({...}) %} and show them with field elements\"}. Text supports **bold** and ^^sup^^; tables accept col_styles; repeat draws one barcode/qr/text block per list item. See REFERENCE.md \"Visual editor\" (get_label_template_reference).",
+        },
+        inputs: {
+          type: "array",
+          description:
+            "REPLACES the Print Inputs table (values asked in the Print dialog, available as {{ doc.<fieldname> }} and bound by visual elements of type \"input\"). Pass the full list.",
+          items: {
+            type: "object",
+            properties: {
+              fieldname: { type: "string", description: "Python identifier, e.g. qty" },
+              label: { type: "string" },
+              fieldtype: { type: "string", enum: ["Data", "Small Text", "Int", "Float", "Date", "Select", "Check"] },
+              options: { type: "string", description: "Select: one option per line" },
+              default_value: { type: "string" },
+              reqd: { type: "boolean" },
+            },
+            required: ["fieldname", "label"],
+          },
+        },
       },
       required: ["name"],
+    },
+  },
+  {
+    name: "render_label_preview",
+    description:
+      "Render a Label Template exactly as the printer gets it (wkhtmltoimage, 300 dpi, 1-bit) and return the PNG image so you can look at it. Use it after every edit to verify layout, clipping and wrapping, then fix and render again. Works on the saved template; pass `overrides` to preview unsaved changes (e.g. a new layout_json) without saving. Pass `input_values` to fill Print Inputs (as the Print dialog does).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Label Template name" },
+        input_values: {
+          type: "object",
+          description: "Values for Print Inputs by fieldname, e.g. {\"qty\": 12}. Missing ones use the input's default.",
+          additionalProperties: true,
+        },
+        reference_name: {
+          type: "string",
+          description: "From DocType templates: document of reference_doctype whose data fills the label",
+        },
+        use_preview_data: {
+          type: "boolean",
+          description:
+            "Default true: when no reference_name, fill doc from the template's preview_data sample. false = exactly what a print without a document would show.",
+        },
+        overrides: {
+          type: "object",
+          description:
+            "Unsaved field values to render instead of the saved ones: layout_json, html_template, editor_mode, label_size, padding_*_mm, preview_data, field_mapping, inputs (array like edit_label_template).",
+          additionalProperties: true,
+        },
+        include_html: { type: "boolean", description: "Also return the rendered HTML (default false)" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "test_label_data_setup",
+    description:
+      "Run a visual template's Data setup (the Jinja in layout_json.setup that runs before the elements) and show what it produces: doc keys it added/changed (usable by field elements), template variables (usable in text as {{ var }}) or the error. Pass setup to try a new version without saving, reference_name to test on a real document.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Label Template name" },
+        setup: { type: "string", description: "Jinja to test instead of the saved Data setup" },
+        reference_name: { type: "string" },
+        input_values: { type: "object", additionalProperties: true },
+        use_preview_data: { type: "boolean", description: "Default true" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "list_label_images",
+    description:
+      "List the shared label image library (folder Home/Label Images): file_name and file_url of every image labels can use. Use file_name in a visual layout image element (\"type\":\"image\",\"file\":<file_name>) or in <attachment name=\"...\"> in HTML templates.",
+    inputSchema: { type: "object", properties: { search: { type: "string", description: "Optional substring filter" } } },
+  },
+  {
+    name: "get_label_image",
+    description:
+      "Load one image from the label image library so you can look at it (PNG/JPEG/GIF/WebP come back as an image, SVG as its source text).",
+    inputSchema: {
+      type: "object",
+      properties: { file_name: { type: "string", description: "file_name from list_label_images" } },
+      required: ["file_name"],
+    },
+  },
+  {
+    name: "upload_label_image",
+    description:
+      "Add an image to the shared label image library (visible to everyone who edits label templates). Give either file_path (a file on this machine) or content_base64 + file_name. Returns the stored file_name (made unique if the name was taken) to use in layouts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file_path: { type: "string", description: "Local path of an image file (png, jpg, gif, svg, webp, bmp)" },
+        content_base64: { type: "string", description: "Image bytes as base64 (alternative to file_path)" },
+        file_name: { type: "string", description: "Name to store; defaults to the file_path basename" },
+      },
     },
   },
   {
@@ -132,7 +240,22 @@ export function isLabelTemplateTool(name: string): boolean {
   return LABEL_TEMPLATE_TOOL_NAMES.has(name);
 }
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+type ToolResult = { content: ToolContent[]; isError?: boolean };
+
+const PREVIEW_FIELDS = [
+  "editor_mode",
+  "html_template",
+  "layout_json",
+  "label_size",
+  "field_mapping",
+  "preview_data",
+  "reference_doctype",
+  "padding_top_mm",
+  "padding_right_mm",
+  "padding_bottom_mm",
+  "padding_left_mm",
+] as const;
 
 const ok = (text: string): ToolResult => ({ content: [{ type: "text", text }] });
 const err = (text: string): ToolResult => ({ content: [{ type: "text", text }], isError: true });
@@ -152,6 +275,9 @@ const EDITABLE_FIELDS = [
   "preview_data",
   "description",
   "label_size",
+  "editor_mode",
+  "layout_json",
+  "inputs",
 ] as const;
 
 export async function handleLabelTemplateTool(
@@ -186,7 +312,9 @@ export async function handleLabelTemplateTool(
           reference_doctype: doc.reference_doctype,
           source_field: doc.source_field,
           html_template: doc.html_template,
-          zpl_template: doc.zpl_template,
+          editor_mode: doc.editor_mode,
+          layout_json: doc.layout_json,
+          inputs: doc.inputs,
           field_mapping: doc.field_mapping,
           preview_data: doc.preview_data,
           padding_top_mm: doc.padding_top_mm,
@@ -208,13 +336,129 @@ export async function handleLabelTemplateTool(
         if (Object.keys(data).length === 0) {
           return err("Provide at least one field to update");
         }
+        for (const k of ["layout_json", "preview_data", "field_mapping"]) {
+          if (data[k] && typeof data[k] !== "string") data[k] = JSON.stringify(data[k]);
+        }
+        if (Array.isArray(data.inputs)) {
+          data.inputs = data.inputs.map((r: any) => ({ ...r, reqd: r.reqd ? 1 : 0 }));
+        }
         await erpnext.updateDocument("Label Template", n, data);
         return ok(`Updated Label Template ${n}: ${Object.keys(data).join(", ")}`);
       }
 
+      case "render_label_preview": {
+        const n = arg<string>(args, "name");
+        if (!n) return err("name is required");
+        const overrides = arg<Record<string, any> | undefined>(args, "overrides");
+        const callArgs: Record<string, any> = {
+          inputs: JSON.stringify(arg<Record<string, any>>(args, "input_values") ?? {}),
+          sample: arg<boolean | undefined>(args, "use_preview_data") === false ? 0 : 1,
+        };
+        const ref = arg<string | undefined>(args, "reference_name");
+        if (ref) callArgs.reference_name = ref;
+        if (overrides && Object.keys(overrides).length) {
+          const saved = await erpnext.getDocument("Label Template", n);
+          const doc: Record<string, any> = {};
+          for (const f of PREVIEW_FIELDS) doc[f] = saved[f];
+          doc.inputs = (saved.inputs ?? []).map((r: any) => ({
+            fieldname: r.fieldname,
+            label: r.label,
+            default_value: r.default_value,
+            reqd: r.reqd,
+          }));
+          Object.assign(doc, overrides);
+          for (const k of ["layout_json", "preview_data", "field_mapping"]) {
+            if (doc[k] && typeof doc[k] !== "string") doc[k] = JSON.stringify(doc[k]);
+          }
+          callArgs.doc = JSON.stringify(doc);
+        } else {
+          callArgs.label_template = n;
+        }
+        const r = await erpnext.callMethod(
+          "erpnext.devices.doctype.label_template.label_template.render_template_preview",
+          callArgs,
+        );
+        if (!r?.image_base64) return err("Nothing to render: set label_size and a template/layout first.");
+        const content: ToolContent[] = [
+          { type: "image", data: r.image_base64, mimeType: "image/png" },
+          {
+            type: "text",
+            text:
+              `${n}${overrides ? " (unsaved overrides)" : ""}: ${r.width_mm} × ${r.height_mm} mm, ` +
+              `${r.width_dots} × ${r.height_dots} dots @ ${r.dpi} dpi. 1 mm = ${(r.dpi / 25.4).toFixed(2)} px.`,
+          },
+        ];
+        if (arg<boolean>(args, "include_html")) content.push({ type: "text", text: r.html ?? "" });
+        return { content };
+      }
+
+      case "test_label_data_setup": {
+        const n = arg<string>(args, "name");
+        if (!n) return err("name is required");
+        const callArgs: Record<string, any> = {
+          label_template: n,
+          inputs: JSON.stringify(arg<Record<string, any>>(args, "input_values") ?? {}),
+          sample: arg<boolean | undefined>(args, "use_preview_data") === false ? 0 : 1,
+        };
+        const setup = arg<string | undefined>(args, "setup");
+        if (setup !== undefined) callArgs.setup = setup;
+        const ref = arg<string | undefined>(args, "reference_name");
+        if (ref) callArgs.reference_name = ref;
+        return json(
+          await erpnext.callMethod("erpnext.devices.doctype.label_template.label_template.test_data_setup", callArgs),
+        );
+      }
+
+      case "list_label_images": {
+        const files: any[] = (await erpnext.callMethod("erpnext.devices.label_images.get_label_images")) ?? [];
+        const q = (arg<string>(args, "search") ?? "").toLowerCase();
+        return json(
+          files
+            .filter((f) => !q || String(f.file_name).toLowerCase().includes(q))
+            .map((f) => ({ file_name: f.file_name, file_url: f.file_url })),
+        );
+      }
+
+      case "get_label_image": {
+        const fileName = arg<string>(args, "file_name");
+        if (!fileName) return err("file_name is required");
+        const files: any[] = (await erpnext.callMethod("erpnext.devices.label_images.get_label_images")) ?? [];
+        const file = files.find((f) => f.file_name === fileName);
+        if (!file) return err(`No image "${fileName}" in the label image library. Use list_label_images.`);
+        const { data, contentType } = await erpnext.getBinary(file.file_url);
+        if (contentType.includes("svg") || fileName.toLowerCase().endsWith(".svg")) {
+          return ok(`${fileName} (SVG, ${data.length} bytes):\n${data.toString("utf8")}`);
+        }
+        const mimeType = contentType.split(";")[0].trim() || "image/png";
+        return {
+          content: [
+            { type: "image", data: data.toString("base64"), mimeType },
+            { type: "text", text: `${fileName} — ${file.file_url}, ${data.length} bytes` },
+          ],
+        };
+      }
+
+      case "upload_label_image": {
+        const filePath = arg<string | undefined>(args, "file_path");
+        let content = arg<string | undefined>(args, "content_base64");
+        let fileName = arg<string | undefined>(args, "file_name");
+        if (filePath) {
+          const fs = await import("node:fs/promises");
+          const path = await import("node:path");
+          content = (await fs.readFile(filePath)).toString("base64");
+          fileName = fileName || path.basename(filePath);
+        }
+        if (!content || !fileName) return err("Give file_path, or content_base64 together with file_name");
+        const r = await erpnext.callMethod("erpnext.devices.label_images.add_label_image", {
+          file_name: fileName,
+          content_base64: content,
+        });
+        return json(r);
+      }
+
       case "get_label_template_reference": {
         const result = await erpnext.callMethod(
-          "erpnext.manufacturing.doctype.label_template.label_template.get_template_reference",
+          "erpnext.devices.doctype.label_template.label_template.get_template_reference",
         );
         const payload = result?.message ?? result;
         return json({

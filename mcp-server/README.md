@@ -15,6 +15,8 @@ This is a TypeScript-based MCP server that provides integration with ERPNext/Fra
 - `get_documents` - Get a list of documents for a specific doctype
 - `create_document` - Create a new document in ERPNext
 - `update_document` - Update an existing document in ERPNext
+- `get_child_rows` - Read one child table of a document through its parent
+- `update_child_rows` - Update, add or remove rows of one child table through the parent
 - `run_report` - Run an ERPNext report
 - `get_doctype_fields` - Get fields list for a specific DocType
 - `get_doctypes` - Get a list of all available DocTypes

@@ -32,6 +32,7 @@ app_include_css = [
 	"erpnext.bundle.css",
 	"/assets/erpnext/css/todo_planner.css",
 	"procurement_form.bundle.css",
+	"repair_form.bundle.css",
 ]
 web_include_css = "erpnext-web.bundle.css"
 web_include_js = "erpnext-web.bundle.js"
@@ -65,8 +66,16 @@ sensitive_data_methods = {
 }
 
 doctype_js = {
-	"Issue": "public/js/custom/service_repair.js",
-	"Repair Unit": "public/js/custom/repair_unit.js",
+	"Issue": [
+		"public/js/custom/repair_dialog.js",
+		"public/js/custom/repair_form.js",
+		"public/js/custom/service_repair.js",
+	],
+	"Repair Unit": [
+		"public/js/custom/repair_dialog.js",
+		"public/js/custom/repair_form.js",
+		"public/js/custom/repair_unit.js",
+	],
 	"Repair Settings": "public/js/custom/repair_settings.js",
 	"Permission Log": "public/js/custom/permission_log.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
@@ -98,6 +107,7 @@ doctype_js = {
 	# оклади працівника по періодах — секція на картці
 	"Employee": [
 		"public/js/custom/employee_salary_history.js",
+		"public/js/custom/employee_earnings.js",
 		"public/js/custom/employee_attendance_sheet.js",
 		"public/js/custom/employee_overview.js",
 	],
@@ -291,6 +301,7 @@ after_migrate = [
 	"erpnext.payroll_ua.setup.setup_attendance_sheet",
 	"erpnext.crm.crm_sidebar.add_chat_pages",
 	"erpnext.crm.crm_sidebar.add_commercial_offer",
+	"erpnext.crm.crm_sidebar.add_client_base",
 	"erpnext.manufacturing.manufacturing_sidebar.add_production_line_pages",
 	"erpnext.setup.organization_sidebar.add_organization_links",
 	"erpnext.buying.buying_sidebar.add_buying_links",
@@ -475,6 +486,14 @@ standard_navbar_items = [
 		"is_standard": 1,
 		"condition": "eval: frappe.boot.sensitive_data && frappe.boot.sensitive_data.enabled && frappe.boot.sensitive_data.has_pin",
 		"icon": "key-round",
+	},
+	{
+		"item_label": "Ops Dashboard",
+		"item_type": "Action",
+		"action": "window.open(location.protocol + '//' + location.hostname + ':8081/', '_blank')",
+		"is_standard": 1,
+		"condition": "eval: frappe.user.has_role('System Manager')",
+		"icon": "server",
 	},
 ]
 
@@ -1079,6 +1098,7 @@ scheduler_events = {
 		"erpnext.crm.chat_archive.auto_archive_entity_chats",
 		"erpnext.crm.chat_archive.auto_deep_archive",
 		"erpnext.payroll_ua.doctype.salary_advance.salary_advance.create_monthly_advance",
+		"erpnext.manufacturing.doctype.production_line.production_line.check_critical_stock",
 	],
 	"daily_long": [
 		"erpnext.devices.doctype.otdr_measurement.otdr_measurement.cleanup_old_sor_files",

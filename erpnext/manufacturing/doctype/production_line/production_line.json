@@ -24,6 +24,11 @@
   "workplace_section",
   "workplaces",
   "workplace_overview",
+  "allowed_items_section",
+  "allowed_items",
+  "critical_stock_section",
+  "critical_stock",
+  "critical_stock_overview",
   "planning_tab",
   "planning_mode",
   "orders_section",
@@ -143,6 +148,35 @@
    "fieldname": "workplace_overview",
    "fieldtype": "HTML",
    "label": "Workplace Overview"
+  },
+  {
+   "fieldname": "allowed_items_section",
+   "fieldtype": "Section Break",
+   "label": "Allowed Items"
+  },
+  {
+   "description": "What this line may produce. Orders and plan rows can only name these items. Left empty, any item is allowed.",
+   "fieldname": "allowed_items",
+   "fieldtype": "Table",
+   "label": "Allowed Items",
+   "options": "Production Line Allowed Item"
+  },
+  {
+   "fieldname": "critical_stock_section",
+   "fieldtype": "Section Break",
+   "label": "Critical Stock"
+  },
+  {
+   "description": "Components of the allowed items' BOMs and the free stock below which the line warns. Free stock = stock in the Raw Material Warehouse minus what released Work Orders already reserved.",
+   "fieldname": "critical_stock",
+   "fieldtype": "Table",
+   "label": "Critical Stock",
+   "options": "Production Line Critical Stock"
+  },
+  {
+   "fieldname": "critical_stock_overview",
+   "fieldtype": "HTML",
+   "label": "Critical Stock Overview"
   },
   {
    "fieldname": "plan_section",
@@ -298,7 +332,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 12:00:00.000000",
+ "modified": "2026-11-16 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Line",

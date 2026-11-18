@@ -337,6 +337,10 @@ function salary_lines(frm, row) {
 			lines.push([__("Bonus in Cash"), money(row.bonus_cash)]);
 		}
 
+		if (flt(row.overtime_pay)) {
+			lines.push(overtime_line(row));
+		}
+
 		lines.push(
 			[__("Paid Out"), money(paid_out(row))],
 			[__("To Pay"), `<b>${money(row.outstanding)}</b>`]
@@ -375,7 +379,24 @@ function cash_worked(row) {
 }
 
 function accrued_cash(row) {
-	return flt(flt(row.earned_cash) - flt(row.bonus_cash), 2);
+	return flt(flt(row.earned_cash) - flt(row.bonus_cash) - flt(row.overtime_pay), 2);
+}
+
+// Понаднормові: години звичайних днів за ставкою, робота у вихідний — подвійно.
+function overtime_line(row) {
+	const parts = [];
+
+	if (flt(row.regular_overtime_hours)) {
+		parts.push(`${flt(row.regular_overtime_hours)} ${__("h")} × ${money(row.overtime_rate)}`);
+	}
+
+	if (flt(row.holiday_hours)) {
+		parts.push(
+			`${flt(row.holiday_hours)} ${__("h")} × 2 × ${money(row.overtime_rate)} (${__("days off")})`
+		);
+	}
+
+	return [__("Overtime in Cash"), `+ ${money(row.overtime_pay)} (${parts.join(" + ")})`];
 }
 
 // Премія й надбавка платяться лише готівкою, тож офіційне нараховане — це рівно оклад
@@ -401,7 +422,10 @@ function payout_lines(frm, row) {
 
 	const [pit_rate, levy_rate] = erpnext.payroll.rates();
 	const remainder = remainder_official(row);
-	const withheld = flt(remainder - flt(row.salary_card) - flt(row.deposit), 2);
+	const withheld = flt(
+		remainder - flt(row.salary_card) - flt(row.deposit) - flt(row.enforcement_withheld),
+		2
+	);
 	// Утримане ділиться між податками за їхніми ставками, а не рахується від залишку наново:
 	// так сума рядків завжди дорівнює тому, що справді утримали.
 	const pit = flt((withheld * pit_rate) / (pit_rate + levy_rate), 2);
@@ -413,6 +437,11 @@ function payout_lines(frm, row) {
 	// Задаток видають не всім — рядок з'являється лише тоді, коли він був.
 	if (flt(row.deposit)) {
 		lines.push([__("Deposit"), money(row.deposit)]);
+	}
+
+	// Аліменти й борги за рішенням суду — із чистої офіційної суми, людині стільки менше.
+	if (flt(row.enforcement_withheld)) {
+		lines.push([__("Withheld under Enforcement Orders"), `− ${money(row.enforcement_withheld)}`]);
 	}
 
 	lines.push(
@@ -487,7 +516,7 @@ function show_payout(frm, row) {
 			${lines_html(lines)}
 			${paid_note}
 			<p class="text-muted" style="margin-top: 8px;">${__(
-				"The salary is paid for {0} paid days of {1} working days in the month — working days less sick leave over 5 days.",
+				"The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.",
 				[number(row.paid_days), number(row.total_working_days)]
 			)}</p>
 		`,
@@ -619,10 +648,15 @@ function show_cash_payout(frm, row) {
 	// Премію могли призначити готівкою — без окремого рядка нарахована сума виглядає
 	// більшою за оклад половини.
 	if (flt(row.bonus_cash)) {
-		lines.push(
-			[__("Bonus in Cash"), `+ ${money(row.bonus_cash)}`],
-			[__("Accrued in Total"), money(row.earned_cash)]
-		);
+		lines.push([__("Bonus in Cash"), `+ ${money(row.bonus_cash)}`]);
+	}
+
+	if (flt(row.overtime_pay)) {
+		lines.push(overtime_line(row));
+	}
+
+	if (flt(row.bonus_cash) || flt(row.overtime_pay)) {
+		lines.push([__("Accrued in Total"), money(row.earned_cash)]);
 	}
 
 	lines.push([__("Advance in Cash"), `− ${money(row.advance_cash)}`]);
@@ -661,7 +695,7 @@ function show_cash_payout(frm, row) {
 		message: `
 			${lines_html(lines)}
 			<p class="text-muted" style="margin-top: 8px;">${__(
-				"The salary is paid for {0} paid days of {1} working days in the month — working days less sick leave over 5 days.",
+				"The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.",
 				[number(row.paid_days), number(row.total_working_days)]
 			)}</p>
 		`,

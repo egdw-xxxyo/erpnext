@@ -16842,6 +16842,8 @@ Cancelled issues are excluded from the repair cost.,Скасовані спис�
 Posted By,Списав
 Inbound Delivery Type,Тип надходження
 Inbound Delivery Details,Подробиці надходження
+Intake Details,Деталі надходження
+Return Details,Деталі повернення
 Delivery Type,Тип відправлення
 Waybill,ТТН
 Nova Poshta,Нова пошта
@@ -17216,6 +17218,526 @@ Approve on behalf of all CEOs,Погодити за всіх CEO
 Only a Department Head can approve on behalf of all CEOs.,Погодити за всіх CEO може лише керівник підрозділу.
 Approved by Department Head on behalf of all CEOs,Погоджено керівником підрозділу за всіх CEO
 {0} approved on behalf of all CEOs for the following reason:<br>{1},{0} погодив за всіх CEO з таким поясненням:<br>{1}
+Printer {0} ({1}:{2}) is not reachable. Check power and network.,Принтер {0} ({1}:{2}) недоступний. Перевірте живлення та мережу.
+Client Base,Клієнтська база
+Call Result,Результат дзвінка
+Contact Call Result,Результат дзвінка по контакту
+Favorite,Обране
+Favorites,Обрані
+Hidden,Приховано
+Show Hidden,Показати приховані
+Due Today,Наступна дія сьогодні
+In Work,У роботі
+Worked By,Працює
+Work Started,Початок роботи
+Processed contacts,Опрацьовано контактів
+Reset contact filter,Скинути фільтр контакту
+No contacts in work,Немає контактів у роботі
+No contacts,Немає контактів
+Start Work,Почати роботу
+Finish Work,Завершити роботу
+Finish Contact,Завершити роботу з контактом
+Add Result,Додати результат
+Results,Результати
+No results,Немає результатів
+No tasks,Немає завдань
+Task closed,Завдання закрито
+Changes during work,Зміни під час роботи
+Tasks from before the work (tick to close),Завдання, що були до початку роботи (позначте, щоб закрити)
+No open tasks from before the work,Немає відкритих завдань, що були до початку роботи
+Finish work? All contacts will no longer be marked as in work.,Завершити роботу? Усі контакти більше не будуть позначені як у роботі.
+Select at least one contact,Виберіть хоча б один контакт
+Contact {0} is already being worked on by {1},Контакт {0} уже в роботі у {1}
+Contact {0} is not in your work,Контакт {0} не у вашій роботі
+Follow up,Повторний контакт
+Invalid field,Неправильне поле
+No answer,Без відповіді
+Call back later,Передзвонити пізніше
+Proposal sent,Пропозицію надіслано
+Refused,Відмова
+Gray,Сірий
+{0} hidden,Приховано: {0}
+Unhide,Показати знову
+{0} open,відкритих: {0}
+Click to expand,"Натисніть, щоб розгорнути"
+Other open tasks,Інші відкриті завдання
+Open tasks ({0}),Відкриті завдання ({0})
+Client Base Comment,Коментар (клієнтська база)
+Contact {0} not found,Контакт {0} не знайдено
+Military Unit Name,Повна назва ВЧ
+All contacts are hidden,Усі контакти приховано
+{0} contacts,Контактів: {0}
+My contacts,Мої контакти
+Unassigned,Без менеджера
+Change manager,Змінити менеджера
+Only your own or unassigned contacts can be taken to work,У роботу можна взяти лише свої контакти або контакти без менеджера
+Contact {0} belongs to manager {1},Контакт {0} закріплений за менеджером {1}
+Latest Result,Останній результат
+Add to Work,Додати в роботу
+Added to work: {0},Додано в роботу: {0}
+Scroll to top,Нагору
+Processed military units,Опрацьовано ВЧ
+Add contact,Додати контакт
+Contact added,Контакт додано
+No military units in work,Немає ВЧ у роботі
+Select at least one military unit,Виберіть хоча б одну ВЧ
+Military unit {0} not found,ВЧ {0} не знайдено
+Military unit {0} is already being worked on by {1},ВЧ {0} уже в роботі у {1}
+Military unit {0} is not in your work,ВЧ {0} не у вашій роботі
+Military unit is being worked on by {0},ВЧ у роботі у {0}
+Finish Military Unit,Завершити роботу з ВЧ
+Finish work? All military units will no longer be marked as in work.,Завершити роботу? Усі ВЧ більше не будуть позначені як у роботі.
+Sick Leave Case,Випадок лікарняного
+Sick Leave Certificate,Листок непрацездатності (ЕЛН)
+Sick Leave Cases,Випадки лікарняного
+Case Type,Тип випадку
+Illness or Injury,Захворювання або травма
+Work Injury or Occupational Disease,Виробнича травма або профзахворювання
+Maternity,Вагітність і пологи
+Child Care,Догляд за дитиною
+Employer Paid,Оплачено роботодавцем
+Fund Received,Отримано від фонду
+Final Certificate Received,Отримано останній ЕЛН
+Tick when the last electronic sick leave certificate (ЕЛН) is closed: only then the employer part goes into the salary.,"Позначте, коли останній ЕЛН закрито: лише тоді частина роботодавця йде в зарплату."
+Certificates (ЕЛН),Листки непрацездатності (ЕЛН)
+Certificates,Листки
+Certificate Number (ЕЛН),Номер ЕЛН
+Calendar Days,Календарні дні
+Calculation,Розрахунок
+Calculation Details,Деталі розрахунку
+"Insurance Record, Years","Страховий стаж, років"
+"Insurance Record, Months","Страховий стаж, місяців"
+Pay Percent,Відсоток оплати
+Why This Percent,Чому такий відсоток
+Average Daily Wage,Середньоденна зарплата
+Pay per Day,Оплата за день
+How the Average Was Taken,Як порахована середня
+Employer Part,Частина роботодавця
+Employer Days,Дні роботодавця
+Employer Part Accrued,Нараховано (роботодавець)
+Employer Part Withheld,Утримано (роботодавець)
+Employer Part to Card,На картку (роботодавець)
+Employer Part SSC,ЄСВ (роботодавець)
+Paid by Payroll Sheet,Виплачено зарплатною відомістю
+Salary Month,Місяць зарплати
+Employer Part Paid On,Частину роботодавця виплачено
+Fund Part,Частина фонду
+Fund Days,Дні фонду
+Fund Part Expected,Очікується від фонду
+Fund Part Accrued,Нараховано (фонд)
+Fund Part Withheld,Утримано (фонд)
+Fund Part to Card,На картку (фонд)
+Fund Part SSC,ЄСВ (фонд)
+Received from Fund,Отримано від фонду
+Received from Fund On,Дата надходження від фонду
+Fund Receipt Entry,Проведення надходження від фонду
+Fund Part Paid On,Частину фонду виплачено
+Fund Part Payment Entry,Проведення виплати частини фонду
+Fund Part Tax Entry,Проведення податків частини фонду
+Add at least one sick leave certificate (ЕЛН).,Додайте хоча б один листок непрацездатності (ЕЛН).
+Certificate {0}: the last day is before the first day.,ЕЛН {0}: останній день раніше за перший.
+Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case.,ЕЛН {0} не продовжує {1}: продовження починається наступного дня після закінчення попереднього. Перерва означає новий випадок лікарняного.
+These days are already in sick leave case {0}.,Ці дні вже є у випадку лікарняного {0}.
+The sick leave case is already paid — it cannot be deleted.,Випадок лікарняного вже оплачено — видалити його не можна.
+No earnings in the calculation period — taken from the official salary.,У розрахунковому періоді немає заробітку — середня з офіційного окладу.
+{0} – {1}: earnings {2} over {3} days.,{0} – {1}: заробіток {2} за {3} дн.
+Capped by the maximum SSC base: {0} a day instead of {1}.,Обмежено максимальною базою ЄСВ: {0} на день замість {1}.
+"Insurance record under 6 months: capped by the minimum wage, {0} a day instead of {1}.","Страховий стаж менше 6 місяців: обмежено мінімальною зарплатою, {0} на день замість {1}."
+Attendance shows another status on: {0}.,У табелі інша відмітка на: {0}.
+The fund pays nothing in this case.,У цьому випадку фонд нічого не платить.
+The money from the fund is already recorded.,Надходження від фонду вже записано.
+Enter the amount received from the fund.,"Вкажіть суму, отриману від фонду."
+"Sick pay from the fund, {0}, {1}","Лікарняні від фонду, {0}, {1}"
+"The fund paid {0}, the calculation expected {1}.","Фонд заплатив {0}, за розрахунком очікувалось {1}."
+Record the money from the fund first.,Спершу запишіть надходження від фонду.
+The fund part is already paid.,Частину фонду вже виплачено.
+Sick pay (fund part) {0},Лікарняні (частина фонду) {0}
+Taxes on the sick pay (fund part) {0},Податки з лікарняних (частина фонду) {0}
+Not entered,Не вказано
+{0}: always {1}%,{0}: завжди {1}%
+Employee card: sick pay in full,Картка працівника: лікарняні у повному розмірі
+Insurance record {0} full years (from {1} years — {2}%),Страховий стаж {0} повних років (від {1} років — {2}%)
+Insurance record {0} full years (under 3 years — {1}%),Страховий стаж {0} повних років (до 3 років — {1}%)
+Money Received from Fund,Отримано гроші від фонду
+Pay Fund Part to Employee,Виплатити частину фонду працівнику
+Fund,Фонд
+The case is open: the employer part goes into the salary once the final certificate is ticked.,"Випадок відкритий: частина роботодавця піде в зарплату, коли буде позначено останній ЕЛН."
+Save the case to see the calculation.,"Збережіть випадок, щоб побачити розрахунок."
+Insurance record,Страховий стаж
+{0} y {1} m = before joining {2} m (from the {3}) + here {4} m since {5},{0} р. {1} міс. = до прийняття {2} міс. (з {3}) + тут {4} міс. з {5}
+employee card,картки працівника
+Pay percent,Відсоток оплати
+Average daily wage,Середньоденна зарплата
+Pay per day,Оплата за день
+"{0} calendar days: employer {1}, fund {2}","{0} календарних дн.: роботодавець {1}, фонд {2}"
+Employer part (with the salary),Частина роботодавця (із зарплатою)
+"{0} accrued, {1} to the card","нараховано {0}, на картку {1}"
+Fund part (when the money arrives),Частина фонду (коли прийдуть гроші)
+Amount Received,Отримана сума
+"{0} accrued, {1} to the card.","Нараховано {0}, на картку {1}."
+Waiting for Fund,Чекає на фонд
+Not Closed,Не закриті
+Find Unregistered Sick Days,Знайти незареєстровані лікарняні
+Find,Знайти
+Created {0} draft cases — enter the certificate numbers.,Створено чернеток випадків: {0} — вкажіть номери ЕЛН.
+Sick leave cases whose employer part this row pays.,"Випадки лікарняного, частину роботодавця яких платить цей рядок."
+Working days by the calendar; a sick day counts at the cash percent from the payroll tax settings.,Робочі дні за календарем; день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+Paid separately by the sick leave case when the money from the fund arrives.,"Платиться окремо випадком лікарняного, коли прийдуть гроші від фонду."
+How much of the cash daily rate the cash half pays for each sick day.,Скільки відсотків готівкової денної ставки платиться за кожен день лікарняного.
+Cash Pay for a Sick Day,Готівка за день лікарняного
+Calendar working days from the joining date up to the cut-off; a sick day counts at the cash percent from the payroll tax settings.,Робочі дні за календарем від прийняття на роботу до дня відсікання; день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.,Зарплата платиться за {0} оплачуваних днів із {1} робочих днів місяця — день лікарняного рахується за відсотком готівки з налаштувань податків на зарплату.
+Sick Pay (Fund),Лікарняні (фонд)
+paid separately by the sick leave case,платиться окремо випадком лікарняного
+{0} d,{0} дн.
+Vacation Payments,Виплати відпускних
+Days Ahead,Днів наперед
+Late by {0} d,Прострочено на {0} дн.
+Today,Сьогодні
+In {0} d,Через {0} дн.
+No unpaid vacations ahead.,Неоплачених відпусток попереду немає.
+plus {0} earlier unpaid days,плюс {0} раніше неоплачених дн.
+Vacation pay is due {0} d before the first vacation day (Payroll Tax Settings).,Відпускні платяться за {0} дн. до першого дня відпустки (Налаштування податків на зарплату).
+"{0} d: {1} accrued, {2} to the card.","{0} дн.: нараховано {1}, на картку {2}."
+Paid through {0},Оплачено через {0}
+No earnings yet — official salary × 12 ÷ {0} days.,Заробітку ще немає — офіційний оклад × 12 ÷ {0} дн.
+{0} – {1}: earnings {2} ÷ {3} days.,{0} – {1}: заробіток {2} ÷ {3} дн.
+{0} employees are paid later than the due date before the vacation.,"Працівників, яким відпускні оплачено пізніше строку: {0}."
+How many days before the first vacation day the vacation pay must be paid (the Labour Code says 3).,За скільки днів до першого дня відпустки треба виплатити відпускні (КЗпП каже 3).
+Pay Vacation Days Before,Платити відпускні за днів до
+Earnings by Month,Заробіток по місяцях
+ERP,ERP
+Before ERP,До ERP
+Earnings by Month: {0},Заробіток по місяцях: {0}
+"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до ERP — з таблиці «Заробіток до ERP» цієї картки."
+Official Accrued,Нараховано офіційно
+Official Paid to Card,Виплачено на картку
+Cash Accrued,Нараховано готівкою
+Cash Paid,Виплачено готівкою
+For the Average,Для середньої
+No months yet.,Місяців ще немає.
+Overtime Hour Rate,Годинна ставка понаднормових
+Full salary ÷ working days of the month ÷ hours of a working day.,Повний оклад ÷ робочі дні місяця ÷ години робочого дня.
+Overtime Hours on Working Days,Понаднормові години в робочі дні
+Hours Worked on Days Off,Години роботи у вихідні та свята
+"The whole day plus its overtime hours, paid at the double rate.",Увесь день плюс його понаднормові години — за подвійною ставкою.
+Overtime Pay (Cash),Понаднормові (готівкою)
+Overtime in Cash,Понаднормові готівкою
+h,год
+days off,вихідні
+Enforcement Order,Виконавчий документ
+Enforcement Orders,Виконавчі документи
+Enforcement Order Withholding,Утримання за виконавчим документом
+Kind,Вид
+Child Alimony,Аліменти на дітей
+Other Alimony,Інші аліменти
+Other Debt,Інший борг
+"Child alimony allows withholding up to 70% of a payment, everything else up to 50%.","Для аліментів на дітей можна утримати до 70% виплати, для решти — до 50%."
+Document Number,Номер документа
+Enforcement Proceeding No.,№ виконавчого провадження
+Issued By (Court / Enforcement Officer),Ким видано (суд / виконавець)
+Withhold From,Утримувати з
+Withhold Until,Утримувати до
+Percent,Відсоток
+Percent: from every official payment after PIT and military levy. Fixed: once a month from the monthly salary.,Відсоток — з кожної офіційної виплати після ПДФО і військового збору. Фіксована сума — раз на місяць із зарплати за місяць.
+Percent of Net Official Pay,Відсоток від чистої офіційної виплати
+Fixed Amount per Month,Фіксована сума на місяць
+Total Debt,Загальна сума боргу
+Stop withholding once this much is withheld. Empty — no limit (alimony).,"Утримання припиняється, щойно утримано цю суму. Порожньо — без обмеження (аліменти)."
+Fixed Amount Not Withheld Yet,Ще не утримана фіксована сума
+What the last months could not withhold — added to the next month.,"Те, що не вдалося утримати в попередні місяці, — додається до наступного."
+Recipient Tax ID / EDRPOU,РНОКПП / ЄДРПОУ отримувача
+Withheld,Утримано
+Transferred to Recipient,Перераховано отримувачу
+To Transfer,До перерахування
+Withholdings,Утримання
+Paid By Type,Тип виплати
+Paid By,Виплата
+Net Payment,Чиста виплата
+Withholding Entry,Проведення утримання
+Transfer Entry,Проведення перерахування
+The percent must be above 0 and not more than 100.,Відсоток має бути більшим за 0 і не більшим за 100.
+Enter the fixed amount per month.,Вкажіть фіксовану суму на місяць.
+The last day of withholding is before the first one.,Останній день утримання раніше за перший.
+Money was already withheld under this document — close it instead of deleting.,За цим документом уже утримано гроші — закрийте його замість видалення.
+Nothing is waiting to be transferred to the recipient.,"Немає сум, що чекають на перерахування отримувачу."
+Set the bank account and the account of component «{0}» first.,Спершу налаштуйте банківський рахунок і рахунок компонента «{0}».
+"{0}: {1}, IBAN {2}. {3}","{0}: {1}, IBAN {2}. {3}"
+Transfer to Recipient,Перерахувати отримувачу
+"{0} to {1}, IBAN {2}.","{0} — {1}, IBAN {2}."
+Set the account for salary component «{0}» for company {1}: the payment has withholdings under enforcement orders.,Налаштуйте рахунок компонента «{0}» для компанії {1}: у виплаті є утримання за виконавчими документами.
+No Account for Enforcement Withholdings,Немає рахунку для утримань за виконавчими документами
+Withheld under enforcement orders: {0},Утримано за виконавчими документами: {0}
+Withheld under Enforcement Orders,Утримано за виконавчими документами
+"Taken from this card payment under the employee's enforcement orders (alimony, court debts).","Утримано з цієї виплати на картку за виконавчими документами працівника (аліменти, борги за рішенням суду)."
+Fund Part Withheld under Enforcement Orders,Утримано з частини фонду за виконавчими документами
+Use New Repair UI,Увімкнути новий інтерфейс ремонту
+Return to Standard Frappe UI,Повернутися до стандартного Frappe UI
+The action could not be completed. Check the details and try again.,Не вдалося виконати дію. Перевірте дані та спробуйте ще раз.
+"New Service Request","Нова сервісна заявка"
+"New Repair Unit","Нова ремонтна одиниця"
+"Describe the request, select its type and specify the contact.","Опишіть звернення та виберіть тип заявки й контактну особу."
+"Review the item details, record the repair work and its result.","Перевірте дані виробу та зафіксуйте виконані роботи й результат ремонту."
+"Questions and support","Запитання та підтримка"
+"Intake, repair and return","Приймання та повернення"
+"Request Details","Дані заявки"
+"Discard Draft","Відкинути чернетку"
+"Working…","Виконується…"
+"Select a contact to see their phone, email and messaging options.","Виберіть контактну особу — тут зʼявляться телефон і пошта та кнопки звʼязку."
+"The operation was completed. Reload the document to see the latest data.","Операцію виконано. Оновіть документ, щоб побачити актуальні дані."
+"Repair Item Details","Дані виробу"
+"The new repair interface could not be loaded. The standard form is available; your input is preserved.","Не вдалося завантажити новий інтерфейс ремонту. Доступна стандартна форма; введені дані збережено."
+NATO Code,Код NATO
+Shown in the PDF above «Made in Ukraine»,Виводиться в PDF над «Вироблено в Україні»
+Critical Stock,Критичний залишок
+Critical Stock Overview,Огляд критичних залишків
+Component,Компонент
+Free Stock,Вільний залишок
+Per Unit,На одиницю
+After Order,Після замовлення
+Add Order,Додати замовлення
+Fill From BOMs,Заповнити з норм
+OK,Гаразд
+Production Line Allowed Item,Дозволений виріб виробничої лінії
+Production Line Critical Stock,Критичний залишок виробничої лінії
+"What this line may produce. Orders and plan rows can only name these items. Left empty, any item is allowed.","Що може виробляти ця лінія. Замовлення та рядки плану можуть містити лише ці вироби. Якщо порожньо — дозволено будь-який виріб."
+"Components of the allowed items' BOMs and the free stock below which the line warns. Free stock = stock in the Raw Material Warehouse minus what released Work Orders already reserved.","Компоненти з норм дозволених виробів і вільний залишок, нижче якого лінія попереджає. Вільний залишок = залишок на складі комплектуючих мінус те, що вже зарезервували випущені виробничі замовлення."
+The item's default BOM. Its components are what an order of this item consumes.,"Норми виробу за замовчуванням. Їх компоненти — те, що споживає замовлення цього виробу."
+"When free stock of this component in the Raw Material Warehouse falls below this, the line warns so it can be ordered in time.","Коли вільний залишок цього компонента на складі комплектуючих падає нижче цього значення, лінія попереджає, щоб його встигли замовити."
+{0}: item {1} is listed more than once,{0}: позиція {1} вказана більше одного разу
+Row {0}: item {1} is not one of this line's allowed items,Рядок {0}: виріб {1} не входить до дозволених виробів цієї лінії
+Item {0} is not one of this line's allowed items,Виріб {0} не входить до дозволених виробів цієї лінії
+Set the Raw Material Warehouse of production line {0} first,Спочатку вкажіть склад комплектуючих виробничої лінії {0}
+Production line {0}: {1} component(s) below critical stock,Виробнича лінія {0}: компонентів нижче критичного залишку — {1}
+Save the production line first,Спочатку збережіть виробничу лінію
+Add allowed items first: their BOMs give the component list,Спочатку додайте дозволені вироби: список компонентів береться з їх норм
+{0} component(s) added. Set their critical stock and save.,Додано компонентів: {0}. Вкажіть для них критичний залишок і збережіть.
+All components are already listed,Усі компоненти вже є у списку
+Not used by any allowed item's BOM — can be removed,Не використовується в нормах жодного дозволеного виробу — можна видалити
+Below critical stock,Нижче критичного залишку
+{0} below critical stock,Нижче критичного залишку: {0}
+{0} not needed by this line,Не потрібні цій лінії: {0}
+{0} component(s) below critical stock — order them in time,Компонентів нижче критичного залишку: {0} — замовте їх вчасно
+"Components on stock cover only {0} of {1}. Add the order for {1} anyway?","Компонентів на складі вистачає лише на {0} з {1}. Все одно додати замовлення на {1}?"
+The BOM has no stock components,У нормах немає складських компонентів
+Can produce {0} of {1},Можна виготовити {0} з {1}
+short by {0},бракує {0}
+below critical stock after this order,після замовлення нижче критичного залишку
+Can Produce,Можна виготовити
+"How many units the free stock of the Raw Material Warehouse covers by this item's BOM. Recalculated every time the line is opened.","Скільки одиниць покриває вільний залишок складу комплектуючих за нормами цього виробу. Перераховується щоразу, коли відкривається лінія."
+Add at least one element to the label,Додайте на мітку хоча б один елемент
+Add elements to see preview,"Додайте елементи, щоб побачити попередній перегляд"
+An input with this fieldname already exists,Поле введення з такою назвою вже існує
+As is,Як є
+Bar width (mm),Ширина штриха (мм)
+Barcode type,Тип штрихкоду
+Bold row,Жирний рядок
+Border (mm),Рамка (мм)
+Bring to front,На передній план
+Cell padding (mm),Відступ у клітинці (мм)
+Choose input,Оберіть поле введення
+Click to enlarge,"Натисніть, щоб збільшити"
+Column widths (mm),Ширина колонок (мм)
+Corner radius (mm),Радіус кутів (мм)
+Date and time,Дата і час
+Drag onto the label or click to add,"Перетягніть на мітку або натисніть, щоб додати"
+"Drag to move together, arrows to nudge, Del to remove.","Перетягуйте, щоб рухати разом, стрілки — зсув, Del — видалити."
+Editor,Редактор
+Exact preview,Точний перегляд
+Fill in: {0},Заповніть: {0}
+Filled,Заливка
+Font size (pt),Розмір шрифту (пт)
+Generated HTML,Згенерований HTML
+Grid,Сітка
+Grid step,Крок сітки
+Height,Висота
+Horizontal,По горизонталі
+Input,Поле введення
+Inputs,Поля введення
+Insert values with {{ doc.fieldname }},Вставляйте значення через {{ doc.fieldname }}
+Invalid fieldname,Неприпустима назва поля
+Invalid {0} name: {1},Неприпустима назва ({0}): {1}
+Italic,Курсив
+Keep proportions,Зберігати пропорції
+Label Template Input,Поле введення шаблону мітки
+Label data,Дані мітки
+Label sent to printer,Мітку надіслано на принтер
+"Latin letters, digits and _","Латинські літери, цифри та _"
+Layout (JSON),Макет (JSON)
+Layout is not valid JSON,Макет не є коректним JSON
+Layout must be an object with an elements list,Макет має бути об’єктом зі списком elements
+Line height,Міжрядковий інтервал
+Middle,Посередині
+Mock printing: nothing is sent to the device.,Імітація друку: на пристрій нічого не надсилається.
+Module size,Розмір модуля
+New input,Нове поле введення
+No (static rows),Ні (фіксовані рядки)
+No file,Немає файлу
+No preview,Немає попереднього перегляду
+No wrap,Без переносу
+Position and size,Положення і розмір
+Preview failed,Не вдалося побудувати попередній перегляд
+Print Inputs,Поля для друку
+Print label,Друкувати мітку
+Print label: {0},Друк мітки: {0}
+Printable area,Область друку
+Printed in black and white.,Друкується чорно-білим.
+"Printer has {0} loaded, the template needs {1}.","У принтері заправлено {0}, а шаблону потрібно {1}."
+Read only. Switch the editor to HTML to edit it by hand (the visual layout is then no longer used).,"Лише перегляд. Перемкніть редактор на HTML, щоб редагувати вручну (візуальний макет тоді більше не використовується)."
+Remove row,Видалити рядок
+Repeat last row for,Повторювати останній рядок для
+Repeats the last row for every row of the child table; use {{ row.fieldname }}.,Повторює останній рядок для кожного рядка дочірньої таблиці; використовуйте {{ row.fieldname }}.
+Rotation,Поворот
+"Row height (mm) first, then cell texts. {{ doc.x }} and {{ row.x }} allowed.","Спочатку висота рядка (мм), далі тексти клітинок. Можна {{ doc.x }} і {{ row.x }}."
+"Row height (mm), 0 = auto","Висота рядка (мм), 0 = авто"
+Row {0}: duplicate input fieldname {1},Рядок {0}: назва поля введення {1} повторюється
+Row {0}: invalid input fieldname {1},Рядок {0}: неприпустима назва поля введення {1}
+Save the template before printing.,Збережіть шаблон перед друком.
+Select an element to edit it. Shift+click selects several.,"Оберіть елемент, щоб редагувати. Shift+клік — кілька."
+Select: one option per line,Select: один варіант на рядок
+Send to back,На задній план
+Show text under barcode,Показувати текст під штрихкодом
+Size and padding are set in the fields above the designer.,Розмір і відступи задаються в полях над дизайнером.
+Snap to grid,Прилипання до сітки
+Stretch,Розтягнути
+Suffix,Суфікс
+Text style,Стиль тексту
+The document whose data goes on the label,"Документ, дані якого потрапляють на мітку"
+The value is asked in the Print dialog.,Значення запитується у вікні друку.
+The visual designer starts from an empty label. On save the designed layout replaces the current HTML. Continue?,Візуальний дизайнер починає з порожньої мітки. Під час збереження створений макет замінить поточний HTML. Продовжити?
+Underline,Підкреслений
+Unknown layout element: {0},Невідомий елемент макета: {0}
+Upload image,Завантажити зображення
+Upper case,Великими літерами
+Used in the template as {{ doc.fieldname }},У шаблоні використовується як {{ doc.fieldname }}
+Values asked in the Print dialog. Use them in the template as {{ doc.fieldname }}.,"Значення, які запитуються у вікні друку. У шаблоні — {{ doc.fieldname }}."
+Vertical,По вертикалі
+Visual,Візуальний
+"Visual: drag-and-drop designer, the HTML is generated on save. HTML: hand-written Jinja template.","Візуальний: дизайнер з перетягуванням, HTML генерується під час збереження. HTML: шаблон Jinja, написаний вручну."
+White on black,Білим по чорному
+Zoom in,Збільшити
+Zoom out,Зменшити
+field,поле
+mm,мм
+not set,не задано
+table,таблиця
+{0} elements selected,Обрано елементів: {0}
+Ops Dashboard,Панель адміністрування
+Compare with print,Порівняти з друком
+Overlay the printed result (red) on the canvas,Накласти надрукований результат (червоним) на полотно
+Red = printed result,Червоне = результат друку
+The content does not fit the box and will be cut on the label. Enlarge the box or reduce the font.,Вміст не вміщується в рамку й буде обрізаний на мітці. Збільште рамку або зменште шрифт.
+Data setup,Підготовка даних
+Compute values with Jinja before the elements are drawn,Обчислити значення через Jinja перед малюванням елементів
+Jinja run before the elements,"Jinja, що виконується перед елементами"
+"Store computed values on doc, e.g. {% set _ = doc.update({""tu"": ...}) %}; then show them with a Field element (doc.tu). Lookups run when the label is rendered; the canvas shows the key name.","Збережіть обчислені значення в doc, напр. {% set _ = doc.update({""tu"": ...}) %}; потім покажіть їх елементом «Поле» (doc.tu). Пошук виконується під час формування мітки; на полотні видно назву ключа."
+Repeat,Повтор
+Visibility,Видимість
+Show only if (Jinja condition),Показувати лише якщо (умова Jinja)
+E.g. doc.items or doc.qty > 0. Empty = always shown.,Напр. doc.items або doc.qty > 0. Порожньо — показувати завжди.
+A child table of the document or a list put on doc in Data setup. One block is drawn per item.,"Дочірня таблиця документа або список, покладений у doc у «Підготовці даних». Для кожного елемента малюється блок."
+Value of each item,Значення кожного елемента
+"Field of the row, or . for the item itself (a list of strings).",Поле рядка або . для самого елемента (список рядків).
+Show as,Показувати як
+Block height (mm),Висота блоку (мм)
+Columns,Колонки
+Gap (mm),Проміжок (мм)
+Max items (0 = all),Найбільше елементів (0 = усі)
+Column font sizes (pt),Розміри шрифту колонок (пт)
+"Comma-separated, empty = text style size. Use **text** for bold inside a cell.","Через кому, порожньо — розмір зі стилю тексту. **текст** — жирний усередині клітинки."
+"Show-if must be a plain Jinja condition, without {{ }} or {% %}","Умова показу має бути простою умовою Jinja, без {{ }} чи {% %}"
+list,список
+Choose image,Обрати зображення
+Label images,Зображення для міток
+Search images...,Пошук зображень...
+Upload new,Завантажити нове
+Shared by every label template. Uploaded images are added here for everyone; labels print them in black and white.,Спільні для всіх шаблонів міток. Завантажені зображення додаються сюди для всіх; на мітках друкуються чорно-білими.
+No images yet. Upload the first one.,Зображень ще немає. Завантажте перше.
+Only users who edit label templates can add label images,"Додавати зображення для міток можуть лише ті, хто редагує шаблони міток"
+No file uploaded,Файл не завантажено
+Only images can be added to the label image library,До бібліотеки зображень для міток можна додавати лише зображення
+Image content is not valid base64,Вміст зображення не є коректним base64
+Align,Вирівнювання
+Align left edges,Вирівняти за лівим краєм
+Align horizontal centres,Вирівняти центри по горизонталі
+Align right edges,Вирівняти за правим краєм
+Align top edges,Вирівняти за верхнім краєм
+Align vertical centres,Вирівняти центри по вертикалі
+Align bottom edges,Вирівняти за нижнім краєм
+Distribute,Розподілити
+Equal horizontal gaps (3 or more),Однакові проміжки по горизонталі (від 3 елементів)
+Equal vertical gaps (3 or more),Однакові проміжки по вертикалі (від 3 елементів)
+Same width,Однакова ширина
+Same height,Однакова висота
+Width of the first selected element,Ширина першого обраного елемента
+Height of the first selected element,Висота першого обраного елемента
+Edges align to the outer edge of the selection; sizes copy the first selected element.,Краї вирівнюються за зовнішнім краєм виділення; розмір береться з першого обраного елемента.
+Align left,Вирівняти ліворуч
+Align center,Вирівняти по центру
+Align right,Вирівняти праворуч
+Align top,Вирівняти вгору
+Align middle,Вирівняти посередині
+Align bottom,Вирівняти вниз
+Distribute horizontally,Розподілити по горизонталі
+Distribute vertically,Розподілити по вертикалі
+Align to label,Вирівнювати відносно мітки
+Align selected objects,Вирівнювати обрані обʼєкти між собою
+To selection,Між собою
+To label,Відносно мітки
+Align on label,Вирівняти на мітці
+Rotate left 90°,Повернути ліворуч на 90°
+Rotate right 90°,Повернути праворуч на 90°
+AI label assistant,AI-помічник для міток
+Reading the label,Читаю мітку
+Reading the label reference,Читаю довідку з міток
+Changing the label,Змінюю мітку
+Rendering the print preview,Формую попередній перегляд друку
+Looking at label images,Переглядаю зображення для міток
+Looking at an image,Переглядаю зображення
+Looking at other templates,Переглядаю інші шаблони
+Reading another template,Читаю інший шаблон
+Reading document fields,Читаю поля документа
+Reading documents,Читаю документи
+"Ask for a change, e.g. “add the item name above the barcode” or “make the serial bigger and center everything”. The assistant edits the label on screen and checks the print preview; nothing is saved until you press Save.","Попросіть зміну, напр. «додай назву товару над штрихкодом» або «збільш серійний номер і вирівняй усе по центру». Помічник змінює мітку на екрані й перевіряє попередній перегляд друку; нічого не зберігається, доки ви не натиснете «Зберегти»."
+Undo AI changes,Скасувати зміни AI
+New conversation,Нова розмова
+What should change on the label?,Що змінити на мітці?
+The label assistant failed.,Помічник для міток не впорався.
+AI changes undone,Зміни AI скасовано
+Only users who edit label templates can use the label assistant,"Помічником для міток можуть користуватися лише ті, хто редагує шаблони міток"
+Done.,Готово.
+Stopped after too many steps. Look at the label and ask again for what is still missing.,"Зупинився після забагатьох кроків. Перегляньте мітку й попросіть ще раз те, чого бракує."
+Cannot edit: {0},Не можна змінити: {0}
+Invalid input fieldname {0},Неприпустима назва поля введення {0}
+Label Size {0} does not exist,Розміру мітки {0} не існує
+The AI key was rejected. Check it in My Settings.,Ключ AI відхилено. Перевірте його в «Мої налаштування».
+Looking at the available data,Переглядаю доступні дані
+Writing the data setup,Пишу підготовку даних
+Testing the data setup,Перевіряю підготовку даних
+Adding elements,Додаю елементи
+Changing an element,Змінюю елемент
+Removing elements,Видаляю елементи
+Adding a print input,Додаю поле для друку
+Test,Перевірити
+Write with AI,Написати з AI
+Test on document (optional),Перевірити на документі (необовʼязково)
+Values for Field elements (doc.…),Значення для елементів «Поле» (doc.…)
+Variables for text ({{ … }}),Змінні для тексту ({{ … }})
+Running...,Виконується...
+Data setup: ,Підготовка даних:
+The template is in HTML mode. Switch it to Visual with edit_label_template first.,Шаблон у режимі HTML. Спершу перемкніть його на візуальний через edit_label_template.
+No element with id {0},Немає елемента з id {0}
+Padding,Відступи
+Empty margin between the label edge and the printable area.,Порожнє поле між краєм етикетки й областю друку.
+Element position,Положення
+Alignment,Вирівнювання
+Alignment on label,Вирівнювання на мітці
+Anchor (size is copied from it),Взірець (розмір береться з нього)
+"Orange = anchor, blue = elements that change. Hover a button to see them.","Помаранчевий — взірець, синій — елементи, що зміняться. Наведіть на кнопку, щоб побачити."
+Saving the pasted image to the library,Зберігаю вставлене зображення в бібліотеку
+What should change on the label? Paste images with Ctrl+V,Що змінити на мітці? Зображення можна вставити Ctrl+V
+At most 4 images per message,Не більше 4 зображень в одному повідомленні
+There is no pasted image {0},Немає вставленого зображення {0}
 "Select the company this document is for.","Виберіть компанію, для якої оформлюєте документ."
 "Select our buying company. The Purchase Invoice will be recorded under this company.","Виберіть нашу компанію-покупця за реквізитами рахунка. Цю компанію буде зазначено у ВРФ."
 "Enter the date this document was created.","Вкажіть дату створення документа."

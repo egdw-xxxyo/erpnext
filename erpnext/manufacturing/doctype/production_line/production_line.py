@@ -44,6 +44,12 @@ class ProductionLine(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from erpnext.manufacturing.doctype.production_line_allowed_item.production_line_allowed_item import (
+			ProductionLineAllowedItem,
+		)
+		from erpnext.manufacturing.doctype.production_line_critical_stock.production_line_critical_stock import (
+			ProductionLineCriticalStock,
+		)
 		from erpnext.manufacturing.doctype.production_line_item.production_line_item import (
 			ProductionLineItem,
 		)
@@ -54,9 +60,11 @@ class ProductionLine(Document):
 			ProductionLineWorkplace,
 		)
 
+		allowed_items: DF.Table[ProductionLineAllowedItem]
 		cleanup_enabled: DF.Check
 		cleanup_time: DF.Time | None
 		company: DF.Link | None
+		critical_stock: DF.Table[ProductionLineCriticalStock]
 		enabled: DF.Check
 		fg_warehouse: DF.Link | None
 		last_cleanup_on: DF.Datetime | None
@@ -84,6 +92,7 @@ class ProductionLine(Document):
 				frappe.throw(_("Daily Qty cannot be negative (row {0})").format(row.idx))
 
 		self._validate_orders()
+		self._validate_allowed_items()
 
 		# Both times fall on the same calendar day: closing the day stops every Work Order
 		# opened before it, so a close that came before the plan would stop the day's own
@@ -110,6 +119,8 @@ class ProductionLine(Document):
 		for row in self.get("orders") or []:
 			if row.work_order:
 				row.produced_qty = cint(frappe.db.get_value("Work Order", row.work_order, "produced_qty"))
+		for row in self.get("allowed_items") or []:
+			row.can_produce = _can_produce(self, row.item_code)
 
 	def _validate_orders(self):
 		"""Orders of a manual line: a released order is a Work Order, so it is read-only for good."""
@@ -148,6 +159,29 @@ class ProductionLine(Document):
 		for row in self.orders:
 			if cint(row.qty) <= 0:
 				frappe.throw(_("Row {0}: Qty must be greater than zero").format(row.idx))
+
+	def _validate_allowed_items(self):
+		"""Plan and order rows must name an allowed item; an empty list allows anything."""
+		for table, label in (
+			(self.allowed_items, _("Allowed Items")),
+			(self.critical_stock, _("Critical Stock")),
+		):
+			seen = set()
+			for row in table:
+				if row.item_code in seen:
+					frappe.throw(_("{0}: item {1} is listed more than once").format(label, row.item_code))
+				seen.add(row.item_code)
+
+		allowed = _allowed_item_codes(self)
+		if not allowed:
+			return
+		for row in list(self.plan) + [row for row in self.orders if not row.work_order]:
+			if row.item_code and row.item_code not in allowed:
+				frappe.throw(
+					_("Row {0}: item {1} is not one of this line's allowed items").format(
+						row.idx, row.item_code
+					)
+				)
 
 	def _validate_workplaces(self):
 		"""The line's benches, and the plan rows that must stay inside them.
@@ -1524,3 +1558,205 @@ def repair_packed_units(line, work_order=None, dry_run=1):
 			failed.append(f"{row.serial_no}: {_error_text(e)}")
 
 	return {"found": len(rows), "repaired": done, "failed": failed}
+
+
+# --- Allowed items, component requirements and critical stock -----------------------------
+
+
+def _allowed_item_codes(line):
+	return {row.item_code for row in line.get("allowed_items") or [] if row.item_code}
+
+
+def _readable_line(line):
+	doc = frappe.get_doc("Production Line", line)
+	doc.check_permission("read")
+	return doc
+
+
+def _bom_requirements(line, item_code, qty=1):
+	"""Exploded stock components one order of `qty` units consumes, merged per item."""
+	from erpnext.manufacturing.doctype.bom.bom import get_bom_items_as_dict
+
+	bom_no = frappe.db.get_value("Item", item_code, "default_bom")
+	if not bom_no:
+		frappe.throw(_("Item {0} has no default BOM, cannot open a Work Order").format(item_code))
+	company = line.company or frappe.db.get_value("BOM", bom_no, "company")
+	needs = {}
+	for row in get_bom_items_as_dict(bom_no, company, qty=flt(qty), fetch_exploded=1).values():
+		need = needs.setdefault(
+			row.item_code,
+			frappe._dict(
+				item_code=row.item_code,
+				item_name=row.item_name,
+				stock_uom=row.stock_uom,
+				warehouse=row.get("source_warehouse") or line.source_warehouse,
+				qty=0.0,
+			),
+		)
+		need.qty += flt(row.qty)
+	return needs
+
+
+def _free_stock(pairs):
+	"""Free stock per (item, warehouse): what is there minus what released Work Orders reserved."""
+	pairs = [(item, warehouse) for item, warehouse in pairs if warehouse]
+	if not pairs:
+		return {}
+	bins = frappe.get_all(
+		"Bin",
+		filters={
+			"item_code": ["in", list({item for item, _w in pairs})],
+			"warehouse": ["in", list({warehouse for _i, warehouse in pairs})],
+		},
+		fields=["item_code", "warehouse", "actual_qty", "reserved_qty_for_production"],
+	)
+	return {(b.item_code, b.warehouse): flt(b.actual_qty) - flt(b.reserved_qty_for_production) for b in bins}
+
+
+def max_producible(rows):
+	"""Whole units the free stock covers: the scarcest component decides."""
+	limits = [int(max(flt(row.free), 0) / flt(row.per_unit) + 1e-9) for row in rows if flt(row.per_unit) > 0]
+	return min(limits) if limits else None
+
+
+def _can_produce(line, item_code):
+	"""Whole units of `item_code` the line's free stock covers; 0 when it cannot be worked out."""
+	if not item_code or not line.source_warehouse:
+		return 0
+	if not frappe.db.get_value("Item", item_code, "default_bom"):
+		return 0
+	needs = _bom_requirements(line, item_code)
+	free = _free_stock((need.item_code, need.warehouse) for need in needs.values())
+	rows = [
+		frappe._dict(per_unit=need.qty, free=free.get((need.item_code, need.warehouse), 0.0))
+		for need in needs.values()
+	]
+	limit = max_producible(rows)
+	return 0 if limit is None else limit
+
+
+@frappe.whitelist()
+def check_order(line, item_code, qty):
+	"""What an order of `qty` units consumes, against free stock and the line's critical levels."""
+	doc = _readable_line(line)
+	allowed = _allowed_item_codes(doc)
+	if allowed and item_code not in allowed:
+		frappe.throw(_("Item {0} is not one of this line's allowed items").format(item_code))
+	if not doc.source_warehouse:
+		frappe.throw(_("Set the Raw Material Warehouse of production line {0} first").format(line))
+
+	qty = cint(qty)
+	needs = _bom_requirements(doc, item_code)
+	free = _free_stock((need.item_code, need.warehouse) for need in needs.values())
+	critical = {row.item_code: flt(row.critical_qty) for row in doc.critical_stock}
+
+	rows = []
+	for need in needs.values():
+		available = free.get((need.item_code, need.warehouse), 0.0)
+		required = need.qty * qty
+		after = available - required
+		critical_qty = critical.get(need.item_code)
+		rows.append(
+			frappe._dict(
+				item_code=need.item_code,
+				item_name=need.item_name,
+				stock_uom=need.stock_uom,
+				warehouse=need.warehouse,
+				per_unit=need.qty,
+				required=required,
+				free=available,
+				after=after,
+				critical_qty=critical_qty,
+				short=required > available + 1e-9,
+				below_critical=critical_qty is not None and after < critical_qty,
+			)
+		)
+	rows.sort(key=lambda row: (not row.short, not row.below_critical, row.item_code))
+	return {"qty": qty, "max_producible": max_producible(rows), "rows": rows}
+
+
+def _line_components(doc):
+	components = {}
+	for item_code in _allowed_item_codes(doc):
+		if not frappe.db.get_value("Item", item_code, "default_bom"):
+			continue
+		for need in _bom_requirements(doc, item_code).values():
+			components.setdefault(need.item_code, need)
+	return components
+
+
+@frappe.whitelist()
+def critical_stock_components(line):
+	"""Every stock component the allowed items' BOMs need, each once."""
+	doc = _readable_line(line)
+	return sorted(
+		(
+			{"item_code": need.item_code, "item_name": need.item_name, "stock_uom": need.stock_uom}
+			for need in _line_components(doc).values()
+		),
+		key=lambda row: row["item_code"],
+	)
+
+
+def _critical_rows(doc):
+	used = _line_components(doc)
+	pairs = [
+		(row.item_code, used[row.item_code].warehouse if row.item_code in used else doc.source_warehouse)
+		for row in doc.critical_stock
+	]
+	free = _free_stock(pairs)
+	rows = []
+	for row, pair in zip(doc.critical_stock, pairs, strict=True):
+		available = free.get(pair, 0.0)
+		rows.append(
+			frappe._dict(
+				item_code=row.item_code,
+				item_name=row.item_name,
+				stock_uom=row.stock_uom,
+				warehouse=pair[1],
+				critical_qty=flt(row.critical_qty),
+				free=available,
+				below=available < flt(row.critical_qty),
+				unused=bool(used) and row.item_code not in used,
+			)
+		)
+	return rows
+
+
+@frappe.whitelist()
+def critical_stock_overview(line):
+	return _critical_rows(_readable_line(line))
+
+
+def check_critical_stock():
+	"""Daily: tell manufacturing managers which components fell below their critical level."""
+	from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+	from frappe.utils.user import get_users_with_role
+
+	users = get_users_with_role("Manufacturing Manager")
+	if not users:
+		return
+	for doc in _enabled_lines():
+		if not doc.critical_stock:
+			continue
+		low = [row for row in _critical_rows(doc) if row.below and not row.unused]
+		if not low:
+			continue
+		details = "<br>".join(
+			frappe.utils.escape_html(
+				f"{row.item_code} {row.item_name or ''}: {flt(row.free, 3)} / {flt(row.critical_qty, 3)} {row.stock_uom or ''}"
+			)
+			for row in low
+		)
+		enqueue_create_notification(
+			users,
+			{
+				"type": "Alert",
+				"document_type": "Production Line",
+				"document_name": doc.name,
+				"subject": _("Production line {0}: {1} component(s) below critical stock").format(
+					doc.name, len(low)
+				),
+				"email_content": details,
+			},
+		)

@@ -1,0 +1,508 @@
+.repair-contact-empty,
+.repair-contact-identity {
+	display: none;
+}
+.service-contact-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px 24px;
+}
+.service-contact-grid > div {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.repair-contact-phone,
+.repair-contact-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.repair-form-ui {
+	--repair-accent: #5557aa;
+	--repair-focus: #6366a8;
+	--repair-border: #dcdce7;
+	--repair-tint: #faf9ff;
+	--repair-selected: #eeebff;
+	--repair-input: #f1eeffe3;
+	--repair-muted: #686b80;
+	--repair-action: #17795d;
+	--repair-danger: #b64250;
+}
+[data-theme="dark"] .repair-form-ui {
+	--repair-accent: #b8b4ff;
+	--repair-focus: #b8b4ff;
+	--repair-border: #41414d;
+	--repair-tint: #22212b;
+	--repair-selected: #302c46;
+	--repair-input: var(--repair-selected);
+	--repair-muted: #b1afc1;
+	--repair-danger: #b64250;
+}
+.repair-form-ui .std-form-layout {
+	padding: 28px clamp(16px, 3vw, 40px);
+	background: linear-gradient(135deg, var(--repair-tint), var(--card-bg) 60%);
+}
+.repair-form-ui .repair-form-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 24px;
+	padding: 4px 4px 28px;
+}
+.repair-form-ui .repair-form-heading {
+	flex: 1;
+	min-width: 0;
+}
+.repair-form-ui .repair-form-context {
+	color: var(--repair-accent);
+	font-size: 12px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+.repair-form-ui .repair-form-heading h2 {
+	margin: 0;
+	font-size: 28px;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+	letter-spacing: -0.5px;
+}
+.repair-form-ui .repair-form-hint {
+	margin: 12px 0 0;
+	font-size: 13px;
+	color: var(--repair-muted);
+}
+.repair-form-ui .repair-form-meta {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 14px;
+	padding-top: 3px;
+	max-width: 40%;
+}
+.repair-form-ui .repair-form-status:empty,
+.repair-form-ui .repair-form-owner:empty {
+	display: none;
+}
+.repair-form-ui .std-form-layout > .form-layout > .form-page {
+	background: transparent;
+}
+.repair-form-ui
+	.std-form-layout
+	> .form-layout
+	:is(.form-page > .form-section, .form-page > .form-tab-content > .tab-pane > .form-section) {
+	margin-bottom: 18px;
+	padding: 18px 22px 8px;
+	border: 1px solid var(--repair-border);
+	border-radius: 14px;
+	background: var(--card-bg);
+}
+.repair-form-ui
+	.std-form-layout
+	> .form-layout
+	:is(.form-page > .form-section, .form-page > .form-tab-content > .tab-pane > .form-section)
+	> :is(.section-head, .section-body) {
+	max-width: none;
+}
+.repair-form-ui .section-head,
+.repair-form-ui .repair-section-caption {
+	font-size: 16px;
+	font-weight: 650;
+	padding: 0 0 16px;
+	overflow-wrap: anywhere;
+}
+.repair-form-ui .form-section > .section-body {
+	padding-top: 0;
+	column-gap: 24px;
+}
+.repair-form-ui .form-section > .section-body > .form-column {
+	padding-inline: 0;
+	flex: 1 1 0;
+	min-width: 0;
+}
+.repair-form-ui .form-section > .section-body > .form-column > form > .frappe-control {
+	margin-bottom: 20px;
+}
+.repair-issue-ui .form-dashboard > .form-links,
+.repair-issue-ui .form-section[data-fieldname="subject_section"] [data-fieldname="custom_support_user"] {
+	display: none;
+}
+.repair-issue-ui .repair-issue-request-type > .section-body > .frappe-control {
+	width: 100%;
+	margin-bottom: 12px;
+}
+.repair-issue-ui [data-fieldname="custom_request_references_section"] > .section-body > .form-column > form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+	column-gap: 24px;
+}
+.repair-issue-ui
+	[data-fieldname="custom_request_references_section"]
+	> .section-body
+	> .form-column
+	> form
+	> .input-max-width {
+	max-width: none;
+	padding-inline-end: 0;
+}
+.repair-issue-ui .repair-delivery-heading {
+	margin: 0 0 14px;
+	font-size: 14px;
+	font-weight: 600;
+}
+.repair-form-ui .form-tabs-list {
+	margin-bottom: 18px;
+	background: var(--card-bg);
+	border-bottom: 1px solid var(--repair-border);
+}
+.repair-form-ui .form-tabs {
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.repair-form-ui .form-tabs .nav-link.active {
+	color: var(--repair-accent);
+	border-color: var(--repair-accent);
+}
+.repair-form-ui .control-label {
+	font-size: 13px;
+	color: var(--repair-muted);
+	margin-bottom: 7px;
+}
+.repair-form-ui .control-input .form-control {
+	border-radius: 10px;
+	background-color: var(--control-bg);
+	border: 1px solid transparent;
+}
+.repair-form-ui .control-input .form-control:not(:disabled, [readonly]),
+.repair-form-ui .control-input .ql-editor[contenteditable="true"],
+.repair-form-ui .repair-result input:not(:disabled) {
+	background-color: var(--repair-input);
+}
+.repair-form-ui .control-input :is(input, select).form-control {
+	height: 48px;
+	padding-inline: 12px;
+}
+.repair-form-ui .control-input :is(input, select, textarea).form-control:focus {
+	border-color: var(--repair-focus);
+	box-shadow: 0 0 0 2px var(--repair-selected);
+}
+.repair-form-ui .control-value.like-disabled-input {
+	min-height: 48px;
+	padding: 12px;
+	border-radius: 10px;
+	background: var(--repair-tint);
+}
+.repair-form-ui .grid-row .control-input :is(input, select).form-control {
+	height: 32px;
+	min-height: 32px;
+	padding: 4px 8px;
+}
+.repair-form-ui .control-input .link-field > .link-btn {
+	inset-block: 1px;
+	height: auto;
+	margin-top: 0;
+	padding-block: 0;
+	background: transparent;
+}
+.repair-form-ui .control-input .link-field > .link-btn a {
+	width: 22px;
+	justify-content: center;
+}
+.repair-form-ui .control-input .link-field:is(:hover, :focus-within) input.form-control {
+	padding-inline-end: 54px;
+}
+.repair-form-ui .grid-row .form-column {
+	flex-basis: auto;
+}
+.repair-form-ui .form-grid {
+	--table-border-color: var(--repair-border);
+	background: var(--card-bg);
+	border-radius: 12px;
+}
+.repair-form-ui .form-grid .grid-heading-row .data-row:not(.filter-row) > .col {
+	background: var(--repair-tint);
+	color: var(--repair-muted);
+}
+.repair-form-ui .form-grid .grid-heading-row .static-area {
+	font-weight: 600;
+}
+.repair-form-ui .form-grid .data-row > .col {
+	border-inline-end-color: transparent;
+}
+.repair-form-ui .form-grid .grid-body .data-row {
+	color: var(--text-color);
+}
+.repair-form-ui
+	.form-grid
+	.grid-body
+	.data-row:not(.editable-row, .highlight):hover
+	> .col:not(.error, .invalid) {
+	background-color: var(--repair-tint);
+}
+.repair-form-ui
+	.form-grid
+	.grid-body
+	.data-row:not(.editable-row, .highlight):has(.grid-row-check:checked)
+	> .col:not(.error, .invalid) {
+	background-color: var(--repair-selected);
+}
+.repair-form-ui .form-grid .grid-empty {
+	background: var(--card-bg);
+	color: var(--repair-muted);
+}
+.repair-form-ui .grid-footer .btn-secondary {
+	border-radius: 8px;
+	background: var(--repair-tint);
+	color: var(--text-color);
+}
+.repair-form-ui .grid-footer .btn-secondary:hover:not(:disabled) {
+	background: var(--repair-selected);
+}
+.repair-form-ui .repair-choice-field select,
+.repair-form-ui .repair-choice-field .select-icon {
+	display: none;
+}
+.repair-form-ui .repair-request-types,
+.repair-form-ui .repair-delivery-choices {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+	width: 100%;
+}
+.repair-form-ui .repair-type-choice,
+.repair-form-ui .repair-delivery-choice {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 14px;
+	border: 1px solid var(--repair-border);
+	border-radius: 10px;
+	background: var(--card-bg);
+	color: var(--text-color);
+	text-align: left;
+	cursor: pointer;
+	margin: 0;
+}
+.repair-form-ui .repair-type-choice .fa {
+	font-size: 18px;
+	color: var(--repair-accent);
+}
+.repair-form-ui .repair-type-choice strong,
+.repair-form-ui .repair-type-choice small {
+	display: block;
+}
+.repair-form-ui .repair-type-choice strong {
+	font-size: 13px;
+}
+.repair-form-ui .repair-type-choice small {
+	font-size: 11px;
+	color: var(--repair-muted);
+	margin-top: 4px;
+}
+.repair-form-ui .repair-type-choice[aria-pressed="true"],
+.repair-form-ui .repair-delivery-choice:has(input:checked) {
+	background: var(--repair-selected);
+	border-color: var(--repair-focus);
+	box-shadow: inset 0 0 0 1px var(--repair-focus);
+}
+.repair-form-ui input:is([type="checkbox"], [type="radio"]) {
+	accent-color: var(--repair-accent);
+}
+.repair-form-ui :is(a, button, input, select, textarea):focus-visible {
+	outline: 2px solid var(--repair-focus);
+	outline-offset: 3px;
+}
+.repair-form-ui .page-actions .btn-primary,
+.repair-form-ui .modal-footer .btn-primary {
+	background: var(--repair-action);
+	border-color: var(--repair-action);
+	color: white;
+}
+.repair-form-ui .page-actions .btn-primary:hover:not(:disabled),
+.repair-form-ui .modal-footer .btn-primary:hover:not(:disabled) {
+	background: #12654d;
+	border-color: #12654d;
+}
+.repair-form-ui .inner-toolbar .btn {
+	min-height: 36px;
+	border-radius: 8px;
+}
+.repair-form-ui .inner-toolbar .btn-group,
+.repair-form-ui .inner-toolbar > .btn {
+	margin-right: 10px;
+	margin-bottom: 8px;
+}
+.repair-form-ui .repair-contact-empty {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 16px;
+	border-radius: 10px;
+	color: var(--repair-muted);
+	background: var(--repair-tint);
+	font-size: 13px;
+}
+.repair-form-ui .repair-contact-card {
+	padding: 18px;
+	border: 1px solid var(--repair-border);
+	border-radius: 12px;
+	background: var(--repair-tint);
+}
+.repair-form-ui .repair-contact-identity:not(:empty) {
+	display: block;
+	padding-bottom: 14px;
+	margin-bottom: 14px;
+	border-bottom: 1px solid var(--repair-border);
+}
+.repair-form-ui .repair-contact-identity .ent {
+	gap: 12px;
+}
+.repair-form-ui .repair-contact-identity .ent-name {
+	font-size: 16px;
+	font-weight: 650;
+}
+.repair-form-ui .repair-contact-identity .ent-sub {
+	margin-top: 4px;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.repair-form-ui .repair-contact-phone {
+	flex-direction: column;
+	align-items: flex-start;
+}
+.repair-form-ui .repair-route-card {
+	margin: 0;
+	padding: 6px 0;
+	border: 0;
+}
+.repair-form-ui .repair-route-origin {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.repair-form-ui .repair-route {
+	gap: 10px;
+}
+.repair-form-ui .repair-route-step {
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	border-radius: 10px;
+	background: var(--repair-tint);
+	min-height: 106px;
+}
+.repair-form-ui .repair-route-step.is-current {
+	background: var(--repair-selected);
+}
+.repair-form-ui .repair-route-step.is-current .repair-route-icon {
+	color: var(--repair-accent);
+	background: var(--card-bg);
+	border-color: var(--repair-focus);
+	box-shadow: none;
+}
+.repair-form-ui .repair-route-participant .ent-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.repair-form-ui .repair-result {
+	display: flex;
+	flex-direction: column;
+	border-radius: 12px;
+	padding: 16px;
+	background: var(--repair-tint);
+}
+.repair-form-ui .repair-result label {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+.repair-form-ui .repair-result input {
+	padding: 10px 12px;
+	font-size: 20px;
+	text-align: center;
+}
+.repair-form-ui.modal .modal-dialog:not(.modal-lg, .modal-xl) {
+	max-width: min(700px, calc(100% - 32px));
+	margin-inline: auto;
+}
+.repair-form-ui.modal .modal-content {
+	max-height: calc(100dvh - 64px);
+	border: 1px solid var(--repair-border);
+	border-radius: 20px;
+	background: linear-gradient(135deg, var(--repair-tint), var(--card-bg) 50%);
+}
+.repair-form-ui.modal .modal-header {
+	padding: 20px 30px 12px;
+	flex-shrink: 0;
+}
+.repair-form-ui.modal .modal-title {
+	font-size: 21px;
+	line-height: 30px;
+}
+.repair-form-ui.modal .modal-body {
+	padding: 12px 30px 20px;
+	min-height: 0;
+	overflow-y: auto;
+}
+.repair-form-ui.modal .modal-footer {
+	padding: 14px 30px 20px;
+	flex-shrink: 0;
+	border-top: 1px solid var(--repair-border);
+}
+.repair-form-ui.modal .modal-footer .btn {
+	min-height: 40px;
+	border-radius: 9px;
+}
+.repair-form-ui.repair-dialog-danger .modal-footer .btn-primary {
+	background: var(--repair-danger);
+	border-color: var(--repair-danger);
+	color: #fff;
+}
+.repair-form-ui.modal .form-section {
+	padding-inline: 0;
+}
+.repair-form-ui .repair-dialog-delivery .control-input-wrapper {
+	display: none;
+}
+.repair-form-ui .checkbox-options {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 8px;
+	padding: 8px 0 !important;
+}
+.repair-form-ui .checkbox-options .checkbox {
+	margin: 0;
+	padding: 12px;
+	border: 1px solid var(--repair-border);
+	border-radius: 10px;
+	background: var(--card-bg);
+}
+.repair-form-ui .checkbox-options .checkbox:has(input:checked) {
+	background: var(--repair-selected);
+	border-color: var(--repair-focus);
+}
+@media (max-width: 767px) {
+	.service-contact-grid {
+		grid-template-columns: 1fr;
+	}
+	.repair-form-ui .repair-form-header {
+		flex-direction: column;
+	}
+	.repair-form-ui .repair-form-meta {
+		max-width: 100%;
+		flex-direction: row;
+		align-items: center;
+	}
+	.repair-form-ui .form-section > .section-body > .form-column {
+		flex: 1 1 100%;
+		max-width: 100%;
+	}
+	.repair-form-ui .repair-route {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.repair-form-ui.modal :is(.modal-header, .modal-body, .modal-footer) {
+		padding-inline: 16px;
+	}
+}

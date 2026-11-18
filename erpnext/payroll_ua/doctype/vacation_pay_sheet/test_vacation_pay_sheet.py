@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from frappe.tests import IntegrationTestCase
 from frappe.utils import getdate
 
@@ -12,8 +14,12 @@ class TestVacationRules(IntegrationTestCase):
 		self.assertEqual(vacation_rules.split_unpaid(days, 0), days)
 		self.assertEqual(vacation_rules.split_unpaid(days, 20), [])
 
-	def test_due_date_is_three_days_before(self):
-		self.assertEqual(getdate(vacation_rules.due_date("2026-03-10")), getdate("2026-03-07"))
+	def test_due_date_follows_the_setting(self):
+		with patch.object(vacation_rules.payroll_tax, "_setting", return_value=None):
+			self.assertEqual(getdate(vacation_rules.due_date("2026-03-10")), getdate("2026-03-09"))
+
+		with patch.object(vacation_rules.payroll_tax, "_setting", return_value=3):
+			self.assertEqual(getdate(vacation_rules.due_date("2026-03-10")), getdate("2026-03-07"))
 
 	def test_entitled_days_two_per_full_month(self):
 		self.assertEqual(vacation_rules.entitled_days("2026-01-01", "2026-03-31"), 6)

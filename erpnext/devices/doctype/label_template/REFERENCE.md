@@ -126,3 +126,41 @@ wkhtmltoimage is based on an old WebKit and does **not** support flexbox reliabl
 - For absolute positioning, prefer `width:100%;height:100%` on the child and let `.label-content` size it.
 - Test with the **Preview** panel after every change; padding fields trigger a fresh render.
 - Use the `Label Template Example` DocType to register reusable snippets — they appear in this dialog under **Приклади** and are also surfaced to the MCP `get_label_template_reference` tool.
+
+## Visual editor
+
+`Editor = Visual` turns on the drag-and-drop designer. The design is stored in `layout_json` and **compiled into `html_template` on save** (`erpnext/devices/label_layout.py`), so printing works exactly like a hand-written template. Templates with `Editor = HTML` are untouched.
+
+Elements (coordinates and sizes in mm, relative to the padded area):
+
+| type | key properties |
+|---|---|
+| `text` | `text` — static text, `{{ doc.x }}` placeholders allowed |
+| `field` | `field` — key of `doc`, `format` (`upper`, `date`, `datetime`, `float:0..3`), `prefix`, `suffix` |
+| `input` | `input` — fieldname of a **Print Inputs** row, value asked in the Print dialog |
+| `image` | `file` — File name (becomes `<attachment name=...>`), `fit` (`contain` / `stretch`) |
+| `barcode` | `source` (`field` / `text`), `field` or `data`, `barcode_type`, `module_width`, `show_text` (bars fill the box edge to edge — leave white space around it for scanners; HTML templates may also use `quiet_zone="mm"` and `margin="mm"` on `<barcode>`) |
+| `qr` | `source`, `field` or `data`, `module_size` |
+| `table` | `cols` (mm), `rows[{h, cells[{text, bold, align, colspan}]}]`, `loop` — child table: the last row repeats with `{{ row.x }}` |
+| `repeat` | `list` (doc key: child table or a list set in Data setup), `value` (row field, `.` = the item itself), `show` (`barcode` / `qr` / `text`), `item_h`, `columns`, `gap_mm`, `max_items`, plus barcode / text options — one block per item |
+| `line`, `rect` | `rect`: `fill`, `radius_mm`, `style.border_mm` |
+
+Fonts: only `DejaVu Sans`, `DejaVu Serif`, `DejaVu Sans Mono` exist in the render image (old `Arial` / `Monospace` values map to them). The designer loads the same files from `erpnext/public/fonts/label/`, snaps font size to whole 300-dpi pixels like wkhtmltoimage does, and disables kerning (wkhtmltoimage does not kern), so text that fits the canvas fits the print. `erpnext/devices/test_label_render_parity.py` guards this.
+
+Data setup: `setup` (string) — Jinja emitted before the elements, for lookups a Field cannot do. Store results on `doc` (`{% set _ = doc.update({"tu": ...}) %}`) and show them with `field` elements.
+
+Text markup in text, prefix/suffix and table cells: `**bold**`, `^^superscript^^` (both may wrap `{{ }}`). Tables: `col_styles` (per-column `font_size_pt`, `bold`, `align`, `valign`, `nowrap`), cells may override the same keys.
+
+Common: `show_if` (plain Jinja condition, element is drawn only when true), `rotate` (0/90/180/270), `style` (`font_size_pt`, `font_family`, `bold`, `italic`, `underline`, `align`, `valign`, `nowrap`, `invert`, `border_mm`, `line_height`).
+
+## Print inputs and printing from the template
+
+**Print Inputs** rows (`fieldname`, `label`, type, default, mandatory) are asked in the **Print label** dialog on the template form and merged into `doc` (`{{ doc.<fieldname> }}`), in both editor modes. The dialog also asks for a printer, quantity and — for From DocType templates — the source document, and shows a live preview. Server: `label_template.print_from_template` (creates a Print Job and prints it), `render_template_preview`.
+
+## AI / MCP loop
+
+MCP `render_label_preview` returns the printer-exact PNG (300 dpi, 1-bit) as an image, with `input_values` for Print Inputs, `reference_name` for a source document and `overrides` (e.g. `layout_json`) to try unsaved changes. `edit_label_template` saves `layout_json`, `editor_mode` and the full `inputs` list. Edit → render → look → fix.
+
+## Label image library
+
+All label images live in the public File folder `Home/Label Images` (`erpnext/devices/label_images.py`). Everyone who can read Label Templates sees them in the designer gallery (Image element → choose / upload); users who can edit templates can upload. File names are unique in the folder; `<attachment name="...">` resolves the library copy first. MCP: `list_label_images`, `get_label_image`, `upload_label_image`. Images used by templates written before the library existed are copied in with `label_images.adopt(file_name)`.

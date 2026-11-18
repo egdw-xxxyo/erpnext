@@ -15,7 +15,13 @@
   "contacts_section",
   "address_html",
   "column_break_contacts",
-  "contact_html"
+  "contact_html",
+  "client_base_section",
+  "cb_working",
+  "cb_done",
+  "column_break_cb",
+  "cb_working_by",
+  "cb_work_started"
  ],
  "fields": [
   {
@@ -78,11 +84,52 @@
    "fieldtype": "HTML",
    "label": "Contact HTML",
    "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "client_base_section",
+   "fieldtype": "Section Break",
+   "label": "Client Base"
+  },
+  {
+   "default": "0",
+   "fieldname": "cb_working",
+   "fieldtype": "Check",
+   "label": "In Work",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cb_done",
+   "fieldtype": "Check",
+   "label": "Work Done",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cb_working_by",
+   "fieldtype": "Link",
+   "label": "Worked By",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_work_started",
+   "fieldtype": "Datetime",
+   "label": "Work Started",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-31 12:00:00.000000",
+ "modified": "2026-11-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Military Unit",

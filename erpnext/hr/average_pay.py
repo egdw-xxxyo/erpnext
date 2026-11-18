@@ -7,8 +7,8 @@
   календарні дні відпустки. Святкові дні з періоду не викидаються (воєнний стан), викидається
   лише час без збереження зарплати;
 * лікарняні (Порядок № 1266): середньоденна × відсоток за страховим стажем × календарні дні
-  хвороби. Перші `EMPLOYER_SICK_DAYS` днів випадку платить роботодавець, решту — Пенсійний фонд,
-  тож у виплату компанії йдуть лише перші, а решта рахується довідково.
+  хвороби. Перші `EMPLOYER_SICK_DAYS` днів випадку платить роботодавець, решту — фонд. Рахує й
+  платить їх «Випадок лікарняного» (`erpnext.payroll_ua.sick_rules`), тут — лише середня.
 
 Це стосується тільки офіційної частини: закон про готівку нічого не знає, тож готівкова половина
 платить ці дні як і раніше (див. `erpnext.hr.salary_advance`).
@@ -22,7 +22,7 @@ import calendar
 from itertools import pairwise
 
 import frappe
-from frappe.utils import add_days, add_months, flt, getdate
+from frappe.utils import add_days, add_months, date_diff, flt, getdate
 
 from erpnext.hr import payroll_tax
 
@@ -201,16 +201,11 @@ def leave_pay(employee, first, last, holidays: set, absences: dict | None) -> fr
 		result.vacation_pay += result.vacation_average
 		result.working_days += day not in holidays
 
-	for day, (case_start, number) in sorted((absences.get(SICK) or {}).items()):
-		if not first <= day <= last:
-			continue
-
-		result.sick_average = average(SICK, case_start)
-		result.sick_percent = sick_percent(employee, case_start)
-		amount = result.sick_average * result.sick_percent / 100
-		result.sick_calendar_days += 1
-		result["sick_pay" if number <= EMPLOYER_SICK_DAYS else "sick_pay_fund"] += amount
-		result.working_days += day not in holidays
+	# Лікарняний тут лише звільняє робочі дні від окладу: гроші за нього рахує й платить
+	# «Випадок лікарняного» (див. `erpnext.payroll_ua.sick_rules`).
+	for day in sorted(absences.get(SICK) or {}):
+		if first <= day <= last:
+			result.working_days += day not in holidays
 
 	for field in ("vacation_pay", "vacation_average", "sick_pay", "sick_pay_fund", "sick_average"):
 		result[field] = flt(result[field], 2)
@@ -290,6 +285,7 @@ def monthly_earnings(employee, months: list) -> dict:
 			)
 
 	_add_paid_vacation(employee, months, result)
+	_add_paid_sick_fund(employee, months, result)
 
 	return result
 
@@ -326,6 +322,47 @@ def _add_paid_vacation(employee, months: list, result: dict):
 		month.earnings += flt(row.gross)
 
 
+def _add_paid_sick_fund(employee, months: list, result: dict):
+	"""Частина фонду, виплачена «Випадком лікарняного», — заробіток і дні лікарняного своїх
+	місяців. Частина роботодавця вже сидить у рядку зарплатної відомості."""
+	if not months:
+		return
+
+	cases = frappe.get_all(
+		"Sick Leave Case",
+		filters={
+			"employee": employee.name,
+			"fund_paid_date": ("is", "set"),
+			"end_date": (">=", months[0]),
+			"start_date": ("<=", add_days(add_months(months[-1], 1), -1)),
+		},
+		fields=["start_date", "end_date", "employer_days", "fund_days", "fund_gross"],
+	)
+	wanted = set(months)
+
+	for case in cases:
+		days = int(case.fund_days or 0)
+
+		if not days:
+			continue
+
+		per_day = flt(case.fund_gross) / days
+		day = add_days(getdate(case.start_date), int(case.employer_days or 0))
+
+		for _i in range(days):
+			month = getdate(day).replace(day=1)
+
+			if month in wanted:
+				entry = result.setdefault(
+					month, frappe._dict(earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0)
+				)
+				entry.earnings += per_day
+				entry.sick_pay += per_day
+				entry.sick_days += 1
+
+			day = add_days(day, 1)
+
+
 def _month_days(month) -> int:
 	return calendar.monthrange(month.year, month.month)[1]
 
@@ -343,35 +380,105 @@ def _official_salary(employee, on_date) -> float:
 def vacation_average(employee, on_date) -> float:
 	"""Середньоденна для відпускних: заробіток періоду ÷ календарні дні періоду без днів
 	без збереження зарплати. Лікарняні й попередні відпускні в заробіток входять."""
-	earnings = monthly_earnings(employee, calculation_months(employee, on_date))
+	return vacation_average_details(employee, on_date).average
+
+
+def vacation_months(employee, on_date) -> list:
+	"""Розрахунковий період відпускних: 12 місяців перед місяцем відпустки, але від дати
+	прийняття — неповний перший місяць теж входить (відпустки з попередніх місць роботи не
+	рахуються)."""
+	month = getdate(on_date).replace(day=1)
+	joining = getdate(employee.get("date_of_joining") or "1900-01-01").replace(day=1)
+
+	return [
+		candidate
+		for candidate in (getdate(add_months(month, -offset)) for offset in range(12, 0, -1))
+		if candidate >= joining
+	]
+
+
+def vacation_average_details(employee, on_date) -> frappe._dict:
+	"""Заробіток від дати прийняття (не більше 12 місяців) ÷ календарні дні того ж періоду
+	(високосний рік — 366). Заробітку ще немає — оклад × 12 ÷ дні року."""
+	on_date = getdate(on_date)
+	months = vacation_months(employee, on_date)
+	earnings = monthly_earnings(employee, months)
+	joining = getdate(employee.get("date_of_joining") or "1900-01-01")
 	total = sum(row.earnings for row in earnings.values())
-	days = sum(_month_days(month) - row.unpaid_days for month, row in earnings.items())
+	days = 0
+
+	for month, row in earnings.items():
+		month_days = _month_days(month)
+
+		# Місяць прийняття — лише з дати прийняття.
+		if month == joining.replace(day=1):
+			month_days -= joining.day - 1
+
+		days += month_days - row.unpaid_days
+
+	first = max(joining, months[0]) if months else None
+	last = add_days(on_date.replace(day=1), -1)
 
 	if total > 0 and days > 0:
-		return flt(total / days, 2)
+		return frappe._dict(
+			average=flt(total / days, 2),
+			earnings=flt(total, 2),
+			days=days,
+			period_start=first,
+			period_end=last,
+			from_salary=False,
+		)
 
-	# Заробітку в періоді немає: оклад × 12 ÷ календарні дні року.
-	return flt(_official_salary(employee, on_date) * 12 / 365, 2)
+	year_days = date_diff(on_date.replace(day=1), getdate(add_months(on_date.replace(day=1), -12)))
+	salary = _official_salary(employee, on_date)
+
+	return frappe._dict(
+		average=flt(salary * 12 / year_days, 2),
+		earnings=flt(salary * 12, 2),
+		days=year_days,
+		period_start=first,
+		period_end=last,
+		from_salary=True,
+	)
 
 
 def sick_average(employee, on_date) -> float:
 	"""Середньоденна для лікарняних: без попередніх лікарняних і їхніх днів, з обмеженням
 	максимальною базою ЄСВ, а за короткого стажу — мінімальною зарплатою."""
-	earnings = monthly_earnings(employee, calculation_months(employee, on_date))
+	return sick_average_details(employee, on_date).average
+
+
+def sick_average_details(employee, on_date) -> frappe._dict:
+	"""Те саме, що `sick_average`, але з розкладом: період, заробіток, дні і яке обмеження спрацювало."""
+	months = calculation_months(employee, on_date)
+	earnings = monthly_earnings(employee, months)
 	total = sum(row.earnings - row.sick_pay for row in earnings.values())
 	days = sum(_month_days(month) - row.unpaid_days - row.sick_days for month, row in earnings.items())
+	from_salary = not (total > 0 and days > 0)
 
-	if total > 0 and days > 0:
-		average = total / days
-	else:
+	if from_salary:
 		average = _official_salary(employee, on_date) / AVERAGE_MONTH_DAYS
+	else:
+		average = total / days
 
 	limit = payroll_tax.minimum_wage() * MAX_BASE_MINIMUM_WAGES / AVERAGE_MONTH_DAYS
+	cap = "max_base"
 
 	if tenure_months(employee, on_date) < SHORT_TENURE_MONTHS:
 		limit = payroll_tax.minimum_wage() / AVERAGE_MONTH_DAYS
+		cap = "short_tenure"
 
-	return flt(min(average, limit), 2)
+	return frappe._dict(
+		average=flt(min(average, limit), 2),
+		uncapped=flt(average, 2),
+		limit=flt(limit, 2),
+		capped=cap if average > limit else None,
+		from_salary=from_salary,
+		period_start=months[0] if months else None,
+		period_end=add_days(add_months(months[-1], 1), -1) if months else None,
+		earnings=flt(total, 2),
+		days=days,
+	)
 
 
 def tenure_months(employee, on_date) -> int:

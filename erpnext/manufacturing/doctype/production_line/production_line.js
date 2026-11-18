@@ -2,6 +2,8 @@ frappe.ui.form.on("Production Line", {
 	refresh(frm) {
 		frm.trigger("show_workplaces");
 		frm.trigger("show_orders");
+		frm.trigger("show_critical_stock");
+		frm.trigger("add_fill_from_boms_button");
 		if (frm.is_new()) return;
 		frm.add_custom_button(
 			__("Production Flow"),
@@ -18,6 +20,7 @@ frappe.ui.form.on("Production Line", {
 			__("View")
 		);
 		if (frm.doc.planning_mode == "Manual Planning") {
+			frm.add_custom_button(__("Add Order"), () => frm.trigger("add_order_dialog"));
 			const waiting = (frm.doc.orders || []).filter((row) => !row.work_order).length;
 			if (waiting) {
 				frm.add_custom_button(__("Release Orders"), () => frm.trigger("release_orders")).addClass(
@@ -203,5 +206,259 @@ frappe.ui.form.on("Production Line", {
 		};
 		frm.set_query("workplace", "plan", bench_query);
 		frm.set_query("workplace", "orders", bench_query);
+
+		frm.set_query("item_code", "allowed_items", function (doc) {
+			const picked = (doc.allowed_items || []).map((row) => row.item_code).filter(Boolean);
+			return { filters: { disabled: 0, default_bom: ["is", "set"], name: ["not in", picked] } };
+		});
+		frm.set_query("item_code", "critical_stock", function (doc) {
+			const picked = (doc.critical_stock || []).map((row) => row.item_code).filter(Boolean);
+			return { filters: { disabled: 0, is_stock_item: 1, name: ["not in", picked] } };
+		});
+		const allowed_item_query = function (doc) {
+			const allowed = (doc.allowed_items || []).map((row) => row.item_code).filter(Boolean);
+			if (!allowed.length) return { filters: { disabled: 0 } };
+			return { filters: { name: ["in", allowed] } };
+		};
+		frm.set_query("item_code", "plan", allowed_item_query);
+		frm.set_query("item_code", "orders", allowed_item_query);
+		frm.allowed_item_query = allowed_item_query;
+		frm.bench_query = bench_query;
+	},
+	allowed_items_remove(frm) {
+		frm.trigger("show_critical_stock");
+	},
+	add_fill_from_boms_button(frm) {
+		const grid = frm.fields_dict.critical_stock && frm.fields_dict.critical_stock.grid;
+		if (!grid || grid.fill_from_boms_added) return;
+		grid.fill_from_boms_added = true;
+		grid.add_custom_button(__("Fill From BOMs"), () => frm.trigger("fill_critical_stock"));
+	},
+	fill_critical_stock(frm) {
+		if (frm.is_new() || frm.is_dirty()) {
+			frappe.msgprint(__("Save the production line first"));
+			return;
+		}
+		if (!(frm.doc.allowed_items || []).length) {
+			frappe.msgprint(__("Add allowed items first: their BOMs give the component list"));
+			return;
+		}
+		frappe.call({
+			method: "erpnext.manufacturing.doctype.production_line.production_line.critical_stock_components",
+			args: { line: frm.doc.name },
+			freeze: true,
+			callback: (r) => {
+				const have = new Set((frm.doc.critical_stock || []).map((row) => row.item_code));
+				const missing = (r.message || []).filter((row) => !have.has(row.item_code));
+				missing.forEach((row) =>
+					frm.add_child("critical_stock", {
+						item_code: row.item_code,
+						item_name: row.item_name,
+						stock_uom: row.stock_uom,
+						critical_qty: 0,
+					})
+				);
+				frm.refresh_field("critical_stock");
+				frappe.show_alert({
+					message: missing.length
+						? __("{0} component(s) added. Set their critical stock and save.", [missing.length])
+						: __("All components are already listed"),
+					indicator: missing.length ? "blue" : "green",
+				});
+			},
+		});
+	},
+	show_critical_stock(frm) {
+		const field = frm.fields_dict.critical_stock_overview;
+		if (!field) return;
+		if (frm.is_new() || !(frm.doc.critical_stock || []).length) {
+			field.$wrapper.html("");
+			return;
+		}
+		frappe.call({
+			method: "erpnext.manufacturing.doctype.production_line.production_line.critical_stock_overview",
+			args: { line: frm.doc.name },
+			callback: (r) => {
+				const rows = r.message || [];
+				const num = (v) => format_number(v, null, 3);
+				const esc = frappe.utils.escape_html;
+				const low = rows.filter((row) => row.below && !row.unused).length;
+				const unused = rows.filter((row) => row.unused).length;
+				const body = rows
+					.map((row) => {
+						let state = `<span class="indicator-pill green">${__("OK")}</span>`;
+						let cls = "";
+						if (row.unused) {
+							state = `<span class="indicator-pill gray">${__(
+								"Not used by any allowed item's BOM — can be removed"
+							)}</span>`;
+							cls = ' class="text-muted"';
+						} else if (row.below) {
+							state = `<span class="indicator-pill red">${__("Below critical stock")}</span>`;
+							cls = ' style="background: var(--bg-red)"';
+						}
+						return `<tr${cls}>
+							<td>${erpnext.entity.item(row, { size: 20 })}</td>
+							<td class="text-right">${num(row.free)} ${esc(row.stock_uom || "")}</td>
+							<td class="text-right">${num(row.critical_qty)}</td>
+							<td>${state}</td>
+						</tr>`;
+					})
+					.join("");
+				const summary = [];
+				if (low)
+					summary.push(`<span class="text-danger">${__("{0} below critical stock", [low])}</span>`);
+				if (unused)
+					summary.push(
+						`<span class="text-muted">${__("{0} not needed by this line", [unused])}</span>`
+					);
+				field.$wrapper.html(
+					`${summary.length ? `<div class="mb-2">${summary.join(" · ")}</div>` : ""}
+					<table class="table table-bordered table-sm">
+						<thead><tr>
+							<th>${__("Component")}</th><th class="text-right">${__("Free Stock")}</th>
+							<th class="text-right">${__("Critical Stock")}</th><th>${__("Status")}</th>
+						</tr></thead>
+						<tbody>${body}</tbody>
+					</table>`
+				);
+				if (low) {
+					frm.dashboard.set_headline(
+						__("{0} component(s) below critical stock — order them in time", [low]),
+						"red"
+					);
+				}
+			},
+		});
+	},
+	add_order_dialog(frm) {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Add Order"),
+			size: "large",
+			fields: [
+				{
+					fieldname: "item_code",
+					fieldtype: "Link",
+					label: __("Item"),
+					options: "Item",
+					reqd: 1,
+					get_query: () => frm.allowed_item_query(frm.doc),
+					onchange: () => refresh_check(),
+				},
+				{ fieldtype: "Column Break" },
+				{
+					fieldname: "qty",
+					fieldtype: "Int",
+					label: __("Qty"),
+					reqd: 1,
+					onchange: () => refresh_check(),
+				},
+				{ fieldtype: "Column Break" },
+				{
+					fieldname: "workplace",
+					fieldtype: "Link",
+					label: __("Workplace"),
+					options: "Workplace",
+					get_query: () => frm.bench_query(frm.doc),
+				},
+				{ fieldtype: "Section Break" },
+				{ fieldname: "result", fieldtype: "HTML" },
+			],
+			primary_action_label: __("Add"),
+			primary_action: (values) => {
+				const add = () => {
+					frm.add_child("orders", {
+						item_code: values.item_code,
+						qty: values.qty,
+						workplace: values.workplace,
+					});
+					frm.refresh_field("orders");
+					dialog.hide();
+					frm.save();
+				};
+				const check = dialog.check_result;
+				if (check && check.max_producible !== null && values.qty > check.max_producible) {
+					frappe.confirm(
+						__("Components on stock cover only {0} of {1}. Add the order for {1} anyway?", [
+							check.max_producible,
+							values.qty,
+						]),
+						add
+					);
+				} else {
+					add();
+				}
+			},
+		});
+		const result = dialog.fields_dict.result.$wrapper;
+		const render = (data) => {
+			dialog.check_result = data;
+			const num = (v) => format_number(v, null, 3);
+			const esc = frappe.utils.escape_html;
+			if (!data.rows.length) {
+				result.html(`<div class="text-muted">${__("The BOM has no stock components")}</div>`);
+				return;
+			}
+			const fits = data.max_producible === null || data.max_producible >= data.qty;
+			const headline = `<div class="mb-2" style="font-size: var(--text-lg)">
+				<span class="indicator-pill ${fits ? "green" : "red"}">
+					${__("Can produce {0} of {1}", [data.max_producible ?? "∞", data.qty])}
+				</span></div>`;
+			const body = data.rows
+				.map((row) => {
+					let style = "";
+					let note = "";
+					if (row.short) {
+						style = ' style="background: var(--bg-red)"';
+						note = `<span class="text-danger">${__("short by {0}", [
+							num(row.required - row.free),
+						])}</span>`;
+					} else if (row.below_critical) {
+						style = ' style="background: var(--bg-orange)"';
+						note = `<span class="text-warning">${__(
+							"below critical stock after this order"
+						)}</span>`;
+					}
+					return `<tr${style}>
+						<td>${erpnext.entity.item(row, { size: 20 })}</td>
+						<td class="text-right">${num(row.per_unit)}</td>
+						<td class="text-right">${num(row.required)}</td>
+						<td class="text-right">${num(row.free)}</td>
+						<td class="text-right">${num(row.after)} ${esc(row.stock_uom || "")}</td>
+						<td class="text-right">${
+							row.critical_qty === null || row.critical_qty === undefined
+								? "—"
+								: num(row.critical_qty)
+						}</td>
+						<td>${note}</td>
+					</tr>`;
+				})
+				.join("");
+			result.html(
+				`${headline}<table class="table table-bordered table-sm">
+					<thead><tr>
+						<th>${__("Component")}</th><th class="text-right">${__("Per Unit")}</th>
+						<th class="text-right">${__("Required Qty")}</th><th class="text-right">${__("Free Stock")}</th>
+						<th class="text-right">${__("After Order")}</th><th class="text-right">${__("Critical Stock")}</th>
+						<th></th>
+					</tr></thead>
+					<tbody>${body}</tbody>
+				</table>`
+			);
+		};
+		const refresh_check = frappe.utils.debounce(() => {
+			const { item_code, qty } = dialog.get_values(true) || {};
+			if (!item_code) {
+				dialog.check_result = null;
+				result.html("");
+				return;
+			}
+			frappe.call({
+				method: "erpnext.manufacturing.doctype.production_line.production_line.check_order",
+				args: { line: frm.doc.name, item_code, qty: qty || 1 },
+				callback: (r) => r.message && render(r.message),
+			});
+		}, 300);
+		dialog.show();
 	},
 });
