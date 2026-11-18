@@ -110,6 +110,7 @@ doctype_js = {
 		"public/js/custom/employee_earnings.js",
 		"public/js/custom/employee_attendance_sheet.js",
 		"public/js/custom/employee_overview.js",
+		"public/js/custom/employee_insurance.js",
 	],
 	# сканер серійних / партійних номерів на самому комплекті
 	"Serial and Batch Bundle": "public/js/custom/serial_and_batch_bundle.js",

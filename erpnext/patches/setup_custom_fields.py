@@ -1410,24 +1410,27 @@ def create_average_pay_fields():
 		},
 		{
 			"dt": "Employee",
-			"fieldname": "custom_insurance_years",
-			"fieldtype": "Int",
-			"label": "Insurance Tenure Before Joining (Years)",
+			"fieldname": "custom_insurance_html",
+			"fieldtype": "HTML",
+			"label": "Insurance Tenure Before Joining",
 			"insert_after": "custom_average_pay_section",
-			"description": "The tenure earned before this company. The time worked here is added automatically; the total sets the sick pay percent: under 3 years — 50%, 3 to 5 — 60%, 5 to 8 — 70%, over 8 — 100%.",
 		},
 		{
 			"dt": "Employee",
-			"fieldname": "custom_insurance_column",
-			"fieldtype": "Column Break",
-			"insert_after": "custom_insurance_years",
+			"fieldname": "custom_insurance_years",
+			"fieldtype": "Int",
+			"label": "Insurance Tenure Before Joining (Years)",
+			"insert_after": "custom_insurance_html",
+			"hidden": 1,
+			"description": "The tenure earned before this company. The time worked here is added automatically; the total sets the sick pay percent: under 3 years — 50%, 3 to 5 — 60%, 5 to 8 — 70%, over 8 — 100%.",
 		},
 		{
 			"dt": "Employee",
 			"fieldname": "custom_insurance_months",
 			"fieldtype": "Int",
 			"label": "Insurance Tenure Before Joining (Months)",
-			"insert_after": "custom_insurance_column",
+			"insert_after": "custom_insurance_years",
+			"hidden": 1,
 		},
 		{
 			"dt": "Employee",
@@ -1439,19 +1442,11 @@ def create_average_pay_fields():
 		},
 		{
 			"dt": "Employee",
-			"fieldname": "custom_insurance_end",
-			"fieldtype": "Section Break",
-			"label": "History Before ERP",
-			"collapsible": 1,
-			"insert_after": "custom_sick_pay_in_full",
-		},
-		{
-			"dt": "Employee",
 			"fieldname": "custom_opening_earnings",
 			"fieldtype": "Table",
 			"label": "Earnings Before ERP",
 			"options": "Employee Opening Earning",
-			"insert_after": "custom_insurance_end",
+			"insert_after": "custom_sick_pay_in_full",
 			"description": "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.",
 		},
 		{
@@ -1466,8 +1461,11 @@ def create_average_pay_fields():
 	]
 	_create_custom_fields(fields)
 	_update_field_texts(fields)
-	# Роки й місяці стажу в одному рядку; історія до ERP — окремою згорнутою секцією.
+	# Стаж до прийняття — один рядок «років / місяців» (public/js/custom/employee_insurance.js),
+	# а самі поля сховані.
 	_update_field_layout(fields)
+	for fieldname in ("custom_insurance_years", "custom_insurance_months"):
+		_sync_field_properties("Employee", fieldname, ["hidden"], fields)
 
 
 def create_identity_fields():
