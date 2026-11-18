@@ -17867,3 +17867,10 @@ There is no pasted image {0},Немає вставленого зображен�
 "Guide Naming Series","Серія нумерації гайдів"
 "Used for new guides, including JSON imports. For example, HELP-GUIDE-.YYYY.-.##### produces HELP-GUIDE-2026-00001.","Використовується для нових гайдів, зокрема імпортованих із JSON. Наприклад, HELP-GUIDE-.YYYY.-.##### створює номер HELP-GUIDE-2026-00001."
 "Use one group of # characters after a dot for the guide number.","Вкажіть одну групу символів # після крапки для номера гайда."
+Recalculated,Перераховано
+Submit the sick leave case first.,Спочатку проведіть випадок лікарняного.
+Only a draft case can be recalculated. Cancel and amend it to change it.,"Перерахувати можна лише чернетку. Щоб змінити проведений випадок, скасуйте його та виправте."
+The employer part is already paid — the case cannot be recalculated.,Частину роботодавця вже виплачено — перерахувати випадок не можна.
+The sick leave case is already paid — it cannot be cancelled.,Випадок лікарняного вже оплачено — скасувати його не можна.
+Set when the case is submitted: only then the employer part goes into the salary.,Ставиться під час проведення випадку: лише тоді частина роботодавця йде в зарплату.
+The case is open: submit it when the last certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed.,"Випадок відкритий: проведіть його, коли отримаєте останній ЕЛН, — тоді частина роботодавця піде в зарплату, а випадок більше не можна буде змінити."

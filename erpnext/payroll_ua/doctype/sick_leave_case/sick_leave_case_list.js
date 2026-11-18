@@ -7,6 +7,7 @@ frappe.listview_settings["Sick Leave Case"] = {
 			"Employer Paid": "yellow",
 			"Fund Received": "purple",
 			Paid: "green",
+			Cancelled: "red",
 		};
 		return [__(doc.status), colors[doc.status] || "gray", `status,=,${doc.status}`];
 	},
@@ -23,7 +24,7 @@ frappe.listview_settings["Sick Leave Case"] = {
 		listview.page.add_inner_button(__("Not Closed"), () => {
 			listview.filter_area
 				.clear()
-				.then(() => listview.filter_area.add([["Sick Leave Case", "closed", "=", 0]]));
+				.then(() => listview.filter_area.add([["Sick Leave Case", "docstatus", "=", 0]]));
 		});
 		listview.page.add_inner_button(__("Find Unregistered Sick Days"), () => {
 			frappe.prompt(

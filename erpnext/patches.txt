@@ -570,6 +570,7 @@ erpnext.patches.v16_0.sidebar_menu_item_attendance_sheet
 erpnext.patches.v16_0.sidebar_menu_item_builtins
 erpnext.patches.v16_0.sensitive_data_defaults
 erpnext.patches.v16_0.client_base_work_per_military_unit
+erpnext.patches.v16_0.submit_closed_sick_leave_cases
 erpnext.patches.v16_0.seed_helper_guides
 erpnext.patches.v16_0.expand_procurement_guides
 erpnext.patches.v16_0.initialize_helper_guide_naming_series

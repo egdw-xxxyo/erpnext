@@ -8,6 +8,12 @@ frappe.ui.form.on("Sick Leave Case", {
 
 		show_status(frm);
 
+		if (frm.doc.docstatus === 0 && !frm.doc.employer_paid_date) {
+			frm.add_custom_button(__("Recalculate"), () => recalculate(frm));
+		}
+
+		if (frm.doc.docstatus !== 1) return;
+
 		if (cint(frm.doc.fund_days) && !frm.doc.je_fund_receipt) {
 			frm.add_custom_button(__("Money Received from Fund"), () => ask_receipt(frm), __("Fund"));
 		}
@@ -50,13 +56,14 @@ function show_status(frm) {
 		"Employer Paid": "yellow",
 		"Fund Received": "purple",
 		Paid: "green",
+		Cancelled: "red",
 	};
 	frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");
 
-	if (!frm.doc.closed) {
+	if (frm.doc.docstatus === 0) {
 		frm.dashboard.add_comment(
 			__(
-				"The case is open: the employer part goes into the salary once the final certificate is ticked."
+				"The case is open: submit it when the last certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed."
 			),
 			"orange",
 			true
@@ -190,6 +197,13 @@ function ask_payment(frm) {
 		(values) => run(frm, "pay_fund", values),
 		__("Pay Fund Part to Employee"),
 		__("Post")
+	);
+}
+
+function recalculate(frm) {
+	if (frm.is_dirty()) return frm.save();
+	return run(frm, "recalculate", {}).then(() =>
+		frappe.show_alert({ message: __("Recalculated"), indicator: "green" })
 	);
 }
 
