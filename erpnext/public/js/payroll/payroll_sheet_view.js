@@ -727,7 +727,8 @@ function show_details(frm, row) {
 		attendance: attendance_extra(frm, row),
 		salary: salary_lines(frm, row),
 		payout: payout_lines(frm, row),
-		note: row.note,
+		blocked: row.attendance_approved ? null : row.attendance_note || __("Attendance sheet not approved"),
+		note: row.attendance_approved ? row.note : null,
 		// Без меж періоду календар не завантажується — відомість показує весь місяць,
 		// на відміну від авансу, який обрізає його днем відсікання.
 		start: frm.doc.period_start,

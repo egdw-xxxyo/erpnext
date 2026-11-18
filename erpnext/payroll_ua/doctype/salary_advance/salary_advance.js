@@ -362,7 +362,7 @@ function show_attendance(frm, row) {
 		title: row.employee_name || row.employee,
 		indicator: row.attendance_approved ? "green" : "orange",
 		salary: salary_lines(row),
-		note: attendance_note(row),
+		blocked: attendance_note(row) || null,
 		start: frm.doc.period_start,
 		end: cutoff_date(frm),
 	});

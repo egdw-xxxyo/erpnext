@@ -43,6 +43,21 @@ function note_html(note) {
 	return note ? `<p class="text-muted attendance-details-note">${frappe.utils.escape_html(note)}</p>` : "";
 }
 
+// Без затвердженого табеля сум немає: їх порахували б із дірки в табелі, тож замість
+// нарахування й виплати попап показує лише, чого бракує.
+function blocked_html(message) {
+	return `<div class="alert alert-warning" style="margin-top: 12px;">${frappe.utils.escape_html(
+		message
+	)}</div>`;
+}
+
+function salary_html(settings) {
+	return `
+		${settings.skip_salary ? "" : section_html(__("Salary"), table_html(settings.salary || []))}
+		${settings.payout ? section_html(__("Taxes and Payout"), table_html(settings.payout)) : ""}
+	`;
+}
+
 function html(row, options) {
 	const settings = options || {};
 	const calendar = settings.calendar_slot
@@ -67,8 +82,7 @@ function html(row, options) {
 		${styles()}
 		<div class="attendance-details">
 			${attendance}
-			${settings.skip_salary ? "" : section_html(__("Salary"), table_html(settings.salary || []))}
-			${settings.payout ? section_html(__("Taxes and Payout"), table_html(settings.payout)) : ""}
+			${settings.blocked ? blocked_html(settings.blocked) : salary_html(settings)}
 			${note_html(settings.note)}
 		</div>
 	`;
