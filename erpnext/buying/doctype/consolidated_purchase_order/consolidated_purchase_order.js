@@ -116,7 +116,9 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 									label: __("Supplier"),
 									options: suppliers.map((row) => row.supplier),
 									reqd: 1,
-									description: `${__("Select the supplier whose invoice you want to record.")}<br><span class="procurement-invoice-options">${suppliers
+									description: `${__(
+										"Select the supplier whose invoice you want to record."
+									)}<br><span class="procurement-invoice-options">${suppliers
 										.map(
 											(row) => `<span class="procurement-invoice-option">
 												<strong>${frappe.utils.escape_html(row.supplier_name || row.supplier)}</strong>
@@ -219,7 +221,11 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 				args: { source_name: doc.name },
 			})
 			.then((response) => {
-				if (frm.doc !== doc || doc.workflow_state !== state || frm.procurement_route_request !== request) {
+				if (
+					frm.doc !== doc ||
+					doc.workflow_state !== state ||
+					frm.procurement_route_request !== request
+				) {
 					return;
 				}
 				const route_data = response.message || {};
@@ -1314,7 +1320,7 @@ function setup_delivery_note_action(frm) {
 					options: "Supplier",
 					label: __("Supplier"),
 					reqd: 1,
-				description: __("Select the supplier that issued the delivery note."),
+					description: __("Select the supplier that issued the delivery note."),
 					get_query: () => ({ filters: { name: ["in", get_order_suppliers(frm)] } }),
 				},
 				{
@@ -1322,7 +1328,7 @@ function setup_delivery_note_action(frm) {
 					fieldtype: "Attach",
 					label: __("Supplier Delivery Notes"),
 					reqd: 1,
-				description: __("Attach the supplier's delivery note as a PDF or ZIP file."),
+					description: __("Attach the supplier's delivery note as a PDF or ZIP file."),
 					options: {
 						restrictions: { allowed_file_types: [".pdf", ".zip"] },
 						allow_web_link: false,

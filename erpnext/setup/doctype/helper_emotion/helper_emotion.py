@@ -29,4 +29,6 @@ class HelperEmotion(Document):
 		frappe.throw(_("A saved emotion key cannot be changed."))
 
 	def on_trash(self):
-		frappe.throw(_("Helper emotions can be reused by other guides. Replace the image to update an emotion."))
+		frappe.throw(
+			_("Helper emotions can be reused by other guides. Replace the image to update an emotion.")
+		)

@@ -471,16 +471,15 @@ def get_supplier_contacts(source_name: str | None = None, suppliers: str | list[
 	for row in rows:
 		contact = contacts.get(row.supplier_primary_contact, {})
 		identity = identities.get(row.supplier_primary_contact, {})
+		can_add_contact = False
+		if not contact and can_create_contact:
+			can_add_contact = frappe.has_permission("Supplier", "write", doc=row.name)
 		result.append(
 			{
 				"supplier": row.name,
 				"supplier_name": row.supplier_name or row.name,
 				"has_contact": row.supplier_primary_contact in contacts,
-				"can_add_contact": (
-					not contact
-					and can_create_contact
-					and frappe.has_permission("Supplier", "write", doc=row.name)
-				),
+				"can_add_contact": can_add_contact,
 				"contact": identity.get("name"),
 				"full_name": identity.get("full_name"),
 				"image": identity.get("image"),

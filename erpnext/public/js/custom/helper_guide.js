@@ -142,11 +142,7 @@
 					const element = selector ? field.$wrapper.find(selector)[0] : field.$wrapper[0];
 					if (element && visible(reveal(field)) && visible(element)) return element;
 				}
-				return [
-					status_element,
-					frm.page.indicator?.[0],
-					frm.page.$title_area?.[0],
-				].find(visible);
+				return [status_element, frm.page.indicator?.[0], frm.page.$title_area?.[0]].find(visible);
 			},
 			message,
 			pose,
@@ -159,8 +155,10 @@
 		if (!can_write(field) || (field.grid && !field.grid.is_editable())) return;
 		const value_check = config.when.value || "empty";
 		const needs_value = (row, df) => {
-			if (value_check === "required_positive") return (missing(row, df) || !(Number(row[df.fieldname]) > 0));
-			if (value_check === "required_nonnegative") return (missing(row, df) || !(Number(row[df.fieldname]) >= 0));
+			if (value_check === "required_positive")
+				return missing(row, df) || !(Number(row[df.fieldname]) > 0);
+			if (value_check === "required_nonnegative")
+				return missing(row, df) || !(Number(row[df.fieldname]) >= 0);
 			return missing(row, df);
 		};
 		const applies = (row, df) => (value_check === "empty" || df.reqd) && needs_value(row, df);
@@ -174,7 +172,9 @@
 			const fields = field.grid.get_row(row.name)?.docfields || field.grid.docfields || [];
 			const df = fields.find((column) => column.fieldname === child);
 			if (
-				df && !df.hidden_due_to_dependency && applies(row, df) &&
+				df &&
+				!df.hidden_due_to_dependency &&
+				applies(row, df) &&
 				frappe.perm.get_field_display_status(df, row, field.grid.frm?.perm) === "Write"
 			) {
 				return row_step(field, row, df, message, applies);
@@ -203,8 +203,10 @@
 		if (operator === "not_equals") return actual !== value;
 		if (operator === "in") return value.includes(actual);
 		if (operator === "not_in") return !value.includes(actual);
-		const empty = actual == null ||
-			(typeof actual === "string" && !actual.trim()) || (Array.isArray(actual) && !actual.length);
+		const empty =
+			actual == null ||
+			(typeof actual === "string" && !actual.trim()) ||
+			(Array.isArray(actual) && !actual.length);
 		return operator === "empty" ? empty : !empty;
 	}
 
@@ -213,7 +215,8 @@
 		for (const config of guide.steps) {
 			const { docstatus, workflow_state, role } = config.when;
 			if (docstatus != null && Number(doc.docstatus || 0) !== docstatus) continue;
-			if (workflow_state && doc[guide.workflow_state_field || "workflow_state"] !== workflow_state) continue;
+			if (workflow_state && doc[guide.workflow_state_field || "workflow_state"] !== workflow_state)
+				continue;
 			if (role && !frappe.user.has_role(role)) continue;
 			if (config.when.fields?.some((condition) => !matches_field(doc, condition))) continue;
 			let step;
@@ -261,12 +264,15 @@
 
 		const main = anchor.closest(".main-section");
 		const pane =
-			anchor.closest(".grid-form-body") || (main && main.scrollHeight > main.clientHeight ? main : null);
+			anchor.closest(".grid-form-body") ||
+			(main && main.scrollHeight > main.clientHeight ? main : null);
 		const { top, height } = anchor.getBoundingClientRect();
 		const { top: viewport_top, bottom: viewport_bottom } = guide_viewport(viewport);
 		const pane_top = pane ? pane.getBoundingClientRect().top + pane.clientTop : viewport_top;
-		const center = (Math.max(viewport_top, pane_top) +
-			Math.min(viewport_bottom, pane ? pane_top + pane.clientHeight : viewport_bottom)) / 2;
+		const center =
+			(Math.max(viewport_top, pane_top) +
+				Math.min(viewport_bottom, pane ? pane_top + pane.clientHeight : viewport_bottom)) /
+			2;
 		const scroller = pane || document.scrollingElement;
 		const start = scroller.scrollTop;
 		const end = Math.max(
@@ -359,12 +365,14 @@
 		const exit = layer.querySelector(".procurement-guide-close");
 		layer.classList.toggle("is-grid", Boolean(anchor.closest(".form-in-grid")));
 		layer.dataset.pose = step.pose || mascot_settings.default_emotion;
-		mascot.src = mascot_settings.emotions[layer.dataset.pose] || mascot_settings.emotions[mascot_settings.default_emotion];
+		mascot.src =
+			mascot_settings.emotions[layer.dataset.pose] ||
+			mascot_settings.emotions[mascot_settings.default_emotion];
 		const message = layer.querySelector("[role=status]");
 		message.textContent = step.hint || step.message;
 		if (step.decisions?.length) {
 			const decisions = $('<ul class="procurement-guide-decisions"></ul>').appendTo(message);
-			for (const decision of step.decisions) $('<li></li>').text(decision).appendTo(decisions);
+			for (const decision of step.decisions) $("<li></li>").text(decision).appendTo(decisions);
 		}
 		exit.setAttribute("aria-label", __("Close assistant hint"));
 
@@ -375,10 +383,14 @@
 			skip = $('<button type="button" class="btn btn-xs btn-default procurement-guide-skip"></button>')
 				.text(__("Skip"))
 				.insertAfter(message)[0];
-			skip.addEventListener("click", () => {
-				step.skip();
-				trigger.click();
-			}, { signal });
+			skip.addEventListener(
+				"click",
+				() => {
+					step.skip();
+					trigger.click();
+				},
+				{ signal }
+			);
 		}
 		const focus = skip || (step.action && anchor.matches("button, a") ? anchor : exit);
 		const description = "procurement-guide-message";
@@ -424,8 +436,12 @@
 			const container = anchor
 				.closest(".form-grid-container, .grid-form-body, .cpo-route-scroll")
 				?.getBoundingClientRect();
-			const { left: viewport_left, top: viewport_top, right: viewport_right, bottom: screen_bottom } =
-				guide_viewport(viewport);
+			const {
+				left: viewport_left,
+				top: viewport_top,
+				right: viewport_right,
+				bottom: screen_bottom,
+			} = guide_viewport(viewport);
 			const viewport_width = viewport_right - viewport_left;
 			const viewport_height = screen_bottom - viewport_top;
 			const viewport_bottom = Math.min(
@@ -433,7 +449,11 @@
 				anchor.closest(".main-section")?.getBoundingClientRect().bottom ?? Infinity
 			);
 			const top = Math.max(viewport_top + 5, (container?.top ?? 0) - 4, rect.top - 4);
-			const bottom = Math.min(viewport_bottom - 5, (container?.bottom ?? Infinity) + 4, rect.bottom + 4);
+			const bottom = Math.min(
+				viewport_bottom - 5,
+				(container?.bottom ?? Infinity) + 4,
+				rect.bottom + 4
+			);
 			const left = Math.max(viewport_left + 5, (container?.left ?? 0) - 4, rect.left - 4);
 			const right = Math.min(viewport_right - 5, (container?.right ?? Infinity) + 4, rect.right + 4);
 			layer.hidden = bottom <= top || right <= left;
@@ -458,7 +478,9 @@
 			const x = Math.max(viewport_left + gap, Math.min(left, viewport_right - hint_width - gap));
 			const y = above ? top - hint.offsetHeight - gap : bottom + gap;
 			if (
-				motion && (Math.abs(parseFloat(hint.style.left) - x) >= 1 || Math.abs(parseFloat(hint.style.top) - y) >= 1)
+				motion &&
+				(Math.abs(parseFloat(hint.style.left) - x) >= 1 ||
+					Math.abs(parseFloat(hint.style.top) - y) >= 1)
 			) {
 				motion.finish();
 			}
@@ -471,31 +493,52 @@
 		}
 
 		exit.addEventListener("click", () => dismiss?.(true), { signal });
-		exit.addEventListener("keydown", (event) => {
-			if (event.key === "Tab" && !event.shiftKey) {
-				let input = step.input?.();
-				if (!visible(input)) input = step.activate_input?.();
-				if (!visible(input)) return;
+		exit.addEventListener(
+			"keydown",
+			(event) => {
+				if (event.key === "Tab" && !event.shiftKey) {
+					let input = step.input?.();
+					if (!visible(input)) input = step.activate_input?.();
+					if (!visible(input)) return;
+					event.preventDefault();
+					describe(input);
+					input.focus({ preventScroll: true });
+				}
+			},
+			{ signal }
+		);
+		anchor.addEventListener(
+			"focusin",
+			({ target }) => {
+				if (!bubble.inert && target === step.input?.()) describe(target);
+			},
+			{ signal }
+		);
+		document.addEventListener(
+			"keydown",
+			(event) => {
+				if (
+					event.key !== "Escape" ||
+					selecting ||
+					document.querySelector(".modal.show, .datepicker.-active-")
+				)
+					return;
 				event.preventDefault();
-				describe(input);
-				input.focus({ preventScroll: true });
-			}
-		}, { signal });
-		anchor.addEventListener("focusin", ({ target }) => {
-			if (!bubble.inert && target === step.input?.()) describe(target);
-		}, { signal });
-		document.addEventListener("keydown", (event) => {
-			if (event.key !== "Escape" || selecting || document.querySelector(".modal.show, .datepicker.-active-")) return;
-			event.preventDefault();
-			event.stopImmediatePropagation();
-			dismiss?.(true);
-		}, { capture: true, signal });
+				event.stopImmediatePropagation();
+				dismiss?.(true);
+			},
+			{ capture: true, signal }
+		);
 		for (const name of ["awesomplete-open", "awesomplete-close"]) {
-			anchor.addEventListener(name, () => {
-				selecting = name === "awesomplete-open";
-				layer.classList.toggle("is-selecting", selecting);
-				if (selecting && positioned) motion?.finish();
-			}, { signal });
+			anchor.addEventListener(
+				name,
+				() => {
+					selecting = name === "awesomplete-open";
+					layer.classList.toggle("is-selecting", selecting);
+					if (selecting && positioned) motion?.finish();
+				},
+				{ signal }
+			);
 		}
 		if (step.action) anchor.addEventListener("click", close, { signal });
 		window.addEventListener("scroll", schedule, { capture: true, signal });
@@ -510,9 +553,17 @@
 		async function introduce() {
 			const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 			const initial_focus = document.activeElement;
-			const loaded = smooth ? mascot.decode().then(() => true, () => false) : null;
+			const loaded = smooth
+				? mascot.decode().then(
+						() => true,
+						() => false
+				  )
+				: null;
 			if (smooth) {
-				motion = layer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "ease-out" });
+				motion = layer.animate([{ opacity: 0 }, { opacity: 1 }], {
+					duration: 100,
+					easing: "ease-out",
+				});
 				await motion.finished.catch(() => {});
 				motion = null;
 			}
@@ -552,13 +603,17 @@
 		const next = $('<button type="button" class="btn btn-sm procurement-assistant-next"></button>')
 			.text(__("Suggest my next action"))
 			.appendTo(controls)[0];
-		const switch_guide = $('<button type="button" class="btn btn-sm procurement-assistant-switch" hidden></button>')
+		const switch_guide = $(
+			'<button type="button" class="btn btn-sm procurement-assistant-switch" hidden></button>'
+		)
 			.html(frappe.utils.icon("chevron-down"))
 			.appendTo(controls)[0];
 		const { guides, mascot, workflow_state_field } = data;
-		let selected = guides.length === 1 ? guides[0] : guides.find((item) => item.name === selections.get(frm.doc));
+		let selected =
+			guides.length === 1 ? guides[0] : guides.find((item) => item.name === selections.get(frm.doc));
 		let chooser;
-		const toggle = $(`<button type="button" class="btn btn-default icon-btn text-muted procurement-assistant-toggle">
+		const toggle =
+			$(`<button type="button" class="btn btn-default icon-btn text-muted procurement-assistant-toggle">
 			<svg class="icon" viewBox="0 0 24 20" aria-hidden="true">
 				<g fill="none" stroke="currentColor" stroke-width="1.4">
 					<ellipse cx="7.1" cy="4.9" rx="4.5" ry="2.6" transform="rotate(25 7.1 4.9)" />
@@ -590,9 +645,10 @@
 		window.addEventListener("resize", place_toggle, { signal });
 		const place_next = () => {
 			const { left, right, width } = column.getBoundingClientRect();
-			const inset = getComputedStyle(column).direction === "rtl"
-				? left
-				: document.documentElement.clientWidth - right;
+			const inset =
+				getComputedStyle(column).direction === "rtl"
+					? left
+					: document.documentElement.clientWidth - right;
 			controls.style.setProperty("--procurement-assistant-inline-end", `${Math.max(0, inset)}px`);
 			controls.style.setProperty("--procurement-assistant-column-width", `${width}px`);
 		};
@@ -627,12 +683,16 @@
 			toggle.setAttribute("aria-pressed", String(enabled));
 			toggle.title = label;
 		};
-		toggle.addEventListener("click", () => {
-			close();
-			request = null;
-			sessionStorage.setItem(preference, controls.hidden ? "1" : "0");
-			update();
-		}, { signal });
+		toggle.addEventListener(
+			"click",
+			() => {
+				close();
+				request = null;
+				sessionStorage.setItem(preference, controls.hidden ? "1" : "0");
+				update();
+			},
+			{ signal }
+		);
 		function choose_guide(trigger) {
 			if (chooser) return;
 			close();
@@ -642,7 +702,9 @@
 				keep_grid_form_open: true,
 			});
 			chooser = dialog;
-			const list = $('<div class="list-group list-group-flush"></div>').appendTo(dialog.fields_dict.guides.$wrapper);
+			const list = $('<div class="list-group list-group-flush"></div>').appendTo(
+				dialog.fields_dict.guides.$wrapper
+			);
 			let chosen;
 			for (const option of guides) {
 				$('<button type="button" class="list-group-item list-group-item-action"></button>')
@@ -669,38 +731,54 @@
 			dialog.show();
 		}
 		switch_guide.addEventListener("click", () => choose_guide(switch_guide), { signal });
-		next.addEventListener("click", async () => {
-			if (!selected) {
-				choose_guide(next);
-				return;
-			}
-			close();
-			const doc = frm.doc;
-			const route = frappe.get_route().join("/");
-			const token = (request = {});
-			const current = () =>
-				request === token && next.isConnected && !controls.hidden && frm.doc === doc &&
-				frappe.get_route().join("/") === route;
-			next.setAttribute("aria-busy", "true");
-			next.disabled = true;
-			switch_guide.disabled = true;
-			try {
-				await frappe.after_ajax();
-				if (!current()) return;
-				const step = await configured_step(frm, doc, { steps: selected.steps, workflow_state_field });
-				if (!current()) return;
-				if (step) show_hint(frm, step, next, mascot);
-				else frappe.show_alert({ message: __("There is no matching guide step for this document.") });
-			} catch {
-				if (current()) {
-					frappe.show_alert({ message: __("Could not load the next step. Try again."), indicator: "orange" });
+		next.addEventListener(
+			"click",
+			async () => {
+				if (!selected) {
+					choose_guide(next);
+					return;
 				}
-			} finally {
-				next.disabled = false;
-				switch_guide.disabled = false;
-				next.removeAttribute("aria-busy");
-			}
-		}, { signal });
+				close();
+				const doc = frm.doc;
+				const route = frappe.get_route().join("/");
+				const token = (request = {});
+				const current = () =>
+					request === token &&
+					next.isConnected &&
+					!controls.hidden &&
+					frm.doc === doc &&
+					frappe.get_route().join("/") === route;
+				next.setAttribute("aria-busy", "true");
+				next.disabled = true;
+				switch_guide.disabled = true;
+				try {
+					await frappe.after_ajax();
+					if (!current()) return;
+					const step = await configured_step(frm, doc, {
+						steps: selected.steps,
+						workflow_state_field,
+					});
+					if (!current()) return;
+					if (step) show_hint(frm, step, next, mascot);
+					else
+						frappe.show_alert({
+							message: __("There is no matching guide step for this document."),
+						});
+				} catch {
+					if (current()) {
+						frappe.show_alert({
+							message: __("Could not load the next step. Try again."),
+							indicator: "orange",
+						});
+					}
+				} finally {
+					next.disabled = false;
+					switch_guide.disabled = false;
+					next.removeAttribute("aria-busy");
+				}
+			},
+			{ signal }
+		);
 		place_toggle();
 		update();
 	}
@@ -708,7 +786,15 @@
 	erpnext.helper_guide = {
 		has_rule: (name) => rules.has(name),
 		register_rule: (name, resolve) => rules.set(name, resolve),
-		visible, can_write, field_step, add_row_step, row_step, button_step, menu_labels, custom_button, status_step,
+		visible,
+		can_write,
+		field_step,
+		add_row_step,
+		row_step,
+		button_step,
+		menu_labels,
+		custom_button,
+		status_step,
 	};
 
 	$(document).on("form-refresh.helper-guide", async (_, frm) => {
@@ -719,9 +805,17 @@
 		const request = (loading = {});
 		try {
 			const data = await frappe.xcall(
-				"erpnext.setup.helper_guides.get_active_guides", { target_doctype: frm.doctype }, "GET", { silent: true }
+				"erpnext.setup.helper_guides.get_active_guides",
+				{ target_doctype: frm.doctype },
+				"GET",
+				{ silent: true }
 			);
-			if (loading === request && frm.doc === doc && frappe.get_route().join("/") === route && data?.guides.length) {
+			if (
+				loading === request &&
+				frm.doc === doc &&
+				frappe.get_route().join("/") === route &&
+				data?.guides.length
+			) {
 				mount(frm, data);
 			}
 		} catch {

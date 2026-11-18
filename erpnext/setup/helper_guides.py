@@ -27,10 +27,27 @@ BUILTIN_EMOTIONS = {
 PROCUREMENT_TARGETS = {
 	"Material Request": ("request_create", "request_links"),
 	"Consolidated Purchase Order": (
-		"stock_warehouse", "initiator", "optional_invoice", "route", "complete", "review", "buyer_save",
-		"buyer_actions", "buyer_route", "create_invoice", "missing_invoice", "attach_delivery_note",
-		"payment_route", "wait_preparation", "wait_department", "wait_final", "wait_post", "wait_invoices",
-		"wait_payment", "wait_warehouse", "wait_delivery_notes",
+		"stock_warehouse",
+		"initiator",
+		"optional_invoice",
+		"route",
+		"complete",
+		"review",
+		"buyer_save",
+		"buyer_actions",
+		"buyer_route",
+		"create_invoice",
+		"missing_invoice",
+		"attach_delivery_note",
+		"payment_route",
+		"wait_preparation",
+		"wait_department",
+		"wait_final",
+		"wait_post",
+		"wait_invoices",
+		"wait_payment",
+		"wait_warehouse",
+		"wait_delivery_notes",
 	),
 }
 
@@ -89,7 +106,7 @@ def parse_conditions(raw):
 
 def valid_conditions(conditions, fields):
 	def scalar(value):
-		return value is None or type(value) in (str, int, bool) or (type(value) is float and isfinite(value))
+		return value is None or isinstance(value, str | int) or (isinstance(value, float) and isfinite(value))
 
 	if not isinstance(conditions, list) or len(conditions) > 20:
 		return False
@@ -107,7 +124,11 @@ def valid_conditions(conditions, fields):
 		elif "value" not in condition:
 			return False
 		elif operator in ("in", "not_in"):
-			if not isinstance(value, list) or not 0 < len(value) <= 50 or not all(map(scalar, value)):
+			if (
+				not isinstance(value, list)
+				or not 0 < len(value) <= 50
+				or not all(scalar(item) for item in value)
+			):
 				return False
 		elif not scalar(value):
 			return False
@@ -128,6 +149,7 @@ def validate_guide(doc):
 	keys = set()
 
 	for row in doc.steps:
+
 		def invalid(message):
 			frappe.throw(_("Step {0}: {1}").format(row.idx, message))
 
@@ -158,7 +180,9 @@ def validate_guide(doc):
 		if not valid_conditions(parse_conditions(row.field_conditions), filter_fields):
 			invalid(_("Check field conditions, field names and operators."))
 
-	doc.active_key = sha256(f"{meta.name}\0{doc.guide_title.casefold()}".encode()).hexdigest() if doc.enabled else None
+	doc.active_key = (
+		sha256(f"{meta.name}\0{doc.guide_title.casefold()}".encode()).hexdigest() if doc.enabled else None
+	)
 	if doc.active_key and frappe.db.exists(
 		GUIDE, {"active_key": doc.active_key, "name": ["!=", doc.name or ""]}
 	):
@@ -190,7 +214,13 @@ def serialize_steps(doc):
 			when["value"] = row.value_check or "empty"
 		if row.field_conditions:
 			when["fields"] = parse_conditions(row.field_conditions)
-		step = {"id": row.step_key, "type": kind, "when": when, "hint": row.hint or "", "emotion": row.emotion or ""}
+		step = {
+			"id": row.step_key,
+			"type": kind,
+			"when": when,
+			"hint": row.hint or "",
+			"emotion": row.emotion or "",
+		}
 		if kind == "field":
 			step["field"] = row.target
 		elif row.target:
@@ -216,7 +246,8 @@ def builtin_guide(meta):
 	editable = {path for path, field in form_fields(meta) if not field.read_only}
 	fields = condition_fields(meta)
 	data["steps"] = [
-		step for step in data["steps"]
+		step
+		for step in data["steps"]
 		if (step["type"] != "field" or step["field"] in editable)
 		and valid_conditions(step.get("when", {}).get("fields", []), fields)
 	]
@@ -227,7 +258,8 @@ def expand_legacy_steps(meta, steps):
 	if not isinstance(steps, list):
 		return steps
 	legacy = [
-		step for step in steps
+		step
+		for step in steps
 		if isinstance(step, dict) and step.get("type") == "rule" and step.get("target") == "procurement_next"
 	]
 	if not legacy or not (builtin := builtin_guide(meta)):
@@ -241,7 +273,10 @@ def expand_legacy_steps(meta, steps):
 		for index, replacement in enumerate(builtin["steps"], 1):
 			when = dict(replacement.get("when", {}))
 			parent = step.get("when", {})
-			if any(key in when and key in parent and when[key] != parent[key] for key in ("docstatus", "workflow_state", "role")):
+			if any(
+				key in when and key in parent and when[key] != parent[key]
+				for key in ("docstatus", "workflow_state", "role")
+			):
 				continue
 			conditions = [*when.get("fields", []), *parent.get("fields", [])]
 			when.update(parent)
@@ -254,27 +289,34 @@ def expand_legacy_steps(meta, steps):
 					suffix += 1
 				key = f"{step['id'][:40]}_{index}_{suffix}"
 			ids.add(key)
-			expanded.append({
-				**replacement,
-				"id": key,
-				"when": when,
-				"hint": step.get("hint") or replacement["hint"],
-				"emotion": step.get("emotion") or replacement.get("emotion", ""),
-			})
+			expanded.append(
+				{
+					**replacement,
+					"id": key,
+					"when": when,
+					"hint": step.get("hint") or replacement["hint"],
+					"emotion": step.get("emotion") or replacement.get("emotion", ""),
+				}
+			)
 	return expanded
 
 
 @frappe.whitelist(methods=["GET"])
 def get_active_guides(target_doctype: str):
 	names = frappe.get_all(
-		GUIDE, filters={"target_doctype": target_doctype, "enabled": 1}, pluck="name", order_by="guide_title, name"
+		GUIDE,
+		filters={"target_doctype": target_doctype, "enabled": 1},
+		pluck="name",
+		order_by="guide_title, name",
 	)
 	if not names or not frappe.has_permission(target_doctype, "read"):
 		return
 	docs = [frappe.get_cached_doc(GUIDE, name) for name in names]
 	workflow = get_workflow(target_doctype) if get_workflow_name(target_doctype) else None
 	return {
-		"guides": [{"name": doc.name, "title": doc.guide_title, "steps": serialize_steps(doc)} for doc in docs],
+		"guides": [
+			{"name": doc.name, "title": doc.guide_title, "steps": serialize_steps(doc)} for doc in docs
+		],
 		"mascot": mascot_settings(),
 		"workflow_state_field": workflow.workflow_state_field if workflow else None,
 	}
@@ -305,10 +347,18 @@ def template(target_doctype: str):
 		}
 		for index, df in enumerate([df for df in fields if not df["read_only"]][:2], 1)
 	]
-	examples.extend([
-		{"id": "save", "type": "action", "target": "save", "when": {"docstatus": 0}, "hint": _("Save the document to continue.")},
-		{"id": "status", "type": "wait", "hint": _("Check the document status.")},
-	])
+	examples.extend(
+		[
+			{
+				"id": "save",
+				"type": "action",
+				"target": "save",
+				"when": {"docstatus": 0},
+				"hint": _("Save the document to continue."),
+			},
+			{"id": "status", "type": "wait", "hint": _("Check the document status.")},
+		]
+	)
 	mascot = mascot_settings()
 	builtin = builtin_guide(meta)
 	return {
@@ -319,14 +369,24 @@ def template(target_doctype: str):
 		"_template": {
 			"instructions": [
 				_("Set title to the name the user sees when choosing a guide."),
-				_("Adjust or replace the steps. The first matching step is shown. Each step is saved in the guide record."),
+				_(
+					"Adjust or replace the steps. The first matching step is shown. Each step is saved in the guide record."
+				),
 				_("Field steps highlight an empty editable field. Use table.fieldname for a field in a row."),
-				_("Action steps highlight an available button. Wait steps highlight the status or a form field."),
+				_(
+					"Action steps highlight an available button. Wait steps highlight the status or a form field."
+				),
 				_("Use hint for the text shown to the user. The when object is optional."),
 				_("Omit emotion or use an empty string to use the configured default emotion."),
-				_("A registered rule checks one application-specific case. Its hint, position in the guide and emotion come from this JSON."),
-				_("All entries in when.fields must match. Each entry uses a field, operator, and value when required."),
-				_("Use required_empty for a mandatory empty field and required_positive or required_nonnegative for mandatory numbers."),
+				_(
+					"A registered rule checks one application-specific case. Its hint, position in the guide and emotion come from this JSON."
+				),
+				_(
+					"All entries in when.fields must match. Each entry uses a field, operator, and value when required."
+				),
+				_(
+					"Use required_empty for a mandatory empty field and required_positive or required_nonnegative for mandatory numbers."
+				),
 			],
 			"step_types": STEP_TYPES,
 			"when": {
@@ -353,18 +413,34 @@ def export_guide(name: str):
 	return serialize_guide(doc)
 
 
+def is_json_integer(value):
+	return isinstance(value, int) and not isinstance(value, bool)
+
+
 def load_steps(steps):
 	if not isinstance(steps, list) or not 1 <= len(steps) <= 200:
 		frappe.throw(_("A guide must have between 1 and 200 steps."))
 	for index, step in enumerate(steps, 1):
-		if not isinstance(step, dict) or set(step) - {"id", "type", "field", "target", "hint", "emotion", "when"}:
+		if not isinstance(step, dict) or set(step) - {
+			"id",
+			"type",
+			"field",
+			"target",
+			"hint",
+			"emotion",
+			"when",
+		}:
 			frappe.throw(_("Step {0}: invalid step keys or format.").format(index))
 		kind = step.get("type")
 		when = step.get("when", {})
-		if kind not in STEP_TYPES or not isinstance(when, dict) or set(when) - {"docstatus", "workflow_state", "role", "value", "fields"}:
+		if (
+			kind not in STEP_TYPES
+			or not isinstance(when, dict)
+			or set(when) - {"docstatus", "workflow_state", "role", "value", "fields"}
+		):
 			frappe.throw(_("Step {0}: invalid type or condition.").format(index))
 		docstatus = when.get("docstatus")
-		if "docstatus" in when and (type(docstatus) is not int or docstatus not in (0, 1, 2)):
+		if "docstatus" in when and (not is_json_integer(docstatus) or docstatus not in (0, 1, 2)):
 			frappe.throw(_("Step {0}: use document status 0, 1, or 2.").format(index))
 		if "value" in when and (kind != "field" or when["value"] not in VALUE_CHECKS):
 			frappe.throw(_("Step {0}: choose a supported field value check.").format(index))
@@ -381,7 +457,9 @@ def load_steps(steps):
 		if not all(isinstance(value, str) for value in (target, hint, key, workflow_state, role)) or (
 			emotion is not None and not isinstance(emotion, str)
 		):
-			frappe.throw(_("Step {0}: identifiers, hints, emotions and conditions must be text.").format(index))
+			frappe.throw(
+				_("Step {0}: identifiers, hints, emotions and conditions must be text.").format(index)
+			)
 		if role and not frappe.db.exists("Role", role):
 			frappe.throw(_("Step {0}: the required role does not exist.").format(index))
 		yield {
@@ -409,7 +487,7 @@ def import_guide(source: str):
 		frappe.throw(_("The file does not contain valid JSON."))
 	if (
 		not isinstance(data, dict)
-		or type(data.get("schema_version")) is not int
+		or not is_json_integer(data.get("schema_version"))
 		or data["schema_version"] != SCHEMA_VERSION
 		or set(data) - {"schema_version", "target_doctype", "title", "steps", "_template"}
 		or not isinstance(data.get("title"), str)

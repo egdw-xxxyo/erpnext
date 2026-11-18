@@ -24,7 +24,14 @@
 	}
 
 	function status(frm, message, field, selector) {
-		return status_step(frm, message, field, selector, undefined, frm.body.find(".procurement-form-status")[0]);
+		return status_step(
+			frm,
+			message,
+			field,
+			selector,
+			undefined,
+			frm.body.find(".procurement-form-status")[0]
+		);
 	}
 
 	function route(frm, message, stage) {
@@ -33,9 +40,11 @@
 	}
 
 	function current(frm, stage) {
-		return Boolean(frm.get_field("approval_route_html")?.$wrapper.find(
-			'[data-procurement-stage="' + stage + '"].is-current'
-		).length);
+		return Boolean(
+			frm
+				.get_field("approval_route_html")
+				?.$wrapper.find('[data-procurement-stage="' + stage + '"].is-current').length
+		);
 	}
 
 	function waits_at(stage, filter = () => true) {
@@ -49,7 +58,8 @@
 
 	function create_invoice_button(frm) {
 		const button = custom_button(frm, "Purchase Invoice", "Create");
-		if (current(frm, "posting") && visible(button) && frappe.model.can_create("Purchase Invoice")) return button;
+		if (current(frm, "posting") && visible(button) && frappe.model.can_create("Purchase Invoice"))
+			return button;
 	}
 
 	function invoice_info(name, context) {
@@ -97,9 +107,14 @@
 			const names = new Set((stock || []).map(({ name }) => name));
 			const row = rows.find((entry) => !entry.warehouse && names.has(entry.item_code));
 			if (row) {
-				const df = field.grid.get_row(row.name)?.docfields?.find((df) => df.fieldname === "warehouse") ||
+				const df =
+					field.grid.get_row(row.name)?.docfields?.find((df) => df.fieldname === "warehouse") ||
 					field.grid.docfields?.find((df) => df.fieldname === "warehouse");
-				if (df && !df.hidden_due_to_dependency && frappe.perm.get_field_display_status(df, row, frm.perm) === "Write") {
+				if (
+					df &&
+					!df.hidden_due_to_dependency &&
+					frappe.perm.get_field_display_status(df, row, frm.perm) === "Write"
+				) {
 					return guide.row_step(field, row, df, __(hint));
 				}
 			}
@@ -120,7 +135,8 @@
 				(doc.supplier_invoices || []).some((row) => row.invoice_pdf) ||
 				!can_write(field) ||
 				!field.grid?.is_editable()
-			) return;
+			)
+				return;
 			return {
 				...add_row_step(field, __(hint)),
 				skip() {
@@ -134,9 +150,14 @@
 		async complete(frm, doc, { hint }) {
 			const data = await frm.procurement_route_request;
 			if (frm.doc !== doc) return;
-			const payment_complete = data?.external_payment ||
+			const payment_complete =
+				data?.external_payment ||
 				(data?.payment_invoice_count > 0 && data.payment_receipt_count >= data.payment_invoice_count);
-			if (data ? data.purchase_receipt_complete && payment_complete : doc.procurement_completion_status === "Завершено") {
+			if (
+				data
+					? data.purchase_receipt_complete && payment_complete
+					: doc.procurement_completion_status === "Завершено"
+			) {
 				return route(frm, __(hint), "receipt");
 			}
 		},
@@ -147,7 +168,8 @@
 			const final = doc.workflow_state === "Фінальне погодження";
 			if (final && frappe.session.user !== "Administrator") {
 				const user = frappe.session.user;
-				const can_vote = data?.final_approvers?.some((approver) => approver.user === user) &&
+				const can_vote =
+					data?.final_approvers?.some((approver) => approver.user === user) &&
 					!data.final_approved_users?.some((approver) => approver.user === user);
 				if (!can_vote) labels = labels.filter((label) => label !== __("Погодити"));
 			}
@@ -156,8 +178,11 @@
 			const message = __(hint);
 			const button = frm.page.actions_btn_group.find("button")[0];
 			return {
-				...(button_step(button, message) || route(frm, message, final ? "final_approval" : "department_review")),
-				decisions: decisions.map((action) => action === "Погодити" ? __(action) : __("{0} (a reason is required)", [__(action)])),
+				...(button_step(button, message) ||
+					route(frm, message, final ? "final_approval" : "department_review")),
+				decisions: decisions.map((action) =>
+					action === "Погодити" ? __(action) : __("{0} (a reason is required)", [__(action)])
+				),
 			};
 		},
 		buyer_save(frm, doc, { hint }) {
@@ -166,7 +191,8 @@
 		},
 		buyer_actions(frm, doc, { hint }) {
 			const { action, can_act } = get_buyer_context(frm, doc);
-			if (can_act) return button_step(frm.page.actions_btn_group.find("button")[0], __(hint, [__(action)]));
+			if (can_act)
+				return button_step(frm.page.actions_btn_group.find("button")[0], __(hint, [__(action)]));
 		},
 		buyer_route(frm, doc, { hint }) {
 			const { action, buyer, stage } = get_buyer_context(frm, doc);
@@ -199,7 +225,9 @@
 				invoices.invoices.some((invoice) => invoice.docstatus === 1)
 			) {
 				return status(
-					frm, __(hint), frm.get_field("custom_procurement_links"),
+					frm,
+					__(hint),
+					frm.get_field("custom_procurement_links"),
 					'[data-procurement-doctype="Purchase Invoice"]'
 				);
 			}
