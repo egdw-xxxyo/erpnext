@@ -37,6 +37,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 			return;
 		}
 		const name = frm.doc.name;
+		frm.procurement_invoice_links = null;
 		field.$wrapper.html(`<p class="text-muted">${__("Loading...")}</p>`);
 		frappe.call({
 			method: "erpnext.buying.procurement_links.get_procurement_links",
@@ -45,6 +46,11 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 				if (frm.doc.name !== name) return;
 				const escape = frappe.utils.escape_html;
 				const groups = r.message || [];
+				frm.procurement_invoice_links = {
+					source_name: name,
+					invoices: groups.find((group) => group.doctype === "Purchase Invoice")?.documents || [],
+				};
+				frm.trigger("refresh_supplier_invoice_links");
 				const cards = groups
 					.map((group, index) => {
 						const names = group.documents.length ? group.documents.map((doc) => doc.name) : [""];
@@ -71,36 +77,47 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 					</div></div>`;
 					})
 					.join("");
-				field.$wrapper.html(
-					`<div class="form-documents mb-4"><div class="row">${cards}</div></div>` +
-						groups
-							.map((group) => {
-								const rows = group.documents
-									.map((doc) => {
-										const url = frappe.utils.get_form_link(group.doctype, doc.name);
-										const status = [__("Draft"), __("Submitted"), __("Cancelled")][
-											doc.docstatus
-										];
-										return `<tr><td><a href="${escape(
-											url
-										)}" target="_blank" rel="noopener noreferrer">${escape(
-											doc.name
-										)}</a></td><td>${escape(status)}</td></tr>`;
-									})
-									.join("");
-								return `<section class="mb-4"><h5>${escape(__(group.doctype))} (${
-									group.documents.length
-								})</h5>${
-									rows
-										? `<table class="table table-bordered"><thead><tr><th>${__(
-												"Document"
-										  )}</th><th>${__(
-												"Status"
-										  )}</th></tr></thead><tbody>${rows}</tbody></table>`
-										: `<p class="text-muted">${__("No linked documents available.")}</p>`
-								}</section>`;
+				const tables = groups
+					.map((group) => {
+						const has_supplier = [
+							"Purchase Order",
+							"Purchase Invoice",
+							"Purchase Receipt",
+							"Payment Entry",
+						].includes(group.doctype);
+						const rows = group.documents
+							.map((doc) => {
+								const url = frappe.utils.get_form_link(group.doctype, doc.name);
+								const status = [__("Draft"), __("Submitted"), __("Cancelled")][doc.docstatus];
+								return `<tr><td><a href="${escape(
+									url
+								)}" target="_blank" rel="noopener noreferrer">${escape(doc.name)}</a></td>${
+									has_supplier
+										? `<td>${escape(doc.supplier_name || doc.supplier || "")}</td>`
+										: ""
+								}<td>${escape(status)}</td></tr>`;
 							})
-							.join("")
+							.join("");
+						return `<section class="mb-4 procurement-link-group${
+							rows ? "" : " procurement-link-group-empty"
+						}" data-procurement-doctype="${escape(group.doctype)}">
+							<h5>${escape(__(group.doctype))} (${group.documents.length})</h5>${
+							rows
+								? `<table class="table table-bordered"><thead><tr><th>${__("Document")}</th>${
+										has_supplier ? `<th>${__("Supplier")}</th>` : ""
+								  }<th>${__("Status")}</th></tr></thead><tbody>${rows}</tbody></table>`
+								: `<p class="text-muted">${__("No linked documents available.")}</p>`
+						}</section>`;
+					})
+					.join("");
+				field.$wrapper.html(
+					`<div class="form-documents mb-4 procurement-link-cards"><div class="row">${cards}</div></div>
+					<div class="procurement-link-groups">${tables}</div>
+					${
+						groups.some((group) => group.documents.length)
+							? ""
+							: `<p class="procurement-links-empty">${__("No linked documents available.")}</p>`
+					}`
 				);
 				field.$wrapper
 					.off("click.procurementLinks")

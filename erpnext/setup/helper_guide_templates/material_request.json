@@ -1,0 +1,167 @@
+{
+ "schema_version": 1,
+ "target_doctype": "Material Request",
+ "title": "Material Request Guide",
+ "steps": [
+  {
+   "id": "cancelled",
+   "type": "wait",
+   "when": {"docstatus":2},
+   "hint": "This document was cancelled."
+  },
+  {
+   "id": "naming_series",
+   "type": "field",
+   "field": "naming_series",
+   "when": {"value":"required_empty"},
+   "hint": "Select the numbering format for this material request."
+  },
+  {
+   "id": "material_request_type",
+   "type": "field",
+   "field": "material_request_type",
+   "when": {"value":"required_empty"},
+   "hint": "Select why these materials are needed, for example Purchase."
+  },
+  {
+   "id": "company",
+   "type": "field",
+   "field": "company",
+   "when": {"value":"required_empty"},
+   "hint": "Select the company this document is for."
+  },
+  {
+   "id": "transaction_date",
+   "type": "field",
+   "field": "transaction_date",
+   "when": {"value":"required_empty"},
+   "hint": "Enter the date this document was created."
+  },
+  {
+   "id": "customer",
+   "type": "field",
+   "field": "customer",
+   "when": {"value":"required_empty"},
+   "hint": "Select the customer who will provide the materials."
+  },
+  {
+   "id": "custom_purchase_receipts",
+   "type": "field",
+   "field": "custom_purchase_receipts",
+   "when": {"value":"required_empty"},
+   "hint": "Add a row for each receipt and attach the PDF."
+  },
+  {
+   "id": "custom_purchase_receipts_supplier",
+   "type": "field",
+   "field": "custom_purchase_receipts.supplier",
+   "when": {"value":"required_empty"},
+   "hint": "Select the supplier for this row."
+  },
+  {
+   "id": "custom_purchase_receipts_invoice_pdf",
+   "type": "field",
+   "field": "custom_purchase_receipts.invoice_pdf",
+   "when": {"value":"required_empty"},
+   "hint": "Attach the purchase receipt as a PDF file."
+  },
+  {
+   "id": "items",
+   "type": "field",
+   "field": "items",
+   "when": {"value":"required_empty"},
+   "hint": "Add at least one item to the document."
+  },
+  {
+   "id": "items_item_code",
+   "type": "field",
+   "field": "items.item_code",
+   "when": {"value":"required_empty"},
+   "hint": "Select the item from the item catalogue."
+  },
+  {
+   "id": "items_schedule_date",
+   "type": "field",
+   "field": "items.schedule_date",
+   "when": {"value":"required_empty"},
+   "hint": "Enter the date by which this item is needed."
+  },
+  {
+   "id": "items_qty",
+   "type": "field",
+   "field": "items.qty",
+   "when": {"value":"required_positive"},
+   "hint": "Enter a quantity greater than zero in the selected unit."
+  },
+  {
+   "id": "items_uom",
+   "type": "field",
+   "field": "items.uom",
+   "when": {"value":"required_empty"},
+   "hint": "Select the unit used for this quantity, for example pcs or kg."
+  },
+  {
+   "id": "items_conversion_factor",
+   "type": "field",
+   "field": "items.conversion_factor",
+   "when": {"value":"required_positive"},
+   "hint": "Enter how many stock units are in one selected unit. Use 1 if the units match."
+  },
+  {
+   "id": "save",
+   "type": "action",
+   "target": "save",
+   "hint": "Save the document to continue."
+  },
+  {
+   "id": "update",
+   "type": "action",
+   "target": "update",
+   "hint": "Save the document to continue."
+  },
+  {
+   "id": "submit",
+   "type": "action",
+   "target": "submit",
+   "hint": "Submit the document to move it to the next stage."
+  },
+  {
+   "id": "request_create",
+   "type": "rule",
+   "target": "procurement_request_create",
+   "hint": "Open Create and choose {0} to purchase the requested items."
+  },
+  {
+   "id": "stopped",
+   "type": "wait",
+   "when": {"fields":[{"field":"status","operator":"equals","value":"Stopped"}]},
+   "hint": "This material request is stopped."
+  },
+  {
+   "id": "complete",
+   "type": "wait",
+   "when": {"fields":[{"field":"custom_procurement_completion_status","operator":"equals","value":"Завершено"}]},
+   "hint": "Procurement for this material request is complete.",
+   "emotion": "complete"
+  },
+  {
+   "id": "request_links",
+   "type": "rule",
+   "target": "procurement_request_links",
+   "when": {"docstatus":1,"fields":[{"field":"material_request_type","operator":"equals","value":"Purchase"}]},
+   "hint": "Open a linked consolidated purchase order to see its current stage."
+  },
+  {
+   "id": "wait_buyer",
+   "type": "wait",
+   "when": {"docstatus":1,"fields":[{"field":"material_request_type","operator":"equals","value":"Purchase"}]},
+   "hint": "The request has been submitted. Wait for a buyer to create a consolidated purchase order.",
+   "emotion": "waiting"
+  },
+  {
+   "id": "status",
+   "type": "wait",
+   "hint": "The status shows where this material request is in its process."
+  }
+ ]
+}

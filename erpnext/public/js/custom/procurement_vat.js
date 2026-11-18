@@ -89,6 +89,7 @@ async function render_cpo_vat(frm, reload = false) {
 	const totals = erpnext.procurement_vat.calculate(items, suppliers, precision);
 	const escape = frappe.utils.escape_html;
 	const money = (value) => escape(format_currency(value, frm.doc.currency));
+	const vat_note = escape(__("VAT calculation uses 20% for VAT payers."));
 	const breakdown = Object.entries(totals.groups)
 		.map(([supplier, group]) => {
 			const identity = supplier
@@ -111,11 +112,14 @@ async function render_cpo_vat(frm, reload = false) {
 				${escape(__("VAT"))} <i class="fa fa-info-circle" aria-hidden="true"></i>: <strong>${money(
 		totals.vat
 	)}</strong>
-				<div class="cpo-vat-breakdown">${breakdown}</div>
+				<div class="cpo-vat-breakdown">
+					${breakdown}<small class="cpo-vat-breakdown-note text-muted">${vat_note}</small>
+				</div>
 			</div>
-			<small class="text-muted">${escape(__("VAT calculation uses 20% for VAT payers."))}</small>
+			<small class="cpo-vat-note text-muted">${vat_note}</small>
 		</div>
 		<style>
+			.cpo-vat-breakdown-note{display:none}
 			.cpo-vat-trigger{position:relative;width:fit-content;cursor:help}
 			.cpo-vat-breakdown{display:none;position:absolute;bottom:100%;left:0;z-index:20;
 				min-width:300px;max-width:85vw;padding:12px;background:var(--card-bg);border:1px solid var(--border-color);

@@ -26,10 +26,12 @@ app_include_js = [
 	"erpnext.bundle.js",
 	"/assets/erpnext/js/custom/todo_planner.js",
 	"/assets/erpnext/js/custom/doc_help.js",
+	"/assets/erpnext/js/custom/helper_guide.js",
 ]
 app_include_css = [
 	"erpnext.bundle.css",
 	"/assets/erpnext/css/todo_planner.css",
+	"procurement_form.bundle.css",
 	"repair_form.bundle.css",
 ]
 web_include_css = "erpnext-web.bundle.css"
@@ -78,10 +80,16 @@ doctype_js = {
 	"Permission Log": "public/js/custom/permission_log.js",
 	"Supplier": "public/js/custom/supplier_paid_vat.js",
 	"Purchase Order": "public/js/procurement_receipt_linking.js",
+	"Material Request": [
+		"public/js/custom/procurement_assistant.js",
+		"public/js/custom/procurement_form.js",
+	],
 	"Consolidated Purchase Order": [
 		"public/js/procurement_links.js",
 		"public/js/custom/procurement_supplier_item_matching.js",
 		"public/js/custom/procurement_vat.js",
+		"public/js/custom/procurement_assistant.js",
+		"public/js/custom/procurement_form.js",
 	],
 	"Buying Settings": "public/js/procurement_links.js",
 	"Address": "public/js/address.js",
@@ -277,7 +285,7 @@ welcome_email = "erpnext.setup.utils.welcome_email"
 setup_wizard_requires = "assets/erpnext/js/setup_wizard.js"
 setup_wizard_stages = "erpnext.setup.setup_wizard.setup_wizard.get_setup_stages"
 
-after_install = "erpnext.setup.install.after_install"
+after_install = ["erpnext.setup.install.after_install", "erpnext.setup.helper_guides.seed"]
 before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 
 after_app_install = "erpnext.setup.install.after_app_install"

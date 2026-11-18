@@ -7,23 +7,23 @@
  "editable_grid": 0,
  "engine": "InnoDB",
  "field_order": [
-  "invoice_document",
   "supplier",
-  "invoice_pdf"
+  "invoice_pdf",
+  "purchase_invoice_action",
+  "invoice_document"
  ],
  "fields": [
   {
    "allow_on_submit": 1,
-   "columns": 6,
    "fieldname": "invoice_document",
    "fieldtype": "Data",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Invoice Document",
    "read_only": 1
   },
   {
    "allow_on_submit": 1,
-   "columns": 4,
+   "columns": 3,
    "fieldname": "supplier",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -32,10 +32,19 @@
   },
   {
    "allow_on_submit": 1,
+   "columns": 3,
    "fieldname": "invoice_pdf",
    "fieldtype": "Attach",
+   "in_list_view": 1,
    "label": "Supplier Invoice PDF",
    "reqd": 1
+  },
+  {
+   "columns": 4,
+   "fieldname": "purchase_invoice_action",
+   "fieldtype": "HTML",
+   "in_list_view": 1,
+   "label": "Purchase Invoice"
   }
  ],
  "istable": 1,

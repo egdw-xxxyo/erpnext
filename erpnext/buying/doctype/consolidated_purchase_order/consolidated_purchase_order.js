@@ -1,15 +1,17 @@
 frappe.ui.form.on("Consolidated Purchase Order", {
 	setup(frm) {
-		$(frm.wrapper).on("grid-row-render.item-likes", (event, grid_row) => {
+		$(frm.wrapper).on("grid-row-render.procurement", (event, grid_row) => {
 			if (grid_row.grid.df.fieldname === "items") render_item_like(frm, grid_row);
+			if (grid_row.grid.df.fieldname === "supplier_invoices")
+				render_supplier_invoice_reference(frm, grid_row);
 		});
 		frm.page.wrapper.css("--page-max-width", "1280px");
 		frappe.meta.get_docfield(
 			"Consolidated Purchase Supplier Invoice",
-			"invoice_document",
+			"invoice_pdf",
 			frm.doc.name
 		).formatter = (value, df, options, doc) => {
-			const file_name = value || get_file_name(doc.invoice_pdf);
+			const file_name = doc.invoice_document || get_file_name(doc.invoice_pdf);
 			if (!file_name || !doc.invoice_pdf) return "";
 			return `<a href="${frappe.utils.escape_html(
 				doc.invoice_pdf
@@ -72,7 +74,6 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		setTimeout(() => set_table_row_number_labels(frm), 100);
 		frm.trigger("render_approval_route");
 		frm.trigger("render_purchase_orders");
-		frm.trigger("render_procurement_users");
 		frm.trigger("render_supplier_contacts");
 		if (frm.doc.docstatus !== 1) return;
 
@@ -115,16 +116,16 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 									label: __("Supplier"),
 									options: suppliers.map((row) => row.supplier),
 									reqd: 1,
-									description: suppliers
+									description: `${__(
+										"Select the supplier whose invoice you want to record."
+									)}<br><span class="procurement-invoice-options">${suppliers
 										.map(
-											(row) =>
-												`${frappe.utils.escape_html(
-													row.supplier_name || row.supplier
-												)} — ${format_currency(row.grand_total, row.currency)} — ${__(
-													"Billed"
-												)}: ${flt(row.per_billed)}%`
+											(row) => `<span class="procurement-invoice-option">
+												<strong>${frappe.utils.escape_html(row.supplier_name || row.supplier)}</strong>
+												<span>${format_currency(row.grand_total, row.currency)} · ${__("Billed")}: ${flt(row.per_billed)}%</span>
+											</span>`
 										)
-										.join("<br>"),
+										.join("<br>")}</span>`,
 								},
 								...(missing_suppliers.length
 									? [
@@ -139,11 +140,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 							primary_action_label: __("Create"),
 							primary_action(values) {
 								dialog.hide();
-								frappe.model.open_mapped_doc({
-									method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.make_purchase_invoice",
-									frm,
-									args: { supplier: values.supplier },
-								});
+								open_supplier_purchase_invoice(frm, values.supplier);
 							},
 						});
 						dialog.show();
@@ -153,11 +150,29 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		);
 	},
 
+	supplier_invoices_on_form_rendered(frm) {
+		render_supplier_invoice_reference(frm, frm.cur_grid);
+	},
+
+	refresh_supplier_invoice_links(frm) {
+		for (const grid_row of frm.fields_dict.supplier_invoices.grid.grid_rows || []) {
+			render_supplier_invoice_reference(frm, grid_row);
+		}
+	},
+
 	request_initiator_user(frm) {
 		frm.trigger("render_procurement_users");
 	},
 
 	initiator_user(frm) {
+		frm.trigger("render_procurement_users");
+	},
+
+	items_already_purchased(frm) {
+		frm.trigger("render_procurement_users");
+	},
+
+	material_request(frm) {
 		frm.trigger("render_procurement_users");
 	},
 
@@ -171,6 +186,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 
 	workflow_state(frm) {
 		frm.trigger("render_approval_route");
+		frm.trigger("render_procurement_users");
 	},
 
 	procurement_completion_status(frm) {
@@ -181,6 +197,7 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 		const field = frm.get_field("approval_route_html");
 		if (!field) return;
 		if (frm.is_new()) {
+			frm.procurement_route_request = null;
 			render_approval_route(frm, field, {});
 			const material_requests = get_material_request_names(frm);
 			if (!material_requests.length) {
@@ -196,16 +213,27 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 			return;
 		}
 
-		frappe
+		const doc = frm.doc;
+		const state = doc.workflow_state;
+		const request = frappe
 			.call({
 				method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_approval_route_summary",
-				args: { source_name: frm.doc.name },
+				args: { source_name: doc.name },
 			})
 			.then((response) => {
+				if (
+					frm.doc !== doc ||
+					doc.workflow_state !== state ||
+					frm.procurement_route_request !== request
+				) {
+					return;
+				}
 				const route_data = response.message || {};
 				render_approval_route(frm, field, route_data);
 				render_material_request_comments(frm, route_data.material_requests || []);
+				return route_data;
 			});
+		frm.procurement_route_request = request;
 	},
 
 	company(frm) {
@@ -230,12 +258,14 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 	render_purchase_orders(frm) {
 		const field = frm.get_field("purchase_orders_html");
 		if (!field || frm.is_new()) return;
+		const source_name = frm.doc.name;
 		frappe
 			.call({
 				method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_purchase_order_summary",
-				args: { source_name: frm.doc.name },
+				args: { source_name },
 			})
 			.then((response) => {
+				if (frm.doc.name !== source_name) return;
 				const rows = response.message || [];
 				if (!rows.length) {
 					field.$wrapper.html(
@@ -252,28 +282,32 @@ frappe.ui.form.on("Consolidated Purchase Order", {
 						<td>${frappe.utils.escape_html(row.supplier_name || row.supplier)}</td>
 						<td class="text-right">${format_currency(row.grand_total, row.currency)}</td>
 						<td class="text-right">${flt(row.per_billed)}%</td>
-						<td>${render_status_badge(
-							row.payment_complete ? __("Payment completed") : __("Payment not completed"),
-							row.payment_complete ? "green" : "gray"
-						)}</td>
-						<td>${render_status_badge(
-							row.fiscal_receipt_added ? __("Added") : __("Payment instruction missing"),
-							row.fiscal_receipt_added ? "green" : "gray"
-						)}</td>
+						<td>${render_order_payment_badge(row)}</td>
+						<td>${render_payment_instruction_badge(row)}</td>
 						<td>${render_percentage_progress(row.per_received)}</td>
 					</tr>`
 					)
 					.join("");
-				const receipt_rows = rows.flatMap((row) => row.purchase_receipts || []);
+				const receipt_rows = [
+					...new Map(
+						rows
+							.flatMap((row) => row.purchase_receipts || [])
+							.map((receipt) => [
+								`${receipt.name}::${receipt.purchase_order}::${receipt.warehouse || ""}`,
+								receipt,
+							])
+					).values(),
+				];
 				field.$wrapper
-					.html(`<div class="table-responsive"><table class="table table-bordered table-sm">
+					.html(`<div class="procurement-created-tables"><div class="table-responsive"><table class="table table-bordered table-sm">
 				<thead><tr><th>${__("Purchase Order")}</th><th>${__("Supplier")}</th><th class="text-right">${__(
 					"Grand Total"
 				)}</th><th class="text-right">${__("Billed")}</th><th>${__("Payment Completed")}</th><th>${__(
 					"Payment Instruction"
 				)}</th><th>${__("Received")}</th></tr></thead><tbody>${body}</tbody></table></div>
 				<h5 class="mt-4 mb-3">${__("Purchase Receipts")}</h5>
-				${render_purchase_receipt_table(receipt_rows)}`);
+				${render_purchase_receipt_table(receipt_rows)}</div>
+				${render_created_document_cards(rows, receipt_rows)}`);
 			});
 	},
 });
@@ -316,7 +350,7 @@ function render_item_like(frm, grid_row) {
 	const button = $("<button type='button' class='btn btn-link btn-xs cpo-item-like'></button>")
 		.attr({ "aria-label": liked ? __("Unlike") : __("Like"), "aria-pressed": String(liked) })
 		.attr("title", liked ? __("Unlike") : __("Like"))
-		.css({ color: liked ? "#000" : "var(--text-color)", padding: "0 6px" })
+		.css({ color: liked ? "var(--cpo-item-like-active, #000)" : "var(--text-color)", padding: "0 6px" })
 		.append($("<i aria-hidden='true'></i>").addClass(liked ? "fa fa-heart" : "fa fa-heart-o"))
 		.prop("disabled", !frm.perm.some((perm) => perm.write))
 		.appendTo(cell);
@@ -470,7 +504,7 @@ function render_approval_route(frm, field, route_data) {
 				} else if (missing_delivery_note_suppliers.length) {
 					role_text = `${stage.role} · ${__(
 						"Awaiting supplier delivery notes"
-					)}: ${frappe.utils.escape_html(missing_delivery_note_suppliers.join(", "))}`;
+					)}: ${missing_delivery_note_suppliers.join(", ")}`;
 				} else {
 					role_text = `${stage.role} · ${__("Awaiting Purchase Receipt")}`;
 				}
@@ -479,12 +513,13 @@ function render_approval_route(frm, field, route_data) {
 				is_payment && external_payment && route_data.external_payer
 					? render_user_link(route_data.external_payer)
 					: frappe.utils.escape_html(actor_text);
+			const description = frappe.utils.escape_html(role_text);
 			return `<div class="cpo-route-segment">
-				<div class="cpo-route-step ${status_class}">
+				<div class="cpo-route-step ${status_class}" data-procurement-stage="${stage.key}">
 					<div class="cpo-route-icon">${frappe.utils.icon(stage.icon, "sm")}</div>
 					<div class="cpo-route-copy">
 						<div class="cpo-route-title">${frappe.utils.escape_html(stage.title)}</div>
-						<div class="cpo-route-role">${frappe.utils.escape_html(role_text)}</div>
+						<div class="cpo-route-role" title="${description}">${description}</div>
 						<div class="cpo-route-actor" title="${frappe.utils.escape_html(actor_text)}">${actor_html}</div>
 					</div>
 				</div>
@@ -551,6 +586,10 @@ frappe.ui.form.on("Consolidated Purchase Order Item", {
 	},
 	items_remove(frm) {
 		frm.trigger("render_supplier_contacts");
+		frm.trigger("render_procurement_users");
+	},
+	material_request(frm) {
+		frm.trigger("render_procurement_users");
 	},
 	supplier(frm) {
 		frm.trigger("render_supplier_contacts");
@@ -572,10 +611,14 @@ function set_value_for_all_consolidated_items(frm, parent_field, child_field) {
 }
 
 frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
+	supplier(frm, cdt, cdn) {
+		render_supplier_invoice_reference(frm, frm.fields_dict.supplier_invoices.grid.get_row(cdn));
+	},
 	invoice_pdf(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, "invoice_document", get_file_name(row.invoice_pdf));
 		if (!row.invoice_pdf || row.invoice_pdf.split("?")[0].toLowerCase().endsWith(".pdf")) {
+			render_supplier_invoice_reference(frm, frm.fields_dict.supplier_invoices.grid.get_row(cdn));
 			return;
 		}
 
@@ -587,6 +630,70 @@ frappe.ui.form.on("Consolidated Purchase Supplier Invoice", {
 		});
 	},
 });
+
+function open_supplier_purchase_invoice(frm, supplier) {
+	return frappe.model.open_mapped_doc({
+		method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.make_purchase_invoice",
+		frm,
+		args: { supplier },
+	});
+}
+
+function render_supplier_invoice_reference(frm, grid_row) {
+	const row = grid_row?.doc;
+	if (!row) return;
+	const { supplier } = row;
+	const linked = frm.procurement_invoice_links;
+	const loaded = linked?.source_name === frm.doc.name;
+	const invoices = loaded
+		? linked.invoices.filter((invoice) => invoice.supplier === supplier && cint(invoice.docstatus) !== 2)
+		: [];
+	const escape = frappe.utils.escape_html;
+	let html = '<span class="text-muted">—</span>';
+	if (invoices.length) {
+		html = invoices
+			.map(
+				(invoice) =>
+					`<a href="${escape(
+						frappe.utils.get_form_link("Purchase Invoice", invoice.name)
+					)}">${escape(invoice.name)}</a>`
+			)
+			.join("<br>");
+	} else if (
+		supplier &&
+		row.invoice_pdf &&
+		frm.doc.docstatus !== 2 &&
+		frappe.model.can_create("Purchase Invoice")
+	) {
+		const ready = frm.doc.docstatus === 1 && loaded;
+		const hint =
+			frm.doc.docstatus === 1
+				? __("Loading...")
+				: __("Submit the consolidated order before creating a Purchase Invoice.");
+		html = `<span${
+			ready ? "" : ` title="${escape(hint)}"`
+		}><button type="button" class="btn btn-default btn-xs procurement-create-purchase-invoice"${
+			ready ? "" : " disabled"
+		}>${escape(__("Create Purchase Invoice"))}</button></span>`;
+	}
+	const column = grid_row.columns.purchase_invoice_action?.static_area;
+	const expanded = grid_row.grid_form?.fields_dict.purchase_invoice_action?.$wrapper;
+	column?.html(html);
+	expanded?.html(`<div class="control-label">${escape(__("Purchase Invoice"))}</div>${html}`);
+	for (const wrapper of [column, expanded]) {
+		wrapper?.find("a").on("click", (event) => event.stopPropagation());
+		wrapper?.find(".procurement-create-purchase-invoice").on("click", async (event) => {
+			event.stopPropagation();
+			const button = $(event.currentTarget).prop("disabled", true);
+			try {
+				if (frm.is_dirty()) await frm.save();
+				await open_supplier_purchase_invoice(frm, supplier);
+			} finally {
+				button.prop("disabled", false);
+			}
+		});
+	}
+}
 
 frappe.ui.form.on("Consolidated Purchase Delivery Note", {
 	delivery_note_file(frm, cdt, cdn) {
@@ -674,8 +781,22 @@ function set_table_row_number_labels(frm) {
 }
 
 function render_procurement_users(frm) {
-	const users = [frm.doc.request_initiator_user, frm.doc.initiator_user].filter(Boolean);
+	const doc = frm.doc;
+	const initiator = doc.request_initiator_user;
+	const buyer = doc.initiator_user || doc.owner;
+	const users = [...new Set([initiator, buyer].filter(Boolean))];
+	const people = frm.body.find(".procurement-form-header .procurement-form-people");
 	const render = (names = {}) => {
+		if (
+			frm.doc !== doc ||
+			initiator !== doc.request_initiator_user ||
+			buyer !== (doc.initiator_user || doc.owner)
+		)
+			return;
+		if (people.length) {
+			if (people[0].isConnected) render_header_procurement_users(frm, people, buyer, initiator, names);
+			return;
+		}
 		render_user_identity(
 			frm,
 			"request_initiator_html",
@@ -698,12 +819,40 @@ function render_procurement_users(frm) {
 		render();
 		return;
 	}
+	if (people.length) render();
 	frappe
 		.call({
 			method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_procurement_user_names",
 			args: { users },
 		})
 		.then((response) => render(response.message || {}));
+}
+
+function render_header_procurement_users(frm, people, buyer, initiator, names) {
+	const identity = (user, role) => {
+		const sub = __(role);
+		if (!user) return erpnext.entity.html({ name: __("Not specified"), sub, icon: "fa fa-user" });
+		const name = names[user] || frappe.user_info(user).fullname;
+		const full_name = name && (name !== user || !user.includes("@")) ? name : __("User");
+		return erpnext.entity.user({ user, full_name }, { sub });
+	};
+	people.html(`${identity(buyer, "Lead Buyer")}
+		<div class="procurement-header-initiator">${identity(initiator, "Initiator User")}</div>`);
+	if (can_select_request_initiator(frm)) {
+		$('<button type="button" class="btn btn-xs procurement-initiator-button"></button>')
+			.text(__(initiator ? "Change" : "Select"))
+			.appendTo(people.find(".procurement-header-initiator"))
+			.on("click", () => select_procurement_initiator(frm));
+	}
+	const details = frm.layout.sections_dict.details_section?.body;
+	details?.children(".procurement-prepaid-summary").remove();
+	if (details && cint(frm.doc.items_already_purchased)) {
+		const note = frappe.utils.escape_html(frm.doc.prepaid_purchase_note || "");
+		details.append(`<div class="procurement-prepaid-summary">
+			${identity(initiator, "Purchased by")}
+			${note ? `<p>${note}</p>` : ""}
+		</div>`);
+	}
 }
 
 function render_user_identity(frm, fieldname, label, user, full_name, editable) {
@@ -723,34 +872,37 @@ function render_user_identity(frm, fieldname, label, user, full_name, editable) 
 			label
 		)}</label><div class="control-value like-disabled-input">${value}${edit_button}</div></div>`
 	);
-	field.$wrapper.find(".select-procurement-initiator").on("click", () => {
-		const dialog = new frappe.ui.Dialog({
-			title: __("Select Initiator User"),
-			fields: [
-				{
-					fieldname: "user",
-					fieldtype: "Link",
-					label: __("User"),
-					options: "User",
-					reqd: 1,
-					get_query: () => ({ filters: { enabled: 1, user_type: "System User" } }),
-				},
-			],
-			primary_action_label: __("Select"),
-			primary_action(values) {
-				dialog.hide();
-				frm.set_value("request_initiator_user", values.user);
+	field.$wrapper.find(".select-procurement-initiator").on("click", () => select_procurement_initiator(frm));
+}
+
+function select_procurement_initiator(frm) {
+	if (!can_select_request_initiator(frm)) return;
+	const dialog = new frappe.ui.Dialog({
+		title: __("Select Initiator User"),
+		fields: [
+			{
+				fieldname: "user",
+				fieldtype: "Link",
+				label: __("User"),
+				options: "User",
+				reqd: 1,
+				description: __("Select the user who requested these materials."),
+				get_query: () => ({ filters: { enabled: 1, user_type: "System User" } }),
 			},
-		});
-		dialog.set_value("user", frm.doc.request_initiator_user);
-		dialog.show();
+		],
+		primary_action_label: __("Select"),
+		primary_action(values) {
+			dialog.hide();
+			if (can_select_request_initiator(frm)) frm.set_value("request_initiator_user", values.user);
+		},
 	});
+	dialog.$wrapper.addClass("procurement-initiator-dialog");
+	dialog.set_value("user", frm.doc.request_initiator_user);
+	dialog.show();
 }
 
 function can_select_request_initiator(frm) {
-	const has_material_request = Boolean(
-		frm.doc.material_request || (frm.doc.items || []).some((row) => row.material_request)
-	);
+	const has_material_request = get_material_request_names(frm).length > 0;
 	const editable_state = ["Чернетка", "Потребує доопрацювання"].includes(
 		frm.doc.workflow_state || "Чернетка"
 	);
@@ -762,11 +914,130 @@ function can_select_request_initiator(frm) {
 	);
 }
 
+function render_supplier_contact_link(row) {
+	const escape = frappe.utils.escape_html;
+	const supplier_url = erpnext.entity.url(["Form", "Supplier", row.supplier]);
+	return `<a class="procurement-supplier-link" href="${escape(supplier_url)}">${escape(
+		row.supplier_name || row.supplier
+	)}</a>`;
+}
+
+function render_supplier_contact_card(row) {
+	const escape = frappe.utils.escape_html;
+	const identity = erpnext.entity.html(
+		{
+			name:
+				row.full_name ||
+				row.contact ||
+				(row.phone || row.email ? __("Primary Contact") : __("Not specified")),
+			key: row.contact || row.supplier,
+			image: row.image,
+			sub: [row.designation, row.department].filter(Boolean).join(" · "),
+			route: row.contact ? ["Form", "Contact", row.contact] : null,
+		},
+		{ size: 48 }
+	);
+
+	let digits = (row.phone || "").replace(/\D/g, "");
+	if (/^0\d{9}$/.test(digits)) digits = "38" + digits;
+	else if (digits.startsWith("00")) digits = digits.slice(2);
+	const has_number = /^[1-9]\d{9,14}$/.test(digits);
+	const channels = [
+		["Telegram", "paper-plane", `https://t.me/+${digits}`],
+		["WhatsApp", "whatsapp", `https://wa.me/${digits}`],
+		["Viber", "phone", `viber://chat?number=${encodeURIComponent("+" + digits)}`],
+	];
+	const buttons = channels
+		.map(([name, icon, url]) => {
+			const label = `<i class="fa fa-${icon}" aria-hidden="true"></i> ${escape(__(name))}`;
+			return has_number
+				? `<a class="btn btn-xs btn-default" href="${escape(
+						url
+				  )}" target="_blank" rel="noopener noreferrer">${label}</a>`
+				: `<button class="btn btn-xs btn-default" type="button" disabled>${label}</button>`;
+		})
+		.join("");
+	const phone = row.phone
+		? has_number
+			? `<a href="tel:+${digits}">${escape(row.phone)}</a>`
+			: escape(row.phone)
+		: escape(__("Not specified"));
+	const email = row.email
+		? `<a href="mailto:${escape(row.email)}">${escape(row.email)}</a>`
+		: escape(__("Not specified"));
+
+	return `<article class="procurement-supplier-card">
+		<div class="procurement-supplier-heading">
+			${identity}
+			${render_supplier_contact_link(row)}
+		</div>
+		<div class="procurement-supplier-details">
+			<div><div class="text-muted small mb-1">${escape(__("Phone"))}</div>${phone}</div>
+			<div><div class="text-muted small mb-1">${escape(__("Email"))}</div>${email}</div>
+		</div>
+		<div class="procurement-supplier-actions">${buttons}</div>
+	</article>`;
+}
+
+function render_add_supplier_contact(row) {
+	if (!row.can_add_contact) return "";
+	const escape = frappe.utils.escape_html;
+	return `<button type="button" class="btn btn-xs btn-default procurement-add-supplier-contact"
+		data-supplier="${escape(row.supplier)}">
+		<i class="fa fa-plus" aria-hidden="true"></i> ${escape(__("Add Contact"))}
+	</button>`;
+}
+
+function show_add_supplier_contact(frm, row) {
+	const doc = frm.doc;
+	const dialog = new frappe.ui.Dialog({
+		title: __("Add Contact"),
+		fields: [
+			{
+				fieldtype: "HTML",
+				options: `<p class="procurement-dialog-note">${frappe.utils.escape_html(
+					row.supplier_name || row.supplier
+				)}</p>`,
+			},
+			{
+				fieldname: "first_name",
+				fieldtype: "Data",
+				label: __("First Name"),
+				reqd: 1,
+				description: __("Enter the first name of the supplier's contact person."),
+			},
+			{ fieldname: "last_name", fieldtype: "Data", label: __("Last Name") },
+			{ fieldname: "mobile_no", fieldtype: "Data", label: __("Mobile No"), options: "Phone" },
+			{ fieldname: "email_id", fieldtype: "Data", label: __("Email"), options: "Email" },
+		],
+		primary_action_label: __("Save"),
+		async primary_action(values) {
+			const button = dialog.get_primary_btn().prop("disabled", true);
+			try {
+				const response = await frappe.call({
+					method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.add_supplier_primary_contact",
+					args: { supplier: row.supplier, ...values },
+					freeze: true,
+				});
+				if (!response.message) return;
+				dialog.hide();
+				if (frm.doc === doc) frm.trigger("render_supplier_contacts");
+			} finally {
+				button.prop("disabled", false);
+			}
+		},
+	});
+	dialog.show();
+}
+
 function render_supplier_contacts(frm) {
 	const section = frm.get_field("supplier_contacts_section");
 	const field = frm.get_field("supplier_contacts_html");
 	if (!section || !field) return;
 	const suppliers = get_order_suppliers(frm).filter(Boolean);
+	const request = Symbol();
+	frm._supplier_contacts_request = request;
+	const doc = frm.doc;
 	frm.set_df_property("supplier_contacts_section", "hidden", suppliers.length ? 0 : 1);
 	frm.set_df_property("supplier_contacts_html", "hidden", suppliers.length ? 0 : 1);
 	if (!suppliers.length) {
@@ -777,10 +1048,22 @@ function render_supplier_contacts(frm) {
 	frappe
 		.call({
 			method: "erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order.get_supplier_contacts",
-			args: frm.is_new() ? { suppliers } : { source_name: frm.doc.name },
+			args: frm.is_new() || frm.is_dirty() ? { suppliers } : { source_name: frm.doc.name },
 		})
 		.then((response) => {
+			if (frm.doc !== doc || frm._supplier_contacts_request !== request) return;
 			const rows = response.message || [];
+			const cards = rows
+				.filter((row) => row.has_contact !== false)
+				.map(render_supplier_contact_card)
+				.join("");
+			const without_contact = rows
+				.filter((row) => row.has_contact === false)
+				.map(
+					(row) =>
+						`<li>${render_supplier_contact_link(row)}${render_add_supplier_contact(row)}</li>`
+				)
+				.join("");
 			const body = rows
 				.map((row) => {
 					const email = row.email
@@ -799,15 +1082,44 @@ function render_supplier_contacts(frm) {
 						: `<button class="btn btn-xs btn-default" disabled>${__(
 								"Contact via Viber"
 						  )}</button>`;
-					return `<tr><td>${frappe.utils.escape_html(
-						row.supplier_name || row.supplier
-					)}</td><td>${email}</td><td>${phone}</td><td>${viber}</td></tr>`;
+					const add_contact = render_add_supplier_contact(row);
+					const contact_name = row.contact
+						? erpnext.entity.html(
+								{
+									name: row.full_name || row.contact,
+									key: row.contact,
+									image: row.image,
+									route: ["Form", "Contact", row.contact],
+								},
+								{ size: 22 }
+						  )
+						: "";
+					const contact_detail = add_contact || contact_name;
+					return `<tr><td>${frappe.utils.escape_html(row.supplier_name || row.supplier)}${
+						contact_detail ? `<div class="mt-2">${contact_detail}</div>` : ""
+					}</td><td>${email}</td><td>${phone}</td><td>${viber}</td></tr>`;
 				})
 				.join("");
-			field.$wrapper.html(`<div class="table-responsive"><table class="table table-bordered table-sm">
+			field.$wrapper.html(`<div class="procurement-supplier-cards">${cards}</div>
+				${
+					without_contact
+						? `<section class="procurement-suppliers-without-contact">
+							<h5>${__("Without Contact")}</h5><ul>${without_contact}</ul>
+						</section>`
+						: ""
+				}
+				<div class="table-responsive procurement-supplier-table"><table class="table table-bordered table-sm">
 				<thead><tr><th>${__("Supplier")}</th><th>${__("Email")}</th><th>${__("Phone")}</th><th>${__(
 				"Viber"
 			)}</th></tr></thead><tbody>${body}</tbody></table></div>`);
+			field.$wrapper
+				.off("click.procurementSupplierContact")
+				.on("click.procurementSupplierContact", ".procurement-add-supplier-contact", (event) => {
+					const row = rows.find(
+						(supplier) => supplier.supplier === event.currentTarget.dataset.supplier
+					);
+					if (row?.can_add_contact) show_add_supplier_contact(frm, row);
+				});
 			const layout_section = (frm.layout?.sections || []).find(
 				(row) => row.df.fieldname === "supplier_contacts_section"
 			);
@@ -851,19 +1163,79 @@ function render_percentage_progress(value) {
 	</div>`;
 }
 
+function render_order_payment_badge(row) {
+	return render_status_badge(
+		row.payment_complete ? __("Payment completed") : __("Payment not completed"),
+		row.payment_complete ? "green" : "gray"
+	);
+}
+
+function render_payment_instruction_badge(row) {
+	return render_status_badge(
+		row.fiscal_receipt_added ? __("Added") : __("Payment instruction missing"),
+		row.fiscal_receipt_added ? "green" : "gray"
+	);
+}
+
+function render_created_document_cards(orders, receipts) {
+	const escape = frappe.utils.escape_html;
+	const supplier_names = new Map(orders.map((row) => [row.name, row.supplier_name || row.supplier]));
+	const card = (doctype, name, supplier_name, fields) => `<article class="procurement-created-card">
+		<header class="procurement-created-card-heading">
+			${supplier_name ? `<h6 class="procurement-created-card-title">${escape(supplier_name)}</h6>` : ""}
+			<a class="procurement-created-card-link" href="${escape(frappe.utils.get_form_link(doctype, name))}">${escape(
+		name
+	)}</a>
+		</header>
+		<dl>${fields
+			.map(([label, value]) => `<div><dt>${escape(__(label))}</dt><dd>${value}</dd></div>`)
+			.join("")}</dl>
+	</article>`;
+	const order_cards = orders.map((row) =>
+		card("Purchase Order", row.name, supplier_names.get(row.name), [
+			["Grand Total", format_currency(row.grand_total, row.currency)],
+			["Billed", `${flt(row.per_billed)}%`],
+			["Received", `${Math.max(0, Math.min(100, flt(row.per_received)))}%`],
+			["Payment Completed", render_order_payment_badge(row)],
+			["Payment Instruction", render_payment_instruction_badge(row)],
+		])
+	);
+	const receipt_cards = receipts.map((row) =>
+		card("Purchase Receipt", row.name, supplier_names.get(row.purchase_order), [
+			[
+				"Purchase Order",
+				`<a href="${escape(
+					frappe.utils.get_form_link("Purchase Order", row.purchase_order)
+				)}">${escape(row.purchase_order)}</a>`,
+			],
+			["Target Warehouse", escape(row.warehouse || "")],
+			["Status", render_purchase_receipt_status(row)],
+		])
+	);
+	return `<div class="procurement-created-cards">
+		<h5>${__("Purchase Orders")}</h5>
+		<div class="procurement-created-grid">${order_cards.join("")}</div>
+		<h5>${__("Purchase Receipts")}</h5>
+		${
+			receipt_cards.length
+				? `<div class="procurement-created-grid">${receipt_cards.join("")}</div>`
+				: `<div class="text-muted">${__("Purchase Receipts have not been created yet.")}</div>`
+		}
+	</div>`;
+}
+
+function render_purchase_receipt_status(receipt) {
+	return render_status_badge(
+		__(receipt.status || "Draft"),
+		cint(receipt.docstatus) === 1 ? "green" : "orange"
+	);
+}
+
 function render_purchase_receipt_table(receipts) {
 	if (!receipts.length) {
 		return `<div class="text-muted">${__("Purchase Receipts have not been created yet.")}</div>`;
 	}
-	const unique_receipts = [
-		...new Map(
-			receipts.map((receipt) => [
-				`${receipt.name}::${receipt.purchase_order}::${receipt.warehouse || ""}`,
-				receipt,
-			])
-		).values(),
-	];
-	const body = unique_receipts
+	const body = receipts
 		.map((receipt) => {
 			const receipt_link = `<a href="/app/purchase-receipt/${encodeURIComponent(
 				receipt.name
@@ -871,10 +1243,9 @@ function render_purchase_receipt_table(receipts) {
 			const order_link = `<a href="/app/purchase-order/${encodeURIComponent(
 				receipt.purchase_order
 			)}">${frappe.utils.escape_html(receipt.purchase_order)}</a>`;
-			const colour = cint(receipt.docstatus) === 1 ? "green" : "orange";
 			return `<tr><td>${receipt_link}</td><td>${order_link}</td><td>${frappe.utils.escape_html(
 				receipt.warehouse || ""
-			)}</td><td>${render_status_badge(__(receipt.status || "Draft"), colour)}</td></tr>`;
+			)}</td><td>${render_purchase_receipt_status(receipt)}</td></tr>`;
 		})
 		.join("");
 	return `<div class="table-responsive"><table class="table table-bordered table-sm">
@@ -949,6 +1320,7 @@ function setup_delivery_note_action(frm) {
 					options: "Supplier",
 					label: __("Supplier"),
 					reqd: 1,
+					description: __("Select the supplier that issued the delivery note."),
 					get_query: () => ({ filters: { name: ["in", get_order_suppliers(frm)] } }),
 				},
 				{
@@ -956,6 +1328,7 @@ function setup_delivery_note_action(frm) {
 					fieldtype: "Attach",
 					label: __("Supplier Delivery Notes"),
 					reqd: 1,
+					description: __("Attach the supplier's delivery note as a PDF or ZIP file."),
 					options: {
 						restrictions: { allowed_file_types: [".pdf", ".zip"] },
 						allow_web_link: false,

@@ -1,0 +1,55 @@
+{
+ "doctype": "DocType",
+ "name": "Helper Settings",
+ "module": "Setup",
+ "engine": "InnoDB",
+ "creation": "2026-11-18 00:00:00.000000",
+ "modified": "2026-11-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "field_order": [
+  "mascot_name",
+  "default_emotion",
+  "manage_emotions",
+  "guide_naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "mascot_name",
+   "fieldtype": "Data",
+   "label": "Mascot Name",
+   "reqd": 1,
+   "default": "Піксель"
+  },
+  {
+   "fieldname": "default_emotion",
+   "fieldtype": "Link",
+   "label": "Default Emotion",
+   "options": "Helper Emotion",
+   "reqd": 1,
+   "default": "ready"
+  },
+  {
+   "fieldname": "manage_emotions",
+   "fieldtype": "Button",
+   "label": "Manage Helper Emotions"
+  },
+  {
+   "fieldname": "guide_naming_series",
+   "fieldtype": "Data",
+   "label": "Guide Naming Series",
+   "default": "HELP-GUIDE-.YYYY.-.#####",
+   "reqd": 1,
+   "description": "Used for new guides, including JSON imports. For example, HELP-GUIDE-.YYYY.-.##### produces HELP-GUIDE-2026-00001."
+  }
+ ],
+ "issingle": 1,
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+ "doctype": "DocType",
+ "name": "Helper Guide",
+ "module": "Setup",
+ "engine": "InnoDB",
+ "creation": "2026-11-18 00:00:00.000000",
+ "modified": "2026-11-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "field_order": [
+  "guide_title",
+  "target_doctype",
+  "enabled",
+  "active_key",
+  "steps"
+ ],
+ "fields": [
+  {
+   "fieldname": "guide_title",
+   "fieldtype": "Data",
+   "label": "Guide Title",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "target_doctype",
+   "fieldtype": "Link",
+   "label": "Target DocType",
+   "options": "DocType",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Active Guide",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "active_key",
+   "fieldtype": "Data",
+   "label": "Active Guide Key",
+   "hidden": 1,
+   "read_only": 1,
+   "unique": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "steps",
+   "fieldtype": "Table",
+   "label": "Guide Steps",
+   "options": "Helper Guide Step",
+   "reqd": 1
+  }
+ ],
+ "title_field": "guide_title",
+ "naming_rule": "By script",
+ "track_changes": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ]
+}
