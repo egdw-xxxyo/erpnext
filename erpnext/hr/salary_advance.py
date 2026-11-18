@@ -557,13 +557,25 @@ def absence_days(employees: list, start, end) -> dict:
 
 	from erpnext.payroll_ua import sick_rules
 
-	start, end = getdate(start), getdate(end)
-	absences = {}
 	weight = sick_rules.cash_unpaid_weight()
 
 	if not weight:
-		return absences
+		return {}
 
+	return {
+		employee: dict.fromkeys(dates, weight)
+		for employee, dates in sick_dates(employees, start, end).items()
+	}
+
+
+def sick_dates(employees: list, start, end) -> dict:
+	"""Дні лікарняного по кожному працівнику: `{працівник: {дата, ...}}` — відмітка в табелі
+	чи заявка лікарняного типу."""
+	if not employees:
+		return {}
+
+	start, end = getdate(start), getdate(end)
+	result = {}
 	marked = frappe.get_all(
 		"Attendance",
 		filters={
@@ -581,9 +593,9 @@ def absence_days(employees: list, start, end) -> dict:
 
 	for row in marked:
 		if row.status == "Sick Leave" or row.leave_application in sick_applications:
-			absences.setdefault(row.employee, {})[getdate(row.attendance_date)] = weight
+			result.setdefault(row.employee, set()).add(getdate(row.attendance_date))
 
-	return absences
+	return result
 
 
 def _sick_applications(applications: set) -> set:
@@ -892,6 +904,9 @@ def attendance_calendar(employee: str, start: str, end: str, part: str = "offici
 	first = max(start, getdate(card.date_of_joining)) if card.date_of_joining else start
 	last = min(end, getdate(card.relieving_date)) if card.relieving_date else end
 	unpaid_days = (absence_days([employee], start, end) or {}).get(employee) or {}
+	# Офіційна половина лікарняний не платить зовсім: його оплачує «Випадок лікарняного» —
+	# частину роботодавця разом із зарплатою за місяць, решту фонд.
+	case_days = set() if part == "cash" else sick_dates([employee], start, end).get(employee, set())
 
 	# Готівкова половина за прогул не платить — у її календарі ці дні стоять неоплачуваними.
 	if part == "cash":
@@ -923,10 +938,12 @@ def attendance_calendar(employee: str, start: str, end: str, part: str = "offici
 					"weight": 0.0,
 				}
 
-			if first <= day <= last:
-				entry["paid"] = flt(max(1 - flt(unpaid_days.get(day, 0)), 0), 2)
-			else:
+			if not first <= day <= last:
 				entry["outside_employment"] = True
+			elif day in case_days:
+				entry["paid_by_case"] = True
+			else:
+				entry["paid"] = flt(max(1 - flt(unpaid_days.get(day, 0)), 0), 2)
 
 		if card.date_of_joining and getdate(card.date_of_joining) == day:
 			days[key]["boundary"] = "joined"

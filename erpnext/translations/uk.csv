@@ -17874,3 +17874,7 @@ The employer part is already paid — the case cannot be recalculated.,Част�
 The sick leave case is already paid — it cannot be cancelled.,Випадок лікарняного вже оплачено — скасувати його не можна.
 Set when the case is submitted: only then the employer part goes into the salary.,Ставиться під час проведення випадку: лише тоді частина роботодавця йде в зарплату.
 The case is open: submit it when the last certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed.,"Випадок відкритий: проведіть його, коли отримаєте останній ЕЛН, — тоді частина роботодавця піде в зарплату, а випадок більше не можна буде змінити."
+Vacation and Sick Leave,Відпустка й лікарняний
+paid separately,оплачується окремо
+Cash Paid Days,Оплачувані дні готівкою
+Paid by the sick leave case,Оплачує випадок лікарняного

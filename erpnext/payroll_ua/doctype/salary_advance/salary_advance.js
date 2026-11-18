@@ -121,7 +121,7 @@ function render_preview(frm) {
 				// Дні, за які платимо, а не ті, що в табелі: аванс рахується за календарем,
 				// тож табельні дні в колонці лише збивали б з пантелику. Вони в попапі.
 				label: __("Accrued"),
-				value: (row) => days(row.advance_days),
+				value: (row) => days(official_days(row)),
 				click: (row) => show_attendance(frm, row),
 			},
 			{ label: __("Official Salary"), value: (row) => money(row.official_salary), secret: true },
@@ -170,13 +170,34 @@ function official_rate(row) {
 	return days_in_month ? flt(row.official_salary) / days_in_month : 0;
 }
 
+// Офіційний аванс платить оклад лише за дні без відпустки й лікарняного (`official_days`):
+// лікарняний оплачує випадок, відпускні — відомість відпускних.
+function official_days(row) {
+	return row.official_days === undefined || row.official_days === null
+		? flt(row.advance_days)
+		: flt(row.official_days);
+}
+
+function day_lines(row) {
+	const paid = official_days(row);
+	const away = flt(flt(row.planned_days) - paid, 2);
+	const lines = [[__("Planned Days"), number(row.planned_days)]];
+
+	if (away > 0) {
+		lines.push([
+			__("Vacation and Sick Leave"),
+			`− ${number(away)} <small class="text-muted">(${__("paid separately")})</small>`,
+		]);
+	}
+
+	lines.push([__("Days Paid by Salary"), `<b>${days(paid)}</b>`]);
+
+	return lines;
+}
+
 function salary_lines(row) {
-	// Скільки днів заплановано і скільки з них зняли — інакше «5 із 8» доводиться
-	// відновлювати по календарю вручну.
-	const unpaid = flt(flt(row.planned_days) - flt(row.advance_days), 2);
 	const lines = [
-		[__("Planned Days"), number(row.planned_days)],
-		[__("Paid Days of the Advance"), `<b>${days(row.advance_days)}</b>`],
+		...day_lines(row),
 		[__("Official Salary"), money(row.official_salary)],
 		[__("Working Days in Month"), number(row.month_working_days)],
 		[__("Daily Rate"), money(official_rate(row))],
@@ -185,18 +206,19 @@ function salary_lines(row) {
 		[__("Advance to Pay"), `<b>${money(row.advance_total)}</b>`],
 	];
 
-	if (unpaid > 0) {
-		lines.splice(1, 0, [__("Unpaid Days"), `− ${number(unpaid)}`]);
-	}
-
 	// Відпускні й лікарняні сидять усередині нарахованого — розкладаємо, з чого воно склалося.
 	const accrued = lines.findIndex((line) => line[0] === __("Advance Accrued"));
 
-	lines.splice(accrued, 0, ...erpnext.utils.leave_pay.lines(row));
+	lines.splice(
+		accrued,
+		0,
+		...erpnext.utils.leave_pay.lines(row).filter((line) => line[0] !== __("Days Paid by Salary"))
+	);
 
-	// Готівкою аванс не платиться — рядок з'являється лише тоді, коли суму вписали руками.
+	// Готівкою аванс не платиться — рядки з'являються лише тоді, коли суму вписали руками.
 	if (flt(row.advance_cash)) {
 		lines.splice(lines.length - 1, 0, [__("Advance in Cash"), money(row.advance_cash)]);
+		lines.splice(lines.length - 1, 0, [__("Cash Paid Days"), days(row.advance_days)]);
 	}
 
 	return lines;
@@ -205,7 +227,7 @@ function salary_lines(row) {
 // Діалог виплати говорить про гроші тим самим розкладом, що й місяць у відомості: скільки
 // нараховано за дні окремою секцією, а податки й сума на руки — окремою.
 function payment_salary_lines(row) {
-	const worked = `${days(row.advance_days)} / ${days(row.month_working_days)}`;
+	const worked = `${days(official_days(row))} / ${days(row.month_working_days)}`;
 
 	return [
 		[__("Off. Salary"), money(row.official_salary)],
@@ -273,19 +295,13 @@ function lines_html(lines) {
 function show_accrual(row) {
 	const salary = flt(row.official_salary);
 	const rate = official_rate(row);
-	const unpaid = flt(flt(row.planned_days) - flt(row.advance_days), 2);
 	const lines = [
 		[__("Official Salary"), money(salary)],
 		[__("Working Days in Month"), number(row.month_working_days)],
 		[__("Daily Rate"), money(rate)],
-		[__("Planned Days"), number(row.planned_days)],
-		[__("Paid Days of the Advance"), `<b>${days(row.advance_days)}</b>`],
+		...day_lines(row),
 		[__("Advance Accrued"), `<b>${money(row.advance_accrued)}</b>`],
 	];
-
-	if (unpaid > 0) {
-		lines.splice(4, 0, [__("Unpaid Days"), `− ${number(unpaid)}`]);
-	}
 
 	frappe.msgprint({
 		title: row.employee_name || row.employee,
@@ -298,7 +314,7 @@ function show_accrual(row) {
 					money(salary),
 					number(row.month_working_days),
 					money(rate),
-					number(row.advance_days),
+					number(official_days(row)),
 					money(row.advance_accrued),
 				]
 			)}</p>
@@ -334,7 +350,7 @@ function show_advance(row) {
 				${lines_html(lines)}
 				<p class="text-muted" style="margin-top: 8px;">${__(
 					"The advance is paid for {0} paid days of {1} working days in the month.",
-					[number(row.advance_days), number(row.month_working_days)]
+					[number(official_days(row)), number(row.month_working_days)]
 				)}</p>
 			`,
 		});

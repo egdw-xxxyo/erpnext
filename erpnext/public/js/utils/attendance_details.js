@@ -284,6 +284,7 @@ function day_classes(date, entry, start, end) {
 	if (!entry) return classes;
 
 	if (entry.outside_employment) classes.push("unemployed");
+	if (entry.paid_by_case) classes.push("case-paid");
 	if (entry.paid !== undefined && entry.paid !== null) {
 		classes.push(entry.paid >= 1 ? "paid" : entry.paid > 0 ? "part-paid" : "unpaid");
 	}
@@ -304,6 +305,7 @@ function day_title(date, entry) {
 		if (entry.boundary === "relieved") parts.push(__("Left the company"));
 
 		if (entry.outside_employment) parts.push(__("Outside the employment period"));
+		else if (entry.paid_by_case) parts.push(__("Paid by the sick leave case"));
 		else if (entry.paid === 0) parts.push(__("Unpaid Day"));
 		else if (entry.paid > 0) parts.push(__("Paid Day"));
 	}
@@ -320,6 +322,14 @@ function legend_html(data) {
 		`<span class="attendance-calendar-legend-item paid">${__("Paid Day")}</span>`,
 		`<span class="attendance-calendar-legend-item unpaid">${__("Unpaid Day")}</span>`,
 	];
+
+	if (Object.values(data.days || {}).some((entry) => entry && entry.paid_by_case)) {
+		extra.push(
+			`<span class="attendance-calendar-legend-item case-paid">${__(
+				"Paid by the sick leave case"
+			)}</span>`
+		);
+	}
 
 	if (data.joined_on) {
 		extra.push(
@@ -385,6 +395,7 @@ function styles() {
 			.attendance-calendar-cell.paid { background-color: rgba(46, 160, 67, 0.14); }
 			.attendance-calendar-cell.part-paid { background-color: rgba(46, 160, 67, 0.07); }
 			.attendance-calendar-cell.unpaid { background-color: rgba(200, 55, 45, 0.14); }
+			.attendance-calendar-cell.case-paid { background-color: rgba(128, 90, 213, 0.1); }
 			.attendance-calendar-cell.joined,
 			.attendance-calendar-cell.relieved { box-shadow: inset 0 0 0 1px var(--blue-500, #2490ef); }
 			.attendance-calendar-boundary {
@@ -423,6 +434,7 @@ function styles() {
 			.attendance-calendar-legend-item.unpaid { padding-right: 5px; border-radius: 3px; }
 			.attendance-calendar-legend-item.paid { background-color: rgba(46, 160, 67, 0.14); }
 			.attendance-calendar-legend-item.unpaid { background-color: rgba(200, 55, 45, 0.14); }
+			.attendance-calendar-legend-item.case-paid { padding-right: 5px; border-radius: 3px; background-color: rgba(128, 90, 213, 0.1); }
 			.attendance-details-accordion > summary {
 				cursor: pointer;
 				font-size: 12px;
