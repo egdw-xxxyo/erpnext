@@ -94,7 +94,7 @@ class TestSickLeaveCase(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			doc.before_submit()
 
-		def test_gap_is_a_new_case(self):
+	def test_gap_is_a_new_case(self):
 		doc = self.case(("2026-10-28", "2026-10-31"), ("2026-11-03", "2026-11-06"))
 
 		with self.assertRaises(frappe.ValidationError):
