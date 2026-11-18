@@ -19,10 +19,29 @@ frappe.ui.form.on("Sick Leave Case", {
 });
 
 frappe.ui.form.on("Sick Leave Certificate", {
-	to_date(frm) {
+	certificates_add(frm, cdt, cdn) {
+		const last = (frm.doc.certificates || [])
+			.filter((row) => row.name !== cdn && row.to_date)
+			.map((row) => row.to_date)
+			.sort()
+			.pop();
+		if (last) frappe.model.set_value(cdt, cdn, "from_date", frappe.datetime.add_days(last, 1));
+	},
+	from_date(frm, cdt, cdn) {
+		set_days(cdt, cdn);
+	},
+	to_date(frm, cdt, cdn) {
+		set_days(cdt, cdn);
 		render_calculation(frm);
 	},
 });
+
+function set_days(cdt, cdn) {
+	const row = locals[cdt][cdn];
+	const days =
+		row.from_date && row.to_date ? frappe.datetime.get_day_diff(row.to_date, row.from_date) + 1 : 0;
+	frappe.model.set_value(cdt, cdn, "days", days > 0 ? days : null);
+}
 
 function show_status(frm) {
 	const colors = {
