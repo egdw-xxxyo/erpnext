@@ -124,7 +124,7 @@ def calculate(employee, case_type, start_date, calendar_days) -> frappe._dict:
 def employer_pay(employees, company, period_start, period_end) -> dict:
 	"""Частина роботодавця, яку платить зарплата місяця: `{працівник: _dict}`.
 
-	Береться кожен закритий випадок, що закінчився не пізніше кінця місяця й ще не оплачений,
+	Береться кожен проведений випадок, що закінчився не пізніше кінця місяця й ще не оплачений,
 	а також уже оплачений саме за цей місяць — щоб виплачений рядок відомості не втрачав суму
 	при перерахунку.
 	"""
@@ -137,7 +137,7 @@ def employer_pay(employees, company, period_start, period_end) -> dict:
 		filters={
 			"employee": ("in", employees),
 			"company": company,
-			"closed": 1,
+			"docstatus": 1,
 			"end_date": ("<=", period_end),
 			"employer_days": (">", 0),
 		},

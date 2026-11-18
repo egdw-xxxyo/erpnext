@@ -34,9 +34,38 @@ class SickLeaveCase(Document):
 	def on_update(self):
 		self.mark_attendance()
 
+	def before_submit(self):
+		self.closed = 1
+		self.set_status()
+
+	def before_update_after_submit(self):
+		self.set_status()
+
+	def on_cancel(self):
+		if self.is_paid():
+			frappe.throw(_("The sick leave case is already paid — it cannot be cancelled."))
+
+		self.db_set("status", "Cancelled", update_modified=False)
+
 	def on_trash(self):
-		if self.employer_paid_date or self.je_fund_receipt or self.je_fund_card:
+		if self.is_paid():
 			frappe.throw(_("The sick leave case is already paid — it cannot be deleted."))
+
+	def is_paid(self) -> bool:
+		return bool(self.employer_paid_date or self.je_fund_receipt or self.je_fund_card)
+
+	@frappe.whitelist()
+	def recalculate(self):
+		"""Перераховує випадок за поточними даними працівника (стаж, середня)."""
+		frappe.has_permission("Sick Leave Case", "write", doc=self, throw=True)
+
+		if self.docstatus != 0:
+			frappe.throw(_("Only a draft case can be recalculated. Cancel and amend it to change it."))
+
+		if self.employer_paid_date:
+			frappe.throw(_("The employer part is already paid — the case cannot be recalculated."))
+
+		self.save()
 
 	def set_period(self):
 		rows = sorted(self.certificates or [], key=lambda row: getdate(row.from_date))
@@ -76,6 +105,7 @@ class SickLeaveCase(Document):
 			{
 				"employee": self.employee,
 				"name": ("!=", self.name or ""),
+				"docstatus": ("!=", 2),
 				"start_date": ("<=", self.end_date),
 				"end_date": (">=", self.start_date),
 			},
@@ -144,7 +174,9 @@ class SickLeaveCase(Document):
 		self.fund_ssc = taxes.ssc
 
 	def set_status(self):
-		if self.fund_paid_date:
+		if self.docstatus == 2:
+			self.status = "Cancelled"
+		elif self.fund_paid_date:
 			self.status = "Paid"
 		elif self.je_fund_receipt:
 			self.status = "Fund Received"
@@ -202,6 +234,9 @@ class SickLeaveCase(Document):
 	def receive_fund(self, posting_date=None, amount=None):
 		"""Гроші від фонду прийшли на рахунок компанії — записуємо їх у борг перед працівником."""
 		frappe.has_permission("Sick Leave Case", "write", doc=self, throw=True)
+
+		if self.docstatus != 1:
+			frappe.throw(_("Submit the sick leave case first."))
 
 		if not self.fund_days:
 			frappe.throw(_("The fund pays nothing in this case."))
@@ -262,6 +297,9 @@ class SickLeaveCase(Document):
 	def pay_fund(self, posting_date=None):
 		"""Виплачує працівнику отримане від фонду: на картку — без податків, податки — окремо."""
 		frappe.has_permission("Sick Leave Case", "write", doc=self, throw=True)
+
+		if self.docstatus != 1:
+			frappe.throw(_("Submit the sick leave case first."))
 
 		if not self.je_fund_receipt:
 			frappe.throw(_("Record the money from the fund first."))
@@ -330,7 +368,7 @@ def find_unregistered(company):
 	)
 	cases = frappe.get_all(
 		"Sick Leave Case",
-		filters={"company": company},
+		filters={"company": company, "docstatus": ("!=", 2)},
 		fields=["employee", "start_date", "end_date"],
 	)
 	covered = {}
