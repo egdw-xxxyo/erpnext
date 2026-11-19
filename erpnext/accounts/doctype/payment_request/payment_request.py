@@ -17,7 +17,12 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import (
 )
 from erpnext.accounts.doctype.subscription_plan.subscription_plan import get_plan_rate
 from erpnext.accounts.party import get_party_account
+from erpnext.accounts.payment_fiscal_receipt import RECEIPT_FIELD
+from erpnext.accounts.supplier_vat_display import purchase_invoice_vat_values
 from erpnext.accounts.utils import get_account_currency, get_advance_payment_doctypes, get_currency_precision
+from erpnext.buying.doctype.consolidated_purchase_order.consolidated_purchase_order import (
+	get_supplier_invoice_files,
+)
 from erpnext.utilities import payment_app_import_guard
 
 ALLOWED_DOCTYPES_FOR_PAYMENT_REQUEST = [
@@ -28,6 +33,110 @@ ALLOWED_DOCTYPES_FOR_PAYMENT_REQUEST = [
 	"POS Invoice",
 	"Fees",
 ]
+
+
+@frappe.whitelist(methods=["GET"])
+def get_source_preview(reference_doctype: str, reference_name: str):
+	if reference_doctype not in ALLOWED_DOCTYPES_FOR_PAYMENT_REQUEST or not reference_name:
+		return
+
+	try:
+		source = frappe.get_doc(reference_doctype, reference_name)
+		source.check_permission("read")
+	except (frappe.DoesNotExistError, frappe.PermissionError):
+		frappe.clear_last_message()
+		return
+
+	source.apply_fieldlevel_read_permissions()
+	party_type = "Supplier" if reference_doctype in ("Purchase Invoice", "Purchase Order") else "Customer"
+	party_field = party_type.lower()
+	item_fields = ("item_code", "item_name", "qty", "uom", "rate", "amount")
+	preview = {
+		"party_type": party_type,
+		"party": source.get(party_field),
+		"party_name": source.get(f"{party_field}_name"),
+		"invoice_owner": source.owner if reference_doctype.endswith("Invoice") else None,
+		"bill_no": source.get("bill_no"),
+		"date": source.get("bill_date") or source.get("posting_date") or source.get("transaction_date"),
+		"due_date": source.get("due_date"),
+		"currency": source.get("currency"),
+		"total": source.get("rounded_total") or source.get("grand_total"),
+		"items": [{field: row.get(field) for field in item_fields} for row in source.get("items") or []],
+	}
+	if source.doctype == "Purchase Invoice":
+		_add_supplier_invoice_details(source, preview)
+	return preview
+
+
+def _add_supplier_invoice_details(invoice, preview):
+	if invoice.get("custom_consolidated_purchase_order") or invoice.get("custom_recurring_invoice_pdf"):
+		groups = get_supplier_invoice_files(
+			references=[{"reference_doctype": invoice.doctype, "reference_name": invoice.name}]
+		)
+		preview["supplier_invoice_files"] = [file for group in groups for file in group["files"]]
+
+	if not invoice.get("supplier"):
+		return
+	supplier = frappe.get_doc("Supplier", invoice.supplier)
+	if not supplier.has_permission("read"):
+		return
+	supplier.apply_fieldlevel_read_permissions()
+	if (payer := supplier.get("custom_is_vat_payer")) is None:
+		return
+
+	totals, rows = purchase_invoice_vat_values(invoice, bool(payer))
+	preview["vat"] = {"show_net_rate": bool(payer or totals["vat"])}
+	for row, item in zip(invoice.get("items") or [], preview["items"], strict=True):
+		if item["rate"] is not None and item["amount"] is not None:
+			item.update(rows[row.name])
+
+
+@frappe.whitelist(methods=["GET"])
+def get_linked_payments(payment_request: str):
+	request = frappe.get_doc("Payment Request", payment_request)
+	request.check_permission("read")
+	request.apply_fieldlevel_read_permissions()
+
+	groups = []
+	for doctype in ("Payment Entry", "Payment Order"):
+		names = set(
+			frappe.get_all(
+				f"{doctype} Reference",
+				filters={
+					"parenttype": doctype,
+					"parentfield": "references",
+					"payment_request": request.name,
+				},
+				pluck="parent",
+			)
+		)
+		if doctype == "Payment Order" and request.get("payment_order"):
+			names.add(request.payment_order)
+
+		documents = []
+		if names and frappe.has_permission(doctype, "read"):
+			fields = ["name", "docstatus", "posting_date"]
+			if doctype == "Payment Entry":
+				fields.extend(
+					(
+						"payment_type",
+						"paid_amount",
+						"paid_from_account_currency",
+						"received_amount",
+						"paid_to_account_currency",
+					)
+				)
+				if frappe.get_meta(doctype).has_field(RECEIPT_FIELD):
+					fields.append(RECEIPT_FIELD)
+			documents = frappe.get_list(
+				doctype,
+				filters={"name": ["in", sorted(names)]},
+				fields=fields,
+				order_by="posting_date desc, creation desc",
+				limit_page_length=0,
+			)
+		groups.append({"doctype": doctype, "documents": documents})
+	return groups
 
 
 def _get_payment_gateway_controller(*args, **kwargs):
