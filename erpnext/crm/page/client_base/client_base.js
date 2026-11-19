@@ -194,6 +194,30 @@ class ClientBase {
 			}
 			this.render();
 		});
+		try {
+			this.pin_unit = localStorage.getItem("client-base-pin-unit") !== "0";
+		} catch (e) {
+			this.pin_unit = true;
+		}
+		this.$pin = $(
+			`<button class="btn btn-default btn-sm cb-pin-toggle" title="${__(
+				"Keep the military unit column visible when scrolling sideways"
+			)}"><i class="fa fa-thumb-tack"></i> ${__("Pin Military Unit")}</button>`
+		).appendTo(this.$toolbar);
+		const apply_pin = () => {
+			this.$root.toggleClass("cb-pinned", this.pin_unit);
+			this.$pin.toggleClass("active", this.pin_unit);
+		};
+		apply_pin();
+		this.$pin.on("click", () => {
+			this.pin_unit = !this.pin_unit;
+			try {
+				localStorage.setItem("client-base-pin-unit", this.pin_unit ? "1" : "0");
+			} catch (e) {
+				this.pin_unit = !!this.pin_unit;
+			}
+			apply_pin();
+		});
 		this.$fclear = $(
 			`<button class="btn btn-default btn-sm cb-filters-clear" style="display:none">
 				<i class="fa fa-times"></i> ${__("Clear filters")}</button>`
