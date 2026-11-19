@@ -131,6 +131,8 @@ doctype_js = {
 		"public/js/custom/supplier_vat_display.js",
 		"public/js/procurement_supplier_invoice_files.js",
 		"public/js/invoice_payment_route.js",
+		"public/js/custom/payment_request_form.js",
+		"public/js/custom/procurement_form.js",
 	],
 	"Payment Entry": [
 		"public/js/procurement_supplier_invoice_files.js",

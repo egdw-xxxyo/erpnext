@@ -78,7 +78,10 @@
   "column_break_pnyv",
   "payment_url",
   "column_break_iiuv",
-  "phone_number"
+  "phone_number",
+  "payment_request_payments_tab",
+  "payment_request_payments_section",
+  "payment_request_payments_html"
  ],
  "fields": [
   {
@@ -580,6 +583,21 @@
    "no_copy": 1,
    "options": "\nДодано\nВідсутній\nЧастково",
    "read_only": 1
+  },
+  {
+   "fieldname": "payment_request_payments_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment",
+   "hidden": 1
+  },
+  {
+   "fieldname": "payment_request_payments_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "payment_request_payments_html",
+   "fieldtype": "HTML",
+   "label": "Linked Payments"
   }
  ],
  "grid_page_length": 50,

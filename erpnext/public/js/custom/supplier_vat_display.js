@@ -3,11 +3,13 @@ const supplierVatDisplayMethod = "erpnext.accounts.supplier_vat_display.get_supp
 async function render_supplier_vat_display(frm) {
 	const field = frm.get_field("custom_supplier_vat_totals");
 	if (!field) return;
+	const doc = frm.doc;
 	const request = (frm.__vat_display_request || 0) + 1;
 	frm.__vat_display_request = request;
-	const response = await frappe.call({ method: supplierVatDisplayMethod, args: { doc: frm.doc } });
-	if (request !== frm.__vat_display_request) return;
+	const response = await frappe.call({ method: supplierVatDisplayMethod, args: { doc } });
+	if (request !== frm.__vat_display_request || frm.doc !== doc) return;
 	const data = response.message;
+	if (frm.doctype === "Payment Request") erpnext.payment_request_form?.update_transaction_vat(frm, data);
 	frm.doc.custom_supplier_is_vat_payer = data.payer ? 1 : 0;
 	frm.refresh_field("custom_supplier_is_vat_payer");
 	const table =
