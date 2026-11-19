@@ -18,7 +18,8 @@
 .client-base .cb-col-unit_name { min-width: 200px; }
 .client-base .cb-col-contact { min-width: 220px; }
 
-.client-base tr.cb-first > td { border-top: 2px solid var(--border-color); }
+.client-base tr.cb-first > td { border-top: 3px solid var(--gray-500); }
+.client-base tbody tr.cb-first:first-child > td { border-top: none; }
 .client-base .cb-col-phone { min-width: 130px; white-space: nowrap; }
 .client-base .cb-col-designation { min-width: 140px; }
 .client-base .cb-col-add { white-space: nowrap; width: 1%; }
