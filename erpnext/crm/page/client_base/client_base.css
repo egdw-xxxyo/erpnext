@@ -95,7 +95,9 @@
 .client-base .cb-unit-head { display: flex; align-items: center; gap: 8px; }
 .client-base .cb-unit-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .client-base .cb-col-unit .cb-all { margin-right: 4px; }
-.client-base .cb-pin-toggle.active { background: var(--control-bg-on-gray, var(--gray-200)); }
+.client-base .cb-pin { margin-left: 8px; padding: 2px; color: var(--text-light); cursor: pointer; transform: rotate(45deg); }
+.client-base .cb-pin:hover { color: var(--text-color); }
+.client-base.cb-pinned .cb-pin { color: var(--primary); transform: none; }
 .client-base.cb-pinned .cb-table .cb-col-unit { position: sticky; left: 0; box-shadow: inset -1px 0 0 var(--border-color), 4px 0 6px -4px rgba(0, 0, 0, 0.25); }
 .client-base.cb-pinned .cb-table tbody td.cb-col-unit { z-index: 1; }
 .client-base.cb-pinned .cb-table thead th.cb-col-unit { z-index: 3; }

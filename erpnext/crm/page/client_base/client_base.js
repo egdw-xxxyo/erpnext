@@ -199,24 +199,17 @@ class ClientBase {
 		} catch (e) {
 			this.pin_unit = true;
 		}
-		this.$pin = $(
-			`<button class="btn btn-default btn-sm cb-pin-toggle" title="${__(
-				"Keep the military unit column visible when scrolling sideways"
-			)}"><i class="fa fa-thumb-tack"></i> ${__("Pin Military Unit")}</button>`
-		).appendTo(this.$toolbar);
-		const apply_pin = () => {
-			this.$root.toggleClass("cb-pinned", this.pin_unit);
-			this.$pin.toggleClass("active", this.pin_unit);
-		};
-		apply_pin();
-		this.$pin.on("click", () => {
+		this.$root.toggleClass("cb-pinned", this.pin_unit);
+		this.$root.on("click", ".cb-pin", (e) => {
+			e.stopPropagation();
 			this.pin_unit = !this.pin_unit;
 			try {
 				localStorage.setItem("client-base-pin-unit", this.pin_unit ? "1" : "0");
-			} catch (e) {
+			} catch (err) {
 				this.pin_unit = !!this.pin_unit;
 			}
-			apply_pin();
+			this.$root.toggleClass("cb-pinned", this.pin_unit);
+			$(e.currentTarget).attr("title", this.pin_title());
 		});
 		this.$fclear = $(
 			`<button class="btn btn-default btn-sm cb-filters-clear" style="display:none">
@@ -419,10 +412,11 @@ class ClientBase {
 		const cols = this.visible_columns();
 		const extra = (c, cell) => (c.key === "designation" ? cell : "");
 		const all = this.work_mode ? "" : '<input type="checkbox" class="cb-all"> ';
+		const pin = `<i class="fa fa-thumb-tack cb-pin" title="${this.pin_title()}"></i>`;
 		const th = (c) =>
 			`<th class="cb-sortable cb-col-${c.key}" data-key="${c.key}">${c.key === "unit" ? all : ""}${
 				c.label
-			} ${arrow(c.key)}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
+			} ${arrow(c.key)}${c.key === "unit" ? pin : ""}</th>${extra(c, '<th class="cb-col-add"></th>')}`;
 		const range = (c) => {
 			if (!c.date) return "";
 			const slot = (side) => `<div class="cb-date-slot" data-key="${c.key}" data-side="${side}"></div>`;
@@ -492,6 +486,10 @@ class ClientBase {
 	filter_count() {
 		const dates = this.date_ranges().length;
 		return this.active_filters().length + dates + (this.manager_filter ? 1 : 0);
+	}
+
+	pin_title() {
+		return this.pin_unit ? __("Unpin column") : __("Pin column");
 	}
 
 	clear_btn() {
