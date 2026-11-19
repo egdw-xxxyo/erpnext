@@ -66,13 +66,20 @@ async function render_invoice_payment_route(frm) {
 				else if (current || step.completed) role += ` · ${route.ceo_votes}/${route.ceo_required}`;
 			}
 			const actor = step.automatic && step.completed ? "" : frappe.utils.escape_html(actorText);
+			const actorClass =
+				frm.doctype === "Payment Request" && step.key === "invoice"
+					? " payment-route-invoice-author"
+					: "";
+			const description = frappe.utils.escape_html(role);
 			return `<div class="payment-route-segment"><div class="payment-route-step ${status}">
 			<div class="payment-route-icon">${frappe.utils.icon(stage.icon, "sm")}</div>
 			<div class="payment-route-copy"><div class="payment-route-title">${frappe.utils.escape_html(
 				__(step.title)
 			)}</div>
-			<div class="payment-route-role">${frappe.utils.escape_html(role)}</div>
-			<div class="payment-route-actor" title="${frappe.utils.escape_html(actorText)}">${actor}</div></div>
+			<div class="payment-route-role" title="${description}">${description}</div>
+			<div class="payment-route-actor${actorClass}" title="${frappe.utils.escape_html(
+				actorText
+			)}">${actor}</div></div>
 		</div></div>`;
 		})
 		.join("");
@@ -81,6 +88,7 @@ async function render_invoice_payment_route(frm) {
 		${erpnext.entity.html({
 			name: route.source,
 			icon: "file-text-o",
+			size: frm.doctype === "Payment Request" ? 18 : undefined,
 			route: ["Form", route.source_doctype || "Consolidated Purchase Order", route.source],
 		})}
 		· ${__("Created by")}: ${

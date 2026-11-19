@@ -337,6 +337,298 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 .procurement-form-ui .form-section > .section-body > .form-column > form > .frappe-control {
 	margin-bottom: 20px;
 }
+.procurement-form-ui .payment-request-party > .section-head,
+.procurement-form-ui .payment-request-hidden {
+	display: none;
+}
+.procurement-form-ui .payment-request-party-intro {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 20px;
+	margin: 12px 0;
+	padding: 14px 16px;
+}
+.procurement-form-ui .payment-request-source > .section-head {
+	margin: 0;
+}
+.procurement-form-ui .payment-request-party-identity {
+	flex: 1 1 16rem;
+	min-width: 0;
+}
+.procurement-form-ui .payment-request-party-identity:empty {
+	display: none;
+}
+.procurement-form-ui .payment-request-party-identity .ent-name {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .payment-request-party > .section-body {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+	gap: 12px 20px;
+}
+.procurement-form-ui .payment-request-party .form-column,
+.procurement-form-ui .payment-request-party .form-column > form {
+	display: contents;
+}
+.procurement-form-ui .procurement-created-card .payment-request-party-requisites {
+	display: flex;
+	flex: 1 1 16rem;
+	flex-wrap: wrap;
+	gap: 10px 20px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.procurement-form-ui .procurement-created-card .payment-request-party-requisites:empty {
+	display: none;
+}
+.procurement-form-ui .payment-request-party-requisites > div {
+	display: flex;
+	flex: 1 1 7rem;
+	flex-direction: column;
+	gap: 3px;
+}
+.procurement-form-ui .payment-request-party-intro :is(.ent-sub, .payment-request-party-requisites dt) {
+	margin: 0;
+	color: var(--procurement-muted);
+	font-size: 12px;
+	font-weight: 400;
+}
+.procurement-form-ui .payment-request-party-requisites dt {
+	order: 1;
+}
+.procurement-form-ui .payment-request-party-intro :is(.ent-name, .payment-request-party-requisites dd) {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+.procurement-form-ui .payment-request-vat-note {
+	margin-inline-start: auto;
+}
+.procurement-form-ui .payment-request-source-message {
+	color: var(--procurement-muted);
+	font-size: var(--text-sm);
+}
+.procurement-form-ui .payment-request-instruction {
+	margin-top: 10px;
+}
+.procurement-form-ui .payment-request-transaction-card {
+	margin-bottom: 12px;
+}
+.procurement-form-ui .payment-request-transaction-card dl {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+}
+.procurement-form-ui .payment-request-transaction-card dl:first-child {
+	margin: 0;
+	padding-top: 0;
+	border: 0;
+}
+.procurement-form-ui .payment-request-transaction-amounts dd {
+	font-size: clamp(18px, 2vw, 24px);
+	font-weight: 650;
+	line-height: 1.25;
+}
+.procurement-form-ui .payment-request-source-main .procurement-created-card dl {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+}
+.procurement-form-ui .procurement-created-card .payment-request-date {
+	font-family: inherit;
+	font-variant-numeric: normal;
+	letter-spacing: normal;
+}
+.procurement-form-ui .payment-request-source-files {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 12px;
+	padding-top: 10px;
+	margin-top: 10px;
+	border-top: 1px solid var(--procurement-border);
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui .payment-request-source-files ul {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+	min-width: 0;
+}
+.procurement-form-ui .payment-request-source-items {
+	margin: 14px 0 10px;
+}
+.payment-request-standard-items {
+	flex: 0 1 100%;
+	min-width: 0;
+	padding-inline: 15px;
+	margin-bottom: 12px;
+}
+@media (min-width: 768px) {
+	.payment-request-standard-party > .section-body {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-areas:
+			"party-type tax-id source-type"
+			"party edrpou source-name"
+			"party-name vat ."
+			"items items items";
+		column-gap: 24px;
+		padding-inline: 15px;
+	}
+	.payment-request-standard-party > .section-body > .form-column:not(.hide-control),
+	.payment-request-standard-party > .section-body > .form-column > form {
+		display: contents;
+	}
+	.payment-request-standard-party [data-fieldname="party_type"] {
+		grid-area: party-type;
+	}
+	.payment-request-standard-party [data-fieldname="party"] {
+		grid-area: party;
+	}
+	.payment-request-standard-party [data-fieldname="party_name"] {
+		grid-area: party-name;
+	}
+	.payment-request-standard-party [data-fieldname="custom_party_tax_id"] {
+		grid-area: tax-id;
+	}
+	.payment-request-standard-party [data-fieldname="custom_party_edrpou"] {
+		grid-area: edrpou;
+	}
+	.payment-request-standard-party [data-fieldname="custom_supplier_is_vat_payer"] {
+		grid-area: vat;
+	}
+	.payment-request-standard-party [data-fieldname="reference_doctype"] {
+		grid-area: source-type;
+	}
+	.payment-request-standard-party [data-fieldname="reference_name"] {
+		grid-area: source-name;
+	}
+	.payment-request-standard-items {
+		grid-area: items;
+		padding-inline: 0;
+	}
+}
+.payment-request-items-title {
+	margin: 0 0 10px;
+	font-size: 14px;
+	font-weight: 600;
+}
+.procurement-form-ui .payment-request-source-message {
+	margin: 0;
+}
+.payment-request-items-scroll {
+	overflow-x: auto;
+}
+.payment-request-items {
+	min-width: 420px;
+	margin-bottom: 0;
+}
+.payment-request-items td:first-child {
+	min-width: 140px;
+	font-weight: 500;
+	overflow-wrap: anywhere;
+}
+.payment-request-items td small {
+	display: block;
+	color: var(--procurement-muted, var(--text-muted));
+}
+.payment-request-items :is(th, td):is(:nth-child(2), :nth-child(n + 4)) {
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+}
+.payment-request-items td:nth-child(n + 4) {
+	white-space: nowrap;
+}
+.payment-request-standard-items .payment-request-items-title {
+	color: var(--text-muted);
+	font-size: var(--text-base);
+	font-weight: 400;
+}
+.payment-request-items-grid .form-grid {
+	min-width: min-content;
+	min-height: 0;
+}
+.payment-request-items-grid .data-row {
+	display: grid;
+	grid-template-columns:
+		minmax(140px, 2fr)
+		repeat(2, minmax(60px, 0.6fr))
+		repeat(var(--payment-request-price-columns), minmax(120px, 1fr));
+}
+.payment-request-items-grid .grid-static-col {
+	min-width: 0;
+	padding: var(--grid-padding);
+	align-content: center;
+	overflow-wrap: anywhere;
+}
+.payment-request-items-grid .grid-static-col:not(:last-child) {
+	border-inline-end: 1px solid var(--table-border-color);
+}
+.payment-request-items-grid .grid-heading-row .static-area {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.payment-request-items-grid :is(.grid-heading-row .grid-row, .grid-body .grid-row:last-child) {
+	border-bottom: 0;
+}
+.payment-request-items-grid .grid-body {
+	margin-bottom: 0;
+}
+.payment-request-items-grid .grid-body .grid-static-col {
+	height: auto;
+	min-height: 43px;
+}
+.payment-request-items-grid .data-row > :is(:nth-child(2), :nth-child(n + 4)) {
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+}
+.payment-request-items-grid small {
+	display: block;
+	color: var(--text-muted);
+}
+.procurement-form-ui .supplier-requisites-full {
+	display: none;
+}
+.procurement-form-ui .supplier-requisites-compact {
+	display: block;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+}
+.procurement-form-ui .supplier-requisites-compact > summary {
+	padding: 9px 12px;
+	color: var(--procurement-accent);
+	font-weight: 600;
+	cursor: pointer;
+}
+.procurement-form-ui .supplier-requisites-compact-content {
+	padding: 0 12px 12px;
+}
+.procurement-form-ui .supplier-requisites-check-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 248px), 1fr));
+	gap: 8px;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+.procurement-form-ui .supplier-requisites-check-cards .procurement-created-card {
+	padding: 10px 12px;
+}
+.procurement-form-ui .supplier-requisites-check-cards dl {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.procurement-form-ui .supplier-requisites-check-cards .supplier-requisites-note {
+	margin-top: 8px;
+}
+.payment-request-single-tab,
+.payment-request-dashboard-links {
+	display: none;
+}
 .procurement-form-ui .form-section[data-fieldname="details_section"] > .section-body {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1006,30 +1298,38 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 .procurement-dialog-theme .supplier-pdf-prefill-dialog .form-grid .grid-body {
 	background: var(--card-bg);
 }
-.procurement-form-ui .cpo-route-card {
+.procurement-form-ui :is(.cpo-route-card, .payment-route-card) {
 	margin: 0;
 	padding: 0;
 	border: 0;
 }
-.procurement-form-ui .cpo-route-scroll {
+.procurement-form-ui :is(.cpo-route-scroll, .payment-route-scroll) {
 	overflow-x: auto;
 }
-.procurement-form-ui .cpo-route {
-	grid-template-columns: repeat(6, minmax(136px, 1fr));
+.procurement-form-ui :is(.cpo-route, .payment-route) {
+	--procurement-route-icon-size: 34px;
 	grid-template-rows: repeat(3, auto);
 	gap: 8px 10px;
 	align-items: stretch;
 }
-.procurement-form-ui .cpo-route-segment {
+.procurement-form-ui .cpo-route {
+	grid-template-columns: repeat(6, minmax(136px, 1fr));
+}
+.procurement-form-ui .payment-route {
+	grid-auto-flow: column;
+	grid-template-columns: none;
+	grid-auto-columns: minmax(136px, 1fr);
+}
+.procurement-form-ui :is(.cpo-route-segment, .payment-route-segment) {
 	display: grid;
 	grid-row: 1 / -1;
 	grid-template-rows: subgrid;
 }
-.procurement-form-ui .cpo-route-step {
+.procurement-form-ui :is(.cpo-route-step, .payment-route-step) {
 	display: grid;
 	grid-row: 1 / -1;
 	grid-template-rows: subgrid;
-	grid-template-columns: 34px minmax(0, 1fr);
+	grid-template-columns: var(--procurement-route-icon-size) minmax(0, 1fr);
 	grid-template-areas:
 		"icon title"
 		"role role"
@@ -1041,16 +1341,24 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	border-radius: 10px;
 	background: var(--procurement-tint);
 }
-.procurement-form-ui .cpo-route-step.is-current {
+.procurement-form-ui :is(.cpo-route-step, .payment-route-step).is-current {
 	background: var(--procurement-selected);
 }
-.procurement-form-ui .cpo-route-copy {
+.procurement-form-ui :is(.cpo-route-copy, .payment-route-copy) {
 	display: contents;
 }
-.procurement-form-ui .cpo-route-icon {
+.procurement-form-ui :is(.cpo-route-icon, .payment-route-icon) {
 	grid-area: icon;
+	box-sizing: border-box;
+	inline-size: var(--procurement-route-icon-size);
+	block-size: var(--procurement-route-icon-size);
 }
-.procurement-form-ui .cpo-route-actor {
+.procurement-form-ui .payment-route-icon > svg {
+	flex: none;
+	inline-size: 16px;
+	block-size: 16px;
+}
+.procurement-form-ui :is(.cpo-route-actor, .payment-route-actor) {
 	grid-area: actor;
 	display: grid;
 	align-self: stretch;
@@ -1061,15 +1369,15 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	color: var(--procurement-muted);
 	text-align: end;
 }
-.procurement-form-ui .cpo-route-actor:empty {
+.procurement-form-ui :is(.cpo-route-actor:empty, .payment-route-actor:empty, .payment-route-invoice-author) {
 	visibility: hidden;
 }
-.procurement-form-ui .cpo-route-title {
+.procurement-form-ui :is(.cpo-route-title, .payment-route-title) {
 	grid-area: title;
 	padding-top: 4px;
 	text-wrap: balance;
 }
-.procurement-form-ui .cpo-route-role {
+.procurement-form-ui :is(.cpo-route-role, .payment-route-role) {
 	grid-area: role;
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
@@ -1078,7 +1386,8 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	overflow: hidden;
 	margin-top: 0;
 }
-.procurement-form-ui :is(.cpo-route-title, .cpo-route-role, .cpo-route-actor) {
+.procurement-form-ui
+	:is(.cpo-route-title, .cpo-route-role, .cpo-route-actor, .payment-route-title, .payment-route-role, .payment-route-actor) {
 	white-space: normal;
 	overflow-wrap: anywhere;
 }

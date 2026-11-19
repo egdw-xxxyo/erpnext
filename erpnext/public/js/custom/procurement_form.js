@@ -6,7 +6,13 @@
 	const scope = "procurement-form-ui";
 	const consolidated = "Consolidated Purchase Order";
 	const material_request = "Material Request";
-	const doctypes = [consolidated, material_request];
+	const payment_request = "Payment Request";
+	const doctypes = [consolidated, material_request, payment_request];
+	const new_titles = {
+		[consolidated]: "New Consolidated Purchase Order",
+		[material_request]: "New Material Request",
+		[payment_request]: "New Payment Request",
+	};
 
 	function is_standard(doctype) {
 		return frappe.get_user_settings(doctype)[preference] === true;
@@ -113,9 +119,7 @@
 		const is_new = frm.is_new();
 		const kind = __(frm.doctype);
 		const title = is_new
-			? is_consolidated
-				? __("New Consolidated Purchase Order")
-				: __("New Material Request")
+			? __(new_titles[frm.doctype])
 			: (!is_consolidated && frm.doc.title) || frm.doc.name;
 		header
 			.find(".procurement-form-context")
@@ -150,6 +154,7 @@
 		frm.body.children(".procurement-form-header").remove();
 		if (!enabled) {
 			if (is_consolidated) frm.trigger("render_procurement_users");
+			if (frm.doctype === payment_request) erpnext.payment_request_form?.apply(frm, false);
 			return;
 		}
 
@@ -168,6 +173,7 @@
 		wrapper.on("dirty.procurement-form", () => update_header(frm));
 		update_header(frm);
 		if (is_consolidated) frm.trigger("render_procurement_users");
+		else if (frm.doctype === payment_request) erpnext.payment_request_form?.apply(frm, true);
 		else update_request_owner(frm);
 	}
 

@@ -90,6 +90,11 @@ def _item_values(doc, payer, vat_rows):
 	return rows
 
 
+def purchase_invoice_vat_values(doc, payer):
+	totals, _ratio, vat_rows = invoice_breakdown(doc, payer)
+	return totals, _item_values(doc, payer, vat_rows)
+
+
 def payment_breakdown(doc, payer, reference_ratio):
 	"""Split the supplier-side amount, including advances and refunds."""
 	default_ratio = 1 / 6 if payer else 0
@@ -215,8 +220,7 @@ def get_supplier_vat_display(doc: str | dict):
 
 	rows = {}
 	if doc.doctype == "Purchase Invoice":
-		totals, ratio, vat_rows = invoice_breakdown(doc, payer)
-		rows = _item_values(doc, payer, vat_rows)
+		totals, rows = purchase_invoice_vat_values(doc, payer)
 		currency = doc.currency
 	elif doc.doctype == "Payment Request":
 		ratio = reference_ratio(doc.reference_doctype, doc.reference_name)

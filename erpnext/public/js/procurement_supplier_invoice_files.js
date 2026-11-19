@@ -164,6 +164,7 @@ function ensure_supplier_requisites_styles() {
 			.supplier-requisites-note.not_applicable{background:var(--blue-50);color:var(--blue-700)}
 			.supplier-requisites-result-cell{min-width:150px;white-space:nowrap}
 			.supplier-requisites-result-cell .indicator-pill{display:inline-flex;align-items:center;white-space:nowrap}
+			.supplier-requisites-compact{display:none}
 			.supplier-requisite-indicator{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:6px;padding:0;border:0;border-radius:50%;background:transparent;vertical-align:middle;cursor:pointer}
 			.supplier-requisite-indicator.matched{color:var(--green-600);background:var(--green-50)}
 			.supplier-requisite-indicator.mismatched{color:var(--red-600);background:var(--red-50)}
@@ -196,7 +197,13 @@ function render_supplier_requisites_validation(frm) {
 				frm.set_value(supplierRequisitesManualConfirmation, 1);
 			}
 			set_supplier_requisites_visibility(frm, result);
-			field.$wrapper.html(build_supplier_requisites_validation_html(result, frm.doc.docstatus === 0));
+			field.$wrapper.html(
+				build_supplier_requisites_validation_html(
+					result,
+					frm.doc.docstatus === 0,
+					frm.doctype === "Payment Request"
+				)
+			);
 			place_supplier_requisites_validation_last(frm);
 			render_supplier_requisite_field_indicators(frm, result);
 			bind_supplier_requisites_actions(frm, result);
@@ -223,12 +230,13 @@ function set_supplier_requisites_visibility(frm, result) {
 	);
 }
 
-function build_supplier_requisites_validation_html(result, allowSupplierUpdate) {
+function build_supplier_requisites_validation_html(result, allowSupplierUpdate, paymentRequest) {
 	if (!result.applicable) return "";
+	const checks = result.checks || [];
 	const showChecksTable = Boolean(
-		result.has_detected_requisites ?? (result.checks || []).some((check) => (check.detected || []).length)
+		result.has_detected_requisites ?? checks.some((check) => (check.detected || []).length)
 	);
-	const summary = get_supplier_requisites_summary(result.checks || []);
+	const summary = get_supplier_requisites_summary(checks);
 	const summaryHtml = `<div class="supplier-requisites-summary ${summary.level}">
 		<i class="fa ${summary.icon}" aria-hidden="true"></i>
 		<span>${summary.message}</span>
@@ -255,11 +263,24 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate) 
 	const filesHtml = fileLinks
 		? `<div class="mb-3"><strong>${__("Checked PDF")}:</strong> ${fileLinks}</div>`
 		: `<div class="text-muted mb-3">${__("No supplier invoice PDF was found.")}</div>`;
-	if (!showChecksTable) {
-		return `${summaryHtml}${filesHtml}${actionsHtml ? `<div class="mt-3">${actionsHtml}</div>` : ""}`;
-	}
+	const tableHtml = showChecksTable
+		? build_supplier_requisites_table(checks, (result.files || []).length > 1)
+		: "";
+	const details = paymentRequest
+		? `${build_supplier_requisites_details(
+				checks,
+				filesHtml,
+				(result.files || []).length > 1,
+				summary.level
+		  )}
+			<div class="supplier-requisites-full">${filesHtml}${tableHtml}</div>`
+		: filesHtml + tableHtml;
 
-	const rows = (result.checks || [])
+	return `${summaryHtml}${details}${actionsHtml ? `<div class="mt-3">${actionsHtml}</div>` : ""}`;
+}
+
+function build_supplier_requisites_table(checks, showMatchedFiles) {
+	const rows = checks
 		.map((check) => {
 			const status = get_supplier_requisites_status(check.status);
 			const expected = (check.expected || []).join(", ") || "—";
@@ -273,14 +294,12 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate) 
 				}"><span class="indicator-dot"></span>${status.label}</span></td>
 				<td>${frappe.utils.escape_html(expected)}</td>
 				<td>${frappe.utils.escape_html(detected)}</td>
-				<td>${build_supplier_requisites_note(check, (result.files || []).length > 1)}</td>
+				<td>${build_supplier_requisites_note(check, showMatchedFiles)}</td>
 			</tr>`;
 		})
 		.join("");
 
 	return `
-		${summaryHtml}
-		${filesHtml}
 		<div class="table-responsive">
 			<table class="table table-bordered table-sm supplier-requisites-validation-table">
 				<thead><tr>
@@ -291,8 +310,34 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate) 
 				</tr></thead>
 				<tbody>${rows}</tbody>
 			</table>
+		</div>`;
+}
+
+function build_supplier_requisites_details(checks, filesHtml, showMatchedFiles, level) {
+	const escape = frappe.utils.escape_html;
+	const cards = checks
+		.map((check) => {
+			const status = get_supplier_requisites_status(check.status);
+			return `<li class="procurement-created-card" data-requisite-key="${escape(check.key)}">
+				<div class="procurement-created-card-heading">
+					<strong>${escape(__(check.label))}</strong>
+					<span class="indicator-pill no-indicator-dot ${status.color}">${status.label}</span>
+				</div>
+				<dl>
+					<div><dt>${__("Supplier record")}</dt><dd>${escape((check.expected || []).join(", ") || "—")}</dd></div>
+					<div><dt>${__("PDF value")}</dt><dd>${escape((check.detected || []).join(", ") || "—")}</dd></div>
+				</dl>
+				${build_supplier_requisites_note(check, showMatchedFiles)}
+			</li>`;
+		})
+		.join("");
+	return `<details class="supplier-requisites-compact"${level === "success" ? "" : " open"}>
+		<summary>${__("Verification details")}</summary>
+		<div class="supplier-requisites-compact-content">
+			${filesHtml}
+			${cards ? `<ul class="supplier-requisites-check-cards">${cards}</ul>` : ""}
 		</div>
-		${actionsHtml ? `<div class="mt-3">${actionsHtml}</div>` : ""}`;
+	</details>`;
 }
 
 function bind_supplier_requisites_actions(frm, result) {
@@ -610,7 +655,7 @@ function render_supplier_requisite_field_indicators(frm, result) {
 			aria-label="${frappe.utils.escape_html(check.message || status.label)}">
 			<i class="fa ${status.icon}" aria-hidden="true"></i>
 		</button>`);
-		button.on("click", () => scroll_to_supplier_requisite_check(check.key));
+		button.on("click", () => scroll_to_supplier_requisite_check(frm, check.key));
 		label.append(button);
 	});
 }
@@ -621,8 +666,13 @@ function clear_supplier_requisite_field_indicators(frm) {
 	});
 }
 
-function scroll_to_supplier_requisite_check(key) {
-	const row = document.getElementById(`supplier-requisites-check-${key}`);
+function scroll_to_supplier_requisite_check(frm, key) {
+	const wrapper = frm.get_field(supplierRequisitesValidationField)?.$wrapper;
+	const disclosure = wrapper?.find(".supplier-requisites-compact:visible");
+	if (disclosure?.length) disclosure.prop("open", true);
+	const row = (disclosure?.length ? disclosure : wrapper)
+		?.find("[data-requisite-key]")
+		.filter((_, check) => check.dataset.requisiteKey === key)[0];
 	if (!row) return;
 	row.scrollIntoView({ behavior: "smooth", block: "center" });
 	row.classList.remove("supplier-requisites-row-focus");
@@ -843,5 +893,6 @@ async function render_supplier_vat(frm) {
 			frm.doc[`custom_party_${key}`] = response.message?.[key] || "";
 			frm.refresh_field(`custom_party_${key}`);
 		}
+		erpnext.payment_request_form?.render_party(frm);
 	}
 }
