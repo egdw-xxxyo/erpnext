@@ -86,6 +86,14 @@ class TestSickLeaveCase(IntegrationTestCase):
 		self.assertEqual(str(doc.end_date), "2026-11-06")
 		self.assertEqual(doc.calendar_days, 10)
 
+	def test_number_needed_only_to_submit(self):
+		doc = self.case(("2026-10-28", "2026-10-31"))
+		doc.certificates[0].eln_number = ""
+		doc.set_period()
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.before_submit()
+
 	def test_gap_is_a_new_case(self):
 		doc = self.case(("2026-10-28", "2026-10-31"), ("2026-11-03", "2026-11-06"))
 
@@ -106,3 +114,20 @@ class TestSickTaxes(IntegrationTestCase):
 
 		self.assertGreater(result.withheld, 0)
 		self.assertEqual(result.net, 1000 - result.withheld)
+
+
+class TestSickDurationWarnings(IntegrationTestCase):
+	def test_within_limits(self):
+		self.assertEqual(sick_rules.duration_warnings("Illness or Injury", 120, 150), [])
+		self.assertEqual(sick_rules.duration_warnings("Child Care", 14), [])
+		self.assertEqual(sick_rules.duration_warnings("Family Member Care", 3), [])
+		self.assertEqual(sick_rules.duration_warnings("Maternity", 126), [])
+
+	def test_over_limits(self):
+		self.assertEqual(len(sick_rules.duration_warnings("Illness or Injury", 121, 151)), 2)
+		self.assertEqual(len(sick_rules.duration_warnings("Child Care", 15)), 1)
+		self.assertEqual(len(sick_rules.duration_warnings("Family Member Care", 4)), 1)
+		self.assertEqual(len(sick_rules.duration_warnings("Maternity", 140)), 1)
+
+	def test_family_care_paid_by_fund(self):
+		self.assertEqual(sick_rules.case_rule("Family Member Care"), (0, None))

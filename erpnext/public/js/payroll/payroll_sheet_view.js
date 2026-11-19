@@ -195,7 +195,7 @@ function render_preview(frm) {
 				// Ті самі дні, що й в авансі: місяць платиться за календарем, а табельні
 				// дні лишилися довідкою в попапі.
 				label: __("Accrued"),
-				value: (row) => days(row.paid_days),
+				value: (row) => days(part_days(frm, row)),
 				click: (row) => show_details(frm, row),
 			},
 			...(is_official(frm)
@@ -293,11 +293,27 @@ function payable(frm, row) {
 	return !payment_blockers(row).length && amount(frm, row) > 0;
 }
 
-function attendance_extra(row) {
+// Офіційна половина платить окладом лише дні без відпустки й лікарняного (`official_days`):
+// лікарняний оплачує випадок, відпускні — відомість відпускних. Готівкова платить за
+// календарем (`paid_days`), лікарняний — відсотком із налаштувань.
+function official_days(row) {
+	return row.official_days === undefined || row.official_days === null
+		? flt(row.paid_days)
+		: flt(row.official_days);
+}
+
+function part_days(frm, row) {
+	return is_official(frm) ? official_days(row) : flt(row.paid_days);
+}
+
+function attendance_extra(frm, row) {
 	// Платить місяць не табель, а календар: робочі дні мінус неоплачувані відсутності.
 	const lines = [
 		[__("Working Days in Month"), number(row.total_working_days)],
-		[__("Paid Days"), `<b>${days(row.paid_days)}</b>`],
+		[
+			is_official(frm) ? __("Days Paid by Salary") : __("Paid Days"),
+			`<b>${days(part_days(frm, row))}</b>`,
+		],
 	];
 
 	// За скільки днів уже заплатили авансом — решта місяця лишається на цей документ.
@@ -313,7 +329,7 @@ function attendance_extra(row) {
 function salary_lines(frm, row) {
 	// Оклад місячний, а нараховують за оплачуваними днями — без рядка «нараховано» сума
 	// до виплати виглядає більшою за оклад там, де є премія, і меншою там, де є пропуски.
-	const worked = `${days(row.paid_days)} / ${days(row.total_working_days)}`;
+	const worked = `${days(part_days(frm, row))} / ${days(row.total_working_days)}`;
 
 	if (!is_official(frm)) {
 		const lines = [
@@ -351,6 +367,8 @@ function salary_lines(frm, row) {
 
 	const lines = [
 		[__("Off. Salary"), money(row.official_salary)],
+		// Лікарняний роботодавця й відпускні входять у нараховане — показуємо, звідки сума.
+		...erpnext.utils.leave_pay.lines(row).filter((line) => line[0] !== __("Days Paid by Salary")),
 		[__("Off. Accrued"), `${money(accrued_official(row))} (${worked})`],
 	];
 
@@ -496,9 +514,9 @@ function show_payout(frm, row) {
 		[__("Off. Salary"), money(row.official_salary)],
 		[__("Working Days in Month"), number(row.total_working_days)],
 		[__("Daily Rate"), money(official_rate(row))],
-		[__("Paid Days"), `<b>${days(row.paid_days)}</b>`],
+		[__("Days Paid by Salary"), `<b>${days(official_days(row))}</b>`],
 		// Відпускні й лікарняні сидять усередині нарахованого — розкладаємо, з чого воно склалося.
-		...erpnext.utils.leave_pay.lines(row),
+		...erpnext.utils.leave_pay.lines(row).filter((line) => line[0] !== __("Days Paid by Salary")),
 		[__("Off. Accrued"), money(flt(row.earned_official))],
 	];
 
@@ -516,8 +534,8 @@ function show_payout(frm, row) {
 			${lines_html(lines)}
 			${paid_note}
 			<p class="text-muted" style="margin-top: 8px;">${__(
-				"The salary is paid for {0} paid days of {1} working days in the month — a sick day counts at the cash percent from the payroll tax settings.",
-				[number(row.paid_days), number(row.total_working_days)]
+				"The salary pays {0} of {1} working days in the month; vacation and sick days are paid separately at the average daily wage.",
+				[number(official_days(row)), number(row.total_working_days)]
 			)}</p>
 		`,
 	});
@@ -706,10 +724,11 @@ function show_details(frm, row) {
 	erpnext.utils.attendance_details.show(row, {
 		title: row.employee_name || row.employee,
 		indicator: row.paid ? "green" : "blue",
-		attendance: attendance_extra(row),
+		attendance: attendance_extra(frm, row),
 		salary: salary_lines(frm, row),
 		payout: payout_lines(frm, row),
-		note: row.note,
+		blocked: row.attendance_approved ? null : row.attendance_note || __("Attendance sheet not approved"),
+		note: row.attendance_approved ? row.note : null,
 		// Без меж періоду календар не завантажується — відомість показує весь місяць,
 		// на відміну від авансу, який обрізає його днем відсікання.
 		start: frm.doc.period_start,

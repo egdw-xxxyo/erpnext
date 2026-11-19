@@ -17894,3 +17894,44 @@ The employer part is already paid — the case cannot be recalculated.,Част�
 The sick leave case is already paid — it cannot be cancelled.,Випадок лікарняного вже оплачено — скасувати його не можна.
 Set when the case is submitted: only then the employer part goes into the salary.,Ставиться під час проведення випадку: лише тоді частина роботодавця йде в зарплату.
 The case is open: submit it when the last certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed.,"Випадок відкритий: проведіть його, коли отримаєте останній ЕЛН, — тоді частина роботодавця піде в зарплату, а випадок більше не можна буде змінити."
+Vacation and Sick Leave,Відпустка й лікарняний
+paid separately,оплачується окремо
+Cash Paid Days,Оплачувані дні готівкою
+Paid by the sick leave case,Оплачує випадок лікарняного
+"The salary pays {0} of {1} working days in the month; vacation and sick days are paid separately at the average daily wage.","Оклад платить {0} з {1} робочих днів місяця; відпустка й лікарняний оплачуються окремо за середньою."
+row {0},рядок {0}
+"Enter the ЕЛН number for certificates {0}: the number appears once the ЕЛН is processed in the ПФУ e-services portal.","Вкажіть номер ЕЛН для листків {0}: номер з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ."
+ЕЛН Number Missing,Немає номера ЕЛН
+"No ЕЛН number for {0} certificates yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with all numbers.","Ще немає номера ЕЛН для листків: {0}. Номер з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ. Провести випадок можна лише з усіма номерами."
+Without ЕЛН Number,Без номера ЕЛН
+"Fill in once the employer part of the ЕЛН is done in the ПФУ e-services portal; required to submit the case.","Заповніть, коли частину роботодавця в ЕЛН заповнено на порталі електронних послуг ПФУ; без номера випадок не провести."
+{0} belongs to sick leave case {1} — change it in the case.,{0} належить випадку лікарняного {1} — змінюйте його у випадку.
+{0} — {1} already belong to sick leave case {2}.,{0} — {1} уже належать випадку лікарняного {2}.
+There is no draft sick leave case that these days continue.,"Немає чернетки випадку лікарняного, яку ці дні продовжують."
+Unknown action {0},Невідома дія {0}
+Unknown sick leave case type {0},Невідомий тип випадку лікарняного {0}
+Open Sick Leave Case,Відкрити випадок лікарняного
+"Mark sick leave for {0} employees on {1}? Each of them gets a sick leave case: the draft these days continue is extended, otherwise a new one is opened.","Відмітити лікарняний {0} працівникам на {1}? Кожному буде випадок лікарняного: чернетку, яку ці дні продовжують, буде продовжено, інакше відкриється новий."
+Sick Leave,Лікарняний
+Extend {0} ({1} — {2}) from {3},Продовжити {0} ({1} — {2}) з {3}
+New sick leave case,Новий випадок лікарняного
+"Leave empty if there is no number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal.","Залиште порожнім, якщо номера ще немає: він з'явиться, коли ЕЛН опрацюють на порталі електронних послуг ПФУ."
+No sick leave case,Немає випадку лікарняного
+ЕЛН {0},ЕЛН {0}
+ЕЛН number not entered yet,Номер ЕЛН ще не внесено
+Sick leave case {0} extended,Випадок лікарняного {0} продовжено
+Sick leave case {0} opened,Відкрито випадок лікарняного {0}
+{0} sick leave cases updated,Оновлено випадків лікарняного: {0}
+Sick days from the timesheet: {0} — {1},Дні лікарняного з табеля: {0} — {1}
+"A sick leave case cannot be shortened: it covered {0} — {1}, and these days are marked as sick leave in the timesheet. Extend it, or delete the case and mark the days again.","Випадок лікарняного не можна скоротити: він охоплював {0} — {1}, і ці дні відмічені в табелі як лікарняний. Продовжте його або видаліть випадок і відмітьте дні знову."
+The Case Cannot Be Shortened,Випадок не можна скоротити
+Family Member Care,Догляд за хворим членом сім'ї
+Duration Check,Перевірка тривалості
+{0} days in a row: over {1} days the certificate is extended only by a decision of the ЕКОПФО commission.,"{0} днів поспіль: понад {1} днів ЕЛН продовжується лише за рішенням ЕКОПФО."
+{0} sick days this calendar year: over {1} days a repeated illness goes to the ЕКОПФО commission.,"{0} днів хвороби за календарний рік: понад {1} днів повторна хвороба йде на ЕКОПФО."
+{0} days of child care: the fund usually pays up to {1} days (longer only for a hospital stay with the child).,"{0} днів догляду за дитиною: фонд зазвичай оплачує до {1} днів (довше — лише при перебуванні з дитиною в стаціонарі)."
+"{0} days of care for a family member: the certificate is issued for up to {1} days, up to {2} only in exceptional cases.","{0} днів догляду за членом сім'ї: ЕЛН видається до {1} днів, до {2} — лише у виняткових випадках."
+"{0} days of maternity leave: the usual leave is {1} days, {2} for a complicated birth or twins, 180 for the Chornobyl categories.","{0} днів відпустки у звʼязку з вагітністю та пологами: звичайно {1} днів, {2} — при ускладнених пологах чи двійні, 180 — для чорнобильських категорій."
+months,місяців
+Insurance Tenure Before Joining,Страховий стаж до прийняття
+No salary structure assigned yet.,Структуру зарплати ще не призначено.

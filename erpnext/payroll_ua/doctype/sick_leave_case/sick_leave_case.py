@@ -20,6 +20,7 @@ from erpnext.payroll_ua import enforcement, sick_rules
 class SickLeaveCase(Document):
 	def validate(self):
 		self.set_period()
+		self.validate_not_shortened()
 		self.validate_overlap()
 
 		if not self.employer_paid_date:
@@ -30,11 +31,44 @@ class SickLeaveCase(Document):
 			self._set_fund_taxes()
 
 		self.set_status()
+		self.set_limit_warning()
+
+	def set_limit_warning(self):
+		year_days = 0
+
+		if self.case_type in sick_rules.ILLNESS_CASE_TYPES and self.start_date:
+			year = getdate(self.start_date).year
+			others = frappe.get_all(
+				"Sick Leave Case",
+				filters={
+					"employee": self.employee,
+					"name": ("!=", self.name or ""),
+					"docstatus": ("<", 2),
+					"case_type": ("in", sick_rules.ILLNESS_CASE_TYPES),
+					"start_date": ("between", [f"{year}-01-01", f"{year}-12-31"]),
+				},
+				pluck="calendar_days",
+			)
+			year_days = sum(int(days or 0) for days in others) + int(self.calendar_days or 0)
+
+		self.limit_warning = "\n".join(
+			sick_rules.duration_warnings(self.case_type, self.calendar_days, year_days)
+		)
 
 	def on_update(self):
 		self.mark_attendance()
 
 	def before_submit(self):
+		missing = [str(row.idx) for row in self.certificates if not (row.eln_number or "").strip()]
+
+		if missing:
+			frappe.throw(
+				_(
+					"Enter the ЕЛН number for certificates {0}: the number appears once the ЕЛН is processed in the ПФУ e-services portal."
+				).format(", ".join(missing)),
+				title=_("ЕЛН Number Missing"),
+			)
+
 		self.closed = 1
 		self.set_status()
 
@@ -80,7 +114,9 @@ class SickLeaveCase(Document):
 
 			if getdate(row.to_date) < getdate(row.from_date):
 				frappe.throw(
-					_("Certificate {0}: the last day is before the first day.").format(row.eln_number)
+					_("Certificate {0}: the last day is before the first day.").format(
+						_certificate_label(row)
+					)
 				)
 
 			row.days = date_diff(row.to_date, row.from_date) + 1
@@ -89,7 +125,7 @@ class SickLeaveCase(Document):
 				frappe.throw(
 					_(
 						"Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case."
-					).format(row.eln_number, previous.eln_number)
+					).format(_certificate_label(row), _certificate_label(previous))
 				)
 
 			previous = row
@@ -98,6 +134,25 @@ class SickLeaveCase(Document):
 		self.start_date = getdate(rows[0].from_date)
 		self.end_date = getdate(rows[-1].to_date)
 		self.calendar_days = date_diff(self.end_date, self.start_date) + 1
+
+	def validate_not_shortened(self):
+		"""Випадок лише росте: його дні вже стоять у табелі «Лікарняним» і заблоковані там,
+		тож обрізаний випадок лишив би в табелі лікарняні без причини. Помилкові дні
+		прибирає скасування випадку, а не тихе скорочення."""
+		before = self.get_doc_before_save()
+
+		if not before or not before.start_date or not before.end_date:
+			return
+
+		if getdate(self.start_date) > getdate(before.start_date) or getdate(self.end_date) < getdate(
+			before.end_date
+		):
+			frappe.throw(
+				_(
+					"A sick leave case cannot be shortened: it covered {0} — {1}, and these days are marked as sick leave in the timesheet. Extend it, or delete the case and mark the days again."
+				).format(formatdate(before.start_date), formatdate(before.end_date)),
+				title=_("The Case Cannot Be Shortened"),
+			)
 
 	def validate_overlap(self):
 		other = frappe.db.get_value(
@@ -360,20 +415,57 @@ def find_unregistered(company):
 	"""Дні «Лікарняного» в табелі, яких немає в жодному випадку, — готові чернетки випадків."""
 	frappe.has_permission("Sick Leave Case", "create", throw=True)
 
+	runs = unregistered_runs(company)
+	created = []
+
+	for run in runs:
+		case = frappe.new_doc("Sick Leave Case")
+		case.employee = run.employee
+		case.company = company
+		case.append(
+			"certificates",
+			{"from_date": run.from_date, "to_date": run.to_date},
+		)
+		case.insert()
+		created.append(case.name)
+
+	return created
+
+
+@frappe.whitelist()
+def get_unregistered_days(employee):
+	"""Для нового випадку з форми: дні «Лікарняного» з табеля цього працівника без випадку."""
+	frappe.has_permission("Sick Leave Case", "create", throw=True)
+	company = frappe.db.get_value("Employee", employee, "company")
+
+	return [
+		{"from_date": run.from_date, "to_date": run.to_date} for run in unregistered_runs(company, employee)
+	]
+
+
+def unregistered_runs(company, employee=None) -> list:
+	"""Суцільні відрізки днів «Лікарняного» в табелі, що не належать жодному випадку.
+
+	Відрізок не рветься на вихідних: ЕЛН іде календарними днями, а табель вихідні не
+	відмічає."""
+	filters = {"company": company, "docstatus": 1, "status": "Sick Leave"}
+	case_filters = {"company": company, "docstatus": ("!=", 2)}
+
+	if employee:
+		filters["employee"] = employee
+		case_filters["employee"] = employee
+
 	rows = frappe.get_all(
 		"Attendance",
-		filters={"company": company, "docstatus": 1, "status": "Sick Leave"},
+		filters=filters,
 		fields=["employee", "employee_name", "attendance_date"],
 		order_by="employee asc, attendance_date asc",
 	)
-	cases = frappe.get_all(
-		"Sick Leave Case",
-		filters={"company": company, "docstatus": ("!=", 2)},
-		fields=["employee", "start_date", "end_date"],
-	)
 	covered = {}
 
-	for case in cases:
+	for case in frappe.get_all(
+		"Sick Leave Case", filters=case_filters, fields=["employee", "start_date", "end_date"]
+	):
 		covered.setdefault(case.employee, []).append((getdate(case.start_date), getdate(case.end_date)))
 
 	runs = []
@@ -399,20 +491,7 @@ def find_unregistered(company):
 			frappe._dict(employee=row.employee, employee_name=row.employee_name, from_date=day, to_date=day)
 		)
 
-	created = []
-
-	for run in runs:
-		case = frappe.new_doc("Sick Leave Case")
-		case.employee = run.employee
-		case.company = company
-		case.append(
-			"certificates",
-			{"eln_number": _("Not entered"), "from_date": run.from_date, "to_date": run.to_date},
-		)
-		case.insert()
-		created.append(case.name)
-
-	return created
+	return runs
 
 
 def _continues(previous, day, employee, company, cache) -> bool:
@@ -433,3 +512,8 @@ def _continues(previous, day, employee, company, cache) -> bool:
 
 		if getdate(gap) not in holidays:
 			return False
+
+
+def _certificate_label(row) -> str:
+	"""Номер ЕЛН, а поки його немає — номер рядка: номер приходить пізніше з порталу ПФУ."""
+	return (row.eln_number or "").strip() or _("row {0}").format(row.idx)

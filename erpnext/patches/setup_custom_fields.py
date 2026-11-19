@@ -1402,18 +1402,54 @@ def create_average_pay_fields():
 	fields = [
 		{
 			"dt": "Employee",
+			"fieldname": "custom_salary_history_section",
+			"fieldtype": "Section Break",
+			"label": "Salary History",
+			"insert_after": "custom_salary_effective_from",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_salary_history_html",
+			"fieldtype": "HTML",
+			"label": "Salary History",
+			"insert_after": "custom_salary_history_section",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_attendance_sheet_section",
+			"fieldtype": "Section Break",
+			"label": "Attendance Sheet",
+			"insert_after": "holiday_list",
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_attendance_sheet_html",
+			"fieldtype": "HTML",
+			"label": "Attendance Sheet",
+			"insert_after": "custom_attendance_sheet_section",
+		},
+		{
+			"dt": "Employee",
 			"fieldname": "custom_average_pay_section",
 			"fieldtype": "Section Break",
 			"label": "Vacation and Sick Pay",
-			"insert_after": "custom_salary_effective_from",
-			"collapsible": 1,
+			"insert_after": "custom_salary_history_html",
+			"collapsible": 0,
+		},
+		{
+			"dt": "Employee",
+			"fieldname": "custom_insurance_html",
+			"fieldtype": "HTML",
+			"label": "Insurance Tenure Before Joining",
+			"insert_after": "custom_average_pay_section",
 		},
 		{
 			"dt": "Employee",
 			"fieldname": "custom_insurance_years",
 			"fieldtype": "Int",
 			"label": "Insurance Tenure Before Joining (Years)",
-			"insert_after": "custom_average_pay_section",
+			"insert_after": "custom_insurance_html",
+			"hidden": 1,
 			"description": "The tenure earned before this company. The time worked here is added automatically; the total sets the sick pay percent: under 3 years — 50%, 3 to 5 — 60%, 5 to 8 — 70%, over 8 — 100%.",
 		},
 		{
@@ -1422,13 +1458,14 @@ def create_average_pay_fields():
 			"fieldtype": "Int",
 			"label": "Insurance Tenure Before Joining (Months)",
 			"insert_after": "custom_insurance_years",
+			"hidden": 1,
 		},
 		{
 			"dt": "Employee",
 			"fieldname": "custom_sick_pay_in_full",
 			"fieldtype": "Check",
 			"label": "Sick Pay at 100%",
-			"insert_after": "custom_insurance_months",
+			"insert_after": "custom_disability_group",
 			"description": "A privileged category (a war veteran and the like): sick pay is 100% whatever the tenure.",
 		},
 		{
@@ -1437,7 +1474,7 @@ def create_average_pay_fields():
 			"fieldtype": "Table",
 			"label": "Earnings Before ERP",
 			"options": "Employee Opening Earning",
-			"insert_after": "custom_sick_pay_in_full",
+			"insert_after": "custom_insurance_months",
 			"description": "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.",
 		},
 		{
@@ -1452,6 +1489,14 @@ def create_average_pay_fields():
 	]
 	_create_custom_fields(fields)
 	_update_field_texts(fields)
+	# Стаж до прийняття — один рядок «років / місяців» (public/js/custom/employee_insurance.js),
+	# а самі поля сховані.
+	_update_field_layout(fields)
+	for fieldname in ("custom_insurance_years", "custom_insurance_months"):
+		_sync_field_properties("Employee", fieldname, ["hidden"], fields)
+	# Секції на своїх вкладках і без згортання: «Відпускні та лікарняні» й історія окладів —
+	# у «Зарплаті», табель — в «Обліку робочого часу», «Лікарняні 100%» — в особистих даних.
+	_sync_field_properties("Employee", "custom_average_pay_section", ["collapsible"], fields)
 
 
 def create_identity_fields():

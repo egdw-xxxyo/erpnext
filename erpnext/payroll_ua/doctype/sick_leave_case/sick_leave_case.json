@@ -59,6 +59,7 @@
   "je_fund_card",
   "je_fund_tax",
   "section_break_note",
+  "limit_warning",
   "note",
   "amended_from"
  ],
@@ -105,7 +106,7 @@
    "fieldname": "case_type",
    "fieldtype": "Select",
    "label": "Case Type",
-   "options": "Illness or Injury\nWork Injury or Occupational Disease\nMaternity\nChild Care",
+   "options": "Illness or Injury\nWork Injury or Occupational Disease\nMaternity\nChild Care\nFamily Member Care",
    "default": "Illness or Injury",
    "reqd": 1
   },
@@ -424,11 +425,19 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "limit_warning",
+   "fieldtype": "Small Text",
+   "label": "Duration Check",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-18 14:00:00.000000",
+ "modified": "2026-11-18 17:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Sick Leave Case",

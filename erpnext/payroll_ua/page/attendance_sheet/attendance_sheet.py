@@ -14,7 +14,7 @@ from frappe import _
 from frappe.utils import cstr, flt, formatdate, getdate
 from hrms.utils import get_date_range
 
-from erpnext.payroll_ua import attendance_notes
+from erpnext.payroll_ua import attendance_notes, sick_marking, sick_rules
 from erpnext.payroll_ua.attendance_marks import get_leave_abbreviations, get_unpaid_leave_types
 from erpnext.payroll_ua.doctype.attendance_sheet_approval.attendance_sheet_approval import (
 	get_approval_for,
@@ -234,6 +234,7 @@ def build_sheet(company: str, from_date, to_date) -> dict:
 	leave_abbrs = get_leave_abbreviations()
 	unpaid_types = get_unpaid_leave_types()
 	note_counts = attendance_notes.get_note_counts(list(employees))
+	cases = sick_marking.case_days(list(employees), from_date, to_date)
 
 	rows = [
 		{
@@ -259,6 +260,16 @@ def build_sheet(company: str, from_date, to_date) -> dict:
 		}
 		for employee, details in employees.items()
 	]
+
+	# Чий це лікарняний: випадок, його ЕЛН і чи можна день змінювати в табелі.
+	for row in rows:
+		for day, case in (cases.get(row["employee"]) or {}).items():
+			cell = row["days"].get(cstr(day))
+
+			if cell:
+				cell.update(
+					sick_case=case["name"], sick_case_submitted=case["submitted"], eln_number=case["eln"]
+				)
 
 	manager = get_session_employee()
 
@@ -510,6 +521,10 @@ def save_attendance(
 	validate_status(status)
 	validate_hours(overtime_hours, shortfall_hours)
 
+	# Лікарняний без причини не ставиться: кожен такий день кладеться у випадок.
+	if status == "Sick Leave":
+		return mark_sick_for(employees, from_date, to_date)
+
 	created, skipped = [], []
 
 	for employee in employees:
@@ -546,6 +561,10 @@ def mark_day(employee: str, day, values: dict) -> dict:
 
 	try:
 		validate_not_approved(employee, day)
+
+		if values.get("status") != "Sick Leave":
+			sick_marking.assert_not_in_case(employee, day)
+
 		remove_attendance_on(employee, day)
 
 		doc = frappe.new_doc("Attendance")
@@ -617,6 +636,7 @@ def delete_attendance(name: str) -> None:
 	employee, attendance_date = frappe.db.get_value("Attendance", name, ["employee", "attendance_date"])
 	assert_can_edit([employee])
 	validate_not_approved(employee, attendance_date)
+	sick_marking.assert_not_in_case(employee, attendance_date)
 
 	drop_attendance(name)
 
@@ -715,6 +735,7 @@ def save_leave(
 
 	for day in get_date_range(from_date, to_date):
 		validate_not_approved(employee, day)
+		sick_marking.assert_not_in_case(employee, day)
 
 	if name:
 		cancel_leave(name)
@@ -825,6 +846,7 @@ def remove_document(remove, name: str, employee: str, day) -> dict:
 
 	try:
 		validate_not_approved(employee, getdate(day))
+		sick_marking.assert_not_in_case(employee, getdate(day))
 		remove(name)
 
 		frappe.db.release_savepoint(save_point)
@@ -991,3 +1013,70 @@ def cancel_approval(name: str) -> None:
 @frappe.whitelist()
 def get_approval_of(employee: str, date: str) -> str | None:
 	return get_approval_for(employee, date)
+
+
+@frappe.whitelist()
+def get_sick_options(employee: str, from_date: str, to_date: str, company: str | None = None) -> dict:
+	"""Що зробить «Лікарняний» на цих днях: продовжить чернетку випадку чи відкриє новий."""
+	from_date, to_date = validate_period(from_date, to_date)
+	assert_can_edit([employee], company)
+
+	return sick_marking.options(employee, from_date, to_date)
+
+
+@frappe.whitelist()
+def mark_sick(
+	employees: str | list,
+	from_date: str,
+	to_date: str,
+	action: str = "auto",
+	case_type: str | None = None,
+	eln_number: str | None = None,
+	company: str | None = None,
+) -> dict:
+	"""Відмічає лікарняний і кладе його у «Випадок лікарняного» — новий або продовжений.
+
+	Випадок пишеться з правами табеля: керівник відмічає лікарняний своїм людям, а суми
+	випадку бачить лише бухгалтерія."""
+	employees = frappe.parse_json(employees) if isinstance(employees, str) else employees
+	from_date, to_date = validate_period(from_date, to_date)
+	assert_can_edit(employees, company)
+
+	if action not in ("auto", "extend", "new"):
+		frappe.throw(_("Unknown action {0}").format(action))
+
+	if case_type and case_type not in sick_rules.CASE_TYPES:
+		frappe.throw(_("Unknown sick leave case type {0}").format(case_type))
+
+	return mark_sick_for(employees, from_date, to_date, action, case_type, eln_number)
+
+
+def mark_sick_for(employees, from_date, to_date, action="auto", case_type=None, eln_number=None) -> dict:
+	created, skipped, cases = [], [], []
+
+	for employee in employees:
+		save_point = "mark_sick_leave"
+		frappe.db.savepoint(save_point)
+
+		try:
+			outcome = sick_marking.mark(
+				employee, from_date, to_date, action, case_type, eln_number, mark_day=mark_day
+			)
+			frappe.db.release_savepoint(save_point)
+		except Exception as e:
+			frappe.db.rollback(save_point=save_point)
+			skipped.append(
+				{
+					"employee": employee,
+					"date": f"{formatdate(from_date)} — {formatdate(to_date)}",
+					"reason": get_failure_reason(e),
+				}
+			)
+			frappe.clear_messages()
+			continue
+
+		created += outcome["created"]
+		skipped += outcome["skipped"]
+		cases.append({"employee": employee, "case": outcome["case"], "extended": outcome["extended"]})
+
+	return {"created": created, "skipped": skipped, "cases": cases}
