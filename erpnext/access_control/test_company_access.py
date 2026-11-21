@@ -163,3 +163,23 @@ class TestCompanyAccess(unittest.TestCase):
 		base = frappe.db.get_value("User Permission", {"user": USER, "for_value": self.main})
 		frappe.delete_doc("User Permission", base, ignore_permissions=True)
 		self.assertEqual(frappe.db.get_value("User Company Access", USER, "access_status"), "Narrows")
+
+	def test_only_access_manager_manages_company_access(self):
+		def can_read(roles):
+			user = f"company-access-{len(roles)}@example.com"
+			frappe.get_doc(
+				{
+					"doctype": "User",
+					"email": user,
+					"first_name": "Company Access Role",
+					"send_welcome_email": 0,
+					"roles": [{"role": role} for role in roles],
+				}
+			).insert(ignore_permissions=True)
+			return {
+				doctype: frappe.has_permission(doctype, "read", user=user)
+				for doctype in ("User Company Access", "Company Access Scope")
+			}
+
+		self.assertEqual(set(can_read(["System Manager"]).values()), {False})
+		self.assertEqual(set(can_read(["Access Manager", "Stock User"]).values()), {True})

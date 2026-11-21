@@ -1,7 +1,6 @@
 frappe.ui.form.on("User", {
 	refresh(frm) {
-		const managers = ["Access Manager", "System Manager"];
-		if (frm.is_new() || !managers.some((role) => frappe.user.has_role(role))) return;
+		if (frm.is_new() || !frappe.user.has_role("Access Manager")) return;
 		frm.add_custom_button(
 			__("Company Access"),
 			() =>
