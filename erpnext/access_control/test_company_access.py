@@ -30,6 +30,8 @@ class TestCompanyAccess(unittest.TestCase):
 		frappe.set_user("Administrator")
 		frappe.flags.mute_emails = True
 		self.addCleanup(frappe.db.rollback)
+		self.addCleanup(setattr, frappe.flags, "mute_emails", False)
+		self.addCleanup(frappe.set_user, "Administrator")
 		with_both = frappe.get_all(
 			"Warehouse", filters={"company": ["is", "set"]}, pluck="company", distinct=True
 		)
@@ -60,10 +62,6 @@ class TestCompanyAccess(unittest.TestCase):
 				"include_doctypes": [{"document_type": "Warehouse"}],
 			}
 		).insert()
-
-	def tearDown(self):
-		frappe.set_user("Administrator")
-		frappe.flags.mute_emails = False
 
 	def grant(self, company: str):
 		return frappe.get_doc(
