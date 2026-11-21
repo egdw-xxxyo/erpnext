@@ -49,6 +49,7 @@ def execute():
 	add_serial_attributes_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
+	create_company_access_marker()
 	create_ai_helper_user_fields()
 	create_salary_split_fields()
 	create_salary_tax_components()
@@ -1232,6 +1233,23 @@ def create_custom_fields_on_employee():
 			"label": "Shortname",
 			"insert_after": "employee_name",
 			"unique": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def create_company_access_marker():
+	fields = [
+		{
+			"dt": "User Permission",
+			"fieldname": "company_access",
+			"fieldtype": "Link",
+			"label": "Company Access",
+			"options": "User Company Access",
+			"insert_after": "applicable_for",
+			"read_only": 1,
+			"in_list_view": 1,
+			"description": "Created and removed by Company Access; manual changes are overwritten",
 		},
 	]
 	_create_custom_fields(fields)

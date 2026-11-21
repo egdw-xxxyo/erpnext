@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "creation": "2026-11-21 00:00:00.000000",
+ "description": "Extra companies a user sees, each within an access scope",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "full_name",
+  "base_section",
+  "base_companies",
+  "grants_section",
+  "grants",
+  "result_section",
+  "result",
+  "summary_section",
+  "access_status",
+  "main_companies",
+  "extra_companies"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "unique": 1,
+   "set_only_once": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "fetch_from": "user.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "base_section",
+   "fieldtype": "Section Break",
+   "label": "Main Company"
+  },
+  {
+   "fieldname": "base_companies",
+   "fieldtype": "HTML",
+   "label": "Main Company"
+  },
+  {
+   "fieldname": "grants_section",
+   "fieldtype": "Section Break",
+   "label": "Extra Companies"
+  },
+  {
+   "fieldname": "grants",
+   "fieldtype": "Table",
+   "label": "Extra Companies",
+   "options": "User Company Access Grant"
+  },
+  {
+   "fieldname": "result_section",
+   "fieldtype": "Section Break",
+   "label": "What the User Sees"
+  },
+  {
+   "fieldname": "result",
+   "fieldtype": "HTML",
+   "label": "What the User Sees"
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "Summary",
+   "hidden": 1
+  },
+  {
+   "fieldname": "access_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nIn Effect\nNarrows\nNo Effect\nUser Disabled",
+   "read_only": 1,
+   "hidden": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "main_companies",
+   "fieldtype": "Small Text",
+   "label": "Main Company",
+   "read_only": 1,
+   "hidden": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "extra_companies",
+   "fieldtype": "Small Text",
+   "label": "Extra Companies",
+   "read_only": 1,
+   "hidden": 1,
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-21 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Control",
+ "name": "User Company Access",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Access Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "field:user",
+ "naming_rule": "By fieldname",
+ "track_changes": 1,
+ "title_field": "full_name",
+ "show_title_field_in_link": 1
+}

@@ -92,6 +92,9 @@ doctype_js = {
 		"public/js/custom/procurement_form.js",
 	],
 	"Buying Settings": "public/js/procurement_links.js",
+	"Company Access Scope": "public/js/access_control/company_access.js",
+	"User Company Access": "public/js/access_control/company_access.js",
+	"User": "public/js/custom/user_company_access_button.js",
 	"Address": "public/js/address.js",
 	"Job Card": "public/js/custom/job_card.js",
 	"Communication": "public/js/communication.js",
@@ -310,6 +313,7 @@ after_migrate = [
 	"erpnext.buying.buying_sidebar.add_buying_links",
 	"erpnext.stock.stock_sidebar.add_stock_links",
 	"erpnext.access_control.sidebar.add_access_links",
+	"erpnext.access_control.company_access.sync_all",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -790,7 +794,14 @@ doc_events = {
 			"erpnext.setup.doctype.employee.employee.validate_employee_role",
 			"erpnext.access_control.role_guard.guard_access_manager_role",
 		],
-		"on_update": "erpnext.portal.utils.set_default_role",
+		"on_update": [
+			"erpnext.portal.utils.set_default_role",
+			"erpnext.access_control.company_access.on_user_update",
+		],
+	},
+	"User Permission": {
+		"on_update": "erpnext.access_control.company_access.on_user_permission_change",
+		"after_delete": "erpnext.access_control.company_access.on_user_permission_change",
 	},
 	"Communication": {
 		"on_update": [
