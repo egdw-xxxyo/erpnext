@@ -193,7 +193,9 @@ def _loads(value):
 
 
 @frappe.whitelist()
-def preview_scope(modules=None, include=None, exclude=None) -> dict:
+def preview_scope(
+	modules: str | list | None = None, include: str | list | None = None, exclude: str | list | None = None
+) -> dict:
 	_require_manager()
 	candidates = company_doctypes()
 	include = _loads(include)
@@ -206,7 +208,7 @@ def preview_scope(modules=None, include=None, exclude=None) -> dict:
 
 
 @frappe.whitelist()
-def preview_access(user: str, grants=None) -> dict:
+def preview_access(user: str, grants: str | list | None = None) -> dict:
 	_require_manager()
 	if not user:
 		return {"global": [], "companies": {}, "narrows": False}
@@ -229,8 +231,9 @@ def preview_access(user: str, grants=None) -> dict:
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def doctype_query(doctype, txt, searchfield, start, page_len, filters):
+def doctype_query(doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict | str):
 	_require_manager()
+	filters = _loads(filters) or {}
 	candidates = company_doctypes()
 	modules = _loads(filters.get("modules"))
 	choices = (
