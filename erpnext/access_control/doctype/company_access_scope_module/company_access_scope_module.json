@@ -1,0 +1,33 @@
+{
+ "actions": [],
+ "creation": "2026-11-21 00:00:00.000000",
+ "description": "A module whose company-linked doctypes the scope opens",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "module"
+ ],
+ "fields": [
+  {
+   "fieldname": "module",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Module",
+   "options": "Module Def",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-21 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Control",
+ "name": "Company Access Scope Module",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

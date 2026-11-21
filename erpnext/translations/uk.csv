@@ -17937,3 +17937,42 @@ Insurance Tenure Before Joining,Страховий стаж до прийнят�
 No salary structure assigned yet.,Структуру зарплати ще не призначено.
 Pin column,Закріпити колонку
 Unpin column,Відкріпити колонку
+Company Access Scope,Область доступу до компаній
+User Company Access,Доступ користувача до компаній
+User Company Access Grant,Додаткова компанія користувача
+Company Access Scope Module,Модуль області доступу
+Company Access Scope DocType,Тип документа області доступу
+Scope Name,Назва області
+Also Include,Додатково включити
+Exclude,Виключити
+Resulting Document Types,Підсумкові типи документів
+Main Company,Основна компанія
+Extra Companies,Додаткові компанії
+What the User Sees,Що бачить користувач
+Access Scope,Область доступу
+Company Access,Доступ до компаній
+Every document type of these modules that has a Company field,"Усі типи документів цих модулів, що мають поле «Компанія»"
+A named set of doctypes in which an extra company can be opened to a user,"Іменований набір типів документів, у яких користувачу можна відкрити додаткову компанію"
+"Extra companies a user sees, each within an access scope","Додаткові компанії, які бачить користувач, кожна в межах своєї області доступу"
+An extra company the user sees within a scope,"Додаткова компанія, яку користувач бачить у межах області"
+A module whose company-linked doctypes the scope opens,"Модуль, типи документів якого з полем «Компанія» відкриває область"
+A doctype added to or excluded from a company access scope,"Тип документа, доданий до області доступу або виключений з неї"
+Created and removed by Company Access; manual changes are overwritten,Створюється й видаляється «Доступом до компаній»; ручні зміни буде перезаписано
+"These document types have no Company field, so a company cannot be opened in them: {0}","Ці типи документів не мають поля «Компанія», тож відкрити в них компанію неможливо: {0}"
+Repeated rows: {0},Рядки повторюються: {0}
+"User Permissions updated: {0} added, {1} removed","Дозволи користувача оновлено: додано {0}, видалено {1}"
+"No Company field, cannot be opened by company: {0}","Немає поля «Компанія», не можна відкрити за компанією: {0}"
+{0} document types,Типів документів: {0}
+Choose modules or document types,Оберіть модулі або типи документів
+Sees everywhere,Бачить скрізь
+No main company restriction: the user sees every company,Немає обмеження основною компанією: користувач бачить усі компанії
+"The user has no main company, so these rows narrow the chosen document types to the listed companies","У користувача немає основної компанії, тому ці рядки звужують обрані типи документів до вказаних компаній"
+"Already visible everywhere, rows skipped: {0}","Уже видно скрізь, рядки пропущено: {0}"
+No extra companies,Додаткових компаній немає
+Document types with a Company field outside the chosen modules,"Типи документів із полем «Компанія», яких немає в обраних модулях"
+Document types of this scope,Типи документів цієї області
+In Effect,Діє
+Narrows,Звужує
+No Effect,Без змін
+User Disabled,Користувач вимкнений
+Extra Company,Додаткова компанія
