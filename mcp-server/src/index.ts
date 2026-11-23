@@ -23,6 +23,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
 import { SCRIPT_TOOLS, isScriptTool, handleScriptTool } from "./scripts.js";
+import { IMPORT_SCRIPT_TOOLS, isImportScriptTool, handleImportScriptTool } from "./importScripts.js";
 import { LABEL_TEMPLATE_TOOLS, isLabelTemplateTool, handleLabelTemplateTool } from "./labelTemplate.js";
 
 // ERPNext API client configuration
@@ -827,6 +828,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       ...SCRIPT_TOOLS,
+      ...IMPORT_SCRIPT_TOOLS,
       ...LABEL_TEMPLATE_TOOLS
     ]
   };
@@ -1358,6 +1360,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
       
     default:
+      if (isImportScriptTool(request.params.name)) {
+        return await handleImportScriptTool(request.params.name, request.params.arguments, erpnext);
+      }
       if (isScriptTool(request.params.name)) {
         return await handleScriptTool(request.params.name, request.params.arguments, erpnext);
       }

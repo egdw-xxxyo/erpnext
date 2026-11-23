@@ -13,6 +13,7 @@ import re
 
 import frappe
 from frappe import _
+from frappe.utils import cint
 
 PROGRESS_EVENT = "import_center_progress"
 HEAD_ROWS = 20
@@ -353,3 +354,123 @@ def purge_old_runs():
 
 	for name in frappe.get_all("Import Run", filters={"creation": ("<", cutoff)}, pluck="name"):
 		frappe.delete_doc("Import Run", name, ignore_permissions=True, force=True)
+
+
+class _TestContext:
+	"""Контекст пробного запуску: прогрес збирається в список, у базу й realtime нічого не йде."""
+
+	def __init__(self, file_path):
+		self.run = "TEST"
+		self.file_path = file_path
+		self.user = frappe.session.user
+		self.stage = "parse"
+		self.log = []
+
+	def progress(self, percent, message=""):
+		self.log.append({"stage": self.stage, "percent": percent, "message": str(message)})
+
+
+def _marker_report(script, head, filename):
+	return [
+		{
+			"where": m.where,
+			"kind": m.kind,
+			"value": m.value,
+			"matched": bool(_marker_matches(m, head, filename)),
+		}
+		for m in script.markers
+	]
+
+
+@frappe.whitelist()
+def test_import(file_url, script=None, code=None, run_apply=0):
+	"""Пробний імпорт для розробки скрипту: повний вивід розпізнавання, розбору, плану й (за бажанням)
+	застосування. Застосування виконується в транзакції, яку завжди відкочуємо, — у базі нічого не лишається.
+	`code` — чернетка скрипту без збереження."""
+	import traceback
+
+	frappe.only_for("System Manager")
+	filename = file_url.rsplit("/", 1)[-1]
+	ext = (filename.rsplit(".", 1)[-1] if "." in filename else "").lower()
+	path = _file_path(file_url)
+	head = _head(path, ext)
+	report = {"file": filename, "head_text": head[:3000], "detection": [], "stage": "detect"}
+
+	for name in frappe.get_all("Import Script", filters={"file_types": ext}, pluck="name"):
+		doc = frappe.get_doc("Import Script", name)
+		markers = _marker_report(doc, head, filename)
+		report["detection"].append(
+			{
+				"script": name,
+				"enabled": bool(doc.enabled),
+				"priority": doc.priority,
+				"matched": bool(markers) and all(m["matched"] for m in markers),
+				"markers": markers,
+			}
+		)
+
+	chosen = script or next(
+		(
+			d["script"]
+			for d in sorted(report["detection"], key=lambda d: -(d["priority"] or 0))
+			if d["matched"] and d["enabled"]
+		),
+		None,
+	)
+	report["chosen_script"] = chosen
+
+	if not chosen:
+		report["error"] = "No script matches this file (see detection.markers); pass `script` to force one."
+		return report
+
+	script_doc = frappe.get_doc("Import Script", chosen)
+	report["missing_permissions"] = missing_permissions(script_doc)
+	report["required_permissions"] = [
+		{"doctype": r.reference_doctype, "ptype": r.ptype} for r in script_doc.required_permissions
+	]
+	report["change_fields"] = [
+		{"doctype": r.reference_doctype, "fieldname": r.fieldname, "mode": r.mode}
+		for r in script_doc.change_fields
+	]
+	report["code_source"] = "draft (unsaved)" if code else f"saved v{script_doc.version}"
+	ctx = _TestContext(path)
+
+	try:
+		namespace = _load(chosen, code or script_doc.code)
+		report["stage"] = "parse"
+		parsed = namespace["parse"](ctx)
+		report["parsed"] = frappe.parse_json(json.dumps(parsed, default=str))
+		report["stage"] = "plan"
+		plan = namespace["plan"](ctx, parsed) or []
+		report["plan"] = frappe.parse_json(json.dumps(plan, default=str))
+		report["plan_summary"] = {
+			"items": len(plan),
+			"changes": sum(len(i.get("changes") or []) for i in plan),
+			"problems": [i.get("problem") for i in plan if i.get("problem")],
+		}
+
+		if cint(run_apply):
+			report["stage"] = "apply"
+			ctx.stage = "import"
+			real_commit = frappe.db.commit
+			frappe.db.savepoint("import_center_test")
+			frappe.db.commit = lambda *a, **k: None
+
+			try:
+				report["apply_result"] = frappe.parse_json(
+					json.dumps(namespace["apply"](ctx, parsed, plan) or {}, default=str)
+				)
+			finally:
+				frappe.db.commit = real_commit
+				frappe.db.rollback(save_point="import_center_test")
+
+			report["apply_rolled_back"] = True
+
+		report["stage"] = "done"
+	except Exception as e:
+		report["error"] = f"{type(e).__name__}: {e}"
+		report["traceback"] = traceback.format_exc()
+		frappe.db.rollback()
+
+	report["progress_log"] = ctx.log
+	return report
