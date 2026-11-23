@@ -15664,7 +15664,7 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "The tenure earned before this company. The time worked here is added automatically; the total sets the sick pay percent: under 3 years — 50%, 3 to 5 — 60%, 5 to 8 — 70%, over 8 — 100%.","Стаж, набутий до цієї компанії. Відпрацьоване тут додається автоматично; від суми залежить відсоток лікарняних: до 3 років — 50%, від 3 до 5 — 60%, від 5 до 8 — 70%, понад 8 — 100%."
 "Sick Pay at 100%","Лікарняні 100%"
 "A privileged category (a war veteran and the like): sick pay is 100% whatever the tenure.","Пільгова категорія (ветеран війни тощо): лікарняні 100% незалежно від стажу."
-"Earnings Before ERP","Заробіток до ERP"
+"Earnings Before ERP","До працевлаштування"
 "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.","Офіційний заробіток за місяці, яких немає в ERP — середній зарплаті для відпускних і лікарняних потрібні останні 12 місяців. Місяць, виплачений через «Нарахування зарплати», замінює свій рядок тут."
 "Official Earnings","Офіційний заробіток"
 "Everything accrued officially for the month, before taxes — salary, bonuses, vacation and sick pay.","Усе, що нараховано офіційно за місяць, до податків — оклад, премії, відпускні й лікарняні."
@@ -15672,8 +15672,8 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Unpaid Calendar Days","Календарні дні без оплати"
 "Leave without pay and other days without earnings for a valid reason.","Відпустка без збереження зарплати та інші дні без заробітку з поважної причини."
 "Any day of the month — it is stored as the first.","Будь-який день місяця — зберігається як перше число."
-"Earnings Before ERP: the month {0} is entered twice.","Заробіток до ERP: місяць {0} внесено двічі."
-"Earnings Before ERP: the sick pay cannot exceed the earnings of the month.","Заробіток до ERP: лікарняні не можуть перевищувати заробіток місяця."
+"Earnings Before ERP: the month {0} is entered twice.","До працевлаштування: місяць {0} внесено двічі."
+"Earnings Before ERP: the sick pay cannot exceed the earnings of the month.","До працевлаштування: лікарняні не можуть перевищувати заробіток місяця."
 "Below the minimum company average salary for reservation of {0}.","Нижче за мінімальну середню зарплату компанії для бронювання {0}."
 "Company Average Accrued Salary (Last Month)","Середня нарахована ЗП компанії (минулий місяць)"
 "What the law looks at: the official salary accrued to the whole company for the last calendar month, divided by the number of employees it was accrued to.","Те, на що дивиться закон: офіційна зарплата, нарахована всій компанії за останній календарний місяць, поділена на кількість працівників, яким її нараховано."
@@ -17408,7 +17408,7 @@ Earnings by Month,Заробіток по місяцях
 ERP,ERP
 Before ERP,До ERP
 Earnings by Month: {0},Заробіток по місяцях: {0}
-"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до ERP — з таблиці «Заробіток до ERP» цієї картки."
+"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до працевлаштування — з таблиці «До працевлаштування» цієї картки."
 Official Accrued,Нараховано офіційно
 Official Paid to Card,Виплачено на картку
 Cash Accrued,Нараховано готівкою
