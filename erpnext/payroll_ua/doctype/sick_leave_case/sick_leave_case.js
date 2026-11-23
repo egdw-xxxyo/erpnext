@@ -27,9 +27,32 @@ frappe.ui.form.on("Sick Leave Case", {
 // Лікарняний спершу відмічають у табелі: новий випадок підтягує ці дні, щоб їх не
 // вводили вдруге.
 frappe.ui.form.on("Sick Leave Case", {
+	incapacity_case(frm) {
+		if (!frm.doc.incapacity_case) return;
+
+		frappe.db
+			.get_value("Incapacity Case", frm.doc.incapacity_case, [
+				"employee",
+				"company",
+				"case_type",
+				"end_date",
+			])
+			.then(({ message }) => {
+				if (!message) return;
+				frm.set_value({
+					employee: message.employee,
+					company: message.company,
+					case_type: message.case_type,
+				});
+
+				if (!frm.doc.start_date && message.end_date) {
+					frm.set_value("start_date", frappe.datetime.add_days(message.end_date, 1));
+				}
+			});
+	},
+
 	employee(frm) {
-		if (!frm.is_new() || !frm.doc.employee) return;
-		if ((frm.doc.certificates || []).some((row) => row.from_date)) return;
+		if (!frm.is_new() || !frm.doc.employee || frm.doc.start_date || frm.doc.incapacity_case) return;
 
 		frappe
 			.xcall("erpnext.payroll_ua.doctype.sick_leave_case.sick_leave_case.get_unregistered_days", {
@@ -42,9 +65,7 @@ frappe.ui.form.on("Sick Leave Case", {
 				// для «Знайти незареєстровані лікарняні»
 				const run = runs[runs.length - 1];
 
-				frm.clear_table("certificates");
-				frm.add_child("certificates", { from_date: run.from_date, to_date: run.to_date });
-				frm.refresh_field("certificates");
+				frm.set_value({ start_date: run.from_date, end_date: run.to_date });
 				frappe.show_alert({
 					message: __("Sick days from the timesheet: {0} — {1}", [
 						frappe.datetime.str_to_user(run.from_date),
@@ -54,32 +75,11 @@ frappe.ui.form.on("Sick Leave Case", {
 				});
 			});
 	},
-});
 
-frappe.ui.form.on("Sick Leave Certificate", {
-	certificates_add(frm, cdt, cdn) {
-		const last = (frm.doc.certificates || [])
-			.filter((row) => row.name !== cdn && row.to_date)
-			.map((row) => row.to_date)
-			.sort()
-			.pop();
-		if (last) frappe.model.set_value(cdt, cdn, "from_date", frappe.datetime.add_days(last, 1));
-	},
-	from_date(frm, cdt, cdn) {
-		set_days(cdt, cdn);
-	},
-	to_date(frm, cdt, cdn) {
-		set_days(cdt, cdn);
+	end_date(frm) {
 		render_calculation(frm);
 	},
 });
-
-function set_days(cdt, cdn) {
-	const row = locals[cdt][cdn];
-	const days =
-		row.from_date && row.to_date ? frappe.datetime.get_day_diff(row.to_date, row.from_date) + 1 : 0;
-	frappe.model.set_value(cdt, cdn, "days", days > 0 ? days : null);
-}
 
 function show_status(frm) {
 	const colors = {
@@ -92,8 +92,6 @@ function show_status(frm) {
 	};
 	frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");
 
-	const without_number = (frm.doc.certificates || []).filter((row) => !(row.eln_number || "").trim());
-
 	if (frm.doc.limit_warning) {
 		frm.dashboard.add_comment(
 			frappe.utils.escape_html(frm.doc.limit_warning).replace(/\n/g, "<br>"),
@@ -102,11 +100,10 @@ function show_status(frm) {
 		);
 	}
 
-	if (frm.doc.docstatus === 0 && without_number.length) {
+	if (frm.doc.docstatus === 0 && !(frm.doc.eln_number || "").trim()) {
 		frm.dashboard.add_comment(
 			__(
-				"No ЕЛН number for {0} certificates yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with all numbers.",
-				[without_number.length]
+				"No ЕЛН number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with the number."
 			),
 			"yellow",
 			true
@@ -116,7 +113,7 @@ function show_status(frm) {
 	if (frm.doc.docstatus === 0) {
 		frm.dashboard.add_comment(
 			__(
-				"The case is open: submit it when the last certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed."
+				"The case is open: submit it when the certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed."
 			),
 			"orange",
 			true

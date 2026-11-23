@@ -15,8 +15,10 @@
   "case_type",
   "status",
   "closed",
-  "section_break_certificates",
-  "certificates",
+  "section_break_eln",
+  "incapacity_case",
+  "column_break_eln",
+  "eln_number",
   "section_break_period",
   "start_date",
   "column_break_period",
@@ -71,7 +73,8 @@
    "options": "Employee",
    "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "read_only_depends_on": "eval:doc.incapacity_case"
   },
   {
    "fieldname": "employee_name",
@@ -108,7 +111,8 @@
    "label": "Case Type",
    "options": "Illness or Injury\nWork Injury or Occupational Disease\nMaternity\nChild Care\nFamily Member Care",
    "default": "Illness or Injury",
-   "reqd": 1
+   "reqd": 1,
+   "read_only_depends_on": "eval:doc.incapacity_case"
   },
   {
    "fieldname": "status",
@@ -131,16 +135,29 @@
    "no_copy": 1
   },
   {
-   "fieldname": "section_break_certificates",
+   "fieldname": "section_break_eln",
    "fieldtype": "Section Break",
-   "label": "Certificates (ЕЛН)"
+   "label": "Certificate (ЕЛН)"
   },
   {
-   "fieldname": "certificates",
-   "fieldtype": "Table",
-   "label": "Certificates",
-   "options": "Sick Leave Certificate",
-   "reqd": 1
+   "fieldname": "incapacity_case",
+   "fieldtype": "Link",
+   "label": "Incapacity Case",
+   "options": "Incapacity Case",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_eln",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "eln_number",
+   "fieldtype": "Data",
+   "label": "Certificate Number (ЕЛН)",
+   "in_list_view": 1,
+   "description": "Fill in once the employer part of the ЕЛН is done in the ПФУ e-services portal; required to submit the case."
   },
   {
    "fieldname": "section_break_period",
@@ -150,8 +167,8 @@
    "fieldname": "start_date",
    "fieldtype": "Date",
    "label": "First Day",
-   "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "reqd": 1
   },
   {
    "fieldname": "column_break_period",
@@ -161,8 +178,8 @@
    "fieldname": "end_date",
    "fieldtype": "Date",
    "label": "Last Day",
-   "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "reqd": 1
   },
   {
    "fieldname": "column_break_period_2",
@@ -437,7 +454,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-18 17:00:00.000000",
+ "modified": "2026-11-23 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Sick Leave Case",

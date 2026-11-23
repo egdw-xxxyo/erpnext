@@ -17288,7 +17288,6 @@ Military unit is being worked on by {0},ВЧ у роботі у {0}
 Finish Military Unit,Завершити роботу з ВЧ
 Finish work? All military units will no longer be marked as in work.,Завершити роботу? Усі ВЧ більше не будуть позначені як у роботі.
 Sick Leave Case,Випадок лікарняного
-Sick Leave Certificate,Листок непрацездатності (ЕЛН)
 Sick Leave Cases,Випадки лікарняного
 Case Type,Тип випадку
 Illness or Injury,Захворювання або травма
@@ -17976,3 +17975,16 @@ Narrows,Звужує
 No Effect,Без змін
 User Disabled,Користувач вимкнений
 Extra Company,Додаткова компанія
+Incapacity Case,Випадок непрацездатності
+Incapacity Cases,Випадки непрацездатності
+Case Number,Номер випадку
+Certificate (ЕЛН),Листок непрацездатності (ЕЛН)
+New Sick Leave Case,Новий випадок лікарняного
+Incapacity case {0} belongs to another employee.,Випадок непрацездатності {0} належить іншому працівнику.
+The last day is before the first day.,Останній день раніше за перший.
+"{0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new incapacity case.","{0} не продовжує {1}: продовження починається наступного дня після закінчення попереднього. Перерва означає новий випадок непрацездатності."
+This certificate,Цей ЕЛН
+this certificate,цей ЕЛН
+"Enter the ЕЛН number: it appears once the ЕЛН is processed in the ПФУ e-services portal.","Вкажіть номер ЕЛН: він з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ."
+"No ЕЛН number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with the number.","Ще немає номера ЕЛН: він з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ. Провести випадок можна лише з номером."
+"The case is open: submit it when the certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed.","Випадок відкритий: проведіть його, коли отримаєте ЕЛН, — тоді частина роботодавця піде в зарплату, а випадок більше не можна буде змінити."

@@ -125,13 +125,16 @@ def taxes(gross, employee, case_type) -> frappe._dict:
 	return result
 
 
-def calculate(employee, case_type, start_date, calendar_days) -> frappe._dict:
-	"""Розрахунок випадку на дату його початку: стаж, відсоток, середня, суми обох частин."""
-	start_date = getdate(start_date)
+def calculate(
+	employee, case_type, start_date, calendar_days, illness_start=None, prior_days=0
+) -> frappe._dict:
+	"""Розрахунок одного ЕЛН: стаж, відсоток і середня — на перший день усієї хвороби
+	(`illness_start`), дні роботодавця — що лишились після `prior_days` попередніх ЕЛН."""
+	start_date = getdate(illness_start or start_date)
 	record = insurance_record(employee, start_date)
 	rate, reason = percent(employee, case_type, start_date)
 	details = average_pay.sick_average_details(employee, start_date)
-	employer_days, fund_days = split(calendar_days, case_rule(case_type)[0])
+	employer_days, fund_days = split(calendar_days, max(case_rule(case_type)[0] - int(prior_days or 0), 0))
 	daily = flt(details.average * rate / 100, 2)
 	employer = taxes(flt(daily * employer_days, 2), employee.name, case_type)
 	fund = taxes(flt(daily * fund_days, 2), employee.name, case_type)
