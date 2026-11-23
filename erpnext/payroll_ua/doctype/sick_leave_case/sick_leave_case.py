@@ -13,10 +13,17 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, getdate, nowdate
 
-from erpnext.hr import payroll_accounts
+from erpnext.hr import average_pay, payroll_accounts
 from erpnext.hr.salary_advance import _holiday_dates, _holiday_list
 from erpnext.payroll_ua import enforcement, sick_rules
 from erpnext.payroll_ua.doctype.incapacity_case import incapacity_case
+
+SOCIAL_STATUSES = [
+	"Not Requested",
+	"Requested, Waiting for Money",
+	"Money Received, Waiting for Payment",
+	"Paid by Social Security",
+]
 
 
 class SickLeaveCase(Document):
@@ -229,6 +236,8 @@ class SickLeaveCase(Document):
 			self.calendar_days,
 			illness_start=self.illness_start,
 			prior_days=self.prior_days,
+			average_period=(self.average_period_start, self.average_period_end),
+			average_override=self.average_override,
 		)
 		average = result.average
 
@@ -236,6 +245,7 @@ class SickLeaveCase(Document):
 		self.insurance_months = result.record.months
 		self.percent = result.percent
 		self.percent_reason = result.percent_reason
+		self.average_calculated = average.calculated
 		self.average_daily = average.average
 		self.daily_pay = result.daily_pay
 		self.average_note = self._average_note(average)
@@ -249,6 +259,16 @@ class SickLeaveCase(Document):
 
 	def _average_note(self, average) -> str:
 		lines = []
+
+		if average.get("overridden"):
+			lines.append(
+				_("Set by hand per the social security: {0} a day instead of the calculated {1}.").format(
+					average.average, average.calculated
+				)
+			)
+
+		if self.average_period_start:
+			lines.append(_("The calculation period was set by hand."))
 
 		if average.from_salary:
 			lines.append(_("No earnings in the calculation period — taken from the official salary."))
@@ -340,6 +360,29 @@ class SickLeaveCase(Document):
 		if (self.note or "") != note:
 			self.db_set("note", note, update_modified=False)
 
+	def advance_social_status(self, status):
+		order = SOCIAL_STATUSES.index
+		if order(status) > order(self.social_status or SOCIAL_STATUSES[0]):
+			self.social_status = status
+			self.social_status_date = nowdate()
+
+	@frappe.whitelist()
+	def set_social_status(self, status, status_date=None):
+		"""Де заява в соцстрахуванні: не подано, подано й чекаємо гроші, гроші прийшли, виплачено."""
+		frappe.has_permission("Sick Leave Case", "write", doc=self, throw=True)
+
+		if status not in SOCIAL_STATUSES:
+			frappe.throw(_("Unknown social security status {0}").format(status))
+
+		if self.docstatus == 2:
+			frappe.throw(_("The sick leave case is cancelled."))
+
+		self.db_set(
+			{"social_status": status, "social_status_date": getdate(status_date or nowdate())},
+			update_modified=False,
+		)
+		self.add_comment("Info", _("Social security status: {0}").format(_(status)))
+
 	@frappe.whitelist()
 	def receive_fund(self, posting_date=None, amount=None):
 		"""Гроші від фонду прийшли на рахунок компанії — записуємо їх у борг перед працівником."""
@@ -399,6 +442,7 @@ class SickLeaveCase(Document):
 				_("The fund paid {0}, the calculation expected {1}.").format(amount, self.fund_expected),
 			)
 
+		self.advance_social_status("Money Received, Waiting for Payment")
 		self.save()
 
 		return entry.name
@@ -460,6 +504,7 @@ class SickLeaveCase(Document):
 		self.fund_paid_date = posting_date
 		self.je_fund_card = card
 		self.je_fund_tax = tax
+		self.advance_social_status("Paid by Social Security")
 		self.save()
 
 		return [card, tax]
@@ -565,3 +610,34 @@ def _continues(previous, day, employee, company, cache) -> bool:
 
 		if getdate(gap) not in holidays:
 			return False
+
+
+@frappe.whitelist()
+def average_breakdown(employee, start_date, incapacity_case=None, from_month=None, to_month=None):
+	"""Розклад середньої по місяцях для вікна розрахунку: заробіток, дні й підсумок.
+
+	Дата події — перший день усієї хвороби; без `from_month`/`to_month` період автоматичний."""
+	frappe.has_permission("Sick Leave Case", "read", throw=True)
+
+	if incapacity_case:
+		start_date = frappe.db.get_value("Incapacity Case", incapacity_case, "start_date") or start_date
+
+	person = frappe._dict(frappe.get_cached_doc("Employee", employee).as_dict())
+	months = average_pay.month_range(from_month, to_month) if from_month and to_month else None
+	details = average_pay.sick_average_details(person, getdate(start_date), months)
+
+	return {
+		"rows": [
+			{**row, "month": str(row.month), "label": formatdate(row.month, "MM.yyyy")}
+			for row in details.rows
+		],
+		"earnings": details.earnings,
+		"days": details.days,
+		"uncapped": details.uncapped,
+		"limit": details.limit,
+		"capped": details.capped,
+		"average": details.average,
+		"from_salary": details.from_salary,
+		"period_start": str(details.period_start) if details.period_start else None,
+		"period_end": str(details.period_end) if details.period_end else None,
+	}

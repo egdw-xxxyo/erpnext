@@ -17988,3 +17988,38 @@ this certificate,цей ЕЛН
 "Enter the ЕЛН number: it appears once the ЕЛН is processed in the ПФУ e-services portal.","Вкажіть номер ЕЛН: він з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ."
 "No ЕЛН number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with the number.","Ще немає номера ЕЛН: він з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ. Провести випадок можна лише з номером."
 "The case is open: submit it when the certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed.","Випадок відкритий: проведіть його, коли отримаєте ЕЛН, — тоді частина роботодавця піде в зарплату, а випадок більше не можна буде змінити."
+Calculated Average Daily Wage,Розрахована середня за день
+Average Daily Wage per Social Security,Середня за день за розрахунком соцстраху
+Average Daily Wage Used,Середня за день у розрахунку
+Fill in if the social security calculated the average differently; leave empty to use the calculated one.,"Заповніть, якщо соцстрах розрахував середню інакше; порожнє поле — береться розрахована."
+Show Average Calculation,Показати розрахунок середньої
+Average Period From,Період середньої з
+Average Period To,Період середньої по
+Social Security,Соціальне страхування
+Social Security Status,Статус у соціальному страхуванні
+Status Date,Дата статусу
+"Requested, Waiting for Money",Запитано — чекаємо на гроші
+"Money Received, Waiting for Payment",Гроші отримано — чекаємо на виплату
+Paid by Social Security,Виплачено за рахунок соціального страхування
+Social Security Calculation Application,Заява розрахунок соціального страхування
+Confirmation of Calculation Application Payment,Підтвердження оплати заяви розрахунку соціального страхування
+Confirmation of Social Security Payouts,Підтвердження виплат за рахунок соціального страхування
+Unknown social security status {0},Невідомий статус соціального страхування {0}
+The sick leave case is cancelled.,Випадок лікарняного скасовано.
+Social security status: {0},Статус у соціальному страхуванні: {0}
+Set by hand per the social security: {0} a day instead of the calculated {1}.,Задано вручну за соцстрахом: {0} за день замість розрахованих {1}.
+The calculation period was set by hand.,Розрахунковий період задано вручну.
+Average Daily Wage Calculation,Розрахунок середньої за день
+Calculation Period,Розрахунковий період
+"Standard, set automatically","Стандартний, визначається автоматично"
+Set by hand,Задається вручну
+From Month,З місяця
+To Month,По місяць
+Use This Period,Використати цей період
+Save the case to apply the period.,Збережіть випадок, щоб застосувати період.
+Earnings,Нарахування
+Days in Month,Днів у місяці
+Days Worked (calendar),Відпрацьовано днів (календарних)
+No earnings in the period — taken from the official salary.,Заробітку за період немає — взято з офіційного окладу.
+Capped: {0} a day instead of {1}.,Обмежено: {0} за день замість {1}.
+Now set by hand: {0} a day.,Зараз задано вручну: {0} за день.

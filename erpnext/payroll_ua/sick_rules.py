@@ -126,14 +126,28 @@ def taxes(gross, employee, case_type) -> frappe._dict:
 
 
 def calculate(
-	employee, case_type, start_date, calendar_days, illness_start=None, prior_days=0
+	employee,
+	case_type,
+	start_date,
+	calendar_days,
+	illness_start=None,
+	prior_days=0,
+	average_period=None,
+	average_override=None,
 ) -> frappe._dict:
 	"""Розрахунок одного ЕЛН: стаж, відсоток і середня — на перший день усієї хвороби
 	(`illness_start`), дні роботодавця — що лишились після `prior_days` попередніх ЕЛН."""
 	start_date = getdate(illness_start or start_date)
 	record = insurance_record(employee, start_date)
 	rate, reason = percent(employee, case_type, start_date)
-	details = average_pay.sick_average_details(employee, start_date)
+	months = average_pay.month_range(*average_period) if average_period and all(average_period) else None
+	details = average_pay.sick_average_details(employee, start_date, months)
+	details.calculated = details.average
+
+	if flt(average_override) > 0:
+		details.average = flt(average_override, 2)
+		details.overridden = True
+
 	employer_days, fund_days = split(calendar_days, max(case_rule(case_type)[0] - int(prior_days or 0), 0))
 	daily = flt(details.average * rate / 100, 2)
 	employer = taxes(flt(daily * employer_days, 2), employee.name, case_type)

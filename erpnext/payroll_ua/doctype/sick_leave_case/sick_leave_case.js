@@ -12,6 +12,10 @@ frappe.ui.form.on("Sick Leave Case", {
 			frm.add_custom_button(__("Recalculate"), () => recalculate(frm));
 		}
 
+		if (frm.doc.docstatus === 2) return;
+
+		add_social_buttons(frm);
+
 		if (frm.doc.docstatus !== 1) return;
 
 		if (cint(frm.doc.fund_days) && !frm.doc.je_fund_receipt) {
@@ -79,7 +83,171 @@ frappe.ui.form.on("Sick Leave Case", {
 	end_date(frm) {
 		render_calculation(frm);
 	},
+
+	average_details_button(frm) {
+		show_average_dialog(frm);
+	},
 });
+
+const SOCIAL_STATUS_COLORS = {
+	"Not Requested": "gray",
+	"Requested, Waiting for Money": "orange",
+	"Money Received, Waiting for Payment": "purple",
+	"Paid by Social Security": "green",
+};
+
+function add_social_buttons(frm) {
+	const group = __("Social Security");
+	const actions = [
+		["Requested, Waiting for Money", __("Social Security Calculation Application")],
+		["Money Received, Waiting for Payment", __("Confirmation of Calculation Application Payment")],
+		["Paid by Social Security", __("Confirmation of Social Security Payouts")],
+		["Not Requested", __("Not Requested")],
+	];
+
+	actions
+		.filter(([status]) => status !== frm.doc.social_status)
+		.forEach(([status, label]) => {
+			frm.add_custom_button(label, () => set_social_status(frm, status), group);
+		});
+
+	frm.dashboard.add_comment(
+		`${__("Social Security Status")}: <b>${__(frm.doc.social_status || "Not Requested")}</b>` +
+			(frm.doc.social_status_date
+				? ` (${frappe.datetime.str_to_user(frm.doc.social_status_date)})`
+				: ""),
+		SOCIAL_STATUS_COLORS[frm.doc.social_status] || "gray",
+		true
+	);
+}
+
+function set_social_status(frm, status) {
+	frappe.prompt(
+		[
+			{
+				fieldname: "status_date",
+				fieldtype: "Date",
+				label: __("Status Date"),
+				default: frappe.datetime.get_today(),
+				reqd: 1,
+			},
+		],
+		(values) => run(frm, "set_social_status", { status, status_date: values.status_date }),
+		__(status),
+		__("Set")
+	);
+}
+
+function show_average_dialog(frm) {
+	if (!frm.doc.employee || !frm.doc.start_date) {
+		frappe.msgprint(__("Save the case to see the calculation."));
+		return;
+	}
+
+	const dialog = new frappe.ui.Dialog({
+		title: __("Average Daily Wage Calculation"),
+		size: "extra-large",
+		fields: [
+			{
+				fieldname: "mode",
+				fieldtype: "Select",
+				label: __("Calculation Period"),
+				options: [
+					{ value: "auto", label: __("Standard, set automatically") },
+					{ value: "manual", label: __("Set by hand") },
+				],
+				default: frm.doc.average_period_start ? "manual" : "auto",
+				onchange: () => load(),
+			},
+			{ fieldtype: "Column Break" },
+			{
+				fieldname: "from_month",
+				fieldtype: "Date",
+				label: __("From Month"),
+				depends_on: "eval:doc.mode=='manual'",
+				default: frm.doc.average_period_start,
+				onchange: () => load(),
+			},
+			{ fieldtype: "Column Break" },
+			{
+				fieldname: "to_month",
+				fieldtype: "Date",
+				label: __("To Month"),
+				depends_on: "eval:doc.mode=='manual'",
+				default: frm.doc.average_period_end,
+				onchange: () => load(),
+			},
+			{ fieldtype: "Section Break" },
+			{ fieldname: "table", fieldtype: "HTML" },
+		],
+		primary_action_label: __("Use This Period"),
+		primary_action(values) {
+			const manual = values.mode === "manual" && values.from_month && values.to_month;
+
+			frm.set_value({
+				average_period_start: manual ? first_of_month(values.from_month) : null,
+				average_period_end: manual ? first_of_month(values.to_month) : null,
+				average_override: null,
+			});
+			dialog.hide();
+			frappe.show_alert({ message: __("Save the case to apply the period."), indicator: "blue" });
+		},
+	});
+
+	const money = (value) => format_currency(flt(value), frappe.defaults.get_default("currency"));
+	const first_of_month = (date) => `${(date || "").slice(0, 7)}-01`;
+
+	function load() {
+		const values = dialog.get_values(true) || {};
+		const manual = values.mode === "manual" && values.from_month && values.to_month;
+
+		frappe
+			.xcall("erpnext.payroll_ua.doctype.sick_leave_case.sick_leave_case.average_breakdown", {
+				employee: frm.doc.employee,
+				start_date: frm.doc.start_date,
+				incapacity_case: frm.doc.incapacity_case,
+				from_month: manual ? first_of_month(values.from_month) : null,
+				to_month: manual ? first_of_month(values.to_month) : null,
+			})
+			.then((data) => render(data));
+	}
+
+	function render(data) {
+		const cells = (fn) => data.rows.map((row) => `<td class="text-right">${fn(row)}</td>`).join("");
+		const row = (label, total, fn) =>
+			`<tr><td><b>${label}</b></td><td class="text-right">${total}</td>${cells(fn)}</tr>`;
+		const note = [];
+
+		if (data.from_salary) note.push(__("No earnings in the period — taken from the official salary."));
+		if (data.capped)
+			note.push(
+				__("Capped: {0} a day instead of {1}.", [money(data.limit), money(data.uncapped)])
+			);
+
+		dialog.get_field("table").$wrapper.html(`
+			<div style="overflow-x:auto">
+			<table class="table table-bordered table-sm">
+				<tr><th></th><th class="text-right">${__("Total")}</th>
+					${data.rows.map((r) => `<th class="text-right">${r.label}</th>`).join("")}</tr>
+				${row(__("Earnings"), money(data.earnings), (r) => money(r.earnings))}
+				${row(__("Days in Month"), "", (r) => r.month_days)}
+				${row(__("Unpaid Leave Days"), "", (r) => r.unpaid_days || "")}
+				${row(__("Sick Days"), "", (r) => r.sick_days || "")}
+				${row(__("Days Worked (calendar)"), data.days, (r) => r.worked_days)}
+			</table></div>
+			<p><b>${__("Average Daily Wage")}:</b> ${money(data.earnings)} / ${data.days} = ${money(data.uncapped)}
+				→ <b>${money(data.average)}</b></p>
+			${note.length ? `<p class="text-muted">${note.join("<br>")}</p>` : ""}
+			${
+				frm.doc.average_override
+					? `<p class="text-muted">${__("Now set by hand: {0} a day.", [money(frm.doc.average_override)])}</p>`
+					: ""
+			}`);
+	}
+
+	dialog.show();
+	load();
+}
 
 function show_status(frm) {
 	const colors = {

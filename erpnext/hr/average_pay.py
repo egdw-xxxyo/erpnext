@@ -448,9 +448,23 @@ def sick_average(employee, on_date) -> float:
 	return sick_average_details(employee, on_date).average
 
 
-def sick_average_details(employee, on_date) -> frappe._dict:
-	"""Те саме, що `sick_average`, але з розкладом: період, заробіток, дні і яке обмеження спрацювало."""
-	months = calculation_months(employee, on_date)
+def month_range(first, last) -> list:
+	"""Місяці від `first` до `last` включно — розрахунковий період, заданий вручну."""
+	first, last = getdate(first).replace(day=1), getdate(last).replace(day=1)
+	months = []
+
+	while first <= last and len(months) < 36:
+		months.append(first)
+		first = getdate(add_months(first, 1))
+
+	return months
+
+
+def sick_average_details(employee, on_date, months=None) -> frappe._dict:
+	"""Те саме, що `sick_average`, але з розкладом: період, заробіток, дні і яке обмеження спрацювало.
+
+	`months` — період, заданий вручну; без нього він визначається автоматично."""
+	months = months or calculation_months(employee, on_date)
 	earnings = monthly_earnings(employee, months)
 	total = sum(row.earnings - row.sick_pay for row in earnings.values())
 	days = sum(_month_days(month) - row.unpaid_days - row.sick_days for month, row in earnings.items())
@@ -478,6 +492,17 @@ def sick_average_details(employee, on_date) -> frappe._dict:
 		period_end=add_days(add_months(months[-1], 1), -1) if months else None,
 		earnings=flt(total, 2),
 		days=days,
+		rows=[
+			frappe._dict(
+				month=month,
+				earnings=flt(row.earnings - row.sick_pay, 2),
+				month_days=_month_days(month),
+				unpaid_days=flt(row.unpaid_days),
+				sick_days=flt(row.sick_days),
+				worked_days=flt(_month_days(month) - row.unpaid_days - row.sick_days),
+			)
+			for month, row in sorted(earnings.items())
+		],
 	)
 
 

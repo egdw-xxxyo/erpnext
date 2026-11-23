@@ -1,5 +1,5 @@
 frappe.listview_settings["Sick Leave Case"] = {
-	add_fields: ["status", "closed", "fund_days"],
+	add_fields: ["status", "closed", "fund_days", "social_status"],
 	get_indicator(doc) {
 		const colors = {
 			Open: "orange",

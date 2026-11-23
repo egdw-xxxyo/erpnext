@@ -32,7 +32,12 @@
   "percent",
   "percent_reason",
   "column_break_calculation",
+  "average_calculated",
+  "average_override",
   "average_daily",
+  "average_details_button",
+  "average_period_start",
+  "average_period_end",
   "daily_pay",
   "average_note",
   "section_break_employer",
@@ -60,6 +65,10 @@
   "fund_paid_date",
   "je_fund_card",
   "je_fund_tax",
+  "section_break_social",
+  "social_status",
+  "column_break_social",
+  "social_status_date",
   "section_break_note",
   "limit_warning",
   "note",
@@ -230,11 +239,44 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "average_daily",
+   "fieldname": "average_calculated",
    "fieldtype": "Currency",
-   "label": "Average Daily Wage",
+   "label": "Calculated Average Daily Wage",
    "read_only": 1,
    "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "average_override",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage per Social Security",
+   "options": "Company:company:default_currency",
+   "description": "Fill in if the social security calculated the average differently; leave empty to use the calculated one."
+  },
+  {
+   "fieldname": "average_daily",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage Used",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "average_details_button",
+   "fieldtype": "Button",
+   "label": "Show Average Calculation"
+  },
+  {
+   "fieldname": "average_period_start",
+   "fieldtype": "Date",
+   "label": "Average Period From",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "average_period_end",
+   "fieldtype": "Date",
+   "label": "Average Period To",
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "daily_pay",
@@ -421,6 +463,34 @@
    "options": "Journal Entry",
    "read_only": 1,
    "allow_on_submit": 1
+  },
+  {
+   "fieldname": "section_break_social",
+   "fieldtype": "Section Break",
+   "label": "Social Security"
+  },
+  {
+   "fieldname": "social_status",
+   "fieldtype": "Select",
+   "label": "Social Security Status",
+   "options": "Not Requested\nRequested, Waiting for Money\nMoney Received, Waiting for Payment\nPaid by Social Security",
+   "default": "Not Requested",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_social",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "social_status_date",
+   "fieldtype": "Date",
+   "label": "Status Date",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "section_break_note",
