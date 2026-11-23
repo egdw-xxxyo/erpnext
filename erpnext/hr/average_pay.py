@@ -22,7 +22,7 @@ import calendar
 from itertools import pairwise
 
 import frappe
-from frappe.utils import add_days, add_months, date_diff, flt, getdate
+from frappe.utils import add_days, add_months, date_diff, flt, get_last_day, getdate
 
 from erpnext.hr import payroll_tax
 
@@ -508,9 +508,7 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 
 def tenure_months(employee, on_date) -> int:
 	"""Страховий стаж у повних місяцях: набутий до нас (з картки) плюс відпрацьований тут."""
-	before = int(
-		flt(employee.get("custom_insurance_years")) * 12 + flt(employee.get("custom_insurance_months"))
-	)
+	before = before_join_months(employee, on_date)
 	joining = employee.get("date_of_joining")
 
 	if not joining:
@@ -555,3 +553,48 @@ def validate_opening_earnings(doc, method=None):
 			frappe.throw(
 				frappe._("Earnings Before ERP: the sick pay cannot exceed the earnings of the month.")
 			)
+
+
+def ledger_tenure(rows) -> int:
+	"""Стаж у повних місяцях за помісячними днями: місяць — повний, коли днів не менше за його довжину."""
+	full, rest = 0, 0
+
+	for row in rows:
+		days = int(row.days or 0)
+
+		if days >= get_last_day(row.period_start).day:
+			full += 1
+		else:
+			rest += days
+
+	return full + rest // 30
+
+
+def before_join_months(employee, on_date) -> int:
+	"""Стаж, набутий до нас, на дату: помісячний облік (до цієї дати), а без нього — рядок «років / місяців»."""
+	name = employee.get("name")
+
+	if name:
+		rows = frappe.get_all(
+			"Employee Insurance Month",
+			filters={
+				"parent": name,
+				"parenttype": "Employee",
+				"period_kind": "Before Joining",
+				"period_start": ("<=", getdate(on_date)),
+			},
+			fields=["period_start", "days"],
+		)
+
+		if rows:
+			return ledger_tenure(rows)
+
+		if frappe.db.exists(
+			"Employee Insurance Month",
+			{"parent": name, "parenttype": "Employee", "period_kind": "Before Joining"},
+		):
+			return 0
+
+	return int(
+		flt(employee.get("custom_insurance_years")) * 12 + flt(employee.get("custom_insurance_months"))
+	)

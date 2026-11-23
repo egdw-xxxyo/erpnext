@@ -56,9 +56,7 @@ def case_rule(case_type) -> tuple:
 def insurance_record(employee, on_date) -> frappe._dict:
 	"""Страховий стаж на дату: набутий до нас (з картки) і відпрацьований тут."""
 	total = average_pay.tenure_months(employee, on_date)
-	before = int(
-		flt(employee.get("custom_insurance_years")) * 12 + flt(employee.get("custom_insurance_months"))
-	)
+	before = average_pay.before_join_months(employee, on_date)
 
 	return frappe._dict(
 		total_months=total,

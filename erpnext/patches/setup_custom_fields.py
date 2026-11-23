@@ -1480,6 +1480,15 @@ def create_average_pay_fields():
 		},
 		{
 			"dt": "Employee",
+			"fieldname": "custom_insurance_months_table",
+			"fieldtype": "Table",
+			"label": "Insurance Tenure by Month",
+			"options": "Employee Insurance Month",
+			"insert_after": "custom_insurance_months",
+			"description": "Insured days of every month (imported from the Pension Fund statement). The tenure on a date is the sum of the months before joining up to it plus the time worked here.",
+		},
+		{
+			"dt": "Employee",
 			"fieldname": "custom_sick_pay_in_full",
 			"fieldtype": "Check",
 			"label": "Sick Pay at 100%",
@@ -1492,7 +1501,7 @@ def create_average_pay_fields():
 			"fieldtype": "Table",
 			"label": "Earnings Before ERP",
 			"options": "Employee Opening Earning",
-			"insert_after": "custom_insurance_months",
+			"insert_after": "custom_insurance_months_table",
 			"description": "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.",
 		},
 		{

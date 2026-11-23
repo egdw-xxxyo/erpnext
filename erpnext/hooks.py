@@ -59,6 +59,7 @@ masked_fields = ["erpnext.access_control.sensitive.masked_fields"]
 
 sensitive_data_methods = {
 	"Salary History": ["erpnext.payroll_ua.salary_history."],
+	"data-import-center": ["erpnext.import_center.engine."],
 	"access-console": [
 		"erpnext.access_control.console.",
 		"erpnext.access_control.impersonation.get_users",
@@ -297,6 +298,7 @@ before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
+	"erpnext.import_center.seed.seed_import_scripts",
 	"erpnext.patches.setup_custom_fields.setup_service_repair_fields",
 	"erpnext.support.repair_units_setup.execute",
 	"erpnext.setup.payment_workflow_setup.after_migrate",
@@ -1018,6 +1020,7 @@ doc_events = {
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
 			"erpnext.hr.average_pay.validate_opening_earnings",
+			"erpnext.hr.insurance_ledger.validate_insurance_months",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
 			"erpnext.crm.notification_channels.set_on_employee",
@@ -1106,6 +1109,7 @@ scheduler_events = {
 		"erpnext.accounts.doctype.bank_transaction_rule.bank_transaction_rule.scheduler_run_rule_evaluation",
 	],
 	"daily": [
+		"erpnext.import_center.engine.purge_old_runs",
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
 		"erpnext.crm.opportunity_rules.refresh_overdue_flags",

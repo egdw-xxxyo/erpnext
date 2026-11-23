@@ -110,6 +110,23 @@ frappe.provide("erpnext.entity");
 		);
 	};
 
+	// An employee: id or {name, employee_name, image} → their card.
+	E.employee = function (e, opts) {
+		if (!e) return "";
+		const id = typeof e === "string" ? e : e.name;
+		const name = (typeof e === "object" && (e.employee_name || e.label)) || id;
+		return E.html(
+			{
+				name,
+				sub: opts && opts.sub,
+				key: id,
+				image: typeof e === "object" ? e.image : null,
+				route: ["Form", "Employee", id],
+			},
+			opts
+		);
+	};
+
 	E.load_users = function (users) {
 		const unknown = [...new Set(users)].filter((u) => u && !frappe.boot.user_info?.[u]);
 		if (!unknown.length) return Promise.resolve(false);

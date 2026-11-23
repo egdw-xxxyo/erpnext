@@ -18023,3 +18023,68 @@ Days Worked (calendar),Відпрацьовано днів (календарни
 No earnings in the period — taken from the official salary.,Заробітку за період немає — взято з офіційного окладу.
 Capped: {0} a day instead of {1}.,Обмежено: {0} за день замість {1}.
 Now set by hand: {0} a day.,Зараз задано вручну: {0} за день.
+Import Center,Центр імпорту
+Import Script,Скрипт імпорту
+Import Run,Запуск імпорту
+Import Script Marker,Маркер скрипту імпорту
+Import Script Permission,Право скрипту імпорту
+Import Script Change Field,"Поле, яке змінює імпорт"
+Import Script Version,Версія скрипту імпорту
+Employee Insurance Month,Місяць страхового стажу
+Insurance Tenure by Month,Страховий стаж по місяцях
+Insured Days,Застраховані дні
+Insured Days by Month,Застраховані дні по місяцях
+Insured Person,Застрахована особа
+Insurance Card Number,Номер облікової картки застрахованої особи
+Tax Number,Реєстраційний номер облікової картки платника податків
+Period From,Період з
+Period To,Період по
+Full Name,ПІБ
+Before Joining,До прийняття
+At Company,У компанії
+Pension Fund Import,Імпорт із Пенсійного фонду
+Migrated,Перенесено
+Insurance tenure on,Страховий стаж станом на
+{0} y {1} m (before joining: {2} m),{0} р. {1} міс. (до прийняття: {2} міс.)
+Insured days of every month (imported from the Pension Fund statement). The tenure on a date is the sum of the months before joining up to it plus the time worked here.,Застраховані дні кожного місяця (імпорт із виписки Пенсійного фонду). Стаж на дату — сума місяців до прийняття до цієї дати плюс відпрацьований тут час.
+Insurance Tenure by Month: the month {0} is entered twice.,Страховий стаж по місяцях: місяць {0} введено двічі.
+Insurance Tenure by Month: {0} has {1} days at most.,Страховий стаж по місяцях: у {0} не більше {1} днів.
+Upload a file: the system recognises its type and picks the import script.,Завантажте файл: система розпізнає його тип і сама обере скрипт імпорту.
+Choose File,Обрати файл
+Several scripts match this file. Choose one:,Файлу відповідає кілька скриптів. Оберіть один:
+Reading the file,Читаємо файл
+Reading the File,Прочитати файл
+Importing,Імпортуємо
+Import,Імпортувати
+New Import,Новий імпорт
+Try Again,Спробувати ще раз
+Import finished,Імпорт завершено
+You cannot import this file,Ви не можете імпортувати цей файл
+missing permissions,бракує прав
+Fields that will change,"Поля, які зміняться"
+What will change,Що зміниться
+Field,Поле
+Now,Зараз
+Will be,Стане
+Nothing to change,Змінювати нічого
+Unchanged: {0},Без змін: {0}
+Ready to import,Готово до імпорту
+Reading page {0} of {1},Сторінка {0} з {1}
+Checking totals,Перевіряємо підсумки
+Building the list of changes,Складаємо перелік змін
+Writing month {0} of {1},Записуємо місяць {0} з {1}
+Employee {0} of {1},Працівник {0} з {1}
+"Year {0}: the file says {1} m {2} d, the table gives {3} m {4} d","Рік {0}: у файлі {1} міс. {2} дн., за таблицею {3} міс. {4} дн."
+"Total: the file says {0} m {1} d, the table gives more: {2} m {3} d","Разом: у файлі {0} міс. {1} дн., за таблицею більше: {2} міс. {3} дн."
+No employee with the tax number {0},Немає працівника з РНОКПП {0}
+The employee has no joining date: every month is stored as before joining.,У працівника немає дати прийняття: усі місяці збережено як «до прийняття».
+The file type is not recognised: no import script matches it.,Тип файлу не розпізнано: жоден скрипт імпорту йому не відповідає.
+The file does not match the selected script.,Файл не відповідає обраному скрипту.
+You cannot import this file: missing permissions.,Ви не можете імпортувати цей файл: бракує прав.
+The file has to be parsed first.,Спочатку файл потрібно прочитати.
+"The plan has changed, parse the file again.","План змінився, прочитайте файл ще раз."
+This import run belongs to another user.,Цей запуск імпорту належить іншому користувачу.
+The script must define {0}().,Скрипт має визначати {0}().
+The script must not use {0}.,Скрипт не може використовувати {0}.
+Syntax error in the script: {0},Синтаксична помилка в скрипті: {0}
+Preview Layout is not valid JSON.,Макет перегляду — не коректний JSON.
