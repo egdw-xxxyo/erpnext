@@ -29,6 +29,8 @@
   "passed_label_template",
   "column_break_qc_labels",
   "failed_label_template",
+  "section_launch_fiber",
+  "launch_fiber_length_km",
   "section_extra",
   "extra_config"
  ],
@@ -156,6 +158,18 @@
    "label": "Шаблон етикетки (не пройшов QC)"
   },
   {
+   "fieldname": "section_launch_fiber",
+   "fieldtype": "Section Break",
+   "label": "Навантажувальна котушка"
+  },
+  {
+   "fieldname": "launch_fiber_length_km",
+   "fieldtype": "Float",
+   "precision": "4",
+   "label": "Довжина навантажувальної котушки (км)",
+   "description": "0 — вимірювання без навантажувальної котушки. Інакше ERP знаходить подію кінця котушки біля цієї відстані та рахує довжину і загасання лише ділянки після неї (як відфільтрована ділянка в приладі OTDR)"
+  },
+  {
    "fieldname": "section_extra",
    "fieldtype": "Section Break",
    "label": "Додаткові параметри"
@@ -170,7 +184,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-06-26 00:00:00.000000",
+ "modified": "2026-11-23 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Devices",
  "name": "OTDR Configuration",

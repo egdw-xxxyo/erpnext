@@ -138,11 +138,69 @@ def parse_sor_file(path: str) -> dict:
 	}
 
 
-def flatten_measurement(sor_info: dict) -> dict:
+def launch_fiber_section(sor_info: dict, launch_fiber_km: float) -> dict:
+	"""The fiber under test behind a launch fiber, as the reflectometer itself reports it.
+
+	With a launch fiber the trace and `Summary` cover launch fiber + spool. The device's
+	"Fiber section" row after the launch-end event is the spool alone: its length is end of
+	fiber minus that event, its loss the sections (and any events) after it. The launch-end
+	event is the key event nearest `launch_fiber_km`; its own loss is the launch/spool
+	connector and is left out, as the device does.
+
+	Returns {} when no launch fiber is configured, and {"found": False, ...} when no event
+	lies close enough to the configured length — the caller then keeps the raw readings.
+	"""
+	launch_fiber_km = float(launch_fiber_km or 0)
+	if launch_fiber_km <= 0 or not sor_info:
+		return {}
+
+	events = sorted(sor_info.get("Events") or [], key=lambda e: e.get("distance_km") or 0)
+	end = next((e for e in reversed(events) if e.get("is_end_of_fiber")), None)
+	tolerance_km = round(max(0.1, launch_fiber_km * 0.1), 4)
+	candidates = [
+		e
+		for e in events
+		if e is not end
+		and (e.get("distance_km") or 0) > 0
+		and abs((e.get("distance_km") or 0) - launch_fiber_km) <= tolerance_km
+	]
+	result = {"configured_km": launch_fiber_km, "tolerance_km": tolerance_km, "found": False}
+	if not end or not candidates:
+		return result
+
+	launch_end = min(candidates, key=lambda e: abs((e.get("distance_km") or 0) - launch_fiber_km))
+	start_km = launch_end.get("distance_km") or 0
+	loss = 0.0
+	prev_km = start_km
+	for e in events:
+		d = e.get("distance_km") or 0
+		if d <= start_km:
+			continue
+		loss += (e.get("slope_db_per_km") or 0) * (d - prev_km)
+		if e is not end:
+			loss += e.get("splice_loss_db") or 0
+		prev_km = d
+
+	result.update(
+		{
+			"found": True,
+			"event_index": launch_end.get("index"),
+			"launch_end_km": start_km,
+			"fiber_length_km": round((end.get("distance_km") or 0) - start_km, 4),
+			"loss_db": round(loss, 3),
+			"slope_db_per_km": end.get("slope_db_per_km"),
+		}
+	)
+	return result
+
+
+def flatten_measurement(sor_info: dict, launch_fiber_km: float = 0) -> dict:
 	"""The convenience keys scripts read off the top level of a measurement payload.
 
 	Mirrors what `parse_and_submit_measurement` built inline, kept next to the parser so the
-	payload shape has one owner.
+	payload shape has one owner. With a launch fiber configured, `loss_db` / `distance_km`
+	describe the spool only (see `launch_fiber_section`) and the full-trace values stay in
+	`sor.Summary`.
 	"""
 	out: dict = {}
 	if not sor_info:
@@ -158,4 +216,11 @@ def flatten_measurement(sor_info: dict) -> dict:
 		out["reflectance_db"] = summary["end_reflectance_db"]
 	if "wavelength_nm" in acq:
 		out["wavelength_nm"] = acq["wavelength_nm"]
+
+	section = launch_fiber_section(sor_info, launch_fiber_km)
+	if section:
+		out["launch_fiber"] = section
+	if section.get("found"):
+		out["loss_db"] = section["loss_db"]
+		out["distance_km"] = section["fiber_length_km"]
 	return out
