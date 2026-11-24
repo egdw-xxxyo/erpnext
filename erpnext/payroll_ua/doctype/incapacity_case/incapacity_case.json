@@ -19,6 +19,8 @@
   "end_date",
   "column_break_period_2",
   "calendar_days",
+  "section_break_cases",
+  "sick_leave_cases_html",
   "section_break_note",
   "note"
  ],
@@ -111,6 +113,16 @@
    "fieldtype": "Int",
    "label": "Calendar Days",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_cases",
+   "fieldtype": "Section Break",
+   "label": "Sick Leave Cases"
+  },
+  {
+   "fieldname": "sick_leave_cases_html",
+   "fieldtype": "HTML",
+   "label": "Sick Leave Cases"
   },
   {
    "fieldname": "section_break_note",
