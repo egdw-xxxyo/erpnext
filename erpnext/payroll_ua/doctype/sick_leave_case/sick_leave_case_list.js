@@ -11,6 +11,20 @@ frappe.listview_settings["Sick Leave Case"] = {
 		};
 		return [__(doc.status), colors[doc.status] || "gray", `status,=,${doc.status}`];
 	},
+	formatters: {
+		social_status(value) {
+			const colors = {
+				"Not Requested": "gray",
+				"Requested, Waiting for Money": "orange",
+				"Money Received, Waiting for Payment": "purple",
+				"Paid by Social Security": "green",
+			};
+			const status = value || "Not Requested";
+
+			return `<span class="indicator-pill ${colors[status] || "gray"} ellipsis" title="${__(status)}">
+				<span class="ellipsis">${__(status)}</span></span>`;
+		},
+	},
 	onload(listview) {
 		listview.page.add_inner_button(__("Waiting for Fund"), () => {
 			listview.filter_area
