@@ -12,13 +12,7 @@
  "page_name": "Import Center",
  "roles": [
   {
-   "role": "HR Manager"
-  },
-  {
-   "role": "HR User"
-  },
-  {
-   "role": "System Manager"
+   "role": "Desk User"
   }
  ],
  "script": null,
