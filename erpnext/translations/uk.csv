@@ -14222,6 +14222,7 @@ Rendering...,Формування...
 Nothing to print. Set a Label Size and template.,Нічого друкувати. Вкажіть розмір етикетки та шаблон.
 Examples,Приклади
 Copy,Копіювати
+Copy {0},Копіювати {0}
 Copied,Скопійовано
 Loading fields...,Завантаження полів...
 No Reference DocType is set on this template.,У цьому шаблоні не вказано довідковий DocType.
@@ -14656,6 +14657,8 @@ Select a submitted Purchase Invoice linked to this task.,Оберіть пров
 Consolidated Purchase Order,Зведене замовлення на придбання
 New Consolidated Purchase Order,Нове зведене замовлення на придбання
 New Material Request,Нове замовлення матеріалів
+New Payment Entry,Нова оплата
+According to invoice,Згідно з рахунком
 Use New Procurement UI,Увімкнути новий інтерфейс закупівель
 Return to Standard Frappe UI,Повернутися до стандартного інтерфейсу Frappe
 Consolidated Purchase Order Item,Позиція зведеного замовлення на придбання
