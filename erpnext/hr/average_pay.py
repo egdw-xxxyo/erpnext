@@ -22,7 +22,7 @@ import calendar
 from itertools import pairwise
 
 import frappe
-from frappe.utils import add_days, add_months, date_diff, flt, getdate
+from frappe.utils import add_days, add_months, date_diff, flt, get_last_day, getdate
 
 from erpnext.hr import payroll_tax
 
@@ -448,9 +448,23 @@ def sick_average(employee, on_date) -> float:
 	return sick_average_details(employee, on_date).average
 
 
-def sick_average_details(employee, on_date) -> frappe._dict:
-	"""Те саме, що `sick_average`, але з розкладом: період, заробіток, дні і яке обмеження спрацювало."""
-	months = calculation_months(employee, on_date)
+def month_range(first, last) -> list:
+	"""Місяці від `first` до `last` включно — розрахунковий період, заданий вручну."""
+	first, last = getdate(first).replace(day=1), getdate(last).replace(day=1)
+	months = []
+
+	while first <= last and len(months) < 36:
+		months.append(first)
+		first = getdate(add_months(first, 1))
+
+	return months
+
+
+def sick_average_details(employee, on_date, months=None) -> frappe._dict:
+	"""Те саме, що `sick_average`, але з розкладом: період, заробіток, дні і яке обмеження спрацювало.
+
+	`months` — період, заданий вручну; без нього він визначається автоматично."""
+	months = months or calculation_months(employee, on_date)
 	earnings = monthly_earnings(employee, months)
 	total = sum(row.earnings - row.sick_pay for row in earnings.values())
 	days = sum(_month_days(month) - row.unpaid_days - row.sick_days for month, row in earnings.items())
@@ -478,14 +492,23 @@ def sick_average_details(employee, on_date) -> frappe._dict:
 		period_end=add_days(add_months(months[-1], 1), -1) if months else None,
 		earnings=flt(total, 2),
 		days=days,
+		rows=[
+			frappe._dict(
+				month=month,
+				earnings=flt(row.earnings - row.sick_pay, 2),
+				month_days=_month_days(month),
+				unpaid_days=flt(row.unpaid_days),
+				sick_days=flt(row.sick_days),
+				worked_days=flt(_month_days(month) - row.unpaid_days - row.sick_days),
+			)
+			for month, row in sorted(earnings.items())
+		],
 	)
 
 
 def tenure_months(employee, on_date) -> int:
 	"""Страховий стаж у повних місяцях: набутий до нас (з картки) плюс відпрацьований тут."""
-	before = int(
-		flt(employee.get("custom_insurance_years")) * 12 + flt(employee.get("custom_insurance_months"))
-	)
+	before = before_join_months(employee, on_date)
 	joining = employee.get("date_of_joining")
 
 	if not joining:
@@ -530,3 +553,48 @@ def validate_opening_earnings(doc, method=None):
 			frappe.throw(
 				frappe._("Earnings Before ERP: the sick pay cannot exceed the earnings of the month.")
 			)
+
+
+def ledger_tenure(rows) -> int:
+	"""Стаж у повних місяцях за помісячними днями: місяць — повний, коли днів не менше за його довжину."""
+	full, rest = 0, 0
+
+	for row in rows:
+		days = int(row.days or 0)
+
+		if days >= get_last_day(row.period_start).day:
+			full += 1
+		else:
+			rest += days
+
+	return full + rest // 30
+
+
+def before_join_months(employee, on_date) -> int:
+	"""Стаж, набутий до нас, на дату: помісячний облік (до цієї дати), а без нього — рядок «років / місяців»."""
+	name = employee.get("name")
+
+	if name:
+		rows = frappe.get_all(
+			"Employee Insurance Month",
+			filters={
+				"parent": name,
+				"parenttype": "Employee",
+				"period_kind": "Before Joining",
+				"period_start": ("<=", getdate(on_date)),
+			},
+			fields=["period_start", "days"],
+		)
+
+		if rows:
+			return ledger_tenure(rows)
+
+		if frappe.db.exists(
+			"Employee Insurance Month",
+			{"parent": name, "parenttype": "Employee", "period_kind": "Before Joining"},
+		):
+			return 0
+
+	return int(
+		flt(employee.get("custom_insurance_years")) * 12 + flt(employee.get("custom_insurance_months"))
+	)

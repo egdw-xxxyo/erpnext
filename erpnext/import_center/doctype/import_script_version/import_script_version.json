@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "creation": "2026-11-23 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "version",
+  "saved_on",
+  "saved_by",
+  "code"
+ ],
+ "fields": [
+  {
+   "fieldname": "version",
+   "fieldtype": "Int",
+   "label": "Version",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "saved_on",
+   "fieldtype": "Datetime",
+   "label": "Saved On",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "saved_by",
+   "fieldtype": "Link",
+   "label": "Saved By",
+   "options": "User",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Code",
+   "label": "Code",
+   "options": "Python",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-23 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Import Center",
+ "name": "Import Script Version",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

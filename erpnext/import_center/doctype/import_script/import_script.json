@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "creation": "2026-11-23 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "enabled",
+  "priority",
+  "file_types",
+  "description",
+  "detect_section",
+  "markers",
+  "access_section",
+  "required_permissions",
+  "change_fields",
+  "preview_section",
+  "preview_config",
+  "code_section",
+  "code",
+  "version",
+  "versions"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "label": "Priority",
+   "default": "10",
+   "description": "Higher is checked first when several scripts match a file."
+  },
+  {
+   "fieldname": "file_types",
+   "fieldtype": "Select",
+   "label": "File Type",
+   "options": "pdf\nxlsx\ncsv",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "detect_section",
+   "fieldtype": "Section Break",
+   "label": "Recognition"
+  },
+  {
+   "fieldname": "markers",
+   "fieldtype": "Table",
+   "label": "Markers",
+   "options": "Import Script Marker",
+   "description": "All markers must match for the file to be recognised."
+  },
+  {
+   "fieldname": "access_section",
+   "fieldtype": "Section Break",
+   "label": "Access and Changes"
+  },
+  {
+   "fieldname": "required_permissions",
+   "fieldtype": "Table",
+   "label": "Required Permissions",
+   "options": "Import Script Permission",
+   "description": "The user must hold every permission listed here, otherwise the import is refused."
+  },
+  {
+   "fieldname": "change_fields",
+   "fieldtype": "Table",
+   "label": "Fields That Will Change",
+   "options": "Import Script Change Field",
+   "description": "Shown to the user before the import."
+  },
+  {
+   "fieldname": "preview_section",
+   "fieldtype": "Section Break",
+   "label": "Preview"
+  },
+  {
+   "fieldname": "preview_config",
+   "fieldtype": "Code",
+   "label": "Preview Layout",
+   "options": "JSON",
+   "description": "{\"sections\": [{\"kind\": \"key_value|table|grid\", \"title\": \"...\", \"source\": \"header|months|...\", \"columns\": [...]}]}"
+  },
+  {
+   "fieldname": "code_section",
+   "fieldtype": "Section Break",
+   "label": "Script"
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Code",
+   "label": "Code",
+   "options": "Python",
+   "reqd": 1,
+   "description": "Defines parse(ctx), plan(ctx, parsed), apply(ctx, parsed, plan)."
+  },
+  {
+   "fieldname": "version",
+   "fieldtype": "Int",
+   "label": "Version",
+   "read_only": 1
+  },
+  {
+   "fieldname": "versions",
+   "fieldtype": "Table",
+   "label": "Versions",
+   "options": "Import Script Version",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-23 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Import Center",
+ "name": "Import Script",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "field:title",
+ "title_field": "title"
+}

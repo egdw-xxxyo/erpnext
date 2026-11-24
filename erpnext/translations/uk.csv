@@ -15667,7 +15667,7 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "The tenure earned before this company. The time worked here is added automatically; the total sets the sick pay percent: under 3 years — 50%, 3 to 5 — 60%, 5 to 8 — 70%, over 8 — 100%.","Стаж, набутий до цієї компанії. Відпрацьоване тут додається автоматично; від суми залежить відсоток лікарняних: до 3 років — 50%, від 3 до 5 — 60%, від 5 до 8 — 70%, понад 8 — 100%."
 "Sick Pay at 100%","Лікарняні 100%"
 "A privileged category (a war veteran and the like): sick pay is 100% whatever the tenure.","Пільгова категорія (ветеран війни тощо): лікарняні 100% незалежно від стажу."
-"Earnings Before ERP","Заробіток до ERP"
+"Earnings Before ERP","До працевлаштування"
 "Official earnings of the months that are not in ERP — the average wage for vacation and sick pay needs the last 12 months. A month paid through the Payroll Sheet replaces its row here.","Офіційний заробіток за місяці, яких немає в ERP — середній зарплаті для відпускних і лікарняних потрібні останні 12 місяців. Місяць, виплачений через «Нарахування зарплати», замінює свій рядок тут."
 "Official Earnings","Офіційний заробіток"
 "Everything accrued officially for the month, before taxes — salary, bonuses, vacation and sick pay.","Усе, що нараховано офіційно за місяць, до податків — оклад, премії, відпускні й лікарняні."
@@ -15675,8 +15675,8 @@ Could not upload the file to WhatsApp,Не вдалося завантажити
 "Unpaid Calendar Days","Календарні дні без оплати"
 "Leave without pay and other days without earnings for a valid reason.","Відпустка без збереження зарплати та інші дні без заробітку з поважної причини."
 "Any day of the month — it is stored as the first.","Будь-який день місяця — зберігається як перше число."
-"Earnings Before ERP: the month {0} is entered twice.","Заробіток до ERP: місяць {0} внесено двічі."
-"Earnings Before ERP: the sick pay cannot exceed the earnings of the month.","Заробіток до ERP: лікарняні не можуть перевищувати заробіток місяця."
+"Earnings Before ERP: the month {0} is entered twice.","До працевлаштування: місяць {0} внесено двічі."
+"Earnings Before ERP: the sick pay cannot exceed the earnings of the month.","До працевлаштування: лікарняні не можуть перевищувати заробіток місяця."
 "Below the minimum company average salary for reservation of {0}.","Нижче за мінімальну середню зарплату компанії для бронювання {0}."
 "Company Average Accrued Salary (Last Month)","Середня нарахована ЗП компанії (минулий місяць)"
 "What the law looks at: the official salary accrued to the whole company for the last calendar month, divided by the number of employees it was accrued to.","Те, на що дивиться закон: офіційна зарплата, нарахована всій компанії за останній календарний місяць, поділена на кількість працівників, яким її нараховано."
@@ -17291,7 +17291,6 @@ Military unit is being worked on by {0},ВЧ у роботі у {0}
 Finish Military Unit,Завершити роботу з ВЧ
 Finish work? All military units will no longer be marked as in work.,Завершити роботу? Усі ВЧ більше не будуть позначені як у роботі.
 Sick Leave Case,Випадок лікарняного
-Sick Leave Certificate,Листок непрацездатності (ЕЛН)
 Sick Leave Cases,Випадки лікарняного
 Case Type,Тип випадку
 Illness or Injury,Захворювання або травма
@@ -17412,7 +17411,7 @@ Earnings by Month,Заробіток по місяцях
 ERP,ERP
 Before ERP,До ERP
 Earnings by Month: {0},Заробіток по місяцях: {0}
-"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до ERP — з таблиці «Заробіток до ERP» цієї картки."
+"Built from the paid payroll, management, vacation sheets and sick leave cases; months before ERP come from the Earnings Before ERP table on this card.","Зібрано з виплачених зарплатних, управлінських відомостей, відомостей відпускних і випадків лікарняного; місяці до працевлаштування — з таблиці «До працевлаштування» цієї картки."
 Official Accrued,Нараховано офіційно
 Official Paid to Card,Виплачено на картку
 Cash Accrued,Нараховано готівкою
@@ -17938,3 +17937,157 @@ Duration Check,Перевірка тривалості
 months,місяців
 Insurance Tenure Before Joining,Страховий стаж до прийняття
 No salary structure assigned yet.,Структуру зарплати ще не призначено.
+Pin column,Закріпити колонку
+Unpin column,Відкріпити колонку
+Company Access Scope,Область доступу до компаній
+User Company Access,Доступ користувача до компаній
+User Company Access Grant,Додаткова компанія користувача
+Company Access Scope Module,Модуль області доступу
+Company Access Scope DocType,Тип документа області доступу
+Scope Name,Назва області
+Also Include,Додатково включити
+Exclude,Виключити
+Resulting Document Types,Підсумкові типи документів
+Main Company,Основна компанія
+Extra Companies,Додаткові компанії
+What the User Sees,Що бачить користувач
+Access Scope,Область доступу
+Company Access,Доступ до компаній
+Every document type of these modules that has a Company field,"Усі типи документів цих модулів, що мають поле «Компанія»"
+A named set of doctypes in which an extra company can be opened to a user,"Іменований набір типів документів, у яких користувачу можна відкрити додаткову компанію"
+"Extra companies a user sees, each within an access scope","Додаткові компанії, які бачить користувач, кожна в межах своєї області доступу"
+An extra company the user sees within a scope,"Додаткова компанія, яку користувач бачить у межах області"
+A module whose company-linked doctypes the scope opens,"Модуль, типи документів якого з полем «Компанія» відкриває область"
+A doctype added to or excluded from a company access scope,"Тип документа, доданий до області доступу або виключений з неї"
+Created and removed by Company Access; manual changes are overwritten,Створюється й видаляється «Доступом до компаній»; ручні зміни буде перезаписано
+"These document types have no Company field, so a company cannot be opened in them: {0}","Ці типи документів не мають поля «Компанія», тож відкрити в них компанію неможливо: {0}"
+Repeated rows: {0},Рядки повторюються: {0}
+"User Permissions updated: {0} added, {1} removed","Дозволи користувача оновлено: додано {0}, видалено {1}"
+"No Company field, cannot be opened by company: {0}","Немає поля «Компанія», не можна відкрити за компанією: {0}"
+{0} document types,Типів документів: {0}
+Choose modules or document types,Оберіть модулі або типи документів
+Sees everywhere,Бачить скрізь
+No main company restriction: the user sees every company,Немає обмеження основною компанією: користувач бачить усі компанії
+"The user has no main company, so these rows narrow the chosen document types to the listed companies","У користувача немає основної компанії, тому ці рядки звужують обрані типи документів до вказаних компаній"
+"Already visible everywhere, rows skipped: {0}","Уже видно скрізь, рядки пропущено: {0}"
+No extra companies,Додаткових компаній немає
+Document types with a Company field outside the chosen modules,"Типи документів із полем «Компанія», яких немає в обраних модулях"
+Document types of this scope,Типи документів цієї області
+In Effect,Діє
+Narrows,Звужує
+No Effect,Без змін
+User Disabled,Користувач вимкнений
+Extra Company,Додаткова компанія
+Incapacity Case,Випадок непрацездатності
+Incapacity Cases,Випадки непрацездатності
+Case Number,Номер випадку
+Certificate (ЕЛН),Листок непрацездатності (ЕЛН)
+New Sick Leave Case,Новий випадок лікарняного
+Incapacity case {0} belongs to another employee.,Випадок непрацездатності {0} належить іншому працівнику.
+The last day is before the first day.,Останній день раніше за перший.
+"{0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new incapacity case.","{0} не продовжує {1}: продовження починається наступного дня після закінчення попереднього. Перерва означає новий випадок непрацездатності."
+This certificate,Цей ЕЛН
+this certificate,цей ЕЛН
+"Enter the ЕЛН number: it appears once the ЕЛН is processed in the ПФУ e-services portal.","Вкажіть номер ЕЛН: він з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ."
+"No ЕЛН number yet: it appears once the ЕЛН is processed in the ПФУ e-services portal. The case can be submitted only with the number.","Ще немає номера ЕЛН: він з'являється, коли ЕЛН опрацьовано на порталі електронних послуг ПФУ. Провести випадок можна лише з номером."
+"The case is open: submit it when the certificate (ЕЛН) is received — then the employer part goes into the salary and the case can no longer be changed.","Випадок відкритий: проведіть його, коли отримаєте ЕЛН, — тоді частина роботодавця піде в зарплату, а випадок більше не можна буде змінити."
+Calculated Average Daily Wage,Розрахована середня за день
+Average Daily Wage per Social Security,Середня за день за розрахунком соцстраху
+Average Daily Wage Used,Середня за день у розрахунку
+Fill in if the social security calculated the average differently; leave empty to use the calculated one.,"Заповніть, якщо соцстрах розрахував середню інакше; порожнє поле — береться розрахована."
+Show Average Calculation,Показати розрахунок середньої
+Average Period From,Період середньої з
+Average Period To,Період середньої по
+Social Security,Соціальне страхування
+Social Security Status,Статус у соціальному страхуванні
+Status Date,Дата статусу
+"Requested, Waiting for Money",Запитано — чекаємо на гроші
+"Money Received, Waiting for Payment",Гроші отримано — чекаємо на виплату
+Paid by Social Security,Виплачено за рахунок соціального страхування
+Social Security Calculation Application,Заява розрахунок соціального страхування
+Confirmation of Calculation Application Payment,Підтвердження оплати заяви розрахунку соціального страхування
+Confirmation of Social Security Payouts,Підтвердження виплат за рахунок соціального страхування
+Unknown social security status {0},Невідомий статус соціального страхування {0}
+The sick leave case is cancelled.,Випадок лікарняного скасовано.
+Social security status: {0},Статус у соціальному страхуванні: {0}
+Set by hand per the social security: {0} a day instead of the calculated {1}.,Задано вручну за соцстрахом: {0} за день замість розрахованих {1}.
+The calculation period was set by hand.,Розрахунковий період задано вручну.
+Average Daily Wage Calculation,Розрахунок середньої за день
+Calculation Period,Розрахунковий період
+"Standard, set automatically","Стандартний, визначається автоматично"
+Set by hand,Задається вручну
+From Month,З місяця
+To Month,По місяць
+Use This Period,Використати цей період
+Save the case to apply the period.,Збережіть випадок, щоб застосувати період.
+Earnings,Нарахування
+Days in Month,Днів у місяці
+Days Worked (calendar),Відпрацьовано днів (календарних)
+No earnings in the period — taken from the official salary.,Заробітку за період немає — взято з офіційного окладу.
+Capped: {0} a day instead of {1}.,Обмежено: {0} за день замість {1}.
+Now set by hand: {0} a day.,Зараз задано вручну: {0} за день.
+Import Center,Центр імпорту
+Import Script,Скрипт імпорту
+Import Run,Запуск імпорту
+Import Script Marker,Маркер скрипту імпорту
+Import Script Permission,Право скрипту імпорту
+Import Script Change Field,"Поле, яке змінює імпорт"
+Import Script Version,Версія скрипту імпорту
+Employee Insurance Month,Місяць страхового стажу
+Insurance Tenure by Month,Страховий стаж по місяцях
+Insured Days,Застраховані дні
+Insured Days by Month,Застраховані дні по місяцях
+Insured Person,Застрахована особа
+Insurance Card Number,Номер облікової картки застрахованої особи
+Tax Number,Реєстраційний номер облікової картки платника податків
+Period From,Період з
+Period To,Період по
+Full Name,ПІБ
+Before Joining,До прийняття
+At Company,У компанії
+Pension Fund Import,Імпорт із Пенсійного фонду
+Migrated,Перенесено
+Insurance tenure on,Страховий стаж станом на
+{0} y {1} m (before joining: {2} m),{0} р. {1} міс. (до прийняття: {2} міс.)
+Insured days of every month (imported from the Pension Fund statement). The tenure on a date is the sum of the months before joining up to it plus the time worked here.,Застраховані дні кожного місяця (імпорт із виписки Пенсійного фонду). Стаж на дату — сума місяців до прийняття до цієї дати плюс відпрацьований тут час.
+Insurance Tenure by Month: the month {0} is entered twice.,Страховий стаж по місяцях: місяць {0} введено двічі.
+Insurance Tenure by Month: {0} has {1} days at most.,Страховий стаж по місяцях: у {0} не більше {1} днів.
+Upload a file: the system recognises its type and picks the import script.,Завантажте файл: система розпізнає його тип і сама обере скрипт імпорту.
+Choose File,Обрати файл
+Several scripts match this file. Choose one:,Файлу відповідає кілька скриптів. Оберіть один:
+Reading the file,Читаємо файл
+Reading the File,Прочитати файл
+Importing,Імпортуємо
+Import,Імпортувати
+New Import,Новий імпорт
+Try Again,Спробувати ще раз
+Import finished,Імпорт завершено
+You cannot import this file,Ви не можете імпортувати цей файл
+missing permissions,бракує прав
+Fields that will change,"Поля, які зміняться"
+What will change,Що зміниться
+Field,Поле
+Now,Зараз
+Will be,Стане
+Nothing to change,Змінювати нічого
+Unchanged: {0},Без змін: {0}
+Ready to import,Готово до імпорту
+Reading page {0} of {1},Сторінка {0} з {1}
+Checking totals,Перевіряємо підсумки
+Building the list of changes,Складаємо перелік змін
+Writing month {0} of {1},Записуємо місяць {0} з {1}
+Employee {0} of {1},Працівник {0} з {1}
+"Year {0}: the file says {1} m {2} d, the table gives {3} m {4} d","Рік {0}: у файлі {1} міс. {2} дн., за таблицею {3} міс. {4} дн."
+"Total: the file says {0} m {1} d, the table gives more: {2} m {3} d","Разом: у файлі {0} міс. {1} дн., за таблицею більше: {2} міс. {3} дн."
+No employee with the tax number {0},Немає працівника з РНОКПП {0}
+The employee has no joining date: every month is stored as before joining.,У працівника немає дати прийняття: усі місяці збережено як «до прийняття».
+The file type is not recognised: no import script matches it.,Тип файлу не розпізнано: жоден скрипт імпорту йому не відповідає.
+The file does not match the selected script.,Файл не відповідає обраному скрипту.
+You cannot import this file: missing permissions.,Ви не можете імпортувати цей файл: бракує прав.
+The file has to be parsed first.,Спочатку файл потрібно прочитати.
+"The plan has changed, parse the file again.","План змінився, прочитайте файл ще раз."
+This import run belongs to another user.,Цей запуск імпорту належить іншому користувачу.
+The script must define {0}().,Скрипт має визначати {0}().
+The script must not use {0}.,Скрипт не може використовувати {0}.
+Syntax error in the script: {0},Синтаксична помилка в скрипті: {0}
+Preview Layout is not valid JSON.,Макет перегляду — не коректний JSON.

@@ -1,5 +1,5 @@
 frappe.listview_settings["Sick Leave Case"] = {
-	add_fields: ["status", "closed", "fund_days"],
+	add_fields: ["status", "closed", "fund_days", "social_status"],
 	get_indicator(doc) {
 		const colors = {
 			Open: "orange",
@@ -29,7 +29,7 @@ frappe.listview_settings["Sick Leave Case"] = {
 		listview.page.add_inner_button(__("Without ЕЛН Number"), () => {
 			listview.filter_area.clear().then(() =>
 				listview.filter_area.add([
-					["Sick Leave Certificate", "eln_number", "is", "not set"],
+					["Sick Leave Case", "eln_number", "is", "not set"],
 					["Sick Leave Case", "docstatus", "=", 0],
 				])
 			);

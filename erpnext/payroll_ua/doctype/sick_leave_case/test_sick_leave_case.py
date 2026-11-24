@@ -67,38 +67,18 @@ class TestSickRules(IntegrationTestCase):
 
 
 class TestSickLeaveCase(IntegrationTestCase):
-	def case(self, *certificates):
-		return frappe.get_doc(
-			{
-				"doctype": "Sick Leave Case",
-				"certificates": [
-					{"eln_number": str(index), "from_date": start, "to_date": end}
-					for index, (start, end) in enumerate(certificates, start=1)
-				],
-			}
-		)
+	def test_employer_days_run_out_across_certificates(self):
+		rule = sick_rules.case_rule("Illness or Injury")[0]
 
-	def test_period_from_continuations(self):
-		doc = self.case(("2026-10-28", "2026-10-31"), ("2026-11-01", "2026-11-06"))
-		doc.set_period()
-
-		self.assertEqual(str(doc.start_date), "2026-10-28")
-		self.assertEqual(str(doc.end_date), "2026-11-06")
-		self.assertEqual(doc.calendar_days, 10)
+		self.assertEqual(sick_rules.split(4, rule), (4, 0))
+		self.assertEqual(sick_rules.split(6, max(rule - 4, 0)), (1, 5))
+		self.assertEqual(sick_rules.split(6, max(rule - 10, 0)), (0, 6))
 
 	def test_number_needed_only_to_submit(self):
-		doc = self.case(("2026-10-28", "2026-10-31"))
-		doc.certificates[0].eln_number = ""
-		doc.set_period()
+		doc = frappe.get_doc({"doctype": "Sick Leave Case", "eln_number": ""})
 
 		with self.assertRaises(frappe.ValidationError):
 			doc.before_submit()
-
-	def test_gap_is_a_new_case(self):
-		doc = self.case(("2026-10-28", "2026-10-31"), ("2026-11-03", "2026-11-06"))
-
-		with self.assertRaises(frappe.ValidationError):
-			doc.set_period()
 
 
 class TestSickTaxes(IntegrationTestCase):

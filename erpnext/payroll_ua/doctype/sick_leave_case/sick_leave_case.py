@@ -1,7 +1,8 @@
-"""Випадок лікарняного — один на хворобу, з усіма ЕЛН-продовженнями.
+"""Випадок лікарняного — один ЕЛН у межах «Випадку непрацездатності».
 
-* Середня й відсоток фіксуються на перший день випадку (`sick_rules.calculate`).
-* Частина роботодавця (перші дні випадку) платиться зарплатою місяця, коли випадок закрито
+* Середня й відсоток фіксуються на перший день усієї хвороби (`sick_rules.calculate`);
+  дні роботодавця — лише ті, що не вичерпали попередні ЕЛН цієї хвороби.
+* Частина роботодавця платиться зарплатою місяця, коли випадок проведено
   (`sick_rules.employer_pay` у `salary_advance.plan_advance`).
 * Частина фонду приходить на рахунок компанії коли завгодно: «Отримано від фонду» записує
   надходження на працівника, «Виплатити частину фонду» платить на картку й проводить податки.
@@ -12,14 +13,27 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, getdate, nowdate
 
-from erpnext.hr import payroll_accounts
+from erpnext.hr import average_pay, payroll_accounts
 from erpnext.hr.salary_advance import _holiday_dates, _holiday_list
 from erpnext.payroll_ua import enforcement, sick_rules
+from erpnext.payroll_ua.doctype.incapacity_case import incapacity_case
+
+SOCIAL_STATUSES = [
+	"Not Requested",
+	"Requested, Waiting for Money",
+	"Money Received, Waiting for Payment",
+	"Paid by Social Security",
+]
 
 
 class SickLeaveCase(Document):
 	def validate(self):
+		if not (self.employee and self.start_date and self.end_date):
+			return
+
+		self.set_incapacity_case()
 		self.set_period()
+		self.validate_chain()
 		self.validate_not_shortened()
 		self.validate_overlap()
 
@@ -52,20 +66,20 @@ class SickLeaveCase(Document):
 			year_days = sum(int(days or 0) for days in others) + int(self.calendar_days or 0)
 
 		self.limit_warning = "\n".join(
-			sick_rules.duration_warnings(self.case_type, self.calendar_days, year_days)
+			sick_rules.duration_warnings(self.case_type, self.illness_days, year_days)
 		)
 
 	def on_update(self):
 		self.mark_attendance()
+		incapacity_case.refresh(self.incapacity_case)
+
+	def after_delete(self):
+		incapacity_case.refresh(self.incapacity_case)
 
 	def before_submit(self):
-		missing = [str(row.idx) for row in self.certificates if not (row.eln_number or "").strip()]
-
-		if missing:
+		if not (self.eln_number or "").strip():
 			frappe.throw(
-				_(
-					"Enter the ЕЛН number for certificates {0}: the number appears once the ЕЛН is processed in the ПФУ e-services portal."
-				).format(", ".join(missing)),
+				_("Enter the ЕЛН number: it appears once the ЕЛН is processed in the ПФУ e-services portal."),
 				title=_("ЕЛН Number Missing"),
 			)
 
@@ -80,6 +94,7 @@ class SickLeaveCase(Document):
 			frappe.throw(_("The sick leave case is already paid — it cannot be cancelled."))
 
 		self.db_set("status", "Cancelled", update_modified=False)
+		incapacity_case.refresh(self.incapacity_case)
 
 	def on_trash(self):
 		if self.is_paid():
@@ -101,39 +116,79 @@ class SickLeaveCase(Document):
 
 		self.save()
 
+	def set_incapacity_case(self):
+		if not self.incapacity_case:
+			parent = frappe.new_doc("Incapacity Case")
+			parent.employee = self.employee
+			parent.company = self.company
+			parent.case_type = self.case_type
+			parent.start_date = self.start_date
+			parent.end_date = self.end_date
+			parent.flags.ignore_permissions = True
+			parent.insert()
+			self.incapacity_case = parent.name
+
+			return
+
+		parent = frappe.db.get_value(
+			"Incapacity Case", self.incapacity_case, ["employee", "company", "case_type"], as_dict=True
+		)
+
+		if self.employee and parent.employee != self.employee:
+			frappe.throw(_("Incapacity case {0} belongs to another employee.").format(self.incapacity_case))
+
+		self.employee = parent.employee
+		self.company = parent.company
+		self.case_type = parent.case_type
+
 	def set_period(self):
-		rows = sorted(self.certificates or [], key=lambda row: getdate(row.from_date))
+		if getdate(self.end_date) < getdate(self.start_date):
+			frappe.throw(_("The last day is before the first day."))
 
-		if not rows:
-			frappe.throw(_("Add at least one sick leave certificate (ЕЛН)."))
+		self.start_date = getdate(self.start_date)
+		self.end_date = getdate(self.end_date)
+		self.calendar_days = date_diff(self.end_date, self.start_date) + 1
 
+	def siblings(self) -> list:
+		return frappe.get_all(
+			"Sick Leave Case",
+			filters={
+				"incapacity_case": self.incapacity_case,
+				"name": ("!=", self.name or ""),
+				"docstatus": ("!=", 2),
+			},
+			fields=["name", "eln_number", "start_date", "end_date"],
+			order_by="start_date asc",
+		)
+
+	def validate_chain(self):
+		"""ЕЛН однієї хвороби йдуть без перерви: наступний починається наступного дня. Перерва —
+		це вже новий випадок непрацездатності."""
+		rows = sorted(
+			[
+				*self.siblings(),
+				frappe._dict(name=self.name, start_date=self.start_date, end_date=self.end_date),
+			],
+			key=lambda row: getdate(row.start_date),
+		)
 		previous = None
 
-		for index, row in enumerate(rows, start=1):
-			row.idx = index
-
-			if getdate(row.to_date) < getdate(row.from_date):
-				frappe.throw(
-					_("Certificate {0}: the last day is before the first day.").format(
-						_certificate_label(row)
-					)
-				)
-
-			row.days = date_diff(row.to_date, row.from_date) + 1
-
-			if previous and getdate(row.from_date) != getdate(add_days(previous.to_date, 1)):
+		for row in rows:
+			if previous and getdate(row.start_date) != getdate(add_days(previous.end_date, 1)):
 				frappe.throw(
 					_(
-						"Certificate {0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new sick leave case."
-					).format(_certificate_label(row), _certificate_label(previous))
+						"{0} does not continue {1}: a continuation starts the day after the previous one ends. A gap means a new incapacity case."
+					).format(row.name or _("This certificate"), previous.name or _("this certificate"))
 				)
 
 			previous = row
 
-		self.certificates = rows
-		self.start_date = getdate(rows[0].from_date)
-		self.end_date = getdate(rows[-1].to_date)
-		self.calendar_days = date_diff(self.end_date, self.start_date) + 1
+		before = [
+			row for row in rows if row.name != self.name and getdate(row.end_date) < getdate(self.start_date)
+		]
+		self.prior_days = sum(date_diff(row.end_date, row.start_date) + 1 for row in before)
+		self.illness_days = sum(date_diff(row.end_date, row.start_date) + 1 for row in rows)
+		self.illness_start = getdate(rows[0].start_date)
 
 	def validate_not_shortened(self):
 		"""Випадок лише росте: його дні вже стоять у табелі «Лікарняним» і заблоковані там,
@@ -174,13 +229,23 @@ class SickLeaveCase(Document):
 
 	def calculate(self):
 		employee = frappe._dict(self.employee_doc())
-		result = sick_rules.calculate(employee, self.case_type, self.start_date, self.calendar_days)
+		result = sick_rules.calculate(
+			employee,
+			self.case_type,
+			self.start_date,
+			self.calendar_days,
+			illness_start=self.illness_start,
+			prior_days=self.prior_days,
+			average_period=(self.average_period_start, self.average_period_end),
+			average_override=self.average_override,
+		)
 		average = result.average
 
 		self.insurance_years = result.record.years
 		self.insurance_months = result.record.months
 		self.percent = result.percent
 		self.percent_reason = result.percent_reason
+		self.average_calculated = average.calculated
 		self.average_daily = average.average
 		self.daily_pay = result.daily_pay
 		self.average_note = self._average_note(average)
@@ -194,6 +259,16 @@ class SickLeaveCase(Document):
 
 	def _average_note(self, average) -> str:
 		lines = []
+
+		if average.get("overridden"):
+			lines.append(
+				_("Set by hand per the social security: {0} a day instead of the calculated {1}.").format(
+					average.average, average.calculated
+				)
+			)
+
+		if self.average_period_start:
+			lines.append(_("The calculation period was set by hand."))
 
 		if average.from_salary:
 			lines.append(_("No earnings in the calculation period — taken from the official salary."))
@@ -285,6 +360,29 @@ class SickLeaveCase(Document):
 		if (self.note or "") != note:
 			self.db_set("note", note, update_modified=False)
 
+	def advance_social_status(self, status):
+		order = SOCIAL_STATUSES.index
+		if order(status) > order(self.social_status or SOCIAL_STATUSES[0]):
+			self.social_status = status
+			self.social_status_date = nowdate()
+
+	@frappe.whitelist()
+	def set_social_status(self, status, status_date=None):
+		"""Де заява в соцстрахуванні: не подано, подано й чекаємо гроші, гроші прийшли, виплачено."""
+		frappe.has_permission("Sick Leave Case", "write", doc=self, throw=True)
+
+		if status not in SOCIAL_STATUSES:
+			frappe.throw(_("Unknown social security status {0}").format(status))
+
+		if self.docstatus == 2:
+			frappe.throw(_("The sick leave case is cancelled."))
+
+		self.db_set(
+			{"social_status": status, "social_status_date": getdate(status_date or nowdate())},
+			update_modified=False,
+		)
+		self.add_comment("Info", _("Social security status: {0}").format(_(status)))
+
 	@frappe.whitelist()
 	def receive_fund(self, posting_date=None, amount=None):
 		"""Гроші від фонду прийшли на рахунок компанії — записуємо їх у борг перед працівником."""
@@ -344,6 +442,7 @@ class SickLeaveCase(Document):
 				_("The fund paid {0}, the calculation expected {1}.").format(amount, self.fund_expected),
 			)
 
+		self.advance_social_status("Money Received, Waiting for Payment")
 		self.save()
 
 		return entry.name
@@ -405,6 +504,7 @@ class SickLeaveCase(Document):
 		self.fund_paid_date = posting_date
 		self.je_fund_card = card
 		self.je_fund_tax = tax
+		self.advance_social_status("Paid by Social Security")
 		self.save()
 
 		return [card, tax]
@@ -422,10 +522,8 @@ def find_unregistered(company):
 		case = frappe.new_doc("Sick Leave Case")
 		case.employee = run.employee
 		case.company = company
-		case.append(
-			"certificates",
-			{"from_date": run.from_date, "to_date": run.to_date},
-		)
+		case.start_date = run.from_date
+		case.end_date = run.to_date
 		case.insert()
 		created.append(case.name)
 
@@ -514,6 +612,32 @@ def _continues(previous, day, employee, company, cache) -> bool:
 			return False
 
 
-def _certificate_label(row) -> str:
-	"""Номер ЕЛН, а поки його немає — номер рядка: номер приходить пізніше з порталу ПФУ."""
-	return (row.eln_number or "").strip() or _("row {0}").format(row.idx)
+@frappe.whitelist()
+def average_breakdown(employee, start_date, incapacity_case=None, from_month=None, to_month=None):
+	"""Розклад середньої по місяцях для вікна розрахунку: заробіток, дні й підсумок.
+
+	Дата події — перший день усієї хвороби; без `from_month`/`to_month` період автоматичний."""
+	frappe.has_permission("Sick Leave Case", "read", throw=True)
+
+	if incapacity_case:
+		start_date = frappe.db.get_value("Incapacity Case", incapacity_case, "start_date") or start_date
+
+	person = frappe._dict(frappe.get_cached_doc("Employee", employee).as_dict())
+	months = average_pay.month_range(from_month, to_month) if from_month and to_month else None
+	details = average_pay.sick_average_details(person, getdate(start_date), months)
+
+	return {
+		"rows": [
+			{**row, "month": str(row.month), "label": formatdate(row.month, "MM.yyyy")}
+			for row in details.rows
+		],
+		"earnings": details.earnings,
+		"days": details.days,
+		"uncapped": details.uncapped,
+		"limit": details.limit,
+		"capped": details.capped,
+		"average": details.average,
+		"from_salary": details.from_salary,
+		"period_start": str(details.period_start) if details.period_start else None,
+		"period_end": str(details.period_end) if details.period_end else None,
+	}

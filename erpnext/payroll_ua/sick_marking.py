@@ -32,29 +32,21 @@ def case_days(employees: list, from_date, to_date) -> dict:
 				"start_date": ("<=", to_date),
 				"end_date": (">=", from_date),
 			},
-			fields=["name", "employee", "docstatus"],
+			fields=["name", "employee", "docstatus", "start_date", "end_date", "eln_number"],
 		)
 	}
 
-	if not cases:
-		return {}
-
 	result = {}
 
-	for row in frappe.get_all(
-		"Sick Leave Certificate",
-		filters={"parent": ("in", list(cases)), "parenttype": CASE},
-		fields=["parent", "eln_number", "from_date", "to_date"],
-	):
-		case = cases[row.parent]
-		day = max(getdate(row.from_date), from_date)
-		last = min(getdate(row.to_date), to_date)
+	for case in cases.values():
+		day = max(getdate(case.start_date), from_date)
+		last = min(getdate(case.end_date), to_date)
 
 		while day <= last:
 			result.setdefault(case.employee, {})[day] = {
 				"name": case.name,
 				"submitted": case.docstatus == 1,
-				"eln": (row.eln_number or "").strip(),
+				"eln": (case.eln_number or "").strip(),
 			}
 			day = add_days(day, 1)
 
@@ -171,26 +163,41 @@ def mark(
 
 	if extend:
 		doc = frappe.get_doc(CASE, extend["name"])
-		last = max(doc.certificates, key=lambda row: getdate(row.to_date))
 
 		# Поки в ЕЛН немає номера, це той самий листок, що просто триває; з номером —
-		# продовження окремим ЕЛН.
-		if not (last.eln_number or "").strip():
-			last.to_date = to_date
-			last.eln_number = eln_number
+		# продовження окремим ЕЛН у тому ж випадку непрацездатності.
+		if not (doc.eln_number or "").strip():
+			doc.end_date = to_date
+			doc.eln_number = eln_number
 		else:
-			doc.append("certificates", {"eln_number": eln_number, "from_date": first_day, "to_date": to_date})
+			doc = _new_case(employee, plan["company"], doc.case_type, first_day, to_date, eln_number)
+			doc.incapacity_case = frappe.db.get_value(CASE, extend["name"], "incapacity_case")
 	else:
-		doc = frappe.new_doc(CASE)
-		doc.employee = employee
-		doc.company = plan["company"]
-		doc.case_type = case_type or sick_rules.DEFAULT_CASE_TYPE
-		doc.append("certificates", {"eln_number": eln_number, "from_date": from_date, "to_date": to_date})
+		doc = _new_case(
+			employee,
+			plan["company"],
+			case_type or sick_rules.DEFAULT_CASE_TYPE,
+			from_date,
+			to_date,
+			eln_number,
+		)
 
 	doc.flags.ignore_permissions = True
 	doc.save()
 
 	return {"case": doc.name, "extended": bool(extend), "created": created, "skipped": skipped}
+
+
+def _new_case(employee, company, case_type, from_date, to_date, eln_number):
+	doc = frappe.new_doc(CASE)
+	doc.employee = employee
+	doc.company = company
+	doc.case_type = case_type
+	doc.start_date = from_date
+	doc.end_date = to_date
+	doc.eln_number = eln_number
+
+	return doc
 
 
 def _overlap_message(taken: dict) -> str:

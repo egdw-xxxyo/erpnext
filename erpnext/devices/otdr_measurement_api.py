@@ -17,7 +17,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
 
 from erpnext.devices.sor_parser import flatten_measurement, parse_sor_file
 from erpnext.devices.workplace_dispatch import dispatch_measurement
@@ -79,6 +79,13 @@ def _attach_sor(measurement_name, filename, content):
 	except Exception:
 		frappe.log_error(title="Failed to attach SOR file to measurement")
 		return None
+
+
+def _launch_fiber_km(workplace):
+	config_name = frappe.db.get_value("Workplace", workplace, "otdr_configuration")
+	if not config_name:
+		return 0
+	return flt(frappe.db.get_value("OTDR Configuration", config_name, "launch_fiber_length_km"))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -146,7 +153,7 @@ def submit_measurement(
 	}
 	if sor_info:
 		payload["sor"] = sor_info
-		payload.update(flatten_measurement(sor_info))
+		payload.update(flatten_measurement(sor_info, _launch_fiber_km(workplace)))
 
 	measurement = frappe.get_doc(
 		{

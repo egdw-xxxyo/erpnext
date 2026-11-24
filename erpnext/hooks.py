@@ -59,6 +59,7 @@ masked_fields = ["erpnext.access_control.sensitive.masked_fields"]
 
 sensitive_data_methods = {
 	"Salary History": ["erpnext.payroll_ua.salary_history."],
+	"data-import-center": ["erpnext.import_center.engine."],
 	"access-console": [
 		"erpnext.access_control.console.",
 		"erpnext.access_control.impersonation.get_users",
@@ -92,6 +93,9 @@ doctype_js = {
 		"public/js/custom/procurement_form.js",
 	],
 	"Buying Settings": "public/js/procurement_links.js",
+	"Company Access Scope": "public/js/access_control/company_access.js",
+	"User Company Access": "public/js/access_control/company_access.js",
+	"User": "public/js/custom/user_company_access_button.js",
 	"Address": "public/js/address.js",
 	"Job Card": "public/js/custom/job_card.js",
 	"Communication": "public/js/communication.js",
@@ -296,6 +300,7 @@ before_migrate = "erpnext.setup.payment_workflow_setup.before_migrate"
 after_app_install = "erpnext.setup.install.after_app_install"
 after_app_uninstall = "erpnext.setup.install.after_app_uninstall"
 after_migrate = [
+	"erpnext.import_center.seed.seed_import_scripts",
 	"erpnext.patches.setup_custom_fields.setup_service_repair_fields",
 	"erpnext.support.repair_units_setup.execute",
 	"erpnext.setup.payment_workflow_setup.after_migrate",
@@ -312,6 +317,7 @@ after_migrate = [
 	"erpnext.buying.buying_sidebar.add_buying_links",
 	"erpnext.stock.stock_sidebar.add_stock_links",
 	"erpnext.access_control.sidebar.add_access_links",
+	"erpnext.access_control.company_access.sync_all",
 ]
 
 boot_session = "erpnext.startup.boot.boot_session"
@@ -792,7 +798,14 @@ doc_events = {
 			"erpnext.setup.doctype.employee.employee.validate_employee_role",
 			"erpnext.access_control.role_guard.guard_access_manager_role",
 		],
-		"on_update": "erpnext.portal.utils.set_default_role",
+		"on_update": [
+			"erpnext.portal.utils.set_default_role",
+			"erpnext.access_control.company_access.on_user_update",
+		],
+	},
+	"User Permission": {
+		"on_update": "erpnext.access_control.company_access.on_user_permission_change",
+		"after_delete": "erpnext.access_control.company_access.on_user_permission_change",
 	},
 	"Communication": {
 		"on_update": [
@@ -1009,6 +1022,7 @@ doc_events = {
 			"erpnext.hr.employee_identity.validate_tax_id",
 			"erpnext.hr.salary_split.set_card_amount",
 			"erpnext.hr.average_pay.validate_opening_earnings",
+			"erpnext.hr.insurance_ledger.validate_insurance_months",
 			"erpnext.hr.salary_split.restrict_salary_editing",
 			"erpnext.hr.kp_classifier.validate_kp_profession",
 			"erpnext.crm.notification_channels.set_on_employee",
@@ -1097,6 +1111,7 @@ scheduler_events = {
 		"erpnext.accounts.doctype.bank_transaction_rule.bank_transaction_rule.scheduler_run_rule_evaluation",
 	],
 	"daily": [
+		"erpnext.import_center.engine.purge_old_runs",
 		"erpnext.devices.doctype.print_job.print_job.cleanup_old_print_jobs",
 		"erpnext.crm.doctype.lead.lead.refresh_overdue_flags",
 		"erpnext.crm.opportunity_rules.refresh_overdue_flags",

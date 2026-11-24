@@ -15,8 +15,10 @@
   "case_type",
   "status",
   "closed",
-  "section_break_certificates",
-  "certificates",
+  "section_break_eln",
+  "incapacity_case",
+  "column_break_eln",
+  "eln_number",
   "section_break_period",
   "start_date",
   "column_break_period",
@@ -30,7 +32,12 @@
   "percent",
   "percent_reason",
   "column_break_calculation",
+  "average_calculated",
+  "average_override",
   "average_daily",
+  "average_details_button",
+  "average_period_start",
+  "average_period_end",
   "daily_pay",
   "average_note",
   "section_break_employer",
@@ -58,6 +65,10 @@
   "fund_paid_date",
   "je_fund_card",
   "je_fund_tax",
+  "section_break_social",
+  "social_status",
+  "column_break_social",
+  "social_status_date",
   "section_break_note",
   "limit_warning",
   "note",
@@ -71,7 +82,8 @@
    "options": "Employee",
    "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "read_only_depends_on": "eval:doc.incapacity_case"
   },
   {
    "fieldname": "employee_name",
@@ -108,7 +120,8 @@
    "label": "Case Type",
    "options": "Illness or Injury\nWork Injury or Occupational Disease\nMaternity\nChild Care\nFamily Member Care",
    "default": "Illness or Injury",
-   "reqd": 1
+   "reqd": 1,
+   "read_only_depends_on": "eval:doc.incapacity_case"
   },
   {
    "fieldname": "status",
@@ -131,16 +144,29 @@
    "no_copy": 1
   },
   {
-   "fieldname": "section_break_certificates",
+   "fieldname": "section_break_eln",
    "fieldtype": "Section Break",
-   "label": "Certificates (ЕЛН)"
+   "label": "Certificate (ЕЛН)"
   },
   {
-   "fieldname": "certificates",
-   "fieldtype": "Table",
-   "label": "Certificates",
-   "options": "Sick Leave Certificate",
-   "reqd": 1
+   "fieldname": "incapacity_case",
+   "fieldtype": "Link",
+   "label": "Incapacity Case",
+   "options": "Incapacity Case",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_eln",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "eln_number",
+   "fieldtype": "Data",
+   "label": "Certificate Number (ЕЛН)",
+   "in_list_view": 1,
+   "description": "Fill in once the employer part of the ЕЛН is done in the ПФУ e-services portal; required to submit the case."
   },
   {
    "fieldname": "section_break_period",
@@ -150,8 +176,8 @@
    "fieldname": "start_date",
    "fieldtype": "Date",
    "label": "First Day",
-   "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "reqd": 1
   },
   {
    "fieldname": "column_break_period",
@@ -161,8 +187,8 @@
    "fieldname": "end_date",
    "fieldtype": "Date",
    "label": "Last Day",
-   "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "reqd": 1
   },
   {
    "fieldname": "column_break_period_2",
@@ -213,11 +239,44 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "average_daily",
+   "fieldname": "average_calculated",
    "fieldtype": "Currency",
-   "label": "Average Daily Wage",
+   "label": "Calculated Average Daily Wage",
    "read_only": 1,
    "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "average_override",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage per Social Security",
+   "options": "Company:company:default_currency",
+   "description": "Fill in if the social security calculated the average differently; leave empty to use the calculated one."
+  },
+  {
+   "fieldname": "average_daily",
+   "fieldtype": "Currency",
+   "label": "Average Daily Wage Used",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "average_details_button",
+   "fieldtype": "Button",
+   "label": "Show Average Calculation"
+  },
+  {
+   "fieldname": "average_period_start",
+   "fieldtype": "Date",
+   "label": "Average Period From",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "average_period_end",
+   "fieldtype": "Date",
+   "label": "Average Period To",
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "daily_pay",
@@ -406,6 +465,34 @@
    "allow_on_submit": 1
   },
   {
+   "fieldname": "section_break_social",
+   "fieldtype": "Section Break",
+   "label": "Social Security"
+  },
+  {
+   "fieldname": "social_status",
+   "fieldtype": "Select",
+   "label": "Social Security Status",
+   "options": "Not Requested\nRequested, Waiting for Money\nMoney Received, Waiting for Payment\nPaid by Social Security",
+   "default": "Not Requested",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_social",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "social_status_date",
+   "fieldtype": "Date",
+   "label": "Status Date",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
    "fieldname": "section_break_note",
    "fieldtype": "Section Break"
   },
@@ -437,7 +524,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-18 17:00:00.000000",
+ "modified": "2026-11-23 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Payroll UA",
  "name": "Sick Leave Case",

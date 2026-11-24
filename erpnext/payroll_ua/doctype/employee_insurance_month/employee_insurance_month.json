@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "creation": "2026-11-23 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "period_start",
+  "days",
+  "period_kind",
+  "source",
+  "import_run"
+ ],
+ "fields": [
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Month",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Any day of the month — stored as the first."
+  },
+  {
+   "fieldname": "days",
+   "fieldtype": "Int",
+   "label": "Insured Days",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "period_kind",
+   "fieldtype": "Select",
+   "label": "Period",
+   "options": "Before Joining\nAt Company",
+   "default": "Before Joining",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "Manual\nPension Fund Import\nMigrated",
+   "default": "Manual",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "import_run",
+   "fieldtype": "Link",
+   "label": "Import Run",
+   "options": "Import Run",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-23 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payroll UA",
+ "name": "Employee Insurance Month",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

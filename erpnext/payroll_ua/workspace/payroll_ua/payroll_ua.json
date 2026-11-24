@@ -100,6 +100,17 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Incapacity Case",
+   "link_count": 0,
+   "link_to": "Incapacity Case",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Sick Leave Case",
    "link_count": 0,
    "link_to": "Sick Leave Case",
@@ -337,6 +348,12 @@
    "label": "Vacation Payments",
    "link_to": "vacation-payments",
    "type": "Page"
+  },
+  {
+   "label": "Incapacity Case",
+   "link_to": "Incapacity Case",
+   "type": "DocType",
+   "doc_view": "List"
   },
   {
    "label": "Sick Leave Case",

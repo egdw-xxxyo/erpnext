@@ -48,6 +48,34 @@ function render_insurance_tenure(frm) {
 	});
 
 	sync_insurance_tenure(frm);
+	render_tenure_on_date(frm, field);
+}
+
+function render_tenure_on_date(frm, field) {
+	if (frm.is_new()) return;
+
+	const $box = $(`<div class="ic-tenure-on" style="margin-top:8px"></div>`).appendTo(
+		field.$wrapper.find(".form-group")
+	);
+	$box.html(`<span class="text-muted">${__("Insurance tenure on")}</span>
+		<input type="date" class="form-control input-xs" style="width:140px;display:inline-block;margin:0 8px"
+			value="${frappe.datetime.get_today()}">
+		<span class="ic-tenure-result"></span>`);
+
+	const update = () =>
+		frappe
+			.xcall("erpnext.hr.insurance_ledger.tenure_on", {
+				employee: frm.doc.name,
+				on_date: $box.find("input").val(),
+			})
+			.then((r) => {
+				$box.find(".ic-tenure-result").html(
+					__("{0} y {1} m (before joining: {2} m)", [r.years, r.months, r.before_months])
+				);
+			});
+
+	$box.find("input").on("change", update);
+	update();
 }
 
 function sync_insurance_tenure(frm) {
