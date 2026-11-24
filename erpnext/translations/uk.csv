@@ -18091,3 +18091,9 @@ The script must define {0}().,Скрипт має визначати {0}().
 The script must not use {0}.,Скрипт не може використовувати {0}.
 Syntax error in the script: {0},Синтаксична помилка в скрипті: {0}
 Preview Layout is not valid JSON.,Макет перегляду — не коректний JSON.
+
+Pension Fund: Individual Insured Person Data,Пенсійний фонд: індивідуальні відомості про застраховану особу
+Insurance record by month from the Pension Fund statement (insurwrkex): stored in the employee card, the employee is found by the tax number.,Страховий стаж по місяцях із виписки Пенсійного фонду (insurwrkex): зберігається в картці працівника, працівника знаходимо за РНОКПП.
+Earnings Before ERP: Spreadsheet,Заробіток до ERP: таблиця
+Official earnings of past months (columns: РНОКПП, Місяць, Заробіток) into Earnings Before ERP of the employee.,Офіційний заробіток минулих місяців (колонки: РНОКПП, Місяць, Заробіток) до «Заробітку до ERP» працівника.
+Official Earnings,Офіційний заробіток
