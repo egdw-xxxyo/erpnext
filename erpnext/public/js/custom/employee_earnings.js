@@ -15,6 +15,8 @@ frappe.ui.form.on("Employee", {
 	},
 });
 
+erpnext.show_employee_earnings = (frm) => show_earnings(frm);
+
 function show_earnings(frm) {
 	frappe
 		.call({

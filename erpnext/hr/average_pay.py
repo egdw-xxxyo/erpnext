@@ -249,6 +249,7 @@ def monthly_earnings(employee, months: list) -> dict:
 
 	for row in opening:
 		result[getdate(row.month).replace(day=1)] = frappe._dict(
+			source="Before ERP",
 			earnings=flt(row.earnings),
 			sick_pay=flt(row.sick_pay),
 			sick_days=flt(row.sick_days),
@@ -278,6 +279,7 @@ def monthly_earnings(employee, months: list) -> dict:
 
 		for row in paid:
 			result[sheets[row.parent]] = frappe._dict(
+				source="ERP",
 				earnings=flt(row.earned_official),
 				sick_pay=flt(row.sick_pay),
 				sick_days=flt(row.sick_calendar_days),
@@ -317,7 +319,8 @@ def _add_paid_vacation(employee, months: list, result: dict):
 
 	for row in paid:
 		month = result.setdefault(
-			sheets[row.parent], frappe._dict(earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0)
+			sheets[row.parent],
+			frappe._dict(source="ERP", earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0),
 		)
 		month.earnings += flt(row.gross)
 
@@ -354,7 +357,8 @@ def _add_paid_sick_fund(employee, months: list, result: dict):
 
 			if month in wanted:
 				entry = result.setdefault(
-					month, frappe._dict(earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0)
+					month,
+					frappe._dict(source="ERP", earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0),
 				)
 				entry.earnings += per_day
 				entry.sick_pay += per_day
@@ -470,8 +474,11 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 	days = sum(_month_days(month) - row.unpaid_days - row.sick_days for month, row in earnings.items())
 	from_salary = not (total > 0 and days > 0)
 
+	salary = 0.0
+
 	if from_salary:
-		average = _official_salary(employee, on_date) / AVERAGE_MONTH_DAYS
+		salary = _official_salary(employee, on_date)
+		average = salary / AVERAGE_MONTH_DAYS
 	else:
 		average = total / days
 
@@ -488,6 +495,7 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 		uncapped=flt(average, 2),
 		limit=flt(limit, 2),
 		capped=cap if average > limit else None,
+		salary=flt(salary, 2),
 		short_tenure=cap == "short_tenure",
 		tenure_months=tenure,
 		minimum_wage=flt(payroll_tax.minimum_wage(), 2),
@@ -501,7 +509,7 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 				month=month,
 				earnings=flt(earnings[month].earnings - earnings[month].sick_pay, 2)
 				if month in earnings
-				else 0,
+				else flt(salary, 2),
 				month_days=_month_days(month),
 				unpaid_days=flt(earnings[month].unpaid_days) if month in earnings else 0,
 				sick_days=flt(earnings[month].sick_days) if month in earnings else 0,
@@ -510,7 +518,10 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 					if month in earnings
 					else 0
 				),
-				no_data=month not in earnings,
+				no_data=month not in earnings and not from_salary,
+				source=earnings[month].get("source", "ERP")
+				if month in earnings
+				else ("Salary" if from_salary else ""),
 			)
 			for month in sorted({*months, *earnings})
 		],

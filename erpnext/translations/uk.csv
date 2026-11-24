@@ -18106,3 +18106,6 @@ Accrued,Нараховано
 Case,Випадок
 "Insurance record is {0} months (under 6): the daily wage cannot exceed the minimum wage {1} / 30.44 = {2}.","Страховий стаж {0} міс. (менше 6): середньоденна не може перевищувати мінімальну зарплату {1} / 30.44 = {2}."
 Insurance record is {0} months — the minimum wage rule applies below 6 months.,Страховий стаж {0} міс. — обмеження мінімальною зарплатою діє за стажу менше 6 місяців.
+No data,Немає даних
+Salary on card,Оклад з картки
+"Full history of the employee: Employee card → Salary tab → Earnings by Month.","Уся історія працівника: картка працівника → вкладка «Зарплата» → «Заробіток по місяцях»."

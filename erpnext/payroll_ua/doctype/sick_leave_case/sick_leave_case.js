@@ -230,6 +230,10 @@ function show_average_dialog(frm) {
 			note.push(
 				__("No earnings data for: {0} (Payroll Sheet or Earnings Before ERP).", [empty.join(", ")])
 			);
+		if (empty.length)
+			note.push(
+				__("Full history of the employee: Employee card → Salary tab → Earnings by Month.")
+			);
 		if (data.from_salary) note.push(__("No earnings in the period — taken from the official salary."));
 		if (data.short_tenure)
 			note.push(
@@ -252,13 +256,25 @@ function show_average_dialog(frm) {
 			<table class="table table-bordered table-sm">
 				<tr><th></th><th class="text-right">${__("Total")}</th>
 					${data.rows.map((r) => `<th class="text-right">${r.label}</th>`).join("")}</tr>
-				${row(__("Earnings"), money(data.earnings), (r) => money(r.earnings))}
+				<tr><td><b>${__("Source")}</b></td><td></td>${data.rows
+					.map(
+						(r) =>
+							`<td class="text-right ${r.source ? "" : "text-muted"}">${
+								{ ERP: __("ERP"), "Before ERP": __("Before ERP"), Salary: __("Salary on card") }[r.source] || __("No data")
+							}</td>`
+					)
+					.join("")}</tr>
+				${row(__("Earnings"), data.from_salary ? "" : money(data.earnings), (r) => money(r.earnings))}
 				${row(__("Days in Month"), "", (r) => r.month_days)}
 				${row(__("Unpaid Leave Days"), "", (r) => r.unpaid_days || "")}
 				${row(__("Sick Days"), "", (r) => r.sick_days || "")}
-				${row(__("Days Worked (calendar)"), data.days, (r) => r.worked_days)}
+				${row(__("Days Worked (calendar)"), data.from_salary ? "" : data.days, (r) => r.worked_days)}
 			</table></div>
-			<p><b>${__("Average Daily Wage")}:</b> ${money(data.earnings)} / ${data.days} = ${money(data.uncapped)}
+			<p><b>${__("Average Daily Wage")}:</b> ${
+				data.from_salary
+					? `${money(data.salary)} / 30.44`
+					: `${money(data.earnings)} / ${data.days}`
+			} = ${money(data.uncapped)}
 				→ <b>${money(data.average)}</b></p>
 			${note.length ? `<p class="text-muted">${note.join("<br>")}</p>` : ""}
 			${
