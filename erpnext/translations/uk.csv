@@ -18097,3 +18097,5 @@ Insurance record by month from the Pension Fund statement (insurwrkex): stored i
 Earnings Before ERP: Spreadsheet,Заробіток до ERP: таблиця
 Official earnings of past months (columns: РНОКПП, Місяць, Заробіток) into Earnings Before ERP of the employee.,Офіційний заробіток минулих місяців (колонки: РНОКПП, Місяць, Заробіток) до «Заробітку до ERP» працівника.
 Official Earnings,Офіційний заробіток
+
+No earnings data for: {0} (Payroll Sheet or Earnings Before ERP).,Немає даних про заробіток за: {0} (відомість зарплати або «Заробіток до ERP»).

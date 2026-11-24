@@ -495,13 +495,20 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 		rows=[
 			frappe._dict(
 				month=month,
-				earnings=flt(row.earnings - row.sick_pay, 2),
+				earnings=flt(earnings[month].earnings - earnings[month].sick_pay, 2)
+				if month in earnings
+				else 0,
 				month_days=_month_days(month),
-				unpaid_days=flt(row.unpaid_days),
-				sick_days=flt(row.sick_days),
-				worked_days=flt(_month_days(month) - row.unpaid_days - row.sick_days),
+				unpaid_days=flt(earnings[month].unpaid_days) if month in earnings else 0,
+				sick_days=flt(earnings[month].sick_days) if month in earnings else 0,
+				worked_days=(
+					flt(_month_days(month) - earnings[month].unpaid_days - earnings[month].sick_days)
+					if month in earnings
+					else 0
+				),
+				no_data=month not in earnings,
 			)
-			for month, row in sorted(earnings.items())
+			for month in sorted({*months, *earnings})
 		],
 	)
 

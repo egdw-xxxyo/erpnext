@@ -213,16 +213,26 @@ function show_average_dialog(frm) {
 	}
 
 	function render(data) {
-		const cells = (fn) => data.rows.map((row) => `<td class="text-right">${fn(row)}</td>`).join("");
+		const cells = (fn) =>
+			data.rows
+				.map((row) =>
+					row.no_data
+						? `<td class="text-right text-muted">—</td>`
+						: `<td class="text-right">${fn(row)}</td>`
+				)
+				.join("");
 		const row = (label, total, fn) =>
 			`<tr><td><b>${label}</b></td><td class="text-right">${total}</td>${cells(fn)}</tr>`;
 		const note = [];
 
+		const empty = data.rows.filter((r) => r.no_data).map((r) => r.label);
+		if (empty.length)
+			note.push(
+				__("No earnings data for: {0} (Payroll Sheet or Earnings Before ERP).", [empty.join(", ")])
+			);
 		if (data.from_salary) note.push(__("No earnings in the period — taken from the official salary."));
 		if (data.capped)
-			note.push(
-				__("Capped: {0} a day instead of {1}.", [money(data.limit), money(data.uncapped)])
-			);
+			note.push(__("Capped: {0} a day instead of {1}.", [money(data.limit), money(data.uncapped)]));
 
 		dialog.get_field("table").$wrapper.html(`
 			<div style="overflow-x:auto">
@@ -240,7 +250,9 @@ function show_average_dialog(frm) {
 			${note.length ? `<p class="text-muted">${note.join("<br>")}</p>` : ""}
 			${
 				frm.doc.average_override
-					? `<p class="text-muted">${__("Now set by hand: {0} a day.", [money(frm.doc.average_override)])}</p>`
+					? `<p class="text-muted">${__("Now set by hand: {0} a day.", [
+							money(frm.doc.average_override),
+					  ])}</p>`
 					: ""
 			}`);
 	}
