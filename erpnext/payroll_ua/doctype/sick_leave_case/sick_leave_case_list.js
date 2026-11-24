@@ -14,6 +14,7 @@ frappe.listview_settings["Sick Leave Case"] = {
 	formatters: {
 		social_status(value) {
 			const colors = {
+				"Not Required": "blue",
 				"Not Requested": "gray",
 				"Requested, Waiting for Money": "orange",
 				"Money Received, Waiting for Payment": "purple",

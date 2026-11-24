@@ -473,7 +473,7 @@
    "fieldname": "social_status",
    "fieldtype": "Select",
    "label": "Social Security Status",
-   "options": "Not Requested\nRequested, Waiting for Money\nMoney Received, Waiting for Payment\nPaid by Social Security",
+   "options": "Not Required\nNot Requested\nRequested, Waiting for Money\nMoney Received, Waiting for Payment\nPaid by Social Security",
    "default": "Not Requested",
    "in_list_view": 1,
    "read_only": 1,

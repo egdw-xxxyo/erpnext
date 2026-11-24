@@ -90,6 +90,7 @@ frappe.ui.form.on("Sick Leave Case", {
 });
 
 const SOCIAL_STATUS_COLORS = {
+	"Not Required": "gray",
 	"Not Requested": "gray",
 	"Requested, Waiting for Money": "orange",
 	"Money Received, Waiting for Payment": "purple",
@@ -103,6 +104,7 @@ function add_social_buttons(frm) {
 		["Money Received, Waiting for Payment", __("Confirmation of Calculation Application Payment")],
 		["Paid by Social Security", __("Confirmation of Social Security Payouts")],
 		["Not Requested", __("Not Requested")],
+		["Not Required", __("Not Required")],
 	];
 
 	actions

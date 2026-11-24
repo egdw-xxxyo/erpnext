@@ -19,6 +19,7 @@ from erpnext.payroll_ua import enforcement, sick_rules
 from erpnext.payroll_ua.doctype.incapacity_case import incapacity_case
 
 SOCIAL_STATUSES = [
+	"Not Required",
 	"Not Requested",
 	"Requested, Waiting for Money",
 	"Money Received, Waiting for Payment",
@@ -251,6 +252,7 @@ class SickLeaveCase(Document):
 		self.average_note = self._average_note(average)
 		self.employer_days = result.employer_days
 		self.fund_days = result.fund_days
+		self.sync_social_requirement()
 		self.employer_gross = result.employer.gross
 		self.employer_withheld = result.employer.withheld
 		self.employer_net = result.employer.net
@@ -359,6 +361,13 @@ class SickLeaveCase(Document):
 
 		if (self.note or "") != note:
 			self.db_set("note", note, update_modified=False)
+
+	def sync_social_requirement(self):
+		"""Випадок, що цілком оплачує роботодавець (немає днів за рахунок фонду), грошей у соцстрахуванні не просить."""
+		if not self.fund_days and self.social_status in (None, "", "Not Requested"):
+			self.social_status = "Not Required"
+		elif self.fund_days and self.social_status == "Not Required":
+			self.social_status = "Not Requested"
 
 	def advance_social_status(self, status):
 		order = SOCIAL_STATUSES.index
