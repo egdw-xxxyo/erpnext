@@ -47,7 +47,8 @@ def _publish(run, stage, percent, message=""):
 
 
 def _norm(text):
-	return re.sub(r"\s+", " ", text or "").strip().lower()
+	"""Без пробілів узагалі: PDF-текст часто склеює слова («Даніпротрудовий…»)."""
+	return re.sub(r"\s+", "", text or "").lower()
 
 
 def _file_path(file_url):
