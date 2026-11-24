@@ -337,6 +337,169 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 .procurement-form-ui .form-section > .section-body > .form-column > form > .frappe-control {
 	margin-bottom: 20px;
 }
+.procurement-form-ui .payment-entry-reference-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+}
+.procurement-form-ui .payment-entry-reference-actions {
+	display: flex;
+	min-width: 0;
+	max-width: 100%;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 6px 8px;
+	margin-inline-start: auto;
+}
+.procurement-form-ui .payment-entry-reference-actions:not(:has(> .frappe-control:not(.hide-control))) {
+	display: none;
+}
+.procurement-form-ui .payment-entry-reference-actions :is(.frappe-control, .form-group) {
+	margin: 0;
+}
+.procurement-form-ui .payment-entry-reference-actions .btn {
+	white-space: normal;
+}
+.procurement-form-ui .payment-entry-instruction [data-fieldname="custom_fiscal_receipt_status"],
+.procurement-form-ui .payment-entry-instruction [data-fieldname="custom_fiscal_receipt"] .clearfix,
+.procurement-form-ui .payment-entry-instruction-read-empty .control-input-wrapper {
+	display: none;
+}
+.procurement-form-ui
+	.payment-entry-instruction
+	> .section-body
+	> .form-column
+	> form
+	> [data-fieldname="custom_fiscal_receipt"] {
+	max-width: none;
+	margin-bottom: 12px;
+	padding-inline: 0;
+}
+.procurement-form-ui .payment-entry-instruction [data-fieldname="custom_fiscal_receipt"] > .form-group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px 20px;
+	margin: 0;
+	padding: 12px 14px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 10px;
+	background: var(--procurement-tint);
+}
+.procurement-form-ui .payment-entry-instruction-note {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+.procurement-form-ui .payment-entry-instruction-icon {
+	display: grid;
+	flex: 0 0 36px;
+	width: 36px;
+	height: 36px;
+	place-items: center;
+	border-radius: 10px;
+	background: var(--procurement-selected);
+	color: var(--procurement-accent);
+}
+.procurement-form-ui .payment-entry-instruction-icon .es-icon {
+	stroke: currentColor;
+}
+.procurement-form-ui .payment-entry-instruction-formats {
+	font-size: 12px;
+	color: var(--procurement-muted);
+}
+.procurement-form-ui .payment-entry-instruction .control-input-wrapper {
+	min-width: 0;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .payment-entry-instruction :is(.attached-file, .control-value) {
+	background: var(--card-bg);
+}
+.procurement-form-ui .payment-entry-instruction .attached-file {
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	border-radius: 8px;
+}
+.procurement-form-ui .payment-entry-instruction .attached-file > .flex {
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	max-width: 100%;
+	gap: 6px;
+	margin-inline-start: auto;
+}
+.procurement-form-ui .payment-entry-instruction .attached-file .btn[data-action] {
+	padding: 4px 8px;
+	border: 1px solid var(--procurement-border);
+	border-radius: 6px;
+	background: var(--procurement-tint);
+	white-space: normal;
+}
+.procurement-form-ui .payment-entry-instruction .attached-file .btn[data-action]:hover {
+	background: var(--procurement-selected);
+}
+.procurement-form-ui .payment-entry-instruction .btn-attach {
+	padding: 7px 14px;
+	border: 1px solid var(--procurement-accent);
+	background: var(--procurement-selected);
+	color: var(--procurement-accent);
+	font-weight: 600;
+}
+.procurement-form-ui .payment-entry-instruction .btn-attach:hover {
+	background: var(--card-bg);
+}
+.procurement-form-ui .payment-entry-party-hidden {
+	display: none;
+}
+.procurement-form-ui .payment-entry-party-card {
+	margin-bottom: 12px;
+}
+.procurement-form-ui .payment-entry-party-card .procurement-created-card-heading {
+	align-items: center;
+	gap: 10px 16px;
+}
+.procurement-form-ui .payment-entry-party-card .ent-name {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .payment-entry-party-card .payment-entry-party-requisites {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+}
+.procurement-form-ui .payment-entry-party-requisites dd {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+}
+.procurement-form-ui .payment-entry-party-copy {
+	flex: none;
+	color: var(--procurement-accent);
+}
+.procurement-form-ui .payment-entry-invoice-links {
+	display: grid;
+	justify-items: end;
+	gap: 5px;
+	text-align: end;
+}
+.procurement-form-ui .payment-entry-invoice-references {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 4px 8px;
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui #payment-entry-supplier-invoices {
+	scroll-margin-top: 9rem;
+}
+.payment-entry-single-tab,
+.procurement-form-ui .payment-entry-bank-links-in-tab .document-link[data-doctype="Bank Transaction"],
+.procurement-form-ui .payment-entry-bank-links-in-tab:not(:has(.document-link:not([data-doctype="Bank Transaction"]), .report-link)) {
+	display: none;
+}
 .procurement-form-ui .payment-request-party > .section-head,
 .procurement-form-ui .payment-request-hidden {
 	display: none;

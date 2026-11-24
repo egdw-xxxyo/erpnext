@@ -538,6 +538,7 @@ def get_supplier_invoice_files(
 	consolidated_order: str | None = None,
 	supplier: str | None = None,
 	references: str | list[dict] | None = None,
+	include_purchase_invoices: bool = False,
 ):
 	"""Return source supplier invoice files without copying them to downstream documents."""
 	contexts = {}
@@ -620,6 +621,8 @@ def get_supplier_invoice_files(
 				"files": files,
 			}
 		)
+	if include_purchase_invoices:
+		return {"groups": result, "purchase_invoices": sorted(purchase_invoice_names)}
 	return result
 
 

@@ -107,7 +107,10 @@
   "in_words",
   "amended_from",
   "auto_repeat_section",
-  "auto_repeat"
+  "auto_repeat",
+  "payment_entry_bank_transactions_tab",
+  "payment_entry_bank_transactions_section",
+  "payment_entry_bank_transactions_html"
  ],
  "fields": [
   {
@@ -463,6 +466,7 @@
    "depends_on": "eval:doc.docstatus==1",
    "fieldname": "clearance_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Clearance Date",
    "no_copy": 1,
    "print_hide": 1,
@@ -852,6 +856,21 @@
    "no_copy": 1,
    "options": "Відсутній\nДодано",
    "read_only": 1
+  },
+  {
+   "fieldname": "payment_entry_bank_transactions_tab",
+   "fieldtype": "Tab Break",
+   "hidden": 1,
+   "label": "Bank Transaction"
+  },
+  {
+   "fieldname": "payment_entry_bank_transactions_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "payment_entry_bank_transactions_html",
+   "fieldtype": "HTML",
+   "label": "Bank Transaction"
   }
  ],
  "grid_page_length": 50,

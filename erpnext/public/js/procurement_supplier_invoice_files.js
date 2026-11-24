@@ -77,19 +77,16 @@ frappe.ui.form.on("Payment Entry", {
 	},
 	refresh(frm) {
 		configure_supplier_requisites_layout(frm);
-		render_supplier_vat(frm);
 		render_supplier_invoice_files(frm);
 		render_supplier_payment_details(frm);
 		render_supplier_requisites_validation(frm);
 	},
 	party_type(frm) {
-		render_supplier_vat(frm);
 		reset_supplier_requisites_confirmation(frm);
 		render_supplier_payment_details(frm);
 		render_supplier_requisites_validation(frm);
 	},
 	party(frm) {
-		render_supplier_vat(frm);
 		reset_supplier_requisites_confirmation(frm);
 		render_supplier_payment_details(frm);
 		render_supplier_requisites_validation(frm);
@@ -557,6 +554,7 @@ async function apply_supplier_requisites_update(frm, response) {
 	if (response.bank_account && frm.doctype === "Payment Entry") {
 		await frm.set_value("party_bank_account", response.bank_account);
 	}
+	if (frm.doctype === "Payment Entry") await render_supplier_payment_details(frm);
 }
 
 function build_supplier_requisites_note(check, showMatchedFiles) {
@@ -685,6 +683,12 @@ function render_supplier_invoice_files(frm) {
 	if (!field) return;
 	place_purchase_invoice_files_field(frm);
 
+	const doc = frm.doc;
+	const requestId = (frm.__supplier_invoice_files_request_id || 0) + 1;
+	frm.__supplier_invoice_files_request_id = requestId;
+	const update_invoice_links =
+		frm.doctype === "Payment Entry" && erpnext.payment_entry_form?.update_invoice_links;
+	if (update_invoice_links) update_invoice_links(frm, [], false);
 	const args = get_supplier_invoice_file_args(frm);
 	if (!args) {
 		const message =
@@ -697,17 +701,19 @@ function render_supplier_invoice_files(frm) {
 		return;
 	}
 
-	const requestId = (frm.__supplier_invoice_files_request_id || 0) + 1;
-	frm.__supplier_invoice_files_request_id = requestId;
+	if (update_invoice_links) args.include_purchase_invoices = true;
 	set_supplier_invoice_files_html(frm, `<div class="text-muted">${__("Loading...")}</div>`);
 	frappe.call({
 		method: supplierInvoiceFilesMethod,
 		args,
 		callback(response) {
-			if (frm.__supplier_invoice_files_request_id !== requestId) return;
-			const groups = response.message || [];
+			if (frm.doc !== doc || frm.__supplier_invoice_files_request_id !== requestId) return;
+			const result = response.message;
+			const groups = (update_invoice_links ? result?.groups : result) || [];
+			const has_files = has_supplier_invoice_files(groups);
 			set_supplier_invoice_files_html(frm, build_supplier_invoice_files_html(groups));
-			expand_purchase_invoice_supplier_section(frm, has_supplier_invoice_files(groups));
+			expand_purchase_invoice_supplier_section(frm, has_files);
+			if (update_invoice_links) update_invoice_links(frm, result?.purchase_invoices || [], has_files);
 		},
 	});
 }
@@ -827,22 +833,39 @@ async function render_supplier_payment_details(frm) {
 	const requestId = (frm.__supplier_payment_details_request_id || 0) + 1;
 	frm.__supplier_payment_details_request_id = requestId;
 
-	if (frm.doc.party_type !== "Supplier" || !frm.doc.party) {
+	const doc = frm.doc;
+	const { party, party_bank_account } = doc;
+	if (doc.party_type !== "Supplier" || !party) {
 		set_supplier_payment_details(frm, {});
 		return;
 	}
 
-	const supplierRequest = frappe.db.get_value("Supplier", frm.doc.party, ["tax_id", "edrpou"]);
-	const bankAccountRequest = frm.doc.party_bank_account
-		? frappe.db.get_value("Bank Account", frm.doc.party_bank_account, "iban")
-		: Promise.resolve({ message: {} });
-	const [supplierResponse, bankAccountResponse] = await Promise.all([supplierRequest, bankAccountRequest]);
-
-	if (frm.__supplier_payment_details_request_id !== requestId) return;
+	const supplierRequest = frappe.db.get_value("Supplier", party, [
+		"supplier_name",
+		"tax_id",
+		"edrpou",
+		"custom_is_vat_payer",
+	]);
+	const bankAccountRequest = party_bank_account
+		? frappe.db.get_value(
+				"Bank Account",
+				{ name: party_bank_account, party_type: "Supplier", party },
+				"iban"
+		  )
+		: null;
+	const [supplierResult, bankResult] = await Promise.allSettled([supplierRequest, bankAccountRequest]);
+	if (
+		frm.__supplier_payment_details_request_id !== requestId ||
+		frm.doc !== doc ||
+		doc.party_type !== "Supplier" ||
+		doc.party !== party ||
+		doc.party_bank_account !== party_bank_account
+	) {
+		return;
+	}
 	set_supplier_payment_details(frm, {
-		tax_id: supplierResponse.message?.tax_id,
-		edrpou: supplierResponse.message?.edrpou,
-		iban: bankAccountResponse.message?.iban,
+		...supplierResult.value?.message,
+		iban: bankResult.value?.message?.iban,
 	});
 }
 
@@ -852,6 +875,9 @@ function set_supplier_payment_details(frm, values) {
 		frm.refresh_field(targetField);
 		add_supplier_detail_copy_button(frm, targetField);
 	});
+	frm.doc.custom_supplier_is_vat_payer = cint(values.custom_is_vat_payer);
+	frm.refresh_field("custom_supplier_is_vat_payer");
+	erpnext.payment_entry_form?.update_party_details(frm, values);
 }
 
 function add_supplier_detail_copy_button(frm, fieldname) {
