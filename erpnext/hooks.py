@@ -317,6 +317,7 @@ after_migrate = [
 	"erpnext.buying.buying_sidebar.add_buying_links",
 	"erpnext.stock.stock_sidebar.add_stock_links",
 	"erpnext.access_control.sidebar.add_access_links",
+	"erpnext.import_center.data_sidebar.add_data_links",
 	"erpnext.access_control.company_access.sync_all",
 ]
 
