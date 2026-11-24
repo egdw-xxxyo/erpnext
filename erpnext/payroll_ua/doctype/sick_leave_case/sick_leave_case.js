@@ -231,6 +231,19 @@ function show_average_dialog(frm) {
 				__("No earnings data for: {0} (Payroll Sheet or Earnings Before ERP).", [empty.join(", ")])
 			);
 		if (data.from_salary) note.push(__("No earnings in the period — taken from the official salary."));
+		if (data.short_tenure)
+			note.push(
+				__(
+					"Insurance record is {0} months (under 6): the daily wage cannot exceed the minimum wage {1} / 30.44 = {2}.",
+					[data.tenure_months, money(data.minimum_wage), money(data.limit)]
+				)
+			);
+		else
+			note.push(
+				__("Insurance record is {0} months — the minimum wage rule applies below 6 months.", [
+					data.tenure_months,
+				])
+			);
 		if (data.capped)
 			note.push(__("Capped: {0} a day instead of {1}.", [money(data.limit), money(data.uncapped)]));
 

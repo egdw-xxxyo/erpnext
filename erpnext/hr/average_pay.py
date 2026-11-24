@@ -477,8 +477,9 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 
 	limit = payroll_tax.minimum_wage() * MAX_BASE_MINIMUM_WAGES / AVERAGE_MONTH_DAYS
 	cap = "max_base"
+	tenure = tenure_months(employee, on_date)
 
-	if tenure_months(employee, on_date) < SHORT_TENURE_MONTHS:
+	if tenure < SHORT_TENURE_MONTHS:
 		limit = payroll_tax.minimum_wage() / AVERAGE_MONTH_DAYS
 		cap = "short_tenure"
 
@@ -487,6 +488,9 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 		uncapped=flt(average, 2),
 		limit=flt(limit, 2),
 		capped=cap if average > limit else None,
+		short_tenure=cap == "short_tenure",
+		tenure_months=tenure,
+		minimum_wage=flt(payroll_tax.minimum_wage(), 2),
 		from_salary=from_salary,
 		period_start=months[0] if months else None,
 		period_end=add_days(add_months(months[-1], 1), -1) if months else None,

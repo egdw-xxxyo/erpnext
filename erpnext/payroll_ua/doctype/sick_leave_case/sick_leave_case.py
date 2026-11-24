@@ -638,6 +638,9 @@ def average_breakdown(employee, start_date, incapacity_case=None, from_month=Non
 		"capped": details.capped,
 		"average": details.average,
 		"from_salary": details.from_salary,
+		"short_tenure": details.short_tenure,
+		"tenure_months": details.tenure_months,
+		"minimum_wage": details.minimum_wage,
 		"period_start": str(details.period_start) if details.period_start else None,
 		"period_end": str(details.period_end) if details.period_end else None,
 	}
