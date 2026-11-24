@@ -76,30 +76,77 @@ function render_sick_leave_cases(frm) {
 				)
 				.join("");
 
-			field.$wrapper.html(`
-				<div style="overflow-x:auto">
-				<table class="table table-bordered table-sm">
-					<tr>
-						<th>${__("Case")}</th>
-						<th>${__("Certificate Number (ЕЛН)")}</th>
-						<th>${__("Period")}</th>
-						<th class="text-right">${__("Calendar Days")}</th>
-						<th class="text-right">${__("Employer / Fund Days")}</th>
-						<th class="text-right">${__("Pay Percent")}</th>
-						<th class="text-right">${__("Average Daily Wage Used")}</th>
-						<th class="text-right">${__("Accrued")}</th>
-						<th>${__("Status")}</th>
-					</tr>
-					${body}
-					<tr>
-						<td colspan="3"><b>${__("Total")}</b></td>
-						<td class="text-right"><b>${sum("calendar_days")}</b></td>
-						<td class="text-right"><b>${sum("employer_days")} / ${sum("fund_days")}</b></td>
-						<td></td>
-						<td></td>
-						<td class="text-right"><b>${money(sum("employer_gross") + sum("fund_gross"))}</b></td>
-						<td></td>
-					</tr>
-				</table></div>`);
+			const esc = frappe.utils.escape_html;
+
+			new erpnext.DataTable({
+				parent: field.$wrapper,
+				storage_key: "incapacity-sick-cases",
+				max_height: "420px",
+				rows,
+				columns: [
+					{
+						key: "name",
+						label: __("Case"),
+						pin: true,
+						html: (row) => `<a href="/desk/sick-leave-case/${encodeURIComponent(row.name)}">${esc(row.name)}</a>`,
+						footer: __("Total"),
+					},
+					{
+						key: "eln_number",
+						label: __("Certificate Number (ЕЛН)"),
+						html: (row) => esc(row.eln_number || "—"),
+					},
+					{
+						key: "start_date",
+						label: __("Period"),
+						html: (row) => `${date(row.start_date)} – ${date(row.end_date)}`,
+					},
+					{
+						key: "calendar_days",
+						label: __("Calendar Days"),
+						align: "right",
+						value: (row) => flt(row.calendar_days),
+						html: (row) => cint(row.calendar_days),
+						footer: sum("calendar_days"),
+					},
+					{
+						key: "employer_days",
+						label: __("Employer / Fund Days"),
+						align: "right",
+						value: (row) => flt(row.employer_days),
+						html: (row) => `${cint(row.employer_days)} / ${cint(row.fund_days)}`,
+						footer: `${sum("employer_days")} / ${sum("fund_days")}`,
+					},
+					{
+						key: "percent",
+						label: __("Pay Percent"),
+						align: "right",
+						value: (row) => flt(row.percent),
+						html: (row) => `${flt(row.percent)}%`,
+					},
+					{
+						key: "average_daily",
+						label: __("Average Daily Wage Used"),
+						align: "right",
+						value: (row) => flt(row.average_daily),
+						html: (row) => money(row.average_daily),
+					},
+					{
+						key: "gross",
+						label: __("Accrued"),
+						align: "right",
+						value: (row) => flt(row.employer_gross) + flt(row.fund_gross),
+						html: (row) => money(flt(row.employer_gross) + flt(row.fund_gross)),
+						footer: money(sum("employer_gross") + sum("fund_gross")),
+					},
+					{
+						key: "status",
+						label: __("Status"),
+						value: (row) => __(row.status),
+						html: (row) =>
+							`<span class="indicator-pill ${CASE_COLORS[row.status] || "gray"}">${__(row.status)}</span>`,
+					},
+				],
+			});
 		});
 }
