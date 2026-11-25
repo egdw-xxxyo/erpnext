@@ -41,22 +41,24 @@ def allow(user: str, doctype: str, value: str, applicable_for: str | None = None
 	frappe.clear_cache(user=user)
 
 
+def restore():
+	frappe.set_user("Administrator")
+	frappe.clear_cache(user=USER)
+	frappe.flags.mute_emails = False
+
+
 class UserPermissionCase(unittest.TestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
 		frappe.flags.mute_emails = True
 		self.addCleanup(frappe.db.rollback)
+		self.addCleanup(restore)
 		warehouses = frappe.get_all("Warehouse", filters={"is_group": 0}, pluck="name", limit=2)
 		if len(warehouses) < 2:
 			self.skipTest("needs two warehouses")
 		self.allowed, self.blocked = warehouses[:2]
 		new_user(USER, ["Stock User"])
 		allow(USER, "Warehouse", self.allowed)
-
-	def tearDown(self):
-		frappe.set_user("Administrator")
-		frappe.clear_cache(user=USER)
-		frappe.flags.mute_emails = False
 
 	def request(self, warehouse: str) -> str:
 		frappe.set_user(USER)
