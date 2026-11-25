@@ -18110,3 +18110,9 @@ No data,Немає даних
 Salary on card,Оклад з картки
 "Full history of the employee: Employee card → Salary tab → Earnings by Month.","Уся історія працівника: картка працівника → вкладка «Зарплата» → «Заробіток по місяцях»."
 Not Required,Не потрібно
+Change Label to {0},Змінити етикетку на {0}
+Printer is changing labels to {0}. Load the labels, then confirm.,"Принтер у режимі заміни етикетки на {0}. Заправте етикетку, потім підтвердіть."
+Labels Loaded,Етикетку заправлено
+Printer has no loaded label size set; the template needs {0}.,У принтері не вказано заправлену етикетку; шаблону потрібно {0}.
+Loaded label: {0} — matches the template.,Заправлено етикетку {0} — відповідає шаблону.
+Wrong label size in the printer — change the label first.,У принтері етикетка іншого розміру — спершу замініть етикетку.
