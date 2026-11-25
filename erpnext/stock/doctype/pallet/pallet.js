@@ -20,7 +20,7 @@ function render_pallet_packages(frm) {
 }
 
 function setup_pallet_print_labels(frm) {
-	if (frm.is_new()) return;
+	if (frm.is_new() || !frappe.model.can_read("Label Template")) return;
 	frappe.call({
 		method: "frappe.client.get_list",
 		args: {

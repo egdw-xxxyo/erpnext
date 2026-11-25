@@ -18122,3 +18122,37 @@ Labels Loaded,Етикетку заправлено
 Printer has no loaded label size set; the template needs {0}.,У принтері не вказано заправлену етикетку; шаблону потрібно {0}.
 Loaded label: {0} — matches the template.,Заправлено етикетку {0} — відповідає шаблону.
 Wrong label size in the printer — change the label first.,У принтері етикетка іншого розміру — спершу замініть етикетку.
+This page or document does not exist. The link may be broken or out of date,"Такої сторінки або документа не існує. Можливо, посилання помилкове або застаріле"
+Requested address,Запитана адреса
+Values that are not allowed,"Значення, які не дозволені"
+You already have the access from your request {0}. Reload the page to use it,"Доступ із вашого запиту {0} у вас уже є. Оновіть сторінку, щоб ним скористатися"
+Checked: values of this document the user is not allowed to work with yet. Unchecked: values that still block other documents of this type,"Позначені — значення цього документа, з якими користувачу ще не дозволено працювати. Непозначені — значення, які ще блокують інші документи цього типу"
+Where the value is allowed,Де дозволити значення
+Only in {0},Лише в «{0}»
+In every document type,У всіх типах документів
+blocks {0} more documents,блокує ще документів: {0}
+"The values are allowed in every document type that uses them, not only in {0}","Значення дозволяються в усіх типах документів, що їх використовують, а не лише в «{0}»"
+"The values are allowed only in {0}, other document types keep the current limits","Значення дозволяються лише в «{0}», в інших типах документів обмеження лишаються як є"
+"After approval the user can open {0} of {1} documents {2}, before: {3}","Після схвалення користувач зможе відкрити {0} з {1} документів «{2}», зараз: {3}"
+latest {0} only,лише останні {0}
+Still blocked by values the user is not allowed to work with,"Ще заблоковано значеннями, з якими користувачу не дозволено працювати"
+Counts only the User Permission limits. The user's roles may still restrict some documents,Враховано лише обмеження дозволів користувача. Ролі користувача можуть додатково обмежувати частину документів
+Check again,Перевірити ще раз
+"The user already has this access, the request is closed","Цей доступ у користувача вже є, запит закрито"
+Still no access,Доступу все ще немає
+The user still does not have this access. Approve or reject the request,У користувача досі немає цього доступу. Схваліть або відхиліть запит
+Already Granted,Доступ уже є
+only {0},лише {0}
+all document types,усі типи документів
+Choose where the value is allowed,"Оберіть, де дозволити значення"
+"The request does not name what was refused, it cannot be checked again","У запиті не вказано, в чому відмовлено, тож перевірити його ще раз неможливо"
+The user already has this access,Цей доступ у користувача вже є
+You already have the access you asked for: {0}. Reload the page to use it,"Доступ, який ви просили, у вас уже є: {0}. Оновіть сторінку, щоб ним скористатися"
+"{0} does not exist, there is nothing to request access to","{0} не існує, тож доступ до нього запитати неможливо"
+field «{0}»,поле «{0}»
+"table «{0}», field «{1}», rows {2}","таблиця «{0}», поле «{1}», рядки {2}"
+"table «{0}», field «{1}»","таблиця «{0}», поле «{1}»"
+is not in the user's permissions,немає в дозволах користувача
+is not in your permissions,немає у ваших дозволах
+Where: {0},Де трапляється: {0}
+documents: {0},документів: {0}
