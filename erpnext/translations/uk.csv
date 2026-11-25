@@ -17979,6 +17979,11 @@ No Effect,Без змін
 User Disabled,Користувач вимкнений
 Extra Company,Додаткова компанія
 Incapacity Case,Випадок непрацездатності
+Close Case,Закрити випадок
+Reopen Case,Відкрити випадок знову
+Draft Sick Leave Cases,Чернетки випадків лікарняного
+Submit or delete the draft sick leave cases before closing the incapacity case.,Проведіть або видаліть чернетки випадків лікарняного перед закриттям випадку непрацездатності.
+Incapacity case {0} is closed — reopen it to add a sick leave case.,Випадок непрацездатності {0} закрито — відкрийте його знову, щоб додати випадок лікарняного.
 Incapacity Cases,Випадки непрацездатності
 Case Number,Номер випадку
 Certificate (ЕЛН),Листок непрацездатності (ЕЛН)

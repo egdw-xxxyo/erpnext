@@ -17,6 +17,15 @@ frappe.ui.form.on("Incapacity Case", {
 				start_date: frm.doc.end_date ? frappe.datetime.add_days(frm.doc.end_date, 1) : null,
 			});
 		});
+		if (frm.doc.status === "Closed") {
+			frm.add_custom_button(__("Reopen Case"), () => {
+				frm.call("reopen_case").then(() => frm.reload_doc());
+			});
+		} else {
+			frm.add_custom_button(__("Close Case"), () => {
+				frm.call("close_case").then(() => frm.reload_doc());
+			}).addClass("btn-primary");
+		}
 		render_sick_leave_cases(frm);
 	},
 });

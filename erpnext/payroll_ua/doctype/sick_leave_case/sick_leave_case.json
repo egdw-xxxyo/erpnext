@@ -137,6 +137,7 @@
   {
    "fieldname": "closed",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Final Certificate Received",
    "default": "0",
    "description": "Set when the case is submitted: only then the employer part goes into the salary.",

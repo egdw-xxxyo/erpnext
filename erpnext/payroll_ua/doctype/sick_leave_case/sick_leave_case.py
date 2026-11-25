@@ -132,8 +132,18 @@ class SickLeaveCase(Document):
 			return
 
 		parent = frappe.db.get_value(
-			"Incapacity Case", self.incapacity_case, ["employee", "company", "case_type"], as_dict=True
+			"Incapacity Case",
+			self.incapacity_case,
+			["employee", "company", "case_type", "status"],
+			as_dict=True,
 		)
+
+		if parent.status == "Closed" and self.is_new():
+			frappe.throw(
+				_("Incapacity case {0} is closed — reopen it to add a sick leave case.").format(
+					self.incapacity_case
+				)
+			)
 
 		if self.employee and parent.employee != self.employee:
 			frappe.throw(_("Incapacity case {0} belongs to another employee.").format(self.incapacity_case))

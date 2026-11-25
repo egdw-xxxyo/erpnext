@@ -6,6 +6,7 @@
 
 import frappe
 from frappe.model.document import Document
+from frappe import _
 from frappe.utils import date_diff
 
 
@@ -22,16 +23,31 @@ class IncapacityCase(Document):
 
 		start = min(row.start_date for row in rows)
 		end = max(row.end_date for row in rows)
-		status = "Closed" if all(row.docstatus == 1 for row in rows) else "Open"
 		self.db_set(
 			{
 				"start_date": start,
 				"end_date": end,
 				"calendar_days": date_diff(end, start) + 1,
-				"status": status,
 			},
 			update_modified=False,
 		)
+
+	@frappe.whitelist()
+	def close_case(self):
+		self.check_permission("write")
+
+		if frappe.db.exists("Sick Leave Case", {"incapacity_case": self.name, "docstatus": 0}):
+			frappe.throw(
+				_("Submit or delete the draft sick leave cases before closing the incapacity case."),
+				title=_("Draft Sick Leave Cases"),
+			)
+
+		self.db_set("status", "Closed")
+
+	@frappe.whitelist()
+	def reopen_case(self):
+		self.check_permission("write")
+		self.db_set("status", "Open")
 
 
 def get_dashboard_data(data):
