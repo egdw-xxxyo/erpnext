@@ -54,7 +54,7 @@ function setup_barcode(frm) {
 }
 
 function setup_print_labels(frm) {
-	if (frm.is_new()) return;
+	if (frm.is_new() || !frappe.model.can_read("Label Template")) return;
 	frappe.call({
 		method: "frappe.client.get_list",
 		args: {

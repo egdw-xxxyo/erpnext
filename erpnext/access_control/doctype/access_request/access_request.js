@@ -38,6 +38,9 @@ frappe.ui.form.on("Access Request", {
 				"btn-primary"
 			);
 			frm.add_custom_button(__("Reject"), () => erpnext.access_control.reject_dialog(frm));
+			if (frm.doc.request_type !== "Other") {
+				frm.add_custom_button(__("Check again"), () => erpnext.access_control.recheck(frm));
+			}
 		}
 		if (own) {
 			frm.add_custom_button(__("Cancel request"), () =>
@@ -90,6 +93,11 @@ erpnext.access_control.situation_html = (frm, options) => {
 	}</p>
 		${frm.doc.reason ? `<p><span class="text-muted">${__("Reason")}:</span> ${esc(frm.doc.reason)}</p>` : ""}
 		${blockers}
+		${
+			situation.allowed
+				? ""
+				: erpnext.access_control.user_permission_blocks_html(situation.user_permission_blocks, true)
+		}
 		${hints ? `<ul class="ac-list text-muted">${hints}</ul>` : ""}
 		${workflow}
 		<p><span class="text-muted">${__("User roles")}:</span> ${erpnext.access_control.roles_html(
@@ -259,7 +267,10 @@ erpnext.access_control.pick_list_field = (fieldname, resolution) => ({
 erpnext.access_control.CHECK_LISTS = {
 	value_list: {
 		title: () => __("Allow values"),
-		description: () => __("Values of this document the user is not allowed to work with yet"),
+		description: () =>
+			__(
+				"Checked: values of this document the user is not allowed to work with yet. Unchecked: values that still block other documents of this type"
+			),
 	},
 };
 
@@ -702,11 +713,7 @@ erpnext.access_control.refresh_impact = (dialog, options) => {
 		return;
 	}
 	if (resolution === "User Permission") {
-		wrapper.html(
-			`<p>${__(
-				"The user can work with documents of these values as well, in every document type that uses them"
-			)}</p>`
-		);
+		erpnext.access_control.user_permission_impact(dialog, options, wrapper);
 		return;
 	}
 	if (resolution === "Role Profile") {
@@ -741,10 +748,83 @@ erpnext.access_control.refresh_impact = (dialog, options) => {
 	});
 };
 
+erpnext.access_control.user_permission_values = (options) => [
+	...options.user_permissions.map((candidate) => ({
+		value: JSON.stringify(candidate),
+		label: `${__(candidate.allow)}: ${candidate.for_value}`,
+	})),
+	...(options.user_permission_others || []).map((other) => ({
+		value: JSON.stringify({ allow: other.allow, for_value: other.for_value }),
+		label: `${__(other.allow)}: ${other.for_value} · ${__("blocks {0} more documents", [
+			other.documents,
+		])}`,
+	})),
+];
+
+erpnext.access_control.user_permission_preview_html = (dialog, preview) => {
+	const esc = frappe.utils.escape_html;
+	const doctype = esc(__(dialog.doctype_label));
+	const scope =
+		dialog.get_value("up_scope") === "all"
+			? __("The values are allowed in every document type that uses them, not only in {0}", [doctype])
+			: __("The values are allowed only in {0}, other document types keep the current limits", [
+					doctype,
+			  ]);
+	if (!preview.total) return `<p>${scope}</p>`;
+	const opened = preview.total - preview.blocked_after;
+	const remaining = (preview.remaining || [])
+		.slice(0, 10)
+		.map(
+			(entry) =>
+				`<li><b>${esc(__(entry.allow))}: ${esc(entry.for_value)}</b> <span class="text-muted">· ${__(
+					"documents: {0}",
+					[entry.documents]
+				)}</span></li>`
+		)
+		.join("");
+	return `<p>${scope}</p>
+		<p>${__("After approval the user can open {0} of {1} documents {2}, before: {3}", [
+			`<b>${opened}</b>`,
+			preview.total,
+			doctype,
+			preview.total - preview.blocked_now,
+		])}${
+		preview.limited ? ` <span class="text-muted">(${__("latest {0} only", [preview.total])})</span>` : ""
+	}</p>
+		${
+			remaining
+				? `<div class="alert alert-warning">${__(
+						"Still blocked by values the user is not allowed to work with"
+				  )}:<ul class="ac-list">${remaining}</ul></div>`
+				: ""
+		}
+		<p class="text-muted small">${__(
+			"Counts only the User Permission limits. The user's roles may still restrict some documents"
+		)}</p>`;
+};
+
+erpnext.access_control.user_permission_impact = (dialog, options, wrapper) => {
+	const chosen = erpnext.access_control
+		.checked_values(dialog, "value_list")
+		.map((value) => JSON.parse(value));
+	const key = JSON.stringify(chosen);
+	dialog.preview_key = key;
+	wrapper.html(`<p class="text-muted">${__("Loading...")}</p>`);
+	frappe
+		.xcall(`${AR_METHOD}.get_user_permission_preview`, {
+			name: options.name,
+			user_permissions: chosen,
+		})
+		.then((preview) => {
+			if (dialog.preview_key !== key) return;
+			wrapper.html(erpnext.access_control.user_permission_preview_html(dialog, preview || {}));
+		});
+};
+
 erpnext.access_control.impact_state = (dialog) =>
 	JSON.stringify([
-		...["resolution", "right_role", "profile_action", "share_rights", "profile_mode"].map((fieldname) =>
-			dialog.get_value(fieldname)
+		...["resolution", "right_role", "profile_action", "share_rights", "profile_mode", "up_scope"].map(
+			(fieldname) => dialog.get_value(fieldname)
 		),
 		...Object.keys(erpnext.access_control.PICK_LISTS).map((fieldname) =>
 			erpnext.access_control.picked(dialog, fieldname)
@@ -762,10 +842,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 			options,
 			options.requested_rights
 		);
-		const values = options.user_permissions.map((candidate) => ({
-			value: JSON.stringify(candidate),
-			label: `${__(candidate.allow)}: ${candidate.for_value}`,
-		}));
+		const values = erpnext.access_control.user_permission_values(options);
 		let dialog = null;
 		const refresh = () => {
 			if (!dialog) return;
@@ -856,6 +933,21 @@ erpnext.access_control.approve_dialog = (frm) =>
 					fieldname: "value_list",
 					depends_on: "eval:doc.resolution==='User Permission'",
 				},
+				{
+					fieldtype: "Select",
+					fieldname: "up_scope",
+					label: __("Where the value is allowed"),
+					options: [
+						{
+							value: "doctype",
+							label: __("Only in {0}", [__(frm.doc.reference_doctype || "")]),
+						},
+						{ value: "all", label: __("In every document type") },
+					],
+					default: "doctype",
+					depends_on: "eval:doc.resolution==='User Permission'",
+					onchange: refresh,
+				},
 				erpnext.access_control.pick_list_field("profile_list", "Role Profile"),
 				{
 					fieldtype: "Select",
@@ -901,6 +993,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 							user_permissions: erpnext.access_control
 								.checked_values(dialog, "value_list")
 								.map((value) => JSON.parse(value)),
+							user_permission_scope: values.up_scope,
 							note: values.note,
 							valid_till: values.valid_till,
 						})
@@ -920,6 +1013,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 				);
 			},
 		});
+		dialog.doctype_label = frm.doc.reference_doctype || "";
 		dialog.fields_dict.situation.$wrapper.html(
 			erpnext.access_control.STYLE + erpnext.access_control.situation_html(frm, options)
 		);
@@ -942,7 +1036,7 @@ erpnext.access_control.approve_dialog = (frm) =>
 			dialog,
 			"value_list",
 			values,
-			values.map((option) => option.value)
+			options.user_permissions.map((candidate) => JSON.stringify(candidate))
 		);
 		Object.keys(erpnext.access_control.CHECK_LISTS).forEach((fieldname) =>
 			dialog.fields_dict[fieldname].$wrapper.on("change", "input", refresh)
@@ -963,6 +1057,23 @@ erpnext.access_control.approve_dialog = (frm) =>
 		);
 		dialog.show();
 		refresh();
+	});
+
+erpnext.access_control.recheck = (frm) =>
+	frappe.xcall(`${AR_METHOD}.recheck`, { name: frm.doc.name }).then(({ allowed }) => {
+		if (allowed) {
+			frappe.show_alert({
+				message: __("The user already has this access, the request is closed"),
+				indicator: "green",
+			});
+			frm.reload_doc();
+			return;
+		}
+		frappe.msgprint({
+			title: __("Still no access"),
+			indicator: "orange",
+			message: __("The user still does not have this access. Approve or reject the request"),
+		});
 	});
 
 erpnext.access_control.reject_dialog = (frm) => {
