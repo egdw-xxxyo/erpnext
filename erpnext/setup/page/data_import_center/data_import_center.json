@@ -9,7 +9,7 @@
  "module": "Setup",
  "name": "data-import-center",
  "owner": "Administrator",
- "page_name": "Import Center",
+ "page_name": "File Import",
  "roles": [
   {
    "role": "Desk User"
@@ -19,5 +19,5 @@
  "standard": "Yes",
  "style": null,
  "system_page": 0,
- "title": "Import Center"
+ "title": "File Import"
 }

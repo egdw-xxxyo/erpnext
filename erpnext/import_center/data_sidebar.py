@@ -6,7 +6,7 @@ SIDEBAR = "Data"
 INSERT_AFTER = "Data Import"
 LINKS = (
 	{
-		"label": "Import Center",
+		"label": "File Import",
 		"link_to": "data-import-center",
 		"link_type": "Page",
 		"icon": "import",

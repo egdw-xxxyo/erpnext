@@ -5,7 +5,7 @@ const IMPORT_CENTER = "erpnext.import_center.engine";
 frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Import Center"),
+		title: __("File Import"),
 		single_column: true,
 	});
 	const state = { run: null, data: null };
