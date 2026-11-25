@@ -14,7 +14,7 @@
 //   });
 //
 // `html` — готова розмітка клітинки (екрануйте самі); `value` — за чим сортувати (без нього — за `row[key]`);
-// `pin: true` — колонка, яку можна закріпити; `sortable: false` вимикає сортування; `footer` — підсумок.
+// `nowrap: true` — не переносити текст клітинки; `pin: true` — колонка, яку можна закріпити; `sortable: false` вимикає сортування; `footer` — підсумок.
 
 (function () {
 	const STYLE_ID = "erpnext-data-table-style";
@@ -27,6 +27,7 @@
 .eg-dt tfoot td { position: sticky; bottom: 0; z-index: 2; font-weight: 600; background: var(--bg-color); border-top: 1px solid var(--border-color); border-bottom: none; }
 .eg-dt-sortable { cursor: pointer; user-select: none; }
 .eg-dt .text-right { text-align: right; }
+.eg-dt .eg-dt-nowrap { white-space: nowrap; }
 .eg-dt-clickable tbody tr { cursor: pointer; }
 .eg-dt-clickable tbody tr:hover td { background: var(--bg-light-gray); }
 .eg-dt-pin { margin-left: 8px; padding: 2px; color: var(--text-light); cursor: pointer; transform: rotate(45deg); }
@@ -141,7 +142,8 @@
 		render() {
 			const columns = this.columns;
 			const pin_class = (column) => (column === this.pin_column ? " eg-dt-col-pin" : "");
-			const align = (column) => (column.align === "right" ? " text-right" : "");
+			const align = (column) =>
+				(column.align === "right" ? " text-right" : "") + (column.nowrap ? " eg-dt-nowrap" : "");
 
 			const arrow = (column) => {
 				if (column.sortable === false) return "";

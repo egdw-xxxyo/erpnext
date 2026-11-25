@@ -88,17 +88,20 @@ function render_sick_leave_cases(frm) {
 						key: "name",
 						label: __("Case"),
 						pin: true,
+						nowrap: true,
 						html: (row) => `<a href="/desk/sick-leave-case/${encodeURIComponent(row.name)}">${esc(row.name)}</a>`,
 						footer: __("Total"),
 					},
 					{
 						key: "eln_number",
 						label: __("Certificate Number (ЕЛН)"),
+						nowrap: true,
 						html: (row) => esc(row.eln_number || "—"),
 					},
 					{
 						key: "start_date",
 						label: __("Period"),
+						nowrap: true,
 						html: (row) => `${date(row.start_date)} – ${date(row.end_date)}`,
 					},
 					{
