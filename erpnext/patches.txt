@@ -576,3 +576,4 @@ erpnext.patches.v16_0.expand_procurement_guides
 erpnext.patches.v16_0.initialize_helper_guide_naming_series
 erpnext.patches.v16_0.clear_placeholder_eln_numbers
 erpnext.patches.v16_0.group_sick_leave_cases_into_incapacity_cases
+erpnext.patches.v16_0.rename_import_center_page

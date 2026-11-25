@@ -59,7 +59,7 @@ masked_fields = ["erpnext.access_control.sensitive.masked_fields"]
 
 sensitive_data_methods = {
 	"Salary History": ["erpnext.payroll_ua.salary_history."],
-	"data-import-center": ["erpnext.import_center.engine."],
+	"import-file": ["erpnext.import_center.engine."],
 	"access-console": [
 		"erpnext.access_control.console.",
 		"erpnext.access_control.impersonation.get_users",

@@ -7,7 +7,7 @@ INSERT_AFTER = "Data Import"
 LINKS = (
 	{
 		"label": "File Import",
-		"link_to": "data-import-center",
+		"link_to": "import-file",
 		"link_type": "Page",
 		"icon": "import",
 	},
