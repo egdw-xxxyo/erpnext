@@ -18,10 +18,6 @@ frappe.ui.form.on("Sick Leave Case", {
 
 		if (frm.doc.docstatus !== 1) return;
 
-		if (cint(frm.doc.fund_days) && !frm.doc.je_fund_receipt) {
-			frm.add_custom_button(__("Money Received from Fund"), () => ask_receipt(frm), __("Fund"));
-		}
-
 		if (frm.doc.je_fund_receipt && !frm.doc.fund_paid_date) {
 			frm.add_custom_button(__("Pay Fund Part to Employee"), () => ask_payment(frm), __("Fund"));
 		}
@@ -149,6 +145,16 @@ function add_social_buttons(frm) {
 }
 
 function set_social_status(frm, status) {
+	if (
+		status === "Money Received, Waiting for Payment" &&
+		frm.doc.docstatus === 1 &&
+		cint(frm.doc.fund_days) &&
+		!frm.doc.je_fund_receipt
+	) {
+		ask_receipt(frm);
+		return;
+	}
+
 	frappe.prompt(
 		[
 			{
