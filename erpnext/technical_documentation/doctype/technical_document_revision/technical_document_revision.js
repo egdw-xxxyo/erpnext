@@ -5,8 +5,18 @@
 // than by reading the revision's own status, so the client never carries a copy of the
 // status vocabulary the server owns.
 
+const FILE_FIELDS = ["word_file", "pdf_file", "signed_scan", "additional_attachment"];
+
+function lock_filled_files(frm) {
+	const submitted = frm.doc.docstatus === 1;
+	FILE_FIELDS.forEach((fieldname) =>
+		frm.set_df_property(fieldname, "read_only", submitted && !!frm.doc[fieldname] ? 1 : 0)
+	);
+}
+
 frappe.ui.form.on("Technical Document Revision", {
 	async refresh(frm) {
+		lock_filled_files(frm);
 		if (frm.doc.docstatus !== 1) return;
 
 		const { message } = await frappe.db.get_value(

@@ -6,7 +6,14 @@
 Immutability is the framework's, not ours: `docstatus = 1` closes the record, and the only
 fields that stay open are the ones whose value legitimately changes *after* the revision
 exists — its status, the date it came into force, the date a newer revision replaced it,
-and a comment. Everything that describes the revision itself, files included, is frozen.
+and a comment. Everything that describes the revision itself is frozen.
+
+Files are the one partial exception: a file slot left empty at submit may be filled later,
+because the signed scan, the PDF or an annex often only exists after approval. A slot that
+already holds a file is never rewritten or cleared — replacing the file of an approved
+revision would rewrite history, so a corrected file means a new revision. The doctype also
+protects attached files, so the File record behind a filled slot cannot be deleted either.
+Every file added this way is written to the journal.
 
 The effective date is in that set because a revision is normally submitted before anyone
 decides when it starts applying: `make_effective` stamps it on a record that is already
@@ -36,11 +43,13 @@ from erpnext.technical_documentation.audit import (
 	log_revision_effective,
 )
 from erpnext.technical_documentation.constants import (
+	AUDIT_FILE_ADDED,
 	AUDIT_NEW_REVISION,
 	AUDIT_STATUS_CHANGED,
 	DOCUMENT_DOCTYPE,
 	REVISION_DOCTYPE,
 	REVISION_EFFECTIVE,
+	REVISION_FILE_FIELDS,
 	REVISION_SUPERSEDED,
 )
 
@@ -91,10 +100,44 @@ class TechnicalDocumentRevision(Document):
 	def on_update(self):
 		self.log_status_change()
 
+	def before_update_after_submit(self):
+		self.validate_files_only_added()
+
 	def on_update_after_submit(self):
 		self.validate_dates()
 		self.validate_single_effective()
 		self.log_status_change()
+		self.log_added_files()
+
+	def changed_files(self):
+		before = self.get_doc_before_save()
+		if not before:
+			return []
+
+		return [
+			(fieldname, before.get(fieldname), self.get(fieldname))
+			for fieldname in REVISION_FILE_FIELDS
+			if (before.get(fieldname) or None) != (self.get(fieldname) or None)
+		]
+
+	def validate_files_only_added(self):
+		rewritten = [fieldname for fieldname, old, _new in self.changed_files() if old]
+		if rewritten:
+			frappe.throw(
+				_(
+					"A file already attached to a submitted revision cannot be replaced or removed: {0}"
+				).format(", ".join(frappe.bold(_(self.meta.get_label(fieldname))) for fieldname in rewritten))
+			)
+
+	def log_added_files(self):
+		for fieldname, _old, new in self.changed_files():
+			log_event(
+				self.technical_document,
+				AUDIT_FILE_ADDED,
+				revision=self.name,
+				field_changed=fieldname,
+				value_after=new,
+			)
 
 	def log_status_change(self):
 		before = self.get_doc_before_save()
