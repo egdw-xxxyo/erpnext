@@ -30,6 +30,8 @@ from erpnext.hr import payroll_tax
 EMPLOYER_SICK_DAYS = 5
 
 # Середня кількість календарних днів місяця — нею ділять оклад, коли заробітку в періоді немає.
+# Коли заробіток є, обмеження ділиться на ті самі дні, що й заробіток: мінімальна зарплата
+# за кожен місяць періоду, поділена на календарні дні періоду.
 AVERAGE_MONTH_DAYS = 30.44
 
 # Максимальна база нарахування ЄСВ — стільки мінімальних зарплат; вища зарплата лікарняні не збільшує.
@@ -482,12 +484,15 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 	else:
 		average = total / days
 
-	limit = payroll_tax.minimum_wage() * MAX_BASE_MINIMUM_WAGES / AVERAGE_MONTH_DAYS
+	minimum_wage = payroll_tax.minimum_wage()
+	minimum_wages = minimum_wage * len(earnings) if not from_salary else minimum_wage
+	limit_days = days if not from_salary else AVERAGE_MONTH_DAYS
+	limit = minimum_wages * MAX_BASE_MINIMUM_WAGES / limit_days
 	cap = "max_base"
 	tenure = recent_tenure_months(employee, on_date)
 
 	if tenure < SHORT_TENURE_MONTHS:
-		limit = payroll_tax.minimum_wage() / AVERAGE_MONTH_DAYS
+		limit = minimum_wages / limit_days
 		cap = "short_tenure"
 
 	return frappe._dict(
@@ -498,7 +503,10 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 		salary=flt(salary, 2),
 		short_tenure=cap == "short_tenure",
 		tenure_months=tenure,
-		minimum_wage=flt(payroll_tax.minimum_wage(), 2),
+		minimum_wage=flt(minimum_wage, 2),
+		minimum_wages=flt(minimum_wages, 2),
+		limit_days=limit_days,
+		limit_wages=flt(minimum_wages * (1 if cap == "short_tenure" else MAX_BASE_MINIMUM_WAGES), 2),
 		from_salary=from_salary,
 		period_start=months[0] if months else None,
 		period_end=add_days(add_months(months[-1], 1), -1) if months else None,
@@ -518,6 +526,7 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 					if month in earnings
 					else 0
 				),
+				minimum_wage=flt(minimum_wage, 2) if month in earnings else 0,
 				no_data=month not in earnings and not from_salary,
 				source=earnings[month].get("source", "ERP")
 				if month in earnings

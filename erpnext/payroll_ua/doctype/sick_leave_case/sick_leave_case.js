@@ -240,8 +240,8 @@ function show_average_dialog(frm) {
 		if (data.short_tenure)
 			note.push(
 				__(
-					"Insurance record is {0} months (under 6): the daily wage cannot exceed the minimum wage {1} / 30.44 = {2}.",
-					[data.tenure_months, money(data.minimum_wage), money(data.limit)]
+					"Insurance record is {0} months (under 6): the daily wage cannot exceed the minimum wage for the period {1} / {2} = {3}.",
+					[data.tenure_months, money(data.limit_wages), data.limit_days, money(data.limit)]
 				)
 			);
 		else
@@ -271,6 +271,7 @@ function show_average_dialog(frm) {
 				${row(__("Unpaid Leave Days"), "", (r) => r.unpaid_days || "")}
 				${row(__("Sick Days"), "", (r) => r.sick_days || "")}
 				${row(__("Days Worked (calendar)"), data.from_salary ? "" : data.days, (r) => r.worked_days)}
+				${row(__("Minimum Wage"), data.from_salary ? "" : money(data.minimum_wages), (r) => (r.minimum_wage ? money(r.minimum_wage) : ""))}
 			</table></div>
 			<p><b>${__("Average Daily Wage")}:</b> ${
 				data.from_salary
