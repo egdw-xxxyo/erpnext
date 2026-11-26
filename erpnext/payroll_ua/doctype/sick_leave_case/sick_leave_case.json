@@ -14,7 +14,6 @@
   "company",
   "case_type",
   "status",
-  "closed",
   "section_break_eln",
   "incapacity_case",
   "column_break_eln",
@@ -133,16 +132,6 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "allow_on_submit": 1
-  },
-  {
-   "fieldname": "closed",
-   "fieldtype": "Check",
-   "hidden": 1,
-   "label": "Final Certificate Received",
-   "default": "0",
-   "description": "Set when the case is submitted: only then the employer part goes into the salary.",
-   "read_only": 1,
-   "no_copy": 1
   },
   {
    "fieldname": "section_break_eln",

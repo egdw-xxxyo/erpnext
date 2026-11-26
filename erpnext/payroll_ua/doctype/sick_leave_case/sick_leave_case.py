@@ -84,7 +84,6 @@ class SickLeaveCase(Document):
 				title=_("ЕЛН Number Missing"),
 			)
 
-		self.closed = 1
 		self.set_status()
 
 	def before_update_after_submit(self):
@@ -318,7 +317,7 @@ class SickLeaveCase(Document):
 	def set_status(self):
 		if self.docstatus == 2:
 			self.status = "Cancelled"
-		elif self.docstatus == 1 or self.closed:
+		elif self.docstatus == 1:
 			self.status = "Closed"
 		else:
 			self.status = "Open"
