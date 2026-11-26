@@ -484,7 +484,7 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 
 	limit = payroll_tax.minimum_wage() * MAX_BASE_MINIMUM_WAGES / AVERAGE_MONTH_DAYS
 	cap = "max_base"
-	tenure = tenure_months(employee, on_date)
+	tenure = recent_tenure_months(employee, on_date)
 
 	if tenure < SHORT_TENURE_MONTHS:
 		limit = payroll_tax.minimum_wage() / AVERAGE_MONTH_DAYS
@@ -540,6 +540,50 @@ def tenure_months(employee, on_date) -> int:
 	here = (on_date.year - joining.year) * 12 + on_date.month - joining.month - (on_date.day < joining.day)
 
 	return before + max(here, 0)
+
+
+def recent_tenure_months(employee, on_date) -> int:
+	"""Страховий стаж у повних місяцях за 12 місяців перед місяцем події — для обмеження мінімальною зарплатою.
+
+	Без помісячного обліку стажу — загальний стаж."""
+	name = employee.get("name")
+
+	if not name:
+		return tenure_months(employee, on_date)
+
+	month = getdate(on_date).replace(day=1)
+	first = getdate(add_months(month, -12))
+	rows = frappe.get_all(
+		"Employee Insurance Month",
+		filters={
+			"parent": name,
+			"parenttype": "Employee",
+			"period_start": ("between", [first, add_days(month, -1)]),
+		},
+		fields=["period_start", "days"],
+	)
+
+	if not rows and not frappe.db.exists(
+		"Employee Insurance Month", {"parent": name, "parenttype": "Employee"}
+	):
+		return tenure_months(employee, on_date)
+
+	covered = {getdate(row.period_start) for row in rows}
+	joining = employee.get("date_of_joining")
+
+	if joining:
+		joining = getdate(joining)
+		current = max(first, joining.replace(day=1))
+
+		while current < month:
+			if current not in covered:
+				days = get_last_day(current).day
+				if current.year == joining.year and current.month == joining.month:
+					days -= joining.day - 1
+				rows.append(frappe._dict(period_start=current, days=days))
+			current = getdate(add_months(current, 1))
+
+	return ledger_tenure(rows)
 
 
 def sick_percent(employee, on_date) -> float:
