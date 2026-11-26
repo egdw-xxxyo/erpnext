@@ -18165,3 +18165,7 @@ Pension Fund: Form OK-5,Пенсійний фонд: форма ОК-5
 "Year {0}: the file says {1}, the table gives {2}","Рік {0}: у файлі {1}, за таблицею {2}"
 EDRPOU code of the employer in the Pension Fund register.,Код ЄДРПОУ роботодавця в реєстрі Пенсійного фонду.
 "Only {0} and later are shown and their earnings imported. Earnings of earlier years are ignored; the insurance record of all years is still checked and only the missing months are added.","Показано і імпортується заробіток лише з {0} року. Заробіток за попередні роки ігнорується; страховий стаж за всі роки все одно перевіряється, додаються лише відсутні місяці."
+Application Submitted,Заявку оформлено
+Confirm Money Received,Підтвердити надходження коштів
+Confirm Payment,Підтвердити оплату
+Back to: {0},Повернути до: {0}
