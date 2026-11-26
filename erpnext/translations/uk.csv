@@ -18156,3 +18156,11 @@ is not in the user's permissions,немає в дозволах користув
 is not in your permissions,немає у ваших дозволах
 Where: {0},Де трапляється: {0}
 documents: {0},документів: {0}
+Insurer Code,Код страхувальника
+Insurer Name,Назва страхувальника
+New insurers,Нові страхувальники
+Insurers,Страхувальники
+Insured Days and Earnings by Month,Застраховані дні та заробіток по місяцях
+Pension Fund: Form OK-5,Пенсійний фонд: форма ОК-5
+"Year {0}: the file says {1}, the table gives {2}","Рік {0}: у файлі {1}, за таблицею {2}"
+EDRPOU code of the employer in the Pension Fund register.,Код ЄДРПОУ роботодавця в реєстрі Пенсійного фонду.

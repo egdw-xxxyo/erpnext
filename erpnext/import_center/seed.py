@@ -41,6 +41,60 @@ SEEDS = [
 		},
 	},
 	{
+		"title": "Pension Fund: Form OK-5",
+		"file": "pension_fund_ok5.py",
+		"file_types": "pdf",
+		"priority": 10,
+		"description": "Form OK-5 statement: insurance record by month with the insurer of each month (new insurers are added), and the earnings of the current and the previous year into Earnings Before ERP. The employee is found by the tax number.",
+		"markers": [
+			("Text", "Contains", "ІНДИВІДУАЛЬНІ ВІДОМОСТІ ПРО ЗАСТРАХОВАНУ ОСОБУ"),
+			("Text", "Contains", "Форма ОК-5"),
+		],
+		"permissions": [("Employee", "read"), ("Employee", "write"), ("Insurer", "create")],
+		"change_fields": [
+			("Employee", "custom_insurance_months_table", "Insurance Tenure by Month", "Create"),
+			("Employee", "custom_opening_earnings", "Earnings Before ERP", "Update"),
+			("Insurer", "code", "Insurer", "Create"),
+		],
+		"preview": {
+			"sections": [
+				{
+					"kind": "key_value",
+					"title": "Insured Person",
+					"source": "header",
+					"columns": [
+						{"key": "full_name", "label": "Full Name"},
+						{"key": "card_number", "label": "Insurance Card Number"},
+						{"key": "tax_id", "label": "Tax Number"},
+					],
+				},
+				{
+					"kind": "table",
+					"title": "Insurers",
+					"source": "insurers",
+					"max_rows": 30,
+					"columns": [
+						{"key": "code", "label": "Insurer Code"},
+						{"key": "name", "label": "Insurer Name"},
+					],
+				},
+				{
+					"kind": "table",
+					"title": "Insured Days and Earnings by Month",
+					"source": "months",
+					"max_rows": 60,
+					"columns": [
+						{"key": "year", "label": "Year"},
+						{"key": "month", "label": "Month"},
+						{"key": "days", "label": "Insured Days"},
+						{"key": "earnings", "label": "Official Earnings"},
+						{"key": "insurer_name", "label": "Insurer"},
+					],
+				},
+			]
+		},
+	},
+	{
 		"title": "Earnings Before ERP: Spreadsheet",
 		"file": "employee_opening_earnings_sheet.py",
 		"file_types": "xlsx",
