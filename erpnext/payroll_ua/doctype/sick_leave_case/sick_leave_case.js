@@ -322,9 +322,6 @@ function show_status(frm) {
 	const colors = {
 		Open: "orange",
 		Closed: "blue",
-		"Employer Paid": "yellow",
-		"Fund Received": "purple",
-		Paid: "green",
 		Cancelled: "red",
 	};
 	frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");

@@ -127,7 +127,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Open\nClosed\nEmployer Paid\nFund Received\nPaid\nCancelled",
+   "options": "Open\nClosed\nCancelled",
    "default": "Open",
    "read_only": 1,
    "in_list_view": 1,

@@ -318,13 +318,7 @@ class SickLeaveCase(Document):
 	def set_status(self):
 		if self.docstatus == 2:
 			self.status = "Cancelled"
-		elif self.fund_paid_date:
-			self.status = "Paid"
-		elif self.je_fund_receipt:
-			self.status = "Fund Received"
-		elif self.employer_paid_date or (self.closed and not self.employer_days):
-			self.status = "Paid" if not self.fund_days else "Employer Paid"
-		elif self.closed:
+		elif self.docstatus == 1 or self.closed:
 			self.status = "Closed"
 		else:
 			self.status = "Open"

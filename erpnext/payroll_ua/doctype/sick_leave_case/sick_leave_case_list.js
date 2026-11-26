@@ -4,9 +4,6 @@ frappe.listview_settings["Sick Leave Case"] = {
 		const colors = {
 			Open: "orange",
 			Closed: "blue",
-			"Employer Paid": "yellow",
-			"Fund Received": "purple",
-			Paid: "green",
 			Cancelled: "red",
 		};
 		return [__(doc.status), colors[doc.status] || "gray", `status,=,${doc.status}`];
@@ -32,7 +29,12 @@ frappe.listview_settings["Sick Leave Case"] = {
 				.clear()
 				.then(() =>
 					listview.filter_area.add([
-						["Sick Leave Case", "status", "in", ["Employer Paid", "Fund Received"]],
+						[
+							"Sick Leave Case",
+							"social_status",
+							"in",
+							["Requested, Waiting for Money", "Money Received, Waiting for Payment"],
+						],
 					])
 				);
 		});
