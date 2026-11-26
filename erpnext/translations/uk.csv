@@ -14441,6 +14441,7 @@ Requires Completeness,Потребує контролю комплектност
 Parent Section,Батьківський розділ
 Expiry date cannot be earlier than the effective date,Дата завершення не може бути раніше за дату набуття чинності
 Revision {0} is already in force for document {1},Редакція {0} уже є чинною для документа {1}
+"A file already attached to a submitted revision cannot be replaced or removed: {0}","Файл, уже прикріплений до проведеної редакції, не можна замінити чи видалити: {0}"
 Revision {0} belongs to another document,Редакція {0} належить іншому документу
 Revision {0} is not submitted and cannot be the current one,Редакція {0} не проведена і не може бути чинною
 Revision {0} has status {1} and cannot be the current one,Редакція {0} має статус {1} і не може бути чинною
