@@ -13,6 +13,7 @@
   "revision_number",
   "revision_title",
   "revision_status",
+  "entered_as_superseded",
   "revision_column",
   "creation_date",
   "approval_date",
@@ -188,9 +189,20 @@
    "default": "Чернетка",
    "fieldname": "revision_status",
    "fieldtype": "Select",
-   "in_list_view": 1,
+   "in_list_view": 0,
+   "in_standard_filter": 1,
    "label": "Revision Status",
-   "options": "Чернетка\nЗатверджена\nЧинна\nЗамінена\nСкасована"
+   "options": "Чернетка\nЗатверджена\nЧинна\nЗамінена\nСкасована",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.docstatus==0",
+   "description": "Revision is entered as history: on submit it becomes superseded right away and the document's revision in force stays as it is",
+   "fieldname": "entered_as_superseded",
+   "fieldtype": "Check",
+   "label": "Already Superseded",
+   "no_copy": 1
   },
   {
    "allow_bulk_edit": 0,
@@ -635,7 +647,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-26 15:07:15.526016",
+ "modified": "2026-11-27 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Document Revision",

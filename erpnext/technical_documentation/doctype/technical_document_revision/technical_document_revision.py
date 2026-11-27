@@ -15,10 +15,9 @@ revision would rewrite history, so a corrected file means a new revision. The do
 protects attached files, so the File record behind a filled slot cannot be deleted either.
 Every file added this way is written to the journal.
 
-The effective date is in that set because a revision is normally submitted before anyone
-decides when it starts applying: `make_effective` stamps it on a record that is already
-closed, and the ordering rule is re-checked on that path too, since `validate` does not
-run after submit.
+The effective date is in that set because `make_effective` works on a record that is
+already closed. An expiry date earlier than the effective date is allowed: it reads as a
+revision that was planned to come into force and was replaced before it did.
 
 `cancel` is granted to nobody. A cancelled revision would be a historical record hidden
 from the register, which is exactly what the ISO requirement forbids; a revision that
@@ -29,8 +28,8 @@ revision appearing, and its status moving — in particular the move that puts i
 which is recorded against the document so the document's own history reads in order.
 
 Only one revision per document may be in force. The rule is enforced on every write path
-including the post-submit one, because `revision_status` is editable after submit and that
-is precisely how a revision becomes effective.
+including the post-submit one, because `revision_status` changes after submit and that is
+precisely how a revision becomes effective.
 """
 
 import frappe
@@ -47,11 +46,16 @@ from erpnext.technical_documentation.constants import (
 	AUDIT_NEW_REVISION,
 	AUDIT_STATUS_CHANGED,
 	DOCUMENT_DOCTYPE,
+	REVISION_APPROVED,
+	REVISION_CANCELLED,
 	REVISION_DOCTYPE,
+	REVISION_DRAFT,
 	REVISION_EFFECTIVE,
 	REVISION_FILE_FIELDS,
 	REVISION_SUPERSEDED,
 )
+
+SUBMIT_REQUIRED_FIELDS = ("approval_date", "effective_date", "prepared_by", "checked_by")
 
 
 class TechnicalDocumentRevision(Document):
@@ -74,6 +78,7 @@ class TechnicalDocumentRevision(Document):
 		creation_date: DF.Date | None
 		effective_date: DF.Date | None
 		end_date: DF.Date | None
+		entered_as_superseded: DF.Check
 		pdf_file: DF.Attach | None
 		prepared_by: DF.Link | None
 		revision_number: DF.Data
@@ -91,8 +96,35 @@ class TechnicalDocumentRevision(Document):
 	# end: auto-generated types
 
 	def validate(self):
-		self.validate_dates()
+		if self.docstatus == 0:
+			self.revision_status = REVISION_DRAFT
 		self.validate_single_effective()
+
+	def before_submit(self):
+		self.validate_submit_required()
+		self.revision_status = REVISION_SUPERSEDED if self.entered_as_superseded else REVISION_APPROVED
+
+	def validate_submit_required(self):
+		required = SUBMIT_REQUIRED_FIELDS + (("end_date",) if self.entered_as_superseded else ())
+		missing = [
+			_(self.meta.get_label(field), context=self.doctype) for field in required if not self.get(field)
+		]
+		if missing:
+			frappe.throw(
+				_("Fill in before submitting: {0}").format(", ".join(missing)),
+				title=_("Missing Fields"),
+			)
+
+	def before_cancel(self):
+		self.revision_status = REVISION_CANCELLED
+
+	def on_cancel(self):
+		self.log_status_change()
+
+	def on_discard(self):
+		previous = self.revision_status
+		self.db_set("revision_status", REVISION_CANCELLED)
+		self.log_status_move(previous)
 
 	def after_insert(self):
 		log_event(self.technical_document, AUDIT_NEW_REVISION, revision=self.name)
@@ -104,7 +136,6 @@ class TechnicalDocumentRevision(Document):
 		self.validate_files_only_added()
 
 	def on_update_after_submit(self):
-		self.validate_dates()
 		self.validate_single_effective()
 		self.log_status_change()
 		self.log_added_files()
@@ -141,7 +172,11 @@ class TechnicalDocumentRevision(Document):
 
 	def log_status_change(self):
 		before = self.get_doc_before_save()
-		if not before or before.revision_status == self.revision_status:
+		if before:
+			self.log_status_move(before.revision_status)
+
+	def log_status_move(self, previous):
+		if previous == self.revision_status:
 			return
 
 		if self.revision_status == REVISION_EFFECTIVE:
@@ -153,13 +188,9 @@ class TechnicalDocumentRevision(Document):
 			AUDIT_STATUS_CHANGED,
 			revision=self.name,
 			field_changed="revision_status",
-			value_before=before.revision_status,
+			value_before=previous,
 			value_after=self.revision_status,
 		)
-
-	def validate_dates(self):
-		if self.effective_date and self.end_date and self.end_date < self.effective_date:
-			frappe.throw(_("Expiry date cannot be earlier than the effective date"))
 
 	def validate_single_effective(self):
 		if self.revision_status != REVISION_EFFECTIVE:

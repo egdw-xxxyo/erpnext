@@ -58,7 +58,7 @@ def get_panels(document: str) -> dict:
 def get_revisions(document):
 	revisions = frappe.get_list(
 		REVISION_DOCTYPE,
-		filters={"technical_document": document},
+		filters={"technical_document": document, "docstatus": ("<", 2)},
 		fields=[
 			"name",
 			"revision_number",
