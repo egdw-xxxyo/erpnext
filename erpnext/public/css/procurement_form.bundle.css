@@ -337,6 +337,16 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 .procurement-form-ui .form-section > .section-body > .form-column > form > .frappe-control {
 	margin-bottom: 20px;
 }
+@media (min-width: 768px) {
+	.procurement-purchase-invoice-form
+		.form-column
+		> form:has(> [data-fieldname="is_paid"]):has(> [data-fieldtype="Check"]:not(.hide-control, .purchase-invoice-summary-field))::before {
+		content: "\00a0";
+		display: block;
+		font-size: 13px;
+		margin-bottom: 7px;
+	}
+}
 .procurement-form-ui .payment-entry-reference-head {
 	display: flex;
 	flex-wrap: wrap;
@@ -451,40 +461,170 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 .procurement-form-ui .payment-entry-instruction .btn-attach:hover {
 	background: var(--card-bg);
 }
-.procurement-form-ui .payment-entry-party-hidden {
+.procurement-form-ui :is(.payment-entry-party-hidden, .purchase-invoice-summary-field),
+.procurement-form-ui .purchase-invoice-route-origin .ent-avatar {
 	display: none;
 }
-.procurement-form-ui .payment-entry-party-card {
+.procurement-form-ui :is(.payment-entry-party-card, .purchase-invoice-supplier-card, .purchase-invoice-payer-card) {
 	margin-bottom: 12px;
 }
-.procurement-form-ui .payment-entry-party-card .procurement-created-card-heading {
+.procurement-form-ui :is(.purchase-invoice-details-card, .purchase-invoice-supplier-card, .purchase-invoice-payer-card) {
+	width: 100%;
+	flex: 0 0 100%;
+}
+.procurement-form-ui .purchase-invoice-details-card {
+	margin-bottom: 12px;
+}
+.procurement-form-ui .purchase-invoice-details-card > dl {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.procurement-form-ui .purchase-invoice-details-card dd {
+	font-weight: 600;
+}
+.procurement-form-ui .purchase-invoice-detail-flags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.procurement-form-ui .purchase-invoice-details-card > dl + .purchase-invoice-detail-flags {
+	margin-top: 10px;
+}
+.procurement-form-ui .purchase-invoice-dates-card {
+	flex: 0 0 100%;
+	width: 100%;
+	margin-bottom: 16px;
+	padding: 12px;
+}
+.procurement-form-ui .purchase-invoice-dates-heading,
+.procurement-form-ui .purchase-invoice-dates-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.procurement-form-ui .purchase-invoice-dates-heading {
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+.procurement-form-ui .purchase-invoice-dates-title i {
+	color: var(--procurement-accent);
+}
+.procurement-form-ui .purchase-invoice-dates-fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+	gap: 8px 10px;
+}
+.procurement-form-ui .purchase-invoice-dates-fields > [data-fieldname="set_posting_time"] {
+	display: none;
+}
+.procurement-form-ui .purchase-invoice-dates-fields .form-group {
+	min-width: 0;
+	margin: 0;
+}
+.procurement-form-ui .purchase-invoice-dates-fields .control-label {
+	margin-bottom: 3px;
+	font-size: 12px;
+}
+.procurement-form-ui .purchase-invoice-dates-fields .control-input-wrapper {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 3px 4px;
+}
+.procurement-form-ui .purchase-invoice-dates-fields .control-input .form-control {
+	min-height: 30px;
+	height: 30px;
+	padding-inline: 8px;
+	background: var(--card-bg);
+	font-size: 13px;
+}
+.procurement-form-ui .purchase-invoice-dates-fields .control-value.like-disabled-input {
+	min-height: 0;
+	padding: 0;
+	background: transparent;
+	font-weight: 600;
+}
+.procurement-form-ui .purchase-invoice-dates-fields .help-box {
+	grid-column: 1 / -1;
+}
+.procurement-form-ui .purchase-invoice-date-picker {
+	display: none;
+	grid-column: 2;
+	grid-row: 1;
+}
+.procurement-form-ui .control-input-wrapper:has(> .control-input:not(.hide)) > .purchase-invoice-date-picker {
+	display: inline-flex;
+}
+.procurement-form-ui
+	.section-body:has(> .purchase-invoice-details-card)
+	> .form-column:not(:has(.frappe-control:not(.hide-control, .purchase-invoice-summary-field))) {
+	display: none;
+}
+.procurement-form-ui
+	:is(.payment-entry-party-card, .purchase-invoice-supplier-card, .purchase-invoice-payer-card)
+	.procurement-created-card-heading {
 	align-items: center;
 	gap: 10px 16px;
 }
-.procurement-form-ui .payment-entry-party-card .ent-name {
+.procurement-form-ui
+	:is(.payment-entry-party-card, .purchase-invoice-supplier-card, .purchase-invoice-payer-card)
+	.ent-name,
+.procurement-form-ui .purchase-invoice-payer-card .ent-sub {
 	white-space: normal;
 	overflow-wrap: anywhere;
 }
-.procurement-form-ui .payment-entry-party-card .payment-entry-party-requisites {
+.procurement-form-ui .purchase-invoice-payer-card > .purchase-invoice-payer-contact {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.procurement-form-ui .purchase-invoice-payer-card > .procurement-supplier-actions {
+	margin-top: 12px;
+}
+.procurement-form-ui .purchase-invoice-contact-cards {
+	display: grid;
+	flex: 0 0 100%;
+	width: 100%;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+	gap: 12px;
+	margin-bottom: 12px;
+}
+.procurement-form-ui .purchase-invoice-contact-cards .ent-name {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui .purchase-invoice-contact-cards .procurement-supplier-actions,
+.procurement-form-ui .purchase-invoice-address-text {
+	margin-top: 10px;
+}
+.procurement-form-ui .purchase-invoice-address-text {
+	white-space: pre-line;
+}
+.procurement-form-ui .purchase-invoice-payer-note {
+	margin: 10px 0 0;
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui :is(.payment-entry-party-requisites, .purchase-invoice-requisites) {
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
 }
-.procurement-form-ui .payment-entry-party-requisites dd {
+.procurement-form-ui :is(.payment-entry-party-requisites, .purchase-invoice-requisites) dd {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 	font-weight: 600;
 }
-.procurement-form-ui .payment-entry-party-copy {
+.procurement-form-ui :is(.payment-entry-party-copy, .purchase-invoice-requisite-copy) {
 	flex: none;
 	color: var(--procurement-accent);
 }
-.procurement-form-ui .payment-entry-invoice-links {
+.procurement-form-ui :is(.payment-entry-invoice-links, .purchase-invoice-header-links) {
 	display: grid;
 	justify-items: end;
 	gap: 5px;
 	text-align: end;
 }
-.procurement-form-ui .payment-entry-invoice-references {
+.procurement-form-ui :is(.payment-entry-invoice-references, .purchase-invoice-source-reference) {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-end;
@@ -492,7 +632,20 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	color: var(--procurement-muted);
 	font-size: 12px;
 }
-.procurement-form-ui #payment-entry-supplier-invoices {
+.procurement-form-ui .purchase-invoice-owner {
+	align-items: center;
+	gap: 4px 8px;
+}
+.procurement-form-ui .purchase-invoice-owner > span:not(.ent) {
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui .purchase-invoice-header-links {
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+.procurement-form-ui #payment-entry-supplier-invoices,
+.procurement-form-ui .purchase-invoice-file-anchor {
 	scroll-margin-top: 9rem;
 }
 .payment-entry-single-tab,
@@ -1058,13 +1211,16 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	border-radius: 10px;
 	background: var(--procurement-tint);
 }
-.procurement-form-ui .form-section[data-fieldname="totals_section"] {
+.procurement-consolidated-form .form-section[data-fieldname="totals_section"],
+.procurement-form-ui .form-section.purchase-invoice-totals-card {
 	padding-bottom: 18px;
 }
-.procurement-form-ui .form-section[data-fieldname="totals_section"] > .section-head {
+.procurement-consolidated-form .form-section[data-fieldname="totals_section"] > .section-head,
+.procurement-form-ui .purchase-invoice-final-totals > .section-head {
 	padding-bottom: 12px;
 }
-.procurement-form-ui .form-section[data-fieldname="totals_section"] > .section-body {
+.procurement-consolidated-form .form-section[data-fieldname="totals_section"] > .section-body,
+.procurement-form-ui .form-section.purchase-invoice-totals-card > .section-body {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 12px 20px;
@@ -1072,25 +1228,38 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	border-radius: 10px;
 	background: var(--procurement-tint);
 }
-.procurement-form-ui [data-fieldname="totals_section"] .form-column,
-.procurement-form-ui [data-fieldname="totals_section"] .form-column > form {
+.procurement-form-ui .form-section.purchase-invoice-totals-card > .section-body {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+	border: 1px solid var(--procurement-border);
+}
+:is(.procurement-consolidated-form [data-fieldname="totals_section"], .procurement-form-ui .purchase-invoice-totals-card)
+	.form-column,
+:is(.procurement-consolidated-form [data-fieldname="totals_section"], .procurement-form-ui .purchase-invoice-totals-card)
+	.form-column > form {
 	display: contents;
 }
-.procurement-form-ui [data-fieldname="totals_section"] .form-column > form > .frappe-control,
-.procurement-form-ui [data-fieldname="totals_section"] .form-group {
+.procurement-consolidated-form [data-fieldname="totals_section"] .form-column > form > .frappe-control,
+.procurement-consolidated-form [data-fieldname="totals_section"] .form-group,
+.procurement-form-ui .purchase-invoice-totals-card > .section-body .form-column > form > .frappe-control,
+.procurement-form-ui .purchase-invoice-totals-card .form-group {
 	margin: 0;
 	min-width: 0;
 }
-.procurement-form-ui
+.procurement-consolidated-form
 	[data-fieldname="totals_section"]
-	:is([data-fieldname="total_qty"], [data-fieldname="grand_total"]) {
+	:is([data-fieldname="total_qty"], [data-fieldname="grand_total"]),
+.procurement-form-ui
+	.purchase-invoice-totals-card
+	:is([data-fieldname="total_qty"], [data-fieldname="total"], [data-fieldname="net_total"]) {
 	order: -1;
 }
-.procurement-form-ui [data-fieldname="totals_section"] .control-label {
+:is(.procurement-consolidated-form [data-fieldname="totals_section"], .procurement-form-ui .purchase-invoice-totals-card)
+	.control-label {
 	margin-bottom: 3px;
 	font-size: 12px;
 }
-.procurement-form-ui [data-fieldname="totals_section"] .control-value.like-disabled-input {
+:is(.procurement-consolidated-form [data-fieldname="totals_section"], .procurement-form-ui .purchase-invoice-totals-card)
+	.control-value.like-disabled-input {
 	min-height: 0;
 	padding: 0;
 	background: transparent;
@@ -1100,10 +1269,91 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	font-variant-numeric: tabular-nums;
 	overflow-wrap: anywhere;
 }
-.procurement-form-ui [data-fieldname="totals_section"] [data-fieldname="grand_total"] .control-value {
+.procurement-consolidated-form [data-fieldname="totals_section"] [data-fieldname="grand_total"] .control-value,
+.procurement-form-ui
+	.purchase-invoice-totals-card
+	:is([data-fieldname="total"], [data-fieldname="grand_total"], [data-fieldname="base_grand_total"])
+	.control-value {
 	color: var(--procurement-accent);
 }
-.procurement-form-ui [data-fieldname="totals_section"] [data-fieldname="custom_vat_totals"] {
+.supplier-vat-totals {
+	margin: 8px 0;
+	font-size: var(--text-sm);
+}
+.supplier-vat-totals span::after {
+	content: ":";
+}
+.procurement-form-ui .purchase-invoice-final-totals {
+	container-type: inline-size;
+}
+.procurement-form-ui .form-section.purchase-invoice-final-totals > .section-body {
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.procurement-form-ui .purchase-invoice-final-totals .frappe-control {
+	grid-column: span 2;
+}
+.procurement-form-ui
+	.purchase-invoice-final-totals
+	:is([data-fieldname="rounded_total"], [data-fieldname="base_rounded_total"]) {
+	order: -1;
+}
+.procurement-form-ui
+	.purchase-invoice-final-totals
+	:is([data-fieldname="grand_total"], [data-fieldname="base_grand_total"]) {
+	order: -2;
+}
+.procurement-form-ui
+	.purchase-invoice-final-totals
+	:is([data-fieldname="custom_supplier_vat_totals"], [data-fieldname="in_words"], [data-fieldname="base_in_words"]) {
+	grid-column: 1 / -1;
+	order: 1;
+}
+.procurement-form-ui .purchase-invoice-final-totals [data-fieldname="custom_supplier_vat_totals"]:empty {
+	display: none;
+}
+.procurement-form-ui
+	.purchase-invoice-final-totals
+	:is([data-fieldname="in_words"], [data-fieldname="base_in_words"])
+	.control-value {
+	font-weight: 400;
+}
+.procurement-form-ui .purchase-invoice-final-totals [data-fieldtype="Check"] {
+	grid-column: span 3;
+	order: 2;
+}
+.procurement-form-ui .purchase-invoice-final-totals .supplier-vat-totals {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+	gap: 8px 20px;
+	margin: 0;
+	padding-block: 10px;
+	border-block: 1px solid var(--procurement-border);
+}
+.procurement-form-ui .purchase-invoice-final-totals .supplier-vat-totals span {
+	display: block;
+	color: var(--procurement-muted);
+	font-size: 12px;
+}
+.procurement-form-ui .purchase-invoice-final-totals .supplier-vat-totals span::after {
+	content: none;
+}
+.procurement-form-ui .purchase-invoice-final-totals .supplier-vat-totals strong {
+	font-variant-numeric: tabular-nums;
+}
+@container (max-width: 480px) {
+	.procurement-form-ui .form-section.purchase-invoice-final-totals > .section-body {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.procurement-form-ui .purchase-invoice-final-totals .frappe-control {
+		grid-column: auto;
+	}
+	.procurement-form-ui
+		.purchase-invoice-final-totals
+		:is([data-fieldname="custom_supplier_vat_totals"], [data-fieldname="in_words"], [data-fieldname="base_in_words"], [data-fieldtype="Check"]) {
+		grid-column: 1 / -1;
+	}
+}
+.procurement-consolidated-form [data-fieldname="totals_section"] [data-fieldname="custom_vat_totals"] {
 	grid-column: 1 / -1;
 	order: 1;
 }
@@ -1726,7 +1976,7 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 	.procurement-form-ui .procurement-prepaid-summary {
 		grid-area: purchased-end / 1 / span 1 / -1;
 	}
-	.procurement-form-ui .form-section[data-fieldname="totals_section"] > .section-body {
+	.procurement-consolidated-form .form-section[data-fieldname="totals_section"] > .section-body {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 	.procurement-form-ui .procurement-form-header {
@@ -1738,6 +1988,14 @@ body:has(.procurement-guide.is-grid:not([hidden], .is-selecting)) #freeze.grid-f
 		flex-direction: row;
 		align-items: center;
 		flex-wrap: wrap;
+	}
+	.procurement-form-ui .purchase-invoice-header-links {
+		flex-basis: 100%;
+		justify-items: start;
+		text-align: start;
+	}
+	.procurement-form-ui .purchase-invoice-source-reference {
+		justify-content: flex-start;
 	}
 	.procurement-form-ui .form-section > .section-body > .form-column {
 		flex: 1 1 100%;

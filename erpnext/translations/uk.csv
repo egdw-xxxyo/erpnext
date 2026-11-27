@@ -14659,6 +14659,9 @@ Consolidated Purchase Order,Зведене замовлення на придб�
 New Consolidated Purchase Order,Нове зведене замовлення на придбання
 New Material Request,Нове замовлення матеріалів
 New Payment Entry,Нова оплата
+New Incoming Invoice,Новий вхідний рахунок-фактура
+Created from a consolidated purchase order,Створено на основі зведеного замовлення на придбання
+Created from a recurring purchase,Створено на основі регулярної закупівлі
 According to invoice,Згідно з рахунком
 Use New Procurement UI,Увімкнути новий інтерфейс закупівель
 Return to Standard Frappe UI,Повернутися до стандартного інтерфейсу Frappe
