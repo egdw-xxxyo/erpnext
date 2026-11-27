@@ -1187,7 +1187,9 @@ def create_firmware_fields():
 
 def add_firmware_flashing_shortcut():
 	"""Put the flashing page on the Manufacturing workspace (runtime, not the stock workspace JSON)."""
-	if not frappe.db.exists("Workspace", "Manufacturing") or not frappe.db.exists("Page", "firmware-flashing"):
+	if not frappe.db.exists("Workspace", "Manufacturing") or not frappe.db.exists(
+		"Page", "firmware-flashing"
+	):
 		return
 
 	label = "Прошивка плат"
@@ -1201,6 +1203,9 @@ def add_firmware_flashing_shortcut():
 	content = json.loads(workspace.content or "[]")
 	content.append({"id": "firmwareFlashing", "type": "shortcut", "data": {"shortcut_name": label, "col": 3}})
 	workspace.content = json.dumps(content)
+	# Other shortcuts of this workspace point at documents that no longer exist; validating
+	# them would fail the whole patch over rows that are not ours.
+	workspace.flags.ignore_links = True
 	workspace.save(ignore_permissions=True)
 	print("  Added Manufacturing workspace shortcut: Firmware Flashing")
 
