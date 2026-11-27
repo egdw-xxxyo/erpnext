@@ -18286,3 +18286,8 @@ Verifying,Перевірка
 Restarting the board…,Перезапуск плати…
 Live log,Живий журнал
 Not stored. Gone on reload,Не зберігається. Зникає після перезавантаження
+"Fill in before submitting: {0}","Перед проведенням заповніть: {0}"
+Already Superseded,Вже замінена
+"Revision is entered as history: on submit it becomes superseded right away and the document's revision in force stays as it is","Редакцію вносять як історію: після проведення вона одразу стає «Замінена», а чинна редакція документа не змінюється"
+Expiry Date,Дата завершення,Technical Document Revision
+Revision,Редакція,Technical Document Revision

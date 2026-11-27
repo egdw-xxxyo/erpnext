@@ -404,11 +404,11 @@ function revisions_html(panel) {
 		summary([`${__("Revisions")}: ${panel.total}`, `${__("In force")}: ${panel.effective}`]) +
 		table(
 			[
-				__("Revision"),
+				__("Revision", null, "Technical Document Revision"),
 				__("Title"),
 				__("Status"),
 				__("Effective Date"),
-				__("Expiry Date"),
+				__("Expiry Date", null, "Technical Document Revision"),
 				__("Change Basis"),
 				__("Files"),
 			],
