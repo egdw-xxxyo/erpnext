@@ -2,17 +2,22 @@
 
 A BOM operation names the `Firmware` the unit receives there. The Job Card of that operation
 carries the frozen `Firmware Version`, and the bench works the cards like any other operation:
-take the next open card, flash its serial and firmware onto the board, close the card. The serial
-is the one the Job Card already holds, so what is written to the board, what is on the label and
-what is in stock are the same number. On close the version is stored on the unit as the
+take the next open card, flash its firmware and a board serial onto the board, close the card.
+The board serial is not the ERP serial (the firmware reads at most 12 characters): it is minted
+from the prefix of the item's `Serial Number Template` plus a 6-digit counter and stored next to
+the ERP serial on the `Serial No`, so either number finds the other. The label carries the board
+serial, the one the board shows. On close the firmware version is stored on the unit as the
 «Прошивка» attribute of its `Serial No`.
 
 The board is reached by the browser (see the `firmware-flashing` page); this module only builds
 the image, keeps the audit trail (`Flash Attempt`) and closes the card.
 """
 
+import re
+
 import frappe
 from frappe import _
+from frappe.model.naming import make_autoname
 from frappe.utils import now_datetime
 
 from erpnext.manufacturing import uf2
@@ -164,11 +169,13 @@ def _payload(attempt):
 	card = frappe.db.get_value(
 		"Job Card", attempt.job_card, ["production_item", "item_name", "work_order"], as_dict=True
 	)
+	board = attempt.board_serial or attempt.serial_no
 	return {
 		"attempt": attempt.name,
 		"job_card": attempt.job_card,
 		"work_order": card.work_order,
 		"serial_no": attempt.serial_no,
+		"board_serial": board,
 		"item_code": card.production_item,
 		"item_name": card.item_name,
 		"firmware": attempt.firmware,
@@ -177,12 +184,12 @@ def _payload(attempt):
 		"sha256": version.sha256,
 		"image_size": version.image_size,
 		"release_notes": version.release_notes,
-		"file_name": f"{attempt.serial_no}.uf2",
+		"file_name": f"{board}.uf2",
 		"instructions": profile.instructions,
 		"verify_mode": profile.verify_mode,
 		"verify_baud": profile.verify_baud,
 		"verify_timeout": profile.verify_timeout,
-		"verify_pattern": (profile.verify_pattern or "").replace("{serial}", attempt.serial_no),
+		"verify_pattern": (profile.verify_pattern or "").replace("{serial}", board),
 	}
 
 
@@ -193,6 +200,33 @@ def _own_attempt(name, statuses=("In Progress",)):
 	if attempt.owner != frappe.session.user and "Manufacturing Manager" not in frappe.get_roles():
 		frappe.throw(_("Flash attempt {0} belongs to another operator").format(name), frappe.PermissionError)
 	return attempt
+
+
+def board_serial_for(serial_no, item_code):
+	"""The number written into the board for this unit: template prefix + 6-digit counter.
+
+	Minted once and kept on the `Serial No`, so a retry or a reflash of the same unit gets the
+	same number and an abandoned attempt wastes nothing.
+	"""
+	existing = frappe.db.get_value("Serial No", serial_no, "board_serial")
+	if existing:
+		return existing
+
+	template = frappe.db.get_value("Item", item_code, "serial_number_template")
+	prefix = template and frappe.db.get_value("Serial Number Template", template, "board_serial_prefix")
+	if not prefix:
+		frappe.throw(
+			_("Serial number template of {0} has no board serial prefix").format(frappe.bold(item_code))
+		)
+	if not re.fullmatch(r"[A-Z0-9]{6}", prefix):
+		frappe.throw(_("Board serial prefix {0} must be 6 characters A-Z or 0-9").format(frappe.bold(prefix)))
+
+	board_serial = make_autoname(f"{prefix}.######")
+	if len(board_serial) != 12:
+		frappe.throw(_("Board serial numbers with prefix {0} are used up").format(frappe.bold(prefix)))
+
+	frappe.db.set_value("Serial No", serial_no, "board_serial", board_serial, update_modified=False)
+	return board_serial
 
 
 # --- endpoints -----------------------------------------------------------------------------
@@ -225,6 +259,7 @@ def get_overview(workplace=None):
 		fields=[
 			"name",
 			"serial_no",
+			"board_serial",
 			"job_card",
 			"status",
 			"firmware_version",
@@ -276,13 +311,15 @@ def next_board(workplace=None, item_code=None):
 		profile = frappe.get_doc("Flashing Profile", firmware.flashing_profile)
 		if profile.disabled:
 			frappe.throw(_("Flashing profile {0} is disabled").format(profile.name))
-		uf2.normalize_serial(serial, profile.serial_max_length, profile.serial_magic.encode("ascii"))
+		board_serial = board_serial_for(serial, card.production_item)
+		uf2.normalize_serial(board_serial, profile.serial_max_length, profile.serial_magic.encode("ascii"))
 
 		attempt = frappe.get_doc(
 			{
 				"doctype": "Flash Attempt",
 				"job_card": card.name,
 				"serial_no": serial,
+				"board_serial": board_serial,
 				"status": "In Progress",
 				"workplace": workplace,
 				"employee": _employee(),
@@ -321,14 +358,14 @@ def get_image(attempt):
 	layout = profile.layout()
 	image = uf2.build_image(
 		data,
-		attempt.serial_no,
+		attempt.board_serial or attempt.serial_no,
 		layout["family_id"],
 		layout["record_address"],
 		layout["magic"],
 		layout["max_length"],
 	)
 	frappe.response["type"] = "download"
-	frappe.response["filename"] = f"{attempt.serial_no}.uf2"
+	frappe.response["filename"] = f"{attempt.board_serial or attempt.serial_no}.uf2"
 	frappe.response["filecontent"] = image
 
 
@@ -340,7 +377,9 @@ def confirm(attempt, console_line=None, verified_by="Operator"):
 	profile = frappe.get_doc("Flashing Profile", attempt.flashing_profile)
 
 	if verified_by == "Console":
-		expected = (profile.verify_pattern or "").replace("{serial}", attempt.serial_no)
+		expected = (profile.verify_pattern or "").replace(
+			"{serial}", attempt.board_serial or attempt.serial_no
+		)
 		if not console_line or expected not in console_line:
 			frappe.throw(
 				_("The board did not report {0}. It said: {1}").format(
@@ -415,3 +454,22 @@ def record_version(serial_no, firmware_version):
 		return
 
 	apply_attributes_to_serials([serial_no], [frappe._dict(attribute=ATTRIBUTE, value=value, notes=None)])
+
+
+@frappe.whitelist()
+def get_serial_by_board(board_serial):
+	"""The ERP serial a board number belongs to, with the firmware it was flashed with."""
+	_check_roles()
+	serial = (board_serial or "").strip().upper()
+	name = frappe.db.get_value("Serial No", {"board_serial": serial}, "name")
+	if not name:
+		frappe.throw(_("No unit carries board serial {0}").format(frappe.bold(serial)))
+
+	attempt = frappe.db.get_value(
+		"Flash Attempt",
+		{"serial_no": name, "status": "Done"},
+		["name", "firmware_version", "finished_on"],
+		as_dict=True,
+		order_by="finished_on desc",
+	)
+	return {"serial_no": name, "board_serial": serial, "last_flash": attempt}

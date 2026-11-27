@@ -8,6 +8,7 @@ class FlashAttempt(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		board_serial: DF.Data | None
 		console_line: DF.SmallText | None
 		employee: DF.Link | None
 		failure_reason: DF.SmallText | None

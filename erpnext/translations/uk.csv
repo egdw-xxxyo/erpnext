@@ -18264,3 +18264,8 @@ Write to board,Записати на плату
 {0} flashed. Stick the label {0},{0} прошито. Наклейте етикетку {0}
 "{0} must be a hexadecimal number, got {1}","{0} має бути шістнадцятковим числом, отримано {1}"
 {serial} is replaced by the serial; the line must contain the result,{serial} замінюється на серійний номер; рядок має містити результат
+Board Serial,Серійний номер плати
+Serial number template of {0} has no board serial prefix,Шаблон серійного номера товару {0} не має префікса серійного номера плати
+Board serial prefix {0} must be 6 characters A-Z or 0-9,Префікс серійного номера плати {0} має містити 6 символів A-Z або 0-9
+Board serial numbers with prefix {0} are used up,Номери плат з префіксом {0} вичерпано
+No unit carries board serial {0},Жоден виріб не має серійного номера плати {0}

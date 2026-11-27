@@ -102,17 +102,32 @@ class FirmwareFlashing {
 		const $box = $(`
 			<div class="frappe-card" style="padding:20px;margin-bottom:15px;">
 				<div class="text-muted">${esc(c.item_name || c.item_code)} · ${__("Job Card")} ${esc(c.job_card)}</div>
-				<div style="font-size:32px;font-weight:600;letter-spacing:1px;margin:6px 0;">${esc(c.serial_no)}</div>
+				<div style="font-size:32px;font-weight:600;letter-spacing:1px;margin:6px 0;">${esc(c.board_serial)}</div>
+				<div class="text-muted" style="margin-bottom:6px;">${__("Serial No")}: ${esc(c.serial_no)}</div>
 				<div style="margin-bottom:12px;">
 					<i class="fa fa-file-code-o"></i> ${esc(c.firmware)} <b>${esc(c.version)}</b>
 					<span class="text-muted" style="margin-left:8px;">SHA-256 ${esc((c.sha256 || "").slice(0, 12))}…</span>
 				</div>
 				<div class="flash-instructions" style="margin-bottom:15px;">${c.instructions || ""}</div>
 				<div class="flash-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-					${can_write ? `<button class="btn btn-primary btn-write"><i class="fa fa-usb"></i> ${__("Write to board")}</button>` : ""}
+					${
+						can_write
+							? `<button class="btn btn-primary btn-write"><i class="fa fa-usb"></i> ${__(
+									"Write to board"
+							  )}</button>`
+							: ""
+					}
 					<button class="btn btn-default btn-download"><i class="fa fa-download"></i> ${__("Download UF2")}</button>
-					${can_serial ? `<button class="btn btn-default btn-verify"><i class="fa fa-plug"></i> ${__("Verify via console")}</button>` : ""}
-					<button class="btn btn-success btn-confirm"><i class="fa fa-check"></i> ${__("Board shows this serial")}</button>
+					${
+						can_serial
+							? `<button class="btn btn-default btn-verify"><i class="fa fa-plug"></i> ${__(
+									"Verify via console"
+							  )}</button>`
+							: ""
+					}
+					<button class="btn btn-success btn-confirm"><i class="fa fa-check"></i> ${__(
+						"Board shows this serial"
+					)}</button>
 					<button class="btn btn-danger btn-fail"><i class="fa fa-times"></i> ${__("Failed")}</button>
 					<button class="btn btn-default btn-release">${__("Put back")}</button>
 				</div>
@@ -218,7 +233,9 @@ class FirmwareFlashing {
 
 		if (!found) {
 			this.set_status(
-				__("The board did not report {0}. Reset it and try again, or confirm from the screen", [c.verify_pattern]),
+				__("The board did not report {0}. Reset it and try again, or confirm from the screen", [
+					c.verify_pattern,
+				]),
 				"var(--red-600)"
 			);
 			return;
@@ -233,7 +250,7 @@ class FirmwareFlashing {
 			freeze: true,
 			callback: () => {
 				frappe.show_alert({
-					message: __("{0} flashed. Stick the label {0}", [c.serial_no]),
+					message: __("{0} flashed. Stick the label {0}", [c.board_serial]),
 					indicator: "green",
 				});
 				this.current = null;
@@ -268,7 +285,7 @@ class FirmwareFlashing {
 	render_tables(data) {
 		const esc = frappe.utils.escape_html;
 		const $waiting = $('<div style="margin-bottom:15px;"></div>').appendTo(this.$root);
-		$('<h5></h5>').text(__("Waiting")).appendTo($waiting);
+		$("<h5></h5>").text(__("Waiting")).appendTo($waiting);
 		new erpnext.DataTable({
 			parent: $waiting,
 			storage_key: "firmware-flashing-waiting",
@@ -278,7 +295,13 @@ class FirmwareFlashing {
 				{ key: "item_code", label: __("Item"), pin: true, html: (r) => esc(r.item_code) },
 				{ key: "firmware", label: __("Firmware"), html: (r) => esc(r.firmware) },
 				{ key: "version", label: __("Version"), html: (r) => esc(r.version || "—") },
-				{ key: "count", label: __("Boards"), align: "right", value: (r) => flt(r.count), html: (r) => r.count },
+				{
+					key: "count",
+					label: __("Boards"),
+					align: "right",
+					value: (r) => flt(r.count),
+					html: (r) => r.count,
+				},
 			],
 		});
 
@@ -290,11 +313,25 @@ class FirmwareFlashing {
 			max_height: "320px",
 			rows: data.recent || [],
 			columns: [
-				{ key: "serial_no", label: __("Serial No"), pin: true, html: (r) => esc(r.serial_no) },
+				{
+					key: "board_serial",
+					label: __("Board Serial"),
+					pin: true,
+					html: (r) => esc(r.board_serial || ""),
+				},
+				{ key: "serial_no", label: __("Serial No"), html: (r) => esc(r.serial_no) },
 				{ key: "status", label: __("Status"), html: (r) => esc(__(r.status)) },
 				{ key: "firmware_version", label: __("Version"), html: (r) => esc(r.firmware_version || "") },
-				{ key: "verified_by", label: __("Verified By"), html: (r) => esc(r.verified_by ? __(r.verified_by) : "") },
-				{ key: "owner", label: __("Operator"), html: (r) => erpnext.entity.user(r.owner, { size: 18 }) },
+				{
+					key: "verified_by",
+					label: __("Verified By"),
+					html: (r) => esc(r.verified_by ? __(r.verified_by) : ""),
+				},
+				{
+					key: "owner",
+					label: __("Operator"),
+					html: (r) => erpnext.entity.user(r.owner, { size: 18 }),
+				},
 				{
 					key: "finished_on",
 					label: __("Finished"),
