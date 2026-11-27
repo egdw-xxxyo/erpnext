@@ -18,10 +18,6 @@ frappe.ui.form.on("Sick Leave Case", {
 
 		if (frm.doc.docstatus !== 1) return;
 
-		if (cint(frm.doc.fund_days) && !frm.doc.je_fund_receipt) {
-			frm.add_custom_button(__("Money Received from Fund"), () => ask_receipt(frm), __("Fund"));
-		}
-
 		if (frm.doc.je_fund_receipt && !frm.doc.fund_paid_date) {
 			frm.add_custom_button(__("Pay Fund Part to Employee"), () => ask_payment(frm), __("Fund"));
 		}
@@ -90,6 +86,7 @@ frappe.ui.form.on("Sick Leave Case", {
 });
 
 const SOCIAL_STATUS_COLORS = {
+	"Not Required": "gray",
 	"Not Requested": "gray",
 	"Requested, Waiting for Money": "orange",
 	"Money Received, Waiting for Payment": "purple",
@@ -98,18 +95,44 @@ const SOCIAL_STATUS_COLORS = {
 
 function add_social_buttons(frm) {
 	const group = __("Social Security");
-	const actions = [
-		["Requested, Waiting for Money", __("Social Security Calculation Application")],
-		["Money Received, Waiting for Payment", __("Confirmation of Calculation Application Payment")],
-		["Paid by Social Security", __("Confirmation of Social Security Payouts")],
-		["Not Requested", __("Not Requested")],
+	const flow = [
+		["Not Requested", __("Not Requested"), __("Not Requested")],
+		["Requested, Waiting for Money", __("Application Submitted"), __("Requested, Waiting for Money")],
+		[
+			"Money Received, Waiting for Payment",
+			__("Confirm Money Received"),
+			__("Money Received, Waiting for Payment"),
+		],
+		["Paid by Social Security", __("Confirm Payment"), __("Paid by Social Security")],
 	];
+	const current = flow.findIndex(([status]) => status === frm.doc.social_status);
+	const add = (status, label) => frm.add_custom_button(label, () => set_social_status(frm, status), group);
+	let shown = false;
 
-	actions
-		.filter(([status]) => status !== frm.doc.social_status)
-		.forEach(([status, label]) => {
-			frm.add_custom_button(label, () => set_social_status(frm, status), group);
-		});
+	if (current >= 0 && current + 1 < flow.length) {
+		add(flow[current + 1][0], flow[current + 1][1]);
+		shown = true;
+	}
+
+	if (current > 0) {
+		if (shown) frm.page.add_divider_to_button_group(group);
+		add(flow[current - 1][0], __("Back to: {0}", [flow[current - 1][2]]));
+		shown = true;
+	}
+
+	const others = [
+		...flow.map(([status, , label], index) => [status, label, index]),
+		["Not Required", __("Not Required"), -1],
+	].filter(
+		([status, , index]) =>
+			status !== frm.doc.social_status &&
+			(index < 0 || current < 0 || (index !== current + 1 && index !== current - 1))
+	);
+
+	if (others.length) {
+		if (shown) frm.page.add_divider_to_button_group(group);
+		others.forEach(([status, label]) => add(status, label));
+	}
 
 	frm.dashboard.add_comment(
 		`${__("Social Security Status")}: <b>${__(frm.doc.social_status || "Not Requested")}</b>` +
@@ -122,6 +145,16 @@ function add_social_buttons(frm) {
 }
 
 function set_social_status(frm, status) {
+	if (
+		status === "Money Received, Waiting for Payment" &&
+		frm.doc.docstatus === 1 &&
+		cint(frm.doc.fund_days) &&
+		!frm.doc.je_fund_receipt
+	) {
+		ask_receipt(frm);
+		return;
+	}
+
 	frappe.prompt(
 		[
 			{
@@ -213,34 +246,76 @@ function show_average_dialog(frm) {
 	}
 
 	function render(data) {
-		const cells = (fn) => data.rows.map((row) => `<td class="text-right">${fn(row)}</td>`).join("");
+		const cells = (fn) =>
+			data.rows
+				.map((row) =>
+					row.no_data
+						? `<td class="text-right text-muted">—</td>`
+						: `<td class="text-right">${fn(row)}</td>`
+				)
+				.join("");
 		const row = (label, total, fn) =>
 			`<tr><td><b>${label}</b></td><td class="text-right">${total}</td>${cells(fn)}</tr>`;
 		const note = [];
 
-		if (data.from_salary) note.push(__("No earnings in the period — taken from the official salary."));
-		if (data.capped)
+		const empty = data.rows.filter((r) => r.no_data).map((r) => r.label);
+		if (empty.length)
 			note.push(
-				__("Capped: {0} a day instead of {1}.", [money(data.limit), money(data.uncapped)])
+				__("No earnings data for: {0} (Payroll Sheet or Earnings Before ERP).", [empty.join(", ")])
 			);
+		if (empty.length)
+			note.push(__("Full history of the employee: Employee card → Salary tab → Earnings by Month."));
+		if (data.from_salary) note.push(__("No earnings in the period — taken from the official salary."));
+		if (data.short_tenure)
+			note.push(
+				__(
+					"Insurance record is {0} months (under 6): the daily wage cannot exceed the minimum wage for the period {1} / {2} = {3}.",
+					[data.tenure_months, money(data.limit_wages), data.limit_days, money(data.limit)]
+				)
+			);
+		else
+			note.push(
+				__("Insurance record is {0} months — the minimum wage rule applies below 6 months.", [
+					data.tenure_months,
+				])
+			);
+		if (data.capped)
+			note.push(__("Capped: {0} a day instead of {1}.", [money(data.limit), money(data.uncapped)]));
 
 		dialog.get_field("table").$wrapper.html(`
 			<div style="overflow-x:auto">
 			<table class="table table-bordered table-sm">
 				<tr><th></th><th class="text-right">${__("Total")}</th>
 					${data.rows.map((r) => `<th class="text-right">${r.label}</th>`).join("")}</tr>
-				${row(__("Earnings"), money(data.earnings), (r) => money(r.earnings))}
+				<tr><td><b>${__("Source")}</b></td><td></td>${data.rows
+			.map(
+				(r) =>
+					`<td class="text-right ${r.source ? "" : "text-muted"}">${
+						{ ERP: __("ERP"), "Before ERP": __("Before ERP"), Salary: __("Salary on card") }[
+							r.source
+						] || __("No data")
+					}</td>`
+			)
+			.join("")}</tr>
+				${row(__("Earnings"), data.from_salary ? "" : money(data.earnings), (r) => money(r.earnings))}
 				${row(__("Days in Month"), "", (r) => r.month_days)}
 				${row(__("Unpaid Leave Days"), "", (r) => r.unpaid_days || "")}
 				${row(__("Sick Days"), "", (r) => r.sick_days || "")}
-				${row(__("Days Worked (calendar)"), data.days, (r) => r.worked_days)}
+				${row(__("Days Worked (calendar)"), data.from_salary ? "" : data.days, (r) => r.worked_days)}
+				${row(__("Minimum Wage"), data.from_salary ? "" : money(data.minimum_wages), (r) =>
+					r.minimum_wage ? money(r.minimum_wage) : ""
+				)}
 			</table></div>
-			<p><b>${__("Average Daily Wage")}:</b> ${money(data.earnings)} / ${data.days} = ${money(data.uncapped)}
+			<p><b>${__("Average Daily Wage")}:</b> ${
+			data.from_salary ? `${money(data.salary)} / 30.44` : `${money(data.earnings)} / ${data.days}`
+		} = ${money(data.uncapped)}
 				→ <b>${money(data.average)}</b></p>
 			${note.length ? `<p class="text-muted">${note.join("<br>")}</p>` : ""}
 			${
 				frm.doc.average_override
-					? `<p class="text-muted">${__("Now set by hand: {0} a day.", [money(frm.doc.average_override)])}</p>`
+					? `<p class="text-muted">${__("Now set by hand: {0} a day.", [
+							money(frm.doc.average_override),
+					  ])}</p>`
 					: ""
 			}`);
 	}
@@ -253,9 +328,6 @@ function show_status(frm) {
 	const colors = {
 		Open: "orange",
 		Closed: "blue",
-		"Employer Paid": "yellow",
-		"Fund Received": "purple",
-		Paid: "green",
 		Cancelled: "red",
 	};
 	frm.page.set_indicator(__(frm.doc.status), colors[frm.doc.status] || "gray");

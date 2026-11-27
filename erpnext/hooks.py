@@ -59,7 +59,7 @@ masked_fields = ["erpnext.access_control.sensitive.masked_fields"]
 
 sensitive_data_methods = {
 	"Salary History": ["erpnext.payroll_ua.salary_history."],
-	"data-import-center": ["erpnext.import_center.engine."],
+	"import-file": ["erpnext.import_center.engine."],
 	"access-console": [
 		"erpnext.access_control.console.",
 		"erpnext.access_control.impersonation.get_users",
@@ -319,6 +319,7 @@ after_migrate = [
 	"erpnext.buying.buying_sidebar.add_buying_links",
 	"erpnext.stock.stock_sidebar.add_stock_links",
 	"erpnext.access_control.sidebar.add_access_links",
+	"erpnext.import_center.data_sidebar.add_data_links",
 	"erpnext.access_control.company_access.sync_all",
 ]
 
@@ -768,7 +769,14 @@ doc_events = {
 		"before_submit": "erpnext.stock.serial_receipt_guard.block_unreceived",
 	},
 	# the route of a unit: which BOM step puts it into stock, and the steps after that
-	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
+	"BOM": {
+		"validate": [
+			"erpnext.manufacturing.unit_route.validate_bom",
+			"erpnext.manufacturing.flashing.validate_bom_firmware",
+		]
+	},
+	# a card of a flashing operation freezes the firmware version it will flash
+	"Job Card": {"before_insert": "erpnext.manufacturing.flashing.stamp_job_card"},
 	# a unit waiting for packing is stock but not sellable
 	"Delivery Note": {
 		"before_submit": [

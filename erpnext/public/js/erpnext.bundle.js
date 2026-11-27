@@ -38,6 +38,7 @@ import "./payroll/vacation_pay_sheet_view";
 import "./utils/attendance_details";
 import "./utils/leave_pay";
 import "./utils/package_list_table";
+import "./utils/data_table";
 import "./telephony";
 import "./templates/call_link.html";
 import "./bulk_transaction_processing";

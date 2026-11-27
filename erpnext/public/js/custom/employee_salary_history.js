@@ -45,8 +45,18 @@ function render(frm, history) {
 	const field = frm.get_field("custom_salary_history_html");
 	if (!field) return;
 
+	const button = () => {
+		if (!frappe.model.can_read("Payroll Sheet") || !erpnext.show_employee_earnings) return;
+
+		$(`<button class="btn btn-default btn-sm" style="margin-top: 8px">
+			<i class="fa fa-history"></i> ${__("Earnings by Month")}</button>`)
+			.appendTo(field.$wrapper)
+			.on("click", () => erpnext.show_employee_earnings(frm));
+	};
+
 	if (!history.length) {
 		field.$wrapper.html(`<p class="text-muted">${__("No salary structure assigned yet.")}</p>`);
+		button();
 		return;
 	}
 
@@ -92,6 +102,7 @@ function render(frm, history) {
 		</table>`;
 
 	field.$wrapper.html(html);
+	button();
 }
 
 // Ставки живуть у «Налаштуваннях зарплатних податків» — беремо їх звідти, а не з коду,

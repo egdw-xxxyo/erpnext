@@ -1,15 +1,27 @@
 frappe.listview_settings["Sick Leave Case"] = {
-	add_fields: ["status", "closed", "fund_days", "social_status"],
+	add_fields: ["status", "fund_days", "social_status"],
 	get_indicator(doc) {
 		const colors = {
 			Open: "orange",
 			Closed: "blue",
-			"Employer Paid": "yellow",
-			"Fund Received": "purple",
-			Paid: "green",
 			Cancelled: "red",
 		};
 		return [__(doc.status), colors[doc.status] || "gray", `status,=,${doc.status}`];
+	},
+	formatters: {
+		social_status(value) {
+			const colors = {
+				"Not Required": "blue",
+				"Not Requested": "gray",
+				"Requested, Waiting for Money": "orange",
+				"Money Received, Waiting for Payment": "purple",
+				"Paid by Social Security": "green",
+			};
+			const status = value || "Not Requested";
+
+			return `<span class="indicator-pill ${colors[status] || "gray"} ellipsis" title="${__(status)}">
+				<span class="ellipsis">${__(status)}</span></span>`;
+		},
 	},
 	onload(listview) {
 		listview.page.add_inner_button(__("Waiting for Fund"), () => {
@@ -17,7 +29,12 @@ frappe.listview_settings["Sick Leave Case"] = {
 				.clear()
 				.then(() =>
 					listview.filter_area.add([
-						["Sick Leave Case", "status", "in", ["Employer Paid", "Fund Received"]],
+						[
+							"Sick Leave Case",
+							"social_status",
+							"in",
+							["Requested, Waiting for Money", "Money Received, Waiting for Payment"],
+						],
 					])
 				);
 		});

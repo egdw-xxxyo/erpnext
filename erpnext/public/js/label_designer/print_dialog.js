@@ -20,7 +20,7 @@ erpnext.label_designer.open_print_dialog = async function (label_template, opts 
 	const ctx = r.message;
 	if (!ctx) return;
 
-	const hooks = { refresh: () => {}, note: () => {} };
+	const hooks = { refresh: () => {}, printer: () => {} };
 	const printers = ctx.printers || [];
 	const printer_by_name = Object.fromEntries(printers.map((p) => [p.name, p]));
 	const input_fields = (ctx.inputs || []).map((row) => {
@@ -46,7 +46,7 @@ erpnext.label_designer.open_print_dialog = async function (label_template, opts 
 			reqd: 1,
 			default: opts.label_printer || ctx.default_printer,
 			get_query: () => ({ filters: { is_enabled: 1 } }),
-			onchange: () => hooks.note(),
+			onchange: () => hooks.printer(),
 		},
 		{ fieldname: "printer_note", fieldtype: "HTML" },
 		{ fieldname: "copies", fieldtype: "Int", label: __("Quantity"), reqd: 1, default: opts.copies || 1 },
@@ -75,6 +75,14 @@ erpnext.label_designer.open_print_dialog = async function (label_template, opts 
 		fields,
 		primary_action_label: __("Print"),
 		primary_action: (values) => {
+			const state = label_state(printer_by_name[values.label_printer]);
+			if (state === "changing" || state === "mismatch") {
+				frappe.show_alert({
+					message: __("Wrong label size in the printer — change the label first."),
+					indicator: "red",
+				});
+				return;
+			}
 			const inputs = collect_inputs(values);
 			frappe.call({
 				method: `${LT_METHOD}.print_from_template`,
@@ -105,20 +113,122 @@ erpnext.label_designer.open_print_dialog = async function (label_template, opts 
 		return out;
 	};
 
+	const PRINTER_API = "erpnext.devices.doctype.label_printer.label_printer";
+	const esc = frappe.utils.escape_html;
+
+	const reload_printer = (name) =>
+		frappe.db
+			.get_value("Label Printer", name, [
+				"name",
+				"loaded_label_size",
+				"is_label_change_in_progress",
+				"pending_label_size",
+				"mock_printing",
+			])
+			.then((res) => {
+				if (res.message) printer_by_name[name] = { ...printer_by_name[name], ...res.message, name };
+				show_printer_note();
+			});
+
+	const label_state = (p) => {
+		if (!p) return "none";
+		if (p.is_label_change_in_progress) return "changing";
+		if (!p.loaded_label_size) return "unknown";
+		return p.loaded_label_size === ctx.label_size ? "ok" : "mismatch";
+	};
+
 	const show_printer_note = () => {
-		const p = printer_by_name[d.get_value("label_printer")];
+		const name = d.get_value("label_printer");
+		const p = printer_by_name[name];
+		const state = label_state(p);
+		const box = (color, html, buttons = "") =>
+			`<div class="alert alert-${color} small" style="margin:0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+				<span style="flex:1;min-width:200px;">${html}</span>${buttons}</div>`;
+		const button = (action, label, primary) =>
+			`<button class="btn btn-xs ${primary ? "btn-primary" : "btn-default"}" data-label-action="${action}">${label}</button>`;
+		const change = button("start", __("Change Label to {0}", [esc(ctx.label_size)]), true);
 		let note = "";
-		if (p && p.loaded_label_size && p.loaded_label_size !== ctx.label_size) {
-			note = `<div class="alert alert-warning small" style="margin:0 0 8px;">${__(
-				"Printer has {0} loaded, the template needs {1}.",
-				[frappe.utils.escape_html(p.loaded_label_size), frappe.utils.escape_html(ctx.label_size)]
-			)}</div>`;
-		} else if (p && p.mock_printing) {
-			note = `<div class="text-muted small" style="margin:0 0 8px;">${__(
+
+		if (state === "changing") {
+			note = box(
+				"warning",
+				__("Printer is changing labels to {0}. Load the labels, then confirm.", [
+					`<b>${esc(p.pending_label_size || ctx.label_size)}</b>`,
+				]),
+				button("complete", __("Labels Loaded"), true) + button("cancel", __("Cancel Change"))
+			);
+		} else if (state === "mismatch") {
+			note = box(
+				"danger",
+				__("Printer has {0} loaded, the template needs {1}.", [
+					`<b>${esc(p.loaded_label_size)}</b>`,
+					`<b>${esc(ctx.label_size)}</b>`,
+				]),
+				change
+			);
+		} else if (state === "unknown") {
+			note = box(
+				"warning",
+				__("Printer has no loaded label size set; the template needs {0}.", [
+					`<b>${esc(ctx.label_size)}</b>`,
+				]),
+				change
+			);
+		} else if (state === "ok") {
+			note = `<div class="small" style="margin:0 0 8px;color:var(--green-600);">
+				<i class="fa fa-check"></i> ${__("Loaded label: {0} — matches the template.", [
+					esc(p.loaded_label_size),
+				])}</div>`;
+		}
+
+		if (p && p.mock_printing) {
+			note += `<div class="text-muted small" style="margin:0 0 8px;">${__(
 				"Mock printing: nothing is sent to the device."
 			)}</div>`;
 		}
+
 		d.fields_dict.printer_note.$wrapper.html(note);
+
+		if (state === "changing" || state === "mismatch") d.disable_primary_action();
+		else d.enable_primary_action();
+	};
+
+	const label_action = (action) => {
+		const name = d.get_value("label_printer");
+		const p = printer_by_name[name];
+		if (!name || !p) return;
+
+		const calls = {
+			start: () =>
+				frappe.call({
+					method: `${PRINTER_API}.start_label_change`,
+					args: {
+						printer_name: name,
+						new_label_size: ctx.label_size,
+						message: __("Changing to {0}", [ctx.label_size]),
+					},
+				}),
+			complete: () => {
+				const size = p.pending_label_size || ctx.label_size;
+				return frappe
+					.call({
+						method: `${PRINTER_API}.complete_label_change`,
+						args: { printer_name: name, new_label_size: size },
+					})
+					.then((res) => {
+						let message = __("Labels changed to {0}", [size]);
+						const cancelled = res.message && res.message.cancelled_jobs;
+						if (cancelled) message += ". " + __("{0} mismatched jobs cancelled", [cancelled]);
+						frappe.show_alert({ message, indicator: "green" });
+					});
+			},
+			cancel: () =>
+				frappe
+					.call({ method: `${PRINTER_API}.cancel_label_change`, args: { printer_name: name } })
+					.then(() => frappe.show_alert({ message: __("Label change cancelled"), indicator: "blue" })),
+		};
+
+		calls[action]().then(() => reload_printer(name));
 	};
 
 	let timer = null;
@@ -167,8 +277,15 @@ erpnext.label_designer.open_print_dialog = async function (label_template, opts 
 	erpnext.label_designer.inject_style();
 	d.show();
 	hooks.refresh = refresh_preview;
-	hooks.note = show_printer_note;
-	show_printer_note();
+	hooks.printer = () => {
+		const name = d.get_value("label_printer");
+		if (name) reload_printer(name);
+		else show_printer_note();
+	};
+	d.fields_dict.printer_note.$wrapper.on("click", "[data-label-action]", (event) =>
+		label_action($(event.currentTarget).data("label-action"))
+	);
+	hooks.printer();
 	refresh_preview();
 	return d;
 };

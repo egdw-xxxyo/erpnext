@@ -4,26 +4,20 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-11-23 10:00:00.000000",
+ "modified": "2026-11-25 19:00:00.000000",
  "modified_by": "Administrator",
- "module": "Import Center",
- "name": "data-import-center",
+ "module": "Setup",
+ "name": "import-file",
  "owner": "Administrator",
- "page_name": "Import Center",
+ "page_name": "File Import",
  "roles": [
   {
-   "role": "HR Manager"
-  },
-  {
-   "role": "HR User"
-  },
-  {
-   "role": "System Manager"
+   "role": "Desk User"
   }
  ],
  "script": null,
  "standard": "Yes",
  "style": null,
  "system_page": 0,
- "title": "Import Center"
+ "title": "File Import"
 }

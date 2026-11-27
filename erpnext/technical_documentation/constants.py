@@ -125,6 +125,7 @@ AUDIT_STATUS_CHANGED = "Зміна статусу"
 AUDIT_RESPONSIBLE_CHANGED = "Зміна відповідального"
 AUDIT_ARCHIVED = "Архівовано"
 AUDIT_CANCELLED = "Скасовано"
+AUDIT_FILE_ADDED = "Додано файл"
 AUDIT_OTHER = "Інше"
 
 AUDIT_EVENTS = (
@@ -135,6 +136,7 @@ AUDIT_EVENTS = (
 	AUDIT_RESPONSIBLE_CHANGED,
 	AUDIT_ARCHIVED,
 	AUDIT_CANCELLED,
+	AUDIT_FILE_ADDED,
 	AUDIT_OTHER,
 )
 
@@ -151,3 +153,5 @@ TYPE_DOCTYPE = "Technical Document Type"
 AUDIT_DOCTYPE = "Technical Document Audit Entry"
 MODIFICATION_DOCTYPE = "Product Modification"
 ATTRIBUTE_DOCTYPE = "Product Attribute"
+
+REVISION_FILE_FIELDS = ("word_file", "pdf_file", "signed_scan", "additional_attachment")

@@ -21,16 +21,23 @@ def visible_roles(roles) -> list[str]:
 	return [role for role in roles if role not in PSEUDO_ROLES]
 
 
+def _not_found(target: str | None) -> dict:
+	return {"kind": "not_found", "target": target}
+
+
 def _resolve_slug(slug: str) -> dict | None:
 	if frappe.db.exists("Page", slug):
 		return {"kind": "page", "page": slug}
-	doctype = frappe.db.get_value("DocType", {"name": denial_rules.slug_to_name(slug), "istable": 0}, "name")
-	return denial_rules.doctype_context(doctype, None, "read")
+	name = denial_rules.slug_to_name(slug)
+	doctype = frappe.db.get_value("DocType", name, ["name", "istable"], as_dict=True)
+	if doctype:
+		return None if doctype.istable else denial_rules.doctype_context(doctype.name, None, "read")
+	return None if frappe.db.exists("Workspace", name) else _not_found(slug)
 
 
 def _resolve_report(report: str) -> dict | None:
 	if not frappe.db.exists("Report", report):
-		return None
+		return _not_found(report)
 	doc = frappe.get_doc("Report", report)
 	if (
 		doc.is_permitted()
@@ -43,7 +50,9 @@ def _resolve_report(report: str) -> dict | None:
 
 def _resolve_doctype(context: dict) -> dict | None:
 	istable = frappe.db.get_value("DocType", context["doctype"], "istable")
-	if istable is None or istable:
+	if istable is None:
+		return _not_found(context["doctype"])
+	if istable:
 		return None
 	if context["name"] and not frappe.db.exists(context["doctype"], context["name"]):
 		return {**context, "name": None}
@@ -55,7 +64,8 @@ def resolve(context: dict | None) -> dict | None:
 		return None
 	resolvers = {
 		"page_or_doctype": lambda: _resolve_slug(context["slug"]),
-		"page": lambda: context if frappe.db.exists("Page", context["page"]) else None,
+		"page": lambda: context if frappe.db.exists("Page", context["page"]) else _not_found(context["page"]),
+		"not_found": lambda: _not_found(context.get("target")),
 		"report": lambda: _resolve_report(context["report"]),
 		"doctype": lambda: _resolve_doctype(context),
 	}
@@ -130,6 +140,13 @@ def describe(context: dict, user: str) -> dict:
 		return _page_denial(context["page"], roles)
 	if kind == "report":
 		return _report_denial(context["report"], roles)
+	if kind == "not_found":
+		return {
+			"title": context.get("target"),
+			"granting_roles": {},
+			"allowed": False,
+			"blockers": ["not_found"],
+		}
 	return {"title": None, "granting_roles": {}, "allowed": False, "blockers": []}
 
 
@@ -191,7 +208,7 @@ def get_denial(context: str | dict | None = None) -> dict:
 		"sensitive_locked": bool(target and sensitive.is_locked(target)),
 		"pending": pending_request(user, context),
 		"has_managers": bool(access_managers(exclude=user)),
-		"can_request": user != "Administrator",
+		"can_request": user != "Administrator" and context.get("kind") != "not_found",
 		"rights": doctype_rights(context["doctype"]) if context.get("kind") == "doctype" else [],
 		**{key: value for key, value in describe(context, user).items() if key not in REQUESTER_HIDDEN},
 	}
@@ -215,6 +232,10 @@ def create_request(
 	rights: str | list | None = None,
 ):
 	context = _context(context)
+	if context.get("kind") == "not_found":
+		frappe.throw(
+			_("{0} does not exist, there is nothing to request access to").format(context.get("target"))
+		)
 	doc = frappe.get_doc(
 		{
 			"doctype": "Access Request",

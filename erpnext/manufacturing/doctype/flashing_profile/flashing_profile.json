@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "autoname": "field:profile_name",
+ "creation": "2026-11-27 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "profile_name",
+  "disabled",
+  "description",
+  "target_section",
+  "family_id",
+  "flash_base",
+  "target_col",
+  "serial_offset",
+  "serial_magic",
+  "serial_max_length",
+  "verify_section",
+  "verify_mode",
+  "verify_baud",
+  "verify_col",
+  "verify_pattern",
+  "verify_timeout",
+  "steps_section",
+  "instructions"
+ ],
+ "fields": [
+  {
+   "fieldname": "profile_name",
+   "fieldtype": "Data",
+   "label": "Profile Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "target_section",
+   "fieldtype": "Section Break",
+   "label": "Target"
+  },
+  {
+   "fieldname": "family_id",
+   "fieldtype": "Data",
+   "label": "UF2 Family ID",
+   "reqd": 1,
+   "default": "0xE48BFF56",
+   "description": "RP2040 = 0xE48BFF56"
+  },
+  {
+   "fieldname": "flash_base",
+   "fieldtype": "Data",
+   "label": "Flash Base Address",
+   "reqd": 1,
+   "default": "0x10000000"
+  },
+  {
+   "fieldname": "target_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_offset",
+   "fieldtype": "Data",
+   "label": "Serial Record Offset",
+   "reqd": 1,
+   "default": "0x7F000",
+   "description": "Offset from the flash base, a sector the firmware never writes"
+  },
+  {
+   "fieldname": "serial_magic",
+   "fieldtype": "Data",
+   "label": "Serial Record Magic",
+   "reqd": 1,
+   "default": "TTSN"
+  },
+  {
+   "fieldname": "serial_max_length",
+   "fieldtype": "Int",
+   "label": "Serial Max Length",
+   "reqd": 1,
+   "default": "12"
+  },
+  {
+   "fieldname": "verify_section",
+   "fieldtype": "Section Break",
+   "label": "Verification"
+  },
+  {
+   "fieldname": "verify_mode",
+   "fieldtype": "Select",
+   "label": "Verification",
+   "options": "Console\nOperator",
+   "default": "Console",
+   "description": "Console: the board prints its serial over USB serial after the reboot. Operator: the operator reads it off the screen"
+  },
+  {
+   "fieldname": "verify_baud",
+   "fieldtype": "Int",
+   "label": "Console Baud Rate",
+   "default": "115200",
+   "depends_on": "eval:doc.verify_mode=='Console'"
+  },
+  {
+   "fieldname": "verify_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "verify_pattern",
+   "fieldtype": "Data",
+   "label": "Console Line Pattern",
+   "default": "SN {serial}",
+   "description": "{serial} is replaced by the serial; the line must contain the result",
+   "depends_on": "eval:doc.verify_mode=='Console'"
+  },
+  {
+   "fieldname": "verify_timeout",
+   "fieldtype": "Int",
+   "label": "Verification Timeout (s)",
+   "default": "20"
+  },
+  {
+   "fieldname": "steps_section",
+   "fieldtype": "Section Break",
+   "label": "Operator Steps"
+  },
+  {
+   "fieldname": "instructions",
+   "fieldtype": "Text Editor",
+   "label": "Instructions",
+   "description": "Shown to the operator next to the board"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-27 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Flashing Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Manufacturing Manager",
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Manufacturing User",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "profile_name",
+ "track_changes": 1
+}

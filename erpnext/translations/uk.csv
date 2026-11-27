@@ -14441,6 +14441,7 @@ Requires Completeness,Потребує контролю комплектност
 Parent Section,Батьківський розділ
 Expiry date cannot be earlier than the effective date,Дата завершення не може бути раніше за дату набуття чинності
 Revision {0} is already in force for document {1},Редакція {0} уже є чинною для документа {1}
+"A file already attached to a submitted revision cannot be replaced or removed: {0}","Файл, уже прикріплений до проведеної редакції, не можна замінити чи видалити: {0}"
 Revision {0} belongs to another document,Редакція {0} належить іншому документу
 Revision {0} is not submitted and cannot be the current one,Редакція {0} не проведена і не може бути чинною
 Revision {0} has status {1} and cannot be the current one,Редакція {0} має статус {1} і не може бути чинною
@@ -17982,6 +17983,11 @@ No Effect,Без змін
 User Disabled,Користувач вимкнений
 Extra Company,Додаткова компанія
 Incapacity Case,Випадок непрацездатності
+Close Case,Закрити випадок
+Reopen Case,Відкрити випадок знову
+Draft Sick Leave Cases,Чернетки випадків лікарняного
+Submit or delete the draft sick leave cases before closing the incapacity case.,Проведіть або видаліть чернетки випадків лікарняного перед закриттям випадку непрацездатності.
+Incapacity case {0} is closed — reopen it to add a sick leave case.,Випадок непрацездатності {0} закрито — відкрийте його знову, щоб додати випадок лікарняного.
 Incapacity Cases,Випадки непрацездатності
 Case Number,Номер випадку
 Certificate (ЕЛН),Листок непрацездатності (ЕЛН)
@@ -18030,6 +18036,7 @@ No earnings in the period — taken from the official salary.,Заробітку
 Capped: {0} a day instead of {1}.,Обмежено: {0} за день замість {1}.
 Now set by hand: {0} a day.,Зараз задано вручну: {0} за день.
 Import Center,Центр імпорту
+File Import,Імпорт файлів
 Import Script,Скрипт імпорту
 Import Run,Запуск імпорту
 Import Script Marker,Маркер скрипту імпорту
@@ -18094,3 +18101,174 @@ The script must define {0}().,Скрипт має визначати {0}().
 The script must not use {0}.,Скрипт не може використовувати {0}.
 Syntax error in the script: {0},Синтаксична помилка в скрипті: {0}
 Preview Layout is not valid JSON.,Макет перегляду — не коректний JSON.
+
+Pension Fund: Individual Insured Person Data,Пенсійний фонд: індивідуальні відомості про застраховану особу
+Insurance record by month from the Pension Fund statement (insurwrkex): stored in the employee card, the employee is found by the tax number.,Страховий стаж по місяцях із виписки Пенсійного фонду (insurwrkex): зберігається в картці працівника, працівника знаходимо за РНОКПП.
+Earnings Before ERP: Spreadsheet,Заробіток до ERP: таблиця
+Official earnings of past months (columns: РНОКПП, Місяць, Заробіток) into Earnings Before ERP of the employee.,Офіційний заробіток минулих місяців (колонки: РНОКПП, Місяць, Заробіток) до «Заробітку до ERP» працівника.
+Official Earnings,Офіційний заробіток
+
+No earnings data for: {0} (Payroll Sheet or Earnings Before ERP).,Немає даних про заробіток за: {0} (відомість зарплати або «Заробіток до ERP»).
+
+No sick leave cases yet.,Випадків лікарняного ще немає.
+Employer / Fund Days,Дні роботодавця / фонду
+Accrued,Нараховано
+Case,Випадок
+"Insurance record is {0} months (under 6): the daily wage cannot exceed the minimum wage for the period {1} / {2} = {3}.","Страховий стаж {0} міс. (менше 6): середньоденна не може перевищувати мінімальну зарплату за період {1} / {2} = {3}."
+Insurance record is {0} months — the minimum wage rule applies below 6 months.,Страховий стаж {0} міс. — обмеження мінімальною зарплатою діє за стажу менше 6 місяців.
+No data,Немає даних
+Salary on card,Оклад з картки
+"Full history of the employee: Employee card → Salary tab → Earnings by Month.","Уся історія працівника: картка працівника → вкладка «Зарплата» → «Заробіток по місяцях»."
+Not Required,Не потрібно
+Change Label to {0},Змінити етикетку на {0}
+Printer is changing labels to {0}. Load the labels, then confirm.,"Принтер у режимі заміни етикетки на {0}. Заправте етикетку, потім підтвердіть."
+Labels Loaded,Етикетку заправлено
+Printer has no loaded label size set; the template needs {0}.,У принтері не вказано заправлену етикетку; шаблону потрібно {0}.
+Loaded label: {0} — matches the template.,Заправлено етикетку {0} — відповідає шаблону.
+Wrong label size in the printer — change the label first.,У принтері етикетка іншого розміру — спершу замініть етикетку.
+This page or document does not exist. The link may be broken or out of date,"Такої сторінки або документа не існує. Можливо, посилання помилкове або застаріле"
+Requested address,Запитана адреса
+Values that are not allowed,"Значення, які не дозволені"
+You already have the access from your request {0}. Reload the page to use it,"Доступ із вашого запиту {0} у вас уже є. Оновіть сторінку, щоб ним скористатися"
+Checked: values of this document the user is not allowed to work with yet. Unchecked: values that still block other documents of this type,"Позначені — значення цього документа, з якими користувачу ще не дозволено працювати. Непозначені — значення, які ще блокують інші документи цього типу"
+Where the value is allowed,Де дозволити значення
+Only in {0},Лише в «{0}»
+In every document type,У всіх типах документів
+blocks {0} more documents,блокує ще документів: {0}
+"The values are allowed in every document type that uses them, not only in {0}","Значення дозволяються в усіх типах документів, що їх використовують, а не лише в «{0}»"
+"The values are allowed only in {0}, other document types keep the current limits","Значення дозволяються лише в «{0}», в інших типах документів обмеження лишаються як є"
+"After approval the user can open {0} of {1} documents {2}, before: {3}","Після схвалення користувач зможе відкрити {0} з {1} документів «{2}», зараз: {3}"
+latest {0} only,лише останні {0}
+Still blocked by values the user is not allowed to work with,"Ще заблоковано значеннями, з якими користувачу не дозволено працювати"
+Counts only the User Permission limits. The user's roles may still restrict some documents,Враховано лише обмеження дозволів користувача. Ролі користувача можуть додатково обмежувати частину документів
+Check again,Перевірити ще раз
+"The user already has this access, the request is closed","Цей доступ у користувача вже є, запит закрито"
+Still no access,Доступу все ще немає
+The user still does not have this access. Approve or reject the request,У користувача досі немає цього доступу. Схваліть або відхиліть запит
+Already Granted,Доступ уже є
+only {0},лише {0}
+all document types,усі типи документів
+Choose where the value is allowed,"Оберіть, де дозволити значення"
+"The request does not name what was refused, it cannot be checked again","У запиті не вказано, в чому відмовлено, тож перевірити його ще раз неможливо"
+The user already has this access,Цей доступ у користувача вже є
+You already have the access you asked for: {0}. Reload the page to use it,"Доступ, який ви просили, у вас уже є: {0}. Оновіть сторінку, щоб ним скористатися"
+"{0} does not exist, there is nothing to request access to","{0} не існує, тож доступ до нього запитати неможливо"
+field «{0}»,поле «{0}»
+"table «{0}», field «{1}», rows {2}","таблиця «{0}», поле «{1}», рядки {2}"
+"table «{0}», field «{1}»","таблиця «{0}», поле «{1}»"
+is not in the user's permissions,немає в дозволах користувача
+is not in your permissions,немає у ваших дозволах
+Where: {0},Де трапляється: {0}
+documents: {0},документів: {0}
+Remove Last Item,Видалити останню позицію
+No items to remove,Немає позицій для видалення
+Removed {0},Видалено {0}
+Remove the last item from this packed Package?,Видалити останню позицію з цього запакованого Package?
+Only a packed Package can have its last item removed,Видалити останню позицію можна лише в запакованому Package
+Package {0} is linked to Shipment {1},Package {0} пов’язаний з відправленням {1}
+Insurer Code,Код страхувальника
+Insurer Name,Назва страхувальника
+New insurers,Нові страхувальники
+Insurers,Страхувальники
+Insured Days and Earnings by Month,Застраховані дні та заробіток по місяцях
+Pension Fund: Form OK-5,Пенсійний фонд: форма ОК-5
+"Year {0}: the file says {1}, the table gives {2}","Рік {0}: у файлі {1}, за таблицею {2}"
+EDRPOU code of the employer in the Pension Fund register.,Код ЄДРПОУ роботодавця в реєстрі Пенсійного фонду.
+"Only {0} and later are shown and their earnings imported. Earnings of earlier years are ignored; the insurance record of all years is still checked and only the missing months are added.","Показано і імпортується заробіток лише з {0} року. Заробіток за попередні роки ігнорується; страховий стаж за всі роки все одно перевіряється, додаються лише відсутні місяці."
+Application Submitted,Заявку оформлено
+Confirm Money Received,Підтвердити надходження коштів
+Confirm Payment,Підтвердити оплату
+Back to: {0},Повернути до: {0}
+A released version cannot go back to draft,Випущена версія не може повернутися в чернетку
+A withdrawn version cannot be released again. Create a new version instead,Відкликану версію не можна випустити знову. Створіть нову версію
+Attach the UF2 file first,Спочатку прикріпіть файл UF2
+Board shows this serial,Плата показує цей номер
+Boards,Плат
+Boards waiting for flashing,Плат очікує прошивки
+Building the image…,Готується образ…
+Built firmware (.uf2). Locked once released,Зібрана прошивка (.uf2). Після випуску блокується
+Console Baud Rate,Швидкість консолі (бод)
+Console Baud Rate is required for console verification,Для перевірки через консоль потрібна швидкість консолі
+Console Line,Рядок консолі
+Console Line Pattern,Шаблон рядка консолі
+Console Line Pattern must contain {0},Шаблон рядка консолі має містити {0}
+Console: the board prints its serial over USB serial after the reboot. Operator: the operator reads it off the screen,Console: плата після перезавантаження друкує номер у USB-консоль. Operator: оператор зчитує номер з екрана
+Copy the downloaded file to the RPI-RP2 drive,Скопіюйте завантажений файл на диск RPI-RP2
+Could not build the image ({0}),Не вдалося підготувати образ ({0})
+Could not open the board's console,Не вдалося відкрити консоль плати
+Download UF2,Завантажити UF2
+Failure Reason,Причина збою
+File {0} not found,Файл {0} не знайдено
+Finished,Завершено
+Finished On,Завершено о
+Firmware Flashing,Прошивка плат
+Firmware Version,Версія прошивки
+Firmware file of {0} changed after release,Файл прошивки {0} змінено після випуску
+Firmware version {0} has no serial attribute value,Версія прошивки {0} не має значення атрибута серійного номера
+Firmware {0} has no released version. Release one before flashing {1},Прошивка {0} не має випущеної версії. Випустіть версію перед прошивкою {1}
+Flash Attempt,Спроба прошивки
+Flash Base Address,Базова адреса флешу
+Flash attempt {0} belongs to another operator,Спроба прошивки {0} належить іншому оператору
+Flash attempt {0} is {1},Спроба прошивки {0}: {1}
+Flashing Profile,Профіль прошивки
+Flashing failed,Прошивка не вдалася
+Flashing profile {0} is disabled,Профіль прошивки {0} вимкнено
+Image SHA-256,SHA-256 образу
+Latest Released Version,Остання випущена версія
+Log it and put the board back,Записати та повернути плату
+Next board,Наступна плата
+No board is waiting for flashing at this workplace,На цьому робочому місці немає плат для прошивки
+Not a UF2 file: bad block at offset {0},Це не UF2: пошкоджений блок зі зміщенням {0}
+Not a UF2 file: its size is not a multiple of {0},Це не UF2: розмір не кратний {0}
+"Offset from the flash base, a sector the firmware never writes","Зміщення від бази флешу, сектор, у який прошивка ніколи не пише"
+Operator Steps,Кроки оператора
+Profile Name,Назва профілю
+Put back,Повернути
+RP2040 = 0xE48BFF56,RP2040 = 0xE48BFF56
+Recent,Останні
+Release Notes,Примітки до випуску
+Released,Випущено
+Released On,Випущено
+Row {0}: firmware {1} is disabled,Рядок {0}: прошивку {1} вимкнено
+SHA-256,SHA-256
+Serial Attribute,Атрибут серійного номера
+Serial Attribute Value,Значення атрибута серійного номера
+Serial Max Length,Макс. довжина серійного номера
+Serial Max Length must be between 1 and 200,Макс. довжина серійного номера має бути від 1 до 200
+Serial Record Magic,Маркер запису серійного номера
+Serial Record Magic must be 1-8 printable ASCII characters,Маркер запису серійного номера: 1-8 друкованих ASCII-символів
+Serial Record Offset,Зміщення запису серійного номера
+Serial record is longer than {0} bytes,Запис серійного номера довший за {0} байт
+"Serial {0} cannot be written to the board: 1-{1} characters, A-Z 0-9 . - : / _ +","Серійний номер {0} не можна записати на плату: 1-{1} символів, A-Z 0-9 . - : / _ +"
+Shown to the operator next to the board,Показується оператору поруч із платою
+Size (bytes),Розмір (байт)
+The board did not report {0}. It said: {1},Плата не повідомила {0}. Вона відповіла: {1}
+"The board did not report {0}. Reset it and try again, or confirm from the screen","Плата не повідомила {0}. Перезавантажте її й спробуйте ще раз, або підтвердіть за екраном"
+The file of a released version cannot be replaced. Create a new version instead,Файл випущеної версії не можна замінити. Створіть нову версію
+"The firmware is built for family {0}, the profile expects {1}","Прошивку зібрано для родини {0}, а профіль очікує {1}"
+"The firmware reaches 0x{0}, overlapping the serial sector at 0x{1}",Прошивка сягає 0x{0} і перекриває сектор серійного номера за адресою 0x{1}
+The serial number attribute that records the installed version,"Атрибут серійного номера, що зберігає встановлену версію"
+UF2 Blocks,Блоків UF2
+UF2 Family ID,ID родини UF2
+UF2 File,Файл UF2
+Unknown verification {0},Невідомий спосіб перевірки {0}
+Verification,Перевірка
+Verification Timeout (s),Час очікування перевірки (с)
+Verify via console,Перевірити через консоль
+Version,Версія
+Version {0} is used by Job Card {1} and cannot be deleted,"Версія {0} використана в Job Card {1}, її не можна видалити"
+Versions,Версії
+Waiting,Очікують
+Waiting for {0}…,Очікування {0}…
+What went wrong,Що пішло не так
+Withdrawn,Відкликано
+Write to board,Записати на плату
+"Written. Wait for the board to restart, then verify",Записано. Дочекайтесь перезавантаження плати й виконайте перевірку
+{0} flashed. Stick the label {0},{0} прошито. Наклейте етикетку {0}
+"{0} must be a hexadecimal number, got {1}","{0} має бути шістнадцятковим числом, отримано {1}"
+{serial} is replaced by the serial; the line must contain the result,{serial} замінюється на серійний номер; рядок має містити результат
+Board Serial,Серійний номер плати
+Serial number template of {0} has no board serial prefix,Шаблон серійного номера товару {0} не має префікса серійного номера плати
+Board serial prefix {0} must be 6 characters A-Z or 0-9,Префікс серійного номера плати {0} має містити 6 символів A-Z або 0-9
+Board serial numbers with prefix {0} are used up,Номери плат з префіксом {0} вичерпано
+No unit carries board serial {0},Жоден виріб не має серійного номера плати {0}

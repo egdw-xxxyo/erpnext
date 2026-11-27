@@ -2,14 +2,14 @@
 
 const IMPORT_CENTER = "erpnext.import_center.engine";
 
-frappe.pages["data-import-center"].on_page_load = function (wrapper) {
+frappe.pages["import-file"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Import Center"),
+		title: __("File Import"),
 		single_column: true,
 	});
 	const state = { run: null, data: null };
-	const $body = $(`<div class="import-center" style="padding: 12px 0"></div>`).appendTo(page.main);
+	const $body = $(`<div class="import-center" style="padding: 16px 24px"></div>`).appendTo(page.main);
 
 	page.set_secondary_action(__("New Import"), () => reset(), "refresh");
 
@@ -101,8 +101,8 @@ frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 	function render(data) {
 		const script = data.script;
 		const head = `
-			<h4>${esc(script.title)}</h4>
-			${script.description ? `<p class="text-muted">${esc(script.description)}</p>` : ""}`;
+			<h4>${esc(__(script.title))}</h4>
+			${script.description ? `<p class="text-muted">${esc(__(script.description))}</p>` : ""}`;
 		const missing = script.missing_permissions || [];
 
 		if (missing.length) {
@@ -112,9 +112,8 @@ frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 		}
 
 		if (data.status === "Uploaded") {
-			$body.html(`${head}${change_fields_html(script)}
-				<button class="btn btn-primary btn-sm ic-parse">${__("Read the File")}</button>`);
-			return $body.find(".ic-parse").on("click", start_parse);
+			$body.html(`${head}${bar("parse", __("Reading the file"))}`);
+			return start_parse();
 		}
 
 		if (data.status === "Parsing") {
@@ -149,6 +148,10 @@ frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 		render_parsed(data, head);
 	}
 
+	function show_value(value) {
+		return /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? frappe.datetime.str_to_user(value) : value;
+	}
+
 	function change_fields_html(script) {
 		if (!script.change_fields.length) return "";
 		return `<p class="text-muted" style="margin-top:12px">${__(
@@ -164,10 +167,7 @@ frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 	}
 
 	function start_parse() {
-		frappe.call({ method: `${IMPORT_CENTER}.start_parse`, args: { run: state.run } }).then(() => {
-			$body.html(bar("parse", __("Reading the file")));
-			load();
-		});
+		frappe.call({ method: `${IMPORT_CENTER}.start_parse`, args: { run: state.run } }).then(() => load());
 	}
 
 	function render_parsed(data, head) {
@@ -181,7 +181,7 @@ frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 		const changes = (data.plan || []).reduce((n, i) => n + (i.changes || []).length, 0);
 		const blocked = (data.plan || []).some((i) => !i.name);
 
-		$body.html(`${head}${warnings}${preview}${plan}
+		$body.html(`${head}${change_fields_html(data.script)}${warnings}${preview}${plan}
 			<div style="margin-top:14px">
 				<button class="btn btn-primary btn-sm ic-import" ${changes && !blocked ? "" : "disabled"}>
 					<i class="fa fa-check"></i> ${__("Import")}${changes ? ` (${changes})` : ""}</button>
@@ -213,7 +213,7 @@ frappe.pages["data-import-center"].on_page_load = function (wrapper) {
 					const key = typeof c === "string" ? c : c.key;
 					const label = typeof c === "string" ? c : c.label;
 					return `<tr><td class="text-muted" style="width:45%">${esc(__(label))}</td><td>${esc(
-						(source || {})[key]
+						show_value((source || {})[key])
 					)}</td></tr>`;
 				})
 				.join("")}</table>`;

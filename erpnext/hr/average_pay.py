@@ -30,6 +30,8 @@ from erpnext.hr import payroll_tax
 EMPLOYER_SICK_DAYS = 5
 
 # Середня кількість календарних днів місяця — нею ділять оклад, коли заробітку в періоді немає.
+# Коли заробіток є, обмеження ділиться на ті самі дні, що й заробіток: мінімальна зарплата
+# за кожен місяць періоду, поділена на календарні дні періоду.
 AVERAGE_MONTH_DAYS = 30.44
 
 # Максимальна база нарахування ЄСВ — стільки мінімальних зарплат; вища зарплата лікарняні не збільшує.
@@ -249,6 +251,7 @@ def monthly_earnings(employee, months: list) -> dict:
 
 	for row in opening:
 		result[getdate(row.month).replace(day=1)] = frappe._dict(
+			source="Before ERP",
 			earnings=flt(row.earnings),
 			sick_pay=flt(row.sick_pay),
 			sick_days=flt(row.sick_days),
@@ -278,6 +281,7 @@ def monthly_earnings(employee, months: list) -> dict:
 
 		for row in paid:
 			result[sheets[row.parent]] = frappe._dict(
+				source="ERP",
 				earnings=flt(row.earned_official),
 				sick_pay=flt(row.sick_pay),
 				sick_days=flt(row.sick_calendar_days),
@@ -317,7 +321,8 @@ def _add_paid_vacation(employee, months: list, result: dict):
 
 	for row in paid:
 		month = result.setdefault(
-			sheets[row.parent], frappe._dict(earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0)
+			sheets[row.parent],
+			frappe._dict(source="ERP", earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0),
 		)
 		month.earnings += flt(row.gross)
 
@@ -354,7 +359,8 @@ def _add_paid_sick_fund(employee, months: list, result: dict):
 
 			if month in wanted:
 				entry = result.setdefault(
-					month, frappe._dict(earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0)
+					month,
+					frappe._dict(source="ERP", earnings=0.0, sick_pay=0.0, sick_days=0.0, unpaid_days=0.0),
 				)
 				entry.earnings += per_day
 				entry.sick_pay += per_day
@@ -470,16 +476,23 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 	days = sum(_month_days(month) - row.unpaid_days - row.sick_days for month, row in earnings.items())
 	from_salary = not (total > 0 and days > 0)
 
+	salary = 0.0
+
 	if from_salary:
-		average = _official_salary(employee, on_date) / AVERAGE_MONTH_DAYS
+		salary = _official_salary(employee, on_date)
+		average = salary / AVERAGE_MONTH_DAYS
 	else:
 		average = total / days
 
-	limit = payroll_tax.minimum_wage() * MAX_BASE_MINIMUM_WAGES / AVERAGE_MONTH_DAYS
+	minimum_wage = payroll_tax.minimum_wage()
+	minimum_wages = minimum_wage * len(earnings) if not from_salary else minimum_wage
+	limit_days = days if not from_salary else AVERAGE_MONTH_DAYS
+	limit = minimum_wages * MAX_BASE_MINIMUM_WAGES / limit_days
 	cap = "max_base"
+	tenure = recent_tenure_months(employee, on_date)
 
-	if tenure_months(employee, on_date) < SHORT_TENURE_MONTHS:
-		limit = payroll_tax.minimum_wage() / AVERAGE_MONTH_DAYS
+	if tenure < SHORT_TENURE_MONTHS:
+		limit = minimum_wages / limit_days
 		cap = "short_tenure"
 
 	return frappe._dict(
@@ -487,6 +500,13 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 		uncapped=flt(average, 2),
 		limit=flt(limit, 2),
 		capped=cap if average > limit else None,
+		salary=flt(salary, 2),
+		short_tenure=cap == "short_tenure",
+		tenure_months=tenure,
+		minimum_wage=flt(minimum_wage, 2),
+		minimum_wages=flt(minimum_wages, 2),
+		limit_days=limit_days,
+		limit_wages=flt(minimum_wages * (1 if cap == "short_tenure" else MAX_BASE_MINIMUM_WAGES), 2),
 		from_salary=from_salary,
 		period_start=months[0] if months else None,
 		period_end=add_days(add_months(months[-1], 1), -1) if months else None,
@@ -495,13 +515,24 @@ def sick_average_details(employee, on_date, months=None) -> frappe._dict:
 		rows=[
 			frappe._dict(
 				month=month,
-				earnings=flt(row.earnings - row.sick_pay, 2),
+				earnings=flt(earnings[month].earnings - earnings[month].sick_pay, 2)
+				if month in earnings
+				else flt(salary, 2),
 				month_days=_month_days(month),
-				unpaid_days=flt(row.unpaid_days),
-				sick_days=flt(row.sick_days),
-				worked_days=flt(_month_days(month) - row.unpaid_days - row.sick_days),
+				unpaid_days=flt(earnings[month].unpaid_days) if month in earnings else 0,
+				sick_days=flt(earnings[month].sick_days) if month in earnings else 0,
+				worked_days=(
+					flt(_month_days(month) - earnings[month].unpaid_days - earnings[month].sick_days)
+					if month in earnings
+					else 0
+				),
+				minimum_wage=flt(minimum_wage, 2) if month in earnings else 0,
+				no_data=month not in earnings and not from_salary,
+				source=earnings[month].get("source", "ERP")
+				if month in earnings
+				else ("Salary" if from_salary else ""),
 			)
-			for month, row in sorted(earnings.items())
+			for month in sorted({*months, *earnings})
 		],
 	)
 
@@ -518,6 +549,50 @@ def tenure_months(employee, on_date) -> int:
 	here = (on_date.year - joining.year) * 12 + on_date.month - joining.month - (on_date.day < joining.day)
 
 	return before + max(here, 0)
+
+
+def recent_tenure_months(employee, on_date) -> int:
+	"""Страховий стаж у повних місяцях за 12 місяців перед місяцем події — для обмеження мінімальною зарплатою.
+
+	Без помісячного обліку стажу — загальний стаж."""
+	name = employee.get("name")
+
+	if not name:
+		return tenure_months(employee, on_date)
+
+	month = getdate(on_date).replace(day=1)
+	first = getdate(add_months(month, -12))
+	rows = frappe.get_all(
+		"Employee Insurance Month",
+		filters={
+			"parent": name,
+			"parenttype": "Employee",
+			"period_start": ("between", [first, add_days(month, -1)]),
+		},
+		fields=["period_start", "days"],
+	)
+
+	if not rows and not frappe.db.exists(
+		"Employee Insurance Month", {"parent": name, "parenttype": "Employee"}
+	):
+		return tenure_months(employee, on_date)
+
+	covered = {getdate(row.period_start) for row in rows}
+	joining = employee.get("date_of_joining")
+
+	if joining:
+		joining = getdate(joining)
+		current = max(first, joining.replace(day=1))
+
+		while current < month:
+			if current not in covered:
+				days = get_last_day(current).day
+				if current.year == joining.year and current.month == joining.month:
+					days -= joining.day - 1
+				rows.append(frappe._dict(period_start=current, days=days))
+			current = getdate(add_months(current, 1))
+
+	return ledger_tenure(rows)
 
 
 def sick_percent(employee, on_date) -> float:

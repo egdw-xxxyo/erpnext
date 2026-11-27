@@ -139,6 +139,35 @@ erpnext.entity.avatar_html({ name, key, image, icon }, 40)  // just the circle
 - Chat avatars (`erpnext.chat_render.avatar_html`) and `erpnext.chat_info` already
   delegate to it.
 
+## Embedded tables: `erpnext.DataTable` (MANDATORY)
+
+Any table embedded in a form (HTML field), dialog or desk page — rows of records, history, totals — uses the shared
+component in `erpnext/public/js/utils/data_table.js` (bundled in `erpnext.bundle.js`). Never hand-roll
+`<table class="table table-bordered">` markup for data. It gives inner scroll, sticky header/footer, a pinnable first
+column (remembered per `storage_key`) and click-to-sort (asc → desc → none).
+
+```js
+new erpnext.DataTable({
+	parent: field.$wrapper,
+	storage_key: "incapacity-sick-cases",   // remembers the pin
+	max_height: "420px",
+	rows,
+	columns: [
+		{ key: "name", label: __("Case"), pin: true, html: (row) => esc(row.name), footer: __("Total") },
+		{ key: "total", label: __("Total"), align: "right", value: (row) => flt(row.total),
+		  html: (row) => money(row.total), footer: money(sum) },
+	],
+	row_class: (row) => "",        // optional
+	on_row_click: (row) => {},     // optional
+});
+```
+
+- `html` returns ready markup — escape user data with `frappe.utils.escape_html` yourself.
+- `value` is the sort key (use numbers for numeric columns); without it `row[key]` is used.
+- `table.set_rows(rows)` re-renders with new data.
+- Missing a feature (grouped rows, filters, selection)? Add an option to the component, don't fork the markup.
+- Reference usage: `erpnext/payroll_ua/doctype/incapacity_case/incapacity_case.js`. The Client Base page still has its own table.
+
 ## MCP server (`mcp-server/`)
 
 Source, build and reconnect steps live in `mcp-server/CLAUDE.md` (loaded when working there). `.mcp.json` is gitignored and per machine — never commit it.

@@ -113,6 +113,13 @@
    "read": 1,
    "write": 1,
    "create": 1
+  },
+  {
+   "role": "Desk User",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "if_owner": 1
   }
  ],
  "sort_field": "creation",

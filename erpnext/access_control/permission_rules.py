@@ -353,6 +353,91 @@ def share_unavailable(has_document: bool, ptype: str) -> str | None:
 	return None if share_rights_for(ptype) else "not_shareable"
 
 
+USER_PERMISSION_SCOPES = ("doctype", "all")
+
+
+def _is_blocked(allow: str, value, allowed: Mapping[str, Iterable[str]]) -> bool:
+	return bool(value) and allow in allowed and value not in set(allowed[allow])
+
+
+def user_permission_blocks(links: Iterable[Mapping], allowed: Mapping[str, Iterable[str]]) -> list[dict]:
+	blocked = [link for link in links if _is_blocked(link["allow"], link.get("value"), allowed)]
+	keys = list(dict.fromkeys((link["allow"], link["value"]) for link in blocked))
+	return [
+		{
+			"allow": allow,
+			"for_value": value,
+			"places": [
+				{
+					"field": field,
+					"table": table,
+					"rows": sorted(
+						{
+							link["row"]
+							for link in blocked
+							if (link["allow"], link["value"], link.get("field"), link.get("table"))
+							== (allow, value, field, table)
+							and link.get("row")
+						}
+					),
+				}
+				for field, table in dict.fromkeys(
+					(link.get("field"), link.get("table"))
+					for link in blocked
+					if (link["allow"], link["value"]) == (allow, value)
+				)
+			],
+		}
+		for allow, value in keys
+	]
+
+
+def widen_allowed(allowed: Mapping[str, Iterable[str]], granted: Iterable[Mapping]) -> dict[str, set[str]]:
+	granted = list(granted)
+	return {
+		allow: set(values) | {entry["for_value"] for entry in granted if entry["allow"] == allow}
+		for allow, values in allowed.items()
+	}
+
+
+def user_permission_preview(
+	documents: Mapping[str, Iterable[tuple[str, str]]],
+	allowed: Mapping[str, Iterable[str]],
+	granted: Iterable[Mapping],
+) -> dict:
+	after = widen_allowed(allowed, granted)
+
+	def blocking(values, limits) -> set[tuple[str, str]]:
+		return {(allow, value) for allow, value in values if _is_blocked(allow, value, limits)}
+
+	remaining = {name: blocking(values, after) for name, values in documents.items()}
+	counts: dict[tuple[str, str], int] = {}
+	for values in remaining.values():
+		for key in values:
+			counts[key] = counts.get(key, 0) + 1
+	return {
+		"total": len(documents),
+		"blocked_now": sum(1 for values in documents.values() if blocking(values, allowed)),
+		"blocked_after": sum(1 for values in remaining.values() if values),
+		"remaining": [
+			{"allow": allow, "for_value": value, "documents": count}
+			for (allow, value), count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+		],
+	}
+
+
+def user_permission_entry(entry: Mapping, scope: str, doctype: str) -> dict:
+	if scope not in USER_PERMISSION_SCOPES:
+		raise ValueError(scope)
+	limited = scope == "doctype"
+	return {
+		"allow": entry["allow"],
+		"for_value": entry["for_value"],
+		"apply_to_all_doctypes": 0 if limited else 1,
+		"applicable_for": doctype if limited else None,
+	}
+
+
 def user_permission_unavailable(
 	has_document: bool, links: Iterable[tuple[str, str]], allowed: Mapping[str, Iterable[str]]
 ) -> str | None:

@@ -47,8 +47,12 @@ from erpnext.access_control.permission_rules import (
 	share_rights_for,
 	share_unavailable,
 	ungrantable_gains,
+	user_permission_blocks,
 	user_permission_candidates,
+	user_permission_entry,
+	user_permission_preview,
 	user_permission_unavailable,
+	widen_allowed,
 	workflow_options,
 )
 
@@ -278,6 +282,73 @@ class TestGranting(unittest.TestCase):
 		self.assertEqual(
 			user_permission_candidates(links, allowed), [{"allow": "Company", "for_value": "Beta"}]
 		)
+
+	def test_user_permission_blocks_name_the_field_and_rows(self):
+		links = [
+			{"allow": "Company", "value": "kalheon", "field": "Company", "table": None, "row": None},
+			{"allow": "Warehouse", "value": "FG", "field": "Warehouse", "table": "Items", "row": 1},
+			{"allow": "Warehouse", "value": "FG", "field": "Warehouse", "table": "Items", "row": 2},
+			{"allow": "Warehouse", "value": "FO", "field": "Warehouse", "table": "Items", "row": 3},
+			{"allow": "Warehouse", "value": None, "field": "Set Warehouse", "table": None, "row": None},
+			{"allow": "Customer", "value": "A1", "field": "Customer", "table": None, "row": None},
+		]
+		allowed = {"Company": ["kalheon"], "Warehouse": ["FO"]}
+		self.assertEqual(
+			user_permission_blocks(links, allowed),
+			[
+				{
+					"allow": "Warehouse",
+					"for_value": "FG",
+					"places": [{"field": "Warehouse", "table": "Items", "rows": [1, 2]}],
+				}
+			],
+		)
+
+	def test_user_permission_blocks_empty_when_everything_is_allowed(self):
+		links = [{"allow": "Company", "value": "kalheon", "field": "Company", "table": None, "row": None}]
+		self.assertEqual(user_permission_blocks(links, {"Company": ["kalheon"]}), [])
+
+	def test_widen_allowed_adds_only_to_restricted_doctypes(self):
+		granted = [{"allow": "Warehouse", "for_value": "FG"}, {"allow": "Customer", "for_value": "A1"}]
+		self.assertEqual(widen_allowed({"Warehouse": ["FO"]}, granted), {"Warehouse": {"FO", "FG"}})
+
+	def test_user_permission_preview_counts_documents_left_blocked(self):
+		documents = {
+			"SO-1": [("Warehouse", "FG"), ("Warehouse", "FO")],
+			"SO-2": [("Warehouse", "FG"), ("Warehouse", "Main")],
+			"SO-3": [("Warehouse", "FO")],
+			"SO-4": [("Warehouse", "Main"), ("Company", "Other")],
+		}
+		allowed = {"Warehouse": ["FO"], "Company": ["kalheon"]}
+		preview = user_permission_preview(documents, allowed, [{"allow": "Warehouse", "for_value": "FG"}])
+		self.assertEqual(preview["total"], 4)
+		self.assertEqual(preview["blocked_now"], 3)
+		self.assertEqual(preview["blocked_after"], 2)
+		self.assertEqual(
+			preview["remaining"],
+			[
+				{"allow": "Warehouse", "for_value": "Main", "documents": 2},
+				{"allow": "Company", "for_value": "Other", "documents": 1},
+			],
+		)
+
+	def test_user_permission_entry_scope(self):
+		entry = {"allow": "Warehouse", "for_value": "FG"}
+		self.assertEqual(
+			user_permission_entry(entry, "doctype", "Sales Order"),
+			{
+				"allow": "Warehouse",
+				"for_value": "FG",
+				"apply_to_all_doctypes": 0,
+				"applicable_for": "Sales Order",
+			},
+		)
+		self.assertEqual(
+			user_permission_entry(entry, "all", "Sales Order"),
+			{"allow": "Warehouse", "for_value": "FG", "apply_to_all_doctypes": 1, "applicable_for": None},
+		)
+		with self.assertRaises(ValueError):
+			user_permission_entry(entry, "everything", "Sales Order")
 
 	def test_share_unavailable_reasons(self):
 		self.assertEqual(share_unavailable(False, "read"), "no_document")

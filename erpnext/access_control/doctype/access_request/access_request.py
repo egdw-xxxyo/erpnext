@@ -4,12 +4,12 @@ import frappe
 from frappe import _
 from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 from frappe.model.document import Document
-from frappe.permissions import get_user_permissions, setup_custom_perms
+from frappe.permissions import setup_custom_perms
 from frappe.share import add_docshare
 from frappe.translate import get_user_lang
 from frappe.utils import file_lock, get_datetime, now_datetime
 
-from erpnext.access_control import impersonation_rules
+from erpnext.access_control import impersonation_rules, user_permission_scan
 from erpnext.access_control import permission_rules as rules
 from erpnext.access_control.denial import access_managers, describe, visible_roles
 from erpnext.access_control.permissions_engine import (
@@ -161,6 +161,9 @@ def notify_requester(doc):
 		if doc.source == "Console"
 		else _("Access granted: {0}. Reload the page to use it", lang=lang),
 		"Rejected": _("Access request rejected: {0}", lang=lang),
+		"Already Granted": _(
+			"You already have the access you asked for: {0}. Reload the page to use it", lang=lang
+		),
 		"Revoked": _("Access revoked: {0}", lang=lang),
 		"Expired": _("Temporary access ended: {0}", lang=lang),
 	}
@@ -311,32 +314,28 @@ def _candidates(doc, granting: dict, roles, context: dict | None) -> dict:
 	return _role_candidates(doc, granting, roles, context)
 
 
-def _link_values(row) -> list[tuple[str, str]]:
-	return [
-		(field.options, row.get(field.fieldname))
-		for field in frappe.get_meta(row.doctype).get_link_fields()
-		if field.options and not field.ignore_user_permissions
-	]
-
-
 def _user_permission_inputs(doc) -> tuple[list, dict]:
 	target = _reference_doc(doc)
 	if not target:
 		return [], {}
-	allowed = {
-		allow: rules.allowed_values(entries, doc.reference_doctype)
-		for allow, entries in get_user_permissions(doc.user).items()
-	}
-	links = [
-		(doc.reference_doctype, target.name),
-		*_link_values(target),
-		*(link for row in target.get_all_children() for link in _link_values(row)),
-	]
-	return links, {allow: values for allow, values in allowed.items() if values}
+	links = [(link["allow"], link["value"]) for link in user_permission_scan.document_links(target)]
+	return links, user_permission_scan.allowed_for(doc.user, doc.reference_doctype)
 
 
 def _user_permission_candidates(doc) -> list[dict]:
 	return rules.user_permission_candidates(*_user_permission_inputs(doc))
+
+
+def _user_permission_others(doc, candidates: list[dict]) -> list[dict]:
+	if not candidates:
+		return []
+	remaining = user_permission_scan.preview(doc.reference_doctype, doc.user, candidates)["remaining"]
+	return remaining[:MAX_CANDIDATES]
+
+
+def _user_permission_offer(doc) -> tuple[list[dict], list[dict]]:
+	candidates = _user_permission_candidates(doc)
+	return candidates, _user_permission_others(doc, candidates)
 
 
 def _unavailable(doc) -> dict:
@@ -426,6 +425,7 @@ def get_approval_options(name: str) -> dict:
 	granting = _granting(situation, context)
 	share_rights = rules.share_rights_for(doc.ptype or "read") if _reference_doc(doc) else None
 	profile_candidates = _profile_candidates(doc, granting, context)
+	up_candidates, up_others = _user_permission_offer(doc)
 	right_roles = [] if _role_right_unavailable(doc, context) else _right_roles(roles)
 	role_right = _role_right_unavailable(doc, context) or (None if right_roles else "no_right_roles")
 	unavailable = {
@@ -446,7 +446,8 @@ def get_approval_options(name: str) -> dict:
 		"requested_rights": context["requested"] if context else [],
 		"current_coverage": _coverage_fields(context, roles).get("coverage", {}),
 		"share_rights": list(share_rights) if share_rights else None,
-		"user_permissions": _user_permission_candidates(doc),
+		"user_permissions": up_candidates,
+		"user_permission_others": up_others,
 		"profile_candidates": profile_candidates,
 		"unavailable": unavailable,
 		"role_profiles": _user_profiles(doc.user),
@@ -672,33 +673,64 @@ def _grant_share(doc, share_rights=None, **_kwargs) -> dict:
 	}
 
 
-def _grant_user_permission(doc, user_permissions=None, **_kwargs) -> dict:
-	chosen = [
+def _chosen_user_permissions(user_permissions) -> list[dict]:
+	return [
 		{"allow": entry.get("allow"), "for_value": entry.get("for_value")}
 		for entry in _chosen(user_permissions)
 		if isinstance(entry, dict)
 	]
+
+
+def _offered_user_permissions(doc) -> list[dict]:
+	candidates, others = _user_permission_offer(doc)
+	return [*candidates, *({"allow": entry["allow"], "for_value": entry["for_value"]} for entry in others)]
+
+
+def _scope_label(entry: dict) -> str:
+	return (
+		_("only {0}").format(_(entry["applicable_for"]))
+		if entry["applicable_for"]
+		else _("all document types")
+	)
+
+
+def _grant_user_permission(doc, user_permissions=None, user_permission_scope=None, **_kwargs) -> dict:
+	chosen = _chosen_user_permissions(user_permissions)
 	if not chosen:
 		frappe.throw(_("Choose at least one value to allow"))
-	offered = _user_permission_candidates(doc)
+	scope = user_permission_scope or "doctype"
+	if scope not in rules.USER_PERMISSION_SCOPES:
+		frappe.throw(_("Choose where the value is allowed"))
+	offered = _offered_user_permissions(doc)
 	if any(entry not in offered for entry in chosen):
 		frappe.throw(_("This User Permission does not widen the user's existing restrictions"))
+	entries = [rules.user_permission_entry(entry, scope, doc.reference_doctype) for entry in chosen]
 	granted = [
 		{
 			**entry,
-			"user_permission": frappe.get_doc(
-				{"doctype": "User Permission", "user": doc.user, "apply_to_all_doctypes": 1, **entry}
-			)
+			"user_permission": frappe.get_doc({"doctype": "User Permission", "user": doc.user, **entry})
 			.insert(ignore_permissions=True)
 			.name,
 		}
-		for entry in chosen
+		for entry in entries
 	]
 	return {
-		"granted_values": "\n".join(f"{_(entry['allow'])}: {entry['for_value']}" for entry in chosen),
-		"impact": as_json({"user_permissions": chosen}),
+		"granted_values": "\n".join(
+			f"{_(entry['allow'])}: {entry['for_value']} ({_scope_label(entry)})" for entry in entries
+		),
+		"impact": as_json({"user_permissions": entries}),
 		"grant_log": as_json({"user_permissions": granted}),
 	}
+
+
+@frappe.whitelist()
+def get_user_permission_preview(name: str, user_permissions: str | list | None = None) -> dict:
+	doc = _load_pending(name)
+	if doc.request_type != "Document Type" or not doc.reference_doctype:
+		return {}
+	offered = _offered_user_permissions(doc)
+	chosen = [entry for entry in _chosen_user_permissions(user_permissions) if entry in offered]
+	return user_permission_scan.preview(doc.reference_doctype, doc.user, chosen)
 
 
 def _role_right_unavailable(doc, context: dict | None) -> str | None:
@@ -882,6 +914,7 @@ def approve(
 	profile_action: str | None = None,
 	share_rights: str | list | None = None,
 	user_permissions: str | list | None = None,
+	user_permission_scope: str | None = None,
 	note: str | None = None,
 	profiles: str | list | None = None,
 	profile_mode: str | None = None,
@@ -905,6 +938,7 @@ def approve(
 		profile_mode=profile_mode,
 		share_rights=share_rights,
 		user_permissions=user_permissions,
+		user_permission_scope=user_permission_scope,
 		rights=rights,
 	)
 	ensure_can_expire(
@@ -985,6 +1019,24 @@ def get_profile_delta(name: str, profiles: str | list | None = None, mode: str =
 	if missing := [profile for profile in profiles if not frappe.db.exists("Role Profile", profile)]:
 		frappe.throw(_("Role profile {0} not found").format(", ".join(missing)), frappe.DoesNotExistError)
 	return _profile_delta(doc.user, profiles, mode)
+
+
+def _has_access_now(doc) -> bool | None:
+	if doc.request_type == "Other":
+		return None
+	return bool(_situation(doc).get("allowed"))
+
+
+@frappe.whitelist()
+def recheck(name: str) -> dict:
+	doc = _load_pending(name)
+	allowed = _has_access_now(doc)
+	if allowed is None:
+		frappe.throw(_("The request does not name what was refused, it cannot be checked again"))
+	if allowed:
+		_decide(doc, "Already Granted", _("The user already has this access"))
+		notify_requester(doc)
+	return {"name": doc.name, "status": doc.status, "allowed": allowed}
 
 
 @frappe.whitelist()

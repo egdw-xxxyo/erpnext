@@ -19,6 +19,7 @@ from erpnext.payroll_ua import enforcement, sick_rules
 from erpnext.payroll_ua.doctype.incapacity_case import incapacity_case
 
 SOCIAL_STATUSES = [
+	"Not Required",
 	"Not Requested",
 	"Requested, Waiting for Money",
 	"Money Received, Waiting for Payment",
@@ -83,7 +84,6 @@ class SickLeaveCase(Document):
 				title=_("ЕЛН Number Missing"),
 			)
 
-		self.closed = 1
 		self.set_status()
 
 	def before_update_after_submit(self):
@@ -131,8 +131,18 @@ class SickLeaveCase(Document):
 			return
 
 		parent = frappe.db.get_value(
-			"Incapacity Case", self.incapacity_case, ["employee", "company", "case_type"], as_dict=True
+			"Incapacity Case",
+			self.incapacity_case,
+			["employee", "company", "case_type", "status"],
+			as_dict=True,
 		)
+
+		if parent.status == "Closed" and self.is_new():
+			frappe.throw(
+				_("Incapacity case {0} is closed — reopen it to add a sick leave case.").format(
+					self.incapacity_case
+				)
+			)
 
 		if self.employee and parent.employee != self.employee:
 			frappe.throw(_("Incapacity case {0} belongs to another employee.").format(self.incapacity_case))
@@ -251,6 +261,7 @@ class SickLeaveCase(Document):
 		self.average_note = self._average_note(average)
 		self.employer_days = result.employer_days
 		self.fund_days = result.fund_days
+		self.sync_social_requirement()
 		self.employer_gross = result.employer.gross
 		self.employer_withheld = result.employer.withheld
 		self.employer_net = result.employer.net
@@ -306,13 +317,7 @@ class SickLeaveCase(Document):
 	def set_status(self):
 		if self.docstatus == 2:
 			self.status = "Cancelled"
-		elif self.fund_paid_date:
-			self.status = "Paid"
-		elif self.je_fund_receipt:
-			self.status = "Fund Received"
-		elif self.employer_paid_date or (self.closed and not self.employer_days):
-			self.status = "Paid" if not self.fund_days else "Employer Paid"
-		elif self.closed:
+		elif self.docstatus == 1:
 			self.status = "Closed"
 		else:
 			self.status = "Open"
@@ -359,6 +364,13 @@ class SickLeaveCase(Document):
 
 		if (self.note or "") != note:
 			self.db_set("note", note, update_modified=False)
+
+	def sync_social_requirement(self):
+		"""Випадок, що цілком оплачує роботодавець (немає днів за рахунок фонду), грошей у соцстрахуванні не просить."""
+		if not self.fund_days and self.social_status in (None, "", "Not Requested"):
+			self.social_status = "Not Required"
+		elif self.fund_days and self.social_status == "Not Required":
+			self.social_status = "Not Requested"
 
 	def advance_social_status(self, status):
 		order = SOCIAL_STATUSES.index
@@ -638,6 +650,13 @@ def average_breakdown(employee, start_date, incapacity_case=None, from_month=Non
 		"capped": details.capped,
 		"average": details.average,
 		"from_salary": details.from_salary,
+		"salary": details.salary,
+		"short_tenure": details.short_tenure,
+		"tenure_months": details.tenure_months,
+		"minimum_wage": details.minimum_wage,
+		"minimum_wages": details.minimum_wages,
+		"limit_days": details.limit_days,
+		"limit_wages": details.limit_wages,
 		"period_start": str(details.period_start) if details.period_start else None,
 		"period_end": str(details.period_end) if details.period_end else None,
 	}

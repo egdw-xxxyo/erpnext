@@ -13,6 +13,7 @@ from frappe.permissions import (
 )
 
 from erpnext.access_control import permission_rules as rules
+from erpnext.access_control import user_permission_scan
 
 MANAGER_ROLES = ("Access Manager",)
 SHAREABLE_RIGHTS = ("read", "write", "share", "submit", "email", "print")
@@ -518,6 +519,9 @@ def explain(
 		"granting_roles": rules.granting_roles(rows, ptype),
 		"facts": facts,
 		**rules.diagnose(facts),
+		"user_permission_blocks": user_permission_scan.blocks(doc, user)
+		if facts["user_permission_ok"] is False
+		else [],
 		"hints": list(
 			rules.docstatus_hints(ptype, doc.docstatus if doc else None, bool(meta.is_submittable))
 		),

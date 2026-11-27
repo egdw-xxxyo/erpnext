@@ -393,7 +393,7 @@
   {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
-   "allow_on_submit": 0,
+   "allow_on_submit": 1,
    "bold": 0,
    "collapsible": 0,
    "columns": 0,
@@ -432,7 +432,7 @@
   {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
-   "allow_on_submit": 0,
+   "allow_on_submit": 1,
    "bold": 0,
    "collapsible": 0,
    "columns": 0,
@@ -471,7 +471,7 @@
   {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
-   "allow_on_submit": 0,
+   "allow_on_submit": 1,
    "bold": 0,
    "collapsible": 0,
    "columns": 0,
@@ -510,7 +510,7 @@
   {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
-   "allow_on_submit": 0,
+   "allow_on_submit": 1,
    "bold": 0,
    "collapsible": 0,
    "columns": 0,
@@ -635,7 +635,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-18 00:01:44.075745",
+ "modified": "2026-11-26 15:07:15.526016",
  "modified_by": "Administrator",
  "module": "Technical Documentation",
  "name": "Technical Document Revision",
@@ -730,6 +730,7 @@
    "write": 1
   }
  ],
+ "protect_attached_files": 1,
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",

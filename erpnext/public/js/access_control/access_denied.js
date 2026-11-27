@@ -22,6 +22,7 @@ erpnext.access_control.blocker_text = (code, about_user) =>
 		controller: __("Access is limited by a rule of this document type"),
 		not_submittable: __("This document type cannot be submitted"),
 		not_importable: __("Import is not allowed for this document type"),
+		not_found: __("This page or document does not exist. The link may be broken or out of date"),
 		unknown: __("The reason could not be determined"),
 	}[code] ||
 	code;
@@ -36,6 +37,7 @@ erpnext.access_control.hint_text = (code) =>
 	}[code] || code);
 
 erpnext.access_control.action_label = (context) => {
+	if (context.kind === "not_found") return __("Requested address");
 	if (context.kind === "page") return __("Open page");
 	if (context.kind === "report") return __("Open report");
 	if (context.kind !== "doctype") return __("Action");
@@ -131,6 +133,35 @@ erpnext.access_control.granting_html = (granting) => {
 		: `<span class="text-muted">${__("No role gives this access")}</span>`;
 };
 
+erpnext.access_control.block_place = (place) => {
+	const rows = place.rows.join(", ");
+	if (!place.table) return __("field «{0}»", [__(place.field)]);
+	return rows
+		? __("table «{0}», field «{1}», rows {2}", [__(place.table), __(place.field), rows])
+		: __("table «{0}», field «{1}»", [__(place.table), __(place.field)]);
+};
+
+erpnext.access_control.user_permission_blocks_html = (blocks, about_user) => {
+	const esc = frappe.utils.escape_html;
+	const verdict = about_user ? __("is not in the user's permissions") : __("is not in your permissions");
+	return (blocks || []).length
+		? `<div class="ac-up-blocks"><div class="text-muted small">${__(
+				"Values that are not allowed"
+		  )}:</div><ul class="ac-list">${blocks
+				.map(
+					(block) =>
+						`<li><b>${esc(__(block.allow))} «${esc(block.for_value)}»</b> — ${esc(
+							verdict
+						)}. <span class="text-muted">${esc(
+							__("Where: {0}", [
+								block.places.map(erpnext.access_control.block_place).join("; "),
+							])
+						)}.</span></li>`
+				)
+				.join("")}</ul></div>`
+		: "";
+};
+
 erpnext.access_control.denial_html = (info, message) => {
 	const esc = frappe.utils.escape_html;
 	const blockers = (info.blockers || []).map(erpnext.access_control.blocker_text);
@@ -167,7 +198,9 @@ erpnext.access_control.denial_html = (info, message) => {
 			blockers.length && !info.allowed
 				? `<div class="alert alert-warning"><ul class="ac-list">${blockers
 						.map((text) => `<li>${esc(text)}</li>`)
-						.join("")}</ul></div>`
+						.join("")}</ul>${erpnext.access_control.user_permission_blocks_html(
+						info.user_permission_blocks
+				  )}</div>`
 				: ""
 		}
 		${
@@ -195,7 +228,7 @@ erpnext.access_control.show_denial = ({ context, message, re_route }) =>
 erpnext.access_control.denial_dialog = (info, message, re_route) => {
 	const can_ask = info.can_request && !info.pending && !info.allowed;
 	const dialog = new frappe.ui.Dialog({
-		title: __("Not permitted"),
+		title: info.context.kind === "not_found" ? __("Not found") : __("Not permitted"),
 		size: "large",
 		fields: [
 			{ fieldtype: "HTML", fieldname: "info" },
@@ -299,6 +332,8 @@ erpnext.access_control.DECISION_ALERTS = {
 	Revoked: (title) => __("Access from your request {0} was revoked", [title]),
 	Expired: (title) => __("Temporary access ended: {0}", [title]),
 	Rejected: (title) => __("Your access request {0} was rejected", [title]),
+	"Already Granted": (title) =>
+		__("You already have the access from your request {0}. Reload the page to use it", [title]),
 };
 
 erpnext.access_control.listen_decisions = () =>
@@ -319,7 +354,10 @@ erpnext.access_control.listen_decisions = () =>
 		const alert = erpnext.access_control.DECISION_ALERTS[data.status];
 		if (!alert) return;
 		frappe.show_alert(
-			{ message: alert(title), indicator: data.status === "Rejected" ? "red" : "orange" },
+			{
+				message: alert(title),
+				indicator: { Rejected: "red", "Already Granted": "green" }[data.status] || "orange",
+			},
 			10
 		);
 	});
