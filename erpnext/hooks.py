@@ -767,7 +767,14 @@ doc_events = {
 		"before_submit": "erpnext.stock.serial_receipt_guard.block_unreceived",
 	},
 	# the route of a unit: which BOM step puts it into stock, and the steps after that
-	"BOM": {"validate": "erpnext.manufacturing.unit_route.validate_bom"},
+	"BOM": {
+		"validate": [
+			"erpnext.manufacturing.unit_route.validate_bom",
+			"erpnext.manufacturing.flashing.validate_bom_firmware",
+		]
+	},
+	# a card of a flashing operation freezes the firmware version it will flash
+	"Job Card": {"before_insert": "erpnext.manufacturing.flashing.stamp_job_card"},
 	# a unit waiting for packing is stock but not sellable
 	"Delivery Note": {
 		"before_submit": [

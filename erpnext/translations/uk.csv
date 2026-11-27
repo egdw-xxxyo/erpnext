@@ -18170,3 +18170,91 @@ Application Submitted,Заявку оформлено
 Confirm Money Received,Підтвердити надходження коштів
 Confirm Payment,Підтвердити оплату
 Back to: {0},Повернути до: {0}
+A released version cannot go back to draft,Випущена версія не може повернутися в чернетку
+A withdrawn version cannot be released again. Create a new version instead,Відкликану версію не можна випустити знову. Створіть нову версію
+Attach the UF2 file first,Спочатку прикріпіть файл UF2
+Board shows this serial,Плата показує цей номер
+Boards,Плат
+Boards waiting for flashing,Плат очікує прошивки
+Building the image…,Готується образ…
+Built firmware (.uf2). Locked once released,Зібрана прошивка (.uf2). Після випуску блокується
+Console Baud Rate,Швидкість консолі (бод)
+Console Baud Rate is required for console verification,Для перевірки через консоль потрібна швидкість консолі
+Console Line,Рядок консолі
+Console Line Pattern,Шаблон рядка консолі
+Console Line Pattern must contain {0},Шаблон рядка консолі має містити {0}
+Console: the board prints its serial over USB serial after the reboot. Operator: the operator reads it off the screen,Console: плата після перезавантаження друкує номер у USB-консоль. Operator: оператор зчитує номер з екрана
+Copy the downloaded file to the RPI-RP2 drive,Скопіюйте завантажений файл на диск RPI-RP2
+Could not build the image ({0}),Не вдалося підготувати образ ({0})
+Could not open the board's console,Не вдалося відкрити консоль плати
+Download UF2,Завантажити UF2
+Failure Reason,Причина збою
+File {0} not found,Файл {0} не знайдено
+Finished,Завершено
+Finished On,Завершено о
+Firmware Flashing,Прошивка плат
+Firmware Version,Версія прошивки
+Firmware file of {0} changed after release,Файл прошивки {0} змінено після випуску
+Firmware version {0} has no serial attribute value,Версія прошивки {0} не має значення атрибута серійного номера
+Firmware {0} has no released version. Release one before flashing {1},Прошивка {0} не має випущеної версії. Випустіть версію перед прошивкою {1}
+Flash Attempt,Спроба прошивки
+Flash Base Address,Базова адреса флешу
+Flash attempt {0} belongs to another operator,Спроба прошивки {0} належить іншому оператору
+Flash attempt {0} is {1},Спроба прошивки {0}: {1}
+Flashing Profile,Профіль прошивки
+Flashing failed,Прошивка не вдалася
+Flashing profile {0} is disabled,Профіль прошивки {0} вимкнено
+Image SHA-256,SHA-256 образу
+Latest Released Version,Остання випущена версія
+Log it and put the board back,Записати та повернути плату
+Next board,Наступна плата
+No board is waiting for flashing at this workplace,На цьому робочому місці немає плат для прошивки
+Not a UF2 file: bad block at offset {0},Це не UF2: пошкоджений блок зі зміщенням {0}
+Not a UF2 file: its size is not a multiple of {0},Це не UF2: розмір не кратний {0}
+"Offset from the flash base, a sector the firmware never writes","Зміщення від бази флешу, сектор, у який прошивка ніколи не пише"
+Operator Steps,Кроки оператора
+Profile Name,Назва профілю
+Put back,Повернути
+RP2040 = 0xE48BFF56,RP2040 = 0xE48BFF56
+Recent,Останні
+Release Notes,Примітки до випуску
+Released,Випущено
+Released On,Випущено
+Row {0}: firmware {1} is disabled,Рядок {0}: прошивку {1} вимкнено
+SHA-256,SHA-256
+Serial Attribute,Атрибут серійного номера
+Serial Attribute Value,Значення атрибута серійного номера
+Serial Max Length,Макс. довжина серійного номера
+Serial Max Length must be between 1 and 200,Макс. довжина серійного номера має бути від 1 до 200
+Serial Record Magic,Маркер запису серійного номера
+Serial Record Magic must be 1-8 printable ASCII characters,Маркер запису серійного номера: 1-8 друкованих ASCII-символів
+Serial Record Offset,Зміщення запису серійного номера
+Serial record is longer than {0} bytes,Запис серійного номера довший за {0} байт
+"Serial {0} cannot be written to the board: 1-{1} characters, A-Z 0-9 . - : / _ +","Серійний номер {0} не можна записати на плату: 1-{1} символів, A-Z 0-9 . - : / _ +"
+Shown to the operator next to the board,Показується оператору поруч із платою
+Size (bytes),Розмір (байт)
+The board did not report {0}. It said: {1},Плата не повідомила {0}. Вона відповіла: {1}
+"The board did not report {0}. Reset it and try again, or confirm from the screen","Плата не повідомила {0}. Перезавантажте її й спробуйте ще раз, або підтвердіть за екраном"
+The file of a released version cannot be replaced. Create a new version instead,Файл випущеної версії не можна замінити. Створіть нову версію
+"The firmware is built for family {0}, the profile expects {1}","Прошивку зібрано для родини {0}, а профіль очікує {1}"
+"The firmware reaches 0x{0}, overlapping the serial sector at 0x{1}",Прошивка сягає 0x{0} і перекриває сектор серійного номера за адресою 0x{1}
+The serial number attribute that records the installed version,"Атрибут серійного номера, що зберігає встановлену версію"
+UF2 Blocks,Блоків UF2
+UF2 Family ID,ID родини UF2
+UF2 File,Файл UF2
+Unknown verification {0},Невідомий спосіб перевірки {0}
+Verification,Перевірка
+Verification Timeout (s),Час очікування перевірки (с)
+Verify via console,Перевірити через консоль
+Version,Версія
+Version {0} is used by Job Card {1} and cannot be deleted,"Версія {0} використана в Job Card {1}, її не можна видалити"
+Versions,Версії
+Waiting,Очікують
+Waiting for {0}…,Очікування {0}…
+What went wrong,Що пішло не так
+Withdrawn,Відкликано
+Write to board,Записати на плату
+"Written. Wait for the board to restart, then verify",Записано. Дочекайтесь перезавантаження плати й виконайте перевірку
+{0} flashed. Stick the label {0},{0} прошито. Наклейте етикетку {0}
+"{0} must be a hexadecimal number, got {1}","{0} має бути шістнадцятковим числом, отримано {1}"
+{serial} is replaced by the serial; the line must contain the result,{serial} замінюється на серійний номер; рядок має містити результат

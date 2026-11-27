@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "autoname": "format:{firmware} {version}",
+ "creation": "2026-11-27 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "firmware",
+  "version",
+  "status",
+  "fv_col",
+  "released_on",
+  "attribute_value",
+  "file_section",
+  "file",
+  "file_col",
+  "sha256",
+  "image_size",
+  "block_count",
+  "notes_section",
+  "release_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "firmware",
+   "fieldtype": "Link",
+   "label": "Firmware",
+   "options": "Firmware",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "version",
+   "fieldtype": "Data",
+   "label": "Version",
+   "reqd": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nReleased\nWithdrawn",
+   "default": "Draft",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "fv_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "released_on",
+   "fieldtype": "Datetime",
+   "label": "Released On",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "attribute_value",
+   "fieldtype": "Link",
+   "label": "Serial Attribute Value",
+   "options": "Additional Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "file_section",
+   "fieldtype": "Section Break",
+   "label": "Image"
+  },
+  {
+   "fieldname": "file",
+   "fieldtype": "Attach",
+   "label": "UF2 File",
+   "reqd": 1,
+   "description": "Built firmware (.uf2). Locked once released"
+  },
+  {
+   "fieldname": "file_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sha256",
+   "fieldtype": "Data",
+   "label": "SHA-256",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_size",
+   "fieldtype": "Int",
+   "label": "Size (bytes)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "block_count",
+   "fieldtype": "Int",
+   "label": "UF2 Blocks",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Release Notes"
+  },
+  {
+   "fieldname": "release_notes",
+   "fieldtype": "Text Editor",
+   "label": "Release Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-27 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Firmware Version",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Manufacturing Manager",
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Manufacturing User",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "version",
+ "track_changes": 1
+}

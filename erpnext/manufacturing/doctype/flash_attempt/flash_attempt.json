@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "autoname": "format:FLASH-{#####}",
+ "creation": "2026-11-27 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "job_card",
+  "serial_no",
+  "status",
+  "workplace",
+  "employee",
+  "fa_col",
+  "firmware",
+  "firmware_version",
+  "flashing_profile",
+  "image_sha256",
+  "result_section",
+  "started_on",
+  "finished_on",
+  "res_col",
+  "verified_by",
+  "console_line",
+  "failure_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_card",
+   "fieldtype": "Link",
+   "label": "Job Card",
+   "options": "Job Card",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "label": "Serial No",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "In Progress\nDone\nFailed\nReleased",
+   "default": "In Progress",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "workplace",
+   "fieldtype": "Link",
+   "label": "Workplace",
+   "options": "Workplace"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "fa_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "firmware",
+   "fieldtype": "Link",
+   "label": "Firmware",
+   "options": "Firmware",
+   "read_only": 1
+  },
+  {
+   "fieldname": "firmware_version",
+   "fieldtype": "Link",
+   "label": "Firmware Version",
+   "options": "Firmware Version",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "flashing_profile",
+   "fieldtype": "Link",
+   "label": "Flashing Profile",
+   "options": "Flashing Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_sha256",
+   "fieldtype": "Data",
+   "label": "Image SHA-256",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_section",
+   "fieldtype": "Section Break",
+   "label": "Result"
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "finished_on",
+   "fieldtype": "Datetime",
+   "label": "Finished On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "res_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "verified_by",
+   "fieldtype": "Select",
+   "label": "Verified By",
+   "options": "\nConsole\nOperator",
+   "read_only": 1
+  },
+  {
+   "fieldname": "console_line",
+   "fieldtype": "Small Text",
+   "label": "Console Line",
+   "read_only": 1
+  },
+  {
+   "fieldname": "failure_reason",
+   "fieldtype": "Small Text",
+   "label": "Failure Reason",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-27 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Manufacturing",
+ "name": "Flash Attempt",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Manufacturing Manager",
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Manufacturing User",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "serial_no",
+ "track_changes": 1,
+ "naming_rule": "Expression"
+}

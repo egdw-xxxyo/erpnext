@@ -47,6 +47,8 @@ def execute():
 	seed_firmware_additional_attribute()
 	seed_packing_additional_attribute()
 	add_serial_attributes_shortcut()
+	create_firmware_fields()
+	add_firmware_flashing_shortcut()
 	create_custom_fields_on_work_order()
 	create_custom_fields_on_employee()
 	create_company_access_marker()
@@ -1143,6 +1145,64 @@ def create_unit_route_fields():
 		},
 	]
 	_create_custom_fields(fields)
+
+
+def create_firmware_fields():
+	"""Which firmware a BOM step flashes, and the version its Job Card froze.
+
+	Read by `erpnext.manufacturing.flashing`. A BOM operation with a firmware is a flashing
+	step; the card created from it carries the version that was current at that moment."""
+	fields = [
+		{
+			"dt": "BOM Operation",
+			"fieldname": "firmware",
+			"fieldtype": "Link",
+			"options": "Firmware",
+			"label": "Прошивка",
+			"insert_after": "operation",
+			"in_list_view": 1,
+			"description": "Заповнено — крок прошиває плату цією прошивкою; версія береться з останнього випуску",
+		},
+		{
+			"dt": "Job Card",
+			"fieldname": "firmware",
+			"fieldtype": "Link",
+			"options": "Firmware",
+			"label": "Прошивка",
+			"insert_after": "operation",
+			"read_only": 1,
+		},
+		{
+			"dt": "Job Card",
+			"fieldname": "firmware_version",
+			"fieldtype": "Link",
+			"options": "Firmware Version",
+			"label": "Версія прошивки",
+			"insert_after": "firmware",
+			"read_only": 1,
+		},
+	]
+	_create_custom_fields(fields)
+
+
+def add_firmware_flashing_shortcut():
+	"""Put the flashing page on the Manufacturing workspace (runtime, not the stock workspace JSON)."""
+	if not frappe.db.exists("Workspace", "Manufacturing") or not frappe.db.exists("Page", "firmware-flashing"):
+		return
+
+	label = "Прошивка плат"
+	workspace = frappe.get_doc("Workspace", "Manufacturing")
+	if any(s.link_to == "firmware-flashing" for s in workspace.shortcuts):
+		return
+
+	workspace.append(
+		"shortcuts", {"label": label, "type": "Page", "link_to": "firmware-flashing", "color": "Blue"}
+	)
+	content = json.loads(workspace.content or "[]")
+	content.append({"id": "firmwareFlashing", "type": "shortcut", "data": {"shortcut_name": label, "col": 3}})
+	workspace.content = json.dumps(content)
+	workspace.save(ignore_permissions=True)
+	print("  Added Manufacturing workspace shortcut: Firmware Flashing")
 
 
 def remove_flight_test_status_from_serial_no():
