@@ -222,7 +222,16 @@ def get_overview(workplace=None):
 	)
 	recent = frappe.get_all(
 		"Flash Attempt",
-		fields=["name", "serial_no", "job_card", "status", "firmware_version", "verified_by", "finished_on", "owner"],
+		fields=[
+			"name",
+			"serial_no",
+			"job_card",
+			"status",
+			"firmware_version",
+			"verified_by",
+			"finished_on",
+			"owner",
+		],
 		order_by="modified desc",
 		limit=15,
 	)
@@ -288,7 +297,11 @@ def next_board(workplace=None, item_code=None):
 			"Job Card", card.name, {"status": CLAIMED_STATUS, "actual_start_date": now_datetime()}
 		)
 		frappe.db.commit()
-		return {**_payload(attempt), "resumed": False, "remaining": len(_free_cards(workplace, item_code, 500))}
+		return {
+			**_payload(attempt),
+			"resumed": False,
+			"remaining": len(_free_cards(workplace, item_code, 500)),
+		}
 
 	frappe.throw(_("No board is waiting for flashing at this workplace"))
 
@@ -307,7 +320,12 @@ def get_image(attempt):
 
 	layout = profile.layout()
 	image = uf2.build_image(
-		data, attempt.serial_no, layout["family_id"], layout["record_address"], layout["magic"], layout["max_length"]
+		data,
+		attempt.serial_no,
+		layout["family_id"],
+		layout["record_address"],
+		layout["magic"],
+		layout["max_length"],
 	)
 	frappe.response["type"] = "download"
 	frappe.response["filename"] = f"{attempt.serial_no}.uf2"
@@ -349,7 +367,11 @@ def confirm(attempt, console_line=None, verified_by="Operator"):
 		}
 	)
 	frappe.db.commit()
-	return {"serial_no": attempt.serial_no, "job_card": card.name, "firmware_version": attempt.firmware_version}
+	return {
+		"serial_no": attempt.serial_no,
+		"job_card": card.name,
+		"firmware_version": attempt.firmware_version,
+	}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -369,9 +391,7 @@ def release(attempt):
 def _give_back(attempt, status, reason=None):
 	attempt = _own_attempt(attempt)
 	frappe.db.set_value("Job Card", attempt.job_card, {"status": FREE_STATUS, "actual_start_date": None})
-	attempt.db_set(
-		{"status": status, "finished_on": now_datetime(), "failure_reason": (reason or "")[:500]}
-	)
+	attempt.db_set({"status": status, "finished_on": now_datetime(), "failure_reason": (reason or "")[:500]})
 	frappe.db.commit()
 	return {"attempt": attempt.name, "status": status}
 
@@ -395,4 +415,3 @@ def record_version(serial_no, firmware_version):
 		return
 
 	apply_attributes_to_serials([serial_no], [frappe._dict(attribute=ATTRIBUTE, value=value, notes=None)])
-
