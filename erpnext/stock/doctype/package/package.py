@@ -590,3 +590,25 @@ def unpack_packages(package_names, employee=None):
 		"serial_count": sum(len(d["serials"]) for d in done),
 		"errors": errors,
 	}
+
+
+@frappe.whitelist()
+def remove_last_item(package_name):
+	"""Take the last item out of a packed box; the serial is freed for repacking."""
+	pkg = frappe.get_doc("Package", _resolve_package(package_name))
+	if pkg.docstatus != 1 or pkg.status != "Packed":
+		frappe.throw(_("Only a packed Package can have its last item removed"))
+	if pkg.shipment:
+		frappe.throw(_("Package {0} is linked to Shipment {1}").format(pkg.name, pkg.shipment))
+	if len(pkg.items) < 2:
+		frappe.throw(_("A packed Package cannot be left empty. Unpack it instead of removing every item."))
+
+	last = pkg.items[-1]
+	label = last.serial_no or last.item_code
+	if not last.serial_no and (last.qty or 1) > 1:
+		last.qty -= 1
+	else:
+		pkg.remove(last)
+	pkg.save()
+	pkg.add_comment("Comment", _("Removed {0} by {1}").format(label, frappe.session.user))
+	return {"removed": label}

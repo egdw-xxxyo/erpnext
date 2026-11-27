@@ -19,6 +19,29 @@ frappe.ui.form.on("Package", {
 		setup_package_print_labels(frm);
 		frm.events.setup_scanner(frm);
 
+		if (frm.doc.docstatus === 1 && frm.doc.status === "Packed" && (frm.doc.items || []).length > 1) {
+			frm.add_custom_button(__("Remove Last Item"), () =>
+				frappe.confirm(__("Remove the last item from this packed Package?"), () =>
+					frappe.call({
+						method: "erpnext.stock.doctype.package.package.remove_last_item",
+						args: { package_name: frm.doc.name },
+						freeze: true,
+						callback: (r) => {
+							frm.reload_doc();
+							frappe.show_alert({
+								message: __("Removed {0}", [r.message.removed]),
+								indicator: "green",
+							});
+						},
+					})
+				)
+			);
+		}
+
+		if (frm.doc.docstatus === 0 && (frm.doc.items || []).length) {
+			frm.add_custom_button(__("Remove Last Item"), () => frm.events.remove_last_item(frm));
+		}
+
 		if (frm.doc.docstatus === 1 && frm.doc.items) {
 			let count = frm.doc.items.reduce((sum, r) => sum + (r.qty || 1), 0);
 			frm.dashboard.add_indicator(__("{0} items packed", [count]), "blue");
@@ -60,6 +83,26 @@ frappe.ui.form.on("Package", {
 			frm.refresh_fields("items");
 			frm.dirty();
 		});
+	},
+
+	remove_last_item: function (frm) {
+		let items = frm.doc.items || [];
+		if (!items.length) {
+			frappe.show_alert({ message: __("No items to remove"), indicator: "orange" });
+			return;
+		}
+		let last = items[items.length - 1];
+		let label = last.serial_no || last.item_code;
+		if (!last.serial_no && (last.qty || 1) > 1) {
+			frappe.model.set_value(last.doctype, last.name, "qty", last.qty - 1);
+		} else {
+			frappe.model.clear_doc(last.doctype, last.name);
+			frm.doc.items = items.slice(0, -1);
+			frm.doc.items.forEach((row, i) => (row.idx = i + 1));
+		}
+		frm.dirty();
+		frm.refresh_field("items");
+		frappe.show_alert({ message: __("Removed {0}", [label]), indicator: "green" });
 	},
 
 	box_barcode: function (frm) {

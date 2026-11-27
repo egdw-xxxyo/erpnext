@@ -18157,6 +18157,12 @@ is not in the user's permissions,немає в дозволах користув
 is not in your permissions,немає у ваших дозволах
 Where: {0},Де трапляється: {0}
 documents: {0},документів: {0}
+Remove Last Item,Видалити останню позицію
+No items to remove,Немає позицій для видалення
+Removed {0},Видалено {0}
+Remove the last item from this packed Package?,Видалити останню позицію з цього запакованого Package?
+Only a packed Package can have its last item removed,Видалити останню позицію можна лише в запакованому Package
+Package {0} is linked to Shipment {1},Package {0} пов’язаний з відправленням {1}
 Insurer Code,Код страхувальника
 Insurer Name,Назва страхувальника
 New insurers,Нові страхувальники
