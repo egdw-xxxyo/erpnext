@@ -84,7 +84,9 @@ async function render_invoice_payment_route(frm) {
 		})
 		.join("");
 	const origin = route.source
-		? `<div class="payment-route-origin">${__(route.source_doctype || "Consolidated Purchase Order")}:
+		? `<div class="payment-route-origin${
+				frm.doctype === "Purchase Invoice" ? " purchase-invoice-route-origin" : ""
+		  }">${__(route.source_doctype || "Consolidated Purchase Order")}:
 		${erpnext.entity.html({
 			name: route.source,
 			icon: "file-text-o",

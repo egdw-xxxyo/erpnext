@@ -87,10 +87,10 @@ async function render_supplier_vat_display(frm) {
 	}
 	const escape = frappe.utils.escape_html;
 	const money = (amount) => escape(format_currency(amount, data.currency));
-	field.$wrapper.html(`<div style="margin:8px 0;font-size:var(--text-sm)">
-		<div>${__("Total payable")}: <strong>${money(data.totals.gross)}</strong></div>
-		<div>${__("Total excluding VAT")}: <strong>${money(data.totals.net)}</strong></div>
-		<div>${__("VAT")}: <strong>${money(data.totals.vat)}</strong></div>
+	field.$wrapper.html(`<div class="supplier-vat-totals">
+		<div><span>${__("Total payable")}</span> <strong>${money(data.totals.gross)}</strong></div>
+		<div><span>${__("Total excluding VAT")}</span> <strong>${money(data.totals.net)}</strong></div>
+		<div><span>${__("VAT")}</span> <strong>${money(data.totals.vat)}</strong></div>
 	</div>`);
 	if (item) {
 		render_supplier_vat_price_hint(grid);

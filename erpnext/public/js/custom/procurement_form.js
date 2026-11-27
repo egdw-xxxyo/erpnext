@@ -8,12 +8,14 @@
 	const material_request = "Material Request";
 	const payment_request = "Payment Request";
 	const payment_entry = "Payment Entry";
-	const doctypes = [consolidated, material_request, payment_request, payment_entry];
+	const purchase_invoice = "Purchase Invoice";
+	const doctypes = [consolidated, material_request, payment_request, payment_entry, purchase_invoice];
 	const new_titles = {
 		[consolidated]: "New Consolidated Purchase Order",
 		[material_request]: "New Material Request",
 		[payment_request]: "New Payment Request",
 		[payment_entry]: "New Payment Entry",
+		[purchase_invoice]: "New Incoming Invoice",
 	};
 
 	function is_standard(doctype) {
@@ -151,9 +153,12 @@
 		const form_view = {
 			[payment_request]: erpnext.payment_request_form,
 			[payment_entry]: erpnext.payment_entry_form,
+			[purchase_invoice]: erpnext.purchase_invoice_form,
 		}[frm.doctype];
 		const wrapper = $(frm.wrapper);
 		wrapper.toggleClass(scope, enabled).off("dirty.procurement-form");
+		wrapper.toggleClass("procurement-consolidated-form", enabled && is_consolidated);
+		wrapper.toggleClass("procurement-purchase-invoice-form", enabled && frm.doctype === purchase_invoice);
 		update_dialog_theme();
 		if (is_consolidated) frm.trigger("render_supplier_invoice_actions");
 		frm.body.find(".procurement-section-caption").remove();
@@ -179,7 +184,8 @@
 		wrapper.on("dirty.procurement-form", () => update_header(frm));
 		update_header(frm);
 		if (is_consolidated) frm.trigger("render_procurement_users");
-		else if (frm.doctype !== payment_request) update_request_owner(frm);
+		else if (frm.doctype !== payment_request && frm.doctype !== purchase_invoice)
+			update_request_owner(frm);
 		form_view?.apply(frm, true);
 	}
 

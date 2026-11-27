@@ -195,11 +195,7 @@ function render_supplier_requisites_validation(frm) {
 			}
 			set_supplier_requisites_visibility(frm, result);
 			field.$wrapper.html(
-				build_supplier_requisites_validation_html(
-					result,
-					frm.doc.docstatus === 0,
-					frm.doctype === "Payment Request"
-				)
+				build_supplier_requisites_validation_html(result, frm.doc.docstatus === 0, frm.doctype)
 			);
 			place_supplier_requisites_validation_last(frm);
 			render_supplier_requisite_field_indicators(frm, result);
@@ -227,7 +223,7 @@ function set_supplier_requisites_visibility(frm, result) {
 	);
 }
 
-function build_supplier_requisites_validation_html(result, allowSupplierUpdate, paymentRequest) {
+function build_supplier_requisites_validation_html(result, allowSupplierUpdate, doctype) {
 	if (!result.applicable) return "";
 	const checks = result.checks || [];
 	const showChecksTable = Boolean(
@@ -263,12 +259,12 @@ function build_supplier_requisites_validation_html(result, allowSupplierUpdate, 
 	const tableHtml = showChecksTable
 		? build_supplier_requisites_table(checks, (result.files || []).length > 1)
 		: "";
-	const details = paymentRequest
+	const details = ["Payment Request", "Purchase Invoice"].includes(doctype)
 		? `${build_supplier_requisites_details(
 				checks,
 				filesHtml,
 				(result.files || []).length > 1,
-				summary.level
+				doctype === "Payment Request" && summary.level !== "success"
 		  )}
 			<div class="supplier-requisites-full">${filesHtml}${tableHtml}</div>`
 		: filesHtml + tableHtml;
@@ -310,7 +306,7 @@ function build_supplier_requisites_table(checks, showMatchedFiles) {
 		</div>`;
 }
 
-function build_supplier_requisites_details(checks, filesHtml, showMatchedFiles, level) {
+function build_supplier_requisites_details(checks, filesHtml, showMatchedFiles, expanded) {
 	const escape = frappe.utils.escape_html;
 	const cards = checks
 		.map((check) => {
@@ -328,7 +324,7 @@ function build_supplier_requisites_details(checks, filesHtml, showMatchedFiles, 
 			</li>`;
 		})
 		.join("");
-	return `<details class="supplier-requisites-compact"${level === "success" ? "" : " open"}>
+	return `<details class="supplier-requisites-compact"${expanded ? " open" : ""}>
 		<summary>${__("Verification details")}</summary>
 		<div class="supplier-requisites-compact-content">
 			${filesHtml}
@@ -688,7 +684,10 @@ function render_supplier_invoice_files(frm) {
 	frm.__supplier_invoice_files_request_id = requestId;
 	const update_invoice_links =
 		frm.doctype === "Payment Entry" && erpnext.payment_entry_form?.update_invoice_links;
+	const update_purchase_invoice_files =
+		frm.doctype === "Purchase Invoice" && erpnext.purchase_invoice_form?.update_invoice_files;
 	if (update_invoice_links) update_invoice_links(frm, [], false);
+	if (update_purchase_invoice_files) update_purchase_invoice_files(frm, false);
 	const args = get_supplier_invoice_file_args(frm);
 	if (!args) {
 		const message =
@@ -714,6 +713,7 @@ function render_supplier_invoice_files(frm) {
 			set_supplier_invoice_files_html(frm, build_supplier_invoice_files_html(groups));
 			expand_purchase_invoice_supplier_section(frm, has_files);
 			if (update_invoice_links) update_invoice_links(frm, result?.purchase_invoices || [], has_files);
+			if (update_purchase_invoice_files) update_purchase_invoice_files(frm, has_files);
 		},
 	});
 }
@@ -900,20 +900,23 @@ function add_supplier_detail_copy_button(frm, fieldname) {
 }
 
 async function render_supplier_vat(frm) {
+	const doc = frm.doc;
 	const supplier =
-		frm.doctype === "Purchase Invoice"
-			? frm.doc.supplier
-			: frm.doc.party_type === "Supplier"
-			? frm.doc.party
-			: null;
+		frm.doctype === "Purchase Invoice" ? doc.supplier : doc.party_type === "Supplier" ? doc.party : null;
 	const requestId = (frm.__supplier_vat_request_id || 0) + 1;
 	frm.__supplier_vat_request_id = requestId;
 	const response = supplier
 		? await frappe.db.get_value("Supplier", supplier, ["custom_is_vat_payer", "tax_id", "edrpou"])
 		: { message: {} };
-	if (requestId !== frm.__supplier_vat_request_id) return;
+	if (frm.doc !== doc || requestId !== frm.__supplier_vat_request_id) return;
 	frm.doc.custom_supplier_is_vat_payer = cint(response.message?.custom_is_vat_payer);
 	frm.refresh_field("custom_supplier_is_vat_payer");
+	if (frm.doctype === "Purchase Invoice") {
+		erpnext.purchase_invoice_form?.update_supplier_vat(
+			frm,
+			Boolean(frm.doc.custom_supplier_is_vat_payer)
+		);
+	}
 	if (frm.doctype === "Payment Request") {
 		for (const key of ["tax_id", "edrpou"]) {
 			frm.doc[`custom_party_${key}`] = response.message?.[key] || "";
