@@ -127,7 +127,7 @@
    "fieldname": "verified_by",
    "fieldtype": "Select",
    "label": "Verified By",
-   "options": "\nConsole\nOperator",
+   "options": "\nConsole\nOperator\nUSB",
    "read_only": 1
   },
   {

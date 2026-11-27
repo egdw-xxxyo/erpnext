@@ -18272,3 +18272,17 @@ Serial number template of {0} has no board serial prefix,Шаблон серій
 Board serial prefix {0} must be 6 characters A-Z or 0-9,Префікс серійного номера плати {0} має містити 6 символів A-Z або 0-9
 Board serial numbers with prefix {0} are used up,Номери плат з префіксом {0} вичерпано
 No unit carries board serial {0},Жоден виріб не має серійного номера плати {0}
+USB,USB
+Not a UF2 file,Це не файл UF2
+The board has no PICOBOOT interface,У плати немає інтерфейсу PICOBOOT
+Verification failed at {0},Перевірка не пройшла за адресою {0}
+Board in BOOTSEL mode connected,Плату в режимі BOOTSEL підключено
+Waiting for a board in BOOTSEL mode,Очікування плати в режимі BOOTSEL
+Connect board,Підключити плату
+Flash automatically when a board is connected,Прошивати автоматично при підключенні плати
+Flash over USB,Прошити по USB
+Writing,Запис
+Verifying,Перевірка
+Restarting the board…,Перезапуск плати…
+Live log,Живий журнал
+Not stored. Gone on reload,Не зберігається. Зникає після перезавантаження

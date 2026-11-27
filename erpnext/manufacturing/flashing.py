@@ -386,7 +386,7 @@ def confirm(attempt, console_line=None, verified_by="Operator"):
 					frappe.bold(expected), frappe.bold(console_line or "-")
 				)
 			)
-	elif verified_by != "Operator":
+	elif verified_by not in ("Operator", "USB"):
 		frappe.throw(_("Unknown verification {0}").format(verified_by))
 
 	card = frappe.get_doc("Job Card", attempt.job_card)

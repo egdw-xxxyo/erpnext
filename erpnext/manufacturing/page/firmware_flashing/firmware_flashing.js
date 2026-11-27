@@ -1,5 +1,238 @@
 const FLASH_API = "erpnext.manufacturing.flashing";
 
+const BOOTSEL_FILTER = { vendorId: 0x2e8a, productId: 0x0003 };
+const PICOBOOT_MAGIC = 0x431fd10b;
+const PICOBOOT_SECTOR = 4096;
+
+// Flattens a UF2 image into one buffer aligned to flash sectors (gaps stay 0xFF).
+function uf2_to_flash(buffer) {
+	if (buffer.byteLength % 512) {
+		throw new Error(__("Not a UF2 file"));
+	}
+	const view = new DataView(buffer);
+	const blocks = [];
+	for (let off = 0; off < buffer.byteLength; off += 512) {
+		if (
+			view.getUint32(off, true) !== 0x0a324655 ||
+			view.getUint32(off + 4, true) !== 0x9e5d5157 ||
+			view.getUint32(off + 508, true) !== 0x0ab16f30
+		) {
+			throw new Error(__("Not a UF2 file"));
+		}
+		if (view.getUint32(off + 8, true) & 1) continue;
+		const size = view.getUint32(off + 16, true);
+		blocks.push({
+			address: view.getUint32(off + 12, true),
+			data: new Uint8Array(buffer, off + 32, size),
+		});
+	}
+	if (!blocks.length) throw new Error(__("Not a UF2 file"));
+
+	const low = Math.min(...blocks.map((b) => b.address));
+	const high = Math.max(...blocks.map((b) => b.address + b.data.length));
+	const start = Math.floor(low / PICOBOOT_SECTOR) * PICOBOOT_SECTOR;
+	const end = Math.ceil(high / PICOBOOT_SECTOR) * PICOBOOT_SECTOR;
+	const data = new Uint8Array(end - start).fill(0xff);
+	blocks.forEach((b) => data.set(b.data, b.address - start));
+	return { start, data };
+}
+
+const PICOBOOT_COMMANDS = {
+	1: "EXCLUSIVE_ACCESS",
+	2: "REBOOT",
+	3: "FLASH_ERASE",
+	4: "READ",
+	5: "WRITE",
+	6: "EXIT_XIP",
+	7: "ENTER_CMD_XIP",
+};
+
+function describe_device(d) {
+	return `${d.productName || "USB device"} ${d.vendorId.toString(16)}:${d.productId.toString(16)} serial ${
+		d.serialNumber || "-"
+	}`;
+}
+
+// PICOBOOT: the RP2040 boot ROM's USB interface, spoken straight over WebUSB.
+class Picoboot {
+	constructor(device, log) {
+		this.device = device;
+		this.token = 1;
+		this.log = log || (() => {});
+	}
+
+	async open() {
+		const device = this.device;
+		this.log(`open ${describe_device(device)}`);
+		await device.open();
+		if (!device.configuration) {
+			this.log("no configuration selected, selecting 1");
+			await device.selectConfiguration(1);
+		}
+		for (const iface of device.configuration.interfaces) {
+			this.log(
+				`interface ${iface.interfaceNumber}: ` +
+					iface.alternates
+						.map(
+							(a) =>
+								`class 0x${a.interfaceClass.toString(16)} endpoints [` +
+								a.endpoints
+									.map((e) => `${e.direction}/${e.type}/${e.endpointNumber}`)
+									.join(", ") +
+								"]"
+						)
+						.join("; ")
+			);
+			const alt = iface.alternates.find((a) => a.interfaceClass === 0xff);
+			if (!alt) continue;
+			this.interface_number = iface.interfaceNumber;
+			this.ep_out = alt.endpoints.find((e) => e.direction === "out" && e.type === "bulk");
+			this.ep_in = alt.endpoints.find((e) => e.direction === "in" && e.type === "bulk");
+		}
+		if (this.interface_number === undefined || !this.ep_out || !this.ep_in) {
+			throw new Error(__("The board has no PICOBOOT interface"));
+		}
+		this.log(
+			`using interface ${this.interface_number}, out ep ${this.ep_out.endpointNumber}, in ep ${this.ep_in.endpointNumber}`
+		);
+		await device.claimInterface(this.interface_number);
+		this.log("interface claimed, resetting PICOBOOT state (0x41)");
+		await device.controlTransferOut({
+			requestType: "vendor",
+			recipient: "interface",
+			request: 0x41,
+			value: 0,
+			index: this.interface_number,
+		});
+	}
+
+	async close() {
+		this.log("releasing interface");
+		try {
+			await this.device.releaseInterface(this.interface_number);
+		} catch (e) {
+			// the board already rebooted
+		}
+		try {
+			await this.device.close();
+		} catch (e) {
+			// same
+		}
+	}
+
+	async status_text() {
+		try {
+			const r = await this.device.controlTransferIn(
+				{
+					requestType: "vendor",
+					recipient: "interface",
+					request: 0x42,
+					value: 0,
+					index: this.interface_number,
+				},
+				16
+			);
+			return `status ${r.data.getUint32(4, true)}, command ${r.data.getUint8(8)}`;
+		} catch (e) {
+			return "";
+		}
+	}
+
+	check(result, what) {
+		if (result.status !== "ok") {
+			this.log(`${what} failed: ${result.status}`, "error");
+			throw new Error(`${what}: ${result.status}`);
+		}
+		return result;
+	}
+
+	async command(id, size, args, length, out_data) {
+		const buffer = new ArrayBuffer(32);
+		const view = new DataView(buffer);
+		view.setUint32(0, PICOBOOT_MAGIC, true);
+		view.setUint32(4, this.token++, true);
+		view.setUint8(8, id);
+		view.setUint8(9, size);
+		view.setUint32(12, length || 0, true);
+		(args || []).forEach((a, i) => view.setUint32(16 + i * 4, a, true));
+		if (!length || this.log_all) {
+			const name = PICOBOOT_COMMANDS[id] || id;
+			this.log(
+				`cmd ${name} args [${(args || []).map((a) => "0x" + a.toString(16)).join(", ")}] length ${
+					length || 0
+				}`
+			);
+		}
+
+		try {
+			this.check(await this.device.transferOut(this.ep_out.endpointNumber, buffer), "command");
+			if (!length) {
+				this.check(await this.device.transferIn(this.ep_in.endpointNumber, 1), "ack");
+				return null;
+			}
+			if (out_data) {
+				this.check(await this.device.transferOut(this.ep_out.endpointNumber, out_data), "write");
+				this.check(await this.device.transferIn(this.ep_in.endpointNumber, 1), "ack");
+				return null;
+			}
+			const result = this.check(
+				await this.device.transferIn(this.ep_in.endpointNumber, length),
+				"read"
+			);
+			this.check(await this.device.transferOut(this.ep_out.endpointNumber, new ArrayBuffer(0)), "ack");
+			return new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+		} catch (e) {
+			throw new Error(`${e.message} (${await this.status_text()})`);
+		}
+	}
+
+	async flash(image, progress) {
+		const { start, data } = image;
+		this.log(`image: 0x${start.toString(16)} + ${data.length} bytes`);
+		await this.command(1, 1, [1]);
+		await this.command(6, 0);
+		this.log("erasing flash (can take a few seconds)");
+		await this.command(3, 8, [start, data.length]);
+		this.log("erase done");
+
+		let written = 0;
+		for (let off = 0; off < data.length; off += PICOBOOT_SECTOR) {
+			const chunk = data.subarray(off, off + PICOBOOT_SECTOR);
+			if (chunk.every((b) => b === 0xff)) continue;
+			await this.command(5, 8, [start + off, chunk.length], chunk.length, chunk.slice());
+			written++;
+			if (written % 32 === 1)
+				this.log(`written ${written} blocks, now at 0x${(start + off).toString(16)}`);
+			progress("write", off / data.length);
+		}
+		this.log(`write done: ${written} non-empty blocks of ${data.length / PICOBOOT_SECTOR}`);
+
+		await this.command(7, 0);
+		this.log("reading flash back to verify");
+		for (let off = 0; off < data.length; off += PICOBOOT_SECTOR) {
+			const want = data.subarray(off, off + PICOBOOT_SECTOR);
+			const got = await this.command(4, 8, [start + off, want.length], want.length);
+			for (let i = 0; i < want.length; i++) {
+				if (got[i] !== want[i]) {
+					throw new Error(
+						__("Verification failed at {0}", ["0x" + (start + off + i).toString(16)])
+					);
+				}
+			}
+			progress("verify", off / data.length);
+		}
+		this.log("verify OK: flash matches the image", "ok");
+	}
+
+	async reboot() {
+		try {
+			await this.command(2, 12, [0, 0x20042000, 100]);
+		} catch (e) {
+			this.log(`reboot ack not received (expected, the board left the bus): ${e.message}`);
+		}
+	}
+}
+
 frappe.pages["firmware-flashing"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
@@ -15,7 +248,12 @@ class FirmwareFlashing {
 		this.$root = $('<div class="firmware-flashing"></div>').appendTo(wrapper);
 		this.workplace = localStorage.getItem("firmware_flashing_workplace") || "";
 		this.current = null;
-		this.busy = false;
+		this.flashing = false;
+		this.usb_device = null;
+		this.skip_device = null;
+		this.auto = localStorage.getItem("firmware_flashing_auto") === "1";
+		this.log_lines = [];
+		this.setup_usb();
 
 		this.workplace_field = page.add_field({
 			fieldname: "workplace",
@@ -46,8 +284,223 @@ class FirmwareFlashing {
 		});
 	}
 
+	log(message, level) {
+		const stamp = new Date().toLocaleTimeString("en-GB", { hour12: false });
+		const ms = String(new Date().getMilliseconds()).padStart(3, "0");
+		this.log_lines.push({ text: `${stamp}.${ms}  ${message}`, level: level || "" });
+		if (this.log_lines.length > 400) this.log_lines.shift();
+		if (!this.$log) return;
+		const el = this.$log[0];
+		const stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+		this.$log.append(this.log_line_html(this.log_lines[this.log_lines.length - 1]));
+		while (this.$log.children().length > 400) this.$log.children().first().remove();
+		if (stick) el.scrollTop = el.scrollHeight;
+	}
+
+	log_line_html(line) {
+		const color =
+			line.level === "error" ? "var(--red-600)" : line.level === "ok" ? "var(--green-600)" : "inherit";
+		return $("<div></div>").css({ color, "white-space": "pre-wrap" }).text(line.text);
+	}
+
+	render_log() {
+		const $card = $(`
+			<div class="frappe-card" style="padding:12px 20px;margin-top:15px;">
+				<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+					<b>${__("Live log")}</b>
+					<span class="text-muted" style="font-size:12px;">${__("Not stored. Gone on reload")}</span>
+					<button class="btn btn-default btn-xs btn-clear-log">${__("Clear")}</button>
+				</div>
+				<div class="flash-log" style="font-family:monospace;font-size:12px;max-height:260px;overflow:auto;"></div>
+			</div>
+		`).appendTo(this.$root);
+		this.$log = $card.find(".flash-log");
+		this.log_lines.forEach((l) => this.$log.append(this.log_line_html(l)));
+		this.$log[0].scrollTop = this.$log[0].scrollHeight;
+		$card.find(".btn-clear-log").on("click", () => {
+			this.log_lines = [];
+			this.$log.empty();
+		});
+	}
+
+	setup_usb() {
+		if (!navigator.usb) {
+			this.log("WebUSB is not available in this browser (use Chrome or Edge over HTTPS)", "error");
+			return;
+		}
+		this.log("WebUSB available");
+		this.on_usb_connect = (e) => {
+			this.log(`USB connect event: ${describe_device(e.device)}`);
+			this.board_seen(e.device);
+		};
+		this.on_usb_disconnect = (e) => {
+			this.log(`USB disconnect event: ${describe_device(e.device)}`);
+			if (e.device === this.usb_device) this.usb_device = null;
+			if (e.device === this.skip_device) this.skip_device = null;
+			this.render_usb_bar();
+		};
+		navigator.usb.addEventListener("connect", this.on_usb_connect);
+		navigator.usb.addEventListener("disconnect", this.on_usb_disconnect);
+		navigator.usb.getDevices().then((devices) => {
+			this.log(
+				`already permitted devices: ${
+					devices.length ? devices.map(describe_device).join("; ") : "none"
+				}`
+			);
+			const board = devices.find((d) => this.is_bootsel(d));
+			if (board) this.board_seen(board);
+		});
+	}
+
+	alive() {
+		if (this.$root.closest("body").length) return true;
+		navigator.usb.removeEventListener("connect", this.on_usb_connect);
+		navigator.usb.removeEventListener("disconnect", this.on_usb_disconnect);
+		return false;
+	}
+
+	is_bootsel(device) {
+		return device.vendorId === BOOTSEL_FILTER.vendorId && device.productId === BOOTSEL_FILTER.productId;
+	}
+
+	board_seen(device) {
+		if (!this.alive()) return;
+		if (!this.is_bootsel(device)) {
+			this.log(`ignoring ${describe_device(device)}: not a BOOTSEL board (need 2e8a:0003)`);
+			return;
+		}
+		this.log(`BOOTSEL board ready: ${describe_device(device)}`, "ok");
+		this.usb_device = device;
+		this.render_usb_bar();
+		this.try_auto();
+	}
+
+	async connect_board() {
+		try {
+			this.log("opening the USB device picker");
+			const device = await navigator.usb.requestDevice({ filters: [BOOTSEL_FILTER] });
+			this.board_seen(device);
+		} catch (e) {
+			this.log(`device picker: ${e.message || e}`);
+		}
+	}
+
+	render_usb_bar() {
+		if (!navigator.usb) return;
+		if (!this.$usb_bar) {
+			this.$usb_bar = $('<div class="usb-bar" style="margin-bottom:15px;"></div>');
+		}
+		this.$usb_bar.prependTo(this.$root);
+		const connected = !!this.usb_device;
+		this.$usb_bar.html(`
+			<div class="frappe-card" style="padding:12px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+				<span style="color:${connected ? "var(--green-600)" : "var(--text-muted)"};">
+					<i class="fa fa-usb"></i>
+					${connected ? __("Board in BOOTSEL mode connected") : __("Waiting for a board in BOOTSEL mode")}
+				</span>
+				<button class="btn btn-default btn-xs btn-connect">${__("Connect board")}</button>
+				<label style="margin:0;display:flex;gap:6px;align-items:center;">
+					<input type="checkbox" class="chk-auto" ${this.auto ? "checked" : ""}>
+					${__("Flash automatically when a board is connected")}
+				</label>
+			</div>
+		`);
+		this.$usb_bar.find(".btn-connect").on("click", () => this.connect_board());
+		this.$usb_bar.find(".chk-auto").on("change", (e) => {
+			this.auto = e.target.checked;
+			this.log(`auto flash ${this.auto ? "on" : "off"}`);
+			localStorage.setItem("firmware_flashing_auto", this.auto ? "1" : "0");
+			this.try_auto();
+		});
+	}
+
+	async try_auto() {
+		if (!this.auto || !this.usb_device || !this.alive()) return;
+		const reason = this.flashing
+			? "a flash is already running"
+			: this.usb_device === this.skip_device
+			? "this board was already handled, replug it to flash again"
+			: !this.$root.is(":visible")
+			? "page is not visible"
+			: "";
+		if (reason) {
+			this.log(`auto flash skipped: ${reason}`);
+			return;
+		}
+		const device = this.usb_device;
+		this.flashing = true;
+		this.log("auto flash started");
+		try {
+			let c = this.current;
+			if (!c) {
+				this.log("taking the next board from the queue");
+				c = await frappe.xcall(FLASH_API + ".next_board", { workplace: this.workplace || null });
+				this.current = c;
+				await this.refresh();
+			}
+			await this.flash_usb(c, device);
+		} catch (e) {
+			this.skip_device = device;
+			const message = (e && (e.message || e._server_messages)) || String(e);
+			this.log(`auto flash failed: ${message}`, "error");
+			if (this.$status) this.set_status(message, "var(--red-600)");
+			else frappe.show_alert({ message: String(message), indicator: "red" });
+		} finally {
+			this.flashing = false;
+		}
+	}
+
+	async flash_usb(c, device) {
+		if (!this.$status) await this.refresh();
+		this.skip_device = device;
+		this.log(
+			`flashing ${c.board_serial} (${c.serial_no}), ${c.firmware} ${c.version}, job card ${c.job_card}`
+		);
+		this.set_status(__("Building the image…"));
+		const raw = await this.fetch_image(c);
+		this.log(`image from server: ${raw.byteLength} bytes (${raw.byteLength / 512} UF2 blocks)`);
+		const image = uf2_to_flash(raw);
+		const board = new Picoboot(device, (m, l) => this.log(m, l));
+		await board.open();
+		try {
+			await board.flash(image, (phase, done) => {
+				const label = phase === "write" ? __("Writing") : __("Verifying");
+				this.set_status(`${label} ${Math.round(done * 100)}%`);
+			});
+			this.set_status(__("Restarting the board…"));
+			await board.reboot();
+		} finally {
+			await board.close();
+		}
+		this.log("confirming on the server, closing the Job Card");
+		await this.confirm(c, "USB", null);
+		this.log(`${c.board_serial} done`, "ok");
+	}
+
+	async flash_usb_manual(c) {
+		if (this.flashing) return;
+		let device = this.usb_device;
+		if (!device) {
+			try {
+				device = await navigator.usb.requestDevice({ filters: [BOOTSEL_FILTER] });
+			} catch (e) {
+				return;
+			}
+			this.usb_device = device;
+		}
+		this.flashing = true;
+		try {
+			await this.flash_usb(c, device);
+		} catch (e) {
+			this.log(`flash failed: ${e.message || e}`, "error");
+			this.set_status(e.message || String(e), "var(--red-600)");
+		} finally {
+			this.flashing = false;
+		}
+	}
+
 	refresh() {
-		frappe.call({
+		return frappe.call({
 			method: FLASH_API + ".get_overview",
 			args: { workplace: this.workplace || null },
 			callback: (r) => {
@@ -60,12 +513,14 @@ class FirmwareFlashing {
 
 	render(data) {
 		this.$root.empty();
+		this.render_usb_bar();
 		if (this.current) {
 			this.render_board(this.current);
 		} else {
 			this.render_start(data);
 		}
 		this.render_tables(data);
+		this.render_log();
 	}
 
 	render_start(data) {
@@ -98,6 +553,7 @@ class FirmwareFlashing {
 	render_board(c) {
 		const esc = frappe.utils.escape_html;
 		const can_write = !!window.showDirectoryPicker;
+		const can_usb = !!navigator.usb;
 		const can_serial = !!navigator.serial && c.verify_mode === "Console";
 		const $box = $(`
 			<div class="frappe-card" style="padding:20px;margin-bottom:15px;">
@@ -111,8 +567,15 @@ class FirmwareFlashing {
 				<div class="flash-instructions" style="margin-bottom:15px;">${c.instructions || ""}</div>
 				<div class="flash-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
 					${
+						can_usb
+							? `<button class="btn btn-primary btn-usb"><i class="fa fa-usb"></i> ${__(
+									"Flash over USB"
+							  )}</button>`
+							: ""
+					}
+					${
 						can_write
-							? `<button class="btn btn-primary btn-write"><i class="fa fa-usb"></i> ${__(
+							? `<button class="btn btn-default btn-write"><i class="fa fa-usb"></i> ${__(
 									"Write to board"
 							  )}</button>`
 							: ""
@@ -136,6 +599,7 @@ class FirmwareFlashing {
 		`).appendTo(this.$root);
 
 		this.$status = $box.find(".flash-status");
+		$box.find(".btn-usb").on("click", () => this.flash_usb_manual(c));
 		$box.find(".btn-write").on("click", () => this.write_to_drive(c));
 		$box.find(".btn-download").on("click", () => this.download(c));
 		$box.find(".btn-verify").on("click", () => this.verify_console(c));
@@ -244,10 +708,10 @@ class FirmwareFlashing {
 	}
 
 	confirm(c, verified_by, console_line) {
-		frappe.call({
+		return frappe.call({
 			method: FLASH_API + ".confirm",
 			args: { attempt: c.attempt, verified_by, console_line },
-			freeze: true,
+			freeze: !this.flashing,
 			callback: () => {
 				frappe.show_alert({
 					message: __("{0} flashed. Stick the label {0}", [c.board_serial]),

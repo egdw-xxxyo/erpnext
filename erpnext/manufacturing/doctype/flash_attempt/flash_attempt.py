@@ -21,5 +21,5 @@ class FlashAttempt(Document):
 		serial_no: DF.Data | None
 		started_on: DF.Datetime | None
 		status: DF.Literal["In Progress", "Done", "Failed", "Released"]
-		verified_by: DF.Literal["", "Console", "Operator"]
+		verified_by: DF.Literal["", "Console", "Operator", "USB"]
 		workplace: DF.Link | None
