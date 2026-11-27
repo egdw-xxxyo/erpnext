@@ -232,7 +232,7 @@ def board_serial_for(serial_no, item_code):
 # --- endpoints -----------------------------------------------------------------------------
 
 
-@frappe.whitelist(methods=["GET"])
+@frappe.whitelist(methods=["GET", "POST"])
 def get_overview(workplace=None):
 	"""Boards waiting per firmware, the operator's open attempt and the latest attempts."""
 	_check_roles()
